@@ -20,7 +20,14 @@
  *   {{adjutancy}}, {{notice_code}}, {{notice_name}},
  *   {{rank}}, {{score}}, {{is_pcd}},
  *   {{date_to_assume}}, {{time_to_assume}},
- *   {{called_at}}, {{site_name}}, {{site_url}}, {{notes}}
+ *   {{called_at}}, {{site_name}}, {{site_url}}, {{notes}},
+ *   {{my_calls_url}}, {{set_password_url}}, {{respond_by_line}},
+ *   {{cancellation_reason}}
+ *
+ * The presentation date and time are formatted through `DateFormatter`
+ * as wall-clock values (#2245). The convocation also carries the call's
+ * `.ics` as an attachment and a password-set link, which is how a
+ * candidate whose account the import created gets in for the first time.
  *
  * `{{is_pcd}}` resolves to translatable `Yes` / `No` (English source so
  * pt-BR `.po` produces `Sim` / `Não`). Sensitive fields (CPF/RF/email)
@@ -114,6 +121,34 @@ final class RecruitmentEmailDispatcher {
 	 * @return bool True on send attempted; false on missing email.
 	 */
 	public static function send_for_call( int $call_id ): bool {
+		return self::send( $call_id, 'recruitment-convocation', true );
+	}
+
+	/**
+	 * Send the cancellation e-mail for a call that was just cancelled (#2245).
+	 *
+	 * Same pipeline, recipient and failure rule as {@see send_for_call()};
+	 * the `{{cancellation_reason}}` token carries the reason the operator
+	 * typed.
+	 *
+	 * @param int $call_id Cancelled call row ID.
+	 * @return bool True on send attempted; false on missing email.
+	 */
+	public static function send_for_cancellation( int $call_id ): bool {
+		return self::send( $call_id, 'recruitment-cancellation' );
+	}
+
+	/**
+	 * Render one recruitment e-mail for a call row and send it.
+	 *
+	 * @param int    $call_id    Call row ID.
+	 * @param string $template   Allowlisted template name.
+	 * @param bool   $convocation Whether this is the call itself, which
+	 *                            issues the password-set link and attaches
+	 *                            the `.ics`; a cancellation does neither.
+	 * @return bool True on send attempted; false when anything is missing.
+	 */
+	private static function send( int $call_id, string $template, bool $convocation = false ): bool {
 		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return false;
@@ -141,7 +176,16 @@ final class RecruitmentEmailDispatcher {
 			return false;
 		}
 
-		$tokens   = self::build_token_map( $candidate, $classification, $notice, $adjutancy, $call );
+		$tokens = self::build_token_map( $candidate, $classification, $notice, $adjutancy, $call );
+		if ( $convocation ) {
+			// Issued per send: issuing rotates the key, so the latest e-mail
+			// is the one that works (the reregistration precedent, #1212).
+			// A candidate with no account yet, or a key that could not be
+			// issued, gets "My calls" instead of a dead link.
+			$user_id                    = (int) ( $candidate->user_id ?? 0 );
+			$invite                     = $user_id > 0 ? \FreeFormCertificate\Core\PasswordInvite::issue_for( $user_id ) : '';
+			$tokens['set_password_url'] = '' === $invite ? $tokens['my_calls_url'] : $invite;
+		}
 		$settings = RecruitmentSettings::all();
 
 		// Subject + body now come from the global email-body hub (#964): the
@@ -150,15 +194,16 @@ final class RecruitmentEmailDispatcher {
 		// is the same text this email always used, so a default install is
 		// unchanged. Tokens then substitute as before.
 		$subject = self::render(
-			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'subject' ),
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $template, 'subject' ),
 			$tokens
 		);
 		// The editable body is the "email body": wrap it in the single configurable
 		// chrome ("Email Model") like every other plugin email (#662 PR-5). The
 		// text/plain alternative stays derived from the email body.
 		$email_body = self::render(
-			\FreeFormCertificate\Core\EmailTemplates::effective_body( 'recruitment-convocation', 'body' ),
-			$tokens
+			\FreeFormCertificate\Core\EmailTemplates::effective_body( $template, 'body' ),
+			$tokens,
+			true
 		);
 		$plain      = wp_strip_all_tags( $email_body );
 		$body       = self::ffc_email_document( $email_body, array( 'recipient' => $email_plain ) );
@@ -178,11 +223,43 @@ final class RecruitmentEmailDispatcher {
 		};
 		add_filter( 'wp_mail_alternative_text', $plain_filter );
 
-		\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers, array(), \FreeFormCertificate\Core\EmailSource::RECRUITMENT );
-
-		remove_filter( 'wp_mail_alternative_text', $plain_filter );
+		$ics_file = $convocation ? self::write_ics( $call, $classification ) : '';
+		try {
+			\FreeFormCertificate\Core\EmailService::send( $email_plain, $subject, $body, $headers, '' === $ics_file ? array() : array( $ics_file ), \FreeFormCertificate\Core\EmailSource::RECRUITMENT );
+		} finally {
+			remove_filter( 'wp_mail_alternative_text', $plain_filter );
+			if ( '' !== $ics_file && file_exists( $ics_file ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the temp .ics this method created, in its own finally block.
+				unlink( $ics_file );
+			}
+		}
 
 		return true;
+	}
+
+	/**
+	 * Write the call's `.ics` to a temporary file for the attachment.
+	 *
+	 * The file is the one "My calls" downloads, built by the same
+	 * {@see RecruitmentCallIcs::content()} (the audience e-mails' pattern).
+	 *
+	 * @param object $call           Call row.
+	 * @param object $classification Its classification row.
+	 * @phpstan-param CallRow           $call
+	 * @phpstan-param ClassificationRow $classification
+	 * @return string Path, or '' when there is nothing to attach.
+	 */
+	private static function write_ics( object $call, object $classification ): string {
+		$ics = RecruitmentCallIcs::content( $call, $classification );
+		if ( null === $ics ) {
+			return '';
+		}
+		$file = function_exists( 'wp_tempnam' ) ? wp_tempnam( 'ffc-call-' . (int) $call->id . '.ics' ) : tempnam( sys_get_temp_dir(), 'ffc-call-' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writes the generated .ics to a temp path for the mail attachment; WP_Filesystem would need credentials on a mail-send path.
+		if ( ! is_string( $file ) || '' === $file || false === file_put_contents( $file, $ics ) ) {
+			return '';
+		}
+		return $file;
 	}
 
 	/**
@@ -227,29 +304,76 @@ final class RecruitmentEmailDispatcher {
 		$rf_plain    = self::decrypt( $candidate->rf_encrypted ?? null );
 		$email_plain = self::decrypt_email( $candidate->email_encrypted ?? null );
 
-		$is_pcd = RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id );
+		// PCD of the classification being called, per notice (#2245).
+		$is_pcd = RecruitmentPcdHasher::row_is_pcd( $classification );
 
 		return array(
-			'name'           => $candidate->name,
-			'cpf_masked'     => null === $cpf_plain ? '' : DocumentFormatter::mask_cpf( $cpf_plain ),
-			'rf_masked'      => null === $rf_plain ? '' : DocumentFormatter::mask_rf( $rf_plain ),
-			'email_masked'   => null === $email_plain ? '' : DocumentFormatter::mask_email( $email_plain ),
-			'adjutancy'      => $adjutancy->name,
-			'notice_code'    => $notice->code,
-			'notice_name'    => $notice->name,
-			'rank'           => (string) $classification->rank,
-			'score'          => $classification->score,
-			'is_pcd'         => true === $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
-			'date_to_assume' => $call->date_to_assume,
-			'time_to_assume' => $call->time_to_assume,
+			'name'                => $candidate->name,
+			'cpf_masked'          => null === $cpf_plain ? '' : DocumentFormatter::mask_cpf( $cpf_plain ),
+			'rf_masked'           => null === $rf_plain ? '' : DocumentFormatter::mask_rf( $rf_plain ),
+			'email_masked'        => null === $email_plain ? '' : DocumentFormatter::mask_email( $email_plain ),
+			'adjutancy'           => $adjutancy->name,
+			'notice_code'         => $notice->code,
+			'notice_name'         => $notice->name,
+			'rank'                => (string) $classification->rank,
+			'score'               => $classification->score,
+			'is_pcd'              => $is_pcd ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
+			// Wall-clock values (Category B): the site's formats, no timezone shift.
+			'date_to_assume'      => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $call->date_to_assume ),
+			'time_to_assume'      => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $call->time_to_assume ),
 			// `called_at` is unix UTC int since 6.6.0 (#249 sub-escopo c). The
 			// {{called_at}} placeholder lands in user-facing emails, so format
 			// via DateFormatter so the site's date/time format applies.
-			'called_at'      => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ),
-			'site_name'      => wp_specialchars_decode( (string) get_option( 'blogname', '' ), ENT_QUOTES ),
-			'site_url'       => (string) get_option( 'siteurl', '' ),
-			'notes'          => null === $call->notes ? '' : $call->notes,
+			'called_at'           => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $call->called_at ),
+			'site_name'           => wp_specialchars_decode( (string) get_option( 'blogname', '' ), ENT_QUOTES ),
+			'site_url'            => (string) get_option( 'siteurl', '' ),
+			'notes'               => null === $call->notes ? '' : $call->notes,
+			'cancellation_reason' => $call->cancellation_reason ?? '',
+			'my_calls_url'        => self::my_calls_url(),
+			'set_password_url'    => '',
+			'respond_by_line'     => self::respond_by_line( $call ),
 		);
+	}
+
+	/**
+	 * The dashboard's Recruitment tab, where "My calls" lives.
+	 *
+	 * @return string
+	 */
+	private static function my_calls_url(): string {
+		// `get_option()` is mixed; anything that is not a page id falls back (#1060).
+		$page_id = get_option( 'ffc_dashboard_page_id' );
+		$base    = is_numeric( $page_id ) && (int) $page_id > 0 ? get_permalink( (int) $page_id ) : '';
+		if ( ! is_string( $base ) || '' === $base ) {
+			$base = home_url( '/dashboard' );
+		}
+		return add_query_arg( 'tab', 'recruitment', $base );
+	}
+
+	/**
+	 * The sentence naming the answer deadline, or '' when none is set.
+	 *
+	 * The deadline is `response_days` after the day of the call, in the
+	 * site's timezone, and never later than the presentation date.
+	 *
+	 * @param object $call Call row.
+	 * @phpstan-param CallRow $call
+	 * @return string
+	 */
+	private static function respond_by_line( object $call ): string {
+		$days = (int) RecruitmentSettings::get( 'response_days' );
+		if ( $days <= 0 ) {
+			return '';
+		}
+		$called = (int) $call->called_at;
+		$start  = ( new \DateTimeImmutable( '@' . ( $called > 0 ? $called : time() ) ) )->setTimezone( wp_timezone() );
+		$by     = $start->modify( '+' . $days . ' days' )->format( 'Y-m-d' );
+		$assume = (string) $call->date_to_assume;
+		if ( 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $assume ) && $assume < $by ) {
+			$by = $assume;
+		}
+		/* translators: %s: the date by which the candidate must answer */
+		return sprintf( __( 'Please answer by %s.', 'ffcertificate' ), \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $by ) );
 	}
 
 	/**
@@ -259,14 +383,20 @@ final class RecruitmentEmailDispatcher {
 	 * is visible in the rendered email — easier to spot than silent
 	 * empties. Token names are case-sensitive.
 	 *
+	 * The body is HTML, so every value is escaped there (#2245): the name
+	 * and the adjutancy come from an imported CSV, and an operator's call
+	 * notes and cancellation reason are free text. The subject is a plain
+	 * text header and takes the values as they are.
+	 *
 	 * @param string                $template Template string.
 	 * @param array<string, string> $tokens   Token → value map.
+	 * @param bool                  $html     Whether the template is HTML.
 	 * @return string
 	 */
-	private static function render( string $template, array $tokens ): string {
+	private static function render( string $template, array $tokens, bool $html = false ): string {
 		$replacements = array();
 		foreach ( $tokens as $key => $value ) {
-			$replacements[ '{{' . $key . '}}' ] = $value;
+			$replacements[ '{{' . $key . '}}' ] = $html ? esc_html( (string) $value ) : $value;
 		}
 		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, $replacements );
 	}

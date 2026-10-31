@@ -238,14 +238,18 @@ class RoleRegistrar {
 	/**
 	 * Remove the recruitment-manager role on plugin uninstall.
 	 *
-	 * Called from `uninstall.php` after the cap-stripping loop has cleared
-	 * `ffc_manage_recruitment` from any user that had been granted it
-	 * directly.
+	 * `uninstall.php` removes the role with `remove_role()` directly and
+	 * never calls this.
 	 *
 	 * @since 6.0.0
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function remove_recruitment_manager_role(): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		remove_role( CapabilityManager::RECRUITMENT_MANAGER_ROLE );
 	}
 

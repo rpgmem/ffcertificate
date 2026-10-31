@@ -921,7 +921,8 @@ describe('audience-admin — bookings CSV export', () => {
 		document.body.innerHTML = `
 			<button type="button" id="ffc-bookings-export-btn"
 				data-schedule_id="4" data-environment_id="3" data-status="active"
-				data-date_from="2026-05-01" data-date_to="2026-05-31">Export CSV</button>
+				data-date_from="2026-05-01" data-date_to="2026-05-31"
+				data-audience_id="12" data-s="sync">Export CSV</button>
 			<span id="ffc-bookings-export-progress" style="display:none;"></span>
 		`;
 		await reload();
@@ -939,6 +940,9 @@ describe('audience-admin — bookings CSV export', () => {
 			status: 'active',
 			date_from: '2026-05-01',
 			date_to: '2026-05-31',
+			// The list's audience filter and search ride along too (#2243).
+			audience_id: 12,
+			s: 'sync',
 		});
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.
@@ -984,5 +988,131 @@ describe('audience-admin — keep-at-least-one follows members-only', () => {
 		window.$('#audience_members_only').prop('checked', false).trigger('change');
 		expect(window.$('#audience_require_membership').prop('disabled')).toBe(true);
 		expect(window.$('#audience_require_membership').prop('checked')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// bindHolidayEdit — a holiday row edited in place (#2212)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — holiday edit row', () => {
+	function rows() {
+		document.body.innerHTML = `
+			<table><tbody>
+				<tr data-ffc-holiday-view="global-0">
+					<td>25/12/2026</td>
+					<td><button type="button" data-ffc-holiday-edit-open="global-0">Edit</button></td>
+				</tr>
+				<tr class="ffc-holiday-edit-row" data-ffc-holiday-edit="global-0" hidden>
+					<td colspan="4"><form>
+						<input type="date" name="holiday_edit_date" value="2026-12-25">
+						<input type="text" name="holiday_edit_description" value="Christmas">
+						<button type="button" data-ffc-holiday-cancel="global-0">Cancel</button>
+					</form></td>
+				</tr>
+				<tr data-ffc-holiday-view="global-1"><td>01/01/2027</td></tr>
+			</tbody></table>
+		`;
+	}
+	const $ = (sel) => window.$(sel);
+
+	it('Edit swaps the row for its edit row and focuses the date', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+
+		expect($('[data-ffc-holiday-view="global-0"]').prop('hidden')).toBe(true);
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(false);
+		expect($('[data-ffc-holiday-view="global-1"]').prop('hidden')).toBe(false);
+		expect(document.activeElement).toBe($('input[name="holiday_edit_date"]')[0]);
+	});
+
+	it('Cancel puts the stored values back and shows the row again', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+		$('input[name="holiday_edit_description"]').val('Changed');
+		$('[data-ffc-holiday-cancel="global-0"]').trigger('click');
+
+		expect($('input[name="holiday_edit_description"]').val()).toBe('Christmas');
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(true);
+		expect($('[data-ffc-holiday-view="global-0"]').prop('hidden')).toBe(false);
+		expect(document.activeElement).toBe($('[data-ffc-holiday-edit-open="global-0"]')[0]);
+	});
+
+	it('Escape inside the edit row cancels it', async () => {
+		rows();
+		await reload();
+
+		$('[data-ffc-holiday-edit-open="global-0"]').trigger('click');
+		$('input[name="holiday_edit_date"]').val('2026-12-24');
+		$('input[name="holiday_edit_date"]').trigger(window.$.Event('keydown', { key: 'Escape' }));
+
+		expect($('input[name="holiday_edit_date"]').val()).toBe('2026-12-25');
+		expect($('[data-ffc-holiday-edit="global-0"]').prop('hidden')).toBe(true);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Bulk cancel on the bookings list (#2243)
+// ----------------------------------------------------------------------
+
+describe('audience-admin — bulk cancel', () => {
+	function mountList() {
+		document.body.innerHTML = `
+			<button type="button" id="ffc-bookings-bulk-cancel" disabled>Cancel selected</button>
+			<input type="checkbox" id="ffc-bookings-select-all">
+			<input type="checkbox" class="ffc-bookings-select" value="11">
+			<input type="checkbox" class="ffc-bookings-select" value="12">
+		`;
+	}
+
+	it('enables the button once a booking is ticked, and select-all ticks every row', async () => {
+		mountList();
+		await reload();
+		const $ = window.$;
+
+		expect($('#ffc-bookings-bulk-cancel').prop('disabled')).toBe(true);
+		$('.ffc-bookings-select').first().prop('checked', true).trigger('change');
+		expect($('#ffc-bookings-bulk-cancel').prop('disabled')).toBe(false);
+
+		$('#ffc-bookings-select-all').prop('checked', true).trigger('change');
+		expect($('.ffc-bookings-select:checked').length).toBe(2);
+	});
+
+	it('asks for a reason in the warning and sends the ticked ids with it', async () => {
+		mountList();
+		window.ffcAudienceAdmin.strings.bulkCancelSentence = '%d bookings will be cancelled.';
+		await reload();
+		const $ = window.$;
+		const confirm = vi.spyOn(window.FFC, 'overrideConfirm').mockResolvedValue('Building closed');
+		const request = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+
+		$('#ffc-bookings-select-all').prop('checked', true).trigger('change');
+		$('#ffc-bookings-bulk-cancel').trigger('click');
+		await flush();
+
+		const opts = confirm.mock.calls[0][0];
+		expect(opts.reasons).toEqual(['2 bookings will be cancelled.']);
+		expect(opts.agreeCategory).toBe('danger');
+		expect(opts.reasonField.label).toBe('Cancel Reason');
+		expect(request.mock.calls[0][0]).toBe('ffc_audience_cancel_bookings');
+		expect(request.mock.calls[0][1]).toEqual({ booking_ids: ['11', '12'], reason: 'Building closed' });
+	});
+
+	it('sends nothing when the warning is dismissed', async () => {
+		mountList();
+		await reload();
+		const $ = window.$;
+		vi.spyOn(window.FFC, 'overrideConfirm').mockResolvedValue(false);
+		const request = vi.spyOn(window.FFC, 'request');
+
+		$('.ffc-bookings-select').first().prop('checked', true).trigger('change');
+		$('#ffc-bookings-bulk-cancel').trigger('click');
+		await flush();
+
+		expect(request).not.toHaveBeenCalled();
 	});
 });

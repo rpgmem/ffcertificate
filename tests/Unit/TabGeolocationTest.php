@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabGeolocation;
@@ -18,7 +17,6 @@ use FreeFormCertificate\Settings\Tabs\TabGeolocation;
  * Reflection, get_default_settings, and get_settings.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabGeolocation
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabGeolocationTest extends TestCase {
@@ -28,9 +26,27 @@ class TabGeolocationTest extends TestCase {
 	/** @var TabGeolocation */
 	private $tab;
 
+	/** @var array<string, mixed> Superglobal backups. */
+	private array $get_backup  = array();
+	private array $post_backup = array();
+
+	/** @var array<string, mixed> In-memory wp_options the real registry reads. */
+	private array $options = array();
+
+	/** @var list<array{0: string, 1: mixed}> update_option() calls, in order. */
+	private array $writes = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
+		$this->options     = array();
+		$this->writes      = array();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -79,8 +95,65 @@ class TabGeolocationTest extends TestCase {
 		unset( $_POST['ipinfo_api_key'], $_POST['ip_cache_enabled'], $_POST['ip_cache_ttl'] );
 		unset( $_POST['gps_cache_ttl'], $_POST['gps_accuracy_tolerance'], $_POST['gps_weak_share'], $_POST['admin_bypass_datetime'], $_POST['admin_bypass_geo'] );
 		unset( $_POST['main_geo_areas'] );
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Back get_option()/update_option() with an in-memory store, so the real
+	 * GeofenceLocationRegistry (an option-backed registry) runs unmocked.
+	 *
+	 * @param array<string, mixed> $options Options stored before the act.
+	 */
+	private function use_option_store( array $options ): void {
+		$this->options = $options;
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				return array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				$this->writes[]        = array( $key, $value );
+				$this->options[ $key ] = $value;
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Keys written through update_option(), in order.
+	 *
+	 * @return list<string>
+	 */
+	private function written_keys(): array {
+		return array_map(
+			static function ( $write ) {
+				return $write[0];
+			},
+			$this->writes
+		);
+	}
+
+	/**
+	 * A stored location as GeofenceLocationRegistry::save() leaves it.
+	 *
+	 * @param string $id   Location id.
+	 * @param string $name Location name.
+	 * @return array<string, mixed>
+	 */
+	private static function stored_location( string $id, string $name ): array {
+		return array(
+			'id'          => $id,
+			'name'        => $name,
+			'lat'         => 1.0,
+			'lng'         => 2.0,
+			'radius'      => 100.0,
+			'default_gps' => false,
+			'default_ip'  => false,
+		);
 	}
 
 	// ==================================================================
@@ -647,10 +720,14 @@ class TabGeolocationTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'remove_query_arg' )->justReturn( 'https://example.com/settings' );
-		Functions\when( 'wp_safe_redirect' )->justReturn( true );
-
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'delete' )->once()->with( 'loc1' )->andReturn( true );
+		$this->use_option_store(
+			array(
+				'ffc_geofence_locations' => array(
+					self::stored_location( 'loc1', 'Doomed' ),
+					self::stored_location( 'loc2', 'Kept' ),
+				),
+			)
+		);
 
 		// The real method calls exit; after the redirect. Intercept it so the
 		// test process survives and we can assert the redirect happened.
@@ -667,7 +744,13 @@ class TabGeolocationTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'redirected', $e->getMessage() );
 		}
-		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+
+		// The real registry deleted loc1, exactly once, and kept loc2.
+		$this->assertSame( array( 'ffc_geofence_locations' ), $this->written_keys() );
+		$this->assertSame(
+			array( self::stored_location( 'loc2', 'Kept' ) ),
+			$this->options['ffc_geofence_locations']
+		);
 	}
 
 	public function test_handle_location_delete_blocks_view_only_user(): void {
@@ -679,9 +762,8 @@ class TabGeolocationTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'wp_die' )->alias( function () { throw new \RuntimeException( 'wp_die' ); } );
-
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'delete' )->never();
+		$stored = array( self::stored_location( 'loc1', 'Protected' ) );
+		$this->use_option_store( array( 'ffc_geofence_locations' => $stored ) );
 
 		$ref = new \ReflectionMethod( TabGeolocation::class, 'handle_location_delete' );
 		$ref->setAccessible( true );
@@ -692,7 +774,10 @@ class TabGeolocationTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'wp_die', $e->getMessage() );
 		}
-		unset( $_GET['ffc_delete_location'], $_GET['_wpnonce'] );
+
+		// Nothing was written: the registry was never asked to delete.
+		$this->assertSame( array(), $this->writes );
+		$this->assertSame( $stored, $this->options['ffc_geofence_locations'] );
 	}
 
 	// ==================================================================
@@ -719,50 +804,40 @@ class TabGeolocationTest extends TestCase {
 		$_POST['ffc_location_default_ip']  = 'loc1';
 
 		Functions\when( 'sanitize_text_field' )->returnArg();
-
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$saved = array();
-		$registry->shouldReceive( 'save' )->andReturnUsing( function ( $loc ) use ( &$saved ) {
-			$saved[] = $loc;
-			return $loc['id'] ?? 'new-id';
-		} );
-		// Known id resolves; the "ghost" id returns null → skipped.
-		$registry->shouldReceive( 'get_by_id' )->with( 'loc1' )->andReturn( array( 'id' => 'loc1' ) );
-		$registry->shouldReceive( 'get_by_id' )->with( 'ghost' )->andReturnNull();
+		Functions\when( 'wp_generate_uuid4' )->justReturn( 'new-id' );
+		// Known id resolves; the "ghost" id is not stored → skipped.
+		$this->use_option_store(
+			array( 'ffc_geofence_locations' => array( self::stored_location( 'loc1', 'Old name' ) ) )
+		);
 
 		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
 		// One new save + one existing update (ghost skipped) = 2 saves.
-		$this->assertCount( 2, $saved );
-		$this->assertSame( 'HQ', $saved[0]['name'] );
-		$this->assertFalse( $saved[0]['default_gps'] );
-		$this->assertSame( 'loc1', $saved[1]['id'] );
-		$this->assertTrue( $saved[1]['default_gps'] );
-		$this->assertTrue( $saved[1]['default_ip'] );
-
-		unset(
-			$_POST['ffc_location_new'],
-			$_POST['ffc_locations'],
-			$_POST['ffc_location_default_gps'],
-			$_POST['ffc_location_default_ip']
-		);
+		$this->assertSame( array( 'ffc_geofence_locations', 'ffc_geofence_locations' ), $this->written_keys() );
+		$stored = $this->options['ffc_geofence_locations'];
+		$this->assertCount( 2, $stored );
+		$this->assertSame( 'loc1', $stored[0]['id'] );
+		$this->assertSame( 'Branch', $stored[0]['name'] );
+		$this->assertTrue( $stored[0]['default_gps'] );
+		$this->assertTrue( $stored[0]['default_ip'] );
+		$this->assertSame( 'loc_new-id', $stored[1]['id'] );
+		$this->assertSame( 'HQ', $stored[1]['name'] );
+		$this->assertFalse( $stored[1]['default_gps'] );
+		$this->assertFalse( $stored[1]['default_ip'] );
 	}
 
 	public function test_save_locations_skips_blank_new_name(): void {
 		$_POST['ffc_location_new'] = array( 'name' => '   ' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
-
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'save' )->never();
+		$this->use_option_store( array() );
 
 		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_locations' );
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
-		$this->assertTrue( true );
-		unset( $_POST['ffc_location_new'] );
+		$this->assertSame( array(), $this->writes, 'A blank new name must not reach the registry' );
 	}
 
 	// ==================================================================
@@ -809,8 +884,7 @@ class TabGeolocationTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( array() );
+		$this->use_option_store( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
 			return array_merge( $defaults, $args );
@@ -828,13 +902,6 @@ class TabGeolocationTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( 'q' );
 		Functions\when( 'number_format_i18n' )->returnArg();
 
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'get_all' )->andReturn( array() );
-		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
-		$registry->shouldReceive( 'save' )->andReturn( 'id' );
-		$registry->shouldReceive( 'get_by_id' )->andReturnNull();
-
 		ob_start();
 		try {
 			$this->tab->render();
@@ -842,6 +909,7 @@ class TabGeolocationTest extends TestCase {
 			$output = ob_get_clean();
 		}
 
+		$this->assertContains( 'ffc_geolocation_settings', $this->written_keys() );
 		$this->assertStringContainsString( 'Geolocation settings saved successfully!', $output );
 		$this->assertStringContainsString( 'name="ffc_save_geolocation"', $output, 'render() must go on to include the shipped view after saving' );
 	}
@@ -858,19 +926,11 @@ class TabGeolocationTest extends TestCase {
 
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'get_current_user_id' )->justReturn( 2 );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
 			return array_merge( $defaults, $args );
 		} );
-
-		$save_called = false;
-		Functions\when( 'update_option' )->alias( function ( $key ) use ( &$save_called ) {
-			if ( 'ffc_geolocation_settings' === $key ) {
-				$save_called = true;
-			}
-			return true;
-		} );
+		$this->use_option_store( array() );
 
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
@@ -884,12 +944,6 @@ class TabGeolocationTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( 'q' );
 		Functions\when( 'number_format_i18n' )->returnArg();
 
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'get_all' )->andReturn( array() );
-		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
-		$registry->shouldReceive( 'save' )->never();
-
 		ob_start();
 		try {
 			$this->tab->render();
@@ -897,7 +951,9 @@ class TabGeolocationTest extends TestCase {
 			$output = ob_get_clean();
 		}
 
-		$this->assertFalse( $save_called, 'View-only user must not persist settings' );
+		// No option at all was written: neither the settings nor the
+		// location registry.
+		$this->assertSame( array(), $this->writes, 'View-only user must not persist settings' );
 		$this->assertStringNotContainsString( 'Geolocation settings saved successfully!', $output );
 	}
 
@@ -905,7 +961,7 @@ class TabGeolocationTest extends TestCase {
 		unset( $_POST['ffc_save_geolocation'] );
 
 		// handle_location_delete() no-ops without the GET param.
-		Functions\when( 'get_option' )->justReturn( array() );
+		$this->use_option_store( array() );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
 			return array_merge( $defaults, $args );
 		} );
@@ -922,11 +978,6 @@ class TabGeolocationTest extends TestCase {
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'add_query_arg' )->justReturn( 'q' );
 		Functions\when( 'number_format_i18n' )->returnArg();
-
-		$registry = Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' );
-		$registry->shouldReceive( 'get_all' )->andReturn( array() );
-		$registry->shouldReceive( 'get_default_gps' )->andReturnNull();
-		$registry->shouldReceive( 'get_default_ip' )->andReturnNull();
 
 		ob_start();
 		try {

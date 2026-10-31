@@ -152,6 +152,9 @@ class CapabilityManager {
 		'ffc_import_recruitment',
 		'ffc_call_recruitment',
 		'ffc_view_recruitment_pii',
+		// Who made and cancelled each call (#2245): the module's Administrator
+		// tier and WordPress administrators only.
+		'ffc_view_recruitment_history',
 		'ffc_manage_recruitment_settings',
 		'ffc_manage_recruitment_reasons',
 
@@ -223,6 +226,14 @@ class CapabilityManager {
 		// `migrate_audiences_pii_cap_grant()` seeds it onto every current
 		// `ffc_manage_audiences` holder.
 		'ffc_view_audiences_pii',
+		// The client address on the two screens that show one outside a
+		// module record (#2109): the activity log, and the Rate Limit tab's
+		// top blocked addresses. Each shows the address masked and reveals
+		// it through its own cap, audited. The one-shot
+		// `migrate_ip_pii_caps_grant()` seeds each onto whoever views that
+		// screen today, so nobody loses the address on upgrade.
+		'ffc_view_activity_log_pii',
+		'ffc_view_settings_pii',
 
 		// URL shortener domain (GAP B). Its own view/manage pair so the
 		// Short URLs admin page is delegable without manage_options.
@@ -297,6 +308,11 @@ class CapabilityManager {
 		// `ffc_manage_url_shortener` holder, mirroring the activity-log split
 		// (`ffc_activity_log_export_cap_v1`).
 		'ffc_export_url_shortener',
+		// Recruitment export (#2245): the definitive list and the calls record
+		// of a notice. New with the export itself, so no grant migration: there
+		// is no earlier export to keep. It sits on the Recruitment Manager tier,
+		// which `RoleRegistrar::register_module_roles()` adds to stored roles.
+		'ffc_export_recruitment',
 
 		// Granular "import" tier (GAP H). Bulk CSV ingestion is split out of
 		// `manage` for the domains where loading external data is the most
@@ -432,6 +448,7 @@ class CapabilityManager {
 	public const ADMINISTRATOR_ONLY_CAPABILITIES = array(
 		'ffc_view_activity_log',
 		'ffc_export_activity_log',
+		'ffc_view_activity_log_pii',
 		'ffc_manage_identities',
 		'ffc_split_identities',
 		'ffc_merge_identities',
@@ -467,6 +484,25 @@ class CapabilityManager {
 			self::ADMIN_CAPABILITIES,
 			self::FUTURE_CAPABILITIES
 		);
+	}
+
+	/**
+	 * Whether an account is staff that a bulk operation must never rewrite
+	 * (#2242).
+	 *
+	 * A WordPress administrator, or anyone holding a `_pii` capability. The
+	 * second covers FFC Administrator and every module's Administrator and
+	 * Manager tier, because those are the tiers the PII caps sit on, so a new
+	 * module's roles are covered the day they ship. A reregistration import
+	 * resolving to one of these accounts would otherwise overwrite its name
+	 * and identifiers, and a takeover needs nothing more than that.
+	 *
+	 * @param int $user_id WordPress user ID.
+	 * @return bool
+	 */
+	public static function is_staff_account( int $user_id ): bool {
+		// One answer for every caller, Core's included (#2246).
+		return \FreeFormCertificate\Core\Capabilities::is_staff_account( $user_id );
 	}
 
 	/**
@@ -774,8 +810,13 @@ class CapabilityManager {
 	 * @param string $capability Capability name.
 	 * @param bool   $grant      Whether to grant (true) or revoke (false).
 	 * @return bool True on success
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function set_user_capability( int $user_id, string $capability, bool $grant ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$user = get_userdata( $user_id );
 
 		if ( ! $user ) {
@@ -814,8 +855,13 @@ class CapabilityManager {
 	 * @since 4.4.0
 	 * @param int $user_id WordPress user ID.
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function reset_user_ffc_capabilities( int $user_id ): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$user = get_userdata( $user_id );
 
 		if ( ! $user ) {
@@ -889,7 +935,7 @@ class CapabilityManager {
 
 		$recruitment_viewer   = array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' );
 		$recruitment_operator = array_merge( $recruitment_viewer, array( 'ffc_call_recruitment' ) );
-		$recruitment_manager  = array_merge( $recruitment_operator, array( 'ffc_manage_recruitment', 'ffc_import_recruitment', 'ffc_delete_recruitment', 'ffc_manage_recruitment_reasons', 'ffc_view_recruitment_pii' ) );
+		$recruitment_manager  = array_merge( $recruitment_operator, array( 'ffc_manage_recruitment', 'ffc_import_recruitment', 'ffc_delete_recruitment', 'ffc_manage_recruitment_reasons', 'ffc_view_recruitment_pii', 'ffc_export_recruitment' ) );
 
 		$short_urls_viewer   = array( 'ffc_view_url_shortener' );
 		$short_urls_operator = array_merge( $short_urls_viewer, array( 'ffc_export_url_shortener' ) );
@@ -901,7 +947,7 @@ class CapabilityManager {
 
 		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
 		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );
-		$settings_manager  = array_merge( $settings_operator, array( 'ffc_manage_settings', 'ffc_manage_email_templates', 'ffc_manage_custom_fields', 'ffc_delete_custom_fields' ) );
+		$settings_manager  = array_merge( $settings_operator, array( 'ffc_manage_settings', 'ffc_manage_email_templates', 'ffc_manage_custom_fields', 'ffc_delete_custom_fields', 'ffc_view_settings_pii' ) );
 
 		return array(
 			// ── Cross-module roles ───────────────────────────────────────
@@ -1054,7 +1100,7 @@ class CapabilityManager {
 			),
 			'ffc_recruitment_admin'        => array(
 				'label' => __( 'FFC Recruitment - Administrator', 'ffcertificate' ),
-				'caps'  => array_merge( $recruitment_manager, array( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings' ) ),
+				'caps'  => array_merge( $recruitment_manager, array( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings', 'ffc_view_recruitment_history' ) ),
 			),
 
 			// ── Short URLs ───────────────────────────────────────────────

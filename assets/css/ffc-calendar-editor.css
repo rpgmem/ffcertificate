@@ -225,3 +225,50 @@
 .description.ffc-text-danger {
     color: var(--ffc-danger-text);
 }
+
+/* ==========================================================================
+   BLOCKED DATES TAB (#2244)
+   ========================================================================== */
+
+.ffc-blocked-dates-table {
+    margin: var(--ffc-spacing-md) 0;
+}
+
+.ffc-blocked-dates-table .ffc-blocked-dates-actions {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ffc-blocked-dates-add {
+    margin-top: var(--ffc-spacing-lg);
+    padding: var(--ffc-spacing-md);
+    border: 1px solid var(--ffc-border-light);
+    border-radius: var(--ffc-radius-sm);
+}
+
+.ffc-blocked-dates-add legend {
+    padding: 0 var(--ffc-spacing-2xs);
+    font-weight: 600;
+}
+
+.ffc-blocked-dates-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-md);
+    margin-top: var(--ffc-spacing-md);
+}
+
+.ffc-blocked-dates-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-blocked-dates-field[hidden] {
+    display: none;
+}
+
+.ffc-blocked-dates-reason {
+    flex: 1 1 240px;
+}

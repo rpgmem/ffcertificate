@@ -163,7 +163,7 @@ class RateLimitPersistenceTest extends TestCase {
 		$result = RateLimiter::check_ip_limit( '198.51.100.7' );
 		$this->assertFalse( $result['allowed'] );
 		$this->assertSame( 'ip_hour_limit', $result['reason'] );
-		$this->assertSame( 3, RateCounter::get( 'ffc_rate_ip_' . md5( '198.51.100.7' ) . '_hour' ) );
+		$this->assertSame( 3, RateCounter::get( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.7' ) ) . '_hour' ) );
 	}
 
 	public function test_ip_cooldown_holds_across_requests(): void {
@@ -192,7 +192,7 @@ class RateLimitPersistenceTest extends TestCase {
 			$this->assertTrue( RateLimiter::check_verification( '198.51.100.9' )['allowed'] );
 		}
 
-		$prefix = 'ffc_verify_ip_' . md5( '198.51.100.9' );
+		$prefix = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.9' ) );
 		$this->assertSame( 4, $this->stored_sum( $prefix . '_hour_' ) );
 		$this->assertSame( 4, $this->stored_sum( $prefix . '_day_' ) );
 	}
@@ -203,7 +203,7 @@ class RateLimitPersistenceTest extends TestCase {
 		// Seed the bucket of the hour read before the call and of the hour
 		// read after it: whichever one the code picks holds the limit.
 		$before = gmdate( 'YmdH' );
-		$key    = 'ffc_verify_ip_' . md5( '198.51.100.10' ) . '_hour_';
+		$key    = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.10' ) ) . '_hour_';
 		$this->transients[ $key . $before ] = 10;
 		$result = RateLimiter::check_verification( '198.51.100.10' );
 		$after  = gmdate( 'YmdH' );

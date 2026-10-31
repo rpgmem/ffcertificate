@@ -10,21 +10,23 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\CsvDownloadValidator;
 use FreeFormCertificate\Frontend\PublicCsvDownload;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CsvDownloadValidator: the form-access gate (steps 5–9), the
  * hash-only subset, the per-form CPF gate (none/audit/whitelist/owner/
  * participants/unknown) and the audit-log writer.
  *
- * Runs in separate processes: the CPF gate + audit writer call the real
- * DocumentFormatter / Encryption / Utils statics, and a leaked global
- * function expectation from an earlier same-process test (e.g. a torn-down
- * `wp_unslash` mock) would otherwise poison `RequestInput::get_user_ip()`. Process
- * isolation guarantees a clean function table per test.
+ * Everything below the validator is real: DataSanitizer, DocumentFormatter,
+ * Encryption (configured by the bootstrap's key constants),
+ * SensitiveFieldRegistry, Geofence, SettingsReader, ClientIpResolver,
+ * CsvDownloadAuditLog, and the UserProfileRepository / SubmissionRepository
+ * the owner and participants modes read through, over a `$wpdb` double that
+ * answers the profile row and the submission count and fails the test on any
+ * other query. Post meta lives in an in-memory store behind the global
+ * `get_post_meta()` / `update_post_meta()` stubs.
  *
  * @covers \FreeFormCertificate\Frontend\CsvDownloadValidator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CsvDownloadValidatorTest extends TestCase {
 
@@ -39,27 +41,53 @@ class CsvDownloadValidatorTest extends TestCase {
 	/** @var array<string, int> update_post_meta call counts */
 	private $meta_updates = array();
 
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether REMOTE_ADDR was set before this test. */
+	private bool $had_remote_addr = false;
+
+	/** @var mixed The REMOTE_ADDR an earlier test left, restored afterwards. */
+	private $remote_addr_backup;
+
+	/** @var array{0: string, 1: array<int, mixed>} SQL and bound arguments of the last prepare(). */
+	private array $prepared = array( '', array() );
+
+	/** @var array<int, array<string, mixed>> `ffc_user_profiles` rows by user_id. */
+	private array $profiles = array();
+
+	/** @var array<string, int> Submissions per "form_id:cpf_hash". */
+	private array $submission_counts = array();
+
+	/** @var list<array{0: int, 1: string}> Every submission count asked, as [form_id, cpf_hash]. */
+	private array $submission_queries = array();
+
+	/** @var list<int> Every user_id whose profile row was read. */
+	private array $profile_queries = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		$this->meta_store   = array();
-		$this->meta_updates = array();
+		$this->meta_store         = array();
+		$this->meta_updates       = array();
+		$this->profiles           = array();
+		$this->submission_counts  = array();
+		$this->submission_queries = array();
+		$this->profile_queries    = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		// RequestInput::get_user_ip() calls sanitize_text_field()/wp_unslash()
-		// unqualified from the Core namespace. Define them as plain stable
-		// passthroughs (NOT Brain\Monkey stubs) so they survive tearDown
-		// without leaving a torn-down expectation that would poison a later
-		// test running in the same process (e.g. DecryptFailureLoggingTest's
-		// ActivityLog::log() which also resolves Core\sanitize_text_field).
-		self::define_core_passthrough( 'sanitize_text_field' );
-		self::define_core_passthrough( 'wp_unslash' );
 		Functions\when( 'wp_timezone' )->alias( fn () => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		// Also decides Debug::is_enabled() and the activity-log gate a decrypt
+		// failure reaches, so neither branch depends on test order.
 		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $post_id, $key, $single = false ) {
@@ -85,28 +113,83 @@ class CsvDownloadValidatorTest extends TestCase {
 			}
 		);
 
-		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->make_wpdb();
+
+		$this->had_remote_addr    = array_key_exists( 'REMOTE_ADDR', $_SERVER );
+		$this->remote_addr_backup = $_SERVER['REMOTE_ADDR'] ?? null;
+		$_SERVER['REMOTE_ADDR']   = '203.0.113.5';
 
 		$this->validator = new CsvDownloadValidator();
 	}
 
 	protected function tearDown(): void {
-		$_SERVER = array();
+		if ( $this->had_remote_addr ) {
+			$_SERVER['REMOTE_ADDR'] = $this->remote_addr_backup;
+		} else {
+			unset( $_SERVER['REMOTE_ADDR'] );
+		}
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	/**
-	 * Define a passthrough function in the FreeFormCertificate\Core namespace
-	 * once per process. Idempotent: subsequent calls are no-ops. Unlike a
-	 * Brain\Monkey namespaced stub, this leaves no expectation to be torn
-	 * down, so it can't poison later same-process tests.
+	 * A `$wpdb` double answering the two reads the CPF gate makes: the form
+	 * author's profile row and the participants count. Anything else fails.
+	 *
+	 * @return \Mockery\MockInterface
 	 */
-	private static function define_core_passthrough( string $name ): void {
-		$fqn = 'FreeFormCertificate\\Core\\' . $name;
-		if ( ! function_exists( $fqn ) ) {
-			eval( "namespace FreeFormCertificate\\Core; function {$name}( \$v ) { return \$v; }" );
+	private function make_wpdb() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->prepared = array( (string) $sql, $args );
+				return (string) $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () {
+				list( $sql, $args ) = $this->prepared;
+				if ( 'wp_ffc_user_profiles' === $args[0] && 'SELECT * FROM %i WHERE user_id = %d' === $sql ) {
+					$this->profile_queries[] = (int) $args[1];
+					return $this->profiles[ (int) $args[1] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function () {
+				list( $sql, $args ) = $this->prepared;
+				if ( 'wp_ffc_submissions' === $args[0] && 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND cpf_hash = %s' === $sql ) {
+					$this->submission_queries[] = array( (int) $args[1], (string) $args[2] );
+					return (string) ( $this->submission_counts[ (int) $args[1] . ':' . $args[2] ] ?? 0 );
+				}
+				$this->fail( 'Unexpected get_var: ' . $sql );
+			}
+		);
+		foreach ( array( 'get_results', 'get_col', 'insert', 'update', 'delete', 'query' ) as $method ) {
+			$wpdb->shouldNotReceive( $method );
 		}
+
+		return $wpdb;
+	}
+
+	/** A CPF punctuated as an operator would paste it, built from the fixture. */
+	private static function punctuated( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/** The lookup hash the write path stores for a CPF. */
+	private static function cpf_hash( string $cpf ): string {
+		return (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf );
 	}
 
 	/** Seed meta so validate_form_access passes every gate by default. */
@@ -238,7 +321,7 @@ class CsvDownloadValidatorTest extends TestCase {
 
 	public function test_cpf_none_mode_audits_voluntary_valid_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'none';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '111.444.777-35' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, self::punctuated( Identifiers::CPF_A ) ) );
 		// A voluntary audit row was written.
 		$this->assertSame( 1, $this->meta_updates[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ] ?? 0 );
 	}
@@ -257,19 +340,19 @@ class CsvDownloadValidatorTest extends TestCase {
 
 	public function test_cpf_audit_mode_rejects_bad_format(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
-		$this->assertSame( 'Invalid CPF.', $this->validator->validate_cpf_requirement( 10, '00000000000' ) );
+		$this->assertSame( 'Invalid CPF.', $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_REPEATED_DIGITS ) );
 	}
 
 	public function test_cpf_audit_mode_passes_valid_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A ) );
 	}
 
 	public function test_cpf_whitelist_allows_listed_cpf(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ]      = 'whitelist';
 		// Person A is on the list, punctuated as an operator would paste it.
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = "518.178.420-80\n204.569.420-84";
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = self::punctuated( Identifiers::CPF_A ) . "\n" . self::punctuated( Identifiers::CPF_B );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A ) );
 	}
 
 	public function test_cpf_whitelist_blocks_unlisted_cpf(): void {
@@ -277,25 +360,26 @@ class CsvDownloadValidatorTest extends TestCase {
 		// Person B is listed; person A is the one asking. They must differ, which
 		// is the whole case -- a sweep that collapsed them into one value made
 		// this pass for the wrong reason while its sibling failed.
-		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = '204.569.420-84';
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_WHITELIST ] = self::punctuated( Identifiers::CPF_B );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'not authorized', $msg );
 	}
 
 	public function test_cpf_owner_blocks_when_no_author(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 0;
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'no author', $msg );
+		$this->assertSame( array(), $this->profile_queries, 'No author means no profile is read.' );
 	}
 
 	/**
 	 * Owner mode passes when the author's STORED HASH matches the typed CPF.
 	 *
 	 * THE PREVIOUS VERSION OF THIS TEST IS WHY #1443 SHIPPED. It put
-	 * `'111.444.777-35'` -- a plaintext, formatted CPF -- into the meta store
-	 * for `ffc_user_cpf` and asserted the gate opened. Production never holds
-	 * that: `UserProfileFieldMap` flags `cpf` sensitive and
+	 * a plaintext, formatted CPF into the meta store for `ffc_user_cpf` and
+	 * asserted the gate opened. Production never holds that:
+	 * `UserProfileFieldMap` flags `cpf` sensitive and
 	 * `UserProfileService::write_usermeta()` encrypts before writing, so the
 	 * meta is always a `v2:` envelope. The gate compared digits stripped out of
 	 * base64 against an 11-digit CPF and could never match, while the test was
@@ -307,36 +391,28 @@ class CsvDownloadValidatorTest extends TestCase {
 	 * `SensitiveFieldRegistry::hash_identifier()` -- the same boundary the gate
 	 * uses, so the test asserts agreement with the registry rather than with a
 	 * hash spelled out here. (Encryption IS configured in the unit bootstrap, so
-	 * the `sha256` fallback is not the branch under test.)
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * the `sha256` fallback is not the branch under test.) The row is read by
+	 * the real UserProfileRepository, keyed on the author's id.
 	 */
 	public function test_cpf_owner_matches_the_authors_stored_hash(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
-		$repo->shouldReceive( 'findByUserId' )->with( 88 )
-			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '51817842080' ) ) );
+		$this->profiles[88] = array( 'user_id' => '88', 'cpf_hash' => self::cpf_hash( Identifiers::CPF_A ) );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A ) );
+		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_cpf_owner_blocks_on_mismatch(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
-		$repo->shouldReceive( 'findByUserId' )->with( 88 )
-			->andReturn( array( 'cpf_hash' => (string) \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', '20456942084' ) ) );
+		$this->profiles[88] = array( 'user_id' => '88', 'cpf_hash' => self::cpf_hash( Identifiers::CPF_B ) );
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
 	/**
@@ -346,19 +422,15 @@ class CsvDownloadValidatorTest extends TestCase {
 	 * equality comparison against '' would otherwise match every other author
 	 * who also has none -- the reason `read_identity_index()` refuses '' as hard
 	 * as null.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_cpf_owner_blocks_when_the_author_has_no_stored_hash(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
-		$repo->shouldReceive( 'findByUserId' )->with( 88 )->andReturn( null );
-
+		// No profile row for user 88.
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
 	/**
@@ -375,12 +447,15 @@ class CsvDownloadValidatorTest extends TestCase {
 	 * equivalent mutant. Measured both ways -- one condition removed: green;
 	 * both removed: this test fails, naming the gate it opened.
 	 *
+	 * Kept in its own process because the real SensitiveFieldRegistry cannot
+	 * produce a missing hash for a CPF that passed the format gate, so it is
+	 * replaced by an alias mock answering null, and an alias outlives the test.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
 	public function test_cpf_owner_blocks_when_neither_side_has_a_hash(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\\Repositories\\UserProfileRepository' );
-		$repo->shouldReceive( 'findByUserId' )->with( 88 )->andReturn( array( 'cpf_hash' => '' ) );
+		$this->profiles[88] = array( 'user_id' => '88', 'cpf_hash' => '' );
 
 		$registry = Mockery::mock( 'alias:FreeFormCertificate\\Core\\SensitiveFieldRegistry' );
 		$registry->shouldReceive( 'hash_identifier' )->andReturn( null );
@@ -388,45 +463,36 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertNotNull( $msg, 'Two absent hashes opened the owner gate: hash_equals( \'\', \'\' ) is TRUE.' );
 		$this->assertStringContainsString( 'does not match', $msg );
 	}
 
 	public function test_cpf_unknown_mode_fails_closed(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'bogus';
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'misconfigured', $msg );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_cpf_participants_mode_passes_when_submission_found(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'countByFormAndCpfHash' )->once()->andReturn( 1 );
+		$hash                                    = self::cpf_hash( Identifiers::CPF_A );
+		$this->submission_counts[ '10:' . $hash ] = 1;
 
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'participants';
-		$this->assertNull( $this->validator->validate_cpf_requirement( 10, '51817842080' ) );
+		$this->assertNull( $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A ) );
+		$this->assertSame( array( array( 10, $hash ) ), $this->submission_queries );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_cpf_participants_mode_blocks_when_no_submission(): void {
-		$repo = Mockery::mock( 'overload:FreeFormCertificate\Repositories\SubmissionRepository' );
-		$repo->shouldReceive( 'countByFormAndCpfHash' )->once()->andReturn( 0 );
-
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'participants';
-		$msg = $this->validator->validate_cpf_requirement( 10, '51817842080' );
+		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'No submission with this CPF', $msg );
+		$this->assertSame( array( array( 10, self::cpf_hash( Identifiers::CPF_A ) ) ), $this->submission_queries );
 	}
 
 	public function test_cpf_silent_audit_suppresses_log_row(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
-		$this->validator->validate_cpf_requirement( 10, '51817842080', true );
+		$this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A, true );
 		$this->assertArrayNotHasKey( '10:' . PublicCsvDownload::META_DOWNLOAD_LOG, $this->meta_updates );
 	}
 
@@ -445,7 +511,7 @@ class CsvDownloadValidatorTest extends TestCase {
 	public function test_record_download_log_entry_encrypts_cpf_when_digits_present(): void {
 		// Encryption is configured in the unit bootstrap, so cpf_encrypted
 		// should be a non-empty ciphertext.
-		$this->validator->record_download_log_entry( 10, 'audit', '51817842080', 'audit_pass' );
+		$this->validator->record_download_log_entry( 10, 'audit', Identifiers::CPF_A, 'audit_pass' );
 		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
 		$this->assertNotSame( '', $log[0]['cpf_encrypted'] );
 	}

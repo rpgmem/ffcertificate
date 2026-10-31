@@ -53,6 +53,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * It is the same principle `CLAUDE.md` already fixes for the captcha: *the
  * challenge is consumed by the action it authorises, not by the read that
  * precedes it*.
+ *
+ * **The key leaves the URL at the first request (#2246).** A URL carrying a
+ * credential ends up in the browser history, in proxy logs and in the
+ * `Referer` of anything the page loads. `capture_link()` reads the pair on
+ * `template_redirect`, moves it into an HttpOnly cookie and redirects to the
+ * dashboard with no key in it, sending `Referrer-Policy: no-referrer` on the
+ * way. From then on the form, the submit and the retries read the cookie.
+ *
+ * **Staff accounts never get a link.** An account that can reveal personal
+ * data (`Capabilities::is_staff_account()`) sets its password through
+ * WordPress's own reset, so an invitation e-mail can never be turned into a
+ * way into a staff account; `issue_for()` refuses to issue and `validate()`
+ * refuses a key issued before the account became staff.
  */
 class PasswordInvite {
 
@@ -65,6 +78,15 @@ class PasswordInvite {
 	/** Query arg carrying the user login the key belongs to. */
 	public const ARG_LOGIN = 'ffc_login';
 
+	/** Cookie that carries the pair once it has left the URL. */
+	public const COOKIE = 'ffc_password_invite';
+
+	/**
+	 * Cookie lifetime, in seconds. Short on purpose: the e-mail's link stays
+	 * valid for the whole window and captures the pair again when opened.
+	 */
+	public const COOKIE_LIFETIME = 3600;
+
 	/** Nonce action for the form. */
 	private const NONCE = 'ffc_set_invite_password';
 
@@ -74,8 +96,8 @@ class PasswordInvite {
 	/** The largest accepted window: 30 days. Above that the link stops being an invitation. */
 	public const MAX_HOURS = 720;
 
-	/** Default window, in hours. Declarado em `Settings::get_default_settings()`. */
-	public const DEFAULT_HOURS = 48;
+	/** Default window, in hours: seven days. Declared in `Settings::get_default_settings()`. */
+	public const DEFAULT_HOURS = 168;
 
 	/** The shortest accepted password. WordPress imposes no minimum; this does. */
 	public const MIN_PASSWORD_LENGTH = 8;
@@ -93,6 +115,34 @@ class PasswordInvite {
 	public static function init(): void {
 		add_action( 'admin_post_nopriv_' . self::ACTION, array( __CLASS__, 'handle_submit' ) );
 		add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_submit' ) );
+		// `template_redirect` is the last front-end hook before output, so the
+		// cookie and the redirect can still be sent; priority 1 so it runs
+		// before anything else on the page can print or leak the key.
+		add_action( 'template_redirect', array( __CLASS__, 'capture_link' ), 1 );
+	}
+
+	/**
+	 * Move the pair from the URL into a cookie and redirect to a clean URL.
+	 *
+	 * Runs on every front-end request and returns at once unless both query
+	 * args are present. The pair is not validated here: an invalid key is
+	 * answered by the dashboard, which reads it from the cookie like any other.
+	 *
+	 * @return void
+	 */
+	public static function capture_link(): void {
+		$key   = RequestInput::get_get_string( self::ARG_KEY );
+		$login = RequestInput::get_get_string( self::ARG_LOGIN );
+		if ( '' === $key || '' === $login ) {
+			return;
+		}
+
+		self::set_cookie( rawurlencode( $login ) . ':' . rawurlencode( $key ), time() + self::COOKIE_LIFETIME );
+		self::send_no_referrer();
+		nocache_headers();
+
+		wp_safe_redirect( self::dashboard_url() );
+		exit;
 	}
 
 	/**
@@ -131,6 +181,11 @@ class PasswordInvite {
 	public static function issue_for( int $user_id ): string {
 		$user = get_userdata( $user_id );
 		if ( ! $user instanceof \WP_User ) {
+			return '';
+		}
+
+		// See the class docblock: a staff account uses WordPress's own reset.
+		if ( Capabilities::is_staff_account( $user_id ) ) {
 			return '';
 		}
 
@@ -173,29 +228,57 @@ class PasswordInvite {
 		$user = check_password_reset_key( $key, $login );
 		remove_filter( 'password_reset_expiration', $filter );
 
+		// A key issued before the account became staff stops working here.
+		if ( $user instanceof \WP_User && Capabilities::is_staff_account( (int) $user->ID ) ) {
+			return new \WP_Error( 'invalid_key', __( 'This link is not valid.', 'ffcertificate' ) );
+		}
+
 		return $user;
 	}
 
 	/**
-	 * Whether the current request carries a password-set link.
+	 * Whether the current request carries a captured password-set link.
 	 *
 	 * @return bool
 	 */
 	public static function request_has_link(): bool {
-		return '' !== RequestInput::get_get_string( self::ARG_KEY )
-			&& '' !== RequestInput::get_get_string( self::ARG_LOGIN );
+		$pair = self::request_pair();
+
+		return '' !== $pair['key'] && '' !== $pair['login'];
 	}
 
 	/**
-	 * The key and login the current request carries.
+	 * The key and login the cookie carries.
+	 *
+	 * Both halves were `rawurlencode()`d when written, so the `:` that joins
+	 * them cannot appear inside either.
 	 *
 	 * @return array{key: string, login: string}
 	 */
 	public static function request_pair(): array {
+		$raw   = ArrayValue::string( wp_unslash( $_COOKIE ), self::COOKIE );
+		$parts = explode( ':', $raw, 2 );
+		if ( 2 !== count( $parts ) ) {
+			return array(
+				'key'   => '',
+				'login' => '',
+			);
+		}
+
 		return array(
-			'key'   => RequestInput::get_get_string( self::ARG_KEY ),
-			'login' => RequestInput::get_get_string( self::ARG_LOGIN ),
+			'key'   => sanitize_text_field( rawurldecode( $parts[1] ) ),
+			'login' => sanitize_user( rawurldecode( $parts[0] ) ),
 		);
+	}
+
+	/**
+	 * Drop the cookie, in the response and in this request.
+	 *
+	 * @return void
+	 */
+	public static function clear_cookie(): void {
+		self::set_cookie( '', time() - HOUR_IN_SECONDS );
+		unset( $_COOKIE[ self::COOKIE ] );
 	}
 
 	/**
@@ -219,12 +302,12 @@ class PasswordInvite {
 			self::bail( $redirect, 'nonce' );
 		}
 
-		$key   = RequestInput::get_post_string( self::ARG_KEY );
-		$login = RequestInput::get_post_string( self::ARG_LOGIN );
+		$pair = self::request_pair();
 
 		// The user comes from the TOKEN, never from a request-supplied id.
-		$user = self::validate( $key, $login );
+		$user = self::validate( $pair['key'], $pair['login'] );
 		if ( is_wp_error( $user ) ) {
+			self::clear_cookie();
 			self::bail( $redirect, 'expired_key' === $user->get_error_code() ? 'expired' : 'invalid' );
 		}
 
@@ -236,16 +319,17 @@ class PasswordInvite {
 		$pass2 = isset( $_POST['ffc_pass2'] ) ? (string) wp_unslash( $_POST['ffc_pass2'] ) : '';
 
 		if ( '' === $pass1 || $pass1 !== $pass2 ) {
-			// The token stays alive: a typo must not burn the invitation. See
-			// the class docblock.
-			self::bail( self::link_url( $key, $login ), 'mismatch' );
+			// The token and its cookie stay alive: a typo must not burn the
+			// invitation. See the class docblock.
+			self::bail( $redirect, 'mismatch' );
 		}
 
 		if ( strlen( $pass1 ) < self::MIN_PASSWORD_LENGTH ) {
-			self::bail( self::link_url( $key, $login ), 'short' );
+			self::bail( $redirect, 'short' );
 		}
 
 		reset_password( $user, $pass1 );
+		self::clear_cookie();
 		self::log( 'password_invite_consumed', (int) $user->ID );
 
 		// The session is born HERE, once the password exists and has been chosen
@@ -258,20 +342,43 @@ class PasswordInvite {
 	}
 
 	/**
-	 * Rebuild the link URL for a retry.
+	 * Write the cookie.
 	 *
-	 * @param string $key   Reset key.
-	 * @param string $login User login.
-	 * @return string
+	 * HttpOnly so no script on the page can read the key, `Lax` so it rides
+	 * the top-level redirect and the form's POST, Secure whenever the site is.
+	 *
+	 * @param string $value   Cookie value ('' to clear).
+	 * @param int    $expires Unix expiry.
+	 * @return void
 	 */
-	private static function link_url( string $key, string $login ): string {
-		return add_query_arg(
+	private static function set_cookie( string $value, int $expires ): void {
+		// Both callers run before any output: `template_redirect` and the
+		// `admin_post` handler.
+		setcookie(
+			self::COOKIE,
+			$value,
 			array(
-				self::ARG_KEY   => rawurlencode( $key ),
-				self::ARG_LOGIN => rawurlencode( $login ),
-			),
-			self::dashboard_url()
+				'expires'  => $expires,
+				'path'     => '/',
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
 		);
+	}
+
+	/**
+	 * Ask the browser not to send the current URL as a referrer.
+	 *
+	 * Sent on the response that still carries the key in its URL, so the
+	 * redirect it answers with cannot leak that URL either.
+	 *
+	 * @return void
+	 */
+	private static function send_no_referrer(): void {
+		if ( ! headers_sent() ) {
+			header( 'Referrer-Policy: no-referrer' );
+		}
 	}
 
 	/**

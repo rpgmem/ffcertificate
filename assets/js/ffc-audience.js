@@ -197,8 +197,13 @@
             });
 
             // The last day changes the heading and the continuous hint (#1946).
-            $('#booking-end-date').on('change', function() {
+            $('#booking-end-date, #booking-repeat-until').on('change', function() {
                 api.setRangeOptions(api.isRange());
+            });
+
+            // Editing a booking moves it to the date its field names (#2243).
+            $('#booking-move-date').on('change', function() {
+                api.moveToDate();
             });
 
             // The reasons under the space follow the space and the times (#1859).

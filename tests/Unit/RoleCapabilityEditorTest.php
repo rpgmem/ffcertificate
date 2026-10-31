@@ -17,23 +17,27 @@ use FreeFormCertificate\Admin\RoleCapabilityEditor;
  * a render smoke test, and the AJAX persistence handler with its guards
  * (cap- + role-whitelist, manage_options).
  *
- * Runs in separate processes as DEFENCE, not containment: this class declares
- * nothing of its own. The render test resolves the real `Admin\AdminUI`, and
- * tests/fixtures/recruitment-admin-page-renderer-stubs.php declares a stub of
- * that name — without the fork, `AdminUI::get_toggle()` resolves to the stub
- * and does not exist. That fixture's header carries the mechanics (#1432).
+ * One test runs in its own process: it declares core's `WP_User_Query`
+ * through `eval()`, which a process cannot undo. The rest share the suite's
+ * process, where `WP_User_Query` does not exist; it leaked into that process
+ * from a file-scope declaration in another test until #2104. The enqueue test
+ * runs the real `Core\AssetHelper` and `Core\AssetRegistry` down to the
+ * stubbed `wp_enqueue_*` calls.
  *
  * @covers \FreeFormCertificate\Admin\RoleCapabilityEditor
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class RoleCapabilityEditorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array<string, mixed> `$_GET` as an earlier test left it, restored afterwards. */
+	private array $get_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup = $_GET ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -46,6 +50,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_option' )->justReturn( array() );
+		// LabelSorter guards on function_exists( 'get_locale' ), so in the
+		// shared process its branch would depend on which test ran before.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$classes = implode( ' ', $args['additional_classes'] ?? array() );
@@ -60,6 +67,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -311,9 +319,6 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	public function test_enqueue_loads_only_on_the_user_access_tab(): void {
-		$asset_helper = \Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce-' . $action );
 		Functions\when( 'get_role' )->justReturn( null );
@@ -350,6 +355,11 @@ class RoleCapabilityEditorTest extends TestCase {
 		$this->assertSame( array(), $localized['ffcRoleEditor']['roleCaps'], 'a role missing on this install is left out of the map' );
 	}
 
+	/**
+	 * Its own process: it declares core's WP_User_Query, which the bootstrap does not.
+	 *
+	 * @runInSeparateProcess
+	 */
 	public function test_editable_roles_count_their_members(): void {
 		// Declared here, in this test's own process: core's query class with a fixed total.
 		// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.

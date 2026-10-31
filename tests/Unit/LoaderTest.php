@@ -19,8 +19,6 @@ use FreeFormCertificate\Loader;
  * intentionally excluded — it would require mocking the entire plugin graph.
  *
  * @covers \FreeFormCertificate\Loader
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class LoaderTest extends TestCase {
 

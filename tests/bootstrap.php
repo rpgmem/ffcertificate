@@ -342,6 +342,8 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 
 		public function prepare_items() {}
 		public function display() {}
+		public function search_box( $text, $input_id ) {}
+		public function views() {}
 		public function get_columns() { return array(); }
 		protected function get_sortable_columns() { return array(); }
 		protected function get_bulk_actions() { return array(); }
@@ -370,6 +372,12 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 			return $out;
 		}
 	}
+}
+
+// Core's posts list table, which FormsListTable extends; declared here once
+// rather than in a test, so no test decides whether it exists (#2125).
+if ( ! class_exists( 'WP_Posts_List_Table' ) ) {
+	class WP_Posts_List_Table extends WP_List_Table {}
 }
 
 // Register the plugin's own PSR-4 autoloader (WordPress file naming conventions).

@@ -73,7 +73,7 @@ final class InlineStyleTest extends TestCase {
 
 	private const NOSCRIPT = 'inside <noscript>: reveals the no-JS fallback, which a stylesheet cannot do because it cannot know scripts are off and we do not own <html> to carry a no-js class';
 
-	private const GENERATED = 'generated on purpose from settings or the icon registry (menu mask, recruitment badge palette, public design), attached to the sheet it extends';
+	private const GENERATED = 'generated on purpose from settings or the icon registry (menu mask, recruitment badge palette, public design, holiday colours), attached to the sheet it extends';
 
 	private const OPTION_FILTER = 'the initial hidden state of a reason <option> the script filters, and the very state it reads back (`style.display === "none"`)';
 
@@ -269,11 +269,20 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="width: 100%;border-collapse: collapse;font-size: 8pt'                   => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="padding: 2px 0;font-weight: bold;color: #666;width: 120px;vertical-ali' => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="padding: 2px 0;color: #222'                                             => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="padding:1px 6px;border:1px solid #ccc;text-align:left;font-size:7.5pt;' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:18px;padding:0 0 2px;vertical-align:top;white-space:nowrap;font-' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="padding:0 0 2px;vertical-align:top'                                     => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:100%;border-collapse:collapse;font-size:inherit;line-height:inhe' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:100%;border-collapse:collapse;font-size:8pt'                      => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="'                                                                       => array( 4, self::PDF_DOCUMENT ),
 			'style=: style="width:794px;height:1123px;padding:60px;box-sizing:border-box;font-fami' => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="text-align:center;color:#0073aa'                                        => array( 1, self::PDF_DOCUMENT ),
 		),
 		'includes/reregistration/class-ffc-reregistration-custom-fields-page.php' => array(
 			'style=: style="--ffc-color:<?php echo esc_attr( $audience->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
+		),
+		'includes/scheduling/class-ffc-calendar-appearance.php' => array(
+			'wp_add_inline_style: wp_add_inline_style( $handle' => array( 1, self::GENERATED ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php' => array(
 			'style=: style="margin: 20px 0;'                                    => array( 2, self::EMAIL_BODY ),
@@ -334,7 +343,8 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="--ffc-color:<?php echo esc_attr( $aud->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'templates/admin/reregistration/submissions.php' => array(
-			'style=: style="display:none;' => array( 1, self::INITIAL_STATE ),
+			// The details modal and the review-decision modal (#2242).
+			'style=: style="display:none;' => array( 2, self::INITIAL_STATE ),
 		),
 		'templates/admin/settings/email-body-hub.php' => array(
 			'style=: style="display:none;' => array( 1, self::INITIAL_STATE ),

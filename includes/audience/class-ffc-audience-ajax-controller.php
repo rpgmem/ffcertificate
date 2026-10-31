@@ -37,6 +37,7 @@ final class AudienceAjaxController {
 	public function register(): void {
 		// AJAX handlers.
 		add_action( 'wp_ajax_ffc_audience_cancel_booking', array( $this, 'ajax_cancel_booking' ) );
+		add_action( 'wp_ajax_ffc_audience_cancel_bookings', array( $this, 'ajax_cancel_bookings' ) );
 		add_action( 'wp_ajax_ffc_audience_get_booking', array( $this, 'ajax_get_booking' ) );
 		add_action( 'wp_ajax_ffc_search_users', array( $this, 'ajax_search_users' ) );
 		add_action( 'wp_ajax_ffc_audience_get_environments', array( $this, 'ajax_get_environments' ) );
@@ -77,7 +78,32 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
 			}
 
+			// A date of a weekly series may take every later date with it,
+			// told in one e-mail (#2243).
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+			$scope = isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : '';
+			if ( AudienceBookingSeries::SCOPE_FOLLOWING === $scope && (int) ( $booking->series_id ?? 0 ) > 0 ) {
+				$cancelled = AudienceBookingSeries::cancel_following( $booking, $reason );
+				if ( array() === $cancelled ) {
+					wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
+				}
+				wp_send_json_success(
+					array(
+						'cancelled' => $cancelled,
+						'message'   => sprintf(
+							/* translators: %d: how many dates of the series were cancelled. */
+							_n( '%d date of the series cancelled.', '%d dates of the series cancelled.', count( $cancelled ), 'ffcertificate' ),
+							count( $cancelled )
+						),
+					)
+				);
+			}
+
+			// A request that lost the race to another one changes nothing (#2243).
 			$result = AudienceBookingWriter::cancel( $booking_id, $reason );
+			if ( ! $result && AudienceBookingReader::is_cancelled( $booking_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Booking is already cancelled.', 'ffcertificate' ) ) );
+			}
 			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => __( 'Failed to cancel booking.', 'ffcertificate' ) ) );
 			}
@@ -85,6 +111,60 @@ final class AudienceAjaxController {
 			do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
 
 			wp_send_json_success( array( 'message' => __( 'Booking cancelled successfully.', 'ffcertificate' ) ) );
+		} catch ( \Throwable $e ) {
+			$this->handle_ajax_exception( $e );
+		}
+	}
+
+	/**
+	 * The most bookings one bulk cancel takes: a list page holds 50.
+	 */
+	private const BULK_CANCEL_LIMIT = 100;
+
+	/**
+	 * AJAX: Cancel the bookings ticked on the list, with one reason (#2243).
+	 *
+	 * Each goes through the same conditional cancel as a single one, so a
+	 * booking cancelled meanwhile is skipped, not cancelled twice, and each
+	 * one cancelled queues its participants' e-mails.
+	 *
+	 * @return void
+	 */
+	public function ajax_cancel_bookings(): void {
+		try {
+			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
+			$this->check_ajax_admin_or( 'ffc_manage_audiences' );
+
+			$ids = array_values( array_unique( array_filter( array_map( 'intval', $this->get_post_array( 'booking_ids' ) ) ) ) );
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified via verify_ajax_nonce() above.
+			$reason = isset( $_POST['reason'] ) ? trim( sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) ) : '';
+
+			if ( array() === $ids || count( $ids ) > self::BULK_CANCEL_LIMIT ) {
+				wp_send_json_error( array( 'message' => __( 'Select the bookings to cancel.', 'ffcertificate' ) ) );
+			}
+			if ( '' === $reason ) {
+				wp_send_json_error( array( 'message' => __( 'Write the reason for the cancellation.', 'ffcertificate' ) ) );
+			}
+
+			$cancelled = array();
+			foreach ( $ids as $booking_id ) {
+				if ( AudienceBookingWriter::cancel( $booking_id, $reason ) ) {
+					$cancelled[] = $booking_id;
+					do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
+				}
+			}
+
+			wp_send_json_success(
+				array(
+					'cancelled' => $cancelled,
+					'message'   => sprintf(
+						/* translators: 1: bookings cancelled, 2: bookings selected. */
+						_n( '%1$d of %2$d booking cancelled.', '%1$d of %2$d bookings cancelled.', count( $ids ), 'ffcertificate' ),
+						count( $cancelled ),
+						count( $ids )
+					),
+				)
+			);
 		} catch ( \Throwable $e ) {
 			$this->handle_ajax_exception( $e );
 		}
@@ -125,16 +205,18 @@ final class AudienceAjaxController {
 				}
 			}
 
-			// Format users.
+			// Format users. The email is masked, with the audited Reveal
+			// button for whoever may reveal it (#2243).
 			$users = array();
 			if ( ! empty( $booking->users ) ) {
 				foreach ( $booking->users as $u ) {
 					$user_data = get_userdata( (int) $u );
 					if ( $user_data ) {
 						$users[] = array(
-							'id'    => $user_data->ID,
-							'name'  => $user_data->display_name,
-							'email' => $user_data->user_email,
+							'id'         => $user_data->ID,
+							'name'       => $user_data->display_name,
+							'email'      => AudienceAccountEmail::for_response( (int) $user_data->ID, (string) $user_data->user_email ),
+							'email_html' => AudienceAccountEmail::render( (int) $user_data->ID, (string) $user_data->user_email ),
 						);
 					}
 				}
@@ -157,7 +239,8 @@ final class AudienceAjaxController {
 					'status'           => $booking->status,
 					'cancel_reason'    => $booking->cancel_reason ?? '',
 					'created_by'       => $creator_name,
-					'created_at'       => $booking->created_at,
+					// UTC seconds, rendered in the site's zone and format (#2243).
+					'created_at'       => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $booking->created_at ),
 					'audiences'        => $audiences,
 					'users'            => $users,
 				)
@@ -183,10 +266,17 @@ final class AudienceAjaxController {
 				wp_send_json_success( array() );
 			}
 
+			// Searching by address would confirm which account holds it, so
+			// only whoever may reveal emails searches that column (#2243).
+			$columns = array( 'user_login', 'display_name' );
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( AudienceAccountEmail::PII_CAP ) ) {
+				$columns[] = 'user_email';
+			}
+
 			$users = get_users(
 				array(
 					'search'         => '*' . $query . '*',
-					'search_columns' => array( 'user_login', 'user_email', 'display_name' ),
+					'search_columns' => $columns,
 					'number'         => 20,
 					'orderby'        => 'display_name',
 				)
@@ -197,7 +287,7 @@ final class AudienceAjaxController {
 				$results[] = array(
 					'id'    => $user->ID,
 					'name'  => $user->display_name,
-					'email' => $user->user_email,
+					'email' => AudienceAccountEmail::for_response( (int) $user->ID, (string) $user->user_email ),
 				);
 			}
 
@@ -493,6 +583,18 @@ final class AudienceAjaxController {
 					}
 				}
 
+				// A field bound to the login e-mail, or to any key stored in
+				// wp_users, let a participant change it from a form (#2242).
+				if ( isset( $data['field_profile_key'] ) && ! \FreeFormCertificate\UserDashboard\UserProfileFieldMap::is_bindable( (string) $data['field_profile_key'] ) ) {
+					$errors[] = sprintf(
+						/* translators: 1: field label, 2: profile key */
+						__( 'Field "%1$s" cannot write to the profile key "%2$s": the account e-mail and the plugin\'s own settings are not filled from forms.', 'ffcertificate' ),
+						$label,
+						(string) $data['field_profile_key']
+					);
+					continue;
+				}
+
 				if ( $is_new ) {
 					// New fields are always marked as custom; standard fields.
 					// are only ever created via the seeder.
@@ -662,6 +764,16 @@ final class AudienceAjaxController {
 				wp_send_json_error(
 					array(
 						'message' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
+					)
+				);
+			}
+
+			// Answers are stored by key: an answered field is deactivated, so
+			// they stay readable in review, the Record and the export (#2242).
+			if ( \FreeFormCertificate\Reregistration\CustomFieldReader::has_answers( $field ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'This field already has answers and cannot be deleted. Deactivate it instead; its answers stay in review, the Record and the export.', 'ffcertificate' ),
 					)
 				);
 			}

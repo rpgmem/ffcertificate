@@ -240,6 +240,8 @@ final class AudienceUserCacheInvalidationTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '11' ) );
 		// get_descendant_ids() walks the tree through get_children().
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		// The move is checked against the tree first (#2243): parent 3 is top-level.
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'id' => 3, 'parent_id' => null ) );
 		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
 
 		AudienceWriter::update( 7, array( 'parent_id' => 3 ) );

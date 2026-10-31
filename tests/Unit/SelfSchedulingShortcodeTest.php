@@ -12,8 +12,7 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode;
 
 /**
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingShortcode
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SelfSchedulingShortcodeTest extends TestCase {
 
@@ -33,6 +32,7 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		} );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -106,7 +106,7 @@ class SelfSchedulingShortcodeTest extends TestCase {
 
 		$this->assertStringContainsString( 'Calendar ID is required', $result );
 		// #1842: the shared notice, danger tone, read with the page.
-		$this->assertStringStartsWith( '<div class="ffc-notice ffc-notice-danger" role="note" data-ffc-notice="calendar-error">', $result );
+		$this->assertStringStartsWith( '<div class="ffc-notice ffc-notice-danger ffc-calendar-notice" role="note" data-ffc-notice="calendar-error">', $result );
 		$this->assertStringContainsString( 'ffc-icon-error', $result );
 	}
 
@@ -343,7 +343,7 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$shortcode = $this->shortcode_with_calendar( $this->make_calendar( array( 'visibility' => 'private' ) ) );
 		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );
 
-		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-info" role="note" data-ffc-notice="admin-bypass"><span class="ffc-notice-icon ffc-icon-unlock"', $result );
+		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-info ffc-calendar-notice" role="note" data-ffc-notice="admin-bypass"><span class="ffc-notice-icon ffc-icon-unlock"', $result );
 		$this->assertStringContainsString( '<span class="ffc-badge ffc-badge-private">Private</span>', $result );
 		$this->assertStringContainsString( 'bypass active', $result );
 	}

@@ -12,12 +12,13 @@ use FreeFormCertificate\Repositories\FormRepository;
 
 /**
  * Tests for FormRepository: table/cache configuration, findPublished,
- * getConfig/getFields/getBackground with FormCache delegation and fallback,
- * and inherited CRUD operations from AbstractRepository.
+ * getConfig/getFields/getBackground read straight from post meta, and
+ * inherited CRUD operations from AbstractRepository.
+ *
+ * Post meta is held by the test (#2121); the retired FormCache layer is never
+ * consulted (#2241).
  *
  * @covers \FreeFormCertificate\Repositories\FormRepository
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormRepositoryTest extends TestCase {
 
@@ -26,8 +27,12 @@ class FormRepositoryTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $formCacheMock;
+	/**
+	 * Post meta, by post id and key.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $meta = array();
 
 	/** @var FormRepository */
 	private $repo;
@@ -35,6 +40,10 @@ class FormRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock('wpdb');
@@ -48,17 +57,19 @@ class FormRepositoryTest extends TestCase {
 		Functions\when('wp_cache_set')->justReturn(true);
 		Functions\when('wp_cache_delete')->justReturn(true);
 		Functions\when('wp_cache_flush')->justReturn(true);
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when('wp_cache_supports')->justReturn(false);
 		Functions\when('absint')->alias(function ($val) {
 			return abs(intval($val));
 		});
 
-		// Alias mock for FormCache: created before autoloading to prevent
-		// the real class from being loaded. All getConfig/getFields/getBackground
-		// tests work against this mock.
-		$this->formCacheMock = Mockery::mock('alias:\FreeFormCertificate\Submissions\FormCache');
-		$this->formCacheMock->shouldReceive('get_form_config')->andReturn([])->byDefault();
-		$this->formCacheMock->shouldReceive('get_form_fields')->andReturn([])->byDefault();
-		$this->formCacheMock->shouldReceive('get_form_background')->andReturn([])->byDefault();
+		// The getters read post meta the test holds.
+		$this->meta = array();
+		Functions\when('get_post_meta')->alias(function ($id, $key = '', $single = false) {
+			return $this->meta[ (int) $id ][ $key ] ?? '';
+		});
+		Functions\when('get_option')->justReturn(array());
 
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () {
 			return func_get_args()[0];
@@ -198,76 +209,85 @@ class FormRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// getConfig — delegates to FormCache (alias mock created in setUp)
+	// getConfig — post meta
 	// ==================================================================
 
-	public function test_get_config_delegates_to_form_cache(): void {
+	public function test_get_config_reads_post_meta(): void {
 		$config = ['field1' => 'value1', 'field2' => 'value2'];
-
-		$this->formCacheMock->shouldReceive('get_form_config')
-			->with(42)
-			->once()
-			->andReturn($config);
+		$this->meta[42]['_ffc_form_config'] = $config;
 
 		$result = $this->repo->getConfig(42);
 
 		$this->assertSame($config, $result);
 	}
 
-	public function test_get_config_returns_empty_array_for_unknown_form(): void {
-		// Default FormCache mock returns [] (from setUp)
+	public function test_get_config_returns_false_for_unknown_form(): void {
+		// No stored config: false, the answer the retired FormCache gave.
 		$result = $this->repo->getConfig(999);
 
-		$this->assertSame([], $result);
+		$this->assertFalse($result);
+	}
+
+	public function test_get_config_returns_false_for_a_value_that_is_not_an_array(): void {
+		$this->meta[42]['_ffc_form_config'] = 'corrupt';
+
+		$this->assertFalse($this->repo->getConfig(42));
+	}
+
+	public function test_get_config_and_fields_never_consult_the_retired_form_cache(): void {
+		$this->meta[42]['_ffc_form_config'] = ['a' => 1];
+		$this->meta[42]['_ffc_form_fields'] = [['name' => 'x']];
+		$groups = [];
+		Functions\when('wp_cache_get')->alias(function ($key, $group = '') use (&$groups) {
+			$groups[] = $group;
+			return false;
+		});
+
+		$this->repo->getConfig(42);
+		$this->repo->getFields(42);
+
+		$this->assertNotContains('ffc_forms', $groups);
 	}
 
 	// ==================================================================
-	// getFields — delegates to FormCache
+	// getFields — post meta
 	// ==================================================================
 
-	public function test_get_fields_delegates_to_form_cache(): void {
+	public function test_get_fields_reads_post_meta(): void {
 		$fields = [
 			['name' => 'first_name', 'type' => 'text'],
 			['name' => 'email', 'type' => 'email'],
 		];
 
-		$this->formCacheMock->shouldReceive('get_form_fields')
-			->with(42)
-			->once()
-			->andReturn($fields);
+		$this->meta[42]['_ffc_form_fields'] = $fields;
 
 		$result = $this->repo->getFields(42);
 
 		$this->assertSame($fields, $result);
 	}
 
-	public function test_get_fields_returns_empty_array_for_unknown_form(): void {
+	public function test_get_fields_returns_false_for_unknown_form(): void {
 		$result = $this->repo->getFields(999);
 
-		$this->assertSame([], $result);
+		$this->assertFalse($result);
 	}
 
 	// ==================================================================
-	// getBackground — delegates to FormCache
+	// getBackground — the form's background
 	// ==================================================================
 
-	public function test_get_background_delegates_to_form_cache(): void {
-		$bg = ['url' => 'https://example.com/bg.jpg', 'opacity' => 0.5];
-
-		$this->formCacheMock->shouldReceive('get_form_background')
-			->with(42)
-			->once()
-			->andReturn($bg);
+	public function test_get_background_reads_the_form_background(): void {
+		$this->meta[42]['_ffc_form_config'] = ['bg_image' => 'https://example.com/bg.jpg'];
 
 		$result = $this->repo->getBackground(42);
 
-		$this->assertSame($bg, $result);
+		$this->assertSame('https://example.com/bg.jpg', $result);
 	}
 
 	public function test_get_background_returns_empty_array_for_unknown_form(): void {
 		$result = $this->repo->getBackground(999);
 
-		$this->assertSame([], $result);
+		$this->assertSame('', $result);
 	}
 
 	// ==================================================================

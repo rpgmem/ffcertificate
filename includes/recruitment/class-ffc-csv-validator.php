@@ -126,6 +126,11 @@ final class CsvValidator {
 		foreach ( $rows as $row_index => $row ) {
 			$line = (int) $row['_line'];
 
+			// Every problem of the line is reported, not only the first (#2245):
+			// an operator fixing a file should not have to re-import once per
+			// mistake. The cross-row checks below run on valid lines only.
+			$row_errors = array();
+
 			// CPF / RF normalisation (#172). Strip non-digit characters
 			// (operators paste pre-formatted values like `123.456.789-09`),
 			// then left-pad with zeros when the result is shorter than the
@@ -143,16 +148,13 @@ final class CsvValidator {
 			// non-empty and over-length), so checking value emptiness alone
 			// captures the "no identifier supplied" case.
 			if ( '' === $cpf_norm['value'] && '' === $rf_norm['value'] ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_missing_cpf_or_rf' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_missing_cpf_or_rf' );
 			}
 			if ( $cpf_norm['too_long'] ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_too_long' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_cpf_too_long' );
 			}
 			if ( $rf_norm['too_long'] ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_rf_too_long' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_rf_too_long' );
 			}
 
 			// THE CHECK DIGIT IS THE TEST OF WHETHER THE PAD GUESSED RIGHT (#1489).
@@ -177,10 +179,9 @@ final class CsvValidator {
 			// supplied, and the missing-both case was already refused above.
 			//
 			// The RF's own check digit is not part of this rule: see below.
-			if ( '' !== $cpf_norm['value']
+			if ( '' !== $cpf_norm['value'] && ! $cpf_norm['too_long']
 				&& ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $cpf_norm['value'] ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_cpf_invalid' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_cpf_invalid' );
 			}
 
 			// THE RF FOLLOWS THE SAME SWITCH AS EVERY OTHER WRITE PATH (#1683).
@@ -194,10 +195,9 @@ final class CsvValidator {
 			// path staged it -- and an import is the path that writes the most.
 			// `validate_rf()` reads the setting, so off keeps the old behaviour
 			// exactly and on closes the gap.
-			if ( '' !== $rf_norm['value']
+			if ( '' !== $rf_norm['value'] && ! $rf_norm['too_long']
 				&& ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $rf_norm['value'] ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_rf_invalid' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_rf_invalid' );
 			}
 
 			$cpf = $cpf_norm['value'];
@@ -209,26 +209,21 @@ final class CsvValidator {
 			$row['cpf'] = $cpf;
 			$row['rf']  = $rf;
 
-			// Score: dot-decimal only (or integer).
+			// Score: dot-decimal only (or integer). The value is quoted in
+			// the report; identifiers never are, since they are personal data.
 			$score_raw = is_string( $row['score'] ) ? trim( $row['score'] ) : (string) $row['score'];
 			if ( '' === $score_raw ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_missing_score' );
-				continue;
-			}
-			if ( false !== strpos( $score_raw, ',' ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_score_uses_comma_decimal' );
-				continue;
-			}
-			if ( ! preg_match( '/^-?\d+(\.\d+)?$/', $score_raw ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_score_invalid_format' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_missing_score' );
+			} elseif ( false !== strpos( $score_raw, ',' ) ) {
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_score_uses_comma_decimal: ' . self::quote( $score_raw ) );
+			} elseif ( ! preg_match( '/^-?\d+(\.\d+)?$/', $score_raw ) ) {
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_score_invalid_format: ' . self::quote( $score_raw ) );
 			}
 
 			// Rank: positive integer.
 			$rank_raw = is_string( $row['rank'] ) ? trim( $row['rank'] ) : (string) $row['rank'];
 			if ( ! ctype_digit( $rank_raw ) || (int) $rank_raw < 1 ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_rank_invalid' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_rank_invalid: ' . self::quote( $rank_raw ) );
 			}
 
 			// Optional time_points: same dot-decimal shape as `score`,
@@ -237,23 +232,22 @@ final class CsvValidator {
 			$time_points_raw = isset( $row['time_points'] ) && is_string( $row['time_points'] ) ? trim( $row['time_points'] ) : '';
 			if ( '' !== $time_points_raw ) {
 				if ( false !== strpos( $time_points_raw, ',' ) ) {
-					$errors[] = self::line_error( $line, 'recruitment_csv_time_points_uses_comma_decimal' );
-					continue;
-				}
-				if ( ! preg_match( '/^\d+(\.\d+)?$/', $time_points_raw ) ) {
-					$errors[] = self::line_error( $line, 'recruitment_csv_time_points_invalid_format' );
-					continue;
+					$row_errors[] = self::line_error( $line, 'recruitment_csv_time_points_uses_comma_decimal: ' . self::quote( $time_points_raw ) );
+				} elseif ( ! preg_match( '/^\d+(\.\d+)?$/', $time_points_raw ) ) {
+					$row_errors[] = self::line_error( $line, 'recruitment_csv_time_points_invalid_format: ' . self::quote( $time_points_raw ) );
 				}
 			}
 
 			// Adjutancy slug must exist for this notice.
 			$slug = is_string( $row['adjutancy'] ) ? trim( $row['adjutancy'] ) : '';
 			if ( '' === $slug ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_missing_adjutancy' );
-				continue;
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_missing_adjutancy' );
+			} elseif ( ! isset( $adjutancy_map[ $slug ] ) ) {
+				$row_errors[] = self::line_error( $line, 'recruitment_csv_adjutancy_not_in_notice: ' . $slug );
 			}
-			if ( ! isset( $adjutancy_map[ $slug ] ) ) {
-				$errors[] = self::line_error( $line, 'recruitment_csv_adjutancy_not_in_notice: ' . $slug );
+
+			if ( array() !== $row_errors ) {
+				array_push( $errors, ...$row_errors );
 				continue;
 			}
 
@@ -314,6 +308,18 @@ final class CsvValidator {
 		// so any pre-existing row is gone. Future-proofing comment.
 
 		return $errors;
+	}
+
+	/**
+	 * A value as the report quotes it: trimmed to a readable length.
+	 *
+	 * @param string $value Raw cell.
+	 * @return string
+	 */
+	private static function quote( string $value ): string {
+		$value = trim( $value );
+		$short = function_exists( 'mb_substr' ) ? mb_substr( $value, 0, 40 ) : substr( $value, 0, 40 );
+		return '"' . $short . ( $short !== $value ? '…' : '' ) . '"';
 	}
 
 	/**

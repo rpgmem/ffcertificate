@@ -61,7 +61,11 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Fourteen since the activity-log IP encryption joined (#1574),
+		// Nineteen since the recruitment PCD-per-notice move joined (#2245),
+		// eighteen once the reregistration draft encryption did (#2242),
+		// seventeen once the refused-address cleanup did (#2109), sixteen
+		// once the rate-limit log address encryption did (#2109).
+		// Fourteen once the activity-log IP encryption joined (#1574),
 		// thirteen once the name-parts backfill did (#1552), twelve once the
 		// birth-date backfill did (#1538), both in 6.33.0. Eleven
 		// from 6.30.0, when the display-name backfill joined the card list
@@ -70,7 +74,8 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 15, $all );
+		$this->assertCount( 19, $all );
+		$this->assertArrayHasKey( 'recruitment_pcd_per_notice', $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
@@ -98,11 +103,17 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'birth_date_backfill', $all );
 		// The split of full names stored whole in `first_name` (#1552).
 		$this->assertArrayHasKey( 'name_parts_backfill', $all );
+		// The encryption of sensitive answers drafts stored in clear (#2242).
+		$this->assertArrayHasKey( 'rereg_draft_encryption', $all );
 		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		// The encryption of client IPs older rows still hold in clear (#1574).
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
 		// The deletion of the debug rows that logged visitors' positions (#2040).
 		$this->assertArrayHasKey( 'activity_log_location_cleanup', $all );
+		// The plaintext addresses of the rate-limit log (#2109).
+		$this->assertArrayHasKey( 'rate_limit_logs_encrypt_ip', $all );
+		// The plaintext address geofence refusals copied into their context (#2109).
+		$this->assertArrayHasKey( 'activity_log_access_denied_ip', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
 		$this->assertArrayHasKey( 'import_legacy_templates', $all );
 		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );
@@ -118,7 +129,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-image', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-image-plus', $migration['icon'] );
 		$this->assertSame( 10, $migration['batch_size'] );
 		$this->assertSame( 6, $migration['order'] );
 	}
@@ -133,7 +144,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-file', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-template-load', $migration['icon'] );
 		$this->assertSame( 20, $migration['batch_size'] );
 		$this->assertSame( 5, $migration['order'] );
 	}
@@ -148,7 +159,7 @@ class MigrationRegistryTest extends TestCase {
 			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
 		}
 
-		$this->assertSame( 'ffc-icon-lock', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-log-clean', $migration['icon'] );
 		$this->assertSame( 200, $migration['batch_size'] );
 		$this->assertSame( 3, $migration['order'] );
 	}
@@ -165,7 +176,7 @@ class MigrationRegistryTest extends TestCase {
 
 		// Verify specific values
 		$this->assertSame( 'Split CPF/RF', $migration['name'] );
-		$this->assertSame( 'ffc-icon-id', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-split', $migration['icon'] );
 		$this->assertSame( 50, $migration['batch_size'] );
 		$this->assertSame( 1, $migration['order'] );
 	}
@@ -181,7 +192,7 @@ class MigrationRegistryTest extends TestCase {
 		}
 
 		$this->assertSame( 'Rehash Email Lookup Hashes', $migration['name'] );
-		$this->assertSame( 'ffc-icon-email', $migration['icon'] );
+		$this->assertSame( 'ffc-icon-hash', $migration['icon'] );
 		$this->assertSame( 100, $migration['batch_size'] );
 		$this->assertSame( 2, $migration['order'] );
 	}
@@ -280,7 +291,6 @@ class MigrationRegistryTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( '__' )->returnArg();
 
 		// Expect apply_filters to be called with the registry filter hook
 		Functions\expect( 'apply_filters' )
@@ -301,7 +311,6 @@ class MigrationRegistryTest extends TestCase {
 		Monkey\tearDown();
 		Monkey\setUp();
 
-		Functions\when( '__' )->returnArg();
 		Functions\when( '__' )->returnArg();
 
 		// Simulate a plugin adding a custom migration via the filter
@@ -382,4 +391,31 @@ class MigrationRegistryTest extends TestCase {
 			'The registry scan collapsed -- with no migrations beyond the gated two the test above proves nothing.'
 		);
 	}
+
+	/**
+	 * Exactly the five one-shot cards of #2115 are deprecated, all for the
+	 * same release; a card that stays carries no removal.
+	 */
+	public function test_the_deprecated_cards_name_their_removal_release(): void {
+		$registry = new MigrationRegistry();
+		$removals = array();
+		foreach ( $registry->get_all_migrations() as $key => $migration ) {
+			if ( isset( $migration['removal'] ) ) {
+				$removals[ $key ] = $migration['removal'];
+			}
+		}
+		ksort( $removals );
+
+		$this->assertSame(
+			array(
+				'activity_log_clear_plaintext' => '6.45.0',
+				'email_hash_rehash'            => '6.45.0',
+				'import_legacy_templates'      => '6.45.0',
+				'rewrite_html_image_refs'      => '6.45.0',
+				'split_cpf_rf'                 => '6.45.0',
+			),
+			$removals
+		);
+	}
+
 }

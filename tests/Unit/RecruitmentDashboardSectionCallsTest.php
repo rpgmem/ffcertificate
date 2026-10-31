@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Recruitment\RecruitmentCallIcs;
 use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
 
 /**
@@ -20,30 +22,61 @@ use FreeFormCertificate\Recruitment\RecruitmentDashboardSection;
  * site-timezone midnight, so a test reading `time()` once would fail on the
  * run that crosses it (CLAUDE.md "Test infrastructure").
  *
- * Every reader is aliased, so each test runs in its own process.
+ * The readers, DateFormatter and DashboardViewMode are the real classes.
+ * The readers run over a `$wpdb` double that answers each query from the
+ * rows a test stores, by table and bound id, records every query, and fails
+ * the test on one it does not expect. Dates render in the default formats
+ * (`d/m/Y`, `H:i`) of an install nobody configured.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentDashboardSection
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentDashboardSectionCallsTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $candidates;
+	/**
+	 * Candidate rows by WP user id.
+	 *
+	 * @var array<int, list<object>>
+	 */
+	private array $candidates = array();
 
-	/** @var Mockery\MockInterface */
-	private $classifications;
+	/**
+	 * Classification rows by candidate id.
+	 *
+	 * @var array<int, list<object>>
+	 */
+	private array $classifications = array();
 
-	/** @var Mockery\MockInterface */
-	private $notices;
+	/**
+	 * Notice rows by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $notices = array();
 
-	/** @var Mockery\MockInterface */
-	private $calls;
+	/**
+	 * Every call row in the database.
+	 *
+	 * @var list<object>
+	 */
+	private array $calls = array();
+
+	/**
+	 * Every query the database answered, in order.
+	 *
+	 * @var list<string>
+	 */
+	private array $queries = array();
 
 	/** @var array<int, string> Script handles enqueued during the test. */
 	private array $scripts = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	/**
 	 * 2026-10-18 12:00 in São Paulo (UTC-3, no DST since 2019).
@@ -53,6 +86,10 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$_GET              = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -65,9 +102,20 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'number_format_i18n' )->alias( static fn ( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
 		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'wp_date' )->alias(
+			static function ( $format, $ts = null, $tz = null ) {
+				$zone = $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'America/Sao_Paulo' );
+				return ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $zone )->format( (string) $format );
+			}
+		);
 		Functions\when( 'admin_url' )->alias( static fn ( $path = '' ) => 'https://example.test/wp-admin/' . $path );
 		Functions\when( 'wp_create_nonce' )->alias( static fn ( $action ) => 'nonce-' . $action );
 		Functions\when( 'add_query_arg' )->alias( static fn ( array $args, string $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// No plugin settings stored: DateFormatter falls back to its defaults.
+		Functions\when( 'get_option' )->alias( static fn ( $key, $default = false ) => $default );
 
 		$this->scripts = array();
 		Functions\when( 'wp_enqueue_script' )->alias(
@@ -76,24 +124,93 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 			}
 		);
 
-		$this->candidates      = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$this->classifications = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$this->notices         = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
-		$this->calls           = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-
-		$adjutancies = array( 1 => (object) array( 'id' => 1, 'name' => 'Mathematics' ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' )
-			->shouldReceive( 'get_by_id' )->andReturnUsing( static fn ( $id ) => $adjutancies[ $id ] ?? null );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_datetime' )->andReturnUsing( static fn ( $ts ) => 'DT' . $ts )
-			->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn ( $d ) => 'D' . $d )
-			->shouldReceive( 'format_wallclock_time' )->andReturnUsing( static fn ( $t ) => 'T' . $t );
+		$this->candidates      = array();
+		$this->classifications = array();
+		$this->notices         = array();
+		$this->calls           = array();
+		$this->queries         = array();
+		$GLOBALS['wpdb']       = $this->database();
 	}
 
 	protected function tearDown(): void {
+		$_GET = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A database answering from the rows the test stored. Adjutancy 1 is
+	 * Mathematics.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		// Interpolates, so the reads below can dispatch on table and id.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+
+		$adjutancies = array( 1 => (object) array( 'id' => 1, 'name' => 'Mathematics' ) );
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) use ( $adjutancies ) {
+				$this->queries[] = (string) $sql;
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_notice WHERE id = (\d+)$/', (string) $sql, $m ) ) {
+					return $this->notices[ (int) $m[1] ] ?? null;
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_adjutancy WHERE id = (\d+)$/', (string) $sql, $m ) ) {
+					return $adjutancies[ (int) $m[1] ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = (string) $sql;
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_candidate WHERE user_id = (\d+)$/', (string) $sql, $m ) ) {
+					return $this->candidates[ (int) $m[1] ] ?? array();
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_classification WHERE candidate_id = (\d+) /', (string) $sql, $m ) ) {
+					return $this->classifications[ (int) $m[1] ] ?? array();
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_recruitment_call WHERE classification_id IN \(([\d,]+)\)/', (string) $sql, $m ) ) {
+					$ids = array_map( 'intval', explode( ',', $m[1] ) );
+					return array_values(
+						array_filter( $this->calls, static fn ( $call ) => in_array( (int) $call->classification_id, $ids, true ) )
+					);
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql );
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The queries that read the given table.
+	 *
+	 * @param string $table Table name without the prefix.
+	 * @return list<string>
+	 */
+	private function queries_on( string $table ): array {
+		return array_values(
+			array_filter( $this->queries, static fn ( $sql ) => str_contains( $sql, 'FROM wp_' . $table . ' ' ) )
+		);
 	}
 
 	private function cls( int $id, int $notice, string $list, string $status, int $adjutancy = 1 ): object {
@@ -129,17 +246,18 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 	}
 
 	/**
-	 * Wire one candidate with the given classifications, notices and calls.
+	 * Store candidate 3, linked to user 9, with the given classifications,
+	 * notices and calls.
 	 *
 	 * @param array<int, object> $classifications Classification rows.
 	 * @param array<int, object> $notices         Notice rows by id.
 	 * @param array<int, object> $calls           Call rows.
 	 */
 	private function wire( array $classifications, array $notices, array $calls ): void {
-		$this->candidates->shouldReceive( 'get_by_user_id' )->andReturn( array( (object) array( 'id' => 3 ) ) );
-		$this->classifications->shouldReceive( 'get_for_candidate' )->with( 3 )->andReturn( $classifications );
-		$this->notices->shouldReceive( 'get_by_id' )->andReturnUsing( static fn ( $id ) => $notices[ $id ] ?? null );
-		$this->calls->shouldReceive( 'get_history_for_classifications' )->andReturn( $calls );
+		$this->candidates      = array( 9 => array( (object) array( 'id' => 3 ) ) );
+		$this->classifications = array( 3 => array_values( $classifications ) );
+		$this->notices         = $notices;
+		$this->calls           = array_values( $calls );
 	}
 
 	/**
@@ -154,7 +272,7 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 
 	public function test_register_adds_the_shortcode_and_the_calendar_download(): void {
 		Functions\expect( 'add_shortcode' )->once()->with( 'ffc_recruitment_my_calls', array( RecruitmentDashboardSection::class, 'render' ) );
-		Functions\expect( 'add_action' )->once()->with( 'admin_post_ffc_recruitment_call_ics', Mockery::type( 'array' ) );
+		Actions\expectAdded( 'admin_post_ffc_recruitment_call_ics' )->once()->with( array( RecruitmentCallIcs::class, 'handle' ) );
 
 		RecruitmentDashboardSection::register();
 	}
@@ -162,28 +280,42 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 	public function test_render_uses_the_view_as_user_when_set(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		Mockery::mock( 'alias:FreeFormCertificate\Shortcodes\DashboardViewMode' )
-			->shouldReceive( 'get_view_as_user_id' )->andReturn( 42 );
-		$this->candidates->shouldReceive( 'get_by_user_id' )->once()->with( 42 )->andReturn( array() );
+		// An administrator with a valid view-as nonce for user 42.
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'absint' )->alias( static fn ( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( 'trim' );
+		Functions\when( 'wp_verify_nonce' )->alias( static fn ( $nonce, $action ) => 'good' === $nonce && 'ffc_view_as_user_42' === $action );
+		Functions\when( 'get_user_by' )->alias( static fn ( $field, $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
+		// The view-as gate also requires the viewed account to exist (#2246).
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
+		$_GET = array(
+			'ffc_view_as_user' => '42',
+			'ffc_view_nonce'   => 'good',
+		);
 
 		$this->assertSame( '', RecruitmentDashboardSection::render() );
+		$this->assertSame(
+			array( 'SELECT * FROM wp_ffc_recruitment_candidate WHERE user_id = 42' ),
+			$this->queries_on( 'ffc_recruitment_candidate' ),
+			'The candidate is looked up once, for the viewed user and not the admin.'
+		);
 	}
 
 	public function test_render_for_user_refuses_a_non_positive_id(): void {
-		$this->candidates->shouldNotReceive( 'get_by_user_id' );
-
 		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 0, self::NOW ) );
+		$this->assertSame( array(), $this->queries, 'No candidate is looked up.' );
 	}
 
 	public function test_a_candidate_whose_notices_are_gone_or_drafts_sees_nothing(): void {
-		$this->candidates->shouldReceive( 'get_by_user_id' )->andReturn( array( (object) array( 'id' => 3 ) ) );
-		$this->classifications->shouldReceive( 'get_for_candidate' )->with( 3 )->andReturn(
-			array( $this->cls( 1, 10, 'definitive', 'empty' ), $this->cls( 2, 11, 'definitive', 'empty' ) )
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'empty' ), $this->cls( 2, 11, 'definitive', 'empty' ) ),
+			array( 11 => $this->notice( 11, 'draft' ) ),
+			array( $this->call( 101, 1 ), $this->call( 102, 2 ) )
 		);
-		$this->notices->shouldReceive( 'get_by_id' )->andReturnUsing( fn ( $id ) => 11 === $id ? $this->notice( 11, 'draft' ) : null );
-		$this->calls->shouldNotReceive( 'get_history_for_classifications' );
 
 		$this->assertSame( '', RecruitmentDashboardSection::render_for_user( 9, self::NOW ) );
+		$this->assertSame( array(), $this->queries_on( 'ffc_recruitment_call' ), 'No call history is read.' );
 		$this->assertSame( array(), $this->scripts, 'Nothing rendered, nothing to page.' );
 	}
 
@@ -229,11 +361,11 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		$called = $this->section( $html, 'called' );
 		$this->assertSame( 1, substr_count( $called, '<article class="ffc-mycalls-card">' ) );
 		$this->assertStringContainsString( '<span class="ffc-mycalls-notice-code">N-10</span> <span class="ffc-mycalls-notice-name">Notice 10</span>', $called );
-		$this->assertStringContainsString( '<strong>D2026-10-22 at T08:00:00</strong>', $called );
+		$this->assertStringContainsString( '<strong>22/10/2026 at 08:00</strong>', $called );
 		$this->assertStringContainsString( 'in 4 days', $called );
-		$this->assertStringContainsString( 'This card leaves on D2026-10-23.', $called );
+		$this->assertStringContainsString( 'This card leaves on 23/10/2026.', $called );
 		$this->assertStringContainsString( '<dd>Bring documents</dd>', $called );
-		$this->assertStringContainsString( '<dd>DT1700000000</dd>', $called, 'Called at is the call\'s called_at.' );
+		$this->assertStringContainsString( '<dd>14/11/2023 19:13</dd>', $called, 'Called at is the call\'s called_at.' );
 		$this->assertStringContainsString( 'ffc-icon-calendar-check', $called );
 		$this->assertStringContainsString( 'action=ffc_recruitment_call_ics&call=101&_wpnonce=nonce-ffc_recruitment_call_ics_101', $called );
 
@@ -356,7 +488,7 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 			$closed
 		);
 		$this->assertStringContainsString( '<strong class="ffc-mycalls-pop-title">Status not updated yet</strong>', $closed );
-		$this->assertStringContainsString( '<dt>Presentation</dt><dd>D2026-10-15 T13:30:00</dd>', $closed );
+		$this->assertStringContainsString( '<dt>Presentation</dt><dd>15/10/2026 13:30</dd>', $closed );
 		$this->assertStringContainsString( 'has not recorded the result yet', $closed );
 		// Only the badge and the i: no text sits under the badge.
 		$this->assertStringContainsString( 'Deadline passed</span><div class="ffc-mycalls-info">', $closed );
@@ -377,8 +509,8 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 		);
 		$this->assertStringContainsString( 'aria-label="About the reverted call"', $with );
 		$this->assertStringContainsString( '<strong class="ffc-mycalls-pop-title">Previous call reverted</strong>', $with );
-		$this->assertStringContainsString( '<dt>Called on</dt><dd>DT1700000000</dd>', $with );
-		$this->assertStringContainsString( '<dt>Reverted on</dt><dd>DT1700086400</dd>', $with );
+		$this->assertStringContainsString( '<dt>Called on</dt><dd>14/11/2023 19:13</dd>', $with );
+		$this->assertStringContainsString( '<dt>Reverted on</dt><dd>15/11/2023 19:13</dd>', $with );
 		$this->assertStringContainsString( '<dt>Reason</dt><dd>Called by mistake.</dd>', $with );
 
 		$without = '';
@@ -409,6 +541,77 @@ class RecruitmentDashboardSectionCallsTest extends TestCase {
 
 		$this->assertStringContainsString( 'Withdrew</span><div class="ffc-mycalls-info">', $closed );
 		$this->assertStringContainsString( '<dt>Reason</dt><dd>Date changed.</dd>', $closed );
-		$this->assertStringContainsString( 'D2026-09-10 T08:00:00', $closed, 'The presentation date is the live call\'s.' );
+		$this->assertStringContainsString( '10/09/2026 08:00', $closed, 'The presentation date is the live call\'s.' );
+	}
+
+	public function test_a_closed_notice_moves_its_open_rows_to_closed_without_touching_the_stored_status(): void {
+		$tz       = new \DateTimeZone( 'America/Sao_Paulo' );
+		$midnight = ( new \DateTimeImmutable( '2026-10-20 00:00:00', $tz ) )->getTimestamp();
+		$notice   = $this->notice( 10, 'closed' );
+		$rows     = array(
+			'empty'    => $this->cls( 1, 10, 'definitive', 'empty' ),
+			'called'   => $this->cls( 2, 10, 'definitive', 'called' ),
+			'accepted' => $this->cls( 3, 10, 'definitive', 'accepted' ),
+			'expired'  => $this->cls( 4, 10, 'definitive', 'called' ),
+			'hired'    => $this->cls( 5, 10, 'definitive', 'hired' ),
+		);
+		$entries  = array(
+			array( 'notice' => $notice, 'classification' => $rows['empty'], 'calls' => array() ),
+			array( 'notice' => $notice, 'classification' => $rows['called'], 'calls' => array( $this->call( 102, 2, array( 'date_to_assume' => '2026-10-25' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['accepted'], 'calls' => array( $this->call( 103, 3, array( 'date_to_assume' => '2026-10-25' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['expired'], 'calls' => array( $this->call( 104, 4, array( 'date_to_assume' => '2026-10-19' ) ) ) ),
+			array( 'notice' => $notice, 'classification' => $rows['hired'], 'calls' => array( $this->call( 105, 5 ) ) ),
+		);
+
+		$sections = RecruitmentDashboardSection::build_sections( $entries, $midnight );
+
+		$this->assertSame( array(), $sections['called'], 'Nothing is still called on a closed notice.' );
+		$this->assertSame( array(), $sections['waiting'], 'Nothing waits on a closed notice.' );
+		$by_id = array();
+		foreach ( $sections['closed'] as $item ) {
+			$by_id[ (int) $item['classification']->id ] = $item['status'];
+		}
+		ksort( $by_id );
+		$this->assertSame(
+			array(
+				1 => 'notice_closed',
+				2 => 'notice_closed',
+				3 => 'notice_closed',
+				4 => 'expired',
+				5 => 'hired',
+			),
+			$by_id,
+			'Only a row with no outcome reads "Notice closed"; an outcome keeps its badge.'
+		);
+		$this->assertSame( 'empty', $rows['empty']->status, 'The label is visual: the classification row is never rewritten.' );
+		$this->assertSame( 'called', $rows['called']->status );
+		$this->assertSame( 'accepted', $rows['accepted']->status );
+	}
+
+	public function test_a_closed_notice_row_renders_its_badge_in_the_closed_section(): void {
+		$this->wire(
+			array( $this->cls( 1, 10, 'definitive', 'empty' ) ),
+			array( 10 => $this->notice( 10, 'closed' ) ),
+			array()
+		);
+
+		$html = RecruitmentDashboardSection::render_for_user( 9, self::NOW );
+
+		$this->assertStringNotContainsString( 'id="ffc-mycalls-waiting"', $html );
+		$this->assertStringContainsString( '<span class="ffc-pill ffc-mycalls-badge-notice-closed">Notice closed</span>', $this->section( $html, 'closed' ) );
+	}
+
+	public function test_a_closed_row_shows_its_position_and_score(): void {
+		$this->wire(
+			array( $this->cls( 7, 10, 'definitive', 'hired' ) ),
+			array( 10 => $this->notice( 10, 'definitive' ) ),
+			array( $this->call( 101, 7 ) )
+		);
+
+		$closed = $this->section( RecruitmentDashboardSection::render_for_user( 9, self::NOW ), 'closed' );
+
+		$this->assertStringContainsString( '<th scope="col">Position</th><th scope="col">Score</th><th scope="col">Status</th>', $closed );
+		$this->assertStringContainsString( 'data-label="Position">7</td>', $closed );
+		$this->assertStringContainsString( 'data-label="Score">87.50</td>', $closed );
 	}
 }

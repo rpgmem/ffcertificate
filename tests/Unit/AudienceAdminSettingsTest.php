@@ -22,6 +22,12 @@ class AudienceAdminSettingsTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
+		// The holiday and visibility handlers branch on $_POST / $_GET, so
+		// each test starts from empty superglobals rather than whatever an
+		// earlier test left there (random-order seed 13256766).
+		$_POST = array();
+		$_GET  = array();
+
 		// `LabelSorter::locale()` is guarded by `function_exists( 'get_locale' )`,
 		// so this used to take the no-WordPress branch only because nothing in
 		// the process had defined that function yet — an accident of file
@@ -37,6 +43,8 @@ class AudienceAdminSettingsTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -76,7 +84,8 @@ class AudienceAdminSettingsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['ffc_visibility_action'], $_POST['_wpnonce'], $_GET['tab'] );
+		$_POST = array();
+		$_GET  = array();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -177,6 +186,177 @@ class AudienceAdminSettingsTest extends TestCase {
 		$page->handle_global_holiday_actions();
 
 		$this->assertSame( 0, $update_option->count() );
+	}
+
+	// ==================================================================
+	// handle_global_holiday_actions() — closing a day (#2243)
+	// ==================================================================
+
+	/**
+	 * Post a global holiday and run the handler until it redirects.
+	 *
+	 * @param array<string, string>                     $extra        More POST fields.
+	 * @param \FreeFormCertificate\SelfScheduling\ClosedDayAppointments|null $appointments The personal appointments of the day; none when null.
+	 * @return string The redirect target, or '' when the handler returned.
+	 */
+	private function add_global_holiday( array $extra = array(), $appointments = null ): string {
+		$_POST = array_merge(
+			array(
+				'ffc_action'                 => 'add_global_holiday',
+				'ffc_global_holiday_nonce'   => 'n',
+				'global_holiday_date'        => '2026-12-25',
+				'global_holiday_description' => 'Xmas',
+			),
+			$extra
+		);
+		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $url ) { throw new \RuntimeException( 'redirect:' . $url ); } );
+
+		if ( null === $appointments ) {
+			$appointments = Mockery::mock( \FreeFormCertificate\SelfScheduling\ClosedDayAppointments::class );
+			$appointments->shouldReceive( 'on' )->andReturn( array() );
+			$appointments->shouldReceive( 'cancel' )->andReturn( 0 );
+		}
+
+		$page = new AudienceAdminSettings( 'ffc-scheduling', \Mockery::mock( \FreeFormCertificate\Audience\AudienceAdminImport::class )->shouldIgnoreMissing(), $appointments );
+		try {
+			$page->handle_global_holiday_actions();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		return '';
+	}
+
+	/**
+	 * A personal-calendar collaborator that reports these appointments on the day.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Appointments.
+	 * @return \FreeFormCertificate\SelfScheduling\ClosedDayAppointments&\Mockery\MockInterface
+	 */
+	private function appointments_on_day( array $rows ) {
+		$appointments = Mockery::mock( \FreeFormCertificate\SelfScheduling\ClosedDayAppointments::class );
+		$appointments->shouldReceive( 'on' )->with( '2026-12-25' )->andReturn( $rows );
+		return $appointments;
+	}
+
+	public function test_a_global_holiday_on_a_day_with_personal_appointments_waits_for_confirmation(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		$appointments = $this->appointments_on_day( array( array( 'id' => 8, 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'calendar_title' => 'Clinic' ) ) );
+		$appointments->shouldNotReceive( 'cancel' );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday( array(), $appointments ), 'The handler returns to the tab instead of redirecting.' );
+		$this->assertSame( 0, $update_option->count() );
+		$pending = \FreeFormCertificate\Audience\AudienceClosedDay::pending();
+		$this->assertSame( array(), $pending['bookings'] );
+		$this->assertSame( 8, $pending['appointments'][0]['id'] );
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+	}
+
+	public function test_a_confirmed_global_holiday_cancels_the_personal_appointments_with_the_closure_as_reason(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		$rows         = array( array( 'id' => 8 ), array( 'id' => 9 ) );
+		$appointments = $this->appointments_on_day( $rows );
+		$appointments->shouldReceive( 'cancel' )->once()->with( $rows, 'Closed day: Xmas' )->andReturn( 2 );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$redirect = $this->add_global_holiday( array( \FreeFormCertificate\Audience\AudienceClosedDay::CONFIRM_FIELD => '1' ), $appointments );
+
+		$this->assertStringContainsString( 'message=holiday_added_cancelled&cancelled=0&appointments=2', $redirect );
+		$this->assertSame( 1, $update_option->count() );
+	}
+
+	public function test_a_personal_calendars_setup_holder_may_add_a_global_holiday(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_calendars' === $cap );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertStringContainsString( 'message=holiday_added', $this->add_global_holiday() );
+		$this->assertSame( 1, $update_option->count() );
+	}
+
+	public function test_a_view_only_calendar_holder_may_not_add_a_global_holiday(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_calendars' === $cap );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday() );
+		$this->assertSame( 0, $update_option->count() );
+	}
+
+	/**
+	 * @return array<string, array{0: array<int, string>, 1: string}>
+	 */
+	public static function menu_capabilities(): array {
+		return array(
+			'audience viewer'         => array( array( 'ffc_view_audiences' ), 'ffc_view_audiences' ),
+			'calendar setup only'     => array( array( 'ffc_manage_calendars' ), 'ffc_manage_calendars' ),
+			'both'                    => array( array( 'ffc_view_audiences', 'ffc_manage_calendars' ), 'ffc_view_audiences' ),
+			'neither keeps the audience cap' => array( array(), 'ffc_view_audiences' ),
+		);
+	}
+
+	/**
+	 * @dataProvider menu_capabilities
+	 * @param array<int, string> $held Capabilities the user holds.
+	 */
+	public function test_the_settings_menu_opens_to_a_personal_calendars_setup_holder( array $held, string $expected ): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, $held, true ) );
+
+		$this->assertSame( $expected, AudienceAdminSettings::menu_capability() );
+	}
+
+	public function test_a_personal_calendars_setup_holder_sees_the_holidays_only(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_calendars' === $cap );
+		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
+		$_GET = array( 'tab' => 'audience' );
+
+		$html = $this->render( $this->page() );
+
+		$this->assertStringContainsString( 'Global Holidays', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-tabnav-audience', $html );
+		$this->assertStringNotContainsString( 'ffc-scheduling-tabnav-self-scheduling', $html );
+		$this->assertStringNotContainsString( 'Calendar Colors and Labels', $html );
+	}
+
+	public function test_a_date_already_a_global_holiday_is_refused_with_a_message(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_global_holidays' === $key ? array( array( 'date' => '2026-12-25' ) ) : $default );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertStringContainsString( 'message=holiday_exists', $this->add_global_holiday() );
+		$this->assertSame( 0, $update_option->count() );
+	}
+
+	public function test_a_global_holiday_on_a_booked_day_waits_for_confirmation(): void {
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+		global $wpdb;
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'id' => 41 ) ) );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$this->assertSame( '', $this->add_global_holiday(), 'The handler returns to the tab instead of redirecting.' );
+		$this->assertSame( 0, $update_option->count() );
+		$pending = \FreeFormCertificate\Audience\AudienceClosedDay::pending();
+		$this->assertNotNull( $pending );
+		$this->assertSame( 'add_global_holiday', $pending['fields']['ffc_action'] );
+		\FreeFormCertificate\Audience\AudienceClosedDay::reset();
+	}
+
+	public function test_a_confirmed_global_holiday_is_saved_and_cancels_the_day(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'id' => 41 ) ) );
+		$wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'current_time' )->justReturn( '2026-12-20 10:00:00' );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$cancelled     = CallLog::record( 'do_action' );
+		$update_option = CallLog::record( 'update_option', true );
+
+		$redirect = $this->add_global_holiday( array( \FreeFormCertificate\Audience\AudienceClosedDay::CONFIRM_FIELD => '1' ) );
+
+		$this->assertStringContainsString( 'message=holiday_added_cancelled&cancelled=1', $redirect );
+		$this->assertSame( 1, $update_option->count() );
+		$this->assertSame( 1, $cancelled->count() );
 	}
 
 	// ==================================================================
@@ -412,6 +592,42 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertSame( array( array( 'ffc_audience', $text, 'success' ) ), $notices );
 	}
 
+	/**
+	 * @return array<string, array{0: int, 1: int, 2: string}>
+	 */
+	public static function cancelled_notices(): array {
+		return array(
+			'bookings only'     => array( 2, 0, 'Holiday added. %d bookings were cancelled and their participants were e-mailed.' ),
+			'appointments only' => array( 0, 1, 'Holiday added. %d personal calendar appointment was cancelled.' ),
+			'both'              => array( 1, 3, 'Holiday added. %d booking was cancelled and its participants were e-mailed. %d personal calendar appointments were cancelled.' ),
+		);
+	}
+
+	/**
+	 * The notice says what the holiday cancelled, bookings and appointments
+	 * apart (#2244).
+	 *
+	 * @dataProvider cancelled_notices
+	 */
+	public function test_the_cancelled_notice_names_bookings_and_appointments( int $bookings, int $appointments, string $text ): void {
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		$_GET    = array(
+			'page'         => 'ffc-scheduling-settings',
+			'message'      => 'holiday_added_cancelled',
+			'cancelled'    => (string) $bookings,
+			'appointments' => (string) $appointments,
+		);
+		$notices = $this->record_notices();
+
+		try {
+			$this->page()->handle_global_holiday_actions();
+		} finally {
+			$_GET = array();
+		}
+
+		$this->assertSame( array( str_replace( '%d', '%s', $text ) ), array_map( static fn( $n ) => preg_replace( '/\d+/', '%s', $n ), $notices->getArrayCopy() ) );
+	}
+
 	public function test_global_holiday_message_is_ignored_on_another_screen(): void {
 		$_POST = array();
 		$_GET  = array( 'page' => 'ffc-scheduling-calendars', 'message' => 'holiday_deleted' );
@@ -525,6 +741,57 @@ class AudienceAdminSettingsTest extends TestCase {
 		$this->assertSame( array( 'Business hours restriction messages saved.' ), $notices->getArrayCopy() );
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: int|null}>
+	 */
+	public static function closeout_days(): array {
+		return array(
+			'a number'          => array( '14', 14 ),
+			'zero turns it off' => array( '0', 0 ),
+			'above the cap'     => array( '9999', 365 ),
+			'below zero'        => array( '-4', 0 ),
+			'empty keeps it'    => array( '', null ),
+			'not a number'      => array( 'abc', null ),
+		);
+	}
+
+	/**
+	 * @dataProvider closeout_days
+	 */
+	public function test_closeout_days_are_clamped_and_an_empty_field_writes_nothing( string $posted, ?int $expected ): void {
+		$written = $this->record_writes();
+		$notices = $this->record_notices();
+		$_POST   = array(
+			'ffc_action'            => 'save_ss_closeout_settings',
+			'ffc_ss_closeout_nonce' => 'n',
+			'ffc_ss_closeout_days'  => $posted,
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		if ( null === $expected ) {
+			$this->assertCount( 0, $written );
+			$this->assertSame( array( 'Not saved: enter a number of days from 0 to 365.' ), $notices->getArrayCopy() );
+			return;
+		}
+		$this->assertSame( array( 'ffc_ss_closeout_days' => $expected ), $written->getArrayCopy() );
+		$this->assertSame( array( 'Old appointment close-out saved.' ), $notices->getArrayCopy() );
+	}
+
+	public function test_closeout_days_without_a_nonce_are_ignored(): void {
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'           => 'save_ss_closeout_settings',
+			'ffc_ss_closeout_days' => '3',
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		$this->assertCount( 0, $written );
+	}
+
 	public function test_business_hours_messages_without_a_nonce_are_ignored(): void {
 		$written = $this->record_writes();
 		$_POST   = array( 'ffc_action' => 'save_ss_business_hours_settings' );
@@ -619,6 +886,57 @@ class AudienceAdminSettingsTest extends TestCase {
 		}
 	}
 
+	/**
+	 * @return iterable<string, array{0: string, 1: int|null}>
+	 */
+	public static function posted_range_limits(): iterable {
+		yield 'a value inside the range' => array( '90', 90 );
+		yield 'above a year clamps' => array( '500', 365 );
+		yield 'below one day clamps' => array( '0', 1 );
+		yield 'empty keeps the stored value' => array( '', null );
+	}
+
+	/**
+	 * The longest booking range is clamped to 1–365 on save, and a cleared
+	 * field writes nothing (#2243).
+	 *
+	 * @dataProvider posted_range_limits
+	 *
+	 * @param string   $posted   Posted value.
+	 * @param int|null $expected Written value, null for no write.
+	 */
+	public function test_audience_visibility_saves_the_range_limit( string $posted, ?int $expected ): void {
+		$written = $this->record_writes();
+		$this->record_notices();
+		$_POST = array(
+			'ffc_action'               => 'save_aud_visibility_settings',
+			'ffc_aud_visibility_nonce' => 'n',
+			'ffc_aud_max_range_days'   => $posted,
+		);
+
+		$this->page()->handle_visibility_settings();
+		$_POST = array();
+
+		if ( null === $expected ) {
+			$this->assertArrayNotHasKey( 'ffc_aud_max_range_days', $written->getArrayCopy() );
+		} else {
+			$this->assertSame( $expected, $written['ffc_aud_max_range_days'] );
+		}
+	}
+
+	public function test_audience_tab_draws_the_range_limit_field_with_its_default(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => false !== $default ? $default : '' );
+		$_GET['tab'] = 'audience';
+
+		$html = $this->render( $this->page() );
+
+		$this->assertMatchesRegularExpression(
+			'/<input type="number" name="ffc_aud_max_range_days" id="ffc_aud_max_range_days" class="small-text" required\s+min="1"\s+max="365"\s+value="30">/',
+			$html
+		);
+		$this->assertLessThan( (int) strpos( $html, '</form>' ), (int) strpos( $html, 'name="ffc_aud_max_range_days"' ), 'the Save button posts the limit too' );
+	}
+
 	public function test_self_join_limit_without_the_capability_is_not_saved(): void {
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$written = $this->record_writes();
@@ -707,6 +1025,66 @@ class AudienceAdminSettingsTest extends TestCase {
 		} );
 	}
 
+	public function test_saving_the_calendar_appearance_stores_colours_names_and_switch(): void {
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'n',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+			'calendar_legend'               => array( 'closed' => 'Encerrado' ),
+			'calendar_cell'                 => array( 'closed' => 'Fechado' ),
+		);
+
+		$this->run_holiday_action();
+
+		$stored = $written['ffc_calendar_appearance'];
+		$this->assertSame( '#123456', $stored['colors']['booked'] );
+		$this->assertSame( 'Encerrado', $stored['legend']['closed'] );
+		$this->assertSame( 'Fechado', $stored['cell']['closed'] );
+		$this->assertFalse( $stored['show_closed_label'], 'An unticked switch posts nothing, which is off.' );
+		$this->assertSame( array( 'https://example.com/wp-admin/' ), $redirects->getArrayCopy() );
+	}
+
+	public function test_restoring_the_calendar_appearance_deletes_the_option(): void {
+		$deleted = array();
+		Functions\when( 'delete_option' )->alias(
+			static function ( $name ) use ( &$deleted ) {
+				$deleted[] = $name;
+				return true;
+			}
+		);
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+		$_POST     = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'n',
+			'calendar_appearance_reset'     => '1',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertSame( array( 'ffc_calendar_appearance' ), $deleted );
+		$this->assertArrayNotHasKey( 'ffc_calendar_appearance', $written->getArrayCopy(), 'Restore ignores the posted values.' );
+		$this->assertCount( 1, $redirects );
+	}
+
+	public function test_the_calendar_appearance_is_not_saved_on_a_bad_nonce(): void {
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$written = $this->record_writes();
+		$_POST   = array(
+			'ffc_action'                    => 'save_calendar_appearance',
+			'ffc_calendar_appearance_nonce' => 'bad',
+			'calendar_color'                => array( 'booked' => '#123456' ),
+		);
+
+		$this->run_holiday_action();
+
+		$this->assertArrayNotHasKey( 'ffc_calendar_appearance', $written->getArrayCopy() );
+	}
+
 	public function test_adding_a_new_holiday_appends_it_and_redirects(): void {
 		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'New Year' ) ) );
 		$written   = $this->record_writes();
@@ -716,14 +1094,17 @@ class AudienceAdminSettingsTest extends TestCase {
 			'ffc_global_holiday_nonce'   => 'n',
 			'global_holiday_date'        => '2026-12-25',
 			'global_holiday_description' => 'Christmas',
+			'global_holiday_kind'        => 'optional',
 		);
 
 		$this->run_holiday_action();
 
+		// The kind is stored with the new entry (#2202); the one stored
+		// before carries none and keeps reading as a holiday.
 		$this->assertSame(
 			array(
 				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
-				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas', 'kind' => 'optional' ),
 			),
 			$written['ffc_global_holidays']
 		);
@@ -886,6 +1267,105 @@ class AudienceAdminSettingsTest extends TestCase {
 		);
 
 		$this->run_holiday_action();
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 0, $redirects );
+	}
+
+	// ==================================================================
+	// Editing a global holiday (#2212)
+	// ==================================================================
+
+	/**
+	 * @param array<string, string> $fields
+	 */
+	private function post_holiday_edit( array $fields ): void {
+		$_POST = array_merge(
+			array(
+				'ffc_action'             => 'edit_global_holiday',
+				'ffc_holiday_edit_nonce' => 'n',
+				'holiday_original_date'  => '2026-12-25',
+			),
+			$fields
+		);
+		$this->run_holiday_action();
+	}
+
+	public function test_editing_a_holiday_replaces_the_entry_named_by_its_original_date(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+			)
+		);
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		$this->post_holiday_edit(
+			array(
+				'holiday_edit_date'        => '2026-12-24',
+				'holiday_edit_description' => 'Christmas Eve',
+				'holiday_edit_kind'        => 'optional',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-24', 'description' => 'Christmas Eve', 'kind' => 'optional' ),
+			),
+			$written['ffc_global_holidays']
+		);
+		$this->assertCount( 1, $redirects );
+		$this->assertStringContainsString( 'message=holiday_updated', $redirects[0] );
+	}
+
+	public function test_editing_a_holiday_onto_another_entrys_date_changes_nothing(): void {
+		$this->stored_holidays(
+			array(
+				array( 'date' => '2026-01-01', 'description' => 'New Year' ),
+				array( 'date' => '2026-12-25', 'description' => 'Christmas' ),
+			)
+		);
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-01-01' ) );
+
+		$this->assertCount( 0, $written );
+		$this->assertCount( 1, $redirects );
+		$this->assertStringContainsString( 'message=holiday_not_updated', $redirects[0] );
+	}
+
+	public function test_editing_a_holiday_that_is_not_stored_or_to_an_invalid_date_changes_nothing(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-01-01', 'description' => 'New Year' ) ) );
+		$written = $this->record_writes();
+		$this->record_redirects();
+
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
+		$this->post_holiday_edit(
+			array(
+				'holiday_original_date' => '2026-01-01',
+				'holiday_edit_date'     => '24/12/2026',
+			)
+		);
+
+		$this->assertCount( 0, $written );
+	}
+
+	public function test_editing_a_holiday_without_a_nonce_or_the_capability_is_refused(): void {
+		$this->stored_holidays( array( array( 'date' => '2026-12-25', 'description' => 'Christmas' ) ) );
+		$written   = $this->record_writes();
+		$redirects = $this->record_redirects();
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
+
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->post_holiday_edit( array( 'holiday_edit_date' => '2026-12-24' ) );
 
 		$this->assertCount( 0, $written );
 		$this->assertCount( 0, $redirects );

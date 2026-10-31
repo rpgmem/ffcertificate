@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -28,8 +29,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type ReasonRow         from RecruitmentReasonReader
+ * @phpstan-import-type NoticeCallRow     from RecruitmentCallReader
  */
 final class RecruitmentNoticeEditPageRenderer {
+
+	/**
+	 * The statuses a definitive row can hold, in the order the status
+	 * filter lists them (#2245).
+	 */
+	private const DEFINITIVE_STATUSES = array( 'empty', 'called', 'accepted', 'not_shown', 'hired', 'withdrew' );
+
+	/**
+	 * Rows per page of the calls record.
+	 */
+	private const CALLS_PER_PAGE = 50;
 
 	/**
 	 * Section: CSV import — list_type selector targeting the current notice.
@@ -56,6 +69,9 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_csv_import_section( object $notice ): void {
 		$notice_id = (int) $notice->id;
 		$status    = (string) $notice->status;
+		// The same check the import runs (#2245): the definitive option is
+		// offered only where the import would accept it.
+		$definitive_block = RecruitmentCsvImporter::definitive_import_block( $notice_id, $status );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/csv-import-section.php';
 	}
@@ -189,7 +205,7 @@ final class RecruitmentNoticeEditPageRenderer {
 			// (existing notices' public_columns_config JSON keeps working);
 			// surfaced as "Subscription type" because the PCD column on
 			// the CSV is a boolean PCD/GERAL flag.
-			'pcd_badge'      => __( 'Subscription type (PCD / GERAL)', 'ffcertificate' ),
+			'pcd_badge'      => __( 'Subscription type (PCD / General)', 'ffcertificate' ),
 			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
 			'time_to_assume' => __( 'Time to assume', 'ffcertificate' ),
 			'score'          => __( 'Score', 'ffcertificate' ),
@@ -275,16 +291,6 @@ final class RecruitmentNoticeEditPageRenderer {
 				'cta'          => __( 'Close notice', 'ffcertificate' ),
 				'style'        => 'destructive',
 			),
-			'draft'       => array(
-				'title'        => __( 'Move notice back to draft?', 'ffcertificate' ),
-				'body'         => __( 'The notice returns to `draft`.', 'ffcertificate' ),
-				'consequences' => array(
-					__( 'The candidate list is hidden from the public shortcode.', 'ffcertificate' ),
-					__( 'No data is lost — you can publish again later.', 'ffcertificate' ),
-				),
-				'cta'          => __( 'Move to draft', 'ffcertificate' ),
-				'style'        => 'primary',
-			),
 		);
 	}
 
@@ -300,9 +306,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * @param object $notice Notice row.
 	 * @phpstan-param NoticeRow $notice
+	 * @param bool   $can_manage False hides the transitions from a reader who does not manage the notice.
 	 * @return void
 	 */
-	public static function render_status_section( object $notice ): void {
+	public static function render_status_section( object $notice, bool $can_manage = true ): void {
 		$current      = (string) $notice->status;
 		$nonce_action = 'ffc_recruitment_transition_notice_' . (int) $notice->id;
 
@@ -310,7 +317,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		// set for the current state (minus the prelim → definitive path,
 		// surfaced separately), and the per-target confirm-modal copy.
 		$status_badge = RecruitmentAdminPage::notice_status_badge( $current );
-		$transitions  = self::resolve_status_transitions( $current );
+		// Moving the status is the Manager's (#2245); the Operator sees it.
+		$transitions  = $can_manage ? self::resolve_status_transitions( $current ) : array();
 		$modal_config = self::transition_modal_config( $current );
 
 		// Special-case the preliminary → definitive transition: it has two
@@ -319,7 +327,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// (only relevant while preliminary) so the template stays free of
 		// the private renderer helper.
 		$prelim_options_html = '';
-		if ( 'preliminary' === $current ) {
+		if ( 'preliminary' === $current && $can_manage ) {
 			ob_start();
 			self::render_preliminary_to_final_options( $notice, $nonce_action );
 			$prelim_options_html = (string) ob_get_clean();
@@ -337,9 +345,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *   - definitive_import — upload a brand-new CSV that becomes the
 	 *     definitive list.
 	 *
-	 * If `definitive` rows already exist (e.g. from a prior promote
-	 * cycle), neither mode applies — the operator just promotes the
-	 * status. We detect that here and route accordingly.
+	 * If `definitive` rows already exist (from a cycle that went back to
+	 * preliminary), both modes replace them (#2245): before, a third path
+	 * only flipped the status and kept that list, so a corrected
+	 * preliminary list never reached the definitive one.
 	 *
 	 * @param object $notice       Notice row.
 	 * @phpstan-param NoticeRow $notice
@@ -347,8 +356,8 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return void
 	 */
 	private static function render_preliminary_to_final_options( object $notice, string $nonce_action ): void {
-		$id             = (int) $notice->id;
-		$has_definitive = ! empty( RecruitmentClassificationRepository::get_for_notice( $id, 'definitive' ) );
+		$id               = (int) $notice->id;
+		$definitive_count = RecruitmentClassificationRepository::count_for_notice_list( $id, 'definitive' );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/promote-to-definitive-options.php';
 	}
@@ -389,6 +398,9 @@ final class RecruitmentNoticeEditPageRenderer {
 			)
 		);
 
+		// Attach and detach only while the notice may change them (#2245).
+		$editable = RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ADJUTANCIES, (string) $notice->status );
+
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/adjutancies-section.php';
 	}
 
@@ -418,7 +430,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *     definitive_rows: list<ClassificationRow>,
 	 *     def_empties_by_adj: array<string, array<int, array{id:int, rank:int}>>,
 	 *     active_tab: string,
-	 *     filters: array<string, mixed>
+	 *     filters: array<string, mixed>,
+	 *     def_status_counts: array<string, int>,
+	 *     def_status: string,
+	 *     def_total: int
 	 * }
 	 */
 	private static function prepare_classifications_section_data( int $notice_id ): array {
@@ -456,12 +471,34 @@ final class RecruitmentNoticeEditPageRenderer {
 		$preview         = RecruitmentClassificationFilterManager::apply_filters( $preview, $filters );
 		$definitive_rows = RecruitmentClassificationFilterManager::apply_filters( $definitive_rows, $filters );
 
+		// Per-status counts of the definitive list under the other filters,
+		// then the status filter itself (#2245). The counts are taken before
+		// the status narrows the list, so every link says what it would show.
+		$def_status_counts = array_fill_keys( self::DEFINITIVE_STATUSES, 0 );
+		foreach ( $definitive_rows as $row ) {
+			$key = (string) $row->status;
+			if ( isset( $def_status_counts[ $key ] ) ) {
+				++$def_status_counts[ $key ];
+			}
+		}
+		$def_status = RequestInput::get_get_key( 'ffc_cls_status' );
+		if ( ! in_array( $def_status, self::DEFINITIVE_STATUSES, true ) ) {
+			$def_status = '';
+		}
+		$def_total = count( $definitive_rows );
+		if ( '' !== $def_status ) {
+			$definitive_rows = array_values( array_filter( $definitive_rows, static fn( $r ) => $def_status === (string) $r->status ) );
+		}
+
 		return array(
 			'preview'            => $preview,
 			'definitive_rows'    => $definitive_rows,
 			'def_empties_by_adj' => $def_empties_by_adj,
 			'active_tab'         => $active_tab,
 			'filters'            => $filters,
+			'def_status_counts'  => $def_status_counts,
+			'def_status'         => $def_status,
+			'def_total'          => $def_total,
 		);
 	}
 
@@ -504,15 +541,60 @@ final class RecruitmentNoticeEditPageRenderer {
 		self::render_classification_filters_form( $notice_id, $filters );
 		$filters_form_html = (string) ob_get_clean();
 
+		// The screen offers only what the notice's status allows (#2245), the
+		// same rules the REST routes enforce: preliminary statuses while the
+		// notice is preliminary, calls and outcomes while it is definitive.
+		$status = (string) $notice->status;
+
 		ob_start();
-		self::render_classifications_table( $preview, false, 'preliminary' );
+		self::render_classifications_table( $preview, false, 'preliminary', RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PREVIEW_MARKS, $status ) );
 		$preliminary_table_html = (string) ob_get_clean();
 
 		ob_start();
-		self::render_classifications_table( $definitive_rows, true, 'definitive' );
+		if ( ! empty( $data['definitive_rows'] ) || $data['def_total'] > 0 ) {
+			self::render_export_button( $notice_id, 'list' );
+		}
+		self::render_status_filter( $data['def_status_counts'], $data['def_status'], $data['def_total'] );
+		self::render_classifications_table( $definitive_rows, RecruitmentNoticeEditPage::can_call() && RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::CALLS, $status ), 'definitive' );
 		$definitive_table_html = (string) ob_get_clean();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/notice-edit/classifications-section.php';
+	}
+
+	/**
+	 * The status filter above the definitive list: one link per status with
+	 * its count under the other filters, and "All" (#2245).
+	 *
+	 * @param array<string, int> $counts  Rows per status.
+	 * @param string             $current Selected status, or '' for all.
+	 * @param int                $total   Rows under the other filters.
+	 * @return void
+	 */
+	private static function render_status_filter( array $counts, string $current, int $total ): void {
+		if ( 0 === $total ) {
+			return;
+		}
+		$base  = remove_query_arg( array( 'ffc_cls_status', 'ffc_cls_paged_definitive' ) );
+		$base  = add_query_arg( 'ffc_cls_tab', 'definitive', $base );
+		$links = array( '' => array( __( 'All', 'ffcertificate' ), $total ) );
+		foreach ( $counts as $key => $count ) {
+			if ( $count > 0 || $key === $current ) {
+				$links[ $key ] = array( RecruitmentAdminPage::classification_status_label( $key ), $count );
+			}
+		}
+		echo '<ul class="ffc-rec-status-filter" aria-label="' . esc_attr__( 'Filter by status', 'ffcertificate' ) . '">';
+		foreach ( $links as $key => $link ) {
+			$url      = '' === $key ? $base : add_query_arg( 'ffc_cls_status', $key, $base );
+			$selected = $key === $current;
+			printf(
+				'<li><a href="%s"%s>%s <span class="ffc-rec-status-count">(%s)</span></a></li>',
+				esc_url( $url ),
+				$selected ? ' class="current" aria-current="page"' : '',
+				esc_html( $link[0] ),
+				esc_html( number_format_i18n( $link[1] ) )
+			);
+		}
+		echo '</ul>';
 	}
 
 	/**
@@ -532,6 +614,8 @@ final class RecruitmentNoticeEditPageRenderer {
 		$cpf          = (string) ( $filters['cpf'] ?? '' );
 		$rf           = (string) ( $filters['rf'] ?? '' );
 		$subscription = (string) ( $filters['subscription'] ?? '' );
+		$status_key   = RequestInput::get_get_key( 'ffc_cls_status' );
+		$status_key   = in_array( $status_key, self::DEFINITIVE_STATUSES, true ) ? $status_key : '';
 
 		$reset_url = add_query_arg(
 			array(
@@ -568,8 +652,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *     per_page: int,
 	 *     candidates: array<int, string>,
 	 *     pcd_map: array<int, bool>,
+	 *     no_email: array<int, bool>,
 	 *     adjutancies: array<int, string>,
-	 *     reasons: array<int, object>
+	 *     reasons: array<int, object>,
+	 *     waiting_ids: list<int>
 	 * }
 	 * @phpstan-return array{
 	 *     rows: list<ClassificationRow>,
@@ -578,8 +664,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *     per_page: int,
 	 *     candidates: array<int, string>,
 	 *     pcd_map: array<int, bool>,
+	 *     no_email: array<int, bool>,
 	 *     adjutancies: array<int, string>,
-	 *     reasons: list<ReasonRow>
+	 *     reasons: list<ReasonRow>,
+	 *     waiting_ids: list<int>
 	 * }
 	 */
 	private static function prepare_classifications_table_data( array $rows, bool $with_actions, string $tab_key ): array {
@@ -592,25 +680,38 @@ final class RecruitmentNoticeEditPageRenderer {
 		$current_page = max( 1, RequestInput::get_get_int( $page_param, 1 ) );
 		$current_page = min( $current_page, $total_pages );
 		$offset       = ( $current_page - 1 ) * $per_page;
-		$rows         = array_slice( $rows, $offset, $per_page );
+		// Every waiting row under the filters, on every page, for "select all
+		// across pages" (#2245).
+		$waiting_ids = array();
+		foreach ( $rows as $r ) {
+			if ( 'empty' === (string) $r->status ) {
+				$waiting_ids[] = (int) $r->id;
+			}
+		}
+		$rows = array_slice( $rows, $offset, $per_page );
 
 		// Pre-fetch candidate + adjutancy lookups in a single pass to
 		// avoid N+1 inside the render loop.
 		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $rows );
 		$adjutancy_ids = array_map( static fn( $r ) => (int) $r->adjutancy_id, $rows );
 
-		// Bulk-load the full candidate rows once (we need `pcd_hash` for
-		// the Subscription column; the `name` map below is fed from the
-		// same payload to keep this a single SQL round-trip).
+		// Bulk-load the full candidate rows once: the `name` map and the
+		// e-mail flag below come from one SQL round-trip.
 		$candidate_rows = RecruitmentCandidateReader::get_by_ids( array_unique( $candidate_ids ) );
 		$candidates     = array();
 		$pcd_map        = array();
+		$no_email       = array();
 		foreach ( $candidate_rows as $cand ) {
-			$cid                = (int) $cand->id;
+			$cid = (int) $cand->id;
+			// A call e-mail cannot reach a candidate with no address on file
+			// (#2245): the operator is told to contact them another way.
+			$no_email[ $cid ]   = '' === (string) ( $cand->email_hash ?? '' );
 			$candidates[ $cid ] = (string) ( $cand->name ?? '' );
-			// `verify` returns null on hash decode failure — fall back to
-			// GERAL, mirroring the public shortcode's defensive default.
-			$pcd_map[ $cid ] = true === RecruitmentPcdHasher::verify( (string) ( $cand->pcd_hash ?? '' ), $cid );
+		}
+		// PCD belongs to the row, not to the candidate (#2245); an
+		// unrecognised hash reads as GERAL, as the public shortcode does.
+		foreach ( $rows as $r ) {
+			$pcd_map[ (int) $r->id ] = RecruitmentPcdHasher::row_is_pcd( $r );
 		}
 		$adjutancies = self::lookup_map( array_unique( $adjutancy_ids ), array( RecruitmentAdjutancyReader::class, 'get_by_id' ), 'slug' );
 
@@ -618,7 +719,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		// (the §5.2 invariant), so we replace it with the editable
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
-		$is_preview_tab = ! $with_actions;
+		$is_preview_tab = 'preliminary' === $tab_key;
 		$reasons        = $is_preview_tab ? RecruitmentReasonReader::get_all() : array();
 
 		return array(
@@ -628,8 +729,10 @@ final class RecruitmentNoticeEditPageRenderer {
 			'per_page'     => $per_page,
 			'candidates'   => $candidates,
 			'pcd_map'      => $pcd_map,
+			'no_email'     => $no_email,
 			'adjutancies'  => $adjutancies,
 			'reasons'      => $reasons,
+			'waiting_ids'  => $waiting_ids,
 		);
 	}
 
@@ -649,9 +752,10 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *                                          to scope the `ffc_cls_paged_<key>`
 	 *                                          URL param so each tab paginates
 	 *                                          independently.
+	 * @param bool               $preview_editable Whether the notice's status takes preliminary status changes.
 	 * @return void
 	 */
-	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary' ): void {
+	private static function render_classifications_table( array $rows, bool $with_actions, string $tab_key = 'preliminary', bool $preview_editable = true ): void {
 		if ( empty( $rows ) ) {
 			echo '<p><em>' . esc_html__( '(no rows)', 'ffcertificate' ) . '</em></p>';
 			return;
@@ -667,6 +771,7 @@ final class RecruitmentNoticeEditPageRenderer {
 		$per_page     = $data['per_page'];
 		$candidates   = $data['candidates'];
 		$pcd_map      = $data['pcd_map'];
+		$no_email     = $data['no_email'];
 		$adjutancies  = $data['adjutancies'];
 		$reasons      = $data['reasons'];
 
@@ -676,13 +781,23 @@ final class RecruitmentNoticeEditPageRenderer {
 		// race-loss on any single row rolls back the entire batch.
 		if ( $with_actions ) {
 			self::render_bulk_call_toolbar();
+			self::render_select_all_pages( $data['waiting_ids'], $rows );
 		}
 
 		// On the Preliminary tab the Status column is always "Waiting"
 		// (the §5.2 invariant), so we replace it with the editable
 		// preview_status + reason dropdown. The Definitive tab keeps the
 		// existing Status badge.
-		$is_preview_tab = ! $with_actions;
+		$is_preview_tab = 'preliminary' === $tab_key;
+		$can_manage     = RecruitmentNoticeEditPage::can_manage();
+		$can_mark       = $can_manage && $preview_editable;
+
+		// The active call of each row that has one, so Cancel and Reopen name
+		// the call they end and the list shows when it was made and for when
+		// (#2245). One query for the page, and one for the callers' names.
+		$active_calls = $is_preview_tab ? array() : self::active_calls_for( $rows );
+		$show_callers = ! $is_preview_tab && RecruitmentNoticeEditPage::can_see_callers();
+		$callers      = $show_callers ? self::user_names( array_column( $active_calls, 'created_by' ) ) : array();
 
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
@@ -698,6 +813,11 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo '<th>' . esc_html__( 'Reason', 'ffcertificate' ) . '</th>';
 		} else {
 			echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
+			echo '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
+			echo '<th>' . esc_html__( 'Called on', 'ffcertificate' ) . '</th>';
+			if ( $show_callers ) {
+				echo '<th>' . esc_html__( 'Called by', 'ffcertificate' ) . '</th>';
+			}
 		}
 		if ( $with_actions ) {
 			echo '<th>' . esc_html__( 'Actions', 'ffcertificate' ) . '</th>';
@@ -727,10 +847,14 @@ final class RecruitmentNoticeEditPageRenderer {
 				echo '<td><input type="checkbox" class="ffc-cls-bulk-cb" value="' . esc_attr( (string) $row->id ) . '"' . ( $is_empty ? '' : ' disabled' ) . '></td>';
 			}
 			echo '<td>' . esc_html( (string) $row->rank ) . '</td>';
-			echo '<td>' . esc_html( $candidate_name ) . '</td>';
+			echo '<td>' . esc_html( $candidate_name );
+			if ( $with_actions && ( $no_email[ (int) $row->candidate_id ] ?? false ) ) {
+				echo ' <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">' . esc_html__( 'No email — contact manually', 'ffcertificate' ) . '</span>';
+			}
+			echo '</td>';
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
-			$is_pcd = $pcd_map[ (int) $row->candidate_id ] ?? false;
+			$is_pcd = $pcd_map[ (int) $row->id ] ?? false;
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
@@ -738,16 +862,30 @@ final class RecruitmentNoticeEditPageRenderer {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
 				$current_reason  = isset( $row->preview_reason_id ) ? (int) $row->preview_reason_id : 0;
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview ) . '</td>';
+				echo '<td>' . self::render_preview_status_select( (int) $row->id, $current_preview, $can_mark ) . '</td>';
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons ) . '</td>';
+				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons, $can_mark ) . '</td>';
 			} else {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
+				$active = $active_calls[ (int) $row->id ] ?? null;
+				echo '<td>' . esc_html( null === $active ? '—' : self::assume_label( $active['date'], $active['time'] ) ) . '</td>';
+				echo '<td>' . esc_html( null === $active ? '—' : DateFormatter::format_datetime( $active['called_at'] ) ) . '</td>';
+				if ( $show_callers ) {
+					echo '<td>' . esc_html( null === $active ? '—' : self::user_label( $callers, $active['created_by'] ) ) . '</td>';
+				}
 			}
 			if ( $with_actions ) {
+				$call    = $active_calls[ (int) $row->id ] ?? null;
+				$actions = self::render_classification_actions(
+					(int) $row->id,
+					(string) $row->status,
+					null === $call ? 0 : $call['id'],
+					$can_manage,
+					null !== $call && ( $can_manage || get_current_user_id() === $call['created_by'] )
+				);
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
-				echo '<td>' . self::render_classification_actions( (int) $row->id, (string) $row->status ) . '</td>';
+				echo '<td>' . $actions . '</td>';
 			}
 			echo '</tr>';
 		}
@@ -811,6 +949,162 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
+	 * The calls record of a notice: every call made on it, cancelled ones
+	 * included, newest first (#2245). Who made and who cancelled each call is
+	 * shown to a WordPress administrator or the module's Administrator tier
+	 * only.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	public static function render_calls_section( object $notice ): void {
+		$calls = RecruitmentCallReader::get_for_notice( (int) $notice->id );
+		if ( empty( $calls ) ) {
+			return;
+		}
+		$total        = count( $calls );
+		$total_pages  = (int) max( 1, ceil( $total / self::CALLS_PER_PAGE ) );
+		$current_page = min( max( 1, RequestInput::get_get_int( 'ffc_calls_paged', 1 ) ), $total_pages );
+		$calls        = array_slice( $calls, ( $current_page - 1 ) * self::CALLS_PER_PAGE, self::CALLS_PER_PAGE );
+
+		$show_callers = RecruitmentNoticeEditPage::can_see_callers();
+		$candidates   = array();
+		foreach ( RecruitmentCandidateReader::get_by_ids( array_values( array_unique( array_map( static fn( $c ) => (int) $c->candidate_id, $calls ) ) ) ) as $cand ) {
+			$candidates[ (int) $cand->id ] = (string) ( $cand->name ?? '' );
+		}
+		$users = array();
+		if ( $show_callers ) {
+			$ids = array();
+			foreach ( $calls as $call ) {
+				$ids[] = (int) $call->created_by;
+				$ids[] = (int) ( $call->cancelled_by ?? 0 );
+			}
+			$users = self::user_names( $ids );
+		}
+
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-user-call">' . esc_html__( 'Calls', 'ffcertificate' ) . '</h2>';
+		self::render_export_button( (int) $notice->id, 'calls' );
+		echo '<p class="description">' . esc_html(
+			$show_callers
+				? __( 'Every call made on this notice, newest first, with who made it and who cancelled it.', 'ffcertificate' )
+				: __( 'Every call made on this notice, newest first.', 'ffcertificate' )
+		) . '</p>';
+		echo '<table class="widefat striped"><caption class="screen-reader-text">' . esc_html__( 'Calls of this notice', 'ffcertificate' ) . '</caption><thead><tr>';
+		echo '<th scope="col">' . esc_html__( 'Called on', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
+		if ( $show_callers ) {
+			echo '<th scope="col">' . esc_html__( 'Called by', 'ffcertificate' ) . '</th>';
+		}
+		echo '<th scope="col">' . esc_html__( 'Out of order', 'ffcertificate' ) . '</th>';
+		echo '<th scope="col">' . esc_html__( 'Call', 'ffcertificate' ) . '</th>';
+		echo '</tr></thead><tbody>';
+		foreach ( $calls as $call ) {
+			$candidate_id = (int) $call->candidate_id;
+			echo '<tr>';
+			echo '<td>' . esc_html( DateFormatter::format_datetime( (int) $call->called_at ) ) . '</td>';
+			echo '<td>' . esc_html( $candidates[ $candidate_id ] ?? '#' . $candidate_id ) . '</td>';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $call->adjutancy_id ) ) . '</td>';
+			echo '<td>' . esc_html( (string) $call->rank ) . '</td>';
+			echo '<td>' . esc_html( self::assume_label( (string) $call->date_to_assume, (string) $call->time_to_assume ) ) . '</td>';
+			if ( $show_callers ) {
+				echo '<td>' . esc_html( self::user_label( $users, (int) $call->created_by ) ) . '</td>';
+			}
+			$reason = (string) ( $call->out_of_order_reason ?? '' );
+			echo '<td>' . esc_html( '1' === (string) $call->out_of_order ? ( '' !== $reason ? $reason : __( 'Yes', 'ffcertificate' ) ) : '—' ) . '</td>';
+			echo '<td>' . self::call_state( $call, $show_callers, $users ) . '</td>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- call_state() returns escaped HTML.
+			echo '</tr>';
+		}
+		echo '</tbody></table>';
+
+		if ( $total_pages > 1 ) {
+			echo '<div class="tablenav bottom"><div class="tablenav-pages">';
+			echo wp_kses_post(
+				(string) paginate_links(
+					array(
+						'base'      => add_query_arg( 'ffc_calls_paged', '%#%', remove_query_arg( 'ffc_calls_paged' ) ),
+						'format'    => '',
+						'prev_text' => '&laquo;',
+						'next_text' => '&raquo;',
+						'total'     => $total_pages,
+						'current'   => $current_page,
+					)
+				)
+			);
+			echo '</div></div>';
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * The "Export CSV" button of the definitive list or of the calls record,
+	 * for a holder of `ffc_export_recruitment` (#2245). The click runs the
+	 * batched export through `ffc-recruitment-notice-edit.js`.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $kind      `list` or `calls`.
+	 * @return void
+	 */
+	private static function render_export_button( int $notice_id, string $kind ): void {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( RecruitmentExportSource::CAP ) ) {
+			return;
+		}
+		echo '<p>';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => 'calls' === $kind ? __( 'Export calls (CSV)', 'ffcertificate' ) : __( 'Export definitive list (CSV)', 'ffcertificate' ),
+				'icon'  => 'download',
+				'attrs' => array(
+					'data-ffc-rec-export' => $kind,
+					'data-notice-id'      => (string) $notice_id,
+				),
+			)
+		);
+		echo '</p>';
+	}
+
+	/**
+	 * Whether a call is still in force, or when, why and by whom it was
+	 * cancelled.
+	 *
+	 * @param object             $call         Call row.
+	 * @phpstan-param NoticeCallRow $call
+	 * @param bool               $show_callers Whether to name who cancelled it.
+	 * @param array<int, string> $users        Names by user ID.
+	 * @return string Escaped HTML.
+	 */
+	private static function call_state( object $call, bool $show_callers, array $users ): string {
+		if ( null === $call->cancelled_at ) {
+			return esc_html__( 'Active', 'ffcertificate' );
+		}
+		$parts = array(
+			sprintf(
+				/* translators: %s: date and time */
+				__( 'Cancelled on %s', 'ffcertificate' ),
+				DateFormatter::format_datetime( (int) $call->cancelled_at )
+			),
+		);
+		if ( $show_callers ) {
+			$parts[] = sprintf(
+				/* translators: %s: user name */
+				__( 'by %s', 'ffcertificate' ),
+				self::user_label( $users, (int) ( $call->cancelled_by ?? 0 ) )
+			);
+		}
+		$out    = esc_html( implode( ' ', $parts ) );
+		$reason = (string) ( $call->cancellation_reason ?? '' );
+		if ( '' !== $reason ) {
+			$out .= '<br><span class="description">' . esc_html( $reason ) . '</span>';
+		}
+		return $out;
+	}
+
+	/**
 	 * Localized labels for the five preview-status enum values.
 	 *
 	 * @return array<string, string>
@@ -831,13 +1125,14 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * The change handler installed by {@see self::render_preview_status_script()}
 	 * PATCHes the row via REST when the operator commits a value.
 	 *
-	 * @param int    $cls_id  Classification ID.
-	 * @param string $current Current `preview_status` enum value.
+	 * @param int    $cls_id   Classification ID.
+	 * @param string $current  Current `preview_status` enum value.
+	 * @param bool   $editable False for a reader who does not manage the notice.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_preview_status_select( int $cls_id, string $current ): string {
+	private static function render_preview_status_select( int $cls_id, string $current, bool $editable = true ): string {
 		$options = self::preview_status_label_map();
-		$html    = '<select class="ffc-cls-preview-status" data-cls-id="' . esc_attr( (string) $cls_id ) . '">';
+		$html    = '<select class="ffc-cls-preview-status" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . ( $editable ? '' : ' disabled' ) . '>';
 		foreach ( $options as $value => $label ) {
 			$html .= '<option value="' . esc_attr( $value ) . '"' . selected( $value, $current, false ) . '>' . esc_html( $label ) . '</option>';
 		}
@@ -860,10 +1155,11 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @param int                $reason_id   Currently-selected reason id (0 = none).
 	 * @param array<int, object> $reasons     Full reason catalog (passed in from the caller to avoid N+1 lookups).
 	 * @phpstan-param list<ReasonRow> $reasons
+	 * @param bool               $editable    False for a reader who does not manage the notice.
 	 * @return string Already-escaped HTML.
 	 */
-	private static function render_preview_reason_select( int $cls_id, string $current, int $reason_id, array $reasons ): string {
-		$disabled = ( 'empty' === $current ) ? ' disabled' : '';
+	private static function render_preview_reason_select( int $cls_id, string $current, int $reason_id, array $reasons, bool $editable = true ): string {
+		$disabled = ( 'empty' === $current || ! $editable ) ? ' disabled' : '';
 		$html     = '<select class="ffc-cls-preview-reason" data-cls-id="' . esc_attr( (string) $cls_id ) . '"' . $disabled . '>';
 		$html    .= '<option value="0">' . esc_html__( '— none —', 'ffcertificate' ) . '</option>';
 		foreach ( $reasons as $reason ) {
@@ -907,41 +1203,48 @@ final class RecruitmentNoticeEditPageRenderer {
 	 *
 	 * Returns escaped HTML — already safe to echo.
 	 *
-	 * @param int    $id      Classification ID.
-	 * @param string $current Current status.
+	 * Outcomes are recorded by whoever calls; ending a call (Cancel,
+	 * Reopen) by whoever made it or a Manager; undoing a decision only by a
+	 * Manager (#2245).
+	 *
+	 * @param int    $id         Classification ID.
+	 * @param string $current    Current status.
+	 * @param int    $call_id    The row's active call, or 0 when it has none.
+	 * @param bool   $can_manage Whether the user manages the notice.
+	 * @param bool   $can_end    Whether the user may end the active call.
 	 * @return string
 	 */
-	private static function render_classification_actions( int $id, string $current ): string {
+	private static function render_classification_actions( int $id, string $current, int $call_id = 0, bool $can_manage = true, bool $can_end = true ): string {
 		$out = '';
 		switch ( $current ) {
 			case 'empty':
-				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'neutral', 'phone' );
+				$out .= self::cls_button( $id, 'call', __( 'Call', 'ffcertificate' ), 'neutral', 'user-call' );
 				break;
 			case 'called':
 				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'neutral', 'checkmark' );
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
+				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'accepted':
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
 				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
 				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
-				$out .= self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross' );
+				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'not_shown':
-				$out .= self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock' );
+				$out .= $can_end ? self::cls_button( $id, 'reopen', __( 'Reopen (if not frozen)', 'ffcertificate' ), 'caution', 'unlock', $call_id ) : '';
 				// Admin override (#Item 8): reset to waiting even when the
 				// reopen-freeze would block the plain `reopen` above.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
+				$out .= $can_manage ? self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' ) : '';
 				break;
 			case 'hired':
 			case 'withdrew':
 				// Terminal under the normal lifecycle — but an admin may undo a
 				// realized decision via the audited override (#Item 8): reopens
 				// the vacancy and returns the candidate to the waiting queue.
-				$out .= self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' );
+				$out .= $can_manage ? self::cls_button( $id, 'override', __( 'Undo decision (admin)', 'ffcertificate' ), 'caution', 'restore' ) : '';
 				break;
 		}
 		return $out;
@@ -961,17 +1264,151 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @param string $label    Button label (already i18n'd).
 	 * @param string $category A `Core\Button` category.
 	 * @param string $icon     A `Core\Icons` class name without `ffc-icon-`.
+	 * @param int    $call_id  The call the action ends, or 0.
 	 * @return string
 	 */
-	private static function cls_button( int $id, string $action, string $label, string $category, string $icon ): string {
+	private static function cls_button( int $id, string $action, string $label, string $category, string $icon, int $call_id = 0 ): string {
 		return sprintf(
-			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s" onclick="ffcRecruitmentClsAct(this);">%s</button>',
+			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s"%s onclick="ffcRecruitmentClsAct(this);">%s</button>',
 			esc_attr( $category ),
 			esc_attr( $icon ),
 			$id,
 			esc_attr( $action ),
+			$call_id > 0 ? ' data-call-id="' . esc_attr( (string) $call_id ) . '"' : '',
 			esc_html( $label )
 		);
+	}
+
+	/**
+	 * The active call of each row that has one: classification ID → the
+	 * call's ID and the user who made it.
+	 *
+	 * @param array $rows Classification rows on the page.
+	 * @phpstan-param list<ClassificationRow> $rows
+	 * @return array<int, array{id: int, created_by: int, date: string, time: string, called_at: int}>
+	 */
+	private static function active_calls_for( array $rows ): array {
+		$ids = array();
+		foreach ( $rows as $row ) {
+			if ( 'empty' !== (string) $row->status ) {
+				$ids[] = (int) $row->id;
+			}
+		}
+		$out = array();
+		foreach ( RecruitmentCallReader::get_history_for_classifications( $ids ) as $call ) {
+			$cls = (int) $call->classification_id;
+			if ( null === $call->cancelled_at && ! isset( $out[ $cls ] ) ) {
+				$out[ $cls ] = array(
+					'id'         => (int) $call->id,
+					'created_by' => (int) $call->created_by,
+					'date'       => (string) $call->date_to_assume,
+					'time'       => (string) $call->time_to_assume,
+					'called_at'  => (int) $call->called_at,
+				);
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A call's date and time to assume, in the site's formats. Both are wall
+	 * clock values with no time zone.
+	 *
+	 * @param string $date `Y-m-d`.
+	 * @param string $time `H:i:s`.
+	 * @return string
+	 */
+	private static function assume_label( string $date, string $time ): string {
+		return trim( DateFormatter::format_wallclock_date( $date ) . ' ' . DateFormatter::format_wallclock_time( $time ) );
+	}
+
+	/**
+	 * Display names of the given users, by ID, in one query.
+	 *
+	 * @param array<int|string, int> $ids User IDs.
+	 * @return array<int, string>
+	 */
+	private static function user_names( array $ids ): array {
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', $ids ) ) ) );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( get_users(
+			array(
+				'include' => $ids,
+				'fields'  => array( 'ID', 'display_name' ),
+			)
+		) as $user ) {
+			if ( is_object( $user ) && isset( $user->ID ) ) {
+				$out[ (int) $user->ID ] = (string) ( $user->display_name ?? '' );
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * A user's display name, or a placeholder for an account that no longer
+	 * exists.
+	 *
+	 * @param array<int, string> $names   Names by ID.
+	 * @param int                $user_id User ID.
+	 * @return string
+	 */
+	private static function user_label( array $names, int $user_id ): string {
+		if ( isset( $names[ $user_id ] ) && '' !== $names[ $user_id ] ) {
+			return $names[ $user_id ];
+		}
+		return $user_id > 0
+			/* translators: %d: user ID */
+			? sprintf( __( 'Deleted user #%d', 'ffcertificate' ), $user_id )
+			: '—';
+	}
+
+	/**
+	 * The "select all across pages" prompt of the definitive list (#2245).
+	 * Hidden until every waiting row of the page is checked, and printed only
+	 * when the filtered list holds waiting rows on other pages.
+	 *
+	 * @param array<int, int> $waiting_ids Waiting rows under the filters, every page.
+	 * @phpstan-param list<int> $waiting_ids
+	 * @param array           $page_rows   Rows of the current page.
+	 * @phpstan-param list<ClassificationRow> $page_rows
+	 * @return void
+	 */
+	private static function render_select_all_pages( array $waiting_ids, array $page_rows ): void {
+		$on_page = 0;
+		foreach ( $page_rows as $r ) {
+			if ( 'empty' === (string) $r->status ) {
+				++$on_page;
+			}
+		}
+		$total = count( $waiting_ids );
+		if ( $total <= $on_page ) {
+			return;
+		}
+		echo '<div class="ffc-rec-select-all-pages" data-ffc-waiting-ids="' . esc_attr( (string) wp_json_encode( $waiting_ids ) ) . '" hidden>';
+		echo '<span data-ffc-select-all-page>';
+		printf(
+			/* translators: %s: number of waiting rows on this page */
+			esc_html( _n( 'The %s waiting row on this page is selected.', 'All %s waiting rows on this page are selected.', $on_page, 'ffcertificate' ) ),
+			esc_html( number_format_i18n( $on_page ) )
+		);
+		echo ' <button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-checkmark" onclick="ffcRecruitmentSelectAllPages(true);">';
+		printf(
+			/* translators: %s: number of waiting rows on every page */
+			esc_html( _n( 'Select the %s waiting row on every page', 'Select all %s waiting rows on every page', $total, 'ffcertificate' ) ),
+			esc_html( number_format_i18n( $total ) )
+		);
+		echo '</button></span>';
+		echo '<span data-ffc-select-all-every hidden>';
+		printf(
+			/* translators: %s: number of waiting rows on every page */
+			esc_html( _n( 'The %s waiting row on every page is selected.', 'All %s waiting rows on every page are selected.', $total, 'ffcertificate' ) ),
+			esc_html( number_format_i18n( $total ) )
+		);
+		echo ' <button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-cross" onclick="ffcRecruitmentSelectAllPages(false);">' . esc_html__( 'Clear the selection', 'ffcertificate' ) . '</button>';
+		echo '</span></div>';
 	}
 
 
@@ -1052,9 +1489,11 @@ final class RecruitmentNoticeEditPageRenderer {
 			case 'draft':
 				return array( 'preliminary' => __( 'Move to preliminary', 'ffcertificate' ) );
 			case 'preliminary':
+				// No way back to draft (#2245): the state machine has no such
+				// edge, because reaching preliminary already published the
+				// list and queued the candidates' accounts.
 				return array(
 					'definitive' => __( 'Promote to definitive', 'ffcertificate' ),
-					'draft'      => __( 'Back to draft', 'ffcertificate' ),
 				);
 			case 'definitive':
 				return array(

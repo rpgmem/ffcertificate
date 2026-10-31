@@ -257,7 +257,7 @@ class FormEditorSaveValidator {
 	 * each failure to the tab that owns the field without re-matching on
 	 * message text. Each message is only checked when its parent toggle is
 	 * on:
-	 *  - `time`        → `msg_datetime` (when `datetime_enabled`)
+	 *  - `time`        → the three window messages, when not empty (when `datetime_enabled`)
 	 *  - `geolocation` → `msg_geo_blocked` + `msg_geo_error` (when `geo_enabled`)
 	 *
 	 * Length is measured with `mb_strlen` so accented Portuguese copy isn't
@@ -274,12 +274,18 @@ class FormEditorSaveValidator {
 		);
 
 		if ( '1' === ( $config['datetime_enabled'] ?? '0' ) ) {
-			if ( mb_strlen( trim( (string) ( $config['msg_datetime'] ?? '' ) ) ) < $min ) {
-				$out['time'][] = sprintf(
-					/* translators: %d: minimum character count */
-					__( 'The date/time "Blocked Message" must be at least %d characters so visitors understand why the form is unavailable.', 'ffcertificate' ),
-					$min
-				);
+			// An empty message is allowed: it falls back to its moment's
+			// default (#2241). A short one is refused.
+			foreach ( \FreeFormCertificate\Security\GeofenceWindowMessages::KEYS as $message_key ) {
+				$length = mb_strlen( trim( (string) ( $config[ $message_key ] ?? '' ) ) );
+				if ( $length > 0 && $length < $min ) {
+					$out['time'][] = sprintf(
+						/* translators: %d: minimum character count */
+						__( 'A date/time message must be at least %d characters so visitors understand why the form is unavailable, or left empty for the default.', 'ffcertificate' ),
+						$min
+					);
+					break;
+				}
 			}
 		}
 

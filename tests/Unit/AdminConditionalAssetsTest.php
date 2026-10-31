@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminConditionalAssets;
@@ -18,7 +17,6 @@ use FreeFormCertificate\Admin\AdminConditionalAssets;
  * handles register (captured via global function stubs).
  *
  * @covers \FreeFormCertificate\Admin\AdminConditionalAssets
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AdminConditionalAssetsTest extends TestCase {
@@ -71,10 +69,6 @@ class AdminConditionalAssetsTest extends TestCase {
 			$this->scripts[] = $handle;
 		} );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
-
-		// AssetHelper::asset_suffix() is called by every branch.
-		$helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
 	}
 
 	protected function tearDown(): void {

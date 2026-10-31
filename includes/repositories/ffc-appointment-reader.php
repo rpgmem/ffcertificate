@@ -29,6 +29,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AppointmentReader extends AbstractRepository {
 
 	/**
+	 * ORDER BY columns this table adds to the generic set. The reader's own
+	 * listings sort by `appointment_date`, and the façade's Appointments list
+	 * sorts by both (#1770), so the one list serves both (#2137).
+	 *
+	 * @var array<int, string>
+	 */
+	public const ORDER_COLUMNS = array( 'calendar_id', 'appointment_date' );
+
+	/**
 	 * Get table name
 	 *
 	 * @return string
@@ -44,6 +53,44 @@ class AppointmentReader extends AbstractRepository {
 	 */
 	protected function get_cache_group(): string {
 		return 'ffc_self_scheduling_appointments';
+	}
+
+	/**
+	 * Allowed ORDER BY columns. Without them `sanitize_order_column()` turns
+	 * the `appointment_date` sort of findByCalendar() and findByUserId() into
+	 * an `id` sort, which is creation order, not date order (#2137).
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_allowed_order_columns(): array {
+		return array_merge( parent::get_allowed_order_columns(), self::ORDER_COLUMNS );
+	}
+
+	/**
+	 * A date sort breaks ties on the start time, then the id, in the same
+	 * direction, so appointments on one day keep their time order (#2288).
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return self::date_order_clause( $column, $direction );
+	}
+
+	/**
+	 * The ORDER BY clause shared by the reader and the façade, so the two
+	 * cannot sort one date differently.
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	public static function date_order_clause( string $column, string $direction ): string {
+		if ( 'appointment_date' === $column ) {
+			return "appointment_date {$direction}, start_time {$direction}, id {$direction}";
+		}
+		return "{$column} {$direction}";
 	}
 
 	/**
@@ -82,12 +129,12 @@ class AppointmentReader extends AbstractRepository {
 			if ( $limit ) {
 				// Single prepare call — avoids double-prepare issues.
 				$sql = $this->wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC LIMIT %d OFFSET %d",
+					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC, start_time DESC, id DESC LIMIT %d OFFSET %d",
 					array_merge( array( $this->table, $user_id ), $statuses, array( $limit, $offset ) )
 				);
 			} else {
 				$sql = $this->wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC",
+					"SELECT * FROM %i WHERE user_id = %d AND status IN ({$status_placeholders}) ORDER BY appointment_date DESC, start_time DESC, id DESC",
 					array_merge( array( $this->table, $user_id ), $statuses )
 				);
 			}
@@ -352,6 +399,37 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
+	 * Count the appointments the close-out would change: confirmed and
+	 * pending ones dated on or before $cutoff.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d` (wall-clock).
+	 * @return array{confirmed: int, pending: int}
+	 */
+	public function countDueForCloseout( string $cutoff ): array {
+		$counts = array(
+			'confirmed' => 0,
+			'pending'   => 0,
+		);
+		$rows   = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				"SELECT status, COUNT(*) AS total FROM %i
+                 WHERE status IN ('confirmed', 'pending') AND appointment_date <= %s
+                 GROUP BY status",
+				$this->table,
+				$cutoff
+			),
+			ARRAY_A
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$status = isset( $row['status'] ) && is_string( $row['status'] ) ? $row['status'] : '';
+			if ( isset( $counts[ $status ] ) ) {
+				$counts[ $status ] = is_numeric( $row['total'] ?? null ) ? (int) $row['total'] : 0;
+			}
+		}
+		return $counts;
+	}
+
+	/**
 	 * Find the oldest waitlisted entry for a slot (#941 phase 2).
 	 *
 	 * FIFO by insertion order (`id ASC`, monotonic). Used by promotion when a
@@ -422,17 +500,23 @@ class AppointmentReader extends AbstractRepository {
 	}
 
 	/**
-	 * Get upcoming appointments for reminders
+	 * Confirmed, not-yet-reminded appointments that start within the next
+	 * `$hours_before` hours, in the site's time (#2244).
 	 *
-	 * @param int $hours_before Hours before appointment.
+	 * The appointment date and time are wall-clock values (Category B), so
+	 * the window is built from the site's clock, never UTC. It runs from now
+	 * to now + H rather than over one hour at H, so a run WP-Cron skipped is
+	 * caught up by the next one and a window across midnight needs nothing
+	 * special; `reminder_sent_at IS NULL` keeps it to one reminder each.
+	 * `TIMESTAMP(date, time)` is used because `DATE_SUB('HH:MM:SS', …)`
+	 * returns NULL on MariaDB, which is how the old query matched nothing.
+	 *
+	 * @param int $hours_before Hours ahead the reminder goes out.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getUpcomingForReminders( int $hours_before = 24 ): array {
-		$reminder_ts_raw = strtotime( "+{$hours_before} hours" );
-		$reminder_ts     = $reminder_ts_raw ? $reminder_ts_raw : time();
-		$target_datetime = gmdate( 'Y-m-d H:i:s', $reminder_ts );
-		$target_date     = gmdate( 'Y-m-d', $reminder_ts );
-		$target_time     = gmdate( 'H:i:s', $reminder_ts );
+		$now   = new \DateTimeImmutable( 'now', wp_timezone() );
+		$until = $now->modify( '+' . max( 1, $hours_before ) . ' hours' );
 
 		$calendars_table = $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
 		$sql             = $this->wpdb->prepare(
@@ -441,14 +525,50 @@ class AppointmentReader extends AbstractRepository {
              LEFT JOIN %i c ON a.calendar_id = c.id
              WHERE a.status = \'confirmed\'
              AND a.reminder_sent_at IS NULL
-             AND a.appointment_date = %s
-             AND a.start_time <= %s
-             AND a.start_time > DATE_SUB(%s, INTERVAL 1 HOUR)',
+             AND a.appointment_date BETWEEN %s AND %s
+             AND TIMESTAMP(a.appointment_date, a.start_time) > %s
+             AND TIMESTAMP(a.appointment_date, a.start_time) <= %s
+             ORDER BY a.appointment_date ASC, a.start_time ASC, a.id ASC',
 			$this->table,
 			$calendars_table,
-			$target_date,
-			$target_time,
-			$target_time
+			$now->format( 'Y-m-d' ),
+			$until->format( 'Y-m-d' ),
+			$now->format( 'Y-m-d H:i:s' ),
+			$until->format( 'Y-m-d H:i:s' )
+		);
+
+		$results = $this->wpdb->get_results( $sql, ARRAY_A );
+		/**
+		 * Cast wpdb result to expected shape.
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * The appointments on one date across every calendar (#2244), with the
+	 * calendar's title: what a global holiday takes away.
+	 *
+	 * @param string             $date     Date (Y-m-d).
+	 * @param array<int, string> $statuses Statuses.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getAllOnDate( string $date, array $statuses ): array {
+		if ( array() === $statuses ) {
+			return array();
+		}
+		$status_placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+		$calendars_table     = $this->wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		$sql = $this->wpdb->prepare(
+			"SELECT a.*, c.title as calendar_title
+             FROM %i a
+             LEFT JOIN %i c ON a.calendar_id = c.id
+             WHERE a.appointment_date = %s
+             AND a.status IN ({$status_placeholders})
+             ORDER BY a.start_time ASC, a.id ASC",
+			array_merge( array( $this->table, $calendars_table, $date ), $statuses )
 		);
 
 		$results = $this->wpdb->get_results( $sql, ARRAY_A );
@@ -695,9 +815,11 @@ class AppointmentReader extends AbstractRepository {
 		if ( $user_id <= 0 || empty( $statuses ) ) {
 			return null;
 		}
+		// The site's today, not the server's CURDATE(): a wall-clock date is
+		// compared with the date the site's people are living (#2246).
 		$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
-		$args         = array_merge( array( $this->table, $user_id ), array_values( $statuses ) );
-		$sql          = "SELECT * FROM %i WHERE user_id = %d AND status IN ({$placeholders}) AND appointment_date >= CURDATE() ORDER BY appointment_date ASC, start_time ASC LIMIT 1";
+		$args         = array_merge( array( $this->table, $user_id ), array_values( $statuses ), array( current_time( 'Y-m-d' ) ) );
+		$sql          = "SELECT * FROM %i WHERE user_id = %d AND status IN ({$placeholders}) AND appointment_date >= %s ORDER BY appointment_date ASC, start_time ASC, id ASC LIMIT 1";
 		$row          = $this->wpdb->get_row( $this->wpdb->prepare( $sql, $args ), ARRAY_A );
 		return is_array( $row ) ? $row : null;
 	}
@@ -715,9 +837,10 @@ class AppointmentReader extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       Name, e-mail, CPF/RF or id (#2244); '' for none.
 	 * @return array{0: string, 1: array<int, mixed>}
 	 */
-	private function build_export_where( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): array {
+	private function build_export_where( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): array {
 		$where = array();
 		$args  = array( $this->table );
 
@@ -746,9 +869,119 @@ class AppointmentReader extends AbstractRepository {
 			$args[]  = $end_date;
 		}
 
+		$search_clause = $this->search_clause( $search );
+		if ( null !== $search_clause ) {
+			$where[] = $search_clause[0];
+			$args    = array_merge( $args, $search_clause[1] );
+		}
+
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
 		return array( $where_clause, $args );
+	}
+
+	/**
+	 * The search box of the Appointments list (#2244), as one WHERE fragment.
+	 *
+	 * CPF, RF and e-mail are stored encrypted, so they match through their
+	 * hash columns and only whole: an e-mail is looked up as typed, digits as
+	 * a CPF or RF (punctuation dropped) and also as an appointment id. Anything
+	 * else matches the name, which is stored in clear.
+	 *
+	 * @param string $search Raw search text.
+	 * @return array{0: string, 1: array<int, mixed>}|null Null when there is nothing to match.
+	 */
+	private function search_clause( string $search ): ?array {
+		$search = trim( $search );
+		if ( '' === $search ) {
+			return null;
+		}
+
+		if ( false !== strpos( $search, '@' ) ) {
+			$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $search );
+			return array( 'email_hash = %s', array( (string) $hash ) );
+		}
+
+		$digits = preg_replace( '/[\s.\-\/]/', '', $search );
+		if ( is_string( $digits ) && '' !== $digits && ctype_digit( $digits ) ) {
+			$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $digits );
+			return array( '(cpf_hash = %s OR rf_hash = %s OR id = %d)', array( (string) $hash, (string) $hash, (int) $digits ) );
+		}
+
+		return array( 'name LIKE %s', array( '%' . $this->wpdb->esc_like( $search ) . '%' ) );
+	}
+
+	/**
+	 * One page of the Appointments list under its filters (#2244).
+	 *
+	 * The export reads the same WHERE through build_export_where(), so the
+	 * file holds exactly what the list shows.
+	 *
+	 * @param array<string, mixed> $filters  calendar_id / status / start_date / end_date / search.
+	 * @param string               $order_by Allowlisted column.
+	 * @param string               $order    `ASC` or `DESC`.
+	 * @param int                  $limit    Page size.
+	 * @param int                  $offset   Offset.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findForList( array $filters, string $order_by, string $order, int $limit, int $offset ): array {
+		list( $where_clause, $args ) = $this->list_where( $filters );
+
+		$order    = 'ASC' === strtoupper( $order ) ? 'ASC' : 'DESC';
+		$order_by = $this->order_clause( $this->sanitize_order_column( $order_by ), $order );
+		$args[]   = $limit;
+		$args[]   = $offset;
+
+		$sql = "SELECT * FROM %i {$where_clause} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare;
+		 * `{$order_by}` is an allowlisted column and a collapsed direction.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql  = $this->wpdb->prepare( $sql, ...$args );
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * How many appointments the Appointments list's filters match.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return int
+	 */
+	public function countForList( array $filters ): int {
+		list( $where_clause, $args ) = $this->list_where( $filters );
+
+		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
+		/**
+		 * $args is a merged identifier + value list bound by wpdb->prepare.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql = $this->wpdb->prepare( $sql, ...$args );
+		return (int) $this->wpdb->get_var( $sql );
+	}
+
+	/**
+	 * The list's filter array, through the export's WHERE builder.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function list_where( array $filters ): array {
+		$calendar_id = \FreeFormCertificate\Core\ArrayValue::int( $filters, 'calendar_id' );
+		$status      = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'status' );
+		$start_date  = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'start_date' );
+		$end_date    = \FreeFormCertificate\Core\ArrayValue::string( $filters, 'end_date' );
+
+		return $this->build_export_where(
+			$calendar_id > 0 ? array( $calendar_id ) : null,
+			'' !== $status ? array( $status ) : array(),
+			'' !== $start_date ? $start_date : null,
+			'' !== $end_date ? $end_date : null,
+			\FreeFormCertificate\Core\ArrayValue::string( $filters, 'search' )
+		);
 	}
 
 	/**
@@ -759,10 +992,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       List search text (#2244).
 	 * @return int
 	 */
-	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): int {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$sql = "SELECT COUNT(*) FROM %i {$where_clause}";
 		/**
@@ -787,10 +1021,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
 		$args[]       = $cursor_id;
@@ -820,10 +1055,11 @@ class AppointmentReader extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date );
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		list( $where_clause, $args ) = $this->build_export_where( $calendar_ids, $statuses, $start_date, $end_date, $search );
 
 		$where_clause = '' === $where_clause ? 'WHERE id < %d' : $where_clause . ' AND id < %d';
 		$args[]       = $cursor_id;

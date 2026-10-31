@@ -16,7 +16,6 @@ use FreeFormCertificate\Tests\Support\CallLog;
  * verification page creation, and schema migration.
  *
  * @covers \FreeFormCertificate\Activator
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class ActivatorTest extends TestCase {
@@ -25,9 +24,6 @@ class ActivatorTest extends TestCase {
 
 	/** @var Mockery\MockInterface */
 	private $wpdb;
-
-	/** @var Mockery\MockInterface */
-	private $utils_mock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -42,9 +38,6 @@ class ActivatorTest extends TestCase {
 		$wpdb->posts = 'wp_posts';
 		$wpdb->postmeta = 'wp_postmeta';
 		$this->wpdb = $wpdb;
-
-		// Utils alias mock for get_submissions_table
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
 
 		// Default wpdb stubs — most tests need these
 		$this->wpdb->shouldReceive( 'get_charset_collate' )
@@ -140,7 +133,7 @@ class ActivatorTest extends TestCase {
 
 		$scheduled = false;
 		Functions\when( 'wp_schedule_event' )->alias( function ( $time, $recurrence, $hook ) use ( &$scheduled ) {
-			if ( $hook === 'ffcertificate_daily_cleanup_hook' && $recurrence === 'daily' ) {
+			if ( $hook === 'ffc_daily_cleanup' && $recurrence === 'daily' ) {
 				$scheduled = true;
 			}
 		} );
@@ -430,7 +423,6 @@ class ActivatorTest extends TestCase {
 				'ffc_settings' => array(
 					'captcha_provider'           => 'altcha',
 					'captcha_altcha_hide_footer' => 1,
-					'cache_expiration'           => 900,
 				),
 			),
 			$added

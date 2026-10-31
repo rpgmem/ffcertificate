@@ -676,9 +676,10 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 					return $data['schedule_id'] === 10
 						&& $data['holiday_date'] === '2025-12-25'
 						&& $data['description'] === 'Christmas'
+						&& $data['kind'] === 'holiday'
 						&& $data['created_by'] === 1;
 				}),
-				['%d', '%s', '%s', '%d']
+				['%d', '%s', '%s', '%s', '%d']
 			)
 			->andReturn(1);
 
@@ -695,6 +696,22 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 		$this->assertFalse($result);
 	}
 
+	public function test_add_holiday_stores_an_optional_kind_and_reads_anything_else_as_holiday(): void {
+		$this->wpdb->insert_id = 57;
+		$kinds = array();
+		$this->wpdb->shouldReceive('insert')
+			->twice()
+			->andReturnUsing(function($table, $data) use (&$kinds) {
+				$kinds[] = $data['kind'];
+				return 1;
+			});
+
+		AudienceEnvironmentRepository::add_holiday(10, '2025-11-20', 'Consciência Negra', 'optional');
+		AudienceEnvironmentRepository::add_holiday(10, '2025-11-21', null, 'whatever');
+
+		$this->assertSame(array('optional', 'holiday'), $kinds);
+	}
+
 	public function test_add_holiday_with_null_description(): void {
 		$this->wpdb->insert_id = 56;
 
@@ -705,13 +722,80 @@ class AudienceEnvironmentRepositoryTest extends TestCase {
 				Mockery::on(function($data) {
 					return $data['description'] === null;
 				}),
-				['%d', '%s', '%s', '%d']
+				['%d', '%s', '%s', '%s', '%d']
 			)
 			->andReturn(1);
 
 		$result = AudienceEnvironmentRepository::add_holiday(10, '2025-01-01');
 
 		$this->assertSame(56, $result);
+	}
+
+	// ==================================================================
+	// update_holiday() (#2212)
+	// ==================================================================
+
+	/**
+	 * @param list<object> $holidays The calendar's holidays get_holidays() reads.
+	 */
+	private function calendar_holidays( array $holidays ): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('QUERY');
+		$this->wpdb->shouldReceive('get_results')->andReturn($holidays);
+	}
+
+	public function test_update_holiday_writes_the_row_by_id_and_calendar(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+		]);
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->with(
+				'wp_ffc_audience_holidays',
+				['holiday_date' => '2026-12-24', 'description' => 'Eve', 'kind' => 'optional'],
+				['id' => 7, 'schedule_id' => 10],
+				['%s', '%s', '%s'],
+				['%d', '%d']
+			)
+			->andReturn(1);
+
+		$this->assertTrue(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-24', 'Eve', 'optional'));
+	}
+
+	public function test_update_holiday_keeps_its_own_date(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+		]);
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertTrue(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-25', 'Christmas Day', 'holiday'), 'Saving without a change is not a failure.');
+	}
+
+	public function test_update_holiday_refuses_a_date_another_holiday_holds(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 7, 'schedule_id' => 10, 'holiday_date' => '2026-12-25', 'description' => 'Christmas'],
+			(object) ['id' => 8, 'schedule_id' => 10, 'holiday_date' => '2026-12-31', 'description' => 'Eve'],
+		]);
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-31', 'Moved', 'holiday'));
+	}
+
+	public function test_update_holiday_refuses_a_row_of_another_calendar(): void {
+		$this->calendar_holidays([
+			(object) ['id' => 8, 'schedule_id' => 10, 'holiday_date' => '2026-12-31', 'description' => 'Eve'],
+		]);
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '2026-12-24', 'Eve', 'holiday'));
+	}
+
+	public function test_update_holiday_refuses_an_invalid_date_or_id_without_reading(): void {
+		$this->wpdb->shouldNotReceive('get_results');
+		$this->wpdb->shouldNotReceive('update');
+
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 10, '24/12/2026', '', 'holiday'));
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(0, 10, '2026-12-24', '', 'holiday'));
+		$this->assertFalse(AudienceEnvironmentRepository::update_holiday(7, 0, '2026-12-24', '', 'holiday'));
 	}
 
 	// ==================================================================

@@ -49,6 +49,29 @@ class TabGeneral extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+
+		// The address lookup's Test button (#2234); one screen, so its own handle.
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script( 'ffc-cep-lookup-test', FFC_PLUGIN_URL . "assets/js/ffc-cep-lookup-test{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
+		wp_localize_script(
+			'ffc-cep-lookup-test',
+			'ffcCepLookupTest',
+			array(
+				'url'     => admin_url( 'admin-ajax.php' ),
+				'action'  => 'ffc_cep_lookup_test',
+				'nonce'   => wp_create_nonce( 'ffc_cep_lookup_test' ),
+				'strings' => array(
+					'testing'     => __( 'Testing…', 'ffcertificate' ),
+					'provider'    => __( 'Provider', 'ffcertificate' ),
+					'status'      => __( 'Status', 'ffcertificate' ),
+					'address'     => __( 'Address returned', 'ffcertificate' ),
+					'found'       => __( 'Answered', 'ffcertificate' ),
+					'notFound'    => __( 'CEP not found', 'ffcertificate' ),
+					'unavailable' => __( 'Unreachable', 'ffcertificate' ),
+					'error'       => __( 'The test could not run.', 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**

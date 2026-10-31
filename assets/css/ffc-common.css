@@ -182,6 +182,24 @@
                                        Deliberately NOT redeclared in the dark block: the warning
                                        is a mid-light tone in both themes, so the same dark text
                                        serves — 8,67:1 on dark's #f0b849. */
+    /* Closed-date labels (#2202): a holiday and an optional holiday. Their
+       own tokens, not the warning ones, because the light theme takes white
+       text here and Scheduling settings may repaint them (light theme only,
+       through `ClosedDateKind::inline_css()`). */
+    --ffc-holiday: #8a6500;               /* 5,33:1 with white. */
+    --ffc-text-on-holiday: #ffffff;
+    --ffc-optional-holiday: #4f6b8f;      /* 5,48:1 with white. */
+    --ffc-text-on-optional-holiday: #ffffff;
+    /* The other calendar states (#2215): chains to the palette, so the dark
+       theme follows by itself. `CalendarAppearance::inline_css()` sets them
+       to the administrator's colour, in the light theme only. */
+    --ffc-cal-available: var(--ffc-success);
+    --ffc-cal-available-ring: var(--ffc-success-border);
+    --ffc-cal-booked: var(--ffc-primary);
+    --ffc-text-on-cal-booked: var(--ffc-text-on-primary);
+    --ffc-cal-closed: var(--ffc-bg-alt);
+    --ffc-text-on-cal-closed: var(--ffc-text-secondary);
+    --ffc-cal-closed-dot: var(--ffc-gray-400);
 
     /* Semantic Tokens - Inverse surface (M3's inverseSurface/inverseOnSurface)
        The toast bubble is inverted chrome on purpose: dark on a light page.
@@ -248,6 +266,10 @@
     --ffc-success-hover: #6ec071;
     --ffc-success-light: #1a2e1a;
     --ffc-warning: #f0b849;
+    --ffc-holiday: #f0b849;
+    --ffc-text-on-holiday: #2e2200;       /* 8,67:1. */
+    --ffc-optional-holiday: #9fb4cf;
+    --ffc-text-on-optional-holiday: #1b2129; /* 7,64:1. */
     --ffc-warning-light: #332b10;
     --ffc-danger: #e88080;          /* 4,78:1 on the card — was #e57373, 4,29:1 (#1126 B). */
     --ffc-danger-hover: #ee9595;
@@ -1062,6 +1084,23 @@
     line-height: 1.5;
 }
 
+.ffc-shortcode .ffc-override-reason {
+    margin-top: var(--ffc-spacing-lg);
+}
+
+/* A choice before the confirm (#2243): the segmented control, its legend
+   read as the field's label. */
+.ffc-shortcode .ffc-override-choice {
+    display: block;
+    margin-top: var(--ffc-spacing-lg);
+}
+
+.ffc-shortcode .ffc-override-choice legend {
+    margin-bottom: var(--ffc-spacing-2xs);
+    padding: 0;
+    font-weight: 600;
+}
+
 .ffc-shortcode .ffc-override-countdown {
     margin: var(--ffc-spacing-lg) 0 0;
     color: var(--ffc-text-muted);
@@ -1398,6 +1437,7 @@
 .ffc-icon-download::before,
 .ffc-icon-edit::before,
 .ffc-icon-email::before,
+.ffc-icon-encryption::before,
 .ffc-icon-eraser::before,
 .ffc-icon-error::before,
 .ffc-icon-external::before,
@@ -1410,6 +1450,7 @@
 .ffc-icon-globe::before,
 .ffc-icon-grid::before,
 .ffc-icon-grip::before,
+.ffc-icon-hash::before,
 .ffc-icon-help::before,
 .ffc-icon-history::before,
 .ffc-icon-id::before,
@@ -1422,9 +1463,11 @@
 .ffc-icon-link::before,
 .ffc-icon-list::before,
 .ffc-icon-lock::before,
+.ffc-icon-log-clean::before,
 .ffc-icon-login::before,
 .ffc-icon-logout::before,
 .ffc-icon-map-pin::before,
+.ffc-icon-map-pin-x::before,
 .ffc-icon-megaphone::before,
 .ffc-icon-merge::before,
 .ffc-icon-minus::before,
@@ -1465,6 +1508,7 @@
 .ffc-icon-unlock::before,
 .ffc-icon-upload::before,
 .ffc-icon-user::before,
+.ffc-icon-user-call::before,
 .ffc-icon-user-check::before,
 .ffc-icon-user-clock::before,
 .ffc-icon-user-minus::before,
@@ -1634,6 +1678,11 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3.5 7l8.5 6 8.5-6'/%3E%3C/svg%3E");
 }
 
+.ffc-icon-encryption::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3'/%3E%3Crect x='9.5' y='12' width='5' height='3.5' rx='.5'/%3E%3Cpath d='M10.5 12v-1a1.5 1.5 0 0 1 3 0v1'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='6' y='6' width='12' height='12' rx='2'/%3E%3Cpath d='M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3'/%3E%3Crect x='9.5' y='12' width='5' height='3.5' rx='.5'/%3E%3Cpath d='M10.5 12v-1a1.5 1.5 0 0 1 3 0v1'/%3E%3C/svg%3E");
+}
+
 .ffc-icon-eraser::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 4.5l5 5a1.5 1.5 0 0 1 0 2.1L12 19H8l-3.5-3.5a1.5 1.5 0 0 1 0-2.1l7.9-7.9a1.5 1.5 0 0 1 2.1 0z'/%3E%3Cpath d='M9 9.5l5.5 5.5M8 19h12'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14.5 4.5l5 5a1.5 1.5 0 0 1 0 2.1L12 19H8l-3.5-3.5a1.5 1.5 0 0 1 0-2.1l7.9-7.9a1.5 1.5 0 0 1 2.1 0z'/%3E%3Cpath d='M9 9.5l5.5 5.5M8 19h12'/%3E%3C/svg%3E");
@@ -1692,6 +1741,11 @@
 .ffc-icon-grip::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='6' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='6' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='9' cy='12' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='12' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='9' cy='18' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='18' r='1.2' fill='currentColor' stroke='none'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='6' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='6' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='9' cy='12' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='12' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='9' cy='18' r='1.2' fill='currentColor' stroke='none'/%3E%3Ccircle cx='15' cy='18' r='1.2' fill='currentColor' stroke='none'/%3E%3C/svg%3E");
+}
+
+.ffc-icon-hash::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v2M9 3v1M12 3v2M15 3v1M18 3v2M4 7h16l-5.5 5.5h-5z'/%3E%3Cpath d='M10.5 15v6M13.5 15v6M9 16.8h6M9 19.2h6'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3v2M9 3v1M12 3v2M15 3v1M18 3v2M4 7h16l-5.5 5.5h-5z'/%3E%3Cpath d='M10.5 15v6M13.5 15v6M9 16.8h6M9 19.2h6'/%3E%3C/svg%3E");
 }
 
 .ffc-icon-help::before {
@@ -1754,6 +1808,11 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
 }
 
+.ffc-icon-log-clean::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5h9M3 9h9M3 13h6M3 17h5M21 3l-5.5 7.5M13.5 9.5l3.5 2.8-3.4 7.2-5.1-3.7zM11 16.5l2 1.5'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5h9M3 9h9M3 13h6M3 17h5M21 3l-5.5 7.5M13.5 9.5l3.5 2.8-3.4 7.2-5.1-3.7zM11 16.5l2 1.5'/%3E%3C/svg%3E");
+}
+
 .ffc-icon-login::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 8l4 4-4 4M14 12H4'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 8l4 4-4 4M14 12H4'/%3E%3C/svg%3E");
@@ -1767,6 +1826,11 @@
 .ffc-icon-map-pin::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z'/%3E%3Ccircle cx='12' cy='9.5' r='2.5'/%3E%3C/svg%3E");
+}
+
+.ffc-icon-map-pin-x::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z'/%3E%3Cpath d='M10 7.5l4 4M14 7.5l-4 4'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z'/%3E%3Cpath d='M10 7.5l4 4M14 7.5l-4 4'/%3E%3C/svg%3E");
 }
 
 .ffc-icon-megaphone::before {
@@ -1969,6 +2033,11 @@
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6'/%3E%3C/svg%3E");
 }
 
+.ffc-icon-user-call::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c1.3-3.6 3.8-5.5 6.5-5.5s5.2 1.9 6.5 5.5M17 6.5a3.5 3.5 0 0 1 0 5M19.5 4a7 7 0 0 1 0 10'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cpath d='M2.5 20c1.3-3.6 3.8-5.5 6.5-5.5s5.2 1.9 6.5 5.5M17 6.5a3.5 3.5 0 0 1 0 5M19.5 4a7 7 0 0 1 0 10'/%3E%3C/svg%3E");
+}
+
 .ffc-icon-user-check::before {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='8' r='4'/%3E%3Cpath d='M3 21c1.4-3.8 4-5.8 7-5.8 1.6 0 3 .5 4.2 1.5M15.5 18.5l2 2 4-4.5'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='8' r='4'/%3E%3Cpath d='M3 21c1.4-3.8 4-5.8 7-5.8 1.6 0 3 .5 4.2 1.5M15.5 18.5l2 2 4-4.5'/%3E%3C/svg%3E");
@@ -2130,6 +2199,7 @@
     .ffc-icon-download::before,
     .ffc-icon-edit::before,
     .ffc-icon-email::before,
+    .ffc-icon-encryption::before,
     .ffc-icon-eraser::before,
     .ffc-icon-error::before,
     .ffc-icon-external::before,
@@ -2142,6 +2212,7 @@
     .ffc-icon-globe::before,
     .ffc-icon-grid::before,
     .ffc-icon-grip::before,
+    .ffc-icon-hash::before,
     .ffc-icon-help::before,
     .ffc-icon-history::before,
     .ffc-icon-id::before,
@@ -2154,9 +2225,11 @@
     .ffc-icon-link::before,
     .ffc-icon-list::before,
     .ffc-icon-lock::before,
+    .ffc-icon-log-clean::before,
     .ffc-icon-login::before,
     .ffc-icon-logout::before,
     .ffc-icon-map-pin::before,
+    .ffc-icon-map-pin-x::before,
     .ffc-icon-megaphone::before,
     .ffc-icon-merge::before,
     .ffc-icon-minus::before,
@@ -2197,6 +2270,7 @@
     .ffc-icon-unlock::before,
     .ffc-icon-upload::before,
     .ffc-icon-user::before,
+    .ffc-icon-user-call::before,
     .ffc-icon-user-check::before,
     .ffc-icon-user-clock::before,
     .ffc-icon-user-minus::before,
@@ -2556,7 +2630,6 @@ body.wp-admin .ffc-btn-icon::before {
    UTILITY CLASSES — Layout, spacing, typography
    Sprint 2: Replace common inline style="" patterns
    ========================================================================== */
-.ffc-flex          { display: flex; }
 .ffc-mb-md         { margin-bottom: var(--ffc-spacing-lg); }
 .ffc-color-dot     { display: inline-block; width: 12px; height: 12px; border-radius: var(--ffc-radius-full); vertical-align: middle; background-color: var(--ffc-color, currentColor); }
 
@@ -3449,6 +3522,85 @@ body.wp-admin .ffc-btn-icon::before {
     color: var(--ffc-warning-text);
 }
 
+/* The address lookup by CEP (#2234). The bar fills over five seconds, the
+   longest the lookup waits, so at three -- the shortest it shows -- it is
+   past half; an answer completes it. */
+.ffc-cep-progress {
+    display: block;
+    overflow: hidden;
+    height: 4px;
+    margin-top: var(--ffc-spacing-2xs);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-gray-200);
+}
+
+.ffc-cep-progress[hidden] {
+    display: none;
+}
+
+.ffc-cep-progress-bar {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--ffc-primary);
+}
+
+.ffc-cep-progress.is-running .ffc-cep-progress-bar {
+    animation: ffc-cep-fill 5s linear forwards;
+}
+
+.ffc-cep-progress.is-done .ffc-cep-progress-bar {
+    width: 100%;
+    animation: none;
+}
+
+@keyframes ffc-cep-fill {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: 100%;
+    }
+}
+
+.ffc-cep-status {
+    display: block;
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-cep-status:empty {
+    display: none;
+}
+
+/* A select cannot be read-only, so it ignores the pointer while it waits. */
+select.ffc-cep-locked {
+    pointer-events: none;
+}
+
+.ffc-cep-locked {
+    cursor: progress;
+}
+
+.ffc-cep-filled {
+    background-color: var(--ffc-info-bg);
+    outline: 2px solid var(--ffc-info-border);
+    transition: background-color 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-cep-progress.is-running .ffc-cep-progress-bar {
+        width: 60%;
+        animation: none;
+    }
+
+    .ffc-cep-filled {
+        transition: none;
+    }
+}
+
 /* The row under a field: the hint on the left, the counter on the right. */
 .ffc-field-foot {
     display: flex;
@@ -3571,3 +3723,33 @@ body.wp-admin .ffc-btn-icon::before {
     height: 100%;
     border: 0;
 }
+
+/* A closed date's kind in the admin lists (#2202). */
+.ffc-closed-date-pill {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    /* The audience tag's shape (`.ffc-audience-tag`), so every label in the
+       calendars reads as one family (#2210). */
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
+    white-space: nowrap;
+}
+
+.ffc-closed-date-pill.ffc-closed-date-pill-holiday {
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+.ffc-closed-date-pill.ffc-closed-date-pill-optional {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
+}
+
+@media (forced-colors: active) {
+    /* Read, not clicked: the border keeps the pill shape. */
+    .ffc-closed-date-pill.ffc-closed-date-pill-holiday,
+    .ffc-closed-date-pill.ffc-closed-date-pill-optional {
+        border: 1px solid CanvasText;
+    }
+}
+

@@ -91,8 +91,8 @@ class Activator {
 		self::run_migrations();
 
 		// Schedule daily cleanup cron.
-		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
+		if ( ! wp_next_scheduled( 'ffc_daily_cleanup' ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_daily_cleanup', time() ), 'daily', 'ffc_daily_cleanup' );
 		}
 
 		// Schedule the per-form ticket-pool sweep for ended forms.
@@ -125,7 +125,6 @@ class Activator {
 			array(
 				'captcha_provider'           => \FreeFormCertificate\Core\Captcha\CaptchaSettings::fresh_install_provider(),
 				'captcha_altcha_hide_footer' => 1,
-				'cache_expiration'           => 900,
 			)
 		);
 	}
@@ -181,6 +180,7 @@ class Activator {
             schedule_start_override time NULL DEFAULT NULL,
             schedule_end_override time NULL DEFAULT NULL,
             audience_booking_id bigint(20) unsigned DEFAULT NULL,
+            revoked_at bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY (id),
             KEY form_id (form_id),
             KEY user_id (user_id),
@@ -337,6 +337,13 @@ class Activator {
 				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
 				'after' => 'schedule_end_override',
 				'index' => 'audience_booking_id',
+			),
+			// When the submission went to the trash, which revokes the
+			// certificate (#2241): Category A (unix UTC). NULL while it is not
+			// revoked, and for a row trashed before the column existed.
+			'revoked_at'              => array(
+				'type'  => 'BIGINT(20) UNSIGNED NULL DEFAULT NULL',
+				'after' => 'audience_booking_id',
 			),
 		);
 	}

@@ -12,17 +12,49 @@ use FreeFormCertificate\Admin\SubmissionsList;
 use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
+ * The list runs over its real collaborators: DocumentFormatter masks the
+ * address, Utils truncates, DateFormatter formats through a stubbed
+ * `wp_date()`, Capabilities answers from `current_user_can()`, RequestInput
+ * reads `$_GET`, and MagicLinkHelper builds the PDF link from the
+ * verification page URL and the handler's token. Only the repository that
+ * prepare_items() and get_views() query is a mock injected into the list.
+ *
  * @covers \FreeFormCertificate\Admin\SubmissionsList
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionsListTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** A valid magic token (32 hex characters). */
+	private const TOKEN = '0123456789abcdef0123456789abcdef';
+
+	/** The verification page URL MagicLinkHelper falls back to. */
+	private const VALID_URL = 'https://example.com/valid/';
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> */
+	private array $request_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb       = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup    = $GLOBALS['wpdb'] ?? null;
+		$this->get_backup     = $_GET ?? array();
+		$this->request_backup = $_REQUEST ?? array();
+		// Start from an empty request, whatever an earlier test left behind.
+		$_GET     = array();
+		$_REQUEST = array();
 
 		class_exists( '\FreeFormCertificate\Admin\SubmissionsList' );
 
@@ -40,11 +72,29 @@ class SubmissionsListTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'home_url' )->alias( fn( $p = '' ) => 'https://example.com' . $p );
 		Functions\when( 'add_query_arg' )->alias( fn( $args, $url = '' ) => ( is_string( $url ) ? $url : '/' ) . '?' . http_build_query( is_array( $args ) ? $args : array() ) );
 		Functions\when( 'remove_query_arg' )->justReturn( '/' );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce' );
-		Functions\when( 'get_option' )->justReturn( 'Y-m-d H:i' );
+		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null, $tz = null ) => gmdate( $format, (int) $ts ) );
+		// The plugin settings carry the date and time formats DateFormatter
+		// reads; every other option (the verification page id, the debug
+		// toggles) is unset.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					return array(
+						'date_format' => 'Y-m-d',
+						'time_format' => 'H:i',
+					);
+				}
+				return $default;
+			}
+		);
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		// SubmissionsList extends WP_List_Table which needs $wpdb.
 		global $wpdb;
@@ -57,59 +107,40 @@ class SubmissionsListTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset(
-			$_GET['status'], $_GET['filter_form_id'], $_GET['orderby'], $_GET['order'],
-			$_REQUEST['s']
-		);
+		$_GET     = $this->get_backup;
+		$_REQUEST = $this->request_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	// ------------------------------------------------------------------
-	// Collaborator stubs (alias mocks) + helpers
+	// Collaborator inputs + helpers
 	// ------------------------------------------------------------------
 
 	/**
-	 * Alias-mock the static collaborator classes used across column/render paths.
+	 * Drive the real static collaborators: the certificate capabilities the
+	 * real Capabilities class reads through `current_user_can()` (the viewer
+	 * is not a site administrator), and the PII tier.
 	 */
 	private function stubStaticCollaborators( bool $can_manage = true, bool $can_edit = true, string $pii_tier = 'unmasked' ): void {
 		$this->driveTier( $pii_tier );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-			->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'MASKED:' . (string) $e );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' )
-			->shouldReceive( 'truncate' )
-			->andReturnUsing( fn( $text, $len = 100, $suffix = '...' ) => (string) $text );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_datetime' )
-			->andReturnUsing( fn( $ts ) => 'DATE:' . (string) $ts );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturnUsing(
-				function ( $cap ) use ( $can_manage, $can_edit ) {
-					if ( 'ffc_manage_certificates' === $cap ) {
-						return $can_manage;
-					}
-					if ( 'ffc_edit_certificates' === $cap ) {
-						return $can_edit;
-					}
-					return false;
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( $can_manage, $can_edit ) {
+				if ( 'ffc_manage_certificates' === $cap ) {
+					return $can_manage;
 				}
-			);
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )
-			->andReturnUsing( fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' )
-			->shouldReceive( 'generate_magic_link' )->andReturnUsing( fn( $token ) => 'https://magic/' . $token )
-			->shouldReceive( 'get_submission_magic_link' )->andReturnUsing( fn( $id, $h ) => $id > 0 ? 'https://magic/byid/' . $id : '' );
+				if ( 'ffc_edit_certificates' === $cap ) {
+					return $can_edit;
+				}
+				return false;
+			}
+		);
 	}
 
 	/**
@@ -218,8 +249,8 @@ class SubmissionsListTest extends TestCase {
 	}
 
 	private function assertMaskedWithReveal( string $out ): void {
-		$this->assertStringNotContainsString( 'a@b.com', str_replace( 'MASKED:a@b.com', '', $out ), 'The clear address must not reach the list HTML.' );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringNotContainsString( 'a@b.com', $out, 'The clear address must not reach the list HTML.' );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"', $out );
 		$this->assertStringContainsString( 'data-type="submission"', $out );
 		$this->assertStringContainsString( 'data-field="email" data-submission-id="42" data-nonce="test_nonce"', $out );
@@ -233,7 +264,7 @@ class SubmissionsListTest extends TestCase {
 		// The role alone unmasks nothing since #1863: its PII cap is what
 		// reveals, and this user holds the role without it.
 		$out = $this->emailCellFor( 'admin_role' );
-		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertStringContainsString( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
@@ -243,7 +274,7 @@ class SubmissionsListTest extends TestCase {
 
 	public function test_column_default_email_masked_tier_masks_without_button(): void {
 		$out = $this->emailCellFor( 'masked' );
-		$this->assertSame( '<span class="ffc-pii-value" data-field="email">MASKED:a@b.com</span>', $out );
+		$this->assertSame( '<span class="ffc-pii-value" data-field="email">a***@b.com</span>', $out );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $out );
 	}
 
@@ -283,7 +314,8 @@ class SubmissionsListTest extends TestCase {
 		$this->stubStaticCollaborators();
 		$list = $this->makeList();
 		$out  = $this->call_protected( $list, 'column_default', array( array( 'submission_date' => 123 ), 'submission_date' ) );
-		$this->assertSame( 'DATE:123', $out );
+		// The configured formats (Y-m-d, H:i) applied to the stored instant.
+		$this->assertSame( '1970-01-01 00:02', $out );
 	}
 
 	public function test_column_default_form_with_cached_title(): void {
@@ -419,7 +451,7 @@ class SubmissionsListTest extends TestCase {
 	public function test_actions_manage_publish_shows_edit_pdf_trash(): void {
 		$this->stubStaticCollaborators( true, true );
 		$list = $this->makeList();
-		$item = array( 'id' => 3, 'status' => 'publish', 'magic_token' => 'TOK' );
+		$item = array( 'id' => 3, 'status' => 'publish', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
 		$this->assertStringContainsString( 'Edit', $out );
 		$this->assertStringContainsString( 'PDF', $out );
@@ -433,7 +465,7 @@ class SubmissionsListTest extends TestCase {
 	public function test_actions_manage_trash_shows_restore_delete(): void {
 		$this->stubStaticCollaborators( true, true );
 		$list = $this->makeList();
-		$item = array( 'id' => 4, 'status' => 'trash', 'magic_token' => 'TOK' );
+		$item = array( 'id' => 4, 'status' => 'trash', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
 		$this->assertStringContainsString( 'Restore', $out );
 		$this->assertStringContainsString( 'Delete', $out );
@@ -444,7 +476,7 @@ class SubmissionsListTest extends TestCase {
 		// Neither manage nor edit → only PDF button.
 		$this->stubStaticCollaborators( false, false );
 		$list = $this->makeList();
-		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => 'TOK' );
+		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
 		$this->assertStringContainsString( 'PDF', $out );
 		$this->assertStringNotContainsString( 'Edit', $out );
@@ -456,29 +488,76 @@ class SubmissionsListTest extends TestCase {
 		// edit but not manage → Edit + PDF, no trash/restore.
 		$this->stubStaticCollaborators( false, true );
 		$list = $this->makeList();
-		$item = array( 'id' => 6, 'status' => 'publish', 'magic_token' => 'TOK' );
+		$item = array( 'id' => 6, 'status' => 'publish', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
 		$this->assertStringContainsString( 'Edit', $out );
 		$this->assertStringContainsString( 'PDF', $out );
 		$this->assertStringNotContainsString( 'Trash', $out );
 	}
 
-	public function test_pdf_button_fallback_to_handler_when_no_token(): void {
-		$this->stubStaticCollaborators( false, false );
+	/**
+	 * #2241 — the certificate prints the holder's data and its magic link
+	 * opens it, so the button opens it through the audited route and never
+	 * carries the link in the page.
+	 *
+	 * @dataProvider provider_revealing_tiers
+	 */
+	public function test_pdf_button_opens_the_audited_route_for_a_revealing_tier( string $tier ): void {
+		$this->stubStaticCollaborators( false, false, $tier );
 		$list = $this->makeList();
-		$item = array( 'id' => 7, 'status' => 'publish' ); // no magic_token
+		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => self::TOKEN );
 		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertStringContainsString( 'PDF', $out );
-		$this->assertStringContainsString( 'byid/7', $out );
+		$this->assertStringContainsString( 'href="https://example.com/wp-admin/admin-post.php?action=ffc_open_certificate&submission_id=5&_wpnonce=test"', $out );
+		$this->assertStringNotContainsString( '#token=', $out );
 	}
 
-	public function test_pdf_button_no_token_message_when_link_empty(): void {
-		$this->stubStaticCollaborators( false, false );
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function provider_revealing_tiers(): array {
+		return array(
+			'site administrator' => array( 'unmasked' ),
+			'PII capability'     => array( 'reveal' ),
+		);
+	}
+
+	public function test_pdf_button_is_absent_for_a_tier_that_cannot_reveal(): void {
+		$this->stubStaticCollaborators( true, true, 'masked' );
 		$list = $this->makeList();
-		$item = array( 'id' => 0, 'status' => 'publish' ); // id 0 → empty link
-		$out  = $this->call_protected( $list, 'render_pdf_button', array( $item ) );
-		$this->assertStringContainsString( 'No token', $out );
-		$this->assertStringContainsString( 'ffc-no-token', $out );
+		$item = array( 'id' => 5, 'status' => 'publish', 'magic_token' => self::TOKEN );
+
+		$this->assertSame( '', $this->call_protected( $list, 'render_pdf_button', array( $item ) ) );
+		$actions = $this->call_protected( $list, 'column_default', array( $item, 'actions' ) );
+		$this->assertStringNotContainsString( 'PDF', $actions );
+		$this->assertStringNotContainsString( '#token=', $actions );
+		$this->assertStringContainsString( 'Edit', $actions, 'The other actions stay.' );
+	}
+
+	public function test_pdf_button_opens_the_owners_own_certificate(): void {
+		$this->stubStaticCollaborators( false, false, 'masked' );
+		$list = $this->makeList();
+		$item = array( 'id' => 5, 'status' => 'publish', 'user_id' => 7, 'magic_token' => self::TOKEN );
+		$this->assertStringContainsString( 'action=ffc_open_certificate', $this->call_protected( $list, 'render_pdf_button', array( $item ) ) );
+	}
+
+	/**
+	 * #2241 — the preview masks a personal value by its key; a non-personal
+	 * one reads as typed.
+	 */
+	public function test_format_data_preview_masks_personal_keys(): void {
+		$this->stubStaticCollaborators();
+		$list = $this->makeList();
+		$json = json_encode(
+			array(
+				'telefone'        => '11987654321',
+				'data_nascimento' => '1990-05-20',
+				'curso'           => 'Matemática',
+			)
+		);
+		$out = $this->call_protected( $list, 'column_default', array( array( 'data' => $json ), 'data' ) );
+		$this->assertStringNotContainsString( '11987654321', $out );
+		$this->assertStringNotContainsString( '1990-05-20', $out );
+		$this->assertStringContainsString( 'Matemática', $out );
 	}
 
 	// ==================================================================

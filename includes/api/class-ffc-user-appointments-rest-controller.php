@@ -50,7 +50,7 @@ class UserAppointmentsRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_appointments' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 	}
@@ -118,6 +118,10 @@ class UserAppointmentsRestController {
 			$calendars_map = ! empty( $calendar_ids ) ? $calendar_repository->findByIds( $calendar_ids ) : array();
 
 			$appointments_formatted = array();
+			$booking_pages          = array();
+			// Upcoming and past split on the site's today, not the browser's
+			// UTC date (#2246).
+			$site_today = current_time( 'Y-m-d' );
 
 			foreach ( $appointments as $appointment ) {
 				if ( empty( $appointment['id'] ) ) {
@@ -133,10 +137,14 @@ class UserAppointmentsRestController {
 					}
 				}
 
+				// The date is Category B wall-clock too (#2246): through the
+				// timestamp path a UTC-3 site rendered 20/05 as 19/05.
 				$date_formatted = '';
 				if ( ! empty( $appointment['appointment_date'] ) ) {
-					$timestamp      = strtotime( $appointment['appointment_date'] );
-					$date_formatted = ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : $appointment['appointment_date'];
+					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $appointment['appointment_date'] );
+					if ( '' === $date_formatted ) {
+						$date_formatted = (string) $appointment['appointment_date'];
+					}
 				}
 
 				// Appointment times are Category-B wall-clock (TIME columns, no TZ
@@ -148,15 +156,16 @@ class UserAppointmentsRestController {
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['start_time'] )
 					: '';
 
-				$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
-				$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
-				// "View as user" is not the owner reading their own bookings
-				// (#1863): the email and phone arrive masked; the
-				// administrator reveals them on the appointments screen.
-				if ( $ctx['is_view_as'] ) {
-					$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );
-					$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone_display );
-				}
+				// The email and phone leave the server masked for everyone
+				// (#2246): on a screen the owner's answer is `owner_reveal`
+				// (`PiiAccessPolicy::resolve_on_screen()`), which draws the data
+				// masked, and "view as user" is not the owner at all (#1863).
+				// The tab draws neither field and the calendar export no
+				// longer carries the e-mail, so nothing on the dashboard needs
+				// the clear value; the administrator reveals it on the
+				// appointments screen.
+				$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' ) );
+				$phone_display = \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' ) );
 
 				$end_time_formatted = ! empty( $appointment['end_time'] )
 					? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $appointment['end_time'] )
@@ -168,12 +177,16 @@ class UserAppointmentsRestController {
 					'cancelled' => __( 'Cancelled', 'ffcertificate' ),
 					'completed' => __( 'Completed', 'ffcertificate' ),
 					'no_show'   => __( 'No Show', 'ffcertificate' ),
+					'waitlist'  => __( 'Waitlisted', 'ffcertificate' ),
 				);
 
 				$status = $appointment['status'] ?? 'pending';
 
+				// "View as user" gets no receipt link (#2244): the link carries
+				// the person's token, which opens their receipt unmasked and
+				// cancels as a guest.
 				$receipt_url = '';
-				if ( 'cancelled' !== $status ) {
+				if ( 'cancelled' !== $status && ! $ctx['is_view_as'] ) {
 					$confirmation_token = $appointment['confirmation_token'] ?? '';
 					if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
 						$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
@@ -185,25 +198,48 @@ class UserAppointmentsRestController {
 					}
 				}
 
-				$can_cancel = false;
-				if ( in_array( $status, array( 'pending', 'confirmed' ), true ) ) {
+				// The same rules the cancel handler applies (#2244): an open
+				// appointment that has not started, cancellable by its calendar's
+				// rules, or by anyone the calendar's bypass switch lets through.
+				// When it is not, the row says why instead of only hiding Cancel.
+				$can_cancel  = false;
+				$cancel_note = '';
+				if ( in_array( $status, \FreeFormCertificate\SelfScheduling\AppointmentHandler::CANCELLABLE_STATUSES, true ) ) {
 					$appointment_time = ( new \DateTimeImmutable( $appointment['appointment_date'] . ' ' . ( $appointment['start_time'] ?? '23:59:59' ), wp_timezone() ) )->getTimestamp();
 					$now              = time();
+					$calendar_post_id = $calendar && ! empty( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+					$min_hours        = $calendar && ! empty( $calendar['cancellation_min_hours'] ) ? (int) $calendar['cancellation_min_hours'] : 0;
 
 					if ( $appointment_time > $now ) {
-						if ( current_user_can( 'manage_options' ) ) {
+						if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id ) ) {
 							$can_cancel = true;
-						} elseif ( $calendar && ! empty( $calendar['allow_cancellation'] ) ) {
+						} elseif ( ! $calendar || empty( $calendar['allow_cancellation'] ) ) {
+							$cancel_note = __( 'This calendar does not take cancellations online. Contact the organiser to cancel.', 'ffcertificate' );
+						} elseif ( $min_hours > 0 && $now > $appointment_time - $min_hours * 3600 ) {
+							$cancel_note = sprintf(
+								/* translators: %d: hours before the appointment */
+								_n( 'Cancelling closed %d hour before the appointment.', 'Cancelling closed %d hours before the appointment.', $min_hours, 'ffcertificate' ),
+								$min_hours
+							);
+						} else {
 							$can_cancel = true;
-							if ( ! empty( $calendar['cancellation_min_hours'] ) && $calendar['cancellation_min_hours'] > 0 ) {
-								$deadline = $appointment_time - ( $calendar['cancellation_min_hours'] * 3600 );
-								if ( $now > $deadline ) {
-									$can_cancel = false;
-								}
-							}
 						}
 					}
 				}
+
+				// Reschedule is cancel-then-book (#2244): offered where cancelling
+				// is, and only when the calendar is published on a page the
+				// person can return to. One lookup per calendar.
+				$reschedule_url = '';
+				// A waitlisted person holds no time to move, so leaving is all.
+				if ( $can_cancel && 'waitlist' !== $status && ! $ctx['is_view_as'] && $calendar && ! empty( $calendar['post_id'] ) ) {
+					$calendar_post = (int) $calendar['post_id'];
+					if ( ! isset( $booking_pages[ $calendar_post ] ) ) {
+						$booking_pages[ $calendar_post ] = \FreeFormCertificate\Core\ShortcodePage::url( 'ffc_self_scheduling', $calendar_post );
+					}
+					$reschedule_url = $booking_pages[ $calendar_post ];
+				}
+				$reschedule_note = '' !== $reschedule_url ? self::interval_note( $appointment, $appointments, (array) $calendar ) : '';
 
 				$appointments_formatted[] = array(
 					'id'                   => (int) $appointment['id'],
@@ -217,13 +253,17 @@ class UserAppointmentsRestController {
 					'end_time_raw'         => $appointment['end_time'] ?? '',
 					'status'               => $status,
 					'status_label'         => $status_labels[ $status ] ?? $status,
+					'is_past'              => ( (string) ( $appointment['appointment_date'] ?? '' ) < $site_today ) || in_array( $status, array( 'completed', 'no_show' ), true ),
 					'name'                 => $appointment['name'] ?? '',
 					'email'                => $email_display,
 					'phone'                => $phone_display,
 					'user_notes'           => $appointment['user_notes'] ?? '',
 					'created_at'           => $appointment['created_at'] ?? '',
 					'can_cancel'           => $can_cancel,
+					'cancel_note'          => $cancel_note,
 					'receipt_url'          => $receipt_url,
+					'reschedule_url'       => $reschedule_url,
+					'reschedule_note'      => $reschedule_note,
 				);
 			}
 
@@ -253,5 +293,49 @@ class UserAppointmentsRestController {
 				array( 'status' => 500 )
 			);
 		}
+	}
+
+	/**
+	 * What the interval rule will hold a rescheduled booking to (#2244).
+	 *
+	 * Once this appointment is cancelled, the validator measures the new time
+	 * from the person's last other non-cancelled appointment on the same
+	 * calendar (the highest id). Saying so before the cancellation keeps the
+	 * person from releasing a slot they then cannot replace.
+	 *
+	 * @param array<string, mixed>             $appointment  The row being rescheduled.
+	 * @param array<int, array<string, mixed>> $appointments Every row of the person.
+	 * @param array<string, mixed>             $calendar     Its calendar row.
+	 * @return string '' when the rule does not apply.
+	 */
+	private static function interval_note( array $appointment, array $appointments, array $calendar ): string {
+		$hours = isset( $calendar['minimum_interval_between_bookings'] ) && is_numeric( $calendar['minimum_interval_between_bookings'] ) ? (int) $calendar['minimum_interval_between_bookings'] : 0;
+		if ( $hours <= 0 ) {
+			return '';
+		}
+
+		$last = null;
+		foreach ( $appointments as $other ) {
+			if ( (int) ( $other['id'] ?? 0 ) === (int) ( $appointment['id'] ?? 0 )
+				|| 'cancelled' === ( $other['status'] ?? '' )
+				|| (int) ( $other['calendar_id'] ?? 0 ) !== (int) ( $appointment['calendar_id'] ?? 0 ) ) {
+				continue;
+			}
+			if ( null === $last || (int) ( $other['id'] ?? 0 ) > (int) ( $last['id'] ?? 0 ) ) {
+				$last = $other;
+			}
+		}
+		if ( null === $last ) {
+			return '';
+		}
+
+		$when = ( new \DateTimeImmutable( \FreeFormCertificate\Core\ArrayValue::string( $last, 'appointment_date' ) . ' ' . \FreeFormCertificate\Core\ArrayValue::string( $last, 'start_time' ), wp_timezone() ) )->getTimestamp();
+
+		return sprintf(
+			/* translators: 1: date and time of the person's other appointment, 2: minimum hours between appointments */
+			__( 'You also have an appointment on this calendar on %1$s. The new time must be at least %2$d hours before or after it.', 'ffcertificate' ),
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( $when ),
+			$hours
+		);
 	}
 }

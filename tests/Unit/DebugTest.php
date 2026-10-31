@@ -393,6 +393,9 @@ class DebugTest extends TestCase {
 			array( 'user_ip' ),
 			array( 'client_ip' ),
 			array( 'remote_addr' ),
+			// The activity-log keys that name an address (#2109).
+			array( 'triggered_by_ip' ),
+			array( 'bypassed_ip' ),
 		);
 	}
 

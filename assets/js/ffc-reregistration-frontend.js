@@ -6,7 +6,8 @@
  * - Real-time field validation on blur
  * - Input masks, dependent selects and the dual-post toggle, through the
  *   shared ffc-field-behaviours.js
- * - Save draft / Submit handlers
+ * - Save draft / Submit handlers, the draft saved by itself 5 s after the
+ *   last change, and a warning before unsaved changes are lost
  *
  * @since 4.11.0
  * @package FreeFormCertificate
@@ -15,6 +16,31 @@
     'use strict';
 
     var S = (window.ffcReregistration && window.ffcReregistration.strings) || {};
+
+    // The draft saves itself this long after the last change (#2242).
+    var AUTOSAVE_DELAY = 5000;
+
+    // One form is open at a time, so its unsaved state lives here: whether a
+    // change has not reached the server yet, the pending timer, and a counter
+    // that tells a save which changes it carried.
+    var unsaved = false;
+    var autosaveTimer = null;
+    var changeCount = 0;
+
+    function clearAutosave() {
+        if (autosaveTimer) {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = null;
+        }
+    }
+
+    // Leaving the page with changes not saved asks first. Browsers show their
+    // own text; returnValue is what makes them ask.
+    window.addEventListener('beforeunload', function (e) {
+        if (!unsaved) { return; }
+        e.preventDefault();
+        e.returnValue = '';
+    });
 
     $(function () {
         initBannerButtons();
@@ -27,6 +53,36 @@
             var id = $(this).data('reregistration-id');
             loadForm(id);
         });
+        $(document).on('click', '.ffc-rereg-retract', function (e) {
+            e.preventDefault();
+            retract($(this));
+        });
+    }
+
+    /* ─── Banner: Retract Submission ───────────────────── */
+
+    // The member takes back a submission nobody reviewed yet (#2242). The
+    // banners are drawn by the server, so the page reloads to redraw them.
+    function retract($btn) {
+        if (!window.confirm(S.retractConfirm || 'Retract your submission?')) {
+            return;
+        }
+        $btn.prop('disabled', true).addClass('ffc-btn-loading');
+        FFC.request(
+            'ffc_retract_reregistration',
+            { reregistration_id: $btn.data('reregistration-id') },
+            { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
+        )
+            .then(function () {
+                window.location.reload();
+            })
+            .catch(function (err) {
+                $btn.prop('disabled', false).removeClass('ffc-btn-loading');
+                var msg = (err && err.fromServer && err.message) || S.errorRetracting || 'Could not retract the submission.';
+                var $banner = $btn.closest('.ffc-notice');
+                $banner.next('.ffc-rereg-retract-error').remove();
+                $banner.after($(FFC.notice('danger', 'error', msg, '', { role: 'alert' })).addClass('ffc-rereg-retract-error'));
+            });
     }
 
     function loadForm(reregistrationId) {
@@ -69,11 +125,13 @@
         // Masks, dependent selects and the dual-post toggle are shared with
         // the wp-admin user screen (ffc-field-behaviours.js).
         FFC.Fields.initMasks($container);
+        FFC.Fields.initCepLookup($container);
         initBlurValidation($container);
         FFC.Fields.initDualPost($container, S.dualPostShowValue);
         initWorkingHours($container);
         FFC.Fields.initDependentSelects($container, S);
         initDraft($container);
+        initAutosave($container);
         initSubmit($container);
         initCancel($container);
         initImportPrevious($container);
@@ -139,7 +197,10 @@
                 return;
             }
 
-            $input.val(fields[key]);
+            // An imported value is shaped like a typed one.
+            var masks = window.FFC && FFC.Fields && FFC.Fields.masks;
+            var format = masks && masks[$input.attr('data-mask')];
+            $input.val(format ? format(String(fields[key])) : fields[key]);
             filled++;
         });
 
@@ -208,6 +269,23 @@
         $container.on('blur', 'input, textarea, select', function () {
             validateField($(this));
         });
+        // The CEP is checked against the UF, so a new UF re-checks a CEP
+        // already typed (#2233).
+        $container.on('change', '.ffc-rereg-field[data-field-key="uf"] select', function () {
+            var $cep = $container.find('.ffc-rereg-field[data-format="cep"] input');
+            if (($cep.val() || '').trim()) {
+                validateField($cep);
+            }
+        });
+    }
+
+    /**
+     * The UF chosen in the same form as $field, or ''.
+     */
+    function formUf($field) {
+        return ($field.closest('form')
+            .find('.ffc-rereg-field[data-field-key="uf"] select, .ffc-rereg-field[data-field-key="uf"] input')
+            .first().val() || '');
     }
 
     function validateField($field) {
@@ -231,7 +309,8 @@
                 val,
                 $wrap.data('format') || $field.data('format'),
                 S,
-                { pattern: $wrap.data('regex'), message: $wrap.data('regex-msg') }
+                { pattern: $wrap.data('regex'), message: $wrap.data('regex-msg') },
+                { uf: formUf($field) }
             );
         }
 
@@ -263,28 +342,59 @@
 
     function initDraft($container) {
         $container.on('click', '.ffc-rereg-draft-btn', function () {
-            var $btn = $(this);
-            var $status = $container.find('.ffc-rereg-status');
-            var id = $container.find('[name="reregistration_id"]').val();
+            clearAutosave();
+            saveDraft($container, false);
+        });
+    }
 
-            $btn.prop('disabled', true).text(S.saving || 'Saving...');
-            FFC.status($status, '', '');
+    // One save, by the button or by the timer. A change typed while the
+    // request is in flight keeps the form unsaved, so it goes out next.
+    function saveDraft($container, automatic) {
+        var $btn = $container.find('.ffc-rereg-draft-btn');
+        var $status = $container.find('.ffc-rereg-status');
+        var id = $container.find('[name="reregistration_id"]').val();
+        var sentAt = changeCount;
 
-            FFC.request(
-                'ffc_save_reregistration_draft',
-                { reregistration_id: id, fields: getFields($container) },
-                { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
-            )
-                .then(function () {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
-                    FFC.status($status, 'success', S.draftSaved || 'Draft saved.');
-                    setTimeout(function () { FFC.status($status, '', ''); }, 3000);
-                })
-                .catch(function (err) {
-                    $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
-                    var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Error saving draft.';
-                    FFC.status($status, 'error', msg);
-                });
+        $btn.prop('disabled', true).text(S.saving || 'Saving...');
+        FFC.status($status, '', '');
+
+        return FFC.request(
+            'ffc_save_reregistration_draft',
+            { reregistration_id: id, fields: getFields($container) },
+            { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
+        )
+            .then(function () {
+                if (sentAt === changeCount) {
+                    unsaved = false;
+                }
+                $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                var msg = automatic ? (S.draftAutoSaved || 'Draft saved automatically.') : (S.draftSaved || 'Draft saved.');
+                FFC.status($status, 'success', msg);
+                setTimeout(function () { FFC.status($status, '', ''); }, 3000);
+            })
+            .catch(function (err) {
+                $btn.prop('disabled', false).text(S.saveDraft || 'Save Draft');
+                var msg = (err && err.fromServer && err.message) || S.errorSaving || 'Error saving draft.';
+                FFC.status($status, 'error', msg);
+            });
+    }
+
+    /* ─── Autosave ─────────────────────────────────────── */
+
+    // Every change restarts the timer, so the draft is saved 5 s after the
+    // member stops typing, not every 5 s (#2242).
+    function initAutosave($container) {
+        unsaved = false;
+        changeCount = 0;
+        clearAutosave();
+        $container.off('.ffcAutosave').on('input.ffcAutosave change.ffcAutosave', '#ffc-rereg-form :input', function () {
+            unsaved = true;
+            changeCount++;
+            clearAutosave();
+            autosaveTimer = setTimeout(function () {
+                autosaveTimer = null;
+                saveDraft($container, true);
+            }, AUTOSAVE_DELAY);
         });
     }
 
@@ -322,6 +432,9 @@
             var $status = $container.find('.ffc-rereg-status');
             var id = $container.find('[name="reregistration_id"]').val();
 
+            // A draft save landing after the submit would be refused anyway;
+            // not sending it keeps the status line about the submit.
+            clearAutosave();
             $btn.prop('disabled', true).text(S.submitting || 'Submitting...');
             FFC.status($status, '', '');
 
@@ -331,6 +444,7 @@
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function (data) {
+                    unsaved = false;
                     var notice = FFC.notice(
                         'success',
                         'success',
@@ -357,8 +471,14 @@
 
     /* ─── Cancel ───────────────────────────────────────── */
 
+    // Closing the form with changes not saved asks first (#2242).
     function initCancel($container) {
         $container.on('click', '.ffc-rereg-cancel-btn', function () {
+            if (unsaved && !window.confirm(S.cancelConfirm || 'Close the form? Changes not saved yet will be lost.')) {
+                return;
+            }
+            clearAutosave();
+            unsaved = false;
             $('#ffc-rereg-form-panel').slideUp(200, function () {
                 $(this).empty();
             });

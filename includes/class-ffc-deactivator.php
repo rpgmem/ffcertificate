@@ -27,15 +27,22 @@ class Deactivator {
 	 */
 	public static function deactivate(): void {
 		// Clear scheduled cron tasks.
-		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
-		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
-		wp_clear_scheduled_hook( 'ffcertificate_audience_post_event_invites' );
-		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
+		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
+		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
+		wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
+		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
+		// @removal 6.45.0 -- an event may still sit under a pre-#2323 name.
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy_hook ) {
+			wp_clear_scheduled_hook( $legacy_hook );
+		}
 		// A pending reminder batch would otherwise fire into code that is no
 		// longer loaded (#1538 -- it was cleared nowhere).
 		wp_unschedule_hook( 'ffc_reregistration_reminder_batch' );
 		wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
+		wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
+		wp_unschedule_hook( 'ffc_audience_notification_batch' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();
@@ -48,8 +55,13 @@ class Deactivator {
 	 * Destructive Cleanup.
 	 * WARNING: This deletes all plugin data.
 	 * Ideally, this should be called from an uninstall.php file or a specific action.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function uninstall_cleanup(): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		if ( ! current_user_can( 'activate_plugins' ) ) {
 			return;
 		}
@@ -72,14 +84,19 @@ class Deactivator {
 		delete_option( 'ffc_settings' );
 
 		// 3. Clear scheduled CRON tasks.
-		wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
-		wp_clear_scheduled_hook( 'ffcertificate_bulk_issue_purge' );
+		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 		// #1248's internal hook, which replaced the one above in the scheduling.
 		// The old one stays: an event scheduled the old way may still be pending.
 		wp_unschedule_hook( 'ffc_process_submission_async' );
-		wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
-		wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
+		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
+		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
+		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
+		// @removal 6.45.0 -- an event may still sit under a pre-#2323 name.
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy_hook ) {
+			wp_clear_scheduled_hook( $legacy_hook );
+		}
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 

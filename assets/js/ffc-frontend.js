@@ -577,8 +577,9 @@
                     // title, outside the form the response replaces; it is
                     // done once the attempt is in (#1842).
                     $form.closest('.ffc-form-wrapper').find('[data-ffc-notice="quiz-leave"]').remove();
-                    if (data.html && data.quiz && data.quiz.pending) {
-                        // An attempt a person has still to grade (#1732) is
+                    if (data.html && (data.notice || (data.quiz && data.quiz.pending))) {
+                        // An attempt a person has still to grade (#1732), or
+                        // a reprint whose link went by e-mail (#2241), is
                         // a system notice: it takes the place of the form
                         // and sits above the title, like the form's other
                         // notices (#1842).
@@ -759,6 +760,28 @@
     }
 
     // Initialize on document ready
+    /**
+     * Ask the PDF generator for its libraries when this page is about to
+     * need them (#2241).
+     */
+    function loadPdfLibrariesOnDemand() {
+        var generator = window.ffcPdfGenerator;
+        if (!generator || typeof generator.load !== 'function') {
+            return;
+        }
+        var load = function () { generator.load(); };
+
+        if ($('.ffc-verification-form, .ffc-magic-link-container').length) {
+            if (document.readyState === 'complete') {
+                load();
+            } else {
+                $(window).one('load', load);
+            }
+        }
+
+        $(document).one('focusin', '.ffc-submission-form :input, .ffc-form :input', load);
+    }
+
     $(document).ready(function() {
         // Delay magic link to ensure hash is available
         setTimeout(function() {
@@ -792,14 +815,19 @@
             this.style.setProperty('height', this.scrollHeight + 'px', 'important');
         });
 
+        // The PDF libraries come when a page is about to need them (#2241):
+        // on the first focus in a form field, and right after the page loads
+        // where a certificate is shown without a form to fill (verification,
+        // the magic link). A submit that arrives first waits for them.
+        loadPdfLibrariesOnDemand();
+
         // Tell the boot watchdog the form can be sent (#2030): this setup
         // ran, and what a submit goes through is on the page — the request
-        // helper and the libraries the PDF is drawn with.
+        // helper and the PDF generator, which fetches its libraries itself.
         if (window.FFC && FFC.Preflight
             && typeof FFC.request === 'function'
             && typeof window.ffcGeneratePDF === 'function'
-            && typeof window.html2canvas === 'function'
-            && window.jspdf && typeof window.jspdf.jsPDF === 'function') {
+            && window.ffcPdfGenerator && typeof window.ffcPdfGenerator.load === 'function') {
             FFC.Preflight.ready('frontend');
         }
     });

@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabQrCode;
@@ -15,7 +14,6 @@ use FreeFormCertificate\Settings\Tabs\TabQrCode;
  * The QR Code settings tab (#1563): properties, the real view, and the assets.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabQrCode
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabQrCodeTest extends TestCase {
@@ -118,8 +116,28 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-autosave-key="qr_design_on_short_urls"', $html );
 	}
 
+	/**
+	 * The tab under test with only its view directory redirected, through the
+	 * `view_path()` seam: render() is the product's own (#1811).
+	 *
+	 * @param string $views_dir Directory the tab reads its view from.
+	 * @return TabQrCode
+	 */
+	private function tab_with_views_in( string $views_dir ): TabQrCode {
+		return new class( $views_dir ) extends TabQrCode {
+			private string $views_dir;
+			public function __construct( string $views_dir ) {
+				$this->views_dir = $views_dir;
+				parent::__construct();
+			}
+			protected function view_path( string $file ): string {
+				return $this->views_dir . '/' . $file;
+			}
+		};
+	}
+
 	public function test_render_error_when_view_missing(): void {
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		$tab = $this->tab_with_views_in( sys_get_temp_dir() . '/ffc_test_no_such_view_dir_' . getmypid() );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message ) {
 				echo '<div class="notice notice-error">' . $message . '</div>';
@@ -127,7 +145,7 @@ class TabQrCodeTest extends TestCase {
 		);
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$this->assertStringContainsString( 'not found', (string) ob_get_clean() );
 	}
 
@@ -140,14 +158,13 @@ class TabQrCodeTest extends TestCase {
 
 	public function test_enqueue_scripts_localises_the_preview_endpoint(): void {
 		SettingsTab::set_resolved_active_tab( 'qr_code' );
-
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$utils->shouldReceive( 'enqueue_common_style' )->once();
-		$utils->shouldReceive( 'enqueue_dark_mode' )->once();
+		// Dark mode on, so the real AssetHelper::enqueue_dark_mode() enqueues its script.
+		Functions\when( 'get_option' )->alias(
+			static fn( $name, $fallback = false ) => 'ffc_settings' === $name ? array( 'dark_mode' => 'on' ) : $fallback
+		);
 
 		$styles = array();
-		Functions\when( 'wp_enqueue_style' )->alias( function ( $h, $src, $deps ) use ( &$styles ) {
+		Functions\when( 'wp_enqueue_style' )->alias( function ( $h, $src = '', $deps = array() ) use ( &$styles ) {
 			$styles[ $h ] = $deps;
 		} );
 		$handles   = array();
@@ -166,6 +183,9 @@ class TabQrCodeTest extends TestCase {
 
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-qr-design', $handles );
+		// The palette (AssetHelper::enqueue_common_style) and the dark-mode toggle, once each.
+		$this->assertSame( array(), $styles['ffc-common'] ?? null );
+		$this->assertSame( 1, count( array_keys( $handles, 'ffc-dark-mode', true ) ) );
 		// The shared design sections have their own sheet, on the palette (#1570).
 		$this->assertSame( array( 'ffc-common' ), $styles['ffc-qr-design-fields'] ?? null );
 		$this->assertSame( 'ffc_qr_design_preview', $localized['ffcQrDesign']['action'] );

@@ -8,33 +8,103 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentCandidatesRestController;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
- * Tests for the recruitment candidates REST controller — route registration
- * + the read endpoints. Write endpoints (POST/PATCH/DELETE) pull in
- * Encryption + SensitiveFieldRegistry and are out of scope for the smoke
- * tier; this suite pins the surface contract.
+ * Tests for the recruitment candidates REST controller: route registration,
+ * the reads, the update and delete writes, the audited PII reveal and the
+ * candidate's own dashboard payload.
+ *
+ * Everything behind the controller is the real class: the candidate reader
+ * and writer, the classification, notice and call stores, the delete service,
+ * the PII access policy, SensitiveFieldRegistry, DataSanitizer,
+ * DocumentFormatter, the PCD hasher, the error catalogue, Encryption (with the
+ * bootstrap's keys) and ActivityLog (observed through its buffer). They run
+ * over a `$wpdb` double that holds rows per table, answers each statement by
+ * its interpolated SQL text and records every write; a statement it does not
+ * expect fails the test.
+ *
+ * By default the caller is staff holding the PII capability (`user_can`
+ * answers true), not the candidate, whose account is {@see self::OWNER}.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidatesRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateEditor
  */
 class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	private RecruitmentCandidatesRestController $controller;
+	/** Table names, with the double's `wp_` prefix. */
+	private const T_CANDIDATE      = 'wp_ffc_recruitment_candidate';
+	private const T_CLASSIFICATION = 'wp_ffc_recruitment_classification';
+	private const T_NOTICE         = 'wp_ffc_recruitment_notice';
+	private const T_CALL           = 'wp_ffc_recruitment_call';
 
-	/** @var \Mockery\MockInterface */
-	private $repoMock;
+	/** The candidate's own account. */
+	private const OWNER = 12;
+
+	/** The candidate's e-mail. */
+	private const EMAIL = 'jane@example.com';
+
+	private RecruitmentCandidatesRestController $controller;
 
 	/** @var array<int, array{namespace: string, route: string, args: array}> */
 	private array $registered_routes = array();
 
+	/**
+	 * Stored rows, by table and id.
+	 *
+	 * @var array<string, array<int, object>>
+	 */
+	private array $rows = array();
+
+	/** @var list<object> What the call-history read answers. */
+	private array $history = array();
+
+	/** @var int What the "classifications of this candidate" count answers. */
+	private int $classification_count = 0;
+
+	/** @var int|false What `update()` answers. */
+	private $update_result = 1;
+
+	/** @var list<array{0: string, 1: string, 2: array<string, mixed>, 3: array<string, mixed>}> Every write, as `[ op, table, data, where ]`. */
+	private array $writes = array();
+
+	/** @var list<string> Every read statement, as interpolated. */
+	private array $reads = array();
+
+	/** @var list<string> Statements the double does not answer. */
+	private array $unexpected = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
+		$this->rows                 = array();
+		$this->history              = array();
+		$this->classification_count = 0;
+		$this->update_result        = 1;
+		$this->writes               = array();
+		$this->reads                = array();
+		$this->unexpected           = array();
+
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+
 		// Candidate responses ask the PII policy (#1863); by default the
 		// caller is staff with the PII cap, not the candidate.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -43,8 +113,19 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_textarea_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+		Functions\when( 'sanitize_email' )->alias( static fn( $v ) => trim( (string) $v ) );
 		Functions\when( 'current_user_can' )->justReturn( false );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		// The activity log is on, so an audited reveal reaches the buffer.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
 
 		$this->registered_routes = array();
 		Functions\when( 'register_rest_route' )->alias(
@@ -54,21 +135,121 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 			}
 		);
 
-		$this->repoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$this->repoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null )->byDefault();
-		$this->repoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( null )->byDefault();
-
-		$errMsgMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentErrorMessages' );
-		$errMsgMock->shouldReceive( 'translate' )->andReturnUsing( fn( $c ) => 'msg:' . $c );
-		$errMsgMock->shouldReceive( 'translate_all' )->andReturnUsing( fn( $codes ) => array_map( fn( $c ) => 'msg:' . $c, $codes ) );
+		$GLOBALS['wpdb'] = $this->database();
 
 		$this->controller = new RecruitmentCandidatesRestController();
 	}
 
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'The controller ran a statement the test did not expect.' );
+		parent::assertPostConditions();
+	}
+
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double over the rows a test stores.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		// Interpolates, so every read below dispatches on its text.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace_callback( '/%[ids]/', static fn() => (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$sql           = (string) $sql;
+				$this->reads[] = $sql;
+				if ( 1 === preg_match( '/^SELECT \* FROM (wp_\w+) WHERE id = (\d+)$/', $sql, $m ) ) {
+					return $this->rows[ $m[1] ][ (int) $m[2] ] ?? null;
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CANDIDATE . ' WHERE (cpf|rf)_hash = (\S+) LIMIT 1$/', $sql, $m ) ) {
+					foreach ( $this->rows[ self::T_CANDIDATE ] ?? array() as $row ) {
+						if ( ( $row->{$m[1] . '_hash'} ?? null ) === $m[2] ) {
+							return $row;
+						}
+					}
+					return null;
+				}
+				$this->unexpected[] = 'get_row: ' . $sql;
+				return null;
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$sql           = (string) $sql;
+				$this->reads[] = $sql;
+				if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CANDIDATE . ' WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					return array_values(
+						array_filter(
+							$this->rows[ self::T_CANDIDATE ] ?? array(),
+							static fn( $row ) => (int) $row->user_id === (int) $m[1]
+						)
+					);
+				}
+				if ( 1 === preg_match( '/^SELECT \* FROM ' . self::T_CLASSIFICATION . ' WHERE candidate_id = (\d+) ORDER BY/', $sql, $m ) ) {
+					return array_values(
+						array_filter(
+							$this->rows[ self::T_CLASSIFICATION ] ?? array(),
+							static fn( $row ) => (int) $row->candidate_id === (int) $m[1]
+						)
+					);
+				}
+				if ( 0 === strpos( $sql, 'SELECT * FROM ' . self::T_CALL . ' WHERE classification_id IN (' ) ) {
+					return $this->history;
+				}
+				$this->unexpected[] = 'get_results: ' . $sql;
+				return array();
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$sql           = (string) $sql;
+				$this->reads[] = $sql;
+				if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM ' . self::T_CLASSIFICATION . ' WHERE candidate_id = \d+$/', $sql ) ) {
+					return (string) $this->classification_count;
+				}
+				$this->unexpected[] = 'get_var: ' . $sql;
+				return null;
+			}
+		);
+
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', (string) $table, $data, $where );
+				return $this->update_result;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', (string) $table, array(), $where );
+				return 1;
+			}
+		);
+
+		return $wpdb;
 	}
 
 	private function make_request( array $params ): \WP_REST_Request {
@@ -76,6 +257,53 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$req->shouldReceive( 'get_param' )->andReturnUsing( fn( $k ) => $params[ $k ] ?? null );
 		$req->shouldReceive( 'get_params' )->andReturn( $params );
 		return $req;
+	}
+
+	/**
+	 * Store a candidate row in the CandidateRow shape, its identifiers
+	 * encrypted and hashed as the writer stores them, and a PCD hash that
+	 * says "PCD".
+	 *
+	 * @param array<string,mixed> $overrides Field overrides.
+	 * @return object The stored row.
+	 */
+	private function store_candidate( array $overrides = array() ): object {
+		$row = (object) array_merge(
+			array(
+				'id'              => 5,
+				'user_id'         => self::OWNER,
+				'name'            => 'Jane Doe',
+				'cpf_encrypted'   => Encryption::encrypt( Identifiers::CPF_A ),
+				'cpf_hash'        => Encryption::hash( Identifiers::CPF_A ),
+				'rf_encrypted'    => Encryption::encrypt( Identifiers::RF_A ),
+				'rf_hash'         => Encryption::hash( Identifiers::RF_A ),
+				'email_encrypted' => Encryption::encrypt( self::EMAIL ),
+				'phone'           => '11999998888',
+				'notes'           => 'a note',
+				'pcd_hash'        => '',
+				'created_at'      => '2026-01-01 00:00:00',
+				'updated_at'      => '2026-01-02 00:00:00',
+			),
+			$overrides
+		);
+		$this->rows[ self::T_CANDIDATE ][ (int) $row->id ] = $row;
+		return $row;
+	}
+
+	/**
+	 * The buffered activity-log entries for one action, as their decoded contexts.
+	 *
+	 * @param string $action Action.
+	 * @return list<mixed>
+	 */
+	private function logged( string $action ): array {
+		$out = array();
+		foreach ( ActivityLogBuffer::contexts() as $entry ) {
+			if ( $action === $entry['action'] ) {
+				$out[] = $entry['context'];
+			}
+		}
+		return $out;
 	}
 
 	// ------------------------------------------------------------------
@@ -172,7 +400,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_get_candidate_returns_404_when_not_found(): void {
-		// Default repo returns null.
+		// No candidate 999 is stored.
 		$result = $this->controller->get_candidate( $this->make_request( array( 'id' => 999 ) ) );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -192,86 +420,12 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_error_data()['status'] );
 	}
 
-	/**
-	 * Alias-mock RecruitmentPiiAccessPolicy with its TIER_* constants
-	 * mapped so production references resolve. Must run before any other
-	 * use of the class in the process.
-	 *
-	 * @return \Mockery\MockInterface
-	 */
-	private function mock_pii_policy() {
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' => array(
-					'TIER_MASKED'   => 'masked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_UNMASKED' => 'unmasked',
-				),
-			)
-		);
-		return Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' );
-	}
-
-	/**
-	 * Build a candidate row object in the CandidateRow shape that
-	 * shape_candidate_admin() consumes.
-	 *
-	 * @param array<string,mixed> $overrides Field overrides.
-	 */
-	private function make_candidate_row( array $overrides = array() ): object {
-		return (object) array_merge(
-			array(
-				'id'              => 5,
-				'user_id'         => 12,
-				'name'            => 'Jane Doe',
-				'cpf_encrypted'   => 'ENC_CPF',
-				'rf_encrypted'    => 'ENC_RF',
-				'email_encrypted' => 'ENC_EMAIL',
-				'phone'           => '11999998888',
-				'notes'           => 'a note',
-				'pcd_hash'        => 'PCD_HASH',
-				'created_at'      => '2026-01-01 00:00:00',
-				'updated_at'      => '2026-01-02 00:00:00',
-			),
-			$overrides
-		);
-	}
-
-	/** Common stubs for the shape_candidate_admin() decrypt/mask/pcd path. */
-	private function stub_shape_helpers(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturnUsing(
-			function ( $v ) {
-				$map = array(
-					'ENC_CPF'   => '51817842080',
-					'ENC_RF'    => '5181780',
-					'ENC_EMAIL' => 'jane@example.com',
-				);
-				return $map[ $v ] ?? null;
-			}
-		)->byDefault();
-		$enc->shouldReceive( 'hash' )->andReturnUsing( fn( $v ) => 'HASH:' . $v )->byDefault();
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'mask_email' )->andReturnUsing( fn( $e ) => 'masked:' . $e )->byDefault();
-		$df->shouldReceive( 'mask_any' )->andReturnUsing( fn( $k, $v ) => 'masked:' . $k . ':' . $v )->byDefault();
-		$df->shouldReceive( 'format_cpf' )->andReturnUsing( fn( $v ) => 'cpf:' . $v )->byDefault();
-		$df->shouldReceive( 'format_rf' )->andReturnUsing( fn( $v ) => 'rf:' . $v )->byDefault();
-
-		$pcd = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPcdHasher' );
-		$pcd->shouldReceive( 'verify' )->andReturn( true )->byDefault();
-
-		return; // collaborators registered as aliases for the duration of the test.
-	}
-
 	// ------------------------------------------------------------------
 	// get_candidate() — success
 	// ------------------------------------------------------------------
 
 	public function test_get_candidate_returns_shaped_admin_payload(): void {
-		$this->stub_shape_helpers();
-		$row = $this->make_candidate_row();
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $row );
+		$this->store_candidate();
 
 		$response = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) );
 
@@ -279,36 +433,79 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$data = $response->get_data();
 		$this->assertSame( 5, $data['id'] );
-		$this->assertSame( 12, $data['user_id'] );
+		$this->assertSame( self::OWNER, $data['user_id'] );
 		$this->assertSame( 'Jane Doe', $data['name'] );
 		// Staff get the identifiers masked and reveal them one at a time
 		// through reveal-pii, audited (#1863).
-		$this->assertSame( 'masked:cpf:51817842080', $data['cpf'] );
-		$this->assertSame( 'masked:rf:5181780', $data['rf'] );
-		$this->assertSame( 'masked:jane@example.com', $data['email'] );
-		$this->assertSame( 'masked:jane@example.com', $data['email_masked'] );
+		$this->assertSame( DocumentFormatter::mask_any( 'cpf', Identifiers::CPF_A ), $data['cpf'] );
+		$this->assertSame( DocumentFormatter::mask_any( 'rf', Identifiers::RF_A ), $data['rf'] );
+		$this->assertNotSame( Identifiers::CPF_A, $data['cpf'] );
+		$this->assertNotSame( Identifiers::RF_A, $data['rf'] );
+		$this->assertSame( DocumentFormatter::mask_email( self::EMAIL ), $data['email'] );
+		$this->assertNotSame( self::EMAIL, $data['email'] );
+		$this->assertSame( DocumentFormatter::mask_email( self::EMAIL ), $data['email_masked'] );
 		$this->assertTrue( $data['pii_masked'] );
 		$this->assertSame( '11999998888', $data['phone'] );
-		$this->assertTrue( $data['is_pcd'] );
+		$this->assertArrayNotHasKey( 'is_pcd', $data, 'PCD is per notice, not per candidate (#2245).' );
 	}
 
-	public function test_get_candidate_gives_the_candidate_their_own_data_in_clear(): void {
-		$this->stub_shape_helpers();
-		Functions\when( 'get_current_user_id' )->justReturn( 12 );
-		$row = $this->make_candidate_row();
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $row );
+	public function test_get_candidate_reports_pcd_per_notice_classification(): void {
+		$this->store_candidate();
+		$this->rows[ self::T_CLASSIFICATION ][31] = (object) array(
+			'id'           => 31,
+			'candidate_id' => 5,
+			'notice_id'    => 2,
+			'adjutancy_id' => 4,
+			'list_type'    => 'definitive',
+			'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 2, 5, 4, true ),
+		);
+		$this->rows[ self::T_CLASSIFICATION ][32] = (object) array(
+			'id'           => 32,
+			'candidate_id' => 5,
+			'notice_id'    => 3,
+			'adjutancy_id' => 4,
+			'list_type'    => 'preview',
+			'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( 3, 5, 4, false ),
+		);
 
 		$data = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) )->get_data();
 
-		$this->assertSame( '51817842080', $data['cpf'] );
-		$this->assertSame( '5181780', $data['rf'] );
-		$this->assertSame( 'jane@example.com', $data['email'] );
+		$this->assertSame(
+			array(
+				array(
+					'classification_id' => 31,
+					'notice_id'         => 2,
+					'adjutancy_id'      => 4,
+					'list_type'         => 'definitive',
+					'is_pcd'            => true,
+				),
+				array(
+					'classification_id' => 32,
+					'notice_id'         => 3,
+					'adjutancy_id'      => 4,
+					'list_type'         => 'preview',
+					'is_pcd'            => false,
+				),
+			),
+			$data['pcd'],
+			'The same person is PCD in one notice and general in another.'
+		);
+	}
+
+	public function test_get_candidate_gives_the_candidate_their_own_data_in_clear(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
+
+		$data = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) )->get_data();
+
+		$this->assertSame( Identifiers::CPF_A, $data['cpf'] );
+		$this->assertSame( Identifiers::RF_A, $data['rf'] );
+		$this->assertSame( self::EMAIL, $data['email'] );
 		$this->assertFalse( $data['pii_masked'] );
 	}
 
 	public function test_get_candidate_shapes_null_user_and_empty_encrypted_fields(): void {
-		$this->stub_shape_helpers();
-		$row = $this->make_candidate_row(
+		$this->store_candidate(
 			array(
 				'user_id'         => null,
 				'cpf_encrypted'   => '',
@@ -316,7 +513,6 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 				'email_encrypted' => '',
 			)
 		);
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $row );
 
 		$data = $this->controller->get_candidate( $this->make_request( array( 'id' => 5 ) ) )->get_data();
 
@@ -332,15 +528,11 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_list_candidates_by_cpf_returns_single_shaped_match(): void {
-		$this->stub_shape_helpers();
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( fn( $v ) => preg_replace( '/\D/', '', (string) $v ) );
+		$this->store_candidate();
 
-		$row = $this->make_candidate_row();
-		$this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( $row );
-
+		// A formatted CPF is normalised to its digits before it is hashed.
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'cpf' => '518.178.420-80' ) )
+			$this->make_request( array( 'cpf' => DocumentFormatter::format_cpf( Identifiers::CPF_A ) ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -350,31 +542,23 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_list_candidates_by_cpf_returns_empty_array_when_no_match(): void {
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( fn( $v ) => preg_replace( '/\D/', '', (string) $v ) );
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'hash' )->andReturn( 'HASH' );
-
-		$this->repoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null );
-
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'cpf' => '51817842080' ) )
+			$this->make_request( array( 'cpf' => Identifiers::CPF_A ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( array(), $response->get_data() );
+		$this->assertSame(
+			array( 'SELECT * FROM ' . self::T_CANDIDATE . ' WHERE cpf_hash = ' . Encryption::hash( Identifiers::CPF_A ) . ' LIMIT 1' ),
+			$this->reads
+		);
 	}
 
 	public function test_list_candidates_by_rf_returns_single_shaped_match(): void {
-		$this->stub_shape_helpers();
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( fn( $v ) => preg_replace( '/\D/', '', (string) $v ) );
-
-		$row = $this->make_candidate_row();
-		$this->repoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( $row );
+		$this->store_candidate();
 
 		$response = $this->controller->list_candidates(
-			$this->make_request( array( 'rf' => '5181780' ) )
+			$this->make_request( array( 'rf' => Identifiers::RF_A ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
@@ -382,22 +566,32 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_list_candidates_falls_through_to_400_when_cpf_normalizes_empty(): void {
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturn( '' );
-
 		$result = $this->controller->list_candidates(
 			$this->make_request( array( 'cpf' => '---' ) )
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_candidate_list_requires_filter', $result->get_error_code() );
+		$this->assertSame( array(), $this->reads );
 	}
 
 	// ------------------------------------------------------------------
 	// update_candidate()
 	// ------------------------------------------------------------------
 
+	public function test_update_candidate_returns_404_for_an_unknown_candidate(): void {
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'name' => 'X' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_not_found', $result->get_error_code() );
+		$this->assertSame( array(), $this->writes );
+	}
+
 	public function test_update_candidate_returns_400_when_no_writable_fields(): void {
+		$this->store_candidate();
+
 		$result = $this->controller->update_candidate(
 			$this->make_request( array( 'id' => 5, 'irrelevant' => 'x' ) )
 		);
@@ -405,11 +599,12 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_candidate_update_no_writable_fields', $result->get_error_code() );
 		$this->assertSame( 400, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_update_candidate_returns_409_when_writer_fails(): void {
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
-		$writer->shouldReceive( 'update' )->with( 5, Mockery::type( 'array' ) )->andReturn( false );
+		$this->store_candidate();
+		$this->update_result = false;
 
 		$result = $this->controller->update_candidate(
 			$this->make_request( array( 'id' => 5, 'name' => 'New Name' ) )
@@ -418,84 +613,103 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_candidate_update_failed', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertCount( 1, $this->writes );
+		$this->assertSame( array( 'id' => 5 ), $this->writes[0][3] );
+		$this->assertSame( array(), $this->logged( 'recruitment_candidate_fields_edited' ), 'A failed write logs no change.' );
 	}
 
-	public function test_update_candidate_success_returns_reshaped_row(): void {
-		$this->stub_shape_helpers();
-		$captured = array();
-		$writer   = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
-		$writer->shouldReceive( 'update' )->andReturnUsing(
-			function ( $id, $update ) use ( &$captured ) {
-				$captured = $update;
-				return true;
-			}
-		);
-
-		$row = $this->make_candidate_row();
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $row );
+	public function test_update_candidate_writes_the_general_fields_and_logs_the_diff(): void {
+		$this->store_candidate();
 
 		$response = $this->controller->update_candidate(
-			$this->make_request( array( 'id' => 5, 'name' => 'New Name', 'phone' => '123', 'notes' => 'n' ) )
+			$this->make_request( array( 'id' => 5, 'name' => 'New Name', 'phone' => '11999998888', 'notes' => '' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( 5, $response->get_data()['id'] );
-		// Only the writable plain fields make it through (no cpf/rf/email here).
-		$this->assertSame( array( 'name' => 'New Name', 'phone' => '123', 'notes' => 'n' ), $captured );
-	}
-
-	public function test_update_candidate_encrypts_sensitive_fields(): void {
-		$this->stub_shape_helpers();
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( fn( $v ) => preg_replace( '/\D/', '', (string) $v ) );
-
-		Mockery::getConfiguration()->setConstantsMap(
+		$this->assertCount( 1, $this->writes );
+		$written = $this->writes[0][2];
+		unset( $written['updated_at'] );
+		$this->assertSame( array( 'name' => 'New Name', 'phone' => '11999998888', 'notes' => null ), $written );
+		$this->assertSame(
 			array(
-				'FreeFormCertificate\Core\SensitiveFieldRegistry' => array(
-					'CONTEXT_RECRUITMENT_CANDIDATE' => 'recruitment_candidate',
-				),
-			)
-		);
-		$reg     = Mockery::mock( 'alias:FreeFormCertificate\Core\SensitiveFieldRegistry' );
-		$captured = array();
-		$reg->shouldReceive( 'encrypt_fields' )->andReturnUsing(
-			function ( $ctx, $plaintexts ) use ( &$captured ) {
-				$captured = $plaintexts;
-				return array( 'cpf_encrypted' => 'E1', 'rf_encrypted' => 'E2', 'email_encrypted' => 'E3' );
-			}
-		);
-
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
-		$writer->shouldReceive( 'update' )->andReturn( true );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
-
-		$response = $this->controller->update_candidate(
-			$this->make_request(
 				array(
-					'id'    => 5,
-					'cpf'   => '518.178.420-80',
-					'rf'    => '51.817-80',
-					'email' => '  Jane@Example.COM ',
-				)
-			)
+					'candidate_id' => 5,
+					'changes'      => array(
+						'name'  => array(
+							'old' => 'Jane Doe',
+							'new' => 'New Name',
+						),
+						'notes' => array(
+							'old' => 'a note',
+							'new' => '',
+						),
+					),
+				),
+			),
+			$this->logged( 'recruitment_candidate_fields_edited' ),
+			'An unchanged phone is not reported.'
 		);
-
-		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( '51817842080', $captured['cpf'] );
-		$this->assertSame( '5181780', $captured['rf'] );
-		$this->assertSame( 'jane@example.com', $captured['email'] );
 	}
 
-	public function test_update_candidate_success_with_null_row_returns_null_data(): void {
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateWriter' );
-		$writer->shouldReceive( 'update' )->andReturn( true );
-		// Default get_by_id mock returns null.
+	/**
+	 * @dataProvider identifier_provider
+	 */
+	public function test_update_candidate_never_writes_an_identifier( string $key, string $value ): void {
+		$this->store_candidate();
+
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'name' => 'New Name', $key => $value ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_identifier_not_editable', $result->get_error_code() );
+		$this->assertSame( 400, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes, 'The name is not written either: the request is refused whole.' );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function identifier_provider(): array {
+		return array(
+			'cpf' => array( 'cpf', Identifiers::CPF_B ),
+			'rf'  => array( 'rf', Identifiers::RF_B ),
+		);
+	}
+
+	public function test_update_candidate_writes_the_email_for_the_reveal_tier_and_logs_hashes(): void {
+		$this->store_candidate( array( 'email_hash' => Encryption::hash( self::EMAIL ) ) );
+
 		$response = $this->controller->update_candidate(
-			$this->make_request( array( 'id' => 5, 'name' => 'X' ) )
+			$this->make_request( array( 'id' => 5, 'email' => '  New@Example.COM ' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertNull( $response->get_data() );
+		$written = $this->writes[0][2];
+		$this->assertSame( 'new@example.com', Encryption::decrypt( $written['email_encrypted'] ) );
+		$this->assertSame( Encryption::hash( 'new@example.com' ), $written['email_hash'] );
+		$this->assertSame(
+			array(
+				'old' => Encryption::hash( self::EMAIL ),
+				'new' => Encryption::hash( 'new@example.com' ),
+			),
+			$this->logged( 'recruitment_candidate_fields_edited' )[0]['changes']['email_hash']
+		);
+	}
+
+	public function test_update_candidate_refuses_the_email_to_the_masked_tier(): void {
+		$this->store_candidate();
+		Functions\when( 'user_can' )->justReturn( false );
+
+		$result = $this->controller->update_candidate(
+			$this->make_request( array( 'id' => 5, 'email' => 'other@example.com' ) )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'recruitment_candidate_email_not_editable', $result->get_error_code() );
+		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ------------------------------------------------------------------
@@ -503,14 +717,8 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_delete_candidate_returns_409_with_blocked_by_on_failure(): void {
-		$svc = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentDeleteService' );
-		$svc->shouldReceive( 'delete_candidate' )->with( 5 )->andReturn(
-			array(
-				'success'    => false,
-				'errors'     => array( 'recruitment_candidate_has_classifications' ),
-				'blocked_by' => array( 'classifications' => 3 ),
-			)
-		);
+		$this->store_candidate();
+		$this->classification_count = 3;
 
 		$result = $this->controller->delete_candidate( $this->make_request( array( 'id' => 5 ) ) );
 
@@ -518,18 +726,24 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertSame( 'recruitment_candidate_has_classifications', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
 		$this->assertSame( array( 'classifications' => 3 ), $result->get_error_data()['blocked_by'] );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_delete_candidate_returns_200_envelope_on_success(): void {
-		$envelope = array( 'success' => true, 'errors' => array() );
-		$svc      = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentDeleteService' );
-		$svc->shouldReceive( 'delete_candidate' )->with( 5 )->andReturn( $envelope );
+		$this->store_candidate();
 
 		$response = $this->controller->delete_candidate( $this->make_request( array( 'id' => 5 ) ) );
 
 		$this->assertNotInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( $envelope, $response->get_data() );
+		$this->assertSame(
+			array(
+				'success' => true,
+				'errors'  => array(),
+			),
+			$response->get_data()
+		);
+		$this->assertSame( array( array( 'delete', self::T_CANDIDATE, array(), array( 'id' => 5 ) ) ), $this->writes );
 	}
 
 	// ------------------------------------------------------------------
@@ -547,8 +761,6 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_reveal_pii_returns_404_when_candidate_missing(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// Default get_by_id returns null.
 		$result = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 999, 'field' => 'cpf' ) )
 		);
@@ -559,11 +771,9 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_reveal_pii_returns_403_when_tier_masked(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'masked' );
+		// Neither the owner nor a holder of the PII capability.
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->store_candidate();
 
 		$result = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'cpf' ) )
@@ -572,15 +782,11 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_pii_access_denied', $result->get_error_code() );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->logged( 'recruitment_pii_revealed' ) );
 	}
 
 	public function test_reveal_pii_returns_404_when_encrypted_column_empty(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )
-			->andReturn( $this->make_candidate_row( array( 'cpf_encrypted' => '' ) ) );
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'unmasked' );
+		$this->store_candidate( array( 'cpf_encrypted' => '' ) );
 
 		$result = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'cpf' ) )
@@ -592,14 +798,7 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 	}
 
 	public function test_reveal_pii_returns_500_when_decrypt_fails(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( null );
+		$this->store_candidate( array( 'cpf_encrypted' => 'not-a-ciphertext' ) );
 
 		$result = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'cpf' ) )
@@ -608,24 +807,11 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'recruitment_pii_decrypt_failed', $result->get_error_code() );
 		$this->assertSame( 500, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->logged( 'recruitment_pii_revealed' ) );
 	}
 
 	public function test_reveal_pii_cpf_success_formats_and_audits(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-		$policy->shouldReceive( 'should_audit' )->andReturn( true );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( '51817842080' );
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_cpf' )->with( '51817842080' )->andReturn( '518.178.420-80' );
-
-		$logger = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivityLogger' );
-		$logger->shouldReceive( 'pii_revealed' )->once()->with( 5, 'cpf' );
+		$this->store_candidate();
 
 		$response = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'cpf' ) )
@@ -633,49 +819,60 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		$this->assertNotInstanceOf( \WP_Error::class, $response );
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array( 'field' => 'cpf', 'value' => '518.178.420-80' ), $response->get_data() );
+		$this->assertSame(
+			array(
+				'field' => 'cpf',
+				'value' => DocumentFormatter::format_cpf( Identifiers::CPF_A ),
+			),
+			$response->get_data()
+		);
+		$this->assertSame(
+			array(
+				array(
+					'candidate_id' => 5,
+					'field_key'    => 'cpf',
+				),
+			),
+			$this->logged( 'recruitment_pii_revealed' )
+		);
 	}
 
 	public function test_reveal_pii_rf_success_without_audit(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
+		// The candidate reading their own record: revealed, and not audited.
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
 
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-		$policy->shouldReceive( 'should_audit' )->andReturn( false );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( '5181780' );
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$df->shouldReceive( 'format_rf' )->with( '5181780' )->andReturn( '51.817-80' );
-
-		// No logger expectation — should_audit is false.
 		$response = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'rf' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array( 'field' => 'rf', 'value' => '51.817-80' ), $response->get_data() );
+		$this->assertSame(
+			array(
+				'field' => 'rf',
+				'value' => DocumentFormatter::format_rf( Identifiers::RF_A ),
+			),
+			$response->get_data()
+		);
+		$this->assertSame( array(), $this->logged( 'recruitment_pii_revealed' ) );
 	}
 
 	public function test_reveal_pii_email_returns_plain_value(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		$this->repoMock->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->make_candidate_row() );
-
-		$policy = $this->mock_pii_policy();
-		$policy->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-		$policy->shouldReceive( 'should_audit' )->andReturn( false );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( 'jane@example.com' );
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
 
 		$response = $this->controller->reveal_pii(
 			$this->make_request( array( 'id' => 5, 'field' => 'email' ) )
 		);
 
 		$this->assertSame( 200, $response->get_status() );
-		$this->assertSame( array( 'field' => 'email', 'value' => 'jane@example.com' ), $response->get_data() );
+		$this->assertSame(
+			array(
+				'field' => 'email',
+				'value' => self::EMAIL,
+			),
+			$response->get_data()
+		);
 	}
 
 	// ------------------------------------------------------------------
@@ -689,90 +886,81 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( array(), $response->get_data() );
+		$this->assertSame( array(), $this->reads );
 	}
 
 	public function test_get_my_recruitment_returns_empty_when_no_candidates(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 12 );
-		$this->repoMock->shouldReceive( 'get_by_user_id' )->with( 12 )->andReturn( array() );
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
 
 		$response = $this->controller->get_my_recruitment();
 
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( array(), $response->get_data() );
+		$this->assertSame( array( 'SELECT * FROM ' . self::T_CANDIDATE . ' WHERE user_id = ' . self::OWNER ), $this->reads );
 	}
 
 	public function test_get_my_recruitment_groups_classifications_by_notice(): void {
-		Functions\when( 'get_current_user_id' )->justReturn( 12 );
-		$this->repoMock->shouldReceive( 'get_by_user_id' )->with( 12 )
-			->andReturn( array( (object) array( 'id' => 5 ) ) );
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
 
-		$clsRepo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$clsRepo->shouldReceive( 'get_for_candidate' )->with( 5 )->andReturn(
-			array(
-				(object) array(
-					'id'        => 100,
-					'notice_id' => 7,
-					'list_type' => 'definitive',
-					'rank'      => 1,
-					'score'     => '9.5',
-					'status'    => 'classified',
-				),
-				// A draft-notice classification that must be filtered out.
-				(object) array(
-					'id'        => 101,
-					'notice_id' => 8,
-					'list_type' => 'preview',
-					'rank'      => 2,
-					'score'     => '8.0',
-					'status'    => 'classified',
-				),
-				// A classification whose notice is missing entirely.
-				(object) array(
-					'id'        => 102,
-					'notice_id' => 9,
-					'list_type' => 'preview',
-					'rank'      => 3,
-					'score'     => '7.0',
-					'status'    => 'classified',
-				),
-			)
+		$classifications = array(
+			array( 100, 7, 'definitive', 1, '9.5' ),
+			// A draft-notice classification that must be filtered out.
+			array( 101, 8, 'preview', 2, '8.0' ),
+			// A classification whose notice is missing entirely.
+			array( 102, 9, 'preview', 3, '7.0' ),
+		);
+		foreach ( $classifications as [ $id, $notice_id, $list_type, $rank, $score ] ) {
+			$this->rows[ self::T_CLASSIFICATION ][ $id ] = (object) array(
+				'id'           => $id,
+				'candidate_id' => 5,
+				'notice_id'    => $notice_id,
+				'adjutancy_id' => 3,
+				'list_type'    => $list_type,
+				'rank'         => $rank,
+				'score'        => $score,
+				'status'       => 'classified',
+			);
+		}
+		$this->rows[ self::T_NOTICE ][7] = (object) array(
+			'id'           => 7,
+			'code'         => 'N-7',
+			'name'         => 'Notice 7',
+			'status'       => 'open',
+			'was_reopened' => '1',
+			// Score shown publicly, so the candidate sees it too.
+			'public_columns_config' => '{"score":true}',
+		);
+		$this->rows[ self::T_NOTICE ][8] = (object) array(
+			'id'           => 8,
+			'code'         => 'N-8',
+			'name'         => 'Draft',
+			'status'       => 'draft',
+			'was_reopened' => '0',
+			'public_columns_config' => '{}',
+		);
+		$this->history = array(
+			$this->call_row( 900, 100 ),
+			$this->call_row( 901, 102 ),
 		);
 
-		$noticeReader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
-		$noticeReader->shouldReceive( 'get_by_id' )->with( 7 )->andReturn(
-			(object) array(
-				'id'           => 7,
-				'code'         => 'N-7',
-				'name'         => 'Notice 7',
-				'status'       => 'open',
-				'was_reopened' => '1',
-			)
-		);
-		$noticeReader->shouldReceive( 'get_by_id' )->with( 8 )->andReturn(
-			(object) array( 'id' => 8, 'code' => 'N-8', 'name' => 'Draft', 'status' => 'draft', 'was_reopened' => '0' )
-		);
-		$noticeReader->shouldReceive( 'get_by_id' )->with( 9 )->andReturn( null );
+		$response = $this->controller->get_my_recruitment();
 
 		// The history comes in ONE batched query, not one per ranking
-		// (#1234). The `once()` expectation with the COMPLETE list of ids is what
-		// pins this: a return to the singular would break here.
+		// (#1234), and that query names the COMPLETE list of ids: a return to
+		// the singular would read the call table once per ranking.
 		//
 		// The ids 101 and 102 enter the batch even though their notices are
 		// discarded afterwards (draft and absent). It is the deliberate
 		// consequence of collecting the ids before the filter: one query with a
 		// few extra rows instead of three queries.
-		$callReader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$callReader->shouldReceive( 'get_history_for_classifications' )
-			->once()
-			->with( array( 100, 101, 102 ) )
-			->andReturn(
-				array(
-					(object) array( 'id' => 900, 'classification_id' => 100 ),
-					(object) array( 'id' => 901, 'classification_id' => 102 ),
-				)
-			);
-
-		$response = $this->controller->get_my_recruitment();
+		$history_reads = array_values(
+			array_filter( $this->reads, static fn( $sql ) => 0 === strpos( $sql, 'SELECT * FROM ' . self::T_CALL ) )
+		);
+		$this->assertSame(
+			array( 'SELECT * FROM ' . self::T_CALL . ' WHERE classification_id IN (100,101,102) ORDER BY called_at DESC' ),
+			$history_reads
+		);
 
 		$this->assertSame( 200, $response->get_status() );
 		$data = $response->get_data();
@@ -784,7 +972,72 @@ class RecruitmentCandidatesRestControllerTest extends TestCase {
 		// Ranking 102's row exists in the batch's return but does not reach here:
 		// its call was discarded. Ranking 100's does, grouped.
 		$this->assertCount( 1, $data[0]['classifications'][0]['calls'] );
-		$this->assertSame( 900, $data[0]['classifications'][0]['calls'][0]->id );
+		$this->assertSame(
+			array(
+				'id'                  => 900,
+				'called_at'           => 1700000000,
+				'date_to_assume'      => '2026-11-10',
+				'time_to_assume'      => '09:00:00',
+				'notes'               => 'Bring your documents.',
+				'cancelled_at'        => null,
+				'cancellation_reason' => null,
+			),
+			$data[0]['classifications'][0]['calls'][0],
+			'The candidate gets what "My calls" shows, never the staff fields of the call.'
+		);
+		$this->assertSame( '9.5', $data[0]['classifications'][0]['score'] );
+	}
+
+	public function test_get_my_recruitment_hides_the_score_the_notice_hides(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( self::OWNER );
+		$this->store_candidate();
+		$this->rows[ self::T_CLASSIFICATION ][100] = (object) array(
+			'id'           => 100,
+			'candidate_id' => 5,
+			'notice_id'    => 7,
+			'adjutancy_id' => 3,
+			'list_type'    => 'definitive',
+			'rank'         => 1,
+			'score'        => '9.5',
+			'status'       => 'empty',
+		);
+		$this->rows[ self::T_NOTICE ][7] = (object) array(
+			'id'                    => 7,
+			'code'                  => 'N-7',
+			'name'                  => 'Notice 7',
+			'status'                => 'definitive',
+			'was_reopened'          => '0',
+			'public_columns_config' => '{"score":false}',
+		);
+
+		$data = $this->controller->get_my_recruitment()->get_data();
+
+		$this->assertArrayNotHasKey( 'score', $data[0]['classifications'][0] );
+	}
+
+	/**
+	 * A call row with the staff-only columns filled in.
+	 *
+	 * @param int $id                Call ID.
+	 * @param int $classification_id Classification ID.
+	 */
+	private function call_row( int $id, int $classification_id ): object {
+		return (object) array(
+			'id'                  => (string) $id,
+			'classification_id'   => (string) $classification_id,
+			'called_at'           => '1700000000',
+			'date_to_assume'      => '2026-11-10',
+			'time_to_assume'      => '09:00:00',
+			'out_of_order'        => '1',
+			'out_of_order_reason' => 'Staff-only reason',
+			'cancellation_reason' => null,
+			'cancelled_at'        => null,
+			'cancelled_by'        => null,
+			'notes'               => 'Bring your documents.',
+			'created_by'          => '3',
+			'created_at'          => '2026-11-01 10:00:00',
+			'updated_at'          => '2026-11-01 10:00:00',
+		);
 	}
 
 	// ------------------------------------------------------------------

@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\AccessRestrictionChecker;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for FormProcessor: quiz scoring and restriction checks.
@@ -35,6 +36,15 @@ class FormProcessorTest extends TestCase {
 		$mock_handler = Mockery::mock( SubmissionHandler::class );
 		// #563 Sprint 1 PR 1b — calculate_quiz_score moved to SubmissionPersister.
 		$this->processor = new SubmissionPersister( $mock_handler );
+	}
+
+	/**
+	 * A CPF in the form mask an operator pastes into a list (xxx.xxx.xxx-xx).
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
 	}
 
 	protected function tearDown(): void {
@@ -180,7 +190,7 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_none_active_allows(): void {
 		$config = array( 'restrictions' => array() );
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 		$this->assertSame( '', $result['message'] );
@@ -230,10 +240,10 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_denylist_blocks_cpf(): void {
 		$config = array(
 			'restrictions' => array( 'denylist' => '1' ),
-			'denied_users_list' => "123.456.789-00\n987.654.321-00",
+			'denied_users_list' => self::masked( Identifiers::CPF_A ) . "\n" . self::masked( Identifiers::CPF_B ),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'blocked', $result['message'] );
@@ -242,10 +252,10 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_denylist_allows_clean_cpf(): void {
 		$config = array(
 			'restrictions' => array( 'denylist' => '1' ),
-			'denied_users_list' => "111.222.333-44\n555.666.777-88",
+			'denied_users_list' => self::masked( Identifiers::CPF_B ) . "\n" . self::masked( Identifiers::CPF_C ),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 	}
@@ -253,10 +263,10 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_allowlist_allows_listed_cpf(): void {
 		$config = array(
 			'restrictions' => array( 'allowlist' => '1' ),
-			'allowed_users_list' => "123.456.789-00\n987.654.321-00",
+			'allowed_users_list' => self::masked( Identifiers::CPF_A ) . "\n" . self::masked( Identifiers::CPF_B ),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertTrue( $result['allowed'] );
 	}
@@ -264,10 +274,10 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_allowlist_blocks_unlisted_cpf(): void {
 		$config = array(
 			'restrictions' => array( 'allowlist' => '1' ),
-			'allowed_users_list' => "111.222.333-44\n555.666.777-88",
+			'allowed_users_list' => self::masked( Identifiers::CPF_B ) . "\n" . self::masked( Identifiers::CPF_C ),
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertStringContainsString( 'not authorized', $result['message'] );
@@ -308,7 +318,11 @@ class FormProcessorTest extends TestCase {
 
 		// A ticket outside the list is looked up as a possible reprint first
 		// (#1574); no submission carries it here, so it is rejected.
+		// Its own double, so the test does not depend on one an earlier test left.
 		global $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
 
@@ -333,11 +347,11 @@ class FormProcessorTest extends TestCase {
 	public function test_restrictions_denylist_takes_priority_over_allowlist(): void {
 		$config = array(
 			'restrictions' => array( 'denylist' => '1', 'allowlist' => '1' ),
-			'denied_users_list' => "12345678900",
-			'allowed_users_list' => "12345678900",
+			'denied_users_list' => Identifiers::CPF_A,
+			'allowed_users_list' => Identifiers::CPF_A,
 		);
 
-		$result = AccessRestrictionChecker::check( $config, '12345678900', '', 1 );
+		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		// Even though CPF is in allowlist, denylist takes priority
 		$this->assertFalse( $result['allowed'] );

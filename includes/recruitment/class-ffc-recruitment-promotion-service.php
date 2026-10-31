@@ -51,6 +51,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RecruitmentPromotionService {
 
 	/**
+	 * Whether a status change is a promotion that skips the list (#2245).
+	 *
+	 * `preliminary → definitive` is reached only through the two promotion
+	 * paths, which write the definitive list in the same transaction: a
+	 * bare status flip would keep a definitive list left by an earlier
+	 * cycle, or leave a notice definitive with no list at all.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $target    Requested status.
+	 * @return bool
+	 */
+	public static function is_bare_promotion( int $notice_id, string $target ): bool {
+		if ( 'definitive' !== $target ) {
+			return false;
+		}
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
+		return null !== $notice && 'preliminary' === (string) $notice->status;
+	}
+
+	/**
 	 * Snapshot the current `preview` rows into `definitive`, then flip the
 	 * notice status to `definitive`.
 	 *
@@ -59,7 +79,8 @@ final class RecruitmentPromotionService {
 	 *   1. Verify the notice exists and is in `preliminary`.
 	 *   2. Wipe any pre-existing `list_type='definitive'` rows for this notice.
 	 *   3. Copy each `list_type='preview'` row into `list_type='definitive'`,
-	 *      preserving (candidate_id, adjutancy_id, rank, score) and resetting
+	 *      preserving (candidate_id, adjutancy_id, rank, score, time_points,
+	 *      hab_emebs) and resetting
 	 *      `status='empty'` (the §5.2 invariant: convocation acts only on
 	 *      definitive rows that start empty).
 	 *   4. Transition the notice via the state machine.
@@ -77,7 +98,7 @@ final class RecruitmentPromotionService {
 			return self::failure( 'recruitment_notice_not_found' );
 		}
 
-		if ( 'preliminary' !== $notice->status ) {
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PROMOTE, (string) $notice->status ) ) {
 			return self::failure( 'recruitment_promotion_requires_preliminary_state' );
 		}
 
@@ -102,6 +123,13 @@ final class RecruitmentPromotionService {
 						'list_type'    => 'definitive',
 						'rank'         => (int) $row->rank,
 						'score'        => $row->score,
+						// Both are public columns (#2245): the copy used to
+						// leave them 0 / false on the definitive list.
+						'time_points'  => (string) ( $row->time_points ?? '0' ),
+						'hab_emebs'    => (int) ( $row->hab_emebs ?? 0 ),
+						// The hash names notice, candidate and adjutancy, never
+						// the row, so it copies as it is (#2245).
+						'pcd_hash'     => isset( $row->pcd_hash ) ? (string) $row->pcd_hash : null,
 					)
 				);
 				if ( false === $new_id ) {

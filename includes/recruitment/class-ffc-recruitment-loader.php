@@ -44,6 +44,7 @@ final class RecruitmentLoader {
 		add_action( 'init', array( $this, 'register_shortcode' ), 10 );
 		add_action( 'init', array( $this, 'register_dashboard_section' ), 10 );
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 10 );
+		RecruitmentAccountLinker::register();
 		RecruitmentAdminAssetsManager::register();
 		RecruitmentNoticeEditPage::register();
 		RecruitmentCandidateEditPage::register();
@@ -53,6 +54,12 @@ final class RecruitmentLoader {
 		// Record autosave for the notice and reason edit screens (#1757).
 		if ( is_admin() ) {
 			RecruitmentRecordAutosave::register();
+			// The definitive list and calls CSV (#2245). `is_admin()` holds on
+			// admin-ajax, where the batched export runs.
+			\FreeFormCertificate\Core\SourceRegistry::register(
+				RecruitmentExportSource::TYPE,
+				static fn(): RecruitmentExportSource => new RecruitmentExportSource()
+			);
 		}
 
 		// NOTE: schema creation/migration (`RecruitmentActivator::create_tables`

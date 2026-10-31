@@ -58,7 +58,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     errors:   list<string>,
  *   }
  *
- * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>}
+ * `unreached` lists the classifications a call e-mail could not reach —
+ * no e-mail on file — so the screen can tell the operator to contact them
+ * by other means (#2245). Absent when nothing was sent.
+ *
+ * `past` is true when the date and time to assume are already over: the
+ * call is recorded and no e-mail is sent, whatever the send mode (#2245).
+ *
+ * @phpstan-type CallResult array{success: bool, call_ids: list<int>, errors: list<string>, unreached?: list<int>, past?: bool}
  */
 final class RecruitmentCallService {
 
@@ -83,13 +90,18 @@ final class RecruitmentCallService {
 		?string $notes = null,
 		?bool $notify_email = null
 	): array {
+		$schedule = self::normalize_schedule( $date_to_assume, $time_to_assume );
+		if ( is_string( $schedule ) ) {
+			return self::failure( $schedule );
+		}
+
 		global $wpdb;
 		$wpdb->query( 'START TRANSACTION' );
 
 		$result = self::call_one(
 			$classification_id,
-			$date_to_assume,
-			$time_to_assume,
+			$schedule['date'],
+			$schedule['time'],
 			$created_by,
 			$out_of_order_reason,
 			$notes
@@ -114,14 +126,20 @@ final class RecruitmentCallService {
 
 		// Best-effort email dispatch — failures here do NOT roll back the
 		// committed call (§7). Gated by the configured send mode (#794).
-		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
-			RecruitmentEmailDispatcher::send_for_call( $result['call_id'] );
+		// A call whose date is already over is a record, not a summons: it
+		// never e-mails the candidate (#2245).
+		$past      = self::is_past( $schedule['date'], $schedule['time'] );
+		$unreached = array();
+		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) && ! RecruitmentEmailDispatcher::send_for_call( $result['call_id'] ) ) {
+			$unreached[] = $classification_id;
 		}
 
 		return array(
-			'success'  => true,
-			'call_ids' => array( $result['call_id'] ),
-			'errors'   => array(),
+			'success'   => true,
+			'call_ids'  => array( $result['call_id'] ),
+			'errors'    => array(),
+			'unreached' => $unreached,
+			'past'      => $past,
 		);
 	}
 
@@ -158,6 +176,13 @@ final class RecruitmentCallService {
 		if ( empty( $classification_ids ) ) {
 			return self::failure( 'recruitment_bulk_call_empty_id_list' );
 		}
+
+		$schedule = self::normalize_schedule( $date_to_assume, $time_to_assume );
+		if ( is_string( $schedule ) ) {
+			return self::failure( $schedule );
+		}
+		$date_to_assume = $schedule['date'];
+		$time_to_assume = $schedule['time'];
 
 		global $wpdb;
 		$wpdb->query( 'START TRANSACTION' );
@@ -203,16 +228,22 @@ final class RecruitmentCallService {
 		// Best-effort email dispatch per row — failures here do NOT roll
 		// back the committed batch (§7). Gated by the configured send mode (#794);
 		// resolved once for the whole batch.
-		if ( RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
-			foreach ( $call_ids as $cid ) {
-				RecruitmentEmailDispatcher::send_for_call( $cid );
+		$past      = self::is_past( $date_to_assume, $time_to_assume );
+		$unreached = array();
+		if ( ! $past && RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+			foreach ( $call_ids as $i => $cid ) {
+				if ( ! RecruitmentEmailDispatcher::send_for_call( $cid ) ) {
+					$unreached[] = (int) $classification_ids[ $i ];
+				}
 			}
 		}
 
 		return array(
-			'success'  => true,
-			'call_ids' => $call_ids,
-			'errors'   => array(),
+			'success'   => true,
+			'call_ids'  => $call_ids,
+			'errors'    => array(),
+			'unreached' => $unreached,
+			'past'      => $past,
 		);
 	}
 
@@ -221,12 +252,19 @@ final class RecruitmentCallService {
 	 * AND the call row gets `cancelled_at` stamped, both inside one
 	 * transaction.
 	 *
-	 * @param int    $call_id      Active call row ID.
-	 * @param string $reason       Cancellation reason (REQUIRED, non-empty).
-	 * @param int    $cancelled_by WP user ID performing the cancel.
+	 * Also the reopen of a `not_shown` row (#2245): the call that led to it
+	 * ends with it, so a reopened vacancy carries no active call into the next
+	 * one. The candidate is e-mailed when a call they could still act on is
+	 * cancelled (`called` / `accepted`), under the same send mode as the call.
+	 *
+	 * @param int       $call_id           Active call row ID.
+	 * @param string    $reason            Cancellation reason (REQUIRED, non-empty).
+	 * @param int       $cancelled_by      WP user ID performing the cancel.
+	 * @param int|null  $classification_id The classification the request named; the call must belong to it.
+	 * @param bool|null $notify_email      Per-call "notify by email" choice, consulted only in `ask` mode.
 	 * @return CallResult
 	 */
-	public static function cancel_call( int $call_id, string $reason, int $cancelled_by ): array {
+	public static function cancel_call( int $call_id, string $reason, int $cancelled_by, ?int $classification_id = null, ?bool $notify_email = null ): array {
 		if ( '' === trim( $reason ) ) {
 			return self::failure( 'recruitment_cancel_reason_required' );
 		}
@@ -234,6 +272,10 @@ final class RecruitmentCallService {
 		$call = RecruitmentCallReader::get_by_id( $call_id );
 		if ( null === $call ) {
 			return self::failure( 'recruitment_call_not_found' );
+		}
+
+		if ( null !== $classification_id && (int) $call->classification_id !== $classification_id ) {
+			return self::failure( 'recruitment_call_not_in_classification' );
 		}
 
 		if ( null !== $call->cancelled_at ) {
@@ -247,9 +289,9 @@ final class RecruitmentCallService {
 		}
 
 		$current_status = $classification->status;
-		if ( ! in_array( $current_status, array( 'called', 'accepted' ), true ) ) {
-			// `not_shown`/`hired`/`empty` mean the call has already moved on
-			// — admin should use a status transition instead.
+		if ( ! in_array( $current_status, array( 'called', 'accepted', 'not_shown' ), true ) ) {
+			// `hired`/`withdrew`/`empty` mean the call has already moved on —
+			// the admin override is the way back from a realized decision.
 			return self::failure( 'recruitment_cancel_only_from_called_or_accepted' );
 		}
 
@@ -280,16 +322,24 @@ final class RecruitmentCallService {
 			$wpdb->query( 'COMMIT' );
 
 			RecruitmentActivityLogger::call_cancelled( $call_id, $classification_id, $reason );
-
-			return array(
-				'success'  => true,
-				'call_ids' => array( $call_id ),
-				'errors'   => array(),
-			);
 		} catch ( \Throwable $e ) {
 			$wpdb->query( 'ROLLBACK' );
 			return self::failure( 'recruitment_cancel_unexpected_error: ' . $e->getMessage() );
 		}
+
+		// Best-effort, after the commit and outside the transaction's guard,
+		// like the call e-mail: a mail failure never undoes the cancel. A
+		// reopen of a `not_shown` row is not news to a candidate who did not
+		// come, so it sends nothing.
+		if ( 'not_shown' !== $current_status && RecruitmentEmailDispatcher::should_send( $notify_email ) ) {
+			RecruitmentEmailDispatcher::send_for_cancellation( $call_id );
+		}
+
+		return array(
+			'success'  => true,
+			'call_ids' => array( $call_id ),
+			'errors'   => array(),
+		);
 	}
 
 	/**
@@ -325,6 +375,11 @@ final class RecruitmentCallService {
 		$classification = RecruitmentClassificationRepository::get_by_id( $classification_id );
 		if ( null === $classification ) {
 			return self::inner_failure( 'recruitment_classification_not_found' );
+		}
+
+		$blocked = RecruitmentClassificationStateMachine::live_block( $classification );
+		if ( null !== $blocked ) {
+			return self::inner_failure( $blocked );
 		}
 
 		if ( 'empty' !== $classification->status ) {
@@ -380,6 +435,58 @@ final class RecruitmentCallService {
 			'call_id' => (int) $call_id,
 			'errors'  => array(),
 		);
+	}
+
+	/**
+	 * Validate the date and time to assume and bring them to their stored
+	 * shape (#2245).
+	 *
+	 * Each is parsed against its exact format and must print back as what
+	 * was given, so an impossible date (`2026-02-30`) or time (`25:00`)
+	 * is refused rather than rolled over. The time takes `HH:MM` or
+	 * `HH:MM:SS` and is stored with seconds.
+	 *
+	 * @param string $date `YYYY-MM-DD`.
+	 * @param string $time `HH:MM` or `HH:MM:SS`.
+	 * @return array{date: string, time: string}|string The normalized pair, or an error code.
+	 */
+	public static function normalize_schedule( string $date, string $time ) {
+		$date = trim( $date );
+		$time = trim( $time );
+
+		$day = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+		if ( false === $day || $day->format( 'Y-m-d' ) !== $date ) {
+			return 'recruitment_call_invalid_date';
+		}
+
+		$format = 5 === strlen( $time ) ? 'H:i' : 'H:i:s';
+		$clock  = \DateTimeImmutable::createFromFormat( '!' . $format, $time );
+		if ( false === $clock || $clock->format( $format ) !== $time ) {
+			return 'recruitment_call_invalid_time';
+		}
+
+		return array(
+			'date' => $date,
+			'time' => $clock->format( 'H:i:s' ),
+		);
+	}
+
+	/**
+	 * Whether a date and time to assume are already over, in the site's
+	 * time zone (a wall-clock value, CLAUDE.md "Date / time storage
+	 * convention").
+	 *
+	 * @param string $date `YYYY-MM-DD`.
+	 * @param string $time `HH:MM:SS`.
+	 * @return bool
+	 */
+	public static function is_past( string $date, string $time ): bool {
+		$zone = wp_timezone();
+		$when = \DateTimeImmutable::createFromFormat( 'Y-m-d H:i:s', $date . ' ' . $time, $zone );
+		if ( false === $when ) {
+			return false;
+		}
+		return $when < new \DateTimeImmutable( 'now', $zone );
 	}
 
 	/**

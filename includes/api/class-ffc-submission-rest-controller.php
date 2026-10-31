@@ -343,7 +343,7 @@ class SubmissionRestController {
 				if ( empty( $rate_check['allowed'] ) ) {
 					return new \WP_Error(
 						'ffc_rate_limited',
-						$rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						$rate_check['message'],
 						array( 'status' => 429 )
 					);
 				}
@@ -371,11 +371,17 @@ class SubmissionRestController {
 				);
 			}
 
-			if ( isset( $submission['status'] ) && 'trash' === $submission['status'] ) {
+			// The trash is the revocation (#2241). The code stays
+			// `certificate_deleted` for the integrations that read it.
+			if ( isset( $submission['status'] ) && \FreeFormCertificate\Core\SubmissionStatus::TRASH === $submission['status'] ) {
+				$revoked_at = is_numeric( $submission['revoked_at'] ?? null ) ? (int) $submission['revoked_at'] : 0;
 				return new \WP_Error(
 					'certificate_deleted',
-					'This certificate has been deleted.',
-					array( 'status' => 410 )
+					\FreeFormCertificate\Frontend\VerificationHandler::revoked_message( $revoked_at ),
+					array(
+						'status'     => 410,
+						'revoked_at' => $revoked_at > 0 ? $revoked_at : null,
+					)
 				);
 			}
 

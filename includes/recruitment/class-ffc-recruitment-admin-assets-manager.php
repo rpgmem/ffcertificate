@@ -110,6 +110,33 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
+		// Lines that match a stored candidate whose data differs are confirmed
+		// in the shared dialog before any import writes (#2245); the three
+		// import screens read these strings through the batched importer.
+		wp_localize_script(
+			'ffc-recruitment-import-batched',
+			'ffcRecruitmentImportIdentity',
+			array(
+				'title'     => __( 'Some lines differ from stored candidates', 'ffcertificate' ),
+				'body'      => __( 'These lines match a candidate already stored, but their data differs. The import attaches them to that candidate and keeps the stored name, CPF, RF and e-mail. Correct the candidate by hand if the file is right.', 'ffcertificate' ),
+				'cta'       => __( 'Import and keep stored data', 'ffcertificate' ),
+				/* translators: {n}: number of lines not listed */
+				'more'      => __( '+{n} more, listed below the form', 'ffcertificate' ),
+				'cancelled' => __( 'Import cancelled. Nothing was imported.', 'ffcertificate' ),
+			)
+		);
+		// A file that replaces a list with rows shows what it changes before
+		// anything is written (#2245).
+		wp_localize_script(
+			'ffc-recruitment-import-batched',
+			'ffcRecruitmentImportDiff',
+			array(
+				'title'     => __( 'Replace the list?', 'ffcertificate' ),
+				'body'      => __( 'This file replaces a list that already has rows. Every row that enters, leaves or changes is listed below the form. Manual preliminary statuses are kept for the rows that stay.', 'ffcertificate' ),
+				'cta'       => __( 'Replace list', 'ffcertificate' ),
+				'cancelled' => __( 'Import cancelled. Nothing was imported.', 'ffcertificate' ),
+			)
+		);
 
 		// Candidate-edit page interactions (PII reveal + adjutancy swap),
 		// extracted from inline <script> blocks (frontend-audit Item 3). The
@@ -152,7 +179,7 @@ final class RecruitmentAdminAssetsManager {
 		wp_enqueue_script(
 			'ffc-recruitment-candidates-import',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-candidates-import{$s}.js",
-			array( 'ffc-core' ),
+			array( 'ffc-core', self::HANDLE_JS, 'ffc-recruitment-import-batched' ),
 			FFC_VERSION,
 			true
 		);
@@ -182,6 +209,10 @@ final class RecruitmentAdminAssetsManager {
 		// the renderer carries no inline interpolation. Depends on the admin
 		// bundle (shared confirm modal) + the batched importer.
 		$rec_settings = RecruitmentSettings::all();
+		// The shared batched-export driver and its progress overlay, for the
+		// definitive list and calls CSV (#2245).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-batched-export' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
 		wp_enqueue_script(
 			'ffc-recruitment-notice-edit',
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-notice-edit{$s}.js",
@@ -194,10 +225,17 @@ final class RecruitmentAdminAssetsManager {
 			'ffcRecruitmentNoticeEdit',
 			array(
 				'restRoot'       => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
+				// The definitive list and calls CSV (#2245) run through the
+				// batched export dispatcher.
+				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+				'exportNonce'    => wp_create_nonce( RecruitmentExportSource::NONCE ),
 				'nonce'          => wp_create_nonce( 'wp_rest' ),
 				// Convocation send mode (#794). Only 'ask' surfaces the per-call
 				// "notify by email" prompt in the call flows.
 				'emailMode'      => (string) $rec_settings['email_mode'],
+				// The site clock, so the call dialog can tell a past date
+				// to assume (#2245). The server decides again on save.
+				'siteNow'        => wp_date( 'Y-m-d\TH:i' ),
 				'reasonRequired' => array(
 					'denied'         => ! empty( $rec_settings['preview_reason_required_denied'] ),
 					'granted'        => ! empty( $rec_settings['preview_reason_required_granted'] ),
@@ -215,29 +253,45 @@ final class RecruitmentAdminAssetsManager {
 					'validationFailed' => __( 'Validation failed — review the per-line errors below and re-import.', 'ffcertificate' ),
 				),
 				'strings'        => array(
-					'networkError'          => __( 'Network error:', 'ffcertificate' ),
-					'processingCsv'         => __( 'Processing CSV…', 'ffcertificate' ),
-					'bulkNoSel'             => __( 'Select at least one row first.', 'ffcertificate' ),
-					'bulkNoDate'            => __( 'Date and time are required for bulk call.', 'ffcertificate' ),
-					'confirmOooSingle'      => __( 'This call would skip a higher-ranked candidate (out of order). Continue?', 'ffcertificate' ),
-					'promptOooReason'       => __( 'Justification for calling out of order (required):', 'ffcertificate' ),
-					'reasonRequired'        => __( 'A justification is required to proceed.', 'ffcertificate' ),
-					'bulkModalTitle'        => __( 'Issue calls for the selected candidates?', 'ffcertificate' ),
+					'exportPreparing'        => __( 'Preparing…', 'ffcertificate' ),
+					/* translators: %1$d processed, %2$d total */
+					'exportProgress'         => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+					'exportDone'             => __( 'Done!', 'ffcertificate' ),
+					'exportError'            => __( 'An error occurred.', 'ffcertificate' ),
+					'networkError'           => __( 'Network error:', 'ffcertificate' ),
+					'processingCsv'          => __( 'Processing CSV…', 'ffcertificate' ),
+					'bulkNoSel'              => __( 'Select at least one row first.', 'ffcertificate' ),
+					'bulkNoDate'             => __( 'Date and time are required for bulk call.', 'ffcertificate' ),
+					'confirmOooSingle'       => __( 'This call skips a higher-ranked candidate (out of order), so it needs a justification.', 'ffcertificate' ),
+					'promptOooReason'        => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
+					'bulkModalTitle'         => __( 'Issue calls for the selected candidates?', 'ffcertificate' ),
 					/* translators: 1: number of selected rows, 2: date, 3: time */
-					'bulkModalBodyTpl'      => __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ),
-					'bulkModalCta'          => __( 'Issue calls', 'ffcertificate' ),
-					'bulkConsequenceAtomic' => __( 'Atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ),
-					'bulkConsequenceLog'    => __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ),
-					'bulkConsequenceOoo'    => __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ),
-					'bulkReasonLabel'       => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
-					'dateToAssume'          => __( 'Date to assume (YYYY-MM-DD):', 'ffcertificate' ),
-					'timeToAssume'          => __( 'Time to assume (HH:MM):', 'ffcertificate' ),
-					'cancellationReason'    => __( 'Cancellation reason (required):', 'ffcertificate' ),
-					'reopenReason'          => __( 'Reopen reason (required):', 'ffcertificate' ),
-					'confirmOverride'       => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified. Continue?', 'ffcertificate' ),
-					'overrideReason'        => __( 'Reason for undoing this decision (required, audited):', 'ffcertificate' ),
-					'notifyByEmailAsk'      => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
-					'callModalBodyTpl'      => __( 'Convocation to assume on {date} at {time}.', 'ffcertificate' ),
+					'bulkModalBodyTpl'       => __( 'About to issue {count} call(s) for {date} at {time}.', 'ffcertificate' ),
+					'bulkModalCta'           => __( 'Issue calls', 'ffcertificate' ),
+					'bulkConsequenceAtomic'  => __( 'Atomic — any single conflict rolls back the entire batch.', 'ffcertificate' ),
+					'bulkConsequenceLog'     => __( 'A "bulk call" audit entry is recorded with the selected candidates.', 'ffcertificate' ),
+					'bulkConsequenceOoo'     => __( 'One or more selected rows would skip a higher-ranked candidate (out of order).', 'ffcertificate' ),
+					'bulkReasonLabel'        => __( 'Justification for calling out of order (required)', 'ffcertificate' ),
+					'dateToAssume'           => __( 'Date to assume', 'ffcertificate' ),
+					'timeToAssume'           => __( 'Time to assume', 'ffcertificate' ),
+					'callModalTitle'         => __( 'Call this candidate?', 'ffcertificate' ),
+					'callModalCta'           => __( 'Call', 'ffcertificate' ),
+					'callPastWarning'        => __( 'This date is already over: the call is recorded and no e-mail is sent.', 'ffcertificate' ),
+					'cancellationReason'     => __( 'Cancellation reason (required)', 'ffcertificate' ),
+					'cancelModalTitle'       => __( 'Cancel this call?', 'ffcertificate' ),
+					'cancelModalBody'        => __( 'The candidate returns to the waiting list and the call ends everywhere: the .ics file, "My calls" and the next call.', 'ffcertificate' ),
+					'cancelModalCta'         => __( 'Cancel call', 'ffcertificate' ),
+					'reopenReason'           => __( 'Reopen reason (required)', 'ffcertificate' ),
+					'reopenModalTitle'       => __( 'Reopen this vacancy?', 'ffcertificate' ),
+					'reopenModalBody'        => __( 'The candidate returns to the waiting list and the call that led to the no-show ends.', 'ffcertificate' ),
+					'reopenModalCta'         => __( 'Reopen', 'ffcertificate' ),
+					'confirmOverride'        => __( 'This will undo a realized decision (hired / withdrew / no-show), reopen the vacancy and return the candidate to the waiting queue at their original position. The candidate is NOT notified.', 'ffcertificate' ),
+					'overrideReason'         => __( 'Reason for undoing this decision (required, audited)', 'ffcertificate' ),
+					'overrideModalTitle'     => __( 'Undo this decision?', 'ffcertificate' ),
+					'overrideModalCta'       => __( 'Undo decision', 'ffcertificate' ),
+					'notifyByEmailAsk'       => __( 'Notify the candidate by email about this call', 'ffcertificate' ),
+					/* translators: {count} is replaced in JS with the number of candidates */
+					'noEmailContactManually' => __( '{count} called candidate(s) have no email on file and were not notified. Contact them manually.', 'ffcertificate' ),
 				),
 			)
 		);

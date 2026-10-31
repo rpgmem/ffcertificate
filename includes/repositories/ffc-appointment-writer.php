@@ -69,21 +69,46 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Confirm appointment (admin approval)
+	 * Confirm an appointment that is still pending (#2244).
 	 *
-	 * @param int      $id Record ID.
+	 * The status is in the WHERE clause, so a row another request confirmed,
+	 * cancelled or moved meanwhile is left alone and the write reports 0 rows.
+	 *
+	 * @param int      $id          Record ID.
 	 * @param int|null $approved_by User ID who approved.
-	 * @return int|false
+	 * @return int|false Rows changed, or false on a database error.
 	 */
-	public function confirm( int $id, ?int $approved_by = null ) {
-		return $this->update(
+	public function confirmPending( int $id, ?int $approved_by = null ) {
+		return $this->transition(
 			$id,
+			'pending',
+			'confirmed',
 			array(
-				'status'      => 'confirmed',
-				// `approved_at` is unix UTC int since 6.6.0 (#249 sub-escopo d).
 				'approved_at' => time(),
 				'approved_by' => $approved_by,
-				'updated_at'  => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
+	 * Cancel an appointment only if it still carries $from (#2244).
+	 *
+	 * @param int         $id           Record ID.
+	 * @param string      $from         Status the caller read on the row.
+	 * @param int|null    $cancelled_by User ID who cancelled.
+	 * @param string|null $reason       Cancellation reason.
+	 * @return int|false Rows changed (0 when the row moved meanwhile), or false
+	 *                   on a database error.
+	 */
+	public function cancelFrom( int $id, string $from, ?int $cancelled_by = null, ?string $reason = null ) {
+		return $this->transition(
+			$id,
+			$from,
+			'cancelled',
+			array(
+				'cancelled_at'        => time(),
+				'cancelled_by'        => $cancelled_by,
+				'cancellation_reason' => $reason,
 			)
 		);
 	}
@@ -123,35 +148,155 @@ class AppointmentWriter extends AbstractRepository {
 	}
 
 	/**
-	 * Mark as completed
+	 * The statuses an attendance mark writes over a confirmed appointment.
+	 */
+	public const ATTENDANCE_STATUSES = array( 'completed', 'no_show' );
+
+	/**
+	 * Mark a confirmed appointment as attended.
 	 *
 	 * @param int $id Record ID.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the appointment is no longer
+	 *                   confirmed), or false on a database error.
 	 */
 	public function markCompleted( int $id ) {
-		return $this->update(
-			$id,
-			array(
-				'status'     => 'completed',
-				'updated_at' => current_time( 'mysql' ),
-			)
-		);
+		return $this->transition( $id, 'confirmed', 'completed' );
 	}
 
 	/**
-	 * Mark as no-show
+	 * Mark a confirmed appointment as a no-show.
 	 *
 	 * @param int $id Record ID.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the appointment is no longer
+	 *                   confirmed), or false on a database error.
 	 */
 	public function markNoShow( int $id ) {
-		return $this->update(
-			$id,
+		return $this->transition( $id, 'confirmed', 'no_show' );
+	}
+
+	/**
+	 * Undo an attendance mark, putting the appointment back to confirmed.
+	 *
+	 * @param int    $id   Record ID.
+	 * @param string $from The attendance status the caller read on the row.
+	 * @return int|false Rows changed (0 when the row no longer carries $from),
+	 *                   or false on a database error or a $from that is not
+	 *                   an attendance status.
+	 */
+	public function revertAttendance( int $id, string $from ) {
+		if ( ! in_array( $from, self::ATTENDANCE_STATUSES, true ) ) {
+			return false;
+		}
+		return $this->transition( $id, $from, 'confirmed' );
+	}
+
+	/**
+	 * Move an appointment from one status to another, only if it still
+	 * carries the first one.
+	 *
+	 * The status is part of the WHERE clause, so a row another request moved
+	 * meanwhile is left alone and the write reports 0 rows.
+	 *
+	 * @param int                  $id     Record ID.
+	 * @param string               $from   Status the row must carry.
+	 * @param string               $to     Status to write.
+	 * @param array<string, mixed> $fields Further columns written with it.
+	 * @return int|false
+	 */
+	private function transition( int $id, string $from, string $to, array $fields = array() ) {
+		$result = $this->wpdb->update(
+			$this->table,
+			array_merge(
+				$fields,
+				array(
+					'status'     => $to,
+					'updated_at' => current_time( 'mysql' ),
+				)
+			),
 			array(
-				'status'     => 'no_show',
-				'updated_at' => current_time( 'mysql' ),
+				'id'     => $id,
+				'status' => $from,
 			)
 		);
+
+		if ( false === $result ) {
+			$this->log_db_error( 'update', $id );
+		} else {
+			$this->clear_cache( "id_{$id}" );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Mark one batch of confirmed appointments dated on or before $cutoff as
+	 * completed (the old-appointment close-out).
+	 *
+	 * The status is in the WHERE clause, so a row closed by this batch leaves
+	 * the set the next batch reads, and a caller looping until a batch changes
+	 * fewer rows than it asked for always stops.
+	 *
+	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false Rows changed, or false on a database error.
+	 */
+	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
+		$sql = $this->wpdb->prepare(
+			"UPDATE %i SET status = 'completed', updated_at = %s
+             WHERE status = 'confirmed' AND appointment_date <= %s
+             ORDER BY id LIMIT %d",
+			$this->table,
+			current_time( 'mysql' ),
+			$cutoff,
+			$limit
+		);
+		return $this->run_closeout( $sql );
+	}
+
+	/**
+	 * Cancel one batch of pending appointments dated on or before $cutoff:
+	 * nobody approved them, and their date has gone.
+	 *
+	 * @param string $cutoff Last appointment date to close, `Y-m-d` (wall-clock).
+	 * @param string $reason Cancellation reason stored on each row.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false Rows changed, or false on a database error.
+	 */
+	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+		$sql = $this->wpdb->prepare(
+			"UPDATE %i SET status = 'cancelled', cancelled_at = %d, cancelled_by = NULL,
+             cancellation_reason = %s, updated_at = %s
+             WHERE status = 'pending' AND appointment_date <= %s
+             ORDER BY id LIMIT %d",
+			$this->table,
+			time(),
+			$reason,
+			current_time( 'mysql' ),
+			$cutoff,
+			$limit
+		);
+		return $this->run_closeout( $sql );
+	}
+
+	/**
+	 * Run one close-out UPDATE and drop the group cache when it changed rows.
+	 *
+	 * @param string|null $sql Prepared statement.
+	 * @return int|false
+	 */
+	private function run_closeout( ?string $sql ) {
+		if ( ! is_string( $sql ) ) {
+			return false;
+		}
+		$rows = $this->wpdb->query( $sql );
+		if ( ! is_int( $rows ) ) {
+			$this->log_db_error( 'update' );
+			return false;
+		}
+		if ( $rows > 0 ) {
+			$this->clear_cache();
+		}
+		return $rows;
 	}
 
 	/**

@@ -145,6 +145,8 @@ try {
 				'ffc_migration_' . $ffcertificate_key
 			);
 
+			// A deprecated entry names the release that deletes it (#2115).
+			$ffcertificate_removal             = \FreeFormCertificate\Settings\Tabs\TabMigrations::removal_of( $ffcertificate_migration );
 			$ffcertificate_status_class        = $ffcertificate_is_complete ? 'complete' : 'pending';
 			$ffcertificate_progress_color      = $ffcertificate_is_complete ? 'ffc-progress-complete' : 'ffc-progress-pending';
 			$ffcertificate_stat_pending_class  = $ffcertificate_is_complete ? 'ffc-migration-stat-success' : 'ffc-migration-stat-pending';
@@ -152,17 +154,62 @@ try {
 			$ffcertificate_label_class         = $ffcertificate_percent > 50 ? 'ffc-progress-label-dark' : 'ffc-progress-label-light';
 			?>
 	
-	<div class="postbox ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>">
-		<div class="postbox-header">
-			<h3 class="hndle">
-				<span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>"><?php echo esc_html( $ffcertificate_migration['name'] ); ?></span>
-				<?php if ( $ffcertificate_is_complete ) : ?>
-					<span class="ffc-icon-checkmark"></span>
+			<?php
+			// A finished card closes; one with records pending, or whose status could
+			// not be read, stays open, so the work left is what the screen leads with
+			// (#2115). The summary carries the name, the progress and the removal
+			// release, so a closed card still reads at a glance.
+			?>
+	<details class="ffc-section ffc-migration-card ffc-migration-<?php echo esc_attr( $ffcertificate_status_class ); ?>"<?php echo \FreeFormCertificate\Settings\Tabs\TabMigrations::card_opens( (bool) $ffcertificate_is_complete, (string) $ffcertificate_status_error ) ? ' open' : ''; ?>>
+		<summary class="ffc-section__summary">
+			<span class="ffc-section__icon"><span class="<?php echo esc_attr( $ffcertificate_migration['icon'] ); ?>" aria-hidden="true"></span></span>
+			<span class="ffc-section__text">
+				<span class="ffc-section__title"><?php echo esc_html( $ffcertificate_migration['name'] ); ?></span>
+				<?php if ( '' !== $ffcertificate_removal ) : ?>
+					<span class="ffc-section__hint">
+						<?php
+						printf(
+							/* translators: %s: plugin version that deletes this migration. */
+							esc_html__( 'Deprecated: removed in %s.', 'ffcertificate' ),
+							esc_html( $ffcertificate_removal )
+						);
+						?>
+					</span>
 				<?php endif; ?>
-			</h3>
-		</div>
-		
-		<div class="inside">
+			</span>
+			<?php if ( '' !== $ffcertificate_status_error ) : ?>
+				<span class="ffc-section__chip"><?php esc_html_e( 'Status unknown', 'ffcertificate' ); ?></span>
+			<?php elseif ( $ffcertificate_is_complete ) : ?>
+				<span class="ffc-section__chip is-on"><?php esc_html_e( 'Complete', 'ffcertificate' ); ?></span>
+			<?php else : ?>
+				<span class="ffc-section__chip">
+					<?php
+					printf(
+						/* translators: %s: migration progress, as a percentage. */
+						esc_html__( '%s%% complete', 'ffcertificate' ),
+						esc_html( number_format( (float) $ffcertificate_percent, 1 ) )
+					);
+					?>
+				</span>
+			<?php endif; ?>
+		</summary>
+
+		<div class="ffc-section__body">
+			<?php if ( '' !== $ffcertificate_removal ) : ?>
+				<?php
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'warning',
+					esc_html(
+						sprintf(
+							/* translators: %s: plugin version that deletes this migration. */
+							__( 'This migration has done its job and is removed in %s. If it still shows records pending on this site, run it before updating to that release.', 'ffcertificate' ),
+							$ffcertificate_removal
+						)
+					)
+				);
+				?>
+			<?php endif; ?>
+
 			<p class="description">
 				<?php echo esc_html( $ffcertificate_migration['description'] ); ?>
 			</p>
@@ -397,8 +444,8 @@ try {
 				<?php endif; ?>
 			</div>
 		</div>
-	</div>
-	
+	</details>
+
 			<?php
 		endforeach;
 	endif;

@@ -40,7 +40,48 @@ class AudienceAdminBookings {
 	}
 
 	/**
+	 * Bookings per page of the list (#2243).
+	 */
+	public const PER_PAGE = 50;
+
+	/**
+	 * Columns the list sorts by → the direction of a first click on them
+	 * (#2291). Keys are AudienceBookingReader::ORDER_COLUMNS keys.
+	 *
+	 * @var array<string, string>
+	 */
+	public const SORTABLE = array(
+		'id'           => 'desc',
+		'booking_date' => 'desc',
+		'start_time'   => 'desc',
+		'environment'  => 'asc',
+		'description'  => 'asc',
+		'status'       => 'asc',
+	);
+
+	/**
+	 * The order the request asks for: a SORTABLE key and `asc` / `desc`.
+	 * No `orderby`, or one not listed, gives the newest date first; a
+	 * column with no `order` takes its first-click direction (#2291).
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	public static function resolve_order(): array {
+		$orderby = RequestInput::get_get_string( 'orderby' );
+		if ( ! isset( self::SORTABLE[ $orderby ] ) ) {
+			return array( 'booking_date', 'desc' );
+		}
+		$order = strtolower( RequestInput::get_get_string( 'order' ) );
+		return array( $orderby, in_array( $order, array( 'asc', 'desc' ), true ) ? $order : self::SORTABLE[ $orderby ] );
+	}
+
+	/**
 	 * Render bookings page
+	 *
+	 * The list pages through the bookings that match its filters (#2243): a
+	 * calendar, a space, an audience, a status, a date range and a search
+	 * over the description or the booking number. The CSV export takes the
+	 * same filters, and the ticked bookings can be cancelled together.
 	 *
 	 * @return void
 	 */
@@ -48,37 +89,46 @@ class AudienceAdminBookings {
 		// Get filter parameters.
 		$schedule_id    = RequestInput::get_get_int( 'schedule_id' );
 		$environment_id = RequestInput::get_get_int( 'environment_id' );
-		$status_filter  = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
-		$date_from      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_from' );
-		$date_to        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'date_to' );
+		$audience_id    = RequestInput::get_get_int( 'audience_id' );
+		$status_filter  = RequestInput::get_get_string( 'status' );
+		$date_from      = RequestInput::get_get_string( 'date_from' );
+		$date_to        = RequestInput::get_get_string( 'date_to' );
+		$search         = RequestInput::get_get_string( 's' );
+		$current_page   = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
 
-		// Build query args.
-		$args = array(
-			'orderby' => 'booking_date',
-			'order'   => 'DESC',
+		list( $orderby, $order ) = self::resolve_order();
+
+		$filters = array_filter(
+			array(
+				'schedule_id'    => $schedule_id,
+				'environment_id' => $environment_id,
+				'audience_id'    => $audience_id,
+				'status'         => $status_filter,
+				'start_date'     => $date_from,
+				'end_date'       => $date_to,
+				'search'         => $search,
+			)
 		);
 
-		if ( $schedule_id > 0 ) {
-			$args['schedule_id'] = $schedule_id;
-		}
-		if ( $environment_id > 0 ) {
-			$args['environment_id'] = $environment_id;
-		}
-		if ( ! empty( $status_filter ) ) {
-			$args['status'] = $status_filter;
-		}
-		if ( ! empty( $date_from ) ) {
-			$args['start_date'] = $date_from;
-		}
-		if ( ! empty( $date_to ) ) {
-			$args['end_date'] = $date_to;
-		}
+		$total        = AudienceBookingReader::count_filtered( $filters );
+		$total_pages  = max( 1, (int) ceil( $total / self::PER_PAGE ) );
+		$current_page = min( $current_page, $total_pages );
 
-		// Get bookings.
-		$bookings = AudienceBookingReader::get_all( $args );
+		$bookings = AudienceBookingReader::get_all(
+			$filters + array(
+				'orderby' => $orderby,
+				'order'   => strtoupper( $order ),
+				'limit'   => self::PER_PAGE,
+				'offset'  => ( $current_page - 1 ) * self::PER_PAGE,
+			)
+		);
 
-		// Get schedules for filter.
-		$schedules = AudienceScheduleRepository::get_all();
+		// Get schedules for filter, and the calendar column.
+		$schedules      = AudienceScheduleRepository::get_all();
+		$schedule_names = array();
+		foreach ( $schedules as $schedule ) {
+			$schedule_names[ (int) $schedule->id ] = (string) $schedule->name;
+		}
 
 		// Get environments for filter.
 		$environments = array();
@@ -86,211 +136,99 @@ class AudienceAdminBookings {
 			$environments = AudienceEnvironmentRepository::get_by_schedule( $schedule_id );
 		}
 
-		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-bookings">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Audience Bookings', 'ffcertificate' ); ?></h1>
-			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_audiences' ) ) : ?>
-				<?php
-				// Batched CSV export (#772): the button drives the shared
-				// window.FFCBatchedExport engine through the unified dispatcher —
-				// current filters ride along via data-* so the export matches the
-				// on-screen query. No admin-post form; the job nonce is localized.
-				\FreeFormCertificate\Admin\AdminUI::render_button(
-					array(
-						'label' => __( 'Export CSV', 'ffcertificate' ),
-						'icon'  => 'download',
-						'id'    => 'ffc-bookings-export-btn',
-						'attrs' => array(
-							'data-schedule_id'    => (string) $schedule_id,
-							'data-environment_id' => (string) $environment_id,
-							'data-status'         => $status_filter,
-							'data-date_from'      => $date_from,
-							'data-date_to'        => $date_to,
-						),
-					)
-				);
-				?>
-			<?php endif; ?>
-			<hr class="wp-header-end">
+		$audience_choices = AudienceReader::get_all( array( 'orderby' => 'name' ) );
 
-			<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
+		$booking_ids = array_map( static fn( $b ): int => (int) $b->id, $bookings );
+		$audiences   = AudienceBookingReader::get_audiences_for_bookings( $booking_ids );
+		$present     = AudienceAttendanceReader::present_counts( $booking_ids );
 
-			<!-- Filters -->
-			<div class="tablenav top">
-				<form method="get" action="">
-					<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug ); ?>-bookings">
+		// Batch load creator names to avoid N+1 get_userdata() calls.
+		$creators_map = array();
+		$creator_ids  = array_values( array_unique( array_filter( array_map( static fn( $b ): int => (int) $b->created_by, $bookings ) ) ) );
+		if ( ! empty( $creator_ids ) ) {
+			foreach ( get_users(
+				array(
+					'include' => $creator_ids,
+					'fields'  => array( 'ID', 'display_name' ),
+				)
+			) as $creator ) {
+				$creators_map[ (int) $creator->ID ] = (string) $creator->display_name;
+			}
+		}
 
-					<select name="schedule_id" id="filter-schedule">
-						<option value=""><?php esc_html_e( 'All Schedules', 'ffcertificate' ); ?></option>
-						<?php foreach ( $schedules as $schedule ) : ?>
-							<option value="<?php echo esc_attr( $schedule->id ); ?>" <?php selected( $schedule_id, $schedule->id ); ?>>
-								<?php echo esc_html( $schedule->name ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
+		$base_url     = admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' );
+		$filtered_url = add_query_arg(
+			array_filter(
+				array(
+					'schedule_id'    => $schedule_id,
+					'environment_id' => $environment_id,
+					'audience_id'    => $audience_id,
+					'status'         => $status_filter,
+					'date_from'      => $date_from,
+					'date_to'        => $date_to,
+					's'              => $search,
+				)
+			),
+			$base_url
+		);
+		// Paging keeps the sort; the headers rebuild it from $filtered_url.
+		$sorted_url = add_query_arg(
+			array(
+				'orderby' => $orderby,
+				'order'   => $order,
+			),
+			$filtered_url
+		);
+		$pagination = $total_pages > 1
+			? (string) paginate_links(
+				array(
+					'base'      => add_query_arg( 'paged', '%#%', $sorted_url ),
+					'format'    => '',
+					'prev_text' => '&laquo;',
+					'next_text' => '&raquo;',
+					'total'     => $total_pages,
+					'current'   => $current_page,
+				)
+			)
+			: '';
 
-					<?php
-					$env_filter_label = $schedule_id > 0
-						? AudienceScheduleRepository::get_environment_label( $schedule_id )
-						: AudienceScheduleRepository::get_environment_label();
-					?>
-					<select name="environment_id" id="filter-environment">
-						<option value="">
-							<?php
-							/* translators: %s: environment label (plural) */
-							printf( esc_html__( 'All %s', 'ffcertificate' ), esc_html( $env_filter_label ) );
-							?>
-						</option>
-						<?php foreach ( $environments as $env ) : ?>
-							<option value="<?php echo esc_attr( $env->id ); ?>" <?php selected( $environment_id, $env->id ); ?>>
-								<?php echo esc_html( $env->name ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
+		// View and Cancel call AJAX handlers gated on
+		// `ffc_manage_audiences` (AudienceAjaxController, #1769).
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+		// Attendance opens the booking's check-in screen (#1947).
+		$can_checkin = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( AudienceAdminAttendance::CAP );
+		$attendance  = new AudienceAdminAttendance( $this->menu_slug );
 
-					<select name="status">
-						<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-						<option value="active" <?php selected( $status_filter, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
-						<option value="cancelled" <?php selected( $status_filter, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
-					</select>
+		include FFC_PLUGIN_DIR . 'templates/admin/audience/bookings-list.php';
+	}
 
-					<input type="date" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" placeholder="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
-					<input type="date" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" placeholder="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
+	/**
+	 * The count of listed bookings and the page links, above and below the
+	 * list (#2243).
+	 *
+	 * @param int    $total      Bookings matching the filters.
+	 * @param string $pagination `paginate_links()` output, '' for one page.
+	 * @return void
+	 */
+	public static function render_pagination( int $total, string $pagination ): void {
+		echo '<div class="tablenav-pages"><span class="displaying-num">';
+		/* translators: %s: number of bookings listed. */
+		echo esc_html( sprintf( _n( '%s booking', '%s bookings', $total, 'ffcertificate' ), number_format_i18n( $total ) ) );
+		echo '</span>';
+		if ( '' !== $pagination ) {
+			echo ' <span class="pagination-links">' . wp_kses_post( $pagination ) . '</span>';
+		}
+		echo '</div>';
+	}
 
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Filter', 'ffcertificate' ),
-							'icon'  => 'filter',
-							'type'  => 'submit',
-						)
-					);
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Clear', 'ffcertificate' ),
-							'icon'  => 'eraser',
-							'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
-						)
-					);
-					?>
-				</form>
-			</div>
-
-			<!-- Bookings Table -->
-			<table class="wp-list-table widefat fixed striped">
-				<thead>
-					<tr>
-						<th scope="col" class="manage-column column-id"><?php esc_html_e( 'ID', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-date"><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-time"><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-environment"><?php echo esc_html( AudienceScheduleRepository::get_environment_label( null, true ) ); ?></th>
-						<th scope="col" class="manage-column column-description"><?php esc_html_e( 'Description', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-type"><?php esc_html_e( 'Type', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-created_by"><?php esc_html_e( 'Created By', 'ffcertificate' ); ?></th>
-						<th scope="col" class="manage-column column-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-					<?php if ( empty( $bookings ) ) : ?>
-						<tr>
-							<td colspan="9"><?php esc_html_e( 'No bookings found.', 'ffcertificate' ); ?></td>
-						</tr>
-					<?php else : ?>
-						<?php
-						// Batch load creator names to avoid N+1 get_userdata() calls.
-						$creator_ids  = array_unique(
-							array_filter(
-								array_map(
-									function ( $b ) {
-										return (int) $b->created_by;
-									},
-									$bookings
-								)
-							)
-						);
-						$creators_map = array();
-						if ( ! empty( $creator_ids ) ) {
-							$creator_users = get_users(
-								array(
-									'include' => $creator_ids,
-									'fields'  => array( 'ID', 'display_name' ),
-								)
-							);
-							foreach ( $creator_users as $u ) {
-								$creators_map[ (int) $u->ID ] = $u->display_name;
-							}
-						}
-						?>
-						<?php
-						// View and Cancel call AJAX handlers gated on
-						// `ffc_manage_audiences` (AudienceAjaxController, #1769).
-						$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
-						// Attendance opens the booking's check-in screen (#1947).
-						$can_checkin = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( AudienceAdminAttendance::CAP );
-						$attendance  = new AudienceAdminAttendance( $this->menu_slug );
-						?>
-						<?php foreach ( $bookings as $booking ) : ?>
-							<?php
-							$creator_name = $creators_map[ (int) $booking->created_by ] ?? __( 'Unknown', 'ffcertificate' );
-							$status_class = 'active' === $booking->status ? 'ffc-booking-status-active' : 'ffc-booking-status-cancelled';
-							?>
-							<tr>
-								<td><?php echo esc_html( $booking->id ); ?></td>
-								<td><?php echo esc_html( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?></td>
-								<td><?php echo esc_html( AudienceBookingRules::time_label( (string) $booking->start_time, (string) $booking->end_time, AudienceBookingRules::is_span( $booking ), static fn( string $time ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $time ) ) ); ?></td>
-								<td><?php echo esc_html( $booking->environment_name ); ?></td>
-								<td><?php echo esc_html( wp_trim_words( $booking->description, 10 ) ); ?></td>
-								<td>
-									<?php
-									// Keys are the `booking_type` enum stored in the
-									// table (`audience` / `individual`); the labels
-									// match the booking modal's.
-									$type_labels = array(
-										'audience'   => __( 'Audience', 'ffcertificate' ),
-										'individual' => __( 'Custom Users', 'ffcertificate' ),
-									);
-									echo esc_html( $type_labels[ $booking->booking_type ] ?? $booking->booking_type );
-									?>
-								</td>
-								<td>
-									<span class="<?php echo esc_attr( $status_class ); ?>">
-										<?php echo 'active' === $booking->status ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Cancelled', 'ffcertificate' ); ?>
-									</span>
-								</td>
-								<td><?php echo esc_html( $creator_name ); ?></td>
-								<td>
-									<?php if ( $can_manage ) : ?>
-										<a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr( $booking->id ); ?>">
-											<?php esc_html_e( 'View', 'ffcertificate' ); ?>
-										</a>
-										<?php if ( 'active' === $booking->status ) : ?>
-											|
-											<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( $booking->id ); ?>" data-days="<?php echo esc_attr( (string) count( AudienceBookingRules::booked_days( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, isset( $booking->skipped_dates ) ? (string) $booking->skipped_dates : null ) ) ); ?>" data-date-label="<?php echo esc_attr( AudienceBookingRules::date_label( (string) $booking->booking_date, isset( $booking->end_date ) ? (string) $booking->end_date : null, static fn( string $date ): string => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date ) ) ); ?>">
-												<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
-											</a>
-										<?php endif; ?>
-									<?php endif; ?>
-									<?php if ( $can_checkin && 'active' === $booking->status ) : ?>
-										<?php echo $can_manage ? '|' : ''; ?>
-										<a href="<?php echo esc_url( $attendance->url( (int) $booking->id ) ); ?>" class="ffc-attendance-link">
-											<?php esc_html_e( 'Attendance', 'ffcertificate' ); ?>
-										</a>
-									<?php endif; ?>
-								</td>
-							</tr>
-						<?php endforeach; ?>
-					<?php endif; ?>
-				</tbody>
-			</table>
-
-			<p class="description ffc-audience-total-note">
-				<?php /* translators: %d: number of bookings */ printf( esc_html__( 'Total: %d bookings', 'ffcertificate' ), count( $bookings ) ); ?>
-			</p>
-		</div>
-
-		<!-- Styles in ffc-audience-admin.css -->
-		<!-- Scripts in ffc-audience-admin.js -->
-		<?php
+	/**
+	 * How many people a booking reaches: its own users and the members of
+	 * its audiences, each once.
+	 *
+	 * @param int $booking_id Booking ID.
+	 * @return int
+	 */
+	public static function reach( int $booking_id ): int {
+		return count( AudienceBookingReader::get_all_affected_users( $booking_id ) );
 	}
 }

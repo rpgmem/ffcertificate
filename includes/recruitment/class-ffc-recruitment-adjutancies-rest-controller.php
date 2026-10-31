@@ -356,8 +356,12 @@ final class RecruitmentAdjutanciesRestController {
 		$notice_id    = (int) $request->get_param( 'id' );
 		$adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
 
-		if ( null === RecruitmentNoticeReader::get_by_id( $notice_id ) ) {
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
+		if ( null === $notice ) {
 			return new \WP_Error( 'recruitment_notice_not_found', 'Notice not found.', array( 'status' => 404 ) );
+		}
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ADJUTANCIES, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_notice_adjutancies_locked', RecruitmentErrorMessages::translate( 'recruitment_notice_adjutancies_locked' ), array( 'status' => 409 ) );
 		}
 		if ( null === RecruitmentAdjutancyReader::get_by_id( $adjutancy_id ) ) {
 			return new \WP_Error( 'recruitment_adjutancy_not_found', 'Adjutancy not found.', array( 'status' => 404 ) );
@@ -399,12 +403,19 @@ final class RecruitmentAdjutanciesRestController {
 	 * adjutancy from the notice. Idempotent: detaching a pair that's
 	 * already absent returns 200.
 	 *
+	 * Refused once the notice is definitive or closed (#2245).
+	 *
 	 * @param \WP_REST_Request $request Request.
-	 * @return \WP_REST_Response
+	 * @return \WP_REST_Response|\WP_Error
 	 */
-	public function detach_notice_adjutancy( \WP_REST_Request $request ): \WP_REST_Response {
+	public function detach_notice_adjutancy( \WP_REST_Request $request ) {
 		$notice_id    = (int) $request->get_param( 'id' );
 		$adjutancy_id = (int) $request->get_param( 'adjutancy_id' );
+
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
+		if ( null !== $notice && ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ADJUTANCIES, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_notice_adjutancies_locked', RecruitmentErrorMessages::translate( 'recruitment_notice_adjutancies_locked' ), array( 'status' => 409 ) );
+		}
 
 		RecruitmentNoticeAdjutancyRepository::detach( $notice_id, $adjutancy_id );
 

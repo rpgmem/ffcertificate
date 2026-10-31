@@ -15,7 +15,6 @@ use FreeFormCertificate\Settings\Tabs\TabSMTP;
  * Tests for TabSMTP: SMTP settings tab.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabSMTP
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabSmtpTest extends TestCase {
@@ -139,9 +138,8 @@ class TabSmtpTest extends TestCase {
 		// ffc-section-collapse) for the "enable email sending" toggle. The Email
 		// Model + Restore-Default assets moved to their own tabs. The shared
 		// scripts are named by handle and declared once in AssetRegistry, which
-		// asserts their sources and dependencies (#1931).
-		$utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils_mock->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		// asserts their sources and dependencies (#1931). The real AssetHelper
+		// picks the suffix.
 
 		Functions\expect( 'wp_enqueue_script' )
 			->with( 'ffc-smtp-settings', Mockery::type( 'string' ), array( 'jquery' ), Mockery::type( 'string' ), true )

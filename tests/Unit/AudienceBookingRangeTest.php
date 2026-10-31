@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -15,51 +16,93 @@ use FreeFormCertificate\Audience\AudienceBookingRules;
  * skips when they are blocked, and the predicate that makes a stored range
  * occupy each of its days.
  *
- * The holiday check and the working-hours window are aliased, so each test
- * runs in its own process.
+ * The holiday check (DateBlockingService) and the environment repository are
+ * the real classes: global holidays come through a `get_option` stub, and the
+ * environment row and its own holidays through the `$wpdb` double below.
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingRules
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceBookingRangeTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface */
-	private $global_holiday;
-
-	/** @var Mockery\MockInterface */
-	private $environment;
-
-	/** @var list<string> Global holidays the test sets, answered by the holiday alias. */
+	/** @var list<string> Global holidays the test sets, answered through `ffc_global_holidays`. */
 	private array $global_holidays = array();
 
-	/** @var array<string, mixed>|null Working hours the test sets, answered by the environment alias. */
+	/** @var list<string> The space's own holidays, answered by the holidays COUNT query. */
+	private array $space_holidays = array();
+
+	/** @var array<string, mixed>|null Working hours the test sets, stored as JSON on environment 1. */
 	private ?array $working_hours = null;
+
+	/** @var int How many times an environment row was read. */
+	private int $environment_reads = 0;
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		Monkey\Functions\when( '__' )->returnArg();
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			function ( $name, $default_value = false ) {
+				if ( 'ffc_global_holidays' === $name ) {
+					return array_map( static fn( string $date ): array => array( 'date' => $date ), $this->global_holidays );
+				}
+				return $default_value;
+			}
+		);
 
-		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = is_array( $args[0] ?? null ) ? $args[0] : $args;
+				return $sql;
+			}
+		);
+		// AudienceEnvironmentRepository::get_by_id(): environment 1, in schedule 1.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () {
+				++$this->environment_reads;
+				if ( 'wp_ffc_audience_environments' !== $this->bound[0] || 1 !== (int) $this->bound[1] ) {
+					return null;
+				}
+				return (object) array(
+					'id'            => '1',
+					'schedule_id'   => '1',
+					'working_hours' => null === $this->working_hours ? null : json_encode( $this->working_hours ),
+				);
+			}
+		);
+		// AudienceEnvironmentRepository::is_holiday(): the holidays COUNT binds the date last.
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			fn() => in_array( $this->bound[2] ?? null, $this->space_holidays, true ) ? '1' : '0'
+		);
 
-		$this->global_holiday = Mockery::mock( 'alias:FreeFormCertificate\Scheduling\DateBlockingService' );
-		$this->global_holiday->shouldReceive( 'is_global_holiday' )->andReturnUsing( fn( string $date ): bool => in_array( $date, $this->global_holidays, true ) );
-
-		$this->environment = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' );
-		$this->environment->shouldReceive( 'is_holiday' )->andReturn( false );
-		$this->environment->shouldReceive( 'get_working_hours' )->andReturnUsing( fn(): ?array => $this->working_hours )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
-		Mockery::close();
 	}
 
 	public function test_range_days_includes_both_ends_across_a_month_and_a_leap_day(): void {
@@ -71,6 +114,43 @@ class AudienceBookingRangeTest extends TestCase {
 
 	public function test_range_days_of_one_day_is_that_day(): void {
 		$this->assertSame( array( '2026-03-15' ), AudienceBookingRules::range_days( '2026-03-15', '2026-03-15' ) );
+	}
+
+	public function test_range_length_counts_both_ends_without_walking_the_days(): void {
+		$this->assertSame( 1, AudienceBookingRules::range_length( '2026-03-15', '2026-03-15' ) );
+		$this->assertSame( 3, AudienceBookingRules::range_length( '2028-02-28', '2028-03-01' ) );
+		$this->assertSame( 30, AudienceBookingRules::range_length( '2026-03-01', '2026-03-30' ) );
+		// An absurd end date is a number, not millions of strings (#2243).
+		$this->assertGreaterThan( 2000000, AudienceBookingRules::range_length( '2026-03-01', '9999-12-31' ) );
+	}
+
+	public function test_weekly_dates_repeat_the_weekday_up_to_and_including_the_last_day(): void {
+		$this->assertSame(
+			array( '2026-11-02', '2026-11-09', '2026-11-16' ),
+			AudienceBookingRules::weekly_dates( '2026-11-02', '2026-11-16' ),
+			'The last day is included when it falls on the weekday.'
+		);
+		$this->assertSame(
+			array( '2026-11-02', '2026-11-09' ),
+			AudienceBookingRules::weekly_dates( '2026-11-02', '2026-11-15' ),
+			'A last day before the next weekday stops the series.'
+		);
+	}
+
+	public function test_weekly_dates_cross_a_leap_day_and_stop_at_the_cap(): void {
+		$dates = AudienceBookingRules::weekly_dates( '2028-02-22', '2030-12-31' );
+
+		$this->assertCount( AudienceBookingRules::SERIES_MAX_WEEKS, $dates, 'Never more than the cap, whatever the last day.' );
+		$this->assertSame( '2028-02-29', $dates[1] );
+		$this->assertSame( '2029-02-13', end( $dates ) );
+	}
+
+	public function test_weekly_count_is_a_date_difference(): void {
+		$this->assertSame( 1, AudienceBookingRules::weekly_count( '2026-11-02', '2026-11-08' ) );
+		$this->assertSame( 2, AudienceBookingRules::weekly_count( '2026-11-02', '2026-11-09' ) );
+		$this->assertSame( 52, AudienceBookingRules::weekly_count( '2026-11-02', '2027-10-25' ) );
+		$this->assertSame( 53, AudienceBookingRules::weekly_count( '2026-11-02', '2027-11-01' ) );
+		$this->assertSame( 413, AudienceBookingRules::weekly_count( '2026-11-02', '2034-10-01' ), 'A far date is counted, not walked.' );
 	}
 
 	public function test_daily_repeats_the_chosen_hours_on_every_day(): void {
@@ -114,14 +194,13 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_occurrences_of_a_single_day_span_uses_the_chosen_hours_without_reading_the_window(): void {
-		$this->environment->shouldNotReceive( 'get_working_hours' );
-
 		$plan = AudienceBookingRules::occurrences( 1, '2026-03-16', '2026-03-16', '14:00', '16:00', 'span', false );
 
 		$this->assertSame(
 			array( array( 'date' => '2026-03-16', 'start_time' => '14:00', 'end_time' => '16:00' ) ),
 			$plan['days']
 		);
+		$this->assertSame( 0, $this->environment_reads, 'A single day never reads the working hours.' );
 	}
 
 	public function test_skipping_blocked_days_leaves_them_out_and_records_them(): void {
@@ -158,7 +237,7 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_a_blocked_day_is_kept_when_the_range_does_not_skip(): void {
-		$this->environment->shouldReceive( 'is_holiday' )->with( 1, '2026-03-17' )->andReturn( true );
+		$this->space_holidays = array( '2026-03-17' );
 
 		$plan = AudienceBookingRules::occurrences( 1, '2026-03-16', '2026-03-18', '09:00', '12:00', 'daily', false );
 
@@ -183,7 +262,21 @@ class AudienceBookingRangeTest extends TestCase {
 
 		$this->assertStringContainsString( 'booking_date <= %s AND COALESCE(end_date, booking_date) >= %s', $sql );
 		$this->assertStringContainsString( 'skipped_dates NOT LIKE %s', $sql );
-		$this->assertSame( array( '2026-10-22', '2026-10-22', '%"2026-10-22"%' ), $args );
+		$this->assertSame( array( '2026-10-22', '2026-10-22', '2025-10-23', '%"2026-10-22"%' ), $args );
+	}
+
+	public function test_occupies_day_clause_bounds_the_start_by_the_longest_range_possible(): void {
+		// A range of the ceiling's 365 days ending on the day still occupies it;
+		// one day earlier cannot (#2243).
+		list( $sql, $args ) = AudienceBookingRules::occupies_day_clause( '2028-03-01' );
+
+		$this->assertStringContainsString( 'AND booking_date >= %s', $sql );
+		$this->assertSame( '2027-03-03', $args[2], 'A leap year is counted in days, not in a calendar year.' );
+		$this->assertSame(
+			365,
+			(int) ( new \DateTimeImmutable( $args[2] ) )->diff( new \DateTimeImmutable( '2028-03-01' ) )->days + 1,
+			'The earliest start makes a range of exactly the ceiling.'
+		);
 	}
 
 	public function test_date_label_shows_one_date_for_a_single_day(): void {
@@ -270,7 +363,6 @@ class AudienceBookingRangeTest extends TestCase {
 	}
 
 	public function test_a_daily_row_takes_its_own_hours_on_every_day(): void {
-		$this->environment->shouldNotReceive( 'get_working_hours' );
 		$row = (object) array(
 			'environment_id' => 1,
 			'booking_date'   => '2026-03-16',
@@ -281,6 +373,7 @@ class AudienceBookingRangeTest extends TestCase {
 		);
 
 		$this->assertSame( array( 'start_time' => '09:00', 'end_time' => '12:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+		$this->assertSame( 0, $this->environment_reads, 'A daily row never reads the working hours.' );
 	}
 
 	public function test_overlap_keeps_a_middle_day_of_a_span_and_drops_touching_ends(): void {
@@ -372,5 +465,50 @@ class AudienceBookingRangeTest extends TestCase {
 			AudienceBookingRules::day_times_map( $span )
 		);
 		$this->assertSame( array(), AudienceBookingRules::day_times_map( (object) ( array( 'time_mode' => 'daily' ) + (array) $span ) ) );
+	}
+
+	public function test_a_span_freezes_each_day_and_a_daily_range_or_a_single_day_freezes_nothing(): void {
+		$days = array(
+			array( 'date' => '2026-03-16', 'start_time' => '14:00', 'end_time' => '18:00' ),
+			array( 'date' => '2026-03-17', 'start_time' => '08:00:00', 'end_time' => '10:00:00' ),
+		);
+
+		$this->assertSame( '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","10:00"]}', AudienceBookingRules::encode_day_times( $days, 'span' ) );
+		$this->assertNull( AudienceBookingRules::encode_day_times( $days, 'daily' ) );
+		$this->assertNull( AudienceBookingRules::encode_day_times( array( $days[0] ), 'span' ) );
+	}
+
+	public function test_frozen_hours_win_over_the_window_read_today(): void {
+		// Editing the space's working hours after the booking was made must
+		// not move it (#2243): the middle day keeps the hours it was given.
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => null,
+			'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array( 'start_time' => '08:00', 'end_time' => '18:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
+		$this->assertSame( array( 'start_time' => '14:00', 'end_time' => '18:00' ), AudienceBookingRules::stored_day_times( $row, '2026-03-16' ) );
+	}
+
+	public function test_a_malformed_frozen_value_falls_back_to_the_window(): void {
+		$row = (object) array(
+			'environment_id' => 1,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-18',
+			'time_mode'      => 'span',
+			'skipped_dates'  => null,
+			'day_times'      => '{"2026-03-17":"08:00"}',
+			'start_time'     => '14:00:00',
+			'end_time'       => '10:00:00',
+		);
+
+		$this->assertSame( array(), AudienceBookingRules::frozen_day_times( $row ) );
+		$this->assertSame( array( 'start_time' => '00:00', 'end_time' => '23:59' ), AudienceBookingRules::stored_day_times( $row, '2026-03-17' ) );
 	}
 }

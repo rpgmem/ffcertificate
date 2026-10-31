@@ -8,6 +8,8 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Frontend\PublicCsvExporter;
+use FreeFormCertificate\Tests\Support\CallLog;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for PublicCsvExporter — now a thin façade over the shared batched
@@ -21,19 +23,30 @@ use FreeFormCertificate\Frontend\PublicCsvExporter;
  * Uses Reflection + newInstanceWithoutConstructor() to avoid the real
  * SubmissionRepository (which needs a wpdb).
  *
- * Runs in separate processes: the stream path defines namespaced helper stubs
- * (FreeFormCertificate\Frontend\__, apply_filters, header, …) that PHP cannot
- * undefine, which would otherwise leak "MissingFunctionExpectations" into
- * sibling Frontend-namespace tests.
+ * The class shares the process, the over-limit stream_form_csv() test
+ * included: it runs the real header(), whose "headers already sent" warning is
+ * the only error it swallows. The two success-body tests run in their own
+ * process: that body ends every output buffer, PHPUnit's own included, and
+ * then writes the CSV to php://output, which in the shared process is the
+ * runner's real stdout; they also intercept header() and its neighbours inside
+ * the Frontend namespace, which would outlive the test (#2125).
  *
  * @covers \FreeFormCertificate\Frontend\PublicCsvExporter
  * @covers \FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class PublicCsvExporterTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var PublicCsvExporter */
 	private $exporter;
@@ -48,12 +61,8 @@ class PublicCsvExporterTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter' );
 
 		Functions\when( '__' )->returnArg();
-		// The exporter calls i18n/escape helpers unqualified inside the Frontend
-		// namespace; once Brain Monkey defines a namespaced function in the
-		// process it must stay mocked, so stub them globally here.
-		Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'get_the_title' )->justReturn( 'Public Test Form' );
 		Functions\when( 'get_userdata' )->alias( function ( $id ) {
 			$user = new \stdClass();
@@ -170,7 +179,7 @@ class PublicCsvExporterTest extends TestCase {
 			'email_encrypted'   => '',
 			'user_ip'           => '203.0.113.1',
 			'user_ip_encrypted' => '',
-			'cpf'               => '123.456.789-00',
+			'cpf'               => self::mask_cpf( Identifiers::CPF_A ),
 			'cpf_encrypted'     => '',
 			'rf'                => '',
 			'rf_encrypted'      => '',
@@ -206,7 +215,7 @@ class PublicCsvExporterTest extends TestCase {
 		// `date_format` is 'd/m/Y' and `time_format` is 'H:i'.
 		$this->assertSame( '15/01/2026 10:30', $result[3] );
 		$this->assertSame( 'test@example.com', $result[4] );
-		$this->assertSame( '123.456.789-00', $result[5] );
+		$this->assertSame( self::mask_cpf( Identifiers::CPF_A ), $result[5] );
 		$this->assertSame( '', $result[6] );
 		$this->assertSame( 'ABC123', $result[7] );
 	}
@@ -274,10 +283,10 @@ class PublicCsvExporterTest extends TestCase {
 	public function test_format_csv_row_rf_only(): void {
 		$row        = $this->sample_row();
 		$row['cpf'] = '';
-		$row['rf']  = '1234567';
+		$row['rf']  = Identifiers::RF_A;
 		$result     = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
 		$this->assertSame( '', $result[5] );
-		$this->assertSame( '1234567', $result[6] );
+		$this->assertSame( Identifiers::RF_A, $result[6] );
 	}
 
 	// ==================================================================
@@ -369,15 +378,39 @@ class PublicCsvExporterTest extends TestCase {
 	//  stream_form_csv() — synchronous export guard (over-limit path)
 	// ==================================================================
 
+	/**
+	 * Runs a callable while the real header() refuses because PHPUnit has
+	 * already written to stdout. header() is an internal function Patchwork
+	 * cannot redefine, so only that one warning is swallowed; every other
+	 * error still reaches the handler PHPUnit installed.
+	 *
+	 * @param callable $fn The code that calls header().
+	 */
+	private function run_with_header_refusals_ignored( callable $fn ): void {
+		$previous = null;
+		$previous = set_error_handler(
+			static function ( int $errno, string $errstr, string $errfile = '', int $errline = 0 ) use ( &$previous ): bool {
+				if ( E_WARNING === $errno && false !== strpos( $errstr, 'Cannot modify header information' ) ) {
+					return true;
+				}
+				return null !== $previous ? (bool) $previous( $errno, $errstr, $errfile, $errline ) : false;
+			}
+		);
+		try {
+			$fn();
+		} finally {
+			restore_error_handler();
+		}
+	}
+
 	public function test_stream_form_csv_renders_limit_page_when_over_threshold(): void {
-		// The exporter calls these unqualified inside the Frontend namespace,
-		// so intercept the namespaced resolutions (raw header() included, to
-		// avoid "headers already sent" from PHPUnit's own output).
-		Functions\when( 'FreeFormCertificate\Frontend\status_header' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\nocache_headers' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\header' )->justReturn( null );
-		Functions\when( 'FreeFormCertificate\Frontend\esc_html' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Frontend\__' )->returnArg();
+		$statuses = array();
+		Functions\when( 'status_header' )->alias(
+			static function ( $code ) use ( &$statuses ) {
+				$statuses[] = $code;
+			}
+		);
+		$nocache = CallLog::record( 'nocache_headers', null );
 		// get_sync_max_rows() reads SettingsReader::get_int → default; the
 		// mocked count far exceeds it, so the sync path is refused.
 		$repo = \Mockery::mock( 'FreeFormCertificate\Repositories\SubmissionRepository' );
@@ -385,11 +418,17 @@ class PublicCsvExporterTest extends TestCase {
 		$this->set_repository( $repo );
 
 		ob_start();
-		$this->exporter->stream_form_csv( 1, 'publish' );
+		$this->run_with_header_refusals_ignored(
+			function () {
+				$this->exporter->stream_form_csv( 1, 'publish' );
+			}
+		);
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Export too large', $html );
 		$this->assertStringContainsString( '9999999', $html );
+		$this->assertSame( array( 413 ), $statuses, 'the refusal is a 413' );
+		$this->assertSame( 1, $nocache->count(), 'the refusal page is not cached' );
 	}
 
 	// ==================================================================
@@ -437,6 +476,13 @@ class PublicCsvExporterTest extends TestCase {
 		} );
 	}
 
+	/**
+	 * Its own process: the body ends every output buffer and writes the CSV to
+	 * the process's stdout, and it declares header() inside the Frontend namespace.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stream_form_csv_writes_header_and_rows_then_exits(): void {
 		$this->stub_stream_helpers();
 
@@ -511,6 +557,13 @@ class PublicCsvExporterTest extends TestCase {
 		$this->assertSame( $expected_message, $caught->getMessage() );
 	}
 
+	/**
+	 * Its own process: the body ends every output buffer and writes the CSV to
+	 * the process's stdout, and it declares header() inside the Frontend namespace.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_stream_form_csv_header_only_when_no_rows(): void {
 		$this->stub_stream_helpers();
 		Functions\when( 'FreeFormCertificate\Frontend\do_action' )->alias(

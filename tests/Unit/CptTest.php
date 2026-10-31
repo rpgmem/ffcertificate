@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\CPT;
@@ -15,16 +14,12 @@ use FreeFormCertificate\Admin\CPT;
  * add_duplicate_link, handle_form_duplication, and translate_views.
  *
  * @covers \FreeFormCertificate\Admin\CPT
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class CptTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock for Utils */
-	private $utils_mock;
-	private $caps_mock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -43,18 +38,11 @@ class CptTest extends TestCase {
 		Functions\when( 'add_filter' )->justReturn( true );
 		Functions\when( 'esc_url' )->returnArg();
 
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$this->caps_mock  = Mockery::mock( 'alias:\FreeFormCertificate\Core\Capabilities' );
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( true )->byDefault();
-		$this->utils_mock->shouldReceive( 'debug_log' )->byDefault();
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$this->utils_mock->shouldReceive( 'truncate' )->andReturnUsing( function ( $str ) {
-			return $str;
-		} )->byDefault();
+		// Debug reads the settings only when get_option() exists, which in the
+		// shared process depends on what ran earlier: choose it, with debug off.
+		Functions\when( 'get_option' )->justReturn( array() );
+		// Capabilities runs for real: the form manager's capability, not manage_options.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_forms' === $cap );
 	}
 
 	protected function tearDown(): void {
@@ -195,7 +183,7 @@ class CptTest extends TestCase {
 	}
 
 	public function test_add_duplicate_link_returns_unmodified_actions_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$post = (object) array(
 			'ID'        => 1,
@@ -250,7 +238,7 @@ class CptTest extends TestCase {
 	}
 
 	public function test_render_duplicate_submitbox_link_outputs_nothing_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		ob_start();
 		( new CPT() )->render_duplicate_submitbox_link( $this->make_post( 'ffc_form' ) );
@@ -283,7 +271,7 @@ class CptTest extends TestCase {
 	// ==================================================================
 
 	public function test_handle_form_duplication_dies_when_user_cannot_manage(): void {
-		$this->caps_mock->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_manage_forms' )->andReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		Functions\when( 'wp_die' )->alias( function ( $message ) {
 			throw new \RuntimeException( 'wp_die: ' . $message );

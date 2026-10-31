@@ -11,6 +11,10 @@
  *   - sensitive-field writes encrypt and store the lookup hash,
  *   - display_name writes mirror to wp_users,
  *   - FULL reads of sensitive data emit exactly one audit entry.
+ *
+ * Encryption, DocumentFormatter and ActivityLog are the real classes: the
+ * bootstrap's key constants encrypt, and audit rows are read from
+ * ActivityLog's write buffer.
  */
 
 declare(strict_types=1);
@@ -22,9 +26,12 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\UserDashboard\UserProfileFieldMap;
 use FreeFormCertificate\UserDashboard\UserProfileService;
 use FreeFormCertificate\UserDashboard\ViewPolicy;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * @covers \FreeFormCertificate\UserDashboard\UserProfileService
@@ -55,12 +62,82 @@ class UserProfileServiceTest extends TestCase {
 	 */
 	private ?array $profile_row;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * A CPF as `DocumentFormatter::mask_cpf()` shows it: the first three digits
+	 * and the last two.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function cpf_mask( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.***.***-' . substr( $cpf, -2 );
+	}
+
+	/**
+	 * A value encrypted with the bootstrap's keys, as the service stores it.
+	 *
+	 * @param string $plain Plaintext.
+	 */
+	private static function encrypted( string $plain ): string {
+		$cipher = Encryption::encrypt( $plain );
+		self::assertIsString( $cipher );
+		return $cipher;
+	}
+
+	/**
+	 * Assert user 42's meta holds a ciphertext of `$plain`, never the plaintext.
+	 *
+	 * @param string $plain    Expected plaintext.
+	 * @param string $meta_key Meta key.
+	 */
+	private function assertStoredCiphertextOf( string $plain, string $meta_key ): void {
+		$stored = $this->usermeta_store[42][ $meta_key ] ?? null;
+		$this->assertIsString( $stored );
+		$this->assertNotSame( $plain, $stored, 'The value must not be stored in clear.' );
+		$this->assertSame( $plain, Encryption::decrypt( $stored ) );
+	}
+
+	/**
+	 * Switch the activity log on, so the real ActivityLog buffers what it logs.
+	 */
+	private function enable_activity_log(): void {
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : array()
+		);
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->usermeta_store = array();
 		$this->profile_row    = null;
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
+		// Encryption counts decrypt failures per request; start each test at zero.
+		$count = new \ReflectionProperty( Encryption::class, 'decrypt_failure_count' );
+		$count->setAccessible( true );
+		$count->setValue( null, 0 );
+
+		ActivityLogBuffer::reset();
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -107,6 +184,9 @@ class UserProfileServiceTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		// Stateful get/update/delete_user_meta backed by $usermeta_store.
@@ -128,6 +208,12 @@ class UserProfileServiceTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -176,53 +262,27 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( 'alice@example.com', $result['user_email'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_read_usermeta_masks_sensitive_field_by_default(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
-
-		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_any' )->with( 'cpf', '51817842080' )->once()->andReturn( '123.***.***-01' );
-
-		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => self::encrypted( Identifiers::CPF_A ) );
 
 		$result = UserProfileService::read( 42, array( 'cpf' ) );
 
-		$this->assertSame( '123.***.***-01', $result['cpf'] );
+		$this->assertSame( self::cpf_mask( Identifiers::CPF_A ), $result['cpf'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_read_usermeta_returns_full_plaintext_when_policy_is_full(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
-
-		// FULL policy triggers an audit entry via ActivityLog::log; stub it.
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->once()
-			->with(
-				'user_profile_read_full',
-				Mockery::any(),
-				Mockery::on( function ( $ctx ) {
-					return isset( $ctx['target_user_id'] ) && 42 === $ctx['target_user_id']
-						&& isset( $ctx['fields'] ) && in_array( 'cpf', $ctx['fields'], true );
-				} ),
-				Mockery::any(),
-				Mockery::any()
-			)
-			->andReturn( true );
-		$log->shouldReceive( 'is_enabled' )->andReturn( true );
-
-		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
+		$this->enable_activity_log();
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => self::encrypted( Identifiers::CPF_A ) );
 
 		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::FULL );
 
-		$this->assertSame( '51817842080', $result['cpf'] );
+		$this->assertSame( Identifiers::CPF_A, $result['cpf'] );
+		// A FULL read of a sensitive field writes exactly one audit entry.
+		$logged = ActivityLogBuffer::contexts();
+		$this->assertCount( 1, $logged );
+		$this->assertSame( 'user_profile_read_full', $logged[0]['action'] );
+		$this->assertSame( 42, $logged[0]['context']['target_user_id'] ?? null );
+		$this->assertContains( 'cpf', $logged[0]['context']['fields'] ?? array() );
 	}
 
 	/**
@@ -262,27 +322,15 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertNull( $result['cpf'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_read_does_not_audit_masked_reads_even_for_sensitive_fields(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->andReturn( '51817842080' );
+		// The log is on, so a masked read that audited would be seen.
+		$this->enable_activity_log();
+		$this->usermeta_store[42] = array( 'ffc_user_cpf' => self::encrypted( Identifiers::CPF_A ) );
 
-		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmt->shouldReceive( 'mask_any' )->andReturn( '123.***.***-01' );
+		$result = UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::MASKED );
 
-		// ActivityLog::log must NEVER be called on MASKED reads.
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->never();
-		$log->shouldReceive( 'is_enabled' )->andReturn( true );
-
-		$this->usermeta_store[42] = array( 'ffc_user_cpf' => 'ENC_CPF' );
-
-		UserProfileService::read( 42, array( 'cpf' ), ViewPolicy::MASKED );
-
-		$this->addToAssertionCount( 1 ); // rely on Mockery strict shouldReceive.
+		$this->assertSame( self::cpf_mask( Identifiers::CPF_A ), $result['cpf'] );
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
 	}
 
 	// ==================================================================
@@ -394,20 +442,12 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertArrayNotHasKey( 'last_name', $this->usermeta_store[42] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_write_encrypts_sensitive_usermeta_and_stores_hash(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '51817842080' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '51817842080' )->once()->andReturn( 'HASH' );
-
-		$result = UserProfileService::write( 42, array( 'cpf' => '51817842080' ) );
+		$result = UserProfileService::write( 42, array( 'cpf' => Identifiers::CPF_A ) );
 
 		$this->assertTrue( $result );
-		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
-		$this->assertSame( 'HASH', $this->profile_row['cpf_hash'] );
+		$this->assertStoredCiphertextOf( Identifiers::CPF_A, 'ffc_user_cpf' );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->profile_row['cpf_hash'] );
 		$this->assertArrayNotHasKey(
 			'ffc_user_cpf_hash',
 			$this->usermeta_store[42],
@@ -421,30 +461,24 @@ class UserProfileServiceTest extends TestCase {
 	 * **This is the defect that made #1313 necessary, stated as an
 	 * assertion.** This method used to encrypt and hash the value exactly as
 	 * handed to it, so a reregistration submitting the masked
-	 * `123.456.789-09` — which is what the form's own input mask produces —
+	 * `xxx.xxx.xxx-xx` form — which is what the form's own input mask produces —
 	 * wrote a hash of the punctuation, while submissions, appointments and
 	 * recruitment all wrote a hash of the digits. One person, two values,
 	 * never matching.
 	 *
 	 * The test above passes a value that is ALREADY digits, so it was green
 	 * throughout and could never have caught this. That is why the mask is the
-	 * whole point of this one: `with( '12345678909' )` fails if the raw string
-	 * reaches `Encryption` again.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * whole point of this one: the ciphertext must decrypt to the digits, and
+	 * the index must be the hash of the digits, or the raw string reached
+	 * `Encryption` again.
 	 */
 	public function test_write_normalizes_a_masked_cpf_before_encrypting_and_hashing(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '12345678909' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '12345678909' )->once()->andReturn( 'HASH' );
-
-		$result = UserProfileService::write( 42, array( 'cpf' => '123.456.789-09' ) );
+		$result = UserProfileService::write( 42, array( 'cpf' => self::masked( Identifiers::CPF_A ) ) );
 
 		$this->assertTrue( $result );
-		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_cpf'] );
+		$this->assertStoredCiphertextOf( Identifiers::CPF_A, 'ffc_user_cpf' );
 		$this->assertSame(
-			'HASH',
+			Encryption::hash( Identifiers::CPF_A ),
 			$this->profile_row['cpf_hash'],
 			'The profile must hash the canonical form, or it can never match the hash the other modules store for the same person.'
 		);
@@ -456,15 +490,8 @@ class UserProfileServiceTest extends TestCase {
 	 * `...---` normalises to the empty string. Encrypting and hashing that
 	 * would make every such row share one searchable value, which is the
 	 * opposite of an identifier.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_write_skips_a_sensitive_value_that_normalizes_to_nothing(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->never();
-		$enc->shouldReceive( 'hash' )->never();
-
 		UserProfileService::write( 42, array( 'cpf' => '...---' ) );
 
 		$this->assertArrayNotHasKey( 'ffc_user_cpf', $this->usermeta_store[42] ?? array() );
@@ -488,19 +515,12 @@ class UserProfileServiceTest extends TestCase {
 		);
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_write_non_sensitive_usermeta_does_not_call_encryption(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->never();
-		$enc->shouldReceive( 'hash' )->never();
-
+	public function test_write_non_sensitive_usermeta_stores_plaintext_and_no_index(): void {
 		$result = UserProfileService::write( 42, array( 'jornada' => '8h_daily' ) );
 
 		$this->assertTrue( $result );
-		$this->assertSame( '8h_daily', $this->usermeta_store[42]['ffc_user_jornada'] );
+		$this->assertSame( '8h_daily', $this->usermeta_store[42]['ffc_user_jornada'], 'Stored as typed: never encrypted.' );
+		$this->assertNull( $this->profile_row, 'Never hashed into the identity index.' );
 	}
 
 	// ==================================================================
@@ -510,19 +530,12 @@ class UserProfileServiceTest extends TestCase {
 	/**
 	 * The full date is encrypted in its canonical form, and its month and day
 	 * are mirrored in plaintext -- the one slice a scheduled job can query.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_write_birth_date_encrypts_the_canonical_form_and_mirrors_the_month_day(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '1990-05-20' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->never();
-
 		$result = UserProfileService::write( 42, array( 'birth_date' => '20/05/1990' ) );
 
 		$this->assertTrue( $result );
-		$this->assertSame( 'ENC', $this->usermeta_store[42]['ffc_user_birth_date'] );
+		$this->assertStoredCiphertextOf( '1990-05-20', 'ffc_user_birth_date' );
 		$this->assertSame( '05-20', $this->usermeta_store[42][ UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ] );
 		$this->assertNull( $this->profile_row, 'A birth date is not an identifier: it must write no index.' );
 	}
@@ -530,14 +543,8 @@ class UserProfileServiceTest extends TestCase {
 	/**
 	 * A value that is not a date is refused rather than stored: a mirror
 	 * computed from it would be empty while the ciphertext held garbage.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_write_birth_date_refuses_a_value_that_is_not_a_date(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->never();
-
 		$this->usermeta_store[42] = array(
 			'ffc_user_birth_date'                          => 'PREVIOUS_ENC',
 			UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY => '01-02',
@@ -591,16 +598,7 @@ class UserProfileServiceTest extends TestCase {
 		$this->assertSame( 'hello', $this->usermeta_store[42]['ffc_user_custom_dynamic_field'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_write_with_extra_descriptor_encrypts_sensitive_dynamic_field(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( 'secret' )->once()->andReturn( 'ENC_DYNAMIC' );
-		// hashable=false, so no hash() call is expected at all.
-		$enc->shouldReceive( 'hash' )->never();
-
 		UserProfileService::write(
 			42,
 			array( 'custom_secret' => 'secret' ),
@@ -614,8 +612,10 @@ class UserProfileServiceTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 'ENC_DYNAMIC', $this->usermeta_store[42]['ffc_user_custom_secret'] );
+		$this->assertStoredCiphertextOf( 'secret', 'ffc_user_custom_secret' );
 		$this->assertArrayNotHasKey( 'ffc_user_custom_secret_hash', $this->usermeta_store[42] );
+		// hashable=false: no hash reaches the identity index either.
+		$this->assertNull( $this->profile_row );
 	}
 
 	public function test_write_without_overrides_still_drops_unregistered_keys(): void {

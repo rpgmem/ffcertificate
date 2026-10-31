@@ -98,7 +98,8 @@ class ScheduledTasksTest extends TestCase {
 		$kept_block  = substr( $source, (int) $split, (int) $end_kept - (int) $split );
 		$purge_block = substr( $source, (int) $end_kept );
 
-		$hooks = array_keys( ScheduledTasks::all() );
+		// The pre-#2323 names stay cleared for their deprecation cycle.
+		$hooks = array_merge( array_keys( ScheduledTasks::all() ), array_keys( ScheduledTasks::LEGACY_HOOKS ) );
 		$this->assertNotSame( array(), $hooks, 'The register is empty -- the check did not run.' );
 
 		foreach ( $hooks as $hook ) {
@@ -128,7 +129,6 @@ class ScheduledTasksTest extends TestCase {
 			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_digest'          => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_announce'        => 'DateMessagesCron::unschedule()',
-			'ffcertificate_warm_cache_hook'     => 'FormCache::unschedule_cache_warming()',
 		);
 
 		foreach ( array_keys( ScheduledTasks::all() ) as $hook ) {
@@ -151,6 +151,7 @@ class ScheduledTasksTest extends TestCase {
 
 		foreach ( array(
 			\FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK,
+			\FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK,
 			\FreeFormCertificate\Integrations\CloudflareCidrRefresh::CRON_HOOK,
 			\FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK,
 			\FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK,
@@ -161,10 +162,14 @@ class ScheduledTasksTest extends TestCase {
 			\FreeFormCertificate\DateMessages\Runner::BATCH_HOOK,
 			\FreeFormCertificate\DateMessages\Digest::HOOK,
 			\FreeFormCertificate\DateMessages\Runner::ANNOUNCE_HOOK,
-			\FreeFormCertificate\Submissions\FormCache::WARM_HOOK,
 		) as $constant ) {
 			$this->assertArrayHasKey( $constant, $all );
 		}
+	}
+
+	public function test_the_retired_warming_is_no_longer_listed(): void {
+		// The event is still cleared everywhere (#2241); it is not a task.
+		$this->assertArrayNotHasKey( \FreeFormCertificate\Submissions\FormCache::WARM_HOOK, ScheduledTasks::all() );
 	}
 
 	public function test_the_date_messages_cron_unschedules_every_single_event_whatever_its_arguments(): void {
@@ -183,7 +188,9 @@ class ScheduledTasksTest extends TestCase {
 	 * @return string
 	 */
 	private static function clear_call( string $hook ): string {
-		return ScheduledTasks::SINGLE === ScheduledTasks::all()[ $hook ]['recurrence']
+		// A legacy name was recurring, like the hook it became.
+		$hook_now = ScheduledTasks::LEGACY_HOOKS[ $hook ] ?? $hook;
+		return ScheduledTasks::SINGLE === ScheduledTasks::all()[ $hook_now ]['recurrence']
 			? "wp_unschedule_hook( '{$hook}' )"
 			: "wp_clear_scheduled_hook( '{$hook}' )";
 	}
@@ -202,7 +209,9 @@ class ScheduledTasksTest extends TestCase {
 		$added = array();
 		Functions\when( 'add_action' )->alias(
 			static function ( $hook, $callback, $priority = 10 ) use ( &$added ) {
-				$added[ $hook ] = $priority;
+				if ( 999 === $priority ) {
+					$added[ $hook ] = $priority;
+				}
 				return true;
 			}
 		);
@@ -223,12 +232,12 @@ class ScheduledTasksTest extends TestCase {
 		$this->stored = array( 'ffc_cloudflare_cidr_refresh' => 100 );
 
 		$before = time();
-		ScheduledTasks::touch( 'ffcertificate_daily_cleanup_hook' );
+		ScheduledTasks::touch( 'ffc_daily_cleanup' );
 
 		[ $value, $autoload ] = $this->writes[ ScheduledTasks::HEARTBEAT_OPTION ];
 		$this->assertFalse( $autoload );
 		$this->assertSame( 100, $value['ffc_cloudflare_cidr_refresh'], 'Touching one hook must keep the others.' );
-		$this->assertGreaterThanOrEqual( $before, $value['ffcertificate_daily_cleanup_hook'] );
+		$this->assertGreaterThanOrEqual( $before, $value['ffc_daily_cleanup'] );
 	}
 
 	public function test_heartbeats_drop_what_is_not_a_hook_and_a_time(): void {
@@ -261,17 +270,17 @@ class ScheduledTasksTest extends TestCase {
 	public function states(): array {
 		$now = 1000000;
 		return array(
-			'not scheduled'          => array( 'ffcertificate_daily_cleanup_hook', null, $now - 10, 'not_scheduled' ),
-			'never ran'              => array( 'ffcertificate_daily_cleanup_hook', $now + 10, null, 'never_run' ),
-			'daily within 26h'       => array( 'ffcertificate_daily_cleanup_hook', $now + 10, $now - 26 * 3600, 'ok' ),
-			'daily past 26h'         => array( 'ffcertificate_daily_cleanup_hook', $now + 10, $now - 26 * 3600 - 1, 'late' ),
-			'hourly within 2h'       => array( 'ffcertificate_self_scheduling_reminder_scan', $now + 10, $now - 2 * 3600, 'ok' ),
-			'hourly past 2h'         => array( 'ffcertificate_self_scheduling_reminder_scan', $now + 10, $now - 2 * 3600 - 1, 'late' ),
+			'not scheduled'          => array( 'ffc_daily_cleanup', null, $now - 10, 'not_scheduled' ),
+			'never ran'              => array( 'ffc_daily_cleanup', $now + 10, null, 'never_run' ),
+			'daily within 26h'       => array( 'ffc_daily_cleanup', $now + 10, $now - 26 * 3600, 'ok' ),
+			'daily past 26h'         => array( 'ffc_daily_cleanup', $now + 10, $now - 26 * 3600 - 1, 'late' ),
+			'hourly within 2h'       => array( 'ffc_self_scheduling_reminder_scan', $now + 10, $now - 2 * 3600, 'ok' ),
+			'hourly past 2h'         => array( 'ffc_self_scheduling_reminder_scan', $now + 10, $now - 2 * 3600 - 1, 'late' ),
 		);
 	}
 
 	public function test_report_lists_recurring_hooks_with_their_module_state(): void {
-		$this->stored = array( 'ffcertificate_daily_cleanup_hook' => 999000 );
+		$this->stored = array( 'ffc_daily_cleanup' => 999000 );
 		Functions\when( 'wp_next_scheduled' )->alias(
 			static function ( $hook ) {
 				return 'ffc_cloudflare_cidr_refresh' === $hook ? false : 1001000;
@@ -293,18 +302,18 @@ class ScheduledTasksTest extends TestCase {
 		}
 
 		$this->assertArrayNotHasKey( 'ffc_process_submission_async', $rows, 'A one-off event has no heartbeat to report.' );
-		$this->assertSame( 'ok', $rows['ffcertificate_daily_cleanup_hook']['state'] );
-		$this->assertSame( 999000, $rows['ffcertificate_daily_cleanup_hook']['last_run'] );
+		$this->assertSame( 'ok', $rows['ffc_daily_cleanup']['state'] );
+		$this->assertSame( 999000, $rows['ffc_daily_cleanup']['last_run'] );
 		$this->assertSame( 'not_scheduled', $rows['ffc_cloudflare_cidr_refresh']['state'] );
 		$this->assertTrue( $rows['ffc_cloudflare_cidr_refresh']['module_enabled'], 'A hook with no module is always on.' );
-		$this->assertFalse( $rows['ffcertificate_reregistration_expire_hook']['module_enabled'] );
+		$this->assertFalse( $rows['ffc_reregistration_expire']['module_enabled'] );
 	}
 
 	public function test_pending_singles_counts_queued_events_per_hook(): void {
 		$crons = array(
 			100 => array(
 				'ffc_process_submission_async'     => array( 'a' => array(), 'b' => array() ),
-				'ffcertificate_daily_cleanup_hook' => array( 'c' => array() ),
+				'ffc_daily_cleanup' => array( 'c' => array() ),
 			),
 			200 => array(
 				'ffc_process_submission_async' => array( 'd' => array() ),
@@ -317,6 +326,8 @@ class ScheduledTasksTest extends TestCase {
 				'ffc_process_submission_async'        => 3,
 				'ffc_reregistration_reminder_batch'   => 0,
 				'ffc_reregistration_invitation_batch' => 0,
+				'ffc_recruitment_account_link_batch'  => 0,
+				'ffc_audience_notification_batch'     => 0,
 				'ffc_date_messages_batch'             => 0,
 				'ffc_date_messages_digest'            => 0,
 				'ffc_date_messages_announce'          => 0,
@@ -377,14 +388,14 @@ class ScheduledTasksTest extends TestCase {
 
 	public function test_times_keep_only_valid_times_of_daily_tasks(): void {
 		$this->times = array(
-			'ffcertificate_daily_cleanup_hook'            => '03:30',
-			'ffcertificate_self_scheduling_reminder_scan' => '04:00',
+			'ffc_daily_cleanup'            => '03:30',
+			'ffc_self_scheduling_reminder_scan' => '04:00',
 			'ffc_cloudflare_cidr_refresh'                 => '24:00',
 			'not_ours'                                    => '05:00',
 		);
 
-		$this->assertSame( array( 'ffcertificate_daily_cleanup_hook' => '03:30' ), ScheduledTasks::times() );
-		$this->assertSame( '03:30', ScheduledTasks::time_for( 'ffcertificate_daily_cleanup_hook' ) );
+		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), ScheduledTasks::times() );
+		$this->assertSame( '03:30', ScheduledTasks::time_for( 'ffc_daily_cleanup' ) );
 		$this->assertNull( ScheduledTasks::time_for( 'ffc_cloudflare_cidr_refresh' ) );
 	}
 
@@ -400,10 +411,10 @@ class ScheduledTasksTest extends TestCase {
 
 	public function test_first_run_uses_the_chosen_time_or_the_callers_default(): void {
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
-		$this->times = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
+		$this->times = array( 'ffc_daily_cleanup' => '03:30' );
 
 		$this->assertSame( 12345, ScheduledTasks::first_run( 'ffc_cloudflare_cidr_refresh', 12345 ) );
-		$first = ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', 12345 );
+		$first = ScheduledTasks::first_run( 'ffc_daily_cleanup', 12345 );
 		$this->assertSame( '03:30', gmdate( 'H:i', $first ) );
 		$this->assertGreaterThan( time(), $first );
 	}
@@ -411,10 +422,10 @@ class ScheduledTasksTest extends TestCase {
 	public function test_save_times_moves_only_changed_scheduled_tasks(): void {
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		$this->times = array(
-			'ffcertificate_daily_cleanup_hook' => '03:30',
+			'ffc_daily_cleanup' => '03:30',
 			'ffc_cloudflare_cidr_refresh'      => '04:00',
 		);
-		$scheduled   = array( 'ffcertificate_daily_cleanup_hook', 'ffc_cloudflare_cidr_refresh', 'ffc_daily_expired_tickets_cleanup' );
+		$scheduled   = array( 'ffc_daily_cleanup', 'ffc_cloudflare_cidr_refresh', 'ffc_daily_expired_tickets_cleanup' );
 		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => in_array( $hook, $scheduled, true ) ? time() + 60 : false );
 		$cleared = array();
 		$events  = array();
@@ -433,26 +444,146 @@ class ScheduledTasksTest extends TestCase {
 
 		$invalid = ScheduledTasks::save_times(
 			array(
-				'ffcertificate_daily_cleanup_hook'         => '03:30', // unchanged
+				'ffc_daily_cleanup'         => '03:30', // unchanged
 				'ffc_cloudflare_cidr_refresh'              => '',      // cleared
 				'ffc_daily_expired_tickets_cleanup'        => '02:15', // new, scheduled
-				'ffcertificate_reregistration_expire_hook' => '05:45', // new, not scheduled
+				'ffc_reregistration_expire' => '05:45', // new, not scheduled
 				'ffc_date_messages_daily'                  => '7:00',  // invalid
-				'ffcertificate_self_scheduling_reminder_scan' => '01:00', // hourly: ignored
+				'ffc_self_scheduling_reminder_scan' => '01:00', // hourly: ignored
 			)
 		);
 
 		$this->assertSame( array( 'ffc_date_messages_daily' ), $invalid );
 		$this->assertSame(
 			array(
-				'ffcertificate_daily_cleanup_hook'         => '03:30',
+				'ffc_daily_cleanup'         => '03:30',
 				'ffc_daily_expired_tickets_cleanup'        => '02:15',
-				'ffcertificate_reregistration_expire_hook' => '05:45',
+				'ffc_reregistration_expire' => '05:45',
 			),
 			$this->times
 		);
 		$this->assertFalse( $this->writes[ ScheduledTasks::TIMES_OPTION ][1], 'Not autoloaded.' );
 		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' ), $cleared, 'Only a changed, scheduled task moves; a cleared one stays where it is.' );
 		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' => array( '02:15', 'daily' ) ), $events );
+	}
+
+	// ------------------------------------------------------------------
+	// Pre-#2323 names
+	// ------------------------------------------------------------------
+
+	public function test_every_legacy_name_maps_to_a_registered_recurring_hook(): void {
+		$this->assertCount( 6, ScheduledTasks::LEGACY_HOOKS );
+		foreach ( ScheduledTasks::LEGACY_HOOKS as $old => $new ) {
+			$this->assertStringStartsWith( 'ffcertificate_', $old );
+			$this->assertStringStartsWith( 'ffc_', $new );
+			$this->assertArrayHasKey( $new, ScheduledTasks::all(), $new );
+			$this->assertNotSame( ScheduledTasks::SINGLE, ScheduledTasks::all()[ $new ]['recurrence'], $new );
+		}
+	}
+
+	/**
+	 * An event under an old name moves to the new one at the same time and
+	 * with the same recurrence; the stored heartbeat and chosen time follow.
+	 */
+	public function test_migration_moves_an_old_event_with_its_time_and_keys(): void {
+		$events = array(
+			'ffcertificate_daily_cleanup_hook'            => array( 1900000000, 'daily' ),
+			'ffcertificate_self_scheduling_reminder_scan' => array( 1900000500, 'hourly' ),
+		);
+		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][0] : false );
+		Functions\when( 'wp_get_schedule' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][1] : false );
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( $hook ) use ( &$events ) {
+				unset( $events[ $hook ] );
+				return 1;
+			}
+		);
+		Functions\when( 'wp_schedule_event' )->alias(
+			static function ( $ts, $recurrence, $hook ) use ( &$events ) {
+				$events[ $hook ] = array( $ts, $recurrence );
+				return true;
+			}
+		);
+		$this->stored = array( 'ffcertificate_daily_cleanup_hook' => 111 );
+		$this->times  = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
+
+		$this->assertSame( 2, ScheduledTasks::migrate_legacy_hooks() );
+
+		$this->assertSame(
+			array(
+				'ffc_daily_cleanup'                 => array( 1900000000, 'daily' ),
+				'ffc_self_scheduling_reminder_scan' => array( 1900000500, 'hourly' ),
+			),
+			$events
+		);
+		$this->assertSame( array( 'ffc_daily_cleanup' => 111 ), $this->stored );
+		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $this->times );
+	}
+
+	public function test_migration_never_schedules_a_second_copy(): void {
+		$events = array(
+			'ffcertificate_bulk_issue_purge' => array( 1900000000, 'daily' ),
+			'ffc_bulk_issue_purge'           => array( 1900009999, 'daily' ),
+		);
+		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][0] : false );
+		Functions\when( 'wp_get_schedule' )->justReturn( 'daily' );
+		Functions\when( 'wp_clear_scheduled_hook' )->alias(
+			static function ( $hook ) use ( &$events ) {
+				unset( $events[ $hook ] );
+				return 1;
+			}
+		);
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_schedule_event', true );
+		$this->stored = array(
+			'ffcertificate_bulk_issue_purge' => 1,
+			'ffc_bulk_issue_purge'           => 2,
+		);
+
+		$this->assertSame( 1, ScheduledTasks::migrate_legacy_hooks() );
+
+		$this->assertSame( 0, $log->count() );
+		$this->assertSame( array( 'ffc_bulk_issue_purge' => array( 1900009999, 'daily' ) ), $events );
+		$this->assertSame( array( 'ffc_bulk_issue_purge' => 2 ), $this->stored, 'The value under the new name wins.' );
+	}
+
+	public function test_migration_with_nothing_left_writes_nothing(): void {
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_clear_scheduled_hook', 0 );
+
+		$this->assertSame( 0, ScheduledTasks::migrate_legacy_hooks() );
+
+		$this->assertSame( 0, $log->count() );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	/**
+	 * A callback a site attached to an old name still runs when the new hook
+	 * fires, through do_action_deprecated() naming the replacement.
+	 */
+	public function test_an_old_name_with_a_listener_is_relayed_as_deprecated(): void {
+		$callbacks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook, $callback, $priority = 10 ) use ( &$callbacks ) {
+				if ( 998 === $priority ) {
+					$callbacks[ $hook ] = $callback;
+				}
+				return true;
+			}
+		);
+		Functions\when( 'has_action' )->alias( static fn( $hook ) => 'ffcertificate_daily_cleanup_hook' === $hook );
+		$relayed = array();
+		Functions\when( 'do_action_deprecated' )->alias(
+			static function ( $hook, $args, $version, $replacement ) use ( &$relayed ) {
+				$relayed[] = array( $hook, $args, $version, $replacement );
+			}
+		);
+
+		ScheduledTasks::init();
+
+		$this->assertSame( array_values( ScheduledTasks::LEGACY_HOOKS ), array_keys( $callbacks ) );
+		$callbacks['ffc_daily_cleanup']();
+		$callbacks['ffc_bulk_issue_purge']();
+
+		$this->assertSame( array( array( 'ffcertificate_daily_cleanup_hook', array(), '6.43.0', 'ffc_daily_cleanup' ) ), $relayed, 'Only the old name with a listener is relayed.' );
 	}
 }

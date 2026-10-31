@@ -7,7 +7,92 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.42.0] (2026-10-26)
+## [6.43.0] (2026-10-31)
+
+### Added
+
+- **Scheduling: optional holidays, editable closed dates, and calendar colours and names** (#2202, #2212, #2215, #2218, #2221, #2223). A holiday can be marked optional; holiday and closed-date rows edit in place. Calendar Colors and Labels sets each state's colour and its legend and day-cell names, and a calendar may override the names.
+- **Reregistration: answers on the dashboard, an @edu e-mail, and the CEP checked and used** (#2227, #2233, #2234). View answers shows a sent submission masked behind Reveal; a new Institutional Email (@edu) field; a CEP must fall in the chosen UF's range, and Settings → General can fill the address from ViaCEP or BrasilAPI (off by default).
+- **Reregistration: review with reasons, retract, and fields that keep their answers** (#2242). Reject and Return to draft need a reason the member reads and is e-mailed; an unreviewed submission can be retracted; an answered field's key, type and binding lock. The list pages, searches by CPF/RF, filters and exports what it shows.
+- **Reregistration: the form saves itself and warns before losing changes** (#2242). A draft is saved 5 s after the last change, and leaving or Cancel with unsaved changes asks first.
+- **Certificates: a sent grade or a typo in an answer can be corrected** (#2241). From the submission edit screen, with a required reason and an activity-log entry; identity fields cannot be corrected, and a grade change e-mails the participant only when passed/not passed flips. Saving a first grade asks for confirmation.
+- **Audience Calendars: weekly series, and editing a booking without losing its attendance** (#2243). A day repeats weekly for up to 52 weeks; one date or every later one can be cancelled; `PUT /audience/bookings/{id}` and Edit in the day's list move or change a booking, with one "Activity changed" e-mail. The cancel hook gains a `context` argument.
+- **Personal Calendars: attendance marks, automatic close-out and blocked dates** (#2284, #2285, #2244). Attended and No-show (undoable, also in bulk); a daily close-out of appointments a set number of days past (default 7); a Blocked dates tab that closes a day or a time range and cancels the appointments it reaches, after a count.
+- **Personal Calendars: Reschedule, a filtered and searchable list, an accessible calendar** (#2244). Reschedule cancels with a reason and opens the calendar's page; the list filters by date or Today and searches by name, e-mail, CPF/RF or ID, and the CSV follows; the booking calendar's days are keyboard buttons.
+- **Recruitment: who was called, when and by whom, and CSV exports** (#2245). The definitive list shows the call and assumption dates, filters by status and keeps a Calls record; callers show only to the new `ffc_view_recruitment_history`. List and calls export as CSV, without CPF, RF or e-mail, under the new `ffc_export_recruitment`.
+- **Privacy export: activity log and date messages** (#2246). Tools → Export Personal Data lists the activity-log entries recorded against the person and the date messages sent to them; paged groups break ties on the id.
+
+### Changed
+
+- **Tests: no test class runs every test in its own process** (#2091, #2104, #2107, #2117, #2119, #2121, #2125, #2127, #2129, #2131, #2134, #2136, #2142, #2144, #2150, #2152, #2164, #2166, #2172, #2174, #2179, #2180, #2181, #2186, #2189, #2192, #2194). Real collaborators now run over `$wpdb` doubles; the few tests that keep a process say why, and the isolation guard blocks at zero.
+- **Tests: order-independent, mutation-checked, with standard fixtures** (#2092, #2098, #2100, #2102, #2123, #2138, #2168, #2197, #2208, #2217). The suite passes in reverse order, now a required CI job, with a random-order alarm; mutation testing closed gaps in the quiz scorer, encryption, `DocumentFormatter`, captcha and GPS; duplicate tests went.
+- **Settings → Data Migrations collapses finished cards** (#2115). A card at 100% shows one line with a "Complete" chip, and each card wears an icon of what it does.
+- **Rate limiting: a denial always carries its message** (#2153). Ten unreachable fallback texts are gone.
+- **Personal Calendars: staff book through the REST API on behalf of a person** (#2161). `POST /calendars/{id}/appointments` opens to the Operator and Manager tiers; the booking belongs to the account matched or created from the CPF/RF and e-mail, and the activity log names who booked it.
+- **Admin: environment colours in the filter, and quieter list controls** (#2201, #2239). The audience environment filter shows each colour; list toggles drop a redundant "Active" label; recruitment Call wears a `user-call` icon.
+- **Certificates: faster search, duplicate check, verification and PDF loading** (#2241). Search and the duplicate check read indexes; jsPDF and html2canvas load when a page is about to need them; verification is one lookup per kind, and the identity-audit queries moved to `SubmissionIdentityAudit`.
+- **Reregistration: fewer reads per request** (#2242). A submit reads the campaign's fields once, and the one-shot steps read one autoloaded version option.
+- **Audience Calendars: a configurable longest range, and an override that takes only the clashing days** (#2243). A booking spans at most 30 days by default (Scheduling → Settings, 1–365); an override keeps the earlier booking's other days with the operator's reason; multi-day bookings store each day's hours.
+- **Audience Calendars: booking e-mails leave in batches from WP-Cron** (#2243). A booking for thousands of members returns at once; batches of 50 go through `wp_mail()` and Total Mail Queue, each person mailed once.
+- **Audience Calendars: the bookings list pages, filters, searches, sorts and cancels in bulk** (#2243, #2291). 50 per page with the calendar and who each booking is for; filter by audience, search, sort by any column, the CSV following, and cancel ticked bookings with one reason.
+- **Personal Calendars: the Appointments list opens by appointment date and time** (#2288). Newest date and latest time first, in the site's formats; the audience bookings list orders the same way.
+- **Audience Calendars: clearer participant notices, one conflict check, and stored instants** (#2243). The dashboard shows a cancellation reason and what joining or leaving changes; the check names people, audience and room clashes at once; `created_at` and `cancelled_at` are UTC `BIGINT` instants; the lock and invitation scan read new indexes.
+- **Personal Calendars: global holidays close personal appointments, the interval counts from the last booking, and the slot grid holds** (#2244). A holiday lists and cancels open appointments on its date; a change that would move a booked slot is refused on save.
+- **Recruitment: accounts after publishing, and a call e-mail that says what to do** (#2245). Candidate accounts are created in batches once a notice is published, never moved; the call e-mail carries the `.ics`, the "My calls" link, an optional answer deadline and the password link a new account needs.
+- **Recruitment: re-imports show their changes, and one dialog per call action** (#2245). A replacing file lists what enters, leaves or changes and waits for confirmation; promotion copies or imports the definitive list. Call, cancel, reopen and undo each ask their date or audited reason in one dialog.
+- ⚠ **Recruitment: PCD is recorded per notice** (#2245). An import sets PCD only on its notice, keyed on the plugin's hash salt; a migration card copies the old flags. `GET /candidates/{id}` returns `pcd` per classification instead of `is_pcd`.
+- **Recruitment: a closed notice leaves My Calls' active sections, and the public list reads on a phone** (#2245). Closed rows move to Closed, labelled "Notice closed" when no result was recorded; the public list has captions, headers and a card layout on narrow screens.
+- **Scheduled tasks: six cron hooks take the `ffc_` prefix** (#2323). An upgraded install moves each event with its next run, last run and chosen time.
+
+### Deprecated
+
+- **65 PHP methods and 11 JavaScript functions nothing in the plugin calls** (#2089). They warn and leave in 6.45.0, with no replacement because nothing used them.
+- **Five one-shot migration cards leave in 6.45.0** (#2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. Run any still pending before updating to 6.45.0.
+- **Certificates: the form-settings cache, its warming, four unused submission lookups and `SubmissionReader`'s identity-audit queries** (#2241). They warn and leave in 6.45.0; the audit queries live in `SubmissionIdentityAudit`.
+- **The `ffcertificate_*` names of the six cron hooks** (#2323). A callback on an old name still runs through `do_action_deprecated()`, naming the replacement.
+
+### Removed
+
+- **⚠ Breaking for external integrations — four `Encryption` helpers are gone** (#1950): `encrypt_submission()`, `decrypt_submission()`, `get_info()` and `test()`, deprecated in 6.41.0 (#1934). Use `SensitiveFieldRegistry::encrypt_fields()`, `Encryption::decrypt_field()` and `Encryption::key_health_report()`.
+- **Unused styles** (#2089). The jQuery UI theme in `libs/css/` with its 11 images, and four CSS rules no markup emitted.
+- **Settings → Cache: the Form Cache card** (#2241). Its switch gated nothing; Clear Cache becomes Purge page caches, Warm Cache Now goes, and the daily warming event is cleared.
+
+### Fixed
+
+- **IPv6 and CIDR in the throttles and the IP lists** (#2106, #2109). An IPv6 caller is counted by its /64 and an unreadable address is let through or counted together, per card; the allow and deny lists accept IPv6 and CIDR, validated on save.
+- **Lists sort as they say** (#2137, #2147, #2290). Appointments order by appointment date again, the public calendar list is alphabetical, and the audience bookings list reads newest first.
+- **Booking through the REST API works** (#2146, #2155, #2160). Route ids are cast before typed lookups, the CPF/RF is passed on, a booking needing approval reports pending, and a signed-in owner can cancel and open their receipt.
+- **Limits and refusals say the right thing** (#2156, #2169). The per-CPF yearly limit counts a year, and a second early opening of a public CSV form says why it was refused.
+- **Audience Calendars: settings, notices and deletions hold** (#2175, #2176, #2183, #2229). A new calendar keeps its chosen settings, environment notices name their calendar, a cancel the database refused is not reported done, and an environment with bookings cannot be deleted.
+- **Certificates: no link to a token nobody stored** (#2187). A missing magic token shows "No token" instead of a dead link.
+- **Public calendars: the event panel takes the calendar's height, and notices its width** (#2200).
+- **Reregistration: a shared field shows once, the next campaign starts from the last answers, and the Record fits one page** (#2225, #2227, #2235). Documents print masked in their shape, e-mails take full rows, and the pool's default record is refreshed.
+- **User dashboard: "View answers" takes the compact row size** (#2231).
+- **Certificates: quiz attempt limits hold, and a passing retry is e-mailed** (#2241). Encrypted installs read every attempt as the first; a retry stored a date string in the issue date.
+- **Certificates: revoked, blank and timed messages behave** (#2241). A trashed certificate reads as revoked everywhere (REST adds `revoked_at`); a missing field prints blank instead of `{{tag}}`; a form has distinct messages before, after and outside its hours.
+- **A cache write no longer flushes the whole object cache** (#2241). Repositories, the form cache and the QR cache flush only their own group.
+- **Reregistration: one status gate, the campaign window and late joiners** (#2242). Draft and submit change one row in one write, inside the window on the site clock; bulk Approve takes only submissions awaiting review; audiences joined later get their row and invitation; hidden second-post fields no longer block a submit.
+- **Audience Calendars: the audience tree, single cancels, and nothing in use deleted** (#2243). Three levels and no cycles; a second cancel sends nothing; a calendar or audience in use stays inactive; a closed day refuses a duplicate and asks before cancelling its bookings.
+- **Personal-calendar reminders are sent** (#2244). The query never matched on MariaDB; it now reads the site timezone and the calendar's hours, pinned by a real-database check in CI.
+- **Personal Calendars: bookings land only on offered slots, and admin actions keep their promises** (#2244). One `SlotGrid` drives listing and validation; Confirm takes only a pending row and recounts; cancellations e-mail the reason; a link cannot cancel a past appointment.
+- **Recruitment: imports and deletions no longer destroy or rewrite data** (#2245). The definitive import runs only on a preliminary notice with no calls, in one transaction; only a draft notice deletes; a new row reports its own id; differing identities wait for confirmation; every row is validated on both paths.
+- **Recruitment: calls, statuses and refusals are consistent** (#2245). A cancelled call is cancelled everywhere and e-mailed; each notice status takes only its own changes (`RecruitmentNoticeLocks`); the Operator can work a notice; refusals read as sentences; the public list no longer queries per row.
+- **Submissions: search by the linked account's name, and a named quiz result** (#2319, #2321).
+- **User dashboard: dates, privacy requests and account cleanup** (#2246). Appointment dates no longer shift by timezone; a privacy request sends WordPress's confirmation e-mail; deleting an account cleans every table it touched; the owner can reveal and edit a masked phone or birth date.
+- **User dashboard: filters, tabs, counts and messages** (#2246). The date filter uses the site's day; an unknown tab or a module switched off falls back; counts match the lists; inline messages replace alerts, one notice covers an expired session or invitation, and the list stops decrypting every e-mail.
+
+### Security
+
+- **Client addresses are fingerprinted, masked and hashed** (#2109). Rate limiting keys callers by a keyed fingerprint; the activity log and Rate Limit tab mask addresses behind audited Reveals (`ffc_view_activity_log_pii`, `ffc_view_settings_pii`); geofence entries and debug lines no longer carry a recoverable address.
+- **Certificates: personal data stays with whoever may reveal it** (#2241). Verification returns no raw answers; the PDF and magic link show only to the PII tier; answers print escaped; closed forms refuse submissions; a reprint by CPF/RF is e-mailed to the stored address unless the owner asks.
+- **Reregistration: encrypted drafts, no account takeover, a signed-in Record** (#2242). Drafts encrypt sensitive answers (with a migration card); a field cannot map to login keys and an import cannot touch staff; ⚠ the Record downloads from the dashboard, and `{{magic_link_url}}` now leads there.
+- **Audience Calendars: bookings reach only reachable audiences, and staff answers mask e-mails** (#2243). A member books their own audiences; ids must exist; booking details and user search mask addresses; the check-in link follows the code's rotation; the month read is rate limited per account.
+- **Personal Calendars: no records handed over, and no token shown to staff** (#2244). An account is linked only after a booking validates; an anonymous form never adopts others' records; public reads are rate limited by IP; receipts reach staff masked and without the token.
+- **Recruitment privacy** (#2245). The PCD filter needs the PCD column; self-links are refused and links logged; `PATCH /candidates/{id}` follows the edit screen's rules; `/me/recruitment` drops staff fields; every reveal is logged.
+- **User dashboard: invitation links, staff accounts and view-as** (#2246). The password-set key moves to an HttpOnly cookie, lasts 7 days and is never issued to staff; an e-mail match never rewrites a staff account; page and API share one view-as gate, and view-as cannot change a password.
+- ⚠ **Certificates: the operator PDF route follows the reveal policy** (#2246). `GET /operator/certificates/{id}/pdf` serves the owner, or a holder of `ffc_view_certificates_pii` with an audit row; `ffc_manage_certificates` alone no longer opens it, and dashboard appointment rows carry e-mail and phone masked.
+
+## [6.42.0] (2026-10-26) — `8241871c`
 
 ### Added
 

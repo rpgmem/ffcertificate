@@ -35,19 +35,27 @@ export function bookingModalHtml(opts = {}) {
 			<div class="ffc-modal-backdrop"></div>
 			<div class="ffc-modal-content ffc-booking-dialog">
 				<div class="ffc-modal-header ffc-booking-header">
-					<h3 id="ffc-booking-modal-title">New Booking</h3>
+					<h3 id="ffc-booking-modal-title" data-ffc-new-title="New Booking" data-ffc-edit-title="Edit Booking">New Booking</h3>
 					<p class="ffc-booking-date-display ffc-icon-calendar"></p>
 					<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 				</div>
 				<div class="ffc-modal-body ffc-booking-body">
 					<form id="ffc-booking-form" class="ffc-audience-booking-form">
 						<input type="hidden" name="booking_date" id="booking-date">
+						<p id="booking-edit-note" hidden></p>
+						<div class="ffc-form-group" id="booking-move-date-group" hidden>
+							<input type="date" id="booking-move-date">
+						</div>
 						<fieldset id="booking-span" class="ffc-control-segmented">
 							<label><input type="radio" id="booking-span-1" name="booking_span" value="single" checked></label>
 							<label><input type="radio" id="booking-span-2" name="booking_span" value="range"></label>
+							<label><input type="radio" id="booking-span-3" name="booking_span" value="weekly"></label>
 						</fieldset>
 						<div class="ffc-form-group" id="booking-end-date-group" hidden>
 							<input type="date" name="end_date" id="booking-end-date">
+						</div>
+						<div class="ffc-form-group" id="booking-repeat-group" hidden>
+							<input type="date" name="repeat_until" id="booking-repeat-until">
 						</div>
 						<div class="ffc-booking-field" id="booking-all-day-group">
 							<label class="ffc-control-toggle" for="booking-all-day"><input type="checkbox" id="booking-all-day" name="is_all_day" value="1"></label>
@@ -63,6 +71,7 @@ export function bookingModalHtml(opts = {}) {
 						</div>
 						<label for="booking-environment-id">Env *</label>
 						<select name="environment_id" id="booking-environment-id" required></select>
+						<section id="ffc-booking-who">
 						<fieldset id="booking-type" class="ffc-control-segmented">
 							<label><input type="radio" id="booking-type-1" name="booking_type" value="audience" checked></label>
 							<label><input type="radio" id="booking-type-2" name="booking_type" value="individual"></label>
@@ -88,6 +97,7 @@ export function bookingModalHtml(opts = {}) {
 							<div id="booking-selected-users" class="ffc-selected-users"></div>
 							<input type="hidden" name="user_ids" id="booking-user-ids">
 						</div>
+						</section>
 						<div class="ffc-form-group">
 							<textarea name="description" id="booking-description">A valid description here</textarea>
 							<span id="desc-char-count">0</span>

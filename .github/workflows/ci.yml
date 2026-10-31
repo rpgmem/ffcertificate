@@ -154,6 +154,25 @@ jobs:
           echo "::error::One or more coverage shards (the PHP 8.3 run) did not succeed (result=${{ needs.coverage-shard.result }})."
           exit 1
 
+  # The whole suite in one process, in reverse order (#2197). The shards above
+  # each run a subset in the declared order, so a test that only passes
+  # because an earlier one left state behind is never seen there; #2123
+  # requires the suite to pass reversed, and #2195 found three tests on
+  # develop that did not. One process, not a shard: reversing a subset only
+  # reorders within it. Deterministic, so a failure reproduces locally with
+  # the same command. The random-order alarm lives in suite-order.yml.
+  test-reverse:
+    name: PHPUnit (PHP 8.4, reverse order)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.4'
+      - name: Run PHPUnit in reverse order
+        run: vendor/bin/phpunit --order-by=reverse
+
   # The #563 coverage campaign grew the suite to ~6200 tests, many of them
   # @runTestsInSeparateProcesses (alias-mock containment) — slow under pcov on
   # 2-core runners (the single-process coverage run hit both the 30m timeout and
@@ -531,6 +550,22 @@ jobs:
         # The script PLANTS an orphaned row before looking, because on a fresh
         # install every table is empty and the invariant would hold vacuously.
         run: php .github/scripts/identity-index-invariant-check.php "$HOME/wp"
+      - name: Check the personal-calendar reminder and slot queries
+        # #2244: the reminder query used DATE_SUB with a time string, which is
+        # NULL on MariaDB, so no reminder was ever sent while every unit test
+        # (against a $wpdb double) stayed green. The script plants due and
+        # not-due appointments around a non-UTC site clock and asserts the
+        # exact selection; it then checks the per-date block read and the
+        # per-slot capacity count, and deletes what it planted.
+        run: php .github/scripts/self-scheduling-query-check.php "$HOME/wp"
+      - name: Check the recruitment import, promotion and deletion flow
+        # #2245: every recruitment unit test mocks $wpdb, so none could see a
+        # definitive import wipe called rows before its state check refused
+        # it, a notice deletion orphan its lists, or accounts created inside
+        # an import that rolled back. The script runs import -> promote ->
+        # call -> refused re-import -> refused delete -> cancel on one notice,
+        # deletes a draft with its rows, and removes what it planted.
+        run: php .github/scripts/recruitment-flow-check.php "$HOME/wp"
       - name: Plant the residue the sweeps must remove
         # #1290: removal used to intersect a hand-written list, and the list
         # named 31 of the 60 live capabilities, so 40 survived every uninstall.

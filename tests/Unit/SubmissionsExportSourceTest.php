@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\Tests\Support\BatchedExportSourceContractTestCase;
 use FreeFormCertificate\Admin\SubmissionsExportSource;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for SubmissionsExportSource: the fixed + dynamic column layout, per-row
@@ -22,6 +23,15 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 
 	/** @var SubmissionsExportSource */
 	private $source;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -91,7 +101,7 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 			'email_encrypted'   => '',
 			'user_ip'           => '192.168.1.1',
 			'user_ip_encrypted' => '',
-			'cpf'               => '123.456.789-00',
+			'cpf'               => self::masked( Identifiers::CPF_A ),
 			'cpf_encrypted'     => '',
 			'rf'                => '',
 			'rf_encrypted'      => '',
@@ -153,7 +163,7 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( '15/01/2025 10:30', $result[3] );
 		$this->assertSame( 'test@example.com', $result[4] );
 		$this->assertSame( '192.168.1.1', $result[5] );
-		$this->assertSame( '123.456.789-00', $result[6] );
+		$this->assertSame( self::masked( Identifiers::CPF_A ), $result[6] );
 		$this->assertSame( '', $result[7] );
 		$this->assertSame( 'ABC123', $result[8] );
 		$this->assertSame( 'abc123def456', $result[9] );
@@ -207,10 +217,10 @@ class SubmissionsExportSourceTest extends BatchedExportSourceContractTestCase {
 	public function test_format_csv_row_rf_only(): void {
 		$row        = $this->sample_row();
 		$row['cpf'] = '';
-		$row['rf']  = '1234567';
+		$row['rf']  = Identifiers::RF_A;
 		$result     = $this->invoke( 'format_csv_row', array( $row, array(), false ) );
 		$this->assertSame( '', $result[6] );
-		$this->assertSame( '1234567', $result[7] );
+		$this->assertSame( Identifiers::RF_A, $result[7] );
 	}
 
 	// ==================================================================

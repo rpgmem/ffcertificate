@@ -276,6 +276,15 @@
             checkboxLabel: raw.checkboxLabel || '',
             checkboxChecked: raw.checkboxChecked !== false,
             countdown: countdown,
+            // Optional inputs above the reason (programmatic API only, #2245):
+            // [{ name, label, type: 'date'|'time'|'text', value, required }].
+            // Their values reach onConfirm as the 3rd argument.
+            fields: Array.isArray(raw.fields) ? raw.fields.filter(function (f) {
+                return f && typeof f.name === 'string' && /^[a-z0-9_]+$/.test(f.name);
+            }) : [],
+            // Called with the field values on open and on every change; it
+            // returns { warning: string, hideCheckbox: bool }.
+            onChange: typeof raw.onChange === 'function' ? raw.onChange : null,
         };
     }
 
@@ -334,6 +343,18 @@
             });
             html += '</ul>';
         }
+        cfg.fields.forEach(function (f) {
+            var fid = 'ffc-confirm-modal-field-' + f.name;
+            var type = f.type === 'date' || f.type === 'time' ? f.type : 'text';
+            html += '<div class="ffc-confirm-modal-reason">'
+                + '<label for="' + fid + '">' + escText(f.label || '') + '</label>'
+                + '<input id="' + fid + '" type="' + type + '" data-ffc-confirm-field="' + f.name + '"'
+                + (f.required ? ' required' : '') + ' />'
+                + '</div>';
+        });
+        if (cfg.onChange) {
+            html += '<div class="notice notice-warning inline ffc-confirm-modal-warning" role="status" hidden><p></p></div>';
+        }
         var reasonInput = null;
         if (cfg.reasonLabel) {
             var inputId = 'ffc-confirm-modal-reason-input';
@@ -359,6 +380,33 @@
         if (cfg.checkboxLabel) {
             checkboxInput = body.querySelector('#ffc-confirm-modal-checkbox-input');
         }
+        var fieldInputs = Array.prototype.slice.call(body.querySelectorAll('[data-ffc-confirm-field]'));
+        // Values go in as properties: escText() does not escape quotes, so an
+        // attribute would not be safe for them.
+        fieldInputs.forEach(function (input, i) {
+            input.value = String(cfg.fields[i].value || '');
+        });
+        var warningBox = body.querySelector('.ffc-confirm-modal-warning');
+        var checkboxHidden = false;
+        function fieldValues() {
+            var values = {};
+            fieldInputs.forEach(function (input) {
+                values[input.getAttribute('data-ffc-confirm-field')] = input.value.trim();
+            });
+            return values;
+        }
+        function applyChange() {
+            if (!cfg.onChange) { return; }
+            var res = cfg.onChange(fieldValues()) || {};
+            if (warningBox) {
+                warningBox.querySelector('p').textContent = res.warning || '';
+                warningBox.hidden = !res.warning;
+            }
+            checkboxHidden = !!res.hideCheckbox;
+            if (checkboxInput) {
+                checkboxInput.closest('.ffc-confirm-modal-checkbox').hidden = checkboxHidden;
+            }
+        }
 
         // CTA gating: countdown (if any) AND reason input (if any) must
         // both be satisfied before the CTA enables.
@@ -373,13 +421,21 @@
         function syncCta() {
             var blockedByReason = reasonInput && reasonInput.value.trim().length === 0;
             var blockedByCountdown = remaining > 0;
-            confirmBtn.disabled = !!(blockedByReason || blockedByCountdown);
+            var blockedByField = fieldInputs.some(function (input) {
+                return (input.required && input.value.trim().length === 0) || !input.checkValidity();
+            });
+            confirmBtn.disabled = !!(blockedByReason || blockedByCountdown || blockedByField);
         }
+        applyChange();
         renderCtaLabel();
         syncCta();
         if (reasonInput) {
             reasonInput.oninput = syncCta;
         }
+        fieldInputs.forEach(function (input) {
+            input.oninput = function () { applyChange(); syncCta(); };
+            input.onchange = input.oninput;
+        });
         if (cfg.countdown > 0) {
             state.countdownTimer = setInterval(function () {
                 remaining -= 1;
@@ -403,8 +459,8 @@
         confirmBtn.onclick = function () {
             if (confirmBtn.disabled) { return; }
             var reasonValue = reasonInput ? reasonInput.value.trim() : null;
-            var checkboxValue = checkboxInput ? checkboxInput.checked : null;
-            onConfirm(reasonValue, checkboxValue);
+            var checkboxValue = checkboxInput && !checkboxHidden ? checkboxInput.checked : null;
+            onConfirm(reasonValue, checkboxValue, fieldValues());
         };
         cancelBtn.onclick = handleCancel;
         closeBtn.onclick = handleCancel;
@@ -418,10 +474,12 @@
         document.addEventListener('keydown', state.onKeydown);
 
         modal.hidden = false;
-        // Focus management: reason input if present, otherwise the
+        // Focus management: the first input if present, otherwise the
         // cancel button (safer default than auto-focusing the
         // destructive CTA).
-        if (reasonInput) {
+        if (fieldInputs.length > 0) {
+            fieldInputs[0].focus();
+        } else if (reasonInput) {
             reasonInput.focus();
         } else {
             cancelBtn.focus();
@@ -448,17 +506,18 @@
     //
     //   ffcRecruitmentAdmin.openConfirmModal({
     //     title, body, consequences[], cta, style, reasonLabel, countdown,
-    //     checkboxLabel, checkboxChecked
-    //   }, function onConfirm(reasonValue, checkboxChecked) { ... },
+    //     checkboxLabel, checkboxChecked, fields[], onChange
+    //   }, function onConfirm(reasonValue, checkboxChecked, values) { ... },
     //      function onCancel(){ ... });
-    // checkboxChecked is a boolean when checkboxLabel is set, else null.
+    // checkboxChecked is a boolean when checkboxLabel is set and shown, else
+    // null; values maps each field's name to its trimmed value.
     window.ffcRecruitmentAdmin.openConfirmModal = function (rawConfig, onConfirm, onCancel) {
         state.trigger = null;
         showModal(
             normalizeConfig(rawConfig),
-            function (reasonValue, checkboxValue) {
+            function (reasonValue, checkboxValue, values) {
                 closeModal();
-                if (typeof onConfirm === 'function') { onConfirm(reasonValue, checkboxValue); }
+                if (typeof onConfirm === 'function') { onConfirm(reasonValue, checkboxValue, values); }
             },
             onCancel || null
         );

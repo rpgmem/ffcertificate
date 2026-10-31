@@ -73,6 +73,20 @@ class AdminLoader {
 	 */
 	protected ?QuizGradingHandler $quiz_grading_handler = null;
 
+	/**
+	 * Audited answer correction -- held to keep the instance alive for its hook.
+	 *
+	 * @var AnswerCorrectionHandler|null
+	 */
+	protected ?AnswerCorrectionHandler $answer_correction_handler = null;
+
+	/**
+	 * Audited certificate opening for staff -- held to keep the instance alive for its hook.
+	 *
+	 * @var CertificateOpenHandler|null
+	 */
+	protected ?CertificateOpenHandler $certificate_open_handler = null;
+
 
 	/**
 	 * Inject the shared submission handler the Admin screens depend on.
@@ -139,5 +153,14 @@ class AdminLoader {
 		// Grading posts to admin-post.php, where `is_admin()` holds (#1732).
 		$this->quiz_grading_handler = new QuizGradingHandler( $this->submission_handler );
 		$this->quiz_grading_handler->init();
+
+		// Correcting an answer posts to admin-post.php too (#2241).
+		$this->answer_correction_handler = new AnswerCorrectionHandler( $this->submission_handler );
+		$this->answer_correction_handler->init();
+
+		// Opening a certificate is a reveal, so staff reach it through an
+		// audited admin-post route rather than the bare magic link (#2241).
+		$this->certificate_open_handler = new CertificateOpenHandler( $this->submission_handler );
+		$this->certificate_open_handler->init();
 	}
 }

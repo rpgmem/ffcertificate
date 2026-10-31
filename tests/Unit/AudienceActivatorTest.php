@@ -26,6 +26,10 @@ class AudienceActivatorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -42,7 +46,7 @@ class AudienceActivatorTest extends TestCase {
 				$args = func_get_args();
 				$sql  = $args[0];
 				for ( $i = 1; $i < count( $args ); $i++ ) {
-					$val = is_string( $args[ $i ] ) ? "'{$args[$i]}'" : $args[ $i ];
+					$val = is_string( $args[ $i ] ) ? "'{$args[$i]}'" : (string) $args[ $i ];
 					$sql = preg_replace( '/%[sidf]/', $val, $sql, 1 );
 				}
 				return $sql;
@@ -409,18 +413,29 @@ class AudienceActivatorTest extends TestCase {
 			}
 		);
 		// SHOW COLUMNS finds a column only once an ALTER added it: both start missing.
-		$added = array();
+		// The bookings indexes start as they were before #2243.
+		$added   = array();
+		$indexes = array( 'idx_environment', 'idx_env_date_status' );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $query ) use ( &$queries, &$added ) {
+			static function ( $query ) use ( &$queries, &$added, &$indexes ) {
 				$queries[] = $query;
+				if ( preg_match( "/SHOW INDEX FROM .* Key_name = '([^']+)'/", (string) $query, $m ) ) {
+					return in_array( $m[1], $indexes, true ) ? array( (object) array( 'Key_name' => $m[1] ) ) : array();
+				}
 				return preg_match( "/SHOW COLUMNS FROM .* LIKE '([^']+)'/", (string) $query, $m ) && in_array( stripslashes( $m[1] ), $added, true ) ? array( (object) array( 'Field' => $m[1] ) ) : array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
-			static function ( $query ) use ( &$queries, &$added ) {
+			static function ( $query ) use ( &$queries, &$added, &$indexes ) {
 				$queries[] = $query;
 				if ( preg_match( "/ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
 					$added[] = $m[1];
+				}
+				if ( preg_match( "/ADD INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes[] = $m[1];
+				}
+				if ( preg_match( "/DROP INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes = array_values( array_diff( $indexes, array( $m[1] ) ) );
 				}
 				return 1;
 			}
@@ -433,6 +448,17 @@ class AudienceActivatorTest extends TestCase {
 		$this->assertStringContainsString( 'require_membership', $alters );
 		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
+		// The bookings lock and invitation scan read their new indexes (#2243),
+		// added before the ones they replace are dropped.
+		// A weekly series is found by its first booking (#2243).
+		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date', 'idx_series' ), $indexes );
+		$this->assertStringContainsString( "ADD COLUMN 'series_id'", $alters );
+		$this->assertLessThan(
+			strpos( $alters, "DROP INDEX 'idx_environment'" ),
+			strpos( $alters, "ADD INDEX 'idx_env_status_date'" ),
+			'the space keeps an index on environment_id throughout'
+		);
+		$this->assertStringContainsString( "ADD INDEX 'idx_end_booking_date' (end_date, booking_date)", $alters );
 
 		$queries = array();
 		AudienceActivator::maybe_migrate();
@@ -476,6 +502,107 @@ class AudienceActivatorTest extends TestCase {
 		AudienceActivator::maybe_migrate();
 
 		$this->assertArrayNotHasKey( AudienceActivator::SCHEMA_REVISION_OPTION, $options );
+	}
+
+	/**
+	 * The bookings' two instants move to UTC seconds (#2243), each by the
+	 * zone that wrote it: `created_at` through `UNIX_TIMESTAMP()` in the
+	 * session that stamped it, `cancelled_at` through `wp_timezone()`.
+	 * The next request finds both BIGINT and touches neither.
+	 */
+	public function test_booking_timestamps_move_to_utc_seconds_then_stop(): void {
+		$options = array( 'ffc_audience_schema_version' => FFC_VERSION );
+		Functions\when( 'get_option' )->alias(
+			static function ( string $key, $default_value = false ) use ( &$options ) {
+				return $options[ $key ] ?? $default_value;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $key, $value ) use ( &$options ): bool {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'America/Sao_Paulo' ) );
+
+		// Only the bookings table carries columns here; the rest stay as they are.
+		$columns = array(
+			'created_at'   => 'datetime',
+			'cancelled_at' => 'datetime',
+		);
+		$added   = array();
+		$indexes = array( 'idx_env_status_date', 'idx_end_booking_date' );
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) use ( &$queries, &$columns, &$added, &$indexes ) {
+				$queries[] = $query;
+				if ( preg_match( "/SHOW INDEX FROM .* Key_name = '([^']+)'/", (string) $query, $m ) ) {
+					return in_array( $m[1], $indexes, true ) ? array( (object) array( 'Key_name' => $m[1] ) ) : array();
+				}
+				if ( preg_match( "/SHOW COLUMNS FROM '([^']+)' LIKE '([^']+)'/", (string) $query, $m ) ) {
+					$name = stripslashes( $m[2] );
+					if ( 'wp_ffc_audience_bookings' !== $m[1] ) {
+						return in_array( $m[1] . '.' . $name, $added, true ) ? array( (object) array( 'Field' => $name ) ) : array();
+					}
+					return isset( $columns[ $name ] ) ? array( (object) array( 'Field' => $name, 'Type' => $columns[ $name ] ) ) : array();
+				}
+				if ( false !== strpos( (string) $query, 'cancelled_at AS legacy_value' ) && isset( $columns['cancelled_at_ts'] ) && 'datetime' === $columns['cancelled_at'] ) {
+					return array( (object) array( 'id' => 7, 'legacy_value' => '2026-01-10 12:00:00' ) );
+				}
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $query ) use ( &$queries, &$columns, &$added, &$indexes ) {
+				$queries[] = $query;
+				if ( preg_match( "/ALTER TABLE '([^']+)' ADD COLUMN '([^']+)'/", (string) $query, $m ) ) {
+					if ( 'wp_ffc_audience_bookings' === $m[1] ) {
+						$columns[ $m[2] ] = 'bigint(20) unsigned';
+					} else {
+						$added[] = $m[1] . '.' . $m[2];
+					}
+				}
+				if ( preg_match( "/ADD INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes[] = $m[1];
+				}
+				if ( preg_match( "/DROP INDEX '([^']+)'/", (string) $query, $m ) ) {
+					$indexes = array_values( array_diff( $indexes, array( $m[1] ) ) );
+				}
+				if ( preg_match( "/'wp_ffc_audience_bookings' DROP COLUMN '([^']+)'/", (string) $query, $m ) ) {
+					unset( $columns[ $m[1] ] );
+				}
+				if ( preg_match( "/'wp_ffc_audience_bookings' CHANGE '([^']+)' '([^']+)'/", (string) $query, $m ) ) {
+					unset( $columns[ $m[1] ] );
+					$columns[ $m[2] ] = 'bigint(20) unsigned';
+				}
+				return 1;
+			}
+		);
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( &$updates ) {
+				$updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		AudienceActivator::maybe_migrate();
+
+		$sql = implode( "\n", array_map( 'strval', $queries ) );
+		$this->assertStringContainsString( 'SET created_at_ts = UNIX_TIMESTAMP(created_at)', $sql );
+		$this->assertSame(
+			array( array( 'wp_ffc_audience_bookings', array( 'cancelled_at_ts' => 1768057200 ), array( 'id' => 7 ) ) ),
+			$updates,
+			'cancelled_at was written in the site zone: 12:00 in São Paulo is 15:00 UTC'
+		);
+		$this->assertSame( 'bigint(20) unsigned', $columns['created_at'] );
+		$this->assertSame( 'bigint(20) unsigned', $columns['cancelled_at'] );
+		$this->assertArrayNotHasKey( 'created_at_ts', $columns );
+		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
+
+		$queries = array();
+		AudienceActivator::maybe_migrate();
+		$this->assertSame( array(), $queries, 'a second request is a no-op' );
 	}
 
 	// ==================================================================

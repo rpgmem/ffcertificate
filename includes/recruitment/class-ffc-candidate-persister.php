@@ -6,9 +6,11 @@
  * {@see RecruitmentCsvImporter} (#563 Sprint 6, PR 6c). Both the synchronous
  * import flow (`RecruitmentCsvImporter::run()`) and the staged batched flow
  * (`CsvStagingService::promote_batch()`) write candidates through this one
- * class, so the lookup-then-create logic, the encryption/hash handling, the
- * `pcd_hash` recompute, and the best-effort wp_user promotion live in a
- * single place rather than being duplicated across the two flows.
+ * class, so the lookup-then-create logic and the encryption/hash handling live
+ * in a single place rather than being duplicated across the two flows. PCD
+ * is not among them: it is written on the classification (#2245). Neither flow creates or links a WordPress
+ * account any more: {@see RecruitmentAccountLinker} does that after the
+ * import has committed, and only for a notice past `draft` (#2245).
  *
  * Also holds the per-notice adjutancy slug→id resolver, which both flows
  * need before they can map a row's `adjutancy` column to a foreign key.
@@ -23,8 +25,6 @@ namespace FreeFormCertificate\Recruitment;
 
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
-use FreeFormCertificate\UserDashboard\CapabilityManager;
-use FreeFormCertificate\UserDashboard\UserCreator;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -39,13 +39,19 @@ final class CandidatePersister {
 	 * Find or create a candidate row for the given input row.
 	 *
 	 * Existing candidate (matched by cpf_hash, then rf_hash) is reused —
-	 * additional rows in `classification` will reference it. New candidates
-	 * are inserted with a placeholder `pcd_hash`, then updated with the
-	 * proper HMAC once `candidate_id` is known.
+	 * additional rows in `classification` will reference it, and its stored
+	 * name and identifiers are kept. Returns false when the CPF and the RF
+	 * belong to different candidates.
 	 *
-	 * Promotion to wp_user is delegated to {@see UserCreator::get_or_create_user}
-	 * with the recruitment context — failures are silent (candidate stays
-	 * with `user_id = NULL`, which is the intended "not yet promoted" state).
+	 * PCD is not written here (#2245): it belongs to the notice
+	 * classification the importer creates, because the same person can be
+	 * PCD in one notice and general in another. The candidate's `pcd_hash`
+	 * column is left empty on new rows and untouched on existing ones.
+	 *
+	 * No account is created or linked here (#2245). This ran inside the
+	 * import transaction, so a rolled-back import still sent every new user
+	 * its welcome e-mail, and a draft notice created accounts nobody had
+	 * been told about.
 	 *
 	 * @param array<string, mixed> $row Validated row.
 	 * @return int|false Candidate ID, or false on DB failure.
@@ -56,53 +62,57 @@ final class CandidatePersister {
 		$email = is_string( $row['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $row['email'] ) : '';
 		$name  = is_string( $row['name'] ) ? trim( $row['name'] ) : '';
 		$phone = is_string( $row['phone'] ) ? trim( $row['phone'] ) : '';
-		$pcd   = CsvParser::parse_pcd_flag( $row['pcd'] );
 
 		$cpf_hash   = SensitiveFieldRegistry::hash_identifier( 'cpf', $cpf );
 		$rf_hash    = SensitiveFieldRegistry::hash_identifier( 'rf', $rf );
 		$email_hash = SensitiveFieldRegistry::hash_identifier( 'email', $email );
 
 		// Look up existing candidate by cpf, then rf.
-		$existing = null;
-		if ( null !== $cpf_hash ) {
-			$existing = RecruitmentCandidateReader::get_by_cpf_hash( $cpf_hash );
+		$by_cpf = null !== $cpf_hash ? RecruitmentCandidateReader::get_by_cpf_hash( $cpf_hash ) : null;
+		$by_rf  = null !== $rf_hash ? RecruitmentCandidateReader::get_by_rf_hash( $rf_hash ) : null;
+
+		// A CPF of one candidate and an RF of another: no write can be right
+		// about both. RecruitmentImportIdentityCheck refuses the file before
+		// it gets here; this stops a caller that skipped it (#2245).
+		if ( null !== $by_cpf && null !== $by_rf && (int) $by_cpf->id !== (int) $by_rf->id ) {
+			return false;
 		}
-		if ( null === $existing && null !== $rf_hash ) {
-			$existing = RecruitmentCandidateReader::get_by_rf_hash( $rf_hash );
-		}
+
+		$existing = $by_cpf ?? $by_rf;
 
 		if ( null !== $existing ) {
 			$candidate_id = (int) $existing->id;
 
-			// Refresh mutable + previously-empty fields on the existing row;
-			// re-derive PCD hash so the new value (if any) takes effect.
+			// The stored identity is never overwritten (#2245): a CSV for one
+			// notice used to rewrite the name, CPF, RF and e-mail the
+			// candidate has in every notice. An identifier is only filled in
+			// where none is stored; a differing one was reported to the
+			// operator by RecruitmentImportIdentityCheck and stays as it is.
+			// The phone is contact data and follows the latest list.
 			RecruitmentCandidateWriter::update(
 				$candidate_id,
 				array_filter(
 					array(
-						'name'            => '' !== $name ? $name : null,
 						'phone'           => '' !== $phone ? $phone : null,
-						'cpf_encrypted'   => '' !== $cpf ? Encryption::encrypt( $cpf ) : null,
-						'cpf_hash'        => $cpf_hash,
-						'rf_encrypted'    => '' !== $rf ? Encryption::encrypt( $rf ) : null,
-						'rf_hash'         => $rf_hash,
-						'email_encrypted' => '' !== $email ? Encryption::encrypt( $email ) : null,
-						'email_hash'      => $email_hash,
+						'cpf_encrypted'   => '' !== $cpf && empty( $existing->cpf_hash ) ? Encryption::encrypt( $cpf ) : null,
+						'cpf_hash'        => empty( $existing->cpf_hash ) ? $cpf_hash : null,
+						'rf_encrypted'    => '' !== $rf && empty( $existing->rf_hash ) ? Encryption::encrypt( $rf ) : null,
+						'rf_hash'         => empty( $existing->rf_hash ) ? $rf_hash : null,
+						'email_encrypted' => '' !== $email && empty( $existing->email_hash ) ? Encryption::encrypt( $email ) : null,
+						'email_hash'      => empty( $existing->email_hash ) ? $email_hash : null,
 					),
 					static fn( $v ): bool => null !== $v
 				)
 			);
 
-			self::refresh_pcd_hash( $candidate_id, $pcd );
-			self::maybe_promote_candidate( $candidate_id, $cpf_hash, $rf_hash, $email, $name );
-
 			return $candidate_id;
 		}
 
-		// New candidate: insert with placeholder pcd_hash, then UPDATE.
+		// New candidate. `pcd_hash` is NOT NULL on the table and no longer
+		// carries PCD (#2245), so it is stored empty.
 		$insert_payload = array(
 			'name'     => $name,
-			'pcd_hash' => 'pending',
+			'pcd_hash' => '',
 		);
 		if ( '' !== $cpf ) {
 			$insert_payload['cpf_encrypted'] = Encryption::encrypt( $cpf );
@@ -124,9 +134,6 @@ final class CandidatePersister {
 		if ( false === $candidate_id ) {
 			return false;
 		}
-
-		self::refresh_pcd_hash( (int) $candidate_id, $pcd );
-		self::maybe_promote_candidate( (int) $candidate_id, $cpf_hash, $rf_hash, $email, $name );
 
 		return (int) $candidate_id;
 	}
@@ -152,88 +159,5 @@ final class CandidatePersister {
 		}
 
 		return $map;
-	}
-
-	/**
-	 * Recompute and persist `pcd_hash` for a candidate.
-	 *
-	 * @param int  $candidate_id Candidate ID.
-	 * @param bool $is_pcd       Whether the candidate is registered as PCD.
-	 * @return void
-	 */
-	private static function refresh_pcd_hash( int $candidate_id, bool $is_pcd ): void {
-		global $wpdb;
-		$table = RecruitmentCandidateReader::get_table_name();
-		$hash  = RecruitmentPcdHasher::compute( $candidate_id, $is_pcd );
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
-		$wpdb->update(
-			$table,
-			array(
-				'pcd_hash'   => $hash,
-				'updated_at' => current_time( 'mysql' ),
-			),
-			array( 'id' => $candidate_id ),
-			array( '%s', '%s' ),
-			array( '%d' )
-		);
-	}
-
-	/**
-	 * Best-effort wp_user link via UserCreator (no-op when nothing matches).
-	 *
-	 * UserCreator handles the §4 trigger logic: hash lookup against
-	 * `ffc_submissions`, email lookup against `wp_users`, and (for new emails)
-	 * user creation. Failures (e.g. `wp_create_user` rejecting an empty email)
-	 * are intentionally swallowed — the candidate stays `user_id=NULL`, which
-	 * is the documented "not yet promoted" state.
-	 *
-	 * @param int         $candidate_id Candidate row ID.
-	 * @param string|null $cpf_hash     SHA-256 hash of CPF (or null).
-	 * @param string|null $rf_hash      SHA-256 hash of RF (or null).
-	 * @param string      $email        Lowercased email (may be empty).
-	 * @param string      $name         The candidate's name, for the account's own (#1480).
-	 * @return void
-	 */
-	private static function maybe_promote_candidate( int $candidate_id, ?string $cpf_hash, ?string $rf_hash, string $email, string $name = '' ): void {
-		if ( null === $cpf_hash && null === $rf_hash && '' === $email ) {
-			return;
-		}
-
-		if ( ! class_exists( UserCreator::class ) ) {
-			return;
-		}
-
-		// Recruitment is the only flow where a single row can carry BOTH
-		// a CPF and an RF. The legacy single-hash entry point would miss
-		// a previously-registered submission keyed on whichever hash we
-		// didn't pass — `get_or_create_user_dual` checks both columns in
-		// a single SQL pass and falls back to email matching identically.
-		// THE NAME TRAVELS WITH THE PROMOTION (#1480).
-		//
-		// This argument is the submission's answers, and it was `array()` --
-		// while the candidate's name sat in the very row being persisted. So
-		// `UserCreator::sync_user_metadata()` had nothing to read, and WordPress
-		// fell back to writing the LOGIN into `display_name`. Measured on
-		// production: 6,976 accounts, every one of them promoted from a
-		// candidacy, every one of them carrying its login as a name while
-		// `ffc_recruitment_candidate.name` held the person's.
-		//
-		// No plumbing is added for it. `name` is already one of
-		// `SubmitterName::CANDIDATE_KEYS`, which is what `sync_user_metadata()`
-		// reads, so the answers-shaped array this path never had is one key
-		// wide.
-		$user_id = UserCreator::get_or_create_user_dual(
-			$cpf_hash,
-			$rf_hash,
-			$email,
-			'' !== $name ? array( 'name' => $name ) : array(),
-			CapabilityManager::CONTEXT_RECRUITMENT
-		);
-
-		if ( is_int( $user_id ) && $user_id > 0 ) {
-			RecruitmentCandidateWriter::set_user_id( $candidate_id, $user_id );
-			RecruitmentActivityLogger::candidate_promoted( $candidate_id, $user_id );
-		}
 	}
 }

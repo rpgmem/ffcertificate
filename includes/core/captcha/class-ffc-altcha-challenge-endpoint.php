@@ -22,6 +22,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Core\Captcha;
 
 use FreeFormCertificate\Core\WindowThrottle;
+use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -107,6 +108,6 @@ class AltchaChallengeEndpoint {
 	 * @return bool True when the caller may mint another challenge.
 	 */
 	private static function allow_mint(): bool {
-		return WindowThrottle::take( self::PREFIX, CaptchaSettings::mint_cap(), CaptchaSettings::mint_window() );
+		return WindowThrottle::take( self::PREFIX, CaptchaSettings::mint_cap(), CaptchaSettings::mint_window(), RateLimitSettingsReader::captcha_counts_unresolved() );
 	}
 }

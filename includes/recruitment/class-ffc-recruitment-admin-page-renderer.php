@@ -191,6 +191,7 @@ final class RecruitmentAdminPageRenderer {
 		$map = array(
 			'saved'                       => array( 'success', __( 'Saved.', 'ffcertificate' ) ),
 			'transitioned'                => array( 'success', __( 'Status transition applied.', 'ffcertificate' ) ),
+			'transition-requires-promote' => array( 'error', __( 'Promote a preliminary notice with "Copy preliminary as definitive" or by importing a definitive list.', 'ffcertificate' ) ),
 			'transition-blocked-by-calls' => array( 'error', __( 'Status transition rejected: cannot move from `definitive` back to `preliminary` once any call has been issued in this notice.', 'ffcertificate' ) ),
 			'transition-reason-required'  => array( 'error', __( 'Status transition rejected: this transition requires a reason (filled in the Reopen reason field).', 'ffcertificate' ) ),
 			'transition-race-lost'        => array( 'error', __( 'Status transition lost a race against another concurrent change. Reload the page and try again.', 'ffcertificate' ) ),
@@ -200,11 +201,17 @@ final class RecruitmentAdminPageRenderer {
 			'delete-blocked'              => array( 'error', __( 'Delete blocked: candidate still has classifications. Remove them first or leave the candidate row in place.', 'ffcertificate' ) ),
 			'link-user-ok'                => array( 'success', __( 'Candidate linked to the WP user.', 'ffcertificate' ) ),
 			'link-user-not-found'         => array( 'error', __( 'No WP user found for that lookup. Try the numeric ID, exact login, or full email.', 'ffcertificate' ) ),
+			'link-user-self'              => array( 'error', __( 'You cannot link a candidate to your own account.', 'ffcertificate' ) ),
+			'link-user-mismatch'          => array( 'error', __( 'That account does not carry this candidate\'s CPF, RF or e-mail. Only a holder of the PII capability can link it.', 'ffcertificate' ) ),
 			'unlink-user-ok'              => array( 'success', __( 'Candidate unlinked from the WP user. The wp_user account was not deleted.', 'ffcertificate' ) ),
 			'rank-mandatory'              => array( 'error', __( 'public_columns_config rejected: `rank` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'name-mandatory'              => array( 'error', __( 'public_columns_config rejected: `name` cannot be set to false (mandatory column).', 'ffcertificate' ) ),
 			'slug-taken'                  => array( 'error', __( 'Slug rejected: another adjutancy already uses this slug. Pick a different value.', 'ffcertificate' ) ),
 			'save-failed'                 => array( 'error', __( 'Save failed. Please try again.', 'ffcertificate' ) ),
+			'adjutancy-deleted'           => array( 'success', __( 'Adjutancy deleted.', 'ffcertificate' ) ),
+			'adjutancy-in-use'            => array( 'error', __( 'The adjutancy was not deleted: a notice or a classification still uses it. Detach it from every notice first; one that classified candidates stays for the record.', 'ffcertificate' ) ),
+			'reason-deleted'              => array( 'success', __( 'Reason deleted.', 'ffcertificate' ) ),
+			'reason-in-use'               => array( 'error', __( 'The reason was not deleted: a classification still uses it.', 'ffcertificate' ) ),
 		);
 		if ( ! isset( $map[ $key ] ) ) {
 			return;
@@ -352,7 +359,7 @@ final class RecruitmentAdminPageRenderer {
 		$eligible    = array();
 		foreach ( $all_notices as $row ) {
 			$status = isset( $row->status ) ? (string) $row->status : '';
-			if ( 'draft' === $status || 'preliminary' === $status ) {
+			if ( RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, $status ) ) {
 				$eligible[] = $row;
 			}
 		}

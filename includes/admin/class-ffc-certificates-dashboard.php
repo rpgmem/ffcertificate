@@ -222,8 +222,13 @@ class CertificatesDashboard {
 	 *
 	 * @param string $hook_suffix Hook suffix received in admin_enqueue_scripts.
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function is_dashboard_hook( string $hook_suffix ): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// WordPress builds the suffix as `<post_type>_page_<menu_slug>`.
 		return 'ffc_form_page_' . self::MENU_SLUG === $hook_suffix;
 	}

@@ -36,6 +36,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Strategy implementation for importing legacy `html/` certificate templates.
+ *
+ * @deprecated 6.43.0 A one-shot migration whose work is done (#2115).
+ * @removal    6.45.0
  */
 class ImportLegacyTemplatesMigrationStrategy implements MigrationStrategyInterface {
 

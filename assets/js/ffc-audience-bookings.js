@@ -113,6 +113,16 @@
 
             if (booking.status === 'active' && state.config.canBook) {
                 html += '<div class="ffc-booking-actions">';
+                // Who may cancel may edit or move (#2243).
+                if (booking.can_cancel) {
+                    html += FFC.buttonHtml({
+                        label: ffcAudience.strings.edit || 'Edit',
+                        category: 'neutral',
+                        icon: 'edit',
+                        className: 'ffc-edit-booking',
+                        attrs: { 'data-id': booking.id }
+                    });
+                }
                 html += FFC.buttonHtml({
                     label: ffcAudience.strings.cancel,
                     category: 'danger',
@@ -121,6 +131,7 @@
                     attrs: {
                         'data-id': booking.id,
                         'data-days': (booking.days || []).length,
+                        'data-series': parseInt(booking.series_id, 10) > 0 ? '1' : '',
                         'data-date-label': booking.date_label || booking.booking_date
                     }
                 });
@@ -136,6 +147,16 @@
         $container.find('.ffc-cancel-booking').on('click', function() {
             cancelBooking($(this), date);
         });
+
+        // Edit opens the booking dialog on the booking (#2243).
+        $container.find('.ffc-edit-booking').on('click', function() {
+            var id = parseInt($(this).attr('data-id'), 10);
+            var booking = bookings.filter(function(b) { return parseInt(b.id, 10) === id; })[0];
+            if (booking) {
+                $('#ffc-day-modal').hide();
+                api.openEditModal(booking);
+            }
+        });
     }
 
     /**
@@ -148,11 +169,14 @@
         FFC.confirmRangeCancel({
             count: $button.attr('data-days'),
             label: $button.attr('data-date-label'),
+            series: $button.attr('data-series') === '1',
             strings: ffcAudience.strings.cancelConfirm
         }).then(function(agreed) {
             if (!agreed) {
                 return;
             }
+            // A date of a weekly series may take the later dates with it (#2243).
+            var scope = (agreed && agreed.choice === 'following') ? 'following' : 'this';
 
             var reason = prompt(ffcAudience.strings.cancelReason);
             if (!reason || reason.trim() === '') {
@@ -161,12 +185,12 @@
 
             FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
                 method: 'DELETE',
-                data: { reason: reason },
+                data: { reason: reason, scope: scope },
                 nonce: ffcAudience.nonce
             })
                 .then(function(response) {
                     if (response && response.success) {
-                        alert(ffcAudience.strings.bookingCancelled);
+                        alert(response.cancelled ? response.message : ffcAudience.strings.bookingCancelled);
                         api.renderCalendar();
                         loadDayBookings(date);
                     } else {

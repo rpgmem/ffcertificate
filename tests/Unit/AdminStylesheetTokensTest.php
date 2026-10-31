@@ -123,12 +123,18 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// 123 -> 124 in #1748: the ink of the toggle's optional mark. The knob
 		// is white in both themes by decision, so what is drawn on it cannot
 		// follow a token that lightens in the dark theme.
-		'ffc-common.css'                => 124,
+		//
+		// 124 -> 132 in #2202: the holiday and optional-holiday labels, a
+		// background and its text per kind, in each theme. Their own tokens
+		// rather than the warning family's, because the light theme takes
+		// white text there and Scheduling settings may repaint them.
+		'ffc-common.css'                => 132,
 		'ffc-device-check.css'          => 0,
 		'ffc-code-editor-dark.css'      => 35,
 		// 12 -> 10 in #1881: the button loading state left with its two white
 		// literals; it is a ring in the text colour in ffc-common.css now.
-		'ffc-pdf-core.css'              => 10,
+		// 10 -> 6 in #2089: the progress overlay and spinner nothing emitted.
+		'ffc-pdf-core.css'              => 6,
 		// The screenshot viewer in core's "View details" modal (#1716). That
 		// iframe is not an FFC screen and does not load ffc-common, so the sheet
 		// cannot read a token -- the ffc-pdf-core case. It is also dark in both

@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\SettingsTab;
@@ -18,8 +17,6 @@ use FreeFormCertificate\Settings\SettingsTab;
  * enqueue_autosave_infra).
  *
  * @covers \FreeFormCertificate\Settings\SettingsTab
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SettingsTabTest extends TestCase {
 
@@ -438,6 +435,10 @@ class SettingsTabTest extends TestCase {
 	// enqueue_autosave_infra() — enqueues ffc-core + autosave + collapse
 	// ==================================================================
 
+	/**
+	 * Runs the real AssetRegistry and AssetHelper down to the stubbed
+	 * WordPress enqueue functions.
+	 */
 	public function test_enqueue_autosave_infra_enqueues_core_and_localizes_nonce(): void {
 		$tab = new class() extends SettingsTab {
 			protected function init(): void {
@@ -448,9 +449,6 @@ class SettingsTabTest extends TestCase {
 				$this->enqueue_autosave_infra();
 			}
 		};
-
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {

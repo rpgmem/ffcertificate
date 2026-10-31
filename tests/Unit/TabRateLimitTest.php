@@ -34,6 +34,12 @@ class TabRateLimitTest extends TestCase {
 	 */
 	private $tmp_dir = null;
 
+	/** @var bool Whether $GLOBALS['wpdb'] existed before the test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The $wpdb a test replaced. */
+	private $wpdb_backup = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -62,6 +68,9 @@ class TabRateLimitTest extends TestCase {
 		// elsewhere can reorder shards and expose the latent dependency.
 		$_POST = array();
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
 		$this->tab = new TabRateLimit();
 	}
 
@@ -87,6 +96,11 @@ class TabRateLimitTest extends TestCase {
 				unlink( (string) $file );
 			}
 			rmdir( $this->tmp_dir );
+		}
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
 		}
 		Monkey\tearDown();
 		parent::tearDown();
@@ -165,7 +179,12 @@ class TabRateLimitTest extends TestCase {
 	// render() — capability gate on the inline POST save (real render)
 	// ==================================================================
 
-	/** Stub the WP + collaborator surface the real rate-limit view needs. */
+	/**
+	 * Stub the WP surface the real rate-limit view needs, and answer the
+	 * real RateLimiter::get_stats() through a `$wpdb` double: no block was
+	 * logged, so every counter is zero and the lists are empty. A query the
+	 * view is not known to make fails the test.
+	 */
 	private function stub_rate_limit_view(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
@@ -176,31 +195,34 @@ class TabRateLimitTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimiter' )
-			->shouldReceive( 'get_stats' )
-			->andReturn( array( 'today' => 0, 'month' => 0, 'by_type' => array(), 'top_ips' => array() ) )
-			->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' )
-			->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault()
-			->getMock()
-			->shouldReceive( 'render_save_button' )
-			->andReturnUsing(
-				static function ( $label = '', $args = array() ) {
-					// Prints the name the view asks for, so a test can see the view reached its end.
-					echo '<button name="' . htmlspecialchars( (string) ( $args['name'] ?? 'submit' ) ) . '"></button>';
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $sql, ...$args ): string {
+				return str_replace( '%i', '`' . (string) ( $args[0] ?? '' ) . '`', $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( string $sql ): string {
+				if ( 0 !== strpos( $sql, 'SELECT COUNT(*) FROM `wp_ffc_rate_limit_logs`' ) ) {
+					throw new \RuntimeException( 'Unexpected get_var: ' . $sql );
 				}
-			)
-			->byDefault();
+				return '0';
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( string $sql ): array {
+				if ( false === strpos( $sql, 'FROM `wp_ffc_rate_limit_logs`' ) ) {
+					throw new \RuntimeException( 'Unexpected get_results: ' . $sql );
+				}
+				return array();
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	/**
-	 * Runs in a separate process: this test alias-mocks RateLimiter/AdminUI,
-	 * which fails with "class already exists" if either real class was already
-	 * autoloaded earlier in the shared suite process. A fresh process gives a
-	 * clean class table so the alias mocks load.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real RateLimiter and AdminUI draw the shipped view after the save.
 	 */
 	public function test_render_real_post_save_persists_with_manage_cap(): void {
 		$_POST['ffc_save_rate_limit'] = '1';
@@ -229,10 +251,35 @@ class TabRateLimitTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_save_rate_limit"', $output, 'render() must go on to include the shipped view after saving' );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
+	public function test_save_keeps_each_unresolved_policy_and_refuses_an_unknown_one(): void {
+		$_POST['ffc_save_rate_limit']        = '1';
+		$_POST['ip_captcha_unresolved']      = 'share';
+		$_POST['ip_device_check_unresolved'] = 'block';
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_save_funcs();
+		$this->stub_rate_limit_view();
+
+		$saved = array();
+		Functions\when( 'update_option' )->alias( function ( $key, $value ) use ( &$saved ) {
+			if ( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY === $key ) {
+				$saved = $value;
+			}
+			return true;
+		} );
+
+		ob_start();
+		try {
+			$this->tab->render();
+		} finally {
+			ob_end_clean();
+			unset( $_POST['ip_captcha_unresolved'], $_POST['ip_device_check_unresolved'] );
+		}
+
+		$this->assertSame( 'share', $saved['ip']['captcha_unresolved'] );
+		$this->assertSame( 'allow', $saved['ip']['device_check_unresolved'], 'an unknown value falls back to the default' );
+	}
+
 	public function test_render_real_post_save_blocked_for_view_only_user(): void {
 		$_POST['ffc_save_rate_limit'] = '1';
 		Functions\when( 'check_admin_referer' )->justReturn( true );
@@ -296,20 +343,9 @@ class TabRateLimitTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( fn ( $v ) => strtolower( (string) $v ) );
-		// RequestInput::get_post_string (Core namespace) uses these unqualified.
-		// Plain stable passthroughs (NOT Brain\Monkey stubs) so they survive
-		// tearDown without leaving a torn-down expectation that could poison a
-		// later same-process test.
-		self::define_core_passthrough( 'wp_unslash' );
-		self::define_core_passthrough( 'sanitize_text_field' );
-	}
-
-	/** Define a stable passthrough in the Core namespace, once per process. */
-	private static function define_core_passthrough( string $name ): void {
-		$fqn = 'FreeFormCertificate\\Core\\' . $name;
-		if ( ! function_exists( $fqn ) ) {
-			eval( "namespace FreeFormCertificate\\Core; function {$name}( \$v ) { return \$v; }" );
-		}
+		// RequestInput (Core namespace) calls these unqualified and PHP falls
+		// back to the global stubs above. A namespaced copy would outlive this
+		// test and shadow the global function for every later Core test (#2123).
 	}
 
 	// ------------------------------------------------------------------
@@ -351,7 +387,7 @@ class TabRateLimitTest extends TestCase {
 		$this->stub_save_funcs();
 		$out = $this->invoke_private( 'parse_read_endpoints_post', array( array() ) );
 
-		$this->assertSame( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ), array_keys( $out ) );
+		$this->assertSame( array( 'calendar_slots', 'calendar_list', 'calendar_detail', 'audience_bookings' ), array_keys( $out ) );
 		foreach ( $out as $endpoint ) {
 			$this->assertFalse( $endpoint['enabled'] );
 			$this->assertSame( 0, $endpoint['max_per_minute'] );
@@ -443,6 +479,76 @@ class TabRateLimitTest extends TestCase {
 			$_POST['whitelist_ips'], $_POST['ip_captcha_max_per_window'],
 			$_POST['ip_captcha_window_seconds']
 		);
+	}
+
+	public function test_save_stores_each_ip_line_canonical_and_refuses_the_rest(): void {
+		$this->stub_save_funcs();
+
+		$_POST['whitelist_ips'] = "2804:14C:0:0::1\n10.1.2.3/8\n::ffff:203.0.113.7\n203.0.113.7\n203.0.113.*\n\n";
+		$_POST['blacklist_ips'] = "2804:14c:1:2::/48\nexample.com";
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		try {
+			$this->invoke_private( 'save_settings' );
+		} finally {
+			unset( $_POST['whitelist_ips'], $_POST['blacklist_ips'] );
+		}
+
+		$this->assertSame( array( '2804:14c::1', '10.0.0.0/8', '203.0.113.7' ), $saved['whitelist']['ips'], 'canonical, a range by its network, one line per address' );
+		$this->assertSame( array( '2804:14c:1::/48' ), $saved['blacklist']['ips'] );
+
+		$refused = new \ReflectionProperty( TabRateLimit::class, 'refused_ip_lines' );
+		$refused->setAccessible( true );
+		$this->assertSame( array( '203.0.113.*', 'example.com' ), $refused->getValue( $this->tab ) );
+	}
+
+	public function test_the_screen_names_refused_and_stored_invalid_ip_lines(): void {
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+
+		$refused = new \ReflectionProperty( TabRateLimit::class, 'refused_ip_lines' );
+		$refused->setAccessible( true );
+		$refused->setValue( $this->tab, array( '203.0.113.*' ) );
+
+		ob_start();
+		$this->invoke_private(
+			'render_refused_ip_lines',
+			array(
+				array(
+					'whitelist' => array( 'ips' => array( '203.0.113.7', 'legacy typo' ) ),
+					'blacklist' => array( 'ips' => array( '203.0.113.*' ) ),
+				),
+			)
+		);
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'notice-warning', $output );
+		$this->assertStringContainsString( '203.0.113.*, legacy typo', $output, 'each line once, a stored one included' );
+		$this->assertStringNotContainsString( '203.0.113.7', $output );
+	}
+
+	public function test_valid_ip_lists_print_no_notice(): void {
+		ob_start();
+		$this->invoke_private(
+			'render_refused_ip_lines',
+			array(
+				array(
+					'whitelist' => array( 'ips' => array( '203.0.113.0/24' ) ),
+					'blacklist' => array( 'ips' => array() ),
+				),
+			)
+		);
+
+		$this->assertSame( '', ob_get_clean() );
 	}
 
 	public function test_save_settings_defaults_when_post_empty(): void {

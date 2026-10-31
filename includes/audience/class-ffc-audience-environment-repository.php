@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Database repository for audience environment records.
  *
  * @phpstan-type EnvironmentRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, name: string, color?: string, description: string|null, working_hours: string|null, status: string, created_at: string, updated_at: string}
- * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, created_by: numeric-string, created_at: string}
+ * @phpstan-type HolidayRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, holiday_date: string, description: string|null, kind?: string, created_by: numeric-string, created_at: string}
  */
 class AudienceEnvironmentRepository {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -388,9 +388,10 @@ class AudienceEnvironmentRepository {
 	 * @param int         $schedule_id Schedule ID.
 	 * @param string      $date Date (Y-m-d).
 	 * @param string|null $description Optional description.
+	 * @param string      $kind        A `ClosedDateKind` value (#2202); unknown reads as a holiday.
 	 * @return int|false Holiday ID or false on failure
 	 */
-	public static function add_holiday( int $schedule_id, string $date, ?string $description = null ) {
+	public static function add_holiday( int $schedule_id, string $date, ?string $description = null, string $kind = \FreeFormCertificate\Scheduling\ClosedDateKind::HOLIDAY ) {
 		$wpdb  = self::db();
 		$table = self::get_holidays_table_name();
 
@@ -400,14 +401,69 @@ class AudienceEnvironmentRepository {
 				'schedule_id'  => $schedule_id,
 				'holiday_date' => $date,
 				'description'  => $description,
+				'kind'         => \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $kind ),
 				'created_by'   => get_current_user_id(),
 			),
-			array( '%d', '%s', '%s', '%d' )
+			array( '%d', '%s', '%s', '%s', '%d' )
 		);
 
 		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
 
 		return $result ? $wpdb->insert_id : false;
+	}
+
+	/**
+	 * Change a holiday's date, kind and description (#2212).
+	 *
+	 * The row is named by its id AND its calendar, so an id copied from
+	 * another calendar's screen changes nothing. A date another holiday of
+	 * the same calendar already holds is refused, as the add form keeps one
+	 * closed date per day.
+	 *
+	 * @param int         $holiday_id  Holiday ID.
+	 * @param int         $schedule_id Calendar the holiday belongs to.
+	 * @param string      $date        Date (Y-m-d).
+	 * @param string|null $description Optional description.
+	 * @param string      $kind        A `ClosedDateKind` value; unknown reads as a holiday.
+	 * @return bool True when the row was found and written.
+	 */
+	public static function update_holiday( int $holiday_id, int $schedule_id, string $date, ?string $description, string $kind ): bool {
+		if ( $holiday_id <= 0 || $schedule_id <= 0 || 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			return false;
+		}
+
+		$owned    = false;
+		$taken_by = 0;
+		foreach ( self::get_holidays( $schedule_id ) as $holiday ) {
+			if ( (int) $holiday->id === $holiday_id ) {
+				$owned = true;
+			} elseif ( (string) $holiday->holiday_date === $date ) {
+				$taken_by = (int) $holiday->id;
+			}
+		}
+		if ( ! $owned || $taken_by > 0 ) {
+			return false;
+		}
+
+		$wpdb   = self::db();
+		$result = $wpdb->update(
+			self::get_holidays_table_name(),
+			array(
+				'holiday_date' => $date,
+				'description'  => $description,
+				'kind'         => \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $kind ),
+			),
+			array(
+				'id'          => $holiday_id,
+				'schedule_id' => $schedule_id,
+			),
+			array( '%s', '%s', '%s' ),
+			array( '%d', '%d' )
+		);
+
+		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_DOMAIN );
+
+		return false !== $result;
 	}
 
 	/**

@@ -287,6 +287,10 @@ class Settings {
 		return array(
 			'cleanup_enabled'            => false,
 			'validate_rf_check_digit'    => false,
+			// Settings → General: the address lookup by CEP (#2234). Off by
+			// default -- it sends each CEP typed to a third party.
+			'cep_lookup_enabled'         => false,
+			'cep_lookup_primary'         => 'viacep',
 			'cleanup_days'               => 365,
 			'quiz_focus_grace_ms'        => 1000,
 			// Settings → Certificates: check the visitor's browser (#2030).
@@ -356,11 +360,6 @@ class Settings {
 			'date_format_pdf_custom'     => '',
 			'time_format_pdf'            => '',
 			'time_format_pdf_custom'     => '',
-			'cache_enabled'              => 1,      // Default: ON.
-			// 1 hour is what an install that never saved the Cache tab reads; a
-			// new install is seeded with 15 minutes (Activator, #1758).
-			'cache_expiration'           => 3600,
-			'cache_auto_warm'            => 0,      // Default: OFF.
 			'public_csv_default_limit'   => 1,    // Default limit for public CSV downloads.
 			'obsolete_shortcode_days'    => 90,   // Grace window (days) for obsolete shortcode cleanup.
 			'url_cleanup_days'           => 90,   // Grace window (days) for the short-URL never-clicked criterion.
@@ -371,7 +370,7 @@ class Settings {
 			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 			// Window of the invitation's password-set link, in hours (#1212).
 			// Clamped to 1..720 on read and on save by `PasswordInvite`.
-			'invite_password_link_hours' => 48,
+			'invite_password_link_hours' => 168,
 			// Days the dashboard keeps an approved reregistration's banner after
 			// the later of the campaign's end and the approval (#1887); 0 never
 			// hides. Clamped to 0..365 by `ReregistrationBannerWindow`.
@@ -574,8 +573,8 @@ class Settings {
 	}
 
 	/**
-	 * Echo the cache-warmed / cache-cleared success notices when the `msg`
-	 * URL parameter carries them. Split out of {@see display_settings_page()}
+	 * Echo the page-cache purge success notice when the `msg`
+	 * URL parameter carries it. Split out of {@see display_settings_page()}
 	 * so the render method reads as markup emission; emitted at the same
 	 * position as before.
 	 *
@@ -585,24 +584,10 @@ class Settings {
 		if ( RequestInput::has_get( 'msg' ) ) {
 			$msg = RequestInput::get_get_key( 'msg' );
 
-			if ( 'cache_warmed' === $msg ) {
-				$count = RequestInput::get_get_int( 'count' );
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'success',
-					esc_html(
-						sprintf(
-						/* translators: %d: number of forms pre-loaded */
-							__( 'Cache warmed! %d form(s) pre-loaded.', 'ffcertificate' ),
-							$count
-						)
-					)
-				);
-			}
-
 			if ( 'cache_cleared' === $msg ) {
 				\FreeFormCertificate\Core\AdminNotice::render(
 					'success',
-					esc_html__( 'Cache cleared successfully!', 'ffcertificate' )
+					esc_html__( 'Page caches purged.', 'ffcertificate' )
 				);
 			}
 		}

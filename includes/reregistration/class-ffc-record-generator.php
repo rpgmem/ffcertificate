@@ -52,7 +52,7 @@ class RecordGenerator {
 		$raw_values = is_array( $sub_data['fields'] ?? null ) ? $sub_data['fields'] : array();
 
 		// Get field definitions for all audiences linked to this reregistration.
-		$all_fields = self::get_custom_fields_for_reregistration( $rereg );
+		$all_fields = self::get_custom_fields_for_reregistration( $rereg, true );
 
 		// Decrypt sensitive values and split by field_source.
 		$decrypted_values = self::decrypt_field_values( $all_fields, $raw_values );
@@ -103,8 +103,7 @@ class RecordGenerator {
 		}
 
 		// Check if user has acúmulo de cargos.
-		$dual_post_value   = $decrypted_values['acumulo_cargos'] ?? __( 'I do not hold', 'ffcertificate' );
-		$holds_second_post = __( 'I hold', 'ffcertificate' ) === $dual_post_value;
+		$holds_second_post = ReregistrationDataProcessor::holds_second_post( $decrypted_values );
 
 		// 6.7.5 — Reference year for the record header. Pulled from the
 		// CAMPAIGN's start_date so the year matches the cycle of record
@@ -144,9 +143,17 @@ class RecordGenerator {
 		if ( empty( $variables['display_name'] ) ) {
 			$variables['display_name'] = $user->display_name;
 		}
-		if ( empty( $variables['email_institucional'] ) ) {
-			$variables['email_institucional'] = $user->user_email;
+		if ( ! isset( $variables['email_institucional_edu'] ) ) {
+			$variables['email_institucional_edu'] = '';
 		}
+
+		// The accumulation details, pre-composed for the same reason as
+		// `auth_code_line`: the template is plain `{{key}}` substitution, so a
+		// block that must vanish when no second post is held cannot be a set
+		// of rows in the template -- it would print empty labels.
+		$variables['acumulo_details'] = $holds_second_post
+			? self::build_second_post_details( $variables )
+			: '';
 
 		/**
 		 * Filters record template variables before HTML generation.
@@ -268,33 +275,54 @@ class RecordGenerator {
 			6 => __( 'Sat', 'ffcertificate' ),
 		);
 
-		$cell  = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt"';
-		$hcell = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt;font-weight:bold;background:#f0f4f8;color:#000"';
-
-		$html  = '<table style="width:100%;border-collapse:collapse;margin-top:2px" role="presentation">';
-		$html .= '<tr>';
-		$html .= '<th ' . $hcell . '>' . esc_html__( 'Day', 'ffcertificate' ) . '</th>';
-		$html .= '<th ' . $hcell . '>' . esc_html__( 'Entry', 'ffcertificate' ) . '</th>';
-		$html .= '<th ' . $hcell . '>' . esc_html__( 'Lunch Out', 'ffcertificate' ) . '</th>';
-		$html .= '<th ' . $hcell . '>' . esc_html__( 'Lunch In', 'ffcertificate' ) . '</th>';
-		$html .= '<th ' . $hcell . '>' . esc_html__( 'Exit', 'ffcertificate' ) . '</th>';
-		$html .= '</tr>';
-
+		// Days run across and the four times down, so the table is five rows
+		// tall however many days are filled -- a full week of a second post
+		// still leaves the record on one A4 page.
+		$days = array();
 		foreach ( $wh as $entry ) {
-			$day = $days_map[ $entry['day'] ?? 0 ] ?? '';
-			$e1  = $entry['entry1'] ?? '';
-			$x1  = $entry['exit1'] ?? '';
-			$e2  = $entry['entry2'] ?? '';
-			$x2  = $entry['exit2'] ?? '';
-			if ( empty( $e1 ) && empty( $x2 ) ) {
+			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			$html .= '<tr>';
-			$html .= '<td ' . $cell . '>' . esc_html( $day ) . '</td>';
-			$html .= '<td ' . $cell . '>' . esc_html( $e1 ) . '</td>';
-			$html .= '<td ' . $cell . '>' . esc_html( $x1 ) . '</td>';
-			$html .= '<td ' . $cell . '>' . esc_html( $e2 ) . '</td>';
-			$html .= '<td ' . $cell . '>' . esc_html( $x2 ) . '</td>';
+			$e1 = (string) ( $entry['entry1'] ?? '' );
+			$x2 = (string) ( $entry['exit2'] ?? '' );
+			if ( '' === $e1 && '' === $x2 ) {
+				continue;
+			}
+			$days[] = array(
+				'day'    => $days_map[ (int) ( $entry['day'] ?? 0 ) ] ?? '',
+				'entry1' => $e1,
+				'exit1'  => (string) ( $entry['exit1'] ?? '' ),
+				'entry2' => (string) ( $entry['entry2'] ?? '' ),
+				'exit2'  => $x2,
+			);
+		}
+		if ( empty( $days ) ) {
+			return '';
+		}
+
+		$rows = array(
+			'entry1' => __( 'Entry', 'ffcertificate' ),
+			'exit1'  => __( 'Lunch Out', 'ffcertificate' ),
+			'entry2' => __( 'Lunch In', 'ffcertificate' ),
+			'exit2'  => __( 'Exit', 'ffcertificate' ),
+		);
+
+		$cell  = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt"';
+		$hcell = 'style="padding:1px 4px;border:1px solid #ccc;text-align:center;font-size:7.5pt;font-weight:bold;background:#f0f4f8;color:#000"';
+		$lcell = 'style="padding:1px 6px;border:1px solid #ccc;text-align:left;font-size:7.5pt;font-weight:bold;background:#f0f4f8;color:#000;width:110px"';
+
+		$html  = '<table style="width:100%;border-collapse:collapse;margin-top:2px" role="presentation">';
+		$html .= '<tr><th ' . $lcell . '>' . esc_html__( 'Day', 'ffcertificate' ) . '</th>';
+		foreach ( $days as $day ) {
+			$html .= '<th ' . $hcell . '>' . esc_html( $day['day'] ) . '</th>';
+		}
+		$html .= '</tr>';
+
+		foreach ( $rows as $slot => $label ) {
+			$html .= '<tr><th ' . $lcell . '>' . esc_html( $label ) . '</th>';
+			foreach ( $days as $day ) {
+				$html .= '<td ' . $cell . '>' . esc_html( $day[ $slot ] ) . '</td>';
+			}
 			$html .= '</tr>';
 		}
 
@@ -429,12 +457,15 @@ class RecordGenerator {
 			$value = $decrypted_values[ $key ] ?? '';
 
 			// Hide accumulation-related fields unless the user declared they hold another job.
-			if ( ! $holds_second_post && in_array( $key, array( 'jornada_acumulo', 'cargo_funcao_acumulo', 'horario_trabalho_acumulo' ), true ) ) {
+			if ( ! $holds_second_post && in_array( $key, ReregistrationDataProcessor::SECOND_POST_KEYS, true ) ) {
 				$vars[ $key ] = '';
 				continue;
 			}
 
 			$vars[ $key ] = self::format_field_value( $field, $value );
+			if ( is_string( $value ) && '' !== $value ) {
+				$vars[ $key ] = self::apply_display_mask( (string) ( $field->field_mask ?? '' ), $vars[ $key ] );
+			}
 
 			if ( 'dependent_select' === (string) $field->field_type ) {
 				$dep                      = is_string( $value ) ? json_decode( $value, true ) : $value;
@@ -476,7 +507,88 @@ class RecordGenerator {
 			$html = ReregistrationFieldOptions::get_default_acknowledgment_html();
 		}
 
-		return wp_kses_post( $html );
+		return self::number_list_items( wp_kses_post( $html ) );
+	}
+
+	/**
+	 * Rewrite every `<ol>` of the notice as a two-column table numbered "1- ".
+	 *
+	 * The html2canvas renderer draws list markers with its own metrics, so the numerals of
+	 * an `<ol>` came out of line with the text beside them. A table row with
+	 * the number in its own cell aligns in every renderer, and carries the
+	 * "1- " form the record prints. Markup without a list is returned as is.
+	 *
+	 * @param string $html Sanitized notice HTML.
+	 * @return string
+	 */
+	public static function number_list_items( string $html ): string {
+		if ( false === stripos( $html, '<ol' ) ) {
+			return $html;
+		}
+
+		return (string) preg_replace_callback(
+			'#<ol\b[^>]*>(.*?)</ol>#is',
+			static function ( array $match ): string {
+				preg_match_all( '#<li\b[^>]*>(.*?)</li>#is', $match[1], $items );
+				$rows = '';
+				foreach ( $items[1] as $i => $item ) {
+					$rows .= '<tr>'
+						. '<td style="width:18px;padding:0 0 2px;vertical-align:top;white-space:nowrap;font-weight:bold">' . ( $i + 1 ) . '-</td>'
+						. '<td style="padding:0 0 2px;vertical-align:top">' . $item . '</td>'
+						. '</tr>';
+				}
+				return '<table style="width:100%;border-collapse:collapse;font-size:inherit;line-height:inherit;margin:2px 0" role="presentation">' . $rows . '</table>';
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Compose the accumulation block: the second post's workload and role,
+	 * then its working hours.
+	 *
+	 * @param array<string, mixed> $variables Template variables built so far.
+	 * @return string
+	 */
+	private static function build_second_post_details( array $variables ): string {
+		$label = 'padding:2px 0;font-weight:bold;color:#666';
+		$value = 'padding:2px 0;color:#222';
+
+		$html  = '<table style="width:100%;border-collapse:collapse;font-size:8pt" role="presentation"><tr>';
+		$html .= '<td style="' . $label . ';width:92px">' . esc_html__( 'Workload:', 'ffcertificate' ) . '</td>';
+		$html .= '<td style="' . $value . ';width:262px">' . esc_html( (string) ( $variables['jornada_acumulo'] ?? '' ) ) . '</td>';
+		$html .= '<td style="' . $label . ';width:92px">' . esc_html__( 'Post/Role:', 'ffcertificate' ) . '</td>';
+		$html .= '<td style="' . $value . '">' . esc_html( (string) ( $variables['cargo_funcao_acumulo'] ?? '' ) ) . '</td>';
+		$html .= '</tr></table>';
+
+		return $html . (string) ( $variables['horario_trabalho_acumulo'] ?? '' );
+	}
+
+	/**
+	 * Print a document in its usual shape, whatever shape it was typed in.
+	 *
+	 * The form masks as the participant types, but a value that arrived by
+	 * import, by an older form or with the script blocked is stored bare, and
+	 * the record printed it that way. Formatting is idempotent: an already
+	 * masked value is normalized and masked again.
+	 *
+	 * @param string $mask  The field's input mask (`cpf`, `rf`, `cin`, `cep`…).
+	 * @param string $value Display value.
+	 * @return string
+	 */
+	public static function apply_display_mask( string $mask, string $value ): string {
+		switch ( $mask ) {
+			case 'cpf':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_cpf( $value );
+			case 'rf':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_rf( $value );
+			case 'cin':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_cin( $value );
+			case 'cep':
+				return \FreeFormCertificate\Core\DocumentFormatter::format_cep( $value );
+			default:
+				return $value;
+		}
 	}
 
 	/**
@@ -505,6 +617,14 @@ class RecordGenerator {
 
 			case 'working_hours':
 				return self::format_working_hours( is_string( $value ) ? $value : (string) wp_json_encode( $value ) );
+
+			case 'date':
+				// A wall-clock DATE (Category B), printed in the PDF date format.
+				$date = is_scalar( $value ) ? (string) $value : '';
+				if ( '' === $date || ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) ) {
+					return $date;
+				}
+				return \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $date, 'pdf' );
 
 			default:
 				if ( is_array( $value ) ) {
@@ -567,25 +687,27 @@ class RecordGenerator {
 	/**
 	 * Get custom fields for all audiences linked to a reregistration.
 	 *
-	 * @param object $rereg Reregistration object.
+	 * The form asks only active fields. What READS answers — review, the
+	 * Record, the export — passes `$with_answered_inactive` so a field
+	 * deactivated after people answered it keeps showing those answers
+	 * (#2242); an inactive field nobody answered stays out.
+	 *
+	 * @param object $rereg                  Reregistration object.
 	 * @phpstan-param ReregistrationRow $rereg
+	 * @param bool   $with_answered_inactive Include inactive fields that have answers.
 	 * @return list<CustomFieldRow>
 	 */
-	public static function get_custom_fields_for_reregistration( object $rereg ): array {
+	public static function get_custom_fields_for_reregistration( object $rereg, bool $with_answered_inactive = false ): array {
 		$audience_ids = ReregistrationRepository::get_audience_ids( (int) $rereg->id );
-		$all_fields   = array();
-		$seen         = array();
-
-		foreach ( $audience_ids as $aud_id ) {
-			$fields = CustomFieldReader::get_by_audience_with_parents( (int) $aud_id, true );
-			foreach ( $fields as $field ) {
-				if ( ! isset( $seen[ (int) $field->id ] ) ) {
-					$seen[ (int) $field->id ] = true;
-					$all_fields[]             = $field;
-				}
-			}
+		if ( ! $with_answered_inactive ) {
+			return CustomFieldReader::get_for_audiences( $audience_ids );
 		}
 
-		return $all_fields;
+		return array_values(
+			array_filter(
+				CustomFieldReader::get_for_audiences( $audience_ids, false ),
+				static fn ( object $field ): bool => '0' !== (string) ( $field->is_active ?? '1' ) || CustomFieldReader::has_answers( $field )
+			)
+		);
 	}
 }

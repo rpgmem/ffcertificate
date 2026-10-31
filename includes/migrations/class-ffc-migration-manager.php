@@ -106,8 +106,13 @@ class MigrationManager {
 	 *
 	 * @param string $migration_key Migration identifier.
 	 * @return bool|WP_Error True if can run, WP_Error if cannot
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function can_run_migration( string $migration_key ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->status_calculator->can_run( $migration_key );
 	}
 

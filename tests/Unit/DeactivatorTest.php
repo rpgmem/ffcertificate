@@ -14,7 +14,6 @@ use FreeFormCertificate\Deactivator;
  * Tests for Deactivator: deactivation hook cleanup and destructive uninstall.
  *
  * @covers \FreeFormCertificate\Deactivator
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class DeactivatorTest extends TestCase {
@@ -24,12 +23,13 @@ class DeactivatorTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $utils_mock;
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -56,15 +56,9 @@ class DeactivatorTest extends TestCase {
 		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_delete_post' )->justReturn( null );
 
-		// Utils alias mock for get_submissions_table
-		$this->utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
-		} )->byDefault();
+		// RequestInput runs for real over $_GET / $_POST, through these.
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
 
 		// Default wpdb stubs for uninstall_cleanup
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' )->byDefault();
@@ -93,13 +87,14 @@ class DeactivatorTest extends TestCase {
 
 		Deactivator::deactivate();
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
-		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
+		$this->assertContains( 'ffc_daily_cleanup', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_reminder_scan', $cleared );
+		$this->assertContains( 'ffc_reregistration_expire', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
 		// A pending reminder batch was cleared nowhere until #1538.
 		$this->assertContains( 'ffc_reregistration_reminder_batch', $cleared );
 		$this->assertContains( 'ffc_reregistration_invitation_batch', $cleared );
+		$this->assertContains( 'ffc_audience_notification_batch', $cleared );
 		// The date-messages daily send and its pending batches (#1538).
 		$this->assertContains( 'ffc_date_messages_daily', $cleared );
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
@@ -108,9 +103,17 @@ class DeactivatorTest extends TestCase {
 		// The form-cache warming (#1541).
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
 		// The bulk-issue purge of unfinished imports (#1945).
-		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
-		$this->assertCount( 13, $cleared );
+		$this->assertContains( 'ffc_bulk_issue_purge', $cleared );
+		$this->assertContains( 'ffc_audience_post_event_invites', $cleared );
+		// The old-appointment close-out (#2285).
+		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
+		// The recruitment account batch (#2245).
+		$this->assertContains( 'ffc_recruitment_account_link_batch', $cleared );
+		// The pre-#2323 names, for one deprecation cycle.
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+			$this->assertContains( $legacy, $cleared );
+		}
+		$this->assertCount( 22, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {
@@ -209,17 +212,21 @@ class DeactivatorTest extends TestCase {
 
 		Deactivator::uninstall_cleanup();
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $cleared );
+		$this->assertContains( 'ffc_daily_cleanup', $cleared );
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
 		// #1248's internal hook is the one that is now SCHEDULED; the public one
 		// above stays in the cleanup because a pending event of the old shape may
 		// still exist at uninstall time.
 		$this->assertContains( 'ffc_process_submission_async', $cleared );
-		$this->assertContains( 'ffcertificate_self_scheduling_reminder_scan', $cleared );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_reminder_scan', $cleared );
+		$this->assertContains( 'ffc_reregistration_expire', $cleared );
 		$this->assertContains( 'ffc_cloudflare_cidr_refresh', $cleared );
-		$this->assertContains( 'ffcertificate_bulk_issue_purge', $cleared );
-		$this->assertCount( 7, $cleared );
+		$this->assertContains( 'ffc_bulk_issue_purge', $cleared );
+		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
+		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+			$this->assertContains( $legacy, $cleared );
+		}
+		$this->assertCount( 14, $cleared );
 	}
 
 	public function test_uninstall_cleanup_deletes_form_posts(): void {

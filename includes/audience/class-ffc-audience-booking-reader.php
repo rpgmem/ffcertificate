@@ -20,16 +20,33 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} comes from sanitize_sql_orderby() and {$id} from an int cast.
+// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- {$where_clause}/{$exclude_clause}/{$env_join}/{$env_where}/{$limit_clause} are fragments assembled here and {$placeholders} is %d repeated to match the bound array — prepare() takes them as one argument, which is what ReplacementsWrongNumber trips on. {$orderby} is built from ORDER_COLUMNS values and a two-way ternary and {$id} from an int cast.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Read queries for audience booking records.
  *
  * @since 6.12.0
  *
- * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: string, cancelled_by: numeric-string|null, cancelled_at: string|null, cancellation_reason: string|null, is_all_day?: numeric-string, end_date?: string|null, time_mode?: string|null, skipped_dates?: string|null, attendance_mode?: string|null, attendance_min_percent?: numeric-string|null, post_event_custom?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
+ * @phpstan-type BookingRow \stdClass&object{id: numeric-string, environment_id: numeric-string, booking_date: string, start_time: string, end_time: string, booking_type: string, description: string, status: string, created_by: numeric-string, created_at: numeric-string, cancelled_by: numeric-string|null, cancelled_at: numeric-string|null, cancellation_reason: string|null, series_id?: numeric-string|null, is_all_day?: numeric-string, end_date?: string|null, time_mode?: string|null, skipped_dates?: string|null, attendance_mode?: string|null, attendance_min_percent?: numeric-string|null, post_event_custom?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, environment_name?: string|null, schedule_id?: numeric-string|null, audience_name?: string, audience_id?: numeric-string, title?: string, audiences?: array<int, mixed>, users?: array<int, int>}
  */
 class AudienceBookingReader {
+
+	/**
+	 * What get_all() may order by: the request's key → the SQL it orders on.
+	 * Anything else orders by the date (#2290).
+	 *
+	 * @var array<string, string>
+	 */
+	public const ORDER_COLUMNS = array(
+		'booking_date' => 'b.booking_date',
+		'start_time'   => 'b.start_time',
+		'created_at'   => 'b.created_at',
+		'id'           => 'b.id',
+		'status'       => 'b.status',
+		'description'  => 'b.description',
+		'environment'  => 'e.name',
+	);
+
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
 
 	/**
@@ -85,6 +102,7 @@ class AudienceBookingReader {
 		$defaults = array(
 			'environment_id' => null,
 			'schedule_id'    => null,
+			'schedule_ids'   => null,
 			'booking_date'   => null,
 			'start_date'     => null,
 			'end_date'       => null,
@@ -98,38 +116,30 @@ class AudienceBookingReader {
 		);
 		$args     = wp_parse_args( $args, $defaults );
 
-		$where  = array();
-		$values = array();
+		list( $where, $values ) = self::list_filters( $args );
 
-		if ( $args['environment_id'] ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-
-		if ( $args['schedule_id'] ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
+		// A list of calendars the caller may read (#2243): filtered here, so
+		// a month read never fetches the rows of a calendar it then drops.
+		// An empty list matches nothing.
+		if ( is_array( $args['schedule_ids'] ) ) {
+			$schedule_ids = array();
+			foreach ( $args['schedule_ids'] as $schedule_id ) {
+				if ( is_numeric( $schedule_id ) ) {
+					$schedule_ids[ (int) $schedule_id ] = (int) $schedule_id;
+				}
+			}
+			$schedule_ids = array_values( $schedule_ids );
+			if ( empty( $schedule_ids ) ) {
+				return array();
+			}
+			$where[] = 'e.schedule_id IN (' . implode( ', ', array_fill( 0, count( $schedule_ids ), '%d' ) ) . ')';
+			$values  = array_merge( $values, $schedule_ids );
 		}
 
 		if ( $args['booking_date'] ) {
 			list( $day_sql, $day_args ) = AudienceBookingRules::occupies_day_clause( (string) $args['booking_date'], 'b.' );
 			$where[]                    = $day_sql;
 			$values                     = array_merge( $values, $day_args );
-		}
-
-		if ( $args['start_date'] ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-
-		if ( $args['end_date'] ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
-
-		if ( $args['status'] ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
 		}
 
 		if ( $args['booking_type'] ) {
@@ -144,15 +154,24 @@ class AudienceBookingReader {
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
-		$orderby_sanitized = sanitize_sql_orderby( 'b.' . $args['orderby'] . ' ' . $args['order'] );
-		$orderby           = $orderby_sanitized ? $orderby_sanitized : 'b.booking_date ASC';
-		$limit_clause      = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
+		// An allowlist, not sanitize_sql_orderby(): core's pattern refuses the
+		// `b.` prefix, so every order fell back to `booking_date ASC` and the
+		// admin list's newest-first read never took effect (#2290). The date,
+		// the time and the id break ties in the same direction (#2288).
+		$direction = 'DESC' === strtoupper( (string) $args['order'] ) ? 'DESC' : 'ASC';
+		$order_key = is_string( $args['orderby'] ) && isset( self::ORDER_COLUMNS[ $args['orderby'] ] ) ? $args['orderby'] : 'booking_date';
+		$order_by  = array();
+		foreach ( array( self::ORDER_COLUMNS[ $order_key ], 'b.booking_date', 'b.start_time', 'b.id' ) as $order_sql ) {
+			$order_by[ $order_sql ] = "{$order_sql} {$direction}";
+		}
+		$orderby      = implode( ', ', $order_by );
+		$limit_clause = $args['limit'] > 0 ? sprintf( 'LIMIT %d OFFSET %d', $args['limit'], $args['offset'] ) : '';
 
 		$sql = "SELECT b.*, e.name as environment_name, e.schedule_id
                 FROM %i b
                 INNER JOIN %i e ON b.environment_id = e.id
                 {$where_clause}
-                ORDER BY {$orderby}, b.start_time ASC
+                ORDER BY {$orderby}
                 {$limit_clause}";
 
 		$prepare_args = array_merge( array( $table, $env_table ), $values );
@@ -179,45 +198,22 @@ class AudienceBookingReader {
 	}
 
 	/**
-	 * Count bookings for the batched CSV export, applying the same filters +
-	 * environment JOIN as {@see self::get_all()} so the export progress total
-	 * matches the rows {@see self::find_by_cursor()} actually yields. The shared
-	 * {@see self::count()} can't be reused because it queries the bookings table
-	 * alone and so can't honour the `schedule_id` filter (which lives on the
-	 * joined environment row).
+	 * Count bookings under the filters {@see self::list_filters()} reads: the
+	 * total of the bookings list's pages, of the batched CSV export, and of a
+	 * calendar's bookings. It JOINs the environment like {@see self::get_all()},
+	 * so a `schedule_id` filter counts what the list shows; the shared
+	 * {@see self::count()} queries the bookings table alone and cannot.
 	 *
 	 * @since 6.17.0
-	 * @param array<string, mixed> $args Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @param array<string, mixed> $args Filters ({@see self::list_filters()}).
 	 * @return int
 	 */
-	public static function count_for_export( array $args = array() ): int {
+	public static function count_filtered( array $args = array() ): int {
 		$wpdb      = self::db();
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-		$where  = array();
-		$values = array();
-
-		if ( ! empty( $args['environment_id'] ) ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-		if ( ! empty( $args['schedule_id'] ) ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
-		}
-		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-		if ( ! empty( $args['end_date'] ) ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
+		list( $where, $values ) = self::list_filters( $args );
 
 		$where_clause = ! empty( $where ) ? 'WHERE ' . implode( ' AND ', $where ) : '';
 
@@ -239,7 +235,7 @@ class AudienceBookingReader {
 	 * environment JOIN mirror {@see self::get_all()}.
 	 *
 	 * @since 6.17.0
-	 * @param array<string, mixed> $args   Filters: environment_id / schedule_id / status / start_date / end_date.
+	 * @param array<string, mixed> $args   Filters ({@see self::list_filters()}).
 	 * @param int                  $cursor Exclusive upper-bound id (PHP_INT_MAX on the first page).
 	 * @param int                  $size   Page size.
 	 * @return list<BookingRow>
@@ -249,29 +245,9 @@ class AudienceBookingReader {
 		$table     = self::get_table_name();
 		$env_table = AudienceEnvironmentRepository::get_table_name();
 
-		$where  = array( 'b.id < %d' );
-		$values = array( $cursor );
-
-		if ( ! empty( $args['environment_id'] ) ) {
-			$where[]  = 'b.environment_id = %d';
-			$values[] = $args['environment_id'];
-		}
-		if ( ! empty( $args['schedule_id'] ) ) {
-			$where[]  = 'e.schedule_id = %d';
-			$values[] = $args['schedule_id'];
-		}
-		if ( ! empty( $args['status'] ) ) {
-			$where[]  = 'b.status = %s';
-			$values[] = $args['status'];
-		}
-		if ( ! empty( $args['start_date'] ) ) {
-			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
-			$values[] = $args['start_date'];
-		}
-		if ( ! empty( $args['end_date'] ) ) {
-			$where[]  = 'b.booking_date <= %s';
-			$values[] = $args['end_date'];
-		}
+		list( $where, $values ) = self::list_filters( $args );
+		array_unshift( $where, 'b.id < %d' );
+		array_unshift( $values, $cursor );
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
 
@@ -292,6 +268,60 @@ class AudienceBookingReader {
 		 * @var list<BookingRow>
 		 */
 		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * The filters the bookings list, its CSV export and its count share
+	 * (#2243), so the three can never disagree about which rows match.
+	 *
+	 * `audience_id` keeps the bookings made for that audience; `search`
+	 * matches the description, and a number matches the booking id too.
+	 *
+	 * @param array<string, mixed> $args environment_id / schedule_id / status / start_date / end_date / audience_id / search.
+	 * @return array{0: list<literal-string>, 1: list<int|string>} The WHERE fragments (literals with placeholders) and their values, in order.
+	 */
+	private static function list_filters( array $args ): array {
+		$where  = array();
+		$values = array();
+
+		if ( ! empty( $args['environment_id'] ) ) {
+			$where[]  = 'b.environment_id = %d';
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'environment_id' );
+		}
+		if ( ! empty( $args['schedule_id'] ) ) {
+			$where[]  = 'e.schedule_id = %d';
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'schedule_id' );
+		}
+		if ( ! empty( $args['status'] ) ) {
+			$where[]  = 'b.status = %s';
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'status' );
+		}
+		if ( ! empty( $args['start_date'] ) ) {
+			$where[]  = 'COALESCE(b.end_date, b.booking_date) >= %s';
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'start_date' );
+		}
+		if ( ! empty( $args['end_date'] ) ) {
+			$where[]  = 'b.booking_date <= %s';
+			$values[] = \FreeFormCertificate\Core\ArrayValue::string( $args, 'end_date' );
+		}
+		if ( ! empty( $args['audience_id'] ) ) {
+			$where[]  = 'EXISTS (SELECT 1 FROM %i ba WHERE ba.booking_id = b.id AND ba.audience_id = %d)';
+			$values[] = self::get_booking_audiences_table_name();
+			$values[] = \FreeFormCertificate\Core\ArrayValue::int( $args, 'audience_id' );
+		}
+		$search = trim( \FreeFormCertificate\Core\ArrayValue::string( $args, 'search' ) );
+		if ( '' !== $search ) {
+			$like = '%' . self::db()->esc_like( $search ) . '%';
+			if ( ctype_digit( $search ) ) {
+				$where[]  = '(b.id = %d OR b.description LIKE %s)';
+				$values[] = (int) $search;
+			} else {
+				$where[] = 'b.description LIKE %s';
+			}
+			$values[] = $like;
+		}
+
+		return array( $where, $values );
 	}
 
 	/**
@@ -348,14 +378,48 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * The active occurrences of a weekly series, first date first (#2243).
+	 *
+	 * @param int $series_id The id of the series' first booking.
+	 * @return list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}>
+	 */
+	public static function get_series( int $series_id ): array {
+		if ( $series_id <= 0 ) {
+			return array();
+		}
+
+		$wpdb = self::db();
+
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var list<object{id: numeric-string, booking_date: string, start_time: string, end_time: string}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, booking_date, start_time, end_time FROM %i WHERE series_id = %d AND status = 'active' ORDER BY booking_date ASC, id ASC",
+				self::get_table_name(),
+				$series_id
+			)
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Get bookings for a specific date and environment
 	 *
 	 * @param int         $environment_id Environment ID.
 	 * @param string      $date Date (Y-m-d).
 	 * @param string|null $status Optional status filter.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_date( int $environment_id, string $date, ?string $status = null ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::get_all(
 			array(
 				'environment_id' => $environment_id,
@@ -373,8 +437,13 @@ class AudienceBookingReader {
 	 * @param string      $end_date End date (Y-m-d).
 	 * @param string|null $status Optional status filter.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_date_range( int $environment_id, string $start_date, string $end_date, ?string $status = null ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::get_all(
 			array(
 				'environment_id' => $environment_id,
@@ -391,8 +460,13 @@ class AudienceBookingReader {
 	 * @param int                  $user_id User ID.
 	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_creator( int $user_id, array $args = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$args['created_by'] = $user_id;
 		return self::get_all( $args );
 	}
@@ -403,8 +477,13 @@ class AudienceBookingReader {
 	 * @param int                  $user_id User ID.
 	 * @param array<string, mixed> $args Additional query arguments.
 	 * @return list<BookingRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_participant( int $user_id, array $args = array() ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb            = self::db();
 		$table           = self::get_table_name();
 		$users_table     = self::get_booking_users_table_name();
@@ -487,6 +566,92 @@ class AudienceBookingReader {
 	}
 
 	/**
+	 * The audiences of several bookings, read in one query (#2243).
+	 *
+	 * The month read used to run one query per booking.
+	 *
+	 * @param array<int> $booking_ids Booking IDs.
+	 * @return array<int, list<\stdClass>> Audiences keyed by booking ID; a booking with none is absent.
+	 */
+	public static function get_audiences_for_bookings( array $booking_ids ): array {
+		$booking_ids = array_values( array_unique( array_map( 'intval', $booking_ids ) ) );
+		if ( empty( $booking_ids ) ) {
+			return array();
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $booking_ids ), '%d' ) );
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT a.*, ba.booking_id AS ffc_booking_id FROM %i a
+                INNER JOIN %i ba ON a.id = ba.audience_id
+                WHERE ba.booking_id IN ({$placeholders})
+                ORDER BY a.name ASC",
+				...array_merge( array( AudienceReader::get_table_name(), self::get_booking_audiences_table_name() ), $booking_ids )
+			)
+		);
+
+		$by_booking = array();
+		foreach ( is_array( $results ) ? $results : array() as $row ) {
+			$booking_id = (int) ( $row->ffc_booking_id ?? 0 );
+			unset( $row->ffc_booking_id );
+			$by_booking[ $booking_id ][] = $row;
+		}
+
+		return $by_booking;
+	}
+
+	/**
+	 * How many bookings, of any status or date, name any of these audiences (#2243).
+	 *
+	 * @param array<int> $audience_ids Audience IDs.
+	 * @return int
+	 */
+	public static function count_for_audiences( array $audience_ids ): int {
+		$audience_ids = array_values( array_unique( array_map( 'intval', $audience_ids ) ) );
+		if ( empty( $audience_ids ) ) {
+			return 0;
+		}
+
+		$wpdb         = self::db();
+		$placeholders = implode( ', ', array_fill( 0, count( $audience_ids ), '%d' ) );
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(DISTINCT booking_id) FROM %i WHERE audience_id IN ({$placeholders})",
+				...array_merge( array( self::get_booking_audiences_table_name() ), $audience_ids )
+			)
+		);
+	}
+
+	/**
+	 * How many bookings name an audience or one of its groups (#2243): what
+	 * deleting it would take from, since a delete takes the groups too.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @return int
+	 */
+	public static function count_for_audience_tree( int $audience_id ): int {
+		return self::count_for_audiences( array_merge( array( $audience_id ), AudienceReader::get_descendant_ids( $audience_id ) ) );
+	}
+
+	/**
+	 * Whether a booking exists and is cancelled.
+	 *
+	 * Read after a cancel that changed no row, to tell a request that lost
+	 * the race to another one from a write the database refused (#2243).
+	 *
+	 * @param int $id Booking ID.
+	 * @return bool
+	 */
+	public static function is_cancelled( int $id ): bool {
+		$booking = self::get_by_id( $id );
+
+		return null !== $booking && 'cancelled' === ( $booking->status ?? '' );
+	}
+
+	/**
 	 * Get users for a booking
 	 *
 	 * @param int $booking_id Booking ID.
@@ -505,6 +670,30 @@ class AudienceBookingReader {
 		);
 
 		return array_map( 'intval', $results );
+	}
+
+	/**
+	 * Whether an account is a custom user of any booking, whatever its status.
+	 *
+	 * The booking details list those people, so the account-email reveal
+	 * serves them too (#2243).
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public static function is_participant_of_any( int $user_id ): bool {
+		$wpdb  = self::db();
+		$table = self::get_booking_users_table_name();
+
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT 1 FROM %i WHERE user_id = %d LIMIT 1',
+				$table,
+				$user_id
+			)
+		);
+
+		return null !== $found;
 	}
 
 	/**
@@ -537,6 +726,11 @@ class AudienceBookingReader {
 	 * The post-event invitation scan reads it: a booking's form opens when its
 	 * last day ends, so only bookings that ended recently can owe invitations.
 	 *
+	 * The last day is `end_date` for a range and `booking_date` for one day.
+	 * It is read as those two halves rather than `COALESCE()`, which no index
+	 * can serve: `(end_date, booking_date)` takes the range of `end_date`, and
+	 * a NULL `end_date` with the range of `booking_date` (#2243).
+	 *
 	 * @param string $from First last-day to include (Y-m-d).
 	 * @param string $to   Last last-day to include (Y-m-d).
 	 * @return list<int> Booking IDs, oldest end first.
@@ -546,8 +740,10 @@ class AudienceBookingReader {
 
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT id FROM %i WHERE status = 'active' AND COALESCE(end_date, booking_date) BETWEEN %s AND %s ORDER BY COALESCE(end_date, booking_date) ASC, id ASC",
+				"SELECT id FROM %i WHERE status = 'active' AND ((end_date BETWEEN %s AND %s) OR (end_date IS NULL AND booking_date BETWEEN %s AND %s)) ORDER BY COALESCE(end_date, booking_date) ASC, id ASC",
 				self::get_table_name(),
+				$from,
+				$to,
 				$from,
 				$to
 			)

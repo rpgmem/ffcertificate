@@ -25,6 +25,10 @@ class RateLimitActivatorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -116,7 +120,7 @@ class RateLimitActivatorTest extends TestCase {
 		RateLimitActivator::create_tables();
 
 		$this->assertArrayHasKey( 'ffc_rate_limit_db_version', $updated_options );
-		$this->assertSame( '1.2.0', $updated_options['ffc_rate_limit_db_version'] );
+		$this->assertSame( RateLimitActivator::DB_VERSION, $updated_options['ffc_rate_limit_db_version'] );
 	}
 
 	public function test_create_tables_returns_true(): void {

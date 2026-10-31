@@ -24,6 +24,8 @@ require_once __DIR__ . '/class-ffc-recruitment-rest-support-trait.php';
 
 /**
  * REST controller for the recruitment classifications slice.
+ *
+ * @phpstan-import-type Diff from RecruitmentReimportDiff
  */
 final class RecruitmentClassificationsRestController {
 
@@ -220,7 +222,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::EDITABLE,
 				'callback'            => array( $this, 'change_classification_status' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 				'args'                => array(
 					'status' => array(
 						'type'              => 'string',
@@ -306,7 +308,7 @@ final class RecruitmentClassificationsRestController {
 			array(
 				'methods'             => \WP_REST_Server::CREATABLE,
 				'callback'            => array( $this, 'cancel_call' ),
-				'permission_callback' => array( $this, 'check_admin_cap' ),
+				'permission_callback' => array( $this, 'check_can_call_candidates' ),
 				'args'                => array(
 					'reason' => array(
 						'type'              => 'string',
@@ -423,8 +425,14 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
-		$result = RecruitmentCsvImporter::import_preview( $id, $content );
+		$result = RecruitmentCsvImporter::import_preview( $id, $content, $this->acknowledged_identity( $request ), $this->confirmed_reimport( $request ) );
 
+		if ( ! empty( $result['mismatches'] ) ) {
+			return $this->identity_mismatch_error( $result['mismatches'] );
+		}
+		if ( isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
+		}
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -504,6 +512,10 @@ final class RecruitmentClassificationsRestController {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
 
+		// Rows that differ from the stored candidate: the client asks the
+		// operator, then sends acknowledge_identity with each batch (#2245).
+		$result['mismatch_messages'] = RecruitmentImportIdentityCheck::messages( $result['mismatches'] );
+
 		// Even on a clean validate we return 200 with `errors: []` so
 		// the JS-side can branch on length without an extra HTTP code.
 		return new \WP_REST_Response( $result, 200 );
@@ -526,7 +538,7 @@ final class RecruitmentClassificationsRestController {
 			$size = RecruitmentCsvImporter::BATCH_SIZE_DEFAULT;
 		}
 
-		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size );
+		$result = RecruitmentCsvImporter::promote_batch( $job_id, $size, $this->acknowledged_identity( $request ) );
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -548,7 +560,10 @@ final class RecruitmentClassificationsRestController {
 	public function import_job_commit( \WP_REST_Request $request ) {
 		$job_id = (string) $request->get_param( 'job_id' );
 
-		$result = RecruitmentCsvImporter::commit_job( $job_id );
+		$result = RecruitmentCsvImporter::commit_job( $job_id, $this->confirmed_reimport( $request ) );
+		if ( ! $result['ok'] && isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
+		}
 		if ( ! $result['ok'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 400 );
 		}
@@ -605,20 +620,88 @@ final class RecruitmentClassificationsRestController {
 			);
 		}
 
-		$result = RecruitmentCsvImporter::import_definitive( $id, $content );
-		if ( ! $result['success'] ) {
-			return $this->wp_error_from_envelope( $result['errors'], 400 );
+		// The importer refuses a notice that is not `preliminary` or already
+		// has calls, and promotes it in the same transaction (#2245).
+		$result = RecruitmentCsvImporter::import_definitive( $id, $content, $this->acknowledged_identity( $request ), $this->confirmed_reimport( $request ) );
+		if ( ! empty( $result['mismatches'] ) ) {
+			return $this->identity_mismatch_error( $result['mismatches'] );
 		}
-
-		// Flip status to definitive after a successful definitive_import.
-		$transition = RecruitmentNoticeStateMachine::transition_to( $id, 'definitive' );
-		if ( ! $transition['success'] ) {
-			return $this->wp_error_from_envelope( $transition['errors'], 409 );
+		if ( isset( $result['diff'] ) ) {
+			return $this->reimport_diff_error( $result['diff'] );
+		}
+		if ( ! $result['success'] ) {
+			// A notice in the wrong state is a conflict; a bad file is not.
+			$code     = (string) ( $result['errors'][0] ?? '' );
+			$conflict = in_array( $code, array( 'recruitment_definitive_import_requires_preliminary', 'recruitment_definitive_import_requires_preliminary_list', 'recruitment_definitive_import_blocked_by_calls', 'recruitment_transition_race_lost' ), true )
+				|| 0 === strpos( $code, 'recruitment_invalid_transition' );
+			return $this->wp_error_from_envelope( $result['errors'], $conflict ? 409 : 400 );
 		}
 
 		RecruitmentActivityLogger::notice_promoted( $id, 'definitive_import', 0 );
 
 		return new \WP_REST_Response( $result, 200 );
+	}
+
+	/**
+	 * Whether the request carries the operator's acknowledgement of the
+	 * identity mismatches (#2245).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function acknowledged_identity( \WP_REST_Request $request ): bool {
+		return true === filter_var( $request->get_param( 'acknowledge_identity' ), FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * Whether the request carries the operator's confirmation of the
+	 * comparison with the list it replaces (#2245).
+	 *
+	 * @param \WP_REST_Request $request Request.
+	 * @return bool
+	 */
+	private function confirmed_reimport( \WP_REST_Request $request ): bool {
+		return true === filter_var( $request->get_param( 'confirm_reimport' ), FILTER_VALIDATE_BOOLEAN );
+	}
+
+	/**
+	 * The 409 an import answers while the comparison with the stored list
+	 * waits for the operator. Nothing was written.
+	 *
+	 * @param array $diff From {@see RecruitmentReimportDiff::compute()}.
+	 * @phpstan-param Diff $diff
+	 * @return \WP_Error
+	 */
+	private function reimport_diff_error( array $diff ): \WP_Error {
+		$messages = RecruitmentReimportDiff::messages( $diff );
+		return new \WP_Error(
+			RecruitmentReimportDiff::CONFIRM_CODE,
+			RecruitmentErrorMessages::translate( RecruitmentReimportDiff::CONFIRM_CODE ),
+			array(
+				'status'        => 409,
+				'diff_summary'  => $messages['summary'],
+				'diff_messages' => $messages['lines'],
+			)
+		);
+	}
+
+	/**
+	 * The 409 an import answers while identity mismatches wait for the
+	 * operator. It names lines, fields and candidate IDs, never values.
+	 *
+	 * @param list<array{line: int, candidate_id: int, fields: list<string>}> $mismatches Mismatches.
+	 * @return \WP_Error
+	 */
+	private function identity_mismatch_error( array $mismatches ): \WP_Error {
+		return new \WP_Error(
+			RecruitmentImportIdentityCheck::MISMATCH_CODE,
+			RecruitmentErrorMessages::translate( RecruitmentImportIdentityCheck::MISMATCH_CODE ),
+			array(
+				'status'            => 409,
+				'mismatches'        => $mismatches,
+				'mismatch_messages' => RecruitmentImportIdentityCheck::messages( $mismatches ),
+			)
+		);
 	}
 
 	/**
@@ -686,7 +769,17 @@ final class RecruitmentClassificationsRestController {
 		);
 
 		if ( ! $result['success'] ) {
-			return $this->wp_error_from_envelope( $result['errors'], 409 );
+			$error = $this->wp_error_from_envelope( $result['errors'], 409 );
+			// The batch names the row it stopped at, then why: say both in
+			// words rather than the marker code (#2245).
+			if ( 0 === strpos( (string) $result['errors'][0], 'recruitment_bulk_call_failed_at_classification' ) && isset( $result['errors'][1] ) ) {
+				return new \WP_Error(
+					$error->get_error_code(),
+					RecruitmentErrorMessages::translate( 'recruitment_bulk_call_failed_at_classification' ) . ' ' . RecruitmentErrorMessages::translate( $result['errors'][1] ),
+					$error->get_error_data()
+				);
+			}
+			return $error;
 		}
 
 		return new \WP_REST_Response( $result, 201 );
@@ -729,9 +822,22 @@ final class RecruitmentClassificationsRestController {
 	public function change_classification_status( \WP_REST_Request $request ) {
 		$id     = (int) $request->get_param( 'id' );
 		$reason = $request->get_param( 'reason' );
+		$status = (string) $request->get_param( 'status' );
+
+		// A call and its end belong to the call routes (#2245): `called` set
+		// here created no call row and skipped the queue rule, and `empty`
+		// left the call active, so its `.ics` still downloaded, "My calls"
+		// still showed the date and the next call made a second one.
+		if ( 'called' === $status ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_status_called_requires_call' ), 409 );
+		}
+		if ( 'empty' === $status ) {
+			return $this->wp_error_from_envelope( array( 'recruitment_status_empty_requires_cancel' ), 409 );
+		}
+
 		$result = RecruitmentClassificationStateMachine::transition_to(
 			$id,
-			(string) $request->get_param( 'status' ),
+			$status,
 			is_string( $reason ) ? $reason : null
 		);
 		if ( ! $result['success'] ) {
@@ -793,6 +899,10 @@ final class RecruitmentClassificationsRestController {
 		}
 		if ( 'preview' !== (string) $cls->list_type ) {
 			return new \WP_Error( 'recruitment_preview_status_only_on_preview_list', __( 'Preliminary status can only be set on classifications in the preview list.', 'ffcertificate' ), array( 'status' => 409 ) );
+		}
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::PREVIEW_MARKS, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_preview_status_locked', RecruitmentErrorMessages::translate( 'recruitment_preview_status_locked' ), array( 'status' => 409 ) );
 		}
 
 		$valid_statuses = array( 'empty', 'denied', 'granted', 'appeal_denied', 'appeal_granted' );
@@ -866,6 +976,13 @@ final class RecruitmentClassificationsRestController {
 			return new \WP_Error( 'ffc_classification_not_found', __( 'Classification not found.', 'ffcertificate' ), array( 'status' => 404 ) );
 		}
 
+		// A published definitive list, and a closed notice, keep each row
+		// under the adjutancy it was published with (#2245).
+		$notice = RecruitmentNoticeReader::get_by_id( (int) $cls->notice_id );
+		if ( null === $notice || ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ROW_ADJUTANCY, (string) $notice->status ) ) {
+			return new \WP_Error( 'recruitment_row_adjutancy_locked', RecruitmentErrorMessages::translate( 'recruitment_row_adjutancy_locked' ), array( 'status' => 409 ) );
+		}
+
 		$current_adjutancy = (int) $cls->adjutancy_id;
 		if ( $current_adjutancy === $new_adjutancy_id ) {
 			return new \WP_Error( 'ffc_classification_adjutancy_unchanged', __( 'New adjutancy is the same as the current one.', 'ffcertificate' ), array( 'status' => 409 ) );
@@ -920,10 +1037,21 @@ final class RecruitmentClassificationsRestController {
 	 */
 	public function cancel_call( \WP_REST_Request $request ) {
 		$call_id = (int) $request->get_param( 'call_id' );
-		$result  = RecruitmentCallService::cancel_call(
+
+		// An Operator ends the calls they made; a Manager ends any (#2245).
+		if ( ! current_user_can( 'ffc_manage_recruitment' ) ) {
+			$call = RecruitmentCallReader::get_by_id( $call_id );
+			if ( null !== $call && get_current_user_id() !== (int) $call->created_by ) {
+				return $this->wp_error_from_envelope( array( 'recruitment_call_not_yours' ), 403 );
+			}
+		}
+
+		$result = RecruitmentCallService::cancel_call(
 			$call_id,
 			(string) $request->get_param( 'reason' ),
-			get_current_user_id()
+			get_current_user_id(),
+			(int) $request->get_param( 'id' ),
+			$this->notify_email_param( $request )
 		);
 		if ( ! $result['success'] ) {
 			return $this->wp_error_from_envelope( $result['errors'], 409 );

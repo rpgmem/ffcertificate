@@ -49,6 +49,9 @@ class AudienceAdminBookingsTest extends TestCase {
 		// the check (false ⇒ button hidden) so the view renders without the
 		// real capability API.
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'add_query_arg' )->alias( static fn( ...$a ): string => is_array( $a[0] ) ? $a[1] . '?' . http_build_query( $a[0] ) : $a[2] . '&' . $a[0] . '=' . $a[1] );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();

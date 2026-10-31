@@ -132,6 +132,21 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$this->assertSame( 12, RecruitmentClassificationRepository::count_for_adjutancy( 4 ) );
 	}
 
+	public function test_delete_all_for_notice_removes_every_list(): void {
+		$this->wpdb->shouldReceive( 'delete' )
+			->once()
+			->with( 'wp_ffc_recruitment_classification', array( 'notice_id' => 5 ), array( '%d' ) )
+			->andReturn( 9 );
+
+		$this->assertSame( 9, RecruitmentClassificationRepository::delete_all_for_notice( 5 ) );
+	}
+
+	public function test_delete_all_for_notice_reports_a_database_error(): void {
+		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( false );
+
+		$this->assertFalse( RecruitmentClassificationRepository::delete_all_for_notice( 5 ) );
+	}
+
 	public function test_delete_all_for_notice_list_returns_count(): void {
 		$this->wpdb->shouldReceive( 'delete' )
 			->once()
@@ -362,5 +377,28 @@ class RecruitmentClassificationRepositoryTest extends TestCase {
 		$this->assertTrue( RecruitmentClassificationRepository::delete( 4 ) );
 		$this->assertFalse( RecruitmentClassificationRepository::delete( 4 ) );
 		$this->assertSame( array( 'id_4', 'id_4' ), $deleted, 'The cached row is dropped either way.' );
+	}
+
+	// ------------------------------------------------------------------
+	// Definitive list export keyset (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_count_definitive_for_export_counts_the_notice_definitive_list(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '12' );
+
+		$this->assertSame( 12, RecruitmentClassificationRepository::count_definitive_for_export( 3 ) );
+	}
+
+	public function test_definitive_page_for_export_walks_the_id_keyset(): void {
+		$rows = array( array( 'id' => '8' ) );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( Mockery::type( 'string' ), ARRAY_A )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentClassificationRepository::definitive_page_for_export( 3, 50, 25 ) );
+	}
+
+	public function test_definitive_page_for_export_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentClassificationRepository::definitive_page_for_export( 3, 50, 25 ) );
 	}
 }

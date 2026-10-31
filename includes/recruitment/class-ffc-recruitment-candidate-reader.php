@@ -27,6 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.0.0
  *
  * @phpstan-type CandidateRow \stdClass&object{id: numeric-string, user_id: numeric-string|null, name: string, cpf_encrypted: string|null, cpf_hash: string|null, rf_encrypted: string|null, rf_hash: string|null, email_encrypted: string|null, email_hash: string|null, phone: string|null, notes: string|null, pcd_hash: string, created_at: string, updated_at: string}
+ * @phpstan-type IdentityRow \stdClass&object{id: numeric-string, cpf_hash: string|null, rf_hash: string|null, email_hash: string|null, name: string}
  */
 class RecruitmentCandidateReader {
 
@@ -147,6 +148,53 @@ class RecruitmentCandidateReader {
 	}
 
 	/**
+	 * Stored identity of every candidate whose CPF or RF hash is in the list.
+	 *
+	 * Read before an import (#2245) so a whole file is compared with what is
+	 * stored in a few queries rather than two per row. Only hashes and the
+	 * name are read; nothing is decrypted.
+	 *
+	 * @param string $column Hash column to match on: `cpf_hash` or `rf_hash`.
+	 * @param array  $hashes Hashes to look up.
+	 * @phpstan-param list<string> $hashes
+	 * @return array<string, IdentityRow> Hash → stored identity.
+	 */
+	public static function get_identities_by_hash( string $column, array $hashes ): array {
+		$hashes = array_values( array_unique( array_filter( $hashes, static fn( string $h ): bool => '' !== $h ) ) );
+		if ( empty( $hashes ) || ! in_array( $column, array( 'cpf_hash', 'rf_hash' ), true ) ) {
+			return array();
+		}
+
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+		$out   = array();
+
+		foreach ( array_chunk( $hashes, 500 ) as $chunk ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $chunk ), '%s' ) );
+			$sql          = "SELECT id, cpf_hash, rf_hash, email_hash, name FROM %i WHERE %i IN ({$placeholders})";
+
+			/**
+			 * Cast wpdb's mixed return into the typed shape.
+			 *
+			 * @var list<IdentityRow>|null $rows
+			 */
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders are %i + %i + N×%s, all generated literals; the column is checked against a two-entry allowlist above.
+			$rows = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( array( $table, $column ), $chunk ) ) );
+			if ( ! is_array( $rows ) ) {
+				continue;
+			}
+			foreach ( $rows as $row ) {
+				$key = (string) $row->{$column};
+				if ( '' !== $key ) {
+					$out[ $key ] = $row;
+				}
+			}
+		}
+
+		return $out;
+	}
+
+	/**
 	 * Look up a candidate by CPF hash.
 	 *
 	 * Used by the CSV importer to detect cross-CSV / cross-notice reuse: a
@@ -205,8 +253,13 @@ class RecruitmentCandidateReader {
 	 *
 	 * @param string $email_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
 	 * @return CandidateRow|null
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_email_hash( string $email_hash ): ?object {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -348,8 +401,13 @@ class RecruitmentCandidateReader {
 	 * @param string $name_search  Optional substring filter on name.
 	 * @param int    $adjutancy_id Adjutancy id.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_paginated_for_adjutancy( string $name_search, int $adjutancy_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb      = self::db();
 		$table     = self::get_table_name();
 		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
@@ -376,8 +434,13 @@ class RecruitmentCandidateReader {
 	 *
 	 * @param string $name_search Optional substring filter on name.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_paginated( string $name_search ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

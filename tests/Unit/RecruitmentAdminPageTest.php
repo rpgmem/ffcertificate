@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
@@ -16,21 +15,14 @@ use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
  * across the admin surface (notice + classification status maps). The
  * register_menu() / render_page() dispatchers are out of scope for the
  * smoke tier — they tie into the full WP-admin runtime + tab routing.
+ * The badges are drawn by the real BadgeHtml (#2119).
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPage
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentAdminPageTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
-
-	/** @var \Mockery\MockInterface */
-	private $settingsMock;
-
-	/** @var \Mockery\MockInterface */
-	private $badgeMock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -61,32 +53,9 @@ class RecruitmentAdminPageTest extends TestCase {
 			static fn( $key ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) )
 		);
 
-		$this->settingsMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
-		$this->settingsMock->shouldReceive( 'all' )->andReturn(
-			array(
-				'status_color_empty'              => '#fff',
-				'status_color_called'             => '#aaa',
-				'status_color_hired'              => '#0f0',
-				'status_color_not_shown'          => '#f00',
-				'status_color_withdrew'           => '#f0a',
-				'notice_status_color_draft'       => '#ccc',
-				'notice_status_color_preliminary' => '#ff0',
-				'notice_status_color_definitive'  => '#0f0',
-				'notice_status_color_closed'      => '#999',
-			)
-		)->byDefault();
-
-		$this->badgeMock = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		// The colour left the signature in #1193: status variants are painted by
-		// a generated rule, not by an attribute, so the helper only takes classes
-		// and a label. The adjutancy badge, whose colour is per row, has its own
-		// method.
-		$this->badgeMock->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $label ) => "[BADGE:$cls:$label]"
-		);
-		$this->badgeMock->shouldReceive( 'render_with_row_color' )->andReturnUsing(
-			fn( $base, $color, $label ) => "[ROWBADGE:$base:$color:$label]"
-		);
+		// RecruitmentSettings and BadgeHtml are the real classes: no stored
+		// settings, so the defaults apply (#2119).
+		Functions\when( 'get_option' )->justReturn( array() );
 	}
 
 	protected function tearDown(): void {
@@ -120,15 +89,17 @@ class RecruitmentAdminPageTest extends TestCase {
 	public function test_classification_status_badge_delegates_to_badge_html(): void {
 		$html = RecruitmentAdminPage::classification_status_badge( 'called' );
 
-		$this->assertStringContainsString( '[BADGE:', $html );
+		$this->assertStringStartsWith( '<span', $html );
 		$this->assertStringContainsString( 'ffc-recruitment-status-called', $html );
+		$this->assertStringContainsString( '>Called<', $html );
 	}
 
 	public function test_notice_status_badge_delegates_to_badge_html(): void {
 		$html = RecruitmentAdminPage::notice_status_badge( 'preliminary' );
 
-		$this->assertStringContainsString( '[BADGE:', $html );
-		$this->assertStringContainsString( 'preliminary', $html );
+		$this->assertStringStartsWith( '<span', $html );
+		$this->assertStringContainsString( 'ffc-recruitment-status-preliminary', $html );
+		$this->assertStringContainsString( '>Preliminary<', $html );
 	}
 
 	/**
@@ -155,8 +126,7 @@ class RecruitmentAdminPageTest extends TestCase {
 
 		$html = RecruitmentAdminPage::adjutancy_badge( $adjutancy );
 
-		$this->assertStringContainsString( 'ROWBADGE', $html );
-		$this->assertStringContainsString( '#123456', $html );
+		$this->assertStringContainsString( '--ffc-badge-row-bg:#123456;', $html );
 		$this->assertStringContainsString( 'Matemática', $html );
 	}
 

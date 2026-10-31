@@ -46,6 +46,28 @@ class IcsGeneratorTest extends TestCase {
 		);
 	}
 
+	public function test_several_events_share_one_calendar_and_keep_their_own_uids(): void {
+		$second         = $this->ics_event();
+		$second['uid']  = 'test-event-456';
+		$second['date'] = '2030-01-22';
+
+		$ics = IcsGenerator::generate_many( array( $this->ics_event(), $second ) );
+
+		$this->assertSame( 1, substr_count( $ics, 'BEGIN:VCALENDAR' ) );
+		$this->assertSame( 1, substr_count( $ics, 'METHOD:REQUEST' ) );
+		$this->assertSame( 2, substr_count( $ics, 'BEGIN:VEVENT' ) );
+		$this->assertStringContainsString( 'UID:test-event-123@example.com', $ics );
+		$this->assertStringContainsString( 'UID:test-event-456@example.com', $ics );
+		$this->assertStringContainsString( 'DTSTART:20300122T1000', $ics );
+	}
+
+	public function test_one_event_reads_the_same_through_either_entry_point(): void {
+		$one  = preg_replace( '/DTSTAMP:\S+/', '', IcsGenerator::generate( $this->ics_event() ) );
+		$many = preg_replace( '/DTSTAMP:\S+/', '', IcsGenerator::generate_many( array( $this->ics_event() ) ) );
+
+		$this->assertSame( $one, $many );
+	}
+
 	public function test_ics_begins_and_ends_with_vcalendar(): void {
 		$ics = IcsGenerator::generate( $this->ics_event() );
 		$this->assertStringStartsWith( "BEGIN:VCALENDAR\r\n", $ics );

@@ -70,12 +70,24 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Allowed ORDER BY columns: the generic set plus the two the Appointments
 	 * list sorts by (#1770). Without them `sanitize_order_column()` silently
-	 * turns a Calendar or Date sort into an `id` sort.
+	 * turns a Calendar or Date sort into an `id` sort. The list is the
+	 * reader's, so the façade and the reader cannot disagree (#2137).
 	 *
 	 * @return array<int, string>
 	 */
 	protected function get_allowed_order_columns(): array {
-		return array_merge( parent::get_allowed_order_columns(), array( 'calendar_id', 'appointment_date' ) );
+		return array_merge( parent::get_allowed_order_columns(), AppointmentReader::ORDER_COLUMNS );
+	}
+
+	/**
+	 * The reader's date sort, with its time tie-breaker (#2288).
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return AppointmentReader::date_order_clause( $column, $direction );
 	}
 
 	/**
@@ -184,6 +196,17 @@ class AppointmentRepository extends AbstractRepository {
 	 */
 	public function getAppointmentsByDateRange( int $calendar_id, string $start_date, string $end_date, array $statuses = array( 'confirmed', 'pending' ) ): array {
 		return $this->reader->getAppointmentsByDateRange( $calendar_id, $start_date, $end_date, $statuses );
+	}
+
+	/**
+	 * The appointments on one date across every calendar, with the calendar's title.
+	 *
+	 * @param string             $date     Date (Y-m-d).
+	 * @param array<int, string> $statuses Statuses.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getAllOnDate( string $date, array $statuses ): array {
+		return $this->reader->getAllOnDate( $date, $statuses );
 	}
 
 	/**
@@ -350,10 +373,11 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param array<int, string>   $statuses     Status filter (empty = all).
 	 * @param string|null          $start_date   Start date (`Y-m-d`).
 	 * @param string|null          $end_date     End date (`Y-m-d`).
+	 * @param string               $search       List search text (#2244).
 	 * @return int
 	 */
-	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date ): int {
-		return $this->reader->countForExport( $calendar_ids, $statuses, $start_date, $end_date );
+	public function countForExport( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, string $search = '' ): int {
+		return $this->reader->countForExport( $calendar_ids, $statuses, $start_date, $end_date, $search );
 	}
 
 	/**
@@ -366,10 +390,11 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id.
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		return $this->reader->getExportBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	public function getExportBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		return $this->reader->getExportBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit, $search );
 	}
 
 	/**
@@ -382,10 +407,35 @@ class AppointmentRepository extends AbstractRepository {
 	 * @param string|null          $end_date     End date (`Y-m-d`).
 	 * @param int                  $cursor_id    Exclusive upper-bound id.
 	 * @param int                  $limit        Page size.
+	 * @param string               $search       List search text (#2244).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit ): array {
-		return $this->reader->getExportKeysBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit );
+	public function getExportKeysBatch( ?array $calendar_ids, array $statuses, ?string $start_date, ?string $end_date, int $cursor_id, int $limit, string $search = '' ): array {
+		return $this->reader->getExportKeysBatch( $calendar_ids, $statuses, $start_date, $end_date, $cursor_id, $limit, $search );
+	}
+
+	/**
+	 * One page of the Appointments list under its filters (#2244).
+	 *
+	 * @param array<string, mixed> $filters  calendar_id / status / start_date / end_date / search.
+	 * @param string               $order_by Allowlisted column.
+	 * @param string               $order    `ASC` or `DESC`.
+	 * @param int                  $limit    Page size.
+	 * @param int                  $offset   Offset.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findForList( array $filters, string $order_by, string $order, int $limit, int $offset ): array {
+		return $this->reader->findForList( $filters, $order_by, $order, $limit, $offset );
+	}
+
+	/**
+	 * How many appointments the Appointments list's filters match.
+	 *
+	 * @param array<string, mixed> $filters calendar_id / status / start_date / end_date / search.
+	 * @return int
+	 */
+	public function countForList( array $filters ): int {
+		return $this->reader->countForList( $filters );
 	}
 
 	// ─────────────────────────────────────────────.
@@ -405,14 +455,27 @@ class AppointmentRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Confirm appointment (admin approval)
+	 * Confirm an appointment that is still pending (#2244).
 	 *
-	 * @param int      $id Record ID.
+	 * @param int      $id          Record ID.
 	 * @param int|null $approved_by User ID who approved.
-	 * @return int|false
+	 * @return int|false Rows changed (0 when the row is no longer pending).
 	 */
-	public function confirm( int $id, ?int $approved_by = null ) {
-		return $this->writer->confirm( $id, $approved_by );
+	public function confirmPending( int $id, ?int $approved_by = null ) {
+		return $this->writer->confirmPending( $id, $approved_by );
+	}
+
+	/**
+	 * Cancel an appointment only if it still carries $from (#2244).
+	 *
+	 * @param int         $id           Record ID.
+	 * @param string      $from         Status the caller read on the row.
+	 * @param int|null    $cancelled_by User ID who cancelled.
+	 * @param string|null $reason       Cancellation reason.
+	 * @return int|false Rows changed (0 when the row moved meanwhile).
+	 */
+	public function cancelFrom( int $id, string $from, ?int $cancelled_by = null, ?string $reason = null ) {
+		return $this->writer->cancelFrom( $id, $from, $cancelled_by, $reason );
 	}
 
 	/**
@@ -444,6 +507,50 @@ class AppointmentRepository extends AbstractRepository {
 	 */
 	public function markNoShow( int $id ) {
 		return $this->writer->markNoShow( $id );
+	}
+
+	/**
+	 * Undo an attendance mark, putting the appointment back to confirmed.
+	 *
+	 * @param int    $id   Record ID.
+	 * @param string $from The attendance status the caller read on the row.
+	 * @return int|false
+	 */
+	public function revertAttendance( int $id, string $from ) {
+		return $this->writer->revertAttendance( $id, $from );
+	}
+
+	/**
+	 * Count the appointments the close-out would change.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d` (wall-clock).
+	 * @return array{confirmed: int, pending: int}
+	 */
+	public function countDueForCloseout( string $cutoff ): array {
+		return $this->reader->countDueForCloseout( $cutoff );
+	}
+
+	/**
+	 * Mark one batch of confirmed appointments up to $cutoff as completed.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d`.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false
+	 */
+	public function completeConfirmedUpTo( string $cutoff, int $limit ) {
+		return $this->writer->completeConfirmedUpTo( $cutoff, $limit );
+	}
+
+	/**
+	 * Cancel one batch of pending appointments up to $cutoff.
+	 *
+	 * @param string $cutoff Last appointment date, `Y-m-d`.
+	 * @param string $reason Cancellation reason.
+	 * @param int    $limit  Rows per batch.
+	 * @return int|false
+	 */
+	public function expirePendingUpTo( string $cutoff, string $reason, int $limit ) {
+		return $this->writer->expirePendingUpTo( $cutoff, $reason, $limit );
 	}
 
 	/**

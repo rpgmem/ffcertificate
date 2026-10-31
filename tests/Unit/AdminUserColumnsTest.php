@@ -10,17 +10,6 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserColumns;
 
-// Local stub — kept in this file (rather than bootstrap.php) so it doesn't
-// race with `Mockery::mock( 'overload:\WP_User_Query' )` that other tests
-// use. Each AdminUserColumnsTest method runs in a separate process, so the
-// stub gets a fresh definition every time without leaking globally. eval()
-// keeps the class in the global namespace despite the test file's own
-// namespace declaration above.
-if ( ! class_exists( '\WP_User_Query', false ) ) {
-	// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Test-only inline stub; safer than splitting into a separate file that AdminAjaxTest's overload mock would conflict with.
-	eval( 'class WP_User_Query { public $query_from = ""; public $query_where = ""; public $query_orderby = ""; public $query_vars = array(); }' );
-}
-
 /**
  * Tests for AdminUserColumns: custom user list columns for certificates,
  * appointments, and user actions (login-as-user link).
@@ -28,9 +17,11 @@ if ( ! class_exists( '\WP_User_Query', false ) ) {
  * Covers hook registration, column insertion, rendering (zero/non-zero counts,
  * unknown columns), style enqueueing, and batch-loading cache behaviour.
  *
+ * Utils and AssetHelper are the real classes. The three sort tests declare a
+ * minimal WP_User_Query, which would outlive them, so they run in their own
+ * process (#2127).
+ *
  * @covers \FreeFormCertificate\Admin\AdminUserColumns
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminUserColumnsTest extends TestCase {
 
@@ -39,8 +30,8 @@ class AdminUserColumnsTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface alias mock for Utils */
-	private $utils_mock;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -51,6 +42,7 @@ class AdminUserColumnsTest extends TestCase {
 
 		// Mock $wpdb
 		global $wpdb;
+		$this->wpdb_backup = $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$this->wpdb   = $wpdb;
@@ -58,14 +50,6 @@ class AdminUserColumnsTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () {
 			return func_get_args()[0];
 		} )->byDefault();
-
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-		$asset_helper = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' )->byDefault();
-		// enqueue_common_style() puts the token palette on the screen (#1126 B):
-		// users.php is not an is_ffc_page(), so nothing else would.
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->byDefault();
 
 		// Common WP stubs
 		Functions\when( '__' )->returnArg();
@@ -97,6 +81,7 @@ class AdminUserColumnsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		$this->resetStaticCaches();
 		Monkey\tearDown();
 		parent::tearDown();
@@ -382,10 +367,33 @@ class AdminUserColumnsTest extends TestCase {
 	// apply_sort_to_user_query()
 	// ==================================================================
 
+	/**
+	 * Declares core's user query class inside the calling test's own process.
+	 *
+	 * Called from a test, never at file scope: PHPUnit loads every test file
+	 * in its parent process to build the suite, so a file-scope declaration
+	 * gave the parent a `WP_User_Query` with no constructor arguments and no
+	 * `get_total()`, which broke any test there that counts users (#2104).
+	 * Each test that calls it runs in its own process, so each gets a fresh one.
+	 */
+	private function declare_user_query(): void {
+		if ( ! class_exists( '\WP_User_Query', false ) ) {
+			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.
+			eval( 'class WP_User_Query { public $query_from = ""; public $query_where = ""; public $query_orderby = ""; public $query_vars = array(); }' );
+		}
+	}
+
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_skips_unknown_orderby(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'login', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';
@@ -398,10 +406,17 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertSame( 'ORDER BY user_login ASC', $query->query_orderby );
 	}
 
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_certificates(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_certificates', 'order' => 'DESC' );
 		$query->query_from    = 'FROM wp_users';
@@ -415,6 +430,12 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertStringContainsString( 'DESC', $query->query_orderby );
 	}
 
+	/**
+	 * Its own process: it declares a minimal WP_User_Query.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_apply_sort_to_user_query_mutates_query_when_sorting_by_notices(): void {
 		global $wpdb;
 		$wpdb->users = 'wp_users';
@@ -422,6 +443,7 @@ class AdminUserColumnsTest extends TestCase {
 		// table_exists returns the table name → exists
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_recruitment_classification' )->byDefault();
 
+		$this->declare_user_query();
 		$query                = new \WP_User_Query();
 		$query->query_vars    = array( 'orderby' => 'ffc_notices', 'order' => 'ASC' );
 		$query->query_from    = 'FROM wp_users';
@@ -439,19 +461,22 @@ class AdminUserColumnsTest extends TestCase {
 	// ==================================================================
 
 	public function test_enqueue_styles_on_users_page(): void {
-		Functions\expect( 'wp_enqueue_style' )
-			->once()
-			->with(
-				'ffc-admin',
-				Mockery::pattern( '/ffc-admin\.min\.css/' ),
-				// ffc-admin.css paints with var(--ffc-*), and users.php is not
-				// an is_ffc_page(), so the palette must ride in as a declared
-				// dependency (#1126 defeito B).
-				array( 'ffc-common' ),
-				FFC_VERSION
-			);
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( ...$args ) use ( &$enqueued ) {
+				$enqueued[ $args[0] ] = $args;
+			}
+		);
 
 		AdminUserColumns::enqueue_styles( 'users.php' );
+
+		// users.php is not an is_ffc_page(), so the palette is enqueued here
+		// (#1126 B) and ffc-admin.css, which paints with var(--ffc-*), declares
+		// it as a dependency.
+		$this->assertSame( array( 'ffc-common', 'ffc-admin' ), array_keys( $enqueued ) );
+		$this->assertStringContainsString( 'ffc-admin.min.css', $enqueued['ffc-admin'][1] );
+		$this->assertSame( array( 'ffc-common' ), $enqueued['ffc-admin'][2] );
+		$this->assertSame( FFC_VERSION, $enqueued['ffc-admin'][3] );
 	}
 
 	public function test_enqueue_styles_skips_other_pages(): void {

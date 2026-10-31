@@ -8,8 +8,11 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Captcha\CaptchaProvider;
+use FreeFormCertificate\Core\SecurityService;
 use FreeFormCertificate\Frontend\FormProcessor;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * 6.6.4 Sprint 4 — LGPD + email presence checks are now run BEFORE
@@ -23,8 +26,10 @@ use FreeFormCertificate\Submissions\SubmissionHandler;
  *
  * This test pins both contracts.
  *
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+ * The gates ahead of the presence check run for real — RateLimiter's IP
+ * gate over empty transient counters and a `$wpdb` double that fails on any
+ * query other than its day counter, and the math captcha, answered with a
+ * challenge this test draws from SecurityService.
  */
 class FormProcessorRequiredPresenceOrderTest extends TestCase {
 
@@ -36,6 +41,18 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 	/** @var array<string, mixed>|null */
 	private $captured_error = null;
 
+	/** @var array<string, mixed> Transients, by key. */
+	private array $transients = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -43,20 +60,39 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'sanitize_email' )->returnArg();
+		Functions\when( 'absint' )->alias( 'intval' );
+		Functions\when( 'is_email' )->justReturn( true );
+		// recursive_sanitize() calls wp_kses() internally.
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( '_deprecated_function' )->justReturn( null );
+		Functions\when( 'wp_parse_args' )->alias(
+			static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args )
+		);
+		Functions\when( 'wp_salt' )->alias( static fn( string $scheme = 'auth' ): string => 'test-salt-' . $scheme );
+		Functions\when( 'wp_rand' )->alias( static fn( int $min = 0, int $max = 0 ): int => random_int( $min, $max ) );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		// No stored option anywhere: every reader takes its defaults, so
+		// IP rate limiting is ON and the captcha is math.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+
+		$this->transients = array();
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		// Reach the presence gate: rate-limit allows, nonce valid,
 		// captcha valid, form_id valid, form config exists with an
 		// email-typed field.
-		$rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-
-		$security_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\SecurityService' )
-			->shouldReceive( 'with_fresh_challenge' )->andReturnUsing( static function ( array $p ): array {
-				return $p + array( 'refresh_captcha' => true, 'new_label' => '1+1', 'new_hash' => 'fresh-token' );
-			} );
-		$security_mock->shouldReceive( 'validate_security_fields' )->andReturn( true )->byDefault();
 
 		Functions\when( 'get_post_meta' )->alias( static function ( $post_id, $key ) {
 			if ( '_ffc_form_fields' === $key ) {
@@ -68,12 +104,22 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 			if ( '_ffc_form_config' === $key ) {
 				return array();
 			}
+			if ( '_ffc_geofence_config' === $key ) {
+				// One GPS area of 100 m around São Paulo's Praça da Sé.
+				return array(
+					'geo_enabled'     => '1',
+					'geo_gps_enabled' => '1',
+					'geo_areas'       => '-23.5503, -46.6339, 100',
+				);
+			}
 			return '';
 		} );
 		Functions\when( 'get_post' )->alias( static function () {
 			$p = new \stdClass();
 			$p->ID = 1;
 			$p->post_title = 'Form';
+			$p->post_type   = 'ffc_form';
+			$p->post_status = 'publish';
 			return $p;
 		} );
 
@@ -83,24 +129,98 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 			throw new \RuntimeException( 'wp_send_json_error called' );
 		} );
 
+		$this->reset_static_state();
+		$this->install_wpdb();
+
 		$mock_handler    = Mockery::mock( SubmissionHandler::class );
 		$this->processor = new FormProcessor( $mock_handler );
+
+		$this->post_backup = $_POST ?? array();
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
+		$_POST = $this->post_backup;
+		$this->reset_static_state();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Forget the rate-limit settings and the captcha strategy memoised by
+	 * an earlier test, so this one reads its own options.
+	 */
+	private function reset_static_state(): void {
+		$cache = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$cache->setAccessible( true );
+		$cache->setValue( null, null );
+		CaptchaProvider::reset();
+	}
+
+	/**
+	 * A `$wpdb` double that answers the IP gate's day counter (no row yet,
+	 * so the gate allows) and fails on any other query.
+	 */
+	private function install_wpdb(): void {
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return $sql . ' -- ' . (string) json_encode( $flat );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 0 === strpos( (string) $sql, 'SELECT count FROM %i WHERE type=%s' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		foreach ( array( 'get_row', 'get_results', 'get_col', 'insert', 'update', 'replace', 'delete', 'query' ) as $method ) {
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				function ( ...$args ) use ( $method ) {
+					$this->fail( 'Unexpected $wpdb->' . $method . '(): ' . print_r( $args[0] ?? '', true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r -- test diagnostics.
+				}
+			);
+		}
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * The request fields every test posts: a valid nonce, the form, and a
+	 * correct answer to a freshly drawn math challenge.
+	 *
+	 * @param array<string, mixed> $fields The form's own fields.
+	 * @return array<string, mixed>
+	 */
+	private function request( array $fields ): array {
+		$challenge = SecurityService::generate_simple_captcha();
+
+		return array(
+			'action'           => 'ffc_submit_form',
+			'nonce'            => 'ok',
+			'form_id'          => 1,
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		) + $fields;
+	}
+
 	public function test_missing_lgpd_alone_returns_lgpd_error(): void {
-		$_POST = array(
-			'action'    => 'ffc_submit_form',
-			'nonce'     => 'ok',
-			'form_id'   => 1,
-			'email'     => 'user@example.org',
-			'cpf_rf'    => '51817842080', // valid CPF — would pass field loop.
-			// ffc_lgpd_consent intentionally missing.
+		$_POST = $this->request(
+			array(
+				'email'  => 'user@example.org',
+				'cpf_rf' => Identifiers::CPF_A, // Valid CPF — would pass the field loop.
+				// ffc_lgpd_consent intentionally missing.
+			)
 		);
 
 		$this->expectException( \RuntimeException::class );
@@ -115,13 +235,12 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 	}
 
 	public function test_missing_email_alone_returns_email_error(): void {
-		$_POST = array(
-			'action'           => 'ffc_submit_form',
-			'nonce'            => 'ok',
-			'form_id'          => 1,
-			'ffc_lgpd_consent' => '1',
-			'cpf_rf'           => '51817842080',
-			// email field intentionally missing.
+		$_POST = $this->request(
+			array(
+				'ffc_lgpd_consent' => '1',
+				'cpf_rf'           => Identifiers::CPF_A,
+				// email field intentionally missing.
+			)
 		);
 
 		$this->expectException( \RuntimeException::class );
@@ -136,12 +255,11 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 	}
 
 	public function test_missing_both_returns_combined_errors_array(): void {
-		$_POST = array(
-			'action'  => 'ffc_submit_form',
-			'nonce'   => 'ok',
-			'form_id' => 1,
-			'cpf_rf'  => '51817842080',
-			// email + LGPD both missing.
+		$_POST = $this->request(
+			array(
+				'cpf_rf' => Identifiers::CPF_A,
+				// email + LGPD both missing.
+			)
 		);
 
 		$this->expectException( \RuntimeException::class );
@@ -160,43 +278,38 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 	}
 
 	public function test_presence_check_passes_when_lgpd_and_email_are_filled(): void {
-		// Both presence checks satisfied → presence check does NOT call
-		// wp_send_json_error, which proves it's purely additive and
-		// doesn't change the happy-path behaviour. The request will
-		// continue into the field-validation loop downstream; we don't
-		// mock that here, so we assert ONLY that the presence check is
-		// silent (captured_error stays null until something downstream
-		// fires it). A null captured_error after a try/catch confirms
-		// the presence check branch didn't fire.
-		$_POST = array(
-			'action'           => 'ffc_submit_form',
-			'nonce'            => 'ok',
-			'form_id'          => 1,
-			'ffc_lgpd_consent' => '1',
-			'email'            => 'user@example.org',
-			'cpf_rf'           => '51817842080',
+		// Both presence checks satisfied → the presence check does NOT
+		// reject, which proves it is purely additive and does not change
+		// the happy-path behaviour. The request continues through the field
+		// sanitizer, the invite and field-rule guards and the device
+		// resolver, and is refused by the first gate after them that can
+		// refuse it: the form's GPS geofence, since the reading lies far
+		// outside its area. That rejection has no `errors` array, so it is
+		// not the presence check's.
+		$_POST = $this->request(
+			array(
+				'ffc_lgpd_consent' => '1',
+				'email'            => 'user@example.org',
+				'cpf_rf'           => Identifiers::CPF_A,
+				// A precise, fresh reading in Rio de Janeiro.
+				'ffc_geo_lat'      => '-22.9068',
+				'ffc_geo_lng'      => '-43.1729',
+				'ffc_geo_accuracy' => '10',
+				'ffc_geo_age'      => '1000',
+			)
 		);
 
+		$this->expectException( \RuntimeException::class );
 		try {
 			$this->processor->handle_submission_ajax();
-		} catch ( \Throwable $e ) {
-			// Downstream may throw (no full mock chain). All we care
-			// about is that the captured payload doesn't carry the
-			// presence check `errors` array — which would mean the
-			// presence check fired incorrectly.
+		} finally {
+			$this->assertIsArray( $this->captured_error );
+			$this->assertTrue( $this->captured_error['geofence_blocked'] ?? false, 'The request must get past the presence check to the geofence.' );
+			$this->assertArrayNotHasKey(
+				'errors',
+				$this->captured_error,
+				'presence check `errors` array should not be present on a non-presence-check failure'
+			);
 		}
-		if ( null === $this->captured_error ) {
-			// No wp_send_json_error fired at all → presence check passed and
-			// downstream didn't reach a json_error either. Pass.
-			$this->assertNull( $this->captured_error );
-			return;
-		}
-		// Some downstream check fired wp_send_json_error. As long as it
-		// doesn't have our `errors` array, it wasn't the presence check.
-		$this->assertArrayNotHasKey(
-			'errors',
-			$this->captured_error,
-			'presence check `errors` array should not be present on a non-presence-check failure'
-		);
 	}
 }

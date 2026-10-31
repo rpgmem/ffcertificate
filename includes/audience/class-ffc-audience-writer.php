@@ -96,6 +96,11 @@ class AudienceWriter {
 		);
 		$data     = wp_parse_args( $data, $defaults );
 
+		// The tree keeps three levels and no cycles on every path (#2243).
+		if ( null !== AudienceReader::parent_refusal( 0, is_numeric( $data['parent_id'] ) ? (int) $data['parent_id'] : null ) ) {
+			return false;
+		}
+
 		$insert_data   = array(
 			'name'       => $data['name'],
 			'color'      => $data['color'],
@@ -151,6 +156,12 @@ class AudienceWriter {
 		unset( $data['id'], $data['created_by'], $data['created_at'] );
 
 		if ( empty( $data ) ) {
+			return false;
+		}
+
+		// A move that would close a cycle or pass three levels is refused (#2243).
+		if ( array_key_exists( 'parent_id', $data )
+			&& null !== AudienceReader::parent_refusal( $id, is_numeric( $data['parent_id'] ) ? (int) $data['parent_id'] : null ) ) {
 			return false;
 		}
 
@@ -353,10 +364,14 @@ class AudienceWriter {
 	 * time (`md5( args )` hashes); this key can — a mutator always knows whose
 	 * membership it changed.
 	 *
+	 * Public for the one writer of memberships outside this class: the
+	 * dashboard's "Leave all groups", which removes them in one `DELETE`
+	 * (#2243).
+	 *
 	 * @param array<int|string> $user_ids Affected user IDs.
 	 * @return void
 	 */
-	private static function invalidate_user_audiences( array $user_ids ): void {
+	public static function invalidate_user_audiences( array $user_ids ): void {
 		foreach ( array_unique( array_map( 'absint', $user_ids ) ) as $uid ) {
 			if ( $uid <= 0 ) {
 				continue;

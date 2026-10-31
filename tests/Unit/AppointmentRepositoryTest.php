@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Repositories\AppointmentRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentRepository: CRUD operations, query methods,
@@ -43,7 +44,11 @@ class AppointmentRepositoryTest extends TestCase {
 		Functions\when('wp_cache_set')->justReturn(true);
 		Functions\when('wp_cache_delete')->justReturn(true);
 		Functions\when('wp_cache_flush')->justReturn(true);
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when('wp_cache_supports')->justReturn(false);
 		Functions\when('current_time')->justReturn('2026-03-01 10:00:00');
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
 		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('absint')->alias(function($val) {
 			return abs(intval($val));
@@ -479,6 +484,24 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertSame([], $result);
 	}
 
+	/**
+	 * The reader's listings sort by appointment date. Its ORDER BY allowlist
+	 * once lacked the column, so the sort fell back to `id`, which is
+	 * creation order (#2137).
+	 */
+	public function test_find_by_calendar_orders_by_appointment_date(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findByCalendar(5);
+
+		$this->assertStringContainsString('ORDER BY appointment_date DESC', $captured_sql);
+	}
+
 	// ==================================================================
 	// findByUserId
 	// ==================================================================
@@ -496,6 +519,23 @@ class AppointmentRepositoryTest extends TestCase {
 		$result = $this->repo->findByUserId(10);
 
 		$this->assertCount(1, $result);
+	}
+
+	/**
+	 * Without a status filter the user listing goes through findAll(), whose
+	 * allowlist turned `appointment_date` into `id` until #2137.
+	 */
+	public function test_find_by_user_id_without_statuses_orders_by_appointment_date(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$captured_sql) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$this->repo->findByUserId(10);
+
+		$this->assertStringContainsString('ORDER BY appointment_date DESC', $captured_sql);
 	}
 
 	public function test_find_by_user_id_with_statuses_uses_in_clause(): void {
@@ -638,7 +678,7 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
 
 		// 7-digit RF
-		$this->repo->findByCpfRf('1234567');
+		$this->repo->findByCpfRf(Identifiers::RF_A);
 
 		$this->assertStringContainsString('rf_hash', $captured_sql);
 		$this->assertStringNotContainsString('cpf_hash', $captured_sql);
@@ -1031,40 +1071,53 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// confirm
+	// confirmPending / cancelFrom
 	// ==================================================================
 
-	public function test_confirm_updates_status_to_confirmed(): void {
-		$captured_data = [];
+	public function test_confirm_pending_writes_confirmed_only_over_pending(): void {
+		$captured_data  = [];
+		$captured_where = [];
 		$this->wpdb->shouldReceive('update')
 			->once()
-			->andReturnUsing(function($table, $data, $where) use (&$captured_data) {
-				$captured_data = $data;
+			->andReturnUsing(function($table, $data, $where) use (&$captured_data, &$captured_where) {
+				$captured_data  = $data;
+				$captured_where = $where;
 				return 1;
 			});
 
-		$result = $this->repo->confirm(1, 42);
+		$result = $this->repo->confirmPending(1, 42);
 
 		$this->assertSame(1, $result);
 		$this->assertSame('confirmed', $captured_data['status']);
 		$this->assertSame(42, $captured_data['approved_by']);
 		$this->assertArrayHasKey('approved_at', $captured_data);
 		$this->assertArrayHasKey('updated_at', $captured_data);
+		$this->assertSame(array( 'id' => 1, 'status' => 'pending' ), $captured_where, 'A row that moved meanwhile is left alone.');
 	}
 
-	public function test_confirm_with_null_approved_by(): void {
-		$captured_data = [];
+	public function test_confirm_pending_reports_zero_when_the_row_is_no_longer_pending(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertSame(0, $this->repo->confirmPending(1));
+	}
+
+	public function test_cancel_from_writes_the_reason_over_the_status_read(): void {
+		$captured_data  = [];
+		$captured_where = [];
 		$this->wpdb->shouldReceive('update')
 			->once()
-			->andReturnUsing(function($table, $data, $where) use (&$captured_data) {
-				$captured_data = $data;
+			->andReturnUsing(function($table, $data, $where) use (&$captured_data, &$captured_where) {
+				$captured_data  = $data;
+				$captured_where = $where;
 				return 1;
 			});
 
-		$this->repo->confirm(1);
-
-		$this->assertSame('confirmed', $captured_data['status']);
-		$this->assertNull($captured_data['approved_by']);
+		$this->assertSame(1, $this->repo->cancelFrom(7, 'waitlist', 3, 'Slot removed'));
+		$this->assertSame('cancelled', $captured_data['status']);
+		$this->assertSame(3, $captured_data['cancelled_by']);
+		$this->assertSame('Slot removed', $captured_data['cancellation_reason']);
+		$this->assertIsInt($captured_data['cancelled_at']);
+		$this->assertSame(array( 'id' => 7, 'status' => 'waitlist' ), $captured_where);
 	}
 
 	// ==================================================================
@@ -1121,6 +1174,49 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertArrayHasKey('updated_at', $captured_data);
 	}
 
+	public function test_attendance_marks_write_only_over_a_confirmed_row(): void {
+		$wheres = [];
+		$this->wpdb->shouldReceive('update')
+			->twice()
+			->andReturnUsing(function($table, $data, $where) use (&$wheres) {
+				$wheres[] = [$data['status'], $where];
+				return 0;
+			});
+
+		// 0 rows: the appointment was no longer confirmed.
+		$this->assertSame(0, $this->repo->markCompleted(3));
+		$this->assertSame(0, $this->repo->markNoShow(3));
+		$this->assertSame(
+			[
+				['completed', ['id' => 3, 'status' => 'confirmed']],
+				['no_show', ['id' => 3, 'status' => 'confirmed']],
+			],
+			$wheres
+		);
+	}
+
+	public function test_revert_attendance_writes_confirmed_over_the_status_read(): void {
+		$captured = [];
+		$this->wpdb->shouldReceive('update')
+			->once()
+			->andReturnUsing(function($table, $data, $where) use (&$captured) {
+				$captured = [$data, $where];
+				return 1;
+			});
+
+		$this->assertSame(1, $this->repo->revertAttendance(4, 'completed'));
+		$this->assertSame('confirmed', $captured[0]['status']);
+		$this->assertSame(['id' => 4, 'status' => 'completed'], $captured[1]);
+	}
+
+	public function test_revert_attendance_refuses_a_status_that_is_not_an_attendance_mark(): void {
+		$this->wpdb->shouldNotReceive('update');
+
+		foreach (['cancelled', 'pending', 'confirmed', 'waitlist', ''] as $from) {
+			$this->assertFalse($this->repo->revertAttendance(4, $from), $from);
+		}
+	}
+
 	// ==================================================================
 	// markReminderSent
 	// ==================================================================
@@ -1144,6 +1240,35 @@ class AppointmentRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
+	// getAllOnDate (#2244)
+	// ==================================================================
+
+	public function test_get_all_on_date_reads_every_calendar_with_its_title(): void {
+		$sql   = '';
+		$bound = [];
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($query, $args) use (&$sql, &$bound) {
+			$sql   = $query;
+			$bound = $args;
+			return $query;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([['id' => 3, 'calendar_title' => 'Clinic']]);
+
+		$rows = $this->repo->getAllOnDate('2032-05-20', ['pending', 'confirmed']);
+
+		$this->assertSame([['id' => 3, 'calendar_title' => 'Clinic']], $rows);
+		$this->assertStringContainsString('LEFT JOIN %i c ON a.calendar_id = c.id', $sql);
+		$this->assertStringContainsString('a.status IN (%s,%s)', $sql);
+		$this->assertStringNotContainsString('calendar_id = %d', $sql, 'No calendar filter: a global holiday closes them all.');
+		$this->assertSame(['2032-05-20', 'pending', 'confirmed'], array_slice($bound, 2));
+	}
+
+	public function test_get_all_on_date_without_statuses_reads_nothing(): void {
+		$this->wpdb->shouldNotReceive('get_results');
+
+		$this->assertSame([], $this->repo->getAllOnDate('2032-05-20', []));
+	}
+
+	// ==================================================================
 	// getUpcomingForReminders
 	// ==================================================================
 
@@ -1162,6 +1287,42 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertStringContainsString('LEFT JOIN', $captured_sql);
 		$this->assertStringContainsString('calendar_title', $captured_sql);
 		$this->assertStringContainsString('email_config', $captured_sql);
+	}
+
+	/**
+	 * The window is the site's clock from now to now + H (#2244): a missed
+	 * hourly run is caught up, a window across midnight spans both dates,
+	 * and nothing is built from a bare TIME, which MariaDB turns into NULL.
+	 */
+	public function test_get_upcoming_for_reminders_binds_a_site_time_window_from_now(): void {
+		$tz = new \DateTimeZone('America/Sao_Paulo');
+		Functions\when('wp_timezone')->justReturn($tz);
+		$bound = [];
+		$sql   = '';
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function($query, ...$args) use (&$bound, &$sql) {
+			$sql   = $query;
+			$bound = $args;
+			return $query;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		$before = new \DateTimeImmutable('now', $tz);
+		$this->repo->getUpcomingForReminders(30);
+		$after = new \DateTimeImmutable('now', $tz);
+
+		[ , , $from_date, $to_date, $from, $to ] = $bound;
+		$from_dt = new \DateTimeImmutable($from, $tz);
+		$to_dt   = new \DateTimeImmutable($to, $tz);
+
+		// Read on both sides of the call: the clock may tick between them.
+		$this->assertGreaterThanOrEqual($before->format('Y-m-d H:i:s'), $from);
+		$this->assertLessThanOrEqual($after->format('Y-m-d H:i:s'), $from);
+		$this->assertSame(30 * 3600, $to_dt->getTimestamp() - $from_dt->getTimestamp());
+		$this->assertSame($from_dt->format('Y-m-d'), $from_date);
+		$this->assertSame($to_dt->format('Y-m-d'), $to_date, 'A window across midnight reaches the next date.');
+		$this->assertStringContainsString('TIMESTAMP(a.appointment_date, a.start_time) > %s', $sql);
+		$this->assertStringContainsString('TIMESTAMP(a.appointment_date, a.start_time) <= %s', $sql);
+		$this->assertStringNotContainsString('DATE_SUB', $sql);
 	}
 
 	public function test_get_upcoming_for_reminders_returns_results(): void {
@@ -1454,7 +1615,7 @@ class AppointmentRepositoryTest extends TestCase {
 	public function test_confirm_returns_false_when_update_fails(): void {
 		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
 
-		$result = $this->repo->confirm(1, 42);
+		$result = $this->repo->confirmPending(1, 42);
 
 		$this->assertFalse($result);
 	}

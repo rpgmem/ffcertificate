@@ -19,6 +19,8 @@ class GeofenceFrontendConfigTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The per-moment messages fall back to translated defaults (#2241).
+		Functions\when( '__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
@@ -216,7 +218,15 @@ class GeofenceFrontendConfigTest extends TestCase {
 		$this->assertSame( '09:00', $result['datetime']['timeStart'] );
 		$this->assertSame( '17:00', $result['datetime']['timeEnd'] );
 		$this->assertSame( 'daily', $result['datetime']['timeMode'] );
-		$this->assertSame( 'Not available now.', $result['datetime']['message'] );
+		// A config saved with the single message shows it at every moment (#2241).
+		$this->assertSame(
+			array(
+				'before' => 'Not available now.',
+				'after'  => 'Not available now.',
+				'during' => 'Not available now.',
+			),
+			$result['datetime']['messages']
+		);
 		// #159 S4: per-phase hide modes; legacy `datetime_hide_mode` value
 		// is propagated to all three phases via `Geofence::resolve_hide_mode`.
 		$this->assertSame( 'hide', $result['datetime']['hideModeBefore'] );

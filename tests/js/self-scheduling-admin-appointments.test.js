@@ -37,8 +37,10 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		expect(window.location).toBe(URL + '&reason=valid%20reason');
 	});
 
-	it('does not redirect when the reason is shorter than 5 chars', () => {
-		window.prompt = vi.fn(() => 'abc');
+	it('does not redirect when the reason is shorter than 5 chars, and says why', () => {
+		document.querySelector('.ffc-appointment-cancel').setAttribute('data-too-short', 'Too short.');
+		window.prompt = vi.fn(() => '  abc  ');
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		delete window.location;
 		window.location = 'INITIAL';
 		loadScript(SCRIPT);
@@ -46,6 +48,8 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		document.querySelector('.ffc-appointment-cancel').click();
 
 		expect(window.location).toBe('INITIAL');
+		expect(alertSpy).toHaveBeenCalledWith('Too short.');
+		alertSpy.mockRestore();
 	});
 
 	it('does not redirect when the prompt is cancelled (null)', () => {
@@ -114,11 +118,14 @@ describe('ffc-self-scheduling-admin-appointments — batched CSV export (#772)',
 		expect(arg.type).toBe('appointments');
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
-		// Exactly the list's two filters: it has no date filter, so the export
-		// sends no date keys the button could never fill (#1770).
+		// The list's filters, the date range and search included (#2244), so
+		// the file holds what the screen shows.
 		expect(arg.startData).toEqual({
 			calendar_id: '3',
 			status: 'confirmed',
+			start_date: '',
+			end_date: '',
+			s: '',
 		});
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.

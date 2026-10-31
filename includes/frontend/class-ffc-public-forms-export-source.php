@@ -98,7 +98,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error(
 					array(
-						'message'    => $rate_check['message'] ?? __( 'Too many requests. Please wait.', 'ffcertificate' ),
+						'message'    => $rate_check['message'],
 						'rate_limit' => true,
 					)
 				);
@@ -150,7 +150,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( 'nonce_batch' ), 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_send_json_error( __( 'Security check failed.', 'ffcertificate' ) );
 		}
-		if ( ! hash_equals( (string) ( $job['ip_hash'] ?? '' ), sha1( RequestInput::get_user_ip() ) ) ) {
+		if ( ! hash_equals( (string) ( $job['ip_hash'] ?? '' ), \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ) ) ) {
 			wp_send_json_error( __( 'Session mismatch.', 'ffcertificate' ) );
 		}
 	}
@@ -166,7 +166,7 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		if ( ! wp_verify_nonce( RequestInput::get_get_string( 'nonce_batch' ), 'ffc_public_csv_batch_' . $job_id ) ) {
 			wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 		}
-		if ( ! hash_equals( (string) ( $job['ip_hash'] ?? '' ), sha1( RequestInput::get_user_ip() ) ) ) {
+		if ( ! hash_equals( (string) ( $job['ip_hash'] ?? '' ), \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ) ) ) {
 			wp_die( esc_html__( 'Session mismatch.', 'ffcertificate' ) );
 		}
 	}
@@ -179,7 +179,8 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	public function job_owner_fields(): array {
 		$cpf_digits = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( RequestInput::get_post_string( 'cpf' ) );
 		return array(
-			'ip_hash'    => sha1( RequestInput::get_user_ip() ),
+			// The job's owner by address fingerprint, never the address (#2109).
+			'ip_hash'    => \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ),
 			'form_id'    => $this->request_form_id(),
 			'cpf_digits' => $cpf_digits,
 		);

@@ -31,6 +31,10 @@ beforeAll(() => {
 			audienceSameDayWarning: 'This audience already has a booking today:',
 			membersOverlapping: 'member(s) overlap.',
 			bookingCreated: 'Booking created.',
+			saveChanges: 'Save changes',
+			bookingChanged: 'Booking changed.',
+			editMoveNote: 'Change the date, hours, space or description.',
+			editStartedNote: 'This booking has started.',
 			timeout: 'Timed out.',
 		},
 	};
@@ -395,6 +399,42 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(window.$('#ffc-conflict-warning .ffc-notice-text').text()).toContain('2 member(s) overlap.');
 	});
 
+	it('names the people who clash, and how many more (#2243)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: { type: 'user', bookings: [{}], affected_users: [1, 2, 3], affected_names: ['Ana', '<b>Bia</b>'], affected_more: 1 },
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const lines = Array.from(document.querySelectorAll('#ffc-conflict-warning .ffc-notice-text')).map((p) => p.textContent);
+		expect(lines).toContain('Ana, <b>Bia</b> and 1 more');
+		expect(document.querySelector('#ffc-conflict-warning b')).toBeNull();
+	});
+
+	it('reports the people and the audiences with a room clash, in one round (#2243)', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({
+			success: true,
+			conflicts: {
+				type: 'environment',
+				can_override: true,
+				bookings: [{ start_time: '09:00', end_time: '10:00' }],
+				user_bookings: [{}],
+				affected_users: [4],
+				affected_names: ['Caio'],
+				affected_more: 0,
+				audience_same_day: [{ audience_name: 'Sub', start_time: '11:00', end_time: '12:00' }],
+			},
+		});
+		api.checkConflicts();
+		await Promise.resolve().then(() => Promise.resolve());
+		const lines = Array.from(document.querySelectorAll('#ffc-conflict-error .ffc-notice-text')).map((p) => p.textContent);
+		expect(lines[0]).toBe('09:00–10:00');
+		expect(lines).toContain('Sub: 11:00–12:00');
+		expect(lines).toContain('1 member(s) overlap.');
+		expect(lines).toContain('Caio');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+	});
+
 	it('prints audience names and times as text, never as markup, on a re-check too', async () => {
 		const rest = vi.spyOn(window.FFC, 'rest').mockResolvedValue({
 			success: true,
@@ -442,15 +482,20 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 		expect(alertSpy).toHaveBeenCalledWith('Error');
 	});
 
-	it('surfaces the xhr responseJSON message on a rejected conflict request', async () => {
+	it('shows a refusal the server explains where the conflicts are, not in an alert', async () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue({
-			message: 'http 409',
-			xhr: { responseJSON: { message: 'Server says conflict' } },
+			message: 'http 400',
+			xhr: { responseJSON: { code: 'range_too_long', message: 'A booking can cover at most 30 consecutive days.' } },
 		});
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
-		expect(alertSpy).toHaveBeenCalledWith('Server says conflict');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const notice = document.querySelector('#ffc-conflict-error [data-ffc-notice="conflict-error"]');
+		expect(notice.className).toBe('ffc-notice ffc-notice-danger');
+		expect(notice.querySelector('.ffc-notice-text').textContent).toBe('A booking can cover at most 30 consecutive days.');
+		// Nothing to book: the button stays a check (#2243).
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
 	});
 
 	it('surfaces the timeout string when the xhr reports a timeout', async () => {
@@ -657,5 +702,182 @@ describe('ffc-audience-booking-form — the dialog of #2008', () => {
 		api.invalidateCheck();
 
 		expect(window.$('#ffc-conflict-error').prop('hidden')).toBe(false);
+	});
+});
+
+describe('ffc-audience-booking-form — a weekly series (#2243)', () => {
+	beforeEach(() => {
+		setValidAudienceForm();
+		window.$('input[name="booking_span"][value="weekly"]').prop('checked', true);
+		window.$('#booking-repeat-until').val('2026-07-01');
+		api.setRangeOptions(api.isRange());
+	});
+
+	const preview = {
+		success: true,
+		preview: true,
+		bookable: 3,
+		occurrences: [
+			{ date: '2026-06-10', label: '10/06/2026', problems: [] },
+			{ date: '2026-06-17', label: '17/06/2026', problems: [{ code: 'holiday', message: 'This date is a holiday.' }] },
+			{ date: '2026-06-24', label: '24/06/2026', problems: [] },
+			{ date: '2026-07-01', label: '01/07/2026', problems: [] },
+		],
+	};
+
+	it('shows the last day of the series and hides the range fields', () => {
+		expect(window.$('#booking-repeat-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(true);
+		expect(api.isWeekly()).toBe(true);
+	});
+
+	it('checks every date, lists the ones left out and moves to create', async () => {
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue(preview);
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const sent = restSpy.mock.calls[0][1].data;
+		expect(restSpy.mock.calls[0][0]).toContain('/bookings');
+		expect(sent.preview).toBe(1);
+		expect(sent.repeat_until).toBe('2026-07-01');
+		const notice = window.$('#ffc-conflict-error');
+		expect(notice.prop('hidden')).toBe(false);
+		expect(notice.text()).toContain('17/06/2026: This date is a holiday.');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+	});
+
+	it('creates the series leaving out the dates the check listed', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest')
+			.mockResolvedValueOnce(preview)
+			.mockResolvedValueOnce({ success: true, message: '3 weekly bookings created.' });
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const sent = restSpy.mock.calls[1][1].data;
+		expect(sent.preview).toBeUndefined();
+		expect(sent.skip_dates).toEqual(['2026-06-17']);
+		expect(alertSpy).toHaveBeenCalledWith('3 weekly bookings created.');
+		expect(api.closeModals).toHaveBeenCalled();
+	});
+
+	it('asks for a new check when a date changed since the last one', async () => {
+		vi.spyOn(window.FFC, 'rest')
+			.mockResolvedValueOnce(preview)
+			.mockRejectedValueOnce({ xhr: { responseJSON: Object.assign({}, preview, { success: false, code: 'series_changed', bookable: 2 }) } });
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve()).then(() => Promise.resolve());
+
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+		expect(window.$('#ffc-conflict-error').text()).toContain('2 of 4');
+	});
+
+	it('refuses to move on when no date can be booked', async () => {
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue(Object.assign({}, preview, { bookable: 0 }));
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('check');
+	});
+
+	it('needs a last day at least a week after the first and within the cap', () => {
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+		window.$('#booking-repeat-until').val('2026-06-12');
+		api.submitBooking();
+		window.$('#booking-repeat-until').val('2028-01-01');
+		api.submitBooking();
+		window.$('#booking-repeat-until').val('');
+		api.submitBooking();
+
+		expect(restSpy).not.toHaveBeenCalled();
+	});
+});
+
+// Editing a booking (#2243): the dialog opens on the booking, keeps who it is
+// for, saves in one step, and locks the slot of a booking that has started.
+describe('ffc-audience-booking-form — editing a booking (#2243)', () => {
+	const booking = {
+		id: '42',
+		environment_id: '10',
+		booking_date: '2026-06-10',
+		end_date: null,
+		time_mode: null,
+		start_time: '09:00:00',
+		end_time: '10:00:00',
+		is_all_day: 0,
+		description: 'The weekly planning meeting',
+	};
+
+	beforeEach(() => {
+		api.state.config.today = '2026-06-01';
+	});
+
+	it('opens on the booking, without who it is for, with one save step', () => {
+		api.openEditModal(booking);
+
+		expect(window.$('#ffc-booking-modal-title').text()).toBe('Edit Booking');
+		expect(window.$('#ffc-booking-who').prop('hidden')).toBe(true);
+		expect(window.$('input[name="booking_span"][value="weekly"]').closest('label').prop('hidden')).toBe(true);
+		expect(window.$('#booking-move-date-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-move-date').val()).toBe('2026-06-10');
+		expect(window.$('#booking-start-time').val()).toBe('09:00');
+		expect(window.$('#booking-description').val()).toBe('The weekly planning meeting');
+		expect(window.$('#ffc-booking-submit').attr('data-step')).toBe('create');
+		expect(window.$('#ffc-booking-submit').text()).toBe('Save changes');
+	});
+
+	it('PUTs the moved slot to the booking, without its participants', async () => {
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, message: 'Booking changed.' });
+		api.openEditModal(booking);
+		window.$('#booking-move-date').val('2026-06-17');
+		api.moveToDate();
+		window.$('#booking-start-time').val('14:00');
+		window.$('#booking-end-time').val('15:00');
+
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		const [url, opts] = restSpy.mock.calls[0];
+		expect(url).toMatch(/bookings\/42$/);
+		expect(opts.method).toBe('PUT');
+		expect(opts.data.booking_date).toBe('2026-06-17');
+		expect(opts.data.start_time).toBe('14:00');
+		expect(opts.data).not.toHaveProperty('audience_ids');
+		expect(opts.data).not.toHaveProperty('booking_type');
+		expect(alertSpy).toHaveBeenCalledWith('Booking changed.');
+	});
+
+	it('locks the slot of a started booking and sends its text only', async () => {
+		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
+		api.state.config.today = '2026-06-10';
+		api.openEditModal(booking);
+
+		expect(window.$('#booking-start-time').prop('disabled')).toBe(true);
+		expect(window.$('#booking-environment-id').prop('disabled')).toBe(true);
+		expect(window.$('#booking-edit-note').text()).toBe('This booking has started.');
+
+		window.$('#booking-description').val('The weekly planning meeting, online');
+		api.submitBooking();
+		await Promise.resolve().then(() => Promise.resolve());
+
+		expect(restSpy.mock.calls[0][1].data).toEqual({ booking_date: '', description: 'The weekly planning meeting, online' });
+	});
+
+	it('a new booking after an edit is a new booking again', () => {
+		api.state.config.today = '2026-06-10';
+		api.openEditModal(booking);
+		api.openBookingModal('2026-06-20', 10);
+
+		expect(window.$('#ffc-booking-modal-title').text()).toBe('New Booking');
+		expect(window.$('#ffc-booking-who').prop('hidden')).toBe(false);
+		expect(window.$('#booking-move-date-group').prop('hidden')).toBe(true);
+		expect(window.$('#booking-start-time').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-booking-submit').text()).toBe('Check Conflicts');
 	});
 });

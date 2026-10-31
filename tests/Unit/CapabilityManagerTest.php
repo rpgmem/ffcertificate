@@ -22,6 +22,10 @@ class CapabilityManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		// `CapabilityMigrator::users_with_ffc_grants()` builds the capabilities
 		// meta key from the blog prefix (#1254). Without this double, the test
@@ -1235,6 +1239,74 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertSame( array( 'ffc_view_audiences_pii' => 0 ), $second, 'A second run seeds nobody.' );
 	}
 
+	public function test_the_address_reveal_caps_belong_to_their_screens(): void {
+		$all   = CapabilityManager::get_all_capabilities();
+		$roles = CapabilityManager::module_roles_definition();
+
+		$this->assertContains( 'ffc_view_activity_log_pii', $all );
+		$this->assertContains( 'ffc_view_settings_pii', $all );
+		$this->assertContains( 'ffc_view_activity_log_pii', CapabilityManager::ADMINISTRATOR_ONLY_CAPABILITIES, 'the activity log is the administrator\'s alone, so is its reveal (#2109)' );
+		$this->assertContains( 'ffc_view_settings_pii', $roles['ffc_settings_manager']['caps'] );
+		$this->assertNotContains( 'ffc_view_settings_pii', $roles['ffc_settings_viewer']['caps'] );
+		$this->assertNotContains( 'ffc_view_settings_pii', $roles['ffc_settings_operator']['caps'] );
+		$this->assertNotContains( 'ffc_view_activity_log_pii', $roles['ffc_readonly']['caps'] );
+	}
+
+	public function test_ip_pii_caps_grant_map_seeds_from_each_screens_cap(): void {
+		$this->assertSame(
+			array(
+				'ffc_view_activity_log' => array( 'ffc_view_activity_log_pii' ),
+				'ffc_manage_settings'   => array( 'ffc_view_settings_pii' ),
+			),
+			CapabilityMigrator::ip_pii_caps_grant_map()
+		);
+	}
+
+	public function test_migrate_ip_pii_caps_grant_seeds_holders_and_is_idempotent(): void {
+		Functions\when( 'get_users' )->justReturn( array( 1, 2 ) );
+
+		// 1 views the activity log, 2 manages settings and already reveals there.
+		$users = array();
+		$added = array();
+		foreach ( array(
+			1 => array( 'ffc_view_activity_log' => true ),
+			2 => array( 'ffc_manage_settings' => true, 'ffc_view_settings_pii' => true ),
+		) as $id => $caps ) {
+			$user       = Mockery::mock( 'WP_User' );
+			$user->caps = $caps;
+			$user->shouldReceive( 'add_cap' )->andReturnUsing(
+				function ( $cap, $val = true ) use ( &$added, $id, $user ) {
+					$added[]            = array( $id, $cap, $val );
+					$user->caps[ $cap ] = $val;
+				}
+			);
+			$users[ $id ] = $user;
+		}
+		Functions\when( 'get_userdata' )->alias( static fn ( $id ) => $users[ $id ] ?? false );
+
+		$role               = Mockery::mock( 'WP_Role' );
+		$role->capabilities = array( 'ffc_manage_settings' => true );
+		$role_added         = array();
+		$role->shouldReceive( 'add_cap' )->andReturnUsing(
+			function ( $cap, $val = true ) use ( &$role_added, $role ) {
+				$role_added[]               = $cap;
+				$role->capabilities[ $cap ] = $val;
+			}
+		);
+		$wp_roles        = Mockery::mock();
+		$wp_roles->roles = array( 'ffc_settings_manager' => array() );
+		Functions\when( 'wp_roles' )->justReturn( $wp_roles );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		$first  = CapabilityMigrator::migrate_ip_pii_caps_grant();
+		$second = CapabilityMigrator::migrate_ip_pii_caps_grant();
+
+		$this->assertSame( array( array( 1, 'ffc_view_activity_log_pii', true ) ), $added );
+		$this->assertSame( array( 'ffc_view_settings_pii' ), $role_added );
+		$this->assertSame( array( 'ffc_view_activity_log_pii' => 1, 'ffc_view_settings_pii' => 0 ), $first );
+		$this->assertSame( array( 'ffc_view_activity_log_pii' => 0, 'ffc_view_settings_pii' => 0 ), $second, 'A second run seeds nobody.' );
+	}
+
 	public function test_forms_api_submit_cap_is_registered(): void {
 		$this->assertContains( 'ffc_submit_forms_api', CapabilityManager::get_all_capabilities() );
 	}
@@ -1592,5 +1664,37 @@ class CapabilityManagerTest extends TestCase {
 			$this->assertContains( $manage, CapabilityManager::ADMIN_CAPABILITIES );
 			$this->assertContains( $send, CapabilityManager::ADMIN_CAPABILITIES );
 		}
+	}
+
+	/**
+	 * Staff, for a bulk operation that must never rewrite an account (#2242):
+	 * a WordPress administrator, or anyone holding a `_pii` capability.
+	 */
+	public function test_is_staff_account_reads_admin_and_pii_capabilities(): void {
+		$held = array(
+			1 => array( 'manage_options' ),
+			2 => array( 'ffc_view_reregistration_pii' ),
+			3 => array( 'ffc_view_settings_pii' ),
+			4 => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
+			5 => array(),
+		);
+		Functions\when( 'user_can' )->alias( static fn( $user_id, $cap ) => in_array( $cap, $held[ (int) $user_id ] ?? array(), true ) );
+		Functions\when( 'get_userdata' )->alias( static fn( $user_id ) => (object) array( 'allcaps' => array_fill_keys( $held[ (int) $user_id ] ?? array(), true ) ) );
+
+		$this->assertTrue( CapabilityManager::is_staff_account( 1 ) );
+		$this->assertTrue( CapabilityManager::is_staff_account( 2 ) );
+		$this->assertTrue( CapabilityManager::is_staff_account( 3 ), 'Any module\'s PII tier counts, not only reregistration\'s.' );
+		$this->assertFalse( CapabilityManager::is_staff_account( 4 ), 'An operator without a PII cap is an ordinary member.' );
+		$this->assertFalse( CapabilityManager::is_staff_account( 5 ) );
+		$this->assertFalse( CapabilityManager::is_staff_account( 0 ) );
+	}
+
+	public function test_every_role_that_holds_a_pii_cap_is_staff(): void {
+		// The rule rests on the PII caps sitting on the Manager and
+		// Administrator tiers; FFC Administrator holds them all.
+		$definitions = CapabilityManager::module_roles_definition();
+		$pii         = array_filter( CapabilityManager::get_all_capabilities(), static fn( $c ) => str_ends_with( $c, '_pii' ) );
+		$this->assertNotEmpty( $pii );
+		$this->assertNotEmpty( array_intersect( $pii, $definitions['ffc_administrator']['caps'] ), 'FFC Administrator holds a PII cap.' );
 	}
 }

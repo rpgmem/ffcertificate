@@ -37,6 +37,45 @@
     }
 
     /**
+     * What a closed date is (#2202): `optional` for an optional holiday,
+     * `holiday` for everything else, a date with no recorded kind included.
+     */
+    function holidayKind(dateStr) {
+        return (state.holidayKinds || {})[dateStr] === 'optional' ? 'optional' : 'holiday';
+    }
+
+    /**
+     * A kind's names: the full one and the one a day cell has room for.
+     */
+    function kindStrings(kind) {
+        var S = ffcAudience.strings || {};
+        var fallback = S.holiday || 'Holiday';
+        return (S.closedDateKinds || {})[kind] || { label: fallback, short: fallback };
+    }
+
+    /**
+     * A closed date's badge in its day cell. The cell shows the short name and
+     * says the full one to a screen reader and on hover (#2202).
+     */
+    function holidayBadge(dateStr) {
+        var kind = holidayKind(dateStr);
+        var names = kindStrings(kind);
+        return '<span class="ffc-day-badge ffc-badge-holiday' + (kind === 'optional' ? ' ffc-badge-optional-holiday' : '') + '"' +
+            ' role="img" aria-label="' + escapeHtml(names.label) + '" title="' + escapeHtml(names.label) + '">' +
+            escapeHtml(names.short) + '</span>';
+    }
+
+    /**
+     * A colour dot. The colour is an operator's choice, so it stays inline as
+     * the dot's custom property; anything not a hex colour is dropped and the
+     * dot takes the text colour.
+     */
+    function colorDot(color) {
+        var safe = /^#[0-9a-f]{3,8}$/i.test(color || '') ? color : '';
+        return '<span class="ffc-color-dot" aria-hidden="true"' + (safe ? ' style="--ffc-color: ' + safe + ';"' : '') + '></span>';
+    }
+
+    /**
      * The environments the calendar currently describes: the one picked in
      * the filter, else those of the picked calendar, else every calendar's.
      * Each carries its calendar, so its rules can be read (#1859).
@@ -180,6 +219,188 @@
         if (state.selectedEnvironment > 0) {
             $select.val(state.selectedEnvironment);
         }
+
+        syncEnvironmentPicker(envLabelPlural, environments);
+    }
+
+    /**
+     * The environment filter as a list that shows each environment's colour
+     * (#2201). A native option cannot draw a swatch, so the select stays as
+     * the value the rest of the calendar reads and listens to, hidden from
+     * sight and from assistive technology, and this listbox drives it: a
+     * choice sets the select and fires its `change`.
+     *
+     * The list is built from the same configuration the select was filled
+     * from, never read back out of the select: markup assembled from text the
+     * DOM holds is how a value would be reinterpreted as HTML.
+     */
+    function syncEnvironmentPicker(allLabelText, environments) {
+        var $select = $('#ffc-environment-select');
+        if (!$select.length) {
+            return;
+        }
+
+        var $picker = $('#ffc-environment-picker');
+        if (!$picker.length) {
+            $picker = $(
+                '<div class="ffc-env-picker" id="ffc-environment-picker">' +
+                    '<button type="button" class="ffc-env-picker-button" aria-haspopup="listbox" aria-expanded="false" aria-controls="ffc-environment-picker-list"></button>' +
+                    '<ul class="ffc-env-picker-list" id="ffc-environment-picker-list" role="listbox" tabindex="-1" hidden></ul>' +
+                '</div>'
+            );
+            $picker.find('.ffc-env-picker-list').attr('aria-label', $select.attr('aria-label') || '');
+            $select.addClass('ffc-env-picker-native').attr({ 'aria-hidden': 'true', tabindex: '-1' }).after($picker);
+            bindEnvironmentPicker($picker, $select);
+        }
+
+        var current = state.selectedEnvironment > 0 ? String(parseInt(state.selectedEnvironment, 10)) : '';
+        var noDot = '<span class="ffc-env-picker-nodot" aria-hidden="true"></span>';
+        // "All …" is not an environment, so it carries no dot (#2201).
+        var items = [{ value: '', name: allLabelText, dot: noDot }];
+        (environments || []).forEach(function(env) {
+            items.push({ value: String(parseInt(env.id, 10)), name: env.name, dot: colorDot(env.color || '#3788d8') });
+        });
+
+        var $list = $picker.find('.ffc-env-picker-list').empty();
+        var chosen = items[0];
+
+        items.forEach(function(item, index) {
+            var selected = item.value === current;
+            $list.append(
+                '<li role="option" class="ffc-env-picker-option" id="ffc-environment-option-' + index + '"' +
+                ' data-value="' + escapeHtml(item.value) + '" aria-selected="' + (selected ? 'true' : 'false') + '">' +
+                item.dot + '<span class="ffc-env-picker-name">' + escapeHtml(item.name) + '</span></li>'
+            );
+            if (selected) {
+                chosen = item;
+            }
+        });
+
+        var label = $select.attr('aria-label') || '';
+        $picker.find('.ffc-env-picker-button')
+            .attr('aria-label', label ? label + ': ' + chosen.name : chosen.name)
+            .html(chosen.dot + '<span class="ffc-env-picker-name">' + escapeHtml(chosen.name) + '</span><span class="ffc-env-picker-caret ffc-icon-chevron-down" aria-hidden="true"></span>');
+    }
+
+    /**
+     * Open, move through and choose from the environment list: the keys a
+     * select answers to (arrows, Home, End, Enter, Space, Escape), and a
+     * click outside closes it.
+     */
+    function bindEnvironmentPicker($picker, $select) {
+        var $button = $picker.find('.ffc-env-picker-button');
+        var $list = $picker.find('.ffc-env-picker-list');
+
+        function options() {
+            return $list.children('.ffc-env-picker-option');
+        }
+
+        function activate($option) {
+            if (!$option.length) {
+                return;
+            }
+            options().removeClass('is-active');
+            $option.addClass('is-active');
+            $list.attr('aria-activedescendant', $option.attr('id'));
+            if ($option[0].scrollIntoView) {
+                $option[0].scrollIntoView({ block: 'nearest' });
+            }
+        }
+
+        function open() {
+            $list.prop('hidden', false);
+            $button.attr('aria-expanded', 'true');
+            var $selected = options().filter('[aria-selected="true"]');
+            activate($selected.length ? $selected : options().first());
+            $list.trigger('focus');
+            $(document).on('click.ffcEnvPicker', function(e) {
+                if (!$.contains($picker[0], e.target)) {
+                    close(false);
+                }
+            });
+        }
+
+        function close(refocus) {
+            $list.prop('hidden', true).removeAttr('aria-activedescendant');
+            $button.attr('aria-expanded', 'false');
+            $(document).off('click.ffcEnvPicker');
+            if (refocus) {
+                $button.trigger('focus');
+            }
+        }
+
+        function choose($option) {
+            var value = String($option.attr('data-value') || '');
+            close(true);
+            if (value !== String($select.val() || '')) {
+                $select.val(value).trigger('change');
+            }
+            // The select's change handler moves the state; reflect it.
+            var current = String($select.val() || '');
+            options().each(function() {
+                $(this).attr('aria-selected', String($(this).attr('data-value')) === current ? 'true' : 'false');
+            });
+            var $chosen = options().filter('[aria-selected="true"]');
+            $button.find('.ffc-env-picker-name').text($chosen.find('.ffc-env-picker-name').text());
+            $button.attr('aria-label', ($list.attr('aria-label') ? $list.attr('aria-label') + ': ' : '') + $chosen.find('.ffc-env-picker-name').text());
+            $button.children().first().replaceWith($chosen.children().first().clone());
+        }
+
+        $button.on('click', function() {
+            if ($list.prop('hidden')) {
+                open();
+            } else {
+                close(true);
+            }
+        });
+
+        $button.on('keydown', function(e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                open();
+            }
+        });
+
+        $list.on('click', '.ffc-env-picker-option', function() {
+            choose($(this));
+        });
+
+        $list.on('keydown', function(e) {
+            var $all = options();
+            var index = $all.index($all.filter('.is-active'));
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    activate($all.eq(Math.min(index + 1, $all.length - 1)));
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    activate($all.eq(Math.max(index - 1, 0)));
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    activate($all.first());
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    activate($all.last());
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    if (index >= 0) {
+                        choose($all.eq(index));
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    close(true);
+                    break;
+                case 'Tab':
+                    close(false);
+                    break;
+            }
+        });
     }
 
     /**
@@ -201,13 +422,9 @@
         function appendNodes(nodes, depth, parentId) {
             nodes.forEach(function(node) {
                 var id = parseInt(node.id, 10);
-                // The colour is an operator's choice, so it stays inline as
-                // the dot's custom property; anything not a hex colour is
-                // dropped and the dot takes the text colour.
-                var color = /^#[0-9a-f]{3,8}$/i.test(node.color || '') ? node.color : '';
                 var html = '<label class="ffc-audience-picker-option" data-depth="' + Math.min(depth, 3) + '">' +
                     '<input type="checkbox" name="audience_ids[]" value="' + id + '"' + (parentId ? ' data-parent="' + parentId + '"' : '') + '>' +
-                    '<span class="ffc-color-dot" aria-hidden="true"' + (color ? ' style="--ffc-color: ' + color + ';"' : '') + '></span>' +
+                    colorDot(node.color) +
                     '<span class="ffc-audience-picker-name">' + escapeHtml(node.name) + '</span>';
                 if (typeof node.members === 'number') {
                     html += '<span class="ffc-audience-picker-count">' + escapeHtml(people(node.members)) + '</span>';
@@ -329,12 +546,20 @@
                     html += '<div class="ffc-day-content">';
 
                     if (isHoliday) {
-                        html += '<span class="ffc-day-badge ffc-badge-holiday">' + ffcAudience.strings.holiday + '</span>';
+                        html += holidayBadge(dateStr);
                     } else if (isClosed) {
-                        html += '<span class="ffc-day-badge ffc-badge-closed">' + ffcAudience.strings.closed + '</span>';
+                        // The cell name and whether it shows are set with the
+                        // other calendar states (#2215).
+                        if (ffcAudience.strings.showClosedLabel !== false) {
+                            html += '<span class="ffc-day-badge ffc-badge-closed">' + escapeHtml(ffcAudience.strings.closedCell || ffcAudience.strings.closed) + '</span>';
+                        }
                     } else if (bookingCount > 0) {
                         var bLabel = bookingCount === 1 ? getBookingLabel('singular') : getBookingLabel('plural');
                         html += '<span class="ffc-day-badge ffc-badge-bookings">' + bookingCount + ' ' + escapeHtml(bLabel) + '</span>';
+                    } else if (classes.indexOf('ffc-available') !== -1 && ffcAudience.strings.availableCell) {
+                        // An available day carries the name set in Calendar
+                        // Colors and Labels, when one is set (#2221).
+                        html += '<span class="ffc-day-badge ffc-badge-available">' + escapeHtml(ffcAudience.strings.availableCell) + '</span>';
                     }
 
                     html += '</div></div>';
@@ -432,9 +657,13 @@
                     });
                 }
 
+                state.holidayKinds = response.holiday_kinds || {};
                 if (response.holidays) {
                     response.holidays.forEach(function(holiday) {
                         state.holidays[holiday.holiday_date] = holiday.description || true;
+                        if (!state.holidayKinds[holiday.holiday_date] && holiday.kind) {
+                            state.holidayKinds[holiday.holiday_date] = holiday.kind;
+                        }
                     });
                 }
 
@@ -574,9 +803,10 @@
 
             if (evt.type === 'holiday') {
                 // Holiday item
-                var holidayLabel = ffcAudience.strings.holiday || 'Holiday';
+                var holidayOptional = holidayKind(evt.date) === 'optional';
+                var holidayLabel = kindStrings(holidayOptional ? 'optional' : 'holiday').label;
                 var holidayDesc = evt.data.description || '';
-                html += '<div class="ffc-event-list-item ffc-event-list-holiday" data-date="' + evt.date + '">';
+                html += '<div class="ffc-event-list-item ffc-event-list-holiday' + (holidayOptional ? ' ffc-event-list-optional-holiday' : '') + '" data-date="' + evt.date + '">';
                 html += '<span class="ffc-event-list-time ffc-all-day">' + escapeHtml(holidayLabel) + '</span>';
                 if (holidayDesc) {
                     html += '<span class="ffc-event-list-desc">' + escapeHtml(holidayDesc) + '</span>';

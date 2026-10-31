@@ -16,6 +16,17 @@
     'use strict';
 
     /**
+     * Warn that a public function is deprecated and leaves in 6.45.0 (#2089).
+     *
+     * @param {string} name - Qualified function name.
+     */
+    function warnDeprecated(name) {
+        if (window.console && typeof window.console.warn === 'function') {
+            window.console.warn('FFC: ' + name + '() is deprecated since 6.43.0 and will be removed in 6.45.0.');
+        }
+    }
+
+    /**
      * What each message kind puts on the message and on its control (#1844).
      * The classes are written out whole so a scan for who emits them finds
      * them; `Core\FieldMessage` carries the same map for the server side.
@@ -205,8 +216,12 @@
          * 
          * @param {string} moduleName - Module name (e.g., 'Utils', 'Frontend', 'Admin')
          * @return {boolean} True if module is loaded
+         *
+         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+         * @removal 6.45.0
          */
         isModuleLoaded: function(moduleName) {
+            warnDeprecated('FFC.isModuleLoaded');
             return typeof this[moduleName] !== 'undefined' && this[moduleName] !== null;
         },
         
@@ -253,8 +268,12 @@
          * Get AJAX URL
          * 
          * @return {string} AJAX URL
+         *
+         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+         * @removal 6.45.0
          */
         getAjaxUrl: function() {
+            warnDeprecated('FFC.getAjaxUrl');
             return this.config.ajaxUrl;
         },
         
@@ -884,7 +903,9 @@
          * @param {number}   options.count    Days the booking covers (1 for a single day).
          * @param {string}   options.label    The booking's dates, already formatted.
          * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
-         * @return {Promise<boolean>} True when the person agreed.
+         * @param {boolean}  [options.series] The booking is a date of a weekly series: the
+         *                   dialog asks whether the later dates go too.
+         * @return {Promise<boolean|Object>} True when the person agreed; `{choice}` for a series.
          */
         confirmRangeCancel: function(options) {
             var opts = options || {};
@@ -894,12 +915,27 @@
             var sentence = count > 1
                 ? String(s.range || '').replace('%1$d', count).replace('%2$s', label)
                 : String(s.single || '').replace('%s', label);
-
-            return core.overrideConfirm({
+            var confirm = {
                 reasons: [sentence],
                 strings: s,
                 agreeCategory: 'danger'
-            });
+            };
+
+            // A date of a weekly series (#2243): cancel it alone, or with
+            // every later date of its series.
+            if (opts.series) {
+                confirm.reasons.push(String(s.seriesNote || ''));
+                confirm.choiceField = {
+                    legend: s.seriesLegend || '',
+                    value: 'this',
+                    options: [
+                        { value: 'this', label: s.seriesThis || 'This date' },
+                        { value: 'following', label: s.seriesFollowing || 'This and following' }
+                    ]
+                };
+            }
+
+            return core.overrideConfirm(confirm);
         },
 
         /**
@@ -922,7 +958,13 @@
          * @param {Object}   [options.strings] Localized words (`OverrideWarning::strings()`).
          * @param {number}   [options.seconds] Countdown length; `strings.seconds`, else 15.
          * @param {string}   [options.agreeCategory] Button category of the confirm; `primary` by default.
-         * @return {Promise<boolean>} True when the person agreed.
+         * @param {Object}   [options.reasonField] Ask why (#2243): `{label, hint, min, max}`. The
+         *                   confirm then also waits for a reason of that length, and the
+         *                   promise resolves with the reason instead of `true`.
+         * @param {Object}   [options.choiceField] A choice to make before confirming (#2243):
+         *                   `{legend, value, options: [{value, label}]}`, drawn as the segmented
+         *                   control. The promise then resolves with `{choice, reason}`.
+         * @return {Promise<boolean|string|Object>} True (or the reason, or the choice) when the person agreed.
          */
         overrideConfirm: function(options) {
             var opts = options || {};
@@ -985,6 +1027,67 @@
                 children: [list]
             }));
 
+            var field = null;
+            var reasonMin = 0;
+            var reasonMax = 0;
+            if (opts.reasonField) {
+                reasonMin = parseInt(opts.reasonField.min, 10) || 1;
+                reasonMax = parseInt(opts.reasonField.max, 10) || 0;
+                var group = document.createElement('div');
+                group.className = 'ffc-form-group ffc-override-reason';
+                var fieldLabel = document.createElement('label');
+                fieldLabel.setAttribute('for', uid + '-reason');
+                fieldLabel.textContent = String(opts.reasonField.label || '');
+                field = document.createElement('textarea');
+                field.id = uid + '-reason';
+                field.rows = 3;
+                field.required = true;
+                if (reasonMax > 0) {
+                    field.maxLength = reasonMax;
+                }
+                group.appendChild(fieldLabel);
+                group.appendChild(field);
+                if (opts.reasonField.hint) {
+                    var hint = document.createElement('p');
+                    hint.className = 'ffc-field-hint';
+                    hint.id = uid + '-reason-hint';
+                    hint.textContent = String(opts.reasonField.hint);
+                    field.setAttribute('aria-describedby', hint.id);
+                    group.appendChild(hint);
+                }
+                body.appendChild(group);
+            }
+
+            var choices = [];
+            if (opts.choiceField && opts.choiceField.options) {
+                var choiceSet = document.createElement('fieldset');
+                choiceSet.className = 'ffc-control-segmented ffc-control-segmented-fluid ffc-override-choice';
+                var legend = document.createElement('legend');
+                legend.textContent = String(opts.choiceField.legend || '');
+                choiceSet.appendChild(legend);
+                var track = document.createElement('span');
+                track.className = 'ffc-control-segmented-track';
+                opts.choiceField.options.forEach(function(option, i) {
+                    var optionLabel = document.createElement('label');
+                    optionLabel.className = 'ffc-control-segmented-option';
+                    var radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = uid + '-choice';
+                    radio.id = uid + '-choice-' + (i + 1);
+                    radio.value = String(option.value);
+                    radio.checked = String(option.value) === String(opts.choiceField.value);
+                    var optionText = document.createElement('span');
+                    optionText.className = 'ffc-control-segmented-label';
+                    optionText.textContent = String(option.label || option.value);
+                    optionLabel.appendChild(radio);
+                    optionLabel.appendChild(optionText);
+                    track.appendChild(optionLabel);
+                    choices.push(radio);
+                });
+                choiceSet.appendChild(track);
+                body.appendChild(choiceSet);
+            }
+
             var live = document.createElement('p');
             live.className = 'ffc-override-countdown';
             live.setAttribute('role', 'status');
@@ -1021,10 +1124,20 @@
                 var timer = null;
                 var done = false;
 
+                function reasonText() {
+                    return field ? field.value.trim() : '';
+                }
+
+                function reasonOk() {
+                    var length = reasonText().length;
+                    return !field || (length >= reasonMin && (reasonMax === 0 || length <= reasonMax));
+                }
+
                 function label() {
+                    var blocked = left > 0 || !reasonOk();
                     agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
-                    agree.disabled = left > 0;
-                    agree.setAttribute('aria-disabled', left > 0 ? 'true' : 'false');
+                    agree.disabled = blocked;
+                    agree.setAttribute('aria-disabled', blocked ? 'true' : 'false');
                 }
 
                 function finish(answer) {
@@ -1055,7 +1168,7 @@
                     if (e.key !== 'Tab') {
                         return;
                     }
-                    var focusable = [cancel, agree].filter(function(el) { return !el.disabled; });
+                    var focusable = choices.concat([field, cancel, agree]).filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1072,11 +1185,24 @@
 
                 cancel.addEventListener('click', function() { finish(false); });
                 backdrop.addEventListener('click', function() { finish(false); });
+                function chosen() {
+                    var picked = choices.filter(function(radio) { return radio.checked; })[0];
+                    return picked ? picked.value : '';
+                }
+
                 agree.addEventListener('click', function() {
-                    if (!agree.disabled) {
-                        finish(true);
+                    if (agree.disabled) {
+                        return;
                     }
+                    if (choices.length) {
+                        finish({ choice: chosen(), reason: reasonText() });
+                        return;
+                    }
+                    finish(field ? reasonText() : true);
                 });
+                if (field) {
+                    field.addEventListener('input', label);
+                }
                 document.addEventListener('keydown', onKey, true);
 
                 label();
@@ -1095,7 +1221,7 @@
                     live.textContent = words.countdownEnd;
                 }
 
-                cancel.focus();
+                (field || cancel).focus();
             });
         },
 
@@ -1289,8 +1415,12 @@
      * Get all registered modules
      * 
      * @return {Array} Array of registered modules
+     *
+     * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+     * @removal 6.45.0
      */
     window.FFC.getModules = function() {
+        warnDeprecated('FFC.getModules');
         return this._modules;
     };
     

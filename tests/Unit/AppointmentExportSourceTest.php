@@ -226,11 +226,15 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 	public function test_sanitize_filters_maps_request(): void {
 		$_POST['calendar_id'] = '3';
 		$_POST['status']      = 'Confirmed';
+		$_POST['start_date']  = '2026-05-10';
+		$_POST['s']           = 'Ana';
 
 		$filters = $this->source->sanitize_filters();
+		$this->assertSame( '2026-05-10', $filters['start_date'], 'The export carries the list date range (#2244).' );
+		$this->assertSame( 'Ana', $filters['search'] );
+		unset( $_POST['start_date'], $_POST['s'] );
 		$this->assertSame( array( 3 ), $filters['calendar_ids'] );
 		$this->assertSame( array( 'confirmed' ), $filters['statuses'] );
-		$this->assertNull( $filters['start_date'] );
 		$this->assertNull( $filters['end_date'] );
 	}
 
@@ -242,7 +246,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 
 	public function test_count_delegates(): void {
 		$this->appointments->shouldReceive( 'countForExport' )->once()
-			->with( array( 3 ), array( 'confirmed' ), null, null )->andReturn( 15 );
+			->with( array( 3 ), array( 'confirmed' ), null, null, 'Ana' )->andReturn( 15 );
 
 		$this->assertSame(
 			15,
@@ -252,6 +256,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 					'statuses'     => array( 'confirmed' ),
 					'start_date'   => null,
 					'end_date'     => null,
+					'search'       => 'Ana',
 				)
 			)
 		);
@@ -260,7 +265,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 	public function test_fetch_page_delegates_keyset(): void {
 		$rows = array( array( 'id' => 5 ), array( 'id' => 4 ) );
 		$this->appointments->shouldReceive( 'getExportBatch' )->once()
-			->with( null, array(), null, null, 10, 50 )->andReturn( $rows );
+			->with( null, array(), null, null, 10, 50, '' )->andReturn( $rows );
 
 		$page = $this->source->fetch_page(
 			array(

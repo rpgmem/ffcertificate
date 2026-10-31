@@ -19,6 +19,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Per-email submission rate limit.
+ *
+ * @phpstan-import-type RateLimitVerdict from RateLimitChecker
  */
 class EmailLimiter implements RateLimitStrategy {
 
@@ -43,7 +45,7 @@ class EmailLimiter implements RateLimitStrategy {
 	 *
 	 * @param string   $identifier Email address.
 	 * @param int|null $form_id    Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public function check( string $identifier, ?int $form_id = null ): array {
 		$email = $identifier;

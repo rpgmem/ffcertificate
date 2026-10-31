@@ -137,8 +137,9 @@ class DateFormatterTest extends TestCase {
 	// Input handling
 	// ──────────────────────────────────────────────────────────────.
 
-	public function test_accepts_integer_timestamp(): void {
-		$this->assertSame( '04/01/2026', DateFormatter::format_date( 1767540600 ) );
+	public function test_accepts_integer_zero_as_the_epoch(): void {
+		// An integer is a timestamp even at zero; only null and '' are empty.
+		$this->assertSame( '01/01/1970', DateFormatter::format_date( 0 ) );
 	}
 
 	public function test_accepts_string_via_strtotime(): void {

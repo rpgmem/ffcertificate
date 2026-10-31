@@ -57,6 +57,8 @@
 .ffc-user-dashboard .ffc-cancel-appointment,
 .ffc-user-dashboard .ffc-cal-export-btn,
 .ffc-user-dashboard .ffc-btn-post-event,
+.ffc-user-dashboard .ffc-rereg-answers-toggle,
+.ffc-user-dashboard .ffc-rereg-answers-reveal,
 .ffc-audience-join-item .ffc-btn,
 .ffc-audience-switch-picker .ffc-btn {
     min-height: 0;
@@ -508,6 +510,7 @@
 .ffc-user-dashboard .ffc-btn-pdf,
 .ffc-user-dashboard .ffc-btn-receipt,
 .ffc-user-dashboard .ffc-btn-edit,
+.ffc-user-dashboard .ffc-rereg-answers-toggle,
 .ffc-user-dashboard .ffc-cancel-appointment {
     vertical-align: middle;
 }
@@ -661,6 +664,12 @@
     color: var(--ffc-text-secondary);
 }
 
+/* A waitlisted appointment holds a queue place, not a time (#2244). */
+.ffc-pill.ffc-dashboard-status-waitlist {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
 /* No `opacity` in these four rules, on purpose (#1126).
    Opacity on a row fades the TEXT along with the background, so it multiplies
    down whatever contrast the tokens guaranteed — and the pair meter cannot see
@@ -672,6 +681,13 @@
 .ffc-appointments-table .ffc-row-past { background: var(--ffc-bg-alt); }
 .ffc-appointments-table .ffc-row-cancelled { background: var(--ffc-danger-bg); }
 .ffc-appointments-table .ffc-row-cancelled td { color: var(--ffc-text-muted); }
+
+/* Why an open appointment offers no Cancel (#2244). */
+.ffc-appointments-table .ffc-cancel-note {
+    display: block;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
 
 #ffc-tabpanel-appointments h3,
 #ffc-tabpanel-audience h3,
@@ -719,8 +735,10 @@
 }
 
 /* The schedule under an environment's name: secondary text, which was a
-   fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). */
-.ffc-audience-bookings-table .ffc-booking-schedule {
+   fixed `#666` that dropped to about 2.6:1 in the dark theme (#1826). The
+   reason under a cancelled booking's description reads the same (#2243). */
+.ffc-audience-bookings-table .ffc-booking-schedule,
+.ffc-audience-bookings-table .ffc-booking-cancel-reason {
     color: var(--ffc-text-muted);
     /* The step below the cell's, which is what `small` drew relative to it
        before the root gave `small` the `sm` step (#1832). */
@@ -763,6 +781,50 @@
    the text colour, which is measurable, rather than with fading. */
 .ffc-reregistrations-table.ffc-table-past td { color: var(--ffc-text-muted); }
 .ffc-reregistrations-table .ffc-row-past { background: var(--ffc-bg-alt); }
+
+/* A submission's answers, opened under its row (#2227). The cell is the
+   row's last, so it undoes the action cell's nowrap and spacing. */
+.ffc-reregistrations-table td.ffc-rereg-answers {
+    white-space: normal;
+    color: var(--ffc-text);
+    background: var(--ffc-bg);
+}
+
+.ffc-reregistrations-table td.ffc-rereg-answers > * + * {
+    margin-left: 0;
+}
+
+.ffc-rereg-answers-actions {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-rereg-answers-list {
+    display: grid;
+    grid-template-columns: minmax(140px, max-content) 1fr;
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-lg);
+    margin: 0;
+}
+
+.ffc-rereg-answers-list dt {
+    font-weight: 600;
+    color: var(--ffc-text-muted);
+}
+
+.ffc-rereg-answers-list dd {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+    .ffc-rereg-answers-list {
+        grid-template-columns: 1fr;
+    }
+
+    .ffc-rereg-answers-list dd {
+        margin-bottom: var(--ffc-spacing-xs);
+    }
+}
 
 .ffc-reregistrations-table .ffc-auth-code {
     font-family: 'Courier New', Courier, monospace;
@@ -985,6 +1047,12 @@
 .ffc-password-form input[type="password"] {
     width: 100%;
     max-width: 340px;
+}
+
+.ffc-password-form .ffc-password-forgot {
+    display: inline-block;
+    margin-top: var(--ffc-spacing-2xs);
+    font-size: var(--ffc-font-size-sm);
 }
 
 /* ==========================================================================
@@ -1812,7 +1880,8 @@
 }
 
 .ffc-pill.ffc-mycalls-badge-withdrew,
-.ffc-pill.ffc-mycalls-badge-expired {
+.ffc-pill.ffc-mycalls-badge-expired,
+.ffc-pill.ffc-mycalls-badge-notice-closed {
     background: var(--ffc-bg-alt);
     color: var(--ffc-text);
 }
@@ -2021,7 +2090,8 @@
     .ffc-pill.ffc-dashboard-status-no_show,
     .ffc-pill.ffc-dashboard-status-pending,
     .ffc-pill.ffc-dashboard-status-rejected,
-    .ffc-pill.ffc-dashboard-status-submitted {
+    .ffc-pill.ffc-dashboard-status-submitted,
+    .ffc-pill.ffc-dashboard-status-waitlist {
         border: 1px solid CanvasText;
     }
 
@@ -2030,6 +2100,7 @@
     .ffc-pill.ffc-mycalls-badge-final,
     .ffc-pill.ffc-mycalls-badge-hired,
     .ffc-pill.ffc-mycalls-badge-not-shown,
+    .ffc-pill.ffc-mycalls-badge-notice-closed,
     .ffc-pill.ffc-mycalls-badge-preliminary,
     .ffc-pill.ffc-mycalls-badge-withdrew {
         border: 1px solid CanvasText;

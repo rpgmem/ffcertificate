@@ -38,6 +38,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @phpstan-import-type CandidateRow      from RecruitmentCandidateReader
  * @phpstan-import-type ClassificationRow from RecruitmentClassificationRepository
  * @phpstan-import-type NoticeRow         from RecruitmentNoticeReader
+ * @phpstan-import-type CallRow           from RecruitmentCallReader
  */
 final class RecruitmentPublicShortcodeRenderer {
 
@@ -77,6 +78,7 @@ final class RecruitmentPublicShortcodeRenderer {
 		// Section heading + table head is pure presentation — rendered by
 		// the partial (byte-identical to the prior inline concatenation),
 		// captured back into $html so the row loop below keeps appending.
+		$labels = self::column_labels( $columns, $show_date );
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/public/recruitment/section-open.php';
 		$html = (string) ob_get_clean();
@@ -87,15 +89,34 @@ final class RecruitmentPublicShortcodeRenderer {
 		// calls now hit the in-memory cache instead of issuing N
 		// individual SELECTs. Drops cold-cache render time on large
 		// notices from O(N) round-trips to O(1).
-		$candidate_ids = array_map( static fn( $r ) => (int) $r->candidate_id, $page_rows );
-		RecruitmentCandidateReader::get_by_ids( $candidate_ids );
+		$candidates = array();
+		foreach ( RecruitmentCandidateReader::get_by_ids( array_map( static fn( $r ) => (int) $r->candidate_id, $page_rows ) ) as $cand ) {
+			$candidates[ (int) $cand->id ] = $cand;
+		}
+		// The active call of each row of the page, in one query rather than
+		// one per row (#2245).
+		$active_calls = array();
+		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
+			$ids = array();
+			foreach ( $page_rows as $r ) {
+				if ( 'empty' !== (string) $r->status ) {
+					$ids[] = (int) $r->id;
+				}
+			}
+			foreach ( RecruitmentCallReader::get_history_for_classifications( $ids ) as $call ) {
+				$cls = (int) $call->classification_id;
+				if ( null === $call->cancelled_at && ! isset( $active_calls[ $cls ] ) ) {
+					$active_calls[ $cls ] = $call;
+				}
+			}
+		}
 
 		foreach ( $page_rows as $row ) {
-			$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
+			$candidate = $candidates[ (int) $row->candidate_id ] ?? null;
 			if ( null === $candidate ) {
 				continue;
 			}
-			$html .= self::render_row( $row, $candidate, $columns, $show_date );
+			$html .= self::render_row( $row, $candidate, $columns, $show_date, $labels, $active_calls[ (int) $row->id ] ?? null );
 		}
 
 		$html .= '</tbody></table>';
@@ -108,15 +129,18 @@ final class RecruitmentPublicShortcodeRenderer {
 	/**
 	 * Render a single classification row.
 	 *
-	 * @param object             $row       Classification row (ClassificationRow shape).
-	 * @param object             $candidate Candidate row (CandidateRow shape).
+	 * @param object               $row       Classification row (ClassificationRow shape).
+	 * @param object               $candidate Candidate row (CandidateRow shape).
 	 * @phpstan-param ClassificationRow $row
 	 * @phpstan-param CandidateRow      $candidate
-	 * @param array<string,bool> $columns   Column visibility map.
-	 * @param bool               $show_date Whether to include the date_to_assume cell.
+	 * @param array<string,bool>   $columns   Column visibility map.
+	 * @param bool                 $show_date Whether to include the date_to_assume cell.
+	 * @param array<string,string> $labels  Header of every visible column, for the narrow layout.
+	 * @param object|null          $call      The row's active call, if any.
+	 * @phpstan-param CallRow|null $call
 	 * @return string
 	 */
-	private static function render_row( object $row, object $candidate, array $columns, bool $show_date ): string {
+	private static function render_row( object $row, object $candidate, array $columns, bool $show_date, array $labels = array(), ?object $call = null ): string {
 		$html = '<tr>';
 		if ( $columns['rank'] ) {
 			$html .= '<td>' . esc_html( (string) $row->rank ) . '</td>';
@@ -183,14 +207,12 @@ final class RecruitmentPublicShortcodeRenderer {
 			}
 		}
 		if ( $columns['pcd_badge'] ) {
-			// `verify()` returns null when the hash doesn't decode against
-			// either domain — treat that as non-PCD on the public surface
-			// rather than hiding the badge entirely.
-			$is_pcd = true === RecruitmentPcdHasher::verify( (string) $candidate->pcd_hash, (int) $candidate->id );
+			// The row's PCD, per notice (#2245). A hash neither salt
+			// recognises reads as non-PCD rather than hiding the badge.
+			$is_pcd = RecruitmentPcdHasher::row_is_pcd( $row );
 			$html  .= '<td>' . self::render_subscription_badge( $is_pcd ) . '</td>';
 		}
 		if ( $show_date && ( $columns['date_to_assume'] || $columns['time_to_assume'] ) ) {
-			$call = RecruitmentCallReader::get_active_for_classification( (int) $row->id );
 			if ( $columns['date_to_assume'] ) {
 				$date  = null === $call ? '' : self::format_date_br( (string) $call->date_to_assume );
 				$html .= '<td>' . esc_html( $date ) . '</td>';
@@ -206,7 +228,64 @@ final class RecruitmentPublicShortcodeRenderer {
 		// columns false", which forces both inner $show_date && col
 		// checks to be false). PHPStan 2.1.55 surfaced this.
 		$html .= '</tr>';
-		return $html;
+		return self::label_cells( $html, array_values( $labels ) );
+	}
+
+	/**
+	 * Name each cell after its column, so the narrow-screen layout can show
+	 * the header beside the value (#2245).
+	 *
+	 * @param string            $row_html Rendered `<tr>`.
+	 * @param array<int,string> $labels   Headers, in column order.
+	 * @return string
+	 */
+	private static function label_cells( string $row_html, array $labels ): string {
+		$i = 0;
+		return (string) preg_replace_callback(
+			'/<td>/',
+			static function () use ( &$i, $labels ): string {
+				$label = $labels[ $i ] ?? '';
+				++$i;
+				return '' === $label ? '<td>' : '<td data-label="' . esc_attr( $label ) . '">';
+			},
+			$row_html
+		);
+	}
+
+	/**
+	 * The header of every visible column, in the order the cells render.
+	 *
+	 * @param array<string,bool> $columns   Column visibility map.
+	 * @param bool               $show_date Whether the date and time columns render.
+	 * @return array<string,string> Column key => header.
+	 */
+	public static function column_labels( array $columns, bool $show_date ): array {
+		$all = array(
+			'rank'           => __( 'Rank', 'ffcertificate' ),
+			'name'           => __( 'Name', 'ffcertificate' ),
+			'adjutancy'      => __( 'Adjutancy', 'ffcertificate' ),
+			'cpf_masked'     => __( 'CPF', 'ffcertificate' ),
+			'rf_masked'      => __( 'RF', 'ffcertificate' ),
+			'email_masked'   => __( 'E-mail', 'ffcertificate' ),
+			'score'          => __( 'Score', 'ffcertificate' ),
+			'time_points'    => __( 'Time points', 'ffcertificate' ),
+			'hab_emebs'      => __( 'HAB. EMEBs', 'ffcertificate' ),
+			'status'         => __( 'Status', 'ffcertificate' ),
+			'pcd_badge'      => __( 'Subscription', 'ffcertificate' ),
+			'date_to_assume' => __( 'Date to assume', 'ffcertificate' ),
+			'time_to_assume' => __( 'Time', 'ffcertificate' ),
+		);
+		$out = array();
+		foreach ( $all as $key => $label ) {
+			if ( empty( $columns[ $key ] ) ) {
+				continue;
+			}
+			if ( ! $show_date && in_array( $key, array( 'date_to_assume', 'time_to_assume' ), true ) ) {
+				continue;
+			}
+			$out[ $key ] = $label;
+		}
+		return $out;
 	}
 
 	/**
@@ -226,9 +305,13 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string
 	 */
 	public static function render_filters_bar( object $notice, bool $filter_locked, string $name_query, string $subscription = '' ): string {
-		$adjutancy_html    = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
-		$search_html       = self::render_name_search_input( $name_query );
-		$subscription_html = self::render_subscription_filter_inputs( $subscription );
+		$adjutancy_html = $filter_locked ? '' : self::render_adjutancy_filter_inputs( (int) $notice->id );
+		$search_html    = self::render_name_search_input( $name_query );
+		// The PCD filter exists only where the notice shows the PCD column
+		// (#2245): filtering by it would disclose what the column hides.
+		$subscription_html = self::parse_columns_config( (string) $notice->public_columns_config )['pcd_badge']
+			? self::render_subscription_filter_inputs( $subscription )
+			: '';
 
 		if ( '' === $adjutancy_html && '' === $search_html && '' === $subscription_html ) {
 			return '';
@@ -558,7 +641,8 @@ final class RecruitmentPublicShortcodeRenderer {
 	 * @return string Already-escaped HTML.
 	 */
 	public static function render_subscription_badge( bool $is_pcd ): string {
-		$label = $is_pcd ? __( 'PCD', 'ffcertificate' ) : __( 'GERAL', 'ffcertificate' );
+		// "General" is the English source; pt_BR renders it "GERAL" (#2245).
+		$label = $is_pcd ? __( 'PCD', 'ffcertificate' ) : _x( 'General', 'recruitment subscription type', 'ffcertificate' );
 		return BadgeHtml::render(
 			'ffc-recruitment-subscription-badge',
 			'ffc-recruitment-subscription-' . ( $is_pcd ? 'pcd' : 'geral' ),

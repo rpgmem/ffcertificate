@@ -8,178 +8,256 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Happy-path coverage for RecruitmentEmailDispatcher::send_for_call() —
- * the full render + send flow with the repositories, Encryption,
- * RecruitmentPcdHasher, DocumentFormatter, DateFormatter and
- * RecruitmentSettings stubbed via alias mocks.
+ * the full render + send flow.
  *
- * Kept in its own file so the alias-backed static stubs run under a
- * dedicated process (the sibling RecruitmentEmailDispatcherTest exercises
- * the early-return branches against real helper classes and must NOT be
- * process-isolated).
+ * Everything below the dispatcher is the real class: the five recruitment
+ * readers over a `$wpdb` double that answers the call, classification,
+ * candidate, notice and adjutancy rows; Encryption with the bootstrap's key
+ * constants (the candidate's CPF, RF and e-mail are stored encrypted);
+ * RecruitmentPcdHasher over a stubbed `wp_salt()`; DocumentFormatter,
+ * DateFormatter, RecruitmentSettings and EmailTemplates reading their
+ * options through a stubbed `get_option()`; and EmailService down to a
+ * stubbed `wp_mail()`, which records what it was handed.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentEmailDispatcher
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentEmailDispatcherSendTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/**
+	 * Option values `get_option()` answers, by key.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $options = array();
+
+	/** @var object The candidate row the database holds. */
+	private object $candidate;
+
+	/** @var object The classification row the call points at; PCD lives here (#2245). */
+	private object $classification;
+
+	/**
+	 * Every `wp_mail()` call, with the attachments' content read at send
+	 * time (the dispatcher deletes the temp file right after).
+	 *
+	 * @var list<array{to: string, subject: string, body: string, headers: array<int, string>, attachments: list<string>, files: list<string>}>
+	 */
+	private array $mails = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'wp_specialchars_decode' )->returnArg();
-		Functions\when( 'add_filter' )->justReturn( true );
-		Functions\when( 'remove_filter' )->justReturn( true );
-		// The body is now wrapped in the configurable chrome (ffc_email_document
+		// The body is wrapped in the configurable chrome (ffc_email_document
 		// → layout.php), which needs these escaping / site helpers.
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
-		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
-		Functions\when( 'wp_date' )->justReturn( '2026' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = '' ) {
-				if ( 'blogname' === $key ) {
-					return 'Test Site';
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.test' . $path );
+		Functions\when( 'add_query_arg' )->alias(
+			static function ( $args, $value = null, $url = null ) {
+				if ( ! is_array( $args ) ) {
+					$args = array( $args => $value );
+				} else {
+					$url = $value;
 				}
-				if ( 'siteurl' === $key ) {
-					return 'https://example.test';
-				}
-				return $default;
+				return $url . ( str_contains( (string) $url, '?' ) ? '&' : '?' ) . http_build_query( $args );
 			}
 		);
+		Functions\when( 'get_permalink' )->justReturn( 'https://example.test/painel/' );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_parse_url' )->alias( 'parse_url' );
+		// The dispatcher guards on function_exists( 'wp_tempnam' ), so the branch
+		// is chosen here rather than inherited from whichever test ran first.
+		Functions\when( 'wp_tempnam' )->alias( static fn ( $name = '' ) => (string) tempnam( sys_get_temp_dir(), 'ffc-test-' ) );
+		Functions\when( 'is_email' )->alias( static fn ( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) );
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static function ( $format, $ts = null, $tz = null ) {
+				$zone = $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' );
+				return ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $zone )->format( (string) $format );
+			}
+		);
+
+		// Emails enabled, debug off: everything not set below is the default
+		// of an install nobody configured.
+		$this->options = array(
+			'blogname' => 'Test Site',
+			'siteurl'  => 'https://example.test',
+		);
+		Functions\when( 'get_option' )->alias(
+			fn ( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
+		);
+
+		$this->mails = array();
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body, $headers = array(), $attachments = array() ) {
+				$files         = array_map( static fn ( $f ) => (string) file_get_contents( $f ), (array) $attachments );
+				$attachments   = (array) $attachments;
+				$this->mails[] = compact( 'to', 'subject', 'body', 'headers', 'attachments', 'files' );
+				return true;
+			}
+		);
+
+		$GLOBALS['wpdb'] = $this->database();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
-	private function call_stub(): object {
-		return (object) array(
-			'id'                => '7',
-			'classification_id' => '10',
-			'called_at'         => 1777968000,
-			'date_to_assume'    => '2026-06-01',
-			'time_to_assume'    => '08:00:00',
-			'notes'             => 'Bring documents',
-		);
-	}
+	/**
+	 * A database holding call 7 of classification 10, which ranks candidate
+	 * 100 (Alice) for adjutancy 2 on notice 5.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
 
-	private function classification_stub(): object {
-		return (object) array(
+		// Interpolates, so the reads below can dispatch on table and id.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				foreach ( $values as $v ) {
+					$sql = (string) preg_replace( '/%[ids]/', (string) $v, (string) $sql, 1 );
+				}
+				return $sql;
+			}
+		);
+
+		$this->candidate = (object) array(
+			'id'              => '100',
+			'user_id'         => null,
+			'name'            => 'Alice',
+			'cpf_encrypted'   => Encryption::encrypt( Identifiers::CPF_A ),
+			'rf_encrypted'    => Encryption::encrypt( Identifiers::RF_A ),
+			'email_encrypted' => Encryption::encrypt( 'alice@example.test' ),
+			'pcd_hash'        => '',
+		);
+
+		$this->classification = (object) array(
 			'id'           => '10',
 			'candidate_id' => '100',
 			'adjutancy_id' => '2',
 			'notice_id'    => '5',
 			'rank'         => '1',
 			'score'        => '90.0000',
+			'pcd_hash'     => '',
 		);
-	}
 
-	private function candidate_stub(): object {
-		return (object) array(
-			'id'              => '100',
-			'name'            => 'Alice',
-			'cpf_encrypted'   => 'cpf-cipher',
-			'rf_encrypted'    => 'rf-cipher',
-			'email_encrypted' => 'email-cipher',
-			'pcd_hash'        => 'pcd-hash',
+		$rows = array(
+			'wp_ffc_recruitment_call WHERE id = 7'            => (object) array(
+				'id'                => '7',
+				'classification_id' => '10',
+				'called_at'         => 1777968000,
+				'date_to_assume'    => '2026-06-01',
+				'time_to_assume'    => '08:00:00',
+				'notes'             => 'Bring documents',
+				'cancelled_at'      => null,
+			),
+			'wp_ffc_recruitment_classification WHERE id = 10' => $this->classification,
+			'wp_ffc_recruitment_candidate WHERE id = 100'     => $this->candidate,
+			'wp_ffc_recruitment_notice WHERE id = 5'          => (object) array(
+				'id'     => '5',
+				'code'   => 'EDITAL-2026-01',
+				'name'   => 'Edital de 2026',
+				'status' => 'definitive',
+			),
+			'wp_ffc_recruitment_adjutancy WHERE id = 2'       => (object) array(
+				'id'   => '2',
+				'slug' => 'matematica',
+				'name' => 'Matemática',
+			),
 		);
-	}
 
-	private function notice_stub(): object {
-		return (object) array(
-			'id'   => '5',
-			'code' => 'EDITAL-2026-01',
-			'name' => 'Edital de 2026',
-		);
-	}
-
-	private function adjutancy_stub(): object {
-		return (object) array(
-			'id'   => '2',
-			'slug' => 'matematica',
-			'name' => 'Matemática',
-		);
-	}
-
-	/**
-	 * Wire the alias mocks shared by the send tests.
-	 *
-	 * @param array<string, mixed> $settings Settings::all() return.
-	 * @param bool                 $is_pcd   PcdHasher::verify return.
-	 * @return void
-	 */
-	private function wire_helpers( array $settings, bool $is_pcd ): void {
-		$call_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$call_repo->shouldReceive( 'get_by_id' )->andReturn( $this->call_stub() );
-
-		$cls_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$cls_repo->shouldReceive( 'get_by_id' )->andReturn( $this->classification_stub() );
-
-		$cand_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$cand_repo->shouldReceive( 'get_by_id' )->andReturn( $this->candidate_stub() );
-
-		$notice_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
-		$notice_repo->shouldReceive( 'get_by_id' )->andReturn( $this->notice_stub() );
-
-		$adj_repo = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj_repo->shouldReceive( 'get_by_id' )->andReturn( $this->adjutancy_stub() );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturnUsing(
-			static function ( $cipher ) {
-				$map = array(
-					'cpf-cipher'   => '12345678909',
-					'rf-cipher'    => '1234567',
-					'email-cipher' => 'alice@example.test',
-				);
-				return $map[ $cipher ] ?? null;
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) use ( $rows ) {
+				foreach ( $rows as $needle => $row ) {
+					if ( str_ends_with( (string) $sql, $needle ) ) {
+						return $row;
+					}
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
 			}
 		);
 
-		$pcd = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPcdHasher' );
-		$pcd->shouldReceive( 'verify' )->andReturn( $is_pcd );
+		return $wpdb;
+	}
 
-		$doc = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$doc->shouldReceive( 'mask_cpf' )->andReturn( '***.***.***-09' );
-		$doc->shouldReceive( 'mask_rf' )->andReturn( '***4567' );
-		$doc->shouldReceive( 'mask_email' )->andReturn( 'a***@example.test' );
+	/**
+	 * Store the convocation templates and the recruitment settings, and the
+	 * classification's PCD claim.
+	 *
+	 * The candidate row carries the opposite claim, so a dispatcher still
+	 * reading the candidate would resolve the wrong answer (#2245).
+	 *
+	 * @param array<string, string> $settings Subject, body and From settings.
+	 * @param bool                  $is_pcd   The classification's PCD claim.
+	 */
+	private function configure( array $settings, bool $is_pcd, int $response_days = 0 ): void {
+		$this->options['ffc_email_bodies']         = array(
+			'recruitment-convocation' => array(
+				'subject' => $settings['email_subject'],
+				'body'    => $settings['email_body_html'],
+			),
+		);
+		$this->options['ffc_recruitment_settings'] = array(
+			'email_from_address' => $settings['email_from_address'],
+			'email_from_name'    => $settings['email_from_name'],
+			'response_days'      => $response_days,
+		);
 
-		$date = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$date->shouldReceive( 'format_datetime' )->andReturn( '05/05/2026 00:00' );
-		// The chrome footer's {{date}} token calls format_date().
-		$date->shouldReceive( 'format_date' )->andReturn( '05/05/2026' );
+		$this->classification->pcd_hash = RecruitmentPcdHasher::compute_for_row( 5, 100, 2, $is_pcd );
+		$this->candidate->pcd_hash      = RecruitmentPcdHasher::compute( 100, ! $is_pcd );
+	}
 
-		$settings_mock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
-		$settings_mock->shouldReceive( 'all' )->andReturn( $settings );
-
-		// The convocation subject + body now resolve through the global email-body
-		// hub (#964); map the test's custom values onto effective_body(). The chrome
-		// wrapper uses EmailTemplateOptions, not EmailTemplates, so this alias is safe.
-		$templates_mock = Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' );
-		$templates_mock->shouldReceive( 'effective_body' )
-			->with( 'recruitment-convocation', 'subject' )
-			->andReturn( isset( $settings['email_subject'] ) ? (string) $settings['email_subject'] : '' );
-		$templates_mock->shouldReceive( 'effective_body' )
-			->with( 'recruitment-convocation', 'body' )
-			->andReturn( isset( $settings['email_body_html'] ) ? (string) $settings['email_body_html'] : '' );
+	/**
+	 * The only mail sent.
+	 *
+	 * @return array{to: string, subject: string, body: string, headers: array<int, string>}
+	 */
+	private function sent(): array {
+		$this->assertCount( 1, $this->mails, 'Exactly one wp_mail() call.' );
+		return $this->mails[0];
 	}
 
 	public function test_sends_email_with_resolved_tokens_and_from_header(): void {
-		$this->wire_helpers(
+		$this->configure(
 			array(
 				'email_subject'      => 'Convocação {{name}} — {{notice_code}}',
 				'email_body_html'    => '<p>{{name}}, CPF {{cpf_masked}}, PCD {{is_pcd}}, em {{date_to_assume}} às {{time_to_assume}}. Notas: {{notes}}. {{called_at}} {{site_name}} {{site_url}}</p>',
@@ -189,30 +267,46 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			true
 		);
 
-		$captured = array();
-		Functions\when( 'wp_mail' )->alias(
-			static function ( $to, $subject, $body, $headers ) use ( &$captured ) {
-				$captured = compact( 'to', 'subject', 'body', 'headers' );
-				return true;
-			}
-		);
-
 		$result = RecruitmentEmailDispatcher::send_for_call( 7 );
 
 		$this->assertTrue( $result );
-		$this->assertSame( 'alice@example.test', $captured['to'] );
+		$captured = $this->sent();
+		$this->assertSame( 'alice@example.test', $captured['to'], 'The decrypted e-mail is the recipient.' );
 		$this->assertSame( 'Convocação Alice — EDITAL-2026-01', $captured['subject'] );
-		$this->assertStringContainsString( '***.***.***-09', $captured['body'] );
+		$masked_cpf = substr( Identifiers::CPF_A, 0, 3 ) . '.***.***-' . substr( Identifiers::CPF_A, -2 );
+		$this->assertStringContainsString( 'CPF ' . $masked_cpf, $captured['body'] );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $captured['body'], 'The clear CPF never reaches the body.' );
 		$this->assertStringContainsString( 'PCD Yes', $captured['body'] );
-		$this->assertStringContainsString( '2026-06-01', $captured['body'] );
+		$this->assertStringContainsString( 'em 01/06/2026 às 08:00', $captured['body'], 'The presentation date and time go through the site\'s formats.' );
 		$this->assertStringContainsString( 'Bring documents', $captured['body'] );
+		$this->assertStringContainsString( '05/05/2026 08:00', $captured['body'], 'called_at goes through the site\'s date format.' );
 		$this->assertStringContainsString( 'Test Site', $captured['body'] );
 		$this->assertContains( 'Content-Type: text/html; charset=UTF-8', $captured['headers'] );
 		$this->assertContains( 'From: "Recursos Humanos" <rh@example.test>', $captured['headers'] );
 	}
 
+	public function test_escapes_every_token_value_in_the_body_and_none_in_the_subject(): void {
+		Functions\when( 'esc_html' )->alias( static fn ( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES, 'UTF-8' ) );
+		$this->candidate->name = 'Ana <script>x</script>';
+		$this->configure(
+			array(
+				'email_subject'      => 'Call for {{name}}',
+				'email_body_html'    => '<p>{{name}} — {{notes}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$captured = $this->sent();
+		$this->assertStringContainsString( '<p>Ana &lt;script&gt;x&lt;/script&gt; — Bring documents</p>', $captured['body'], 'A name from the CSV is text in the HTML body, never markup.' );
+		$this->assertStringNotContainsString( '<script>', $captured['body'] );
+		$this->assertSame( 'Call for Ana <script>x</script>', $captured['subject'], 'The subject is a plain-text header: no entity reaches it.' );
+	}
+
 	public function test_sends_email_with_no_from_header_when_address_blank(): void {
-		$this->wire_helpers(
+		$this->configure(
 			array(
 				'email_subject'      => 'Sub',
 				'email_body_html'    => '<p>{{is_pcd}}</p>',
@@ -222,22 +316,15 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			false
 		);
 
-		$captured = array();
-		Functions\when( 'wp_mail' )->alias(
-			static function ( $to, $subject, $body, $headers ) use ( &$captured ) {
-				$captured = compact( 'headers', 'body' );
-				return true;
-			}
-		);
-
 		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$captured = $this->sent();
 		// Only the Content-Type header; no From: line.
-		$this->assertCount( 1, $captured['headers'] );
-		$this->assertStringContainsString( 'No', $captured['body'], 'is_pcd false resolves to "No"' );
+		$this->assertSame( array( 'Content-Type: text/html; charset=UTF-8' ), $captured['headers'] );
+		$this->assertStringContainsString( '<p>No</p>', $captured['body'], 'is_pcd false resolves to "No"' );
 	}
 
 	public function test_uses_bare_address_when_from_name_blank(): void {
-		$this->wire_helpers(
+		$this->configure(
 			array(
 				'email_subject'      => 'Sub',
 				'email_body_html'    => '<p>body</p>',
@@ -247,15 +334,129 @@ class RecruitmentEmailDispatcherSendTest extends TestCase {
 			false
 		);
 
-		$captured = array();
-		Functions\when( 'wp_mail' )->alias(
-			static function ( $to, $subject, $body, $headers ) use ( &$captured ) {
-				$captured = $headers;
-				return true;
-			}
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertContains( 'From: noreply@example.test', $this->sent()['headers'] );
+	}
+
+	public function test_convocation_attaches_the_call_ics_and_removes_the_temp_file(): void {
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>body</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
 		);
 
 		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
-		$this->assertContains( 'From: noreply@example.test', $captured );
+		$captured = $this->sent();
+		$this->assertCount( 1, $captured['attachments'], 'The call .ics travels with the convocation.' );
+		$this->assertStringContainsString( 'BEGIN:VCALENDAR', $captured['files'][0] );
+		$this->assertStringContainsString( 'UID:ffc-recruitment-call-7', $captured['files'][0] );
+		$this->assertFileDoesNotExist( $captured['attachments'][0], 'The temp file is deleted after the send.' );
+	}
+
+	public function test_cancellation_attaches_nothing(): void {
+		$this->options['ffc_email_bodies'] = array(
+			'recruitment-cancellation' => array(
+				'subject' => 'Cancelled',
+				'body'    => '<p>{{set_password_url}}|{{name}}</p>',
+			),
+		);
+		$this->classification->pcd_hash    = RecruitmentPcdHasher::compute_for_row( 5, 100, 2, false );
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_cancellation( 7 ) );
+		$captured = $this->sent();
+		$this->assertSame( array(), $captured['attachments'] );
+		$this->assertStringContainsString( '<p>|Alice</p>', $captured['body'], 'A cancellation issues no password link.' );
+	}
+
+	public function test_links_to_my_calls_and_falls_back_there_without_an_account(): void {
+		$this->options['ffc_dashboard_page_id'] = 42;
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>{{my_calls_url}}|{{set_password_url}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString(
+			'<p>https://example.test/painel/?tab=recruitment|https://example.test/painel/?tab=recruitment</p>',
+			$this->sent()['body'],
+			'A candidate with no account yet is sent to My calls, never to a dead link.'
+		);
+	}
+
+	public function test_respond_by_line_names_the_deadline_and_never_passes_the_presentation(): void {
+		// Called on 2026-05-05 (1777968000); the presentation is 2026-06-01.
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false,
+			3
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[Please answer by 08/05/2026.]</p>', $this->sent()['body'] );
+
+		$this->mails = array();
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false,
+			60
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[Please answer by 01/06/2026.]</p>', $this->sent()['body'], 'The deadline stops at the presentation date.' );
+	}
+
+	public function test_respond_by_line_is_empty_without_a_deadline(): void {
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>[{{respond_by_line}}]</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$this->assertStringContainsString( '<p>[]</p>', $this->sent()['body'] );
+	}
+
+	public function test_issues_a_password_link_for_the_linked_account(): void {
+		$this->candidate->user_id = '55';
+		$user                     = new \WP_User( 55 );
+		$user->user_login         = 'alice';
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'get_password_reset_key' )->justReturn( 'k3y' );
+		// `issue_for()` refuses staff accounts (#2246); these recipients are not.
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->configure(
+			array(
+				'email_subject'      => 'Sub',
+				'email_body_html'    => '<p>{{set_password_url}}</p>',
+				'email_from_address' => '',
+				'email_from_name'    => '',
+			),
+			false
+		);
+
+		$this->assertTrue( RecruitmentEmailDispatcher::send_for_call( 7 ) );
+		$body = $this->sent()['body'];
+		$this->assertStringContainsString( 'ffc_key=k3y', $body, 'An account the import created gets the link that sets its first password.' );
+		$this->assertStringContainsString( 'ffc_login=alice', $body );
 	}
 }

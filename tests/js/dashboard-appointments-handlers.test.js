@@ -10,6 +10,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -28,6 +32,15 @@ beforeAll(() => {
 		cancelKeepBtn: 'Keep appointment',
 		close: 'Close',
 		cancelSuccess: 'Cancelled OK',
+		reschedule: 'Reschedule',
+		rescheduleTitle: 'Reschedule appointment',
+		rescheduleIntro: 'Cancelled first, then the calendar opens.',
+		rescheduleConfirmBtn: 'Cancel and book a new time',
+		rescheduleReason: 'Rescheduled by the participant',
+		leaveWaitlist: 'Leave waitlist',
+		leaveWaitlistTitle: 'Leave the waitlist',
+		leaveWaitlistIntro: 'You will lose your place.',
+		leaveWaitlistConfirmBtn: 'Leave the waitlist',
 		cancelError: 'Cancel failed',
 		noPermission: 'No permission',
 		name: 'Name:',
@@ -334,7 +347,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on success: closes the dialog, alerts, clears state, repaints and reloads', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
@@ -343,7 +355,7 @@ describe('appointments cancellation dialog', () => {
 		await flushPromises();
 
 		expect(dialog()).toBeNull();
-		expect(alertSpy).toHaveBeenCalledWith('Cancelled OK');
+		expect(flashText()).toBe('Cancelled OK');
 		expect(panel().state).toBeNull();
 		expect(document.getElementById('ffc-tabpanel-appointments').innerHTML).toContain('Loading');
 		expect(loadSpy).toHaveBeenCalled();
@@ -351,7 +363,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on response.success=false: alerts the server message and leaves the dialog open', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: { message: 'Already cancelled' } },
 		}));
@@ -360,7 +371,7 @@ describe('appointments cancellation dialog', () => {
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
+		expect(flashText()).toBe('Already cancelled');
 		// Left open on purpose: the reason the person typed is still in the
 		// field, so a retry does not start from a blank form.
 		expect(dialog()).not.toBeNull();
@@ -368,7 +379,6 @@ describe('appointments cancellation dialog', () => {
 
 	it('on response.success=false without data.message: falls back to the localised error', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({
 			done: { success: false, data: {} },
 		}));
@@ -377,19 +387,166 @@ describe('appointments cancellation dialog', () => {
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
+		expect(flashText()).toBe('Cancel failed');
 	});
 
 	it('on network error: alerts the localised error', async () => {
 		mountCancelButton();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		openDialog();
 		window.$('.ffc-cancel-confirm').trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cancel failed');
+		expect(flashText()).toBe('Cancel failed');
+	});
+});
+
+// ----------------------------------------------------------------------
+// Reschedule (#2244): the cancel dialog in its second mode
+// ----------------------------------------------------------------------
+
+describe('appointments reschedule', () => {
+	const BOOK = 'https://x.test/book/';
+	let originalLocation;
+	let assigned;
+
+	function mount(id = 66, over = {}) {
+		document.getElementById('ffc-tabpanel-appointments').innerHTML =
+			`<button class="ffc-reschedule-appointment" data-id="${id}">Reschedule</button>`;
+		panel().state = [makeAppt(Object.assign({ id, can_cancel: true, reschedule_url: BOOK }, over))];
+	}
+
+	function postChain(opts) {
+		const chain = { done: () => chain, fail: () => chain };
+		if (opts.done) chain.done = (cb) => { cb(opts.done); return chain; };
+		return chain;
+	}
+
+	const dialog = () => document.getElementById('ffc-cancel-appointment-modal');
+
+	beforeEach(() => {
+		assigned = [];
+		originalLocation = window.location;
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			writable: true,
+			value: { assign: (url) => assigned.push(url), href: originalLocation.href },
+		});
+	});
+
+	afterEach(() => {
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: originalLocation });
+		const el = dialog();
+		if (el) el.remove();
+	});
+
+	it('opens the dialog in reschedule mode, without the reason field', () => {
+		mount();
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		expect(dialog().textContent).toContain('Reschedule appointment');
+		expect(dialog().textContent).toContain('Cancelled first, then the calendar opens.');
+		expect(document.getElementById('ffc-cancel-reason')).toBeNull();
+		expect(dialog().querySelector('.ffc-reschedule-confirm.ffc-btn-caution.ffc-icon-calendar')).not.toBeNull();
+		expect(dialog().querySelector('.ffc-cancel-confirm')).toBeNull();
+	});
+
+	it('warns in the dialog about the appointment the interval rule will measure from', () => {
+		mount(66, { reschedule_note: 'You also have an appointment on 11/01.' });
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		const note = dialog().querySelector('.ffc-notice-warning');
+		expect(note).not.toBeNull();
+		expect(note.textContent).toContain('You also have an appointment on 11/01.');
+	});
+
+	it('draws no warning when the rule does not apply', () => {
+		mount(66, { reschedule_note: '' });
+		window.$('.ffc-reschedule-appointment').trigger('click');
+
+		expect(dialog().querySelector('.ffc-notice')).toBeNull();
+	});
+
+	it('cancels with the fixed reason, then opens the calendar page instead of reloading', async () => {
+		mount(66);
+		const loadSpy = vi.spyOn(panel(), 'load').mockImplementation(() => {});
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+
+		window.$('.ffc-reschedule-appointment').trigger('click');
+		window.$('.ffc-reschedule-confirm').trigger('click');
+		await flushPromises();
+
+		expect(postSpy.mock.calls[0][1]).toMatchObject({
+			action: 'ffc_cancel_appointment',
+			appointment_id: 66,
+			reason: 'Rescheduled by the participant',
+		});
+		expect(assigned).toEqual([BOOK]);
+		expect(flashText()).toBe('');
+		expect(loadSpy).not.toHaveBeenCalled();
+	});
+
+	it('stays on the dashboard when the cancellation is refused', async () => {
+		mount();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Too late' } } }));
+
+		window.$('.ffc-reschedule-appointment').trigger('click');
+		window.$('.ffc-reschedule-confirm').trigger('click');
+		await flushPromises();
+
+		expect(flashText()).toBe('Too late');
+		expect(assigned).toEqual([]);
+	});
+
+	it('draws the button only when the row can be cancelled and the calendar is on a page', () => {
+		panel().render([
+			makeAppt({ id: 1, can_cancel: true, reschedule_url: BOOK }),
+			makeAppt({ id: 2, can_cancel: true, reschedule_url: '' }),
+			makeAppt({ id: 3, can_cancel: false, reschedule_url: BOOK }),
+		], 1);
+
+		const ids = Array.from(document.querySelectorAll('.ffc-reschedule-appointment')).map((b) => b.getAttribute('data-id'));
+		expect(ids).toEqual(['1']);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Waitlist and the reason a row cannot be cancelled (#2244)
+// ----------------------------------------------------------------------
+
+describe('appointments waitlist and cancel note', () => {
+	afterEach(() => {
+		const el = document.getElementById('ffc-cancel-appointment-modal');
+		if (el) el.remove();
+	});
+
+	it('offers Leave waitlist on a waitlisted row and words the dialog for it', () => {
+		const row = makeAppt({ id: 5, status: 'waitlist', status_label: 'Waitlisted', can_cancel: true });
+		panel().state = [row];
+		panel().render([row], 1);
+
+		const btn = document.querySelector('.ffc-cancel-appointment');
+		expect(btn.textContent).toContain('Leave waitlist');
+		expect(document.querySelector('.ffc-dashboard-status-waitlist').textContent).toBe('Waitlisted');
+
+		window.$(btn).trigger('click');
+		const dialog = document.getElementById('ffc-cancel-appointment-modal');
+		expect(dialog.textContent).toContain('Leave the waitlist');
+		expect(dialog.textContent).toContain('You will lose your place.');
+	});
+
+	it('says why an open row offers no Cancel', () => {
+		panel().render([makeAppt({ id: 6, can_cancel: false, cancel_note: 'Cancelling closed 24 hours before the appointment.' })], 1);
+
+		expect(document.querySelector('.ffc-cancel-appointment')).toBeNull();
+		expect(document.querySelector('.ffc-cancel-note').textContent).toBe('Cancelling closed 24 hours before the appointment.');
+	});
+
+	it('draws no note on a row that can be cancelled', () => {
+		panel().render([makeAppt({ id: 7, can_cancel: true, cancel_note: '' })], 1);
+
+		expect(document.querySelector('.ffc-cancel-note')).toBeNull();
 	});
 });
 

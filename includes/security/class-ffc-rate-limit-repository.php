@@ -27,23 +27,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class RateLimitRepository {
 
 	/**
+	 * Days each submission-count period looks back over.
+	 *
+	 * @var array{day: int, week: int, month: int, year: int}
+	 */
+	private const SUBMISSION_WINDOW_DAYS = array(
+		'day'   => 1,
+		'week'  => 7,
+		'month' => 30,
+		'year'  => 365,
+	);
+
+	/**
 	 * Storage key for a rate-limit identifier on the `ffc_rate_limits` counter
-	 * table. Non-IP identifiers (email / CPF) are hashed at rest — a counter row
-	 * only needs a stable equality key, and storing raw CPF/email was a
-	 * PII-at-rest leak (#839 S5). IP identifiers stay plaintext so the stats
-	 * "top IPs" view and operator troubleshooting keep working. Mirrors the
-	 * sibling {@see RateLimitLogger::log_attempt()} hashing on `ffc_rate_limit_logs`.
+	 * table. A counter row only needs a stable equality key, so nothing is
+	 * stored in the clear: an address becomes its fingerprint, which counts
+	 * an IPv6 caller by its /64 and is keyed with the plugin's hash secret
+	 * (#2109), and any other identifier (email, CPF) its sha256 hash (#839).
+	 * Mirrors {@see RateLimitLogger::log_attempt()} on `ffc_rate_limit_logs`.
 	 *
 	 * Applied on both the read (get_count / is_blocked) and write (increment /
-	 * block) sides so lookups stay consistent; existing raw rows simply miss the
-	 * new hashed key and lapse after their window (a one-time reset at most).
+	 * block) sides so lookups stay consistent; a row written under an older
+	 * key simply misses and lapses after its window (a one-time reset at most).
 	 *
 	 * @param string $type       Identifier type ('ip' | 'email' | 'cpf' | …).
 	 * @param string $identifier Raw identifier.
-	 * @return string Plaintext IP, or a sha256 hash for any non-IP identifier.
+	 * @return string Address fingerprint, or a sha256 hash for any other identifier.
 	 */
 	private static function storage_identifier( string $type, string $identifier ): string {
-		return ( 'ip' === $type ) ? $identifier : hash( 'sha256', $identifier );
+		return ( 'ip' === $type ) ? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) : hash( 'sha256', $identifier );
 	}
 
 	/**
@@ -117,16 +129,22 @@ final class RateLimitRepository {
 	/**
 	 * Get submission count.
 	 *
-	 * @param string   $field Field definition.
-	 * @param string   $value Value.
-	 * @param string   $period Period.
-	 * @param int|null $form_id Form ID.
+	 * Every period has its own window. `year` used to fall through to the
+	 * 30-day one, so the per-CPF yearly limit counted the same month the
+	 * monthly limit did and never blocked anything the monthly one had not
+	 * (#2156). The period is typed to the four keys, so PHPStan refuses an
+	 * unknown one at the call site instead of it being read as a month.
+	 *
+	 * @param string                      $field Field definition.
+	 * @param string                      $value Value.
+	 * @param 'day'|'week'|'month'|'year' $period Period.
+	 * @param int|null                    $form_id Form ID.
 	 * @return int
 	 */
 	public static function get_submission_count( string $field, string $value, string $period, ?int $form_id ): int {
 		global $wpdb;
 		$t  = $wpdb->prefix . 'ffc_submissions';
-		$dw = 'day' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 1 DAY)' : ( 'week' === $period ? 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 7 DAY)' : 'AND submission_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)' );
+		$dw = sprintf( 'AND submission_date >= DATE_SUB(NOW(), INTERVAL %d DAY)', self::SUBMISSION_WINDOW_DAYS[ $period ] );
 		$fw = $form_id ? $wpdb->prepare( 'AND form_id=%d', $form_id ) : '';
 
 		// The value arrives as the visitor typed it, and the hash it is

@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\CsvParser;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * #563 Sprint 6 (A3, PR 6a) — unit tests for the pure CsvParser layer
@@ -30,6 +31,29 @@ class CsvParserTest extends TestCase {
 		// so parse()/normalise_id() coverage is credited to this file.
 		class_exists( '\\FreeFormCertificate\\Recruitment\\CsvParser' );
 		class_exists( '\\FreeFormCertificate\\Core\\Csv' );
+	}
+
+	public function test_a_windows_1252_file_is_refused_with_its_own_code(): void {
+		// "José" saved by Excel pt-BR: é is the single byte 0xE9.
+		$csv = "name,cpf,rf,email,adjutancy,rank,score,pcd\nJos\xE9," . Identifiers::CPF_A . ",,a@b.c,math,1,9,0\n";
+
+		$this->assertSame(
+			array(
+				'ok'     => false,
+				'rows'   => array(),
+				'errors' => array( 'recruitment_csv_not_utf8' ),
+			),
+			CsvParser::parse( $csv )
+		);
+	}
+
+	public function test_a_utf8_file_with_a_bom_is_read(): void {
+		$csv = "\xEF\xBB\xBFname,cpf,rf,email,adjutancy,rank,score,pcd\nJosé," . Identifiers::CPF_A . ",,a@b.c,math,1,9,0\n";
+
+		$parse = CsvParser::parse( $csv );
+
+		$this->assertTrue( $parse['ok'] );
+		$this->assertSame( 'José', $parse['rows'][0]['name'] );
 	}
 
 	public function test_header_constants_are_the_documented_contract(): void {
@@ -102,11 +126,11 @@ class CsvParserTest extends TestCase {
 			'score'     => 6,
 			'pcd'       => 7,
 		);
-		$cells = array( '12345678909', 'Alice', '0001234', 'a@b.co', 'mat', '1', '9.5', 'sim' );
+		$cells = array( Identifiers::CPF_A, 'Alice', '0001234', 'a@b.co', 'mat', '1', '9.5', 'sim' );
 		$row   = CsvParser::build_row( $cells, $index_map );
 
 		$this->assertSame( 'Alice', $row['name'] );
-		$this->assertSame( '12345678909', $row['cpf'] );
+		$this->assertSame( Identifiers::CPF_A, $row['cpf'] );
 		$this->assertSame( '9.5', $row['score'] );
 		$this->assertSame( 'sim', $row['pcd'] );
 	}
@@ -123,7 +147,7 @@ class CsvParserTest extends TestCase {
 			'score'     => 6,
 			'pcd'       => 7,
 		);
-		$cells = array( 'Bob', '12345678909', '0001234', 'b@c.co', 'mat', '2', '8.0', 'no' );
+		$cells = array( 'Bob', Identifiers::CPF_A, '0001234', 'b@c.co', 'mat', '2', '8.0', 'no' );
 		$row   = CsvParser::build_row( $cells, $index_map );
 
 		// Optional headers default to '' so downstream code is uniform.
@@ -158,8 +182,8 @@ class CsvParserTest extends TestCase {
 
 	public function test_parse_maps_rows_and_assigns_1_based_line_numbers(): void {
 		$content = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678909,0001234,a@b.co,mat,1,9.5,sim\n"
-			. "Bob,98765432100,0007654,b@c.co,adm,2,8.0,no\n";
+			. "Alice," . Identifiers::CPF_A . ",0001234,a@b.co,mat,1,9.5,sim\n"
+			. "Bob," . Identifiers::CPF_B . ",0007654,b@c.co,adm,2,8.0,no\n";
 		$result = CsvParser::parse( $content );
 
 		$this->assertTrue( $result['ok'] );
@@ -179,9 +203,9 @@ class CsvParserTest extends TestCase {
 
 	public function test_parse_skips_all_whitespace_rows(): void {
 		$content = "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678909,0001234,a@b.co,mat,1,9.5,sim\n"
+			. "Alice," . Identifiers::CPF_A . ",0001234,a@b.co,mat,1,9.5,sim\n"
 			. ",,,,,,,\n"
-			. "Bob,98765432100,0007654,b@c.co,adm,2,8.0,no\n";
+			. "Bob," . Identifiers::CPF_B . ",0007654,b@c.co,adm,2,8.0,no\n";
 		$result = CsvParser::parse( $content );
 
 		$this->assertTrue( $result['ok'] );
@@ -195,7 +219,7 @@ class CsvParserTest extends TestCase {
 
 	public function test_parse_auto_detects_semicolon_delimiter(): void {
 		$content = "name;cpf;rf;email;adjutancy;rank;score;pcd\n"
-			. "Alice;12345678909;0001234;a@b.co;mat;1;9,5;sim\n";
+			. "Alice;" . Identifiers::CPF_A . ";0001234;a@b.co;mat;1;9,5;sim\n";
 		$result = CsvParser::parse( $content );
 
 		$this->assertTrue( $result['ok'] );
@@ -207,7 +231,7 @@ class CsvParserTest extends TestCase {
 	public function test_parse_strips_utf8_bom_from_first_header(): void {
 		$bom     = "\xEF\xBB\xBF";
 		$content = $bom . "name,cpf,rf,email,adjutancy,rank,score,pcd\n"
-			. "Alice,12345678909,0001234,a@b.co,mat,1,9.5,sim\n";
+			. "Alice," . Identifiers::CPF_A . ",0001234,a@b.co,mat,1,9.5,sim\n";
 		$result = CsvParser::parse( $content );
 
 		// A leaked BOM would make the first header 'ï»¿name' and fail the
@@ -221,8 +245,8 @@ class CsvParserTest extends TestCase {
 	// ==================================================================
 
 	public function test_normalise_id_strips_non_digits(): void {
-		$out = CsvParser::normalise_id( '123.456.789-09', 11 );
-		$this->assertSame( '12345678909', $out['value'] );
+		$out = CsvParser::normalise_id( substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ), 11 );
+		$this->assertSame( Identifiers::CPF_A, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 
@@ -246,8 +270,8 @@ class CsvParserTest extends TestCase {
 	}
 
 	public function test_normalise_id_leaves_exact_width_untouched(): void {
-		$out = CsvParser::normalise_id( '12345678909', 11 );
-		$this->assertSame( '12345678909', $out['value'] );
+		$out = CsvParser::normalise_id( Identifiers::CPF_A, 11 );
+		$this->assertSame( Identifiers::CPF_A, $out['value'] );
 		$this->assertFalse( $out['too_long'] );
 	}
 }

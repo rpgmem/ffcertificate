@@ -56,7 +56,7 @@ class UserCertificatesRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_certificates' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -67,7 +67,7 @@ class UserCertificatesRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'reveal_certificate_email' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 				'args'                => array(
 					'id' => array(
 						'required'          => true,
@@ -208,7 +208,9 @@ class UserCertificatesRestController {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's own submissions table to wp_posts for one user's REST payload; the response is built once per request.
 			$submissions = $wpdb->get_results(
 				$wpdb->prepare(
-					'SELECT s.*, p.post_title as form_title
+					'SELECT s.id, s.form_id, s.submission_date, s.consent_given, s.auth_code, s.magic_token,
+                        (s.email_encrypted IS NOT NULL AND s.email_encrypted <> \'\') AS has_email,
+                        p.post_title as form_title
                  FROM %i s
                  LEFT JOIN %i p ON s.form_id = p.ID
                  WHERE s.user_id = %d
@@ -230,8 +232,12 @@ class UserCertificatesRestController {
 			$certificates = array();
 
 			foreach ( $submissions as $submission ) {
-				$email_plain   = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
-				$email_display = ( '' !== $email_plain ) ? \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email_plain ) : '';
+				// The list never decrypts: each e-mail shows the mask placeholder
+				// and the Reveal decrypts the one asked for (#2246). Decrypting
+				// every row only to mask it cost a cipher call per certificate.
+				$email_display = ! empty( $submission['has_email'] )
+					? \FreeFormCertificate\Core\DocumentFormatter::mask_placeholder( \FreeFormCertificate\Core\DocumentFormatter::MASK_EMAIL )
+					: '';
 
 				$magic_link = '';
 				if ( ! empty( $submission['magic_token'] ) ) {
@@ -253,6 +259,9 @@ class UserCertificatesRestController {
 					'form_title'          => $submission['form_title'] ?? __( 'Unknown Form', 'ffcertificate' ),
 					'submission_date'     => $date_formatted,
 					'submission_date_raw' => $submission_ts,
+					// The site-timezone day, `Y-m-d`: what the date filter
+					// compares against its two date inputs (#2246).
+					'submission_day'      => $submission_ts > 0 ? wp_date( 'Y-m-d', $submission_ts ) : '',
 					'consent_given'       => ! empty( $submission['consent_given'] ),
 					'email'               => $email_display,
 					'auth_code'           => $auth_code_formatted,

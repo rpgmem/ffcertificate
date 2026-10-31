@@ -11,17 +11,95 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Shortcodes\DashboardShortcode;
 
 /**
+ * Tests for DashboardShortcode: the login notice, the tab set each
+ * capability opens, the admin view-as banner, the reregistration banners and
+ * the no-cache headers.
+ *
+ * Every collaborator is the real class — DashboardViewMode,
+ * DashboardAssetManager, AssetHelper, AssetRegistry, RequestInput,
+ * ReregistrationFrontend over ReregistrationRepository and
+ * ReregistrationSubmissionReader, AudienceReader, RecruitmentDashboardSection
+ * over the recruitment readers, DateFormatter, Notice, Button — over a
+ * `$wpdb` double that answers each read by its SQL text from the arrays a
+ * test sets. Nothing here writes, so the double knows no write and any
+ * attempt fails the test. Enqueued styles and scripts are recorded.
+ *
  * @covers \FreeFormCertificate\Shortcodes\DashboardShortcode
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DashboardShortcodeTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var list<array<int, mixed>> Every prepare() call, as its flattened argument list. */
+	private array $prepared = array();
+
+	/** @var list<string> Style handles enqueued, in order. */
+	private array $styles = array();
+
+	/** @var list<string> Script handles enqueued, in order. */
+	private array $scripts = array();
+
+	/** @var array<string, mixed> The `ffc_settings` option. */
+	private array $settings = array();
+
+	/** @var list<object> The user's reregistration submissions (the tab gate). */
+	private array $user_submissions = array();
+
+	/** @var list<object> The user's audiences. */
+	private array $user_audiences = array();
+
+	/** @var array<int, object> Audiences by id. */
+	private array $audiences = array();
+
+	/** @var list<object> Active campaigns the user's audiences reach. */
+	private array $active_campaigns = array();
+
+	/** @var list<object> Expired campaigns with an approved submission of the user. */
+	private array $expired_campaigns = array();
+
+	/** @var array<int, object> The user's submission by campaign id. */
+	private array $submissions_by_campaign = array();
+
+	/** @var list<object> Recruitment candidates linked to the user. */
+	private array $candidates = array();
+
+	/** @var list<object> Classifications of those candidates. */
+	private array $classifications = array();
+
+	/** @var array<string, array<int, object>> Recruitment rows read by id, by table. */
+	private array $recruitment_rows = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$post` global an earlier test left, restored afterwards. */
+	private $post_backup;
+
+	/** @var bool Whether `$post` was set before this test. */
+	private bool $had_post = false;
+
+	/** @var array<string, mixed> The `$_GET` an earlier test left, restored afterwards. */
+	private array $get_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The campaign window is read on the site's clock (#2242).
+		Functions\when( 'current_time' )->alias(
+			static function ( $type ) {
+				return 'Y-m-d' === $type ? gmdate( 'Y-m-d' ) : ( 'mysql' === $type ? gmdate( 'Y-m-d H:i:s' ) : time() );
+			}
+		);
+
+
+		$this->get_backup  = $_GET ?? array();
+		$_GET              = array();
+		$this->had_post    = array_key_exists( 'post', $GLOBALS );
+		$this->post_backup = $GLOBALS['post'] ?? null;
+
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
@@ -29,7 +107,10 @@ class DashboardShortcodeTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( '_x' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_attr_e' )->alias( function ( $s ) { echo $s; } );
@@ -39,37 +120,237 @@ class DashboardShortcodeTest extends TestCase {
 		Functions\when( 'add_shortcode' )->justReturn( true );
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn ( $k ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $k ) ) );
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'absint' )->alias( static fn ( $v ) => abs( (int) $v ) );
+		Functions\when( 'number_format_i18n' )->alias( static fn ( $n, $decimals = 0 ) => number_format( (float) $n, (int) $decimals ) );
+		Functions\when( 'is_email' )->alias( static fn ( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) );
+		Functions\when( 'wp_parse_args' )->alias( static fn ( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// The plugin settings come from $this->settings; every other option
+		// answers its default (no verification page, no dashboard page, no
+		// custom redirect message). Dark mode is on, so its enqueue shows.
+		$this->settings = array( 'dark_mode' => 'on' );
+		Functions\when( 'get_option' )->alias(
+			fn ( $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default
+		);
 		Functions\when( 'wp_login_url' )->justReturn( 'https://example.com/login' );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/dashboard' );
+		Functions\when( 'home_url' )->alias( static fn ( $path = '' ) => 'https://example.com' . $path );
+		Functions\when( 'admin_url' )->alias( static fn ( $path = '' ) => 'https://example.com/wp-admin/' . $path );
+		Functions\when( 'rest_url' )->alias( static fn ( $path = '' ) => 'https://example.com/wp-json/' . $path );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		Functions\when( 'wp_logout_url' )->justReturn( '' );
+		Functions\when( 'get_bloginfo' )->justReturn( '' );
+		Functions\when( 'wp_timezone_string' )->justReturn( 'UTC' );
+		Functions\when( 'wp_lostpassword_url' )->justReturn( 'https://example.com/wp-login.php?action=lostpassword' );
 		// The approved banner's window is counted on the site clock, and the
 		// real ReregistrationFrontend reads it whenever banners load (#1887).
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn ( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )
+				->setTimezone( $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' ) )
+				->format( $format )
+		);
+		// Not logged in, no capability and nobody to look up, unless a test
+		// says otherwise.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'get_user_by' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
-		// Mock $wpdb for ReregistrationSubmissionRepository
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'Q' )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$this->styles  = array();
+		$this->scripts = array();
+		Functions\when( 'wp_enqueue_style' )->alias(
+			function ( $handle ) {
+				$this->styles[] = $handle;
+			}
+		);
+		Functions\when( 'wp_enqueue_script' )->alias(
+			function ( $handle ) {
+				$this->scripts[] = $handle;
+			}
+		);
+		Functions\when( 'wp_localize_script' )->justReturn( true );
 
-		// Namespaced stubs
-		Functions\when( 'FreeFormCertificate\Reregistration\wp_cache_get' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Reregistration\wp_cache_set' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Audience\wp_cache_get' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Audience\wp_cache_set' )->justReturn( true );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
+		$this->prepared                = array();
+		$this->user_submissions        = array();
+		$this->user_audiences          = array();
+		$this->audiences               = array();
+		$this->active_campaigns        = array();
+		$this->expired_campaigns       = array();
+		$this->submissions_by_campaign = array();
+		$this->candidates              = array();
+		$this->classifications         = array();
+		$this->recruitment_rows        = array();
 
-		$_GET = array();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdbDouble();
 	}
 
 	protected function tearDown(): void {
-		$_GET = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		if ( $this->had_post ) {
+			$GLOBALS['post'] = $this->post_backup;
+		} else {
+			unset( $GLOBALS['post'] );
+		}
+		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double answering the reads the dashboard runs.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdbDouble() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$text  = (string) $sql;
+				$bound = $this->boundTo( $text );
+				if ( false !== strpos( $text, 'SELECT s.*, r.title AS reregistration_title' ) ) {
+					return $this->user_submissions;
+				}
+				if ( false !== strpos( $text, 'INNER JOIN %i m ON a.id = m.audience_id' ) ) {
+					return $this->user_audiences;
+				}
+				if ( false !== strpos( $text, 'JOIN %i ra ON r.id = ra.reregistration_id' ) ) {
+					return $this->active_campaigns;
+				}
+				if ( false !== strpos( $text, "r.status = 'expired'" ) ) {
+					return $this->expired_campaigns;
+				}
+				if ( 'wp_ffc_recruitment_candidate' === ( $bound[1] ?? null ) && false !== strpos( $text, 'WHERE user_id = %d' ) ) {
+					return $this->candidates;
+				}
+				if ( false !== strpos( $text, 'WHERE candidate_id = %d' ) ) {
+					return $this->classifications;
+				}
+				if ( false !== strpos( $text, 'WHERE classification_id IN' ) ) {
+					// No call yet: every classification is waiting.
+					return array();
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$text  = (string) $sql;
+				$bound = $this->boundTo( $text );
+				if ( false !== strpos( $text, 'WHERE reregistration_id = %d AND user_id = %d' ) ) {
+					return $this->submissions_by_campaign[ (int) $bound[2] ] ?? null;
+				}
+				if ( false !== strpos( $text, 'SELECT * FROM %i WHERE id = %d' ) ) {
+					if ( 'wp_ffc_audiences' === $bound[1] ) {
+						return $this->audiences[ (int) $bound[2] ] ?? null;
+					}
+					if ( isset( $this->recruitment_rows[ $bound[1] ] ) ) {
+						return $this->recruitment_rows[ $bound[1] ][ (int) $bound[2] ] ?? null;
+					}
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function boundTo( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array( $sql );
+	}
+
+	/**
+	 * Every prepare() call whose SQL contains $needle.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function preparedWith( string $needle ): array {
+		return array_values(
+			array_filter( $this->prepared, static fn ( array $call ): bool => false !== strpos( (string) $call[0], $needle ) )
+		);
+	}
+
+	/**
+	 * A user row as get_user_by() answers it.
+	 */
+	private function user( int $id, string $name, string $email ): \WP_User {
+		$user               = new \WP_User( $id );
+		$user->display_name = $name;
+		$user->user_email   = $email;
+		return $user;
+	}
+
+	/**
+	 * Store an active campaign the user's audience reaches, and the user's
+	 * submission in it (none when $status is null).
+	 */
+	private function activeCampaign( int $id, string $title, string $end_date, ?string $status, ?int $reviewed_at = null, ?string $notes = null ): void {
+		$this->active_campaigns[] = (object) array(
+			'id'           => (string) $id,
+			'title'        => $title,
+			'status'       => 'active',
+			'start_date'   => '2019-01-01 08:00:00',
+			'end_date'     => $end_date,
+			'auto_approve' => '0',
+		);
+		if ( null !== $status ) {
+			$this->submissions_by_campaign[ $id ]        = $this->submission( $id, $status, $reviewed_at );
+			$this->submissions_by_campaign[ $id ]->notes = $notes;
+		}
+	}
+
+	/**
+	 * A stored submission of user 1, with its magic token already issued so
+	 * no read has to write one.
+	 */
+	private function submission( int $campaign_id, string $status, ?int $reviewed_at ): object {
+		return (object) array(
+			'id'                => (string) ( 100 + $campaign_id ),
+			'reregistration_id' => (string) $campaign_id,
+			'user_id'           => '1',
+			'status'            => $status,
+			'reviewed_at'       => null === $reviewed_at ? null : (string) $reviewed_at,
+			'magic_token'       => 'tok' . $campaign_id,
+			// The code exists only on an approved record (#2242).
+			'auth_code'         => 'approved' === $status ? 'CODE' . $campaign_id : null,
+		);
+	}
+
+	/**
+	 * The banner's Record button for a campaign's submission (#2242): a
+	 * button the dashboard script answers from the signed-in REST route,
+	 * never a public link.
+	 */
+	private function recordButton( int $campaign_id ): string {
+		return 'data-submission-id="' . ( 100 + $campaign_id ) . '"';
 	}
 
 	// ==================================================================
@@ -105,18 +386,6 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_shows_login_when_not_logged_in(): void {
-		Functions\when( 'is_user_logged_in' )->justReturn( false );
-		$asset_helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$asset_helper->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$asset_helper->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$asset_helper->shouldReceive( 'enqueue_dark_mode' )->once();
-		$styles = array();
-		Functions\when( 'wp_enqueue_style' )->alias(
-			static function ( $handle ) use ( &$styles ) {
-				$styles[] = $handle;
-			}
-		);
-
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'logged in', $output );
@@ -125,7 +394,38 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertMatchesRegularExpression( '#<div class="ffc-shortcode">\s*<div class="ffc-notice ffc-notice-warning"#', $output );
 		$this->assertStringContainsString( 'data-ffc-notice="login-required"', $output );
 		$this->assertStringContainsString( '<div class="ffc-notice-actions"><a href=', $output );
-		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $styles );
+		$this->assertSame( array( 'ffc-common', 'ffc-dashboard' ), $this->styles );
+		$this->assertSame( array( 'ffc-dark-mode' ), $this->scripts, 'The dark-mode toggle is enqueued once, and nothing else.' );
+		$this->assertSame( array(), $this->prepared, 'A visitor costs no query.' );
+	}
+
+	/**
+	 * #2246 — an invitation link that no longer works says so on the login
+	 * notice, with the way to ask for a new password.
+	 */
+	public function test_render_says_an_invitation_link_expired(): void {
+		$_COOKIE[ \FreeFormCertificate\Core\PasswordInvite::COOKIE ] = 'member:stale-key';
+		Functions\when( 'add_filter' )->justReturn( true );
+		Functions\when( 'remove_filter' )->justReturn( true );
+		Functions\when( 'sanitize_user' )->returnArg();
+		Functions\when( 'check_password_reset_key' )->justReturn( new \WP_Error( 'expired_key', 'x' ) );
+
+		try {
+			$output = DashboardShortcode::render();
+		} finally {
+			unset( $_COOKIE[ \FreeFormCertificate\Core\PasswordInvite::COOKIE ] );
+		}
+
+		$this->assertStringContainsString( 'data-ffc-notice="invite-expired"', $output );
+		$this->assertStringContainsString( 'This invitation link has expired or was already used.', $output );
+		$this->assertStringContainsString( 'action=lostpassword', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="login-required"', $output, 'The login notice still follows.' );
+	}
+
+	public function test_render_shows_no_invite_notice_without_a_link(): void {
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'invite-expired', $output );
 	}
 
 	// ==================================================================
@@ -135,42 +435,15 @@ class DashboardShortcodeTest extends TestCase {
 	public function test_render_shows_dashboard_when_logged_in(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$user = Mockery::mock( 'WP_User' );
-		Functions\when( 'get_user_by' )->justReturn( $user );
-		Functions\when( 'user_can' )->justReturn( false );
-
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-		$ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
-		} )->byDefault();
-
-		Functions\when( 'wp_enqueue_style' )->justReturn();
-		Functions\when( 'wp_enqueue_script' )->justReturn();
-		Functions\when( 'wp_localize_script' )->justReturn();
-		Functions\when( 'admin_url' )->justReturn( '' );
-		Functions\when( 'rest_url' )->justReturn( '' );
-		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
-		Functions\when( 'wp_logout_url' )->justReturn( '' );
-		Functions\when( 'home_url' )->justReturn( '' );
-		Functions\when( 'get_bloginfo' )->justReturn( '' );
-		Functions\when( 'wp_timezone_string' )->justReturn( 'UTC' );
-
-		// DashboardViewMode returns false
-		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( $this->user( 1, 'Member', 'member@example.org' ) );
 
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'ffc-user-dashboard', $output );
 		$this->assertStringContainsString( 'ffc-tabpanel-profile', $output );
 		$this->assertStringContainsString( 'Profile', $output );
+		$this->assertStringNotContainsString( 'ffc-tab-certificates', $output, 'Without a capability only the profile tab is drawn.' );
+		$this->assertSame( 1, count( array_keys( $this->scripts, 'ffc-dark-mode', true ) ), 'The dark-mode toggle is enqueued once.' );
 	}
 
 	// ==================================================================
@@ -178,14 +451,13 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_nocache_headers_noop_when_no_post(): void {
-		global $post;
-		$post = null;
+		$GLOBALS['post'] = null;
 
 		// Past both guards the method calls nocache_headers(); it never running
 		// is the proof the guard returned.
 		Functions\expect( 'nocache_headers' )->never();
 
-		// is_a(null, 'WP_Post') returns false — no mock needed
+		// is_a(null, 'WP_Post') returns false.
 		DashboardShortcode::send_nocache_headers();
 	}
 
@@ -194,10 +466,9 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	public function test_send_nocache_headers_noop_when_no_shortcode(): void {
-		global $post;
-		// Use a real WP_Post mock so is_a() returns true
-		$post = Mockery::mock( 'WP_Post' );
+		$post               = new \WP_Post();
 		$post->post_content = 'Hello world';
+		$GLOBALS['post']    = $post;
 
 		Functions\when( 'has_shortcode' )->justReturn( false );
 
@@ -217,34 +488,7 @@ class DashboardShortcodeTest extends TestCase {
 
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$user = Mockery::mock( 'WP_User' );
-		Functions\when( 'get_user_by' )->justReturn( $user );
-		Functions\when( 'user_can' )->justReturn( false );
-
-		$utilsMock = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$utilsMock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$utilsMock->shouldReceive( 'asset_suffix' )->andReturn( '' );
-		$utilsMock->shouldReceive( 'enqueue_dark_mode' )->once();
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$ri_mock->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
-		} )->byDefault();
-
-		Functions\when( 'wp_enqueue_style' )->justReturn();
-		Functions\when( 'wp_enqueue_script' )->justReturn();
-		Functions\when( 'wp_localize_script' )->justReturn();
-		Functions\when( 'admin_url' )->justReturn( '' );
-		Functions\when( 'rest_url' )->justReturn( '' );
-		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
-		Functions\when( 'wp_logout_url' )->justReturn( '' );
-		Functions\when( 'home_url' )->justReturn( '' );
-		Functions\when( 'get_bloginfo' )->justReturn( '' );
-		Functions\when( 'wp_timezone_string' )->justReturn( 'UTC' );
-		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_user_by' )->justReturn( $this->user( 1, 'Member', 'member@example.org' ) );
 
 		$output = DashboardShortcode::render();
 
@@ -256,10 +500,19 @@ class DashboardShortcodeTest extends TestCase {
 	// send_nocache_headers() — shortcode present → cache-busting fires
 	// ==================================================================
 
+	/**
+	 * Runs in its own process: the method defines the process-wide
+	 * DONOTCACHEPAGE constant, whose presence is what this test asserts and
+	 * which would then hold for every later test, and it calls header(),
+	 * which no stub can replace.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_send_nocache_headers_sets_donotcachepage_when_shortcode_present(): void {
-		global $post;
-		$post = Mockery::mock( 'WP_Post' );
+		$post               = new \WP_Post();
 		$post->post_content = '[user_dashboard_personal]';
+		$GLOBALS['post']    = $post;
 
 		Functions\when( 'has_shortcode' )->justReturn( true );
 
@@ -295,55 +548,58 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Wire up every collaborator the full render path touches so all tab
-	 * branches are exercised. Alias-mocks the shortcode's direct collaborators.
+	 * Store what the full render path reads so every tab branch opens: a
+	 * user who holds every capability, one reregistration submission (the
+	 * tab gate), one audience (the campaigns' reach) and one recruitment
+	 * classification waiting for a call.
 	 */
-	private function wireFullRenderCollaborators( bool $view_as = false, ?array $reregistrations = null, array $expired_approved = array() ): void {
+	private function wireFullRenderCollaborators( bool $view_as = false ): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-
-		$user = Mockery::mock( 'WP_User' );
-		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_user_by' )->alias(
+			fn ( $field, $id ) => 55 === (int) $id
+				? $this->user( 55, 'Viewed User', 'viewed@example.org' )
+				: $this->user( (int) $id, 'Member', 'member@example.org' )
+		);
+		Functions\when( 'get_userdata' )->alias( fn ( $id ) => $this->user( (int) $id, 'Member', 'member@example.org' ) );
+		Functions\when( 'wp_get_current_user' )->justReturn( $this->user( 1, 'Site Admin', 'admin@example.org' ) );
 		// Every capability check returns true so all cap-gated tabs render.
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_verify_nonce' )->alias( static fn ( $nonce, $action ) => 'view-nonce' === $nonce && 'ffc_view_as_user_55' === $action );
 		// The tab bar prints the Log Out link (#1840).
-		Functions\when( 'home_url' )->justReturn( 'https://example.com' );
 		Functions\when( 'wp_logout_url' )->alias( static fn( $redirect = '' ) => 'https://example.com/wp-login.php?action=logout&redirect_to=' . rawurlencode( $redirect ) . '&_wpnonce=abc' );
 
-		$view_mode = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardViewMode' );
-		$view_mode->shouldReceive( 'get_view_as_user_id' )->andReturn( $view_as ? 55 : false )->byDefault();
-		$view_mode->shouldReceive( 'render_admin_viewing_banner' )->andReturn( '<div class="ffc-view-as-banner">viewing</div>' )->byDefault();
+		if ( $view_as ) {
+			$_GET['ffc_view_as_user'] = '55';
+			$_GET['ffc_view_nonce']   = 'view-nonce';
+		}
 
-		$asset_mgr = Mockery::mock( 'alias:\FreeFormCertificate\Shortcodes\DashboardAssetManager' );
-		$asset_mgr->shouldReceive( 'enqueue_assets' )->andReturn( null )->byDefault();
-		$asset_mgr->shouldReceive( 'user_has_audience_groups' )->andReturn( true )->byDefault();
+		$this->user_submissions = array( (object) array( 'id' => '1' ) );
+		$this->user_audiences   = array( (object) array( 'id' => '2', 'name' => 'Teachers', 'parent_id' => null ) );
+		$this->audiences[2]     = (object) array( 'id' => '2', 'name' => 'Teachers', 'parent_id' => null );
 
-		$reader = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' );
-		$reader->shouldReceive( 'get_all_by_user' )->andReturn( array( array( 'id' => 1 ) ) )->byDefault();
-
-		$recruitment = Mockery::mock( 'alias:\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' );
-		$recruitment->shouldReceive( 'render_for_user' )->andReturn( '<div class="ffc-recruitment-body">calls</div>' )->byDefault();
-
-		// Reregistration banners: empty unless the caller supplies a set.
-		$frontend = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
-		$frontend->shouldReceive( 'get_user_reregistrations' )
-			->andReturn( null === $reregistrations ? array() : $reregistrations )->byDefault();
-		// Expired campaigns whose approved banner is still in its window (#1887).
-		$frontend->shouldReceive( 'get_recently_expired_approved' )->andReturn( $expired_approved )->byDefault();
-
-		// DateFormatter is only reached by the actionable-banner branch, but
-		// alias-mock it unconditionally so it's stubbed whenever banners render.
-		$fmt = Mockery::mock( 'alias:\FreeFormCertificate\Core\DateFormatter' );
-		$fmt->shouldReceive( 'format_date' )->andReturn( '01/01/2030' )->byDefault();
-
-		$ri = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$ri->shouldReceive( 'get_get_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
-		} )->byDefault();
+		$this->candidates       = array( (object) array( 'id' => '7', 'user_id' => '1' ) );
+		$this->classifications  = array(
+			(object) array(
+				'id'           => '9',
+				'candidate_id' => '7',
+				'notice_id'    => '3',
+				'adjutancy_id' => '4',
+				'list_type'    => 'definitive',
+				'status'       => 'empty',
+				'rank'         => '2',
+				'score'        => '7.5',
+			),
+		);
+		$this->recruitment_rows = array(
+			'wp_ffc_recruitment_notice'    => array(
+				3 => (object) array( 'id' => '3', 'code' => 'ED-01', 'name' => 'Teacher Call', 'status' => 'definitive' ),
+			),
+			'wp_ffc_recruitment_adjutancy' => array(
+				4 => (object) array( 'id' => '4', 'name' => 'Mathematics' ),
+			),
+		);
 	}
 
 	public function test_render_all_tabs_visible_when_all_caps_granted(): void {
@@ -360,9 +616,55 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-tabpanel-certificates', $output );
 		$this->assertStringContainsString( 'ffc-tabpanel-recruitment', $output );
 		// Server-rendered recruitment body reused as tab content.
-		$this->assertStringContainsString( 'ffc-recruitment-body', $output );
+		$this->assertMatchesRegularExpression( '#id="ffc-tabpanel-recruitment"[^>]*>\s*<section class="ffc-shortcode ffc-recruitment-my-calls">#', $output );
+		$this->assertStringContainsString( '<span class="ffc-mycalls-notice-code">ED-01</span>', $output );
+		$this->assertStringContainsString( 'Mathematics', $output );
 		// Reregistration form panel present when reregistrations tab visible.
 		$this->assertStringContainsString( 'ffc-rereg-form-panel', $output );
+		$this->assertSame( 1, $this->preparedWith( 'SELECT s.*, r.title AS reregistration_title' )[0][3] ?? null, 'The tab gate reads the current user\'s submissions.' );
+	}
+
+	/**
+	 * #2246 — a `?tab=` the account does not have opens the default tab
+	 * instead of a dashboard with no active panel.
+	 */
+	public function test_render_falls_back_to_the_default_tab_for_an_unknown_tab(): void {
+		$this->wireFullRenderCollaborators( false );
+		$_GET['tab'] = 'no-such-tab';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="certificates"#', $output );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab-content is-active"\s+id="ffc-tabpanel-certificates"#', $output );
+	}
+
+	public function test_render_keeps_a_tab_the_account_has(): void {
+		$this->wireFullRenderCollaborators( false );
+		$_GET['tab'] = 'profile';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="profile"#', $output );
+	}
+
+	/**
+	 * #2246 — a module switched off takes its tab with it, whatever the
+	 * account holds, and a link to that tab falls back.
+	 */
+	public function test_render_hides_the_tabs_of_disabled_modules(): void {
+		$this->wireFullRenderCollaborators( false );
+		$this->settings['module_certificates_enabled']    = 0;
+		$this->settings['module_self_scheduling_enabled'] = 0;
+		$this->settings['module_recruitment_enabled']     = 0;
+		$_GET['tab'] = 'certificates';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'ffc-tab-certificates', $output );
+		$this->assertStringNotContainsString( 'ffc-tab-appointments', $output );
+		$this->assertStringNotContainsString( 'ffc-tab-recruitment', $output );
+		$this->assertStringContainsString( 'ffc-tab-audience', $output, 'A module left on keeps its tab.' );
+		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="audience"#', $output );
 	}
 
 	/**
@@ -411,7 +713,25 @@ class DashboardShortcodeTest extends TestCase {
 
 		$output = DashboardShortcode::render();
 
-		$this->assertStringContainsString( 'ffc-view-as-banner', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="admin-viewing"', $output );
+		$this->assertStringContainsString( 'Admin View Mode', $output );
+		$this->assertStringContainsString( '<strong>Viewed User (v***@example.org)</strong>', $output, 'The viewed user is named, the address masked (#1863).' );
+		$this->assertSame( 55, $this->preparedWith( 'SELECT s.*, r.title AS reregistration_title' )[0][3] ?? null, 'The dashboard reads the viewed user\'s data.' );
+	}
+
+	/**
+	 * #2246 — a view-as link the gate refuses shows a notice instead of
+	 * falling back to the administrator's own dashboard.
+	 */
+	public function test_render_replaces_the_dashboard_with_a_notice_for_a_refused_view_as_link(): void {
+		$this->wireFullRenderCollaborators( true );
+		$_GET['ffc_view_nonce'] = 'expired-nonce';
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'data-ffc-notice="view-as-invalid"', $output );
+		$this->assertStringNotContainsString( 'data-ffc-notice="admin-viewing"', $output );
+		$this->assertStringNotContainsString( 'ffc-tabpanel-', $output, 'No dashboard of anybody renders under the link.' );
 	}
 
 	// ==================================================================
@@ -419,54 +739,17 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_reregistration_banners_all_statuses(): void {
-		Functions\when( '_n' )->alias( function ( $single, $plural, $n ) {
-			return 1 === $n ? $single : $plural;
-		} );
-
-		$this->wireFullRenderCollaborators( false, array(
-			// Completed / approved (can_submit false).
-			array(
-				'id'                => 10,
-				'title'             => 'Approved Campaign',
-				'can_submit'        => false,
-				'submission_status' => 'approved',
-				'magic_link'        => 'https://example.com/record/10',
-				'end_date'          => '2030-01-01',
-			),
-			// Submitted / pending review (can_submit false, no magic link).
-			array(
-				'id'                => 11,
-				'title'             => 'Submitted Campaign',
-				'can_submit'        => false,
-				'submission_status' => 'submitted',
-				'magic_link'        => '',
-				'end_date'          => '2030-01-01',
-			),
-			// Actionable — in_progress (can_submit true), far deadline.
-			array(
-				'id'                => 12,
-				'title'             => 'In Progress Campaign',
-				'can_submit'        => true,
-				'submission_status' => 'in_progress',
-				'end_date'          => '2030-01-01',
-			),
-			// Actionable — rejected (can_submit true), urgent (deadline soon).
-			array(
-				'id'                => 13,
-				'title'             => 'Rejected Campaign',
-				'can_submit'        => true,
-				'submission_status' => 'rejected',
-				'end_date'          => gmdate( 'Y-m-d', time() + 86400 ),
-			),
-			// Actionable — not started (can_submit true), else branch.
-			array(
-				'id'                => 14,
-				'title'             => 'New Campaign',
-				'can_submit'        => true,
-				'submission_status' => 'not_started',
-				'end_date'          => gmdate( 'Y-m-d', time() + ( 5 * 86400 ) ),
-			),
-		) );
+		$this->wireFullRenderCollaborators( false );
+		// Completed / approved (not submittable).
+		$this->activeCampaign( 10, 'Approved Campaign', '2030-01-01', 'approved' );
+		// Submitted / pending review (not submittable).
+		$this->activeCampaign( 11, 'Submitted Campaign', '2030-01-01', 'submitted' );
+		// Actionable — in_progress, far deadline.
+		$this->activeCampaign( 12, 'In Progress Campaign', '2030-01-01', 'in_progress' );
+		// Actionable — rejected, urgent (deadline soon).
+		$this->activeCampaign( 13, 'Rejected Campaign', gmdate( 'Y-m-d', time() + 86400 ), 'rejected' );
+		// Actionable — no submission yet, the else branch.
+		$this->activeCampaign( 14, 'New Campaign', gmdate( 'Y-m-d', time() + ( 5 * 86400 ) ), null );
 
 		$output = DashboardShortcode::render();
 
@@ -484,6 +767,28 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-notice ffc-notice-warning" role="note" data-ffc-notice="rereg-banner" data-reregistration-id="12"', $output );
 		$this->assertStringContainsString( 'New Campaign', $output );
 		$this->assertStringContainsString( 'Complete Reregistration', $output );
+		$this->assertStringContainsString( $this->recordButton( 10 ), $output, 'The approved banner offers the record.' );
+		$this->assertStringNotContainsString( $this->recordButton( 11 ), $output, 'A submission awaiting review has no record yet (#2242).' );
+		$this->assertStringNotContainsString( '#token=', $output, 'No public link to a record is drawn.' );
+	}
+
+	public function test_a_reviewed_banner_shows_the_reason_and_a_submitted_one_offers_retract(): void {
+		$this->wireFullRenderCollaborators( false );
+		// #2242: the reviewer's reason reaches the member, escaped; a
+		// submission nobody reviewed yet can be taken back.
+		$this->activeCampaign( 13, 'Rejected Campaign', '2030-01-01', 'rejected', null, 'Attach the <b>payslip</b>.' );
+		$this->activeCampaign( 12, 'Returned Campaign', '2030-01-01', 'in_progress', null, 'Fix the RF.' );
+		$this->activeCampaign( 11, 'Submitted Campaign', '2030-01-01', 'submitted' );
+		Functions\when( 'esc_html' )->alias( static fn ( $text ) => htmlspecialchars( (string) $text, ENT_NOQUOTES ) );
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'Attach the &lt;b&gt;payslip&lt;/b&gt;.', $output );
+		$this->assertStringNotContainsString( '<b>payslip</b>', $output );
+		$this->assertStringContainsString( 'Fix the RF.', $output );
+		$this->assertSame( 2, substr_count( $output, "Reviewer's note:" ) );
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-rereg-retract[^"]*"[^>]*data-reregistration-id="11"/', $output );
+		$this->assertSame( 1, substr_count( $output, 'ffc-rereg-retract' ), 'Only the submission awaiting review can be retracted.' );
 	}
 
 	// ==================================================================
@@ -491,37 +796,19 @@ class DashboardShortcodeTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Two rows of a campaign that ended on 2020-01-01: one approved the day
-	 * after, one still awaiting review. The margins are years wide, so the
-	 * real clock the renderer reads cannot straddle the 30-day cut-off.
-	 *
-	 * @return list<array<string, mixed>>
+	 * Two submissions of a campaign that ended on 2020-01-01 and is still
+	 * stored active: one approved the day after, one still awaiting review.
+	 * The margins are years wide, so the real clock the renderer reads
+	 * cannot straddle the 30-day cut-off.
 	 */
-	private function endedCampaignRows(): array {
-		return array(
-			array(
-				'id'                => 20,
-				'title'             => 'Long Approved Campaign',
-				'can_submit'        => false,
-				'submission_status' => 'approved',
-				'magic_link'        => 'https://example.com/record/20',
-				'end_date'          => '2020-01-01 17:00:00',
-				'reviewed_at'       => gmmktime( 12, 0, 0, 1, 2, 2020 ),
-			),
-			array(
-				'id'                => 21,
-				'title'             => 'Still Pending Campaign',
-				'can_submit'        => false,
-				'submission_status' => 'submitted',
-				'magic_link'        => 'https://example.com/record/21',
-				'end_date'          => '2020-01-01 17:00:00',
-				'reviewed_at'       => null,
-			),
-		);
+	private function storeEndedCampaignRows(): void {
+		$this->activeCampaign( 20, 'Long Approved Campaign', '2020-01-01 17:00:00', 'approved', gmmktime( 12, 0, 0, 1, 2, 2020 ) );
+		$this->activeCampaign( 21, 'Still Pending Campaign', '2020-01-01 17:00:00', 'submitted' );
 	}
 
 	public function test_render_omits_an_approved_banner_past_its_window_and_keeps_the_submitted_one(): void {
-		$this->wireFullRenderCollaborators( false, $this->endedCampaignRows() );
+		$this->wireFullRenderCollaborators( false );
+		$this->storeEndedCampaignRows();
 
 		$output = DashboardShortcode::render();
 
@@ -532,8 +819,9 @@ class DashboardShortcodeTest extends TestCase {
 	}
 
 	public function test_render_keeps_an_expired_approved_banner_when_the_window_is_zero(): void {
-		$this->wireFullRenderCollaborators( false, $this->endedCampaignRows() );
-		Functions\when( 'get_option' )->justReturn( array( 'rereg_approved_banner_days' => 0 ) );
+		$this->wireFullRenderCollaborators( false );
+		$this->storeEndedCampaignRows();
+		$this->settings['rereg_approved_banner_days'] = 0;
 
 		$output = DashboardShortcode::render();
 
@@ -541,20 +829,8 @@ class DashboardShortcodeTest extends TestCase {
 	}
 
 	public function test_render_shows_an_approved_banner_inside_its_window_with_the_family_sized_button(): void {
-		$this->wireFullRenderCollaborators(
-			false,
-			array(
-				array(
-					'id'                => 30,
-					'title'             => 'Recent Approved Campaign',
-					'can_submit'        => false,
-					'submission_status' => 'approved',
-					'magic_link'        => 'https://example.com/record/30',
-					'end_date'          => '2099-12-31 17:00:00',
-					'reviewed_at'       => gmmktime( 12, 0, 0, 1, 2, 2020 ),
-				),
-			)
-		);
+		$this->wireFullRenderCollaborators( false );
+		$this->activeCampaign( 30, 'Recent Approved Campaign', '2099-12-31 17:00:00', 'approved', gmmktime( 12, 0, 0, 1, 2, 2020 ) );
 
 		$output = DashboardShortcode::render();
 
@@ -567,39 +843,38 @@ class DashboardShortcodeTest extends TestCase {
 		libxml_clear_errors();
 		$xpath = new \DOMXPath( $doc );
 
-		$links = $xpath->query( '//*[@data-ffc-notice="rereg-banner"]//a[@href="https://example.com/record/30"]' );
-		$this->assertSame( 1, $links->length, 'The banner carries its Record link.' );
+		$links = $xpath->query( '//*[@data-ffc-notice="rereg-banner"]//button[@data-submission-id="130"]' );
+		$this->assertSame( 1, $links->length, 'The banner carries its Record button.' );
 		$classes = preg_split( '/\s+/', trim( $links->item( 0 )->getAttribute( 'class' ) ) );
 		$this->assertContains( 'ffc-rereg-banner-record', $classes );
+		$this->assertContains( 'ffc-rereg-download-record', $classes, 'The dashboard script downloads it.' );
 		$this->assertNotContains( 'ffc-btn-pdf', $classes, 'The compact table-row class stays off the banner.' );
 	}
 
 	/**
 	 * An expired campaign reaches the dashboard only as the approved banner
-	 * with its Record link, never as an actionable one (#1887).
+	 * with its Record button, never as an actionable one (#1887).
 	 */
 	public function test_render_shows_an_expired_campaign_from_the_approved_source_as_the_approved_banner(): void {
-		$this->wireFullRenderCollaborators(
-			false,
-			array(),
-			array(
-				array(
-					'id'                => 40,
-					'title'             => 'Ended Last Week Campaign',
-					'can_submit'        => false,
-					'submission_status' => 'approved',
-					'magic_link'        => 'https://example.com/record/40',
-					'end_date'          => gmdate( 'Y-m-d 17:00:00', time() - ( 7 * 86400 ) ),
-					'reviewed_at'       => time() - ( 10 * 86400 ),
-				),
-			)
+		$this->wireFullRenderCollaborators( false );
+		$this->expired_campaigns           = array(
+			(object) array(
+				'id'           => '40',
+				'title'        => 'Ended Last Week Campaign',
+				'status'       => 'expired',
+				'start_date'   => '2019-01-01 08:00:00',
+				'end_date'     => gmdate( 'Y-m-d 17:00:00', time() - ( 7 * 86400 ) ),
+				'auto_approve' => '0',
+			),
 		);
+		$this->submissions_by_campaign[40] = $this->submission( 40, 'approved', time() - ( 10 * 86400 ) );
 
 		$output = DashboardShortcode::render();
 
 		$this->assertStringContainsString( 'Ended Last Week Campaign', $output );
 		$this->assertStringContainsString( 'has been approved', $output );
-		$this->assertStringContainsString( 'https://example.com/record/40', $output );
+		$this->assertStringContainsString( $this->recordButton( 40 ), $output );
 		$this->assertStringNotContainsString( 'data-reregistration-id="40"', $output, 'No form to open: it is not the actionable banner.' );
+		$this->assertSame( 1, $this->preparedWith( "r.status = 'expired'" )[0][3] ?? null, 'The expired source is read for the current user.' );
 	}
 }

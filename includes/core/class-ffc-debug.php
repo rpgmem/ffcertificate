@@ -80,6 +80,8 @@ class Debug {
 		'user_ip',
 		'client_ip',
 		'remote_addr',
+		'triggered_by_ip',
+		'bypassed_ip',
 	);
 
 	/**

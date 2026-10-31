@@ -26,6 +26,10 @@ class FormCacheTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		if ( ! defined( 'WP_DEBUG' ) ) {
 			define( 'WP_DEBUG', false );
@@ -41,25 +45,11 @@ class FormCacheTest extends TestCase {
 	// get_expiration()
 	// ==================================================================
 
-	public function test_get_expiration_returns_default_when_no_setting(): void {
-		Functions\when( 'get_option' )->justReturn( array() );
-
-		$result = FormCache::get_expiration();
-		$this->assertSame( 3600, $result );
-	}
-
-	public function test_get_expiration_returns_custom_value_from_settings(): void {
+	public function test_get_expiration_answers_the_old_default_whatever_is_stored(): void {
+		// The setting left with the cache (#2241); a stored value is ignored.
 		Functions\when( 'get_option' )->justReturn( array( 'cache_expiration' => 7200 ) );
 
-		$result = FormCache::get_expiration();
-		$this->assertSame( 7200, $result );
-	}
-
-	public function test_get_expiration_casts_string_value_to_int(): void {
-		Functions\when( 'get_option' )->justReturn( array( 'cache_expiration' => '1800' ) );
-
-		$result = FormCache::get_expiration();
-		$this->assertSame( 1800, $result );
+		$this->assertSame( 3600, FormCache::get_expiration() );
 	}
 
 	// ==================================================================
@@ -483,12 +473,34 @@ class FormCacheTest extends TestCase {
 			->with( 'manage_options' )
 			->andReturn( true );
 
-		Functions\expect( 'wp_cache_flush' )
-			->once()
-			->andReturn( true );
+		// Only the plugin's group: flushing the whole object cache empties
+		// every other plugin's entries, and every site's on a multisite (#2241).
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		Functions\expect( 'wp_cache_flush_group' )->once()->with( 'ffc_forms' )->andReturn( true );
+		Functions\expect( 'wp_cache_flush' )->never();
 
 		$result = FormCache::clear_all_cache();
 		$this->assertTrue( $result );
+	}
+
+	public function test_clear_all_cache_deletes_each_forms_keys_without_group_flushing(): void {
+		Functions\expect( 'current_user_can' )->once()->with( 'manage_options' )->andReturn( true );
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
+		Functions\when( 'get_posts' )->justReturn( array( 7 ) );
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key, $group ) use ( &$deleted ): bool {
+				$deleted[] = $group . ':' . $key;
+				return true;
+			}
+		);
+		Functions\expect( 'wp_cache_flush' )->never();
+
+		$this->assertTrue( FormCache::clear_all_cache() );
+		$this->assertSame(
+			array( 'ffc_forms:config_7', 'ffc_forms:fields_7', 'ffc_forms:bg_7', 'ffc_forms:complete_7', 'ffc_forms:post_7' ),
+			$deleted
+		);
 	}
 
 	public function test_clear_all_cache_returns_false_without_capability(): void {
@@ -713,20 +725,38 @@ class FormCacheTest extends TestCase {
 	// register_hooks()
 	// ==================================================================
 
-	public function test_register_hooks_adds_actions(): void {
-		Functions\expect( 'add_action' )
-			->once()
-			->with( 'save_post_ffc_form', Mockery::type( 'array' ), 10, 3 );
-
-		Functions\expect( 'add_action' )
-			->once()
-			->with( 'before_delete_post', Mockery::type( 'array' ), 10, 2 );
-
-		Functions\expect( 'add_action' )
-			->once()
-			->with( 'ffcertificate_warm_cache_hook', array( FormCache::class, 'run_scheduled_warming' ) );
+	public function test_register_hooks_only_wires_the_page_cache_purge_on_save(): void {
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( string $hook ) use ( &$hooks ): bool {
+				$hooks[] = $hook;
+				return true;
+			}
+		);
 
 		FormCache::register_hooks();
+
+		// No invalidation on delete and no warming listener: the cache they
+		// served is retired (#2241).
+		$this->assertSame( array( 'save_post_ffc_form' ), $hooks );
+	}
+
+	// ==================================================================
+	// retire_warming_schedule() (#2241)
+	// ==================================================================
+
+	public function test_retire_clears_the_event_an_install_still_carries(): void {
+		Functions\when( 'wp_next_scheduled' )->justReturn( 1709308800 );
+		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( 'ffcertificate_warm_cache_hook' );
+
+		FormCache::retire_warming_schedule();
+	}
+
+	public function test_retire_does_nothing_once_the_event_is_gone(): void {
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\expect( 'wp_clear_scheduled_hook' )->never();
+
+		FormCache::retire_warming_schedule();
 	}
 
 	// ==================================================================
@@ -769,74 +799,46 @@ class FormCacheTest extends TestCase {
 		FormCache::on_form_saved( 101, $post, false );
 	}
 
-	public function test_on_form_saved_clears_and_warms_published_form(): void {
-		$post = Mockery::mock( \WP_Post::class );
-		$post->post_status = 'publish';
+	/**
+	 * Saving a form, published or not, purges the pages that embed it and
+	 * no longer touches the retired object cache (#2241).
+	 *
+	 * @dataProvider statuses
+	 *
+	 * @param string $status Post status.
+	 */
+	public function test_on_form_saved_purges_pages_and_leaves_the_object_cache( string $status ): void {
+		$post              = Mockery::mock( \WP_Post::class );
+		$post->post_status = $status;
 		$post->post_type   = 'ffc_form';
 
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\expect( 'wp_cache_delete' )->never();
+		Functions\expect( 'wp_cache_get' )->never();
+		Functions\expect( 'wp_cache_set' )->never();
 
-		Functions\expect( 'wp_is_post_revision' )
-			->once()
-			->with( 200 )
-			->andReturn( false );
-
-		Functions\expect( 'wp_is_post_autosave' )
-			->once()
-			->with( 200 )
-			->andReturn( false );
-
-		// clear_form_cache calls wp_cache_delete 5 times.
-		$deleted_keys = array();
-		Functions\when( 'wp_cache_delete' )->alias( function ( $key, $group ) use ( &$deleted_keys ) {
-			$deleted_keys[] = $key;
-			return true;
-		});
-
-		// warm_cache -> get_form_complete -> wp_cache_get for 'complete_200'.
-		Functions\when( 'wp_cache_get' )->justReturn(
-			array( 'config' => array(), 'fields' => array(), 'background' => '' )
+		$searches = array();
+		Functions\when( 'get_posts' )->alias(
+			static function ( array $args ) use ( &$searches ): array {
+				$searches[] = $args['s'];
+				return array();
+			}
 		);
-
-		// purge_page_cache calls get_posts to find pages embedding this form.
-		Functions\when( 'get_posts' )->justReturn( array() );
 
 		FormCache::on_form_saved( 200, $post, true );
 
-		// Verify cache was cleared for all 5 keys.
-		$this->assertCount( 5, $deleted_keys );
-		$this->assertContains( 'config_200', $deleted_keys );
-		$this->assertContains( 'fields_200', $deleted_keys );
-		$this->assertContains( 'bg_200', $deleted_keys );
-		$this->assertContains( 'complete_200', $deleted_keys );
-		$this->assertContains( 'post_200', $deleted_keys );
+		$this->assertSame( array( '[ffc_form id="200"' ), $searches );
 	}
 
-	public function test_on_form_saved_clears_but_does_not_warm_draft_form(): void {
-		$post = Mockery::mock( \WP_Post::class );
-		$post->post_status = 'draft';
-		$post->post_type   = 'ffc_form';
-
-		Functions\expect( 'wp_is_post_revision' )
-			->once()
-			->with( 201 )
-			->andReturn( false );
-
-		Functions\expect( 'wp_is_post_autosave' )
-			->once()
-			->with( 201 )
-			->andReturn( false );
-
-		// Cache is cleared.
-		Functions\when( 'wp_cache_delete' )->justReturn( true );
-
-		// warm_cache should NOT be called for draft, so wp_cache_get should not be called.
-		Functions\expect( 'wp_cache_get' )->never();
-
-		// purge_page_cache calls get_posts to find pages embedding this form.
-		Functions\when( 'get_posts' )->justReturn( array() );
-
-		FormCache::on_form_saved( 201, $post, false );
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function statuses(): array {
+		return array(
+			'published' => array( 'publish' ),
+			'draft'     => array( 'draft' ),
+		);
 	}
 
 	// ==================================================================
@@ -933,35 +935,28 @@ class FormCacheTest extends TestCase {
 	 * @param array<string, mixed> $settings Stored settings.
 	 * @param bool                 $enabled  Expected.
 	 */
-	public function test_auto_warm_needs_the_cache_and_the_toggle( array $settings, bool $enabled ): void {
+	public function test_auto_warm_is_off_whatever_is_stored( array $settings, bool $enabled ): void {
 		$this->settings( $settings );
 
 		$this->assertSame( $enabled, FormCache::auto_warm_enabled() );
 	}
 
 	/**
+	 * The warming retired with the cache (#2241): a toggle an install still
+	 * stores schedules nothing.
+	 *
 	 * @return array<string, array{0: array<string, mixed>, 1: bool}>
 	 */
 	public function toggles(): array {
 		return array(
-			'defaults (toggle off)'  => array( array(), false ),
-			'toggle on, cache on'    => array( array( 'cache_auto_warm' => 1 ), true ),
-			'toggle on, cache off'   => array( array( 'cache_auto_warm' => 1, 'cache_enabled' => 0 ), false ),
-			'toggle off explicitly'  => array( array( 'cache_auto_warm' => 0 ), false ),
+			'defaults (toggle off)' => array( array(), false ),
+			'toggle on, cache on'   => array( array( 'cache_auto_warm' => 1 ), false ),
+			'toggle on, cache off'  => array( array( 'cache_auto_warm' => 1, 'cache_enabled' => 0 ), false ),
 		);
 	}
 
-	public function test_sync_schedules_when_the_toggle_is_on(): void {
+	public function test_sync_clears_a_left_over_event_even_with_the_old_toggle_on(): void {
 		$this->settings( array( 'cache_auto_warm' => 1 ) );
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
-		Functions\expect( 'wp_schedule_event' )->once()->with( Mockery::type( 'int' ), 'daily', 'ffcertificate_warm_cache_hook' )->andReturn( true );
-		Functions\expect( 'wp_clear_scheduled_hook' )->never();
-
-		FormCache::sync_warming_schedule();
-	}
-
-	public function test_sync_clears_a_left_over_event_when_the_toggle_is_off(): void {
-		$this->settings( array( 'cache_auto_warm' => 0 ) );
 		Functions\when( 'wp_next_scheduled' )->justReturn( 1709308800 );
 		Functions\expect( 'wp_schedule_event' )->never();
 		Functions\expect( 'wp_clear_scheduled_hook' )->once()->with( 'ffcertificate_warm_cache_hook' );
@@ -969,7 +964,7 @@ class FormCacheTest extends TestCase {
 		FormCache::sync_warming_schedule();
 	}
 
-	public function test_sync_does_nothing_when_off_and_nothing_is_scheduled(): void {
+	public function test_sync_does_nothing_when_nothing_is_scheduled(): void {
 		$this->settings( array() );
 		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\expect( 'wp_schedule_event' )->never();
@@ -978,8 +973,8 @@ class FormCacheTest extends TestCase {
 		FormCache::sync_warming_schedule();
 	}
 
-	public function test_a_stale_event_warms_nothing_once_the_toggle_is_off(): void {
-		$this->settings( array( 'cache_auto_warm' => 0 ) );
+	public function test_a_stale_event_warms_nothing(): void {
+		$this->settings( array( 'cache_auto_warm' => 1 ) );
 		Functions\expect( 'get_posts' )->never();
 
 		FormCache::run_scheduled_warming();
@@ -1038,13 +1033,24 @@ class FormCacheTest extends TestCase {
 		$this->assertSame( array( 7, '' ), $captured );
 	}
 
+	/**
+	 * Declare the WP Super Cache double once, for every test that reaches it.
+	 *
+	 * A function cannot be undeclared, so whichever test runs first decides the
+	 * body for the rest of the process: one shared body that both records the
+	 * call and throws on request keeps the two tests independent of their order.
+	 */
+	private static function declare_wp_super_cache(): void {
+		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
+			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a third-party function the class under test probes for.
+			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } $GLOBALS["__wpsc_called_with"] = $id; }' );
+		}
+	}
+
 	public function test_purge_external_caches_calls_wp_super_cache_when_available(): void {
 		$GLOBALS['__wpsc_called_with'] = null;
 		$GLOBALS['__wpsc_should_throw'] = false;
-		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- defining a missing global stub for the test.
-			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } $GLOBALS["__wpsc_called_with"] = $id; }' );
-		}
+		self::declare_wp_super_cache();
 
 		Functions\when( 'do_action' )->justReturn( true );
 
@@ -1071,10 +1077,7 @@ class FormCacheTest extends TestCase {
 
 	public function test_purge_external_caches_swallows_third_party_exceptions(): void {
 		$GLOBALS['__wpsc_should_throw'] = true;
-		if ( ! function_exists( 'wpsc_delete_post_cache' ) ) {
-			// phpcs:ignore Squiz.PHP.Eval.Discouraged -- stub already defined by sibling tests; harmless to redeclare guard.
-			eval( 'function wpsc_delete_post_cache( $id ) { if ( ! empty( $GLOBALS["__wpsc_should_throw"] ) ) { throw new \RuntimeException( "boom" ); } }' );
-		}
+		self::declare_wp_super_cache();
 		$hook_fired = false;
 		Functions\when( 'do_action' )->alias( function () use ( &$hook_fired ) {
 			$hook_fired = true;

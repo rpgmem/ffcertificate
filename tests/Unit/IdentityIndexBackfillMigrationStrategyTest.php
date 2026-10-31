@@ -23,20 +23,18 @@ use FreeFormCertificate\Migrations\Strategies\IdentityIndexBackfillMigrationStra
  * -- so the gate is asserted on both sides and re-asserted on `execute()`,
  * which is the path that writes.
  *
- * THE REPOSITORY IS AN `overload:` DOUBLE, NOT AN `alias:`
+ * THE REPOSITORY IS THE REAL ONE, OVER A `$wpdb` DOUBLE
  *
- * The strategy does `new UserProfileRepository()` and calls INSTANCE methods.
- * `alias:` intercepts statics only, so it reports the method as not existing
- * -- the same distinction #1321 recorded from the other side. What this file
+ * The strategy does `new UserProfileRepository()` and calls its instance
+ * methods, so the real class runs: `findByUserId()` reads the profile row the
+ * double answers from `$profiles`, and `upsertForUserId()` reaches the
+ * double's `update()` (a row exists) or `insert()` (none does). What this file
  * measures is WHICH columns the strategy decides to write, so the double
- * records them and the repository's own behaviour stays its own tests'
- * subject. The writes are captured and asserted on rather than pinned with
- * `->once()`, because an `overload:` expectation is only verified once an
- * instance is built and would pass on a call that never happened.
+ * records each write as the user and the column slice it carried, and the
+ * tests assert on that record. A query the double does not recognise fails
+ * the test rather than answering something plausible.
  *
  * @covers \FreeFormCertificate\Migrations\Strategies\IdentityIndexBackfillMigrationStrategy
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 
@@ -45,7 +43,7 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 	/** @var array<int, array<string, string|null>> Profile rows, keyed by user id. */
 	private array $profiles = array();
 
-	/** @var list<array{user_id: int, index: array<string, string>}> Index writes the strategy asked for. */
+	/** @var list<array{op: string, user_id: int, index: array<string, mixed>}> Index writes that reached `$wpdb`. */
 	private array $writes = array();
 
 	/** @var array<int, array<string, list<string>>> Hashes each user carries, per column. */
@@ -63,6 +61,12 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 	 * @var \Mockery\MockInterface
 	 */
 	private $conflicts;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -82,8 +86,10 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->conflicts = Mockery::mock( 'FreeFormCertificate\\Maintenance\\IdentityConflictQuery' );
 		$this->conflicts->shouldReceive( 'multiple_identities_count' )->andReturn( null )->byDefault();
 
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
 
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
@@ -94,7 +100,7 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 				}
 				return (string) $sql;
 			}
-		)->byDefault();
+		);
 
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
@@ -112,32 +118,39 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 					return null;
 				}
 
-				if ( str_contains( $sql, 'COUNT(*)' ) ) {
-					return (string) count( $this->users_after( $this->cursor_in( $sql ) ) );
+				// UserProfileRepository::existsForUserId().
+				if ( 1 === preg_match( '/^SELECT id FROM wp_ffc_user_profiles WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					return isset( $this->profiles[ (int) $m[1] ] ) ? (string) $m[1] : null;
 				}
 
-				return 0;
+				$this->fail( 'Unexpected get_var(): ' . $sql );
 			}
-		)->byDefault();
+		);
 
-		// The status counter: one statement answering both numbers. `cursor_in()`
-		// reads the FIRST `user_id > N` in the text, which is the conditional
-		// count's own bound -- the union below it is always built at 0 now, so
-		// one scan serves both figures.
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
-			function ( $sql ) {
+			function ( $sql, $output = null ) {
 				$sql = (string) $sql;
 
-				if ( ! str_contains( $sql, 'AS beyond' ) ) {
-					return null;
+				// UserProfileRepository::findByUserId().
+				if ( 1 === preg_match( '/^SELECT \* FROM wp_ffc_user_profiles WHERE user_id = (\d+)$/', $sql, $m ) ) {
+					$this->assertSame( ARRAY_A, $output );
+					return $this->profiles[ (int) $m[1] ] ?? null;
 				}
 
-				return array(
-					'total'  => (string) count( $this->users_after( 0 ) ),
-					'beyond' => (string) count( $this->users_after( $this->cursor_in( $sql ) ) ),
-				);
+				// The status counter: one statement answering both numbers.
+				// `cursor_in()` reads the FIRST `user_id > N` in the text, which
+				// is the conditional count's own bound -- the union below it is
+				// always built at 0 now, so one scan serves both figures.
+				if ( str_contains( $sql, 'AS beyond' ) ) {
+					return array(
+						'total'  => (string) count( $this->users_after( 0 ) ),
+						'beyond' => (string) count( $this->users_after( $this->cursor_in( $sql ) ) ),
+					);
+				}
+
+				$this->fail( 'Unexpected get_row(): ' . $sql );
 			}
-		)->byDefault();
+		);
 
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $sql ) {
@@ -148,17 +161,53 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 				}
 
 				// The per-user hash probe: `SELECT DISTINCT h FROM ( … ) u LIMIT 2`.
-				if ( 1 === preg_match( '/user_id = (\d+)/', $sql, $m ) ) {
+				if ( str_contains( $sql, 'SELECT DISTINCT h FROM' ) && 1 === preg_match( '/user_id = (\d+)/', $sql, $m ) ) {
 					$column = str_contains( $sql, 'rf_hash' ) ? 'rf_hash' : 'cpf_hash';
 					$all    = $this->source[ (int) $m[1] ][ $column ] ?? array();
 
-					return array_slice( $all, 0, 2 );
+					return array_slice( (array) $all, 0, 2 );
 				}
 
-				return array();
+				$this->fail( 'Unexpected get_col(): ' . $sql );
 			}
-		)->byDefault();
+		);
 
+		// UserProfileRepository::upsertForUserId(): an UPDATE when the row
+		// exists, an INSERT carrying the user id when it does not.
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->assertSame( 'wp_ffc_user_profiles', $table );
+				$this->writes[] = array(
+					'op'      => 'update',
+					'user_id' => (int) $where['user_id'],
+					'index'   => $data,
+				);
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				$this->assertSame( 'wp_ffc_user_profiles', $table );
+				$user_id = (int) $data['user_id'];
+				unset( $data['user_id'] );
+				$this->writes[] = array(
+					'op'      => 'insert',
+					'user_id' => $user_id,
+					'index'   => $data,
+				);
+				return 1;
+			}
+		);
+
+		$GLOBALS['wpdb'] = $wpdb;
+
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( '__' )->returnArg();
 		Functions\when( '_x' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
@@ -173,27 +222,14 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 				return true;
 			}
 		);
-
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
-		$repository = Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' );
-		$repository->shouldReceive( 'findByUserId' )->andReturnUsing(
-			fn( $user_id ) => $this->profiles[ (int) $user_id ] ?? null
-		)->byDefault();
-		$repository->shouldReceive( 'upsertForUserId' )->andReturnUsing(
-			function ( $user_id, $index ) {
-				$this->writes[] = array(
-					'user_id' => (int) $user_id,
-					'index'   => $index,
-				);
-				return true;
-			}
-		)->byDefault();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -313,6 +349,14 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 	 * Level 9 is what forced the value to be checked rather than cast; failing
 	 * CLOSED is the decision that check then had to make, and this is what
 	 * stops a later edit from quietly turning it into `return 0`.
+	 *
+	 * The one test in its own process: the real canonicalisation strategy
+	 * always reports an integer, so only a replaced class can answer with a
+	 * shape that is not numeric, and an `overload:` double must not outlive
+	 * the test that declares it.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_an_unreadable_pending_count_refuses_rather_than_assuming_zero(): void {
 		Mockery::mock( 'overload:FreeFormCertificate\Migrations\Strategies\IdentityNormalizationMigrationStrategy' )
@@ -336,6 +380,7 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 
 		$this->assertTrue( $result['success'] );
 		$this->assertCount( 1, $this->writes );
+		$this->assertSame( 'insert', $this->writes[0]['op'], 'A user with no profile row should get one.' );
 		$this->assertSame( 7, $this->writes[0]['user_id'] );
 		$this->assertSame( array( 'cpf_hash' => 'the-cpf-hash' ), $this->writes[0]['index'] );
 	}
@@ -397,6 +442,7 @@ class IdentityIndexBackfillMigrationStrategyTest extends TestCase {
 		$this->strategy()->execute( '', array(), 0 );
 
 		$this->assertCount( 1, $this->writes );
+		$this->assertSame( 'update', $this->writes[0]['op'], 'An existing profile row should be updated in place.' );
 		$this->assertSame(
 			array( 'rf_hash' => 'rf-from-module' ),
 			$this->writes[0]['index'],

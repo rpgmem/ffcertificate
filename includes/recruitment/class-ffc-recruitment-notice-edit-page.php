@@ -107,9 +107,10 @@ final class RecruitmentNoticeEditPage {
 	 * @return void
 	 */
 	public static function render(): void {
-		if ( ! current_user_can( self::CAP ) ) {
+		if ( ! self::can_open() ) {
 			wp_die( esc_html__( 'Access denied.', 'ffcertificate' ) );
 		}
+		$can_manage = self::can_manage();
 
 		$notice_id = RequestInput::get_get_int( 'notice_id' );
 		$notice    = $notice_id > 0 ? RecruitmentNoticeReader::get_by_id( $notice_id ) : null;
@@ -130,10 +131,16 @@ final class RecruitmentNoticeEditPage {
 		) . '</h1>';
 		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
 
-		RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+		// The name, the public columns, the status and the adjutancies are
+		// the Manager's; the Operator sees the status and works the lists.
+		if ( $can_manage ) {
+			RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+		}
 		RecruitmentNoticeEditPageRenderer::render_shortcode_section( $notice );
-		RecruitmentNoticeEditPageRenderer::render_status_section( $notice );
-		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
+		RecruitmentNoticeEditPageRenderer::render_status_section( $notice, $can_manage );
+		if ( $can_manage ) {
+			RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
+		}
 		// The CSV import section is the strict `ffc_import_recruitment` tier
 		// (GAP H) — hidden from a manager who holds the page-level
 		// `ffc_manage_recruitment` but not the carved-out import cap. The REST
@@ -142,6 +149,50 @@ final class RecruitmentNoticeEditPage {
 			RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
 		}
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $notice );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $notice );
+	}
+
+	/**
+	 * Whether the current user may open the notice screen (#2245).
+	 *
+	 * View, call or manage: the Operator holds view and call, and calling
+	 * happens on this screen.
+	 *
+	 * @return bool
+	 */
+	public static function can_open(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment' )
+			|| current_user_can( 'ffc_call_recruitment' )
+			|| current_user_can( self::CAP );
+	}
+
+	/**
+	 * Whether the current user manages the notice: edits it, moves its
+	 * status, attaches adjutancies and undoes a decision.
+	 *
+	 * @return bool
+	 */
+	public static function can_manage(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( self::CAP );
+	}
+
+	/**
+	 * Whether the current user calls candidates and records outcomes.
+	 *
+	 * @return bool
+	 */
+	public static function can_call(): bool {
+		return self::can_manage() || current_user_can( 'ffc_call_recruitment' );
+	}
+
+	/**
+	 * Whether the current user sees who made and cancelled each call: a
+	 * WordPress administrator or the module's Administrator tier (#2245).
+	 *
+	 * @return bool
+	 */
+	public static function can_see_callers(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_history' );
 	}
 
 	/**
@@ -212,6 +263,12 @@ final class RecruitmentNoticeEditPage {
 		// Default to a generic invalid-target failure when the operator
 		// somehow lands here with a non-enum value (form-tampering case).
 		$flash = 'transition-invalid-target';
+
+		if ( $notice_id > 0 && RecruitmentPromotionService::is_bare_promotion( $notice_id, $target ) ) {
+			// Promotion copies or imports the definitive list (#2245); a bare
+			// status flip would keep a list from an earlier cycle.
+			self::redirect_with_notice( $notice_id, 'transition-requires-promote' );
+		}
 
 		if ( $notice_id > 0 && in_array( $target, array( 'draft', 'preliminary', 'definitive', 'closed' ), true ) ) {
 			$result = RecruitmentNoticeStateMachine::transition_to( $notice_id, $target, '' === (string) $reason ? null : $reason );

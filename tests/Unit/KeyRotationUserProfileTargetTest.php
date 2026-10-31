@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Migrations\Strategies\KeyRotationRemainingMigrationStrategy;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\UserDashboard\UserProfileFieldMap;
 
 /**
@@ -146,6 +147,9 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( static fn( $t ) => $t instanceof \WP_Error );
@@ -337,7 +341,7 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * them, and nobody would come back.
 	 */
 	public function test_every_meta_of_a_user_is_rewritten_in_one_batch(): void {
-		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344', 'ffc_user_rf' => '7654321', 'ffc_user_rg' => '12345678' ) );
+		$this->seed_user( 10, array( 'ffc_user_cpf' => Identifiers::CPF_A, 'ffc_user_rf' => Identifiers::RF_A, 'ffc_user_rg' => '12345678' ) );
 		$before = $this->meta[10];
 
 		$this->strategy->execute( '', array() );
@@ -361,12 +365,12 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * search made afterwards.
 	 */
 	public function test_hashes_are_rebuilt_only_for_the_searchable_fields(): void {
-		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344', 'ffc_user_rf' => '7654321', 'ffc_user_rg' => '12345678' ) );
+		$this->seed_user( 10, array( 'ffc_user_cpf' => Identifiers::CPF_A, 'ffc_user_rf' => Identifiers::RF_A, 'ffc_user_rg' => '12345678' ) );
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
-		$this->assertSame( Encryption::hash( '7654321' ), $this->profiles[10]['rf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( Identifiers::RF_A ), $this->profiles[10]['rf_hash'] ?? null );
 		$this->assertArrayNotHasKey(
 			'rg_hash',
 			$this->profiles[10],
@@ -389,12 +393,12 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * subset is not one anybody can state.
 	 */
 	public function test_a_user_without_a_profile_row_gets_one(): void {
-		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->seed_user( 10, array( 'ffc_user_cpf' => Identifiers::CPF_A ) );
 		$this->assertArrayNotHasKey( 10, $this->profiles );
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->profiles[10]['cpf_hash'] ?? null );
 		$this->assertSame( 10, (int) $this->profiles[10]['user_id'] );
 	}
 
@@ -407,10 +411,10 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * work it did not need to do.
 	 */
 	public function test_an_index_already_current_is_not_rewritten(): void {
-		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
+		$this->seed_user( 10, array( 'ffc_user_cpf' => Identifiers::CPF_A ) );
 		$this->profiles[10] = array(
 			'user_id'  => 10,
-			'cpf_hash' => Encryption::hash( '11122233344' ),
+			'cpf_hash' => Encryption::hash( Identifiers::CPF_A ),
 		);
 
 		global $wpdb;
@@ -419,7 +423,7 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 
 		$this->strategy->execute( '', array() );
 
-		$this->assertSame( Encryption::hash( '11122233344' ), $this->profiles[10]['cpf_hash'] );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->profiles[10]['cpf_hash'] );
 	}
 
 	/**
@@ -430,8 +434,8 @@ class KeyRotationUserProfileTargetTest extends TestCase {
 	 * the cursor -- not the predicate -- that makes the work progress.
 	 */
 	public function test_the_cursor_advances_so_a_second_batch_moves_on(): void {
-		$this->seed_user( 10, array( 'ffc_user_cpf' => '11122233344' ) );
-		$this->seed_user( 20, array( 'ffc_user_cpf' => '55566677788' ) );
+		$this->seed_user( 10, array( 'ffc_user_cpf' => Identifiers::CPF_A ) );
+		$this->seed_user( 20, array( 'ffc_user_cpf' => Identifiers::CPF_B ) );
 
 		$this->strategy->execute( '', array() );
 

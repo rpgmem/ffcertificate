@@ -14,15 +14,18 @@ use FreeFormCertificate\Core\Captcha\CaptchaSettings;
 /**
  * Tests for the ALTCHA challenge endpoint (#1053 PR3).
  *
- * Alias-mocks `RequestInput`, so this runs in its own process.
+ * The address comes from `$_SERVER`, read by the real resolver, so these
+ * tests see what a visitor with no readable address really sends (#2106).
  *
  * @covers \FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AltchaChallengeEndpointTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var array<string, mixed> */
+	private array $server_snapshot = array();
 
 	/** @var array<string, mixed> */
 	private array $transients = array();
@@ -48,6 +51,15 @@ class AltchaChallengeEndpointTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// RequestInput resolves the address for real: the default `legacy`
+		// mode, through these, over a $_SERVER this test owns.
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		$this->server_snapshot = $_SERVER;
+		foreach ( array( 'HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR' ) as $header ) {
+			unset( $_SERVER[ $header ] );
+		}
 
 		class_exists( '\FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint' );
 
@@ -98,13 +110,17 @@ class AltchaChallengeEndpointTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$_SERVER = $this->server_snapshot;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	private function mock_ip( string $ip ): void {
-		$request = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$request->shouldReceive( 'get_user_ip' )->andReturn( $ip );
+		if ( '' === $ip ) {
+			unset( $_SERVER['REMOTE_ADDR'] );
+			return;
+		}
+		$_SERVER['REMOTE_ADDR'] = $ip;
 	}
 
 	private function set_mint_cap( int $cap ): void {
@@ -218,6 +234,22 @@ class AltchaChallengeEndpointTest extends TestCase {
 
 		$this->assertArrayHasKey( 'parameters', $this->responses[0] );
 		$this->assertSame( array(), $this->statuses );
+	}
+
+	public function test_unidentified_callers_share_one_count_when_the_setting_says_so(): void {
+		$this->mock_ip( '' );
+		$this->rate_limit_settings = array(
+			'ip' => array(
+				'captcha_max_per_window' => 1,
+				'captcha_unresolved'     => 'share',
+			),
+		);
+
+		$this->call_handle();
+		$this->call_handle();
+
+		$this->assertArrayHasKey( 'parameters', $this->responses[0] );
+		$this->assertSame( array( 429 ), $this->statuses );
 	}
 
 	// ==================================================================

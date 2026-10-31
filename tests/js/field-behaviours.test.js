@@ -1,7 +1,7 @@
 // Coverage for the field behaviours shared by the reregistration form and
 // the wp-admin user screen (`assets/js/ffc-field-behaviours.js`), and for the
 // admin glue that wires them (`assets/js/ffc-admin-user-fields.js`).
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { loadScript } from './helpers.js';
 
 beforeAll(() => {
@@ -40,12 +40,29 @@ describe('FFC.Fields masks', () => {
 		['rf', '1234567', '123.456-7'],
 		['number', 'a1b2', '12'],
 		['cin', '123456789', '12.345.678-9'],
+		['cin', '12345678x', '12.345.678-X'],
+		['cin', '1X2345678', '12.345.678'],
 	];
 
 	it.each(cases)('%s masks %s as %s', (mask, raw, expected) => {
 		document.body.innerHTML = `<div id="c"><input data-mask="${mask}"></div>`;
 		window.FFC.Fields.initMasks(window.$('#c'));
 		expect(type(window.$('#c input'), raw)).toBe(expected);
+	});
+
+	it('shapes a value the field already holds when it loads', () => {
+		document.body.innerHTML = '<div id="c"><input data-mask="cpf" value="52998224725"><input data-mask="rf" value="8026335"><input data-mask="cep" value=""></div>';
+		window.FFC.Fields.initMasks(window.$('#c'));
+		const $inputs = window.$('#c input');
+		expect($inputs.eq(0).val()).toBe('529.982.247-25');
+		expect($inputs.eq(1).val()).toBe('802.633-5');
+		expect($inputs.eq(2).val()).toBe('');
+	});
+
+	it('leaves a stored phone as it is, so an international number keeps its code', () => {
+		document.body.innerHTML = '<div id="c"><input data-mask="phone" value="+55 11 98765-4321"></div>';
+		window.FFC.Fields.initMasks(window.$('#c'));
+		expect(window.$('#c input').val()).toBe('+55 11 98765-4321');
 	});
 
 	it('leaves an unknown mask alone', () => {
@@ -62,7 +79,7 @@ describe('FFC.Fields masks', () => {
 });
 
 describe('FFC.Fields format checks', () => {
-	const S = { invalidCpf: 'bad cpf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidFormat: 'bad' };
+	const S = { invalidCpf: 'bad cpf', invalidRf: 'bad rf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidFormat: 'bad' };
 
 	it('accepts a valid CPF and refuses wrong digits or a repeated run', () => {
 		expect(window.FFC.Fields.validateCpf('529.982.247-25')).toBe(true);
@@ -79,12 +96,58 @@ describe('FFC.Fields format checks', () => {
 		expect(window.FFC.Fields.formatError('(11) 98765-4321', 'phone', S)).toBe('');
 		expect(window.FFC.Fields.formatError('123', 'phone', S)).toBe('bad phone');
 		expect(window.FFC.Fields.formatError('x', 'unknown', S)).toBe('');
+		expect(window.FFC.Fields.formatError('518.178-0', 'rf', S)).toBe('');
+		expect(window.FFC.Fields.formatError('51817', 'rf', S)).toBe('bad rf');
 	});
 
 	it('checks a custom pattern with its own message, and ignores a broken one', () => {
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '^\\d+$', message: 'digits only' })).toBe('digits only');
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '^\\d+$' })).toBe('bad');
 		expect(window.FFC.Fields.formatError('abc', 'custom_regex', S, { pattern: '(' })).toBe('');
+	});
+});
+
+describe('FFC.Fields CEP check (#2233)', () => {
+	const S = { invalidCep: 'bad cep', cepRepeated: 'same digits', cepWrongUf: 'not in %s' };
+	let saved;
+
+	beforeEach(() => {
+		saved = window.ffcCoreConfig;
+		// A slice of CepRule::RANGES, which the server sends whole.
+		window.ffcCoreConfig = Object.assign({}, saved, {
+			cepRanges: {
+				SP: [[1000, 19999]],
+				RJ: [[20000, 28999]],
+				DF: [[70000, 72799], [73000, 73699]],
+				GO: [[72800, 72999], [73700, 76799]],
+			},
+		});
+	});
+	afterEach(() => {
+		window.ffcCoreConfig = saved;
+	});
+
+	it('passes a CEP in its UF, masked or bare, and without a UF', () => {
+		expect(window.FFC.Fields.formatError('08615-070', 'cep', S, null, { uf: 'SP' })).toBe('');
+		expect(window.FFC.Fields.formatError('08615070', 'cep', S, null, { uf: 'sp' })).toBe('');
+		expect(window.FFC.Fields.formatError('28615-070', 'cep', S)).toBe('');
+	});
+
+	it('names each reason a CEP is refused', () => {
+		expect(window.FFC.Fields.formatError('0861-507', 'cep', S)).toBe('bad cep');
+		expect(window.FFC.Fields.formatError('11111-111', 'cep', S)).toBe('same digits');
+		expect(window.FFC.Fields.formatError('00999-999', 'cep', S)).toBe('bad cep');
+		expect(window.FFC.Fields.formatError('28615-070', 'cep', S, null, { uf: 'SP' })).toBe('not in SP');
+	});
+
+	it('reads both ranges of a state that has two', () => {
+		expect(window.FFC.Fields.cepProblem('73000-000', 'DF')).toBe('');
+		expect(window.FFC.Fields.cepProblem('72900-000', 'DF')).toBe('uf');
+		expect(window.FFC.Fields.cepProblem('72900-000', 'GO')).toBe('');
+	});
+
+	it('skips the UF check for a UF the table does not know', () => {
+		expect(window.FFC.Fields.cepProblem('28615-070', 'XX')).toBe('');
 	});
 });
 

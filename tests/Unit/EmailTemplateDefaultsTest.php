@@ -5,22 +5,20 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\EmailTemplateDefaults;
+use FreeFormCertificate\Core\EmailTemplates;
 
 /**
  * Direct unit coverage for the shipped submitter-confirmation email defaults.
  *
  * Exercised only indirectly by EmailHandler / FormEditorEmailMetabox (and only
- * on the no-stored-config fallback), so pcov recorded it as uncovered. Alias-
- * mocks EmailTemplates so the body default resolves without touching the
- * on-disk template, hence separate processes.
+ * on the no-stored-config fallback), so pcov recorded it as uncovered. The
+ * body default is read from the real on-disk template through EmailTemplates
+ * (#2119).
  *
  * @covers \FreeFormCertificate\Core\EmailTemplateDefaults
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class EmailTemplateDefaultsTest extends TestCase {
 
@@ -29,6 +27,10 @@ class EmailTemplateDefaultsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		class_exists( '\FreeFormCertificate\Core\EmailTemplateDefaults' );
 	}
 
@@ -44,12 +46,11 @@ class EmailTemplateDefaultsTest extends TestCase {
 	}
 
 	public function test_body_delegates_to_the_certificate_user_template(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\EmailTemplates' )
-			->shouldReceive( 'body' )
-			->once()
-			->with( 'certificate-user' )
-			->andReturn( '<p>default body</p>' );
+		Functions\when( '__' )->returnArg();
 
-		$this->assertSame( '<p>default body</p>', EmailTemplateDefaults::user_email_body() );
+		$body = EmailTemplateDefaults::user_email_body();
+
+		$this->assertNotSame( '', $body, 'the shipped template has a body' );
+		$this->assertSame( EmailTemplates::body( 'certificate-user' ), $body );
 	}
 }

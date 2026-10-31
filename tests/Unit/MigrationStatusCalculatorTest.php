@@ -17,13 +17,11 @@ use FreeFormCertificate\Migrations\MigrationStatusCalculator;
  * complex dependencies, so we bypass it using reflection and inject mock
  * strategies directly.
  *
- * Runs in separate processes because try_create_strategy() behaviour depends
- * on whether CpfRfSplitMigrationStrategy is already loaded (other test files
- * that load it change the outcome of lazy strategy creation in this suite).
+ * The lazy strategy creation fails without a `$wpdb` global, which is the
+ * branch the error-detail tests rely on; setUp() removes the global so the
+ * branch is chosen here rather than inherited from an earlier test (#2125).
  *
  * @covers \FreeFormCertificate\Migrations\MigrationStatusCalculator
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class MigrationStatusCalculatorTest extends TestCase {
 
@@ -34,24 +32,26 @@ class MigrationStatusCalculatorTest extends TestCase {
 	private $strategy;
 	private \ReflectionClass $ref;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-
-		// WP_Error alias for Migrations namespace
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\WP_Error' );
-		}
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		unset( $GLOBALS['wpdb'] );
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
+		// Debug guards on function_exists( 'get_option' ): stub it so the branch
+		// (debug off) is chosen here, not inherited from an earlier test.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		// Global WP stubs
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
-
-		// Namespaced stubs: FreeFormCertificate\Migrations\*
-		Functions\when( 'FreeFormCertificate\Migrations\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
-		Functions\when( 'FreeFormCertificate\Migrations\apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 
 		// Create calculator WITHOUT calling constructor to avoid loading
 		// CpfRfSplitMigrationStrategy which has complex dependencies
@@ -67,6 +67,9 @@ class MigrationStatusCalculatorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( null !== $this->wpdb_backup ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -102,9 +105,6 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// this will fail because the class has complex dependencies.
 		// The constructor should catch the Throwable and store the error.
 		$registry = Mockery::mock( 'FreeFormCertificate\Migrations\MigrationRegistry' );
-
-		// We need to suppress the class_exists check for Utils
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
 
 		$calculator = new MigrationStatusCalculator( $registry );
 
@@ -575,6 +575,8 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'activity_log_clear_plaintext'    => array( 'activity_log_clear_plaintext', $ns . 'ActivityLogClearPlaintextMigrationStrategy' ),
 			'activity_log_encrypt_ip'         => array( 'activity_log_encrypt_ip', $ns . 'ActivityLogEncryptIpMigrationStrategy' ),
 			'activity_log_location_cleanup'   => array( 'activity_log_location_cleanup', $ns . 'ActivityLogLocationCleanupMigrationStrategy' ),
+			'rate_limit_logs_encrypt_ip'      => array( 'rate_limit_logs_encrypt_ip', $ns . 'RateLimitLogsEncryptIpMigrationStrategy' ),
+			'activity_log_access_denied_ip'   => array( 'activity_log_access_denied_ip', $ns . 'ActivityLogAccessDeniedIpMigrationStrategy' ),
 			'key_rotation_remaining'          => array( 'key_rotation_remaining', $ns . 'KeyRotationRemainingMigrationStrategy' ),
 			'identity_normalization'          => array( 'identity_normalization', $ns . 'IdentityNormalizationMigrationStrategy' ),
 			'identity_index_backfill'         => array( 'identity_index_backfill', $ns . 'IdentityIndexBackfillMigrationStrategy' ),
@@ -582,6 +584,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'display_name_backfill'           => array( 'display_name_backfill', $ns . 'DisplayNameBackfillMigrationStrategy' ),
 			'name_parts_backfill'             => array( 'name_parts_backfill', $ns . 'NamePartsBackfillMigrationStrategy' ),
 			'birth_date_backfill'             => array( 'birth_date_backfill', $ns . 'BirthDateBackfillMigrationStrategy' ),
+			'rereg_draft_encryption'          => array( 'rereg_draft_encryption', $ns . 'ReregistrationDraftEncryptionMigrationStrategy' ),
 			'import_legacy_templates'         => array( 'import_legacy_templates', $ns . 'ImportLegacyTemplatesMigrationStrategy' ),
 			'rewrite_html_image_refs'         => array( 'rewrite_html_image_refs', $ns . 'RewriteHtmlImageRefsMigrationStrategy' ),
 		);
@@ -630,11 +633,11 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_rearm_returns_wp_error_when_strategy_is_missing(): void {
-		// `split_cpf_rf` for the same reason the sibling `execute` test uses it:
-		// resolution is LAZY, so a key the calculator can build reaches the real
-		// strategy instead. This one cannot be built in this environment, which
-		// is what makes it the missing-strategy case.
-		$result = $this->calculator->rearm( 'split_cpf_rf' );
+		// A key no case of try_create_strategy() builds. `split_cpf_rf` was used
+		// here once and is the missing case only in a fresh process: in a shared
+		// one an earlier test has loaded what its constructor needs, so the lazy
+		// resolution succeeds and the verb check answers instead.
+		$result = $this->calculator->rearm( 'no_such_card' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );

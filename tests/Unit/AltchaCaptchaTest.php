@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Functions;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
+use FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint;
 use FreeFormCertificate\Core\Captcha\CaptchaSettings;
 use FreeFormCertificate\Core\Captcha\ChallengeSigner;
 use FreeFormCertificate\Tests\Support\AltchaSolver;
@@ -483,5 +484,131 @@ class AltchaCaptchaTest extends TestCase {
 		// cached-page refresh to patch — only a name so the client can tell
 		// "nothing to do" from "provider I do not know".
 		$this->assertSame( array( 'provider' => 'altcha' ), ( new AltchaCaptcha() )->challenge_payload() );
+	}
+
+	// ==================================================================
+	// Gaps found by mutation testing (#2102)
+	// ==================================================================
+
+	/**
+	 * A challenge signed by hand whose key starts at a chosen counter.
+	 *
+	 * @param int $counter Counter that solves it.
+	 * @return array<string, mixed>
+	 */
+	private function challenge_solved_at( int $counter ): array {
+		$parameters              = array(
+			'algorithm' => 'SHA-256',
+			'cost'      => 1,
+			'expiresAt' => time() + 600,
+			'keyLength' => 32,
+			'keyPrefix' => '',
+			'nonce'     => bin2hex( random_bytes( 16 ) ),
+			'salt'      => bin2hex( random_bytes( 16 ) ),
+		);
+		$parameters['keyPrefix'] = substr( AltchaSolver::key( $parameters, $counter ), 0, 32 );
+
+		return array(
+			'parameters' => $parameters,
+			'signature'  => $this->sign( $parameters ),
+		);
+	}
+
+	public function test_a_solution_at_counter_zero_verifies(): void {
+		// The server draws the counter from 0, so a visitor whose challenge
+		// is solved at 0 must not be turned away.
+		$challenge = $this->challenge_solved_at( 0 );
+
+		$this->assertTrue( ( new AltchaCaptcha() )->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, 0 ) ) ) );
+	}
+
+	public function test_a_solution_at_the_largest_counter_verifies(): void {
+		$challenge = $this->challenge_solved_at( 0xFFFFFFFF );
+
+		$this->assertTrue( ( new AltchaCaptcha() )->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $challenge, 0xFFFFFFFF ) ) ) );
+	}
+
+	public function test_a_counter_sent_as_a_string_is_refused(): void {
+		$challenge = $this->challenge_solved_at( 7 );
+		$solved    = $this->decoded( AltchaSolver::payload( $challenge, 7 ) );
+
+		$solved['solution']['counter'] = '7';
+
+		$this->assertIsString( ( new AltchaCaptcha() )->verify( array( AltchaCaptcha::FIELD => AltchaSolver::encode( $solved ) ) ) );
+	}
+
+	public function test_a_spent_solution_is_remembered_until_its_challenge_expires(): void {
+		$ttl = null;
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value, $expiration ) use ( &$ttl ) {
+				$this->transients[ $key ] = $value;
+				$ttl                      = $expiration;
+				return true;
+			}
+		);
+
+		$this->assertTrue( ( new AltchaCaptcha() )->verify( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $this->challenge_solved_at( 3 ), 3 ) ) ) );
+
+		$this->assertGreaterThanOrEqual( 598, $ttl );
+		$this->assertLessThanOrEqual( 600, $ttl, 'The ledger keeps the proof for what is left of the challenge, not longer.' );
+	}
+
+	/**
+	 * Stub what rendering the widget reaches.
+	 */
+	private function stub_render(): void {
+		Functions\when( 'wp_enqueue_script' )->justReturn( true );
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( string $text ): void { echo $text; } );
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		Functions\when( 'admin_url' )->alias( static fn( string $p = '' ): string => 'https://example.test/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ): string => $u . '?' . http_build_query( $a ) );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $d ) => json_encode( $d ) );
+	}
+
+	public function test_the_widget_fetches_its_challenge_from_the_endpoint(): void {
+		$this->stub_render();
+
+		$this->assertStringContainsString(
+			'admin-ajax.php?action=' . AltchaChallengeEndpoint::AJAX_ACTION,
+			( new AltchaCaptcha() )->render_fields()
+		);
+	}
+
+	public function test_only_the_altcha_only_mode_tells_a_visitor_without_javascript(): void {
+		$this->stub_render();
+		$captcha = new AltchaCaptcha();
+
+		$this->assertStringContainsString( '<noscript>', $captcha->render_fields() );
+		$this->assertStringNotContainsString( '<noscript>', $captcha->render_widget( false ), 'The composite mode has the math challenge for that.' );
+	}
+
+	public function test_registers_the_bundle_and_the_glue_with_their_dependencies(): void {
+		$registered = array();
+		Functions\when( 'wp_register_script' )->alias(
+			function ( string $handle, string $src, array $deps ) use ( &$registered ): void {
+				$registered[ $handle ] = array( $src, $deps );
+			}
+		);
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			function ( string $handle, string $object, array $data ) use ( &$localized ): void {
+				$localized = $data;
+			}
+		);
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+
+		AltchaCaptcha::register_assets();
+
+		$this->assertSame( FFC_PLUGIN_URL . 'libs/js/altcha-' . FFC_ALTCHA_VERSION . '.umd.js', $registered['ffc-altcha'][0] ?? null );
+		$this->assertStringStartsWith( FFC_PLUGIN_URL . 'assets/js/ffc-captcha', $registered['ffc-captcha'][0] ?? '' );
+		$this->assertSame( array( 'ffc-altcha', 'ffc-core' ), $registered['ffc-captcha'][1] ?? null );
+		$this->assertSame(
+			array( 'ariaLinkLabel', 'error', 'expired', 'footer', 'label', 'verified', 'verifying', 'waitAlert' ),
+			array_keys( $localized['strings'] ?? array() )
+		);
+		$this->assertArrayHasKey( 'errorMessage', $localized );
+		$this->assertArrayHasKey( 'insecureMessage', $localized );
 	}
 }

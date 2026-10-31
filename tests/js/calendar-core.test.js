@@ -252,6 +252,20 @@ describe('FFCCalendarCore renderDays', () => {
 		expect(window.$('#cal .ffc-day[data-date="2026-06-15"] .custom-content').length).toBe(1);
 	});
 
+	it('tells getDayContent which days are closed (#2218)', () => {
+		const seen = {};
+		const inst = build({
+			disabledDays: [0, 6],
+			getDayContent: (dateStr, date, isHoliday, isClosed) => {
+				seen[dateStr] = isClosed;
+				return '';
+			},
+		});
+		inst.goToDate('2026-06-15');
+		expect(seen['2026-06-14']).toBe(true); // Sunday
+		expect(seen['2026-06-15']).toBe(false); // Monday
+	});
+
 	it('re-applies the ffc-selected class to the selected date on re-render', () => {
 		const inst = build();
 		inst.goToDate('2026-06-15');
@@ -304,5 +318,87 @@ describe('FFCCalendarCore accessors + destroy', () => {
 		const inst = build();
 		inst.destroy();
 		expect(window.$('#cal').children().length).toBe(0);
+	});
+});
+
+// ----------------------------------------------------------------------
+// Keyboard and screen readers (#2244)
+// ----------------------------------------------------------------------
+
+describe('FFCCalendarCore keyboard', () => {
+	function key(el, name) {
+		el.dispatchEvent(new window.KeyboardEvent('keydown', { key: name, bubbles: true }));
+	}
+
+	function monthDays() {
+		return Array.from(document.querySelectorAll('#cal .ffc-day[data-ffc-focusable]'));
+	}
+
+	it('names the month arrows and announces the month heading', () => {
+		build({ strings: { prevMonth: 'Mês anterior', nextMonth: 'Próximo mês' } });
+		expect(document.querySelector('#cal .ffc-prev-month').getAttribute('aria-label')).toBe('Mês anterior');
+		expect(document.querySelector('#cal .ffc-next-month').getAttribute('aria-label')).toBe('Próximo mês');
+		expect(document.querySelector('#cal .ffc-current-month').getAttribute('aria-live')).toBe('polite');
+	});
+
+	it('makes each day of the month a named button with one tab stop', () => {
+		const inst = build();
+		inst.currentDate = new Date(2999, 4, 1);
+		inst.renderDays();
+
+		const days = monthDays();
+		expect(days).toHaveLength(31);
+		expect(days[19].getAttribute('role')).toBe('button');
+		expect(days[19].getAttribute('aria-label')).toBe('20 May 2999');
+		expect(days.filter((d) => d.getAttribute('tabindex') === '0')).toHaveLength(1);
+		expect(document.querySelector('#cal .ffc-other-month[data-ffc-focusable]')).toBeNull();
+	});
+
+	it('marks a day that cannot be picked instead of hiding it', () => {
+		const inst = build({ disabledDays: [0] });
+		inst.currentDate = new Date(2999, 4, 1);
+		inst.renderDays();
+
+		const sunday = document.querySelector('#cal .ffc-day[data-date="2999-05-05"]');
+		expect(sunday.getAttribute('aria-disabled')).toBe('true');
+		expect(document.querySelector('#cal .ffc-day[data-date="2999-05-06"]').hasAttribute('aria-disabled')).toBe(false);
+	});
+
+	it('moves the focus with the arrows, Home and End, keeping one tab stop', () => {
+		const inst = build();
+		inst.currentDate = new Date(2999, 4, 1);
+		inst.renderDays();
+		const days = monthDays();
+		days.forEach((d) => d.setAttribute('tabindex', '-1'));
+		days[9].setAttribute('tabindex', '0');
+
+		key(days[9], 'ArrowRight');
+		expect(document.activeElement).toBe(days[10]);
+		key(days[10], 'ArrowDown');
+		expect(document.activeElement).toBe(days[17]);
+		key(days[17], 'ArrowUp');
+		expect(document.activeElement).toBe(days[10]);
+		key(days[10], 'Home');
+		expect(document.activeElement).toBe(days[0]);
+		key(days[0], 'ArrowLeft');
+		expect(document.activeElement).toBe(days[0], 'The first day stops at the edge.');
+		key(days[0], 'End');
+		expect(document.activeElement).toBe(days[30]);
+		expect(monthDays().filter((d) => d.getAttribute('tabindex') === '0')).toEqual([days[30]]);
+	});
+
+	it('picks the focused day with Enter or Space, and not a day that cannot be picked', () => {
+		const onDayClick = vi.fn();
+		const inst = build({ disabledDays: [0], onDayClick: onDayClick });
+		inst.currentDate = new Date(2999, 4, 1);
+		inst.renderDays();
+
+		const monday = document.querySelector('#cal .ffc-day[data-date="2999-05-06"]');
+		key(monday, 'Enter');
+		expect(onDayClick).toHaveBeenCalledWith('2999-05-06', expect.anything());
+		expect(monday.getAttribute('aria-pressed')).toBe('true');
+
+		key(document.querySelector('#cal .ffc-day[data-date="2999-05-05"]'), ' ');
+		expect(onDayClick).toHaveBeenCalledTimes(1);
 	});
 });

@@ -72,7 +72,7 @@ class CsvExporter {
 	 * payload and deletes the option pair.
 	 *
 	 * Hooked from {@see Loader::define_admin_hooks()} to
-	 * `ffcertificate_daily_cleanup_hook` (existing daily cron).
+	 * `ffc_daily_cleanup` (existing daily cron).
 	 *
 	 * @since 6.5.0
 	 * @return int Number of stale jobs reclaimed.

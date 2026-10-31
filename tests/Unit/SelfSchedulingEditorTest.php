@@ -11,23 +11,32 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\SelfSchedulingEditor;
 
 /**
+ * Runs in the shared process: the occupancy report runs the real
+ * DateFormatter down to a stubbed `wp_date`, and `$wpdb` is restored in
+ * tearDown.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class SelfSchedulingEditorTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
+		// The calendar names partial reads the default state names (#2223).
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -71,6 +80,11 @@ class SelfSchedulingEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -243,6 +257,14 @@ class SelfSchedulingEditorTest extends TestCase {
 			}
 		);
 
+		// No calendar row: the Blocked dates tab (#2244) says to save first.
+		$GLOBALS['wpdb']->shouldReceive( 'get_row' )->andReturn( null );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		// No grid refusal left by a save (#2244).
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
+
 		$editor = new SelfSchedulingEditor();
 		ob_start();
 		$editor->render_box_config( $post );
@@ -267,15 +289,18 @@ class SelfSchedulingEditorTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
 		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
-		// Each icon twice: in the nav and in the panel title.
-		$this->assertCount( 16, $m[1] );
+		// Each icon twice: in the nav and in the panel title. Ten tabs on a
+		// saved calendar, the Blocked dates one included (#2244).
+		$this->assertCount( 20, $m[1] );
+		$this->assertContains( 'ffc-icon-lock', $m[1] );
+		$this->assertStringContainsString( 'Save the calendar first; its blocked dates can be added once it exists.', $output );
 		foreach ( $m[1] as $class ) {
 			$this->assertMatchesRegularExpression( '/^ffc-icon-[a-z-]+$/', $class, 'A tab icon the registry does not know falls back to a dashicon' );
 		}
 		$this->assertStringNotContainsString( 'dashicons', $output );
 		// The first tab starts active; the others are reachable by the arrow keys.
 		$this->assertSame( 1, substr_count( $output, 'aria-selected="true"' ) );
-		$this->assertSame( 7, substr_count( $output, 'aria-selected="false"' ) );
+		$this->assertSame( 9, substr_count( $output, 'aria-selected="false"' ) );
 	}
 
 	public function test_the_occupancy_tab_exists_only_for_a_saved_custom_calendar(): void {
@@ -364,8 +389,14 @@ class SelfSchedulingEditorTest extends TestCase {
 			array( 'date' => '2026-09-03', 'start' => '08:00:00', 'booked' => '39', 'waitlisted' => '2' ),
 		) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' )
-			->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => $d );
+		// The real DateFormatter renders the block's date: no plugin setting
+		// (get_option answers an empty array), so the shipped 'd/m/Y' format,
+		// in UTC because the date is a wall-clock value.
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . $ts ) )
+				->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )
+				->format( $format )
+		);
 
 		$editor = new SelfSchedulingEditor();
 		ob_start();
@@ -376,6 +407,7 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringContainsString( 'Manha', $output );
 		$this->assertStringContainsString( '98%', $output ); // round(100 * 39 / 40)
 		$this->assertStringContainsString( '08:00–13:00', $output );
+		$this->assertStringContainsString( '<td>03/09/2026</td>', $output );
 	}
 
 	// ==================================================================

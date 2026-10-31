@@ -18,14 +18,10 @@ use FreeFormCertificate\UrlShortener\UrlShortenerRepository;
  * Tests for UrlShortenerAdminPage: AJAX handlers (create, delete, trash,
  * restore, toggle, empty_trash) and admin action routing.
  *
- * Runs in separate processes because the AJAX handlers call
- * Capabilities::current_user_can_manage() via AjaxTrait::check_ajax_permission(),
- * and other tests in the suite leave a Mockery alias for Utils loaded,
- * which makes the permission check resolve to a null mock instance.
+ * Global function stubs only: a namespaced one would shadow the global
+ * function for every later test in the process (#2125).
  *
  * @covers \FreeFormCertificate\UrlShortener\UrlShortenerAdminPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UrlShortenerAdminPageTest extends TestCase {
 
@@ -62,26 +58,13 @@ class UrlShortenerAdminPageTest extends TestCase {
 		Functions\when( 'esc_url_raw' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 
-		// Namespaced stubs for AjaxTrait (FreeFormCertificate\Core namespace)
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-
-		// Namespaced stubs for UrlShortener namespace
-		Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\sanitize_key' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\esc_url_raw' )->returnArg();
-		Functions\when( 'FreeFormCertificate\UrlShortener\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
-		Functions\when( 'FreeFormCertificate\UrlShortener\__' )->returnArg();
-
 		$this->service = Mockery::mock( UrlShortenerService::class );
 		$this->page    = new UrlShortenerAdminPage( $this->service );
 	}
 
 	protected function tearDown(): void {
 		unset( $_POST['nonce'], $_POST['target_url'], $_POST['title'], $_POST['id'] );
-		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'] );
+		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}

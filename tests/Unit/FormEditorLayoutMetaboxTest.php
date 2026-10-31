@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -21,6 +22,7 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
@@ -47,6 +49,7 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		FormSubmissionCountWpdb::restore();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -58,6 +61,24 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		ob_start();
 		$this->metabox->render( $post );
 		return (string) ob_get_clean();
+	}
+
+	public function test_render_warns_how_many_certificates_a_layout_change_reaches(): void {
+		FormSubmissionCountWpdb::restore();
+		FormSubmissionCountWpdb::install( 12 );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'wp_kses_post' )->returnArg();
+
+		$html = $this->render( array( 'pdf_layout' => '<p>x</p>' ) );
+
+		$this->assertStringContainsString( 'This form has 12 issued certificates; layout changes apply to them the next time they are generated or verified.', $html );
+	}
+
+	public function test_render_has_no_issued_warning_without_submissions(): void {
+		$html = $this->render( array( 'pdf_layout' => '<p>x</p>' ) );
+
+		$this->assertStringNotContainsString( 'ffc-layout-issued-notice', $html );
 	}
 
 	public function test_render_emits_nonce_field_with_expected_name(): void {

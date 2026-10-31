@@ -50,6 +50,24 @@ class PdfGenerator {
 	}
 
 	/**
+	 * The tag names of a form's input fields.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return array<int, string>
+	 */
+	public static function field_names( int $form_id ): array {
+		$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$names  = array();
+		foreach ( is_array( $fields ) ? $fields : array() as $field ) {
+			$name = is_array( $field ) && is_string( $field['name'] ?? null ) ? $field['name'] : '';
+			if ( '' !== $name ) {
+				$names[] = $name;
+			}
+		}
+		return $names;
+	}
+
+	/**
 	 * Generate PDF data for any context
 	 *
 	 * @param int    $submission_id Submission ID.
@@ -122,6 +140,14 @@ class PdfGenerator {
 		$data['schedule']                = \FreeFormCertificate\Core\DateFormatter::format_schedule( $sched_start, $sched_end );
 		$data['schedule_total']          = \FreeFormCertificate\Core\DateFormatter::format_schedule_total( $sched_start, $sched_end );
 
+		// A field the form has but this submission lacks prints blank, not as
+		// a literal `{{tag}}` (#2241): the layout is regenerated from its
+		// current version, so a field added later, or an optional one left
+		// empty, would otherwise show its tag on certificates already issued.
+		// An unknown tag is not a field and stays visible, so a typo in the
+		// layout is still noticed.
+		$data += array_fill_keys( self::field_names( $form_id ), '' );
+
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;
 		$html          = $this->html_renderer->generate_html( $data, $form_title, $form_config, $submission_ts );
@@ -176,13 +202,15 @@ class PdfGenerator {
 			)
 		);
 
+		// The payload reaches the browser, the public verification page
+		// included, so it carries only what the PDF needs: the rendered HTML.
+		// The decrypted answers stay on the server (#2241).
 		$pdf_data = array(
 			'html'          => $html,
 			'filename'      => $filename,
 			'form_title'    => $form_title,
 			'auth_code'     => $auth_code,
 			'submission_id' => $submission_id,
-			'submission'    => $data,
 			'bg_image'      => $bg_image_url,
 			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
@@ -190,11 +218,14 @@ class PdfGenerator {
 		/**
 		 * Fires after PDF data is fully generated.
 		 *
+		 * `submission` carries the decrypted answers for listeners only; it is
+		 * not part of the payload returned to the browser.
+		 *
 		 * @since 4.6.4
 		 * @param array $pdf_data     Complete PDF data array.
 		 * @param int   $submission_id Submission ID.
 		 */
-		do_action( 'ffcertificate_after_pdf_generation', $pdf_data, $submission_id );
+		do_action( 'ffcertificate_after_pdf_generation', $pdf_data + array( 'submission' => $data ), $submission_id );
 
 		return $pdf_data;
 	}
@@ -260,8 +291,13 @@ class PdfGenerator {
 	 * @param int                  $form_id Form ID.
 	 * @param int|null             $submission_date Submission instant (unix UTC seconds since 6.6.0).
 	 * @return array<string, mixed>|\WP_Error PDF data array
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?int $submission_date = null ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Get form data.
 		$form_post = get_post( $form_id );
 		if ( ! $form_post ) {
@@ -303,7 +339,6 @@ class PdfGenerator {
 			'html'       => $html,
 			'filename'   => $filename,
 			'form_title' => $form_title,
-			'submission' => $submission_data,
 			'bg_image'   => $bg_image_url,
 			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
 		);
@@ -318,9 +353,11 @@ class PdfGenerator {
 	 * @since 4.2.0
 	 * @param array<string, mixed> $appointment Appointment data array from database.
 	 * @param array<string, mixed> $calendar Calendar data array from database.
+	 * @param bool                 $masked   Staff copy (#2244): the e-mail and CPF/RF are masked and the
+	 *                                       confirmation token, which the QR code would carry, is left out.
 	 * @return array{html: string, filename: string, form_title: string, bg_image: mixed, type: string} PDF data array (html, template, filename, bg_image)
 	 */
-	public function generate_appointment_pdf_data( array $appointment, array $calendar ): array {
+	public function generate_appointment_pdf_data( array $appointment, array $calendar, bool $masked = false ): array {
 		$formatted_date = __( 'N/A', 'ffcertificate' );
 		if ( ! empty( $appointment['appointment_date'] ) ) {
 			$ts = strtotime( $appointment['appointment_date'] );
@@ -366,6 +403,10 @@ class PdfGenerator {
 		if ( '' === $cpf_rf ) {
 			$cpf_rf = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'rf', 'rf_encrypted' );
 		}
+		if ( $masked ) {
+			$email  = '' === $email ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
+			$cpf_rf = '' === $cpf_rf ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_any( 'cpf_rf', $cpf_rf );
+		}
 
 		// Status labels.
 		$status_labels = array(
@@ -400,7 +441,7 @@ class PdfGenerator {
 		);
 
 		// Add magic_token (confirmation_token) for QR code / validation URL.
-		if ( ! empty( $appointment['confirmation_token'] ) ) {
+		if ( ! $masked && ! empty( $appointment['confirmation_token'] ) ) {
 			$data['magic_token'] = $appointment['confirmation_token'];
 		}
 

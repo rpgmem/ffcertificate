@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceSampleCsvSource;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AudienceSampleCsvSource: the downloadable import-template source
@@ -27,7 +28,8 @@ class AudienceSampleCsvSourceTest extends TestCase {
 		$this->assertSame( 'members-sample.csv', $source->filename() );
 		$this->assertSame( array( 'email', 'name', 'audience_name', 'cpf', 'rf' ), $source->header() );
 		$rows = $source->rows();
-		$this->assertContains( array( 'john@example.com', 'John Doe', 'Group A', '529.982.247-25', '' ), $rows );
+		$this->assertContains( array( 'john@example.com', 'John Doe', 'Group A', self::masked( Identifiers::CPF_A ), '' ), $rows );
+		$this->assertContains( array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', Identifiers::RF_A ), $rows );
 
 		// A blank identifier is part of the template, not an omission: the
 		// registry hashes an empty cell to null, so the row resolves by
@@ -60,5 +62,15 @@ class AudienceSampleCsvSourceTest extends TestCase {
 		// shows there is none. What is asserted is the return contract; the
 		// environment is what gives the test its teeth.
 		$this->assertNull( ( new AudienceSampleCsvSource( 'members' ) )->authorize() );
+	}
+
+	/**
+	 * `51817842080` as `518.178.420-80`, the form the sample shows.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
 	}
 }

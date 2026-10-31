@@ -105,19 +105,15 @@ final class CssClassEmissionTest extends TestCase {
 	 * `TEMPLATE_API` and `LEGACY_SHIM` above, each with the evidence that took it
 	 * out of here.
 	 *
-	 * Four remain, and all four are candidates for the FIRST answer — never
-	 * emitted in the repository's history, with no section of the sheet claiming
-	 * them. They stay as questions because deleting CSS a template author may be
-	 * using is a product decision, not a scan's.
+	 * The last four were the FIRST answer, and #2089 deleted them: the PDF
+	 * generator draws its own overlay (`#ffc-pdf-overlay`, styled inline), the
+	 * audience dot is `ffc-cap-aud-dot`, and the layout code uses
+	 * `ffc-flex-center` / `ffc-flex-wrap`. The list blocks at zero: a class
+	 * that loses its emitter fails, and the answer is one of the three above.
 	 *
 	 * @var array<int, string>
 	 */
-	private const WITHOUT_EMITTER = array(
-		'ffc-cap-chip--color',
-		'ffc-flex',
-		'ffc-pdf-progress-overlay',
-		'ffc-progress-spinner',
-	);
+	private const WITHOUT_EMITTER = array();
 
 	/**
 	 * The shapes the scan has to know, with a real case of each.

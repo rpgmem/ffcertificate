@@ -79,6 +79,8 @@ class SelfSchedulingShortcode {
 
 		// Enqueue shared calendar styles (same as ffc-audience).
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-audience-css' );
+		// The holiday colours chosen in Scheduling settings (#2202).
+		\FreeFormCertificate\Scheduling\CalendarAppearance::enqueue_colors( 'ffc-audience-css' );
 
 		// Enqueue calendar frontend styles (timeslots, form, confirmation).
 		wp_enqueue_style(
@@ -131,73 +133,73 @@ class SelfSchedulingShortcode {
 				'nonce'     => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
 				// The browser step before the receipt download (#2040).
 				'preflight' => \FreeFormCertificate\Frontend\BrowserGate::script_config( AppointmentReceiptHandler::preflight_strings() ),
-				'strings'   => array(
-					'selectDate'           => __( 'Please select a date', 'ffcertificate' ),
-					'selectTime'           => __( 'Please select a time', 'ffcertificate' ),
-					'fillRequired'         => __( 'Please fill all required fields', 'ffcertificate' ),
-					'consentRequired'      => __( 'You must agree to the terms', 'ffcertificate' ),
-					'loading'              => __( 'Loading...', 'ffcertificate' ),
-					'availableTimes'       => __( 'Available Times', 'ffcertificate' ),
-					'yourInformation'      => __( 'Your Information', 'ffcertificate' ),
-					'noSlots'              => __( 'No available slots for this date', 'ffcertificate' ),
-					'success'              => __( 'Appointment booked successfully!', 'ffcertificate' ),
-					'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),
-					// Calendar strings.
-					'months'               => array(
-						__( 'January', 'ffcertificate' ),
-						__( 'February', 'ffcertificate' ),
-						__( 'March', 'ffcertificate' ),
-						__( 'April', 'ffcertificate' ),
-						__( 'May', 'ffcertificate' ),
-						__( 'June', 'ffcertificate' ),
-						__( 'July', 'ffcertificate' ),
-						__( 'August', 'ffcertificate' ),
-						__( 'September', 'ffcertificate' ),
-						__( 'October', 'ffcertificate' ),
-						__( 'November', 'ffcertificate' ),
-						__( 'December', 'ffcertificate' ),
-					),
-					'weekdays'             => array(
-						__( 'Sun', 'ffcertificate' ),
-						__( 'Mon', 'ffcertificate' ),
-						__( 'Tue', 'ffcertificate' ),
-						__( 'Wed', 'ffcertificate' ),
-						__( 'Thu', 'ffcertificate' ),
-						__( 'Fri', 'ffcertificate' ),
-						__( 'Sat', 'ffcertificate' ),
-					),
-					'today'                => __( 'Today', 'ffcertificate' ),
-					'holiday'              => __( 'Holiday', 'ffcertificate' ),
-					'closed'               => __( 'Closed', 'ffcertificate' ),
-					'available'            => __( 'Available', 'ffcertificate' ),
-					'booked'               => __( 'Booked', 'ffcertificate' ),
-					'booking'              => __( 'booking', 'ffcertificate' ),
-					'bookings'             => __( 'bookings', 'ffcertificate' ),
-					// Confirmation screen.
-					'date'                 => __( 'Date', 'ffcertificate' ),
-					'time'                 => __( 'Time', 'ffcertificate' ),
-					'name'                 => __( 'Name', 'ffcertificate' ),
-					'email'                => __( 'Email', 'ffcertificate' ),
-					'status'               => __( 'Status', 'ffcertificate' ),
-					'confirmed'            => __( 'Confirmed', 'ffcertificate' ),
-					'pendingApproval'      => __( 'Pending Approval', 'ffcertificate' ),
-					// Waitlist (#941 phase 2).
-					'joinWaitlist'         => __( 'Join waitlist', 'ffcertificate' ),
-					'waitlistStatus'       => __( 'On waitlist', 'ffcertificate' ),
-					'waitlistNotice'       => __( 'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.', 'ffcertificate' ),
-					'confirmationCode'     => __( 'Confirmation Code', 'ffcertificate' ),
-					'confirmationCodeHelp' => __( 'Save this code to manage your appointment.', 'ffcertificate' ),
-					'downloadReceipt'      => __( 'Download Receipt', 'ffcertificate' ),
-					'generatingReceipt'    => __( 'Generating receipt in the background, please wait...', 'ffcertificate' ),
-					'validationCode'       => __( 'Validation Code', 'ffcertificate' ),
-					'submit'               => __( 'Book Appointment', 'ffcertificate' ),
-					'timeout'              => __( 'Connection timeout. Please try again.', 'ffcertificate' ),
-					'networkError'         => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
-					// PDF overlay.
-					'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
-					'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
-					// The override warning (#1859).
-					'override'             => \FreeFormCertificate\Core\OverrideWarning::strings(),
+				'strings'   => array_merge(
+					// The state names (#2215): the administrator's, else the translated default.
+					\FreeFormCertificate\Scheduling\CalendarAppearance::strings(),
+					array(
+						'selectDate'           => __( 'Please select a date', 'ffcertificate' ),
+						'selectTime'           => __( 'Please select a time', 'ffcertificate' ),
+						'fillRequired'         => __( 'Please fill all required fields', 'ffcertificate' ),
+						'consentRequired'      => __( 'You must agree to the terms', 'ffcertificate' ),
+						'loading'              => __( 'Loading...', 'ffcertificate' ),
+						'availableTimes'       => __( 'Available Times', 'ffcertificate' ),
+						'yourInformation'      => __( 'Your Information', 'ffcertificate' ),
+						'noSlots'              => __( 'No available slots for this date', 'ffcertificate' ),
+						'success'              => __( 'Appointment booked successfully!', 'ffcertificate' ),
+						'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),
+						// Calendar strings.
+						'months'               => array(
+							__( 'January', 'ffcertificate' ),
+							__( 'February', 'ffcertificate' ),
+							__( 'March', 'ffcertificate' ),
+							__( 'April', 'ffcertificate' ),
+							__( 'May', 'ffcertificate' ),
+							__( 'June', 'ffcertificate' ),
+							__( 'July', 'ffcertificate' ),
+							__( 'August', 'ffcertificate' ),
+							__( 'September', 'ffcertificate' ),
+							__( 'October', 'ffcertificate' ),
+							__( 'November', 'ffcertificate' ),
+							__( 'December', 'ffcertificate' ),
+						),
+						'weekdays'             => array(
+							__( 'Sun', 'ffcertificate' ),
+							__( 'Mon', 'ffcertificate' ),
+							__( 'Tue', 'ffcertificate' ),
+							__( 'Wed', 'ffcertificate' ),
+							__( 'Thu', 'ffcertificate' ),
+							__( 'Fri', 'ffcertificate' ),
+							__( 'Sat', 'ffcertificate' ),
+						),
+						'today'                => __( 'Today', 'ffcertificate' ),
+						'prevMonth'            => __( 'Previous month', 'ffcertificate' ),
+						'nextMonth'            => __( 'Next month', 'ffcertificate' ),
+						// Confirmation screen.
+						'date'                 => __( 'Date', 'ffcertificate' ),
+						'time'                 => __( 'Time', 'ffcertificate' ),
+						'name'                 => __( 'Name', 'ffcertificate' ),
+						'email'                => __( 'Email', 'ffcertificate' ),
+						'status'               => __( 'Status', 'ffcertificate' ),
+						'confirmed'            => __( 'Confirmed', 'ffcertificate' ),
+						'pendingApproval'      => __( 'Pending Approval', 'ffcertificate' ),
+						// Waitlist (#941 phase 2).
+						'joinWaitlist'         => __( 'Join waitlist', 'ffcertificate' ),
+						'waitlistStatus'       => __( 'On waitlist', 'ffcertificate' ),
+						'waitlistNotice'       => __( 'This time is full. Submitting adds you to the waitlist — you will be notified automatically if a spot opens up.', 'ffcertificate' ),
+						'confirmationCode'     => __( 'Confirmation Code', 'ffcertificate' ),
+						'confirmationCodeHelp' => __( 'Save this code to manage your appointment.', 'ffcertificate' ),
+						'downloadReceipt'      => __( 'Download Receipt', 'ffcertificate' ),
+						'generatingReceipt'    => __( 'Generating receipt in the background, please wait...', 'ffcertificate' ),
+						'validationCode'       => __( 'Validation Code', 'ffcertificate' ),
+						'submit'               => __( 'Book Appointment', 'ffcertificate' ),
+						'timeout'              => __( 'Connection timeout. Please try again.', 'ffcertificate' ),
+						'networkError'         => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
+						// PDF overlay.
+						'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
+						'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+						// The override warning (#1859).
+						'override'             => \FreeFormCertificate\Core\OverrideWarning::strings(),
+					)
 				),
 			)
 		);
@@ -327,9 +329,10 @@ class SelfSchedulingShortcode {
 				$badges . esc_html__( 'You are viewing this calendar as an administrator (bypass active).', 'ffcertificate' ),
 				'',
 				array(
-					'role' => 'note',
-					'html' => true,
-					'hook' => 'admin-bypass',
+					'role'    => 'note',
+					'html'    => true,
+					'hook'    => 'admin-bypass',
+					'classes' => array( 'ffc-calendar-notice' ),
 				)
 			);
 			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
@@ -353,8 +356,9 @@ class SelfSchedulingShortcode {
 			$message,
 			'',
 			array(
-				'role' => 'note',
-				'hook' => 'calendar-error',
+				'role'    => 'note',
+				'hook'    => 'calendar-error',
+				'classes' => array( 'ffc-calendar-notice' ),
 			)
 		);
 	}
@@ -778,6 +782,13 @@ class SelfSchedulingShortcode {
 			// The booking form asks for the override warning first (#1859);
 			// the server decides again on the submission.
 			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
+			// The state names with this calendar's own applied (#2223); the
+			// shared `ffcCalendar.strings` carries only the general ones.
+			'labels'        => \FreeFormCertificate\Scheduling\CalendarAppearance::strings(
+				\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
+					isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
+				)
+			),
 		);
 		?>
 		<script type="application/json" id="ffc-calendar-config-<?php echo (int) $calendar['id']; ?>"><?php echo wp_json_encode( $calendar_config ); ?></script>

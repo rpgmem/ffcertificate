@@ -2,7 +2,7 @@
 /**
  * Template: Audience admin settings — Audience tab (manage links + visibility settings + badge color).
  * In-scope: $display_mode, $visibility_message, $scheduling_message,
- * $multiple_audiences_color, $max_self_join_groups, $this->menu_slug.
+ * $multiple_audiences_color, $max_self_join_groups, $max_range_days, $this->menu_slug.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -84,6 +84,37 @@ if ( ! defined( 'ABSPATH' ) ) {
 											__( 'How many self-join groups one user may belong to at once, from %1$d to %2$d. A user at the limit leaves a group before joining another. Every membership in a group that allows self-join counts, however it was added. Saved with the Save Settings button below.', 'ffcertificate' ),
 											\FreeFormCertificate\Audience\AudienceSelfJoinLimit::MIN,
 											\FreeFormCertificate\Audience\AudienceSelfJoinLimit::MAX
+										)
+									);
+									?>
+								</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="card">
+				<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Bookings over several days', 'ffcertificate' ); ?></h2>
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="ffc_aud_max_range_days"><?php esc_html_e( 'Longest range', 'ffcertificate' ); ?></label>
+							</th>
+							<td>
+								<input type="number" name="ffc_aud_max_range_days" id="ffc_aud_max_range_days" class="small-text" required
+										min="1"
+										max="<?php echo esc_attr( (string) \FreeFormCertificate\Audience\AudienceBookingRules::MAX_RANGE_LIMIT ); ?>"
+										value="<?php echo esc_attr( (string) $max_range_days ); ?>">
+								<p class="description">
+									<?php
+									echo esc_html(
+										sprintf(
+											/* translators: 1: highest accepted value, 2: default value */
+											__( 'The most consecutive days one booking may cover, from 1 to %1$d (default %2$d). The conflict check and the booking both refuse a longer range, naming the limit. Saved with the Save Settings button below.', 'ffcertificate' ),
+											\FreeFormCertificate\Audience\AudienceBookingRules::MAX_RANGE_LIMIT,
+											\FreeFormCertificate\Audience\AudienceBookingRules::DEFAULT_MAX_RANGE_DAYS
 										)
 									);
 									?>

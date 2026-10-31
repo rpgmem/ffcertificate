@@ -199,14 +199,18 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'recruitment-convocation'       => array(
 				'label'  => __( 'Recruitment convocation', 'ffcertificate' ),
-				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes' ),
+				'tokens' => array( 'name', 'cpf_masked', 'rf_masked', 'email_masked', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'score', 'is_pcd', 'date_to_assume', 'time_to_assume', 'called_at', 'site_name', 'site_url', 'notes', 'my_calls_url', 'set_password_url', 'respond_by_line' ),
+			),
+			'recruitment-cancellation'      => array(
+				'label'  => __( 'Recruitment call cancelled', 'ffcertificate' ),
+				'tokens' => array( 'name', 'adjutancy', 'notice_code', 'notice_name', 'rank', 'date_to_assume', 'time_to_assume', 'called_at', 'cancellation_reason', 'site_name', 'site_url' ),
 			),
 			'reregistration-invitation'     => array(
 				'label'  => __( 'Reregistration invitation', 'ffcertificate' ),
-				// `status_line` and `action_label` are supplied per recipient and
-				// their two values are not editable here (#1300) -- the operator
-				// can move or remove them, not reword them.
-				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'set_password_url', 'status_line', 'action_label', 'site_name' ),
+				// `status_line`, `action_label` and `opening_line` are supplied per
+				// recipient and their values are not editable here (#1300, #2242)
+				// -- the operator can move or remove them, not reword them.
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'dashboard_url', 'set_password_url', 'opening_line', 'status_line', 'action_label', 'site_name' ),
 			),
 			'reregistration-reminder'       => array(
 				'label'  => __( 'Reregistration reminder', 'ffcertificate' ),
@@ -215,6 +219,15 @@ class TabEmailTexts extends SettingsTab {
 			'reregistration-confirmation'   => array(
 				'label'  => __( 'Reregistration confirmation', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'submission_status', 'auth_code', 'magic_link_url', 'dashboard_url', 'site_name' ),
+			),
+			'reregistration-rejected'       => array(
+				'label'  => __( 'Reregistration not approved', 'ffcertificate' ),
+				// `reason` is what the reviewer typed (#2242).
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'reason', 'dashboard_url', 'site_name' ),
+			),
+			'reregistration-returned'       => array(
+				'label'  => __( 'Reregistration returned for revision', 'ffcertificate' ),
+				'tokens' => array( 'user_name', 'reregistration_title', 'audience_name', 'start_date', 'end_date', 'reason', 'dashboard_url', 'site_name' ),
 			),
 			'audience-booking'              => array(
 				'label'  => __( 'Audience booking confirmation', 'ffcertificate' ),
@@ -227,6 +240,11 @@ class TabEmailTexts extends SettingsTab {
 			'audience-admin-cancellation'   => array(
 				'label'  => __( 'Audience booking cancelled by an administrator', 'ffcertificate' ),
 				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'cancelled_by_name', 'cancellation_reason', 'site_name', 'site_url' ),
+			),
+			'audience-change'               => array(
+				'label'  => __( 'Audience booking changed', 'ffcertificate' ),
+				// The booking as it now stands, then what it was (#2243).
+				'tokens' => array( 'user_name', 'user_email', 'environment_name', 'environment_label', 'schedule_name', 'booking_date', 'time', 'start_time', 'end_time', 'description', 'audiences', 'changed_by_name', 'previous_environment', 'previous_date', 'previous_time', 'site_name', 'site_url' ),
 			),
 			'audience-post-event-invite'    => array(
 				'label'  => __( 'Audience post-event form invitation', 'ffcertificate' ),
@@ -329,13 +347,15 @@ class TabEmailTexts extends SettingsTab {
 				'appointment-waitlisted',
 				'calendar-deleted-cancellation',
 			),
-			__( 'Recruitment', 'ffcertificate' )        => array( 'recruitment-convocation' ),
+			__( 'Recruitment', 'ffcertificate' )        => array( 'recruitment-convocation', 'recruitment-cancellation' ),
 			__( 'Reregistration', 'ffcertificate' )     => array(
 				'reregistration-invitation',
 				'reregistration-reminder',
 				'reregistration-confirmation',
+				'reregistration-rejected',
+				'reregistration-returned',
 			),
-			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-post-event-invite' ),
+			__( 'Audience Calendars', 'ffcertificate' ) => array( 'audience-booking', 'audience-cancellation', 'audience-admin-cancellation', 'audience-change', 'audience-post-event-invite' ),
 			__( 'Account access', 'ffcertificate' )     => array( 'access-granted' ),
 			__( 'Date Messages', 'ffcertificate' )      => array( 'date-message-birthday', 'date-message-announcement' ),
 		);

@@ -8,18 +8,22 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Services\UserService;
+use FreeFormCertificate\UserDashboard\CapabilityManager;
 
 /**
  * Tests for UserService: full profile retrieval, capabilities,
  * user statistics, personal data export, and FFC data presence check.
  *
- * Alias mocks for UserManager and Utils are created in setUp to prevent
- * autoloading of the real classes (same pattern as DataSanitizerTest).
+ * Runs the real UserManager, UserProfileRepository, CapabilityManager,
+ * Encryption and BirthDate over a `$wpdb` double: the `ffc_user_profiles`
+ * row is what `get_row()` answers, `SHOW TABLES LIKE` answers from the
+ * tables a test declares present, and each `COUNT(*)` answers from a count
+ * per table. Every `prepare()` is recorded, so a test can assert which user
+ * a query was asked about.
  *
  * @covers \FreeFormCertificate\Services\UserService
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class UserServiceTest extends TestCase {
 
@@ -28,51 +32,187 @@ class UserServiceTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $userManagerMock;
-	/** @var \Mockery\MockInterface */
-	private $capManagerMock;
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = [];
 
-	/** @var Mockery\MockInterface */
-	private $utilsMock;
+	/**
+	 * Tables that `SHOW TABLES LIKE` reports as present.
+	 *
+	 * @var list<string>
+	 */
+	private array $tables = [];
+
+	/**
+	 * Rows per table, whatever their status, read by the footprint probe.
+	 *
+	 * @var array<string, int>
+	 */
+	private array $rows = [];
+
+	/**
+	 * What a `COUNT(*)` answers, by table.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $counts = [];
+
+	/** The stored `ffc_user_profiles` row, or null for none. */
+	private ?array $profile_row = null;
+
+	/**
+	 * User meta by key.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $meta = [];
+
+	/**
+	 * Arguments of each get_user_meta() call.
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $meta_reads = [];
+
+	/**
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		global $wpdb;
-		$wpdb = Mockery::mock('wpdb');
-		$wpdb->prefix = 'wp_';
-		$this->wpdb = $wpdb;
+		$this->prepared    = [];
+		$this->tables      = [];
+		$this->rows        = [];
+		$this->counts      = [];
+		$this->profile_row = null;
+		$this->meta        = [];
+		$this->meta_reads  = [];
 
-		// Alias mocks: created before autoloading to intercept class_exists.
-		// IMPORTANT: store on $this so tests can add expectations to the SAME
-		// instance. Re-creating the alias mock in a test body creates a
-		// secondary mock that does NOT intercept static calls — those still
-		// hit the original (byDefault) expectations registered here.
-		$this->userManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$this->userManagerMock->shouldReceive('get_profile')->andReturn([])->byDefault();
-		// get_full_profile() also reads the canonical birth date (#1538).
-		$this->userManagerMock->shouldReceive('get_extended_profile')->andReturn([])->byDefault();
-		$this->capManagerMock = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\CapabilityManager');
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([])->byDefault();
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
 
-		$this->utilsMock = Mockery::mock('alias:\FreeFormCertificate\Core\Utils');
-		$this->utilsMock->shouldReceive('debug_log')->byDefault();
+		$this->wpdb         = Mockery::mock( 'wpdb' );
+		$this->wpdb->prefix = 'wp_';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$this->prepared[] = array( (string) $sql, array_values( $args ) );
+				return 'Q' . ( count( $this->prepared ) - 1 );
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql, $args ] = $this->statement( $query );
+				if ( false !== strpos( $sql, 'SHOW TABLES LIKE' ) ) {
+					return in_array( $args[0], $this->tables, true ) ? $args[0] : null;
+				}
+				if ( false !== strpos( $sql, 'COUNT(*)' ) ) {
+					return $this->counts[ $args[0] ?? '' ] ?? null;
+				}
+				if ( false !== strpos( $sql, 'SELECT 1 FROM' ) ) {
+					// The footprint probe: any row at all, whatever its status.
+					return ( (int) ( $this->rows[ $args[0] ?? '' ] ?? 0 ) ) > 0 ? '1' : null;
+				}
+				return null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $query ) {
+				[ , $args ] = $this->statement( $query );
+				return 'wp_ffc_user_profiles' === ( $args[0] ?? null ) ? $this->profile_row : null;
+			}
+		);
+		$GLOBALS['wpdb'] = $this->wpdb;
 
 		// Default WP stubs
-		Functions\when('__')->returnArg();
-		Functions\when('get_userdata')->justReturn(false);
-		Functions\when('user_can')->justReturn(false);
-
-		// Default wpdb stubs
-		$this->wpdb->shouldReceive('prepare')->andReturn('SQL')->byDefault();
-		$this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'sanitize_key' )->alias(
+			static fn( $key ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) )
+		);
+		Functions\when( 'get_user_meta' )->alias(
+			function ( $user_id, $key = '', $single = false ) {
+				$this->meta_reads[] = array( $user_id, $key, $single );
+				return $this->meta[ $key ] ?? '';
+			}
+		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The prepared statement behind a token the double handed out.
+	 *
+	 * @param mixed $query Token returned by prepare().
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function statement( $query ): array {
+		$index = (int) substr( (string) $query, 1 );
+		return $this->prepared[ $index ] ?? array( (string) $query, array() );
+	}
+
+	/**
+	 * The user ids the profile table was read for.
+	 *
+	 * @return list<mixed>
+	 */
+	private function profile_reads(): array {
+		$ids = array();
+		foreach ( $this->prepared as [ $sql, $args ] ) {
+			if ( 'wp_ffc_user_profiles' === ( $args[0] ?? null ) && false !== strpos( $sql, 'WHERE user_id = %d' ) ) {
+				$ids[] = $args[1];
+			}
+		}
+		return $ids;
+	}
+
+	/**
+	 * Declare a stored profile row for the user.
+	 *
+	 * @param array<string, mixed> $columns Columns that differ from an empty row.
+	 */
+	private function storeProfile( int $user_id, array $columns ): void {
+		$this->tables[]    = 'wp_ffc_user_profiles';
+		$this->profile_row = array_merge(
+			array(
+				'user_id'      => (string) $user_id,
+				'display_name' => null,
+				'phone'        => null,
+				'department'   => null,
+				'organization' => null,
+				'notes'        => null,
+				'preferences'  => null,
+				'created_at'   => '2024-01-01 00:00:00',
+				'updated_at'   => '2024-01-01 00:00:00',
+			),
+			$columns
+		);
 	}
 
 	private function makeWpUser(array $overrides = []): \WP_User {
@@ -95,7 +235,7 @@ class UserServiceTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_full_profile — basic profile (UserManager returns empty)
+	// get_full_profile — basic profile (no FFC profile row)
 	// ==================================================================
 
 	public function test_get_full_profile_returns_core_data(): void {
@@ -119,26 +259,23 @@ class UserServiceTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_full_profile — with FFC profile data from UserManager
+	// get_full_profile — with FFC profile data from the profile table
 	// ==================================================================
 
 	public function test_get_full_profile_merges_ffc_profile_data(): void {
 		$user = $this->makeWpUser(['display_name' => 'Maria Silva']);
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')
-			->with(42)
-			->andReturn([
-				'phone' => '+55 11 99999-0000',
-				'department' => 'Engineering',
-				'organization' => 'Acme Corp',
-				'notes' => 'VIP user',
-			]);
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(42, [
+			'phone' => '+55 11 99999-0000',
+			'department' => 'Engineering',
+			'organization' => 'Acme Corp',
+			'notes' => 'VIP user',
+		]);
 
 		$result = UserService::get_full_profile(42);
 
+		$this->assertSame([42], array_values(array_unique($this->profile_reads())), 'The profile row is read for the requested user only.');
 		$this->assertSame('+55 11 99999-0000', $result['phone']);
 		$this->assertSame('Engineering', $result['department']);
 		$this->assertSame('Acme Corp', $result['organization']);
@@ -151,28 +288,29 @@ class UserServiceTest extends TestCase {
 	 */
 	public function test_get_full_profile_carries_the_canonical_birth_date(): void {
 		Functions\when('get_userdata')->justReturn($this->makeWpUser());
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
 
-		$this->userManagerMock->shouldReceive('get_extended_profile')
-			->with(42, ['birth_date'])
-			->andReturn(['birth_date' => '20/05/1990'], ['birth_date' => 'not a date']);
-
+		$this->meta['ffc_user_birth_date'] = (string) Encryption::encrypt('20/05/1990');
 		$this->assertSame('1990-05-20', UserService::get_full_profile(42)['birth_date']);
+
+		$this->meta['ffc_user_birth_date'] = (string) Encryption::encrypt('not a date');
 		$this->assertSame('', UserService::get_full_profile(42)['birth_date']);
+
+		$this->assertSame(
+			[[42, 'ffc_user_birth_date', true], [42, 'ffc_user_birth_date', true]],
+			$this->meta_reads,
+			'The birth date is read from the requested user\'s meta, once per profile.'
+		);
 	}
 
 	public function test_get_full_profile_defaults_missing_ffc_fields_to_empty_string(): void {
 		$user = $this->makeWpUser();
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')
-			->with(10)
-			->andReturn([]); // no phone, department, etc.
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(10, []); // no phone, department, etc.
 
 		$result = UserService::get_full_profile(10);
 
+		$this->assertSame([10], array_values(array_unique($this->profile_reads())));
 		$this->assertSame('', $result['phone']);
 		$this->assertSame('', $result['department']);
 		$this->assertSame('', $result['organization']);
@@ -183,12 +321,7 @@ class UserServiceTest extends TestCase {
 		$user = $this->makeWpUser(['display_name' => 'John from WP']);
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')
-			->andReturn([
-				'display_name' => 'John from FFC',
-			]);
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(42, ['display_name' => 'John from FFC']);
 
 		$result = UserService::get_full_profile(42);
 
@@ -199,12 +332,7 @@ class UserServiceTest extends TestCase {
 		$user = $this->makeWpUser(['display_name' => 'John from WP']);
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')
-			->andReturn([
-				'display_name' => '',
-			]);
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(42, ['display_name' => '']);
 
 		$result = UserService::get_full_profile(42);
 
@@ -215,29 +343,28 @@ class UserServiceTest extends TestCase {
 		$user = $this->makeWpUser();
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')
-			->andReturn([
-				'preferences' => '{"theme":"dark"}',
-			]);
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(42, ['preferences' => '{"theme":"dark"}']);
 
 		$result = UserService::get_full_profile(42);
 
 		$this->assertSame('{"theme":"dark"}', $result['preferences']);
 	}
 
-	public function test_get_full_profile_omits_preferences_key_when_absent(): void {
+	/**
+	 * UserManager::get_profile() always carries the `preferences` key — null
+	 * when the profile stores none — so the profile passes that null through
+	 * rather than inventing a value.
+	 */
+	public function test_get_full_profile_carries_null_preferences_when_none_stored(): void {
 		$user = $this->makeWpUser();
 		Functions\when('get_userdata')->justReturn($user);
 
-		$userManagerMock = $this->userManagerMock;
-		$userManagerMock->shouldReceive('get_profile')->andReturn([]);
-		$this->capManagerMock->shouldReceive('get_all_capabilities')->andReturn([]);
+		$this->storeProfile(42, []);
 
 		$result = UserService::get_full_profile(42);
 
-		$this->assertArrayNotHasKey('preferences', $result);
+		$this->assertArrayHasKey('preferences', $result);
+		$this->assertNull($result['preferences']);
 	}
 
 	// ==================================================================
@@ -245,28 +372,29 @@ class UserServiceTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_user_capabilities_returns_cap_status_map(): void {
-		$userManagerMock = $this->userManagerMock;
-		$this->capManagerMock->shouldReceive('get_all_capabilities')
-			->andReturn(['ffc_view_certificates', 'ffc_download_pdf', 'ffc_manage_forms']);
-		$userManagerMock->shouldReceive('get_profile')->andReturn([]);
+		$all     = CapabilityManager::get_all_capabilities();
+		$granted = [$all[0], $all[1]];
 
-		Functions\when('user_can')->alias(function ($uid, $cap) {
-			return in_array($cap, ['ffc_view_certificates', 'ffc_download_pdf'], true);
+		Functions\when('user_can')->alias(function ($uid, $cap) use ($granted) {
+			return 42 === $uid && in_array($cap, $granted, true);
 		});
 
 		$result = UserService::get_user_capabilities(42);
 
-		$this->assertCount(3, $result);
-		$this->assertTrue($result['ffc_view_certificates']);
-		$this->assertTrue($result['ffc_download_pdf']);
-		$this->assertFalse($result['ffc_manage_forms']);
+		$this->assertCount(count(array_unique($all)), $result);
+		$this->assertTrue($result[$all[0]]);
+		$this->assertTrue($result[$all[1]]);
+		$this->assertFalse($result[$all[2]]);
 	}
 
-	public function test_get_user_capabilities_returns_empty_when_no_caps_defined(): void {
-		// Default: get_all_capabilities returns [] (from setUp)
+	public function test_get_user_capabilities_reports_every_cap_false_when_user_holds_none(): void {
+		// Default: user_can returns false (from setUp)
 		$result = UserService::get_user_capabilities(42);
 
-		$this->assertSame([], $result);
+		$this->assertSame(
+			array_fill_keys(CapabilityManager::get_all_capabilities(), false),
+			$result
+		);
 	}
 
 	// ==================================================================
@@ -274,12 +402,7 @@ class UserServiceTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_user_statistics_returns_certificate_count(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn(
-				'5',  // certificates count
-				null, // appointments table doesn't exist
-				null  // audience_members table doesn't exist
-			);
+		$this->counts['wp_ffc_submissions'] = '5';
 
 		$result = UserService::get_user_statistics(42);
 
@@ -287,13 +410,9 @@ class UserServiceTest extends TestCase {
 	}
 
 	public function test_get_user_statistics_counts_appointments_when_table_exists(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn(
-				'0',                                    // certificates count
-				'wp_ffc_self_scheduling_appointments',  // appointments table exists
-				'3',                                    // appointments count
-				null                                    // audience_members table doesn't exist
-			);
+		$this->counts['wp_ffc_submissions']                  = '0';
+		$this->tables[]                                      = 'wp_ffc_self_scheduling_appointments';
+		$this->counts['wp_ffc_self_scheduling_appointments'] = '3';
 
 		$result = UserService::get_user_statistics(42);
 
@@ -301,13 +420,9 @@ class UserServiceTest extends TestCase {
 	}
 
 	public function test_get_user_statistics_counts_audience_groups_when_table_exists(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn(
-				'0',                           // certificates count
-				null,                          // appointments table doesn't exist
-				'wp_ffc_audience_members',     // audience_members table exists
-				'5'                            // audience_groups count
-			);
+		$this->counts['wp_ffc_submissions']      = '0';
+		$this->tables[]                          = 'wp_ffc_audience_members';
+		$this->counts['wp_ffc_audience_members'] = '5';
 
 		$result = UserService::get_user_statistics(42);
 
@@ -315,12 +430,7 @@ class UserServiceTest extends TestCase {
 	}
 
 	public function test_get_user_statistics_returns_all_zeros_when_no_data(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn(
-				'0',  // certificates
-				null, // no appointments table
-				null  // no audience table
-			);
+		$this->counts['wp_ffc_submissions'] = '0';
 
 		$result = UserService::get_user_statistics(42);
 
@@ -333,30 +443,73 @@ class UserServiceTest extends TestCase {
 	// user_has_ffc_data
 	// ==================================================================
 
-	public function test_user_has_ffc_data_returns_false_when_all_stats_zero(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn('0', null, null);
+	public function test_user_has_ffc_data_is_false_when_no_table_holds_a_row(): void {
+		$this->tables = array(
+			'wp_ffc_self_scheduling_appointments',
+			'wp_ffc_activity_log',
+			'wp_ffc_audience_members',
+			'wp_ffc_audience_booking_users',
+			'wp_ffc_audience_schedule_permissions',
+			'wp_ffc_user_profiles',
+		);
 
-		$this->assertFalse(UserService::user_has_ffc_data(42));
+		$this->assertFalse( UserService::user_has_ffc_data( 42 ) );
 	}
 
-	public function test_user_has_ffc_data_returns_true_when_certificates_exist(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn('3', null, null);
-
-		$this->assertTrue(UserService::user_has_ffc_data(42));
+	/**
+	 * Every table the deletion cleanup touches, each alone (#2246).
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function footprint_tables(): array {
+		return array(
+			'a trashed certificate counts'     => array( 'wp_ffc_submissions' ),
+			'a cancelled appointment counts'   => array( 'wp_ffc_self_scheduling_appointments' ),
+			'an activity-log row counts'       => array( 'wp_ffc_activity_log' ),
+			'an audience membership counts'    => array( 'wp_ffc_audience_members' ),
+			'a booking counts'                 => array( 'wp_ffc_audience_booking_users' ),
+			'a schedule permission counts'     => array( 'wp_ffc_audience_schedule_permissions' ),
+			'a profile row counts'             => array( 'wp_ffc_user_profiles' ),
+		);
 	}
 
-	public function test_user_has_ffc_data_returns_true_when_appointments_exist(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn(
-				'0',
-				'wp_ffc_self_scheduling_appointments',
-				'1',
-				null
-			);
+	/**
+	 * @dataProvider footprint_tables
+	 */
+	public function test_user_has_ffc_data_sees_a_row_in_each_table_the_cleanup_touches( string $table ): void {
+		$this->tables = array(
+			'wp_ffc_self_scheduling_appointments',
+			'wp_ffc_activity_log',
+			'wp_ffc_audience_members',
+			'wp_ffc_audience_booking_users',
+			'wp_ffc_audience_schedule_permissions',
+			'wp_ffc_user_profiles',
+		);
+		// The status the dashboard counts hides it; the probe must not.
+		$this->counts[ $table ] = '0';
+		$this->rows[ $table ]   = 1;
 
-		$this->assertTrue(UserService::user_has_ffc_data(42));
+		$this->assertTrue( UserService::user_has_ffc_data( 42 ) );
+	}
+
+	public function test_user_has_ffc_data_reads_no_status_filter(): void {
+		$this->tables = array( 'wp_ffc_self_scheduling_appointments' );
+
+		UserService::user_has_ffc_data( 42 );
+
+		$probes = array_filter( $this->prepared, static fn ( $p ) => false !== strpos( $p[0], 'SELECT 1 FROM' ) );
+		$this->assertCount( 2, $probes, 'Submissions plus the one optional table that exists.' );
+		foreach ( $probes as $probe ) {
+			$this->assertStringNotContainsString( 'status', $probe[0] );
+			$this->assertSame( 42, $probe[1][1] );
+		}
+	}
+
+	public function test_user_has_ffc_data_skips_a_table_that_does_not_exist(): void {
+		// Only submissions exists; a row counted for a missing table is never read.
+		$this->rows['wp_ffc_audience_members'] = 1;
+
+		$this->assertFalse( UserService::user_has_ffc_data( 42 ) );
 	}
 
 	// ==================================================================
@@ -367,8 +520,7 @@ class UserServiceTest extends TestCase {
 		$user = $this->makeWpUser(['display_name' => 'Export User']);
 		Functions\when('get_userdata')->justReturn($user);
 
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn('0', null, null);
+		$this->counts['wp_ffc_submissions'] = '0';
 
 		$result = UserService::export_personal_data(42);
 
@@ -378,8 +530,7 @@ class UserServiceTest extends TestCase {
 	}
 
 	public function test_export_personal_data_omits_profile_when_user_not_found(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn('0', null, null);
+		$this->counts['wp_ffc_submissions'] = '0';
 
 		$result = UserService::export_personal_data(999);
 
@@ -388,8 +539,7 @@ class UserServiceTest extends TestCase {
 	}
 
 	public function test_export_personal_data_always_includes_statistics(): void {
-		$this->wpdb->shouldReceive('get_var')
-			->andReturn('0', null, null);
+		$this->counts['wp_ffc_submissions'] = '0';
 
 		$result = UserService::export_personal_data(1);
 

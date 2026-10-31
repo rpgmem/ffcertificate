@@ -8,26 +8,46 @@ use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer;
-use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
 use FreeFormCertificate\Recruitment\RecruitmentSettings;
-use FreeFormCertificate\Recruitment\RecruitmentNoticeReader;
-use FreeFormCertificate\Core\Capabilities;
 
 /**
- * Render smoke-tests for RecruitmentAdminPageRenderer — each public render
- * method is invoked with stubbed collaborators (readers, settings, list
- * tables, capability gates) so the renderer's own data-prep + template
- * `include` lines execute. The included templates/admin/recruitment/admin-page
- * partials are out of coverage scope; the goal is to drive the renderer's
- * in-scope statements without a fatal.
+ * Render tests for RecruitmentAdminPageRenderer, against its real
+ * collaborators: the capability gates read `current_user_can()`, the readers
+ * and list tables read a `$wpdb` double, the settings read `get_option()`,
+ * and the markup is the real `AdminUI`'s.
+ *
+ * They used stand-in classes for all eleven collaborators until #2091, and
+ * those stand-ins occupied the class table for the rest of the process, so
+ * the class had to run every test in a process of its own. Against the real
+ * classes it runs in the shared one, and the gates the tests flip are the
+ * ones that ship.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentAdminPageRendererTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * Capabilities the current user lacks; every other one is held.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $denied = array();
+
+	/**
+	 * Rows the notices table answers with.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $notices = array();
+
+	/**
+	 * The `$wpdb` the test replaced, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -43,23 +63,35 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 			}
 		);
 
-		// Define the collaborator stubs (constants + static gates) ONLY now, in
-		// this isolated test process — never at suite-discovery time. Declaring
-		// them at file scope would poison the real recruitment classes for every
-		// other test in the suite (see the fixture's docblock, #563).
-		require_once __DIR__ . '/../fixtures/recruitment-admin-page-renderer-stubs.php';
+		// The readers and list tables query $wpdb. The double names the table
+		// in the prepared query, so it can answer the notices table alone.
+		global $wpdb;
+		$this->previous_wpdb = $wpdb;
+		$this->denied        = array();
+		$this->notices       = array();
+		$notices             = &$this->notices;
+		$wpdb                = new class( $notices ) extends \wpdb {
+			/** @var array<int, object> */
+			private array $notice_rows;
 
-		// pcov coverage-attribution: preload so statements register vs the floor.
-		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer' );
+			/** @param array<int, object> $notice_rows Rows of the notices table. */
+			public function __construct( array &$notice_rows ) {
+				$this->prefix      = 'wp_';
+				$this->notice_rows = &$notice_rows;
+			}
 
-		// Reset stub flags to the all-open defaults each test.
-		RecruitmentAdminPage::$view_settings = true;
-		RecruitmentAdminPage::$view_reasons  = true;
-		RecruitmentAdminPage::$edit_reasons  = true;
-		RecruitmentAdminPage::$edit_settings = true;
-		RecruitmentNoticeReader::$rows       = array();
-		RecruitmentSettings::$values         = $this->settingsFixture();
-		Capabilities::$admin_or              = true;
+			public function prepare( $query, ...$args ) {
+				return $query . ' -- ' . (string) json_encode( $args );
+			}
+
+			public function get_results( $query = null, $output = OBJECT ) {
+				return false !== strpos( (string) $query, 'ffc_recruitment_notice' ) ? $this->notice_rows : array();
+			}
+
+			public function get_var( $query = null, $x = 0, $y = 0 ) {
+				return 0;
+			}
+		};
 
 		// WP escaping / i18n stubs.
 		Functions\when( '__' )->returnArg();
@@ -90,14 +122,55 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		Functions\when( 'submit_button' )->alias( static function () { echo '<button>save</button>'; } );
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		// The Email-template card renders EmailDisabledNotice, which reads
-		// ffc_settings via SettingsReader; an empty array keeps emails enabled
-		// so the notice no-ops during the settings-tab render assertions.
-		Functions\when( 'get_option' )->justReturn( array() );
+		$denied = &$this->denied;
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( &$denied ): bool {
+				return ! in_array( $cap, $denied, true );
+			}
+		);
+		// The recruitment settings come from their option; every other option
+		// is empty, which keeps the Email Model's disabled notice silent.
+		$settings = $this->settingsFixture();
+		Functions\when( 'get_option' )->alias(
+			static fn( $name, $fallback = false ) => RecruitmentSettings::OPTION_NAME === $name ? $settings : array()
+		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		// LabelSorter takes the WordPress branch only when get_locale() exists, and
+		// whether it does depends on what ran earlier in the process: choose it here.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+	}
+
+	/**
+	 * Takes capabilities away from the current user, `manage_options` with
+	 * them: an administrator passes every gate whatever the granular one.
+	 *
+	 * @param string ...$caps Capabilities to deny.
+	 */
+	private function deny( string ...$caps ): void {
+		$this->denied = array_merge( $this->denied, array( 'manage_options' ), $caps );
+	}
+
+	/**
+	 * A notices-table row with every column the list table reads.
+	 *
+	 * @param int    $id     Notice id.
+	 * @param string $status Notice status.
+	 */
+	private function notice( int $id, string $status ): object {
+		return (object) array(
+			'id'           => $id,
+			'code'         => 'E' . $id,
+			'name'         => 'N' . $id,
+			'status'       => $status,
+			'was_reopened' => '0',
+			'created_at'   => '2026-10-01 10:00:00',
+		);
 	}
 
 	protected function tearDown(): void {
+		global $wpdb;
+		$wpdb = $this->previous_wpdb;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -119,8 +192,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_tabs_hides_settings_and_reasons_without_view_caps(): void {
-		RecruitmentAdminPage::$view_settings = false;
-		RecruitmentAdminPage::$view_reasons  = false;
+		$this->deny( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings', 'ffc_view_recruitment_reasons', 'ffc_manage_recruitment_reasons' );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_tabs( 'notices' ) );
 
@@ -130,7 +202,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_notices_tab_with_empty_state(): void {
-		RecruitmentNoticeReader::$rows = array();
+		$this->notices = array();
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_notices_tab() );
 
@@ -140,7 +212,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_notices_tab_without_empty_state_when_notices_exist(): void {
-		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'status' => 'draft' ) );
+		$this->notices = array( $this->notice( 1, 'draft' ) );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_notices_tab() );
 
@@ -164,6 +236,13 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'notice-error', $out );
 	}
 
+	public function test_render_flash_notice_says_why_a_delete_was_refused(): void {
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'adjutancy-in-use' ) );
+		$this->assertStringContainsString( 'was not deleted', $out );
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'reason-in-use' ) );
+		$this->assertStringContainsString( 'was not deleted', $out );
+	}
+
 	public function test_render_flash_notice_unknown_key_renders_nothing(): void {
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_flash_notice( 'totally-unknown' ) );
 		$this->assertSame( '', $out );
@@ -184,17 +263,17 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_create_reason_form_skipped_without_edit_cap(): void {
-		RecruitmentAdminPage::$edit_reasons = false;
+		$this->deny( 'ffc_manage_recruitment_reasons' );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_create_reason_form() );
 		$this->assertSame( '', $out );
 	}
 
 	public function test_render_candidates_tab_with_import_section(): void {
-		RecruitmentNoticeReader::$rows = array(
-			(object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ),
-			(object) array( 'id' => 2, 'code' => 'E2', 'name' => 'N2', 'status' => 'preliminary' ),
-			(object) array( 'id' => 3, 'code' => 'E3', 'name' => 'N3', 'status' => 'closed' ),
+		$this->notices = array(
+			$this->notice( 1, 'draft' ),
+			$this->notice( 2, 'preliminary' ),
+			$this->notice( 3, 'closed' ),
 		);
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_candidates_tab() );
@@ -215,7 +294,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_candidates_csv_import_section_empty(): void {
-		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 9, 'status' => 'closed' ) );
+		$this->notices = array( $this->notice( 9, 'closed' ) );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_candidates_csv_import_section() );
 
@@ -233,7 +312,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'Email template', $out );
 		$this->assertStringContainsString( 'Status badge colors', $out );
-		$this->assertStringContainsString( '<p class="submit"><button type="submit">Save Changes</button></p>', $out );
+		$this->assertStringContainsString( '<p class="submit"><button type="submit" class="ffc-btn ffc-btn-primary ffc-icon-save" name="submit" value="Save Changes">Save Changes</button>', $out );
 		// Send-mode + From fields stay; the subject/body editor moved to the hub
 		// (#964), replaced by a deep-link to Settings → Email texts (#976 split).
 		$this->assertStringContainsString( 'name="ffc_recruitment_settings[email_mode]"', $out );
@@ -244,24 +323,24 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_render_settings_tab_read_only(): void {
-		RecruitmentAdminPage::$edit_settings = false;
+		$this->deny( 'ffc_manage_recruitment_settings' );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_settings_tab() );
 
 		$this->assertStringContainsString( 'Read-only', $out );
 		$this->assertStringContainsString( '<fieldset disabled class="ffc-readonly-lock">', $out );
-		$this->assertStringNotContainsString( '<button>save</button>', $out );
+		$this->assertStringNotContainsString( '<p class="submit">', $out );
 	}
 
 	public function test_render_create_notice_form_skipped_without_cap(): void {
-		Capabilities::$admin_or = false;
+		$this->deny( 'ffc_manage_recruitment' );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_create_notice_form() );
 		$this->assertSame( '', $out );
 	}
 
 	public function test_render_create_adjutancy_form_skipped_without_cap(): void {
-		Capabilities::$admin_or = false;
+		$this->deny( 'ffc_manage_recruitment' );
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_create_adjutancy_form() );
 		$this->assertSame( '', $out );
@@ -294,7 +373,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	 * @dataProvider tab_screens
 	 */
 	public function test_each_tab_opens_with_a_card_headed_by_its_own_icon( string $method, string $label, string $icon ): void {
-		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+		$this->notices = array( $this->notice( 1, 'draft' ) );
 
 		$out = trim( $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() ) );
 
@@ -310,7 +389,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_create_forms_and_the_import_sit_in_their_own_cards_after_the_list(): void {
-		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+		$this->notices = array( $this->notice( 1, 'draft' ) );
 
 		foreach (
 			array(
@@ -329,7 +408,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	public function test_no_tab_keeps_the_old_postbox_or_a_loose_heading(): void {
-		RecruitmentNoticeReader::$rows = array( (object) array( 'id' => 1, 'code' => 'E1', 'name' => 'N1', 'status' => 'draft' ) );
+		$this->notices = array( $this->notice( 1, 'draft' ) );
 
 		foreach ( $this->tab_screens() as $screen ) {
 			$method = $screen[0];
@@ -374,7 +453,6 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 			'notice_status_color_preliminary'         => '#ff0',
 			'notice_status_color_definitive'          => '#0f0',
 			'notice_status_color_closed'              => '#999',
-			'audit_pii_reveals'                       => true,
 		);
 	}
 }

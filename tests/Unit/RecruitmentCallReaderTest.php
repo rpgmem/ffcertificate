@@ -28,6 +28,10 @@ class RecruitmentCallReaderTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		// pcov coverage-attribution: preload the class so its lines attribute here.
 		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentCallReader' );
@@ -159,6 +163,66 @@ class RecruitmentCallReaderTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( false );
 
 		$this->assertSame( array(), RecruitmentCallReader::get_history_for_classifications( array( 1 ) ) );
+	}
+
+	// ------------------------------------------------------------------
+	// get_for_notice (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_get_for_notice_skips_the_query_for_no_notice(): void {
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		$this->assertSame( array(), RecruitmentCallReader::get_for_notice( 0 ) );
+	}
+
+	public function test_get_for_notice_joins_the_classifications_of_that_notice_newest_first(): void {
+		$rows = array( $this->row( 5, 2 ), $this->row( 4, 1 ) );
+		$seen = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$seen ) {
+				$seen = array( $sql, $args );
+				return 'PREPARED';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PREPARED' )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentCallReader::get_for_notice( 9 ) );
+		$this->assertStringContainsString( 'INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d ORDER BY c.called_at DESC', $seen[0] );
+		$this->assertSame( array( 'wp_ffc_recruitment_call', 'wp_ffc_recruitment_classification', 9 ), $seen[1] );
+	}
+
+	public function test_get_for_notice_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentCallReader::get_for_notice( 9 ) );
+	}
+
+	public function test_count_for_notice_counts_every_call_of_the_notice(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '6' );
+
+		$this->assertSame( 6, RecruitmentCallReader::count_for_notice( 9 ) );
+	}
+
+	public function test_page_for_notice_walks_the_call_id_keyset(): void {
+		$rows = array( array( 'id' => '5' ) );
+		$seen = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$seen ) {
+				$seen = array( $sql, $args );
+				return 'PREPARED';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'PREPARED', ARRAY_A )->andReturn( $rows );
+
+		$this->assertSame( $rows, RecruitmentCallReader::page_for_notice( 9, 40, 25 ) );
+		$this->assertStringContainsString( 'AND c.id < %d ORDER BY c.id DESC LIMIT %d', $seen[0] );
+		$this->assertSame( array( 'wp_ffc_recruitment_call', 'wp_ffc_recruitment_classification', 9, 40, 25 ), $seen[1] );
+	}
+
+	public function test_page_for_notice_returns_empty_on_non_array_result(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), RecruitmentCallReader::page_for_notice( 9, 40, 25 ) );
 	}
 
 	// ------------------------------------------------------------------

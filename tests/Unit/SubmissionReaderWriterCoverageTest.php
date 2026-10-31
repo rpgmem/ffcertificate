@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Repositories\SubmissionRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Direct coverage for the read-side ({@see SubmissionReader}) and write-side
@@ -21,6 +22,7 @@ use FreeFormCertificate\Repositories\SubmissionRepository;
  * expectations can be asserted without a real connection.
  *
  * @covers \FreeFormCertificate\Repositories\SubmissionReader
+ * @covers \FreeFormCertificate\Repositories\SubmissionIdentityAudit
  * @covers \FreeFormCertificate\Repositories\SubmissionWriter
  */
 class SubmissionReaderWriterCoverageTest extends TestCase {
@@ -30,9 +32,35 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/**
+	 * Methods that announced their deprecation, in call order.
+	 *
+	 * @var list<string>
+	 */
+	private array $deprecated = array();
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->deprecated = array();
+		Functions\when( '_deprecated_function' )->alias(
+			function ( string $method ): void {
+				$this->deprecated[] = $method;
+			}
+		);
+
+		// No account matches a name search unless a test says otherwise.
+		Functions\when( 'get_users' )->justReturn( array() );
 
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionReader' );
 		class_exists( '\\FreeFormCertificate\\Repositories\\SubmissionWriter' );
@@ -71,6 +99,9 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -237,6 +268,35 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( array(), $this->repo()->find_shared_identities() );
 	}
 
+	public function test_the_reader_audit_methods_announce_the_move_and_answer_the_same(): void {
+		$rows = array( array( 'id' => 9, 'user_id' => 4, 'form_id' => 2 ) );
+		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( $rows, array(), array(), array() );
+
+		$reader = new \FreeFormCertificate\Repositories\SubmissionReader();
+		$this->assertSame( $rows, $reader->find_orphan_user_links( 5 ) );
+		$this->assertSame( array(), $reader->find_users_with_multiple_identities() );
+		$this->assertSame( array(), $reader->find_unlinked_with_matching_identity() );
+		$this->assertSame( array(), $reader->find_shared_identities() );
+
+		$this->assertSame(
+			array(
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_orphan_user_links',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_users_with_multiple_identities',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_unlinked_with_matching_identity',
+				'FreeFormCertificate\\Repositories\\SubmissionReader::find_shared_identities',
+			),
+			$this->deprecated
+		);
+	}
+
+	public function test_the_facade_reads_the_audit_without_a_deprecation(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$this->repo()->find_shared_identities();
+
+		$this->assertSame( array(), $this->deprecated );
+	}
+
 	public function test_count_by_status_maps_all_statuses(): void {
 		$results = array(
 			'publish' => (object) array( 'status' => 'publish', 'count' => '15' ),
@@ -343,14 +403,14 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		// 11-digit CPF → cpf_hash column branch.
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
-		$this->assertSame( $rows, $this->repo()->findByCpfRf( '123.456.789-09', 5 ) );
+		$this->assertSame( $rows, $this->repo()->findByCpfRf( self::masked( Identifiers::CPF_A ), 5 ) );
 	}
 
 	public function test_find_by_cpf_rf_uses_rf_hash_column_for_7_digit(): void {
 		// 7-digit RF → rf_hash column branch.
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
-		$this->assertSame( array(), $this->repo()->findByCpfRf( '1234567' ) );
+		$this->assertSame( array(), $this->repo()->findByCpfRf( Identifiers::RF_A ) );
 	}
 
 	public function test_find_by_form_id_returns_rows(): void {
@@ -396,6 +456,23 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
 		$this->assertSame( $rows, $this->repo()->getForExport( null, null ) );
+	}
+
+	public function test_unused_lookups_announce_their_deprecation(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->times( 4 )->andReturn( array() );
+
+		$repo = $this->repo();
+		$repo->findByEmail( 'a@b.com' );
+		$repo->findByCpfRf( Identifiers::RF_A );
+		$repo->findByFormId( 3 );
+		$repo->getForExport( array( 1 ), null );
+
+		$expected = array();
+		foreach ( array( 'findByEmail', 'findByCpfRf', 'findByFormId', 'getForExport' ) as $method ) {
+			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionRepository::' . $method;
+			$expected[] = 'FreeFormCertificate\\Repositories\\SubmissionReader::' . $method;
+		}
+		$this->assertSame( $expected, $this->deprecated );
 	}
 
 	// ==================================================================
@@ -586,6 +663,117 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->assertSame( 0, $result['total'] );
 	}
 
+	/**
+	 * #2241 — the search the list runs, as SQL: indexed lookups first,
+	 * the full-table LIKE only when they find nothing on an install that
+	 * stores data in clear.
+	 *
+	 * @param string    $term      Search term.
+	 * @param bool      $encrypted Whether rows store data encrypted.
+	 * @param mixed     $probe     What the indexed probe query returns.
+	 * @return array{0: string, 1: array<int, string>} The fragment, and every SQL prepared.
+	 */
+	private function search_sql( string $term, bool $encrypted, $probe = null ): array {
+		$sql = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query, ...$args ) use ( &$sql ) {
+				$flat  = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				// Sequential substitution: a literal `%` in a value or in an
+				// already-prepared fragment must not be read as a placeholder.
+				$out   = (string) preg_replace_callback(
+					'/%[isd]/',
+					static function ( array $m ) use ( &$flat ): string {
+						$v = array_shift( $flat );
+						return '%i' === $m[0] ? '`' . $v . '`' : ( '%d' === $m[0] ? (string) (int) $v : "'" . $v . "'" );
+					},
+					$query
+				);
+				$sql[] = $out;
+				return $out;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( $probe );
+
+		$reader = new \FreeFormCertificate\Repositories\SubmissionReader();
+		$method = new \ReflectionMethod( $reader, 'search_condition' );
+		$method->setAccessible( true );
+		$fragment = $method->invoke( $reader, $term, array( "status = 'publish'" ), $encrypted );
+		return array( $fragment, $sql );
+	}
+
+	public function test_search_matches_the_auth_code_without_upper_and_strips_the_prefix(): void {
+		list( $fragment ) = $this->search_sql( 'c-abcd-1234-efgh', true );
+
+		$this->assertStringContainsString( "auth_code = 'ABCD1234EFGH'", $fragment );
+		$this->assertStringNotContainsString( 'UPPER(', $fragment, 'UPPER() kept the unique index from answering.' );
+	}
+
+	public function test_an_encrypted_install_never_scans_data(): void {
+		list( $fragment, $sql ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringNotContainsString( 'data LIKE', $fragment );
+		$this->assertCount( 0, preg_grep( '/SELECT 1 FROM/', $sql ), 'No probe query either.' );
+	}
+
+	public function test_a_clear_install_scans_data_only_when_the_indexed_lookups_find_nothing(): void {
+		list( $hit ) = $this->search_sql( 'maria silva', false, '1' );
+		$this->assertStringNotContainsString( 'data LIKE', $hit );
+		$this->assertStringContainsString( 'magic_token LIKE', $hit );
+	}
+
+	public function test_a_clear_install_falls_back_to_the_data_scan(): void {
+		list( $miss, $sql ) = $this->search_sql( 'maria silva', false, null );
+		$this->assertStringContainsString( "data LIKE '%maria silva%'", $miss );
+		$this->assertCount( 1, preg_grep( "/SELECT 1 FROM .* status = 'publish' AND \\(/", $sql ), 'The probe keeps the list\'s filters.' );
+	}
+
+	public function test_a_name_finds_the_submissions_of_the_accounts_it_matches(): void {
+		$queries = array();
+		Functions\when( 'get_users' )->alias(
+			static function ( array $args ) use ( &$queries ): array {
+				$queries[] = $args;
+				return array( '7', '12' );
+			}
+		);
+
+		list( $fragment ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringContainsString( 'user_id IN (7, 12)', $fragment );
+		$this->assertSame( '*maria silva*', $queries[0]['search'] );
+		$this->assertSame( array( 'display_name', 'user_login', 'user_nicename' ), $queries[0]['search_columns'] );
+		$this->assertSame( 'ID', $queries[0]['fields'] );
+		$this->assertSame( 200, $queries[0]['number'], 'A broad term must not expand into every account.' );
+	}
+
+	public function test_a_name_no_account_matches_adds_no_user_condition(): void {
+		list( $fragment ) = $this->search_sql( 'maria silva', true );
+
+		$this->assertStringNotContainsString( 'user_id IN', $fragment );
+	}
+
+	/**
+	 * @dataProvider terms_that_never_ask_for_accounts
+	 */
+	public function test_a_number_an_email_or_one_letter_never_asks_for_accounts( string $term ): void {
+		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'get_users', array() );
+
+		$this->search_sql( $term, true );
+
+		$this->assertSame( 0, $log->count() );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function terms_that_never_ask_for_accounts(): array {
+		return array(
+			'id'     => array( '42' ),
+			'e-mail' => array( 'maria@example.test' ),
+			'letter' => array( 'm' ),
+		);
+	}
+
 	// ==================================================================
 	// WRITER — insert / update / updateStatus (cache-invalidation paths)
 	// ==================================================================
@@ -637,6 +825,24 @@ class SubmissionReaderWriterCoverageTest extends TestCase {
 		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 3 );
 
 		$this->assertSame( 3, $this->repo()->bulkUpdateStatus( array( 1, 2, 3 ), 'trash' ) );
+	}
+
+	public function test_bulk_trash_records_the_revocation_and_restore_lifts_it(): void {
+		$args = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$a ) use ( &$args ) {
+				$args[] = $a;
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 2 );
+
+		$this->repo()->bulkUpdateStatus( array( 1, 2 ), 'trash' );
+		$this->repo()->bulkUpdateStatus( array( 1, 2 ), 'publish' );
+
+		$this->assertStringContainsString( 'revoked_at = NULLIF( %d, 0 )', $args[0][0] );
+		$this->assertLessThanOrEqual( 2, abs( $args[0][3] - time() ), 'Trashing records when.' );
+		$this->assertSame( 0, $args[1][3], 'Restoring writes 0, which NULLIF turns into NULL.' );
 	}
 
 	public function test_bulk_update_status_returns_false_when_prepare_fails(): void {

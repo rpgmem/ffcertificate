@@ -73,6 +73,18 @@ final class CsvParser {
 			);
 		}
 
+		// Excel in pt-BR saves "CSV" as Windows-1252, whose accented names
+		// arrive as invalid UTF-8 (#2245). Say so instead of a generic
+		// failure; `//u` refuses any string that is not valid UTF-8.
+		$body = 0 === strncmp( $content, "\xEF\xBB\xBF", 3 ) ? substr( $content, 3 ) : $content;
+		if ( 1 !== preg_match( '//u', $body ) ) {
+			return array(
+				'ok'     => false,
+				'rows'   => array(),
+				'errors' => array( 'recruitment_csv_not_utf8' ),
+			);
+		}
+
 		// Csv::reader_from_string() handles BOM stripping and the
 		// `,`-vs-`;` auto-detection (the canonical rule lifted from the
 		// previous self::detect_delimiter()). The reader's fgetcsv-based

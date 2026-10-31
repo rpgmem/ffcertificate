@@ -120,6 +120,135 @@ describe('ffc-audience-calendar — updateEnvironmentSelect', () => {
 	});
 });
 
+describe('ffc-audience-calendar — environment picker (#2201)', () => {
+	function setup(selected = 0) {
+		window.$('#ffc-environment-select').attr('aria-label', 'Filter by Room');
+		api.state.config = {
+			schedules: [{ id: 1, environments: [
+				{ id: 10, name: 'Hall', color: '#0a7d55' },
+				{ id: 20, name: 'Lab', color: 'red; background: url(x)' },
+			] }],
+		};
+		api.state.selectedSchedule = 0;
+		api.state.selectedEnvironment = selected;
+		api.updateEnvironmentSelect();
+		return {
+			$select: window.$('#ffc-environment-select'),
+			$button: window.$('.ffc-env-picker-button'),
+			$list: window.$('.ffc-env-picker-list'),
+		};
+	}
+
+	function key($el, name) {
+		$el.trigger(window.$.Event('keydown', { key: name }));
+	}
+
+	it('mirrors the select with a colour dot per environment and none on "All"', () => {
+		const { $select, $list } = setup();
+		const $options = $list.children('[role="option"]');
+		expect($options).toHaveLength(3);
+		expect($options.eq(0).find('.ffc-color-dot')).toHaveLength(0);
+		expect($options.eq(0).find('.ffc-env-picker-nodot')).toHaveLength(1);
+		expect($options.eq(1).find('.ffc-color-dot').attr('style')).toBe('--ffc-color: #0a7d55;');
+		// The select stays as the value, hidden from assistive technology.
+		expect($select.attr('aria-hidden')).toBe('true');
+		expect($select.attr('tabindex')).toBe('-1');
+		expect($list.attr('aria-label')).toBe('Filter by Room');
+	});
+
+	it('drops a colour that is not a hex value instead of writing it into the style', () => {
+		const { $list } = setup();
+		const $dot = $list.children().eq(2).find('.ffc-color-dot');
+		expect($dot).toHaveLength(1);
+		expect($dot.attr('style')).toBeUndefined();
+	});
+
+	it('shows the current environment, with its dot, on the closed button', () => {
+		const { $button } = setup(10);
+		expect($button.find('.ffc-env-picker-name').text()).toBe('Hall');
+		expect($button.find('.ffc-color-dot').attr('style')).toBe('--ffc-color: #0a7d55;');
+		expect($button.attr('aria-label')).toBe('Filter by Room: Hall');
+		expect($button.attr('aria-expanded')).toBe('false');
+	});
+
+	it('opens on click, chooses on click, and drives the select change', () => {
+		const { $select, $button, $list } = setup();
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+
+		$button.trigger('click');
+		expect($list.prop('hidden')).toBe(false);
+		expect($button.attr('aria-expanded')).toBe('true');
+		expect($list.attr('aria-activedescendant')).toBe($list.children().eq(0).attr('id'));
+
+		$list.children().eq(2).trigger('click');
+		expect($select.val()).toBe('20');
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect($list.prop('hidden')).toBe(true);
+		expect(window.$('.ffc-env-picker-button .ffc-env-picker-name').text()).toBe('Lab');
+		expect(window.$('.ffc-env-picker-list [aria-selected="true"]').attr('data-value')).toBe('20');
+	});
+
+	it('moves with the arrow keys, Home and End, and chooses with Enter', () => {
+		const { $select, $button, $list } = setup();
+		key($button, 'ArrowDown');
+		expect($list.prop('hidden')).toBe(false);
+		key($list, 'ArrowDown');
+		expect($list.children('.is-active').attr('data-value')).toBe('10');
+		key($list, 'End');
+		expect($list.children('.is-active').attr('data-value')).toBe('20');
+		key($list, 'ArrowDown');
+		expect($list.children('.is-active').attr('data-value')).toBe('20');
+		key($list, 'Home');
+		key($list, 'ArrowUp');
+		expect($list.children('.is-active').attr('data-value')).toBe('');
+		key($list, 'ArrowDown');
+		key($list, 'Enter');
+		expect($select.val()).toBe('10');
+		expect($list.prop('hidden')).toBe(true);
+	});
+
+	it('closes without choosing on Escape, Tab and a click outside', () => {
+		const { $select, $button, $list } = setup();
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+
+		$button.trigger('click');
+		key($list, 'ArrowDown');
+		key($list, 'Escape');
+		expect($list.prop('hidden')).toBe(true);
+
+		$button.trigger('click');
+		key($list, 'Tab');
+		expect($list.prop('hidden')).toBe(true);
+
+		$button.trigger('click');
+		window.$(document.body).trigger('click');
+		expect($list.prop('hidden')).toBe(true);
+		$button.trigger('click');
+		$button.trigger('click');
+		expect($list.prop('hidden')).toBe(true);
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('does not fire change when the chosen value is the current one', () => {
+		const { $select, $button, $list } = setup(10);
+		const onChange = vi.fn();
+		$select.on('change', onChange);
+		$button.trigger('click');
+		key($list, 'Enter');
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
+	it('rebuilds once, keeping one picker, when the select is refilled', () => {
+		setup();
+		api.state.selectedSchedule = 1;
+		api.updateEnvironmentSelect();
+		expect(window.$('.ffc-env-picker')).toHaveLength(1);
+		expect(window.$('.ffc-env-picker-list').children()).toHaveLength(3);
+	});
+});
+
 describe('ffc-audience-calendar — populateAudienceSelect', () => {
 	const tree = () => ({
 		audiences: [
@@ -199,6 +328,95 @@ describe('ffc-audience-calendar — renderCalendar grid', () => {
 		expect(window.$('.ffc-badge-holiday').length).toBeGreaterThanOrEqual(1);
 		expect(window.$('.ffc-day.ffc-closed').length).toBeGreaterThanOrEqual(1);
 		expect(window.$('.ffc-badge-closed').length).toBeGreaterThanOrEqual(1);
+	});
+
+	it('names an available day only when a name is set (#2221)', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date();
+		window.FFC.rest.mockResolvedValue({ bookings: [], holidays: [], closed_weekdays: [] });
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-badge-available').length).toBe(0);
+
+		window.ffcAudience.strings.availableCell = 'Livre';
+		api.renderCalendar();
+		await flush();
+		const $available = window.$('.ffc-day.ffc-available');
+		expect($available.length).toBeGreaterThan(0);
+		expect($available.find('.ffc-badge-available').first().text()).toBe('Livre');
+		expect(window.$('.ffc-day:not(.ffc-available) .ffc-badge-available').length).toBe(0);
+		delete window.ffcAudience.strings.availableCell;
+	});
+
+	it('names a closed cell with its cell name, or leaves it blank when switched off (#2215)', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({ bookings: [], holidays: [], closed_weekdays: [0] });
+		window.ffcAudience.strings.closedCell = 'Fechado <b>';
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-badge-closed').first().text()).toBe('Fechado <b>');
+		expect(window.$('.ffc-badge-closed b').length).toBe(0);
+
+		window.ffcAudience.strings.showClosedLabel = false;
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-day.ffc-closed').length).toBeGreaterThanOrEqual(1);
+		expect(window.$('.ffc-badge-closed').length).toBe(0);
+
+		delete window.ffcAudience.strings.closedCell;
+		delete window.ffcAudience.strings.showClosedLabel;
+	});
+
+	it('labels an optional holiday apart in its cell and the event list (#2202)', async () => {
+		window.ffcAudience.strings.closedDateKinds = {
+			holiday: { label: 'Holiday', short: 'Holiday' },
+			optional: { label: 'Optional Holiday', short: 'Optional' },
+		};
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({
+			bookings: [],
+			holidays: [
+				{ holiday_date: '2026-06-04', description: 'Corpus Christi', kind: 'optional' },
+				{ holiday_date: '2026-06-10', description: 'Feriado', kind: 'holiday' },
+			],
+			holiday_kinds: { '2026-06-11': 'optional' },
+			closed_weekdays: [],
+		});
+		api.renderCalendar();
+		await flush();
+
+		const $optional = window.$('.ffc-day[data-date="2026-06-04"] .ffc-badge-holiday');
+		expect($optional.hasClass('ffc-badge-optional-holiday')).toBe(true);
+		expect($optional.text()).toBe('Optional');
+		expect($optional.attr('aria-label')).toBe('Optional Holiday');
+		expect($optional.attr('title')).toBe('Optional Holiday');
+
+		const $holiday = window.$('.ffc-day[data-date="2026-06-10"] .ffc-badge-holiday');
+		expect($holiday.hasClass('ffc-badge-optional-holiday')).toBe(false);
+		expect($holiday.text()).toBe('Holiday');
+
+		const $items = window.$('#ffc-event-list-content .ffc-event-list-holiday');
+		expect($items.filter('[data-date="2026-06-04"]').hasClass('ffc-event-list-optional-holiday')).toBe(true);
+		expect($items.filter('[data-date="2026-06-04"]').find('.ffc-event-list-time').text()).toBe('Optional Holiday');
+		expect($items.filter('[data-date="2026-06-10"]').hasClass('ffc-event-list-optional-holiday')).toBe(false);
+		expect(api.state.holidayKinds['2026-06-11']).toBe('optional');
+
+		delete window.ffcAudience.strings.closedDateKinds;
+	});
+
+	it('falls back to the plain holiday label when the kinds are not localized', async () => {
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(2026, 5, 1);
+		window.FFC.rest.mockResolvedValue({
+			bookings: [],
+			holidays: [{ holiday_date: '2026-06-04', description: '', kind: 'optional' }],
+			closed_weekdays: [],
+		});
+		api.renderCalendar();
+		await flush();
+		expect(window.$('.ffc-day[data-date="2026-06-04"] .ffc-badge-holiday').text()).toBe('Holiday');
 	});
 
 	it('renders a bookings badge counting only active bookings on a day', async () => {

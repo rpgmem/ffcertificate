@@ -15,30 +15,64 @@ use FreeFormCertificate\Loader;
  * the constructor/asset tests don't reach: ensure_admin_capabilities(),
  * init_rest_api(), and define_admin_hooks().
  *
- * These alias/overload the concrete collaborators (CapabilityManager,
- * UserManager, RestController, …) so they run in isolated processes.
+ * Every test runs the real collaborators (CapabilityMigrator, RoleRegistrar,
+ * RestController and, for init_plugin(), the whole module graph) over stubbed
+ * WordPress functions and a `$wpdb` double, in the shared process (#2091).
  *
  * @covers \FreeFormCertificate\Loader
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class LoaderCapabilitiesTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global before the test, restored in tearDown. */
+	private $previous_wpdb;
+
+	/** @var bool Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $this->had_wpdb ? $GLOBALS['wpdb'] : null;
 		class_exists( '\\FreeFormCertificate\\Loader' );
 		// Constructor wiring — irrelevant here; stub so `new Loader()` is cheap.
 		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'register_activation_hook' )->justReturn( true );
+		// ReregistrationLoader keeps its per-request group out of a persistent cache (#2242).
+		Functions\when( 'wp_cache_add_non_persistent_groups' )->justReturn( null );
 		Functions\when( 'register_deactivation_hook' )->justReturn( true );
 	}
 
 	protected function tearDown(): void {
+		self::reset_audience_loader();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/** Drop the AudienceLoader singleton a boot builds, so none outlives a test. */
+	private static function reset_audience_loader(): void {
+		$instance = new \ReflectionProperty( \FreeFormCertificate\Audience\AudienceLoader::class, 'instance' );
+		$instance->setAccessible( true );
+		$instance->setValue( null, null );
+	}
+
+	/**
+	 * Install a `$wpdb` double that answers only get_blog_prefix(), the one
+	 * call the CapabilityMigrator user scan makes; any query fails the test.
+	 */
+	private function install_blog_prefix_wpdb(): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'get_blog_prefix' )->andReturn( 'wp_' );
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	/** Invoke a private Loader method via Reflection. */
@@ -220,8 +254,30 @@ class LoaderCapabilitiesTest extends TestCase {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
 
-		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
-			->shouldReceive( 'migrate_admin_role_assignment' )->once()->andReturn( array() );
+		// The real CapabilityMigrator::migrate_admin_role_assignment(): the
+		// `ffc_administrator` role exists, so it is not re-registered; one
+		// administrator without it is back-filled; no native administrator
+		// role to strip.
+		$ffc_admin_role = new \WP_Role();
+		Functions\when( 'get_role' )->alias(
+			static function ( $slug ) use ( $ffc_admin_role ) {
+				return 'ffc_administrator' === $slug ? $ffc_admin_role : null;
+			}
+		);
+		$admin        = new \WP_User( 5 );
+		$admin->roles = array( 'administrator' );
+		$queried      = array();
+		Functions\when( 'get_users' )->alias(
+			static function ( $args ) use ( &$queried ) {
+				$queried[] = $args;
+				return array( 5 );
+			}
+		);
+		Functions\when( 'get_userdata' )->alias(
+			static function ( $id ) use ( $admin ) {
+				return 5 === (int) $id ? $admin : false;
+			}
+		);
 
 		$updated = array();
 		Functions\when( 'update_option' )->alias(
@@ -232,6 +288,11 @@ class LoaderCapabilitiesTest extends TestCase {
 		);
 
 		$this->invoke_private( $loader, 'ensure_admin_role_assigned' );
+
+		// The migration ran: it asked for the administrators and assigned them
+		// the FFC role.
+		$this->assertSame( 'administrator', $queried[0]['role'] ?? null );
+		$this->assertContains( 'ffc_administrator', $admin->roles );
 
 		// v2 (#1302): the flag was bumped so the back-fill re-runs once, for the
 		// administrators created between the v1 run and the continuous sync
@@ -262,9 +323,29 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_ensure_rbac_caps_renamed_delegates_and_writes_flag(): void {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
+		$this->install_blog_prefix_wpdb();
 
-		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
-			->shouldReceive( 'migrate_rbac_cap_renames' )->once()->andReturn( array() );
+		// The real CapabilityMigrator::migrate_rbac_cap_renames(), over one
+		// user and one role that each still carry the old slug.
+		$renames  = \FreeFormCertificate\UserDashboard\CapabilityMigrator::rbac_cap_renames();
+		$old      = (string) array_key_first( $renames );
+		$new      = $renames[ $old ];
+		$user     = new \WP_User( 8 );
+		$user->caps = array( $old => true );
+		Functions\when( 'get_users' )->justReturn( array( 8 ) );
+		Functions\when( 'get_userdata' )->alias(
+			static function ( $id ) use ( $user ) {
+				return 8 === (int) $id ? $user : false;
+			}
+		);
+		$role               = new \WP_Role();
+		$role->capabilities = array( $old => true );
+		Functions\when( 'wp_roles' )->justReturn( (object) array( 'roles' => array( 'ffc_custom' => array() ) ) );
+		Functions\when( 'get_role' )->alias(
+			static function ( $slug ) use ( $role ) {
+				return 'ffc_custom' === $slug ? $role : null;
+			}
+		);
 
 		$updated = array();
 		Functions\when( 'update_option' )->alias(
@@ -276,6 +357,9 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_rbac_caps_renamed' );
 
+		// The migration ran: the old slug moved to the new one on both.
+		$this->assertSame( array( $new => true ), $user->caps );
+		$this->assertSame( array( $new => true ), $role->capabilities );
 		$this->assertSame( '1', $updated['ffc_rbac_caps_renamed_v1'] ?? null );
 	}
 
@@ -302,9 +386,29 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_ensure_rbac_roles_renamed_delegates_and_writes_flag(): void {
 		$loader = new Loader();
 		Functions\when( 'get_option' )->justReturn( '' );
+		$this->install_blog_prefix_wpdb();
 
-		Mockery::mock( 'alias:\\FreeFormCertificate\\UserDashboard\\CapabilityMigrator' )
-			->shouldReceive( 'migrate_role_renames' )->once()->andReturn( array() );
+		// The real CapabilityMigrator::migrate_role_renames(): no role exists
+		// yet, so RoleRegistrar creates them; one user on an old role slug.
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'get_role' )->justReturn( null );
+		Functions\when( 'add_role' )->justReturn( null );
+		$removed = array();
+		Functions\when( 'remove_role' )->alias(
+			static function ( $slug ) use ( &$removed ) {
+				$removed[] = $slug;
+			}
+		);
+		$renames     = \FreeFormCertificate\UserDashboard\CapabilityMigrator::role_renames();
+		$old         = (string) array_key_first( $renames );
+		$user        = new \WP_User( 9 );
+		$user->roles = array( $old );
+		Functions\when( 'get_users' )->justReturn( array( 9 ) );
+		Functions\when( 'get_userdata' )->alias(
+			static function ( $id ) use ( $user ) {
+				return 9 === (int) $id ? $user : false;
+			}
+		);
 
 		$updated = array();
 		Functions\when( 'update_option' )->alias(
@@ -316,6 +420,10 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'ensure_rbac_roles_renamed' );
 
+		// The migration ran: the user moved to the new slug and every old
+		// role was dropped.
+		$this->assertSame( array( $renames[ $old ] ), $user->roles );
+		$this->assertSame( array_keys( $renames ), $removed );
 		$this->assertSame( '1', $updated['ffc_rbac_roles_renamed_v1'] ?? null );
 	}
 
@@ -326,14 +434,35 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_init_rest_api_instantiates_controller(): void {
 		$loader = new Loader();
 
-		// RestController constructor may register REST routes — overload it so
-		// the `new RestController()` line runs without touching WP internals.
-		$rest = Mockery::mock( 'overload:FreeFormCertificate\API\RestController' );
-		$rest->shouldReceive( 'anything' )->zeroOrMoreTimes();
+		// The real RestController builds its two repositories over `$wpdb`
+		// (no query at construction) and registers its hooks.
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
 
-		// Should not throw.
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook, $callback ) use ( &$hooks ) {
+				$hooks[] = array( $hook, $callback );
+				return true;
+			}
+		);
+		Functions\when( 'add_filter' )->alias(
+			static function ( $hook, $callback ) use ( &$hooks ) {
+				$hooks[] = array( $hook, $callback );
+				return true;
+			}
+		);
+
 		$this->invoke_private( $loader, 'init_rest_api' );
-		$this->assertTrue( true );
+
+		$registered = array();
+		foreach ( $hooks as $hook ) {
+			if ( is_array( $hook[1] ) && $hook[1][0] instanceof \FreeFormCertificate\API\RestController ) {
+				$registered[] = $hook[0] . ':' . $hook[1][1];
+			}
+		}
+		$this->assertContains( 'rest_api_init:register_routes', $registered, 'A RestController was built and wired its routes.' );
 	}
 
 	// ==================================================================
@@ -357,8 +486,8 @@ class LoaderCapabilitiesTest extends TestCase {
 
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
-		$this->assertContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( 'ffc_daily_cleanup', $added );
+		$this->assertContains( 'ffc_reregistration_expire', $added );
 		$this->assertContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 
 		// The expired-tickets scan (#1234). It used to live in `AdminLoader`,
@@ -373,8 +502,33 @@ class LoaderCapabilitiesTest extends TestCase {
 		);
 
 		// Three daily-cleanup callbacks + two expiry callbacks registered.
-		$daily = array_filter( $added, static fn ( $h ) => 'ffcertificate_daily_cleanup_hook' === $h );
+		$daily = array_filter( $added, static fn ( $h ) => 'ffc_daily_cleanup' === $h );
 		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
+	}
+
+	public function test_the_daily_reregistration_run_seeds_late_joiners_before_it_mails(): void {
+		$loader = new Loader();
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$callbacks = array();
+		Functions\when( 'add_action' )->alias(
+			function ( $hook, $callback = null ) use ( &$callbacks ) {
+				if ( 'ffc_reregistration_expire' === $hook && is_array( $callback ) ) {
+					$callbacks[] = $callback[1];
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( $loader, 'define_admin_hooks' );
+
+		// Expire first, so a closed campaign is not seeded; seed before the
+		// reminders and the invitations read the table, so a late joiner is
+		// reached the same day (#2242).
+		$this->assertSame(
+			array( 'expire_overdue', 'seed_active_campaigns', 'run_automated_reminders', 'run_pending_invitations' ),
+			$callbacks
+		);
 	}
 
 	public function test_define_admin_hooks_skips_disabled_module_crons(): void {
@@ -405,8 +559,8 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		// The core daily cleanup stays wired; the disabled modules' crons don't.
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added );
-		$this->assertNotContains( 'ffcertificate_reregistration_expire_hook', $added );
+		$this->assertContains( 'ffc_daily_cleanup', $added );
+		$this->assertNotContains( 'ffc_reregistration_expire', $added );
 		$this->assertNotContains( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, $added );
 		// Certificates is still on in this scenario, so the scan of
 		// tickets is still composed -- which separates the MODULE gate
@@ -445,123 +599,287 @@ class LoaderCapabilitiesTest extends TestCase {
 		$this->invoke_private( $loader, 'define_admin_hooks' );
 
 		$this->assertNotContains( \FreeFormCertificate\Admin\ExpiredTicketsCleanup::CRON_HOOK, $added );
-		$this->assertContains( 'ffcertificate_daily_cleanup_hook', $added, 'The core daily cleanup does not depend on the module.' );
+		$this->assertContains( 'ffc_daily_cleanup', $added, 'The core daily cleanup does not depend on the module.' );
 	}
 
 	// ==================================================================
 	// init_plugin() — the full orchestration path (frontend context)
 	// ==================================================================
 
-	public function test_init_plugin_wires_the_full_module_graph(): void {
-		// Overload every collaborator init_plugin news up / calls statically so
-		// the orchestration runs end-to-end without touching WP or the real
-		// module internals. Frontend context (is_admin() === false) skips the
-		// AdminLoader branch.
-		Functions\when( 'is_admin' )->justReturn( false );
+	/**
+	 * Hooks registered during a boot, as `hook|Class::method` for every
+	 * array callback (the class of an object, or the class string).
+	 *
+	 * @var array<int, string>
+	 */
+	private array $boot_hooks = array();
 
-		// Activator migrations (all one-shot statics).
-		$activator = Mockery::mock( 'alias:FreeFormCertificate\Activator' );
-		$activator->shouldReceive( 'maybe_add_columns' )->once();
-		$activator->shouldReceive( 'maybe_add_perf_indexes' )->once();
-		$activator->shouldReceive( 'maybe_migrate_submission_date_to_unix' )->once();
-		$activator->shouldReceive( 'maybe_migrate_submitted_at_to_unix' )->once();
-		$activator->shouldReceive( 'maybe_migrate_sibling_instants_to_unix' )->once();
+	/**
+	 * Option names read during a boot, in order.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $option_reads = array();
 
-		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitActivator' )
-			->shouldReceive( 'maybe_create_tables' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'maybe_create_table' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UrlShortener\UrlShortenerActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		// Recruitment schema self-heal — relocated from RecruitmentLoader to the
-		// orchestrator so a disabled recruitment module keeps its tables.
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
-			->shouldReceive( 'create_tables' )->zeroOrMoreTimes()
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		// The two modules whose schema only ever existed after an activation,
-		// wired here in #1311. Without these the real activators run against a
-		// $wpdb this test does not build, which is how the omission announced
-		// itself rather than passing quietly.
-		// `->once()`, not `zeroOrMoreTimes()`, and that distinction is the whole
-		// delivery: with the loose expectation, DELETING the two lines from
-		// `Loader` left every test in this file green -- measured by mutation.
-		// The wiring IS the fix, so it is the thing that has to be pinned.
-		Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationActivator' )
-			->shouldReceive( 'maybe_migrate' )->once();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserDashboardActivator' )
-			->shouldReceive( 'maybe_migrate' )->once();
-		// Date messages (#1538): schema heal and daily schedule run whatever
-		// the module toggle says; only its callbacks are gated.
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesActivator' )
-			->shouldReceive( 'maybe_migrate' )->once();
-		$date_messages_cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
-		$date_messages_cron->shouldReceive( 'schedule' )->once();
-		$date_messages_cron->shouldReceive( 'init' )->zeroOrMoreTimes();
+	/**
+	 * Hooks `wp_next_scheduled()` was asked about during a boot.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $cron_probes = array();
 
-		// Shared runtime classes.
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
-			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
-		Mockery::mock( 'overload:FreeFormCertificate\Admin\CPT' );
-		Mockery::mock( 'overload:FreeFormCertificate\Frontend\Frontend' );
+	/**
+	 * Every SQL string the boot's `$wpdb` ran or prepared, the table probes
+	 * excepted.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $boot_queries = array();
 
-		// Fire-and-forget module bootstraps.
-		Mockery::mock( 'alias:FreeFormCertificate\Shortcodes\DashboardShortcode' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationLoader' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\AccessControl' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCleanup' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Privacy\PrivacyHandler' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\SelfScheduling\SelfSchedulingLoader' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
+	/**
+	 * Boot the REAL module graph over a recorded WordPress boundary.
+	 *
+	 * The install is established and current: every table answers the
+	 * existence probe, every schema version the activators gate on is the
+	 * running one, and every one-shot `_vN` flag reads as done -- so each
+	 * activator and migration runs its gate and stops there, which is what
+	 * lets `boot_queries` be asserted empty. What a test proves is read off the
+	 * recordings: the options read (an activator's gate is its only trace on a
+	 * current install), the cron probes, and the hooks each constructed class
+	 * registered.
+	 *
+	 * @param array<string, mixed> $ffc_settings The stored `ffc_settings`.
+	 */
+	private function boot( array $ffc_settings ): void {
+		$this->boot_hooks   = array();
+		$this->option_reads = array();
+		$this->cron_probes  = array();
+		$this->boot_queries = array();
 
-		// AudienceLoader is a singleton — alias the static, return a mock whose
-		// init() is a no-op.
-		$audience_instance = Mockery::mock();
-		$audience_instance->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceLoader' )
-			->shouldReceive( 'get_instance' )->andReturn( $audience_instance );
+		// AudienceLoader is a singleton; a boot must build its own.
+		self::reset_audience_loader();
 
-		Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerLoader' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\Recruitment\RecruitmentLoader' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\Core\ActivityLogSubscriber' );
+		$queries         = &$this->boot_queries;
+		$GLOBALS['wpdb'] = new class( $queries ) extends \wpdb {
+			/** @var array<int, string> */
+			public $ran;
 
-		// Cron scheduling — pretend nothing scheduled so wp_schedule_event fires.
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
-		Functions\when( 'wp_schedule_event' )->justReturn( true );
+			/**
+			 * @param array<int, string> $ran Where every query is recorded.
+			 */
+			public function __construct( array &$ran ) {
+				$this->prefix = 'wp_';
+				$this->ran    = &$ran;
+			}
 
-		// The ensure_* helpers: flags already set → migrations skipped, no
-		// CapabilityMigrator calls needed. ensure_admin_capabilities early-
-		// returns because the version flag matches FFC_VERSION.
+			/**
+			 * Substitutes the table name into the existence probe only.
+			 *
+			 * @param string $query   Query with placeholders.
+			 * @param mixed  ...$args Placeholder values.
+			 * @return string
+			 */
+			public function prepare( $query, ...$args ) {
+				if ( 'SHOW TABLES LIKE %s' === $query && isset( $args[0] ) ) {
+					return "SHOW TABLES LIKE '" . $args[0] . "'";
+				}
+				$this->ran[] = (string) $query;
+				return (string) $query;
+			}
+
+			/**
+			 * Answers the existence probe with the table name.
+			 *
+			 * @param string|null $query Query.
+			 * @param int         $x     Column offset.
+			 * @param int         $y     Row offset.
+			 * @return mixed
+			 */
+			public function get_var( $query = null, $x = 0, $y = 0 ) {
+				if ( is_string( $query ) && 1 === preg_match( "/^SHOW TABLES LIKE '(.+)'$/", $query, $m ) ) {
+					return $m[1];
+				}
+				$this->ran[] = (string) $query;
+				return null;
+			}
+
+			/**
+			 * @param string|null $query  Query.
+			 * @param string      $output Output shape.
+			 * @param int         $y      Row offset.
+			 * @return mixed
+			 */
+			public function get_row( $query = null, $output = OBJECT, $y = 0 ) {
+				$this->ran[] = (string) $query;
+				return null;
+			}
+
+			/**
+			 * @param string|null $query Query.
+			 * @param int         $x     Column offset.
+			 * @return array<int, mixed>
+			 */
+			public function get_col( $query = null, $x = 0 ) {
+				$this->ran[] = (string) $query;
+				return array();
+			}
+
+			/**
+			 * @param string|null $query  Query.
+			 * @param string      $output Output shape.
+			 * @return array<int, mixed>
+			 */
+			public function get_results( $query = null, $output = OBJECT ) {
+				$this->ran[] = (string) $query;
+				return array();
+			}
+
+			/**
+			 * @param string $query Query.
+			 * @return int
+			 */
+			public function query( $query ) {
+				$this->ran[] = (string) $query;
+				return 0;
+			}
+		};
+
+		$options = array(
+			\FreeFormCertificate\Settings\SettingsReader::OPTION_KEY => $ffc_settings,
+			'ffc_admin_caps_version_v6'                             => FFC_VERSION,
+			'ffc_submissions_db_version'                            => ( new \ReflectionMethod( \FreeFormCertificate\Activator::class, 'submissions_schema_fingerprint' ) )->invoke( null ),
+			'ffc_perf_indexes_db_version'                           => FFC_VERSION,
+			'ffc_submission_date_unix_migrated'                     => '1',
+			'ffc_submitted_at_unix_migrated'                        => '1',
+			'ffc_sibling_instants_unix_migrated'                    => '1',
+			'ffc_rate_limit_db_version'                             => \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION,
+			'ffc_activity_log_db_version'                           => ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue(),
+			'ffc_bulk_issue_db_version'                             => \FreeFormCertificate\Submissions\BulkIssueActivator::DB_VERSION,
+			'ffc_reregistration_schema_version'                     => FFC_VERSION,
+			'ffc_user_dashboard_schema_version'                     => FFC_VERSION,
+			'ffc_recruitment_tables_version'                        => FFC_VERSION,
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION => FFC_VERSION,
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::AUDIENCE_IDS_OPTION => '1',
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::APPEARANCE_OPTION => '1',
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::ANNOUNCEMENTS_OPTION => '1',
+			'ffc_self_scheduling_schema_version'                    => FFC_VERSION,
+			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
+			'ffc_audience_schema_version'                           => FFC_VERSION,
+			'ffc_url_shortener_schema_version'                      => FFC_VERSION,
+			// Every numbered recruitment step already applied.
+			'ffc_recruitment_schema_version'                        => PHP_INT_MAX,
+		);
 		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) {
-				return 'ffc_admin_caps_version_v6' === $key ? FFC_VERSION : '1';
+			function ( $name, $default = false ) use ( $options ) {
+				$this->option_reads[] = (string) $name;
+				if ( array_key_exists( $name, $options ) ) {
+					return $options[ $name ];
+				}
+				// Every one-shot migration flag reads as already done.
+				return 1 === preg_match( '/_v\d+$/', (string) $name ) ? '1' : $default;
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'add_option' )->justReturn( true );
+		Functions\when( 'delete_option' )->justReturn( true );
 
-		// define_admin_hooks() + init() constructor + init hooks all funnel
-		// through add_action — accept everything.
-		Functions\when( 'add_action' )->justReturn( true );
+		$record = function ( $hook, $callback = null ) {
+			if ( is_array( $callback ) && isset( $callback[0], $callback[1] ) ) {
+				$class              = is_object( $callback[0] ) ? get_class( $callback[0] ) : ltrim( (string) $callback[0], '\\' );
+				$this->boot_hooks[] = $hook . '|' . $class . '::' . $callback[1];
+			}
+			return true;
+		};
+		Functions\when( 'add_action' )->alias( $record );
+		Functions\when( 'add_filter' )->alias( $record );
+		Functions\when( 'add_shortcode' )->justReturn( true );
+		Functions\when( 'wp_next_scheduled' )->alias(
+			function ( $hook ) {
+				$this->cron_probes[] = (string) $hook;
+				return false;
+			}
+		);
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		Functions\when( 'wp_get_schedules' )->justReturn( array() );
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
 
-		// init_rest_api() news up RestController.
-		Mockery::mock( 'overload:FreeFormCertificate\API\RestController' );
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'is_multisite' )->justReturn( false );
+		Functions\when( 'wp_doing_ajax' )->justReturn( false );
+		Functions\when( 'wp_doing_cron' )->justReturn( false );
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'get_role' )->justReturn( null );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'register_post_type' )->justReturn( null );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $tag, $value = null ) {
+				return $value;
+			}
+		);
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\stubs( array( '__', '_x', 'esc_html__', 'esc_html', 'esc_attr', 'esc_url', 'sanitize_key', 'sanitize_text_field', 'wp_unslash', 'trailingslashit', 'untrailingslashit' ) );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.test/' . ltrim( (string) $path, '/' ) );
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.test/wp-admin/' . ltrim( (string) $path, '/' ) );
 
-		$loader = new Loader();
-		$loader->init_plugin();
+		( new Loader() )->init_plugin();
+	}
 
-		// If we got here the entire graph wired without throwing.
-		$this->assertTrue( true );
+	/**
+	 * One hook registered by each module bootstrap, `hook|Class::method`.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function module_signatures(): array {
+		return array(
+			'certificates (CPT)'      => 'init|FreeFormCertificate\Admin\CPT::register_form_cpt',
+			'certificates (Frontend)' => 'wp_enqueue_scripts|FreeFormCertificate\Frontend\Frontend::frontend_assets',
+			'reregistration'          => 'wp_ajax_ffc_get_reregistration_form|FreeFormCertificate\Reregistration\ReregistrationFrontend::ajax_get_form',
+			'self_scheduling'         => 'init|FreeFormCertificate\SelfScheduling\SelfSchedulingCPT::register_calendar_cpt',
+			'audiences'               => 'init|FreeFormCertificate\Audience\AudienceLoader::register_capabilities',
+			'url_shortener'           => 'parse_request|FreeFormCertificate\UrlShortener\UrlShortenerLoader::intercept_short_url',
+			'recruitment'             => 'init|FreeFormCertificate\Recruitment\RecruitmentLoader::register_shortcode',
+			'date_messages (cron)'    => \FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK . '|FreeFormCertificate\DateMessages\Runner::run_daily',
+		);
+	}
+
+	public function test_init_plugin_wires_the_full_module_graph(): void {
+		// Every module on, Date Messages included (it defaults off), so each
+		// module bootstrap is constructed for real and leaves its signature.
+		$this->boot( array( 'module_date_messages_enabled' => 1 ) );
+
+		foreach ( self::module_signatures() as $module => $signature ) {
+			$this->assertContains( $signature, $this->boot_hooks, "The {$module} bootstrap was not wired." );
+		}
+
+		// The schema heals and one-shot migrations ran their gates. On a
+		// current install the option read IS the call: deleting a line from
+		// init_plugin() drops its read, which is what the five Activator
+		// statics and the #1311 / #1538 wiring are pinned by.
+		foreach ( array(
+			'ffc_submissions_db_version',
+			'ffc_perf_indexes_db_version',
+			'ffc_submission_date_unix_migrated',
+			'ffc_submitted_at_unix_migrated',
+			'ffc_sibling_instants_unix_migrated',
+			'ffc_reregistration_schema_version',
+			'ffc_user_dashboard_schema_version',
+			'ffc_recruitment_tables_version',
+			'ffc_recruitment_schema_version',
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION,
+		) as $gate ) {
+			$this->assertContains( $gate, $this->option_reads, "{$gate} was never read: its migration is not wired." );
+		}
+		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK, $this->cron_probes, 'The date-messages daily schedule is not wired.' );
+
+		// The REST controller is built last.
+		$this->assertContains( 'rest_api_init|FreeFormCertificate\API\RestController::register_routes', $this->boot_hooks );
+		$this->assertSame( array(), $this->boot_queries, 'A current install must boot without a query.' );
 	}
 
 	// ==================================================================
@@ -571,116 +889,29 @@ class LoaderCapabilitiesTest extends TestCase {
 	public function test_init_plugin_skips_disabled_module_bootstraps(): void {
 		// Every feature module toggled OFF in `ffc_settings`: init_plugin() must
 		// skip each gated bootstrap. The orchestrator-level lifecycle (activator
-		// schema self-heal) still runs regardless of the toggles.
-		Functions\when( 'is_admin' )->justReturn( false );
-
-		$activator = Mockery::mock( 'alias:FreeFormCertificate\Activator' );
-		$activator->shouldReceive( 'maybe_add_columns' )->zeroOrMoreTimes();
-		$activator->shouldReceive( 'maybe_add_perf_indexes' )->zeroOrMoreTimes();
-		$activator->shouldReceive( 'maybe_migrate_submission_date_to_unix' )->zeroOrMoreTimes();
-		$activator->shouldReceive( 'maybe_migrate_submitted_at_to_unix' )->zeroOrMoreTimes();
-		$activator->shouldReceive( 'maybe_migrate_sibling_instants_to_unix' )->zeroOrMoreTimes();
-
-		Mockery::mock( 'alias:FreeFormCertificate\Security\RateLimitActivator' )
-			->shouldReceive( 'maybe_create_tables' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'maybe_create_table' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\SelfScheduling\SelfSchedulingActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UrlShortener\UrlShortenerActivator' )
-			->shouldReceive( 'maybe_migrate' )->zeroOrMoreTimes();
-		// Recruitment schema self-heal runs even when the module is disabled.
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentActivator' )
-			->shouldReceive( 'create_tables' )->atLeast()->once()
-			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
-		// Date-messages schema heal and daily schedule run with the module
-		// off; its callbacks are what the toggle skips (#1538).
-		Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesActivator' )
-			->shouldReceive( 'maybe_migrate' )->atLeast()->once();
-		$date_messages_cron = Mockery::mock( 'alias:FreeFormCertificate\DateMessages\DateMessagesCron' );
-		$date_messages_cron->shouldReceive( 'schedule' )->atLeast()->once();
-		$date_messages_cron->shouldReceive( 'init' )->never();
-
-		Mockery::mock( 'overload:FreeFormCertificate\Submissions\SubmissionHandler' )
-			->shouldReceive( 'register_async_pipeline' )->zeroOrMoreTimes();
-		Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
-
-		// Certificates OFF → CPT + Frontend must never be constructed.
-		Mockery::mock( 'overload:FreeFormCertificate\Admin\CPT' )
-			->shouldReceive( '__construct' )->never();
-		Mockery::mock( 'overload:FreeFormCertificate\Frontend\Frontend' )
-			->shouldReceive( '__construct' )->never();
-
-		Mockery::mock( 'alias:FreeFormCertificate\Shortcodes\DashboardShortcode' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\AccessControl' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserCleanup' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-		Mockery::mock( 'alias:FreeFormCertificate\Privacy\PrivacyHandler' )
-			->shouldReceive( 'init' )->zeroOrMoreTimes();
-
-		// The gated loaders must NOT be constructed/init'd while disabled.
-		Mockery::mock( 'overload:FreeFormCertificate\Reregistration\ReregistrationLoader' )
-			->shouldReceive( 'init' )->never();
-		Mockery::mock( 'overload:FreeFormCertificate\SelfScheduling\SelfSchedulingLoader' )
-			->shouldReceive( 'init' )->never();
-		Mockery::mock( 'overload:FreeFormCertificate\UrlShortener\UrlShortenerLoader' )
-			->shouldReceive( 'init' )->never();
-		Mockery::mock( 'overload:FreeFormCertificate\Recruitment\RecruitmentLoader' )
-			->shouldReceive( 'init' )->never();
-		// AudienceLoader singleton — get_instance() must never be reached.
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceLoader' )
-			->shouldReceive( 'get_instance' )->never();
-
-		Mockery::mock( 'overload:FreeFormCertificate\Core\ActivityLogSubscriber' );
-
-		Functions\when( 'wp_next_scheduled' )->justReturn( true );
-		Functions\when( 'wp_schedule_event' )->justReturn( true );
-		// The form-cache warming is reconciled with its toggle on every
-		// request (#1541); the toggle is off here, so the event is cleared.
-		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 0 );
-		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'add_action' )->justReturn( true );
-		Mockery::mock( 'overload:FreeFormCertificate\API\RestController' );
-
-		// `ffc_settings` carries every module toggled off; the admin-caps version
-		// flag still short-circuits ensure_admin_capabilities().
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) {
-				if ( 'ffc_admin_caps_version_v6' === $key ) {
-					return FFC_VERSION;
-				}
-				// The #1311 schema gates report an install that is already
-				// current, so they short-circuit: this test is about which
-				// module bootstraps are SKIPPED when the toggles are off, and
-				// schema healing runs regardless of any toggle by design.
-				if ( 'ffc_reregistration_schema_version' === $key
-					|| 'ffc_user_dashboard_schema_version' === $key ) {
-					return FFC_VERSION;
-				}
-				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
-					return array(
-						'module_certificates_enabled'    => 0,
-						'module_audiences_enabled'       => 0,
-						'module_self_scheduling_enabled' => 0,
-						'module_reregistration_enabled'  => 0,
-						'module_recruitment_enabled'     => 0,
-						'module_date_messages_enabled'   => 0,
-						'url_shortener_enabled'          => 0,
-					);
-				}
-				return '1';
-			}
+		// schema self-heal, the date-messages schedule) still runs regardless of
+		// the toggles (#1538).
+		$this->boot(
+			array(
+				'module_certificates_enabled'    => 0,
+				'module_audiences_enabled'       => 0,
+				'module_self_scheduling_enabled' => 0,
+				'module_reregistration_enabled'  => 0,
+				'module_recruitment_enabled'     => 0,
+				'module_date_messages_enabled'   => 0,
+				'url_shortener_enabled'          => 0,
+			)
 		);
 
-		$loader = new Loader();
-		$loader->init_plugin();
+		foreach ( self::module_signatures() as $module => $signature ) {
+			$this->assertNotContains( $signature, $this->boot_hooks, "The disabled {$module} bootstrap still ran." );
+		}
 
-		// Mockery's ->never() expectations verify on tearDown; reaching here with
-		// no BadMethodCallException means every disabled bootstrap was skipped.
-		$this->assertTrue( true );
+		// Schema heal and the daily schedule are not behind the toggles.
+		$this->assertContains( 'ffc_recruitment_tables_version', $this->option_reads, 'Recruitment table creation must run with the module off.' );
+		$this->assertContains( 'ffc_recruitment_schema_version', $this->option_reads, 'Recruitment schema migration must run with the module off.' );
+		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION, $this->option_reads, 'Date-messages schema heal must run with the module off.' );
+		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK, $this->cron_probes, 'The date-messages schedule must run with the module off.' );
+		$this->assertSame( array(), $this->boot_queries );
 	}
 }

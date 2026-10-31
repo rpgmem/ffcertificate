@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentValidator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentValidator: booking validation, interval checking, working hours.
@@ -116,7 +117,14 @@ class AppointmentValidatorTest extends TestCase {
 			'max_appointments_per_slot'         => 10,
 			'slots_per_day'                     => 0,
 			'minimum_interval_between_bookings' => 0,
-			'working_hours'                     => array(),
+			// Every day 08:00-18:00 on a 30-minute grid, so valid_data()'s
+			// 10:00 is a slot the listing offers (#2244).
+			'working_hours'                     => array_map(
+				static fn( int $day ): array => array( 'day' => $day, 'start' => '08:00', 'end' => '18:00' ),
+				range( 0, 6 )
+			),
+			'slot_duration'                     => 30,
+			'slot_interval'                     => 0,
 			'scheduling_visibility'             => 'public',
 			'restrict_booking_to_hours'         => false,
 		);
@@ -156,10 +164,11 @@ class AppointmentValidatorTest extends TestCase {
 	}
 
 	public function test_validate_custom_uses_block_capacity(): void {
-		// The block capacity (40), not the calendar max (10), must be passed.
+		// The block capacity (40), not the calendar max (10), must be passed,
+		// against the normalised start (#2244).
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
 			->once()
-			->with( 1, '2030-01-15', '10:00', 40, false )
+			->with( 1, '2030-01-15', '10:00:00', 40, false )
 			->andReturn( true );
 
 		$result = $this->validator->validate( $this->valid_data(), $this->custom_calendar( 40 ) );
@@ -279,6 +288,38 @@ class AppointmentValidatorTest extends TestCase {
 	// ==================================================================
 	// validate() — slot availability (never bypassed)
 	// ==================================================================
+
+	public function test_validate_refuses_a_start_between_two_slots_even_with_the_bypass(): void {
+		$data               = $this->valid_data();
+		$data['start_time'] = '10:05';
+
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'Each off-grid start would count its own capacity (#2244).' );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'Not a rule the bypass confirms.' );
+	}
+
+	public function test_validate_refuses_a_slot_that_would_end_after_closing(): void {
+		$calendar                  = $this->permissive_calendar();
+		$calendar['slot_duration'] = 45;
+		$data                      = $this->valid_data();
+		$data['start_time']        = '17:45'; // On the 45-minute step, ends 18:30.
+
+		$this->assertSame( 'invalid_slot', $this->validator->validate( $data, $calendar )->get_error_code() );
+	}
+
+	public function test_validate_counts_capacity_on_the_normalised_start(): void {
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
+			->once()
+			->with( 1, '2030-01-15', '10:00:00', 10, false )
+			->andReturn( true );
+		$data               = $this->valid_data();
+		$data['start_time'] = '10:00:42';
+
+		$this->assertTrue( $this->validator->validate( $data, $this->permissive_calendar() ) );
+	}
 
 	public function test_validate_slot_full_returns_error(): void {
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
@@ -499,6 +540,37 @@ class AppointmentValidatorTest extends TestCase {
 		$this->assertSame( 'capability_denied', $result->get_error_code() );
 	}
 
+	public function test_validate_a_booking_on_behalf_refuses_a_caller_without_the_staff_cap(): void {
+		// setUp's caller holds ffc_book_own_appointments only: booking for
+		// someone else is not booking their own (#2161).
+		$data              = $this->valid_data();
+		$data['booked_by'] = 5;
+
+		$result = $this->validator->validate( $data, $this->permissive_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'capability_denied', $result->get_error_code() );
+	}
+
+	public function test_validate_a_booking_on_behalf_admits_the_staff_cap_without_book_own(): void {
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_appointments' === $cap );
+		$data              = $this->valid_data();
+		$data['booked_by'] = 5;
+
+		$this->assertTrue( $this->validator->validate( $data, $this->permissive_calendar() ) );
+	}
+
+	public function test_validate_the_booking_form_still_requires_book_own_from_staff(): void {
+		// No `booked_by`: the public form's path, where the staff cap alone
+		// does not stand in for booking one's own appointment.
+		Functions\when( 'current_user_can' )->alias( static fn ( $cap ) => 'ffc_manage_appointments' === $cap );
+
+		$result = $this->validator->validate( $this->valid_data(), $this->permissive_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'capability_denied', $result->get_error_code() );
+	}
+
 	public function test_validate_email_required_when_logged_out(): void {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		$data = $this->valid_data();
@@ -521,13 +593,14 @@ class AppointmentValidatorTest extends TestCase {
 	public function test_validate_interval_error_bubbles_up(): void {
 		$calendar                                        = $this->permissive_calendar();
 		$calendar['minimum_interval_between_bookings']   = 24;
-		$soon_ts                                         = time() + 3600;
+		// The requested slot is 2030-01-15 10:00; the last booked one is two
+		// hours before it (#2244).
 		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array(
 			array(
 				'status'           => 'confirmed',
 				'calendar_id'      => 1,
-				'appointment_date' => gmdate( 'Y-m-d', $soon_ts ),
-				'start_time'       => gmdate( 'H:i:s', $soon_ts ),
+				'appointment_date' => '2030-01-15',
+				'start_time'       => '08:00:00',
 			),
 		) );
 		$data            = $this->valid_data();
@@ -594,11 +667,11 @@ class AppointmentValidatorTest extends TestCase {
 
 	public function test_interval_cpf_uses_findByCpfRf(): void {
 		$this->appointmentRepo->shouldReceive( 'findByCpfRf' )
-			->with( '12345678901' )
+			->with( Identifiers::CPF_A )
 			->once()
 			->andReturn( array() );
 
-		$result = $this->validator->check_booking_interval( '12345678901', 1, 24 );
+		$result = $this->validator->check_booking_interval( Identifiers::CPF_A, 1, 24 );
 		$this->assertTrue( $result );
 	}
 
@@ -658,6 +731,43 @@ class AppointmentValidatorTest extends TestCase {
 		$result = $this->validator->check_booking_interval( 1, 1, 24 );
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'booking_too_soon', $result->get_error_code() );
+	}
+
+	/**
+	 * The requested slot, not now, is compared with the last booked
+	 * appointment (#2244): a booking a week away from it passes even when
+	 * that appointment is tomorrow, and one inside the interval of a far
+	 * future appointment is refused.
+	 */
+	public function test_interval_compares_the_requested_slot_with_the_last_booking(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
+			array(
+				array( 'id' => 5, 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '10:00:00' ),
+			)
+		);
+
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-17', '10:00' ) );
+		$refused = $this->validator->check_booking_interval( 1, 1, 24, '2030-03-11', '09:00' );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'booking_too_soon', $refused->get_error_code() );
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-11', '10:00' ), 'Exactly the interval apart is allowed.' );
+	}
+
+	public function test_interval_uses_only_the_last_booked_appointment(): void {
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
+			array(
+				array( 'id' => 9, 'status' => 'confirmed', 'calendar_id' => 1, 'appointment_date' => '2030-06-01', 'start_time' => '10:00:00' ),
+				array( 'id' => 4, 'status' => 'completed', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '10:00:00' ),
+				array( 'id' => 12, 'status' => 'cancelled', 'calendar_id' => 1, 'appointment_date' => '2030-03-10', 'start_time' => '11:00:00' ),
+			)
+		);
+
+		// An older appointment the same day does not count; the cancelled
+		// newest one neither — a reschedule is never held up by it.
+		$this->assertTrue( $this->validator->check_booking_interval( 1, 1, 24, '2030-03-10', '14:00' ) );
+		$this->assertInstanceOf( \WP_Error::class, $this->validator->check_booking_interval( 1, 1, 24, '2030-06-01', '15:00' ) );
 	}
 
 	public function test_interval_no_recent_returns_true(): void {

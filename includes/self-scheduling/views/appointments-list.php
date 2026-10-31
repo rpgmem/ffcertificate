@@ -23,10 +23,70 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 
 // Determine if viewing a specific appointment:
 // - appointment=X alone → view.
-// - appointment=X + ffc_action=confirm|cancel → mutation.
+// - appointment=X + ffc_action=confirm|cancel|attended|no_show|undo_attendance → mutation.
 $ffc_self_scheduling_appointment_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'appointment' );
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
+// Close old appointments on demand (#2285) — same run as the daily cron.
+if ( 'close_old' === $ffcertificate_action ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'ffc_close_old_appointments' );
+
+	$ffcertificate_closed = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::run( get_current_user_id() );
+	set_transient(
+		'ffc_admin_notice_' . get_current_user_id(),
+		$ffcertificate_closed['failed']
+			? array(
+				'type'    => 'error',
+				'message' => __( 'The close-out stopped on a database error. Appointments changed before it stay changed; run it again.', 'ffcertificate' ),
+			)
+			: array(
+				'type'    => 'success',
+				'message' => sprintf(
+					/* translators: 1: appointments marked completed, 2: appointments cancelled */
+					__( 'Old appointments closed: %1$d marked completed, %2$d pending cancelled.', 'ffcertificate' ),
+					$ffcertificate_closed['completed'],
+					$ffcertificate_closed['cancelled']
+				),
+			),
+		30
+	);
+	wp_safe_redirect( $ffcertificate_appointments_url );
+	exit;
+}
+
+// Bulk no-show (#2244): the list table's bulk-actions select, top or bottom.
+$ffcertificate_bulk = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action' );
+if ( '' === $ffcertificate_bulk || '-1' === $ffcertificate_bulk ) {
+	$ffcertificate_bulk = \FreeFormCertificate\Core\RequestInput::get_get_string( 'action2' );
+}
+if ( 'bulk_no_show' === $ffcertificate_bulk ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'bulk-appointments' );
+
+	$ffcertificate_bulk_result = ( new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions() )->mark_no_show_many(
+		array_map( 'intval', \FreeFormCertificate\Core\RequestInput::get_get_raw_array( 'appointment' ) )
+	);
+	set_transient(
+		'ffc_admin_notice_' . get_current_user_id(),
+		array(
+			'type'    => $ffcertificate_bulk_result['marked'] > 0 ? 'success' : 'warning',
+			'message' => sprintf(
+				/* translators: 1: appointments marked no-show, 2: appointments skipped */
+				__( '%1$d marked as no-show; %2$d skipped (only confirmed appointments whose date has come can be marked).', 'ffcertificate' ),
+				$ffcertificate_bulk_result['marked'],
+				$ffcertificate_bulk_result['skipped']
+			),
+		),
+		30
+	);
+	wp_safe_redirect( $ffcertificate_appointments_url );
+	exit;
+}
 
 if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
@@ -37,78 +97,78 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 
 	$ffcertificate_repo = new \FreeFormCertificate\Repositories\AppointmentRepository();
 
-	// Handle mutations (confirm/cancel) — these redirect and exit.
-	if ( 'confirm' === $ffcertificate_action ) {
-		check_admin_referer( 'ffc_confirm_appointment_' . $ffc_self_scheduling_appointment_id );
-		$ffcertificate_result = $ffcertificate_repo->confirm( $ffc_self_scheduling_appointment_id, get_current_user_id() );
-
-		if ( $ffcertificate_result ) {
-			// Send approval notification email with receipt link.
-			$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
-			if ( $ffcertificate_appointment && ! empty( $ffcertificate_appointment['calendar_id'] ) ) {
-				$ffcertificate_cal_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-				$ffcertificate_calendar = $ffcertificate_cal_repo->findById( (int) $ffcertificate_appointment['calendar_id'] );
-				if ( $ffcertificate_calendar ) {
-					do_action( 'ffcertificate_self_scheduling_appointment_confirmed_email', $ffcertificate_appointment, $ffcertificate_calendar );
-				}
-			}
-
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'success',
-					'message' => __( 'Appointment confirmed successfully.', 'ffcertificate' ),
-				),
-				30
-			);
+	// Handle mutations (confirm/cancel/attendance) — these redirect and exit.
+	// Confirm and Cancel decide in AppointmentAdminActions (#2244); the view
+	// only checks the nonce and reports.
+	if ( in_array( $ffcertificate_action, array( 'confirm', 'cancel' ), true ) ) {
+		check_admin_referer( 'ffc_' . $ffcertificate_action . '_appointment_' . $ffc_self_scheduling_appointment_id );
+		$ffcertificate_actions = new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions( $ffcertificate_repo );
+		if ( 'confirm' === $ffcertificate_action ) {
+			$ffcertificate_result = $ffcertificate_actions->confirm( $ffc_self_scheduling_appointment_id, get_current_user_id() );
+			$ffcertificate_done   = __( 'Appointment confirmed successfully.', 'ffcertificate' );
 		} else {
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'error',
-					'message' => __( 'Failed to confirm appointment.', 'ffcertificate' ),
-				),
-				30
-			);
+			$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : '';
+			if ( '' === trim( $ffcertificate_cancel_reason ) ) {
+				$ffcertificate_cancel_reason = __( 'Cancelled by admin', 'ffcertificate' );
+			}
+			$ffcertificate_result = $ffcertificate_actions->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
+			$ffcertificate_done   = __( 'Appointment cancelled successfully.', 'ffcertificate' );
 		}
+
+		set_transient(
+			'ffc_admin_notice_' . get_current_user_id(),
+			is_wp_error( $ffcertificate_result )
+				? array(
+					'type'    => 'error',
+					'message' => $ffcertificate_result->get_error_message(),
+				)
+				: array(
+					'type'    => 'success',
+					'message' => $ffcertificate_done,
+				),
+			30
+		);
 
 		wp_safe_redirect( $ffcertificate_appointments_url );
 		exit;
 
-	} elseif ( 'cancel' === $ffcertificate_action ) {
-		check_admin_referer( 'ffc_cancel_appointment_' . $ffc_self_scheduling_appointment_id );
-		$ffcertificate_cancel_reason = isset( $_GET['reason'] ) ? sanitize_textarea_field( wp_unslash( $_GET['reason'] ) ) : __( 'Cancelled by admin', 'ffcertificate' );
-		// Snapshot the row before cancelling so the waitlist promoter sees the
-		// pre-cancel status/slot (#941 phase 2).
-		$ffcertificate_pre_cancel = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
-		$ffcertificate_result     = $ffcertificate_repo->cancel( $ffc_self_scheduling_appointment_id, get_current_user_id(), $ffcertificate_cancel_reason );
+	} elseif ( in_array( $ffcertificate_action, array( 'attended', 'no_show', 'undo_attendance' ), true ) ) {
+		check_admin_referer( 'ffc_' . $ffcertificate_action . '_appointment_' . $ffc_self_scheduling_appointment_id );
+		$ffcertificate_appointment = $ffcertificate_repo->findById( $ffc_self_scheduling_appointment_id );
+		$ffcertificate_status      = is_array( $ffcertificate_appointment ) ? (string) ( $ffcertificate_appointment['status'] ?? '' ) : '';
+		$ffcertificate_notice      = array(
+			'type'    => 'error',
+			'message' => __( 'Failed to update the appointment status. It may have changed meanwhile; reload the list.', 'ffcertificate' ),
+		);
 
-		if ( $ffcertificate_result ) {
-			// Fire the shared cancellation action so the waitlist FIFO promotion
-			// runs on admin cancellations (an admin "rejection") too.
-			if ( is_array( $ffcertificate_pre_cancel ) ) {
-				do_action( 'ffcertificate_appointment_cancelled', $ffc_self_scheduling_appointment_id, $ffcertificate_pre_cancel, $ffcertificate_cancel_reason, get_current_user_id() );
-			}
-
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
+		if ( 'undo_attendance' === $ffcertificate_action ) {
+			if ( $ffcertificate_repo->revertAttendance( $ffc_self_scheduling_appointment_id, $ffcertificate_status ) ) {
+				$ffcertificate_notice = array(
 					'type'    => 'success',
-					'message' => __( 'Appointment cancelled successfully.', 'ffcertificate' ),
-				),
-				30
-			);
+					'message' => __( 'Attendance mark undone. The appointment is confirmed again.', 'ffcertificate' ),
+				);
+			}
+		} elseif ( ! is_array( $ffcertificate_appointment ) ) {
+			$ffcertificate_notice['message'] = __( 'Appointment not found.', 'ffcertificate' );
+		} elseif ( '' === (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) || (string) $ffcertificate_appointment['appointment_date'] > wp_date( 'Y-m-d' ) ) {
+			// Attendance is a fact about a day that has come; the date is
+			// wall-clock, so it is compared with today in the site timezone.
+			$ffcertificate_notice['message'] = __( 'Attendance can only be marked from the appointment date on.', 'ffcertificate' );
 		} else {
-			set_transient(
-				'ffc_admin_notice_' . get_current_user_id(),
-				array(
-					'type'    => 'error',
-					'message' => __( 'Failed to cancel appointment.', 'ffcertificate' ),
-				),
-				30
-			);
+			$ffcertificate_result = 'attended' === $ffcertificate_action
+				? $ffcertificate_repo->markCompleted( $ffc_self_scheduling_appointment_id )
+				: $ffcertificate_repo->markNoShow( $ffc_self_scheduling_appointment_id );
+			if ( $ffcertificate_result ) {
+				$ffcertificate_notice = array(
+					'type'    => 'success',
+					'message' => 'attended' === $ffcertificate_action
+						? __( 'Appointment marked as attended.', 'ffcertificate' )
+						: __( 'Appointment marked as no-show.', 'ffcertificate' ),
+				);
+			}
 		}
 
+		set_transient( 'ffc_admin_notice_' . get_current_user_id(), $ffcertificate_notice, 30 );
 		wp_safe_redirect( $ffcertificate_appointments_url );
 		exit;
 
@@ -256,8 +316,8 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 					<table class="form-table">
 						<tr><th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th><td><span class="ffc-appointment-status ffc-appointment-status-<?php echo esc_attr( 'no_show' === $ffcertificate_appointment['status'] ? 'noshow' : $ffcertificate_appointment['status'] ); ?>"><?php echo esc_html( $ffcertificate_status_text ); ?></span></td></tr>
 						<tr><th><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_calendar_title ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['appointment_date'] ?? '-' ); ?></td></tr>
-						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( ( $ffcertificate_appointment['start_time'] ?? '' ) . ' - ' . ( $ffcertificate_appointment['end_time'] ?? '' ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Date', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $ffcertificate_appointment['appointment_date'] ?? '' ) ) ); ?></td></tr>
+						<tr><th><?php esc_html_e( 'Time', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffcertificate_appointment['start_time'] ?? '' ) ) . ' - ' . \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $ffcertificate_appointment['end_time'] ?? '' ) ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Name', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_name ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'E-mail', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'email', (string) $ffcertificate_email, \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $ffcertificate_email ) ); ?></td></tr>
 						<tr><th><?php esc_html_e( 'Phone', 'ffcertificate' ); ?></th><td><?php $ffcertificate_render_pii( 'phone', (string) $ffcertificate_phone, \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $ffcertificate_phone ) ); ?></td></tr>
@@ -276,10 +336,7 @@ if ( $ffc_self_scheduling_appointment_id > 0 ) {
 						<?php if ( ! empty( $ffcertificate_appointment['admin_notes'] ) ) : ?>
 						<tr><th><?php esc_html_e( 'Admin Notes', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['admin_notes'] ); ?></td></tr>
 						<?php endif; ?>
-						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( $ffcertificate_appointment['created_at'] ?? '-' ); ?></td></tr>
-						<?php if ( ! empty( $ffcertificate_appointment['confirmation_token'] ) ) : ?>
-						<tr><th><?php esc_html_e( 'Confirmation Token', 'ffcertificate' ); ?></th><td><code><?php echo esc_html( $ffcertificate_appointment['confirmation_token'] ); ?></code></td></tr>
-						<?php endif; ?>
+						<tr><th><?php esc_html_e( 'Created', 'ffcertificate' ); ?></th><td><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $ffcertificate_appointment['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) ) ); ?></td></tr>
 					</table>
 				</div>
 
@@ -357,8 +414,7 @@ $ffcertificate_table->prepare_items();
 	// but cannot bulk-extract the attendee dataset). The current calendar/status
 	// filters ride along via data-* so the export matches the on-screen query.
 	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_appointments' ) ) :
-		$ffc_export_calendar_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'calendar_id' );
-		$ffc_export_status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		$ffc_export_filters = \FreeFormCertificate\SelfScheduling\AppointmentsListTable::request_filters();
 		?>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -367,14 +423,61 @@ $ffcertificate_table->prepare_items();
 				'icon'  => 'download',
 				'id'    => 'ffc-appointments-export-btn',
 				'attrs' => array(
-					'data-calendar_id' => (string) $ffc_export_calendar_id,
-					'data-status'      => $ffc_export_status,
+					'data-calendar_id' => (string) $ffc_export_filters['calendar_id'],
+					'data-status'      => $ffc_export_filters['status'],
+					'data-start_date'  => $ffc_export_filters['start_date'],
+					'data-end_date'    => $ffc_export_filters['end_date'],
+					'data-s'           => $ffc_export_filters['search'],
 				),
 			)
 		);
 	endif;
 	?>
 	<hr class="wp-header-end">
+
+	<?php
+	// Old appointments still open past the close-out window (#2285).
+	if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) :
+		$ffc_closeout_due   = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::due();
+		$ffc_closeout_total = $ffc_closeout_due['confirmed'] + $ffc_closeout_due['pending'];
+		if ( $ffc_closeout_total > 0 ) :
+			$ffc_closeout_days    = \FreeFormCertificate\SelfScheduling\AppointmentCloseout::days();
+			$ffc_closeout_message = sprintf(
+				/* translators: 1: number of days, 2: confirmed appointments, 3: pending appointments */
+				__( 'Appointments dated %1$d or more days ago are still open: %2$d confirmed (will be marked completed) and %3$d pending (will be cancelled). The daily run closes them; you can close them now.', 'ffcertificate' ),
+				$ffc_closeout_days,
+				$ffc_closeout_due['confirmed'],
+				$ffc_closeout_due['pending']
+			);
+			$ffc_closeout_button = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Close old appointments now', 'ffcertificate' ),
+					'category' => 'caution',
+					'icon'     => 'calendar-check',
+					'href'     => wp_nonce_url(
+						add_query_arg(
+							array(
+								'page'       => 'ffc-appointments',
+								'ffc_action' => 'close_old',
+							),
+							admin_url( 'admin.php' )
+						),
+						'ffc_close_old_appointments'
+					),
+					'attrs'    => array(
+						/* translators: %d: number of appointments */
+						'data-confirm' => sprintf( _n( 'Close %d old appointment? This cannot be undone in bulk.', 'Close %d old appointments? This cannot be undone in bulk.', $ffc_closeout_total, 'ffcertificate' ), $ffc_closeout_total ),
+					),
+				)
+			);
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html( $ffc_closeout_message ) . ' ' . $ffc_closeout_button,
+				array( 'additional_classes' => array( 'inline' ) )
+			);
+		endif;
+	endif;
+	?>
 
 	<form method="get">
 		<input type="hidden" name="page" value="ffc-appointments" />

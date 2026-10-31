@@ -26,9 +26,31 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/**
+	 * The audience ids each member read asked for, in order.
+	 *
+	 * @var list<list<int>>
+	 */
+	private array $member_reads = array();
+
+	/** @var mixed The `$wpdb` global before the test. */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->member_reads  = array();
+		$this->had_wpdb      = array_key_exists('wpdb', $GLOBALS);
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		// AudienceReader::get_all() orders through it; the default order passes.
+		Functions\when('sanitize_sql_orderby')->returnArg();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the reader/writer coverage would attribute to nothing. Preload the
@@ -63,9 +85,19 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function () {
 			return func_get_args()[0];
 		})->byDefault();
+
+		// Approval issues an authentication code (#2242).
+		Functions\when('wp_rand')->alias(function ($min, $max) {
+			return random_int($min, $max);
+		});
 	}
 
 	protected function tearDown(): void {
+		if ($this->had_wpdb) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset($GLOBALS['wpdb']);
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -212,12 +244,10 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertNull(ReregistrationSubmissionReader::get_by_auth_code('NONEXIST'));
 	}
 
-	public function test_get_by_auth_code_query_allows_expired_status(): void {
-		// 6.7.4 — Submissions whose parent campaign closed get their
-		// `status` flipped from `approved` to `expired` for housekeeping,
-		// but the auth_code printed on the record must keep resolving.
-		// Pin the SQL whitelist by capturing the prepared statement and
-		// asserting `'expired'` is in the `status IN (...)` clause.
+	public function test_get_by_auth_code_resolves_only_an_approved_record(): void {
+		// #2242: a code verifies only an APPROVED record. A row returned to
+		// draft keeps its code stored, and a submitted one has none yet, so
+		// neither may answer to it.
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')
 			->once()
@@ -229,9 +259,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		ReregistrationSubmissionReader::get_by_auth_code('ANYCODE');
 
-		$this->assertStringContainsString( "'expired'", $captured_sql );
-		$this->assertStringContainsString( "'submitted'", $captured_sql );
-		$this->assertStringContainsString( "'approved'", $captured_sql );
+		$this->assertStringContainsString("status = 'approved'", $captured_sql);
+		$this->assertStringNotContainsString("'submitted'", $captured_sql);
+		$this->assertStringNotContainsString("'expired'", $captured_sql);
 	}
 
 	// ==================================================================
@@ -265,10 +295,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->assertNull(ReregistrationSubmissionReader::get_by_magic_token('deadbeef'));
 	}
 
-	public function test_get_by_magic_token_query_allows_expired_status(): void {
-		// 6.7.4 — Same SQL whitelist as get_by_auth_code (see above):
-		// a magic link printed on / emailed for a once-approved record
-		// must keep resolving after the parent campaign expires.
+	public function test_get_by_magic_token_resolves_only_an_approved_record(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')
 			->once()
@@ -280,9 +307,8 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		ReregistrationSubmissionReader::get_by_magic_token('deadbeef');
 
-		$this->assertStringContainsString( "'expired'", $captured_sql );
-		$this->assertStringContainsString( "'submitted'", $captured_sql );
-		$this->assertStringContainsString( "'approved'", $captured_sql );
+		$this->assertStringContainsString("status = 'approved'", $captured_sql);
+		$this->assertStringNotContainsString("'submitted'", $captured_sql);
 	}
 
 	// ==================================================================
@@ -534,6 +560,91 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// update()
 	// ==================================================================
 
+	// ==================================================================
+	// update_if_status() — the status test and the write in one statement (#2242)
+	// ==================================================================
+
+	/**
+	 * The template and values of the conditional UPDATE, captured from prepare()
+	 * under the keys `sql` and `values`.
+	 *
+	 * @return \ArrayObject<string, mixed>
+	 */
+	private function capture_conditional_write(): \ArrayObject {
+		$captured = new \ArrayObject();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($sql, ...$args) use ($captured) {
+			if (0 === strpos($sql, 'UPDATE %i SET')) {
+				$captured['sql']    = $sql;
+				$captured['values'] = (1 === count($args) && is_array($args[0])) ? $args[0] : $args;
+			}
+			return $sql;
+		});
+		return $captured;
+	}
+
+	public function test_update_if_status_writes_only_while_the_status_is_allowed(): void {
+		$captured = $this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted', 'notes' => null, 'submitted_at' => 1700000000), array('pending', 'in_progress')));
+
+		$this->assertSame('UPDATE %i SET %i = %s, %i = NULL, %i = %d WHERE id = %d AND status IN (%s,%s)', $captured['sql']);
+		$this->assertSame(
+			array('wp_ffc_reregistration_submissions', 'status', 'submitted', 'notes', 'submitted_at', 1700000000, 10, 'pending', 'in_progress'),
+			$captured['values'],
+			'Every value travels as a placeholder argument, the statuses last.'
+		);
+	}
+
+	public function test_update_if_status_refuses_a_row_that_moved_on(): void {
+		// The second of two submits: the row is already `submitted`, so the
+		// UPDATE matches nothing and the re-read says why.
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('submitted');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'in_progress'), array('pending', 'in_progress', 'rejected')));
+	}
+
+	public function test_update_if_status_accepts_a_write_that_changed_nothing(): void {
+		// A draft saved twice in the same second with the same values: MySQL
+		// reports zero rows changed, but the row is still open and holds them.
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('in_progress');
+
+		$this->assertTrue(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'in_progress'), array('pending', 'in_progress', 'rejected')));
+	}
+
+	public function test_update_if_status_reports_a_failed_query(): void {
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(false);
+		$this->wpdb->shouldNotReceive('get_var');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array('pending')));
+	}
+
+	public function test_update_if_status_writes_nothing_without_columns_or_statuses(): void {
+		$this->wpdb->shouldNotReceive('query');
+
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('user_id' => 3), array('pending')), 'Only immutable columns: nothing to write.');
+		$this->assertFalse(ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array()), 'No allowed status: nothing may be written.');
+	}
+
+	public function test_update_if_status_drops_the_cached_row(): void {
+		$this->capture_conditional_write();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+		$deleted = array();
+		Functions\when('wp_cache_delete')->alias(function ($key, $group) use (&$deleted) {
+			$deleted[] = $group . ':' . $key;
+			return true;
+		});
+
+		ReregistrationSubmissionWriter::update_if_status(10, array('status' => 'submitted'), array('pending'));
+
+		$this->assertSame(array('ffc_rereg_submissions:id_10'), $deleted);
+	}
+
 	public function test_update_returns_true_on_success(): void {
 		$this->wpdb->shouldReceive('update')
 			->once()
@@ -744,135 +855,183 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// approve()
 	// ==================================================================
 
-	public function test_approve_updates_status_and_reviewer(): void {
-		$this->wpdb->shouldReceive('update')
-			->once()
-			->with(
-				'wp_ffc_reregistration_submissions',
-				Mockery::on(function ($data) {
-					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-scope d).
-					return $data['status'] === 'approved'
-						&& is_int($data['reviewed_at'])
-						&& $data['reviewed_at'] > time() - 10
-						&& $data['reviewed_by'] === 99;
-				}),
-				array('id' => 5),
-				Mockery::type('array'),
-				array('%d')
-			)
-			->andReturn(1);
+	/**
+	 * The template and values of every conditional UPDATE, in order, keyed
+	 * `sql` and `values`, plus the reads under `reads`.
+	 *
+	 * @return \ArrayObject<string, mixed>
+	 */
+	private function capture_review_writes(): \ArrayObject {
+		$captured           = new \ArrayObject();
+		$captured['writes'] = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($sql, ...$args) use ($captured) {
+			if (0 === strpos($sql, 'UPDATE %i SET')) {
+				$writes             = $captured['writes'];
+				$writes[]           = array(
+					'sql'    => $sql,
+					'values' => (1 === count($args) && is_array($args[0])) ? $args[0] : $args,
+				);
+				$captured['writes'] = $writes;
+			}
+			return $sql;
+		});
+		return $captured;
+	}
 
-		$result = ReregistrationSubmissionWriter::approve(5, 99);
+	/**
+	 * The SET column => value map of one captured conditional UPDATE.
+	 *
+	 * @param array{sql: string, values: array<int, mixed>} $write Captured write.
+	 * @return array<string, mixed>
+	 */
+	private function set_map(array $write): array {
+		$set    = substr($write['sql'], strlen('UPDATE %i SET '), strpos($write['sql'], ' WHERE ') - strlen('UPDATE %i SET '));
+		$values = array_slice($write['values'], 1);
+		$map    = array();
+		foreach (explode(', ', $set) as $part) {
+			$column = array_shift($values);
+			$map[ $column ] = ('%i = NULL' === $part) ? null : array_shift($values);
+		}
+		return $map;
+	}
 
-		$this->assertTrue($result);
+	/**
+	 * The statuses a captured conditional UPDATE was limited to.
+	 *
+	 * @param array{sql: string, values: array<int, mixed>} $write Captured write.
+	 * @return array<int, mixed>
+	 */
+	private function allowed_statuses(array $write): array {
+		$count = substr_count(substr($write['sql'], strpos($write['sql'], 'IN (')), '%s');
+		return array_slice($write['values'], -$count);
+	}
+
+	/**
+	 * `get_var()` answering the status re-read with `$status`, and every
+	 * other read (the stored code, the code-uniqueness checks) with null.
+	 *
+	 * @param string $status Status the row is in.
+	 * @return void
+	 */
+	private function status_reads_answer(string $status): void {
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($sql) use ($status) {
+			return 0 === strpos((string) $sql, 'SELECT status') ? $status : null;
+		});
+	}
+
+	public function test_approve_issues_a_code_and_records_the_reviewer(): void {
+		$captured = $this->capture_review_writes();
+		$this->status_reads_answer('approved');
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::approve(5, 99));
+
+		$map = $this->set_map($captured['writes'][0]);
+		$this->assertSame('approved', $map['status']);
+		$this->assertSame(99, $map['reviewed_by']);
+		$this->assertGreaterThan(time() - 10, $map['reviewed_at']);
+		$this->assertIsString($map['auth_code']);
+		$this->assertNotSame('', $map['auth_code'], 'The code is born on approval (#2242).');
+		$this->assertSame(array('submitted'), $this->allowed_statuses($captured['writes'][0]), 'Only a submission awaiting review is approved.');
+	}
+
+	public function test_re_approval_brings_back_the_same_code(): void {
+		// Approved, returned to draft, submitted again: the stored code comes
+		// back, so a record printed under the first approval still matches.
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('ORIGINALCODE');
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::approve(5, 99));
+
+		$this->assertSame('ORIGINALCODE', $this->set_map($captured['writes'][0])['auth_code']);
+	}
+
+	public function test_approve_refuses_a_row_that_is_not_awaiting_review(): void {
+		$this->capture_review_writes();
+		$this->status_reads_answer('pending');
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+
+		$this->assertFalse(ReregistrationSubmissionWriter::approve(5, 99));
 	}
 
 	public function test_approve_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+		$this->capture_review_writes();
+		$this->status_reads_answer('submitted');
+		$this->wpdb->shouldReceive('query')->once()->andReturn(false);
 
-		$result = ReregistrationSubmissionWriter::approve(5, 99);
-
-		$this->assertFalse($result);
+		$this->assertFalse(ReregistrationSubmissionWriter::approve(5, 99));
 	}
 
 	// ==================================================================
 	// reject()
 	// ==================================================================
 
-	public function test_reject_updates_status_reviewer_and_notes(): void {
-		$this->wpdb->shouldReceive('update')
-			->once()
-			->with(
-				'wp_ffc_reregistration_submissions',
-				Mockery::on(function ($data) {
-					// `reviewed_at` is unix UTC int since 6.6.0 (#249 sub-scope d).
-					return $data['status'] === 'rejected'
-						&& is_int($data['reviewed_at'])
-						&& $data['reviewed_at'] > time() - 10
-						&& $data['reviewed_by'] === 99
-						&& $data['notes'] === 'Incomplete submission';
-				}),
-				array('id' => 7),
-				Mockery::type('array'),
-				array('%d')
-			)
-			->andReturn(1);
+	public function test_reject_deletes_the_code_and_records_the_reviewer(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-		$result = ReregistrationSubmissionWriter::reject(7, 99, 'Incomplete submission');
+		$this->assertTrue(ReregistrationSubmissionWriter::reject(7, 99, 'Incomplete submission'));
 
-		$this->assertTrue($result);
+		$map = $this->set_map($captured['writes'][0]);
+		$this->assertSame('rejected', $map['status']);
+		$this->assertSame(99, $map['reviewed_by']);
+		$this->assertSame('Incomplete submission', $map['notes']);
+		$this->assertArrayHasKey('auth_code', $map);
+		$this->assertNull($map['auth_code'], 'A rejected record must not verify (#2242).');
+		$this->assertArrayHasKey('reminder_sent_at', $map);
+		$this->assertNull($map['reminder_sent_at'], 'A rejected member is reminded again (#2242).');
+		$this->assertSame(array('submitted'), $this->allowed_statuses($captured['writes'][0]));
 	}
 
 	public function test_reject_with_empty_notes(): void {
-		$this->wpdb->shouldReceive('update')
-			->once()
-			->with(
-				'wp_ffc_reregistration_submissions',
-				Mockery::on(function ($data) {
-					return $data['status'] === 'rejected'
-						&& $data['notes'] === '';
-				}),
-				array('id' => 7),
-				Mockery::type('array'),
-				array('%d')
-			)
-			->andReturn(1);
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-		$result = ReregistrationSubmissionWriter::reject(7, 99);
+		$this->assertTrue(ReregistrationSubmissionWriter::reject(7, 99));
 
-		$this->assertTrue($result);
+		$this->assertSame('', $this->set_map($captured['writes'][0])['notes']);
 	}
 
 	public function test_reject_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+		$this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(false);
 
-		$result = ReregistrationSubmissionWriter::reject(7, 99, 'Reason');
-
-		$this->assertFalse($result);
+		$this->assertFalse(ReregistrationSubmissionWriter::reject(7, 99, 'Reason'));
 	}
 
 	// ==================================================================
 	// return_to_draft()
 	// ==================================================================
 
-	public function test_return_to_draft_resets_submission_fields(): void {
-		$this->wpdb->shouldReceive('update')
-			->once()
-			->with(
-				'wp_ffc_reregistration_submissions',
-				Mockery::on(function ($data) {
-					return $data['status'] === 'in_progress'
-						&& $data['submitted_at'] === null
-						&& $data['reviewed_at'] === null
-						&& $data['reviewed_by'] === null
-						&& $data['notes'] === null;
-				}),
-				array('id' => 8),
-				array('%s', '%s', '%s', '%s', '%s'),
-				array('%d')
-			)
-			->andReturn(1);
+	public function test_return_to_draft_resets_the_review_and_keeps_the_code(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8);
+		$this->assertTrue(ReregistrationSubmissionWriter::return_to_draft(8));
 
-		$this->assertTrue($result);
+		$map = $this->set_map($captured['writes'][0]);
+		$this->assertSame(
+			array('status' => 'in_progress', 'submitted_at' => null, 'reviewed_at' => null, 'reviewed_by' => null, 'notes' => null, 'reminder_sent_at' => null),
+			$map,
+			'The code is not touched: it stays stored and hidden until re-approval (#2242).'
+		);
+		$this->assertSame(array('submitted', 'approved', 'rejected'), $this->allowed_statuses($captured['writes'][0]));
 	}
 
 	public function test_return_to_draft_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+		$this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(false);
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8);
-
-		$this->assertFalse($result);
+		$this->assertFalse(ReregistrationSubmissionWriter::return_to_draft(8));
 	}
 
-	public function test_return_to_draft_returns_true_on_zero_rows_affected(): void {
-		// wpdb->update returns 0 (int) when no rows match but no error occurred.
-		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+	public function test_return_to_draft_refuses_a_row_that_was_never_submitted(): void {
+		$this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('pending');
 
-		$result = ReregistrationSubmissionWriter::return_to_draft(8);
-
-		$this->assertTrue($result);
+		$this->assertFalse(ReregistrationSubmissionWriter::return_to_draft(8));
 	}
 
 	// ==================================================================
@@ -880,61 +1039,75 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// ==================================================================
 
 	public function test_bulk_approve_approves_all_submissions(): void {
-		$this->wpdb->shouldReceive('update')->times(3)->andReturn(1);
+		$this->capture_review_writes();
+		$this->status_reads_answer('approved');
+		$this->wpdb->shouldReceive('query')->times(3)->andReturn(1);
 
-		$count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99);
-
-		$this->assertSame(3, $count);
+		$this->assertSame(3, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
 	}
 
-	public function test_bulk_approve_counts_only_successful_approvals(): void {
-		$this->wpdb->shouldReceive('update')
-			->andReturn(1, false, 1);
+	public function test_bulk_approve_skips_the_rows_not_awaiting_review(): void {
+		// "Select all" selects members who never answered: the conditional
+		// write matches nothing for them, and the re-read says they moved on.
+		$this->capture_review_writes();
+		$this->status_reads_answer('pending');
+		$this->wpdb->shouldReceive('query')->andReturn(1, 0, 1);
 
-		$count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99);
-
-		$this->assertSame(2, $count);
+		$this->assertSame(2, ReregistrationSubmissionWriter::bulk_approve(array(1, 2, 3), 99));
 	}
 
 	public function test_bulk_approve_returns_zero_for_empty_array(): void {
-		$count = ReregistrationSubmissionWriter::bulk_approve(array(), 99);
-
-		$this->assertSame(0, $count);
+		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(), 99));
 	}
 
 	public function test_bulk_approve_returns_zero_when_all_fail(): void {
-		$this->wpdb->shouldReceive('update')->times(2)->andReturn(false);
+		$this->capture_review_writes();
+		$this->status_reads_answer('submitted');
+		$this->wpdb->shouldReceive('query')->times(2)->andReturn(false);
 
-		$count = ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99);
+		$this->assertSame(0, ReregistrationSubmissionWriter::bulk_approve(array(1, 2), 99));
+	}
 
-		$this->assertSame(0, $count);
+	public function test_return_to_draft_stores_the_reason_for_the_member(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
+
+		$this->assertTrue(ReregistrationSubmissionWriter::return_to_draft(8, 'Attach the missing document.'));
+
+		$this->assertSame('Attach the missing document.', $this->set_map($captured['writes'][0])['notes']);
 	}
 
 	// ==================================================================
-	// bulk_return_to_draft()
+	// retract() and the reason floor (#2242)
 	// ==================================================================
 
-	public function test_bulk_return_to_draft_returns_count(): void {
-		$this->wpdb->shouldReceive('update')->times(2)->andReturn(1);
+	public function test_retract_takes_back_only_a_submission_awaiting_review(): void {
+		$captured = $this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(1);
 
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11));
+		$this->assertTrue(ReregistrationSubmissionWriter::retract(8));
 
-		$this->assertSame(2, $count);
+		$this->assertSame(
+			array('status' => 'in_progress', 'submitted_at' => null, 'notes' => null),
+			$this->set_map($captured['writes'][0])
+		);
+		$this->assertSame(array('submitted'), $this->allowed_statuses($captured['writes'][0]));
 	}
 
-	public function test_bulk_return_to_draft_counts_only_successes(): void {
-		$this->wpdb->shouldReceive('update')
-			->andReturn(1, false);
+	public function test_retract_refuses_a_reviewed_submission(): void {
+		$this->capture_review_writes();
+		$this->wpdb->shouldReceive('query')->once()->andReturn(0);
+		$this->wpdb->shouldReceive('get_var')->once()->andReturn('approved');
 
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array(10, 11));
-
-		$this->assertSame(1, $count);
+		$this->assertFalse(ReregistrationSubmissionWriter::retract(8));
 	}
 
-	public function test_bulk_return_to_draft_returns_zero_for_empty_array(): void {
-		$count = ReregistrationSubmissionWriter::bulk_return_to_draft(array());
-
-		$this->assertSame(0, $count);
+	public function test_a_reason_needs_ten_characters_after_trimming(): void {
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason(''));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason('   short   '));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason('123456789'));
+		$this->assertTrue(ReregistrationSubmissionWriter::is_valid_reason('1234567890'));
+		$this->assertFalse(ReregistrationSubmissionWriter::is_valid_reason(str_repeat('ã', 9)), 'Characters, not bytes: nine accented letters are 18 bytes.');
 	}
 
 	// ==================================================================
@@ -1001,34 +1174,97 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// count_by_reregistration()
+	// count_filtered() / filters (#2242)
 	// ==================================================================
 
-	public function test_count_by_reregistration_without_status_filter(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+	/**
+	 * A prepare() that records its arguments, so a test reads the SQL and
+	 * the values the filters produced.
+	 *
+	 * @return \ArrayObject<int, array<int, mixed>>
+	 */
+	private function recordPrepare(): \ArrayObject {
+		$calls = new \ArrayObject();
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn ($v) => $v);
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static function (...$args) use ($calls) {
+				$flat    = 2 === count($args) && is_array($args[1]) ? array_merge(array($args[0]), $args[1]) : $args;
+				$calls[] = $flat;
+				return 'Q' . (count($calls) - 1);
+			}
+		);
+		return $calls;
+	}
+
+	public function test_count_filtered_counts_the_filtered_rows(): void {
+		$calls = $this->recordPrepare();
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('12');
 
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1);
+		$count = ReregistrationSubmissionReader::count_filtered(1, array('status' => 'approved'));
 
 		$this->assertSame(12, $count);
+		$this->assertStringContainsString('SELECT COUNT(*) FROM %i s LEFT JOIN %i u', $calls[0][0]);
+		$this->assertSame(array('wp_ffc_reregistration_submissions', 'wp_users', 1, 'approved'), array_slice($calls[0], 1));
 	}
 
-	public function test_count_by_reregistration_with_status_filter(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_var')->once()->andReturn('4');
-
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1, 'approved');
-
-		$this->assertSame(4, $count);
-	}
-
-	public function test_count_by_reregistration_returns_zero_for_null(): void {
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
+	public function test_count_filtered_returns_zero_for_a_failed_query(): void {
+		$this->recordPrepare();
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn(null);
 
-		$count = ReregistrationSubmissionReader::count_by_reregistration(1);
+		$this->assertSame(0, ReregistrationSubmissionReader::count_filtered(1));
+	}
 
-		$this->assertSame(0, $count);
+	public function test_normalize_filters_keeps_known_values_only(): void {
+		$this->assertSame(
+			array('status' => 'not_finished', 'search' => 'ana', 'audience_id' => 3),
+			ReregistrationSubmissionReader::normalize_filters('not_finished', ' ana ', 3)
+		);
+		$this->assertSame(
+			array('status' => null, 'search' => null, 'audience_id' => 0),
+			ReregistrationSubmissionReader::normalize_filters('nope', '  ', -4),
+			'An unknown status lists everything rather than nothing.'
+		);
+	}
+
+	public function test_a_cpf_search_also_matches_the_account_that_carries_it(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_var')->andReturnUsing(
+			static fn ($sql) => '42'
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => '518.178.420-80'));
+
+		$lookup = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'cpf_hash = %s')));
+		$this->assertNotEmpty($lookup, 'The identity index is asked by hash.');
+		$this->assertSame(\FreeFormCertificate\Core\Encryption::hash(\FreeFormCertificate\Tests\Support\Identifiers::CPF_A), $lookup[0][2], 'Asked by the digits\' hash, whatever the mask.');
+		$this->assertNotSame(\FreeFormCertificate\Tests\Support\Identifiers::CPF_A, $lookup[0][2], 'The CPF is never sent in clear.');
+
+		$list = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'SELECT s.*')));
+		$this->assertStringContainsString('(u.display_name LIKE %s OR u.user_email LIKE %s OR s.user_id = %d)', $list[0][0]);
+		$this->assertSame(42, end($list[0]));
+	}
+
+	public function test_an_rf_search_asks_the_rf_column(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => \FreeFormCertificate\Tests\Support\Identifiers::RF_A));
+
+		$lookups = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'rf_hash = %s')));
+		$this->assertNotEmpty($lookups);
+		$list = array_values(array_filter((array) $calls, static fn ($c) => false !== strpos($c[0], 'SELECT s.*')));
+		$this->assertStringNotContainsString('s.user_id = %d', $list[0][0], 'No account carries it, so only the name and e-mail match.');
+	}
+
+	public function test_a_name_search_never_asks_the_identity_index(): void {
+		$calls = $this->recordPrepare();
+		$this->wpdb->shouldReceive('get_results')->andReturn(array());
+
+		ReregistrationSubmissionReader::get_by_reregistration(1, array('search' => 'Ana ' . \FreeFormCertificate\Tests\Support\Identifiers::RF_A));
+
+		$this->assertCount(1, $calls, 'Only the list query.');
 	}
 
 	// ==================================================================
@@ -1084,7 +1320,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 			->once()
 			->andReturnUsing(function () {
 				$sql = func_get_args()[0];
-				$this->assertStringContainsString('s.status = %s', $sql);
+				$this->assertStringContainsString('s.status IN (%s)', $sql);
 				return 'QUERY';
 			});
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array());
@@ -1173,9 +1409,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	// ==================================================================
 	// get_all_by_user()
-	// Note: These tests must run BEFORE create_for_audience_members tests
-	// because those tests create a Mockery alias for ReregistrationRepository
-	// which persists for the rest of the process.
 	// ==================================================================
 
 	public function test_get_all_by_user_returns_array_of_results(): void {
@@ -1204,9 +1437,111 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	// ==================================================================
 	// create_for_audience_members()
-	// Note: These tests use Mockery alias mocks for ReregistrationRepository,
-	// which permanently replace the class for this process. Keep these last.
+	// The real ReregistrationRepository and AudienceReader resolve the
+	// members: the double answers that an audience has no children, answers
+	// its members, and records the audiences asked for.
 	// ==================================================================
+
+	/**
+	 * Teach the `$wpdb` double the audience tables the real AudienceReader
+	 * reads: `get_results()` answers that a parent has no children, `get_col()`
+	 * the members of the audiences in an `IN ()` list. Each audience asked
+	 * for is recorded in `$this->member_reads`.
+	 *
+	 * @param array<int, list<mixed>> $members Stored member ids by audience, as the driver hands them over.
+	 */
+	private function install_audiences(array $members): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$last) {
+				[$sql, $args] = $last;
+				$this->assertSame('SELECT * FROM %i WHERE parent_id = %d ORDER BY name ASC ', $sql, 'Unexpected get_results() query.');
+				$this->assertSame('wp_ffc_audiences', $args[0]);
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function ($query) use (&$last, $members) {
+				[$sql, $args] = $last;
+				$this->assertStringStartsWith('SELECT DISTINCT user_id FROM %i WHERE audience_id IN (', $sql, 'Unexpected get_col() query.');
+				$this->assertSame('wp_ffc_audience_members', array_shift($args));
+				$this->member_reads[] = $args;
+				$out = array();
+				foreach ($args as $audience_id) {
+					$out = array_merge($out, $members[$audience_id] ?? array());
+				}
+				return $out;
+			}
+		);
+	}
+
+	/**
+	 * The daily run creates the missing rows of every active campaign (#2242):
+	 * whoever joined an audience after activation, or one of its children,
+	 * gets a row and so an invitation and reminders. Each campaign is seeded
+	 * from its own audiences, through the same `INSERT IGNORE`.
+	 */
+	public function test_seed_active_campaigns_seeds_each_active_campaign_from_its_own_audiences(): void {
+		$last = array('', array());
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			function ($sql, ...$args) use (&$last) {
+				if (1 === count($args) && is_array($args[0])) {
+					$args = $args[0];
+				}
+				$last = array((string) $sql, array_values($args));
+				return (string) $sql;
+			}
+		);
+		$this->wpdb->shouldReceive('get_results')->andReturn(array()); // No child audiences.
+		$this->wpdb->shouldReceive('get_col')->andReturnUsing(
+			function () use (&$last) {
+				[$sql, $args] = $last;
+				if (0 === strpos($sql, "SELECT id FROM %i WHERE status = 'active'")) {
+					return array('3', '5');
+				}
+				if (0 === strpos($sql, 'SELECT audience_id FROM %i WHERE reregistration_id')) {
+					return 3 === (int) $args[1] ? array('100') : array('200');
+				}
+				// Members: 100 has a newcomer; 200 has none new.
+				return 100 === (int) $args[1] ? array('10', '11') : array('20');
+			}
+		);
+		$seeded = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(
+			function () use (&$last, &$seeded) {
+				[$sql, $args] = $last;
+				$this->assertStringStartsWith('INSERT IGNORE INTO %i', $sql);
+				$seeded[] = array_slice($args, 1);
+				return 1;
+			}
+		);
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+
+		$this->assertSame(
+			array(
+				array(3, 10, 'pending', 3, 11, 'pending'),
+				array(5, 20, 'pending'),
+			),
+			$seeded
+		);
+	}
+
+	public function test_seed_active_campaigns_does_nothing_without_an_active_campaign(): void {
+		$this->wpdb->shouldReceive('get_col')->once()->andReturn(array());
+		$this->wpdb->shouldNotReceive('query');
+
+		ReregistrationSubmissionWriter::seed_active_campaigns();
+	}
 
 	/**
 	 * A single INSERT covers the whole page, and the count comes from the database.
@@ -1214,16 +1549,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * This is #1234's central assertion: it used to be two statements PER USER
 	 * (an existence SELECT and an INSERT); now it is `ceil( N / 500 )` INSERTs.
 	 * With three users, exactly one.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_seeds_every_user_in_one_statement(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100, 200))
-			->andReturn(array(10, 20, 30));
+		$this->install_audiences(array(100 => array('10', '20'), 200 => array('20', '30')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1238,6 +1566,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100, 200));
+		$this->assertSame(array(array(100), array(200)), $this->member_reads, 'Each audience\'s members are read once; 20 belongs to both.');
 
 		$this->assertSame(3, $count, 'The count is the INSERT\'s affected_rows, not a PHP accumulator.');
 		$this->assertStringContainsString('INSERT IGNORE INTO', $captured);
@@ -1255,16 +1584,9 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `affected_rows` returned is already the count of rows CREATED. No
 	 * existence SELECT is emitted -- it was that one which cost half of the
 	 * twenty thousand queries.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_lets_the_unique_key_skip_existing_rows(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array(10, 20));
+		$this->install_audiences(array(100 => array('10', '20')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1276,6 +1598,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		$this->wpdb->shouldNotReceive('get_row');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(1, $count);
 		$this->assertStringContainsString(
@@ -1292,18 +1615,11 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `array_chunk`, ten thousand members become one INSERT of thirty thousand
 	 * placeholders, which hits `max_allowed_packet` and fails on the real
 	 * client without failing here.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_splits_large_audiences_into_pages(): void {
 		$user_ids = range(1, 1201);
 
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn($user_ids);
+		$this->install_audiences(array(100 => array_map('strval', $user_ids)));
 
 		$sizes = array();
 		$this->wpdb->shouldReceive('query')->times(3)->andReturnUsing(
@@ -1315,6 +1631,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(array(500, 500, 201), $sizes);
 		$this->assertSame(1201, $count, 'The count sums the pages.');
@@ -1327,21 +1644,15 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 	/**
 	 * With no users, no query at all.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_returns_zero_for_no_users(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array());
+		$this->install_audiences(array(100 => array()));
 
 		$this->wpdb->shouldNotReceive('query');
 		$this->wpdb->shouldNotReceive('insert');
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(0, $count);
 	}
@@ -1352,17 +1663,12 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * `get_members()` returns whatever the driver handed over -- a string, and
 	 * occasionally `0` or empty. Without the normalisation, a `0` would enter as
 	 * `user_id = 0`: a pending submission belonging to nobody, which the UNIQUE
-	 * accepts once per campaign and which nobody ever fills in.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * accepts once per campaign and which nobody ever fills in. With the real
+	 * readers the stored strings are cast by `get_members()` and the repeat is
+	 * dropped by `get_user_ids_for_audiences()`; the writer drops the rest.
 	 */
 	public function test_create_for_audience_members_drops_non_positive_and_duplicate_ids(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(array('10', 0, '10', '', 20, -3));
+		$this->install_audiences(array(100 => array('10', '0', '10', '', '20', '-3')));
 
 		$captured = '';
 		$this->wpdb->shouldReceive('query')->once()->andReturnUsing(
@@ -1373,6 +1679,7 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 		);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(2, $count);
 		$this->assertSame(
@@ -1391,20 +1698,14 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	 * there for PHPStan (level 8 does not narrow `int|bool` from a comparison),
 	 * not for the runtime. What this test proves is the behaviour: the next page
 	 * runs and only it counts.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_create_for_audience_members_survives_a_failed_page(): void {
-		$repoMock = Mockery::mock('alias:FreeFormCertificate\Reregistration\ReregistrationRepository');
-		$repoMock->shouldReceive('get_user_ids_for_audiences')
-			->once()
-			->with(array(100))
-			->andReturn(range(1, 600));
+		$this->install_audiences(array(100 => range(1, 600)));
 
 		$this->wpdb->shouldReceive('query')->twice()->andReturn(false, 100);
 
 		$count = ReregistrationSubmissionWriter::create_for_audience_members(5, array(100));
+		$this->assertSame(array(array(100)), $this->member_reads, 'The members of the audience asked for are read.');
 
 		$this->assertSame(100, $count);
 	}

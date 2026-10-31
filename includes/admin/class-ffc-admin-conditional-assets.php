@@ -191,7 +191,7 @@ class AdminConditionalAssets {
 					'noFormsForDay'   => __( 'No forms scheduled for this day.', 'ffcertificate' ),
 					'viewSubmissions' => __( 'View submissions for this form', 'ffcertificate' ),
 					'calendarStrings' => array(
-						'months'   => array(
+						'months'    => array(
 							__( 'January', 'ffcertificate' ),
 							__( 'February', 'ffcertificate' ),
 							__( 'March', 'ffcertificate' ),
@@ -205,7 +205,7 @@ class AdminConditionalAssets {
 							__( 'November', 'ffcertificate' ),
 							__( 'December', 'ffcertificate' ),
 						),
-						'weekdays' => array(
+						'weekdays'  => array(
 							__( 'Sun', 'ffcertificate' ),
 							__( 'Mon', 'ffcertificate' ),
 							__( 'Tue', 'ffcertificate' ),
@@ -214,7 +214,9 @@ class AdminConditionalAssets {
 							__( 'Fri', 'ffcertificate' ),
 							__( 'Sat', 'ffcertificate' ),
 						),
-						'today'    => __( 'Today', 'ffcertificate' ),
+						'today'     => __( 'Today', 'ffcertificate' ),
+						'prevMonth' => __( 'Previous month', 'ffcertificate' ),
+						'nextMonth' => __( 'Next month', 'ffcertificate' ),
 					),
 				),
 			)
@@ -461,14 +463,15 @@ class AdminConditionalAssets {
 	 * Check if current page lists accounts with their email on an audience
 	 * screen (#1824): the audiences page (its Members tab) or the audience
 	 * calendars page (its User access tab, whose rows the "add user" AJAX
-	 * handler also returns).
+	 * handler also returns), or the bookings page, whose details dialog
+	 * lists a booking's custom users (#2243).
 	 *
 	 * @return bool
 	 */
 	private function is_audience_account_page(): bool {
 		return in_array(
 			RequestInput::get_get_key( 'page' ),
-			array( 'ffc-scheduling-audiences', 'ffc-scheduling-calendars' ),
+			array( 'ffc-scheduling-audiences', 'ffc-scheduling-calendars', 'ffc-scheduling-bookings' ),
 			true
 		);
 	}

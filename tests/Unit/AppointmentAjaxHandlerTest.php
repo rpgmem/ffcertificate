@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\SelfScheduling\AppointmentAjaxHandler;
 use FreeFormCertificate\SelfScheduling\AppointmentHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AppointmentAjaxHandler: AJAX endpoints for booking,
@@ -97,6 +98,25 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
+		// The real rate limiter (#2244) reads and records through its
+		// repository: a quiet table answers nothing and accepts every write.
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'Q' )->byDefault();
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$wpdb->shouldReceive( 'get_var' )->andReturn( 0 )->byDefault();
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
+		$wpdb->shouldReceive( 'insert' )->andReturn( 1 )->byDefault();
+		$wpdb->shouldReceive( 'update' )->andReturn( 1 )->byDefault();
+		$wpdb->shouldReceive( 'query' )->andReturn( 1 )->byDefault();
+		Functions\when( 'wp_parse_args' )->alias(
+			static fn ( $args, $defaults ) => array_merge( $defaults, is_array( $args ) ? $args : array() )
+		);
+		Functions\when( 'current_time' )->justReturn( '2026-04-01 12:00:00' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$cache = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$cache->setAccessible( true );
+		$cache->setValue( null, null );
 
 		// Create a mock AppointmentHandler
 		$this->handler = Mockery::mock( AppointmentHandler::class );
@@ -241,6 +261,24 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertSame( '2026-03-15', $success['date'] );
 	}
 
+	public function test_get_available_slots_over_the_read_limit_answers_429(): void {
+		$_POST['nonce']        = 'valid';
+		$_POST['calendar_id']  = '1';
+		$_POST['date']         = '2026-03-15';
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.9';
+		$this->handler->shouldReceive( 'get_available_slots' )->once()->andReturn( array() );
+
+		$this->callAjax( 'ajax_get_available_slots' );
+		$minute = array_values( array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_rate_read_' ) && '_minute' === substr( $k, -7 ) ) );
+		$this->assertCount( 1, $minute, 'The read was counted against the public read pool (#2244).' );
+
+		$this->transients[ $minute[0] ] = 60; // The default per-minute cap.
+		$this->json_responses           = array();
+		$this->callAjax( 'ajax_get_available_slots' );
+
+		$this->assertNotNull( $this->firstResponse( 'error' ), 'Over the cap the handler is never asked.' );
+	}
+
 	// ==================================================================
 	// ajax_cancel_appointment()
 	// ==================================================================
@@ -306,6 +344,24 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Missing required fields', $error['message'] );
 	}
 
+	public function test_book_appointment_over_the_ip_limit_is_refused_before_the_handler(): void {
+		$_POST['nonce']            = 'valid';
+		$_POST['ffc_captcha_ans']  = '7';
+		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['calendar_id']      = '1';
+		$_POST['date']             = '2026-03-15';
+		$_POST['time']             = '09:00';
+		$_SERVER['REMOTE_ADDR']    = '203.0.113.9';
+		$this->transients[ 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) ) . '_hour' ] = 5;
+		$this->handler->shouldNotReceive( 'process_appointment' );
+
+		$this->callAjax( 'ajax_book_appointment' );
+
+		$error = $this->firstResponse( 'error' );
+		$this->assertNotNull( $error, 'The booking IP limit applies on the form, as on the REST route (#2244).' );
+		$this->assertStringNotContainsString( 'Missing required fields', (string) $error['message'] );
+	}
+
 	public function test_book_appointment_security_failure_sends_error(): void {
 		$_POST['nonce'] = 'valid';
 		// Trigger honeypot
@@ -330,7 +386,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time'] = '09:00';
 		$_POST['name'] = 'John';
 		$_POST['email'] = 'john@example.com';
-		$_POST['cpf_rf'] = '12345678901';
+		$_POST['cpf_rf'] = Identifiers::CPF_A;
 		$_POST['consent'] = '1';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
@@ -355,7 +411,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time']             = '09:00';
 		$_POST['name']             = 'John';
 		$_POST['email']            = 'john@example.com';
-		$_POST['cpf_rf']           = '12345678901';
+		$_POST['cpf_rf']           = Identifiers::CPF_A;
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
@@ -397,7 +453,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['time']             = '09:00';
 		$_POST['name']             = 'John';
 		$_POST['email']            = 'john@example.com';
-		$_POST['cpf_rf']           = '12345678901';
+		$_POST['cpf_rf']           = Identifiers::CPF_A;
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );

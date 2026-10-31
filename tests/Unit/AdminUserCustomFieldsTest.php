@@ -10,36 +10,96 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserCustomFields;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Reregistration\CustomFieldReader;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for AdminUserCustomFields: hook registration, conditional asset loading,
  * save_section nonce/permission checks, and data persistence.
  *
- * Class-level process isolation is required because this test uses
- * Mockery alias mocks for AudienceRepository and CustomFieldRepository.
- * Other tests in the suite trigger autoloading of those classes
- * (CustomFieldRepository now depends on AudienceRepository), which
- * makes subsequent `alias:` mocks fail with "class already exists".
+ * The audience reader, the custom-field reader and writer, UserManager with
+ * the profile service and repository, Encryption, the request reader and the
+ * asset helper are the real classes. The `$wpdb` double below answers the
+ * audience, custom-field and profile queries from the arrays a test sets and
+ * fails on any other; user meta lives in an array behind get_user_meta() /
+ * update_user_meta(), and every meta write is recorded, so a test asserts on
+ * what was stored rather than on which method was called.
  *
  * @covers \FreeFormCertificate\Admin\AdminUserCustomFields
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminUserCustomFieldsTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock for Utils */
-	private $utils_mock;
+	private const AUDIENCES = 'wp_ffc_audiences';
+	private const MEMBERS   = 'wp_ffc_audience_members';
+	private const FIELDS    = 'wp_ffc_custom_fields';
+	private const PROFILES  = 'wp_ffc_user_profiles';
 
-	/** @var Mockery\MockInterface Alias mock for AudienceRepository */
-	private $audience_repo_mock;
+	/** @var Mockery\MockInterface */
+	private $wpdb;
 
-	/** @var Mockery\MockInterface Alias mock for CustomFieldReader */
-	private $custom_field_repo_mock;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
 
-	/** @var Mockery\MockInterface Alias mock for CustomFieldWriter */
-	private $custom_field_writer_mock;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> `$_POST` before this test. */
+	private array $post_backup = array();
+
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/**
+	 * Audience rows by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $audiences = array();
+
+	/**
+	 * Audience ids each user belongs to directly, by user id.
+	 *
+	 * @var array<int, list<int>>
+	 */
+	private array $memberships = array();
+
+	/**
+	 * Custom-field rows.
+	 *
+	 * @var list<object>
+	 */
+	private array $fields = array();
+
+	/**
+	 * User meta: user id => key => value.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $meta = array();
+
+	/**
+	 * Every user-meta read, as array( user id, key ).
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $meta_reads = array();
+
+	/**
+	 * Every user-meta write, as array( 'update'|'delete', user id, key, value ).
+	 *
+	 * @var list<array<int, mixed>>
+	 */
+	private array $meta_writes = array();
+
+	/**
+	 * Rows inserted into ffc_user_profiles.
+	 *
+	 * @var list<array<string, mixed>>
+	 */
+	private array $profile_inserts = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -51,49 +111,284 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		class_exists('\\FreeFormCertificate\\Admin\\AdminUserCustomFields');
 
+		$this->post_backup = $_POST ?? array();
+		$_POST             = array();
+
 		// Common WP function stubs
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('esc_html')->returnArg();
 		Functions\when('esc_attr')->returnArg();
 		Functions\when('wp_kses_post')->returnArg();
-		Functions\when('absint')->justReturn(1);
+		Functions\when('absint')->alias(static fn($v) => abs((int) $v));
 		Functions\when('sanitize_text_field')->returnArg();
 		Functions\when('wp_unslash')->returnArg();
-		Functions\when('FreeFormCertificate\Core\sanitize_text_field')->returnArg();
-		Functions\when('FreeFormCertificate\Core\wp_unslash')->returnArg();
+		Functions\when('sanitize_key')->alias(static fn($key) => preg_replace('/[^a-z0-9_\-]/', '', strtolower((string) $key)));
+		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
+		Functions\when('get_option')->alias(static fn($name, $fallback = false) => $fallback);
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('get_current_user_id')->justReturn(1);
+		Functions\when('user_can')->justReturn(false);
+		Functions\when('set_transient')->justReturn(true);
+		Functions\when('wp_cache_get')->justReturn(false);
+		Functions\when('wp_cache_set')->justReturn(true);
+		Functions\when('wp_cache_delete')->justReturn(true);
+		Functions\when('wp_cache_flush')->justReturn(true);
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when('wp_cache_supports')->justReturn(false);
 
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$ri_mock->shouldReceive( 'get_post_string' )->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_POST[ $key ] ) && is_string( $_POST[ $key ] ) ? $_POST[ $key ] : $default;
-		} )->byDefault();
-		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
-		// enqueue_common_style() puts the token palette on the screen (#1126 B).
-		$this->utils_mock->shouldReceive('enqueue_common_style')->byDefault();
+		$this->audiences       = array();
+		$this->memberships     = array();
+		$this->fields          = array();
+		$this->meta            = array();
+		$this->meta_reads      = array();
+		$this->meta_writes     = array();
+		$this->profile_inserts = array();
+		$this->prepared        = array();
 
-		// Repository alias mocks
-		$this->audience_repo_mock = Mockery::mock('alias:FreeFormCertificate\Audience\AudienceReader');
-		$this->custom_field_repo_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldReader');
-		$this->custom_field_writer_mock = Mockery::mock('alias:\FreeFormCertificate\Reregistration\CustomFieldWriter');
-		// save_section() reads the stored values so it can keep one when a
-		// required field arrives empty (#1120). Most tests do not care what
-		// is stored; the ones that do override this.
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([])->byDefault();
-		// render_section() reads the profile values of every profile-mapped
-		// field the user has (#1538); with none mapped it never reaches
-		// UserManager.
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->andReturn([])->byDefault();
+		Functions\when('get_user_meta')->alias(
+			function ($user_id, $key = '', $single = false) {
+				$this->meta_reads[] = array( (int) $user_id, $key );
+				return $this->meta[ (int) $user_id ][ $key ] ?? '';
+			}
+		);
+		Functions\when('update_user_meta')->alias(
+			function ($user_id, $key, $value) {
+				$this->meta_writes[]                   = array( 'update', (int) $user_id, $key, $value );
+				$this->meta[ (int) $user_id ][ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when('delete_user_meta')->alias(
+			function ($user_id, $key) {
+				$this->meta_writes[] = array( 'delete', (int) $user_id, $key, null );
+				unset( $this->meta[ (int) $user_id ][ $key ] );
+				return true;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->wpdb        = $this->database();
+		$GLOBALS['wpdb']   = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_POST = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The `$wpdb` double: the audience, custom-field and profile statements
+	 * the real classes run here, answered from this test's arrays.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( self::AUDIENCES === $bound[0] && false !== strpos( (string) $sql, 'SELECT a.* FROM %i a' ) ) {
+					// AudienceReader::get_user_audiences(): the audiences the user belongs to directly.
+					$rows = array();
+					foreach ( $this->memberships[ (int) $bound[2] ] ?? array() as $id ) {
+						$rows[] = clone $this->audiences[ $id ];
+					}
+					return $rows;
+				}
+				if ( self::FIELDS === $bound[0] && false !== strpos( (string) $sql, 'WHERE audience_id = %d' ) ) {
+					// CustomFieldReader::get_by_audience().
+					$active_only = false !== strpos( (string) $sql, 'is_active = 1' );
+					$rows        = array();
+					foreach ( $this->fields as $field ) {
+						if ( (int) $field->audience_id === (int) $bound[1] && ( ! $active_only || 1 === (int) $field->is_active ) ) {
+							$rows[] = clone $field;
+						}
+					}
+					return $rows;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( self::AUDIENCES === $bound[0] && false !== strpos( (string) $sql, 'WHERE id = %d' ) ) {
+					return isset( $this->audiences[ (int) $bound[1] ] ) ? clone $this->audiences[ (int) $bound[1] ] : null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$bound = $this->bound( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SHOW TABLES LIKE' ) && self::PROFILES === $bound[0] ) {
+					// No profile row to read: UserManager falls back to the account.
+					return null;
+				}
+				if ( self::PROFILES === $bound[0] && false !== strpos( (string) $sql, 'SELECT id FROM %i WHERE user_id = %d' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) {
+				if ( self::PROFILES === $table ) {
+					$this->profile_inserts[] = $data;
+					return 1;
+				}
+				$this->fail( 'Unexpected insert() into ' . $table );
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The values bound to a prepared statement token.
+	 *
+	 * @param string $sql Token prepare() returned.
+	 * @return array<int, mixed>
+	 */
+	private function bound( string $sql ): array {
+		if ( 1 !== preg_match( '/^Q(\d+):/', $sql, $m ) ) {
+			$this->fail( 'A statement that was not prepared: ' . $sql );
+		}
+		return array_slice( $this->prepared[ (int) $m[1] ], 1 );
+	}
+
+	/**
+	 * Store an audience.
+	 *
+	 * @param int      $id     Id.
+	 * @param string   $name   Name.
+	 * @param int|null $parent Parent audience id.
+	 * @return void
+	 */
+	private function audience( int $id, string $name, ?int $parent = null ): void {
+		$this->audiences[ $id ] = (object) array(
+			'id'        => (string) $id,
+			'name'      => $name,
+			'color'     => '#fff',
+			'parent_id' => null === $parent ? null : (string) $parent,
+			'status'    => 'active',
+		);
+	}
+
+	/**
+	 * Store a custom field of an audience, with the columns a row carries.
+	 *
+	 * @param int                  $audience_id Audience the field belongs to.
+	 * @param array<string, mixed> $columns     Columns that differ from a plain text field.
+	 * @return object The row as stored.
+	 */
+	private function field( int $audience_id, array $columns ): object {
+		$row            = (object) array_merge(
+			array(
+				'field_key'         => 'key_' . $columns['id'],
+				'field_label'       => 'Label',
+				'field_type'        => 'text',
+				'field_options'     => '',
+				'validation_rules'  => null,
+				'field_mask'        => null,
+				'field_profile_key' => null,
+				'is_required'       => 0,
+				'is_sensitive'      => 0,
+				'is_active'         => 1,
+				'sort_order'        => 0,
+			),
+			$columns,
+			array( 'audience_id' => $audience_id )
+		);
+		$this->fields[] = $row;
+		return $row;
+	}
+
+	/**
+	 * Make a user a direct member of audiences.
+	 *
+	 * @param int $user_id      User.
+	 * @param int ...$audiences Audience ids.
+	 * @return void
+	 */
+	private function member( int $user_id, int ...$audiences ): void {
+		$this->memberships[ $user_id ] = $audiences;
+	}
+
+	/**
+	 * Every value written to a user's custom-field snapshot.
+	 *
+	 * @param int $user_id User.
+	 * @return list<mixed>
+	 */
+	private function snapshots( int $user_id ): array {
+		$out = array();
+		foreach ( $this->meta_writes as $write ) {
+			if ( 'update' === $write[0] && $user_id === $write[1] && CustomFieldReader::USER_META_KEY === $write[2] ) {
+				$out[] = $write[3];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * The one snapshot a save wrote for the user.
+	 *
+	 * @param int $user_id User.
+	 * @return array<string, mixed>
+	 */
+	private function snapshot( int $user_id ): array {
+		$written = $this->snapshots( $user_id );
+		$this->assertCount( 1, $written, 'The snapshot is written exactly once.' );
+		return $written[0];
+	}
+
+	/**
+	 * Meta writes to the extended profile (`ffc_user_*` keys), by key.
+	 *
+	 * @param int $user_id User.
+	 * @return array<string, mixed>
+	 */
+	private function profile_writes( int $user_id ): array {
+		$out = array();
+		foreach ( $this->meta_writes as $write ) {
+			if ( $user_id === $write[1] && 0 === strpos( (string) $write[2], 'ffc_user_' ) ) {
+				$out[ $write[2] ] = $write[3];
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Store an extended-profile value as UserProfileService writes it:
+	 * encrypted when sensitive.
+	 *
+	 * @param int    $user_id   User.
+	 * @param string $key       Profile key.
+	 * @param string $value     Clear value.
+	 * @param bool   $sensitive Whether it is stored encrypted.
+	 * @return void
+	 */
+	private function profile_value( int $user_id, string $key, string $value, bool $sensitive ): void {
+		$this->meta[ $user_id ][ 'ffc_user_' . $key ] = $sensitive ? Encryption::encrypt( $value ) : $value;
 	}
 
 	// ==================================================================
@@ -163,6 +458,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		AdminUserCustomFields::enqueue_assets('user-edit.php');
 
+		// The token palette comes first: both sheets paint through it (#1126 B).
+		$this->assertSame('ffc-common', $enqueued_styles[0] ?? null);
 		$this->assertContains('ffc-working-hours-css', $enqueued_styles);
 		$this->assertContains('ffc-custom-fields-admin-css', $enqueued_styles);
 		$this->assertContains('ffc-working-hours', $enqueued_scripts);
@@ -208,24 +505,32 @@ class AdminUserCustomFieldsTest extends TestCase {
 	public function test_save_section_returns_early_without_nonce(): void {
 		// No $_POST nonce set
 		Functions\when('wp_verify_nonce')->justReturn(false);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
+		$this->member(1, 1);
+		$this->audience(1, 'Staff');
+		$this->field(1, array( 'id' => 10 ));
 
 		AdminUserCustomFields::save_section(1);
 
-		// If we reach here without error, the method returned early
-		$this->assertTrue(true);
+		$this->assertSame(array(), $this->meta_writes, 'Nothing was written.');
+		$this->assertSame(array(), $this->prepared, 'The fields were never read.');
 	}
 
 	public function test_save_section_returns_early_with_invalid_nonce(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'bad_nonce';
-
-		Functions\when('wp_verify_nonce')->justReturn(false);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
+		$verified = array();
+		Functions\when('wp_verify_nonce')->alias(function ($nonce, $action) use (&$verified) {
+			$verified[] = array( $nonce, $action );
+			return false;
+		});
+		$this->member(1, 1);
+		$this->audience(1, 'Staff');
+		$this->field(1, array( 'id' => 10 ));
 
 		AdminUserCustomFields::save_section(1);
 
-		$this->assertTrue(true);
+		$this->assertSame(array( array( 'bad_nonce', 'ffc_save_user_custom_fields' ) ), $verified);
+		$this->assertSame(array(), $this->meta_writes);
+		$this->assertSame(array(), $this->prepared);
 	}
 
 	public function test_save_section_returns_early_without_permission(): void {
@@ -233,12 +538,14 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(false);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
+		$this->member(1, 1);
+		$this->audience(1, 'Staff');
+		$this->field(1, array( 'id' => 10 ));
 
 		AdminUserCustomFields::save_section(1);
 
-		$this->assertTrue(true);
+		$this->assertSame(array(), $this->meta_writes);
+		$this->assertSame(array(), $this->prepared);
 	}
 
 	public function test_save_section_returns_early_when_no_fields_for_user(): void {
@@ -247,215 +554,161 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(42, true)->andReturn([]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->never();
-
 		AdminUserCustomFields::save_section(42);
 
-		$this->assertTrue(true);
+		$this->assertSame(array(), $this->meta_writes);
+		$this->assertSame(42, $this->prepared[0][3] ?? null, 'The audiences of the user being saved were read.');
 	}
 
 	public function test_save_section_saves_text_field_data(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_10']                    = 'Engineering';
 
-		$field = (object) [
-			'id' => 10,
-			'field_type' => 'text',
-			'field_label' => 'Department',
-		];
-
-		$_POST['ffc_cf_10'] = 'Engineering';
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(5, true)
-			->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, Mockery::on(function ($data) {
-				return isset($data['field_10']) && $data['field_10'] === 'Engineering';
-			}));
-
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array( 'field_10' => 'Engineering' ), $this->snapshot(5));
 	}
 
 	/**
 	 * A profile-mapped field is written to the profile, not the snapshot
 	 * (#1538): the reregistration form reads it from there, and the snapshot
 	 * copy was one nothing read -- in plaintext for the sensitive fields.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_save_section_writes_profile_mapped_fields_to_the_profile(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_10']                    = 'Engineering';
 		$_POST['ffc_cf_11']                    = '1990-05-20';
-		$_POST['ffc_cf_12']                    = '51817842080';
+		$_POST['ffc_cf_12']                    = Identifiers::CPF_A;
 
-		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' );
-		$birth     = (object) array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0 );
-		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' ));
+		$this->field(1, array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0 ));
+		$this->field(1, array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $birth, $sensitive]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, array( 'field_10' => 'Engineering' ));
-
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')->andReturn(array());
-		$manager->shouldReceive('update_extended_profile')
-			->once()
-			->with(5, array( 'birth_date' => '1990-05-20', 'cpf' => '51817842080' ), array( 'cpf' ))
-			->andReturn(true);
-
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array( 'field_10' => 'Engineering' ), $this->snapshot(5), 'Only the unmapped field reaches the snapshot.');
+
+		$profile = $this->profile_writes(5);
+		$this->assertSame(array( 'ffc_user_birth_date', 'ffc_user_cpf', 'ffc_user_birth_md' ), array_keys($profile));
+		$this->assertSame('1990-05-20', Encryption::decrypt((string) $profile['ffc_user_birth_date']));
+		$this->assertSame(Identifiers::CPF_A, Encryption::decrypt((string) $profile['ffc_user_cpf']));
+		$this->assertStringNotContainsString(Identifiers::CPF_A, (string) $profile['ffc_user_cpf'], 'The CPF is stored encrypted.');
+		$this->assertSame('05-20', $profile['ffc_user_birth_md']);
+		// The CPF is indexed by its hash on the profile row.
+		$this->assertCount(1, $this->profile_inserts);
+		$this->assertSame(5, $this->profile_inserts[0]['user_id']);
+		$this->assertNotEmpty($this->profile_inserts[0]['cpf_hash']);
 	}
 
 	/**
 	 * A required profile-mapped field submitted empty keeps its value: the
 	 * empty string never reaches the profile, so nothing is erased (#1120).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_save_section_keeps_a_required_profile_field_submitted_empty(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_11']                    = '';
 
-		$birth = (object) array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0, 'is_required' => 1 );
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 11, 'field_type' => 'date', 'field_label' => 'Date of Birth', 'field_profile_key' => 'birth_date', 'is_sensitive' => 0, 'is_required' => 1 ));
+		$this->profile_value(5, 'birth_date', '1990-05-20', true);
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('get_current_user_id')->justReturn(1);
-		Functions\when('set_transient')->justReturn(true);
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$birth]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
-
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')->andReturn(array( 'birth_date' => '1990-05-20' ));
-		$manager->shouldReceive('update_extended_profile')->never();
 
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array(), $this->snapshot(5));
+		$this->assertSame(array(), $this->profile_writes(5), 'The profile is not touched.');
+		$this->assertSame('1990-05-20', Encryption::decrypt((string) $this->meta[5]['ffc_user_birth_date']));
 	}
 
 	public function test_save_section_saves_checkbox_field_as_1_when_checked(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_20']                    = '1';
 
-		$field = (object) [
-			'id' => 20,
-			'field_type' => 'checkbox',
-			'field_label' => 'Active',
-		];
-
-		$_POST['ffc_cf_20'] = '1';
+		$this->audience(1, 'Staff');
+		$this->member(7, 1);
+		$this->field(1, array( 'id' => 20, 'field_type' => 'checkbox', 'field_label' => 'Active' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(7, true)
-			->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(7, Mockery::on(function ($data) {
-				return isset($data['field_20']) && $data['field_20'] === 1;
-			}));
-
 		AdminUserCustomFields::save_section(7);
+
+		$this->assertSame(array( 'field_20' => 1 ), $this->snapshot(7));
 	}
 
 	public function test_save_section_saves_checkbox_field_as_0_when_unchecked(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
-
-		$field = (object) [
-			'id' => 20,
-			'field_type' => 'checkbox',
-			'field_label' => 'Active',
-		];
-
 		// Checkbox not in POST means unchecked
+
+		$this->audience(1, 'Staff');
+		$this->member(7, 1);
+		$this->field(1, array( 'id' => 20, 'field_type' => 'checkbox', 'field_label' => 'Active' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(7, true)
-			->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(7, Mockery::on(function ($data) {
-				return isset($data['field_20']) && $data['field_20'] === 0;
-			}));
-
 		AdminUserCustomFields::save_section(7);
+
+		$this->assertSame(array( 'field_20' => 0 ), $this->snapshot(7));
 	}
 
 	public function test_save_section_saves_textarea_field_with_sanitize_textarea(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_30']                    = "Line 1\nLine 2";
 
-		$field = (object) [
-			'id' => 30,
-			'field_type' => 'textarea',
-			'field_label' => 'Notes',
-		];
-
-		$_POST['ffc_cf_30'] = "Line 1\nLine 2";
+		$this->audience(1, 'Staff');
+		$this->member(3, 1);
+		$this->field(1, array( 'id' => 30, 'field_type' => 'textarea', 'field_label' => 'Notes' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('sanitize_textarea_field')->returnArg();
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(3, true)
-			->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(3, Mockery::on(function ($data) {
-				return isset($data['field_30']) && $data['field_30'] === "Line 1\nLine 2";
-			}));
+		$textarea_calls = array();
+		Functions\when('sanitize_textarea_field')->alias(function ($v) use (&$textarea_calls) {
+			$textarea_calls[] = $v;
+			return $v;
+		});
 
 		AdminUserCustomFields::save_section(3);
+
+		$this->assertSame(array( "Line 1\nLine 2" ), $textarea_calls, 'A textarea keeps its line breaks through its own sanitiser.');
+		$this->assertSame(array( 'field_30' => "Line 1\nLine 2" ), $this->snapshot(3));
 	}
 
-	public function test_save_section_deduplicates_fields_by_id(): void {
+	/**
+	 * Two sibling audiences sharing a parent bring that parent's field twice;
+	 * it is saved once.
+	 */
+	public function test_save_section_saves_a_field_two_audiences_share_once(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_50']                    = 'ABC';
 
-		// Same field appears twice (shared parent scenario)
-		$field = (object) [
-			'id' => 50,
-			'field_type' => 'text',
-			'field_label' => 'Code',
-		];
-
-		$_POST['ffc_cf_50'] = 'ABC';
+		$this->audience(1, 'Schools');
+		$this->audience(2, 'North', 1);
+		$this->audience(3, 'South', 1);
+		$this->member(1, 2, 3);
+		$this->field(1, array( 'id' => 50, 'field_type' => 'text', 'field_label' => 'Code' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(1, true)
-			->andReturn([$field, $field]); // Duplicated
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(1, Mockery::on(function ($data) {
-				// Should only have one entry despite two fields
-				return count($data) === 1 && $data['field_50'] === 'ABC';
-			}));
-
 		AdminUserCustomFields::save_section(1);
+
+		$this->assertSame(array( 'field_50' => 'ABC' ), $this->snapshot(1));
 	}
 
 	// ==================================================================
@@ -466,30 +719,21 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$user = new \WP_User(10);
 		$user->ID = 10;
 
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')
-			->with(10)
-			->andReturn([]);
-
 		ob_start();
 		AdminUserCustomFields::render_section($user);
 		$output = ob_get_clean();
 
 		$this->assertEmpty($output);
+		$this->assertSame(10, $this->prepared[0][3] ?? null, 'The audiences of the user shown were read.');
 	}
 
 	public function test_render_section_returns_when_audiences_have_no_fields(): void {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
 
-		$audience       = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#fff'];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')
-			->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')
-			->with(10)->andReturn([]);
+		$this->audience(1, 'Doctors');
 		// No fields -> the audience section is skipped (continue branch).
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
-			->with(1, true)->andReturn([]);
+		$this->member(10, 1);
 
 		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
@@ -507,60 +751,24 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
 
-		$audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#abcdef'];
-
-		$text_field = (object) [
-			'id' => 11, 'field_key' => 'key_11', 'field_label' => 'Department', 'field_type' => 'text',
-			'is_required' => 1, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => ['help_text' => 'Pick one'],
-		];
-		$textarea_field = (object) [
-			'id' => 12, 'field_key' => 'key_12', 'field_label' => 'Bio', 'field_type' => 'textarea',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-		$select_field = (object) [
-			'id' => 13, 'field_key' => 'key_13', 'field_label' => 'Shift', 'field_type' => 'select',
-			'is_required' => 0, 'source_audience_id' => 2, 'source_audience_name' => 'Parent Aud',
-			'field_options' => '',
-		];
-		$checkbox_field = (object) [
-			'id' => 14, 'field_key' => 'key_14', 'field_label' => 'Active', 'field_type' => 'checkbox',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-		$number_field = (object) [
-			'id' => 15, 'field_key' => 'key_15', 'field_label' => 'Age', 'field_type' => 'number',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-		$date_field = (object) [
-			'id' => 16, 'field_key' => 'key_16', 'field_label' => 'Start', 'field_type' => 'date',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-		$wh_field = (object) [
-			'id' => 17, 'field_key' => 'key_17', 'field_label' => 'Hours', 'field_type' => 'working_hours',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-
-		$fields = [
-			$text_field, $textarea_field, $select_field, $checkbox_field,
-			$number_field, $date_field, $wh_field,
-		];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')
-			->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')
-			->with(10)->andReturn([
-				'field_11' => 'Cardiology',
-				'field_17' => json_encode([['day' => 1, 'entry1' => '08:00', 'exit2' => '17:00']]),
-			]);
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
-			->with(1, true)->andReturn($fields);
-		$this->custom_field_repo_mock->shouldReceive('get_field_choices')
-			->andReturn(['Morning', 'Night']);
+		// Doctors sits under "Parent Aud", whose Shift field it inherits.
+		$this->audience(2, 'Parent Aud');
+		$this->audience(1, 'Doctors', 2);
+		$this->member(10, 1);
+		$this->field(1, array(
+			'id' => 11, 'field_label' => 'Department', 'field_type' => 'text',
+			'is_required' => 1, 'field_options' => '{"help_text":"Pick one"}',
+		));
+		$this->field(1, array( 'id' => 12, 'field_label' => 'Bio', 'field_type' => 'textarea' ));
+		$this->field(2, array( 'id' => 13, 'field_label' => 'Shift', 'field_type' => 'select', 'field_options' => '{"choices":["Morning","Night"]}' ));
+		$this->field(1, array( 'id' => 14, 'field_label' => 'Active', 'field_type' => 'checkbox' ));
+		$this->field(1, array( 'id' => 15, 'field_label' => 'Age', 'field_type' => 'number' ));
+		$this->field(1, array( 'id' => 16, 'field_label' => 'Start', 'field_type' => 'date' ));
+		$this->field(1, array( 'id' => 17, 'field_label' => 'Hours', 'field_type' => 'working_hours' ));
+		$this->meta[10][ CustomFieldReader::USER_META_KEY ] = array(
+			'field_11' => 'Cardiology',
+			'field_17' => json_encode([['day' => 1, 'entry1' => '08:00', 'exit2' => '17:00']]),
+		);
 
 		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
 		Functions\when('esc_textarea')->returnArg();
@@ -568,7 +776,6 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('selected')->justReturn('');
 		Functions\when('checked')->justReturn('');
 		Functions\when('esc_html_e')->alias(static function ($text) { echo $text; });
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		ob_start();
 		AdminUserCustomFields::render_section($user);
@@ -589,7 +796,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertStringContainsString('<select', $output);
 		$this->assertStringContainsString('Morning', $output);
 		// Inherited marker (source_audience_id != audience id).
-		$this->assertStringContainsString('Inherited from', $output);
+		$this->assertStringContainsString('Inherited from Parent Aud', $output);
 		// Checkbox.
 		$this->assertStringContainsString('type="checkbox"', $output);
 		// Number.
@@ -601,25 +808,19 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertStringContainsString('ffc-wh-table', $output);
 	}
 
+	/**
+	 * Two sibling audiences sharing a parent bring that parent's field twice;
+	 * the second occurrence is skipped.
+	 */
 	public function test_render_section_deduplicates_shared_fields(): void {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
 
-		$audience = (object) ['id' => 1, 'name' => 'Doctors', 'color' => '#fff'];
-
-		$field = (object) [
-			'id' => 50, 'field_key' => 'key_50', 'field_label' => 'Code', 'field_type' => 'text',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Doctors',
-			'field_options' => '',
-		];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')
-			->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')
-			->with(10)->andReturn([]);
-		// Same field returned twice -> second occurrence is skipped.
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')
-			->with(1, true)->andReturn([$field, $field]);
+		$this->audience(1, 'Schools');
+		$this->audience(2, 'North', 1);
+		$this->audience(3, 'South', 1);
+		$this->member(10, 2, 3);
+		$this->field(1, array( 'id' => 50, 'field_label' => 'Code', 'field_type' => 'text' ));
 
 		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
@@ -631,6 +832,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		// The input name appears exactly once despite the duplicate field.
 		$this->assertSame(1, substr_count($output, 'name="ffc_cf_50"'));
+		$this->assertStringContainsString('ffc-cf-section-2', $output);
+		$this->assertStringContainsString('ffc-cf-section-3', $output);
 	}
 
 	// ==================================================================
@@ -639,28 +842,23 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 	public function test_save_section_saves_working_hours_field(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
-
-		$field = (object) [
-			'id'         => 60,
-			'field_type' => 'working_hours',
-			'field_label' => 'Hours',
-		];
-
-		$_POST['ffc_cf_60'] = json_encode([
+		$_POST['ffc_cf_60']                    = json_encode([
 			['day' => 1, 'entry1' => '08:00', 'exit1' => '12:00', 'entry2' => '13:00', 'exit2' => '17:00'],
 			// Invalid entry (missing keys) is dropped.
 			['day' => 2, 'entry1' => '08:00'],
 			'not-an-array',
 		]);
 
+		$this->audience(1, 'Staff');
+		$this->member(8, 1);
+		$this->field(1, array( 'id' => 60, 'field_type' => 'working_hours', 'field_label' => 'Hours' ));
+
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		// Since #1128 the half-filled row is not only dropped, it is reported,
 		// so the save writes the incomplete-rows transient on this path.
 		$reported = null;
-		Functions\when('get_current_user_id')->justReturn(1);
 		Functions\when('set_transient')->alias(function ($key, $value) use (&$reported) {
 			if (str_starts_with($key, 'ffc_cf_wh_incomplete_')) {
 				$reported = $value;
@@ -668,22 +866,15 @@ class AdminUserCustomFieldsTest extends TestCase {
 			return true;
 		});
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(8, true)->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(8, Mockery::on(function ($data) {
-				$decoded = json_decode($data['field_60'], true);
-				// Only the one fully-formed entry survives sanitization.
-				return is_array($decoded)
-					&& count($decoded) === 1
-					&& $decoded[0]['day'] === 1
-					&& $decoded[0]['entry1'] === '08:00'
-					&& $decoded[0]['exit2'] === '17:00';
-			}));
-
 		AdminUserCustomFields::save_section(8);
+
+		$decoded = json_decode((string) $this->snapshot(8)['field_60'], true);
+		// Only the one fully-formed entry survives sanitization.
+		$this->assertIsArray($decoded);
+		$this->assertCount(1, $decoded);
+		$this->assertSame(1, $decoded[0]['day']);
+		$this->assertSame('08:00', $decoded[0]['entry1']);
+		$this->assertSame('17:00', $decoded[0]['exit2']);
 
 		// The dropped row is announced, naming the day and what was missing —
 		// dropping it in silence is the half of #1128 that was never the fix.
@@ -691,36 +882,23 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertCount(1, $reported);
 		$this->assertSame(['exit2'], $reported[0]['missing']);
 		$this->assertSame('Hours', $reported[0]['label']);
-		// Not asserting the day here on purpose: this class stubs `absint` to
-		// justReturn(1), so a day assertion would be checking the stub, not the
-		// code. The day is covered in WorkingHoursTest, which stubs it faithfully.
+		$this->assertSame(2, $reported[0]['day']);
 	}
 
 	public function test_save_section_working_hours_invalid_json_stores_empty_array(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
+		$_POST['ffc_cf_61']                    = 'not valid json {{{';
 
-		$field = (object) [
-			'id'         => 61,
-			'field_type' => 'working_hours',
-			'field_label' => 'Hours',
-		];
-
-		$_POST['ffc_cf_61'] = 'not valid json {{{';
+		$this->audience(1, 'Staff');
+		$this->member(9, 1);
+		$this->field(1, array( 'id' => 61, 'field_type' => 'working_hours', 'field_label' => 'Hours' ));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(9, true)->andReturn([$field]);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(9, Mockery::on(function ($data) {
-				return $data['field_61'] === '[]';
-			}));
 
 		AdminUserCustomFields::save_section(9);
+
+		$this->assertSame(array( 'field_61' => '[]' ), $this->snapshot(9));
 	}
 
 	// ==================================================================
@@ -728,7 +906,7 @@ class AdminUserCustomFieldsTest extends TestCase {
 	// ==================================================================
 
 	/**
-	 * Build the POST + mocks for one required text field and run save_section.
+	 * Store one required text field, post a value for it and run save_section.
 	 *
 	 * @param string $posted Value the browser sent.
 	 * @param string $stored Value already on the profile.
@@ -748,29 +926,14 @@ class AdminUserCustomFieldsTest extends TestCase {
 			return true;
 		});
 
-		$field = (object) [
-			'id'          => 77,
-			'field_type'  => 'text',
-			'field_label' => 'Registration number',
-			'is_required' => 1,
-		];
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')
-			->with(5)->andReturn(['field_77' => $stored]);
-
-		$saved = array();
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, Mockery::on(function ($data) use (&$saved) {
-				$saved = $data;
-				return true;
-			}));
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 77, 'field_type' => 'text', 'field_label' => 'Registration number', 'is_required' => 1 ));
+		$this->meta[5][ CustomFieldReader::USER_META_KEY ] = array( 'field_77' => $stored );
 
 		AdminUserCustomFields::save_section(5);
 
-		return [$saved, $kept];
+		return [$this->snapshot(5), $kept];
 	}
 
 	/**
@@ -779,16 +942,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 	 * before #1120 it overwrote the stored value with the empty string.
 	 */
 	public function test_save_section_keeps_the_stored_value_when_a_required_field_is_empty(): void {
-		[$saved, $kept] = $this->save_required_text('', '1234567');
+		[$saved, $kept] = $this->save_required_text('', Identifiers::RF_A);
 
-		$this->assertSame('1234567', $saved['field_77']);
+		$this->assertSame(Identifiers::RF_A, $saved['field_77']);
 		$this->assertSame(['Registration number'], $kept, 'The operator has to be told the edit did not take.');
 	}
 
 	public function test_save_section_still_writes_a_supplied_value_on_a_required_field(): void {
-		[$saved, $kept] = $this->save_required_text('7654321', '1234567');
+		[$saved, $kept] = $this->save_required_text(Identifiers::RF_B, Identifiers::RF_A);
 
-		$this->assertSame('7654321', $saved['field_77']);
+		$this->assertSame(Identifiers::RF_B, $saved['field_77']);
 		$this->assertSame([], $kept);
 	}
 
@@ -813,23 +976,14 @@ class AdminUserCustomFieldsTest extends TestCase {
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 
-		$field = (object) [
-			'id'          => 78,
-			'field_type'  => 'text',
-			'field_label' => 'Nickname',
-			'is_required' => 0,
-		];
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')
-			->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')
-			->with(5)->andReturn(['field_78' => 'Bob']);
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, Mockery::on(static fn($data) => '' === $data['field_78']));
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 78, 'field_type' => 'text', 'field_label' => 'Nickname', 'is_required' => 0 ));
+		$this->meta[5][ CustomFieldReader::USER_META_KEY ] = array( 'field_78' => 'Bob' );
 
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array( 'field_78' => '' ), $this->snapshot(5));
 	}
 
 	// ==================================================================
@@ -849,15 +1003,13 @@ class AdminUserCustomFieldsTest extends TestCase {
 			'field_type'    => $type,
 			'field_label'   => 'Label',
 			'is_required'   => $required ? 1 : 0,
-			'field_options' => '',
+			'field_options' => '{"choices":["a","b"]}',
 		];
 
-		$this->custom_field_repo_mock->shouldReceive('get_field_choices')->andReturn(['a', 'b'])->byDefault();
 		Functions\when('selected')->justReturn('');
 		Functions\when('checked')->justReturn('');
 		Functions\when('esc_html_e')->alias(static function ($text) { echo $text; });
 		Functions\when('esc_textarea')->returnArg();
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		$ref = new \ReflectionMethod(AdminUserCustomFields::class, 'render_field_input');
 		$ref->setAccessible(true);
@@ -953,21 +1105,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 	public function test_render_section_emits_the_mask_the_key_and_the_format(): void {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
-		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
-
-		$cpf = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(10, 1);
+		$this->field(1, array(
 			'id' => 21, 'field_key' => 'cpf', 'field_label' => 'CPF', 'field_type' => 'text',
 			'field_mask' => 'cpf', 'validation_rules' => '{"format":"cpf"}',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
-		];
-		$phone = (object) [
+		));
+		$this->field(1, array(
 			'id' => 22, 'field_key' => 'celular', 'field_label' => 'Mobile', 'field_type' => 'text',
 			'field_mask' => null, 'validation_rules' => '{"format":"phone"}',
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
-		];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$cpf, $phone]);
+		));
 		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
 
@@ -990,15 +1137,10 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$field = (object) [
 			'id' => 30, 'field_key' => 'divisao_setor', 'field_label' => 'Division / Department',
 			'field_type' => 'dependent_select', 'is_required' => 1,
-			'field_options' => '{"parent_label":"Division","child_label":"Department"}',
+			'field_options' => '{"parent_label":"Division","child_label":"Department","groups":{"DIPED":["Sector A","Sector B"],"DRE":["Sector C"]}}',
 		];
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([
-			'DIPED' => ['Sector A', 'Sector B'],
-			'DRE'   => ['Sector C'],
-		]);
 		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
 		Functions\when('selected')->alias(static fn($a, $b, $echo = true) => (string) $a === (string) $b ? ' selected' : '');
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		$ref = new \ReflectionMethod(AdminUserCustomFields::class, 'render_field_input');
 		$ref->setAccessible(true);
@@ -1021,11 +1163,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 	public function test_clean_dependent_select_accepts_only_a_listed_pair(): void {
 		$field = (object) [
 			'id' => 30, 'field_label' => 'Division / Department', 'field_type' => 'dependent_select',
-			'is_required' => 0, 'field_options' => '',
+			'is_required' => 0, 'field_options' => '{"groups":{"DIPED":["Sector A"]}}', 'validation_rules' => null,
 		];
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
-		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		$this->assertSame(
 			'{"parent":"DIPED","child":"Sector A"}',
@@ -1041,58 +1180,51 @@ class AdminUserCustomFieldsTest extends TestCase {
 	/**
 	 * `divisao_setor` is profile-mapped, so a valid pair goes to the profile
 	 * as canonical JSON and never into the snapshot.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_save_section_writes_a_dependent_select_to_the_profile(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
 
-		$field = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array(
 			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
-			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 0, 'is_required' => 1, 'field_options' => '',
-		];
+			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 0, 'is_required' => 1,
+			'field_options' => '{"groups":{"DIPED":["Sector A"]}}',
+		));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
-		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
-
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')->andReturn(array());
-		$manager->shouldReceive('update_extended_profile')
-			->once()
-			->with(5, array( 'divisao_setor' => '{"parent":"DIPED","child":"Sector A"}' ), array())
-			->andReturn(true);
 
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array(), $this->snapshot(5));
+		// Not sensitive: stored as it is.
+		$this->assertSame(
+			array( 'ffc_user_divisao_setor' => '{"parent":"DIPED","child":"Sector A"}' ),
+			$this->profile_writes(5)
+		);
 	}
 
 	/**
 	 * A pair outside the choices keeps the stored value and is announced,
 	 * instead of being written as posted.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_save_section_keeps_the_stored_pair_when_the_posted_one_is_invalid(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"<script>"}';
 
-		$field = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array(
 			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
-			'is_required' => 0, 'field_options' => '',
-		];
+			'is_required' => 0, 'field_options' => '{"groups":{"DIPED":["Sector A"]}}',
+		));
+		$this->meta[5][ CustomFieldReader::USER_META_KEY ] = array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' );
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 		Functions\when('get_current_user_id')->justReturn(1);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
 
 		$transients = array();
 		Functions\when('set_transient')->alias(function ($key, $value) use (&$transients) {
@@ -1100,16 +1232,9 @@ class AdminUserCustomFieldsTest extends TestCase {
 			return true;
 		});
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([ 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ]);
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
-		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ));
-
 		AdminUserCustomFields::save_section(5);
 
+		$this->assertSame(array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ), $this->snapshot(5));
 		$this->assertSame( array( 'Division / Department' ), $transients['ffc_cf_required_kept_1'] ?? null );
 	}
 
@@ -1144,23 +1269,16 @@ class AdminUserCustomFieldsTest extends TestCase {
 	public function test_render_section_shows_a_profile_mapped_field_from_the_profile(): void {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
-		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
-		$phone    = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(10, 1);
+		$this->field(1, array(
 			'id' => 23, 'field_key' => 'ramal', 'field_label' => 'Extension', 'field_type' => 'text',
-			'field_profile_key' => 'phone_ext', 'is_sensitive' => 1, 'field_mask' => null, 'validation_rules' => null,
-			'is_required' => 0, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
-		];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$phone]);
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(10, true)->andReturn([$phone]);
+			'field_profile_key' => 'phone_ext', 'is_sensitive' => 1,
+		));
 		// The snapshot carries a stale copy; the profile is what the screen shows.
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([ 'field_23' => 'stale' ]);
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')
-			->once()
-			->with(10, array( 'phone_ext' ), array( 'phone_ext' ))
-			->andReturn(array( 'phone_ext' => '4321' ));
+		$this->meta[10][ CustomFieldReader::USER_META_KEY ] = array( 'field_23' => 'stale' );
+		// Sensitive, so stored encrypted: the read must ask for it as such.
+		$this->profile_value(10, 'phone_ext', '4321', true);
 		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
 		// The user's own profile: their sensitive field is theirs to see (#1863).
@@ -1173,6 +1291,8 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="4321"/', $output);
 		$this->assertStringNotContainsString('stale', $output);
+		$reads = array_filter($this->meta_reads, static fn(array $r): bool => 'ffc_user_phone_ext' === $r[1]);
+		$this->assertSame(array( array( 10, 'ffc_user_phone_ext' ) ), array_values($reads), 'The profile is read once, for the user shown.');
 	}
 
 	/**
@@ -1184,19 +1304,13 @@ class AdminUserCustomFieldsTest extends TestCase {
 	private function render_another_users_sensitive_field( bool $can_reveal ): string {
 		$user     = new \WP_User(10);
 		$user->ID = 10;
-		$audience = (object) [ 'id' => 1, 'name' => 'Staff', 'color' => '#fff' ];
-		$rf       = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(10, 1);
+		$this->field(1, array(
 			'id' => 23, 'field_key' => 'rf', 'field_label' => 'RF', 'field_type' => 'text',
-			'field_profile_key' => 'rf', 'is_sensitive' => 1, 'field_mask' => null, 'validation_rules' => null,
-			'is_required' => 1, 'source_audience_id' => 1, 'source_audience_name' => 'Staff', 'field_options' => '',
-		];
-
-		$this->audience_repo_mock->shouldReceive('get_user_audiences')->with(10)->andReturn([$audience]);
-		$this->custom_field_repo_mock->shouldReceive('get_by_audience_with_parents')->with(1, true)->andReturn([$rf]);
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(10, true)->andReturn([$rf]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn([]);
-		Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager')
-			->shouldReceive('get_extended_profile')->andReturn(array( 'rf' => '5181780' ));
+			'field_profile_key' => 'rf', 'is_sensitive' => 1, 'is_required' => 1,
+		));
+		$this->profile_value(10, 'rf', Identifiers::RF_A, true);
 		Functions\when('esc_html_e')->alias(static function ($t) { echo $t; });
 		Functions\when('wp_nonce_field')->justReturn('');
 		Functions\when('wp_create_nonce')->justReturn('reveal-nonce');
@@ -1210,16 +1324,17 @@ class AdminUserCustomFieldsTest extends TestCase {
 
 	public function test_render_section_masks_another_users_sensitive_field_with_a_reveal_button(): void {
 		$output = $this->render_another_users_sensitive_field(true);
+		$masked = substr(Identifiers::RF_A, 0, 3) . '.***-' . substr(Identifiers::RF_A, -1);
 
-		$this->assertStringNotContainsString('5181780', $output, 'The clear value never reaches the HTML.');
-		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="518\.\*\*\*-0"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
+		$this->assertStringNotContainsString(Identifiers::RF_A, $output, 'The clear value never reaches the HTML.');
+		$this->assertMatchesRegularExpression('/name="ffc_cf_23"[^>]*value="' . preg_quote($masked, '/') . '"[^>]*data-ffc-pii-field="cf_23"[^>]*data-ffc-pii-editable="1" disabled/', $output);
 		$this->assertStringContainsString('class="button button-small ffc-reveal-pii ffc-icon-eye" data-type="user_profile" data-field="cf_23" data-submission-id="10" data-nonce="reveal-nonce"', $output);
 	}
 
 	public function test_render_section_masks_another_users_sensitive_field_without_a_button_for_the_masked_tier(): void {
 		$output = $this->render_another_users_sensitive_field(false);
 
-		$this->assertStringNotContainsString('5181780', $output);
+		$this->assertStringNotContainsString(Identifiers::RF_A, $output);
 		$this->assertStringNotContainsString('ffc-reveal-pii', $output);
 		$this->assertStringContainsString('Masked. Revealing it requires the audience PII capability.', $output);
 	}
@@ -1227,93 +1342,84 @@ class AdminUserCustomFieldsTest extends TestCase {
 	public function test_save_section_keeps_a_masked_sensitive_field_nobody_revealed(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_10']                    = 'Engineering';
-		// ffc_cf_12 is absent: it stayed disabled, masked.
+		// ffc_cf_12 and ffc_cf_13 are absent: they stayed disabled, masked.
 
-		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' );
-		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
-		$snapshot  = (object) array( 'id' => 13, 'field_type' => 'text', 'field_label' => 'RG', 'field_key' => 'rg', 'is_sensitive' => 1 );
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department' ));
+		$this->field(1, array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 ));
+		$this->field(1, array( 'id' => 13, 'field_type' => 'text', 'field_label' => 'RG', 'field_key' => 'rg', 'is_sensitive' => 1 ));
+		$this->meta[5][ CustomFieldReader::USER_META_KEY ] = array( 'field_13' => 'MG-1234' );
+		$this->profile_value(5, 'cpf', Identifiers::CPF_A, true);
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
 		Functions\when('get_current_user_id')->justReturn(3);
 		Functions\when('user_can')->justReturn(true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $sensitive, $snapshot]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn(array( 'field_13' => 'MG-1234' ));
-
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, array( 'field_10' => 'Engineering', 'field_13' => 'MG-1234' ));
-
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')->andReturn(array( 'cpf' => '51817842080' ));
-		$manager->shouldNotReceive('update_extended_profile');
-
 		AdminUserCustomFields::save_section(5);
+
+		// What was stored for the snapshot field stays; the posted field joins it.
+		$this->assertSame(array( 'field_13' => 'MG-1234', 'field_10' => 'Engineering' ), $this->snapshot(5));
+		$this->assertSame(array(), $this->profile_writes(5), 'The masked CPF is not written back.');
+		$this->assertSame(array(), $this->profile_inserts);
 	}
 
 	public function test_sensitive_values_lists_only_sensitive_free_text_fields(): void {
-		$plain     = (object) array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department', 'field_key' => 'dept' );
-		$sensitive = (object) array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 );
-		$select    = (object) array( 'id' => 14, 'field_type' => 'select', 'field_label' => 'Union', 'field_key' => 'sindicato', 'is_sensitive' => 1 );
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array( 'id' => 10, 'field_type' => 'text', 'field_label' => 'Department', 'field_key' => 'dept' ));
+		$this->field(1, array( 'id' => 12, 'field_type' => 'text', 'field_label' => 'CPF', 'field_profile_key' => 'cpf', 'is_sensitive' => 1 ));
+		$this->field(1, array( 'id' => 14, 'field_type' => 'select', 'field_label' => 'Union', 'field_key' => 'sindicato', 'is_sensitive' => 1 ));
+		$this->meta[5][ CustomFieldReader::USER_META_KEY ] = array( 'field_10' => 'Eng', 'field_14' => 'X' );
+		$this->profile_value(5, 'cpf', Identifiers::CPF_A, true);
 
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$plain, $sensitive, $select]);
-		$this->custom_field_repo_mock->shouldReceive('get_user_data')->andReturn(array( 'field_10' => 'Eng', 'field_14' => 'X' ));
-		Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager')
-			->shouldReceive('get_extended_profile')->andReturn(array( 'cpf' => '51817842080' ));
-
-		$this->assertSame( array( 12 => '51817842080' ), AdminUserCustomFields::sensitive_values(5) );
+		$this->assertSame( array( 12 => Identifiers::CPF_A ), AdminUserCustomFields::sensitive_values(5) );
 	}
 
 	public function test_save_section_writes_a_sensitive_dependent_select_to_the_profile_as_sensitive(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
 
-		$field = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array(
 			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
-			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 1, 'is_required' => 0, 'field_options' => '',
-		];
+			'field_profile_key' => 'divisao_setor', 'is_sensitive' => 1, 'is_required' => 0,
+			'field_options' => '{"groups":{"DIPED":["Sector A"]}}',
+		));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
-		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')->once()->with(5, array());
-
-		$manager = Mockery::mock('alias:\FreeFormCertificate\UserDashboard\UserManager');
-		$manager->shouldReceive('get_extended_profile')->andReturn(array());
-		$manager->shouldReceive('update_extended_profile')
-			->once()
-			->with(5, array( 'divisao_setor' => '{"parent":"DIPED","child":"Sector A"}' ), array( 'divisao_setor' ))
-			->andReturn(true);
 
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array(), $this->snapshot(5));
+		$profile = $this->profile_writes(5);
+		$this->assertSame(array( 'ffc_user_divisao_setor' ), array_keys($profile));
+		// Sensitive: stored encrypted.
+		$this->assertStringNotContainsString('DIPED', (string) $profile['ffc_user_divisao_setor']);
+		$this->assertSame('{"parent":"DIPED","child":"Sector A"}', Encryption::decrypt((string) $profile['ffc_user_divisao_setor']));
 	}
 
 	public function test_save_section_stores_an_unmapped_dependent_select_in_the_snapshot(): void {
 		$_POST['ffc_user_custom_fields_nonce'] = 'valid_nonce';
 		$_POST['ffc_cf_30']                    = '{"parent":"DIPED","child":"Sector A"}';
 
-		$field = (object) [
+		$this->audience(1, 'Staff');
+		$this->member(5, 1);
+		$this->field(1, array(
 			'id' => 30, 'field_type' => 'dependent_select', 'field_label' => 'Division / Department',
-			'is_required' => 0, 'field_options' => '',
-		];
+			'is_required' => 0, 'field_options' => '{"groups":{"DIPED":["Sector A"]}}',
+		));
 
 		Functions\when('wp_verify_nonce')->justReturn(true);
 		Functions\when('current_user_can')->justReturn(true);
-		Functions\when('wp_json_encode')->alias(static fn($v) => json_encode($v));
-
-		$this->custom_field_repo_mock->shouldReceive('get_all_for_user')->with(5, true)->andReturn([$field]);
-		$this->custom_field_repo_mock->shouldReceive('get_dependent_choices')->andReturn([ 'DIPED' => ['Sector A'] ]);
-		$this->custom_field_repo_mock->shouldReceive('get_validation_rules')->andReturn([]);
-		$this->custom_field_writer_mock->shouldReceive('save_user_data')
-			->once()
-			->with(5, array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ));
 
 		AdminUserCustomFields::save_section(5);
+
+		$this->assertSame(array( 'field_30' => '{"parent":"DIPED","child":"Sector A"}' ), $this->snapshot(5));
+		$this->assertSame(array(), $this->profile_writes(5));
 	}
 
 	/**

@@ -97,8 +97,15 @@ final class IpDiagnosticsSettingsReader {
 			: self::STRATEGY_LEGACY;
 	}
 
-	/** Whether the secure strategy is the effective one. */
+	/**
+	 * Whether the secure strategy is the effective one.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
+	 */
 	public static function is_secure(): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return self::STRATEGY_SECURE === self::strategy();
 	}
 

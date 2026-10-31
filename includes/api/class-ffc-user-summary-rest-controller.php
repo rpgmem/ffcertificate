@@ -51,7 +51,7 @@ class UserSummaryRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_summary' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 	}
@@ -84,11 +84,17 @@ class UserSummaryRestController {
 				$table = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 				// Counted as the certificate list lists them (#1744).
 				$hidden = \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE;
+				// Without the history capability the list keeps one certificate
+				// per form, so the card counts forms (#2246).
+				$counted = $this->user_has_capability( 'ffc_view_own_certificate_history', $user_id, $ctx['is_view_as'] )
+					? 'COUNT(*)'
+					: 'COUNT(DISTINCT form_id)';
 				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- The IN list is `%s` repeated once per hidden status, so the sniff cannot count it.
-                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts one user's rows in the plugin's own submissions table for the REST summary; the response is built once per request.
 				$summary['total_certificates'] = (int) $wpdb->get_var(
 					$wpdb->prepare(
-						'SELECT COUNT(*) FROM %i WHERE user_id = %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
+						// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- `$counted` is one of the two literals above, never request data.
+						'SELECT ' . $counted . ' FROM %i WHERE user_id = %d AND status NOT IN (' . implode( ', ', array_fill( 0, count( $hidden ), '%s' ) ) . ')',
 						$table,
 						$user_id,
 						...$hidden
@@ -103,18 +109,18 @@ class UserSummaryRestController {
 				$next     = $apt_repo->findNextUpcomingForUser( $user_id );
 
 				if ( $next ) {
-					$timestamp      = strtotime( (string) $next['appointment_date'] );
-					$time_formatted = '';
-					if ( ! empty( $next['start_time'] ) ) {
-						$time_ts        = strtotime( (string) $next['start_time'] );
-						$time_formatted = ( false !== $time_ts ) ? \FreeFormCertificate\Core\DateFormatter::format_time( $time_ts ) : '';
-					}
+					// Category B wall-clock values: rendered as stored, never
+					// shifted by the site timezone (#2246).
+					$date_formatted = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) $next['appointment_date'] );
+					$time_formatted = ! empty( $next['start_time'] )
+						? \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) $next['start_time'] )
+						: '';
 
 					$calendar      = ( new \FreeFormCertificate\Repositories\CalendarRepository() )->findById( (int) ( $next['calendar_id'] ?? 0 ) );
 					$calendar_name = is_array( $calendar ) ? (string) ( $calendar['title'] ?? '' ) : '';
 
 					$summary['next_appointment'] = array(
-						'date'  => ( false !== $timestamp ) ? \FreeFormCertificate\Core\DateFormatter::format_date( $timestamp ) : (string) $next['appointment_date'],
+						'date'  => '' !== $date_formatted ? $date_formatted : (string) $next['appointment_date'],
 						'time'  => $time_formatted,
 						'title' => $calendar_name,
 					);
@@ -156,14 +162,9 @@ class UserSummaryRestController {
 			return rest_ensure_response( $summary );
 
 		} catch ( \Exception $e ) {
-			return rest_ensure_response(
-				array(
-					'total_certificates'      => 0,
-					'next_appointment'        => null,
-					'upcoming_group_events'   => 0,
-					'pending_reregistrations' => 0,
-				)
-			);
+			// A failure is an error, never a row of zeros that reads as "you
+			// have nothing" (#2246).
+			return new \WP_Error( 'summary_error', __( 'Error loading the summary', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
 	}
 }

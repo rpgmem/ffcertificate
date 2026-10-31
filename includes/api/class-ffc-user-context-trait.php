@@ -35,9 +35,12 @@ trait UserContextTrait {
 		$user_id    = get_current_user_id();
 		$is_view_as = false;
 
-		$view_as_user_id = $request->get_param( 'viewAsUserId' );
-		if ( $view_as_user_id && current_user_can( 'manage_options' ) ) {
-			$user_id    = absint( $view_as_user_id );
+		// The page's gate (#2246). rest_permission() already refused a
+		// request that names an account this one may not view; this repeats
+		// it so no route can read another account through a missed callback.
+		$view_as_user_id = absint( $request->get_param( 'viewAsUserId' ) );
+		if ( $view_as_user_id > 0 && \FreeFormCertificate\Core\ViewAs::can_view( $view_as_user_id ) ) {
+			$user_id    = $view_as_user_id;
 			$is_view_as = true;
 		}
 
@@ -45,6 +48,32 @@ trait UserContextTrait {
 			'user_id'    => $user_id,
 			'is_view_as' => $is_view_as,
 		);
+	}
+
+	/**
+	 * Permission callback of every dashboard route (#2246).
+	 *
+	 * A logged-in caller is let through; one that names a view-as target is
+	 * let through only when the shared gate allows that target. A request
+	 * the gate refuses is refused outright (403) instead of answering with
+	 * the caller's own data, which the page used to show under a link the
+	 * administrator believed was someone else's.
+	 *
+	 * @param \WP_REST_Request $request REST request.
+	 * @return bool|\WP_Error
+	 */
+	public function rest_permission( $request ) {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+		$view_as_user_id = $request->get_param( 'viewAsUserId' );
+		if ( null === $view_as_user_id || '' === $view_as_user_id || '0' === (string) $view_as_user_id ) {
+			return true;
+		}
+		if ( \FreeFormCertificate\Core\ViewAs::can_view( absint( $view_as_user_id ) ) ) {
+			return true;
+		}
+		return new \WP_Error( 'ffc_view_as_denied', __( 'You may not view the dashboard as this account.', 'ffcertificate' ), array( 'status' => 403 ) );
 	}
 
 	/**

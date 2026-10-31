@@ -42,7 +42,32 @@
      * without an audit row (#1897), in "view as user" audited (#1863, #1888).
      */
     function isMasked(profile, field) {
-        return !!(profile && profile.pii_masked && !(profile.revealed && profile.revealed[field]));
+        if (!profile || !profile.pii_masked || (profile.revealed && profile.revealed[field])) {
+            return false;
+        }
+        // An empty value has nothing to hide: drawing it masked only locked
+        // the field against the person who wants to fill it in.
+        var shown = { phone: profile.phone, birth_date: profile.birth_date_display };
+        return !Object.prototype.hasOwnProperty.call(shown, field) || !!shown[field];
+    }
+
+    /**
+     * The foot under a masked field of the edit form: a Reveal button and why
+     * the field is locked (#2246). The read view had the button and the form
+     * only the hint, so the owner could not unlock their own phone or birth
+     * date from the screen that asks for it.
+     */
+    function editRevealFoot(profile, field) {
+        var s = ffcDashboard.strings;
+        var button = profile.can_reveal ? window.FFC.buttonHtml({
+            label: s.reveal || 'Reveal',
+            category: 'neutral',
+            icon: 'eye',
+            className: 'ffc-profile-edit-reveal-btn',
+            attrs: { 'data-field': field }
+        }) : '';
+        return '<div class="ffc-field-foot">' + button +
+            '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
     }
 
     function revealButton(field) {
@@ -59,7 +84,7 @@
         });
     }
 
-    function revealField(field, $btn) {
+    function revealField(field, $btn, onRevealed) {
         var panel = FFCDashboard.panels.profile;
         var url = ffcDashboard.restUrl + 'user/profile/reveal';
         if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -84,11 +109,15 @@
                     state.cpfs_masked = response.values || [];
                     state.cpf_masked = response.value;
                 }
-                panel.render(state);
+                if (onRevealed) {
+                    onRevealed();
+                } else {
+                    panel.render(state);
+                }
             })
             .catch(function () {
                 $btn.prop('disabled', false);
-                window.alert(ffcDashboard.strings.revealError || 'Unable to reveal this value.');
+                helpers.flash('danger', ffcDashboard.strings.revealError || 'Unable to reveal this value.');
             });
     }
 
@@ -124,7 +153,7 @@
         if (isMasked(profile, 'phone')) {
             // Masked until revealed (#1863, #1897): shown, never posted.
             html += '<input type="text" id="ffc-edit-phone" value="' + escAttr(profile.phone) + '" disabled />';
-            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+            html += editRevealFoot(profile, 'phone') + '</div>';
         } else {
             html += '<input type="tel" id="ffc-edit-phone" value="' + escAttr(maskedPhone(profile.phone)) + '" maxlength="15" data-mask="phone" inputmode="numeric" /></div>';
         }
@@ -138,7 +167,7 @@
         html += '<div class="ffc-profile-field"><label for="ffc-edit-birth-date">' + (s.birthDate || 'Birth date:') + '</label>';
         if (isMasked(profile, 'birth_date')) {
             html += '<input type="text" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date_display) + '" disabled />';
-            html += '<span class="ffc-field-hint">' + esc(s.revealToEdit || 'Reveal the value to edit it.') + '</span></div>';
+            html += editRevealFoot(profile, 'birth_date') + '</div>';
         } else {
             html += '<input type="date" id="ffc-edit-birth-date" value="' + escAttr(profile.birth_date) + '" /></div>';
         }
@@ -318,6 +347,21 @@
                 e.preventDefault();
                 revealField($(this).data('field'), $(this));
             });
+            // Revealing from the edit form redraws the form, unlocked, and keeps
+            // what was already typed in the other fields.
+            $(document).on('click', '.ffc-profile-edit-reveal-btn', function (e) {
+                e.preventDefault();
+                var ids = ['#ffc-edit-display-name', '#ffc-edit-phone', '#ffc-edit-department', '#ffc-edit-organization', '#ffc-edit-birth-date', '#ffc-edit-notes'];
+                var typed = {};
+                ids.forEach(function (id) {
+                    var $el = $(id);
+                    if ($el.length && !$el.prop('disabled')) typed[id] = $el.val();
+                });
+                revealField($(this).data('field'), $(this), function () {
+                    showEditForm();
+                    Object.keys(typed).forEach(function (id) { $(id).val(typed[id]); });
+                });
+            });
             $(document).on('click', '.ffc-profile-save-btn', function (e) { e.preventDefault(); saveProfile(); });
             $(document).on('click', '.ffc-profile-cancel-btn', function (e) {
                 e.preventDefault();
@@ -346,7 +390,7 @@
             var $container = $('#ffc-tabpanel-profile');
             if ($container.find('.ffc-profile-info').length > 0) return;
 
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;
@@ -408,16 +452,25 @@
 
             html += '<div class="ffc-profile-actions">';
             html += window.FFC.buttonHtml({ label: s.editProfile || 'Edit Profile', category: 'neutral', icon: 'edit', className: 'ffc-profile-edit-btn' });
-            html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
+            // No password change while viewing as another account (#2246).
+            var canChangePassword = !ffcDashboard.viewAsUserId;
+            if (canChangePassword) {
+                html += window.FFC.buttonHtml({ label: s.changePassword || 'Change Password', category: 'neutral', icon: 'key', className: 'ffc-password-toggle-btn' });
+            }
             if (profile.audience_groups && profile.audience_groups.length > 0) {
                 html += window.FFC.buttonHtml({ label: s.leaveAllGroups || 'Leave all groups', category: 'danger', icon: 'logout', className: 'ffc-leave-all-groups-btn' });
             }
             html += '</div>';
 
+            if (canChangePassword) {
             html += '<div class="ffc-password-form" style="display: none;">';
             var req = ' <span class="ffc-required" aria-hidden="true">*</span>';
             html += '<div class="ffc-profile-field"><label for="ffc-current-password">' + (s.currentPassword || 'Current Password') + req + '</label>';
-            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required /></div>';
+            html += '<input type="password" id="ffc-current-password" autocomplete="current-password" required />';
+            if (ffcDashboard.lostPasswordUrl) {
+                html += '<a class="ffc-password-forgot" href="' + esc(ffcDashboard.lostPasswordUrl) + '">' + esc(s.forgotPassword || 'Forgot your password?') + '</a>';
+            }
+            html += '</div>';
             html += '<div class="ffc-profile-field"><label for="ffc-new-password">' + (s.newPassword || 'New Password') + req + '</label>';
             html += '<input type="password" id="ffc-new-password" autocomplete="new-password" minlength="8" required /></div>';
             html += '<div class="ffc-profile-field"><label for="ffc-confirm-password">' + (s.confirmPassword || 'Confirm New Password') + req + '</label>';
@@ -425,6 +478,7 @@
             html += window.FFC.buttonHtml({ label: s.save || 'Save', category: 'primary', icon: 'save', className: 'ffc-password-save-btn' });
             html += '<span class="ffc-password-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';
+            }
 
             // Audience self-join section — populated by ffc-user-dashboard-audience-join.js.
             html += '<div class="ffc-audience-join-section" id="ffc-audience-join-section"></div>';
@@ -463,7 +517,7 @@
         reload: function () {
             this.state = null;
             var $container = $('#ffc-tabpanel-profile');
-            $container.html('<div class="ffc-loading">' + ffcDashboard.strings.loading + '</div>');
+            $container.html('<div class="ffc-loading" role="status">' + ffcDashboard.strings.loading + '</div>');
 
             var url = ffcDashboard.restUrl + 'user/profile';
             if (ffcDashboard.viewAsUserId) url += '?viewAsUserId=' + ffcDashboard.viewAsUserId;

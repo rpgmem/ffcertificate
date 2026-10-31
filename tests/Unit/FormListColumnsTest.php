@@ -385,7 +385,7 @@ class FormListColumnsTest extends TestCase {
 	}
 
 	private function empty_state_for( array $get ): string {
-		$saved = $_GET;
+		$saved = $_GET ?? array();
 		$_GET  = $get;
 		try {
 			return FormListColumns::empty_state();

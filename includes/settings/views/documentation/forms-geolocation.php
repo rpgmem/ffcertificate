@@ -32,6 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A "Location blocked" message appears only when the browser really refuses the location. Some browsers, Opera for Android among them, report the location as blocked while they hand it over; the plugin then reads the position once to check, and a browser that gives it is treated as allowed.', 'ffcertificate' ); ?></p>
 
 	<p><?php esc_html_e( 'The visitor\'s position is used to decide and then discarded: it is not stored with the submission and is not written to any log. With geolocation debugging on, the debug entries say which area matched, never where the visitor was. Entries written before 6.42.0 did record the position; the "Activity Log: Delete Logged Locations" migration removes them.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A refusal is recorded in the activity log as "Access Denied" with its reason; the visitor\'s address is the entry\'s own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the "Activity Log: Clear Refused Addresses" migration removes that copy.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Area source: registered locations vs custom coordinates', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'You pick where the allowed GPS area comes from; IP validation reuses the GPS areas unless "Use different areas for IP validation" is checked, in which case IP gets its own source:', 'ffcertificate' ); ?></p>

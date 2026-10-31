@@ -43,6 +43,8 @@ beforeAll(async () => {
 			saving: 'Saving…',
 			saveDraft: 'Save Draft',
 			draftSaved: 'Draft saved.',
+			draftAutoSaved: 'Draft saved automatically.',
+			cancelConfirm: 'Close the form? Changes not saved yet will be lost.',
 			errorSaving: 'Error saving.',
 			submit: 'Send',
 			submitting: 'Sending…',
@@ -369,6 +371,26 @@ describe('rereg blur validation', () => {
 		window.$('.b').val('y').trigger('blur');
 		await flush();
 		expect(window.$('.ffc-rereg-field .ffc-field-message').length).toBe(0);
+	});
+
+	it('checks a CEP against the UF and re-checks it when the UF changes (#2233)', async () => {
+		const saved = window.ffcCoreConfig;
+		window.ffcCoreConfig = Object.assign({}, saved, { cepRanges: { SP: [[1000, 19999]], RJ: [[20000, 28999]] } });
+		await mountForm(`
+			<div class="ffc-rereg-field" data-field-key="uf"><select name="fields[uf]"><option>SP</option><option>RJ</option></select></div>
+			<div class="ffc-rereg-field" data-field-key="cep" data-format="cep"><input id="cep" name="fields[cep]" value="28615-070" /></div>
+		`);
+
+		window.$('#cep').trigger('blur');
+		await flush();
+		expect(window.$('#cep').attr('aria-invalid')).toBe('true');
+		expect(window.$('[data-field-key="cep"] .ffc-field-message').text()).toContain('SP');
+
+		window.$('[name="fields[uf]"]').val('RJ').trigger('change');
+		await flush();
+		expect(window.$('#cep').attr('aria-invalid')).toBeUndefined();
+
+		window.ffcCoreConfig = saved;
 	});
 
 	it('flags invalid CPF and clears on valid CPF', async () => {
@@ -972,6 +994,141 @@ describe('rereg cancel', () => {
 });
 
 // ----------------------------------------------------------------------
+// Autosave, the leave warning and the Cancel confirmation (#2242)
+// ----------------------------------------------------------------------
+
+describe('rereg autosave', () => {
+	let posts;
+
+	async function mountForm() {
+		document.body.innerHTML = `
+			<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>
+		`;
+		posts = [];
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload.action === 'ffc_get_reregistration_form') {
+				return postChain({ done: {
+					success: true,
+					data: {
+						html: `
+							<form id="ffc-rereg-form">
+								<input type="hidden" name="reregistration_id" value="9" />
+								<input name="fields[name]" value="Alice" />
+								<span class="ffc-rereg-status"></span>
+								<button type="button" class="ffc-rereg-draft-btn">Save Draft</button>
+								<button type="button" class="ffc-rereg-cancel-btn">Cancel</button>
+								<button type="submit" class="ffc-rereg-submit-btn">Send</button>
+							</form>
+						`,
+					},
+				} });
+			}
+			posts.push(payload);
+			return postChain({ done: { success: true, data: {} } });
+		});
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+	}
+
+	function leave() {
+		const e = new Event('beforeunload', { cancelable: true });
+		window.dispatchEvent(e);
+		return e.defaultPrevented;
+	}
+
+	beforeEach(() => { vi.useFakeTimers(); });
+	afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+	it('saves the draft 5 s after the last change, not on every keystroke', async () => {
+		await mountForm();
+
+		window.$('[name="fields[name]"]').val('Ali').trigger('input');
+		vi.advanceTimersByTime(4000);
+		window.$('[name="fields[name]"]').val('Alice B').trigger('input');
+		vi.advanceTimersByTime(4999);
+		expect(posts).toHaveLength(0);
+
+		vi.advanceTimersByTime(1);
+		await flush();
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0].action).toBe('ffc_save_reregistration_draft');
+		expect(posts[0].fields.name).toBe('Alice B');
+		expect(window.$('.ffc-rereg-status').text()).toBe('Draft saved automatically.');
+	});
+
+	it('warns before leaving with unsaved changes, and not once they are saved', async () => {
+		await mountForm();
+		expect(leave()).toBe(false);
+
+		window.$('[name="fields[name]"]').val('Bob').trigger('change');
+		expect(leave()).toBe(true);
+
+		vi.advanceTimersByTime(5000);
+		await flush();
+		expect(leave()).toBe(false);
+	});
+
+	it('keeps the form unsaved when a change lands while the save is in flight', async () => {
+		await mountForm();
+		let release;
+		window.$.post.mockImplementation(() => ({
+			done(cb) { release = () => cb({ success: true, data: {} }); return this; },
+			fail() { return this; },
+		}));
+
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+		vi.advanceTimersByTime(5000);
+		window.$('[name="fields[name]"]').val('Bobby').trigger('input');
+		release();
+		await flush();
+
+		expect(leave()).toBe(true);
+	});
+
+	it('asks before Cancel closes a form with unsaved changes', async () => {
+		await mountForm();
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+		expect(confirmSpy).toHaveBeenCalledWith('Close the form? Changes not saved yet will be lost.');
+		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(1);
+
+		confirmSpy.mockReturnValue(true);
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(0);
+		expect(leave()).toBe(false);
+
+		vi.advanceTimersByTime(5000);
+		await flush();
+		expect(posts).toHaveLength(0);
+	});
+
+	it('closes without asking when nothing changed', async () => {
+		await mountForm();
+		const confirmSpy = vi.spyOn(window, 'confirm');
+
+		window.$('.ffc-rereg-cancel-btn').trigger('click');
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+	});
+
+	it('drops a pending autosave when the form is submitted', async () => {
+		await mountForm();
+		window.$('[name="fields[name]"]').val('Bob').trigger('input');
+
+		window.$('#ffc-rereg-form').trigger('submit');
+		await flush();
+		vi.advanceTimersByTime(5000);
+		await flush();
+
+		expect(posts.map((p) => p.action)).toEqual(['ffc_submit_reregistration']);
+		expect(leave()).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
 // Working hours add/remove inside the rereg form
 // ----------------------------------------------------------------------
 
@@ -1091,6 +1248,27 @@ describe('rereg import previous', () => {
 		expect(window.$('#f1').val()).toBe('Maria Silva');
 	});
 
+	it('shapes an imported document like a typed one', async () => {
+		const html = FORM_HTML.replace(
+			'</form>',
+			'<div class="ffc-rereg-field" data-field-key="cpf"><input type="text" id="f3" name="ffc_fields[cpf]" data-mask="cpf"></div></form>'
+		);
+		document.body.innerHTML = '<button class="ffc-rereg-open-form" data-reregistration-id="9"></button>';
+		vi.spyOn(window.$, 'post').mockImplementation((url, payload) => {
+			if (payload && payload.action === 'ffc_import_previous_reregistration') {
+				return postChain({ done: { success: true, data: { fields: { cpf: '52998224725' } } } });
+			}
+			return postChain({ done: { success: true, data: { html } } });
+		});
+		window.$('.ffc-rereg-open-form').trigger('click');
+		await flush();
+
+		window.$('.ffc-rereg-import-btn').trigger('click');
+		await flush();
+
+		expect(window.$('#f3').val()).toBe('529.982.247-25');
+	});
+
 	it('hides the offer after importing', async () => {
 		await mountImport({ fields: { display_name: 'Maria Silva' } });
 
@@ -1112,5 +1290,69 @@ describe('rereg import previous', () => {
 		await flush();
 
 		expect(window.$('.ffc-rereg-import-btn').length).toBe(0);
+	});
+});
+
+// ----------------------------------------------------------------------
+// retract — the member takes back an unreviewed submission (#2242)
+// ----------------------------------------------------------------------
+
+describe('rereg retract', () => {
+	function mountBanner() {
+		document.body.innerHTML = `
+			<div class="ffc-notice ffc-notice-info" data-ffc-notice="rereg-banner">
+				<button type="button" class="ffc-btn ffc-rereg-retract" data-reregistration-id="7">Retract submission</button>
+			</div>
+		`;
+	}
+
+	it('asks first and sends nothing when the member declines', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const postSpy = vi.spyOn(window.$, 'post');
+
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+
+		expect(window.confirm).toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('posts the campaign and reloads on success', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
+		const original = window.location;
+		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: stub });
+
+		try {
+			window.$('.ffc-rereg-retract').trigger('click');
+			await flush();
+
+			const payload = postSpy.mock.calls[0][1];
+			expect(payload.action).toBe('ffc_retract_reregistration');
+			expect(payload.reregistration_id).toBe(7);
+			expect(payload.nonce).toBe('r-nonce');
+			expect(stub.reload).toHaveBeenCalled();
+		} finally {
+			Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
+		}
+	});
+
+	it('shows the server refusal under the banner and re-enables the button', async () => {
+		mountBanner();
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already reviewed.' } } }));
+
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+		window.$('.ffc-rereg-retract').trigger('click');
+		await flush();
+
+		const $errors = window.$('.ffc-rereg-retract-error');
+		expect($errors.length).toBe(1);
+		expect($errors.text()).toContain('Already reviewed.');
+		expect(window.$('.ffc-rereg-retract').prop('disabled')).toBe(false);
 	});
 });

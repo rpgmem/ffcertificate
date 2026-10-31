@@ -115,7 +115,8 @@ final class SpacingTokensTest extends TestCase {
 		// Sixteen since #1880: the download button's `40px` side padding left
 		// with its rule when the certificate buttons joined the `.ffc-btn` family.
 		'ffc-frontend.css'                 => 16,
-		'ffc-pdf-core.css'                 => 1,
+		// 1 -> 0 in #2089: the spinner's margin left with the dead rule.
+		'ffc-pdf-core.css'                 => 0,
 		'ffc-progress-overlay.css'         => 1,
 		'ffc-recruitment-admin.css'        => 2,
 		'ffc-reregistration-admin.css'     => 5,

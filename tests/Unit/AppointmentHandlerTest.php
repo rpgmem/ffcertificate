@@ -27,9 +27,19 @@ class AppointmentHandlerTest extends TestCase {
 	private $validator;
 	private \ReflectionClass $ref;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->reset_activity_log_buffer();
 
 		// Mock $wpdb
 		global $wpdb;
@@ -121,8 +131,38 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$this->reset_activity_log_buffer();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Empty the real ActivityLog's private static write buffer.
+	 */
+	private function reset_activity_log_buffer(): void {
+		$prop = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$prop->setAccessible( true );
+		$prop->setValue( null, array() );
+	}
+
+	/**
+	 * The entries the real ActivityLog buffered for one action.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function buffered_log_entries( string $action ): array {
+		$prop = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$prop->setAccessible( true );
+		$buffer = (array) $prop->getValue();
+
+		return array_values(
+			array_filter( $buffer, static fn( array $entry ): bool => $action === $entry['action'] )
+		);
 	}
 
 	private function setPrivate( string $name, $value ): void {
@@ -189,8 +229,10 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_process_status_pending_when_requires_approval(): void {
+		// `$wpdb` returns the column as '1'; the result used to compare it with
+		// `1 ===` and report a pending booking as confirmed (#2160).
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
-			$this->makeCalendar( array( 'requires_approval' => 1 ) )
+			$this->makeCalendar( array( 'requires_approval' => '1' ) )
 		);
 
 		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
@@ -222,22 +264,18 @@ class AppointmentHandlerTest extends TestCase {
 
 	/**
 	 * A booking a bypass holder confirmed over the rules is logged, and the
-	 * confirmation flag never reaches the row (#1859).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * confirmation flag never reaches the row (#1859). The real ActivityLog runs
+	 * with the log switched on, and its write buffer is what is asserted on.
 	 */
 	public function test_process_logs_a_confirmed_override_and_strips_the_flag(): void {
-		\Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_WARNING' => 'warning' ) )
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				return 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : array();
+			}
 		);
-		$log = Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' );
-		$log->shouldReceive( 'log' )->once()->with(
-			'appointment_booked_with_override',
-			'warning',
-			Mockery::on( static fn( array $c ): bool => 102 === $c['appointment_id'] && array( 'too_far' ) === $c['reasons'] ),
-			Mockery::any()
-		);
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'add_action' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'requires_approval' => 0 ) ) );
@@ -263,7 +301,14 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->assertIsArray( $result );
 		$this->assertTrue( $result['success'] );
-		\Mockery::getConfiguration()->setConstantsMap( array() );
+
+		$logged = $this->buffered_log_entries( 'appointment_booked_with_override' );
+		$this->assertCount( 1, $logged, 'The override must be logged exactly once.' );
+		$this->assertSame( 'warning', $logged[0]['level'] );
+		$this->assertSame( 1, $logged[0]['user_id'] );
+		$context = json_decode( (string) $logged[0]['context'], true );
+		$this->assertSame( 102, $context['appointment_id'] );
+		$this->assertSame( array( 'too_far' ), $context['reasons'] );
 	}
 
 	public function test_process_status_confirmed_without_approval(): void {
@@ -372,7 +417,7 @@ class AppointmentHandlerTest extends TestCase {
 		);
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->never();
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'calendar_private', $result->get_error_code() );
@@ -400,7 +445,7 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_available_slots_generates_from_working_hours(): void {
-		// Monday 2026-03-02 (day_of_week=1)
+		// Monday 2032-03-08 (day_of_week=1)
 		$calendar = $this->makeCalendar( array(
 			'slot_duration'            => 30,
 			'slot_interval'            => 0,
@@ -412,12 +457,13 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		// One block read for the whole date, never one per slot (#2244).
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-03-08' )->andReturn( array() );
 
 		// userHasSchedulingBypass returns false (current_user_can returns false from stub)
 		// is_global_holiday returns false (get_option returns empty array)
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		// 09:00-10:00 with 30min slots = 2 slots (09:00 and 09:30)
 		$this->assertIsArray( $result );
@@ -431,22 +477,22 @@ class AppointmentHandlerTest extends TestCase {
 		$calendar = $this->makeCalendar( array(
 			'schedule_type' => 'custom',
 			'custom_slots'  => array(
-				array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
-				array( 'date' => '2026-09-03', 'start' => '14:00', 'end' => '18:00', 'capacity' => 40, 'label' => '' ),
-				array( 'date' => '2026-09-04', 'start' => '08:00', 'end' => '13:00', 'capacity' => 20, 'label' => '' ),
+				array( 'date' => '2032-09-09', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => 'Manha' ),
+				array( 'date' => '2032-09-09', 'start' => '14:00', 'end' => '18:00', 'capacity' => 40, 'label' => '' ),
+				array( 'date' => '2032-09-10', 'start' => '08:00', 'end' => '13:00', 'capacity' => 20, 'label' => '' ),
 			),
 		) );
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
-		// One booking already sits in the 08:00 block on 2026-09-03.
+		// One booking already sits in the 08:00 block on 2032-09-09.
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '08:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-09-03' );
+		$result = $this->handler->get_available_slots( 1, '2032-09-09' );
 
-		// Only the two 2026-09-03 blocks; the block IS the slot.
+		// Only the two 2032-09-09 blocks; the block IS the slot.
 		$this->assertCount( 2, $result );
 		$this->assertSame( '08:00:00', $result[0]['time'] );
 		$this->assertSame( '13:00:00', $result[0]['end'] );
@@ -476,9 +522,9 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '09:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertCount( 1, $result );
 		$this->assertSame( '09:00:00', $result[0]['time'] );
@@ -502,9 +548,9 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array(
 			array( 'start_time' => '09:00:00' ),
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertCount( 0, $result );
 	}
@@ -565,9 +611,9 @@ class AppointmentHandlerTest extends TestCase {
 			array( 'start_time' => '09:00:00' ),
 			array( 'start_time' => '09:00:00' ), // 09:00 full
 		) );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		// 09:00 full (2/2), only 09:30 available
 		$this->assertCount( 1, $result );
@@ -575,7 +621,7 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_available_slots_no_working_hours_returns_empty(): void {
-		// Tuesday 2026-03-03 (day=2) — no hours for day 2
+		// Tuesday 2032-03-09 (day=2) — no hours for day 2
 		$calendar = $this->makeCalendar( array(
 			'working_hours' => array(
 				array( 'day' => 1, 'start' => '09:00', 'end' => '17:00' ),
@@ -583,9 +629,9 @@ class AppointmentHandlerTest extends TestCase {
 		) );
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-03' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-09' );
 
 		$this->assertIsArray( $result );
 		$this->assertEmpty( $result );
@@ -603,16 +649,15 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
-		// 30min + 10min interval = 40min per cycle
-		// 09:00, 09:40, 10:20 (10:20 < 10:30)
-		$this->assertCount( 3, $result );
+		// 30min + 10min interval = 40min per cycle: 09:00, 09:40. 10:20 would
+		// end at 10:50, after the 10:30 close, so it is not offered (#2244).
+		$this->assertCount( 2, $result );
 		$this->assertSame( '09:00', $result[0]['display'] );
 		$this->assertSame( '09:40', $result[1]['display'] );
-		$this->assertSame( '10:20', $result[2]['display'] );
 	}
 
 	// ==================================================================
@@ -632,7 +677,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'cancelled',
 			'user_id' => 0, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -657,7 +702,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 99, 'confirmation_token' => 'secret',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -671,25 +716,71 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid-token-123',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )
-			->with( 1, null, 'Changed plans' )
-			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )
+			->with( 1, 'confirmed', null, 'Changed plans' )
+			->andReturn( 1 );
 
 		$result = $this->handler->cancel_appointment( 1, 'valid-token-123', 'Changed plans' );
 
 		$this->assertTrue( $result );
 	}
 
+	/** @return array<string, array{string, string}> */
+	public function closed_rows(): array {
+		return array(
+			'started'   => array( 'confirmed', '2020-01-01' ),
+			'completed' => array( 'completed', '2032-03-01' ),
+			'no-show'   => array( 'no_show', '2032-03-01' ),
+		);
+	}
+
+	/**
+	 * @dataProvider closed_rows
+	 */
+	public function test_a_token_cannot_cancel_an_appointment_that_has_started_or_finished( string $status, string $date ): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->never();
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'user_id' => 0, 'confirmation_token' => 'tok',
+			'status' => $status, 'appointment_date' => $date, 'start_time' => '09:00:00',
+		) );
+
+		$result = $this->handler->cancel_appointment( 1, 'tok' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'not_cancellable', $result->get_error_code() );
+	}
+
+	public function test_a_cancel_that_lost_the_race_reports_the_change_and_fires_nothing(): void {
+		$fired = array();
+		Functions\when( 'do_action' )->alias( function ( $hook ) use ( &$fired ) {
+			$fired[] = $hook;
+		} );
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'status' => 'pending',
+			'user_id' => 0, 'confirmation_token' => 'tok',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
+		) );
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->with( 1, 'pending', null, '' )->andReturn( 0 );
+
+		$result = $this->handler->cancel_appointment( 1, 'tok' );
+
+		$this->assertSame( 'status_changed', $result->get_error_code() );
+		$this->assertSame( array(), $fired );
+	}
+
 	public function test_available_slots_returns_empty_when_date_blocked(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->makeCalendar() );
 		// Not a global holiday (real DateBlockingService + empty options) → the
-		// per-calendar blocked-date check short-circuits with no slots.
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-03-02' )->andReturn( true );
+		// per-calendar full-day block short-circuits with no slots.
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-03-08' )->andReturn( array( array( 'block_type' => 'full_day' ) ) );
+		$this->appointmentRepo->shouldNotReceive( 'getAppointmentsByDate' );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertSame( array(), $result );
 	}
@@ -708,8 +799,9 @@ class AppointmentHandlerTest extends TestCase {
 			) )
 		);
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$result = $this->handler->get_available_slots( 1, '2026-03-02' );
+		$result = $this->handler->get_available_slots( 1, '2032-03-08' );
 
 		$this->assertIsArray( $result );
 		$this->assertNotEmpty( $result );
@@ -872,18 +964,53 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array(
 				'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ),
 			) )
 		);
-		$this->appointmentRepo->shouldReceive( 'cancel' )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( 1 );
 
 		$this->handler->cancel_appointment( 1, 'valid' );
 
 		$this->assertContains( 'ffcertificate_self_scheduling_appointment_cancelled_email', $fired );
+	}
+
+	/**
+	 * A self-cancellation e-mail carries the reason the person typed (#2244):
+	 * the row read before the cancel has none, so it is carried in.
+	 */
+	public function test_cancellation_email_carries_the_reason(): void {
+		$sent = array();
+		Functions\when( 'do_action' )->alias( function ( $hook, ...$args ) use ( &$sent ) {
+			if ( 'ffcertificate_self_scheduling_appointment_cancelled_email' === $hook ) {
+				$sent[] = $args[0];
+			}
+		} );
+
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
+			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
+			'user_id' => 0, 'confirmation_token' => 'valid',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
+		) );
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+			$this->makeCalendar( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ) ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( 1 );
+
+		$this->handler->cancel_appointment( 1, 'valid', 'Travel' );
+
+		$this->assertCount( 1, $sent );
+		$this->assertSame( 'Travel', $sent[0]['cancellation_reason'] );
+		$this->assertSame( 'cancelled', $sent[0]['status'] );
+	}
+
+	public function test_sends_cancellation_email_follows_the_calendar_switch(): void {
+		$this->assertTrue( AppointmentHandler::sends_cancellation_email( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 1 ) ) ) ) );
+		$this->assertFalse( AppointmentHandler::sends_cancellation_email( array( 'email_config' => wp_json_encode( array( 'send_cancellation_notification' => 0 ) ) ) ) );
+		$this->assertFalse( AppointmentHandler::sends_cancellation_email( array() ) );
 	}
 
 	// ==================================================================
@@ -894,7 +1021,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 9, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->with( 9 )->andReturn( null );
 
@@ -911,8 +1038,8 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
-			'user_id' => 5, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
 
@@ -932,13 +1059,13 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
-			'user_id' => 5, 'confirmation_token' => '',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'user_id' => '5', 'confirmation_token' => '', // A string, as `$wpdb` returns it (#2160).
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )
-			->with( 1, 5, 'Owner cancel' )
-			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )
+			->with( 1, 'confirmed', 5, 'Owner cancel' )
+			->andReturn( 1 );
 
 		$result = $this->handler->cancel_appointment( 1, '', 'Owner cancel' );
 
@@ -949,7 +1076,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'allow_cancellation' => 0 ) )
@@ -962,11 +1089,12 @@ class AppointmentHandlerTest extends TestCase {
 	}
 
 	public function test_cancel_deadline_passed(): void {
-		// Appointment in the past + a min-hours window → the deadline has elapsed.
+		// Appointment two hours ahead + a 24-hour window → the deadline has elapsed.
+		$soon = new \DateTimeImmutable( '+2 hours', new \DateTimeZone( 'UTC' ) );
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2020-01-01', 'start_time' => '09:00:00',
+			'appointment_date' => $soon->format( 'Y-m-d' ), 'start_time' => $soon->format( 'H:i:s' ),
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'cancellation_min_hours' => 24 ) )
@@ -982,10 +1110,10 @@ class AppointmentHandlerTest extends TestCase {
 		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array(
 			'id' => 1, 'calendar_id' => 1, 'status' => 'confirmed',
 			'user_id' => 0, 'confirmation_token' => 'valid',
-			'appointment_date' => '2026-03-01', 'start_time' => '09:00',
+			'appointment_date' => '2032-03-01', 'start_time' => '09:00',
 		) );
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'cancel' )->andReturn( false );
+		$this->appointmentRepo->shouldReceive( 'cancelFrom' )->andReturn( false );
 
 		$result = $this->handler->cancel_appointment( 1, 'valid' );
 
@@ -1020,7 +1148,7 @@ class AppointmentHandlerTest extends TestCase {
 		return $this->makeCalendar( array(
 			'schedule_type' => 'custom',
 			'custom_slots'  => array(
-				array( 'date' => '2026-09-03', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => '' ),
+				array( 'date' => '2032-09-09', 'start' => '08:00', 'end' => '13:00', 'capacity' => 40, 'label' => '' ),
 			),
 		) );
 	}
@@ -1031,7 +1159,7 @@ class AppointmentHandlerTest extends TestCase {
 
 		$result = $this->handler->process_appointment( array(
 			'calendar_id'      => 1,
-			'appointment_date' => '2026-09-03',
+			'appointment_date' => '2032-09-09',
 			'start_time'       => '14:00',
 			'consent_given'    => '1',
 		) );
@@ -1052,13 +1180,118 @@ class AppointmentHandlerTest extends TestCase {
 
 		$result = $this->handler->process_appointment( array(
 			'calendar_id'      => 1,
-			'appointment_date' => '2026-09-03',
+			'appointment_date' => '2032-09-09',
 			'start_time'       => '08:00',
 			'consent_given'    => '1',
 		) );
 
 		$this->assertIsArray( $result );
 		$this->assertSame( 400, $result['appointment_id'] );
+	}
+
+	public function test_process_regular_normalises_the_start_and_takes_the_end_from_the_grid(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
+			$this->makeCalendar( array( 'working_hours' => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ) ) ) )
+		);
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->validator->shouldReceive( 'validate' )->once()
+			->with( Mockery::on( static fn ( $data ) => '09:30:00' === $data['start_time'] ), Mockery::any(), true )
+			->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
+			->with( Mockery::on( static fn ( $data ) => '09:30:00' === $data['start_time'] && '10:00:00' === $data['end_time'] ) )
+			->andReturn( 401 );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+		$this->appointmentRepo->shouldReceive( 'findById' )->andReturn( array( 'id' => 401, 'confirmation_token' => 'tok401' ) );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '09:30:07',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertIsArray( $result, 'Seconds do not make a slot of their own (#2244).' );
+	}
+
+	public function test_process_refuses_an_appointment_that_would_end_after_midnight(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'slot_duration' => 30 ) ) );
+		$this->appointmentRepo->shouldNotReceive( 'begin_transaction' );
+		$this->appointmentRepo->shouldNotReceive( 'createAppointment' );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '23:45',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_slot', $result->get_error_code(), 'It used to wrap to 00:15 silently.' );
+	}
+
+	public function test_process_refuses_a_start_that_is_not_a_time(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldNotReceive( 'begin_transaction' );
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2032-03-08',
+			'start_time'       => '09:05; DROP',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertSame( 'invalid_time', $result->get_error_code() );
+	}
+
+	public function test_available_slots_hide_what_starts_inside_the_notice_window_except_for_the_bypass(): void {
+		// A notice of 20 years puts every 2032 slot inside the window.
+		$calendar = $this->makeCalendar( array(
+			'advance_booking_min' => 24 * 366 * 20,
+			'working_hours'       => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ) ),
+		) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-03-08' ) );
+
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->assertCount( 2, $this->handler->get_available_slots( 1, '2032-03-08' ), 'The bypass still sees them.' );
+	}
+
+	public function test_available_slots_hide_a_slot_that_has_already_started(): void {
+		$today    = gmdate( 'Y-m-d' );
+		$calendar = $this->makeCalendar( array(
+			'slot_duration' => 60,
+			'working_hours' => array( array( 'day' => (int) gmdate( 'w' ), 'start' => '00:00', 'end' => '23:59' ) ),
+		) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+
+		$before = time();
+		$times  = array_column( $this->handler->get_available_slots( 1, $today ), 'time' );
+
+		if ( $before > strtotime( $today . ' 00:00:00 UTC' ) ) {
+			$this->assertNotContains( '00:00:00', $times, 'Midnight today has passed by the time this runs.' );
+		}
+		foreach ( $times as $time ) {
+			$this->assertGreaterThanOrEqual( $before - 1, strtotime( $today . ' ' . $time . ' UTC' ) );
+		}
+	}
+
+	public function test_available_slots_drop_only_the_slot_a_time_range_block_covers(): void {
+		$calendar = $this->makeCalendar( array( 'working_hours' => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:30' ) ) ) );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->andReturn(
+			array( array( 'block_type' => 'time_range', 'start_time' => '09:30:00', 'end_time' => '10:00:00' ) )
+		);
+
+		$this->assertSame(
+			array( '09:00:00', '10:00:00' ),
+			array_column( $this->handler->get_available_slots( 1, '2032-03-08' ), 'time' )
+		);
 	}
 
 	// ==================================================================
@@ -1140,18 +1373,20 @@ class AppointmentHandlerTest extends TestCase {
 	public function test_available_slots_custom_mode_with_no_block_that_day_is_empty(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
 		$this->appointmentRepo->shouldNotReceive( 'getAppointmentsByDate' );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->andReturn( false );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
 
-		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-05' ) );
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-09-11' ) );
 	}
 
 	public function test_available_slots_custom_mode_drops_a_blocked_block(): void {
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->customCalendar() );
 		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03' )->andReturn( false );
-		$this->blockedDateRepo->shouldReceive( 'isDateBlocked' )->with( 1, '2026-09-03', '08:00:00' )->andReturn( true );
+		// One read for the date; the 08:00 block falls inside a time-range block.
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->once()->with( 1, '2032-09-09' )->andReturn(
+			array( array( 'block_type' => 'time_range', 'start_time' => '07:30:00', 'end_time' => '09:00:00' ) )
+		);
 
-		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2026-09-03' ) );
+		$this->assertSame( array(), $this->handler->get_available_slots( 1, '2032-09-09' ) );
 	}
 
 	// ==================================================================

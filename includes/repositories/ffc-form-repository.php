@@ -90,31 +90,40 @@ class FormRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Get form config
+	 * Get form config.
+	 *
+	 * Read straight from post meta, which WordPress already caches for the
+	 * request and, with a persistent object cache, across requests (#2241).
 	 *
 	 * @param int $form_id Form ID.
-	 * @return mixed
+	 * @return mixed The stored config array, or false when the form has none.
 	 */
 	public function getConfig( int $form_id ) {
-		if ( class_exists( '\FreeFormCertificate\Submissions\FormCache' ) ) {
-			return \FreeFormCertificate\Submissions\FormCache::get_form_config( $form_id );
-		}
-
-		return get_post_meta( $form_id, '_ffc_form_config', true );
+		return self::stored_array( $form_id, '_ffc_form_config' );
 	}
 
 	/**
-	 * Get form fields
+	 * Get form fields.
 	 *
 	 * @param int $form_id Form ID.
-	 * @return mixed
+	 * @return mixed The stored fields array, or false when the form has none.
 	 */
 	public function getFields( int $form_id ) {
-		if ( class_exists( '\FreeFormCertificate\Submissions\FormCache' ) ) {
-			return \FreeFormCertificate\Submissions\FormCache::get_form_fields( $form_id );
-		}
+		return self::stored_array( $form_id, '_ffc_form_fields' );
+	}
 
-		return get_post_meta( $form_id, '_ffc_form_fields', true );
+	/**
+	 * A non-empty array stored in one meta key, or false — the answer the
+	 * retired `FormCache` getters gave, so no caller changes.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $key     Meta key.
+	 * @return mixed A non-empty array, or false.
+	 */
+	private static function stored_array( int $form_id, string $key ) {
+		$value = get_post_meta( $form_id, $key, true );
+
+		return ( is_array( $value ) && array() !== $value ) ? $value : false;
 	}
 
 	/**
@@ -122,11 +131,12 @@ class FormRepository extends AbstractRepository {
 	 *
 	 * @param int $form_id Form ID.
 	 * @return mixed
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function getBackground( int $form_id ) {
-		if ( class_exists( '\FreeFormCertificate\Submissions\FormCache' ) ) {
-			return \FreeFormCertificate\Submissions\FormCache::get_form_background( $form_id );
-		}
+		_deprecated_function( __METHOD__, '6.43.0' );
 
 		return \FreeFormCertificate\Core\FormBackground::url( $form_id );
 	}

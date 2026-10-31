@@ -233,6 +233,11 @@
     box-shadow: var(--ffc-shadow-sm);
 }
 
+.ffc-calendar-core .ffc-day:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
 .ffc-calendar-core .ffc-day.ffc-other-month {
     background: var(--ffc-bg-alt);
     opacity: 0.6;

@@ -65,7 +65,7 @@ describe('FFCDashboard.panels.appointments.render', () => {
 	it('renders three sections (upcoming + past + cancelled) when all three exist', () => {
 		const items = [
 			makeAppt({ status: 'confirmed', appointment_date_raw: FAR_FUTURE }),
-			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST }),
+			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, is_past: true }),
 			makeAppt({ status: 'cancelled', appointment_date_raw: FAR_FUTURE }),
 		];
 		panel().render(items, 1);
@@ -83,9 +83,33 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(document.querySelector('#ffc-tabpanel-appointments h3').textContent).toBe('Upcoming (2)');
 	});
 
+	it('splits on the server is_past flag, not the browser date (#2246)', () => {
+		panel().render([
+			// Far past by date, but the server says the site's today has not passed it.
+			makeAppt({ appointment_date_raw: FAR_PAST, is_past: false, calendar_title: 'tonight' }),
+			makeAppt({ appointment_date_raw: FAR_FUTURE, is_past: true, calendar_title: 'done' }),
+		], 1);
+		const sections = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-dashboard-section');
+		expect(sections.length).toBe(2);
+		expect(sections[0].textContent).toContain('tonight');
+		expect(sections[1].textContent).toContain('done');
+	});
+
+	it('orders Upcoming by date, then start time, then id (#2246)', () => {
+		panel().render([
+			makeAppt({ id: 3, appointment_date_raw: '2999-01-02', start_time_raw: '09:00', calendar_title: 'C' }),
+			makeAppt({ id: 2, appointment_date_raw: '2999-01-01', start_time_raw: '14:00', calendar_title: 'B' }),
+			makeAppt({ id: 9, appointment_date_raw: '2999-01-01', start_time_raw: '09:00', calendar_title: 'A2' }),
+			makeAppt({ id: 1, appointment_date_raw: '2999-01-01', start_time_raw: '09:00', calendar_title: 'A1' }),
+		], 1);
+		const titles = Array.from(document.querySelectorAll('#ffc-tabpanel-appointments tbody tr td:first-child'))
+			.map((td) => td.textContent.trim());
+		expect(titles).toEqual(['A1', 'A2', 'B', 'C']);
+	});
+
 	it("applies 'ffc-row-cancelled' / 'ffc-row-past' classes to the right rows", () => {
 		panel().render([
-			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, calendar_title: 'past one' }),
+			makeAppt({ status: 'completed', appointment_date_raw: FAR_PAST, is_past: true, calendar_title: 'past one' }),
 			makeAppt({ status: 'cancelled', calendar_title: 'cancelled one' }),
 		], 1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments tr.ffc-row-past').length).toBe(1);
@@ -142,7 +166,7 @@ describe('FFCDashboard.panels.appointments.render', () => {
 	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
 			makeAppt({ status: 'confirmed', status_label: 'Confirmed' }),
-			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST }),
+			makeAppt({ status: 'completed', status_label: 'Done', appointment_date_raw: FAR_PAST, is_past: true }),
 		], 1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-confirmed').length).toBe(1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments .ffc-pill.ffc-dashboard-status-completed').length).toBe(1);
@@ -157,5 +181,29 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		panel().render([makeAppt({ status: 'confirmed', status_label: 'Confirmed' })], 1);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments .appointment-status').length).toBe(0);
 		expect(document.querySelectorAll('#ffc-tabpanel-appointments .status-confirmed').length).toBe(0);
+	});
+});
+
+describe('FFCDashboard.panels.appointments — escaping (#2246)', () => {
+	it('prints every value as text and keeps the status class to class characters', () => {
+		panel().render([makeAppt({
+			appointment_date: '<i>d</i>',
+			start_time: '<i>t</i>',
+			status: 'confirmed" onclick="x',
+			status_label: '<img src=x>',
+		})], 1);
+		const container = document.getElementById('ffc-tabpanel-appointments');
+		expect(container.querySelector('tbody i, tbody img')).toBeNull();
+		const pill = container.querySelector('.ffc-pill');
+		expect(pill.getAttribute('onclick')).toBeNull();
+		expect(pill.className).toContain('ffc-dashboard-status-confirmedonclickx');
+	});
+
+	it('says when a filter matches nothing', () => {
+		const appts = [makeAppt()];
+		panel().render(appts, 1);
+		document.querySelector('#ffc-tabpanel-appointments .ffc-filter-search').value = 'no-such-thing';
+		panel().render(appts, 1);
+		expect(document.querySelector('#ffc-tabpanel-appointments .ffc-empty-filtered')).not.toBeNull();
 	});
 });

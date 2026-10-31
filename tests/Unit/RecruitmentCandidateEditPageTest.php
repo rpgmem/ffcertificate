@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentCandidateEditPage;
 
 /**
@@ -19,16 +20,66 @@ use FreeFormCertificate\Recruitment\RecruitmentCandidateEditPage;
  * classification + call + history table cells) so the extraction stays
  * behavior-preserving and the render path contributes real coverage.
  *
+ * Every collaborator is the real class: the recruitment readers and
+ * repositories, RecruitmentCandidateHistoryService over ActivityLogQuery,
+ * RecruitmentPiiAccessPolicy over the shared PiiAccessPolicy, Encryption
+ * with the bootstrap's key constants, DocumentFormatter and DateFormatter.
+ * They run over a `$wpdb` double that answers each read from the rows a
+ * test stores and fails on any query it does not recognise.
+ *
+ * The PII tier is chosen through the data, as the real policy decides it:
+ * the candidate row is linked to the current user (the owner clause, which
+ * is the unmasked tier) unless a test unlinks it to reach the reveal tier.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidateEditPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentCandidateEditPageTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock of RecruitmentPiiAccessPolicy. */
-	private $pii;
+	/** The current user, who is also the candidate's linked account by default. */
+	private const CURRENT_USER = 1;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/**
+	 * Prepared statements by the token prepare() returned: [sql, args].
+	 *
+	 * @var array<string, array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/** @var array<int, object> Candidate rows by id. */
+	private array $candidates = array();
+
+	/** @var list<object> Classification rows. */
+	private array $classifications = array();
+
+	/** @var list<object> Call rows. */
+	private array $calls = array();
+
+	/** @var array<int, list<int>> Attached adjutancy ids per notice id. */
+	private array $junction = array();
+
+	/** @var array<int, object> Notice rows by id. */
+	private array $notices = array();
+
+	/** @var array<int, object> Adjutancy rows by id. */
+	private array $adjutancies = array();
+
+	/** @var list<array<string, mixed>> Activity-log rows, as `ARRAY_A`. */
+	private array $activity = array();
+
+	/**
+	 * Every row lookup by id, as [table, id].
+	 *
+	 * @var list<array{0: string, 1: int}>
+	 */
+	private array $row_lookups = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -56,13 +107,40 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn ( $v ) => (int) $v );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// PiiAccessPolicy asks user_can() only past the owner clause, i.e. for
+		// a candidate not linked to the current user: that user may reveal.
+		Functions\when( 'user_can' )->justReturn( true );
 		// The status cell now comes from `RecruitmentAdminPage::classification_status_badge()`,
 		// which reads the configurable colours from Settings (#1193). Empty = defaults.
+		// No settings also keeps DateFormatter on its default formats.
 		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_current_user_id' )->justReturn( self::CURRENT_USER );
+		Functions\when( 'get_userdata' )->alias(
+			static fn ( $id ) => self::CURRENT_USER === (int) $id
+				? (object) array(
+					'ID'           => self::CURRENT_USER,
+					'user_login'   => 'jdoe',
+					'display_name' => 'Jane Doe',
+				)
+				: false
+		);
+		Functions\when( 'get_edit_user_link' )->alias( static fn ( $id ) => 'user-edit.php?user_id=' . (int) $id );
+		Functions\when( 'is_email' )->alias( static fn ( $v ) => false !== filter_var( $v, FILTER_VALIDATE_EMAIL ) );
+		Functions\when( 'wp_parse_args' )->alias( static fn ( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn ( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )
+				->setTimezone( $tz instanceof \DateTimeZone ? $tz : new \DateTimeZone( 'UTC' ) )
+				->format( (string) $format )
+		);
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'add_query_arg' )->alias(
 			static fn ( $args ) => 'admin.php?' . http_build_query( (array) $args )
 		);
@@ -86,27 +164,115 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 			}
 		);
 
-		// RecruitmentPiiAccessPolicy — resolved once per section to pick the
-		// PII tier. Default to unmasked so the General email field is editable
-		// and the sensitive rows take the immediate-decrypt branch.
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' => array(
-					'TIER_UNMASKED' => 'unmasked',
-					'TIER_REVEAL'   => 'reveal',
-					'TIER_MASKED'   => 'masked',
-				),
-			)
+		$this->prepared        = array();
+		$this->candidates      = array();
+		$this->classifications = array();
+		$this->calls           = array();
+		$this->junction        = array();
+		$this->notices         = array();
+		$this->adjutancies     = array();
+		$this->activity        = array();
+		$this->row_lookups     = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				// Some callers bind one array instead of a variadic list.
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = array_values( $args[0] );
+				}
+				$token                    = 'PREPARED#' . count( $this->prepared );
+				$this->prepared[ $token ] = array( (string) $sql, $args );
+				return $token;
+			}
 		);
-		$pii = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPiiAccessPolicy' );
-		$pii->shouldReceive( 'resolve' )->andReturn( 'unmasked' )->byDefault();
-		$this->pii = $pii;
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn ( $q ) => $this->answer_row( (string) $q ) );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn ( $q ) => $this->answer_results( (string) $q ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn ( $q ) => $this->answer_var( (string) $q ) );
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn ( $q ) => $this->answer_col( (string) $q ) );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		unset( $_GET['candidate_id'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * The statement and bound arguments behind a prepare() token.
+	 *
+	 * @param string $token Token prepare() returned.
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function statement( string $token ): array {
+		if ( ! isset( $this->prepared[ $token ] ) ) {
+			$this->fail( 'Query run without prepare(): ' . $token );
+		}
+		return $this->prepared[ $token ];
+	}
+
+	private function answer_row( string $token ) {
+		[ $sql, $args ] = $this->statement( $token );
+		if ( 'SELECT * FROM %i WHERE id = %d' !== $sql ) {
+			$this->fail( 'Unexpected get_row(): ' . $sql );
+		}
+		$table               = (string) $args[0];
+		$id                  = (int) $args[1];
+		$this->row_lookups[] = array( $table, $id );
+		switch ( $table ) {
+			case 'wp_ffc_recruitment_candidate':
+				return $this->candidates[ $id ] ?? null;
+			case 'wp_ffc_recruitment_notice':
+				return $this->notices[ $id ] ?? null;
+			case 'wp_ffc_recruitment_adjutancy':
+				return $this->adjutancies[ $id ] ?? null;
+		}
+		$this->fail( 'Unexpected get_row() table: ' . $table );
+	}
+
+	private function answer_results( string $token ) {
+		[ $sql, $args ] = $this->statement( $token );
+		$table          = (string) $args[0];
+		if ( 'wp_ffc_recruitment_classification' === $table
+			&& 'SELECT * FROM %i WHERE candidate_id = %d ORDER BY notice_id ASC, adjutancy_id ASC' === $sql ) {
+			$candidate_id = (int) $args[1];
+			return array_values( array_filter( $this->classifications, static fn ( $c ) => (int) $c->candidate_id === $candidate_id ) );
+		}
+		if ( 'wp_ffc_recruitment_call' === $table && 0 === strpos( $sql, 'SELECT * FROM %i WHERE classification_id IN (' ) ) {
+			$ids = array_map( 'intval', array_slice( $args, 1 ) );
+			return array_values( array_filter( $this->calls, static fn ( $c ) => in_array( (int) $c->classification_id, $ids, true ) ) );
+		}
+		if ( 'wp_ffc_activity_log' === $table && 0 === strpos( $sql, 'SELECT * FROM %i WHERE 1=1 AND ' ) ) {
+			return $this->activity;
+		}
+		$this->fail( 'Unexpected get_results(): ' . $sql . ' on ' . $table );
+	}
+
+	private function answer_var( string $token ) {
+		[ $sql, $args ] = $this->statement( $token );
+		if ( 'SELECT COUNT(*) FROM %i WHERE candidate_id = %d' === $sql && 'wp_ffc_recruitment_classification' === $args[0] ) {
+			$candidate_id = (int) $args[1];
+			return (string) count( array_filter( $this->classifications, static fn ( $c ) => (int) $c->candidate_id === $candidate_id ) );
+		}
+		$this->fail( 'Unexpected get_var(): ' . $sql );
+	}
+
+	private function answer_col( string $token ) {
+		[ $sql, $args ] = $this->statement( $token );
+		if ( 'SELECT adjutancy_id FROM %i WHERE notice_id = %d' === $sql && 'wp_ffc_recruitment_notice_adjutancy' === $args[0] ) {
+			return array_map( 'strval', $this->junction[ (int) $args[1] ] ?? array() );
+		}
+		$this->fail( 'Unexpected get_col(): ' . $sql );
 	}
 
 	/**
@@ -128,7 +294,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 	/**
 	 * A minimal candidate row with no PII / no timestamps, so the sensitive
 	 * rows collapse to the em-dash placeholder and build_delete_consequences
-	 * touches neither DateFormatter nor get_userdata.
+	 * touches no DateFormatter. It is linked to the current user, which is
+	 * what makes the real policy answer the unmasked tier (the General email
+	 * field editable).
 	 *
 	 * @param array<string, mixed> $overrides Field overrides.
 	 * @return object
@@ -143,7 +311,7 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 				'email_encrypted' => '',
 				'cpf_encrypted'   => '',
 				'rf_encrypted'    => '',
-				'user_id'         => null,
+				'user_id'         => self::CURRENT_USER,
 				'created_at'      => '',
 				'updated_at'      => '',
 			),
@@ -163,27 +331,20 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 	public function test_render_shows_not_found_notice_for_unknown_candidate(): void {
 		$_GET['candidate_id'] = '7';
 
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$reader->shouldReceive( 'get_by_id' )->with( 7 )->andReturnNull();
-
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
+		$this->assertSame(
+			array( array( 'wp_ffc_recruitment_candidate', 7 ) ),
+			$this->row_lookups,
+			'The candidate is looked up by the requested id.'
+		);
 		$this->assertStringContainsString( 'Candidate not found.', $html );
 		$this->assertStringContainsString( 'Back to Candidates', $html );
 	}
 
 	public function test_render_outputs_every_section_for_empty_candidate(): void {
 		$_GET['candidate_id'] = '5';
-
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$reader->shouldReceive( 'get_by_id' )->andReturn( $this->candidate() );
-
-		$class = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$class->shouldReceive( 'get_for_candidate' )->andReturn( array() );
-		$class->shouldReceive( 'count_for_candidate' )->andReturn( 0 );
-
-		$history = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateHistoryService' );
-		$history->shouldReceive( 'get_for_candidate' )->andReturn( array() );
+		$this->candidates[5]  = $this->candidate();
 
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
@@ -213,14 +374,62 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Blocked:', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public static function swap_by_status(): array {
+		return array(
+			'draft'       => array( 'draft', true ),
+			'preliminary' => array( 'preliminary', true ),
+			'definitive'  => array( 'definitive', false ),
+			'closed'      => array( 'closed', false ),
+		);
+	}
+
+	/**
+	 * @dataProvider swap_by_status
+	 */
+	public function test_the_adjutancy_swap_follows_the_notice_status( string $status, bool $swap ): void {
+		$_GET['candidate_id']    = '5';
+		$this->candidates[5]     = $this->candidate();
+		$this->classifications[] = (object) array(
+			'id'           => 10,
+			'candidate_id' => 5,
+			'notice_id'    => 3,
+			'adjutancy_id' => 7,
+			'list_type'    => 'definitive',
+			'rank'         => 1,
+			'score'        => '9.5',
+			'status'       => 'empty',
+		);
+		$this->junction[3]    = array( 7, 8 );
+		$this->notices[3]     = (object) array(
+			'id'     => 3,
+			'code'   => 'ED-01',
+			'status' => $status,
+		);
+		$this->adjutancies[7] = (object) array(
+			'id'   => 7,
+			'slug' => 'mat',
+		);
+		$this->adjutancies[8] = (object) array(
+			'id'   => 8,
+			'slug' => 'hist',
+		);
+
+		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
+
+		$this->assertSame( $swap, str_contains( $html, 'ffc-adjutancy-swap-select' ), 'A row moves to another adjutancy only in draft or preliminary (#2245).' );
+		$this->assertStringContainsString( 'mat', $html );
+	}
+
 	public function test_render_populates_classification_and_history_tables(): void {
 		$_GET['candidate_id'] = '5';
+		$this->candidates[5]  = $this->candidate();
 
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$reader->shouldReceive( 'get_by_id' )->andReturn( $this->candidate() );
-
-		$classification = (object) array(
+		$this->classifications[] = (object) array(
 			'id'           => 10,
+			'candidate_id' => 5,
 			'notice_id'    => 3,
 			'adjutancy_id' => 7,
 			'list_type'    => 'geral',
@@ -228,13 +437,7 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 			'score'        => '9.5',
 			'status'       => 'called',
 		);
-
-		$class = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$class->shouldReceive( 'get_for_candidate' )->andReturn( array( $classification ) );
-		// > 0 ⇒ the delete section renders its blocked branch.
-		$class->shouldReceive( 'count_for_candidate' )->andReturn( 1 );
-
-		$call = (object) array(
+		$this->calls[] = (object) array(
 			'classification_id' => 10,
 			'called_at'         => 1700000000,
 			'date_to_assume'    => '2026-05-20',
@@ -243,35 +446,47 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 			'cancelled_at'      => null,
 			'notes'             => 'a note',
 		);
-		$calls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$calls->shouldReceive( 'get_history_for_classifications' )->with( array( 10 ) )->andReturn( array( $call ) );
-
-		$junction = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$junction->shouldReceive( 'get_adjutancy_ids_for_notice' )->with( 3 )->andReturn( array( 7, 8 ) );
-
-		$notice = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeReader' );
-		$notice->shouldReceive( 'get_by_id' )->with( 3 )->andReturn( (object) array( 'code' => 'ED-01' ) );
-
-		$adjutancy = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adjutancy->shouldReceive( 'get_by_id' )->with( 7 )->andReturn( (object) array( 'slug' => 'mat' ) );
-		$adjutancy->shouldReceive( 'get_by_id' )->with( 8 )->andReturn( (object) array( 'slug' => 'hist' ) );
-
-		// DateFormatter is used for the call's called_at + the history "when".
-		$fmt = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$fmt->shouldReceive( 'format_datetime' )->andReturnUsing( static fn ( $v ) => (string) $v );
-
-		$history = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateHistoryService' );
-		$history->shouldReceive( 'get_for_candidate' )->andReturn(
-			array(
-				array(
-					'action'     => 'called',
-					'context'    => array(),
-					'created_at' => '2026-05-10 12:00:00',
-					'user_id'    => 0,
-				),
-			)
+		// A call on another classification must not reach this candidate.
+		$this->calls[] = (object) array(
+			'classification_id' => 99,
+			'called_at'         => 1700000000,
+			'date_to_assume'    => '2031-01-01',
+			'time_to_assume'    => '10:00:00',
+			'out_of_order'      => '0',
+			'cancelled_at'      => null,
+			'notes'             => 'not this candidate',
 		);
-		$history->shouldReceive( 'summarize_event' )->with( 'called', array() )->andReturn( '<em>evt</em>' );
+		// The notice has two adjutancies attached ⇒ the swap <select>.
+		$this->junction[3]    = array( 7, 8 );
+		$this->notices[3]     = (object) array(
+			'id'     => 3,
+			'code'   => 'ED-01',
+			'status' => 'preliminary',
+		);
+		$this->adjutancies[7] = (object) array(
+			'id'   => 7,
+			'slug' => 'mat',
+		);
+		$this->adjutancies[8] = (object) array(
+			'id'   => 8,
+			'slug' => 'hist',
+		);
+		// One activity-log row about the classification, written by the system,
+		// and one about a stranger's classification that the feed must drop.
+		$this->activity[] = array(
+			'id'         => 2,
+			'action'     => 'recruitment_call_created',
+			'context'    => '{"call_id":4,"classification_id":10}',
+			'user_id'    => 0,
+			'created_at' => '2026-05-10 12:00:00',
+		);
+		$this->activity[] = array(
+			'id'         => 1,
+			'action'     => 'recruitment_call_created',
+			'context'    => '{"call_id":5,"classification_id":99}',
+			'user_id'    => 0,
+			'created_at' => '2026-05-09 12:00:00',
+		);
 
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
@@ -290,28 +505,30 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-adjutancy-swap-select', $html );
 		$this->assertStringContainsString( '>mat<', $html );
 		$this->assertStringContainsString( '>hist<', $html );
-		// Per-classification calls sub-table.
+		// Per-classification calls sub-table: only this candidate's call.
 		$this->assertStringContainsString( 'Calls for classification #10', $html );
 		$this->assertStringContainsString( '2026-05-20', $html );
-		// History table row: actor resolves to System (user_id 0) + pre-escaped event.
+		$this->assertStringNotContainsString( 'not this candidate', $html );
+		// History table row: actor resolves to System (user_id 0) and the
+		// event cell carries the service's own summary of the matching row.
 		$this->assertStringContainsString( 'System', $html );
-		$this->assertStringContainsString( '<em>evt</em>', $html );
+		$this->assertStringContainsString( 'Call #4 issued on classification #10.', $html );
+		$this->assertStringNotContainsString( 'Call #5', $html );
 		// Delete blocked branch (count_for_candidate > 0).
 		$this->assertStringContainsString( 'Blocked:', $html );
 	}
 
 	public function test_general_section_offers_the_reveal_tier_a_reveal_that_enables_the_email(): void {
 		// #1863: masked and disabled for staff, with a Reveal that names and
-		// enables the field; never a clear address in the HTML.
-		$this->pii->shouldReceive( 'resolve' )->andReturn( 'reveal' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'decrypt' )->andReturn( 'jane@example.test' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' )
-			->shouldReceive( 'mask_email' )->andReturn( 'j***@example.test' );
+		// enables the field; never a clear address in the HTML. The row has
+		// no linked user, so the policy answers the reveal tier for a user
+		// who holds the PII cap.
+		$cipher = Encryption::encrypt( 'jane@example.test' );
+		$this->assertIsString( $cipher );
 
 		$method = new \ReflectionMethod( RecruitmentCandidateEditPage::class, 'render_general_section' );
 		$method->setAccessible( true );
-		$html = $this->capture_output( static fn () => $method->invoke( null, (object) array( 'id' => 5, 'name' => 'Jane', 'phone' => null, 'notes' => null, 'email_encrypted' => 'CIPHER' ) ) );
+		$html = $this->capture_output( static fn () => $method->invoke( null, (object) array( 'id' => 5, 'name' => 'Jane', 'phone' => null, 'notes' => null, 'email_encrypted' => $cipher ) ) );
 
 		$this->assertStringNotContainsString( 'jane@example.test', $html );
 		$this->assertStringNotContainsString( ' name="email"', $html, 'The field posts only once a reveal named it.' );

@@ -31,7 +31,43 @@ class IcsGenerator {
 	 * @return string ICS file content.
 	 */
 	public static function generate( array $event, string $method = 'REQUEST' ): string {
-		$site_name   = get_bloginfo( 'name' );
+		return self::generate_many( array( $event ), $method );
+	}
+
+	/**
+	 * Generate one ICS file holding several events (#2243).
+	 *
+	 * Each event keeps its own UID, so a later cancellation of one of them,
+	 * sent with that UID, removes that event alone from the calendar.
+	 *
+	 * @param list<array<string, mixed>> $events Events, each as {@see self::generate()} reads it.
+	 * @param string                     $method ICS method (REQUEST or CANCEL).
+	 * @return string ICS file content.
+	 */
+	public static function generate_many( array $events, string $method = 'REQUEST' ): string {
+		$site_name = get_bloginfo( 'name' );
+
+		$ics  = "BEGIN:VCALENDAR\r\n";
+		$ics .= "VERSION:2.0\r\n";
+		$ics .= "PRODID:-//{$site_name}//FFC Scheduling//PT\r\n";
+		$ics .= "CALSCALE:GREGORIAN\r\n";
+		$ics .= "METHOD:{$method}\r\n";
+		foreach ( $events as $event ) {
+			$ics .= self::vevent( $event, $method );
+		}
+		$ics .= "END:VCALENDAR\r\n";
+
+		return $ics;
+	}
+
+	/**
+	 * One VEVENT block.
+	 *
+	 * @param array<string, mixed> $event  Event data, as {@see self::generate()} reads it.
+	 * @param string               $method ICS method (REQUEST or CANCEL).
+	 * @return string
+	 */
+	private static function vevent( array $event, string $method ): string {
 		$site_domain = wp_parse_url( home_url(), PHP_URL_HOST );
 
 		$uid = ( $event['uid'] ?? 'ffc-event-' . uniqid() ) . '@' . $site_domain;
@@ -50,12 +86,7 @@ class IcsGenerator {
 		$description = self::escape_text( $event['description'] );
 		$location    = self::escape_text( $event['location'] ?? '' );
 
-		$ics  = "BEGIN:VCALENDAR\r\n";
-		$ics .= "VERSION:2.0\r\n";
-		$ics .= "PRODID:-//{$site_name}//FFC Scheduling//PT\r\n";
-		$ics .= "CALSCALE:GREGORIAN\r\n";
-		$ics .= "METHOD:{$method}\r\n";
-		$ics .= "BEGIN:VEVENT\r\n";
+		$ics  = "BEGIN:VEVENT\r\n";
 		$ics .= "UID:{$uid}\r\n";
 		$ics .= "DTSTAMP:{$dtstamp}\r\n";
 		$ics .= "DTSTART:{$date_clean}T{$start_clean}\r\n";
@@ -74,7 +105,6 @@ class IcsGenerator {
 		$ics .= "STATUS:{$status}\r\n";
 		$ics .= "SEQUENCE:{$sequence}\r\n";
 		$ics .= "END:VEVENT\r\n";
-		$ics .= "END:VCALENDAR\r\n";
 
 		return $ics;
 	}

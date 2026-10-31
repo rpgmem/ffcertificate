@@ -56,13 +56,18 @@ trait ReadRateLimitGuardTrait {
 	 *      Block → log via `RateLimitLogger`, return 429.
 	 *      Allow → `record_read_attempt()`, return null.
 	 *
+	 * An endpoint that must hold for everyone (#2243) passes
+	 * `$count_logged_in`: a logged-in caller is then counted, by account
+	 * rather than by address, instead of bypassing.
+	 *
 	 * @since 6.6.2
-	 * @param string $endpoint_key Endpoint identifier matching the
-	 *                             `settings['read']['endpoints'][$key]`
-	 *                             slot (e.g. `calendar_slots`).
+	 * @param string $endpoint_key    Endpoint identifier matching the
+	 *                                `settings['read']['endpoints'][$key]`
+	 *                                slot (e.g. `calendar_slots`).
+	 * @param bool   $count_logged_in Count logged-in callers too.
 	 * @return \WP_Error|null
 	 */
-	protected function guard_read( string $endpoint_key ): ?\WP_Error {
+	protected function guard_read( string $endpoint_key, bool $count_logged_in = false ): ?\WP_Error {
 		$ip       = RequestInput::get_user_ip();
 		$settings = RateLimiter::get_settings();
 		$read     = is_array( $settings['read'] ?? null ) ? $settings['read'] : array();
@@ -72,12 +77,20 @@ trait ReadRateLimitGuardTrait {
 			return null;
 		}
 
-		// Bypass 2 — logged-in users (staff / kiosks signed in to WP).
-		if ( ! empty( $read['bypass_logged_in'] ) && is_user_logged_in() ) {
-			return null;
+		// Bypass 2 — logged-in users (staff / kiosks signed in to WP),
+		// unless the endpoint counts them, by account.
+		$user_id = 0;
+		if ( is_user_logged_in() ) {
+			if ( ! $count_logged_in ) {
+				if ( ! empty( $read['bypass_logged_in'] ) ) {
+					return null;
+				}
+			} else {
+				$user_id = (int) get_current_user_id();
+			}
 		}
 
-		$result = RateLimiter::check_read_limit( $ip, $endpoint_key );
+		$result = RateLimiter::check_read_limit( $ip, $endpoint_key, $user_id );
 
 		if ( ! $result['allowed'] ) {
 			$identifier = $ip . '|' . $endpoint_key;
@@ -86,7 +99,7 @@ trait ReadRateLimitGuardTrait {
 			RateLimitLogger::log_attempt( 'read', $identifier, 'blocked', $reason, null );
 
 			$wait    = isset( $result['wait_seconds'] ) ? (int) $result['wait_seconds'] : 60;
-			$message = isset( $result['message'] ) ? (string) $result['message'] : __( 'Too many requests. Please slow down.', 'ffcertificate' );
+			$message = $result['message'];
 
 			return new \WP_Error(
 				'rate_limit_exceeded',
@@ -100,7 +113,7 @@ trait ReadRateLimitGuardTrait {
 			);
 		}
 
-		RateLimiter::record_read_attempt( $ip, $endpoint_key );
+		RateLimiter::record_read_attempt( $ip, $endpoint_key, $user_id );
 		return null;
 	}
 }

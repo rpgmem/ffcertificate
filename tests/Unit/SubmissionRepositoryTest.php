@@ -36,6 +36,9 @@ class SubmissionRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 
 		// Stub WP transient functions
 		Functions\when( 'get_transient' )->justReturn( false );
@@ -272,12 +275,67 @@ class SubmissionRepositoryTest extends TestCase {
 
 		$wpdb->shouldReceive( 'update' )
 			->once()
-			->with( 'wp_ffc_submissions', array( 'status' => 'trash' ), array( 'id' => 5 ) )
+			->with(
+				'wp_ffc_submissions',
+				Mockery::on(
+					static function ( $data ): bool {
+						return 'trash' === $data['status'] && abs( $data['revoked_at'] - time() ) <= 2;
+					}
+				),
+				array( 'id' => 5 )
+			)
 			->andReturn( 1 );
 
 		$result = $this->repo->updateStatus( 5, 'trash' );
 
 		$this->assertSame( 1, $result );
+	}
+
+	public function test_a_status_change_drops_the_cached_lookups_verification_reads(): void {
+		global $wpdb;
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key, $group ) use ( &$deleted ) {
+				$deleted[] = $group . ':' . $key;
+				return true;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'auth_code'   => 'ABCD1234EFGH',
+				'magic_token' => str_repeat( 'ab', 16 ),
+			)
+		);
+
+		$this->repo->updateStatus( 5, 'trash' );
+
+		// Without these, a trashed certificate kept verifying from the cache (#2241).
+		$this->assertContains( 'ffc_submissions:auth_ABCD1234EFGH', $deleted );
+		$this->assertContains( 'ffc_submissions:token_' . str_repeat( 'ab', 16 ), $deleted );
+	}
+
+	public function test_restoring_lifts_the_revocation(): void {
+		global $wpdb;
+
+		$wpdb->shouldReceive( 'update' )
+			->once()
+			->with( 'wp_ffc_submissions', array( 'status' => 'publish', 'revoked_at' => null ), array( 'id' => 5 ) )
+			->andReturn( 1 );
+
+		$this->assertSame( 1, $this->repo->updateStatus( 5, 'publish' ) );
+	}
+
+	public function test_a_quiz_status_change_leaves_the_revocation_alone(): void {
+		global $wpdb;
+
+		$wpdb->shouldReceive( 'update' )
+			->once()
+			->with( 'wp_ffc_submissions', array( 'status' => 'quiz_failed' ), array( 'id' => 5 ) )
+			->andReturn( 1 );
+
+		$this->assertSame( 1, $this->repo->updateStatus( 5, 'quiz_failed' ) );
 	}
 
 	// ------------------------------------------------------------------

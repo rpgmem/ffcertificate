@@ -255,6 +255,47 @@ describe('ffcRecruitmentImportBatched.run — failure handling', () => {
 		expect(reloadMock).not.toHaveBeenCalled();
 	});
 
+	it('lists every refused line when /start answers with several messages (#2245)', async () => {
+		const els = mountDom();
+		const list = document.createElement('ul');
+		document.body.append(list);
+
+		fetchMock.mockReturnValueOnce(
+			jsonResponse({
+				code: 'recruitment_csv_rank_invalid',
+				message: 'Line 2: Rank must be a positive integer. ("abc")',
+				data: {
+					status: 400,
+					messages: [
+						'Line 2: Rank must be a positive integer. ("abc")',
+						'Line 3: Score format is invalid (numeric value expected). ("x")',
+					],
+				},
+			}, 400)
+		);
+
+		await expect(window.ffcRecruitmentImportBatched.run({
+			noticeId: NOTICE_ID,
+			file: new File(['x'], 'a.csv'),
+			restRoot: REST_ROOT,
+			nonce: NONCE,
+			btn: els.btn,
+			status: els.status,
+			progressWrap: els.wrap,
+			progressBar: els.bar,
+			progressText: els.text,
+			errorList: list,
+			strings: { validationFailed: 'Validation failed', errorPrefix: 'Error:' },
+		})).rejects.toThrow();
+
+		expect(Array.from(list.querySelectorAll('li')).map((li) => li.textContent)).toEqual([
+			'Line 2: Rank must be a positive integer. ("abc")',
+			'Line 3: Score format is invalid (numeric value expected). ("x")',
+		]);
+		expect(els.status.textContent).toBe('Validation failed');
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	it('surfaces a network-error label when the response is not valid JSON', async () => {
 		const els = mountDom();
 
@@ -321,5 +362,145 @@ describe('ffcRecruitmentImportBatched.run — DOM side effects', () => {
 		// After the success path the widget is hidden again + button re-enabled.
 		expect(els.wrap.style.display).toBe('none');
 		expect(els.btn.disabled).toBe(false);
+	});
+});
+
+describe('ffcRecruitmentImportBatched.run — identity mismatches (#2245)', () => {
+	afterEach(() => {
+		delete window.ffcRecruitmentAdmin;
+		delete window.ffcRecruitmentImportIdentity;
+	});
+
+	it('asks once, then acknowledges on every batch', async () => {
+		vi.useFakeTimers();
+		const els = mountDom();
+		const modal = vi.fn((cfg, onConfirm) => onConfirm());
+		window.ffcRecruitmentAdmin = { openConfirmModal: modal };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 2 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [{ line: 2 }], mismatch_messages: ['Line 2'] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 2, total: 2, done: true }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 2 }));
+
+		await callRun(els);
+
+		expect(modal).toHaveBeenCalledTimes(1);
+		expect(modal.mock.calls[0][0].consequences).toEqual(['Line 2']);
+		const batchBody = JSON.parse(fetchMock.mock.calls[2][1].body);
+		expect(batchBody.acknowledge_identity).toBe(true);
+		expect(fetchMock.mock.calls[3][0]).toBe(REST_ROOT + 'notices/7/import-job/commit');
+	});
+
+	it('stops before any batch when the operator declines', async () => {
+		const els = mountDom();
+		window.ffcRecruitmentImportIdentity = { cancelled: 'CANCELLED' };
+		window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm, onCancel) => onCancel() };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 2 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [{ line: 2 }], mismatch_messages: ['Line 2'] }));
+
+		await callRun(els);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(els.status.textContent).toBe('CANCELLED');
+		expect(els.btn.disabled).toBe(false);
+	});
+
+	it('does not acknowledge a job that had no mismatch', async () => {
+		vi.useFakeTimers();
+		const els = mountDom();
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 1 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [], mismatch_messages: [] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 1, total: 1, done: true }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 1 }));
+
+		await callRun(els);
+
+		expect(JSON.parse(fetchMock.mock.calls[2][1].body).acknowledge_identity).toBeUndefined();
+	});
+});
+
+
+describe('ffcRecruitmentImportBatched — re-import comparison (#2245)', () => {
+	const DIFF = {
+		code: 'recruitment_reimport_needs_confirmation',
+		message: 'Review',
+		data: { status: 409, diff_summary: ['1 row enters the list.'], diff_messages: ['Enters: Ana, Science, rank 1.'] },
+	};
+
+	afterEach(() => {
+		delete window.ffcRecruitmentAdmin;
+		delete window.ffcRecruitmentImportDiff;
+	});
+
+	it('shows the comparison at the commit and commits again with the confirmation', async () => {
+		vi.useFakeTimers();
+		const els = mountDom();
+		const list = document.createElement('ul');
+		const modal = vi.fn((cfg, onConfirm) => onConfirm());
+		window.ffcRecruitmentAdmin = { openConfirmModal: modal };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 1 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [], mismatch_messages: [] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 1, total: 1, done: true }))
+			.mockReturnValueOnce(jsonResponse(DIFF, 409))
+			.mockReturnValueOnce(jsonResponse({ ok: true, inserted: 1 }));
+
+		await window.ffcRecruitmentImportBatched.run({
+			noticeId: NOTICE_ID, file: new File(['x'], 'a.csv'), restRoot: REST_ROOT, nonce: NONCE,
+			btn: els.btn, status: els.status, progressWrap: els.wrap, progressBar: els.bar, progressText: els.text,
+			errorList: list, strings: { done: 'OK' },
+		});
+
+		expect(modal).toHaveBeenCalledTimes(1);
+		expect(modal.mock.calls[0][0].consequences).toEqual(['1 row enters the list.']);
+		expect(modal.mock.calls[0][0].countdown).toBe(15);
+		expect(list.textContent).toBe('Enters: Ana, Science, rank 1.');
+		expect(JSON.parse(fetchMock.mock.calls[3][1].body).confirm_reimport).toBeUndefined();
+		expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({ job_id: 'JOB-1', confirm_reimport: true });
+		expect(els.status.textContent).toBe('OK (1)');
+	});
+
+	it('writes nothing more when the operator declines the comparison', async () => {
+		const els = mountDom();
+		window.ffcRecruitmentImportDiff = { cancelled: 'CANCELLED' };
+		window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm, onCancel) => onCancel() };
+
+		fetchMock
+			.mockReturnValueOnce(jsonResponse({ ok: true, job_id: 'JOB-1', total: 1 }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, errors: [], mismatches: [], mismatch_messages: [] }))
+			.mockReturnValueOnce(jsonResponse({ ok: true, processed: 1, total: 1, done: true }))
+			.mockReturnValueOnce(jsonResponse(DIFF, 409));
+
+		await callRun(els);
+
+		expect(fetchMock).toHaveBeenCalledTimes(4);
+		expect(els.status.textContent).toBe('CANCELLED');
+		expect(reloadMock).not.toHaveBeenCalled();
+	});
+
+	it('a single-request import answers identity first, then the comparison, keeping both answers', async () => {
+		window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm) => onConfirm() };
+		const send = vi.fn()
+			.mockResolvedValueOnce({ status: 409, body: { code: 'recruitment_import_identity_mismatch', data: { mismatch_messages: ['Line 2'] } } })
+			.mockResolvedValueOnce({ status: 409, body: DIFF })
+			.mockResolvedValueOnce({ status: 200, body: { success: true } });
+
+		const out = await window.ffcRecruitmentImportBatched.sendWithIdentityAck(send, null);
+
+		expect(out.status).toBe(200);
+		expect(send.mock.calls).toEqual([[false, false], [true, false], [true, true]]);
+	});
+
+	it('a declined comparison ends a single-request import with null', async () => {
+		window.ffcRecruitmentAdmin = { openConfirmModal: (cfg, onConfirm, onCancel) => onCancel() };
+		const send = vi.fn().mockResolvedValueOnce({ status: 409, body: DIFF });
+
+		expect(await window.ffcRecruitmentImportBatched.sendWithIdentityAck(send, null)).toBeNull();
+		expect(send).toHaveBeenCalledTimes(1);
 	});
 });

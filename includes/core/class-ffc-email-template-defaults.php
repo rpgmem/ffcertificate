@@ -40,8 +40,13 @@ final class EmailTemplateDefaults {
 	 * uniformly, exactly like the body).
 	 *
 	 * @return string
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function user_email_subject(): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return \FreeFormCertificate\Core\EmailTemplates::body( 'certificate-user', 'subject' );
 	}
 

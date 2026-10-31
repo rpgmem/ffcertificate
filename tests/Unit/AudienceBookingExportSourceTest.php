@@ -16,11 +16,11 @@ use FreeFormCertificate\Audience\AudienceBookingExportSource;
  * lifecycle it plugs into is tested in BatchedCsvExportTest. Migrated from the
  * former synchronous AudienceBookingCsvExporter (issue #772).
  *
- * Process isolation is used so the delegation tests can alias-mock the static
- * AudienceBookingReader without the alias leaking across the suite.
+ * AudienceBookingReader is the real class: the `$wpdb` double below answers
+ * each of its queries by SQL text, with the values bound to it, so every test
+ * runs in the shared process (#2091).
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCase {
@@ -29,10 +29,38 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 	/** @var AudienceBookingExportSource */
 	private $source;
 
+	/** @var list<array<int, mixed>> Every prepare() call, as its flattened argument list. */
+	private array $prepared = array();
+
+	/** @var list<array{0: string, 1: string}> Every read, as array( method, SQL ). */
+	private array $ran = array();
+
+	/** @var list<object> Audience rows the booking-audiences query answers. */
+	private array $booking_audiences = array();
+
+	/** @var list<string> User ids the booking-users query answers. */
+	private array $booking_users = array();
+
+	/** @var int What the export count query answers. */
+	private int $export_count = 0;
+
+	/** @var list<object> Booking rows the keyset page query answers. */
+	private array $page_rows = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Audience\\AudienceBookingExportSource' );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb_double();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -40,6 +68,10 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		// The instants render through DateFormatter, in UTC and the default format.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, (int) $ts ) );
 
 		$this->source = new AudienceBookingExportSource();
 	}
@@ -55,6 +87,11 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		unset(
 			$_POST['schedule_id'],
@@ -64,6 +101,72 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 			$_POST['date_to']
 		);
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double answering the four AudienceBookingReader queries this
+	 * source reaches, by SQL text. Any other query fails the test.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$this->prepared = array();
+		$this->ran      = array();
+		$prepared       = &$this->prepared;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$prepared ) {
+				$flat       = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$prepared[] = $flat;
+				return 'Q' . ( count( $prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_results', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'WHERE ba.booking_id = %d' ) ) {
+					return $this->booking_audiences;
+				}
+				if ( false !== strpos( (string) $sql, 'ORDER BY b.id DESC' ) ) {
+					return $this->page_rows;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_col', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT user_id FROM %i WHERE booking_id = %d' ) ) {
+					return $this->booking_users;
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = array( 'get_var', (string) $sql );
+				if ( false !== strpos( (string) $sql, 'SELECT COUNT(*)' ) ) {
+					return (string) $this->export_count;
+				}
+				$this->fail( 'Unexpected get_var(): ' . $sql );
+			}
+		);
+
+		return $wpdb;
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function bound_to( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array();
 	}
 
 	/** Invoke a private/protected method on the source. */
@@ -86,7 +189,7 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 			'description'         => 'Team sync',
 			'status'              => 'active',
 			'created_by'          => 5,
-			'created_at'          => '2026-05-01 08:00:00',
+			'created_at'          => '1777622400',
 			'cancelled_by'        => 0,
 			'cancelled_at'        => null,
 			'cancellation_reason' => null,
@@ -114,11 +217,8 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 	// ==================================================================
 
 	public function test_format_row_maps_columns_in_order(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
-			->shouldReceive( 'get_booking_audiences' )->andReturn(
-				array( (object) array( 'name' => 'Nurses' ), (object) array( 'name' => 'Doctors' ) )
-			)
-			->shouldReceive( 'get_booking_users' )->andReturn( array( 1, 2, 3 ) );
+		$this->booking_audiences = array( (object) array( 'name' => 'Nurses' ), (object) array( 'name' => 'Doctors' ) );
+		$this->booking_users     = array( '1', '2', '3' );
 
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'display_name' => 'Alice' ) );
 
@@ -138,16 +238,23 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 		$this->assertSame( 'Nurses, Doctors', $result[11] );
 		$this->assertSame( '3', $result[12] );
 		$this->assertSame( 'Alice', $result[13] );
-		$this->assertSame( '2026-05-01 08:00:00', $result[14] );
+		// UTC seconds, rendered in the site's zone and format (#2243).
+		$this->assertSame( gmdate( 'd/m/Y H:i', 1777622400 ), $result[14] );
 		$this->assertSame( '', $result[15] );
 		$this->assertSame( '', $result[16] );
 		$this->assertSame( '', $result[17] );
+
+		// Both lookups are for the row's own booking id.
+		foreach ( $this->ran as list( , $sql ) ) {
+			$bound = $this->bound_to( $sql );
+			$this->assertSame( 7, end( $bound ), 'Each booking lookup binds the row id last.' );
+		}
+		$this->assertCount( 2, $this->ran, 'One audience query and one participant query per row.' );
 	}
 
 	public function test_format_row_all_day_and_unknown_labels(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
-			->shouldReceive( 'get_booking_audiences' )->andReturn( array() )
-			->shouldReceive( 'get_booking_users' )->andReturn( array() );
+		$this->booking_audiences = array();
+		$this->booking_users     = array();
 
 		$row               = $this->sample_row();
 		$row['is_all_day'] = 1;
@@ -207,21 +314,34 @@ class AudienceBookingExportSourceTest extends BatchedExportSourceContractTestCas
 	}
 
 	public function test_count_delegates_to_reader(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
-			->shouldReceive( 'count_for_export' )->once()
-			->with( array( 'status' => 'active' ) )->andReturn( 12 );
+		$this->export_count = 12;
 
 		$this->assertSame( 12, $this->source->count( array( 'status' => 'active' ) ) );
+
+		// One count query, carrying the status filter the source was given.
+		$this->assertCount( 1, $this->ran );
+		$this->assertSame( 'get_var', $this->ran[0][0] );
+		$this->assertStringContainsString( 'b.status = %s', $this->ran[0][1] );
+		$this->assertSame(
+			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_environments', 'active' ),
+			array_slice( $this->bound_to( $this->ran[0][1] ), 1 )
+		);
 	}
 
 	public function test_fetch_page_casts_reader_objects_to_arrays(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceBookingReader' )
-			->shouldReceive( 'find_by_cursor' )->once()
-			->with( array( 'status' => 'active' ), 10, 50 )
-			->andReturn( array( (object) array( 'id' => 5 ), (object) array( 'id' => 4 ) ) );
+		$this->page_rows = array( (object) array( 'id' => 5 ), (object) array( 'id' => 4 ) );
 
 		$page = $this->source->fetch_page( array( 'status' => 'active' ), array(), 10, 50 );
 		$this->assertSame( array( array( 'id' => 5 ), array( 'id' => 4 ) ), $page );
+
+		// One keyset page, bound to the filters, the cursor and the size given.
+		$this->assertCount( 1, $this->ran );
+		$this->assertSame( 'get_results', $this->ran[0][0] );
+		$this->assertStringContainsString( 'b.status = %s', $this->ran[0][1] );
+		$this->assertSame(
+			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_environments', 10, 'active', 50 ),
+			array_slice( $this->bound_to( $this->ran[0][1] ), 1 )
+		);
 	}
 
 	public function test_build_context_is_empty(): void {

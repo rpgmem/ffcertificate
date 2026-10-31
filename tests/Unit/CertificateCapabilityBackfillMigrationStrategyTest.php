@@ -16,9 +16,11 @@ use FreeFormCertificate\Migrations\Strategies\CertificateCapabilityBackfillMigra
  * certificate capabilities to accounts that own a certificate and cannot
  * read it (#1345).
  *
+ * Runs in the shared process over a `$wpdb` double; only global functions
+ * are stubbed. `wp_roles` is stubbed in setUp because the strategy guards it
+ * with function_exists(), so the branch is chosen here, not by test order.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\CertificateCapabilityBackfillMigrationStrategy
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 
@@ -38,9 +40,13 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	/** @var array<int, int> Accounts the batch announced a grant for. */
 	private array $announced = array();
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 		class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CertificateCapabilityBackfillMigrationStrategy' );
 
 		global $wpdb;
@@ -71,10 +77,6 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 		Functions\when( '_n' )->alias(
 			static fn( $single, $plural, $number ) => ( 1 === (int) $number ) ? $single : $plural
 		);
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\_n' )->alias(
-			static fn( $single, $plural, $number ) => ( 1 === (int) $number ) ? $single : $plural
-		);
 
 		// Nobody holds it unless a test says so. `user_can()` is what the
 		// batch now asks before counting an account as repaired.
@@ -85,6 +87,11 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}

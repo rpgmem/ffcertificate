@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -12,11 +13,11 @@ use FreeFormCertificate\Audience\AudienceTreeRules;
 /**
  * Members-only and keep-at-least-one, read on the top-level audience (#1918).
  *
- * The tree used throughout: 1 (top-level) → 2, 3; 2 → 4.
+ * The tree used throughout: 1 (top-level) → 2, 3; 2 → 4. AudienceReader is
+ * the real one: it walks that tree through the `$wpdb` double below, which
+ * answers a row by id, the children of a parent and the memberships (#2127).
  *
  * @covers \FreeFormCertificate\Audience\AudienceTreeRules
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceTreeRulesTest extends TestCase {
 
@@ -37,27 +38,21 @@ class AudienceTreeRulesTest extends TestCase {
 	/** @var list<int> Self-join group ids the leave-all query answers. */
 	private array $self_join_ids = array();
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		$parents = array( 1 => null, 2 => 1, 3 => 1, 4 => 2, 9 => null, 10 => 9 );
-		$reader  = Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceReader' );
-		$reader->shouldReceive( 'get_ancestor_ids' )->andReturnUsing(
-			static function ( int $id ) use ( $parents ): array {
-				$chain = array( $id );
-				while ( null !== ( $parents[ $id ] ?? null ) ) {
-					$id      = $parents[ $id ];
-					$chain[] = $id;
-				}
-				return $chain;
-			}
-		);
-		$reader->shouldReceive( 'get_descendant_ids' )->andReturnUsing(
-			static fn( int $id ): array => 1 === $id ? array( 2, 4, 3 ) : ( 9 === $id ? array( 10 ) : array() )
-		);
-		$reader->shouldReceive( 'get_by_id' )->andReturnUsing( fn( int $id ) => $this->rows[ $id ] ?? null );
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 
+		foreach ( array( 2 => 1, 3 => 1, 4 => 2, 10 => 9 ) as $id => $parent ) {
+			$this->rows[ $id ] = (object) array( 'id' => (string) $id, 'name' => 'G' . $id, 'parent_id' => (string) $parent );
+		}
 		$this->rows[9] = (object) array( 'id' => '9', 'name' => 'Clubs', 'parent_id' => null, 'members_only' => '0', 'require_membership' => '0' );
 
 		$this->wpdb         = Mockery::mock( 'wpdb' );
@@ -70,18 +65,25 @@ class AudienceTreeRulesTest extends TestCase {
 				return $sql;
 			}
 		);
+		// AudienceReader asks for one row by id, and for the children of a parent.
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn() => $this->rows[ (int) $this->bound[1] ] ?? null );
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			function () {
+			function ( $sql ) {
+				if ( str_contains( (string) $sql, 'parent_id = %d' ) ) {
+					$parent = (int) $this->bound[1];
+					return array_values( array_filter( $this->rows, static fn( $row ) => (int) $row->parent_id === $parent ) );
+				}
 				$ids = array_map( 'intval', array_slice( $this->bound, 3 ) );
 				return array_values( array_filter( $this->memberships, static fn( $row ) => in_array( (int) $row['id'], $ids, true ) ) );
 			}
 		);
 		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn() => $this->self_join_ids );
-		$GLOBALS['wpdb'] = $this->wpdb;
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
-		unset( $GLOBALS['wpdb'] );
+		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}

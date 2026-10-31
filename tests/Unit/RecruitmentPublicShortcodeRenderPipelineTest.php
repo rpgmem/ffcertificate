@@ -8,7 +8,11 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
 use FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Pipeline-level tests for {@see RecruitmentPublicShortcodeRenderer} — the
@@ -19,29 +23,52 @@ use FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer;
  * `render_filters_bar()` (preserved-param re-emission + the adjutancy/name/
  * subscription sub-inputs) and `render_pagination()` (the sliding window).
  *
- * Collaborating readers are alias-mocked so the renderer is exercised in
- * isolation; adjutancy rows always carry a color so the badge helper never
- * needs `RecruitmentAdjutancyReader::DEFAULT_COLOR` (absent on an alias).
+ * The collaborators are the real classes: the recruitment readers over a
+ * `$wpdb` double that answers each query by its table and SQL text from the
+ * arrays a test sets (an unexpected query fails the test), BadgeHtml,
+ * DocumentFormatter, RecruitmentPcdHasher over a stubbed `wp_salt()`, and
+ * Encryption with the bootstrap's key constants, so the candidate's CPF, RF
+ * and e-mail are real ciphertexts decrypted and masked on the way out.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var \Mockery\MockInterface */
-	private $candMock;
+	/** The e-mail every candidate holds. */
+	private const EMAIL = 'ana@example.test';
 
-	/** @var \Mockery\MockInterface */
-	private $callMock;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
-	/** @var \Mockery\MockInterface */
-	private $pcdMock;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
 
-	/** @var \Mockery\MockInterface */
-	private $noticeAdjMock;
+	/** @var array<string, mixed> The `$_GET` an earlier test left, restored afterwards. */
+	private array $get_backup = array();
+
+	/** @var array<string, array{0: string, 1: array<int, mixed>}> Prepared query => [SQL, bound values]. */
+	private array $prepared = array();
+
+	/** @var array<int, object> Candidate rows by id. */
+	private array $candidates = array();
+
+	/** @var array<int, object> Active calls by classification id. */
+	private array $calls = array();
+
+	/** @var array<int, object> Reason rows by id. */
+	private array $reasons = array();
+
+	/** @var array<int, list<int>> Adjutancy ids attached to each notice id. */
+	private array $attached = array();
+
+	/** @var array{cpf: string, rf: string, email: string} Ciphertexts every candidate carries. */
+	private array $ciphertexts = array(
+		'cpf'   => '',
+		'rf'    => '',
+		'email' => '',
+	);
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -51,6 +78,8 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer' );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_html' )->alias( fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ) );
@@ -63,104 +92,149 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		Functions\when( '_n' )->alias( fn( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
 		Functions\when( 'add_query_arg' )->alias( fn( $k, $v, $base = '' ) => "?{$k}={$v}" );
 		Functions\when( 'remove_query_arg' )->alias( fn( $k, $base = '' ) => '?' );
+		Functions\when( 'is_email' )->alias( static fn( $email ) => false !== filter_var( $email, FILTER_VALIDATE_EMAIL ) ? $email : false );
+		Functions\when( 'wp_salt' )->justReturn( 'unit-test-salt' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// Encryption and Debug read their options here; every one answers its default.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
 
-		$settings = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
-		$settings->shouldReceive( 'all' )->andReturn(
-			array(
-				'status_color_empty'              => '#ffe066',
-				'status_color_called'             => '#c3aed6',
-				'status_color_hired'              => '#a3e0a3',
-				'status_color_not_shown'          => '#f5a3a3',
-				'status_color_withdrew'           => '#d0d0d0',
-				'preview_color_empty'             => '#eeeeee',
-				'preview_color_denied'            => '#f5a3a3',
-				'preview_color_granted'           => '#a3e0a3',
-				'preview_color_appeal_denied'     => '#f0b0b0',
-				'preview_color_appeal_granted'    => '#b0f0b0',
-				'subscription_color_pcd'          => '#8ec7ff',
-				'subscription_color_geral'        => '#cccccc',
-				'notice_status_color_preliminary' => '#ffe066',
-				'notice_status_color_definitive'  => '#a3e0a3',
-				'notice_status_color_closed'      => '#cccccc',
-			)
-		)->byDefault();
-
-		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		// The colour left the signature in #1193: status variants are painted by
-		// a generated rule. The adjutancy badge, whose colour is per row, has its
-		// own method.
-		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $label, $title = '' ) => "[BADGE:{$cls}::{$label}:{$title}]"
+		$this->prepared    = array();
+		$this->ciphertexts = array(
+			'cpf'   => (string) Encryption::encrypt( Identifiers::CPF_A ),
+			'rf'    => (string) Encryption::encrypt( Identifiers::RF_A ),
+			'email' => (string) Encryption::encrypt( self::EMAIL ),
 		);
-		$badge->shouldReceive( 'render_with_row_color' )->andReturnUsing(
-			fn( $base, $color, $label, $title = '' ) => "[BADGE:{$base}:{$color}:{$label}:{$title}]"
-		);
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturnUsing( fn( $v ) => 'plain:' . $v )->byDefault();
-
-		$doc = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$doc->shouldReceive( 'mask_cpf' )->andReturn( '***.***.***-11' )->byDefault();
-		$doc->shouldReceive( 'mask_rf' )->andReturn( '***.***-2' )->byDefault();
-		$doc->shouldReceive( 'mask_email' )->andReturn( 'a***@e***.com' )->byDefault();
-
-		$this->pcdMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPcdHasher' );
-		// Default: verify() true; individual tests override for the false path.
-		$this->pcdMock->shouldReceive( 'verify' )->andReturn( true )->byDefault();
-
-		$reason = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
-		$reason->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'label' => 'Fora do prazo' ) )->byDefault();
-
-		$this->callMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCallReader' );
-		$this->callMock->shouldReceive( 'get_active_for_classification' )->andReturn(
-			(object) array(
+		$this->candidates  = array();
+		foreach ( array( 1, 2, 3, 4, 5 ) as $id ) {
+			$this->candidates[ $id ] = $this->candidate( $id, true );
+		}
+		$this->calls    = array(
+			10 => (object) array(
 				'date_to_assume' => '2026-05-20',
 				'time_to_assume' => '09:00:00',
-			)
-		)->byDefault();
+			),
+		);
+		$this->reasons  = array( 5 => (object) array( 'id' => '5', 'label' => 'Fora do prazo' ) );
+		$this->attached = array( 7 => array( 1, 2 ) );
 
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
-			fn( $id ) => (object) array(
-				'name'  => 'Adjutancy ' . $id,
-				'slug'  => 'adj-' . $id,
-				'color' => '#123456',
-			)
-		)->byDefault();
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$key                    = 'Q' . count( $this->prepared ) . ':' . $sql;
+				$this->prepared[ $key ] = array( (string) $sql, array_values( $args ) );
+				return $key;
+			}
+		);
+		foreach ( array( 'get_row', 'get_results', 'get_col' ) as $method ) {
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				fn( $query ) => $this->answer( $method, (string) $query )
+			);
+		}
 
-		$this->noticeAdjMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$this->noticeAdjMock->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( array( 1, 2 ) )->byDefault();
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 
-		$this->candMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$this->candMock->shouldReceive( 'get_by_ids' )->andReturnNull()->byDefault();
-		$this->candMock->shouldReceive( 'get_by_id' )->andReturnUsing(
-			fn( $id ) => self::candidate( (int) $id )
-		)->byDefault();
+		$this->get_backup = $_GET ?? array();
+		$_GET             = array();
 	}
 
 	protected function tearDown(): void {
+		$_GET = $this->get_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
+	/**
+	 * Answer one `$wpdb` read from the arrays the test set.
+	 *
+	 * @return mixed
+	 */
+	private function answer( string $method, string $query ) {
+		if ( ! isset( $this->prepared[ $query ] ) ) {
+			$this->fail( "Unprepared {$method}(): {$query}" );
+		}
+		list( $sql, $bound ) = $this->prepared[ $query ];
+		$table               = substr( (string) $bound[0], strlen( 'wp_' ) );
+
+		if ( 'get_row' === $method && 'ffc_recruitment_candidate' === $table && false !== strpos( $sql, 'id = %d' ) ) {
+			return $this->candidates[ (int) $bound[1] ] ?? null;
+		}
+		if ( 'get_results' === $method && 'ffc_recruitment_candidate' === $table && false !== strpos( $sql, 'id IN (' ) ) {
+			return array_values( array_intersect_key( $this->candidates, array_flip( array_map( 'intval', array_slice( $bound, 1 ) ) ) ) );
+		}
+		if ( 'get_row' === $method && 'ffc_recruitment_adjutancy' === $table && false !== strpos( $sql, 'id = %d' ) ) {
+			$id = (int) $bound[1];
+			return (object) array(
+				'id'    => (string) $id,
+				'name'  => 'Adjutancy ' . $id,
+				'slug'  => 'adj-' . $id,
+				'color' => '#123456',
+			);
+		}
+		if ( 'get_col' === $method && 'ffc_recruitment_notice_adjutancy' === $table ) {
+			return array_map( 'strval', $this->attached[ (int) $bound[1] ] ?? array() );
+		}
+		if ( 'get_results' === $method && 'ffc_recruitment_call' === $table && false !== strpos( $sql, 'classification_id IN (' ) ) {
+			// The page's active calls, in one query (#2245).
+			$out = array();
+			foreach ( array_map( 'intval', array_slice( $bound, 1 ) ) as $cls ) {
+				if ( isset( $this->calls[ $cls ] ) ) {
+					$out[] = (object) array_merge(
+						array(
+							'classification_id' => (string) $cls,
+							'cancelled_at'      => null,
+						),
+						(array) $this->calls[ $cls ]
+					);
+				}
+			}
+			return $out;
+		}
+		if ( 'get_row' === $method && 'ffc_recruitment_call' === $table && false !== strpos( $sql, 'classification_id = %d' ) ) {
+			return $this->calls[ (int) $bound[1] ] ?? null;
+		}
+		if ( 'get_row' === $method && 'ffc_recruitment_reason' === $table && false !== strpos( $sql, 'id = %d' ) ) {
+			return $this->reasons[ (int) $bound[1] ] ?? null;
+		}
+		$this->fail( "Unexpected {$method}() on {$table}: {$sql}" );
+	}
+
 	/** Build a candidate row with every field the renderer reads. */
-	private static function candidate( int $id ): \stdClass {
+	private function candidate( int $id, bool $is_pcd ): \stdClass {
 		return (object) array(
 			'id'              => (string) $id,
 			'name'            => "Candidate {$id}",
-			'cpf_encrypted'   => 'cpf-ct',
-			'rf_encrypted'    => 'rf-ct',
-			'email_encrypted' => 'email-ct',
-			'pcd_hash'        => 'pcd-hash',
+			'cpf_encrypted'   => $this->ciphertexts['cpf'],
+			'rf_encrypted'    => $this->ciphertexts['rf'],
+			'email_encrypted' => $this->ciphertexts['email'],
+			'pcd_hash'        => RecruitmentPcdHasher::compute( $id, $is_pcd ),
 		);
 	}
 
-	/** Build a classification row; overrides merge over the defaults. */
+	/**
+	 * Build a classification row; overrides merge over the defaults.
+	 *
+	 * The default row is PCD in its notice (#2245).
+	 */
 	private static function row( array $over = array() ): \stdClass {
 		return (object) array_merge(
 			array(
 				'id'                => 10,
+				'notice_id'         => 1,
 				'candidate_id'      => 1,
+				'pcd_hash'          => RecruitmentPcdHasher::compute_for_row( 1, 1, 3, true ),
 				'rank'              => 1,
 				'adjutancy_id'      => 3,
 				'status'            => 'called',
@@ -225,11 +299,16 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 
 		$this->assertStringContainsString( '<section class="ffc-recruitment-section">', $out );
 		$this->assertStringContainsString( 'Candidate 1', $out );
-		$this->assertStringContainsString( '***.***.***-11', $out ); // masked cpf
-		$this->assertStringContainsString( '***.***-2', $out );       // masked rf
-		$this->assertStringContainsString( 'a***@e***.com', $out );   // masked email
+		$this->assertStringContainsString( '<td data-label="CPF">' . DocumentFormatter::mask_cpf( Identifiers::CPF_A ) . '</td>', $out ); // decrypted, then masked
+		$this->assertStringContainsString( '<td data-label="RF">' . DocumentFormatter::mask_rf( Identifiers::RF_A ) . '</td>', $out );
+		$this->assertStringContainsString( '<td data-label="E-mail">' . DocumentFormatter::mask_email( self::EMAIL ) . '</td>', $out );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $out, 'The clear CPF never reaches the page.' );
+		$this->assertStringNotContainsString( self::EMAIL, $out, 'The clear e-mail never reaches the page.' );
 		$this->assertStringContainsString( '53.00', $out );           // score, 2 decimals
 		$this->assertStringContainsString( '4.50', $out );            // time_points
+		$this->assertStringContainsString( 'ffc-recruitment-status-called', $out ); // definitive status badge
+		$this->assertStringContainsString( 'ffc-recruitment-subscription-pcd', $out );
+		$this->assertStringContainsString( 'Adjutancy 3', $out );
 		$this->assertStringContainsString( '20-05-2026', $out );      // date reformatted d-m-Y
 		$this->assertStringContainsString( '09:00', $out );           // time HH:MM
 		$this->assertStringContainsString( '</tbody></table>', $out );
@@ -247,13 +326,13 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 			'p'
 		);
 
-		// Preview badge carries the resolved reason label as its tooltip (5th arg).
-		$this->assertStringContainsString( 'Fora do prazo', $out );
+		// The preview badge carries the resolved reason label as its tooltip.
+		$this->assertStringContainsString( 'title="Fora do prazo"', $out );
 		$this->assertStringContainsString( 'ffc-recruitment-preview-status-granted', $out );
 	}
 
 	public function test_render_section_skips_row_whose_candidate_is_missing(): void {
-		$this->candMock->shouldReceive( 'get_by_id' )->andReturnNull(); // every candidate missing
+		$this->candidates = array(); // every candidate missing
 
 		$out = RecruitmentPublicShortcodeRenderer::render_section(
 			'Called',
@@ -324,7 +403,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_row_empty_date_time_when_no_active_call(): void {
-		$this->callMock->shouldReceive( 'get_active_for_classification' )->andReturnNull();
+		$this->calls = array();
 
 		$out = RecruitmentPublicShortcodeRenderer::render_section(
 			'Called',
@@ -339,14 +418,17 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		// Row still renders; the date/time cells are simply blank.
 		$this->assertStringContainsString( 'Candidate 1', $out );
 		$this->assertStringNotContainsString( '20-05-2026', $out );
+		$this->assertStringEndsWith( '<td data-label="Date to assume"></td><td data-label="Time"></td></tr></tbody></table></section>', $out );
 	}
 
 	public function test_render_row_pcd_false_renders_geral_badge(): void {
-		$this->pcdMock->shouldReceive( 'verify' )->andReturn( false );
+		// The candidate row says PCD; the classification says general, and
+		// the classification is what decides (#2245).
+		$this->candidates[1] = $this->candidate( 1, true );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_section(
 			'Called',
-			array( self::row() ),
+			array( self::row( array( 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 1, 1, 3, false ) ) ) ),
 			self::all_columns(),
 			true,
 			1,
@@ -355,6 +437,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( 'ffc-recruitment-subscription-geral', $out );
+		$this->assertStringNotContainsString( 'ffc-recruitment-subscription-pcd', $out );
 	}
 
 	// ------------------------------------------------------------------
@@ -368,7 +451,7 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 			'adjutancy' => '3',
 		);
 
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 		$out    = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, false, 'ana', '' );
 
 		$this->assertStringContainsString( '<form class="ffc-recruitment-filters"', $out );
@@ -378,29 +461,30 @@ class RecruitmentPublicShortcodeRenderPipelineTest extends TestCase {
 		$this->assertStringContainsString( '<input type="hidden" name="page"', $out );
 		$this->assertStringNotContainsString( '<input type="hidden" name="q"', $out );
 		$this->assertStringNotContainsString( '<input type="hidden" name="adjutancy"', $out );
-
-		$_GET = array();
+		$this->assertStringContainsString( '<select name="adjutancy"', $out, 'Two attached adjutancies draw the dropdown.' );
 	}
 
 	public function test_render_filters_bar_locked_omits_adjutancy_select(): void {
-		$_GET   = array();
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, true, '', '' );
 
 		// Locked → the adjutancy sub-input is skipped, but the form (name +
 		// subscription controls) still renders.
 		$this->assertStringContainsString( '<form class="ffc-recruitment-filters"', $out );
+		$this->assertStringNotContainsString( 'name="adjutancy"', $out );
+		$this->assertStringContainsString( 'name="subscription"', $out );
+		$this->assertStringContainsString( 'name="q"', $out );
 	}
 
 	public function test_render_filters_bar_single_adjutancy_hides_dropdown(): void {
-		$this->noticeAdjMock->shouldReceive( 'get_adjutancy_ids_for_notice' )->andReturn( array( 1 ) ); // < 2 → hidden
+		$this->attached[7] = array( 1 ); // < 2 → hidden
 
-		$_GET   = array();
-		$notice = (object) array( 'id' => 7 );
+		$notice = (object) array( 'id' => 7, 'public_columns_config' => '' );
 
 		$out = RecruitmentPublicShortcodeRenderer::render_filters_bar( $notice, false, '', '' );
 
 		$this->assertStringContainsString( '<form class="ffc-recruitment-filters"', $out );
+		$this->assertStringNotContainsString( 'name="adjutancy"', $out );
 	}
 }

@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Submissions\SubmissionHandler;
 use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for SubmissionHandler: submission creation, encryption flow,
@@ -18,8 +19,7 @@ use FreeFormCertificate\Core\Encryption;
  * Note: WP crypto constants are defined in bootstrap.php, so
  * Encryption::is_configured() returns true — the encryption path
  * is always active.
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+ *
  * @covers \FreeFormCertificate\Submissions\SubmissionHandler
  * @covers \FreeFormCertificate\Submissions\SubmissionLifecycleService
  */
@@ -29,6 +29,33 @@ class SubmissionHandlerTest extends TestCase {
 
 	private SubmissionHandler $handler;
 	private $mockRepo;
+
+	/** @var list<array<int, mixed>> Every `$wpdb->prepare()` call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * An RF in the `xxx.xxx-x` mask.
+	 *
+	 * @param string $rf Seven digits.
+	 */
+	private static function masked_rf( string $rf ): string {
+		return substr( $rf, 0, 3 ) . '.' . substr( $rf, 3, 3 ) . '-' . substr( $rf, 6 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -40,13 +67,26 @@ class SubmissionHandlerTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionHandler' );
 		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionLifecycleService' );
 
+		// An anonymous visitor by default: the resolver then adopts nothing (#2244).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+
 		// Mock global $wpdb
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->prepared    = array();
+		$prepared          = &$this->prepared;
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
 		$wpdb->prefix = 'wp_';
 		$wpdb->last_error = '';
-		// Allow auth-code uniqueness check & orphan-linking calls
-		$wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		// Allow auth-code uniqueness check & orphan-linking calls; every
+		// prepared statement is recorded so a test can read what was asked.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$prepared ) {
+				$prepared[] = $args;
+				return 'QUERY';
+			}
+		);
 		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
 		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
@@ -59,6 +99,9 @@ class SubmissionHandlerTest extends TestCase {
 		// entry point, which feeds `ffc_user_profiles` and so invalidates that
 		// repository's cache group (#1313 PR 7).
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_add_global_groups' )->justReturn( null );
 		Functions\when( 'current_time' )->justReturn( '2026-02-17 12:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
@@ -82,15 +125,10 @@ class SubmissionHandlerTest extends TestCase {
 		Functions\when( 'wp_update_user' )->justReturn( 100 );
 		Functions\when( 'update_user_meta' )->justReturn( true );
 		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		// Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
-		// Core namespace (Debug, ActivityLog use get_option/get_current_user_id).
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->alias( function ( $key, $default = false ) {
-			return \get_option( $key, $default );
-		} );
-		Functions\when( 'FreeFormCertificate\Core\get_current_user_id' )->alias( function () {
-			return \get_current_user_id();
-		} );
+		// process_submission() schedules only behind a function_exists()
+		// guard, so the branch is chosen here rather than inherited from
+		// whichever earlier test defined the function.
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 
 		$this->handler = new SubmissionHandler();
 
@@ -103,6 +141,11 @@ class SubmissionHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -191,7 +234,7 @@ class SubmissionHandlerTest extends TestCase {
 
 		$data = array(
 			'name'   => 'John Doe',
-			'cpf_rf' => '123.456.789-00',
+			'cpf_rf' => self::masked( Identifiers::CPF_A ),
 			'ticket' => 'ABC123',
 		);
 		$this->handler->process_submission( 3, 'Test Form', $data, 'secret@example.com', array(), array( 'send_user_email' => '1' ) );
@@ -199,8 +242,8 @@ class SubmissionHandlerTest extends TestCase {
 		$serialized = serialize( $captured );
 
 		$this->assertStringNotContainsString( 'secret@example.com', $serialized );
-		$this->assertStringNotContainsString( '123.456.789-00', $serialized );
-		$this->assertStringNotContainsString( '12345678900', $serialized );
+		$this->assertStringNotContainsString( self::masked( Identifiers::CPF_A ), $serialized );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $serialized );
 		$this->assertStringNotContainsString( 'John Doe', $serialized );
 		$this->assertStringNotContainsString( 'ABC123', $serialized );
 		$this->assertDoesNotMatchRegularExpression(
@@ -516,6 +559,23 @@ class SubmissionHandlerTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/^[0-9a-f]{32}$/', $token );
 	}
 
+	/**
+	 * A token the save refused is not returned: nothing would match it (#2187).
+	 */
+	public function test_ensure_magic_token_returns_empty_when_the_save_fails(): void {
+		$this->mockRepo->shouldReceive( 'findById' )
+			->with( 12 )
+			->once()
+			->andReturn( array( 'magic_token' => '' ) );
+
+		$this->mockRepo->shouldReceive( 'update' )
+			->once()
+			->with( 12, Mockery::on( fn( $data ) => 1 === preg_match( '/^[0-9a-f]{32}$/', (string) ( $data['magic_token'] ?? '' ) ) ) )
+			->andReturn( false );
+
+		$this->assertSame( '', $this->handler->ensure_magic_token( 12 ) );
+	}
+
 	public function test_ensure_magic_token_returns_empty_when_not_found(): void {
 		$this->mockRepo->shouldReceive( 'findById' )
 			->with( 999 )
@@ -663,7 +723,7 @@ class SubmissionHandlerTest extends TestCase {
 
 	public function test_decrypt_submission_data_with_encrypted_fields(): void {
 		$enc_email = \FreeFormCertificate\Core\Encryption::encrypt( 'enc@test.com' );
-		$enc_cpf   = \FreeFormCertificate\Core\Encryption::encrypt( '99988877766' );
+		$enc_cpf   = \FreeFormCertificate\Core\Encryption::encrypt( Identifiers::CPF_B );
 		$enc_ip    = \FreeFormCertificate\Core\Encryption::encrypt( '10.0.0.1' );
 		$enc_data  = \FreeFormCertificate\Core\Encryption::encrypt( '{"score":100}' );
 
@@ -679,7 +739,7 @@ class SubmissionHandlerTest extends TestCase {
 		$result = $this->handler->decrypt_submission_data( $submission );
 
 		$this->assertSame( 'enc@test.com', $result['email'] );
-		$this->assertSame( '99988877766', $result['cpf_rf'] );
+		$this->assertSame( Identifiers::CPF_B, $result['cpf_rf'] );
 		$this->assertSame( '10.0.0.1', $result['user_ip'] );
 		$this->assertSame( '{"score":100}', $result['data'] );
 	}
@@ -780,6 +840,32 @@ class SubmissionHandlerTest extends TestCase {
 	}
 
 	/**
+	 * Adoption runs only for a logged-in submitter (#2244): an anonymous form
+	 * proves no identifier, so it claims no one else's unlinked records.
+	 */
+	public function test_only_a_logged_in_submission_adopts_unlinked_records(): void {
+		$adoptions = function (): array {
+			return array_values(
+				array_filter(
+					$this->prepared,
+					static fn( array $args ): bool => 0 === strpos( (string) $args[0], 'UPDATE %i SET user_id = %d WHERE (' )
+				)
+			);
+		};
+		$this->mockRepo->shouldReceive( 'insert' )->andReturn( 31 );
+
+		$data = array( 'name' => 'X', 'cpf_rf' => '518.178.420-80' );
+		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
+		$this->assertSame( array(), $adoptions(), 'The anonymous submission adopted records.' );
+
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->prepared = array();
+		$data           = array( 'name' => 'X', 'cpf_rf' => '518.178.420-80' );
+		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
+		$this->assertNotSame( array(), $adoptions(), 'A logged-in submission adopts, so the check above measures something.' );
+	}
+
+	/**
 	 * The certificate path resolves through the DUAL entry point (#1313 PR 7).
 	 *
 	 * WHAT THIS PINS THAT THE OLD CALL COULD NOT
@@ -793,12 +879,12 @@ class SubmissionHandlerTest extends TestCase {
 	 * Both directions are asserted: a mutation swapping the two arguments
 	 * passes any test that only looks at one.
 	 *
-	 * `@runInSeparateProcess` so the `alias:` mock on `UserManager` cannot
-	 * reach the rest of this class, which drives the real one.
+	 * The resolver is the real `UserManager`: what it was handed is read off
+	 * the identity lookup it builds from its two hash arguments, where each
+	 * argument becomes a clause on the column it names and a null one adds
+	 * none.
 	 *
 	 * @dataProvider dual_argument_provider
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 * @param string $typed    The single `cpf_rf` field as the visitor types it.
 	 * @param int    $slot     Argument index expected to carry the hash.
 	 * @param string $column   The row column that must hold the same hash.
@@ -813,33 +899,36 @@ class SubmissionHandlerTest extends TestCase {
 			} )
 			->andReturn( 31 );
 
-		$seen = array();
-		Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserManager' )
-			->shouldReceive( 'get_or_create_user_dual' )
-			->andReturnUsing(
-				static function ( ...$args ) use ( &$seen ) {
-					$seen = $args;
-					return 7;
-				}
-			);
-
 		// The third argument is by reference, so it must be a variable.
 		$data = array( 'name' => 'X', 'cpf_rf' => $typed );
 		$this->handler->process_submission( 1, 'Form', $data, 'x@test.com', array(), array() );
 
-		$this->assertNotSame( array(), $seen, 'The resolver was never called, so nothing about its arguments was measured.' );
-
-		$other = 0 === $slot ? 1 : 0;
-
-		$this->assertSame(
-			$captured[ $column ],
-			$seen[ $slot ],
-			"The resolver was handed a different hash from the one written to {$column}, so a lookup for this person cannot find this row."
+		$lookups = array_values(
+			array_filter(
+				$this->prepared,
+				static fn( array $args ): bool => 0 === strpos( (string) $args[0], 'SELECT user_id FROM %i WHERE (' )
+			)
 		);
-		$this->assertNull(
-			$seen[ $other ],
-			"The other identifier argument is not null for '{$typed}', so the resolver searches a column this value was never written to."
-		);
+		$this->assertNotSame( array(), $lookups, 'The resolver never looked the identifier up, so nothing about its arguments was measured.' );
+
+		$columns     = array( 'cpf_hash', 'rf_hash' );
+		$slot_column = $columns[ $slot ];
+		$other       = $columns[ 0 === $slot ? 1 : 0 ];
+
+		foreach ( $lookups as $lookup ) {
+			$this->assertStringContainsString( "({$slot_column} = %s)", $lookup[0], "The resolver did not receive the hash in the argument naming {$slot_column}." );
+			$this->assertSame(
+				$captured[ $column ],
+				$lookup[2],
+				"The resolver was handed a different hash from the one written to {$column}, so a lookup for this person cannot find this row."
+			);
+			$this->assertStringNotContainsString(
+				"{$other} = %s",
+				$lookup[0],
+				"The other identifier argument is not null for '{$typed}', so the resolver searches a column this value was never written to."
+			);
+			$this->assertCount( 3, $lookup, 'One hash is bound, and nothing else.' );
+		}
 	}
 
 	/**
@@ -847,8 +936,8 @@ class SubmissionHandlerTest extends TestCase {
 	 */
 	public static function dual_argument_provider(): array {
 		return array(
-			'a CPF goes in the first argument' => array( '123.456.789-01', 0, 'cpf_hash' ),
-			'an RF goes in the second'         => array( '123.456-7', 1, 'rf_hash' ),
+			'a CPF goes in the first argument' => array( self::masked( Identifiers::CPF_A ), 0, 'cpf_hash' ),
+			'an RF goes in the second'         => array( self::masked_rf( Identifiers::RF_A ), 1, 'rf_hash' ),
 		);
 	}
 
@@ -862,7 +951,7 @@ class SubmissionHandlerTest extends TestCase {
 			} )
 			->andReturn( 30 );
 
-		$data = array( 'name' => 'CPF User', 'cpf_rf' => '123.456.789-01' );
+		$data = array( 'name' => 'CPF User', 'cpf_rf' => self::masked( Identifiers::CPF_A ) );
 		$this->handler->process_submission( 1, 'Form', $data, 'cpf@test.com', array(), array() );
 
 		// Legacy cpf_rf columns no longer written; split columns used instead
@@ -917,7 +1006,7 @@ class SubmissionHandlerTest extends TestCase {
 				'magic_token'     => str_repeat( 'a', 32 ),
 				'consent_given'   => 1,
 				'email_encrypted' => Encryption::encrypt( 'person@example.com' ),
-				'cpf_encrypted'   => Encryption::encrypt( '12345678900' ),
+				'cpf_encrypted'   => Encryption::encrypt( Identifiers::CPF_A ),
 				'rf_encrypted'    => null,
 				'data_encrypted'  => Encryption::encrypt( '{"name":"John Doe","ticket":"ABC123"}' ),
 				'user_ip_encrypted' => null,
@@ -1006,7 +1095,7 @@ class SubmissionHandlerTest extends TestCase {
 			array( 'email', 'cpf_rf', 'name', 'ticket', 'auth_code', 'ffc_lgpd_consent' ),
 			array_keys( $args[3] )
 		);
-		$this->assertSame( '12345678900', $args[3]['cpf_rf'] );
+		$this->assertSame( Identifiers::CPF_A, $args[3]['cpf_rf'] );
 		$this->assertSame( 'John Doe', $args[3]['name'] );
 		$this->assertSame( 'ABCD1234EFGH', $args[3]['auth_code'] );
 		$this->assertSame( '1', $args[3]['ffc_lgpd_consent'] );
@@ -1087,7 +1176,7 @@ class SubmissionHandlerTest extends TestCase {
 	 * BOTH NORMALISATIONS ARE INVISIBLE -- and this test is the measurement.
 	 *
 	 * The database stores `cpf_rf` as digits only and `auth_code` as
-	 * alphanumerics only, while the visitor may have typed `123.456.789-00`. The
+	 * alphanumerics only, while the visitor may have typed the masked `xxx.xxx.xxx-xx` form. The
 	 * legitimate doubt was whether the admin notification would change content.
 	 *
 	 * It does not, and not by luck: the only two consumers of those values clean
@@ -1101,8 +1190,8 @@ class SubmissionHandlerTest extends TestCase {
 	 */
 	public function test_the_two_normalizations_are_invisible_to_the_formatters(): void {
 		$this->assertSame(
-			\FreeFormCertificate\Core\DocumentFormatter::format_document( '123.456.789-00' ),
-			\FreeFormCertificate\Core\DocumentFormatter::format_document( '12345678900' ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( self::masked( Identifiers::CPF_A ) ),
+			\FreeFormCertificate\Core\DocumentFormatter::format_document( Identifiers::CPF_A ),
 			'If this diverges, the rehydration starts changing the CPF in the admin notification.'
 		);
 		$this->assertSame(

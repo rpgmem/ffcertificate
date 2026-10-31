@@ -110,9 +110,24 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 	 * any per-row guard (e.g. refuse when the record is still referenced).
 	 *
 	 * @param int $id Row id.
-	 * @return void
+	 * @return bool False when the guard kept the row, so the screen can say why (#2245).
 	 */
-	abstract protected function delete_one( int $id ): void;
+	abstract protected function delete_one( int $id ): bool;
+
+	/**
+	 * Why a row the guard kept was not deleted, shown once over the table
+	 * after a bulk delete (#2245). The count is the number of rows kept.
+	 *
+	 * @param int $kept Rows the guard kept.
+	 * @return string
+	 */
+	protected function blocked_delete_message( int $kept ): string {
+		return sprintf(
+			/* translators: %d: number of rows that were not deleted */
+			_n( '%d row was not deleted because it is still in use.', '%d rows were not deleted because they are still in use.', $kept, 'ffcertificate' ),
+			$kept
+		);
+	}
 
 	/**
 	 * The full, converted row set (repository read + `convert_rows()`), before
@@ -259,10 +274,15 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 			? array_map( 'absint', wp_unslash( $_REQUEST[ $key ] ) )
 			: array();
 
+		$kept = 0;
 		foreach ( $ids as $id ) {
-			if ( $id > 0 ) {
-				$this->delete_one( (int) $id );
+			if ( $id > 0 && ! $this->delete_one( (int) $id ) ) {
+				++$kept;
 			}
+		}
+		if ( $kept > 0 ) {
+			// `inline`: printed inside the tab's card, where core would lift it.
+			\FreeFormCertificate\Core\AdminNotice::render( 'warning', esc_html( $this->blocked_delete_message( $kept ) ), array( 'additional_classes' => array( 'inline' ) ) );
 		}
 	}
 

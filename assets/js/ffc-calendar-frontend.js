@@ -716,6 +716,8 @@
 
         // Kept for the booking submit, which reads `canBypass` (#1859).
         self.config = config;
+        // This calendar's own names win over the general ones (#2223).
+        var strings = $.extend({}, ffcCalendar.strings, config.labels || {});
 
         var calendarId = config.calendarId;
         var workingDays = config.workingDays || [];
@@ -757,9 +759,29 @@
             }
         }
 
+        // A working day inside the booking window, and not a holiday: what
+        // the cell marks as available and may name (#2221).
+        function isAvailable(dateStr, date) {
+            if (calendarHolidays[dateStr]) {
+                return false;
+            }
+            return workingDays.indexOf(date.getDay()) !== -1 && date >= minDate && date <= maxDate;
+        }
+
+        // A closed date's names, full and short, by kind (#2202).
+        function kindNames(kind) {
+            var fallback = strings.holiday || 'Holiday';
+            return ((strings.closedDateKinds || {})[kind]) || { label: fallback, short: fallback };
+        }
+
+        function escapeAttr(text) {
+            return $('<span>').text(String(text)).html().replace(/"/g, '&quot;');
+        }
+
         // Store booking counts, holidays and tracking
         var bookingCounts = {};
         var calendarHolidays = {};
+        var calendarHolidayKinds = {};
         var fetchId = 0;
 
         // Function to fetch booking counts and holidays for a month
@@ -779,6 +801,7 @@
                     if (data && data.counts) {
                         bookingCounts = data.counts;
                     }
+                    calendarHolidayKinds = (data && data.holiday_kinds) || {};
                     if (data && data.holidays) {
                         calendarHolidays = data.holidays;
                         if (calendar) {
@@ -804,43 +827,47 @@
             maxDate: maxDate,
             disabledDays: disabledDays,
             enabledDates: enabledDates,
-            strings: ffcCalendar.strings,
+            strings: strings,
             legendItems: [
-                { 'class': 'ffc-available', label: ffcCalendar.strings.available || 'Available' },
-                { 'class': 'ffc-booked', label: ffcCalendar.strings.booked || 'Booked' },
-                { 'class': 'ffc-holiday', label: ffcCalendar.strings.holiday || 'Holiday' },
-                { 'class': 'ffc-closed', label: ffcCalendar.strings.closed || 'Closed' }
+                { 'class': 'ffc-available', label: strings.available || 'Available' },
+                { 'class': 'ffc-booked', label: strings.booked || 'Booked' },
+                { 'class': 'ffc-holiday', label: strings.holiday || 'Holiday' },
+                { 'class': 'ffc-optional-holiday', label: kindNames('optional').label },
+                { 'class': 'ffc-closed', label: strings.closed || 'Closed' }
             ],
             getDayClasses: function(dateStr, date) {
-                var classes = [];
-                var weekday = date.getDay();
-                var isHoliday = calendarHolidays[dateStr];
-
-                if (isHoliday) {
-                    return classes;
-                }
-
-                var isAfterMin = date >= minDate;
-                var isBeforeMax = date <= maxDate;
-                var isWorkingDay = workingDays.indexOf(weekday) !== -1;
-
-                if (isWorkingDay && isAfterMin && isBeforeMax) {
-                    classes.push('ffc-available');
-                }
-
-                return classes;
+                return isAvailable(dateStr, date) ? ['ffc-available'] : [];
             },
-            getDayContent: function(dateStr, date, isHoliday) {
+            getDayContent: function(dateStr, date, isHoliday, isClosed) {
                 if (isHoliday) {
-                    return '<span class="ffc-day-badge ffc-badge-holiday">' + (ffcCalendar.strings.holiday || 'Holiday') + '</span>';
+                    // The cell shows the short name and says the full one to a
+                    // screen reader and on hover (#2202).
+                    var optional = calendarHolidayKinds[dateStr] === 'optional';
+                    var names = kindNames(optional ? 'optional' : 'holiday');
+                    return '<span class="ffc-day-badge ffc-badge-holiday' + (optional ? ' ffc-badge-optional-holiday' : '') + '"' +
+                        ' role="img" aria-label="' + escapeAttr(names.label) + '" title="' + escapeAttr(names.label) + '">' +
+                        escapeAttr(names.short) + '</span>';
+                }
+
+                // A closed day carries the cell name set with the other
+                // calendar states, unless the switch hides it (#2218).
+                if (isClosed) {
+                    if (strings.showClosedLabel === false) {
+                        return '';
+                    }
+                    return '<span class="ffc-day-badge ffc-badge-closed">' +
+                        escapeAttr(strings.closedCell || strings.closed || 'Closed') + '</span>';
                 }
 
                 var count = bookingCounts[dateStr] ? bookingCounts[dateStr] : 0;
                 if (count > 0) {
-                    var singularLabel = ffcCalendar.strings.booking || 'booking';
-                    var pluralLabel = ffcCalendar.strings.bookings || 'bookings';
+                    var singularLabel = strings.booking || 'booking';
+                    var pluralLabel = strings.bookings || 'bookings';
                     var label = count === 1 ? singularLabel : pluralLabel;
-                    return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + label + '</span>';
+                    return '<span class="ffc-day-badge ffc-badge-bookings">' + count + ' ' + escapeAttr(label) + '</span>';
+                }
+                if (strings.availableCell && isAvailable(dateStr, date)) {
+                    return '<span class="ffc-day-badge ffc-badge-available">' + escapeAttr(strings.availableCell) + '</span>';
                 }
                 return '';
             },

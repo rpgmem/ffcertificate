@@ -30,6 +30,16 @@ class AdminAjax {
 	private const PAGE_REVEAL_LIMIT = 500;
 
 	/**
+	 * Reveal type of an activity log entry's client address (#2109).
+	 */
+	public const REVEAL_ACTIVITY_LOG = 'activity_log';
+
+	/**
+	 * Reveal type of a blocked address on the Rate Limit tab (#2109).
+	 */
+	public const REVEAL_RATE_LIMIT_LOG = 'rate_limit_log';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -50,18 +60,18 @@ class AdminAjax {
 	 */
 	private function pii_reveal_configs(): array {
 		return array(
-			'submission'     => array(
+			'submission'                => array(
 				'surface_cap'  => 'ffc_view_certificates',
 				'pii_cap'      => 'ffc_view_certificates_pii',
 				'audit_action' => 'submission_pii_revealed',
 			),
-			'appointment'    => array(
+			'appointment'               => array(
 				'surface_cap'  => 'ffc_view_appointments',
 				'pii_cap'      => 'ffc_view_appointments_pii',
 				'audit_action' => 'appointment_pii_revealed',
 			),
 			// #1815.
-			'reregistration' => array(
+			'reregistration'            => array(
 				'surface_cap'  => 'ffc_view_reregistration',
 				'pii_cap'      => 'ffc_view_reregistration_pii',
 				'audit_action' => 'reregistration_pii_revealed',
@@ -87,6 +97,18 @@ class AdminAjax {
 				'pii_cap'      => \FreeFormCertificate\DateMessages\DateMessagesAdminPage::PII_CAP,
 				'audit_action' => 'date_messages_pii_revealed',
 			),
+			// The client address of an activity log entry (#2109).
+			self::REVEAL_ACTIVITY_LOG   => array(
+				'surface_cap'  => 'ffc_view_activity_log',
+				'pii_cap'      => 'ffc_view_activity_log_pii',
+				'audit_action' => 'activity_log_ip_revealed',
+			),
+			// A blocked address on the Rate Limit tab (#2109).
+			self::REVEAL_RATE_LIMIT_LOG => array(
+				'surface_cap'  => 'ffc_view_settings',
+				'pii_cap'      => 'ffc_view_settings_pii',
+				'audit_action' => 'rate_limit_ip_revealed',
+			),
 		);
 	}
 
@@ -111,8 +133,11 @@ class AdminAjax {
 		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
 			return 'email' === $field;
 		}
+		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
+			return 'ip' === $field;
+		}
 		if ( 'submission' === $type ) {
-			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'account_email' ), true );
+			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'account_email', 'magic_link' ), true );
 		}
 		if ( 'appointment' === $type ) {
 			return in_array( $field, array( 'cpf', 'rf', 'email', 'ip', 'phone' ), true );
@@ -174,6 +199,15 @@ class AdminAjax {
 				'user_id' => $id,
 				'name'    => (string) $account->display_name,
 			);
+		}
+
+		// An address with no owner: a log line is not a person's record, so
+		// the policy's owner tier never applies and the reveal is audited.
+		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
+			$ip = self::REVEAL_ACTIVITY_LOG === $type
+				? \FreeFormCertificate\Core\ActivityLogQuery::ip_of( $id )
+				: \FreeFormCertificate\Security\RateLimitStats::address_of( $id );
+			return '' === $ip ? null : array( 'user_ip' => $ip );
 		}
 
 		if ( 'appointment' === $type ) {
@@ -259,6 +293,11 @@ class AdminAjax {
 				return $account ? (string) $account->user_email : '';
 			case 'email':
 				return (string) ( $record['email'] ?? '' );
+			case 'magic_link':
+				// The certificate's link opens everything it prints, so it is
+				// revealed and audited like the data itself (#2241).
+				$token = (string) ( $record['magic_token'] ?? '' );
+				return '' === $token ? '' : \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $token );
 			default:
 				// A user-profile custom field, `cf_<id>`.
 				$fields = is_array( $record['fields'] ?? null ) ? $record['fields'] : array();

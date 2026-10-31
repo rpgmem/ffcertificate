@@ -166,6 +166,24 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['activity_log_encrypt_ip'] );
 					break;
 
+				case 'rate_limit_logs_encrypt_ip':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RateLimitLogsEncryptIpMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-rate-limit-logs-encrypt-ip-migration-strategy.php';
+					}
+
+					$this->strategies['rate_limit_logs_encrypt_ip'] = new \FreeFormCertificate\Migrations\Strategies\RateLimitLogsEncryptIpMigrationStrategy();
+					unset( $this->strategy_errors['rate_limit_logs_encrypt_ip'] );
+					break;
+
 				case 'activity_log_location_cleanup':
 					$strategy_dir = __DIR__ . '/strategies/';
 					$core_dir     = dirname( __DIR__ ) . '/core/';
@@ -182,6 +200,24 @@ class MigrationStatusCalculator {
 
 					$this->strategies['activity_log_location_cleanup'] = new \FreeFormCertificate\Migrations\Strategies\ActivityLogLocationCleanupMigrationStrategy();
 					unset( $this->strategy_errors['activity_log_location_cleanup'] );
+					break;
+
+				case 'activity_log_access_denied_ip':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ActivityLogAccessDeniedIpMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-activity-log-access-denied-ip-migration-strategy.php';
+					}
+
+					$this->strategies['activity_log_access_denied_ip'] = new \FreeFormCertificate\Migrations\Strategies\ActivityLogAccessDeniedIpMigrationStrategy();
+					unset( $this->strategy_errors['activity_log_access_denied_ip'] );
 					break;
 
 				case 'key_rotation':
@@ -308,6 +344,42 @@ class MigrationStatusCalculator {
 
 					$this->strategies['birth_date_backfill'] = new \FreeFormCertificate\Migrations\Strategies\BirthDateBackfillMigrationStrategy();
 					unset( $this->strategy_errors['birth_date_backfill'] );
+					break;
+
+				case 'rereg_draft_encryption':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ReregistrationDraftEncryptionMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-reregistration-draft-encryption-migration-strategy.php';
+					}
+
+					$this->strategies['rereg_draft_encryption'] = new \FreeFormCertificate\Migrations\Strategies\ReregistrationDraftEncryptionMigrationStrategy();
+					unset( $this->strategy_errors['rereg_draft_encryption'] );
+					break;
+
+				case 'recruitment_pcd_per_notice':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RecruitmentPcdPerNoticeMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-recruitment-pcd-per-notice-migration-strategy.php';
+					}
+
+					$this->strategies['recruitment_pcd_per_notice'] = new \FreeFormCertificate\Migrations\Strategies\RecruitmentPcdPerNoticeMigrationStrategy();
+					unset( $this->strategy_errors['recruitment_pcd_per_notice'] );
 					break;
 
 				case 'import_legacy_templates':
@@ -501,8 +573,13 @@ class MigrationStatusCalculator {
 	 * Useful for debugging and testing.
 	 *
 	 * @return array<string, \FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface> Strategy instances
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function get_strategies(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->strategies;
 	}
 }

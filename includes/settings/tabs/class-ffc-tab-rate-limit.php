@@ -23,6 +23,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 class TabRateLimit extends SettingsTab {
 
 	/**
+	 * Capability that reveals a blocked address in the statistics (#2109).
+	 */
+	public const PII_CAP = 'ffc_view_settings_pii';
+
+
+	/**
+	 * Lines of the address lists the last save refused.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $refused_ip_lines = array();
+
+	/**
 	 * Init.
 	 */
 	protected function init(): void {
@@ -47,6 +60,8 @@ class TabRateLimit extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+		// The Reveal beside a top blocked address (#2109).
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 	}
 
 	/**
@@ -73,6 +88,11 @@ class TabRateLimit extends SettingsTab {
 				// same per-address shape as the captcha cap. 0 = no cap.
 				'device_check_max_per_window' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_DEFAULT,
 				'device_check_window_seconds' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT,
+				// What each throttle does with a caller the resolver could
+				// not read (#2106): let it through, or count it with every
+				// other unresolved caller.
+				'captcha_unresolved'          => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+				'device_check_unresolved'     => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
 			),
 			'email'     => array(
 				'enabled'        => true,
@@ -148,28 +168,9 @@ class TabRateLimit extends SettingsTab {
 				'respect_whitelist' => true,
 				'bypass_logged_in'  => true,
 				'message'           => __( 'Too many requests. Please wait {time}.', 'ffcertificate' ),
-				// Per-endpoint thresholds (#259). Keys match the
-				// `endpoint_key` strings the ReadRateLimitGuardTrait
-				// passes through; defaults below are calibrated for the
-				// 3 calendar GETs but new endpoints can append their
-				// own sub-array following the same shape.
-				'endpoints'         => array(
-					'calendar_slots'  => array(
-						'enabled'        => true,
-						'max_per_minute' => 60,
-						'max_per_hour'   => 1000,
-					),
-					'calendar_list'   => array(
-						'enabled'        => true,
-						'max_per_minute' => 30,
-						'max_per_hour'   => 500,
-					),
-					'calendar_detail' => array(
-						'enabled'        => true,
-						'max_per_minute' => 60,
-						'max_per_hour'   => 1000,
-					),
-				),
+				// Per-endpoint thresholds (#259), owned by the checker so
+				// an endpoint never saved here still reads its default.
+				'endpoints'         => \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS,
 			),
 		);
 		// wp_parse_args only merges TOP-LEVEL keys; with the nested
@@ -205,6 +206,7 @@ class TabRateLimit extends SettingsTab {
 		}
 
 		$settings = $this->get_settings();
+		$this->render_refused_ip_lines( $settings );
 		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
@@ -251,6 +253,8 @@ class TabRateLimit extends SettingsTab {
 						$this->stored_int( $stored, 'ip', 'device_check_window_seconds', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT )
 					)
 				),
+				'captcha_unresolved'          => $this->post_unresolved_policy( 'ip_captcha_unresolved', $stored['ip']['captcha_unresolved'] ?? null ),
+				'device_check_unresolved'     => $this->post_unresolved_policy( 'ip_device_check_unresolved', $stored['ip']['device_check_unresolved'] ?? null ),
 			),
 			'email'     => array(
 				'enabled'        => isset( $_POST['email_enabled'] ),
@@ -316,14 +320,14 @@ class TabRateLimit extends SettingsTab {
 			),
 			'whitelist' => array(
 				'enabled'       => isset( $_POST['whitelist_enabled'] ),
-				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_ips'] ?? '' ) ) ) ) ),
+				'ips'           => $this->post_ip_list( 'whitelist_ips' ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['whitelist_cpfs'] ?? '' ) ) ) ) ),
 			),
 			'blacklist' => array(
 				'enabled'       => isset( $_POST['blacklist_enabled'] ),
-				'ips'           => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_ips'] ?? '' ) ) ) ) ),
+				'ips'           => $this->post_ip_list( 'blacklist_ips' ),
 				'emails'        => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_emails'] ?? '' ) ) ) ) ),
 				'email_domains' => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_email_domains'] ?? '' ) ) ) ) ),
 				'cpfs'          => array_filter( array_map( 'trim', explode( "\n", sanitize_textarea_field( wp_unslash( $_POST['blacklist_cpfs'] ?? '' ) ) ) ) ),
@@ -344,6 +348,87 @@ class TabRateLimit extends SettingsTab {
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		update_option( 'ffc_rate_limit_settings', $settings );
+	}
+
+	/**
+	 * A posted allow or deny list of addresses, each line canonicalised
+	 * (#2109). A line that is neither an address nor a CIDR range is left
+	 * out and remembered, so the screen can name it back instead of
+	 * storing it as text that never matches.
+	 *
+	 * @param string $key POST key.
+	 * @return array<int, string>
+	 */
+	private function post_ip_list( string $key ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+		$raw   = sanitize_textarea_field( wp_unslash( $_POST[ $key ] ?? '' ) );
+		$valid = array();
+
+		foreach ( explode( "\n", $raw ) as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+
+			$range = \FreeFormCertificate\Core\IpAddress::range( $line );
+			if ( null === $range ) {
+				$this->refused_ip_lines[] = $line;
+				continue;
+			}
+
+			$valid[] = $range;
+		}
+
+		return array_values( array_unique( $valid ) );
+	}
+
+	/**
+	 * Name the lines of the address lists that are not addresses or ranges:
+	 * the ones a save just refused, and any an earlier version stored, which
+	 * are ignored when matching and dropped on the next save.
+	 *
+	 * @param array<string, mixed> $settings Rate-limit settings as rendered.
+	 */
+	private function render_refused_ip_lines( array $settings ): void {
+		$lines = $this->refused_ip_lines;
+
+		foreach ( array( 'whitelist', 'blacklist' ) as $group ) {
+			$entries = is_array( $settings[ $group ]['ips'] ?? null ) ? $settings[ $group ]['ips'] : array();
+			foreach ( $entries as $entry ) {
+				if ( is_string( $entry ) && null === \FreeFormCertificate\Core\IpAddress::range( $entry ) ) {
+					$lines[] = $entry;
+				}
+			}
+		}
+
+		$lines = array_values( array_unique( $lines ) );
+		if ( array() === $lines ) {
+			return;
+		}
+
+		\FreeFormCertificate\Core\AdminNotice::render(
+			'warning',
+			sprintf(
+				/* translators: %s: comma-separated lines that are not addresses */
+				esc_html__( 'These lines of the IP lists are not an IPv4 or IPv6 address or a CIDR range, so they are not used: %s', 'ffcertificate' ),
+				esc_html( implode( ', ', $lines ) )
+			)
+		);
+	}
+
+	/**
+	 * A posted policy for an unresolved address, or the stored one when the
+	 * field was not sent. Anything else falls back to the default.
+	 *
+	 * @param string $key    POST key.
+	 * @param mixed  $stored Stored value.
+	 * @return string
+	 */
+	private function post_unresolved_policy( string $key, $stored ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in render() via check_admin_referer.
+		$posted = isset( $_POST[ $key ] ) ? \FreeFormCertificate\Core\RequestInput::get_post_string( $key ) : $stored;
+
+		return \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $posted );
 	}
 
 	/**
@@ -428,7 +513,7 @@ class TabRateLimit extends SettingsTab {
 	 */
 	private function parse_read_endpoints_post( array $stored ): array {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified by save_settings() caller.
-		$known     = array( 'calendar_slots', 'calendar_list', 'calendar_detail' );
+		$known     = array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS );
 		$endpoints = $stored['read']['endpoints'] ?? array();
 		$endpoints = is_array( $endpoints ) ? $endpoints : array();
 		$out       = array();

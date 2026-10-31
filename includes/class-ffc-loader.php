@@ -29,6 +29,7 @@ use FreeFormCertificate\Core\ActivityLogSubscriber;
 use FreeFormCertificate\Reregistration\ReregistrationLoader;
 use FreeFormCertificate\Reregistration\ReregistrationRepository;
 use FreeFormCertificate\Reregistration\ReregistrationEmailHandler;
+use FreeFormCertificate\Reregistration\ReregistrationSubmissionWriter;
 use FreeFormCertificate\UrlShortener\UrlShortenerActivator;
 use FreeFormCertificate\UrlShortener\UrlShortenerLoader;
 use FreeFormCertificate\Settings\SettingsReader;
@@ -427,16 +428,19 @@ class Loader {
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
 
-		// Form cache invalidation and the daily warming (#1541). Wired here,
+		// Saving a form purges the page caches that embed it. Wired here,
 		// explicitly, rather than by an `add_action( 'init', … )` at the
-		// bottom of the class file: that ran only when something happened to
-		// load the class before `init` priority 5, so whether saving a form
-		// invalidated its cache depended on load order. The warming event is
-		// reconciled with its toggle on every request, which is what finally
-		// makes "Pre-load cache daily" do something.
+		// bottom of the class file, which ran only when something happened to
+		// load the class first (#1541). The daily warming is retired (#2241):
+		// an event an install still carries is cleared on the next request.
 		\FreeFormCertificate\Submissions\FormCache::register_hooks();
-		\FreeFormCertificate\Submissions\FormCache::sync_warming_schedule();
+		\FreeFormCertificate\Submissions\FormCache::retire_warming_schedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::init();
+		// The address lookup by CEP (#2234): the form's AJAX action and the
+		// Settings test. Registered whatever the toggle says, so the test
+		// works before the lookup is turned on; the form action refuses
+		// while it is off.
+		\FreeFormCertificate\Integrations\CepLookupEndpoint::init();
 
 		// #739 §3.2 read-only viewer gate: forms/calendars list-read primitives
 		// map to the view caps, so this forces the per-post write meta-caps back
@@ -482,9 +486,13 @@ class Loader {
 
 		new ActivityLogSubscriber();
 
+		// Move events still scheduled under a pre-#2323 name first, so the
+		// checks below find them instead of scheduling a second copy.
+		\FreeFormCertificate\Core\ScheduledTasks::migrate_legacy_hooks();
+
 		// Ensure daily cleanup cron is scheduled.
-		if ( ! wp_next_scheduled( 'ffcertificate_daily_cleanup_hook' ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_daily_cleanup_hook', time() ), 'daily', 'ffcertificate_daily_cleanup_hook' );
+		if ( ! wp_next_scheduled( 'ffc_daily_cleanup' ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_daily_cleanup', time() ), 'daily', 'ffc_daily_cleanup' );
 		}
 
 		// Ensure the daily expiry of unfinished bulk-issue jobs is scheduled (#1945).
@@ -494,14 +502,21 @@ class Loader {
 		}
 
 		// Ensure reregistration expiry cron is scheduled.
-		if ( ! wp_next_scheduled( 'ffcertificate_reregistration_expire_hook' ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffcertificate_reregistration_expire_hook', time() ), 'daily', 'ffcertificate_reregistration_expire_hook' );
+		if ( ! wp_next_scheduled( 'ffc_reregistration_expire' ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_reregistration_expire', time() ), 'daily', 'ffc_reregistration_expire' );
 		}
 
 		// Ensure the self-scheduling appointment-reminder scan cron is scheduled
 		// (hourly, since reminders fire N hours before an appointment) (#650).
 		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK ) ) {
 			wp_schedule_event( time(), 'hourly', \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK );
+		}
+
+		// Ensure the daily old-appointment close-out is scheduled (#2285). It
+		// stays scheduled with the setting at 0: the run reads the setting and
+		// returns, so turning it back on needs no reschedule.
+		if ( ! wp_next_scheduled( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK ) ) {
+			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK, time() ), 'daily', \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK );
 		}
 
 		// Ensure the hourly post-event form invitation run is scheduled (#1948).
@@ -526,6 +541,11 @@ class Loader {
 		// translated, and translations load too early before `init`.
 		add_action( 'init', array( \FreeFormCertificate\Settings\RequiredData::class, 'maybe_migrate' ), 5 );
 
+		// Copy each form's single out-of-window message into the three that
+		// replace it (#2241). One-shot and option-flagged like the step above;
+		// `init` because it queries the form post type.
+		add_action( 'init', array( \FreeFormCertificate\Security\GeofenceWindowMessages::class, 'maybe_migrate' ), 20 );
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();
@@ -540,6 +560,7 @@ class Loader {
 		$this->ensure_grade_cap_granted();
 		$this->ensure_reregistration_pii_cap_granted();
 		$this->ensure_audiences_pii_cap_granted();
+		$this->ensure_ip_pii_caps_granted();
 		$this->ensure_forms_api_submit_cap_granted();
 		$this->ensure_recruitment_email_migrated();
 		$this->ensure_activity_log_export_cap_granted();
@@ -858,6 +879,25 @@ class Loader {
 		}
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
 			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_audiences_pii_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * One-time migration seeding the address reveal caps (#2109):
+	 * `ffc_view_activity_log_pii` onto activity log viewers and
+	 * `ffc_view_settings_pii` onto settings managers.
+	 *
+	 * @since 6.43.0
+	 * @return void
+	 */
+	private function ensure_ip_pii_caps_granted(): void {
+		$flag = 'ffc_ip_pii_caps_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_ip_pii_caps_grant();
 		}
 		update_option( $flag, '1', true );
 	}
@@ -1188,7 +1228,7 @@ class Loader {
 		// Issue in bulk (#1945, #1967): the form editor tab's preview endpoint and the template download.
 		\FreeFormCertificate\Admin\BulkIssuePage::register();
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			function () {
 				$this->submission_handler->run_data_cleanup();
 			}
@@ -1200,7 +1240,7 @@ class Loader {
 		// or programmatic invocation, but action callbacks must return
 		// void per PHPStan's `return.void` rule.
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			static function (): void {
 				\FreeFormCertificate\Admin\CsvExporter::cleanup_stale_export_jobs();
 			}
@@ -1209,7 +1249,7 @@ class Loader {
 		// expiry has lapsed. Returns the reaped count; wrapped void per
 		// PHPStan's return.void rule on action callbacks.
 		add_action(
-			'ffcertificate_daily_cleanup_hook',
+			'ffc_daily_cleanup',
 			static function (): void {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
@@ -1220,12 +1260,15 @@ class Loader {
 		// scheduled; with no callback registered they fire as harmless no-ops and
 		// resume the moment the module is re-enabled (init runs every request).
 		if ( SettingsReader::module_enabled( 'reregistration' ) ) {
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationRepository::class, 'expire_overdue' ) );
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationRepository::class, 'expire_overdue' ) );
+			// Late joiners get their row before the reminders and invitations
+			// read the table, so both reach them on the same run (#2242).
+			add_action( 'ffc_reregistration_expire', array( ReregistrationSubmissionWriter::class, 'seed_active_campaigns' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationEmailHandler::class, 'run_automated_reminders' ) );
 			// Invitations wait for this run since #1762, instead of going out
 			// the moment a campaign is activated. After `expire_overdue`, so a
 			// campaign that has just closed is not swept.
-			add_action( 'ffcertificate_reregistration_expire_hook', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
+			add_action( 'ffc_reregistration_expire', array( ReregistrationEmailHandler::class, 'run_pending_invitations' ) );
 
 			// Continuation of a reminder batch (#1232 step 2). It needs `2`
 			// accepted arguments: the payload carries the campaign id and the
@@ -1237,6 +1280,7 @@ class Loader {
 		}
 		if ( SettingsReader::module_enabled( 'self_scheduling' ) ) {
 			add_action( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentReminderScanner::class, 'run' ) );
+			add_action( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::CRON_HOOK, array( \FreeFormCertificate\SelfScheduling\AppointmentCloseout::class, 'run_scheduled' ) );
 		}
 		if ( SettingsReader::module_enabled( 'audiences' ) ) {
 			add_action( \FreeFormCertificate\Audience\AudienceFormInviteScanner::CRON_HOOK, array( \FreeFormCertificate\Audience\AudienceFormInviteScanner::class, 'run' ) );

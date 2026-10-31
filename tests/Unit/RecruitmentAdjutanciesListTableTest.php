@@ -9,14 +9,21 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Recruitment\RecruitmentAdjutanciesListTable;
+use FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader;
+use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
  * Smoke tests for the Adjutancies list table.
  *
+ * The collaborators are the real ones — RecruitmentAdjutancyReader,
+ * RecruitmentNoticeAdjutancyRepository, RecruitmentDeleteService (with the
+ * real classification repository, writer and activity logger behind it) and
+ * Capabilities — over a `$wpdb` double that answers each query by its SQL
+ * text and bound id and records every delete. An unexpected query throws,
+ * which fails the test.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdjutanciesListTable
  * @covers \FreeFormCertificate\Recruitment\AbstractRecruitmentListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentAdjutanciesListTableTest extends TestCase {
 
@@ -24,14 +31,38 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 
 	private RecruitmentAdjutanciesListTable $table;
 
-	/** @var \Mockery\MockInterface */
-	private $noticeAdjRepoMock;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var list<object> Rows the adjutancy table holds. */
+	private array $rows = array();
+
+	/** @var array<int, list<int>> Notice ids attached to each adjutancy id. */
+	private array $notice_links = array();
+
+	/**
+	 * Prepared statements, keyed by the token prepare() returned.
+	 *
+	 * @var array<string, array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/** @var list<string> Every query the double answered, as its SQL text. */
+	private array $queries = array();
+
+	/**
+	 * Every `$wpdb->delete()`, as [table, where].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $deletes = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		// Preload the extracted base so pcov attributes its coverage.
-		class_exists( '\FreeFormCertificate\Recruitment\AbstractRecruitmentListTable' );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -47,37 +78,108 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
 		Functions\when( 'wp_nonce_url' )->alias( fn( $url, $action = -1 ) => $url . '&_wpnonce=test' );
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// An empty `ffc_settings` leaves the activity log off, so the delete
+		// path's logger returns before touching the database.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_settings' === $key ? array() : $default );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'check_admin_referer' )->justReturn( true );
 
-		// Real stub for the admin page (PAGE_SLUG constant — Mockery aliases
-		// can't expose class constants).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdminPage { public const PAGE_SLUG = "ffc-recruitment"; }'
-			);
-		}
-		// Real stub for the reader (DEFAULT_COLOR constant + get_all()).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdjutancyReader {'
-				. ' public const DEFAULT_COLOR = "#cccccc";'
-				. ' public static $rows = array();'
-				. ' public static function get_all() { return self::$rows; } }'
-			);
-		}
-		\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array();
+		$this->rows         = array();
+		$this->notice_links = array();
+		$this->prepared     = array();
+		$this->queries      = array();
+		$this->deletes      = array();
 
-		$this->noticeAdjRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$this->noticeAdjRepoMock->shouldReceive( 'get_notice_ids_for_adjutancy' )->andReturn( array() )->byDefault();
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$token                    = 'prepared#' . count( $this->prepared );
+				$this->prepared[ $token ] = array( (string) $sql, $args );
+				return $token;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing( fn( $query ) => $this->answer( 'get_results', $query ) );
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $query ) => $this->answer( 'get_row', $query ) );
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $query ) => $this->answer( 'get_col', $query ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $query ) => $this->answer( 'get_var', $query ) );
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->deletes[] = array( $table, $where );
+				return 1;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 
 		$this->table = new RecruitmentAdjutanciesListTable();
 	}
 
 	protected function tearDown(): void {
 		unset( $_REQUEST['s'], $_REQUEST['orderby'], $_REQUEST['order'], $_REQUEST['action'], $_REQUEST['action2'], $_REQUEST['adjutancy_ids'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Answer one read by the SQL text and the values bound to it.
+	 *
+	 * @param string $method The `$wpdb` method that ran the query.
+	 * @param string $query  The token prepare() returned.
+	 * @return mixed
+	 */
+	private function answer( string $method, string $query ) {
+		if ( ! isset( $this->prepared[ $query ] ) ) {
+			throw new \RuntimeException( "Unprepared {$method}: {$query}" );
+		}
+		list( $sql, $args ) = $this->prepared[ $query ];
+		$this->queries[]    = $sql;
+		$table              = (string) ( $args[0] ?? '' );
+		$id                 = (int) ( $args[1] ?? 0 );
+
+		if ( 'get_results' === $method && 'SELECT * FROM %i ORDER BY name ASC' === $sql && 'wp_ffc_recruitment_adjutancy' === $table ) {
+			return $this->rows;
+		}
+		if ( 'get_row' === $method && 'SELECT * FROM %i WHERE id = %d' === $sql && 'wp_ffc_recruitment_adjutancy' === $table ) {
+			foreach ( $this->rows as $row ) {
+				if ( (int) $row->id === $id ) {
+					return $row;
+				}
+			}
+			return null;
+		}
+		if ( 'get_col' === $method && 'SELECT notice_id FROM %i WHERE adjutancy_id = %d' === $sql && 'wp_ffc_recruitment_notice_adjutancy' === $table ) {
+			return array_map( 'strval', $this->notice_links[ $id ] ?? array() );
+		}
+		if ( 'get_var' === $method && 'SELECT COUNT(*) FROM %i WHERE adjutancy_id = %d' === $sql && 'wp_ffc_recruitment_classification' === $table ) {
+			return '0';
+		}
+		throw new \RuntimeException( "Unexpected {$method}: {$sql} " . json_encode( $args ) );
+	}
+
+	/**
+	 * The ids the double deleted from the adjutancy table, in order.
+	 *
+	 * @return list<int>
+	 */
+	private function deleted_adjutancy_ids(): array {
+		$ids = array();
+		foreach ( $this->deletes as $delete ) {
+			$this->assertSame( 'wp_ffc_recruitment_adjutancy', $delete[0] );
+			$ids[] = (int) $delete[1]['id'];
+		}
+		return $ids;
 	}
 
 	private function call_protected( string $method, array $args = array() ) {
@@ -128,9 +230,10 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	}
 
 	public function test_column_usage_returns_count_of_referenced_notices(): void {
-		$this->noticeAdjRepoMock->shouldReceive( 'get_notice_ids_for_adjutancy' )
-			->with( 5 )
-			->andReturn( array( 1, 2, 3 ) );
+		$this->notice_links = array(
+			5 => array( 1, 2, 3 ),
+			6 => array( 4 ),
+		);
 
 		$out = $this->call_protected( 'column_usage', array( array( 'id' => 5 ) ) );
 
@@ -138,7 +241,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	}
 
 	public function test_column_usage_returns_zero_when_unused(): void {
-		$this->noticeAdjRepoMock->shouldReceive( 'get_notice_ids_for_adjutancy' )->andReturn( array() );
+		$this->notice_links = array( 6 => array( 4 ) );
 
 		$out = $this->call_protected( 'column_usage', array( array( 'id' => 5 ) ) );
 
@@ -178,7 +281,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	public function test_column_color_falls_back_to_default_color(): void {
 		$out = $this->call_protected( 'column_color', array( array( 'id' => 3 ) ) );
 
-		$this->assertStringContainsString( '#cccccc', $out );
+		$this->assertStringContainsString( RecruitmentAdjutancyReader::DEFAULT_COLOR, $out );
 	}
 
 	// ------------------------------------------------------------------
@@ -202,7 +305,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	}
 
 	public function test_prepare_items_populates_items(): void {
-		\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array(
+		$this->rows = array(
 			$this->adj_obj( 1, 'alpha', 'Alpha' ),
 			$this->adj_obj( 2, 'beta', 'Beta' ),
 		);
@@ -211,11 +314,12 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 
 		$items = $this->get_items();
 		$this->assertCount( 2, $items );
+		$this->assertSame( array( 'SELECT * FROM %i ORDER BY name ASC' ), $this->queries );
 	}
 
 	public function test_prepare_items_applies_search(): void {
 		$_REQUEST['s'] = 'beta';
-		\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array(
+		$this->rows    = array(
 			$this->adj_obj( 1, 'alpha', 'Alpha' ),
 			$this->adj_obj( 2, 'beta', 'Beta' ),
 		);
@@ -230,7 +334,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	public function test_prepare_items_applies_sort_asc_by_slug(): void {
 		$_REQUEST['orderby'] = 'slug';
 		$_REQUEST['order']   = 'asc';
-		\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array(
+		$this->rows          = array(
 			$this->adj_obj( 2, 'beta', 'Beta' ),
 			$this->adj_obj( 1, 'alpha', 'Alpha' ),
 		);
@@ -246,45 +350,70 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_process_bulk_action_returns_early_without_action(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentDeleteService' )
-			->shouldReceive( 'delete_adjutancy' )->never();
+		$this->rows = array( $this->adj_obj( 5, 'alpha', 'Alpha' ) );
+		$caps       = CallLog::record( 'current_user_can', true );
 
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( 0, $caps->count(), 'No action must not even consult the capability.' );
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_process_bulk_action_blocked_without_capability(): void {
-		$_REQUEST['action'] = 'bulk-delete';
+		$_REQUEST['action']        = 'bulk-delete';
+		$_REQUEST['adjutancy_ids'] = array( '5' );
+		$this->rows                = array( $this->adj_obj( 5, 'alpha', 'Alpha' ) );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentDeleteService' )
-			->shouldReceive( 'delete_adjutancy' )->never();
+		$caps    = CallLog::record( 'current_user_can', false );
+		$referer = CallLog::record( 'check_admin_referer', true );
 
 		$this->call_protected( 'process_bulk_action' );
-		$this->assertTrue( true );
+
+		$this->assertSame( 2, $caps->count(), 'Both manage_options and the delete cap are refused.' );
+		$this->assertSame( 0, $referer->count() );
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( array(), $this->deletes );
 	}
 
 	public function test_process_bulk_action_deletes_when_capable(): void {
 		$_REQUEST['action']        = 'bulk-delete';
 		$_REQUEST['adjutancy_ids'] = array( '5', '6' );
 
-		Functions\when( 'check_admin_referer' )->justReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-
-		$deleted = array();
-		Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentDeleteService' )
-			->shouldReceive( 'delete_adjutancy' )->andReturnUsing(
-				function ( $id ) use ( &$deleted ) {
-					$deleted[] = $id;
-					return true;
-				}
-			);
+		$this->rows                = array(
+			$this->adj_obj( 5, 'alpha', 'Alpha' ),
+			$this->adj_obj( 6, 'beta', 'Beta' ),
+		);
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_delete_recruitment' === $cap );
 
 		$this->call_protected( 'process_bulk_action' );
 
-		$this->assertSame( array( 5, 6 ), $deleted );
+		$this->assertSame( array( 5, 6 ), $this->deleted_adjutancy_ids() );
+	}
+
+	public function test_process_bulk_action_says_which_adjutancies_were_kept(): void {
+		$_REQUEST['action']        = 'bulk-delete';
+		$_REQUEST['adjutancy_ids'] = array( '5', '6' );
+
+		$this->rows         = array(
+			$this->adj_obj( 5, 'alpha', 'Alpha' ),
+			$this->adj_obj( 6, 'beta', 'Beta' ),
+		);
+		$this->notice_links = array( 5 => array( 9 ) );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_delete_recruitment' === $cap );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		$notices = array();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message ) use ( &$notices ) {
+				$notices[] = $message;
+			}
+		);
+
+		$this->call_protected( 'process_bulk_action' );
+
+		$this->assertSame( array( 6 ), $this->deleted_adjutancy_ids() );
+		$this->assertCount( 1, $notices );
+		$this->assertStringContainsString( 'still uses it', $notices[0] );
 	}
 
 	// ------------------------------------------------------------------
@@ -304,7 +433,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 		$out = $this->call_static_private( 'convert_rows', array( $rows ) );
 
 		$this->assertSame( 1, $out[0]['id'] );
-		$this->assertSame( '#cccccc', $out[0]['color'] );
+		$this->assertSame( RecruitmentAdjutancyReader::DEFAULT_COLOR, $out[0]['color'] );
 	}
 
 	public function test_sort_rows_falls_back_to_created_at_for_bad_orderby(): void {

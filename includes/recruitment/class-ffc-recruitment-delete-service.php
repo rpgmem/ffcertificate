@@ -98,6 +98,61 @@ final class RecruitmentDeleteService {
 	}
 
 	/**
+	 * Delete a draft notice with its own rows, in one transaction (#2245).
+	 *
+	 * Only a `draft` is deletable: it was never published, so nothing outside
+	 * the notice points at it. Every other status is a published record and
+	 * can only be closed. Without the gate a delete left classifications and
+	 * calls orphaned, and those leftovers then blocked candidate deletion for
+	 * good. The call count is checked even on a draft, because a call row is
+	 * the one thing this method must never take with it.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return DeleteResult
+	 */
+	public static function delete_notice( int $notice_id ): array {
+		$notice = RecruitmentNoticeReader::get_by_id( $notice_id );
+		if ( null === $notice ) {
+			return self::failure( 'recruitment_notice_not_found' );
+		}
+
+		if ( ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::DELETE, (string) $notice->status ) ) {
+			return self::failure( 'recruitment_notice_delete_requires_draft' );
+		}
+
+		$call_count = RecruitmentClassificationRepository::count_calls_for_notice( $notice_id );
+		if ( $call_count > 0 ) {
+			return array(
+				'success'    => false,
+				'errors'     => array( 'recruitment_notice_delete_requires_draft' ),
+				'blocked_by' => array( 'calls' => $call_count ),
+			);
+		}
+
+		global $wpdb;
+		$wpdb->query( 'START TRANSACTION' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control over the plugin's own ffc_* tables.
+
+		$removed = RecruitmentClassificationRepository::delete_all_for_notice( $notice_id );
+		if ( false === $removed ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control over the plugin's own ffc_* tables.
+			return self::failure( 'recruitment_notice_delete_failed' );
+		}
+
+		RecruitmentNoticeAdjutancyRepository::detach_all_for_notice( $notice_id );
+
+		if ( ! RecruitmentNoticeWriter::delete( $notice_id ) ) {
+			$wpdb->query( 'ROLLBACK' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control over the plugin's own ffc_* tables.
+			return self::failure( 'recruitment_notice_delete_failed' );
+		}
+
+		$wpdb->query( 'COMMIT' ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Transaction control over the plugin's own ffc_* tables.
+
+		RecruitmentActivityLogger::notice_deleted( $notice_id, (string) $notice->code, $removed );
+
+		return self::success();
+	}
+
+	/**
 	 * Delete a single classification row.
 	 *
 	 * Gate: status must be `empty` AND the parent notice must be in

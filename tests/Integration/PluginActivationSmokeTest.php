@@ -89,7 +89,8 @@ class PluginActivationSmokeTest extends IntegrationTestCase {
 		// A fresh install starts with its own defaults (#1758); home_url() is
 		// https here, so the captcha starts on ALTCHA only.
 		$this->assertSame( 'altcha', $this->options['ffc_settings']['captcha_provider'] ?? null );
-		$this->assertSame( 900, $this->options['ffc_settings']['cache_expiration'] ?? null );
+		// The form-settings cache and its expiry are retired (#2241).
+		$this->assertArrayNotHasKey( 'cache_expiration', $this->options['ffc_settings'] );
 	}
 
 	/**

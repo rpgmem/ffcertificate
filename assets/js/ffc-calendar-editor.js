@@ -317,7 +317,9 @@
             const all = opts.strings || {};
             const words = all[opts.action] || {};
             const count = parseInt(opts.count, 10) || 0;
-            const isFuture = opts.action === 'future';
+            // Cancelling keeps the records, so both cancelling actions take the
+            // caution look; only the deletions are danger (#2244 adds `block`).
+            const isFuture = opts.action === 'future' || opts.action === 'block';
             const silent = isFuture && opts.notify === false;
             const typed = typeof words.type === 'string' && words.type !== '';
             const format = function(template, fallback) {
@@ -483,10 +485,102 @@
         }
     };
 
+    /**
+     * The Blocked dates tab (#2244).
+     *
+     * The type control shows either the day range or the time fields. Add
+     * posts the block; when the server answers that it reaches open
+     * appointments, the cleanup dialog states how many and the request goes
+     * again with that count, which the server checks has not moved.
+     */
+    FFCCalendarEditor.initBlocks = function() {
+        const $box = $('.ffc-blocked-dates');
+        if (!$box.length) {
+            return;
+        }
+        const cfg = typeof ffcSelfSchedulingEditor !== 'undefined' ? ffcSelfSchedulingEditor : {};
+        const strings = cfg.strings || {};
+        const nonce = strings.blocksNonce || '';
+        const postId = $box.data('post-id');
+        const self = this;
+
+        function syncType() {
+            const timed = $box.find('input[name="ffc_block_type"]:checked').val() === 'time_range';
+            $box.find('.ffc-block-times').prop('hidden', !timed);
+            $box.find('.ffc-block-days').prop('hidden', timed);
+        }
+        $box.on('change', 'input[name="ffc_block_type"]', syncType);
+        syncType();
+
+        // A refusal arrives with a 4xx status, so its message is in the
+        // response body rather than on a successful envelope.
+        function fail(err) {
+            const fromBody = err && err.data && err.data.message;
+            alert(fromBody || (err && err.fromServer && err.message) || strings.errorServer || 'Error communicating with server');
+        }
+
+        function send(extra) {
+            const data = $.extend({
+                post_id: postId,
+                block_type: $box.find('input[name="ffc_block_type"]:checked').val() || 'full_day',
+                start_date: $('#ffc-block-start-date').val(),
+                end_date: $('#ffc-block-end-date').val(),
+                start_time: $('#ffc-block-start-time').val(),
+                end_time: $('#ffc-block-end-time').val(),
+                reason: $('#ffc-block-reason').val()
+            }, extra || {});
+            return FFC.request('ffc_calendar_block_add', data, { nonce: nonce });
+        }
+
+        $box.on('click', '#ffc-block-add', function() {
+            const $btn = $(this).prop('disabled', true);
+            send().then(function(data) {
+                if (!data || !data.needs_confirm) {
+                    alert(data && data.message ? data.message : '');
+                    location.reload();
+                    return null;
+                }
+                return self.cleanupConfirm({
+                    action: 'block',
+                    count: data.count,
+                    calendarTitle: data.title,
+                    notify: data.notify !== false,
+                    strings: strings.cleanup || {}
+                }).then(function(agreed) {
+                    if (!agreed) {
+                        return null;
+                    }
+                    return send({ confirm: '1', expected: data.count }).then(function(done) {
+                        alert(done && done.message ? done.message : '');
+                        location.reload();
+                    });
+                });
+            }).catch(fail).then(function() {
+                $btn.prop('disabled', false);
+            });
+        });
+
+        $box.on('click', '.ffc-block-delete', function() {
+            if (!window.confirm(strings.blockRemove || 'Remove this block?')) {
+                return;
+            }
+            const $btn = $(this).prop('disabled', true);
+            FFC.request('ffc_calendar_block_delete', { post_id: postId, block_id: $btn.data('block-id') }, { nonce: nonce })
+                .then(function() {
+                    location.reload();
+                })
+                .catch(function(err) {
+                    fail(err);
+                    $btn.prop('disabled', false);
+                });
+        });
+    };
+
     // Initialize when document is ready
     $(document).ready(function() {
         FFCCalendarEditor.init();
         FFCCalendarEditor.initCleanup();
+        FFCCalendarEditor.initBlocks();
     });
 
 })(jQuery);

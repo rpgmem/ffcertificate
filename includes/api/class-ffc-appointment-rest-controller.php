@@ -62,11 +62,16 @@ class AppointmentRestController {
 				'callback'            => array( $this, 'create_appointment' ),
 				'permission_callback' => array( $this, 'check_create_permission' ),
 				'args'                => array(
-					'id' => array(
+					'cpf_rf' => array(
+						'type'        => 'string',
+						'description' => 'The booker\'s CPF (11 digits) or RF (7 digits), required in the JSON body like date, time, name and email.',
+					),
+					'id'     => array(
 						'required'          => true,
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+						'sanitize_callback' => 'absint',
 					),
 				),
 			)
@@ -85,6 +90,7 @@ class AppointmentRestController {
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+						'sanitize_callback' => 'absint',
 					),
 					'reveal' => array(
 						'default'           => false,
@@ -108,6 +114,7 @@ class AppointmentRestController {
 						'validate_callback' => function ( $param ) {
 							return is_numeric( $param );
 						},
+						'sanitize_callback' => 'absint',
 					),
 				),
 			)
@@ -124,7 +131,7 @@ class AppointmentRestController {
 	 */
 	public function create_appointment( $request ) {
 		try {
-			$calendar_id = $request->get_param( 'id' );
+			$calendar_id = absint( $request->get_param( 'id' ) );
 			$params      = $request->get_json_params();
 
 			if ( empty( $params ) ) {
@@ -135,7 +142,9 @@ class AppointmentRestController {
 				);
 			}
 
-			$required_fields = array( 'date', 'time', 'name', 'email' );
+			// `cpf_rf` is required by the validator as it is on the booking form; a
+			// body without it is refused here with the field's name (#2155).
+			$required_fields = array( 'date', 'time', 'name', 'email', 'cpf_rf' );
 			foreach ( $required_fields as $field ) {
 				if ( empty( $params[ $field ] ) ) {
 					return new \WP_Error(
@@ -201,6 +210,9 @@ class AppointmentRestController {
 				'start_time'       => sanitize_text_field( $params['time'] ),
 				'name'             => sanitize_text_field( $params['name'] ),
 				'email'            => \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $params['email'] ) ),
+				// Sanitised as the booking form's AJAX handler does; the handler
+				// normalises it to digits before it validates and stores it (#2155).
+				'cpf_rf'           => sanitize_text_field( (string) $params['cpf_rf'] ),
 				'phone'            => isset( $params['phone'] ) ? sanitize_text_field( $params['phone'] ) : '',
 				'user_notes'       => isset( $params['notes'] ) ? sanitize_textarea_field( $params['notes'] ) : '',
 				// Sanitised as the booking form's AJAX handler does (#1861).
@@ -214,9 +226,11 @@ class AppointmentRestController {
 				'confirm_override' => ! empty( $params['confirm_override'] ),
 			);
 
-			if ( is_user_logged_in() ) {
-				$appointment_data['user_id'] = get_current_user_id();
-			}
+			// Staff book on behalf of a person (#2161): the booking belongs to
+			// the person, so `user_id` stays empty and the handler links or
+			// creates their account from the CPF/RF and e-mail; the operator is
+			// recorded as the one who booked it.
+			$appointment_data['booked_by'] = get_current_user_id();
 
 			if ( ! class_exists( '\FreeFormCertificate\SelfScheduling\AppointmentHandler' ) ) {
 				return new \WP_Error(
@@ -262,7 +276,7 @@ class AppointmentRestController {
 	 */
 	public function get_appointment( $request ) {
 		try {
-			$appointment_id = $request->get_param( 'id' );
+			$appointment_id = absint( $request->get_param( 'id' ) );
 
 			if ( ! class_exists( '\FreeFormCertificate\Repositories\AppointmentRepository' ) ) {
 				return new \WP_Error(
@@ -284,7 +298,7 @@ class AppointmentRestController {
 			}
 
 			$calendar_repository = new \FreeFormCertificate\Repositories\CalendarRepository();
-			$calendar            = $calendar_repository->findById( $appointment['calendar_id'] );
+			$calendar            = $calendar_repository->findById( absint( $appointment['calendar_id'] ) );
 
 			$email_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'email' );
 			$phone_display = \FreeFormCertificate\Core\Encryption::decrypt_field( $appointment, 'phone' );
@@ -345,7 +359,7 @@ class AppointmentRestController {
 	 */
 	public function cancel_appointment( $request ) {
 		try {
-			$appointment_id = $request->get_param( 'id' );
+			$appointment_id = absint( $request->get_param( 'id' ) );
 			$params         = $request->get_json_params();
 			$reason         = isset( $params['reason'] ) ? sanitize_textarea_field( $params['reason'] ) : '';
 
@@ -399,7 +413,7 @@ class AppointmentRestController {
 	 * @return bool
 	 */
 	public function check_appointment_access( $request ): bool {
-		$appointment_id = $request->get_param( 'id' );
+		$appointment_id = absint( $request->get_param( 'id' ) );
 
 		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
 			return true;

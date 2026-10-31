@@ -18,6 +18,7 @@
  * @var string            $rf           RF filter.
  * @var string            $subscription Subscription-type filter.
  * @var string            $reset_url    Reset link URL.
+ * @var string            $status_key   Selected definitive status, or ''.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.7.7
@@ -34,6 +35,11 @@ echo '<form method="get" class="ffc-cls-filters ffc-rec-cls-filters">';
 echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
 echo '<input type="hidden" name="action" value="edit-notice">';
 echo '<input type="hidden" name="notice_id" value="' . esc_attr( (string) $notice_id ) . '">';
+// The status filter is a link above the definitive list; the form keeps it (#2245).
+if ( '' !== $status_key ) {
+	echo '<input type="hidden" name="ffc_cls_status" value="' . esc_attr( $status_key ) . '">';
+	echo '<input type="hidden" name="ffc_cls_tab" value="definitive">';
+}
 
 echo '<input type="text" name="ffc_cls_q" value="' . esc_attr( $query ) . '" placeholder="' . esc_attr__( 'Name (substring)', 'ffcertificate' ) . '" size="20">';
 echo ' <input type="text" name="ffc_cls_cpf" value="' . esc_attr( $cpf ) . '" placeholder="' . esc_attr__( 'CPF (digits only)', 'ffcertificate' ) . '" size="15">';
@@ -56,7 +62,7 @@ if ( ! empty( $adjutancies ) ) {
 echo ' <select name="ffc_cls_sub">';
 echo '<option value=""' . selected( '', $subscription, false ) . '>' . esc_html__( 'All subscription types', 'ffcertificate' ) . '</option>';
 echo '<option value="pcd"' . selected( 'pcd', $subscription, false ) . '>' . esc_html__( 'PCD only', 'ffcertificate' ) . '</option>';
-echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'GERAL only', 'ffcertificate' ) . '</option>';
+echo '<option value="geral"' . selected( 'geral', $subscription, false ) . '>' . esc_html__( 'General only', 'ffcertificate' ) . '</option>';
 echo '</select>';
 
 echo ' ';

@@ -18,6 +18,10 @@ class SettingsReaderTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		Functions\when( '__' )->returnArg();
 	}
 
@@ -344,7 +348,6 @@ class SettingsReaderTest extends TestCase {
 	public static function provider_int_accessors(): array {
 		return array(
 			'activity_log_retention_days' => array( 'activity_log_retention_days', 'activity_log_retention_days', 90 ),
-			'cache_expiration_seconds'    => array( 'cache_expiration_seconds', 'cache_expiration', 3600 ),
 			'obsolete_shortcode_days'     => array( 'obsolete_shortcode_days', 'obsolete_shortcode_days', 90 ),
 			'public_csv_default_limit'    => array( 'public_csv_default_limit', 'public_csv_default_limit', 1 ),
 			'public_csv_sync_max_rows'    => array( 'public_csv_sync_max_rows', 'public_csv_sync_max_rows', 5000 ),
@@ -356,6 +359,13 @@ class SettingsReaderTest extends TestCase {
 	// ------------------------------------------------------------------
 	// OPTION_KEY constant
 	// ------------------------------------------------------------------
+
+	public function test_cache_expiration_answers_the_old_default_whatever_is_stored(): void {
+		// The setting left with the form-settings cache (#2241).
+		Functions\when( 'get_option' )->justReturn( array( 'cache_expiration' => 900 ) );
+
+		$this->assertSame( 3600, SettingsReader::cache_expiration_seconds() );
+	}
 
 	public function test_option_key_constant_is_ffc_settings(): void {
 		$this->assertSame( 'ffc_settings', SettingsReader::OPTION_KEY );

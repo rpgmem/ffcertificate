@@ -113,8 +113,16 @@ class SubmissionPersister {
 				$submission_data['_quiz_pending'] = $quiz_score['pending'];
 			}
 
-			// Find existing quiz submission for this CPF + form.
-			$existing = $this->find_quiz_submission( $form_id, $val_cpf );
+			// Find existing quiz submission for this CPF + form. Without a
+			// ticket it is the row the rate-limit guard already fetched (#2241).
+			/**
+			 * A submissions row as `$wpdb` returns it.
+			 *
+			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string, auth_code?: string|null})|null $existing
+			 */
+			$existing = '' === $val_ticket
+				? \FreeFormCertificate\Frontend\ReprintDetector::row_for( $ctx )
+				: $this->find_quiz_submission( $form_id, $val_cpf );
 
 			// While an attempt waits to be graded, its result is not known, so
 			// neither is whether another attempt is needed (#1732).
@@ -139,14 +147,7 @@ class SubmissionPersister {
 				}
 			} else {
 				// Count attempts.
-				$prev_attempt = 0;
-				if ( $existing ) {
-					$prev_data = json_decode( $existing->data ?? '{}', true );
-					if ( ! is_array( $prev_data ) ) {
-						$prev_data = array();
-					}
-					$prev_attempt = ArrayValue::int( $prev_data, '_quiz_attempt', 0 );
-				}
+				$prev_attempt                     = $existing ? self::previous_attempt( $existing ) : 0;
 				$attempt_number                   = $prev_attempt + 1;
 				$submission_data['_quiz_attempt'] = $attempt_number;
 
@@ -182,9 +183,12 @@ class SubmissionPersister {
 					$data_json_raw  = wp_json_encode( $extra_data );
 					$data_json      = $data_json_raw ? $data_json_raw : '{}';
 
+					// `submission_date` is a unix UTC int (Category A); a MySQL
+					// date string here was truncated to its year (#2241).
+					$now           = time();
 					$update_fields = array(
 						'status'          => $quiz_status,
-						'submission_date' => current_time( 'mysql' ),
+						'submission_date' => $now,
 					);
 					if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
 						$update_fields['data_encrypted'] = \FreeFormCertificate\Core\Encryption::encrypt( $data_json );
@@ -192,8 +196,21 @@ class SubmissionPersister {
 						$update_fields['data'] = $data_json;
 					}
 
-					$repo->update( $submission_id, $update_fields );
-					$real_submission_date = current_time( 'mysql' );
+					if ( false === $repo->update( $submission_id, $update_fields ) ) {
+						throw new SubmissionRejected(
+							array(
+								'code'    => 'db_error',
+								'message' => __( "We couldn't save your submission. Try again — if the problem persists, contact the organizer.", 'ffcertificate' ),
+							)
+						);
+					}
+					$real_submission_date = (string) $now;
+
+					// A retry that passes is the moment the certificate exists,
+					// so it is e-mailed now, as a first attempt's insert is.
+					if ( 'publish' === $quiz_status ) {
+						$this->submission_handler->schedule_async_pipeline( $submission_id );
+					}
 				} else {
 					// INSERT new submission via existing handler.
 					$submission_id = $this->submission_handler->process_submission(
@@ -284,14 +301,36 @@ class SubmissionPersister {
 		} else {
 			// === Normal (non-quiz) flow ===.
 
-			// Detect reprint — delegated to ReprintDetector.
-			$reprint_result = \FreeFormCertificate\Frontend\ReprintDetector::detect( $form_id, $val_cpf, $val_ticket );
+			// Detect reprint, from the submission's single lookup (#2241).
+			$reprint_result = \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx );
 			$is_reprint     = $reprint_result['is_reprint'];
 
 			if ( $is_reprint ) {
 				// Reprint - use existing submission ID (convert to int from wpdb string).
 				$submission_id        = (int) $reprint_result['id'];
 				$real_submission_date = $reprint_result['date'];
+
+				// A certificate in the trash is revoked (#2241): it is not
+				// handed back, and a new one is not issued in its place.
+				if ( SubmissionStatus::TRASH === $reprint_result['status'] ) {
+					throw new SubmissionRejected(
+						array(
+							'code'    => 'certificate_revoked',
+							'message' => \FreeFormCertificate\Frontend\VerificationHandler::revoked_message( $reprint_result['revoked_at'] ),
+						)
+					);
+				}
+
+				// Anyone can type a CPF/RF, so only its logged-in owner gets
+				// the certificate on screen; anyone else gets its link sent to
+				// the address stored on it (#2241). A ticket is a code its
+				// holder was given, and keeps handing the certificate over.
+				$owner = $reprint_result['user_id'];
+				if ( '' === $val_ticket && ( $owner <= 0 || get_current_user_id() !== $owner ) ) {
+					$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
+					$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
+					$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
+				}
 
 				// Surface the existing auth_code so the success card and message can show it.
 				if ( isset( $reprint_result['data']['auth_code'] ) && empty( $submission_data['auth_code'] ) ) {
@@ -388,6 +427,23 @@ class SubmissionPersister {
 	}
 
 	/**
+	 * The attempt number a stored quiz row records (#2241).
+	 *
+	 * With encryption on, the attempt lives in `data_encrypted` and `data` is
+	 * NULL, so reading `data` alone counted every attempt as the first and
+	 * the limit never held. A row that exists records one attempt at least,
+	 * so a row whose payload cannot be read still counts as one.
+	 *
+	 * @param object $existing Stored submission row.
+	 * @return int At least 1.
+	 */
+	public static function previous_attempt( object $existing ): int {
+		$json = \FreeFormCertificate\Core\Encryption::decrypt_field( (array) $existing, 'data' );
+		$data = json_decode( '' !== $json ? $json : '{}', true );
+		return max( 1, ArrayValue::int( is_array( $data ) ? $data : array(), '_quiz_attempt', 0 ) );
+	}
+
+	/**
 	 * Calculate the quiz score of a submission (#1730: {@see QuizScorer}).
 	 *
 	 * @param array<int, array<string, mixed>> $fields_config Form fields configuration.
@@ -403,44 +459,26 @@ class SubmissionPersister {
 	 *
 	 * Returns the most recent submission (any quiz status: in_progress, failed, or publish).
 	 *
+	 * Without encryption keys no identifier is stored at all — the insert
+	 * writes neither the CPF/RF nor a hash of it — so there is nothing to find
+	 * by, and attempt limits cannot hold on such an install. WordPress writes
+	 * the keys at install, so this is a broken configuration, not a mode.
+	 *
 	 * @param int    $form_id Form ID.
 	 * @param string $cpf     CPF/RF value.
 	 * @return (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null
 	 */
 	public function find_quiz_submission( int $form_id, string $cpf ): ?object {
-		if ( empty( $cpf ) ) {
+		if ( '' === $cpf ) {
 			return null;
 		}
-
-		global $wpdb;
-		$table     = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
-
-		if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-			$id_hash     = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $clean_cpf );
-			$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
-
-			// Search the specific split column based on digit count.
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $hash_column is derived from strlen() check, not user input.
-			/**
-			 * Cast wpdb result to typed shape.
-			 *
-			 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $result
-			 */
-			$result = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uniqueness probe — serving this from cache would defeat the check it exists to perform.
-				$wpdb->prepare(
-					"SELECT * FROM %i WHERE form_id = %d AND {$hash_column} = %s ORDER BY id DESC LIMIT 1",
-					$table,
-					$form_id,
-					$id_hash
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-			return $result;
-		}
-
-		return null;
+		/**
+		 * A submissions row as `$wpdb` returns it.
+		 *
+		 * @var (\stdClass&object{id: numeric-string, status: string, data: string|null, submission_date: string})|null $row
+		 */
+		$row = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->findForReprint( $form_id, $cpf );
+		return $row;
 	}
 
 	/**
@@ -525,10 +563,6 @@ class SubmissionPersister {
 
 		$participant_cpf_hash = '' !== $participant_cpf_plain ? hash( 'sha256', $participant_cpf_plain ) : '';
 
-		// Action tags + level are inlined as literals (not class constants) so
-		// the unit tests can spy on the static log() call via a Mockery alias
-		// mock without preserving the real class's constants. The values are
-		// pinned by `test_schedule_override_action_constants_are_defined`.
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'schedule_override_created',
 			'info',

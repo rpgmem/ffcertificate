@@ -29,6 +29,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock('wpdb');
@@ -128,6 +132,39 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		$this->assertCount(2, $result);
 		$this->assertSame('Booking A', $result[0]->description);
+	}
+
+	public function test_get_all_breaks_date_ties_on_the_time_in_the_direction_asked_for(): void {
+		$captured = array();
+		$this->wpdb->shouldReceive('prepare')->twice()->andReturnUsing(function() use (&$captured) {
+			$captured[] = preg_replace('/\s+/', ' ', func_get_args()[0]);
+			return end($captured);
+		});
+		$this->wpdb->shouldReceive('get_results')->twice()->andReturn([]);
+
+		// The admin bookings list reads newest first (#2288). sanitize_sql_orderby()
+		// is made to refuse everything here, as core does for a `b.` prefix, so
+		// the order cannot come from it (#2290).
+		Functions\when('sanitize_sql_orderby')->justReturn(false);
+		AudienceBookingReader::get_all(['orderby' => 'booking_date', 'order' => 'DESC']);
+		AudienceBookingReader::get_all();
+
+		$this->assertStringContainsString('ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC', $captured[0]);
+		$this->assertStringContainsString('ORDER BY b.booking_date ASC, b.start_time ASC, b.id ASC', $captured[1]);
+	}
+
+	public function test_get_all_refuses_a_column_outside_the_allowlist(): void {
+		$captured = '';
+		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured) {
+			$captured = preg_replace('/\s+/', ' ', func_get_args()[0]);
+			return $captured;
+		});
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn([]);
+
+		AudienceBookingReader::get_all(['orderby' => 'id; DROP TABLE x', 'order' => 'desc']);
+
+		$this->assertStringContainsString('ORDER BY b.booking_date DESC, b.start_time DESC, b.id DESC', $captured);
+		$this->assertStringNotContainsString('DROP', $captured);
 	}
 
 	public function test_get_all_filters_by_environment_id(): void {
@@ -547,7 +584,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 						&& $data['description'] === 'Morning meeting'
 						&& $data['status'] === 'active'
 						&& $data['booking_type'] === 'audience'
-						&& $data['created_by'] === 1;
+						&& $data['created_by'] === 1
+						// An instant in UTC seconds, not the session's CURRENT_TIMESTAMP (#2243).
+						&& is_int($data['created_at'])
+						&& abs($data['created_at'] - time()) <= 5;
 				}),
 				Mockery::type('array')
 			)
@@ -662,18 +702,24 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
 			(object) array( 'id' => 99, 'booking_date' => '2026-03-15', 'start_time' => '09:30:00', 'end_time' => '10:30:00' ),
 		));
-		$order = array();
-		$this->wpdb->shouldReceive('update')->once()->withArgs(function ($table, $data, $where) use (&$order) {
-			$order[] = 'cancel';
-			return 'cancelled' === $data['status'] && 'Overridden' === $data['cancellation_reason'] && array( 'id' => 99 ) === $where;
-		})->andReturn(1);
+		$order   = array();
+		$queries = array();
 		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function () use (&$order) {
 			$order[] = 'insert';
 			return 1;
 		});
 		$this->wpdb->insert_id = 120;
-		$queries = array();
-		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) {
+			if (false !== strpos((string) $args[0], "SET status = 'cancelled'")) {
+				return 'CANCEL ' . $args[5] . ' ' . $args[4];
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries, &$order) {
+			if ('CANCEL 99 Overridden' === $sql) {
+				$order[] = 'cancel';
+				return 1;
+			}
 			$queries[] = (string) $sql;
 			return 1;
 		});
@@ -691,6 +737,214 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertSame(120, $result);
 		$this->assertSame(array( 'cancel', 'insert' ), $order);
 		$this->assertSame(array( 'START TRANSACTION', 'COMMIT' ), $queries);
+	}
+
+	public function test_an_override_takes_only_the_clashing_day_of_a_span_and_freezes_the_hours_it_keeps(): void {
+		// Booking 99 spans 16-18 March; the new booking clashes on the 17th
+		// only. The 17th leaves it, and the days it keeps carry the hours they
+		// had, so its first and last days do not move (#2243).
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array(
+				'id'             => 99,
+				'environment_id' => 5,
+				'booking_date'   => '2026-03-16',
+				'end_date'       => '2026-03-18',
+				'time_mode'      => 'span',
+				'skipped_dates'  => null,
+				'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+				'start_time'     => '14:00:00',
+				'end_time'       => '10:00:00',
+			),
+		));
+		$updates = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data, $where) use (&$updates) {
+			$updates[] = array( $table, $data, $where );
+			return 1;
+		});
+		$this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+		$this->wpdb->insert_id = 120;
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) {
+			$this->assertStringNotContainsString("SET status = 'cancelled'", (string) $sql, 'The booking is not cancelled whole.');
+			return 1;
+		});
+
+		$overrides = null;
+		$result    = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		], $overrides);
+
+		$this->assertSame(120, $result);
+		$this->assertSame(array( 99 => array( '2026-03-17' ) ), $overrides);
+		$this->assertCount(1, $updates);
+		$this->assertSame(array( 'id' => 99 ), $updates[0][2]);
+		$this->assertSame(
+			array(
+				'skipped_dates' => '["2026-03-17"]',
+				'day_times'     => '{"2026-03-16":["14:00","18:00"],"2026-03-18":["08:00","10:00"]}',
+			),
+			$updates[0][1]
+		);
+	}
+
+	public function test_an_override_that_leaves_a_span_one_day_makes_that_day_s_hours_the_row_s(): void {
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array(
+				'id'             => 99,
+				'environment_id' => 5,
+				'booking_date'   => '2026-03-16',
+				'end_date'       => '2026-03-17',
+				'time_mode'      => 'span',
+				'skipped_dates'  => null,
+				'day_times'      => '{"2026-03-16":["14:00","18:00"],"2026-03-17":["08:00","10:00"]}',
+				'start_time'     => '14:00:00',
+				'end_time'       => '10:00:00',
+			),
+		));
+		$updates = array();
+		$this->wpdb->shouldReceive('update')->andReturnUsing(function ($table, $data) use (&$updates) {
+			$updates[] = $data;
+			return 1;
+		});
+		$this->wpdb->shouldReceive('insert')->once()->andReturn(1);
+		$this->wpdb->insert_id = 120;
+
+		AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		]);
+
+		$this->assertSame(
+			array(
+				'skipped_dates' => '["2026-03-17"]',
+				'day_times'     => null,
+				'start_time'    => '14:00',
+				'end_time'      => '18:00',
+			),
+			$updates[0]
+		);
+	}
+
+	public function test_a_failed_partial_override_rolls_the_booking_back(): void {
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(array(
+			(object) array( 'id' => 99, 'booking_date' => '2026-03-16', 'end_date' => '2026-03-18', 'time_mode' => 'daily', 'skipped_dates' => null, 'start_time' => '09:00:00', 'end_time' => '10:00:00' ),
+		));
+		$this->wpdb->shouldReceive('update')->andReturn(false);
+		$this->wpdb->shouldNotReceive('insert');
+		$queries = array();
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$queries) {
+			$queries[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-17',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Priority booking',
+			'override_ids'   => array( 99 ),
+			'override_note'  => 'The visiting committee needs the room.',
+		]);
+
+		$this->assertFalse($result);
+		$this->assertSame(array( 'START TRANSACTION', 'ROLLBACK' ), $queries);
+	}
+
+	public function test_a_span_booking_is_written_with_its_hours_frozen(): void {
+		// No environment row: the window is the whole day.
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+		$inserted = array();
+		$this->wpdb->shouldReceive('insert')->andReturnUsing(function ($table, $data) use (&$inserted) {
+			$inserted[] = $data;
+			return 1;
+		});
+		$this->wpdb->insert_id = 120;
+
+		AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-16',
+			'end_date'       => '2026-03-17',
+			'time_mode'      => 'span',
+			'start_time'     => '14:00',
+			'end_time'       => '10:00',
+			'description'    => 'Two-day workshop',
+		]);
+
+		$this->assertSame('{"2026-03-16":["14:00","23:59"],"2026-03-17":["00:00","10:00"]}', $inserted[0]['day_times']);
+	}
+
+	public function test_create_writes_the_participants_before_it_commits(): void {
+		// A booking whose links were written after COMMIT held the slot with
+		// nobody on it when a link failed (#2243).
+		$writes = array();
+		$this->wpdb->shouldReceive('insert')->andReturnUsing(function ($table) use (&$writes) {
+			$writes[] = 'insert ' . $table;
+			return 1;
+		});
+		$this->wpdb->insert_id = 120;
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$writes) {
+			$writes[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Weekly meeting',
+			'audience_ids'   => array( 3 ),
+			'user_ids'       => array( 8 ),
+		]);
+
+		$this->assertSame(120, $result);
+		$this->assertSame(
+			array(
+				'START TRANSACTION',
+				'insert wp_ffc_audience_bookings',
+				'insert wp_ffc_audience_booking_audiences',
+				'insert wp_ffc_audience_booking_users',
+				'COMMIT',
+			),
+			$writes
+		);
+	}
+
+	public function test_a_failed_participant_link_rolls_the_booking_back(): void {
+		$writes = array();
+		$this->wpdb->shouldReceive('insert')->andReturnUsing(function ($table) use (&$writes) {
+			$writes[] = 'insert ' . $table;
+			return 'wp_ffc_audience_booking_audiences' === $table ? false : 1;
+		});
+		$this->wpdb->insert_id = 120;
+		$this->wpdb->shouldReceive('query')->andReturnUsing(function ($sql) use (&$writes) {
+			$writes[] = (string) $sql;
+			return 1;
+		});
+
+		$result = AudienceBookingWriter::create([
+			'environment_id' => 5,
+			'booking_date'   => '2026-03-15',
+			'start_time'     => '09:00',
+			'end_time'       => '10:00',
+			'description'    => 'Weekly meeting',
+			'audience_ids'   => array( 3 ),
+		]);
+
+		$this->assertFalse($result);
+		$this->assertSame('ROLLBACK', end($writes));
+		$this->assertNotContains('COMMIT', $writes);
 	}
 
 	public function test_create_still_refuses_a_clash_it_was_not_told_to_override(): void {
@@ -888,6 +1142,22 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$result = AudienceBookingWriter::update(1, ['description' => 'Updated description']);
 
 		$this->assertTrue($result);
+	}
+
+	public function test_update_returns_false_when_the_database_refuses_the_write(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(false);
+
+		$result = AudienceBookingWriter::update(1, ['description' => 'Updated description', 'audience_ids' => [3]]);
+
+		// The associations are left alone: a booking the database refused
+		// must not gain audiences that describe a change that did not happen.
+		$this->assertFalse($result);
+	}
+
+	public function test_update_returns_true_when_no_row_changed(): void {
+		$this->wpdb->shouldReceive('update')->once()->andReturn(0);
+
+		$this->assertTrue(AudienceBookingWriter::update(1, ['description' => 'Same description']));
 	}
 
 	public function test_update_strips_protected_fields(): void {
@@ -1088,7 +1358,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 			'description' => 'Full update',
 			'status' => 'cancelled',
 			'cancelled_by' => 1,
-			'cancelled_at' => '2026-03-01 10:00:00',
+			'cancelled_at' => 1772359200,
 			'cancellation_reason' => 'No longer needed',
 		]);
 	}
@@ -1097,26 +1367,83 @@ class AudienceBookingRepositoryTest extends TestCase {
 	// cancel()
 	// ==================================================================
 
-	public function test_cancel_sets_status_and_cancellation_fields(): void {
-		$this->wpdb->shouldReceive('update')
-			->once()
-			->with(
-				'wp_ffc_audience_bookings',
-				Mockery::on(function($data) {
-					return $data['status'] === 'cancelled'
-						&& $data['cancelled_by'] === 1
-						&& $data['cancelled_at'] === '2026-03-01 10:00:00'
-						&& $data['cancellation_reason'] === 'Schedule conflict';
-				}),
-				['id' => 5],
-				Mockery::type('array'),
-				['%d']
-			)
-			->andReturn(1);
+	/**
+	 * Point prepare() at a capture and query() at an answer for cancel().
+	 *
+	 * @param int|false $changed What query() reports for the UPDATE.
+	 * @param array     $bound   Receives the prepare() arguments.
+	 */
+	private function expect_cancel_update( $changed, ?array &$bound = null ): void {
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) use (&$bound) {
+			if (false !== strpos((string) $args[0], "SET status = 'cancelled'")) {
+				$bound = $args;
+				return 'CANCEL';
+			}
+			return $args[0];
+		});
+		$this->wpdb->shouldReceive('query')->with('CANCEL')->once()->andReturn($changed);
+	}
 
-		$result = AudienceBookingWriter::cancel(5, 'Schedule conflict');
+	public function test_cancel_sets_status_and_cancellation_fields_on_an_active_row_only(): void {
+		$bound = null;
+		$this->expect_cancel_update(1, $bound);
 
-		$this->assertTrue($result);
+		$before = time();
+		$this->assertTrue(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
+		$after = time();
+
+		// One conditional UPDATE: a booking that is no longer active is not touched (#2243).
+		$this->assertStringContainsString("WHERE id = %d AND status = 'active'", $bound[0]);
+		$this->assertStringContainsString('cancelled_at = %d', $bound[0]);
+		// UTC seconds, read on both sides of the clock (#2243).
+		$this->assertGreaterThanOrEqual($before, $bound[3]);
+		$this->assertLessThanOrEqual($after, $bound[3]);
+		$this->assertSame(array( 'wp_ffc_audience_bookings', 1, $bound[3], 'Schedule conflict', 5 ), array_slice($bound, 1));
+	}
+
+	public function test_a_second_cancel_changes_no_row_and_reports_false(): void {
+		$this->expect_cancel_update(0);
+
+		$this->assertFalse(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
+	}
+
+	// ==================================================================
+	// Weekly series (#2243)
+	// ==================================================================
+
+	public function test_assign_series_writes_the_first_id_on_every_occurrence(): void {
+		$bound = null;
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) use (&$bound) {
+			$bound = $args;
+			return 'SERIES';
+		});
+		$this->wpdb->shouldReceive('query')->with('SERIES')->once()->andReturn(3);
+
+		$this->assertTrue(AudienceBookingWriter::assign_series(array( 7, 8, 9 )));
+		$this->assertStringContainsString('SET series_id = %d WHERE id IN (%d, %d, %d)', $bound[0]);
+		$this->assertSame(array( 'wp_ffc_audience_bookings', 7, 7, 8, 9 ), array_slice($bound, 1));
+	}
+
+	public function test_assign_series_reports_a_partial_write_and_refuses_a_single_booking(): void {
+		$this->wpdb->shouldReceive('prepare')->andReturn('SERIES');
+		$this->wpdb->shouldReceive('query')->with('SERIES')->once()->andReturn(1);
+
+		$this->assertFalse(AudienceBookingWriter::assign_series(array( 7, 8 )), 'One of two rows tied is not a series.');
+		$this->assertFalse(AudienceBookingWriter::assign_series(array( 7 )), 'One booking is no series; nothing is written.');
+	}
+
+	public function test_get_series_reads_the_active_occurrences_first_date_first(): void {
+		$sql = null;
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function (...$args) use (&$sql) {
+			$sql = $args;
+			return 'READ';
+		});
+		$rows = array( (object) array( 'id' => '7', 'booking_date' => '2026-05-20', 'start_time' => '09:00:00', 'end_time' => '10:00:00' ) );
+		$this->wpdb->shouldReceive('get_results')->with('READ')->once()->andReturn($rows);
+
+		$this->assertSame($rows, AudienceBookingReader::get_series(7));
+		$this->assertStringContainsString("WHERE series_id = %d AND status = 'active' ORDER BY booking_date ASC", $sql[0]);
+		$this->assertSame(array(), AudienceBookingReader::get_series(0), 'No series id reads nothing.');
 	}
 
 	public function test_cancel_returns_false_when_reason_is_empty(): void {
@@ -1125,8 +1452,14 @@ class AudienceBookingRepositoryTest extends TestCase {
 		$this->assertFalse($result);
 	}
 
+	public function test_cancel_returns_false_when_the_database_refuses_the_write(): void {
+		$this->expect_cancel_update(false);
+
+		$this->assertFalse(AudienceBookingWriter::cancel(5, 'Schedule conflict'));
+	}
+
 	public function test_cancel_clears_cache(): void {
-		$this->wpdb->shouldReceive('update')->once()->andReturn(1);
+		$this->expect_cancel_update(1);
 
 		$deleted_keys = [];
 		Functions\when('wp_cache_delete')->alias(function($key, $group = '') use (&$deleted_keys) {
@@ -1138,7 +1471,6 @@ class AudienceBookingRepositoryTest extends TestCase {
 
 		AudienceBookingWriter::cancel(8, 'Cancelled reason');
 
-		// cancel() calls update() which clears cache, then cancel() clears cache again
 		$this->assertContains('id_8', $deleted_keys);
 	}
 
@@ -1771,10 +2103,10 @@ class AudienceBookingRepositoryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// count_for_export() — JOINs the environment table so schedule_id filters
+	// count_filtered() — JOINs the environment table so schedule_id filters
 	// ==================================================================
 
-	public function test_count_for_export_joins_environment_and_counts(): void {
+	public function test_count_filtered_joins_environment_and_counts(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -1782,14 +2114,14 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('9');
 
-		$result = AudienceBookingReader::count_for_export([]);
+		$result = AudienceBookingReader::count_filtered([]);
 
 		$this->assertSame(9, $result);
 		$this->assertStringContainsString('SELECT COUNT(*)', $captured_sql);
 		$this->assertStringContainsString('INNER JOIN', $captured_sql);
 	}
 
-	public function test_count_for_export_filters_by_schedule_id(): void {
+	public function test_count_filtered_filters_by_schedule_id(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -1797,13 +2129,13 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('2');
 
-		$result = AudienceBookingReader::count_for_export(['schedule_id' => 4]);
+		$result = AudienceBookingReader::count_filtered(['schedule_id' => 4]);
 
 		$this->assertSame(2, $result);
 		$this->assertStringContainsString('e.schedule_id = %d', $captured_sql);
 	}
 
-	public function test_count_for_export_combines_filters(): void {
+	public function test_count_filtered_combines_filters(): void {
 		$captured_sql = '';
 		$this->wpdb->shouldReceive('prepare')->once()->andReturnUsing(function() use (&$captured_sql) {
 			$captured_sql = func_get_args()[0];
@@ -1811,7 +2143,7 @@ class AudienceBookingRepositoryTest extends TestCase {
 		});
 		$this->wpdb->shouldReceive('get_var')->once()->andReturn('1');
 
-		AudienceBookingReader::count_for_export([
+		AudienceBookingReader::count_filtered([
 			'environment_id' => 3,
 			'status'         => 'active',
 			'start_date'     => '2026-05-01',

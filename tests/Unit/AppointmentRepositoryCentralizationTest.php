@@ -29,6 +29,7 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'current_time' )->justReturn( '2026-05-20' );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
@@ -39,6 +40,9 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( fn ( $sql ) => $sql )->byDefault();
@@ -192,6 +196,28 @@ class AppointmentRepositoryCentralizationTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
 
 		$this->assertSame( $row, $this->repo()->findNextUpcomingForUser( 5 ) );
+	}
+
+	/**
+	 * #2246 — the lower bound is the site's today, passed as a value, never
+	 * the server's CURDATE(); one day breaks ties on the start time, then id.
+	 */
+	public function test_find_next_upcoming_compares_with_the_sites_today(): void {
+		$prepared = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, $args ) use ( &$prepared ) {
+				$prepared = array( $sql, $args );
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$this->repo()->findNextUpcomingForUser( 5 );
+
+		$this->assertStringNotContainsString( 'CURDATE()', $prepared[0] );
+		$this->assertStringContainsString( 'appointment_date >= %s', $prepared[0] );
+		$this->assertStringContainsString( 'ORDER BY appointment_date ASC, start_time ASC, id ASC', $prepared[0] );
+		$this->assertSame( '2026-05-20', end( $prepared[1] ) );
 	}
 
 	public function test_find_next_upcoming_returns_null_when_none(): void {

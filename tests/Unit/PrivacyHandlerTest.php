@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Privacy\PrivacyHandler;
 use FreeFormCertificate\Privacy\PrivacyExporters;
 use FreeFormCertificate\Privacy\PrivacyErasers;
@@ -27,9 +28,20 @@ class PrivacyHandlerTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb = array_key_exists('wpdb', $GLOBALS);
+		if ($this->had_wpdb) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
 
 		global $wpdb;
 		$wpdb = Mockery::mock('wpdb');
@@ -58,6 +70,11 @@ class PrivacyHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ($this->had_wpdb) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset($GLOBALS['wpdb']);
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -217,7 +234,10 @@ class PrivacyHandlerTest extends TestCase {
 	public function test_register_exporters_adds_every_entry(): void {
 		$result = PrivacyHandler::register_exporters(array());
 
-		$this->assertCount(10, $result);
+		$this->assertCount(12, $result);
+		// The activity log and the date-message log joined in #2246.
+		$this->assertArrayHasKey('ffcertificate-activity-log', $result);
+		$this->assertArrayHasKey('ffcertificate-date-messages', $result);
 		$this->assertArrayHasKey('ffcertificate-audience-attendance', $result);
 		$this->assertArrayHasKey('ffcertificate-audience-form-invites', $result);
 		// Reregistration and recruitment joined in #1574.
@@ -241,7 +261,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_exporters($existing);
 
-		$this->assertCount(11, $result);
+		$this->assertCount(13, $result);
 		$this->assertArrayHasKey('other-plugin', $result);
 	}
 
@@ -350,19 +370,18 @@ class PrivacyHandlerTest extends TestCase {
 
 	/**
 	 * The birth date is stored encrypted, so the export decrypts it rather
-	 * than handing the subject ciphertext (#1538).
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * than handing the subject ciphertext (#1538). The ciphertext is made by
+	 * the real Encryption with the bootstrap's key constants, which is also
+	 * what decrypts it on the way out.
 	 */
 	public function test_export_profile_includes_the_decrypted_birth_date(): void {
-		$enc = Mockery::mock('alias:FreeFormCertificate\Core\Encryption');
-		$enc->shouldReceive('decrypt')->with('ENC_BIRTH')->andReturn('1990-05-20');
+		$ciphertext = (string) Encryption::encrypt('1990-05-20');
+		$this->assertNotSame('', $ciphertext, 'The bootstrap keys must make Encryption usable.');
 
 		$user = $this->make_user(42, 'user@example.com', 'Jane Doe');
 		Functions\when('get_user_by')->justReturn($user);
-		Functions\when('get_user_meta')->alias(function ($uid, $key) {
-			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		Functions\when('get_user_meta')->alias(function ($uid, $key) use ($ciphertext) {
+			return 'ffc_user_birth_date' === $key ? $ciphertext : '';
 		});
 		Functions\when('wp_date')->alias(function ($format, $ts) {
 			return gmdate('Y-m-d', $ts);
@@ -379,7 +398,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$this->assertContains('Birth date', $names);
 		$this->assertSame('1990-05-20', $values[array_search('Birth date', $names, true)]);
-		$this->assertNotContains('ENC_BIRTH', $values, 'Ciphertext must never reach an LGPD export.');
+		$this->assertNotContains($ciphertext, $values, 'Ciphertext must never reach an LGPD export.');
 	}
 
 	// ==================================================================
@@ -925,6 +944,120 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertSame(array('Workshop', 'Evaluation'), array_slice($values, 0, 2));
 		$this->assertStringContainsString('2027', $values[2], 'The last send, formatted.');
 		$this->assertSame('2', $values[3]);
+	}
+
+	// ==================================================================
+	// Paging stability and the two groups added in #2246
+	// ==================================================================
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function paged_exporters(): array {
+		return array(
+			'certificates' => array( 'export_certificates', 't.submission_date DESC, t.id DESC' ),
+			'appointments' => array( 'export_appointments', 't.appointment_date DESC, t.id DESC' ),
+			'bookings'     => array( 'export_audience_bookings', 'b.booking_date DESC, b.id DESC' ),
+		);
+	}
+
+	/**
+	 * Two rows on the same date must not swap between pages, or one is
+	 * exported twice and another never (#2246).
+	 *
+	 * @dataProvider paged_exporters
+	 */
+	public function test_a_paged_exporter_breaks_ties_on_the_id( string $method, string $order ): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		Functions\when('get_option')->justReturn(array());
+		$this->mock_all_tables_exist();
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				if (false !== strpos((string) $query, 'LIMIT')) {
+					$sql = (string) $query;
+				}
+				return array();
+			}
+		);
+
+		PrivacyExporters::$method('user@example.com');
+
+		$this->assertStringContainsString('ORDER BY ' . $order, preg_replace('/\s+/', ' ', $sql));
+	}
+
+	public function test_export_activity_log_returns_empty_without_a_user_or_a_table(): void {
+		Functions\when('get_user_by')->justReturn(false);
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_activity_log('nobody@example.com'));
+
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_no_tables_exist();
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_activity_log('user@example.com'));
+	}
+
+	public function test_export_activity_log_lists_the_user_entries_without_their_context(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_all_tables_exist();
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($v) => $v);
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				if (false !== strpos((string) $query, 'SHOW COLUMNS')) {
+					return array(); // An install with no encrypted address column.
+				}
+				$sql = (string) $query;
+				return array(
+					array('id' => '9', 'action' => 'privacy_request', 'level' => 'info', 'created_at' => '2026-10-30 10:00:00'),
+				);
+			}
+		);
+
+		$result = PrivacyExporters::export_activity_log('user@example.com');
+
+		$this->assertTrue($result['done']);
+		$this->assertSame('ffc-activity-log', $result['data'][0]['group_id']);
+		$this->assertSame('ffc-activity-9', $result['data'][0]['item_id']);
+		$this->assertSame(
+			array('privacy_request', 'info', '2026-10-30 10:00:00'),
+			array_column($result['data'][0]['data'], 'value')
+		);
+		$this->assertStringNotContainsString('context', $sql, 'The operator-facing context is never read.');
+		$this->assertStringContainsString('ORDER BY created_at DESC, id DESC', $sql);
+	}
+
+	public function test_export_date_message_log_lists_each_delivery(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_all_tables_exist();
+		Functions\when('get_option')->justReturn(array());
+		Functions\when('wp_date')->alias(static fn($format, $ts) => gmdate('Y-m-d', (int) $ts));
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
+		$sql = '';
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			function ($query) use (&$sql) {
+				$sql = (string) $query;
+				return array(
+					array('id' => '3', 'occurrence_key' => '2026-05-20', 'sent_at' => '1800000000', 'rule_name' => 'Birthday'),
+				);
+			}
+		);
+
+		$result = PrivacyExporters::export_date_message_log('user@example.com');
+
+		$this->assertTrue($result['done']);
+		$this->assertSame('ffc-date-messages', $result['data'][0]['group_id']);
+		$this->assertSame('ffc-date-message-3', $result['data'][0]['item_id']);
+		$values = array_column($result['data'][0]['data'], 'value');
+		$this->assertSame('Birthday', $values[0]);
+		$this->assertStringContainsString('2026', $values[1]);
+		$this->assertStringContainsString('2027', $values[2]);
+		$this->assertStringContainsString('ORDER BY l.sent_at DESC, l.id DESC', preg_replace('/\s+/', ' ', $sql));
+	}
+
+	public function test_export_date_message_log_returns_empty_without_the_module_table(): void {
+		Functions\when('get_user_by')->justReturn($this->make_user());
+		$this->mock_no_tables_exist();
+
+		$this->assertSame(array('data' => array(), 'done' => true), PrivacyExporters::export_date_message_log('user@example.com'));
 	}
 
 	public function test_export_audience_bookings_shows_all_day_label(): void {

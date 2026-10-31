@@ -128,6 +128,10 @@ final class ReregistrationImportMessages {
 					: __( 'Resolves to the same account as an earlier row.', 'ffcertificate' );
 				break;
 
+			case 'rereg_import_staff_account':
+				$body = __( 'Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin.', 'ffcertificate' );
+				break;
+
 			case 'rereg_import_already_submitted':
 				$body = __( 'This person has already submitted; their own answers are kept.', 'ffcertificate' );
 				break;

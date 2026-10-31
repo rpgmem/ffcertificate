@@ -178,8 +178,8 @@ class RecruitmentNoticeAdjutancyRepository {
 	/**
 	 * Detach all adjutancies from a notice.
 	 *
-	 * Convenience method used by the notice deletion path (if/when notice
-	 * deletion is added) and by tests. Not used in v1's main flows.
+	 * The notice deletion path calls it inside its transaction (#2245), which
+	 * is what took it off the #2089 deprecation list.
 	 *
 	 * @param int $notice_id Notice ID.
 	 * @return int Number of pairs removed.

@@ -27,6 +27,10 @@ class RoleRegistrarTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 		// pcov: preload so coverage attributes to the exercised classes.
 		class_exists( '\FreeFormCertificate\UserDashboard\RoleRegistrar' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );

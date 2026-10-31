@@ -6,14 +6,12 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabAdvanced;
 
 /**
  * @covers \FreeFormCertificate\Settings\Tabs\TabAdvanced
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabAdvancedTest extends TestCase {
@@ -101,10 +99,17 @@ class TabAdvancedTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_option_delegates_to_settings_reader(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->with( 'enable_activity_log', '0' )->andReturn( '1' );
+		// The real SettingsReader reads the stored ffc_settings array.
+		$read = array();
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$read ) {
+				$read[] = $key;
+				return 'ffc_settings' === $key ? array( 'enable_activity_log' => '1' ) : $default;
+			}
+		);
 
 		$this->assertSame( '1', $this->tab->get_option( 'enable_activity_log', '0' ) );
+		$this->assertSame( array( 'ffc_settings' ), $read );
 	}
 
 	// ==================================================================
@@ -112,15 +117,13 @@ class TabAdvancedTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_includes_real_view(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->andReturnUsing(
-			function ( $key, $default = '' ) {
+		// The real SettingsReader over an empty ffc_settings: every read
+		// falls back to its default.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
 				return $default;
 			}
 		);
-		$reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'debug' );
-		$reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true );
-		$reader->shouldReceive( 'required_certificate_tags' )->andReturn( array() );
 
 		// Globals the real view calls.
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
@@ -145,12 +148,16 @@ class TabAdvancedTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_error_when_view_missing(): void {
-		// Safe under @runTestsInSeparateProcesses — the namespaced stub does
-		// not leak across tests.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the real render() at a view file that does not exist, so its
+		// file_exists() guard fails and the error-notice branch executes.
+		$tab = new class() extends TabAdvanced {
+			protected function view_path( string $file ): string {
+				return sys_get_temp_dir() . '/ffc-missing-view-' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );
@@ -174,9 +181,6 @@ class TabAdvancedTest extends TestCase {
 
 	public function test_enqueue_scripts_enqueues_autosave_on_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'advanced' );
-
-		$assets = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$assets->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias(

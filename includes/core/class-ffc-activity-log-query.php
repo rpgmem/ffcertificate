@@ -551,6 +551,37 @@ class ActivityLogQuery {
 	}
 
 	/**
+	 * The client address of one entry, decrypted, for an audited Reveal
+	 * (#2109). The screen shows it masked; this is the only path to the
+	 * clear value.
+	 *
+	 * @param int $id Activity log entry ID.
+	 * @return string The address, or '' when the entry or its address is missing.
+	 */
+	public static function ip_of( int $id ): string {
+		global $wpdb;
+		if ( $id <= 0 ) {
+			return '';
+		}
+
+		/**
+		 * The row, keyed by column.
+		 *
+		 * @var array<string, mixed>|null $row
+		 */
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE id = %d',
+				$wpdb->prefix . 'ffc_activity_log',
+				$id
+			),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? (string) self::resolve_ip( $row ) : '';
+	}
+
+	/**
 	 * Clean old logs
 	 *
 	 * @param int $days Keep logs from last N days (default: 90).

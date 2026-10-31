@@ -148,6 +148,10 @@ class ActivityLog {
 			// prefix of their own, which would fall back to `submissions`.
 			'pii_exported'                       => 'data_access',
 			'date_messages_pii_revealed'         => 'data_access',
+			// A client address revealed on the activity log or the Rate
+			// Limit tab (#2109).
+			'activity_log_ip_revealed'           => 'data_access',
+			'rate_limit_ip_revealed'             => 'data_access',
 
 			// An audience screen's account-email reveal (#1824) sits with the
 			// appointment reveals; without a prefix of its own it would fall
@@ -760,16 +764,18 @@ class ActivityLog {
 	/**
 	 * Log access denied
 	 *
+	 * The refused address is the row's own, kept encrypted like every
+	 * other row's; the context carries the reason only. It carried the
+	 * address in clear too until #2109.
+	 *
 	 * @param string $reason Reason.
-	 * @param string $identifier Identifier.
 	 */
-	public static function log_access_denied( string $reason, string $identifier ): bool {
+	public static function log_access_denied( string $reason ): bool {
 		return self::log(
 			'access_denied',
 			self::LEVEL_WARNING,
 			array(
-				'reason'     => $reason,
-				'identifier' => $identifier,
+				'reason' => $reason,
 			)
 		);
 	}

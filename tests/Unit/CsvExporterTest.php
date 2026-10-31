@@ -90,8 +90,6 @@ class CsvExporterTest extends TestCase {
 				return true;
 			}
 		);
-		Functions\when( 'FreeFormCertificate\Admin\file_exists' )->alias( static fn( $f ) => file_exists( $f ) );
-		Functions\when( 'FreeFormCertificate\Admin\unlink' )->alias( static fn( $f ) => @unlink( $f ) );
 
 		$reclaimed = CsvExporter::cleanup_stale_export_jobs();
 

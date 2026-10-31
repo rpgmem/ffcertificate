@@ -231,9 +231,11 @@ final class AdminMenuVisibility {
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),
+			// The manager also reaches Scheduling → Settings, whose General
+			// tab is all it shows them: the global holidays (#2244).
 			'ffc_calendars_manager'       => array(
 				'landing_page'         => $personal_calendars,
-				'allowed_pages'        => array( $personal_calendars, 'admin.php?action=' . self::DUPLICATE_CALENDAR_ACTION ),
+				'allowed_pages'        => array( $personal_calendars, 'admin.php?action=' . self::DUPLICATE_CALENDAR_ACTION, AudienceAdminPage::MENU_SLUG . '-settings' ),
 				'hide_core_menus'      => $shared_hidden_menus,
 				'hide_admin_bar_nodes' => $shared_admin_bar_nodes,
 			),

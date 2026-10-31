@@ -1437,3 +1437,24 @@ html:has(.ffc-settings-back-to-top) {
 .ffc-dm-rule-action {
     display: inline;
 }
+
+/* Settings → General: the address lookup's test (#2234). The CEP and the
+   button share a row; the providers' answers sit below them. */
+.ffc-cep-lookup-test {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-settings-wrap .ffc-cep-lookup-test .ffc-btn {
+    margin: 0;
+}
+
+.ffc-cep-lookup-test .ffc-cep-lookup-test-input {
+    width: 10em;
+}
+
+.ffc-cep-lookup-test-result:not(:empty) {
+    margin-top: var(--ffc-spacing-sm);
+}

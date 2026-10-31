@@ -7,8 +7,10 @@
  * Uses shared CSS variables from ffc-common.css
  */
 
-/* Calendar Container */
+/* Calendar Container. Border-box, so a notice above it (#2200) matches its
+   width with the same number. */
 .ffc-shortcode.ffc-audience-calendar {
+    box-sizing: border-box;
     font-family: var(--ffc-font-family);
     max-width: 600px;
     margin: 0 auto;
@@ -100,6 +102,125 @@
     min-width: 150px;
 }
 
+/* Environment filter (#2201): a listbox that shows each environment's colour
+   drives the select, which stays as the value the calendar reads. The select
+   is hidden from sight only; the script hides it from assistive technology. */
+.ffc-shortcode .ffc-calendar-filters select.ffc-env-picker-native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.ffc-shortcode .ffc-env-picker {
+    position: relative;
+}
+
+.ffc-shortcode .ffc-env-picker-button {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    width: 100%;
+    min-width: 200px;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-gray-300);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    font-family: inherit;
+    font-size: var(--ffc-font-size-base);
+    text-align: left;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-env-picker-button:focus-visible,
+.ffc-shortcode .ffc-env-picker-list:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+.ffc-shortcode .ffc-env-picker-name {
+    flex: 1;
+    min-width: 0;
+}
+
+.ffc-shortcode .ffc-env-picker-caret::before {
+    width: 16px;
+    height: 16px;
+}
+
+.ffc-shortcode .ffc-env-picker-nodot {
+    display: inline-block;
+    width: 12px;
+    flex-shrink: 0;
+}
+
+.ffc-shortcode .ffc-env-picker .ffc-color-dot {
+    flex-shrink: 0;
+}
+
+.ffc-shortcode .ffc-env-picker-list {
+    position: absolute;
+    top: calc(100% + var(--ffc-spacing-2xs));
+    right: 0;
+    z-index: var(--ffc-z-dropdown);
+    min-width: 100%;
+    max-height: 280px;
+    margin: 0;
+    padding: var(--ffc-spacing-2xs);
+    overflow-y: auto;
+    box-sizing: border-box;
+    list-style: none;
+    border: 1px solid var(--ffc-gray-300);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+    box-shadow: var(--ffc-shadow-md);
+}
+
+.ffc-shortcode .ffc-env-picker-list[hidden] {
+    display: none;
+}
+
+.ffc-shortcode .ffc-env-picker-option {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    border-radius: var(--ffc-radius-sm);
+    font-size: var(--ffc-font-size-base);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ffc-shortcode .ffc-env-picker-option:hover,
+.ffc-shortcode .ffc-env-picker-option.is-active {
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+}
+
+.ffc-shortcode .ffc-env-picker-option[aria-selected="true"] {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-text);
+    font-weight: 600;
+}
+
+@media (forced-colors: active) {
+    .ffc-shortcode .ffc-env-picker-option.is-active {
+        outline: 2px solid Highlight;
+    }
+
+    .ffc-shortcode .ffc-env-picker .ffc-color-dot {
+        forced-color-adjust: none;
+    }
+}
+
 .ffc-shortcode .ffc-calendar-title {
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     font-size: var(--ffc-font-size-base);
@@ -152,6 +273,12 @@
 .ffc-shortcode .ffc-day:hover {
     border-color: var(--ffc-primary);
     box-shadow: var(--ffc-shadow-sm);
+}
+
+/* A day of the month takes the keyboard focus (#2244). */
+.ffc-shortcode .ffc-day:focus-visible {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
 }
 
 .ffc-shortcode .ffc-day.ffc-other-month {
@@ -207,17 +334,17 @@
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) {
-    border-color: var(--ffc-success);
+    border-color: var(--ffc-cal-available);
     border-width: 2px;
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month) .ffc-day-number {
-    color: var(--ffc-success);
+    color: var(--ffc-cal-available);
 }
 
 .ffc-shortcode .ffc-day.ffc-available:not(.ffc-past):not(.ffc-disabled):not(.ffc-other-month):hover {
-    border-color: var(--ffc-success);
-    box-shadow: 0 0 0 2px var(--ffc-success-border);
+    border-color: var(--ffc-cal-available);
+    box-shadow: 0 0 0 2px var(--ffc-cal-available-ring);
 }
 
 .ffc-shortcode .ffc-day.ffc-selected {
@@ -253,9 +380,9 @@
 .ffc-shortcode .ffc-day-badge {
     display: inline-block;
     padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
-    border-radius: 10px;
+    /* The audience tag's shape, like the admin's closed-date pill (#2210). */
+    border-radius: var(--ffc-radius-xs);
     font-size: 10px;
-    font-weight: 600;
     margin-top: 3px;
     max-width: 100%;
     white-space: nowrap;
@@ -264,18 +391,31 @@
 }
 
 .ffc-shortcode .ffc-badge-bookings {
-    background: var(--ffc-primary);
-    color: var(--ffc-text-on-primary);
+    background: var(--ffc-cal-booked);
+    color: var(--ffc-text-on-cal-booked);
 }
 
 .ffc-shortcode .ffc-badge-holiday {
-    background: var(--ffc-warning);
-    color: var(--ffc-text-on-warning);
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+/* An optional holiday (#2202): closed like a holiday, labelled apart. */
+.ffc-shortcode .ffc-badge-holiday.ffc-badge-optional-holiday {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
+}
+
+/* An available day's name (#2221), when one is set: outlined in the
+   available colour, so it reads as an invitation rather than a state. */
+.ffc-shortcode .ffc-badge-available {
+    border: 1px solid var(--ffc-cal-available);
+    color: var(--ffc-cal-available);
 }
 
 .ffc-shortcode .ffc-badge-closed {
-    background: var(--ffc-bg-alt);
-    color: var(--ffc-text-secondary);
+    background: var(--ffc-cal-closed);
+    color: var(--ffc-text-on-cal-closed);
 }
 
 /* Calendar Legend */
@@ -303,19 +443,23 @@
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-available {
-    background: var(--ffc-success);
+    background: var(--ffc-cal-available);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-booked {
-    background: var(--ffc-primary);
+    background: var(--ffc-cal-booked);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-holiday {
-    background: var(--ffc-warning);
+    background: var(--ffc-holiday);
+}
+
+.ffc-shortcode .ffc-legend-dot.ffc-optional-holiday {
+    background: var(--ffc-optional-holiday);
 }
 
 .ffc-shortcode .ffc-legend-dot.ffc-closed {
-    background: var(--ffc-gray-400);
+    background: var(--ffc-cal-closed-dot);
 }
 
 /* Loading State */
@@ -1001,6 +1145,10 @@
         min-width: 100%;
     }
 
+    .ffc-shortcode .ffc-env-picker-button {
+        min-width: 100%;
+    }
+
     .ffc-shortcode .ffc-day {
         aspect-ratio: 1;
     }
@@ -1027,7 +1175,6 @@
 
     .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
         width: 100%;
-        max-height: 300px;
     }
 }
 
@@ -1070,7 +1217,7 @@
 .ffc-shortcode.ffc-calendar-wrapper.ffc-has-event-list.ffc-event-list-side {
     display: flex;
     gap: var(--ffc-spacing-2xl);
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 .ffc-shortcode.ffc-calendar-wrapper.ffc-event-list-side .ffc-audience-calendar {
@@ -1082,6 +1229,23 @@
     max-width: 600px;
 }
 
+/* A notice printed above the calendar or in its place (the admin bypass, a
+   calendar that cannot be shown, no access) takes the calendar's width
+   rather than the content's (#2200); the wide variant follows the wrapper
+   when the event list sits beside the calendar. The login and business-hours
+   notices sit in `.ffc-visibility-restricted` with an optional title, so the
+   wrapper takes the same width. */
+.ffc-notice.ffc-calendar-notice,
+.ffc-visibility-restricted {
+    box-sizing: border-box;
+    max-width: 600px;
+    margin: 0 auto var(--ffc-spacing-xl);
+}
+
+.ffc-notice.ffc-calendar-notice.ffc-calendar-notice-wide {
+    max-width: 1120px;
+}
+
 /* Event List Panel */
 .ffc-shortcode .ffc-event-list-panel {
     background: var(--ffc-bg-card);
@@ -1090,11 +1254,32 @@
     overflow: hidden;
 }
 
+/* Beside the calendar the panel takes the calendar's height (#2200): the row
+   stretches it, and the list's zero basis keeps it from adding height of its
+   own, so the calendar is the only thing that sizes the row. The heading
+   stays put and only the list scrolls. */
 .ffc-shortcode.ffc-event-list-side .ffc-event-list-panel {
     width: 500px;
     flex-shrink: 0;
-    max-height: 700px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ffc-shortcode.ffc-event-list-side .ffc-event-list-content {
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
+}
+
+/* Stacked below the calendar on phones, the panel no longer takes the
+   calendar's height, so the list gets a height of its own. Declared after
+   the rule above because it has the same specificity. */
+@media screen and (max-width: 768px) {
+    .ffc-shortcode.ffc-event-list-side .ffc-event-list-content {
+        flex: none;
+        max-height: 260px;
+    }
 }
 
 .ffc-shortcode.ffc-event-list-below .ffc-event-list-panel {
@@ -1228,7 +1413,8 @@
        gives them their badge shape back. */
     .ffc-shortcode .ffc-badge-bookings,
     .ffc-shortcode .ffc-badge-closed,
-    .ffc-shortcode .ffc-badge-holiday {
+    .ffc-shortcode .ffc-badge-holiday,
+    .ffc-shortcode .ffc-badge-holiday.ffc-badge-optional-holiday {
         border: 1px solid CanvasText;
     }
 }
@@ -1236,7 +1422,11 @@
 /* Event list: a holiday's accent stripe. It lived in a script-written
    `style=""` until #1837. */
 .ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday {
-    border-left: 3px solid var(--ffc-warning);
+    border-left: 3px solid var(--ffc-holiday);
+}
+
+.ffc-shortcode .ffc-event-list-item.ffc-event-list-holiday.ffc-event-list-optional-holiday {
+    border-left-color: var(--ffc-optional-holiday);
 }
 
 /* Booking form: why a space cannot be booked on the chosen date (#1859).

@@ -32,7 +32,10 @@ beforeAll(() => {
 			exportDone: 'Done!',
 			exportError: 'An error occurred.',
 			confirmApprove: 'Approve?',
-			confirmReturnToDraft: 'Return to draft?',
+			reviewRejectTitle: 'Reject submission',
+			reviewReturnTitle: 'Return to draft',
+			reviewRejectIntro: 'Reject %d.',
+			reviewReturnIntro: 'Return %d.',
 			generatingPdf: 'Generating…',
 			record: 'Record',
 			errorGenerating: 'PDF error',
@@ -101,7 +104,7 @@ describe('rereg-admin — select-all checkbox', () => {
 
 describe('rereg-admin — bulk-action submit gate', () => {
 	function mountForm() {
-		document.body.innerHTML = `
+		document.body.innerHTML = reviewModal() + `
 			<form id="ffc-submissions-form">
 				<select name="bulk_action">
 					<option value="">—</option>
@@ -163,17 +166,22 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		expect(vi.mocked(window.confirm)).toHaveBeenCalledWith('Approve?');
 	});
 
-	it('prevents submit on return_to_draft when the user declines', async () => {
+	it('sends return_to_draft to the review modal with the selection (#2242)', async () => {
 		mountForm();
 		await reload();
 		window.$('select[name="bulk_action"]').val('return_to_draft');
 		window.$('input[name="submission_ids[]"]').prop('checked', true);
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window, 'confirm');
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
 		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
-		expect(vi.mocked(window.confirm)).toHaveBeenCalledWith('Return to draft?');
+		expect(confirmSpy).not.toHaveBeenCalled();
+		const $modal = window.$('#ffc-review-decision-modal');
+		expect($modal.css('display')).not.toBe('none');
+		expect($modal.find('input[name="decision"]').val()).toBe('return_to_draft');
+		expect($modal.find('input[name="submission_ids[]"]').map((i, el) => el.value).get()).toEqual(['1']);
+		expect($modal.find('.ffc-review-decision-intro').text()).toBe('Return 1.');
 	});
 
 	it('passes a non-confirm action (e.g. export) through without prompting', async () => {
@@ -190,28 +198,77 @@ describe('rereg-admin — bulk-action submit gate', () => {
 });
 
 // ----------------------------------------------------------------------
-// initReturnToDraftConfirm
+// initReviewDecisionModal (#2242)
 // ----------------------------------------------------------------------
 
-describe('rereg-admin — single row return-to-draft button', () => {
-	it('prevents click when the user declines the confirm', async () => {
-		document.body.innerHTML = `<a class="ffc-return-draft-btn" href="?act=return">Return</a>`;
+function reviewModal() {
+	return `
+		<div id="ffc-review-decision-modal" class="ffc-rereg-modal" style="display:none;">
+			<div class="ffc-rereg-modal-backdrop"></div>
+			<div class="ffc-rereg-modal-content">
+				<h2 id="ffc-review-decision-title"></h2>
+				<form method="post">
+					<input type="hidden" name="decision" value="">
+					<div class="ffc-review-decision-ids"></div>
+					<p class="ffc-review-decision-intro"></p>
+					<textarea name="review_reason"></textarea>
+					<button type="button" class="ffc-rereg-modal-close">Cancel</button>
+					<button type="submit" class="ffc-review-decision-confirm" data-decision="reject">Reject</button>
+					<button type="submit" class="ffc-review-decision-confirm" data-decision="return_to_draft">Return</button>
+				</form>
+			</div>
+		</div>`;
+}
+
+describe('rereg-admin — review decision modal', () => {
+	it('opens for one row with the decision, a cleared reason and its own confirm button', async () => {
+		document.body.innerHTML = reviewModal()
+			+ '<button type="button" class="ffc-review-decision-btn" data-decision="reject" data-submission-id="42">Reject</button>';
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const ev = window.$.Event('click');
-		window.$('.ffc-return-draft-btn').trigger(ev);
+		const $modal = window.$('#ffc-review-decision-modal');
+		$modal.find('textarea').val('left over');
+		window.$('.ffc-review-decision-btn').trigger('click');
 		await flush();
-		expect(ev.isDefaultPrevented()).toBe(true);
+		expect($modal.css('display')).not.toBe('none');
+		expect(window.$('#ffc-review-decision-title').text()).toBe('Reject submission');
+		expect($modal.find('input[name="decision"]').val()).toBe('reject');
+		expect($modal.find('input[name="submission_ids[]"]').map((i, el) => el.value).get()).toEqual(['42']);
+		expect($modal.find('textarea').val()).toBe('');
+		expect($modal.find('.ffc-review-decision-confirm[data-decision="reject"]').css('display')).not.toBe('none');
+		expect($modal.find('.ffc-review-decision-confirm[data-decision="return_to_draft"]').css('display')).toBe('none');
+		expect(document.body.classList.contains('ffc-rereg-modal-open')).toBe(true);
 	});
 
-	it('lets the click through when the user accepts the confirm', async () => {
-		document.body.innerHTML = `<a class="ffc-return-draft-btn" href="#">Return</a>`;
+	it('replaces the ids of a previous opening', async () => {
+		document.body.innerHTML = reviewModal()
+			+ '<button type="button" class="ffc-review-decision-btn" data-decision="reject" data-submission-id="1">A</button>'
+			+ '<button type="button" class="ffc-review-decision-btn" data-decision="return_to_draft" data-submission-id="2">B</button>';
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		const ev = window.$.Event('click');
-		window.$('.ffc-return-draft-btn').trigger(ev);
+		window.$('.ffc-review-decision-btn').eq(0).trigger('click');
+		window.$('.ffc-review-decision-btn').eq(1).trigger('click');
 		await flush();
-		expect(ev.isDefaultPrevented()).toBe(false);
+		const $modal = window.$('#ffc-review-decision-modal');
+		expect($modal.find('input[name="submission_ids[]"]').map((i, el) => el.value).get()).toEqual(['2']);
+		expect(window.$('#ffc-review-decision-title').text()).toBe('Return to draft');
+	});
+
+	it('closes on Cancel, the backdrop and Escape', async () => {
+		document.body.innerHTML = reviewModal()
+			+ '<button type="button" class="ffc-review-decision-btn" data-decision="reject" data-submission-id="42">Reject</button>';
+		await reload();
+		const $modal = window.$('#ffc-review-decision-modal');
+		for (const close of [
+			() => $modal.find('.ffc-rereg-modal-close').trigger('click'),
+			() => $modal.find('.ffc-rereg-modal-backdrop').trigger('click'),
+			() => window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' })),
+		]) {
+			window.$('.ffc-review-decision-btn').trigger('click');
+			expect($modal.css('display')).not.toBe('none');
+			close();
+			await flush();
+			expect($modal.css('display')).toBe('none');
+		}
+		expect(document.body.classList.contains('ffc-rereg-modal-open')).toBe(false);
 	});
 });
 
@@ -544,6 +601,24 @@ describe('rereg-admin — CSV export', () => {
 		delete window.FFCBatchedExport;
 	});
 
+	it('sends the filters the list was drawn with (#2242)', async () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+		document.body.innerHTML = `
+			<button type="button" id="ffc-rereg-export-btn" data-id="7" data-sub-status="not_finished" data-search="518.178.420-80" data-audience="3">Export CSV</button>
+		`;
+		await reload();
+
+		window.$('#ffc-rereg-export-btn').trigger('click');
+
+		expect(runSpy.mock.calls[0][0].startData).toEqual({
+			id: 7,
+			sub_status: 'not_finished',
+			s: '518.178.420-80',
+			audience: '3'
+		});
+	});
+
 	it('drives window.FFCBatchedExport.run with type + campaign id + job nonce', async () => {
 		const runSpy = vi.fn();
 		window.FFCBatchedExport = { run: runSpy };
@@ -562,7 +637,7 @@ describe('rereg-admin — CSV export', () => {
 		expect(arg.type).toBe('reregistration');
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
-		expect(arg.startData).toEqual({ id: 7 });
+		expect(arg.startData).toEqual({ id: 7, sub_status: '', s: '', audience: '' });
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.
 		expect(arg.overlay).toBe(true);

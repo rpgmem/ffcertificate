@@ -135,7 +135,7 @@ class TabScheduledTasksTest extends TestCase {
 		$this->beats = $fresh;
 		$this->assertStringNotContainsString( 'notice-warning', $this->render() );
 
-		$this->beats = array_merge( $fresh, array( 'ffcertificate_daily_cleanup_hook' => time() - 30 * HOUR_IN_SECONDS ) );
+		$this->beats = array_merge( $fresh, array( 'ffc_daily_cleanup' => time() - 30 * HOUR_IN_SECONDS ) );
 		$html        = $this->render();
 		$this->assertStringContainsString( 'notice-warning', $html );
 		$this->assertStringContainsString( 'Late — has not run when expected', $html );
@@ -181,7 +181,7 @@ class TabScheduledTasksTest extends TestCase {
 		);
 	}
 	public function test_each_daily_task_has_a_time_field_and_the_hourly_one_has_none(): void {
-		$this->times = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
+		$this->times = array( 'ffc_daily_cleanup' => '03:30' );
 
 		$html = $this->render();
 
@@ -193,14 +193,14 @@ class TabScheduledTasksTest extends TestCase {
 				$this->assertStringNotContainsString( $field, $html, "{$hook} is not daily and takes no time." );
 			}
 		}
-		$this->assertMatchesRegularExpression( '#name="ffc_cron_times\[ffcertificate_daily_cleanup_hook\]" value="03:30"#', $html );
+		$this->assertMatchesRegularExpression( '#name="ffc_cron_times\[ffc_daily_cleanup\]" value="03:30"#', $html );
 		$this->assertStringContainsString( 'name="ffc_save_cron_times"', $html );
 	}
 
 	public function test_saving_times_needs_the_manage_capability(): void {
 		$_POST = array(
 			'ffc_save_cron_times' => '1',
-			'ffc_cron_times'      => array( 'ffcertificate_daily_cleanup_hook' => '03:30' ),
+			'ffc_cron_times'      => array( 'ffc_daily_cleanup' => '03:30' ),
 		);
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( false );
@@ -213,7 +213,7 @@ class TabScheduledTasksTest extends TestCase {
 		$_POST = array(
 			'ffc_save_cron_times' => '1',
 			'ffc_cron_times'      => array(
-				'ffcertificate_daily_cleanup_hook' => '03:30',
+				'ffc_daily_cleanup' => '03:30',
 				'ffc_cloudflare_cidr_refresh'      => '25:00',
 			),
 		);
@@ -238,7 +238,7 @@ class TabScheduledTasksTest extends TestCase {
 
 		$this->render();
 
-		$this->assertSame( array( 'ffcertificate_daily_cleanup_hook' => '03:30' ), $stored );
+		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $stored );
 		$this->assertSame( 'warning', $notice );
 	}
 }

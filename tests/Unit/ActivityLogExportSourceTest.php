@@ -16,13 +16,11 @@ use FreeFormCertificate\Admin\ActivityLogExportSource;
  * in BatchedCsvExportTest. Migrated from the former synchronous
  * AdminActivityLogPage::handle_csv_export (issue #772).
  *
- * Process isolation is used so the count()/fetch_page() delegation tests can
- * alias-mock the static ActivityLogQuery without the alias leaking across the
- * suite.
+ * Every test runs in the shared process. The count()/fetch_page() tests run
+ * the real ActivityLogQuery over a `$wpdb` double and assert on the
+ * statements it prepared and the rows it hands back.
  *
  * @covers \FreeFormCertificate\Admin\ActivityLogExportSource
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 
@@ -30,9 +28,26 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 	/** @var ActivityLogExportSource */
 	private $source;
 
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/** @var mixed The `$wpdb` global before the test. */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->prepared      = array();
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( $defaults, $args ) );
 		class_exists( '\\FreeFormCertificate\\Admin\\ActivityLogExportSource' );
 
 		Functions\when( '__' )->returnArg();
@@ -57,6 +72,11 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		unset( $_POST['level'], $_POST['log_action'], $_POST['s'] );
 		parent::tearDown();
@@ -110,7 +130,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		);
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
-		$result = $this->source->format_row( $this->sample_row(), array() );
+		$result = $this->source->format_row( $this->sample_row(), array( 'pii' => true ) );
 
 		$this->assertSame( '2026-01-15 10:30:00', $result[0] );
 		$this->assertSame( 'ERROR', $result[1] );
@@ -178,26 +198,117 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'needle', $filters['search'] );
 	}
 
+	/**
+	 * Install a `$wpdb` double over the real ActivityLogQuery: every prepare()
+	 * is recorded and answered with its index, and `$answer` receives the
+	 * method and the statement behind each read. Any other call fails.
+	 *
+	 * @param callable $answer fn( string $method, string $sql, array $args ): mixed.
+	 */
+	private function install_wpdb( callable $answer ): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$this->prepared[] = array( (string) $sql, array_values( $args ) );
+				return 'Q' . ( count( $this->prepared ) - 1 );
+			}
+		);
+		foreach ( array( 'get_var', 'get_results' ) as $method ) {
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				function ( $query ) use ( $method, $answer ) {
+					[ $sql, $args ] = $this->prepared[ (int) substr( (string) $query, 1 ) ];
+					return $answer( $method, $sql, $args );
+				}
+			);
+		}
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
 	public function test_count_delegates_to_query(): void {
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' )
-			->shouldReceive( 'count_activities' )->once()
-			->with( array( 'level' => 'error' ) )->andReturn( 12 );
+		$this->install_wpdb(
+			function ( string $method, string $sql, array $args ) {
+				$this->assertSame( 'get_var', $method );
+				$this->assertSame( 'SELECT COUNT(*) FROM %i WHERE 1=1 AND Q0', $sql );
+				$this->assertSame( array( 'wp_ffc_activity_log' ), $args );
+				return '12';
+			}
+		);
 
 		$this->assertSame( 12, $this->source->count( array( 'level' => 'error' ) ) );
+		$this->assertSame( array( 'level = %s', array( 'error' ) ), $this->prepared[0], 'The level filter reaches the query.' );
+		$this->assertCount( 2, $this->prepared, 'One filter and one count statement.' );
 	}
 
 	public function test_fetch_page_delegates_keyset_to_query(): void {
-		$rows = array( array( 'id' => 5 ), array( 'id' => 4 ) );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\ActivityLogQuery' )
-			->shouldReceive( 'find_by_cursor' )->once()
-			->with( array( 'level' => 'error' ), 10, 50 )->andReturn( $rows );
+		$this->install_wpdb(
+			function ( string $method, string $sql, array $args ) {
+				$this->assertSame( 'get_results', $method );
+				$this->assertSame( 'SELECT * FROM %i WHERE 1=1 AND Q0 AND id < %d ORDER BY id DESC LIMIT %d', $sql );
+				$this->assertSame( array( 'wp_ffc_activity_log', 10, 50 ), $args, 'The cursor and the page size reach the query.' );
+				return array(
+					array(
+						'id'      => '5',
+						'context' => '{"form_id":42}',
+						'user_ip' => '203.0.113.5',
+					),
+					array(
+						'id'      => '4',
+						'context' => null,
+						'user_ip' => null,
+					),
+				);
+			}
+		);
 
 		$page = $this->source->fetch_page( array( 'level' => 'error' ), array(), 10, 50 );
-		$this->assertSame( $rows, $page );
+
+		$this->assertSame( array( 'level = %s', array( 'error' ) ), $this->prepared[0], 'The level filter reaches the query.' );
+		$this->assertSame(
+			array(
+				array(
+					'id'      => '5',
+					'context' => array( 'form_id' => 42 ),
+					'user_ip' => '203.0.113.5',
+				),
+				array(
+					'id'      => '4',
+					'context' => array(),
+					'user_ip' => null,
+				),
+			),
+			$page,
+			'The page is the stored rows, newest first, with each context decoded.'
+		);
 	}
 
-	public function test_build_context_is_empty(): void {
-		$this->assertSame( array(), $this->source->build_context( array( 'level' => 'error' ) ) );
+	public function test_build_context_freezes_whether_addresses_go_out_in_clear(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'user_can' )->justReturn( false );
+		$this->assertSame( array( 'pii' => false ), $this->source->build_context( array( 'level' => 'error' ) ) );
+
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_activity_log_pii' === $cap );
+		$this->assertSame( array( 'pii' => true ), $this->source->build_context( array( 'level' => 'error' ) ), 'the reveal cap exports in clear (#2109)' );
+	}
+
+	public function test_a_masked_export_masks_every_address(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		$row            = $this->sample_row();
+		$row['context'] = array(
+			'triggered_by_ip' => '198.51.100.7',
+			'form_id'         => 42,
+		);
+
+		$result = $this->source->format_row( $row, array( 'pii' => false ) );
+
+		$this->assertSame( '203.0.***.***', $result[4] );
+		$this->assertStringContainsString( '198.51.***.***', $result[5] );
+		$this->assertStringNotContainsString( '198.51.100.7', $result[5] );
+		$this->assertStringContainsString( '"form_id":42', $result[5] );
 	}
 
 	public function test_filename_is_dated(): void {

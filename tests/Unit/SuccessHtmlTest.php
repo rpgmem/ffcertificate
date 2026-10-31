@@ -17,8 +17,7 @@ use FreeFormCertificate\Tests\Support\ButtonMarkup;
  * additions to the template + the contract between
  * SuccessHtmlRenderer::generate_success_html() and MagicLinkHelper.
  *
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SuccessHtmlTest extends TestCase {
 
@@ -73,7 +72,9 @@ class SuccessHtmlTest extends TestCase {
 	/**
 	 * Stub submission handler with ensure_magic_token().
 	 *
-	 * Stays anonymous: MagicLinkHelper picks it up via method_exists().
+	 * Stays anonymous: MagicLinkHelper picks it up via method_exists(). It
+	 * answers the token it was given, as the real handler answers the one it
+	 * stored; '' stands for a submission whose token could not be ensured.
 	 */
 	private function make_handler( string $token ): object {
 		return new class( $token ) {
@@ -82,7 +83,8 @@ class SuccessHtmlTest extends TestCase {
 				$this->token = $token;
 			}
 			public function ensure_magic_token( int $submission_id ): string {
-				return $this->token . '_' . $submission_id;
+				unset( $submission_id );
+				return $this->token;
 			}
 		};
 	}
@@ -131,13 +133,30 @@ class SuccessHtmlTest extends TestCase {
 			$handler
 		);
 
-		// Token comes through ensure_magic_token() prefixed with submission_id.
-		// The full link goes through MagicLinkHelper::generate_magic_link()
-		// which we don't stub — but we can assert the magic-link section
-		// wrapper rendered, and the URL string is present.
+		// The link goes through the real MagicLinkHelper, so it carries the
+		// token the handler stored.
 		$this->assertStringContainsString( 'ffc-success-magic-link', $html );
 		$this->assertStringContainsString( 'ffc-magic-link-url', $html );
 		$this->assertStringContainsString( 'Save this link', $html );
+		$this->assertStringContainsString( '#token=' . $token, $html );
+	}
+
+	/**
+	 * A token the handler could not ensure yields no link, never one to a
+	 * token nothing stores (#2187).
+	 */
+	public function test_success_html_omits_magic_link_when_the_token_cannot_be_ensured(): void {
+		$html = SuccessHtmlRenderer::generate_success_html(
+			array( 'auth_code' => 'ABC' ),
+			42,
+			'2026-05-20 10:00:00',
+			'Done!',
+			7,
+			$this->make_handler( '' )
+		);
+
+		$this->assertStringNotContainsString( 'ffc-success-magic-link', $html );
+		$this->assertStringNotContainsString( '#token=', $html );
 	}
 
 	public function test_success_html_omits_magic_link_section_without_handler(): void {

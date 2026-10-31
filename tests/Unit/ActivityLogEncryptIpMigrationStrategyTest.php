@@ -16,9 +16,11 @@ use PHPUnit\Framework\TestCase;
  * have their plaintext client IP encrypted into `user_ip_encrypted` and the
  * plaintext cleared (#1574).
  *
+ * Runs in the shared process with the real Encryption (the bootstrap's key
+ * constants) over a `$wpdb` double; only global functions are stubbed, and
+ * the strategy imports `WP_Error`, so no alias is needed.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\ActivityLogEncryptIpMigrationStrategy
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class ActivityLogEncryptIpMigrationStrategyTest extends TestCase {
 
@@ -57,9 +59,14 @@ class ActivityLogEncryptIpMigrationStrategyTest extends TestCase {
 	 */
 	private bool $update_fails = false;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -115,17 +122,21 @@ class ActivityLogEncryptIpMigrationStrategyTest extends TestCase {
 			}
 		);
 
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
-
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
+		// Encryption's failure paths read `ffc_settings` behind a
+		// function_exists() guard; stubbing it here chooses that branch
+		// (no settings, so no debug and no activity log) whatever ran first.
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$this->strategy = new ActivityLogEncryptIpMigrationStrategy();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}

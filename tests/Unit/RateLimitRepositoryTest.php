@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Security\RateLimitRepository;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for RateLimitRepository: the raw $wpdb persistence helpers behind
@@ -20,6 +21,16 @@ use FreeFormCertificate\Security\RateLimitRepository;
 class RateLimitRepositoryTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
 	/** @var \Mockery\MockInterface&\wpdb */
 	private $wpdb;
@@ -139,7 +150,7 @@ class RateLimitRepositoryTest extends TestCase {
 		RateLimitRepository::increment_counter( 'email', $email, 'day', null );
 	}
 
-	public function test_increment_counter_keeps_ip_identifier_plaintext(): void {
+	public function test_increment_counter_stores_an_address_by_fingerprint(): void {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
 		$this->wpdb->shouldReceive( 'insert' )
 			->once()
@@ -147,7 +158,8 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					static function ( $data ) {
-						return '203.0.113.9' === $data['identifier'];
+						// Never the address itself (#2109).
+						return \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) === $data['identifier'];
 					}
 				),
 				Mockery::type( 'array' )
@@ -158,7 +170,7 @@ class RateLimitRepositoryTest extends TestCase {
 	}
 
 	public function test_block_temporarily_hashes_non_ip_identifier(): void {
-		$cpf = '12345678909';
+		$cpf = Identifiers::CPF_A;
 		$this->wpdb->shouldReceive( 'insert' )
 			->once()
 			->with(
@@ -225,14 +237,46 @@ class RateLimitRepositoryTest extends TestCase {
 		// unit bootstrap so the method hashes + queries.
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '2' );
 
-		$this->assertSame( 2, RateLimitRepository::get_submission_count( 'cpf', '123.456.789-09', 'year', 3 ) );
+		$this->assertSame( 2, RateLimitRepository::get_submission_count( 'cpf', self::mask_cpf( Identifiers::CPF_A ), 'year', 3 ) );
 	}
 
 	public function test_get_submission_count_cpf_seven_digits_uses_rf_hash_column(): void {
 		// 7 digits → rf_hash column path.
 		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '1' );
 
-		$this->assertSame( 1, RateLimitRepository::get_submission_count( 'cpf', '1234567', 'day', null ) );
+		$this->assertSame( 1, RateLimitRepository::get_submission_count( 'cpf', Identifiers::RF_A, 'day', null ) );
+	}
+
+	/**
+	 * @dataProvider submission_window_provider
+	 */
+	public function test_get_submission_count_looks_back_over_each_periods_own_window( string $period, int $days ): void {
+		// `year` used to fall through to the 30-day window (#2156).
+		$queries = array();
+		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturnUsing(
+			static function ( $sql ) use ( &$queries ) {
+				$queries[] = $sql;
+				return '0';
+			}
+		);
+
+		RateLimitRepository::get_submission_count( 'cpf', Identifiers::CPF_A, $period, null );
+
+		$this->assertCount( 1, $queries );
+		$this->assertStringContainsString( sprintf( 'INTERVAL %d DAY', $days ), $queries[0] );
+		$this->assertSame( 1, substr_count( $queries[0], 'INTERVAL' ), 'One window per count.' );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: int}>
+	 */
+	public function submission_window_provider(): array {
+		return array(
+			'day'   => array( 'day', 1 ),
+			'week'  => array( 'week', 7 ),
+			'month' => array( 'month', 30 ),
+			'year'  => array( 'year', 365 ),
+		);
 	}
 
 	public function test_get_submission_count_unknown_field_returns_zero(): void {

@@ -7,6 +7,7 @@ use Brain\Monkey;
 use Brain\Monkey\Actions;
 use Brain\Monkey\Functions;
 use FreeFormCertificate\UserDashboard\NameSync;
+use FreeFormCertificate\UserDashboard\UserProfileService;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -14,9 +15,11 @@ use PHPUnit\Framework\TestCase;
 /**
  * WordPress's first / last name back into the plugin's full name (#1552).
  *
+ * Runs the real UserProfileService and UserProfileRepository over a `$wpdb`
+ * double: the profile row is what `get_row()` answers, and a full name the
+ * sync writes is what reaches `$wpdb->update()` on the profile table.
+ *
  * @covers \FreeFormCertificate\UserDashboard\NameSync
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class NameSyncTest extends TestCase {
 
@@ -30,24 +33,28 @@ class NameSyncTest extends TestCase {
 	private array $meta = array();
 
 	/**
-	 * Full names written through the profile service.
+	 * Full names written to the profile table.
 	 *
 	 * @var array<int, string>
 	 */
 	private array $written = array();
 
-	/** @var Mockery\MockInterface */
-	private $service;
-
 	/**
-	 * The plugin full name the repository double answers.
+	 * The plugin full name the profile row carries, null for no row.
 	 */
 	private ?string $full = null;
 
 	/**
-	 * Whether the repository is already overloaded in this process.
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
 	 */
-	private bool $overloaded = false;
+	private $previous_wpdb;
+
+	/**
+	 * Whether `$wpdb` was set before the test.
+	 */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -56,6 +63,30 @@ class NameSyncTest extends TestCase {
 		$_POST         = array();
 		$this->meta    = array();
 		$this->written = array();
+		$this->full    = null;
+
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			fn() => null === $this->full ? null : array(
+				'user_id'      => '7',
+				'display_name' => $this->full,
+			)
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn() => null === $this->full ? null : '1' );
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, array $data ) {
+				if ( 'wp_ffc_user_profiles' === $table && isset( $data['display_name'] ) ) {
+					$this->written[] = $data['display_name'];
+				}
+				return 1;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
@@ -65,21 +96,22 @@ class NameSyncTest extends TestCase {
 				'last_name'  => $this->meta['last_name'] ?? '',
 			)
 		);
-
-		$this->service = Mockery::mock( 'alias:FreeFormCertificate\UserDashboard\UserProfileService' );
-		$this->service->shouldReceive( 'is_writing' )->andReturn( false )->byDefault();
-		$this->service->shouldReceive( 'write' )->andReturnUsing(
-			function ( $id, array $patch ) {
-				$this->written[] = $patch['display_name'];
-				return true;
-			}
-		);
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_update_user' )->alias( static fn( array $u ) => $u['ID'] );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'delete_user_meta' )->justReturn( true );
 
 		NameSync::reset();
 	}
 
 	protected function tearDown(): void {
 		$_POST = array();
+		NameSync::reset();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -92,12 +124,6 @@ class NameSyncTest extends TestCase {
 	 */
 	private function profile( ?string $full ): void {
 		$this->full = $full;
-		if ( ! $this->overloaded ) {
-			$this->overloaded = true;
-			Mockery::mock( 'overload:FreeFormCertificate\Repositories\UserProfileRepository' )
-				->shouldReceive( 'findByUserId' )
-				->andReturnUsing( fn() => null === $this->full ? null : array( 'display_name' => $this->full ) );
-		}
 	}
 
 	public function test_init_snapshots_before_the_plugin_fields_save_and_reconciles_after_core(): void {
@@ -144,14 +170,29 @@ class NameSyncTest extends TestCase {
 		$this->assertSame( array(), $this->written );
 	}
 
+	/**
+	 * The service's mirror calls wp_update_user(), which fires
+	 * `profile_update` while the write is still in progress; the sync must
+	 * not answer it with a second write of the stale parts.
+	 */
 	public function test_the_plugins_own_write_is_not_answered(): void {
-		$this->service->shouldReceive( 'is_writing' )->andReturn( true );
 		$this->profile( 'Alex Meusburger' );
 		$this->meta = array( 'first_name' => 'Stale', 'last_name' => 'Parts' );
+		// Fire the hook once, as core would for this one update.
+		$fired = false;
+		Functions\when( 'wp_update_user' )->alias(
+			static function ( array $u ) use ( &$fired ) {
+				if ( ! $fired ) {
+					$fired = true;
+					NameSync::on_profile_update( (int) $u['ID'], null, array( 'first_name' => 'Stale' ) );
+				}
+				return $u['ID'];
+			}
+		);
 
-		NameSync::on_profile_update( 7, null, array( 'first_name' => 'Stale' ) );
+		UserProfileService::write( 7, array( 'display_name' => 'Alexandre Meusburger' ) );
 
-		$this->assertSame( array(), $this->written );
+		$this->assertSame( array( 'Alexandre Meusburger' ), $this->written, 'only the plugin\'s own write reaches the profile table' );
 	}
 
 	/**

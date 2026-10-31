@@ -28,6 +28,10 @@ class RecruitmentActivatorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -460,7 +464,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::maybe_migrate();
 
-		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ), $writes->getArrayCopy() );
+		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ), $writes->getArrayCopy() );
 
 		// v2 + v3: widen, rename, narrow — twice.
 		$this->assertCount( 1, $this->queries_matching( $log, "SET status = 'definitive' WHERE status = 'active'" ) );
@@ -497,7 +501,7 @@ class RecruitmentActivatorTest extends TestCase {
 
 		RecruitmentActivator::maybe_migrate();
 
-		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ), $writes->getArrayCopy(), 'An unusable stored value reads as 0.' );
+		$this->assertSame( array( 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ), $writes->getArrayCopy(), 'An unusable stored value reads as 0.' );
 		$this->assertSame(
 			array( 'DROP TABLE IF EXISTS `wp_ffc_recruitment_import_staging`' ),
 			$log['queries'],
@@ -559,7 +563,7 @@ class RecruitmentActivatorTest extends TestCase {
 	}
 
 	public function test_maybe_migrate_does_nothing_when_already_current(): void {
-		$writes = $this->record_schema_versions( '11' );
+		$writes = $this->record_schema_versions( '12' );
 		$log    = $this->stub_schema( true, array() );
 
 		RecruitmentActivator::maybe_migrate();
@@ -568,13 +572,37 @@ class RecruitmentActivatorTest extends TestCase {
 		$this->assertSame( array(), $log['queries'] );
 	}
 
+	public function test_maybe_migrate_v12_adds_the_pcd_hash_column_to_both_tables(): void {
+		$writes = $this->record_schema_versions( '11' );
+		$log    = $this->stub_schema( true, array() );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array( 12 ), $writes->getArrayCopy() );
+		$added = $this->queries_matching( $log, 'ADD COLUMN pcd_hash varchar(64) DEFAULT NULL' );
+		$this->assertCount( 2, $added );
+		$this->assertStringContainsString( 'wp_ffc_recruitment_classification', $added[0] );
+		$this->assertStringContainsString( 'AFTER hab_emebs', $added[0] );
+		$this->assertStringContainsString( 'wp_ffc_recruitment_import_staging', $added[1] );
+		$this->assertStringContainsString( 'AFTER pcd', $added[1] );
+	}
+
+	public function test_maybe_migrate_v12_leaves_an_existing_pcd_hash_column_alone(): void {
+		$this->record_schema_versions( '11' );
+		$log = $this->stub_schema( true, array( 'pcd_hash' => 'varchar(64)' ) );
+
+		RecruitmentActivator::maybe_migrate();
+
+		$this->assertSame( array(), $this->queries_matching( $log, 'pcd_hash' ) );
+	}
+
 	public function test_maybe_migrate_v9_only_purges_when_list_type_is_already_varchar(): void {
 		$writes = $this->record_schema_versions( 8 );
 		$log    = $this->stub_schema( true, array( 'list_type' => 'varchar(50)' ) );
 
 		RecruitmentActivator::maybe_migrate();
 
-		$this->assertSame( array( 9, 10, 11 ), $writes->getArrayCopy() );
+		$this->assertSame( array( 9, 10, 11, 12 ), $writes->getArrayCopy() );
 		$this->assertCount( 0, $this->queries_matching( $log, 'MODIFY list_type' ) );
 		$this->assertCount( 1, $this->queries_matching( $log, "DELETE FROM 'wp_ffc_recruitment_classification'" ) );
 	}

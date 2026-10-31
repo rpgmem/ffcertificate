@@ -141,6 +141,19 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * Bulk actions: no-show for the confirmed appointments whose date has
+	 * come (#2244), to the holders of the manage capability.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function get_bulk_actions(): array {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			return array();
+		}
+		return array( 'bulk_no_show' => __( 'Mark as no-show', 'ffcertificate' ) );
+	}
+
+	/**
 	 * ID column
 	 *
 	 * @param array<string, mixed> $item Row data.
@@ -171,11 +184,11 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// A waitlisted entry can leave the queue the same way (#1770): the cancel
-		// handler accepts any status, and the waitlist promoter promotes nobody
-		// when the cancelled row was itself `waitlist`. It is NOT offered Confirm:
-		// `confirm()` does not recount the slot, so confirming a queued entry would
-		// overbook it — promotion is the only way out of the queue into the slot.
+		// A waitlisted entry can leave the queue the same way (#1770), and the
+		// waitlist promoter promotes nobody when the cancelled row was itself
+		// `waitlist`. It is NOT offered Confirm: AppointmentAdminActions confirms
+		// only a pending row (#2244), so promotion is the only way out of the
+		// queue into the slot.
 		if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
 			$cancel_url        = wp_nonce_url(
 				add_query_arg(
@@ -189,10 +202,42 @@ class AppointmentsListTable extends \WP_List_Table {
 				'ffc_cancel_appointment_' . $item['id']
 			);
 			$actions['cancel'] = sprintf(
-				'<a href="#" class="ffc-appointment-cancel ffc-delete-link" data-cancel-url="%s" data-prompt="%s">%s</a>',
+				'<a href="#" class="ffc-appointment-cancel ffc-delete-link" data-cancel-url="%s" data-prompt="%s" data-too-short="%s">%s</a>',
 				esc_url( $cancel_url ),
 				esc_attr__( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
+				esc_attr__( 'The reason needs at least 5 characters. Nothing was cancelled.', 'ffcertificate' ),
 				esc_html__( 'Cancel', 'ffcertificate' )
+			);
+		}
+
+		// Attendance (completed / no-show) is marked on a confirmed appointment
+		// from its date on, and either mark can be undone back to confirmed.
+		$attendance_actions = array();
+		$appointment_date   = (string) ( $item['appointment_date'] ?? '' );
+		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] && '' !== $appointment_date && $appointment_date <= wp_date( 'Y-m-d' ) ) {
+			$attendance_actions = array(
+				'attended' => __( 'Attended', 'ffcertificate' ),
+				'no_show'  => __( 'No-show', 'ffcertificate' ),
+			);
+		} elseif ( $ffc_can_edit_appt && in_array( $item['status'], \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
+			$attendance_actions = array( 'undo_attendance' => __( 'Undo attendance', 'ffcertificate' ) );
+		}
+		foreach ( $attendance_actions as $attendance_action => $attendance_label ) {
+			$attendance_url                = wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'        => $ffc_page_slug,
+						'ffc_action'  => $attendance_action,
+						'appointment' => $item['id'],
+					),
+					admin_url( 'admin.php' )
+				),
+				'ffc_' . $attendance_action . '_appointment_' . $item['id']
+			);
+			$actions[ $attendance_action ] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $attendance_url ),
+				esc_html( $attendance_label )
 			);
 		}
 
@@ -214,18 +259,13 @@ class AppointmentsListTable extends \WP_List_Table {
 			);
 		}
 
-		// Add receipt link (magic link to /valid/ page) - not for cancelled appointments.
+		// Receipt link — not for cancelled appointments. It never carries the
+		// confirmation token (#2244): the token opens the person's own receipt
+		// unmasked and cancels the appointment as a guest, so staff get the
+		// bare link, which the receipt handler renders masked for them.
 		$item_status = $item['status'] ?? 'pending';
 		if ( 'cancelled' !== $item_status ) {
-			$confirmation_token = $item['confirmation_token'] ?? '';
-			if ( ! empty( $confirmation_token ) && class_exists( '\\FreeFormCertificate\\Generators\\MagicLinkHelper' ) ) {
-				$receipt_url = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $confirmation_token );
-			} else {
-				$receipt_url = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url(
-					(int) $item['id'],
-					$confirmation_token
-				);
-			}
+			$receipt_url        = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( (int) $item['id'] );
 			$actions['receipt'] = sprintf(
 				'<a href="%s" target="_blank">%s</a>',
 				esc_url( $receipt_url ),
@@ -318,6 +358,28 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * Date column, in the site's date format (#2288). The date is wall-clock
+	 * (Category B), so no timezone is applied.
+	 *
+	 * @param array<string, mixed> $item Row data.
+	 */
+	public function column_appointment_date( $item ): string {
+		$date = \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $item['appointment_date'] ?? '' ) );
+		return esc_html( '' !== $date ? $date : '-' );
+	}
+
+	/**
+	 * Created column, in the site's date and time formats (#2288). The value
+	 * is a housekeeping DATETIME shown as stored, so no timezone is applied.
+	 *
+	 * @param array<string, mixed> $item Row data.
+	 */
+	public function column_created_at( $item ): string {
+		$created = \FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $item['created_at'] ?? '' ), 'default', ' ', new \DateTimeZone( 'UTC' ) );
+		return esc_html( '' !== $created ? $created : '-' );
+	}
+
+	/**
 	 * Time column
 	 *
 	 * @param array<string, mixed> $item Row data.
@@ -354,24 +416,11 @@ class AppointmentsListTable extends \WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		// Get filter parameters.
-		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
-		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
-
-		// Build conditions.
-		$conditions = array();
-		if ( $calendar_id ) {
-			$conditions['calendar_id'] = $calendar_id;
-		}
-		if ( $status ) {
-			$conditions['status'] = $status;
-		}
-
-		// Get items.
+		$filters                  = self::request_filters();
 		list( $order_by, $order ) = $this->resolve_order();
 
-		$items       = $this->appointment_repository->findAll( $conditions, $order_by, $order, $per_page, $offset );
-		$total_items = $this->appointment_repository->count( $conditions );
+		$items       = $this->appointment_repository->findForList( $filters, $order_by, $order, $per_page, $offset );
+		$total_items = $this->appointment_repository->countForList( $filters );
 
 		$this->items = $items;
 
@@ -391,18 +440,43 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
+	 * The list's filters as the request carries them (#2244), shared with the
+	 * Export CSV button so the file holds what the screen shows.
+	 *
+	 * A date that is not `Y-m-d`, or a status the list does not offer, is
+	 * dropped rather than passed on.
+	 *
+	 * @return array{calendar_id: int, status: string, start_date: string, end_date: string, search: string}
+	 */
+	public static function request_filters(): array {
+		$date   = static function ( string $value ): string {
+			return 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ? $value : '';
+		};
+		$status = RequestInput::get_get_string( 'status' );
+
+		return array(
+			'calendar_id' => RequestInput::get_get_int( 'calendar_id' ),
+			'status'      => in_array( $status, array( 'pending', 'confirmed', 'cancelled', 'completed', 'no_show', 'waitlist' ), true ) ? $status : '',
+			'start_date'  => $date( RequestInput::get_get_string( 'date_from' ) ),
+			'end_date'    => $date( RequestInput::get_get_string( 'date_to' ) ),
+			'search'      => RequestInput::get_get_string( 's' ),
+		);
+	}
+
+	/**
 	 * The ORDER BY column and direction the request asks for (#1770).
 	 *
 	 * `orderby` is resolved through `ORDER_COLUMNS`; anything else — absent,
-	 * unknown, or a column name the list does not sort by — gives the default
-	 * `created_at DESC`. The direction collapses to `ASC` / `DESC`.
+	 * unknown, or a column name the list does not sort by — gives the default:
+	 * the appointment date, newest first, which the repository breaks on the
+	 * start time (#2288). The direction collapses to `ASC` / `DESC`.
 	 *
 	 * @return array{0: string, 1: string}
 	 */
 	private function resolve_order(): array {
 		$requested = RequestInput::get_get_string( 'orderby' );
 		if ( ! isset( self::ORDER_COLUMNS[ $requested ] ) ) {
-			return array( 'created_at', 'DESC' );
+			return array( 'appointment_date', 'DESC' );
 		}
 
 		$order = 'asc' === strtolower( RequestInput::get_get_string( 'order' ) ) ? 'ASC' : 'DESC';
@@ -419,8 +493,10 @@ class AppointmentsListTable extends \WP_List_Table {
 			return;
 		}
 
-		$calendar_id = RequestInput::get_get_int( 'calendar_id' );
-		$status      = \FreeFormCertificate\Core\RequestInput::get_get_string( 'status' );
+		$filters     = self::request_filters();
+		$calendar_id = $filters['calendar_id'];
+		$status      = $filters['status'];
+		$today       = wp_date( 'Y-m-d' );
 
 		// Get all calendars for filter.
 		$calendars = $this->calendar_repository->getActiveCalendars();
@@ -446,6 +522,10 @@ class AppointmentsListTable extends \WP_List_Table {
 			<option value="waitlist" <?php selected( $status, 'waitlist' ); ?>><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></option>
 		</select>
 
+		<input type="date" name="date_from" value="<?php echo esc_attr( $filters['start_date'] ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
+		<input type="date" name="date_to" value="<?php echo esc_attr( $filters['end_date'] ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
+		<input type="search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php esc_attr_e( 'Name, e-mail, CPF/RF or ID', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search appointments', 'ffcertificate' ); ?>">
+
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
 			array(
@@ -454,6 +534,24 @@ class AppointmentsListTable extends \WP_List_Table {
 				'type'  => 'submit',
 				'name'  => 'filter_action',
 				'value' => __( 'Filter', 'ffcertificate' ),
+			)
+		);
+		// Today's agenda: one click to the day, keeping the calendar chosen.
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Today', 'ffcertificate' ),
+				'icon'  => 'calendar',
+				'href'  => add_query_arg(
+					array(
+						'page'        => 'ffc-appointments',
+						'calendar_id' => $calendar_id > 0 ? $calendar_id : false,
+						'date_from'   => $today,
+						'date_to'     => $today,
+						'orderby'     => 'appointment_date',
+						'order'       => 'asc',
+					),
+					admin_url( 'admin.php' )
+				),
 			)
 		);
 		?>

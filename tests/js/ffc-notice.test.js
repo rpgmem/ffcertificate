@@ -211,6 +211,18 @@ describe('certificate-form emitters', () => {
 		expect($w[0].querySelector('[data-ffc-notice="quiz-leave"]')).toBeNull();
 	});
 
+	it('reprint sent by e-mail (#2241): a notice replaces the form, with no certificate', async () => {
+		const $w = certForm(10);
+		const html = '<div class="ffc-notice ffc-notice-info" role="status" data-ffc-notice="reprint-link"><span class="ffc-notice-icon ffc-icon-email" aria-hidden="true"></span><div class="ffc-notice-body"><p class="ffc-notice-text">Sent.</p></div></div>';
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ html, pdf_data: null, notice: true });
+		$w.find('form').trigger('submit');
+		await flush();
+		const n = $w[0].querySelector('[data-ffc-notice="reprint-link"]');
+		expectNotice(n, 'info', 'email', 'status');
+		expect(n.nextElementSibling.classList.contains('ffc-form-title')).toBe(true);
+		expect($w[0].querySelector('form')).toBeNull();
+	});
+
 	it('a certificate response still replaces the form contents, and drops the quiz notice', async () => {
 		const $w = certForm(9);
 		$w.prepend('<div data-ffc-notice="quiz-leave"></div>');

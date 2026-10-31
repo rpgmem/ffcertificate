@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * acts only on `definitive`); the repository does NOT enforce this — the
  * service layer (sprint 4 importer + sprint 6 convocation) is responsible.
  *
- * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, status: string, created_at: string, updated_at: string}
+ * @phpstan-type ClassificationRow \stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string, notice_id: numeric-string, list_type: string, rank: numeric-string, score: string, time_points?: string, hab_emebs?: numeric-string, pcd_hash?: string|null, status: string, created_at: string, updated_at: string}
  */
 class RecruitmentClassificationRepository {
 
@@ -94,6 +94,48 @@ class RecruitmentClassificationRepository {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * How many rows a notice's definitive list holds, for its CSV export
+	 * (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int
+	 */
+	public static function count_definitive_for_export( int $notice_id ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE notice_id = %d AND list_type = 'definitive'",
+				self::get_table_name(),
+				$notice_id
+			)
+		);
+	}
+
+	/**
+	 * One page of a notice's definitive list, newest id first, below the
+	 * cursor: the keyset the batched CSV export walks (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @param int $cursor    Exclusive upper bound on the row ID.
+	 * @param int $size      Page size.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function definitive_page_for_export( int $notice_id, int $cursor, int $size ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM %i WHERE notice_id = %d AND list_type = 'definitive' AND id < %d ORDER BY id DESC LIMIT %d",
+				self::get_table_name(),
+				$notice_id,
+				$cursor,
+				$size
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
 	}
 
 	/**
@@ -259,7 +301,7 @@ class RecruitmentClassificationRepository {
 	 * Returns `false` on UNIQUE collision
 	 * `(candidate_id, adjutancy_id, notice_id, list_type)`.
 	 *
-	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string, time_points?: string|float, hab_emebs?: int|bool} $data Classification payload.
+	 * @param array{candidate_id: int, adjutancy_id: int, notice_id: int, list_type: string, rank: int, score: string|float, status?: string, time_points?: string|float, hab_emebs?: int|bool, pcd_hash?: string|null} $data Classification payload.
 	 * @return int|false New classification ID or false on failure.
 	 */
 	public static function create( array $data ) {
@@ -281,20 +323,26 @@ class RecruitmentClassificationRepository {
 				// to 0 / 0 when the importer / caller didn't supply them.
 				'time_points'  => isset( $data['time_points'] ) ? (string) $data['time_points'] : '0',
 				'hab_emebs'    => isset( $data['hab_emebs'] ) && $data['hab_emebs'] ? 1 : 0,
+				// PCD of this notice classification (#2245); null reads as general.
+				'pcd_hash'     => $data['pcd_hash'] ?? null,
 				'status'       => $data['status'] ?? 'empty',
 				'created_at'   => $now,
 				'updated_at'   => $now,
 			),
-			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s' )
+			array( '%d', '%d', '%d', '%s', '%d', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
 		);
 
 		if ( ! $result ) {
 			return false;
 		}
 
+		// Read the id before the action: a listener that writes (the cache
+		// version is an option, added on the first write) moves insert_id.
+		$id = (int) $wpdb->insert_id;
+
 		do_action( 'ffc_recruitment_public_cache_dirty' );
 
-		return (int) $wpdb->insert_id;
+		return $id;
 	}
 
 	/**
@@ -415,6 +463,32 @@ class RecruitmentClassificationRepository {
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * Delete every classification of a notice, whatever its list (#2245).
+	 *
+	 * Only a draft notice is ever deleted, so no row here can carry a call;
+	 * {@see RecruitmentDeleteService::delete_notice()} checks that before it
+	 * calls this inside its transaction.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int|false Rows deleted, or false on a database error.
+	 */
+	public static function delete_all_for_notice( int $notice_id ) {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$result = $wpdb->delete( $table, array( 'notice_id' => $notice_id ), array( '%d' ) );
+		if ( false === $result ) {
+			return false;
+		}
+
+		if ( $result > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return (int) $result;
 	}
 
 	/**
@@ -578,5 +652,25 @@ class RecruitmentClassificationRepository {
 		);
 
 		return $count;
+	}
+
+	/**
+	 * Count the rows of one of a notice's lists (#2245).
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $list_type `preview` or `definitive`.
+	 * @return int
+	 */
+	public static function count_for_notice_list( int $notice_id, string $list_type ): int {
+		$wpdb = self::db();
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE notice_id = %d AND list_type = %s',
+				self::get_table_name(),
+				$notice_id,
+				$list_type
+			)
+		);
 	}
 }

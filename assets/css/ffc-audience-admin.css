@@ -68,6 +68,17 @@
     width: 200px;
 }
 
+/* The bookings list (#2243): a narrow number, and a calendar column
+   narrower than the calendars screen's, which holds nothing else. */
+.ffc-page-scheduling-bookings .column-id {
+    width: 50px;
+}
+
+.ffc-page-scheduling-bookings .column-calendar,
+.ffc-page-scheduling-bookings .column-present {
+    width: 120px;
+}
+
 /* Holds the shortcode and its copy button (#1814). */
 [class*="ffc-page-scheduling-"] .column-shortcode {
     width: 300px;
@@ -459,10 +470,6 @@
     width: 150px;
 }
 
-.ffc-aud-w-100 {
-    width: 100px;
-}
-
 .ffc-aud-check {
     color: var(--ffc-success-text);
     font-weight: 600;
@@ -501,11 +508,6 @@
 .ffc-color-input-value {
     vertical-align: middle;
     margin-left: var(--ffc-spacing-sm);
-}
-
-/* Bookings list: total-count note under the table. */
-.ffc-audience-total-note {
-    margin-top: var(--ffc-spacing-xl);
 }
 
 /* ==========================================================================
@@ -584,4 +586,98 @@
     padding: 0;
     border: 1px solid var(--ffc-gray-300);
     cursor: pointer;
+}
+
+/* ==========================================================================
+   Holiday edit row (#2212): the edit form that replaces a holiday's row in
+   the global holidays and closed-dates lists.
+   ========================================================================== */
+.ffc-holiday-edit-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ffc-spacing-md);
+}
+
+.ffc-holiday-edit-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+}
+
+.ffc-holiday-edit-description {
+    flex: 1 1 220px;
+}
+
+.ffc-holiday-edit-description input {
+    width: 100%;
+}
+
+.ffc-holiday-edit-actions {
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+}
+
+/* ==========================================================================
+   Calendar colours and labels (#2215): each state drawn the way the public
+   calendars draw it, reading the same tokens, so a saved colour shows here.
+   ========================================================================== */
+.ffc-calendar-appearance-table input[type="text"]:not(.ffc-calendar-color) {
+    width: 100%;
+    max-width: 220px;
+}
+
+.ffc-calendar-state-preview {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-xs);
+    font-size: var(--ffc-font-size-xs);
+    white-space: nowrap;
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-available {
+    border: 2px solid var(--ffc-cal-available);
+    background: var(--ffc-bg);
+    color: var(--ffc-cal-available);
+    font-weight: 600;
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-booked {
+    background: var(--ffc-cal-booked);
+    color: var(--ffc-text-on-cal-booked);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-holiday {
+    background: var(--ffc-holiday);
+    color: var(--ffc-text-on-holiday);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-optional {
+    background: var(--ffc-optional-holiday);
+    color: var(--ffc-text-on-optional-holiday);
+}
+
+.ffc-calendar-state-preview.ffc-calendar-state-preview-closed {
+    background: var(--ffc-cal-closed);
+    color: var(--ffc-text-on-cal-closed);
+}
+
+.ffc-calendar-contrast {
+    margin: var(--ffc-spacing-2xs) 0 0;
+    font-size: var(--ffc-font-size-xs);
+}
+
+@media (forced-colors: active) {
+    /* Read, not clicked: the border keeps the label shape. */
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-booked,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-holiday,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-optional,
+    .ffc-calendar-state-preview.ffc-calendar-state-preview-closed {
+        border: 1px solid CanvasText;
+    }
+}
+
+/* The booked row's two names, singular above plural (#2221). */
+.ffc-calendar-appearance-table .ffc-calendar-booking-name + .ffc-calendar-booking-name {
+    margin-top: var(--ffc-spacing-2xs);
 }

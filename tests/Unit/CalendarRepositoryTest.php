@@ -32,6 +32,10 @@ class CalendarRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		// Mock global $wpdb BEFORE constructing the repository
 		global $wpdb;
@@ -46,6 +50,9 @@ class CalendarRepositoryTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 
 		// Stub common WP functions
 		Functions\when( 'current_time' )->justReturn( '2026-03-01 12:00:00' );
@@ -147,6 +154,10 @@ class CalendarRepositoryTest extends TestCase {
 		// We need a fresh Brain\Monkey context to override wp_cache_get.
 		Monkey\tearDown();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_cache_get' )->alias( function ( $key, $group ) use ( $cached_row ) {
 			if ( $key === 'post_42' && $group === 'ffc_self_scheduling_calendars' ) {
@@ -460,8 +471,12 @@ class CalendarRepositoryTest extends TestCase {
 			['id' => 1, 'title' => 'Public Calendar', 'status' => 'active', 'visibility' => 'public'],
 		];
 
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+		$prepared = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query ) use ( &$prepared ) {
+				$prepared[] = $query;
+				return 'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC';
+			}
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
@@ -469,6 +484,8 @@ class CalendarRepositoryTest extends TestCase {
 
 		$this->assertCount( 1, $result );
 		$this->assertSame( 'Public Calendar', $result[0]['title'] );
+		// Visitors get the list by title, as logged-in users do (#2147).
+		$this->assertStringContainsString( 'ORDER BY title ASC', implode( "\n", $prepared ) );
 	}
 
 	public function test_getPublicActiveCalendars_with_limit_and_offset(): void {
@@ -477,7 +494,7 @@ class CalendarRepositoryTest extends TestCase {
 		];
 
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC LIMIT 5 OFFSET 10'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC LIMIT 5 OFFSET 10'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( $rows );
 
@@ -488,7 +505,7 @@ class CalendarRepositoryTest extends TestCase {
 
 	public function test_getPublicActiveCalendars_returns_empty_when_none(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 
@@ -710,11 +727,17 @@ class CalendarRepositoryTest extends TestCase {
 		// Re-setup with a different get_the_title mock to verify it gets called
 		Monkey\tearDown();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// The Monkey reset above dropped setUp()'s stub; clear_cache() needs it.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'current_time' )->justReturn( '2026-03-01 12:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'get_the_title' )->alias( function ( $post_id ) {
@@ -897,6 +920,36 @@ class CalendarRepositoryTest extends TestCase {
 		$this->assertCount( 2, $result );
 	}
 
+	/**
+	 * The calendars REST list sorts by title; a column outside the allowlist
+	 * silently becomes an `id` sort (#2146).
+	 */
+	public function test_findAll_orders_by_title(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_sql ) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		} );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+
+		$this->repo->findAll( array( 'status' => 'active' ), 'title', 'ASC' );
+
+		$this->assertStringContainsString( 'ORDER BY title ASC', $captured_sql );
+	}
+
+	public function test_findAll_rejects_an_unlisted_order_column(): void {
+		$captured_sql = '';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$captured_sql ) {
+			$captured_sql = func_get_args()[0];
+			return $captured_sql;
+		} );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
+
+		$this->repo->findAll( array(), 'description', 'ASC' );
+
+		$this->assertStringContainsString( 'ORDER BY id ASC', $captured_sql );
+	}
+
 	// ==================================================================
 	// Edge cases
 	// ==================================================================
@@ -985,7 +1038,7 @@ class CalendarRepositoryTest extends TestCase {
 
 	public function test_getPublicActiveCalendars_default_params(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn(
-			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY created_at DESC'
+			'SELECT * FROM wp_ffc_self_scheduling_calendars WHERE status = active AND visibility = public ORDER BY title ASC'
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( [] );
 

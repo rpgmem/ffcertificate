@@ -394,6 +394,15 @@ class AudienceCsvImporter {
 					continue;
 				}
 
+				// A row that would pass three levels says so (#2243).
+				$parent_refusal = AudienceReader::parent_refusal( 0, (int) $parent_id );
+				if ( null !== $parent_refusal ) {
+					/* translators: 1: row number, 2: why the row was refused */
+					$result['errors'][] = sprintf( __( 'Row %1$d: %2$s', 'ffcertificate' ), $audience_data['row'], $parent_refusal );
+					++$result['skipped'];
+					continue;
+				}
+
 				$new_id = AudienceWriter::create(
 					array(
 						'name'      => $audience_data['name'],
@@ -481,8 +490,13 @@ class AudienceCsvImporter {
 	 * @param string $file_path Path to CSV file.
 	 * @param string $type Import type ('members' or 'audiences').
 	 * @return array{valid: bool, rows: int, errors: array<string>}
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function validate_csv( string $file_path, string $type = 'members' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$result = array(
 			'valid'  => false,
 			'rows'   => 0,
@@ -573,8 +587,8 @@ class AudienceCsvImporter {
 		return array(
 			'header' => array( 'email', 'name', 'audience_name', 'cpf', 'rf' ),
 			'rows'   => array(
-				array( 'john@example.com', 'John Doe', 'Group A', '529.982.247-25', '' ),
-				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', '1234567' ),
+				array( 'john@example.com', 'John Doe', 'Group A', '518.178.420-80', '' ),
+				array( 'jane@example.com', 'Jane Smith', 'Subgroup A1', '', '5181780' ),
 				array( 'bob@example.com', 'Bob Johnson', 'Group B', '', '' ),
 			),
 		);

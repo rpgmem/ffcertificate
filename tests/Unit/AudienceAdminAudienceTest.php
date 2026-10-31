@@ -8,37 +8,99 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Audience\AudienceAccountEmail;
 use FreeFormCertificate\Audience\AudienceAdminAudience;
+use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
+ * The audience admin screen: the list, the three-tab editor and the actions
+ * it handles.
+ *
+ * AudienceReader, AudienceWriter, the reregistration fields seeder and
+ * reader, PiiAccessPolicy and the account-email renderer are the real
+ * classes. The `$wpdb` double below holds the audiences, their members and
+ * the reregistration fields in arrays a test sets, answers each query by its
+ * SQL text and the values bound to it, records every write, and fails the
+ * test on a query it does not know.
+ *
  * @covers \FreeFormCertificate\Audience\AudienceAdminAudience
  * @covers \FreeFormCertificate\Audience\AudienceAdminAudienceRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceAdminAudienceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock of Core\PiiAccessPolicy. */
-	private $policy;
+	private const AUDIENCES = 'wp_ffc_audiences';
+	private const MEMBERS   = 'wp_ffc_audience_members';
+	private const FIELDS    = 'wp_ffc_custom_fields';
 
 	/** @var mixed The stored self-join limit, null for none (#1916). */
 	private $self_join_limit = null;
 
-	/** @var bool What the policy answers for a listed account (#1824). */
+	/** @var bool What user_can() answers for the audiences PII cap (#1824). */
 	private $can_reveal = false;
+
+	/** @var array<int, object> Audience rows by id, as the table holds them. */
+	private array $audiences = array();
+
+	/** @var array<int, list<int>> Member user ids by audience id. */
+	private array $members = array();
+
+	/** @var list<int> Audiences a booking names (#2243); empty means none is booked. */
+	private array $booked_audiences = array();
+
+	/** @var list<int> Member user ids whose WordPress account is gone. */
+	private array $deleted_users = array();
+
+	/** @var string|null What the lock check's submissions read answers (#2242). */
+	private ?string $answered = null;
+
+	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
+	private array $prepared = array();
+
+	/** @var list<string> The SQL of every read, in order. */
+	private array $ran = array();
+
+	/** @var list<array<int, mixed>> Every write, as [operation, table, data, where] or ['query', bound...]. */
+	private array $writes = array();
+
+	/** @var int The id the next insert reports. */
+	private int $next_insert_id = 1;
+
+	/** @var list<array{0: int, 1: string}> Every user_can() call, as [user id, capability]. */
+	private array $user_can_calls = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> $_GET as an earlier test left it. */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> $_POST as an earlier test left it. */
+	private array $post_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup  = $_GET ?? array();
+		$this->post_backup = $_POST ?? array();
 		// handle_actions() acts only on its own screen (#1771).
-		$_GET['page'] = 'ffc-scheduling-audiences';
+		$_GET  = array( 'page' => 'ffc-scheduling-audiences' );
+		$_POST = array();
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted renderer's coverage would attribute to nothing.
 		// Preload the class here so pcov attributes its lines to this test.
 		class_exists( '\\FreeFormCertificate\\Audience\\AudienceAdminAudienceRenderer' );
+
+		// The account-email renderer keeps the reveal nonce for the request;
+		// an earlier test in this process may have filled it.
+		$nonce = new \ReflectionProperty( AudienceAccountEmail::class, 'nonce' );
+		$nonce->setAccessible( true );
+		$nonce->setValue( null, null );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -51,22 +113,31 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
 		Functions\when( 'admin_url' )->justReturn( 'https://example.com/wp-admin/' );
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+		// The reregistration field types are sorted by locale (LabelSorter).
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
 			return array_merge( $defaults, (array) $args );
 		} );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		// The self-join description names the configured limit (#1916); every
-		// other option reads its default.
+		// other option, the cache versions included, reads its default.
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) => ( 'ffc_aud_max_self_join_groups' === $key && null !== $this->self_join_limit ) ? $this->self_join_limit : $default
 		);
+		// A member count keeps the members whose account still exists (#1795).
+		Functions\when( 'get_users' )->alias(
+			fn( $args ) => array_values( array_diff( array_map( 'intval', (array) ( $args['include'] ?? array() ) ), $this->deleted_users ) )
+		);
+		// add_member() grants the audience capabilities to an account it finds.
+		Functions\when( 'get_userdata' )->justReturn( false );
 		// The editor renders its Members tab (#1761).
 		Functions\when( 'wp_nonce_url' )->justReturn( '/remove' );
 		Functions\when( 'get_user_by' )->alias(
@@ -74,28 +145,242 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 
 		// The account email is masked (#1824). Whether a row gets a Reveal
-		// button is the policy's answer, set per test through
-		// $this->can_reveal; the tiers themselves are AudienceAccountEmailTest's.
+		// button is the real policy's answer: the current user (1) is never the
+		// member, is no site administrator, and holds the audiences PII cap
+		// when $this->can_reveal says so.
 		Functions\when( 'is_email' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'reveal-nonce' );
-		$this->policy = Mockery::mock( 'alias:FreeFormCertificate\Core\PiiAccessPolicy' );
-		$this->policy->shouldReceive( 'can_reveal' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
-		// The members table's "Reveal this page" asks the same question (#1863).
-		$this->policy->shouldReceive( 'can_reveal_any' )->andReturnUsing( fn() => $this->can_reveal )->byDefault();
+		Functions\when( 'user_can' )->alias(
+			function ( $user_id, $cap ) {
+				$this->user_can_calls[] = array( (int) $user_id, (string) $cap );
+				return 'manage_options' !== $cap && $this->can_reveal;
+			}
+		);
 
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$this->installDatabase();
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['action'], $_GET['id'], $_GET['message'], $_GET['page'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_GET  = $this->get_backup;
+		$_POST = $this->post_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	// ==================================================================
+	// The `$wpdb` double
+	// ==================================================================
+
+	/**
+	 * Put the `$wpdb` double in place.
+	 */
+	private function installDatabase(): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( ...$args ) {
+				$flat             = 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args;
+				$this->prepared[] = $flat;
+				return 'Q' . ( count( $this->prepared ) - 1 ) . ':' . $flat[0];
+			}
+		);
+		foreach ( array( 'get_row', 'get_results', 'get_col', 'get_var' ) as $method ) {
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				// Nobody answered a custom field here (#2242): the editor's lock
+				// check finds no submission carrying its key.
+				fn( $sql ) => 'get_var' === $method && false !== strpos( (string) $sql, 'SELECT 1 FROM %i WHERE data LIKE %s' ) ? $this->answered : $this->answer( $method, (string) $sql )
+			);
+		}
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $text ) => $text );
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->writes[]  = array( 'insert', $table, $data );
+				$wpdb->insert_id = $this->next_insert_id++;
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', $table, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				$this->writes[] = array_merge( array( 'query' ), $this->boundTo( (string) $sql ) );
+				return 1;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function boundTo( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array( $sql );
+	}
+
+	/**
+	 * Answer one read from the arrays the test set.
+	 *
+	 * @return mixed
+	 */
+	private function answer( string $method, string $sql ) {
+		$bound       = $this->boundTo( $sql );
+		$text        = (string) $bound[0];
+		$table       = (string) ( $bound[1] ?? '' );
+		$args        = array_slice( $bound, 2 );
+		$this->ran[] = $text;
+
+		if ( self::AUDIENCES === $table && 0 === strpos( $text, 'SELECT * FROM %i' ) && in_array( $method, array( 'get_row', 'get_results' ), true ) ) {
+			$rows = $this->select( $this->audiences, $text, $args );
+			return 'get_row' === $method ? ( $rows[0] ?? null ) : $rows;
+		}
+		if ( 'get_col' === $method && self::MEMBERS === $table && 0 === strpos( $text, 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN (' ) ) {
+			$users = array();
+			foreach ( $args as $audience_id ) {
+				$users = array_merge( $users, $this->members[ (int) $audience_id ] ?? array() );
+			}
+			return array_map( 'strval', array_values( array_unique( $users ) ) );
+		}
+		if ( 'get_var' === $method && self::MEMBERS === $table && 'SELECT COUNT(*) FROM %i WHERE audience_id = %d AND user_id = %d' === $text ) {
+			return in_array( (int) $args[1], $this->members[ (int) $args[0] ] ?? array(), true ) ? '1' : '0';
+		}
+		if ( 'get_var' === $method && 'wp_ffc_audience_booking_audiences' === $table && 0 === strpos( $text, 'SELECT COUNT(DISTINCT booking_id) FROM %i WHERE audience_id IN (' ) ) {
+			return (string) count( array_intersect( array_map( 'intval', $args ), $this->booked_audiences ) );
+		}
+		if ( 'get_col' === $method && self::FIELDS === $table && 'SELECT field_key FROM %i WHERE audience_id = %d' === $text ) {
+			// Every standard field is already stored, so the seeder inserts none.
+			return array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
+		}
+		if ( 'get_results' === $method && self::FIELDS === $table && false !== strpos( $text, 'ORDER BY sort_order ASC, id ASC' ) ) {
+			// The fields are listed without one being drawn: the rows are
+			// render_custom_field_row()'s, tested on their own below.
+			return array();
+		}
+		$this->fail( "Unexpected {$method}(): {$text} with " . var_export( $bound, true ) );
+	}
+
+	/**
+	 * The rows matching a `SELECT * FROM %i [WHERE …] [ORDER BY name …]`.
+	 *
+	 * @param array<int, object>  $rows Stored rows.
+	 * @param string              $sql  The query, placeholders unreplaced.
+	 * @param array<int, mixed>   $args The values bound after the table.
+	 * @return list<object>
+	 */
+	private function select( array $rows, string $sql, array $args ): array {
+		preg_match_all( '/\b(\w+) = %[sd]/', $sql, $columns );
+		$out = array();
+		foreach ( $rows as $row ) {
+			if ( false !== strpos( $sql, 'parent_id IS NULL' ) && ! empty( $row->parent_id ) ) {
+				continue;
+			}
+			foreach ( $columns[1] as $i => $column ) {
+				if ( (string) ( $row->$column ?? '' ) !== (string) $args[ $i ] ) {
+					continue 2;
+				}
+			}
+			$out[] = clone $row;
+		}
+		if ( false !== strpos( $sql, 'ORDER BY name' ) ) {
+			usort( $out, static fn( $a, $b ) => strcmp( (string) $a->name, (string) $b->name ) );
+		}
+		return $out;
+	}
+
+	/**
+	 * Store an audience row.
+	 *
+	 * @param array<string, mixed> $fields Columns that differ from a plain active top-level audience.
+	 */
+	private function audience( int $id, array $fields = array() ): void {
+		$row = array_merge(
+			array(
+				'id'                 => (string) $id,
+				'name'               => 'Audience ' . $id,
+				'color'              => '#3788d8',
+				'parent_id'          => null,
+				'status'             => 'active',
+				'allow_self_join'    => '0',
+				'members_only'       => '0',
+				'require_membership' => '0',
+			),
+			$fields
+		);
+		if ( null !== $row['parent_id'] ) {
+			$row['parent_id'] = (string) $row['parent_id'];
+		}
+		$this->audiences[ $id ] = (object) $row;
+	}
+
+	/**
+	 * How many reads ran a query containing $needle.
+	 */
+	private function ranWith( string $needle ): int {
+		return count( array_filter( $this->ran, static fn( string $sql ): bool => false !== strpos( $sql, $needle ) ) );
+	}
+
+	/**
+	 * The writes of one operation on one table, in order.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function writesOf( string $operation, string $table ): array {
+		return array_values(
+			array_filter( $this->writes, static fn( array $w ): bool => $operation === $w[0] && $table === $w[1] )
+		);
+	}
+
+	/**
+	 * The self-join cascades the writer ran, as [value, child ids…].
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function cascades(): array {
+		$out = array();
+		foreach ( $this->writes as $write ) {
+			if ( 'query' === $write[0] && false !== strpos( (string) $write[1], 'UPDATE %i SET allow_self_join = %d' ) ) {
+				$out[] = array_slice( $write, 3 );
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Run handle_actions() up to the redirect it ends in.
+	 *
+	 * @return string The redirect target.
+	 */
+	private function handleUntilRedirect(): string {
+		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
+		try {
+			( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+		} catch ( \RuntimeException $e ) {
+			return $e->getMessage();
+		}
+		$this->fail( 'handle_actions() did not redirect.' );
 	}
 
 	// ==================================================================
@@ -180,26 +465,12 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
 
-		$child  = (object) array(
-			'id'       => 2,
-			'name'     => 'Child Aud',
-			'color'    => '#00ff00',
-			'status'   => 'inactive',
-			'children' => array(),
-		);
-		$parent = (object) array(
-			'id'       => 1,
-			'name'     => 'Parent Aud',
-			'color'    => '#ff0000',
-			'status'   => 'active',
-			'children' => array( $child ),
-		);
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
-		$repo->shouldReceive( 'get_member_count' )->andReturnUsing(
-			static fn( $id, $recursive = false ) => $recursive ? 10 : 4
+		$this->audience( 1, array( 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active' ) );
+		$this->audience( 2, array( 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'parent_id' => 1 ) );
+		// Four direct members, ten counting the child's.
+		$this->members = array(
+			1 => array( 1, 2, 3, 4 ),
+			2 => array( 5, 6, 7, 8, 9, 10 ),
 		);
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -214,6 +485,14 @@ class AudienceAdminAudienceTest extends TestCase {
 		// Active parent shows Deactivate; inactive child shows Delete.
 		$this->assertStringContainsString( 'Deactivate', $output );
 		$this->assertStringContainsString( 'Delete', $output );
+
+		// Once a booking names the child, its row offers no Delete (#2243).
+		$this->booked_audiences = array( 2 );
+		ob_start();
+		$page->render_page();
+		$output = (string) ob_get_clean();
+		$this->assertStringContainsString( 'Has bookings, kept', $output );
+		$this->assertStringNotContainsString( 'permanently delete this audience', $output );
 	}
 
 	/**
@@ -250,12 +529,12 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->grant( $caps );
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_url' )->justReturn( '/' );
-		$child  = (object) array( 'id' => 2, 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'children' => array() );
-		$parent = (object) array( 'id' => 1, 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active', 'children' => array( $child ) );
-		$repo   = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 1 );
+		$this->audience( 1, array( 'name' => 'Parent Aud', 'color' => '#ff0000', 'status' => 'active' ) );
+		$this->audience( 2, array( 'name' => 'Child Aud', 'color' => '#00ff00', 'status' => 'inactive', 'parent_id' => 1 ) );
+		$this->members = array(
+			1 => array( 7 ),
+			2 => array( 7 ),
+		);
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -283,31 +562,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'current_user_can' )->justReturn( true ); // view + manage caps.
 
-		$audience = (object) array(
-			'id'              => 5,
-			'name'            => 'Grp',
-			'color'           => '#123456',
-			'status'          => 'active',
-			'parent_id'       => null,
-			'allow_self_join' => 0,
-		);
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_children' )->with( 5 )->andReturn( array() );
-
-		// Real CustomFieldRepository (for FIELD_TYPES const) returns no fields
-		// via the mocked $wpdb (get_results -> []).
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+		$this->audience( 5, array( 'name' => 'Grp', 'color' => '#123456' ) );
+		$this->members = array( 5 => array( 7, 8 ) ); // The Members tab label (#1761).
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -329,7 +586,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
 		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
-		unset( $_GET['action'], $_GET['id'] );
+		// The seeder found every standard field stored and wrote nothing.
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_custom_fields_section_read_only_without_manage(): void {
@@ -337,14 +595,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'current_user_can' )->alias(
 			static fn( $cap ) => 'ffc_view_custom_fields' === $cap
 		);
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_children' )->with( 5 )->andReturn( array() );
-
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
+		$this->audience( 5 );
 
 		ob_start();
 		\FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_fields_section( 5 );
@@ -381,6 +632,39 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'A', $output );
 		// Custom field is deletable.
 		$this->assertStringContainsString( 'ffc-field-delete', $output );
+	}
+
+	public function test_an_answered_custom_field_is_drawn_locked_and_not_deletable(): void {
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		$this->answered = '1';
+
+		$field = (object) array(
+			'id'                => 31,
+			'field_label'       => 'Answered',
+			'field_type'        => 'text',
+			'field_key'         => 'answered_text',
+			'field_group'       => '',
+			'field_profile_key' => '',
+			'field_mask'        => '',
+			'field_source'      => 'custom',
+			'is_sensitive'      => 0,
+			'is_required'       => 0,
+			'is_active'         => 1,
+			'field_options'     => null,
+			'validation_rules'  => null,
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_field_row( $field, array( 'text' ), array() );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-field-answer-lock', $output, 'The lock is explained (#2242).' );
+		$this->assertMatchesRegularExpression( '/<select class="ffc-field-type" disabled>/', $output );
+		$this->assertMatchesRegularExpression( '/class="ffc-field-key"[^>]*disabled/', $output );
+		$this->assertMatchesRegularExpression( '/class="ffc-field-profile-key"[^>]*disabled/', $output );
+		$this->assertStringNotContainsString( 'ffc-field-delete', $output, 'An answered field is deactivated, never deleted.' );
+		$this->assertDoesNotMatchRegularExpression( '/<input type="text" class="ffc-field-label[^"]*"[^>]*disabled/', $output, 'The label stays editable.' );
 	}
 
 	public function test_render_custom_field_row_standard_locked_field(): void {
@@ -421,32 +705,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 
-		$audience = (object) array(
-			'id'              => 5,
-			'name'            => 'Sub Group',
-			'color'           => '#123456',
-			'status'          => 'active',
-			'parent_id'       => 1,
-			'allow_self_join' => 1,
-		);
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $audience );
-		$repo->shouldReceive( 'get_possible_parents' )->with( 5 )->andReturn(
-			array( (object) array( 'id' => 1, 'name' => 'Top', 'depth' => 0 ) )
-		);
-		$repo->shouldReceive( 'get_ancestors' )->with( 5 )->andReturn(
-			array( (object) array( 'id' => 1, 'name' => 'Top', 'color' => '#aaa' ) )
-		);
 		// The tree-access pair is read on the top-level audience (#1918).
-		$repo->shouldReceive( 'get_ancestor_ids' )->with( 5 )->andReturn( array( 5, 1 ) );
-		$repo->shouldReceive( 'get_by_id' )->with( 1 )->andReturn(
-			(object) array( 'id' => 1, 'name' => 'Top', 'parent_id' => null, 'members_only' => '1', 'require_membership' => '1' )
-		);
+		$this->audience( 1, array( 'name' => 'Top', 'color' => '#aaa', 'members_only' => '1', 'require_membership' => '1' ) );
+		$this->audience( 5, array( 'name' => 'Sub Group', 'color' => '#123456', 'parent_id' => 1, 'allow_self_join' => '1' ) );
+		$this->members = array( 5 => array( 7, 8 ) ); // The Members tab label (#1761).
 		// render_custom_fields_section: no view/manage cap -> early return.
 		Functions\when( 'current_user_can' )->justReturn( false );
 
@@ -461,17 +723,12 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'Inherited from the top-level audience: visible to members only, and members keep at least one group.', $output );
 		$this->assertStringNotContainsString( 'name="audience_members_only"', $output, 'a child shows the state read-only' );
 		$this->assertStringNotContainsString( 'name="audience_tree_access"', $output );
-		unset( $_GET['action'], $_GET['id'] );
 	}
 
 	public function test_render_form_missing_audience_dies(): void {
 		$_GET['action'] = 'edit';
 		$_GET['id']     = '99';
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
@@ -485,7 +742,6 @@ class AudienceAdminAudienceTest extends TestCase {
 			$page->render_page();
 		} finally {
 			ob_end_clean();
-			unset( $_GET['action'], $_GET['id'] );
 		}
 	}
 
@@ -504,20 +760,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'get_user_by' )->alias(
 			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		$repo->shouldReceive( 'get_children' )->andReturn( array() );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
-		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8 ) );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
+		$this->members = array( 5 => array( 7, 8 ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -535,7 +781,6 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-members" class="ffc-vtabs__panel is-active"', $output );
 		$this->assertStringContainsString( 'id="ffc-tabnav-members" class="ffc-vtabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-members" aria-selected="true"', $output );
 		$this->assertStringContainsString( 'name="audience_name"', $output, 'the Audience tab is there too' );
-		unset( $_GET['action'], $_GET['id'] );
 	}
 
 	public function test_members_tab_and_heading_count_only_the_rows_the_table_renders(): void {
@@ -552,19 +797,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'get_user_by' )->alias(
 			static fn( $field, $id ) => 9 === $id ? false : (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_children' )->andReturn( array() );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
-		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8, 9 ) );
-		$repo->shouldReceive( 'get_member_count' )->with( 5 )->andReturn( 2 );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
+		$this->members       = array( 5 => array( 7, 8, 9 ) );
+		$this->deleted_users = array( 9 );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -575,7 +812,6 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertStringContainsString( 'Current Members (2)', $output, 'the card heading' );
 		$this->assertStringNotContainsString( '(3)', $output, 'the orphan row is counted nowhere' );
 		$this->assertSame( 2, substr_count( $output, '@e.com' ), 'the table renders the two users that exist' );
-		unset( $_GET['action'], $_GET['id'] );
 	}
 
 	/**
@@ -611,24 +847,13 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_children' )->andReturn( array() );
-		$repo->shouldReceive( 'get_members' )->andReturn( array() );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
 		$page->render_page();
 		$output = (string) ob_get_clean();
-		$_POST  = array();
 
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)" class="ffc-vtabs__panel is-active"/', $output, $open );
 		$this->assertSame( array( $opened ), $open[1] );
@@ -645,14 +870,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_by_id' )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp', 'status' => 'active', 'parent_id' => null ) );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_members' )->andReturn( array() );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -670,10 +889,6 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldNotReceive( 'get_member_count' );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -683,16 +898,13 @@ class AudienceAdminAudienceTest extends TestCase {
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'audience' ), $panels[1] );
 		$this->assertStringContainsString( 'Add New Audience', $output );
+		$this->assertSame( 0, $this->ranWith( 'SELECT DISTINCT user_id' ), 'a new audience counts no members' );
 	}
 
 	public function test_render_members_missing_audience_dies(): void {
 		$_GET['action'] = 'members';
 		$_GET['id']     = '99';
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$this->expectException( \RuntimeException::class );
@@ -706,7 +918,6 @@ class AudienceAdminAudienceTest extends TestCase {
 			$page->render_page();
 		} finally {
 			ob_end_clean();
-			unset( $_GET['action'], $_GET['id'] );
 		}
 	}
 
@@ -716,8 +927,6 @@ class AudienceAdminAudienceTest extends TestCase {
 
 	public function test_handle_actions_creates_audience_and_redirects(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
 		$_POST = array(
 			'ffc_action'         => 'save_audience',
@@ -729,21 +938,17 @@ class AudienceAdminAudienceTest extends TestCase {
 			'audience_status'    => 'active',
 			'audience_self_join' => '1',
 		);
+		$this->next_insert_id = 50;
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'create' )->once()->with(
-			Mockery::on(
-				static fn( $d ) => 'Brand New' === $d['name'] && null === $d['parent_id'] && 1 === $d['allow_self_join']
-			)
-		)->andReturn( 50 );
+		$this->assertStringContainsString( 'id=50&message=created', $this->handleUntilRedirect() );
+
+		$inserts = $this->writesOf( 'insert', self::AUDIENCES );
+		$this->assertCount( 1, $inserts );
+		$this->assertSame( 'Brand New', $inserts[0][2]['name'] );
+		$this->assertNull( $inserts[0][2]['parent_id'] );
+		$this->assertSame( 1, $inserts[0][2]['allow_self_join'] );
 		// A new audience has no children yet, so nothing cascades (#1896).
-		$repo_w->shouldNotReceive( 'cascade_self_join' );
-
-		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=created' );
-		$page->handle_actions();
+		$this->assertSame( array(), $this->cascades() );
 	}
 
 	/**
@@ -752,9 +957,10 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public function test_a_new_child_audience_leaves_self_join_to_the_writer(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
+		// Audience 3 has no group below it yet, so its choice for children
+		// reads as off — while the switch is posted on.
+		$this->audience( 3, array( 'name' => 'Top', 'allow_self_join' => '1' ) );
 		$_POST = array(
 			'ffc_action'         => 'save_audience',
 			'ffc_audience_nonce' => 'n',
@@ -765,17 +971,14 @@ class AudienceAdminAudienceTest extends TestCase {
 			'audience_status'    => 'active',
 			'audience_self_join' => '1',
 		);
+		$this->next_insert_id = 51;
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'create' )->once()->with(
-			Mockery::on( static fn( $d ) => 3 === $d['parent_id'] && ! array_key_exists( 'allow_self_join', $d ) )
-		)->andReturn( 51 );
+		$this->assertStringContainsString( 'id=51&message=created', $this->handleUntilRedirect() );
 
-		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=created' );
-		$page->handle_actions();
+		$inserts = $this->writesOf( 'insert', self::AUDIENCES );
+		$this->assertCount( 1, $inserts );
+		$this->assertSame( 3, $inserts[0][2]['parent_id'] );
+		$this->assertSame( 0, $inserts[0][2]['allow_self_join'], 'the inherited choice, not the posted switch' );
 	}
 
 	/**
@@ -806,6 +1009,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
+		$this->audience( 5, array( 'name' => 'Edited' ) );
+		if ( array() !== array_intersect_key( $self_join, array( 'audience_self_join_scope' => true ) ) ) {
+			// The choice is offered because the audience has a group below it.
+			$this->audience( 6, array( 'parent_id' => 5 ) );
+		}
 		$_POST = array_merge(
 			array(
 				'ffc_action'         => 'save_audience',
@@ -819,21 +1027,31 @@ class AudienceAdminAudienceTest extends TestCase {
 			$self_join
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->with(
-			5,
-			Mockery::on( static fn( $d ) => null === $own ? ! array_key_exists( 'allow_self_join', $d ) : $own === $d['allow_self_join'] )
-		)->andReturn( true );
-		$repo_w->shouldNotReceive( 'cascade_self_join' );
-		if ( null === $scope ) {
-			$repo_w->shouldNotReceive( 'apply_self_join_scope' );
-		} else {
-			$repo_w->shouldReceive( 'apply_self_join_scope' )->once()->with( 5, $scope )->andReturn( true );
-		}
-
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
+
+		$updates = $this->writesOf( 'update', self::AUDIENCES );
+		$this->assertSame( array( 'id' => 5 ), $updates[0][3] );
+		if ( null === $own ) {
+			$this->assertArrayNotHasKey( 'allow_self_join', $updates[0][2] );
+		} else {
+			$this->assertSame( $own, $updates[0][2]['allow_self_join'] );
+		}
+		if ( null === $scope ) {
+			$this->assertCount( 1, $updates, 'no choice is applied' );
+			$this->assertSame( array(), $this->cascades(), 'nothing cascades' );
+			return;
+		}
+		$flags = array(
+			'off'         => array( 0, 0 ),
+			'self'        => array( 1, 0 ),
+			'all'         => array( 1, 1 ),
+			'descendants' => array( 0, 1 ),
+		)[ $scope ];
+		$this->assertCount( 2, $updates );
+		$this->assertSame( array( 'allow_self_join' => $flags[0] ), $updates[1][2], 'the choice sets the audience' );
+		$this->assertSame( array( 'id' => 5 ), $updates[1][3] );
+		$this->assertSame( array( array( $flags[1], 6 ) ), $this->cascades(), 'and every group below it, once' );
 	}
 
 	/**
@@ -860,6 +1078,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
+		$this->audience( 5, array( 'name' => 'Top' ) );
 		$_POST = array_merge(
 			array(
 				'ffc_action'           => 'save_audience',
@@ -874,18 +1093,26 @@ class AudienceAdminAudienceTest extends TestCase {
 			$posted
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->andReturn( true );
-		$repo_w->shouldReceive( 'set_tree_access' )->once()->with( 5, $members_only, $keep )->andReturn( true );
-
 		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+
+		$updates = $this->writesOf( 'update', self::AUDIENCES );
+		$this->assertCount( 2, $updates, 'the save, then the pair' );
+		$this->assertSame(
+			array(
+				'members_only'       => $members_only ? 1 : 0,
+				'require_membership' => $keep ? 1 : 0,
+			),
+			$updates[1][2]
+		);
+		$this->assertSame( array( 'id' => 5 ), $updates[1][3] );
 	}
 
 	public function test_handle_actions_update_of_a_child_leaves_the_tree_access_alone(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
+		$this->audience( 3, array( 'name' => 'Top' ) );
+		$this->audience( 5, array( 'name' => 'Child', 'parent_id' => 3 ) );
 		$_POST = array(
 			'ffc_action'            => 'save_audience',
 			'ffc_audience_nonce'    => 'n',
@@ -898,12 +1125,11 @@ class AudienceAdminAudienceTest extends TestCase {
 			'audience_members_only' => '1',
 		);
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->andReturn( true );
-		$repo_w->shouldNotReceive( 'set_tree_access' );
-
 		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+
+		$updates = $this->writesOf( 'update', self::AUDIENCES );
+		$this->assertCount( 1, $updates, 'only the save' );
+		$this->assertArrayNotHasKey( 'members_only', $updates[0][2] );
 	}
 
 	/**
@@ -923,15 +1149,7 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_members' )->andReturn( array() );
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Top', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '0', 'members_only' => $members_only, 'require_membership' => $keep )
-		);
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null );
+		$this->audience( 5, array( 'name' => 'Top', 'color' => '#123456', 'members_only' => $members_only, 'require_membership' => $keep ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -958,6 +1176,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'add_settings_error' )->justReturn( true );
 
+		$this->audience( 3, array( 'name' => 'Top' ) );
+		$this->audience( 5, array( 'name' => 'Child', 'parent_id' => 3 ) );
+		// A group below the edited one, which a cascade would reach.
+		$this->audience( 6, array( 'name' => 'Grandchild', 'parent_id' => 5 ) );
 		$_POST = array(
 			'ffc_action'         => 'save_audience',
 			'ffc_audience_nonce' => 'n',
@@ -968,28 +1190,24 @@ class AudienceAdminAudienceTest extends TestCase {
 			'audience_status'    => 'active',
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->with( 5, Mockery::on( static fn( $d ) => 3 === $d['parent_id'] ) )->andReturn( true );
-		$repo->shouldNotReceive( 'cascade_self_join' );
-
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$updates = $this->writesOf( 'update', self::AUDIENCES );
+		$this->assertCount( 1, $updates );
+		$this->assertSame( 3, $updates[0][2]['parent_id'] );
+		$this->assertSame( array( 'id' => 5 ), $updates[0][3] );
+		$this->assertSame( array(), $this->cascades() );
 	}
 
 	public function test_handle_actions_save_aborts_on_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		$_POST = array( 'ffc_action' => 'save_audience', 'ffc_audience_nonce' => 'bad' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldNotReceive( 'create' );
-		$repo->shouldNotReceive( 'update' );
-
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $this->writes, 'nothing is created or updated' );
 	}
 
 	// ==================================================================
@@ -998,7 +1216,13 @@ class AudienceAdminAudienceTest extends TestCase {
 
 	public function test_handle_actions_adds_members(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'add_settings_error' )->justReturn( true );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $message ) use ( &$notices ) {
+				$notices[] = $message;
+				return true;
+			}
+		);
 
 		$_POST = array(
 			'ffc_action'            => 'add_members',
@@ -1007,26 +1231,28 @@ class AudienceAdminAudienceTest extends TestCase {
 			'user_ids'              => '7,8,9',
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'bulk_add_members' )->once()->with( 5, array( 7, 8, 9 ) )->andReturn( 3 );
-
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$this->assertSame(
+			array(
+				array( 'audience_id' => 5, 'user_id' => 7 ),
+				array( 'audience_id' => 5, 'user_id' => 8 ),
+				array( 'audience_id' => 5, 'user_id' => 9 ),
+			),
+			array_column( $this->writesOf( 'insert', self::MEMBERS ), 2 )
+		);
+		$this->assertSame( array( '3 member(s) added successfully.' ), $notices );
 	}
 
 	public function test_handle_actions_add_members_bad_nonce_aborts(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
 		$_POST = array( 'ffc_action' => 'add_members', 'ffc_add_members_nonce' => 'bad' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldNotReceive( 'bulk_add_members' );
-
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		$page->handle_actions();
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $this->writes, 'no member is added' );
 	}
 
 	// ==================================================================
@@ -1036,17 +1262,12 @@ class AudienceAdminAudienceTest extends TestCase {
 	public function test_handle_actions_removes_member_and_redirects(): void {
 		$_GET = array( 'page' => 'ffc-scheduling-audiences', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'remove_member' )->once()->with( 5, 7 )->andReturn( true );
-
-		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=member_removed' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=member_removed', $this->handleUntilRedirect() );
+		$this->assertSame(
+			array( array( 'delete', self::MEMBERS, array( 'audience_id' => 5, 'user_id' => 7 ) ) ),
+			$this->writes
+		);
 	}
 
 	public function test_handle_actions_ignores_a_remove_member_request_on_another_screen(): void {
@@ -1056,12 +1277,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'remove_user' => '7', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldNotReceive( 'remove_member' );
-
 		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
-		$this->addToAssertionCount( 1 );
+
+		$this->assertSame( array(), $this->writes, 'no member is removed' );
 	}
 
 	// ==================================================================
@@ -1076,17 +1294,13 @@ class AudienceAdminAudienceTest extends TestCase {
 			'_wpnonce' => 'n',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
+		$this->audience( 5 );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo_w->shouldReceive( 'update' )->once()->with( 5, array( 'status' => 'inactive' ) )->andReturn( true );
-
-		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deactivated' );
-		$page->handle_actions();
+		$this->assertStringContainsString( 'message=deactivated', $this->handleUntilRedirect() );
+		$this->assertSame(
+			array( array( 'update', self::AUDIENCES, array( 'status' => 'inactive' ), array( 'id' => 5 ) ) ),
+			$this->writes
+		);
 	}
 
 	public function test_handle_actions_deletes_inactive_audience(): void {
@@ -1097,18 +1311,37 @@ class AudienceAdminAudienceTest extends TestCase {
 			'_wpnonce' => 'n',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		Functions\when( 'wp_safe_redirect' )->alias( static function ( $u ) { throw new \RuntimeException( 'redirect:' . $u ); } );
+		$this->audience( 5, array( 'status' => 'inactive' ) );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$repo_w = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'status' => 'inactive' ) );
-		$repo_w->shouldReceive( 'delete' )->once()->with( 5 )->andReturn( true );
+		$this->assertStringContainsString( 'message=deleted', $this->handleUntilRedirect() );
+		$this->assertSame(
+			array(
+				array( 'delete', self::MEMBERS, array( 'audience_id' => 5 ) ),
+				array( 'delete', self::AUDIENCES, array( 'id' => 5 ) ),
+			),
+			$this->writes
+		);
+	}
 
-		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'message=deleted' );
-		$page->handle_actions();
+	/**
+	 * Deleting an audience takes its groups and memberships, so the rosters
+	 * of its bookings would shrink after the fact: one that bookings name, or
+	 * whose group they name, stays inactive (#2243).
+	 */
+	public function test_an_audience_whose_tree_is_booked_is_not_deleted(): void {
+		$_GET = array(
+			'action'   => 'delete',
+			'id'       => '5',
+			'page'     => 'ffc-scheduling-audiences',
+			'_wpnonce' => 'n',
+		);
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		$this->audience( 5, array( 'status' => 'inactive' ) );
+		$this->audience( 6, array( 'status' => 'inactive', 'parent_id' => '5' ) );
+		$this->booked_audiences = array( 6 );
+
+		$this->assertStringContainsString( 'message=has_bookings&bookings=1', $this->handleUntilRedirect() );
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_delete_denied_without_cap(): void {
@@ -1122,13 +1355,16 @@ class AudienceAdminAudienceTest extends TestCase {
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'wp_die' )->alias( static function ( $m ) { throw new \RuntimeException( (string) $m ); } );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
+		$this->audience( 5, array( 'status' => 'inactive' ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'permission to delete' );
-		$page->handle_actions();
+		try {
+			$page->handle_actions();
+			$this->fail( 'handle_actions() did not refuse.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'permission to delete', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->writes, 'nothing is deleted' );
 	}
 
 	/**
@@ -1158,17 +1394,9 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => 1 )
-		);
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
+		$this->audience( 5, array( 'name' => 'Grp', 'color' => '#123456', 'allow_self_join' => '1' ) );
+		$this->members = array( 5 => array( 7, 8 ) ); // The Members tab label (#1761).
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -1204,15 +1432,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_members' )->andReturn( array() );
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => '1' )
-		);
-		$repo->shouldReceive( 'descendants_self_join_state' )->with( 5 )->andReturn( null );
+		// No group below it, so the single switch renders.
+		$this->audience( 5, array( 'name' => 'Grp', 'color' => '#123456', 'allow_self_join' => '1' ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -1244,7 +1465,7 @@ class AudienceAdminAudienceTest extends TestCase {
 	 * @dataProvider self_join_render_states
 	 *
 	 * @param string      $own     The audience's own flag.
-	 * @param string|null $state   What the reader derives for the descendants.
+	 * @param string|null $state   What the descendants' rows add up to.
 	 * @param string|null $checked The option checked, null for none.
 	 */
 	public function test_a_parent_renders_one_self_join_choice( string $own, ?string $state, ?string $checked ): void {
@@ -1255,19 +1476,21 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 0 );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() );
-		$repo->shouldReceive( 'get_members' )->andReturn( array() );
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn(
-			(object) array( 'id' => 5, 'name' => 'Grp', 'color' => '#123456', 'status' => 'active', 'parent_id' => null, 'allow_self_join' => $own )
-		);
-		$repo->shouldReceive( 'descendants_self_join_state' )->once()->with( 5 )->andReturn( $state );
+		$this->audience( 5, array( 'name' => 'Grp', 'color' => '#123456', 'allow_self_join' => $own ) );
 		if ( 'mixed' === $state ) {
-			$repo->shouldReceive( 'descendants_self_join_count' )->once()->with( 5 )->andReturn( array( 'allowed' => 3, 'total' => 7 ) );
-		} else {
-			$repo->shouldNotReceive( 'descendants_self_join_count' );
+			// Seven groups below it, three of which allow self-join: two
+			// children and their grandchildren.
+			$this->audience( 10, array( 'parent_id' => 5, 'allow_self_join' => '1' ) );
+			$this->audience( 11, array( 'parent_id' => 5, 'allow_self_join' => '0' ) );
+			$this->audience( 12, array( 'parent_id' => 10, 'allow_self_join' => '1' ) );
+			$this->audience( 13, array( 'parent_id' => 10, 'allow_self_join' => '1' ) );
+			$this->audience( 14, array( 'parent_id' => 11, 'allow_self_join' => '0' ) );
+			$this->audience( 15, array( 'parent_id' => 11, 'allow_self_join' => '0' ) );
+			$this->audience( 16, array( 'parent_id' => 11, 'allow_self_join' => '0' ) );
+		} elseif ( null !== $state ) {
+			// A child and a grandchild that agree.
+			$this->audience( 10, array( 'parent_id' => 5, 'allow_self_join' => $state ) );
+			$this->audience( 12, array( 'parent_id' => 10, 'allow_self_join' => $state ) );
 		}
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
@@ -1318,15 +1541,9 @@ class AudienceAdminAudienceTest extends TestCase {
 			static fn( $field, $id ) => (object) array( 'ID' => $id, 'display_name' => 'User' . $id, 'user_email' => $id . '@e.com' )
 		);
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 ); // The Members tab label (#1761).
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
-		$repo->shouldReceive( 'get_members' )->with( 5 )->andReturn( array( 7, 8 ) );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
+		$this->members = array( 5 => array( 7, 8 ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -1352,44 +1569,32 @@ class AudienceAdminAudienceTest extends TestCase {
 	 */
 	public static function reveal_tiers(): array {
 		return array(
-			'may reveal (unmasked or reveal tier)' => array( true ),
-			'masked tier'                          => array( false ),
+			'may reveal (reveal tier)' => array( true ),
+			'masked tier'              => array( false ),
 		);
 	}
 
 	/**
 	 * The members table masks each account email for every tier and draws
 	 * the audited Reveal button only for a viewer the policy lets reveal,
-	 * asking with the appointments gate and the member as owner (#1824).
+	 * asking with the audiences PII cap (#1824).
 	 *
 	 * @dataProvider reveal_tiers
 	 *
-	 * @param bool $can_reveal What the policy answers.
+	 * @param bool $can_reveal Whether the viewer holds the audiences PII cap.
 	 */
 	public function test_members_table_masks_the_account_email_at_every_tier( bool $can_reveal ): void {
 		$this->can_reveal = $can_reveal;
-		$this->policy->shouldReceive( 'can_reveal' )
-			->with( 'ffc_view_audiences_pii', Mockery::type( 'int' ) )
-			->andReturnUsing( fn() => $this->can_reveal );
 		$_GET['action'] = 'members';
 		$_GET['id']     = '5';
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( '' );
 		Functions\when( 'selected' )->justReturn( '' );
-		$seeder = Mockery::mock( 'alias:FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' );
-		$seeder->shouldReceive( 'seed_for_audience' )->andReturn( 0 );
-		$seeder->shouldReceive( 'get_group_labels' )->andReturn( array() );
 
-		$repo = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
 		// A parent with no children keeps the single switch (#1896).
-		$repo->shouldReceive( 'descendants_self_join_state' )->andReturn( null )->byDefault();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceWriter' );
-		$repo->shouldReceive( 'get_children' )->andReturn( array() );
-		$repo->shouldReceive( 'get_member_count' )->andReturn( 2 );
-		$repo->shouldReceive( 'get_possible_parents' )->andReturn( array() )->byDefault();
-		$repo->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( (object) array( 'id' => 5, 'name' => 'Grp' ) );
-		$repo->shouldReceive( 'get_members' )->andReturn( array( 7, 8 ) );
+		$this->audience( 5, array( 'name' => 'Grp' ) );
+		$this->members = array( 5 => array( 7, 8 ) );
 
 		$page = new AudienceAdminAudience( 'ffc-scheduling' );
 		ob_start();
@@ -1407,5 +1612,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( $can_reveal ? 2 : 0, substr_count( $output, 'ffc-reveal-pii"' ) );
 		// One "Reveal this page" over the table, for the reveal tier (#1863).
 		$this->assertSame( $can_reveal ? 1 : 0, substr_count( $output, 'ffc-reveal-pii-page' ) );
+		// The policy asked the audiences PII cap of the current user: once
+		// per member row and once for the page.
+		$asked = array_filter( $this->user_can_calls, static fn( array $call ): bool => 'ffc_view_audiences_pii' === $call[1] );
+		$this->assertCount( 3, $asked );
+		$this->assertSame( array( 1 ), array_values( array_unique( array_column( $asked, 0 ) ) ) );
 	}
 }

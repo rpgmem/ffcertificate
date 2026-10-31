@@ -60,7 +60,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_user_audience_bookings' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -70,7 +70,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => \WP_REST_Server::READABLE,
 				'callback'            => array( $this, 'get_joinable_groups' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -80,7 +80,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'join_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -90,7 +90,19 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'leave_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
+			)
+		);
+
+		// What leaving a group takes out of the user's list, asked before the
+		// confirmation (#2243). Read-only, so a GET.
+		register_rest_route(
+			$this->namespace,
+			'/user/audience-group/leave-impact',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'get_leave_impact' ),
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -100,7 +112,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'leave_all_audience_groups' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 
@@ -110,7 +122,7 @@ class UserAudienceRestController {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'switch_audience_group' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( $this, 'rest_permission' ),
 			)
 		);
 	}
@@ -207,31 +219,33 @@ class UserAudienceRestController {
 				}
 
 				$bookings_formatted[] = array(
-					'id'               => (int) $booking['id'],
-					'environment_id'   => (int) $booking['environment_id'],
-					'environment_name' => $booking['environment_name'] ?? __( 'Unknown', 'ffcertificate' ),
-					'schedule_name'    => $booking['schedule_name'] ?? '',
-					'booking_date'     => $date_formatted,
-					'booking_date_raw' => $booking['booking_date'],
-					'start_time'       => $time_formatted,
-					'end_time'         => $end_time_formatted,
-					'time_label'       => $time_label,
+					'id'                  => (int) $booking['id'],
+					'environment_id'      => (int) $booking['environment_id'],
+					'environment_name'    => $booking['environment_name'] ?? __( 'Unknown', 'ffcertificate' ),
+					'schedule_name'       => $booking['schedule_name'] ?? '',
+					'booking_date'        => $date_formatted,
+					'booking_date_raw'    => $booking['booking_date'],
+					'start_time'          => $time_formatted,
+					'end_time'            => $end_time_formatted,
+					'time_label'          => $time_label,
 					// The calendar event: every booked day of a range, not only its first.
-					'ics'              => \FreeFormCertificate\Audience\AudienceBookingRules::ics_fields(
+					'ics'                 => \FreeFormCertificate\Audience\AudienceBookingRules::ics_fields(
 						(string) $booking['booking_date'],
 						isset( $booking['end_date'] ) ? (string) $booking['end_date'] : null,
 						isset( $booking['time_mode'] ) ? (string) $booking['time_mode'] : null,
 						isset( $booking['skipped_dates'] ) ? (string) $booking['skipped_dates'] : null
 					),
-					'last_date_raw'    => $last_date,
-					'description'      => $booking['description'],
-					'status'           => $status,
-					'status_label'     => $status_labels[ $status ] ?? $status,
-					'is_past'          => $is_past,
+					'last_date_raw'       => $last_date,
+					'description'         => $booking['description'],
+					'status'              => $status,
+					'status_label'        => $status_labels[ $status ] ?? $status,
+					// Why it was cancelled, written by whoever cancelled it (#2243).
+					'cancellation_reason' => 'cancelled' === $status ? (string) ( $booking['cancellation_reason'] ?? '' ) : '',
+					'is_past'             => $is_past,
 					// The text colour over each audience's own colour is computed here,
 					// not left to the script (#1826).
-					'audiences'        => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
-					'post_event'       => $post_event,
+					'audiences'           => \FreeFormCertificate\Core\BadgeHtml::with_row_colors( $booking['audiences'] ),
+					'post_event'          => $post_event,
 				);
 			}
 
@@ -576,17 +590,66 @@ class UserAudienceRestController {
 			// it and not just this one (#1302).
 			\FreeFormCertificate\Audience\AudienceWriter::add_member( $group_id, $user_id );
 
+			// The group's bookings already made reach the new member at once
+			// (#2243), so the answer says how many joined their list.
+			$upcoming = \FreeFormCertificate\Audience\AudienceQueryService::count_upcoming_for_audience( $group_id, current_time( 'Y-m-d' ) );
+			/* translators: %s: group name */
+			$message = sprintf( __( 'You joined "%s"!', 'ffcertificate' ), $group->name );
+			if ( $upcoming > 0 ) {
+				$message .= ' ' . sprintf(
+					/* translators: %d: number of bookings */
+					_n( 'Its %d upcoming booking is now in your list.', 'Its %d upcoming bookings are now in your list.', $upcoming, 'ffcertificate' ),
+					$upcoming
+				);
+			}
+
 			return rest_ensure_response(
 				array(
-					'success' => true,
-					/* translators: %s: group name */
-					'message' => sprintf( __( 'You joined "%s"!', 'ffcertificate' ), $group->name ),
+					'success'  => true,
+					'message'  => $message,
+					'upcoming' => $upcoming,
 				)
 			);
 
 		} catch ( \Exception $e ) {
 			return new \WP_Error( 'join_group_error', __( 'Error joining group', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
+	}
+
+	/**
+	 * GET /user/audience-group/leave-impact
+	 *
+	 * How many upcoming bookings leave the user's list when they leave a
+	 * group (#2243): the ones that reach them through that group alone.
+	 *
+	 * @param \WP_REST_Request $request REST request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function get_leave_impact( $request ) {
+		$ctx      = $this->resolve_user_context( $request );
+		$user_id  = $ctx['user_id'];
+		$group_id = self::param_int( $request, 'group_id' );
+
+		if ( ! $user_id ) {
+			return new \WP_Error( 'not_logged_in', __( 'You must be logged in', 'ffcertificate' ), array( 'status' => 401 ) );
+		}
+
+		if ( ! $group_id ) {
+			return new \WP_Error( 'missing_group', __( 'Group ID is required', 'ffcertificate' ), array( 'status' => 400 ) );
+		}
+
+		$bookings = \FreeFormCertificate\Audience\AudienceQueryService::count_upcoming_lost_on_leave( $group_id, (int) $user_id, current_time( 'Y-m-d' ) );
+
+		return rest_ensure_response(
+			array(
+				'bookings' => $bookings,
+				'message'  => 0 === $bookings ? '' : sprintf(
+					/* translators: %d: number of bookings */
+					_n( 'You will no longer see %d upcoming booking of this group, nor be expected at it.', 'You will no longer see %d upcoming bookings of this group, nor be expected at them.', $bookings, 'ffcertificate' ),
+					$bookings
+				),
+			)
+		);
 	}
 
 	/**
@@ -614,7 +677,6 @@ class UserAudienceRestController {
 			}
 
 			$audiences_table = $wpdb->prefix . 'ffc_audiences';
-			$members_table   = $wpdb->prefix . 'ffc_audience_members';
 
 			// Verify group is self-joinable (top-level or child — mirrors join()).
 			$group = $wpdb->get_row(
@@ -633,17 +695,14 @@ class UserAudienceRestController {
 				return new \WP_Error( 'keep_one_group', __( 'This audience keeps its members in at least one group. Join or switch to another of its groups before leaving this one.', 'ffcertificate' ), array( 'status' => 409 ) );
 			}
 
-			$deleted = $wpdb->delete(
-				$members_table,
-				array(
-					'audience_id' => $group_id,
-					'user_id'     => $user_id,
-				),
-				array( '%d', '%d' )
-			);
-
-			if ( ! $deleted ) {
+			if ( ! \FreeFormCertificate\Audience\AudienceReader::is_member( $group_id, $user_id ) ) {
 				return new \WP_Error( 'not_member', __( 'You are not a member of this group', 'ffcertificate' ), array( 'status' => 404 ) );
+			}
+
+			// Through the writer, which clears the member's cached audiences, so
+			// the calendars they may book update at once (#2243).
+			if ( ! \FreeFormCertificate\Audience\AudienceWriter::remove_member( $group_id, $user_id ) ) {
+				return new \WP_Error( 'leave_group_error', __( 'Error leaving group', 'ffcertificate' ), array( 'status' => 500 ) );
 			}
 
 			return rest_ensure_response(
@@ -703,6 +762,8 @@ class UserAudienceRestController {
 			);
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- The argument is the string $wpdb->prepare() returned above.
 			$deleted = is_string( $sql ) ? $wpdb->query( $sql ) : 0;
+			// The cached audiences of the member go with the memberships (#2243).
+			\FreeFormCertificate\Audience\AudienceWriter::invalidate_user_audiences( array( $user_id ) );
 
 			// `kept` names, per tree, the group left in place, so the
 			// dashboard can say what stayed and why.

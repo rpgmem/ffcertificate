@@ -240,6 +240,10 @@ final class RecruitmentDashboardSection {
 	 * - `empty` is Waiting, `final` or `preliminary` by the notice's status.
 	 * - `hired`, `withdrew`, `not_shown` and any status this screen does not
 	 *   know are Closed.
+	 * - On a closed notice nothing waits and nothing is still called (#2245):
+	 *   a row with no outcome yet is Closed as `notice_closed`, and a recorded
+	 *   outcome (or a passed deadline) keeps its own badge. The label is drawn
+	 *   here only; the stored classification status never changes.
 	 *
 	 * Every item also carries the most recent cancelled call (`reverted`),
 	 * which the Waiting and Closed rows explain behind their info button.
@@ -274,10 +278,14 @@ final class RecruitmentDashboardSection {
 				'reverted'       => $reverted,
 			);
 
-			$status = (string) $entry['classification']->status;
+			$status        = (string) $entry['classification']->status;
+			$notice_closed = 'closed' === (string) $entry['notice']->status;
 			if ( in_array( $status, array( 'called', 'accepted' ), true ) && null !== $live ) {
 				if ( self::deadline_passed( (string) $live->date_to_assume, $now ) ) {
 					$item['status'] = 'expired';
+					$closed[]       = $item;
+				} elseif ( $notice_closed ) {
+					$item['status'] = 'notice_closed';
 					$closed[]       = $item;
 				} else {
 					$item['status'] = 'called';
@@ -286,6 +294,11 @@ final class RecruitmentDashboardSection {
 				continue;
 			}
 
+			if ( in_array( $status, array( 'empty', 'called', 'accepted' ), true ) && $notice_closed ) {
+				$item['status'] = 'notice_closed';
+				$closed[]       = $item;
+				continue;
+			}
 			if ( in_array( $status, array( 'empty', 'called', 'accepted' ), true ) ) {
 				$item['status'] = 'preliminary' === $entry['notice']->status ? 'preliminary' : 'final';
 				$waiting[]      = $item;
@@ -435,7 +448,7 @@ final class RecruitmentDashboardSection {
 		}
 
 		if ( ! empty( $sections['closed'] ) ) {
-			$html .= self::section_open( 'closed', 'inbox', _x( 'Closed', 'recruitment calls section', 'ffcertificate' ), __( 'Hired, withdrew, did not show up, or the presentation deadline passed.', 'ffcertificate' ) );
+			$html .= self::section_open( 'closed', 'inbox', _x( 'Closed', 'recruitment calls section', 'ffcertificate' ), __( 'Hired, withdrew, did not show up, the presentation deadline passed, or the notice was closed.', 'ffcertificate' ) );
 			$html .= self::render_closed( $sections['closed'] );
 			$html .= '</section>';
 		}
@@ -635,8 +648,7 @@ final class RecruitmentDashboardSection {
 			$html .= '<tr class="ffc-mycalls-row" data-group="' . esc_attr( $group ) . '">';
 			$html .= '<td class="ffc-mycalls-notice-cell" data-label="' . esc_attr__( 'Notice', 'ffcertificate' ) . '">' . self::notice_html( $item['notice'] ) . '</td>';
 			$html .= '<td data-label="' . esc_attr__( 'Adjutancy', 'ffcertificate' ) . '">' . esc_html( self::subject_name( $cls ) ) . '</td>';
-			$html .= '<td class="ffc-mycalls-num" data-label="' . esc_attr__( 'Position', 'ffcertificate' ) . '">' . esc_html( number_format_i18n( (int) $cls->rank ) ) . '</td>';
-			$html .= '<td class="ffc-mycalls-num" data-label="' . esc_attr__( 'Score', 'ffcertificate' ) . '">' . esc_html( number_format_i18n( (float) $cls->score, 2 ) ) . '</td>';
+			$html .= self::rank_cells( $cls );
 			$html .= '<td data-label="' . esc_attr__( 'Classification', 'ffcertificate' ) . '"><div class="ffc-mycalls-status">';
 			$html .= self::classification_badge( $group );
 			$html .= null === $item['reverted'] ? '' : self::reverted_info( $item['reverted'] );
@@ -660,6 +672,8 @@ final class RecruitmentDashboardSection {
 			array(
 				__( 'Notice', 'ffcertificate' ),
 				__( 'Adjutancy', 'ffcertificate' ),
+				__( 'Position', 'ffcertificate' ),
+				__( 'Score', 'ffcertificate' ),
 				__( 'Status', 'ffcertificate' ),
 				__( 'Presentation date', 'ffcertificate' ),
 				__( 'Notes', 'ffcertificate' ),
@@ -673,6 +687,7 @@ final class RecruitmentDashboardSection {
 			$html .= '<tr class="ffc-mycalls-row">';
 			$html .= '<td class="ffc-mycalls-notice-cell" data-label="' . esc_attr__( 'Notice', 'ffcertificate' ) . '">' . self::notice_html( $item['notice'] ) . '</td>';
 			$html .= '<td data-label="' . esc_attr__( 'Adjutancy', 'ffcertificate' ) . '">' . esc_html( self::subject_name( $item['classification'] ) ) . '</td>';
+			$html .= self::rank_cells( $item['classification'] );
 			$html .= '<td data-label="' . esc_attr__( 'Status', 'ffcertificate' ) . '"><div class="ffc-mycalls-status">';
 			$html .= self::status_badge( $item['status'] );
 			if ( 'expired' === $item['status'] ) {
@@ -687,6 +702,19 @@ final class RecruitmentDashboardSection {
 		$html .= '</tbody></table></div>';
 		$html .= self::pager( self::CLOSED_PER_PAGE, __( 'Pages: Closed', 'ffcertificate' ) );
 		return $html;
+	}
+
+	/**
+	 * The Position and Score cells of a classification, shared by the
+	 * Waiting and Closed tables.
+	 *
+	 * @param object $cls Classification row.
+	 * @phpstan-param ClassificationRow $cls
+	 * @return string
+	 */
+	private static function rank_cells( object $cls ): string {
+		return '<td class="ffc-mycalls-num" data-label="' . esc_attr__( 'Position', 'ffcertificate' ) . '">' . esc_html( number_format_i18n( (int) $cls->rank ) ) . '</td>'
+			. '<td class="ffc-mycalls-num" data-label="' . esc_attr__( 'Score', 'ffcertificate' ) . '">' . esc_html( number_format_i18n( (float) $cls->score, 2 ) ) . '</td>';
 	}
 
 	/**
@@ -785,10 +813,11 @@ final class RecruitmentDashboardSection {
 	 */
 	private static function status_badge( string $status ): string {
 		$map  = array(
-			'hired'     => array( 'ffc-mycalls-badge-hired', __( 'Hired', 'ffcertificate' ) ),
-			'withdrew'  => array( 'ffc-mycalls-badge-withdrew', __( 'Withdrew', 'ffcertificate' ) ),
-			'not_shown' => array( 'ffc-mycalls-badge-not-shown', __( 'Did not show up', 'ffcertificate' ) ),
-			'expired'   => array( 'ffc-mycalls-badge-expired', __( 'Deadline passed', 'ffcertificate' ) ),
+			'hired'         => array( 'ffc-mycalls-badge-hired', __( 'Hired', 'ffcertificate' ) ),
+			'withdrew'      => array( 'ffc-mycalls-badge-withdrew', __( 'Withdrew', 'ffcertificate' ) ),
+			'not_shown'     => array( 'ffc-mycalls-badge-not-shown', __( 'Did not show up', 'ffcertificate' ) ),
+			'expired'       => array( 'ffc-mycalls-badge-expired', __( 'Deadline passed', 'ffcertificate' ) ),
+			'notice_closed' => array( 'ffc-mycalls-badge-notice-closed', __( 'Notice closed', 'ffcertificate' ) ),
 		);
 		$pair = $map[ $status ] ?? array( 'ffc-mycalls-badge-withdrew', $status );
 		return '<span class="ffc-pill ' . esc_attr( $pair[0] ) . '">' . esc_html( $pair[1] ) . '</span>';

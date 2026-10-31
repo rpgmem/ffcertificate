@@ -27,6 +27,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class AppointmentAjaxHandler {
 
+	// The public read limit the REST calendar endpoints use (#2244): the
+	// booking form's slot and month reads count against the same pool.
+	use \FreeFormCertificate\API\ReadRateLimitGuardTrait;
+
 	use \FreeFormCertificate\Core\AjaxTrait;
 
 	/**
@@ -110,6 +114,21 @@ class AppointmentAjaxHandler {
 					)
 				);
 			}
+
+			// The submission IP limit the REST booking route already applies
+			// (#2244): the captcha alone did not throttle a solver farm. A check
+			// that never records never trips (#1861).
+			$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+			$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
+			if ( ! $rate_check['allowed'] ) {
+				wp_send_json_error(
+					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+						array( 'message' => $rate_check['message'] )
+					),
+					429
+				);
+			}
+			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip );
 
 			$calendar_id = $this->get_post_int( 'calendar_id' );
 			$date        = $this->get_post_param( 'date' );
@@ -283,10 +302,23 @@ class AppointmentAjaxHandler {
 	}
 
 	/**
+	 * Answer 429 and stop when the caller is over the public read limit.
+	 *
+	 * @return void
+	 */
+	private function send_read_limit_error(): void {
+		$blocked = $this->guard_read( 'calendar_slots' );
+		if ( null !== $blocked ) {
+			wp_send_json_error( array( 'message' => $blocked->get_error_message() ), 429 );
+		}
+	}
+
+	/**
 	 * AJAX: Get available slots for a date
 	 */
 	public function ajax_get_available_slots(): void {
 		check_ajax_referer( 'ffc_self_scheduling_nonce', 'nonce' );
+		$this->send_read_limit_error();
 
 		$calendar_id = $this->get_post_int( 'calendar_id' );
 		$date        = $this->get_post_param( 'date' );
@@ -377,6 +409,7 @@ class AppointmentAjaxHandler {
 	public function ajax_get_month_bookings(): void {
 		try {
 			check_ajax_referer( 'ffc_self_scheduling_nonce', 'nonce' );
+			$this->send_read_limit_error();
 
 			$calendar_id = $this->get_post_int( 'calendar_id' );
 			$year_raw    = $this->get_post_int( 'year' );
@@ -405,10 +438,16 @@ class AppointmentAjaxHandler {
 
 			// Get holidays for the month (global + calendar-specific blocked dates).
 			$holidays = array();
+			// The optional holidays among them (#2202); every other date reads
+			// as a holiday, a calendar's own blocked dates included.
+			$holiday_kinds = array();
 
 			$global_holidays = \FreeFormCertificate\Scheduling\DateBlockingService::get_global_holidays( $start_date, $end_date );
 			foreach ( $global_holidays as $gh ) {
 				$holidays[ $gh['date'] ] = $gh['description'] ? $gh['description'] : __( 'Holiday', 'ffcertificate' );
+				if ( \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL === \FreeFormCertificate\Scheduling\ClosedDateKind::normalize( $gh['kind'] ?? null ) ) {
+					$holiday_kinds[ $gh['date'] ] = \FreeFormCertificate\Scheduling\ClosedDateKind::OPTIONAL;
+				}
 			}
 
 			$blocked = $blocked_repo->getBlockedDatesInRange( $calendar_id, $start_date, $end_date );
@@ -429,8 +468,9 @@ class AppointmentAjaxHandler {
 
 			wp_send_json_success(
 				array(
-					'counts'   => $counts,
-					'holidays' => $holidays,
+					'counts'        => $counts,
+					'holidays'      => $holidays,
+					'holiday_kinds' => (object) $holiday_kinds,
 				)
 			);
 

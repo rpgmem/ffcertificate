@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -15,12 +16,11 @@ use FreeFormCertificate\Audience\AudienceBookingReader;
  * and which audiences already have a booking that day — including the
  * isolated-schedule scope and the exclusion of the booking being edited.
  *
- * AudienceReader and AudienceEnvironmentRepository are aliased, so each test
- * runs in its own process.
+ * AudienceReader and AudienceEnvironmentRepository are the real classes: the
+ * `$wpdb` double below answers each query by its SQL text, with the values
+ * bound to it, from the arrays a test sets.
  *
  * @covers \FreeFormCertificate\Audience\AudienceBookingReader
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceBookingReaderConflictsTest extends TestCase {
 
@@ -29,22 +29,46 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
-	/** @var Mockery\MockInterface */
-	private $audiences;
-
 	/** @var list<array<int, mixed>> Every prepare() call, as its argument list. */
 	private array $prepared = array();
+
+	/** @var list<string> The SQL of every get_results() / get_col() call, in order. */
+	private array $ran = array();
+
+	/** @var array<int, list<int>> Members by audience id, answered by AudienceReader::get_members(). */
+	private array $members = array();
+
+	/** @var list<string> User ids the booking-users query answers. */
+	private array $booking_users = array();
+
+	/** @var list<object> Audience rows the booking-audiences query answers. */
+	private array $booking_audiences = array();
+
+	/** @var mixed What the user-conflict query answers (a list of rows, or null for a failed query). */
+	private $conflicts = array();
+
+	/** @var mixed What the same-day audience query answers (a list of rows, or null for a failed query). */
+	private $same_day = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		Functions\when( 'sanitize_sql_orderby' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
 
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
-		$wpdb->prefix = 'wp_';
-		$this->wpdb   = $wpdb;
+		$this->wpdb         = Mockery::mock( 'wpdb' );
+		$this->wpdb->prefix = 'wp_';
 
 		$this->prepared = array();
+		$this->ran      = array();
 		$prepared       = &$this->prepared;
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( string $text ): string => addcslashes( $text, '_%\\' ) );
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
@@ -54,17 +78,77 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 				return 'Q' . ( count( $prepared ) - 1 ) . ':' . $flat[0];
 			}
 		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = (string) $sql;
+				$bound       = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'parent_id = %d' ) ) {
+					// AudienceReader::get_children(): no audience here has children.
+					return array();
+				}
+				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT b.*' ) ) {
+					return $this->conflicts;
+				}
+				if ( false !== strpos( (string) $sql, 'a.name AS audience_name' ) ) {
+					return $this->same_day;
+				}
+				if ( false !== strpos( (string) $sql, 'WHERE ba.booking_id = %d' ) ) {
+					return $this->booking_audiences;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->ran[] = (string) $sql;
+				$bound       = $this->boundTo( (string) $sql );
+				if ( false !== strpos( (string) $sql, 'audience_id IN' ) ) {
+					// AudienceReader::get_members(): the audience ids bind after the table.
+					$users = array();
+					foreach ( array_slice( $bound, 2 ) as $audience_id ) {
+						$users = array_merge( $users, $this->members[ (int) $audience_id ] ?? array() );
+					}
+					return array_map( 'strval', array_values( array_unique( $users ) ) );
+				}
+				if ( false !== strpos( (string) $sql, 'SELECT user_id FROM' ) ) {
+					return $this->booking_users;
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
 
-		$this->audiences = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$this->audiences->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_audiences' );
-		$this->audiences->shouldReceive( 'get_members_table_name' )->andReturn( 'wp_ffc_audience_members' );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceEnvironmentRepository' )
-			->shouldReceive( 'get_table_name' )->andReturn( 'wp_ffc_audience_environments' );
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The prepare() argument list behind a prepared query string.
+	 *
+	 * @return array<int, mixed>
+	 */
+	private function boundTo( string $sql ): array {
+		if ( preg_match( '/^Q(\d+):/', $sql, $match ) ) {
+			return $this->prepared[ (int) $match[1] ] ?? array();
+		}
+		return array();
+	}
+
+	/**
+	 * How many get_results() / get_col() calls ran a query containing $needle.
+	 */
+	private function ranWith( string $needle ): int {
+		return count( array_filter( $this->ran, static fn( string $sql ): bool => false !== strpos( $sql, $needle ) ) );
 	}
 
 	/**
@@ -86,17 +170,19 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_all_affected_users_merges_direct_users_and_audience_members_once(): void {
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '1', '2' ) );
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
-			array( (object) array( 'id' => '5' ), (object) array( 'id' => '6' ) )
+		$this->booking_users     = array( '1', '2' );
+		$this->booking_audiences = array( (object) array( 'id' => '5' ), (object) array( 'id' => '6' ) );
+		$this->members           = array(
+			5 => array( 2, 3 ),
+			6 => array( 3, 4 ),
 		);
-		$this->audiences->shouldReceive( 'get_members' )->with( 5, true )->andReturn( array( 2, 3 ) );
-		$this->audiences->shouldReceive( 'get_members' )->with( 6, true )->andReturn( array( 3, 4 ) );
 
 		$users = AudienceBookingReader::get_all_affected_users( 40 );
 
 		$this->assertSame( array( 1, 2, 3, 4 ), array_values( $users ) );
 		$this->assertSame( 40, $this->preparedWith( 'SELECT user_id' )[2] );
+		$this->assertSame( 1, $this->ranWith( 'SELECT user_id FROM' ), 'The direct users are read once.' );
+		$this->assertSame( 1, $this->ranWith( 'WHERE ba.booking_id = %d' ), 'The booking audiences are read once.' );
 	}
 
 	// ==================================================================
@@ -104,30 +190,23 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_user_conflicts_with_nobody_affected_queries_nothing(): void {
-		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->andReturn( array() );
-		$this->wpdb->shouldNotReceive( 'get_results' );
+		$this->members = array( 9 => array() );
 
 		$result = AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array( 9 ), array() );
 
 		$this->assertSame( array( 'bookings' => array(), 'affected_users' => array() ), $result );
+		$this->assertSame( 0, $this->ranWith( 'SELECT DISTINCT b.*' ), 'No conflict query runs when nobody is affected.' );
 	}
 
 	public function test_get_user_conflicts_reports_only_the_overlapping_members(): void {
-		$this->audiences->shouldReceive( 'get_members' )->with( 9, true )->andReturn( array( 20, 21 ) );
-		// Conflict query, then get_booking_audiences() for the conflicting booking.
-		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $sql ) {
-				if ( false !== strpos( $sql, 'SELECT DISTINCT b.*' ) ) {
-					return array(
-						(object) array( 'id' => '77', 'booking_date' => '2026-05-04', 'start_time' => '09:30:00', 'end_time' => '11:00:00' ),
-						// Shares a member but only touches the hours, so it is not a conflict.
-						(object) array( 'id' => '78', 'booking_date' => '2026-05-04', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ),
-					);
-				}
-				return array();
-			}
+		$this->members   = array( 9 => array( 20, 21 ) );
+		$this->conflicts = array(
+			(object) array( 'id' => '77', 'booking_date' => '2026-05-04', 'start_time' => '09:30:00', 'end_time' => '11:00:00' ),
+			// Shares a member but only touches the hours, so it is not a conflict.
+			(object) array( 'id' => '78', 'booking_date' => '2026-05-04', 'start_time' => '10:00:00', 'end_time' => '11:00:00' ),
 		);
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '21', '99' ) );
+		// get_all_affected_users() for the conflicting booking: two direct users, no audience.
+		$this->booking_users = array( '21', '99' );
 
 		$result = AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array( 9 ), array( 20 ) );
 
@@ -140,12 +219,12 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audience_members', 'wp_ffc_audience_booking_users', '2026-05-04' ),
 			array_slice( $query, 1, 5 )
 		);
-		$this->assertSame( array( '2026-05-04', '2026-05-04', '%"2026-05-04"%' ), array_slice( $query, 5, 3 ), 'The day binds as a range, skipping the days a range left out.' );
-		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 8 ), 'The user list fills both IN() clauses; the hours are compared in PHP, per day.' );
+		$this->assertSame( array( '2026-05-04', '2026-05-04', '2025-05-05', '%"2026-05-04"%' ), array_slice( $query, 5, 4 ), 'The day binds as a range starting at most a year before (#2243), skipping the days a range left out.' );
+		$this->assertSame( array( 20, 21, 20, 21 ), array_slice( $query, 9 ), 'The user list fills both IN() clauses; the hours are compared in PHP, per day.' );
 	}
 
 	public function test_get_user_conflicts_scoped_to_a_schedule_excludes_the_edited_booking(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+		$this->conflicts = null;
 
 		$result = AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array(), array( 30 ), 15, 3 );
 
@@ -157,6 +236,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		$this->assertStringContainsString( 'Q0:AND b.id != %d', $query[0], 'The prepared exclusion is interpolated.' );
 		$this->assertSame( 'wp_ffc_audience_environments', $query[5] );
 		$this->assertSame( 3, $query[ count( $query ) - 1 ], 'The schedule id binds last.' );
+		$this->assertSame( 1, $this->ranWith( 'SELECT DISTINCT b.*' ), 'The conflict query runs once.' );
 	}
 
 	// ==================================================================
@@ -164,9 +244,7 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_audience_same_day_bookings_scoped_to_a_schedule(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
-			array( (object) array( 'id' => '8', 'audience_name' => 'Teachers' ) )
-		);
+		$this->same_day = array( (object) array( 'id' => '8', 'audience_name' => 'Teachers' ) );
 
 		$rows = AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4, 5 ), 15, 3 );
 
@@ -175,13 +253,13 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		$this->assertStringContainsString( 'INNER JOIN %i env ON b.environment_id = env.id', $query[0] );
 		$this->assertStringContainsString( 'ba.audience_id IN (%d,%d)', $query[0] );
 		$this->assertSame(
-			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audiences', 'wp_ffc_audience_environments', '2026-05-04', '2026-05-04', '%"2026-05-04"%', 4, 5, 3 ),
+			array( 'wp_ffc_audience_bookings', 'wp_ffc_audience_booking_audiences', 'wp_ffc_audiences', 'wp_ffc_audience_environments', '2026-05-04', '2026-05-04', '2025-05-05', '%"2026-05-04"%', 4, 5, 3 ),
 			array_slice( $query, 1 )
 		);
+		$this->assertSame( 1, $this->ranWith( 'a.name AS audience_name' ), 'The same-day query runs once.' );
 	}
 
 	public function test_get_audience_same_day_bookings_restricted_to_readable_schedules(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
 		AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4 ), null, null, array( 7, 8 ) );
 
@@ -189,31 +267,32 @@ class AudienceBookingReaderConflictsTest extends TestCase {
 		$this->assertStringContainsString( 'INNER JOIN %i env ON b.environment_id = env.id', $query[0] );
 		$this->assertStringContainsString( 'AND env.schedule_id IN (%d,%d)', $query[0] );
 		$this->assertSame( array( 7, 8 ), array_slice( $query, -2 ), 'The readable schedule ids bind last.' );
+		$this->assertSame( 1, $this->ranWith( 'a.name AS audience_name' ), 'The same-day query runs once.' );
 	}
 
 	public function test_user_conflicts_restricted_to_readable_schedules_and_to_the_isolated_one(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
 		AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array(), array( 30 ), null, 3, array( 3, 9 ) );
 
 		$query = $this->preparedWith( 'SELECT DISTINCT b.*' );
 		$this->assertStringContainsString( 'AND env.schedule_id = %d AND env.schedule_id IN (%d,%d)', $query[0] );
 		$this->assertSame( array( 3, 3, 9 ), array_slice( $query, -3 ) );
+		$this->assertSame( 1, $this->ranWith( 'SELECT DISTINCT b.*' ), 'The conflict query runs once.' );
 	}
 
 	public function test_no_readable_schedule_queries_nothing(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->never();
-
 		$this->assertSame( array(), AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4 ), null, null, array() ) );
 		$this->assertSame(
 			array( 'bookings' => array(), 'affected_users' => array() ),
 			AudienceBookingReader::get_user_conflicts( '2026-05-04', '09:00', '10:00', array(), array( 30 ), null, null, array() )
 		);
+		$this->assertSame( array(), $this->ran, 'No query runs without a readable schedule.' );
 	}
 
 	public function test_get_audience_same_day_bookings_returns_empty_on_a_failed_query(): void {
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+		$this->same_day = null;
 
 		$this->assertSame( array(), AudienceBookingReader::get_audience_same_day_bookings( '2026-05-04', array( 4 ) ) );
+		$this->assertSame( 1, $this->ranWith( 'a.name AS audience_name' ), 'The same-day query runs once.' );
 	}
 }

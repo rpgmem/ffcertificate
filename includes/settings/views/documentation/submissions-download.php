@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h3 id="submissions-download" class="ffc-icon-download"><?php esc_html_e( 'Downloading the certificate', 'ffcertificate' ); ?></h3>
 
 	<p><?php esc_html_e( 'Certificates are not stored as files — the PDF is regenerated on demand each time it is requested, always reflecting the current template. There are two ways to reach it, both served from the public /valid page.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Because of that, a change to a form\'s layout reaches every certificate it already issued, and the layout editor says how many there are. A tag for a field the form has but a submission lacks (a field added later, or an optional one left empty) prints blank; a tag that is no field of the form stays visible as written, so a typo is noticed. Once the form has submissions, the tag name of each field it had is locked in the form builder.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Magic download link', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A one-click link that downloads the participant\'s own certificate. The secret token travels in the URL hash fragment (#token=…), so the server never sees it in logs. The token is the only credential — there is no separate login — so the link should be treated as private. It has no captcha, but it is rate-limited by IP and every access is logged.', 'ffcertificate' ); ?></p>

@@ -76,4 +76,36 @@ class RecruitmentErrorMessagesTest extends TestCase {
 		$this->assertSame( 'recruitment_brand_new', $out[1] );
 		$this->assertNotSame( 'recruitment_notice_not_found', $out[2] );
 	}
+
+	public function test_invalid_transition_names_both_statuses_in_words(): void {
+		$msg = RecruitmentErrorMessages::translate( 'recruitment_invalid_transition: called->empty' );
+
+		$this->assertStringContainsString( '"Called"', $msg );
+		$this->assertStringContainsString( '"Waiting"', $msg );
+		$this->assertStringNotContainsString( 'called->empty', $msg );
+	}
+
+	public function test_invalid_transition_with_unknown_status_keeps_the_code_word(): void {
+		$msg = RecruitmentErrorMessages::translate( 'recruitment_invalid_transition: called->bogus' );
+
+		$this->assertStringContainsString( '"bogus"', $msg );
+	}
+
+	public function test_invalid_transition_with_unparsable_suffix_falls_back_to_parens(): void {
+		$msg = RecruitmentErrorMessages::translate( 'recruitment_invalid_transition: whatever' );
+
+		$this->assertStringContainsString( 'not allowed', $msg );
+		$this->assertStringContainsString( '(whatever)', $msg );
+	}
+
+	public function test_race_codes_say_reload_rather_than_blame_the_state(): void {
+		$this->assertStringContainsString( 'Reload', RecruitmentErrorMessages::translate( 'recruitment_state_locked' ) );
+		$this->assertStringContainsString( 'no longer waiting', RecruitmentErrorMessages::translate( 'recruitment_classification_not_empty' ) );
+	}
+
+	public function test_call_schedule_and_bulk_codes_have_messages(): void {
+		foreach ( array( 'recruitment_call_invalid_date', 'recruitment_call_invalid_time', 'recruitment_bulk_call_failed_at_classification' ) as $code ) {
+			$this->assertNotSame( $code, RecruitmentErrorMessages::translate( $code ), $code );
+		}
+	}
 }

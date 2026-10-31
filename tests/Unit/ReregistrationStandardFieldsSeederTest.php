@@ -5,9 +5,11 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Reregistration\ReregistrationFieldOptions;
 use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
@@ -467,32 +469,144 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	// ==================================================================
-	// maybe_relabel_union() -- the "Estado" left behind by #1209
+	// relabel_union() -- the "Estado" left behind by #1209
 	// ==================================================================
 
-	public function test_register_hooks_the_union_relabel_on_admin_init(): void {
+	public function test_register_hooks_one_upgrade_on_admin_init(): void {
 		$hooked = array();
 		Functions\when( 'add_action' )->alias( function ( $hook, $callback ) use ( &$hooked ) {
-			$hooked[ $hook ] = $callback;
+			$hooked[ $hook ][] = $callback;
 			return true;
 		});
 
 		ReregistrationStandardFieldsSeeder::register();
 
-		$this->assertSame( array( ReregistrationStandardFieldsSeeder::class, 'maybe_relabel_union' ), $hooked['admin_init'] ?? null );
+		$this->assertSame(
+			array(
+				array( ReregistrationStandardFieldsSeeder::class, 'maybe_upgrade_seeded_fields' ),
+			),
+			$hooked['admin_init'] ?? null
+		);
+	}
+
+	// ==================================================================
+	// maybe_upgrade_seeded_fields() -- one versioned option (#2242)
+	// ==================================================================
+
+	/**
+	 * Answer every step's read with nothing to change, and record which
+	 * steps asked, by the column each step reads first.
+	 *
+	 * @return \ArrayObject<int, string>
+	 */
+	private function stepsFindNothing(): \ArrayObject {
+		$asked = new \ArrayObject();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		// prepare() is called both spread and with an array of values; the
+		// field key is the first value after the table either way.
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( ...$args ) => 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args
+		);
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static function ( $q ) use ( $asked ) {
+				$asked[] = 'col:' . $q[2];
+				return array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) use ( $asked ) {
+				$asked[] = 'results:' . $q[2];
+				return array();
+			}
+		);
+		return $asked;
+	}
+
+	public function test_a_fresh_install_runs_every_step_once_and_records_the_version(): void {
+		$asked   = $this->stepsFindNothing();
+		$written = array();
+		$deleted = array();
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value, $autoload = null ) use ( &$written ) {
+				$written[ $key ] = array( $value, $autoload );
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		ReregistrationStandardFieldsSeeder::maybe_upgrade_seeded_fields();
+
+		$this->assertSame(
+			array( 'col:sindicato', 'col:vinculo', 'col:jornada', 'col:horario_trabalho', 'results:jornada', 'results:jornada_acumulo', 'results:email_institucional', 'col:rf', 'col:cep', 'results:cep' ),
+			$asked->getArrayCopy(),
+			'Each of the six steps runs, in order.'
+		);
+		$this->assertSame( array( ReregistrationStandardFieldsSeeder::FIELDS_VERSION_OPTION => array( 6, true ) ), $written, 'One autoloaded option, at the last step.' );
+		$this->assertSame(
+			array( 'ffc_union_label_relabelled', 'ffc_schedule_fields_updated', 'ffc_edu_email_field_added', 'ffc_rf_field_validated', 'ffc_cep_field_validated', 'ffc_cep_before_address' ),
+			$deleted,
+			'The per-step flags it replaced are removed.'
+		);
+	}
+
+	public function test_a_current_install_reads_one_option_and_stops(): void {
+		$reads = array();
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$reads ) {
+				$reads[] = $key;
+				return 6;
+			}
+		);
+		$writes = CallLog::record( 'update_option', true );
+		$this->wpdb->shouldReceive( 'get_col' )->never();
+		$this->wpdb->shouldReceive( 'get_results' )->never();
+
+		ReregistrationStandardFieldsSeeder::maybe_upgrade_seeded_fields();
+
+		$this->assertSame( array( ReregistrationStandardFieldsSeeder::FIELDS_VERSION_OPTION ), $reads );
+		$this->assertSame( 0, $writes->count() );
+	}
+
+	public function test_an_upgraded_install_skips_the_steps_its_flags_recorded(): void {
+		$asked = $this->stepsFindNothing();
+		// The install ran every step but the CEP reorder before the version
+		// option existed.
+		$flags = array( 'ffc_union_label_relabelled', 'ffc_schedule_fields_updated', 'ffc_edu_email_field_added', 'ffc_rf_field_validated', 'ffc_cep_field_validated' );
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => in_array( $key, $flags, true ) ? '1' : $default );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'delete_option' )->justReturn( true );
+
+		ReregistrationStandardFieldsSeeder::maybe_upgrade_seeded_fields();
+
+		$this->assertSame( array( 'results:cep' ), $asked->getArrayCopy(), 'Only the step never flagged runs.' );
+	}
+
+	public function test_a_later_step_runs_without_repeating_the_earlier_ones(): void {
+		$asked = $this->stepsFindNothing();
+		// Version 4: the two CEP steps are new to this install. A legacy flag
+		// left behind is not read once a version exists.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => ReregistrationStandardFieldsSeeder::FIELDS_VERSION_OPTION === $key ? '4' : '1'
+		);
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( 'delete_option' )->justReturn( true );
+
+		ReregistrationStandardFieldsSeeder::maybe_upgrade_seeded_fields();
+
+		$this->assertSame( array( 'col:cep', 'results:cep' ), $asked->getArrayCopy() );
 	}
 
 	/**
 	 * Only standard `sindicato` rows still labelled "Estado" are relabelled
-	 * to the translated "Union", and the flag is written.
+	 * to the translated "Union".
 	 */
 	public function test_relabel_union_renames_the_rows_still_labelled_estado(): void {
-		$options = array();
-		Functions\when( 'get_option' )->justReturn( false );
-		Functions\when( 'update_option' )->alias( function ( $key, $value, $autoload = null ) use ( &$options ) {
-			$options[ $key ] = array( $value, $autoload );
-			return true;
-		});
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
@@ -507,33 +621,260 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 			->with( 'wp_ffc_custom_fields', array( 'field_label' => 'Union' ), Mockery::on( fn( $where ) => in_array( $where['id'], array( 7, 9 ), true ) ), array( '%s' ), array( '%d' ) )
 			->andReturn( 1 );
 
-		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+		ReregistrationStandardFieldsSeeder::relabel_union();
 
 		$select = array_values( array_filter( $queries, fn( $q ) => str_contains( (string) $q[0], 'field_label IN' ) ) );
 		$this->assertCount( 1, $select );
 		$this->assertStringContainsString( "field_source = 'standard'", $select[0][0] );
 		$this->assertSame( array( 'wp_ffc_custom_fields', 'sindicato', 'Estado' ), $select[0][1] );
-		$this->assertSame( array( '1', false ), $options[ ReregistrationStandardFieldsSeeder::UNION_RELABEL_OPTION ] ?? null );
 	}
 
-	public function test_relabel_union_runs_once(): void {
-		Functions\when( 'get_option' )->justReturn( '1' );
-		Functions\expect( 'update_option' )->never();
-		$this->wpdb->shouldReceive( 'get_col' )->never();
-		$this->wpdb->shouldReceive( 'update' )->never();
-
-		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
-	}
+	// ==================================================================
+	// update_schedule_fields() -- the labels and options of #2225
+	// ==================================================================
 
 	/**
-	 * Nothing to relabel still writes the flag, so the query never repeats.
+	 * The three labels move off what was shipped, and the two jornada fields
+	 * still on the legacy list take the current one; a list an operator
+	 * changed stays.
 	 */
-	public function test_relabel_union_flags_even_when_nothing_matched(): void {
-		Functions\when( 'get_option' )->justReturn( false );
-		Functions\expect( 'update_option' )->once()->with( ReregistrationStandardFieldsSeeder::UNION_RELABEL_OPTION, '1', false );
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
-		$this->wpdb->shouldReceive( 'update' )->never();
+	public function test_update_schedule_fields_relabels_and_replaces_only_the_shipped_values(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
-		ReregistrationStandardFieldsSeeder::maybe_relabel_union();
+		$selects = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function ( ...$args ) use ( &$selects ) {
+			$selects[] = $args;
+			return $args;
+		});
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( function ( $q ) {
+			$values = $q[1];
+			return array( 'vinculo' => array( '11' ), 'jornada' => array( '12' ), 'horario_trabalho' => array() )[ $values[1] ] ?? array();
+		});
+		$legacy = json_encode( array( 'choices' => array( 'JB.30', 'JBD.30', 'JEIF.40', 'JB.20' ) ) );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( function ( $q ) use ( $legacy ) {
+			return 'jornada' === $q[2]
+				? array( array( 'id' => '21', 'field_options' => $legacy ), array( 'id' => '22', 'field_options' => json_encode( array( 'choices' => array( 'Edited' ) ) ) ) )
+				: array( array( 'id' => '23', 'field_options' => $legacy ) );
+		});
+
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data, $where ) use ( &$updates ) {
+			$updates[ $where['id'] ] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::update_schedule_fields();
+
+		$this->assertSame( array( 'field_label' => 'Employment Bond' ), $updates[11] );
+		$this->assertSame( array( 'field_label' => 'Workload or Category' ), $updates[12] );
+		$current = json_encode( array( 'choices' => ReregistrationFieldOptions::get_work_schedule_options() ) );
+		$this->assertSame( array( 'field_options' => $current ), $updates[21] );
+		$this->assertSame( array( 'field_options' => $current ), $updates[23], 'The accumulation jornada follows the same list.' );
+		$this->assertArrayNotHasKey( 22, $updates, 'A list an operator changed stays.' );
+		$this->assertCount( 4, $updates );
+
+		$labels = array_values( array_filter( $selects, fn( $q ) => str_contains( (string) $q[0], 'field_label IN' ) ) );
+		$this->assertSame( array( 'wp_ffc_custom_fields', 'horario_trabalho', 'Working Hours', 'Horários de Funcionamento' ), $labels[2][1] );
+	}
+
+	// ==================================================================
+	// add_edu_email_field() -- the @edu e-mail on seeded audiences
+	// ==================================================================
+
+	/**
+	 * Every audience carrying the @sme field gains the @edu one at the same
+	 * position, except one that already has it.
+	 */
+	public function test_add_edu_email_field_inserts_beside_the_sme_field(): void {
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( function ( $q ) {
+			$this->assertSame( 'email_institucional', $q[2] );
+			return array(
+				array( 'audience_id' => '5', 'sort_order' => '20' ),
+				array( 'audience_id' => '6', 'sort_order' => '21' ),
+			);
+		});
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( static function ( $q ) {
+			return 6 === $q[2] ? array( 'email_institucional', 'email_institucional_edu' ) : array( 'email_institucional' );
+		});
+
+		$inserted = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing( function ( $table, $data ) use ( &$inserted ) {
+			$inserted[] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::add_edu_email_field();
+
+		$this->assertCount( 1, $inserted, 'An audience that already has the key is left alone.' );
+		$this->assertSame( 5, $inserted[0]['audience_id'] );
+		$this->assertSame( 'email_institucional_edu', $inserted[0]['field_key'] );
+		$this->assertSame( 'standard', $inserted[0]['field_source'] );
+		$this->assertSame( 'email', $inserted[0]['field_mask'] );
+		$this->assertSame( 20, $inserted[0]['sort_order'], 'It takes the @sme field\'s position.' );
+		$this->assertSame( 0, $inserted[0]['is_required'] );
+	}
+
+	public function test_the_edu_email_field_is_seeded_after_the_sme_one(): void {
+		$keys = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
+		$sme  = array_search( 'email_institucional', $keys, true );
+
+		$this->assertSame( 'email_institucional_edu', $keys[ $sme + 1 ] );
+	}
+
+	// ==================================================================
+	// validate_rf_fields() -- the RF format check on seeded rows
+	// ==================================================================
+
+	public function test_validate_rf_fields_gives_rule_less_rows_the_rf_format(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( function ( $q ) {
+			$this->assertStringContainsString( 'validation_rules IS NULL', $q[0] );
+			$this->assertSame( 'rf', $q[2] );
+			return array( '31', '32' );
+		});
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data, $where ) use ( &$updates ) {
+			$updates[ $where['id'] ] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::validate_rf_fields();
+
+		$expected = array( 'validation_rules' => json_encode( array( 'format' => 'rf' ) ) );
+		$this->assertSame( array( 31 => $expected, 32 => $expected ), $updates );
+	}
+
+	public function test_the_rf_field_is_seeded_with_the_rf_format(): void {
+		$defs = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), null, 'field_key' );
+
+		$this->assertSame( array( 'format' => 'rf' ), $defs['rf']['validation'] );
+	}
+
+	// ==================================================================
+	// validate_cep_fields() -- the CEP format check on seeded rows (#2233)
+	// ==================================================================
+
+	public function test_validate_cep_fields_gives_rule_less_rows_the_cep_format(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing( function ( $q ) {
+			$this->assertStringContainsString( 'validation_rules IS NULL', $q[0] );
+			$this->assertSame( 'cep', $q[2] );
+			return array( '41' );
+		});
+		$updates = array();
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing( function ( $table, $data, $where ) use ( &$updates ) {
+			$updates[ $where['id'] ] = $data;
+			return 1;
+		});
+
+		ReregistrationStandardFieldsSeeder::validate_cep_fields();
+
+		$this->assertSame( array( 41 => array( 'validation_rules' => json_encode( array( 'format' => 'cep' ) ) ) ), $updates );
+	}
+
+	public function test_the_cep_field_is_seeded_with_the_cep_format(): void {
+		$defs = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), null, 'field_key' );
+
+		$this->assertSame( array( 'format' => 'cep' ), $defs['cep']['validation'] );
+	}
+
+	// ==================================================================
+	// move_cep_before_address_everywhere() -- the CEP typed before the address (#2234)
+	// ==================================================================
+
+	/**
+	 * Answer the two reads the reorder makes: which audiences have a
+	 * standard `cep`, and each audience's fields in their order.
+	 *
+	 * @param array<int, list<array{0: int, 1: string, 2: int}>> $audiences id => [field id, key, sort order], in query order.
+	 * @param array<int, array<string, mixed>>                    $updates   Writes by field id, filled as they happen.
+	 * @return void
+	 */
+	private function audiences_with_fields( array $audiences, array &$updates ): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( ...$args ) => $args );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) use ( $audiences ) {
+				if ( false !== strpos( $q[0], 'field_source' ) ) {
+					return array_map(
+						static fn( $id ) => array( 'audience_id' => (string) $id, 'sort_order' => '0' ),
+						array_keys( $audiences )
+					);
+				}
+				$fields = $audiences[ (int) $q[1][1] ] ?? array();
+				return array_map(
+					static fn( $f ) => (object) array( 'id' => (string) $f[0], 'field_key' => $f[1], 'sort_order' => (string) $f[2] ),
+					$fields
+				);
+			}
+		);
+		$this->wpdb->shouldReceive( 'update' )->andReturnUsing(
+			static function ( $table, $data, $where ) use ( &$updates ) {
+				$updates[ (int) $where['id'] ] = $data;
+				return 1;
+			}
+		);
+	}
+
+	public function test_move_cep_puts_it_right_before_the_address_and_renumbers(): void {
+		$updates = array();
+		$this->audiences_with_fields(
+			array(
+				// The seeded order: the CEP last in the contact group.
+				7 => array( array( 1, 'nome_completo', 0 ), array( 2, 'endereco', 1 ), array( 3, 'endereco_numero', 2 ), array( 4, 'bairro', 3 ), array( 5, 'cep', 4 ), array( 6, 'telefone', 5 ) ),
+				// Reordered by hand, with a tie, listed as the query sorts it:
+				// still moved, and the tie renumbered.
+				8 => array( array( 11, 'endereco', 3 ), array( 12, 'cidade', 3 ), array( 10, 'cep', 9 ) ),
+			),
+			$updates
+		);
+
+		ReregistrationStandardFieldsSeeder::move_cep_before_address_everywhere();
+
+		$this->assertSame(
+			array(
+				5  => array( 'sort_order' => 1 ),
+				2  => array( 'sort_order' => 2 ),
+				3  => array( 'sort_order' => 3 ),
+				4  => array( 'sort_order' => 4 ),
+				10 => array( 'sort_order' => 0 ),
+				11 => array( 'sort_order' => 1 ),
+				12 => array( 'sort_order' => 2 ),
+			),
+			$updates,
+			'Only the rows whose position changed are written; nome_completo and telefone keep theirs.'
+		);
+	}
+
+	public function test_move_cep_leaves_an_audience_already_in_order_or_missing_a_field(): void {
+		$updates = array();
+		$this->audiences_with_fields(
+			array(
+				7 => array( array( 1, 'cep', 0 ), array( 2, 'endereco', 1 ) ),
+				8 => array( array( 3, 'cep', 0 ), array( 4, 'bairro', 1 ) ),
+			),
+			$updates
+		);
+
+		ReregistrationStandardFieldsSeeder::move_cep_before_address_everywhere();
+
+		$this->assertSame( array(), $updates );
+	}
+
+	public function test_the_cep_is_seeded_right_before_the_address(): void {
+		$keys = array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
+
+		$this->assertSame( array_search( 'endereco', $keys, true ) - 1, array_search( 'cep', $keys, true ) );
 	}
 }

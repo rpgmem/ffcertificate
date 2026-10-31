@@ -5,10 +5,12 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\BadgeHtml;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer;
+use FreeFormCertificate\Recruitment\RecruitmentSettings;
 
 /**
  * Tests for the public recruitment shortcode renderer — focused on the
@@ -21,22 +23,23 @@ use FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer;
  * public shortcode output without a WordPress template wrapper — any
  * bug here is an XSS regression vector.
  *
+ * RecruitmentSettings, BadgeHtml and Encryption are the real classes: a
+ * badge is compared with what BadgeHtml draws for the same arguments, and a
+ * field is decrypted from a ciphertext the real cipher wrote (#2119).
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentPublicShortcodeRendererTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
-
-	/** @var \Mockery\MockInterface */
-	private $settingsMock;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 		// Escape stubs intentionally reflect the WP semantics so the
 		// assertions can detect missing-escape regressions.
@@ -48,14 +51,16 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 		// (a class constant). We let the real class autoload so the constant
 		// resolves — the renderer never calls methods on the repository.
 
-		$this->settingsMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentSettings' );
-		$this->settingsMock->shouldReceive( 'all' )->andReturn(
-			array(
-				'notice_status_color_preliminary' => '#ffe066',
-				'notice_status_color_definitive'  => '#a3e0a3',
-				'notice_status_color_closed'      => '#cccccc',
-			)
-		)->byDefault();
+		// The real RecruitmentSettings reads its option (#2119).
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => RecruitmentSettings::OPTION_NAME === $key
+				? array(
+					'notice_status_color_preliminary' => '#ffe066',
+					'notice_status_color_definitive'  => '#a3e0a3',
+					'notice_status_color_closed'      => '#cccccc',
+				)
+				: $fallback
+		);
 	}
 
 	protected function tearDown(): void {
@@ -238,17 +243,12 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 	}
 
 	public function test_decrypt_field_delegates_to_encryption(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'cipher' )->andReturn( 'plain' );
-
-		$this->assertSame( 'plain', $this->invoke( 'decrypt_field', 'cipher' ) );
+		$this->assertSame( 'plain', $this->invoke( 'decrypt_field', Encryption::encrypt( 'plain' ) ) );
 	}
 
 	public function test_decrypt_field_returns_null_when_decrypt_fails(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->andReturn( null );
-
-		$this->assertNull( $this->invoke( 'decrypt_field', 'cipher' ) );
+		// Not a ciphertext: the real cipher answers null.
+		$this->assertNull( $this->invoke( 'decrypt_field', 'not-a-ciphertext' ) );
 	}
 
 	public function test_render_adjutancy_badge_returns_empty_for_null(): void {
@@ -261,13 +261,8 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 	 * `render_with_row_color()`, which writes it as a custom property (#1193).
 	 */
 	public function test_render_adjutancy_badge_uses_row_color_and_falls_back(): void {
-		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		$badge->shouldReceive( 'render_with_row_color' )->andReturnUsing(
-			fn( $base, $color, $label ) => "[$color|$label]"
-		);
-
 		$this->assertSame(
-			'[#abcabc|Mat]',
+			BadgeHtml::render_with_row_color( 'ffc-recruitment-adjutancy-badge', '#abcabc', 'Mat' ),
 			$this->invoke( 'render_adjutancy_badge', (object) array( 'name' => 'Mat', 'color' => '#abcabc' ) )
 		);
 		// Blank color → repository default.
@@ -286,45 +281,30 @@ class RecruitmentPublicShortcodeRendererTest extends TestCase {
 	 * {@see RecruitmentBadgePaletteTest}.
 	 */
 	public function test_render_subscription_badge_pcd_and_geral(): void {
-		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $label ) => "[$base|$cls|$label]"
-		);
-
 		$pcd   = RecruitmentPublicShortcodeRenderer::render_subscription_badge( true );
 		$geral = RecruitmentPublicShortcodeRenderer::render_subscription_badge( false );
 
-		$this->assertSame( '[ffc-recruitment-subscription-badge|ffc-recruitment-subscription-pcd|PCD]', $pcd );
-		$this->assertSame( '[ffc-recruitment-subscription-badge|ffc-recruitment-subscription-geral|GERAL]', $geral );
+		$this->assertSame( BadgeHtml::render( 'ffc-recruitment-subscription-badge', 'ffc-recruitment-subscription-pcd', 'PCD' ), $pcd );
+		$this->assertSame( BadgeHtml::render( 'ffc-recruitment-subscription-badge', 'ffc-recruitment-subscription-geral', 'General' ), $geral );
 	}
 
 	public function test_render_status_badge_names_the_variant_class(): void {
-		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $label ) => "[$cls|$label]"
-		);
-
-		$this->assertSame( '[ffc-recruitment-status-called|Called]', $this->invoke( 'render_status_badge', 'called' ) );
+		$this->assertStringContainsString( 'ffc-recruitment-status-called">Called<', $this->invoke( 'render_status_badge', 'called' ) );
 		// `accepted` keeps its own class and shares `called`'s colour in the palette.
-		$this->assertSame( '[ffc-recruitment-status-accepted|Called]', $this->invoke( 'render_status_badge', 'accepted' ) );
+		$this->assertStringContainsString( 'ffc-recruitment-status-accepted">Called<', $this->invoke( 'render_status_badge', 'accepted' ) );
 		// Unknown status still names a class; the family rule floors its colour.
-		$this->assertSame( '[ffc-recruitment-status-bogus|bogus]', $this->invoke( 'render_status_badge', 'bogus' ) );
+		$this->assertStringContainsString( 'ffc-recruitment-status-bogus">bogus<', $this->invoke( 'render_status_badge', 'bogus' ) );
 	}
 
 	public function test_render_preview_status_badge_names_the_variant_and_passes_reason(): void {
-		$badge = Mockery::mock( 'alias:FreeFormCertificate\Core\BadgeHtml' );
-		$badge->shouldReceive( 'render' )->andReturnUsing(
-			fn( $base, $cls, $label, $reason = '' ) => "[$cls|$label|$reason]"
-		);
+		$granted = $this->invoke( 'render_preview_status_badge', 'granted', '' );
+		$this->assertStringContainsString( 'ffc-recruitment-preview-status-granted">Granted<', $granted );
+		$this->assertStringNotContainsString( 'title=', $granted );
 
-		$this->assertSame(
-			'[ffc-recruitment-preview-status-granted|Granted|]',
-			$this->invoke( 'render_preview_status_badge', 'granted', '' )
-		);
-		$this->assertSame(
-			'[ffc-recruitment-preview-status-weird|weird|hint]',
-			$this->invoke( 'render_preview_status_badge', 'weird', 'hint' )
-		);
+		$weird = $this->invoke( 'render_preview_status_badge', 'weird', 'hint' );
+		$this->assertStringContainsString( 'ffc-recruitment-preview-status-weird', $weird );
+		$this->assertStringContainsString( 'title="hint"', $weird );
+		$this->assertStringContainsString( '>weird<', $weird );
 	}
 
 }

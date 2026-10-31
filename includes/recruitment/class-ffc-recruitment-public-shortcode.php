@@ -101,6 +101,20 @@ final class RecruitmentPublicShortcode {
 	private const CACHE_VERSION_DOMAIN = 'recruitment_public';
 
 	/**
+	 * Whether this request already bumped the cache version (#2245).
+	 *
+	 * @var bool
+	 */
+	private static bool $bumped_this_request = false;
+
+	/**
+	 * Whether a later write in this request still owes a bump at shutdown.
+	 *
+	 * @var bool
+	 */
+	private static bool $bump_pending = false;
+
+	/**
 	 * Register the shortcode.
 	 *
 	 * Hooked from {@see RecruitmentLoader::init()} on `init` (priority 10:
@@ -334,6 +348,12 @@ final class RecruitmentPublicShortcode {
 			);
 		}
 
+		// PCD is health data: a notice that hides the PCD column must not
+		// let a visitor list who is PCD through the filter either (#2245).
+		if ( ! RecruitmentPublicShortcodeRenderer::parse_columns_config( (string) $notice->public_columns_config )['pcd_badge'] ) {
+			$subscription = '';
+		}
+
 		// preliminary, definitive, closed → render the listing. The list_type
 		// switches between `preview` (preliminary) and `definitive`
 		// (definitive/closed); the banner copy at the top differs accordingly.
@@ -377,11 +397,17 @@ final class RecruitmentPublicShortcode {
 			$needle = $has_q
 				? ( function_exists( 'mb_strtolower' ) ? mb_strtolower( $name_query, 'UTF-8' ) : strtolower( $name_query ) )
 				: '';
-			$rows   = array_values(
+			// Every candidate the filter reads, in one query rather than one
+			// per row (#2245).
+			$by_id = array();
+			foreach ( RecruitmentCandidateReader::get_by_ids( array_map( static fn( $r ) => (int) $r->candidate_id, $rows ) ) as $cand ) {
+				$by_id[ (int) $cand->id ] = $cand;
+			}
+			$rows = array_values(
 				array_filter(
 					$rows,
-					static function ( $row ) use ( $needle, $has_q, $has_sub, $subscription ): bool {
-						$candidate = RecruitmentCandidateReader::get_by_id( (int) $row->candidate_id );
+					static function ( $row ) use ( $needle, $has_q, $has_sub, $subscription, $by_id ): bool {
+						$candidate = $by_id[ (int) $row->candidate_id ] ?? null;
 						if ( null === $candidate ) {
 							return false;
 						}
@@ -395,11 +421,10 @@ final class RecruitmentPublicShortcode {
 							}
 						}
 						if ( $has_sub ) {
-							// Defensive normalization: a row whose
-							// pcd_hash doesn't decode against either
-							// domain falls into GERAL — same as the
-							// badge rendering path.
-							$is_pcd       = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), (int) $candidate->id );
+							// PCD is the row's, per notice (#2245); a hash
+							// neither salt recognises falls into GERAL, as
+							// on the badge.
+							$is_pcd       = RecruitmentPcdHasher::row_is_pcd( $row );
 							$row_sub_type = $is_pcd ? 'pcd' : 'geral';
 							if ( $row_sub_type !== $subscription ) {
 								return false;
@@ -586,7 +611,43 @@ final class RecruitmentPublicShortcode {
 	 * @return void
 	 */
 	public static function invalidate_public_cache(): void {
-		\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_VERSION_DOMAIN );
+		// An import or a bulk call fires this once per row (#2245). The first
+		// write bumps at once, so a render later in the same request misses;
+		// the rest only mark the request dirty, and one more bump at shutdown
+		// retires whatever was cached in between. Two bumps per request, not
+		// one per row.
+		if ( ! self::$bumped_this_request ) {
+			self::$bumped_this_request = true;
+			\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_VERSION_DOMAIN );
+			return;
+		}
+		if ( ! self::$bump_pending ) {
+			self::$bump_pending = true;
+			add_action( 'shutdown', array( self::class, 'flush_pending_bump' ), 10 );
+		}
+	}
+
+	/**
+	 * The deferred bump of a request that wrote more than once.
+	 *
+	 * @return void
+	 */
+	public static function flush_pending_bump(): void {
+		if ( self::$bump_pending ) {
+			self::$bump_pending = false;
+			\FreeFormCertificate\Core\CacheVersion::bump( self::CACHE_VERSION_DOMAIN );
+		}
+	}
+
+	/**
+	 * Forget this request's bumps. For tests, which run many "requests" in
+	 * one process.
+	 *
+	 * @return void
+	 */
+	public static function reset_bump_state(): void {
+		self::$bumped_this_request = false;
+		self::$bump_pending        = false;
 	}
 
 	/**
@@ -616,7 +677,7 @@ final class RecruitmentPublicShortcode {
 		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
 
 		$bucket = gmdate( 'Y-m-d-H-i' );
-		$key    = self::RATE_PREFIX . md5( $ip . '|' . $bucket );
+		$key    = self::RATE_PREFIX . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $bucket );
 
 		$count = get_transient( $key );
 		$count = is_int( $count ) ? $count : 0;

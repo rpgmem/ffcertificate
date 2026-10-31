@@ -20,6 +20,7 @@ namespace FreeFormCertificate\Submissions;
 
 use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Integrations\EmailHandler;
+use FreeFormCertificate\Repositories\FormRepository;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -35,7 +36,7 @@ final class BulkIssueRunner {
 	public const BATCH_SIZE = 25;
 
 	/** Daily cron hook that expires jobs left unfinished. */
-	public const PURGE_HOOK = 'ffcertificate_bulk_issue_purge';
+	public const PURGE_HOOK = 'ffc_bulk_issue_purge';
 
 	/** Age, in seconds, after which an unfinished job is expired (7 days). */
 	public const STALE_AFTER = 604800;
@@ -151,9 +152,10 @@ final class BulkIssueRunner {
 			return 0;
 		}
 
-		// FormCache answers false for a form that has no stored config or fields.
-		$fields      = FormCache::get_form_fields( $form_id );
-		$form_config = FormCache::get_form_config( $form_id );
+		// The repository answers false for a form that has no stored config or fields.
+		$forms       = new FormRepository();
+		$fields      = $forms->getFields( $form_id );
+		$form_config = $forms->getConfig( $form_id );
 		$fields      = false === $fields ? array() : $fields;
 		$form_config = false === $form_config ? array() : $form_config;
 		$form_title  = (string) get_the_title( $form_id );

@@ -78,6 +78,11 @@ echo '<p class="description">' . esc_html__( 'The convocation email subject and 
 echo '<a href="' . esc_url( admin_url( 'admin.php?page=ffc-settings&tab=email_texts' ) ) . '">' . esc_html__( 'Edit the email texts', 'ffcertificate' ) . '</a></p>';
 echo '</td></tr>';
 
+echo '<tr><th><label for="ffc-rs-response-days">' . esc_html__( 'Days to answer a call', 'ffcertificate' ) . '</label></th><td>';
+echo '<input id="ffc-rs-response-days" type="number" min="0" max="' . esc_attr( (string) RecruitmentSettings::MAX_RESPONSE_DAYS ) . '" required name="' . esc_attr( $opt ) . '[response_days]" value="' . esc_attr( (string) $settings['response_days'] ) . '">';
+echo '<p class="description">' . esc_html__( 'The call e-mail asks the candidate to answer within this many days of the call, never later than the presentation date. 0 names no deadline.', 'ffcertificate' ) . '</p>';
+echo '</td></tr>';
+
 echo '<tr><th><label for="ffc-rs-from-address">' . esc_html__( 'From address', 'ffcertificate' ) . '</label></th><td>';
 echo '<input id="ffc-rs-from-address" type="email" class="regular-text" name="' . esc_attr( $opt ) . '[email_from_address]" value="' . esc_attr( (string) $settings['email_from_address'] ) . '" placeholder="' . esc_attr__( '(falls back to wp_mail default)', 'ffcertificate' ) . '">';
 echo '</td></tr>';
@@ -179,12 +184,12 @@ echo '</div>';
 
 echo '<div class="card">';
 echo '<h2 class="ffc-icon-palette">' . esc_html__( 'Subscription type — badge colors', 'ffcertificate' ) . '</h2>';
-echo '<p class="description">' . esc_html__( 'Background color used on the public + admin subscription-type badges. Each candidate is either PCD (pessoa com deficiência) or GERAL — these two knobs paint the corresponding pill.', 'ffcertificate' ) . '</p>';
+echo '<p class="description">' . esc_html__( 'Background color used on the public + admin subscription-type badges. Each candidate is either PCD (person with a disability) or General — these two knobs paint the corresponding pill.', 'ffcertificate' ) . '</p>';
 echo '<table class="form-table"><tbody>';
 
 $subscription_color_rows = array(
 	'subscription_color_pcd'   => __( 'PCD', 'ffcertificate' ),
-	'subscription_color_geral' => __( 'GERAL', 'ffcertificate' ),
+	'subscription_color_geral' => _x( 'General', 'recruitment subscription type', 'ffcertificate' ),
 );
 foreach ( $subscription_color_rows as $field => $label ) {
 	echo '<tr><th><label for="ffc-rs-' . esc_attr( $field ) . '">' . esc_html( $label ) . '</label></th><td>';
@@ -212,27 +217,6 @@ foreach ( $notice_status_color_rows as $field => $label ) {
 	echo ' <code class="ffc-rec-ml-half">' . esc_html( (string) $settings[ $field ] ) . '</code>';
 	echo '</td></tr>';
 }
-echo '</tbody></table>';
-echo '</div>';
-
-// PII / audit toggle (#330). Lives at the bottom of the Settings
-// tab because it's a security knob, not a visual one — operators
-// who land here are usually adjusting palettes. The default is
-// `true` so the first save after the upgrade keeps auditing on.
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-shield">' . esc_html__( 'PII access audit', 'ffcertificate' ) . '</h2>';
-echo '<p class="description">' . esc_html__( 'When enabled, every reveal of CPF / RF on the candidate detail screen by a non-admin user writes a row to the activity log (with a 60-second dedup per user + candidate + field). Recommended ON for compliance.', 'ffcertificate' ) . '</p>';
-echo '<table class="form-table"><tbody>';
-echo '<tr><th>' . esc_html__( 'Audit PII reveals', 'ffcertificate' ) . '</th><td>';
-\FreeFormCertificate\Admin\AdminUI::render_toggle(
-	array(
-		'name'    => $opt . '[audit_pii_reveals]',
-		'id'      => 'ffc-rs-audit-pii-reveals',
-		'checked' => ! empty( $settings['audit_pii_reveals'] ),
-		'data'    => array( 'ffc-autosave-key' => 'recruitment_audit_pii_reveals' ),
-	)
-);
-echo '</td></tr>';
 echo '</tbody></table>';
 echo '</div>';
 

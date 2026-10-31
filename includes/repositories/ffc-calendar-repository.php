@@ -44,6 +44,17 @@ class CalendarRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Allowed ORDER BY columns: the generic set plus `title`, which the
+	 * calendars REST list sorts by (#2146). Without it `sanitize_order_column()`
+	 * silently turns that sort into an `id` sort.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_allowed_order_columns(): array {
+		return array_merge( parent::get_allowed_order_columns(), array( 'title' ) );
+	}
+
+	/**
 	 * Find calendar by post ID
 	 *
 	 * @param int $post_id WordPress post ID.
@@ -124,8 +135,13 @@ class CalendarRepository extends AbstractRepository {
 	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $working_hours Working hours.
 	 * @return int|false
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function updateWorkingHours( int $id, array $working_hours ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->update(
 			$id,
 			array(
@@ -142,8 +158,13 @@ class CalendarRepository extends AbstractRepository {
 	 * @param int                  $id Record ID.
 	 * @param array<string, mixed> $email_config Email config.
 	 * @return int|false
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function updateEmailConfig( int $id, array $email_config ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->update(
 			$id,
 			array(
@@ -175,7 +196,8 @@ class CalendarRepository extends AbstractRepository {
 	/**
 	 * Get public active calendars
 	 *
-	 * Returns active calendars with visibility = 'public'.
+	 * Returns active calendars with visibility = 'public', by title, the
+	 * same order the logged-in list uses (#2147).
 	 * Used for non-authenticated users.
 	 *
 	 * @since 4.7.0
@@ -189,8 +211,8 @@ class CalendarRepository extends AbstractRepository {
 				'status'     => 'active',
 				'visibility' => 'public',
 			),
-			'created_at',
-			'DESC',
+			'title',
+			'ASC',
 			$limit,
 			$offset
 		);

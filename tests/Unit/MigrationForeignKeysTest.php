@@ -11,13 +11,18 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Migrations\MigrationForeignKeys;
 
 /**
+ * Runs in the shared process over a `$wpdb` double with the real ActivityLog:
+ * the global `get_option` answers `ffc_settings` with no settings, so the
+ * activity log is off whatever ran before.
+ *
  * @covers \FreeFormCertificate\Migrations\MigrationForeignKeys
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class MigrationForeignKeysTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -25,11 +30,10 @@ class MigrationForeignKeysTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		// No `ffc_settings`: the activity log is off.
+		Functions\when( 'get_option' )->justReturn( array() );
 
-		// Namespaced stubs for ActivityLog
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Core\absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -45,6 +49,11 @@ class MigrationForeignKeysTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}

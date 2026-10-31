@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Migrations\Strategies\IdentityNormalizationMigrationStrategy;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * The card that brings stored identifiers into their canonical form (#1313).
@@ -372,7 +373,8 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 	 */
 	public function test_a_refused_write_is_reported_and_the_batch_continues(): void {
 		$this->seed_row( 10, array( 'cpf' => '518.178.420-80' ) );
-		$this->seed_row( 20, array( 'cpf' => '987.654.321-00' ) );
+		$other = Identifiers::CPF_B;
+		$this->seed_row( 20, array( 'cpf' => substr( $other, 0, 3 ) . '.' . substr( $other, 3, 3 ) . '.' . substr( $other, 6, 3 ) . '-' . substr( $other, 9, 2 ) ) );
 		$this->refuse_write = true;
 
 		$result = $this->strategy->execute( '', array() );
@@ -573,6 +575,9 @@ class IdentityNormalizationMigrationStrategyTest extends TestCase {
 			}
 		);
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(

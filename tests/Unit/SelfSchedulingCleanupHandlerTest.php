@@ -14,9 +14,11 @@ use FreeFormCertificate\SelfScheduling\SelfSchedulingCleanupHandler;
  * Tests for SelfSchedulingCleanupHandler: nonce verification, permission checks,
  * parameter validation, cleanup actions (all/old/future/cancelled), and metabox rendering.
  *
+ * Runs in the shared process: only global functions are stubbed (the
+ * repositories reach them through PHP's namespace fallback), and `$wpdb` and
+ * `$_POST` are restored in tearDown.
+ *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingCleanupHandler
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class SelfSchedulingCleanupHandlerTest extends TestCase {
 
@@ -43,9 +45,18 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 	/** @var bool Controls current_user_can return value */
 	private bool $user_can_manage = true;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
+	/** @var array<string, mixed> `$_POST` as it was before the test. */
+	private array $post_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
+		$this->post_backup = $_POST ?? array();
 
 		// Translation stubs
 		Functions\when( '__' )->returnArg();
@@ -80,17 +91,10 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-
-		// Namespaced stubs for Repositories namespace
-		Functions\when( 'FreeFormCertificate\Repositories\wp_cache_get' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Repositories\wp_cache_set' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Repositories\wp_cache_delete' )->justReturn( true );
-		Functions\when( 'FreeFormCertificate\Repositories\current_user_can' )->justReturn( false );
-		Functions\when( 'FreeFormCertificate\Repositories\user_can' )->justReturn( false );
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
-		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 
 		// wp_verify_nonce — use a reference so individual tests can toggle it
@@ -133,13 +137,16 @@ class SelfSchedulingCleanupHandlerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
-		// Reset — not `unset()` — the superglobal: fully removing $_POST leaves
-		// it *undefined* for the next test in the shard, so any neighbour that
-		// reads `$_POST` (e.g. TabRateLimitTest) errors with "Undefined global
-		// variable". Shard packing is test-count-weighted, so which neighbour
-		// lands here shifts as tests are added. Reset to an empty array instead.
-		$_POST = array();
+		// Restore — never `unset()` — the superglobal: removing $_POST leaves it
+		// undefined for the next test, and a neighbour that reads it errors with
+		// "Undefined global variable".
+		$_POST = $this->post_backup;
 		parent::tearDown();
 	}
 

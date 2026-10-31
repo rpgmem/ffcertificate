@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Submissions\SubmissionLifecycleService;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
 /**
  * Tests for SubmissionLifecycleService: trash/restore/delete/bulk lifecycle
@@ -16,13 +17,12 @@ use FreeFormCertificate\Submissions\SubmissionLifecycleService;
  *
  * The service reads its repository through the owning handler's
  * get_repository() at call-time, so we mock the handler and hand it a mocked
- * SubmissionRepository. ActivityLog is alias-mocked so its class_exists() gate
- * is satisfied and its static log/disable_logging/enable_logging calls are
- * stubbed.
+ * SubmissionRepository. The real SettingsReader reads `ffc_settings` from a
+ * stubbed get_option(), and the real ActivityLog buffers what it logs, which
+ * the tests read back through ActivityLogBuffer instead of replacing either
+ * class.
  *
  * @covers \FreeFormCertificate\Submissions\SubmissionLifecycleService
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class SubmissionLifecycleServiceTest extends TestCase {
 
@@ -37,26 +37,39 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	/** @var SubmissionLifecycleService */
 	private SubmissionLifecycleService $service;
 
+	/** @var array<string, mixed> What get_option( 'ffc_settings' ) answers. */
+	private array $settings = ActivityLogBuffer::ENABLED_SETTINGS;
+
+	/** @var mixed The `$wpdb` global before the test, restored in tearDown(). */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		class_exists( '\\FreeFormCertificate\\Submissions\\SubmissionLifecycleService' );
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
-		Functions\when( 'get_option' )->justReturn( 0 );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $fallback = false ) => 'ffc_settings' === $key ? $this->settings : $fallback
+		);
 
 		// Mock $wpdb — used by the direct-query maintenance methods.
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$wpdb          = Mockery::mock( 'wpdb' );
 		$wpdb->prefix  = 'wp_';
 		$wpdb->options = 'wp_options';
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function ( $q ) { return $q; } )->byDefault();
-		$wpdb->shouldReceive( 'query' )->andReturn( 0 )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( null )->byDefault();
+		$GLOBALS['wpdb'] = $wpdb;
 
 		// Repository behind the handler.
 		$this->repository = Mockery::mock( '\\FreeFormCertificate\\Repositories\\SubmissionRepository' );
@@ -68,29 +81,34 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		ActivityLogBuffer::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
 
 	/**
-	 * The SUT gates its logging on class_exists( ActivityLog ) and then calls
-	 * the real ActivityLog::log/disable_logging/enable_logging (which reference
-	 * ActivityLog::LEVEL_* constants). Rather than alias-mock ActivityLog —
-	 * which can't carry those constants — we let the real class load and make
-	 * ActivityLog::log() short-circuit to a no-op by stubbing SettingsReader so
-	 * activity_log_enabled() returns false. disable_logging/enable_logging are
-	 * pure static setters, safe to run for real.
+	 * The single activity-log entry a bulk operation buffered.
 	 *
-	 * @return \Mockery\MockInterface The aliased SettingsReader mock, so callers
-	 *                                can add further expectations (e.g. the
-	 *                                cleanup gate) to the same alias.
+	 * @return array{action: string, level: string, context: mixed}
 	 */
-	private function stubActivityLog(): \Mockery\MockInterface {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'activity_log_enabled' )->andReturn( false )->byDefault();
-		$reader->shouldReceive( 'activity_log_min_level' )->andReturn( 'info' )->byDefault();
-		$reader->shouldReceive( 'activity_log_category_enabled' )->andReturn( true )->byDefault();
-		return $reader;
+	private function onlyLogEntry(): array {
+		$entries = ActivityLogBuffer::contexts();
+		$this->assertCount( 1, $entries, 'A bulk operation logs exactly one entry, not one per row.' );
+		return $entries[0];
+	}
+
+	/**
+	 * Turn retention on with a 30-day window, in the stored settings the real
+	 * SettingsReader reads.
+	 */
+	private function enableCleanup(): void {
+		$this->settings['cleanup_enabled'] = 1;
+		$this->settings['cleanup_days']    = 30;
 	}
 
 	// ==================================================================
@@ -158,10 +176,13 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	public function test_bulk_trash_delegates_and_logs(): void {
-		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkUpdateStatus' )->once()->with( array( 1, 2 ), 'trash' )->andReturn( 2 );
 
 		$this->assertSame( 2, $this->service->bulk_trash_submissions( array( 1, 2 ) ) );
+
+		$entry = $this->onlyLogEntry();
+		$this->assertSame( 'bulk_trash', $entry['action'] );
+		$this->assertSame( array( 'count' => 2 ), $entry['context'] );
 	}
 
 	// ==================================================================
@@ -173,10 +194,13 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	public function test_bulk_restore_delegates_and_logs(): void {
-		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkUpdateStatus' )->once()->with( array( 3, 4 ), 'publish' )->andReturn( 2 );
 
 		$this->assertSame( 2, $this->service->bulk_restore_submissions( array( 3, 4 ) ) );
+
+		$entry = $this->onlyLogEntry();
+		$this->assertSame( 'bulk_restore', $entry['action'] );
+		$this->assertSame( array( 'count' => 2 ), $entry['context'] );
 	}
 
 	// ==================================================================
@@ -184,7 +208,6 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	// ==================================================================
 
 	public function test_move_between_forms_delegates_and_logs(): void {
-		$this->stubActivityLog();
 		$expected = array( 'moved' => array( 1, 2 ), 'conflicts' => array( 3 ) );
 		$this->repository->shouldReceive( 'moveBetweenForms' )
 			->once()->with( 10, 20, array( 1, 2, 3 ) )->andReturn( $expected );
@@ -192,6 +215,11 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$result = $this->service->move_submissions_between_forms( 10, 20, array( 1, 2, 3 ) );
 
 		$this->assertSame( $expected, $result );
+
+		$entry = $this->onlyLogEntry();
+		$this->assertSame( 'submission_moved', $entry['action'] );
+		$this->assertSame( 2, $entry['context']['moved_count'] );
+		$this->assertSame( 1, $entry['context']['conflict_count'] );
 	}
 
 	// ==================================================================
@@ -203,10 +231,14 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	public function test_bulk_delete_delegates_and_logs(): void {
-		$this->stubActivityLog();
 		$this->repository->shouldReceive( 'bulkDelete' )->once()->with( array( 5, 6 ) )->andReturn( 2 );
 
 		$this->assertSame( 2, $this->service->bulk_delete_submissions( array( 5, 6 ) ) );
+
+		$entry = $this->onlyLogEntry();
+		$this->assertSame( 'bulk_delete', $entry['action'] );
+		$this->assertSame( 'warning', $entry['level'] );
+		$this->assertSame( array( 'count' => 2 ), $entry['context'] );
 	}
 
 	// ==================================================================
@@ -245,7 +277,6 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	}
 
 	public function test_delete_all_all_forms_truncate_resets_counters(): void {
-		$this->stubActivityLog();
 		global $wpdb;
 		// TRUNCATE path (reset_auto_increment true, no form_id). TRUNCATE query
 		// succeeds, then reset_migration_counters() runs its own DELETE query.
@@ -293,24 +324,22 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	// ==================================================================
 
 	public function test_run_data_cleanup_returns_zero_when_toggle_off(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( false );
+		// The days are set, so only the toggle can stop the run.
+		$this->settings['cleanup_days'] = 30;
 
+		// No query expectation: a DELETE would fail the test on the strict double.
 		$this->assertSame( 0, $this->service->run_data_cleanup() );
 	}
 
 	public function test_run_data_cleanup_returns_zero_when_days_below_one(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 0 );
+		$this->settings['cleanup_enabled'] = 1;
+		$this->settings['cleanup_days']    = 0;
 
 		$this->assertSame( 0, $this->service->run_data_cleanup() );
 	}
 
 	public function test_run_data_cleanup_deletes_and_logs(): void {
-		$reader = $this->stubActivityLog();
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+		$this->enableCleanup();
 
 		global $wpdb;
 		$wpdb->shouldReceive( 'query' )->once()->andReturn( 8 );
@@ -318,12 +347,13 @@ class SubmissionLifecycleServiceTest extends TestCase {
 		$result = $this->service->run_data_cleanup();
 
 		$this->assertSame( 8, $result );
+		$entry = $this->onlyLogEntry();
+		$this->assertSame( 'data_cleanup', $entry['action'] );
+		$this->assertSame( 8, $entry['context']['deleted_count'] );
 	}
 
 	public function test_run_data_cleanup_query_false_returns_zero(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+		$this->enableCleanup();
 
 		global $wpdb;
 		$wpdb->shouldReceive( 'query' )->once()->andReturn( false );
@@ -341,9 +371,7 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 * never run before (#936).
 	 */
 	public function test_run_data_cleanup_bounds_each_delete(): void {
-		$reader = $this->stubActivityLog();
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+		$this->enableCleanup();
 
 		$captured = '';
 		global $wpdb;
@@ -368,9 +396,7 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 * DELETEs a day to delete nothing.
 	 */
 	public function test_run_data_cleanup_continues_only_after_a_full_page(): void {
-		$reader = $this->stubActivityLog();
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+		$this->enableCleanup();
 
 		global $wpdb;
 		// Two full pages, then a partial one: three queries and it stops.
@@ -386,12 +412,10 @@ class SubmissionLifecycleServiceTest extends TestCase {
 	 * instalments -- and the visitor would pay the sum.
 	 */
 	public function test_run_data_cleanup_stops_at_the_chunk_cap(): void {
-		$reader = $this->stubActivityLog();
-		$reader->shouldReceive( 'get_bool' )->with( 'cleanup_enabled', false )->andReturn( true );
-		$reader->shouldReceive( 'get_int' )->with( 'cleanup_days', 365 )->andReturn( 30 );
+		$this->enableCleanup();
 
 		global $wpdb;
-		// Toda pagina volta CHEIA: so o teto encerra.
+		// Every page comes back FULL: only the cap ends the run.
 		$wpdb->shouldReceive( 'query' )->times( 20 )->andReturn( 500 );
 
 		$this->assertSame( 10000, $this->service->run_data_cleanup() );

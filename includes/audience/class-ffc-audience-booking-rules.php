@@ -45,11 +45,135 @@ final class AudienceBookingRules {
 	public const CONFLICT      = 'conflict';
 
 	/**
-	 * Longest range one booking may cover, in days, inclusive of both ends.
-	 * A cap keeps one request from writing a month of conflict checks, and a
-	 * course or event that runs longer is two bookings.
+	 * Option holding the longest range one booking may cover, in consecutive
+	 * days, both ends included (#2243). Set on Scheduling → Settings →
+	 * Audience; a cap keeps one request from writing a year of conflict
+	 * checks, and a course that runs longer is two bookings.
 	 */
-	public const MAX_RANGE_DAYS = 31;
+	public const MAX_RANGE_OPTION = 'ffc_aud_max_range_days';
+
+	/**
+	 * The longest range before an administrator sets one.
+	 */
+	public const DEFAULT_MAX_RANGE_DAYS = 30;
+
+	/**
+	 * The highest value the setting accepts: a year.
+	 */
+	public const MAX_RANGE_LIMIT = 365;
+
+	/**
+	 * Fewest characters of the reason an override gives the people who lose
+	 * days to it (#2243).
+	 */
+	public const OVERRIDE_REASON_MIN = 10;
+
+	/**
+	 * Most characters of that reason: it is stored in `cancellation_reason`
+	 * when a booking is cancelled whole, which holds 500.
+	 */
+	public const OVERRIDE_REASON_MAX = 300;
+
+	/**
+	 * The most occurrences a weekly series may hold (#2243): a year of one
+	 * weekday, enough for a semester or a school year in one dialog.
+	 */
+	public const SERIES_MAX_WEEKS = 52;
+
+	/**
+	 * The longest range one booking may cover, clamped on read as well as on
+	 * save, so a value written by hand still lands between 1 and a year.
+	 *
+	 * @return int
+	 */
+	public static function max_range_days(): int {
+		return self::clamp_max_range( get_option( self::MAX_RANGE_OPTION, self::DEFAULT_MAX_RANGE_DAYS ) );
+	}
+
+	/**
+	 * Bring a stored or posted range limit inside 1 to {@see self::MAX_RANGE_LIMIT}.
+	 * A value that is not a number is not a limit, so it reads as the default.
+	 *
+	 * @param mixed $value Raw value.
+	 * @return int
+	 */
+	public static function clamp_max_range( $value ): int {
+		if ( ! is_numeric( $value ) ) {
+			return self::DEFAULT_MAX_RANGE_DAYS;
+		}
+		return max( 1, min( self::MAX_RANGE_LIMIT, (int) $value ) );
+	}
+
+	/**
+	 * Whether the current user may book for people named one by one (#2243).
+	 *
+	 * An individual booking reaches whoever it names, so it takes the right
+	 * to manage audiences, the audience bypass or WordPress administration.
+	 * The booking route enforces it and the calendar offers the choice only
+	 * to those who hold it.
+	 *
+	 * @return bool
+	 */
+	public static function can_book_individuals(): bool {
+		return AudienceScheduleRepository::user_has_bypass_capability()
+			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
+	}
+
+	/**
+	 * Days a range covers, both ends included: 1 for one day.
+	 *
+	 * A date difference, never an enumeration, so an absurd end date costs
+	 * nothing to refuse. Both dates must already be valid.
+	 *
+	 * @param string $start_date First date (Y-m-d).
+	 * @param string $end_date   Last date (Y-m-d), on or after the first.
+	 * @return int
+	 */
+	public static function range_length( string $start_date, string $end_date ): int {
+		$utc   = new \DateTimeZone( 'UTC' );
+		$start = new \DateTimeImmutable( $start_date, $utc );
+		$end   = new \DateTimeImmutable( $end_date, $utc );
+
+		return (int) $start->diff( $end )->days + 1;
+	}
+
+	/**
+	 * The dates of a weekly series: the first date and the same weekday every
+	 * week after it, up to and including `$until` (#2243).
+	 *
+	 * Bounded by {@see self::SERIES_MAX_WEEKS} before anything is built, so
+	 * an absurd last date is refused by the caller from the count alone.
+	 *
+	 * @param string $first_date First occurrence (Y-m-d).
+	 * @param string $until      Last day the series may reach (Y-m-d), after the first.
+	 * @return list<string>
+	 */
+	public static function weekly_dates( string $first_date, string $until ): array {
+		$utc   = new \DateTimeZone( 'UTC' );
+		$day   = new \DateTimeImmutable( $first_date, $utc );
+		$last  = new \DateTimeImmutable( $until, $utc );
+		$dates = array();
+
+		for ( $week = 0; $week < self::SERIES_MAX_WEEKS && $day <= $last; $week++ ) {
+			$dates[] = $day->format( 'Y-m-d' );
+			$day     = $day->modify( '+7 days' );
+		}
+
+		return $dates;
+	}
+
+	/**
+	 * How many occurrences a weekly series from `$first_date` to `$until`
+	 * would hold, without building them: a date difference, as
+	 * {@see self::range_length()} is.
+	 *
+	 * @param string $first_date First occurrence (Y-m-d).
+	 * @param string $until      Last day the series may reach (Y-m-d), on or after the first.
+	 * @return int
+	 */
+	public static function weekly_count( string $first_date, string $until ): int {
+		return intdiv( self::range_length( $first_date, $until ) - 1, 7 ) + 1;
+	}
 
 	/**
 	 * Every date from `$start_date` to `$end_date`, both included.
@@ -191,6 +315,14 @@ final class AudienceBookingRules {
 	 * The skipped days are a JSON list in `skipped_dates`; the date is matched
 	 * with its quotes so `2026-10-2` never matches `2026-10-22`.
 	 *
+	 * A range never starts more than {@see self::MAX_RANGE_LIMIT} days before a
+	 * day it covers, so `booking_date` is bounded below as well (#2243). With
+	 * the `(environment_id, status, booking_date)` index the conflict read,
+	 * and the writer's `FOR UPDATE`, then touch a year of rows instead of
+	 * every past booking of the space. The ceiling, not the admin's current
+	 * limit, is the bound: lowering the setting must not hide a longer range
+	 * made before.
+	 *
 	 * @param string $date   Date (Y-m-d).
 	 * @param string $prefix Table alias with its dot (`b.`), or '' for none.
 	 * @return array{0: string, 1: list<string>} The SQL fragment and the values its placeholders take, in order.
@@ -198,9 +330,12 @@ final class AudienceBookingRules {
 	public static function occupies_day_clause( string $date, string $prefix = '' ): array {
 		global $wpdb;
 
+		$day      = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date );
+		$earliest = false === $day ? $date : $day->modify( '-' . ( self::MAX_RANGE_LIMIT - 1 ) . ' days' )->format( 'Y-m-d' );
+
 		return array(
-			"{$prefix}booking_date <= %s AND COALESCE({$prefix}end_date, {$prefix}booking_date) >= %s AND ({$prefix}skipped_dates IS NULL OR {$prefix}skipped_dates NOT LIKE %s)",
-			array( $date, $date, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
+			"{$prefix}booking_date <= %s AND COALESCE({$prefix}end_date, {$prefix}booking_date) >= %s AND {$prefix}booking_date >= %s AND ({$prefix}skipped_dates IS NULL OR {$prefix}skipped_dates NOT LIKE %s)",
+			array( $date, $date, $earliest, '%' . $wpdb->esc_like( '"' . $date . '"' ) . '%' ),
 		);
 	}
 
@@ -318,20 +453,24 @@ final class AudienceBookingRules {
 	 */
 	public static function cancel_strings(): array {
 		return array(
-			'title'          => __( 'Cancel this booking?', 'ffcertificate' ),
-			'intro'          => __( 'Read before you confirm:', 'ffcertificate' ),
-			'agree'          => __( 'Cancel booking', 'ffcertificate' ),
+			'title'           => __( 'Cancel this booking?', 'ffcertificate' ),
+			'intro'           => __( 'Read before you confirm:', 'ffcertificate' ),
+			'agree'           => __( 'Cancel booking', 'ffcertificate' ),
 			/* translators: %d: seconds left before the confirm button is enabled. */
-			'agreeIn'        => __( 'Cancel booking (%d)', 'ffcertificate' ),
-			'cancel'         => __( 'Keep booking', 'ffcertificate' ),
+			'agreeIn'         => __( 'Cancel booking (%d)', 'ffcertificate' ),
+			'cancel'          => __( 'Keep booking', 'ffcertificate' ),
 			/* translators: %d: seconds left before the confirm button is enabled. */
-			'countdownStart' => __( 'You can confirm in %d seconds.', 'ffcertificate' ),
-			'countdownEnd'   => __( 'You can confirm now.', 'ffcertificate' ),
+			'countdownStart'  => __( 'You can confirm in %d seconds.', 'ffcertificate' ),
+			'countdownEnd'    => __( 'You can confirm now.', 'ffcertificate' ),
 			/* translators: %s: the date of the booking being cancelled. */
-			'single'         => __( 'This cancels the booking on %s.', 'ffcertificate' ),
+			'single'          => __( 'This cancels the booking on %s.', 'ffcertificate' ),
 			/* translators: 1: number of days the booking covers, 2: the first and last dates of it. */
-			'range'          => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
-			'seconds'        => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
+			'range'           => __( 'This booking covers %1$d days (%2$s). Cancelling it cancels every one of them.', 'ffcertificate' ),
+			'seconds'         => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
+			'seriesNote'      => __( 'This date is part of a weekly series. Choose whether the later dates are cancelled too; earlier dates stay.', 'ffcertificate' ),
+			'seriesLegend'    => __( 'Cancel', 'ffcertificate' ),
+			'seriesThis'      => __( 'This date', 'ffcertificate' ),
+			'seriesFollowing' => __( 'This and following', 'ffcertificate' ),
 		);
 	}
 
@@ -372,11 +511,20 @@ final class AudienceBookingRules {
 	 * `start_time` and `end_time` of a span are therefore not one day's hours,
 	 * and comparing them as if they were misses every clash on a middle day.
 	 *
-	 * @param object $row  Booking row with `environment_id`, `booking_date`, `start_time`, `end_time` and, for a range, `end_date`, `time_mode` and `skipped_dates`.
+	 * A span written since #2243 carries those hours frozen in `day_times`,
+	 * so editing the space's working hours later changes no booking; a row
+	 * without them (written before) still reads the window of today.
+	 *
+	 * @param object $row  Booking row with `environment_id`, `booking_date`, `start_time`, `end_time` and, for a range, `end_date`, `time_mode`, `skipped_dates` and `day_times`.
 	 * @param string $date A day the row occupies (Y-m-d).
 	 * @return array{start_time: string, end_time: string} Both in H:i.
 	 */
 	public static function stored_day_times( object $row, string $date ): array {
+		$frozen = self::frozen_day_times( $row );
+		if ( isset( $frozen[ $date ] ) ) {
+			return $frozen[ $date ];
+		}
+
 		$start = substr( (string) ( $row->start_time ?? '' ), 0, 5 );
 		$end   = substr( (string) ( $row->end_time ?? '' ), 0, 5 );
 		$days  = self::booked_days( (string) ( $row->booking_date ?? '' ), isset( $row->end_date ) ? (string) $row->end_date : null, isset( $row->skipped_dates ) ? (string) $row->skipped_dates : null );
@@ -399,6 +547,59 @@ final class AudienceBookingRules {
 		}
 
 		return self::day_times( 'span', $is_first, $is_last, $start, $end, $window );
+	}
+
+	/**
+	 * The hours each day of a span takes, as stored when it was created
+	 * (#2243): `{"Y-m-d": ["H:i", "H:i"], …}`. NULL for a single day or a
+	 * `daily` range, whose stored hours are already every day's hours.
+	 *
+	 * @param list<array{date: string, start_time: string, end_time: string}> $days The planned days ({@see occurrences()}).
+	 * @param string                                                          $time_mode `daily` or `span`.
+	 * @return string|null JSON, or NULL when there is nothing to freeze.
+	 */
+	public static function encode_day_times( array $days, string $time_mode ): ?string {
+		if ( 'span' !== $time_mode || count( $days ) < 2 ) {
+			return null;
+		}
+
+		$map = array();
+		foreach ( $days as $day ) {
+			$map[ $day['date'] ] = array( substr( $day['start_time'], 0, 5 ), substr( $day['end_time'], 0, 5 ) );
+		}
+
+		$json = wp_json_encode( $map );
+		return false === $json ? null : $json;
+	}
+
+	/**
+	 * The hours frozen on a row, by date; empty when it carries none or the
+	 * stored value is not the shape {@see encode_day_times()} writes.
+	 *
+	 * @param object $row Booking row.
+	 * @return array<string, array{start_time: string, end_time: string}>
+	 */
+	public static function frozen_day_times( object $row ): array {
+		$raw = isset( $row->day_times ) ? (string) $row->day_times : '';
+		if ( '' === $raw ) {
+			return array();
+		}
+
+		$decoded = json_decode( $raw, true );
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
+
+		$map = array();
+		foreach ( $decoded as $date => $hours ) {
+			if ( is_string( $date ) && is_array( $hours ) && isset( $hours[0], $hours[1] ) && is_string( $hours[0] ) && is_string( $hours[1] ) ) {
+				$map[ $date ] = array(
+					'start_time' => $hours[0],
+					'end_time'   => $hours[1],
+				);
+			}
+		}
+		return $map;
 	}
 
 	/**

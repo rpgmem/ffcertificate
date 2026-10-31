@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for audience schedule records.
  *
- * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, admin_bypass?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, admin_bypass?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, appearance_names?: string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string}
  * @phpstan-type SchedulePermissionRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, user_id: numeric-string, can_book: numeric-string, can_cancel_others: numeric-string, can_override_conflicts: numeric-string, created_at: string}
  */
 class AudienceScheduleRepository {
@@ -220,9 +220,15 @@ class AudienceScheduleRepository {
 			'include_ics'                  => 0,
 			'is_isolated'                  => 0,
 			'admin_bypass'                 => 1,
+			'show_event_list'              => 0,
+			'event_list_position'          => 'side',
+			'audience_badge_format'        => 'name',
+			'booking_label_singular'       => null,
+			'booking_label_plural'         => null,
 			'post_event_form_id'           => null,
 			'post_event_window_days'       => null,
 			'post_event_attendees_only'    => 0,
+			'appearance_names'             => null,
 			'status'                       => 'active',
 			'created_by'                   => get_current_user_id(),
 		);
@@ -246,13 +252,19 @@ class AudienceScheduleRepository {
 				'include_ics'                  => $data['include_ics'],
 				'is_isolated'                  => $data['is_isolated'],
 				'admin_bypass'                 => $data['admin_bypass'],
+				'show_event_list'              => $data['show_event_list'],
+				'event_list_position'          => $data['event_list_position'],
+				'audience_badge_format'        => $data['audience_badge_format'],
+				'booking_label_singular'       => $data['booking_label_singular'],
+				'booking_label_plural'         => $data['booking_label_plural'],
 				'post_event_form_id'           => $data['post_event_form_id'],
 				'post_event_window_days'       => $data['post_event_window_days'],
 				'post_event_attendees_only'    => $data['post_event_attendees_only'],
+				'appearance_names'             => $data['appearance_names'],
 				'status'                       => $data['status'],
 				'created_by'                   => $data['created_by'],
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -304,6 +316,7 @@ class AudienceScheduleRepository {
 			'post_event_form_id'           => '%d',
 			'post_event_window_days'       => '%d',
 			'post_event_attendees_only'    => '%d',
+			'appearance_names'             => '%s',
 			'status'                       => '%s',
 		);
 

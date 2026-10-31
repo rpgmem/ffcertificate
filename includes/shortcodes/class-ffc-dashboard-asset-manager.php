@@ -64,6 +64,38 @@ class DashboardAssetManager {
 	}
 
 	/**
+	 * Which data tabs the dashboard draws for a user.
+	 *
+	 * The shortcode and the localized script both read this, so a tab and the
+	 * summary card that counts it can never disagree (#2246). A tab needs its
+	 * capability AND its module switched on: a module turned off in Settings ->
+	 * Modules takes its tab with it, whatever the account holds.
+	 *
+	 * @param int $user_id Dashboard owner (the view-as target when there is one).
+	 * @return array{certificates: bool, appointments: bool, audience: bool, reregistrations: bool}
+	 */
+	public static function tab_permissions( int $user_id ): array {
+		$user = get_user_by( 'id', $user_id );
+		$can  = static function ( string $cap ) use ( $user ): bool {
+			return (bool) $user && ( user_can( $user, $cap ) || user_can( $user, 'manage_options' ) );
+		};
+		$on   = array( \FreeFormCertificate\Settings\SettingsReader::class, 'module_enabled' );
+
+		$audience = $on( 'audiences' ) && $can( 'ffc_view_own_audience_bookings' ) && self::user_has_audience_groups( $user_id );
+
+		$reregistrations = $on( 'reregistration' )
+			&& class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
+			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+
+		return array(
+			'certificates'    => $on( 'certificates' ) && $can( 'ffc_view_own_certificates' ),
+			'appointments'    => $on( 'self_scheduling' ) && $can( 'ffc_view_own_appointments' ),
+			'audience'        => $audience,
+			'reregistrations' => $reregistrations,
+		);
+	}
+
+	/**
 	 * Enqueue dashboard assets
 	 *
 	 * @param int|false $view_as_user_id User ID in view-as mode.
@@ -71,30 +103,12 @@ class DashboardAssetManager {
 	public static function enqueue_assets( $view_as_user_id = false ): void {
 		// Get user permissions (based on capabilities, not just role).
 		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
-		$user    = get_user_by( 'id', $user_id );
 
-		$can_view_certificates = $user && (
-			user_can( $user, 'ffc_view_own_certificates' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_appointments = $user && (
-			user_can( $user, 'ffc_view_own_appointments' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_audience_bookings = $user && (
-			user_can( $user, 'ffc_view_own_audience_bookings' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		// Only show audience tab if user actually belongs to at least one audience group.
-		if ( $can_view_audience_bookings ) {
-			$can_view_audience_bookings = self::user_has_audience_groups( $user_id );
-		}
-
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+		$tabs                       = self::tab_permissions( (int) $user_id );
+		$can_view_certificates      = $tabs['certificates'];
+		$can_view_appointments      = $tabs['appointments'];
+		$can_view_audience_bookings = $tabs['audience'];
+		$can_view_reregistrations   = $tabs['reregistrations'];
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -109,7 +123,11 @@ class DashboardAssetManager {
 		wp_enqueue_script( 'ffc-dashboard-certificates', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-certificates{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-appointments', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-appointments{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
 		wp_enqueue_script( 'ffc-dashboard-audience', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-audience{$s}.js", array( 'ffc-dashboard', 'ffc-dashboard-cal-export' ), FFC_VERSION, true );
-		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard' ), FFC_VERSION, true );
+		// The Record is built in the browser from the REST record route
+		// (#2242), so the generator rides along; it fetches its PDF bundles
+		// only on the first download.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
+		wp_enqueue_script( 'ffc-dashboard-reregistrations', FFC_PLUGIN_URL . "assets/js/ffc-user-dashboard-reregistrations{$s}.js", array( 'ffc-dashboard', 'ffc-pdf-generator' ), FFC_VERSION, true );
 		// `ffc-field-behaviours` masks the profile's phone like the
 		// reregistration form's.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
@@ -186,6 +204,8 @@ class DashboardAssetManager {
 					'saveDraft'         => __( 'Save Draft', 'ffcertificate' ),
 					'submit'            => __( 'Submit', 'ffcertificate' ),
 					'draftSaved'        => __( 'Draft saved.', 'ffcertificate' ),
+					'draftAutoSaved'    => __( 'Draft saved automatically.', 'ffcertificate' ),
+					'cancelConfirm'     => __( 'Close the form? Changes not saved yet will be lost.', 'ffcertificate' ),
 					'submitted'         => __( 'Reregistration submitted successfully!', 'ffcertificate' ),
 					'errorLoading'      => __( 'Error loading form.', 'ffcertificate' ),
 					'errorSaving'       => __( 'Error saving draft.', 'ffcertificate' ),
@@ -193,6 +213,11 @@ class DashboardAssetManager {
 					'fixErrors'         => __( 'Please fix the errors below.', 'ffcertificate' ),
 					'required'          => __( 'This field is required.', 'ffcertificate' ),
 					'invalidCpf'        => __( 'Invalid CPF.', 'ffcertificate' ),
+					'invalidRf'         => __( 'Invalid RF.', 'ffcertificate' ),
+					'invalidCep'        => __( 'Invalid CEP.', 'ffcertificate' ),
+					'cepRepeated'       => __( 'Invalid CEP: all digits are the same.', 'ffcertificate' ),
+					/* translators: %s: state abbreviation (UF) */
+					'cepWrongUf'        => __( 'This CEP does not belong to %s. Check the CEP or the UF.', 'ffcertificate' ),
 					'invalidEmail'      => __( 'Invalid email.', 'ffcertificate' ),
 					'invalidPhone'      => __( 'Invalid phone number.', 'ffcertificate' ),
 					'invalidFormat'     => __( 'Invalid format.', 'ffcertificate' ),
@@ -207,6 +232,8 @@ class DashboardAssetManager {
 					'removeDay'         => __( 'Remove day', 'ffcertificate' ),
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
+					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
+					'errorRetracting'   => __( 'Could not retract the submission.', 'ffcertificate' ),
 				),
 			)
 		);
@@ -232,6 +259,9 @@ class DashboardAssetManager {
 				'siteName'                => get_bloginfo( 'name' ),
 				'wpTimezone'              => wp_timezone_string(),
 				'mainAddress'             => \FreeFormCertificate\Settings\SettingsReader::get( 'main_address', '' ),
+				// WordPress's own reset, for a member who no longer knows the
+				// current password the change form asks for (#2246).
+				'lostPasswordUrl'         => wp_lostpassword_url(),
 				'strings'                 => array(
 					'loading'                  => __( 'Loading...', 'ffcertificate' ),
 					'error'                    => __( 'Error loading data', 'ffcertificate' ),
@@ -241,6 +271,8 @@ class DashboardAssetManager {
 					'fillPostEventForm'        => __( 'Fill in the form', 'ffcertificate' ),
 					/* translators: %s: date and time the form closes */
 					'postEventCloses'          => __( 'Open until %s', 'ffcertificate' ),
+					/* translators: %s: why the booking was cancelled */
+					'cancelReason'             => __( 'Reason: %s', 'ffcertificate' ),
 					/* translators: %s: form title */
 					'postEventWaiting'         => __( 'Form waiting: %s', 'ffcertificate' ),
 					'downloadPdf'              => __( 'View PDF', 'ffcertificate' ),
@@ -280,6 +312,18 @@ class DashboardAssetManager {
 					'cancelConfirmBtn'         => __( 'Confirm cancellation', 'ffcertificate' ),
 					'cancelKeepBtn'            => __( 'Keep appointment', 'ffcertificate' ),
 					'close'                    => __( 'Close', 'ffcertificate' ),
+					// Rescheduling is cancel-then-book (#2244); the confirm label
+					// and the recorded reason are the cancellation page's too.
+					'reschedule'               => __( 'Reschedule', 'ffcertificate' ),
+					'rescheduleTitle'          => __( 'Reschedule appointment', 'ffcertificate' ),
+					'rescheduleIntro'          => __( 'This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else.', 'ffcertificate' ),
+					'rescheduleConfirmBtn'     => __( 'Cancel and book a new time', 'ffcertificate' ),
+					'rescheduleReason'         => __( 'Rescheduled by the participant', 'ffcertificate' ),
+					// Leaving the waitlist is a cancellation of a queue place (#2244).
+					'leaveWaitlist'            => __( 'Leave waitlist', 'ffcertificate' ),
+					'leaveWaitlistTitle'       => __( 'Leave the waitlist', 'ffcertificate' ),
+					'leaveWaitlistIntro'       => __( 'You will lose your place in the queue for this time. If a place opens up later, it goes to the next person waiting.', 'ffcertificate' ),
+					'leaveWaitlistConfirmBtn'  => __( 'Leave the waitlist', 'ffcertificate' ),
 					'noPermission'             => __( 'You do not have permission to view this content.', 'ffcertificate' ),
 					// Calendar export.
 					'exportToCalendar'         => __( 'Export to Calendar', 'ffcertificate' ),
@@ -316,6 +360,7 @@ class DashboardAssetManager {
 					'securitySection'          => __( 'Security', 'ffcertificate' ),
 					'changePassword'           => __( 'Change Password', 'ffcertificate' ),
 					'currentPassword'          => __( 'Current Password', 'ffcertificate' ),
+					'forgotPassword'           => __( 'Forgot your password?', 'ffcertificate' ),
 					'newPassword'              => __( 'New Password', 'ffcertificate' ),
 					'confirmPassword'          => __( 'Confirm New Password', 'ffcertificate' ),
 					'passwordChanged'          => __( 'Password changed successfully!', 'ffcertificate' ),
@@ -328,7 +373,7 @@ class DashboardAssetManager {
 					'requestDeletion'          => __( 'Request Data Deletion', 'ffcertificate' ),
 					'exportDataDesc'           => __( 'Request a copy of all your personal data stored in the system.', 'ffcertificate' ),
 					'deletionDataDesc'         => __( 'Request deletion of your personal data. An administrator will review your request.', 'ffcertificate' ),
-					'privacyRequestSent'       => __( 'Request sent! The administrator will review it.', 'ffcertificate' ),
+					'privacyRequestSent'       => __( 'Check your e-mail to confirm the request. Nothing happens until you confirm it.', 'ffcertificate' ),
 					'privacyRequestError'      => __( 'Error sending request', 'ffcertificate' ),
 					'confirmDeletion'          => __( 'Are you sure you want to request deletion of your personal data? This will be reviewed by an administrator.', 'ffcertificate' ),
 					// Audience self-join.
@@ -363,6 +408,11 @@ class DashboardAssetManager {
 					'filterSearch'             => __( 'Search...', 'ffcertificate' ),
 					'filterApply'              => __( 'Filter', 'ffcertificate' ),
 					'filterClear'              => __( 'Clear', 'ffcertificate' ),
+					'filterSearchLabel'        => __( 'Search this list', 'ffcertificate' ),
+					'noResults'                => __( 'No results for these filters.', 'ffcertificate' ),
+					'clearFilters'             => __( 'Clear filters', 'ffcertificate' ),
+					'sessionExpired'           => __( 'Your session has expired. Reload the page to continue.', 'ffcertificate' ),
+					'reloadPage'               => __( 'Reload page', 'ffcertificate' ),
 					// Notification preferences.
 					'notificationSection'      => __( 'Notification Preferences', 'ffcertificate' ),
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
@@ -390,6 +440,7 @@ class DashboardAssetManager {
 					'submittedAt'              => __( 'Submitted', 'ffcertificate' ),
 					'validationCode'           => __( 'Validation Code', 'ffcertificate' ),
 					'downloadRecord'           => __( 'Download Record', 'ffcertificate' ),
+					'viewAnswers'              => __( 'View answers', 'ffcertificate' ),
 					'active'                   => __( 'Active', 'ffcertificate' ),
 					'completed'                => __( 'Completed', 'ffcertificate' ),
 					'editReregistration'       => __( 'Edit', 'ffcertificate' ),

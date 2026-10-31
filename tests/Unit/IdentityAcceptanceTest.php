@@ -31,8 +31,6 @@ use FreeFormCertificate\Maintenance\IdentityRepair;
  * assert is that the decision is written, which is what the alias measures.
  *
  * @covers \FreeFormCertificate\Maintenance\IdentityAcceptance
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class IdentityAcceptanceTest extends TestCase {
 
@@ -44,6 +42,10 @@ class IdentityAcceptanceTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityAcceptance' );
 

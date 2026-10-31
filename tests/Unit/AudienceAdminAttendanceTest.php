@@ -16,53 +16,102 @@ use PHPUnit\Framework\TestCase;
  * The attendance screen's writes, its day choice, its render and the poll
  * it shares with the projected QR (#1947).
  *
+ * Everything below the screen runs for real — the booking, check-in window,
+ * attendance and invitation readers and writers, the attendance rule and
+ * roster, the post-event form's eligibility, the invitation mailer down to a
+ * stubbed `wp_mail()`, Capabilities over a stubbed `current_user_can()`,
+ * DateFormatter, AdminUI and the geofence registry over `get_option()` —
+ * over a `$wpdb` double that answers each read by its SQL text from the rows
+ * a test sets, records every write, and fails the test on a query it does
+ * not know.
+ *
  * @covers \FreeFormCertificate\Audience\AudienceAdminAttendance
  * @covers \FreeFormCertificate\Audience\AudienceAttendanceAjax
  * @covers \FreeFormCertificate\Audience\AudienceAttendanceExportSource
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AudienceAdminAttendanceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** 2027-01-15 08:00 UTC. */
 	private const NOW = 1800000000;
 
 	private const TODAY = '2027-03-01';
 
-	/** @var \Mockery\MockInterface */
-	private $windows;
-
-	/** @var \Mockery\MockInterface */
-	private $window_writer;
-
-	/** @var \Mockery\MockInterface */
-	private $writer;
-
-	/** @var \Mockery\MockInterface */
-	private $bookings;
-
-	/** @var \Mockery\MockInterface */
-	private $booking_writer;
+	private const PAGE = 'https://example.org/feedback/';
 
 	/** @var list<string> */
 	private array $caps = array( 'ffc_checkin_audiences' );
+
+	/** @var string What `current_time( 'Y-m-d' )` answers. */
+	private string $today = self::TODAY;
+
+	/** @var object|null The stored booking 5. */
+	private ?object $booking_row = null;
+
+	/** @var list<int> The people on the booking. */
+	private array $participants = array( 7, 8 );
+
+	/** @var list<array<string, mixed>> Stored attendance lines. */
+	private array $attendance = array();
+
+	/** @var list<array<string, mixed>> Stored check-in windows, oldest first. */
+	private array $windows = array();
+
+	/** @var list<array<string, string>> Stored invitation rows. */
+	private array $invited = array();
+
+	/** @var list<array<string, string>> Stored submissions answering the form. */
+	private array $answers = array();
+
+	/** @var list<array<string, mixed>> Saved geofence locations. */
+	private array $locations = array();
+
+	/** @var list<string> What successive page lookups find: a URL, or '' for no page. */
+	private array $pages = array( '' );
+
+	/** @var list<array<int, mixed>> Every write the double received: [op, table, data, where]. */
+	private array $writes = array();
+
+	/** @var list<array{0: string, 1: string, 2: string}> Every `wp_mail()` call. */
+	private array $mailed = array();
+
+	/** @var list<int> Every user `get_userdata()` was asked for. */
+	private array $looked_up = array();
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left. */
+	private array $post_backup = array();
+
+	/** @var array<string, mixed> The `$_GET` an earlier test left. */
+	private array $get_backup = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		Mockery::getConfiguration()->setConstantsMap(
-			array(
-				'FreeFormCertificate\\Audience\\AudienceAttendanceWriter' => array(
-					'RECORDED'      => 'recorded',
-					'ALREADY'       => 'already',
-					'FAILED'        => 'failed',
-					'METHOD_QR'     => 'qr',
-					'METHOD_MANUAL' => 'manual',
-				),
-			)
-		);
+		$this->post_backup  = $_POST ?? array();
+		$this->get_backup   = $_GET ?? array();
+		$_POST              = array();
+		$_GET               = array();
+		$this->caps         = array( 'ffc_checkin_audiences' );
+		$this->today        = self::TODAY;
+		$this->booking_row  = $this->booking();
+		$this->participants = array( 7, 8 );
+		$this->attendance   = array();
+		$this->windows      = array();
+		$this->invited      = array();
+		$this->answers      = array();
+		$this->locations    = array();
+		$this->pages        = array( '' );
+		$this->writes       = array();
+		$this->mailed       = array();
+		$this->looked_up    = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -72,12 +121,15 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } );
 		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'current_time' )->justReturn( self::TODAY );
+		Functions\when( 'current_time' )->alias( fn() => $this->today );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.org/wp-admin/' . $path );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( ...$a ): string {
 				return is_array( $a[0] ) ? $a[1] . '?' . http_build_query( $a[0] ) : $a[2] . '?' . $a[0] . '=' . $a[1];
@@ -86,36 +138,225 @@ class AudienceAdminAttendanceTest extends TestCase {
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'disabled' )->justReturn( '' );
 		Functions\when( 'wp_nonce_field' )->justReturn( '<input type="hidden" name="_wpnonce" value="n">' );
-
-		$caps = &$this->caps;
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )
-			->andReturnUsing(
-				static function ( string $cap ) use ( &$caps ): bool {
-					return in_array( $cap, $caps, true );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( string $format, int $ts ) => gmdate( $format, $ts ) );
+		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'get_bloginfo' )->justReturn( 'School' );
+		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== strpos( (string) $e, '@' ) );
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $default = false ) {
+				if ( 'ffc_settings' === $key ) {
+					// What DateFormatter reads; e-mails enabled, debug off.
+					return array(
+						'date_format' => 'Y-m-d',
+						'time_format' => 'H:i',
+					);
 				}
-			);
+				if ( 'ffc_geofence_locations' === $key ) {
+					return $this->locations;
+				}
+				return $default;
+			}
+		);
+		// Form 40 is published; every other id is a draft form.
+		Functions\when( 'get_post' )->alias(
+			static function ( $id ) {
+				$post              = new \WP_Post();
+				$post->post_type   = 'ffc_form';
+				$post->post_status = 40 === (int) $id ? 'publish' : 'draft';
+				return $post;
+			}
+		);
+		// The form select lists no form; the page lookup finds a page or none.
+		Functions\when( 'get_posts' )->alias(
+			function ( $args ) {
+				if ( 'ffc_form' === ( $args['post_type'] ?? '' ) ) {
+					return array();
+				}
+				$url = count( $this->pages ) > 1 ? array_shift( $this->pages ) : ( $this->pages[0] ?? '' );
+				return '' === $url ? array() : array( 11 );
+			}
+		);
+		Functions\when( 'get_post_field' )->justReturn( '<p>[ffc_form id="40"]</p>' );
+		Functions\when( 'get_permalink' )->justReturn( self::PAGE );
+		Functions\when( 'get_users' )->justReturn(
+			array(
+				(object) array(
+					'ID'           => 7,
+					'display_name' => 'Ana',
+				),
+				(object) array(
+					'ID'           => 8,
+					'display_name' => 'Bia',
+				),
+			)
+		);
+		Functions\when( 'get_userdata' )->alias(
+			function ( $id ) {
+				$this->looked_up[] = (int) $id;
+				return (object) array(
+					'display_name' => 'Person ' . $id,
+					'user_email'   => 'p' . $id . '@example.org',
+				);
+			}
+		);
+		Functions\when( 'wp_mail' )->alias(
+			function ( $to, $subject, $body ) {
+				$this->mailed[] = array( $to, $subject, $body );
+				return true;
+			}
+		);
 
-		$dates = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$dates->shouldReceive( 'format_time' )->andReturn( '09:30' );
-		$dates->shouldReceive( 'format_wallclock_date' )->andReturnUsing( static fn( $d ) => 'D:' . $d );
-		$dates->shouldReceive( 'format_datetime' )->andReturnUsing( static fn( int $t ) => gmdate( 'Y-m-d H:i', $t ) );
-
-		$this->windows        = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCheckinWindowReader' );
-		$this->window_writer  = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCheckinWindowWriter' );
-		$this->writer         = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAttendanceWriter' );
-		$this->bookings       = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingReader' );
-		$this->booking_writer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceBookingWriter' );
-
-		$this->bookings->shouldReceive( 'get_all_affected_users' )->andReturn( array( '7', '8' ) )->byDefault();
+		$this->had_wpdb = array_key_exists( 'wpdb', $GLOBALS );
+		if ( $this->had_wpdb ) {
+			$this->wpdb_backup = $GLOBALS['wpdb'];
+		}
+		$GLOBALS['wpdb'] = $this->wpdb_double();
 	}
 
 	protected function tearDown(): void {
-		$_POST = array();
-		$_GET  = array();
-		Mockery::getConfiguration()->setConstantsMap( array() );
+		$_POST = $this->post_backup;
+		$_GET  = $this->get_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A `$wpdb` double: `prepare()` binds its arguments into the SQL, reads
+	 * are answered by SQL text, writes are recorded and applied.
+	 *
+	 * @return \Mockery\MockInterface
+	 */
+	private function wpdb_double() {
+		$wpdb            = Mockery::mock( 'wpdb' );
+		$wpdb->prefix    = 'wp_';
+		$wpdb->insert_id = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function () use ( &$flat ) {
+						return (string) array_shift( $flat );
+					},
+					$sql
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				if ( preg_match( '/FROM wp_ffc_audience_bookings b\s.*WHERE b\.id = (\d+)$/s', $q, $m ) ) {
+					return 5 === (int) $m[1] && null !== $this->booking_row ? clone $this->booking_row : null;
+				}
+				if ( preg_match( '/^SELECT \* FROM wp_ffc_audience_checkin_windows WHERE booking_id = (\d+) AND window_date = (\S+) ORDER BY id DESC LIMIT 1$/', $q, $m ) ) {
+					$found = null;
+					foreach ( $this->windows as $row ) {
+						if ( (int) $row['booking_id'] === (int) $m[1] && $row['window_date'] === $m[2] ) {
+							$found = $row;
+						}
+					}
+					return $found;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $q ) {
+				if ( false !== strpos( $q, 'INNER JOIN wp_ffc_audience_booking_audiences ba' ) ) {
+					return array();
+				}
+				if ( 0 === strpos( $q, 'SELECT user_id, attendance_date FROM wp_ffc_audience_attendance WHERE booking_id = 5 ' ) ) {
+					return array_map(
+						static fn( $l ) => array(
+							'user_id'         => (string) $l['user_id'],
+							'attendance_date' => $l['attendance_date'],
+						),
+						$this->attendance
+					);
+				}
+				if ( preg_match( '/^SELECT id, booking_id, user_id, attendance_date, checked_at, method, marked_by FROM wp_ffc_audience_attendance WHERE booking_id = 5 AND attendance_date = (\S+) ORDER BY/', $q, $m ) ) {
+					return array_values( array_filter( $this->attendance, static fn( $l ) => $l['attendance_date'] === $m[1] ) );
+				}
+				if ( 'SELECT user_id, sent_at, send_count FROM wp_ffc_audience_form_invites WHERE booking_id = 5' === $q ) {
+					return $this->invited;
+				}
+				if ( 0 === strpos( $q, 'SELECT user_id, status FROM wp_ffc_submissions WHERE audience_booking_id = 5 ' ) ) {
+					return $this->answers;
+				}
+				$this->fail( 'Unexpected get_results(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $q ) {
+				if ( 'SELECT user_id FROM wp_ffc_audience_booking_users WHERE booking_id = 5' === $q ) {
+					return array_map( 'strval', $this->participants );
+				}
+				if ( preg_match( '/^SELECT attendance_date FROM wp_ffc_audience_attendance WHERE booking_id = 5 AND user_id = (\d+) ORDER BY/', $q, $m ) ) {
+					$days = array();
+					foreach ( $this->attendance as $line ) {
+						if ( (int) $line['user_id'] === (int) $m[1] ) {
+							$days[] = $line['attendance_date'];
+						}
+					}
+					return $days;
+				}
+				$this->fail( 'Unexpected get_col(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) {
+				if ( preg_match( '/^UPDATE wp_ffc_audience_checkin_windows SET closed_at = (\d+), closed_by = (\d+) WHERE id = (\d+) AND closed_at IS NULL$/', $q, $m ) ) {
+					$this->writes[] = array( 'query', 'wp_ffc_audience_checkin_windows', $q );
+					foreach ( $this->windows as $i => $row ) {
+						if ( (int) $row['id'] === (int) $m[3] && null === $row['closed_at'] ) {
+							$this->windows[ $i ]['closed_at'] = $m[1];
+							$this->windows[ $i ]['closed_by'] = $m[2];
+							return 1;
+						}
+					}
+					return 0;
+				}
+				if ( 0 === strpos( $q, 'INSERT IGNORE INTO wp_ffc_audience_attendance ' ) || 0 === strpos( $q, 'INSERT INTO wp_ffc_audience_form_invites ' ) ) {
+					$this->writes[] = array( 'query', strtok( substr( $q, strpos( $q, 'INTO ' ) + 5 ), ' ' ), $q );
+					return 1;
+				}
+				$this->fail( 'Unexpected query(): ' . $q );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->writes[]  = array( 'insert', $table, $data );
+				$wpdb->insert_id = 11;
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->writes[] = array( 'update', $table, $data, $where );
+				return 1;
+			}
+		);
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			function ( $table, $where ) {
+				$this->writes[] = array( 'delete', $table, $where );
+				return 1;
+			}
+		);
+		return $wpdb;
+	}
+
+	/** A UTC timestamp. */
+	private static function utc( string $moment ): int {
+		return ( new \DateTimeImmutable( $moment, new \DateTimeZone( 'UTC' ) ) )->getTimestamp();
 	}
 
 	private function booking( array $override = array() ): object {
@@ -138,6 +379,25 @@ class AudienceAdminAttendanceTest extends TestCase {
 		return new AudienceAdminAttendance( 'ffc-scheduling' );
 	}
 
+	/**
+	 * The labels of the family buttons a render printed.
+	 *
+	 * @return list<string>
+	 */
+	private static function button_labels( string $html ): array {
+		preg_match_all( '/<(button|a)\b[^>]*\bclass="ffc-btn [^"]*"[^>]*>([^<]*)<\/\1>/', $html, $m );
+		return $m[2];
+	}
+
+	/**
+	 * The writes the double received to one table.
+	 *
+	 * @return list<array<int, mixed>>
+	 */
+	private function writes_to( string $table ): array {
+		return array_values( array_filter( $this->writes, static fn( $w ) => $table === $w[1] ) );
+	}
+
 	public function test_the_day_shown_is_the_one_asked_else_today_else_the_next_else_the_last(): void {
 		$days = array( '2027-03-01', '2027-03-03', '2027-03-05' );
 
@@ -149,64 +409,107 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	public function test_open_keeps_only_known_locations_and_closes_on_its_own(): void {
-		$_POST = array(
+		$_POST           = array(
 			'rotation_seconds'   => '300',
 			'geofence_locations' => array( 'loc_a', 'loc_forged' ),
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
-			->shouldReceive( 'get_all' )->andReturn( array( array( 'id' => 'loc_a' ) ) );
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
-		$this->window_writer->shouldReceive( 'open' )
-			->once()
-			->with( 5, self::TODAY, 300, self::NOW + 9000, 3, self::NOW, array( 'loc_a' ) )
-			->andReturn( 11 );
+		$this->locations = array( array( 'id' => 'loc_a' ) );
 
 		$this->assertSame( 'opened', $this->page()->perform( 'open', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertSame(
+			array(
+				array(
+					'insert',
+					'wp_ffc_audience_checkin_windows',
+					array(
+						'booking_id'         => 5,
+						'window_date'        => self::TODAY,
+						'rotation_seconds'   => 300,
+						'opened_at'          => self::NOW,
+						// 30 minutes after the booking's 12:00 end, today.
+						'closes_at'          => self::utc( '2027-03-01 12:30' ),
+						'opened_by'          => 3,
+						'geofence_locations' => 'loc_a',
+					),
+				),
+			),
+			$this->writes
+		);
 	}
 
 	public function test_open_is_refused_with_its_reason_once_the_day_has_closed(): void {
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW - 60 );
-		$this->window_writer->shouldNotReceive( 'open' );
+		$after_close = self::utc( '2027-03-01 12:30' ) + 60;
 
-		$this->assertSame( 'ended', $this->page()->perform( 'open', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'ended', $this->page()->perform( 'open', $this->booking(), self::TODAY, $after_close ) );
+		$this->assertSame( array(), $this->writes, 'No window is opened.' );
 		$this->assertSame( 'warning', AudienceAdminAttendance::messages()['ended'][1] );
 	}
 
 	public function test_open_is_refused_on_another_day_and_for_a_cancelled_booking(): void {
-		$this->window_writer->shouldNotReceive( 'open' );
-
 		$this->assertSame( 'not_today', $this->page()->perform( 'open', $this->booking(), '2027-03-02', self::NOW ) );
 		$this->assertSame( 'not_today', $this->page()->perform( 'open', $this->booking( array( 'status' => 'cancelled' ) ), self::TODAY, self::NOW ) );
+		$this->assertSame( array(), $this->writes, 'No window is opened.' );
 	}
 
 	public function test_close_closes_the_open_window_and_reports_when_none_was(): void {
-		$this->windows->shouldReceive( 'open_for' )->andReturn( array( 'id' => 11 ), null );
-		$this->window_writer->shouldReceive( 'close' )->once()->with( 11, 3, self::NOW )->andReturn( true );
+		$this->windows = array(
+			array(
+				'id'               => '11',
+				'booking_id'       => '5',
+				'window_date'      => self::TODAY,
+				'rotation_seconds' => '60',
+				'opened_at'        => (string) ( self::NOW - 60 ),
+				'opened_by'        => '3',
+				'closes_at'        => (string) ( self::NOW + 3600 ),
+				'closed_at'        => null,
+				'closed_by'        => null,
+			),
+		);
 
 		$this->assertSame( 'closed', $this->page()->perform( 'close', $this->booking(), self::TODAY, self::NOW ) );
 		$this->assertSame( 'not_open', $this->page()->perform( 'close', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertCount( 1, $this->writes, 'The window is closed once.' );
+		$this->assertSame( 'UPDATE wp_ffc_audience_checkin_windows SET closed_at = ' . self::NOW . ', closed_by = 3 WHERE id = 11 AND closed_at IS NULL', $this->writes[0][2] );
 	}
 
 	public function test_mark_records_by_hand_with_who_marked_it(): void {
 		$_POST = array( 'mark_user' => '7' );
-		$this->writer->shouldReceive( 'record' )->once()->with( 5, 7, self::TODAY, 'manual', 3, self::NOW )->andReturn( 'recorded' );
 
 		$this->assertSame( 'marked', $this->page()->perform( 'mark', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertCount( 1, $this->writes );
+		$this->assertStringEndsWith( 'VALUES (5, 7, ' . self::TODAY . ', ' . self::NOW . ', manual, 3)', $this->writes[0][2] );
 	}
 
 	public function test_mark_refuses_a_stranger_and_a_future_day(): void {
 		$_POST = array( 'mark_user' => '99' );
-		$this->writer->shouldNotReceive( 'record' );
 
 		$this->assertSame( 'failed', $this->page()->perform( 'mark', $this->booking(), self::TODAY, self::NOW ) );
 		$this->assertSame( 'future', $this->page()->perform( 'mark', $this->booking(), '2027-03-03', self::NOW ) );
+		$this->assertSame( array(), $this->writes, 'No line is recorded.' );
 	}
 
 	public function test_unmark_removes_the_line(): void {
 		$_POST = array( 'unmark_user' => '7' );
-		$this->writer->shouldReceive( 'remove' )->once()->with( 5, 7, self::TODAY )->andReturn( true );
 
 		$this->assertSame( 'unmarked', $this->page()->perform( 'unmark', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertSame(
+			array(
+				array(
+					'delete',
+					'wp_ffc_audience_attendance',
+					array(
+						'booking_id'      => 5,
+						'user_id'         => 7,
+						'attendance_date' => self::TODAY,
+					),
+				),
+			),
+			$this->writes
+		);
 	}
 
 	public function test_the_rule_needs_the_manage_capability_and_is_normalised(): void {
@@ -214,30 +517,36 @@ class AudienceAdminAttendanceTest extends TestCase {
 			'attendance_mode'        => 'total',
 			'attendance_min_percent' => '250',
 		);
-		$this->booking_writer->shouldReceive( 'set_attendance_rule' )->once()->with( 5, 'total', 100 )->andReturn( true );
 
 		$this->assertSame( 'denied', $this->page()->perform( 'rule', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( array(), $this->writes );
 
 		$this->caps[] = 'ffc_manage_audiences';
 		$this->assertSame( 'rule_saved', $this->page()->perform( 'rule', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertSame(
+			array(
+				array(
+					'update',
+					'wp_ffc_audience_bookings',
+					array(
+						'attendance_mode'        => 'total',
+						'attendance_min_percent' => 100,
+					),
+					array( 'id' => 5 ),
+				),
+			),
+			$this->writes
+		);
 	}
 
 	public function test_the_post_event_form_needs_the_manage_capability_and_a_real_form(): void {
-		Functions\when( 'get_post' )->alias(
-			static function ( $id ) {
-				$post              = new \WP_Post();
-				$post->post_type   = 'ffc_form';
-				$post->post_status = 40 === (int) $id ? 'publish' : 'draft';
-				return $post;
-			}
-		);
 		$_POST = array(
 			'post_event_custom'         => '1',
 			'post_event_form'           => '40',
 			'post_event_window_days'    => '10',
 			'post_event_attendees_only' => '1',
 		);
-		$this->booking_writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, true, 40, 10, true )->andReturn( true );
 
 		$this->assertSame( 'denied', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ) );
 
@@ -246,6 +555,24 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 		$_POST['post_event_form'] = '41';
 		$this->assertSame( 'failed', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ), 'A draft or unknown form is refused.' );
+
+		$this->assertSame(
+			array(
+				array(
+					'update',
+					'wp_ffc_audience_bookings',
+					array(
+						'post_event_custom'         => 1,
+						'post_event_form_id'        => 40,
+						'post_event_window_days'    => 10,
+						'post_event_attendees_only' => 1,
+					),
+					array( 'id' => 5 ),
+				),
+			),
+			$this->writes,
+			'Only the allowed save with a published form is written.'
+		);
 	}
 
 	public function test_turning_the_switch_off_follows_the_calendar_again(): void {
@@ -254,23 +581,28 @@ class AudienceAdminAttendanceTest extends TestCase {
 			'post_event_form'        => '0',
 			'post_event_window_days' => '7',
 		);
-		$this->booking_writer->shouldReceive( 'set_post_event_form' )->once()->with( 5, false, 0, 7, false )->andReturn( true );
 
 		$this->assertSame( 'post_event_saved', $this->page()->perform( 'post_event', $this->booking(), self::TODAY, self::NOW ) );
+
+		$this->assertSame(
+			array(
+				array(
+					'update',
+					'wp_ffc_audience_bookings',
+					array(
+						'post_event_custom'         => 0,
+						'post_event_form_id'        => null,
+						'post_event_window_days'    => null,
+						'post_event_attendees_only' => null,
+					),
+					array( 'id' => 5 ),
+				),
+			),
+			$this->writes
+		);
 	}
 
 	public function test_the_post_event_status_says_which_form_and_when(): void {
-		Functions\when( 'get_post' )->alias(
-			static function () {
-				$post              = new \WP_Post();
-				$post->post_type   = 'ffc_form';
-				$post->post_status = 'publish';
-				return $post;
-			}
-		);
-		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-
 		$applied = array(
 			'form_id'        => 40,
 			'window_days'    => 2,
@@ -286,27 +618,18 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	/**
-	 * A booking that invites to form 40, which no page embeds.
+	 * A booking that invites to form 40, which no page embeds by default.
 	 */
-	private function booking_with_form(): object {
-		Functions\when( 'get_post' )->alias(
-			static function () {
-				$post              = new \WP_Post();
-				$post->post_type   = 'ffc_form';
-				$post->post_status = 'publish';
-				return $post;
-			}
-		);
-		Functions\when( 'get_posts' )->justReturn( array() );
-		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-
+	private function booking_with_form( array $override = array() ): object {
 		return $this->booking(
-			array(
-				'post_event_custom'         => '1',
-				'post_event_form_id'        => '40',
-				'post_event_window_days'    => '2',
-				'post_event_attendees_only' => '0',
+			array_merge(
+				array(
+					'post_event_custom'         => '1',
+					'post_event_form_id'        => '40',
+					'post_event_window_days'    => '2',
+					'post_event_attendees_only' => '0',
+				),
+				$override
 			)
 		);
 	}
@@ -329,16 +652,19 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 	public function test_the_csv_adds_the_post_event_columns_when_a_form_applies(): void {
 		$this->roster_present_for_7();
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
-		$reader->shouldReceive( 'for_booking' )->andReturn(
+		$this->invited = array(
 			array(
-				7 => array(
-					'sent_at'    => self::NOW,
-					'send_count' => 1,
-				),
-			)
+				'user_id'    => '7',
+				'sent_at'    => (string) self::NOW,
+				'send_count' => '1',
+			),
 		);
-		$reader->shouldReceive( 'answers' )->andReturn( array( 7 => 'publish' ) );
+		$this->answers = array(
+			array(
+				'user_id' => '7',
+				'status'  => 'publish',
+			),
+		);
 
 		$source = new AudienceAttendanceExportSource( $this->booking_with_form() );
 		$rows   = iterator_to_array( $source->rows(), false );
@@ -351,8 +677,6 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 	public function test_the_csv_leaves_the_post_event_columns_out_without_a_form_or_an_invitation(): void {
 		$this->roster_present_for_7();
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' )
-			->shouldReceive( 'for_booking' )->andReturn( array() );
 
 		$source = new AudienceAttendanceExportSource( $this->booking() );
 
@@ -372,72 +696,78 @@ class AudienceAdminAttendanceTest extends TestCase {
 	}
 
 	/**
-	 * The post-event form's eligibility and mailer, answering per person.
+	 * A booking whose form opened when it ended (2027-03-03 12:00) and, for
+	 * the attendees only, stays open two days; 7 and 9 attended, 8 did not.
 	 *
-	 * @param array<int, string|true> $eligible User ID => true or an error code.
-	 * @param array<int, string|true> $sends    User ID => true or an error code.
-	 * @return \Mockery\MockInterface The mailer.
+	 * @return array{0: object, 1: int} The booking and a moment the form is open.
 	 */
-	private function invitations( array $eligible, array $sends ) {
-		$form = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudiencePostEventForm' );
-		$form->shouldReceive( 'participants' )->andReturn( array_keys( $eligible ) );
-		$form->shouldReceive( 'eligibility' )->andReturnUsing(
-			static fn( $booking, int $user ) => true === ( $eligible[ $user ] ?? 'not_participant' ) ? true : new \WP_Error( $eligible[ $user ] ?? 'not_participant', 'No.' )
+	private function invitations(): array {
+		$this->participants = array( 7, 8, 9 );
+		$this->attendance   = array(
+			array(
+				'user_id'         => 7,
+				'attendance_date' => self::TODAY,
+				'checked_at'      => self::NOW,
+				'method'          => 'qr',
+			),
+			array(
+				'user_id'         => 9,
+				'attendance_date' => self::TODAY,
+				'checked_at'      => self::NOW,
+				'method'          => 'qr',
+			),
 		);
-		$mailer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteMailer' );
-		$mailer->shouldReceive( 'send' )->andReturnUsing(
-			static fn( $booking, int $user ) => true === ( $sends[ $user ] ?? true ) ? true : new \WP_Error( $sends[ $user ], 'No.' )
-		);
-		return $mailer;
+
+		return array( $this->booking_with_form( array( 'post_event_attendees_only' => '1' ) ), self::utc( '2027-03-04 10:00' ) );
 	}
 
 	public function test_a_resend_goes_only_to_an_eligible_person_and_reports_why_not(): void {
-		$mailer = $this->invitations(
-			array(
-				7 => true,
-				8 => 'absent',
-				9 => true,
-			),
-			array( 9 => 'no_page' )
-		);
+		list( $booking, $open ) = $this->invitations();
+		// The page lookup finds the page for 7, and none any more for 9.
+		$this->pages = array( self::PAGE, '' );
 
 		$_POST = array( 'invite_user' => '7' );
-		$this->assertSame( 'invite_sent', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'invite_sent', $this->page()->perform( 'invite', $booking, self::TODAY, $open ) );
 
 		$_POST = array( 'invite_user' => '8' );
-		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $booking, self::TODAY, $open ) );
 
 		$_POST = array( 'invite_user' => '9' );
-		$this->assertSame( 'invite_no_page', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'invite_no_page', $this->page()->perform( 'invite', $booking, self::TODAY, $open ) );
 
 		$_POST = array( 'invite_user' => '12' );
-		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $this->booking(), self::TODAY, self::NOW ), 'A forged id is not on the booking.' );
+		$this->assertSame( 'invite_not_eligible', $this->page()->perform( 'invite', $booking, self::TODAY, $open ), 'A forged id is not on the booking.' );
 
-		$mailer->shouldHaveReceived( 'send' )->twice();
+		$this->assertSame( array( 7, 9 ), $this->looked_up, 'The mailer is reached for the two eligible people only.' );
+		$this->assertSame( array( 'p7@example.org' ), array_column( $this->mailed, 0 ) );
+		$this->assertCount( 1, $this->writes_to( 'wp_ffc_audience_form_invites' ), 'Only the sent invitation is recorded.' );
 	}
 
 	public function test_sending_to_everyone_skips_who_answered_and_who_is_not_eligible(): void {
-		$mailer = $this->invitations(
+		list( $booking, $open ) = $this->invitations();
+		$this->pages            = array( self::PAGE );
+		$this->answers          = array(
 			array(
-				7 => true,
-				8 => 'absent',
-				9 => true,
+				'user_id' => '9',
+				'status'  => 'publish',
 			),
-			array()
 		);
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
-		$reader->shouldReceive( 'answers' )->with( 5 )->andReturn( array( 9 => 'publish' ) );
 
-		$this->assertSame( 'invite_sent_all', $this->page()->perform( 'invite_all', $this->booking(), self::TODAY, self::NOW ) );
-		$mailer->shouldHaveReceived( 'send' )->once()->with( Mockery::any(), 7, self::NOW );
+		$this->assertSame( 'invite_sent_all', $this->page()->perform( 'invite_all', $booking, self::TODAY, $open ) );
+
+		$this->assertSame( array( 7 ), $this->looked_up, 'Only 7 is sent to.' );
+		$this->assertSame( array( 'p7@example.org' ), array_column( $this->mailed, 0 ) );
+		$recorded = $this->writes_to( 'wp_ffc_audience_form_invites' );
+		$this->assertCount( 1, $recorded );
+		$this->assertStringContainsString( 'VALUES (5, 7, 40, ' . $open . ', 1)', $recorded[0][2], 'Sent to 7 at the moment given.' );
 	}
 
 	public function test_sending_to_everyone_says_when_nobody_was_left(): void {
-		$this->invitations( array( 8 => 'absent' ), array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' )
-			->shouldReceive( 'answers' )->andReturn( array() );
+		list( $booking, $open ) = $this->invitations();
+		$this->participants     = array( 8 );
 
-		$this->assertSame( 'invite_none', $this->page()->perform( 'invite_all', $this->booking(), self::TODAY, self::NOW ) );
+		$this->assertSame( 'invite_none', $this->page()->perform( 'invite_all', $booking, self::TODAY, $open ) );
+		$this->assertSame( array(), $this->mailed );
 	}
 
 	public function test_the_tracking_cells_say_what_was_sent_and_answered(): void {
@@ -468,49 +798,21 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 	public function test_the_screen_lists_invitations_once_a_form_applies(): void {
 		$this->roster_present_for_7();
-		$_GET    = array( 'booking_id' => '5' );
-		$booking = $this->booking(
+		$_GET              = array( 'booking_id' => '5' );
+		$this->booking_row = $this->booking_with_form( array( 'post_event_window_days' => '7' ) );
+		$this->invited     = array(
 			array(
-				'post_event_custom'         => '1',
-				'post_event_form_id'        => '40',
-				'post_event_window_days'    => '7',
-				'post_event_attendees_only' => '0',
-			)
+				'user_id'    => '7',
+				'sent_at'    => (string) self::NOW,
+				'send_count' => '2',
+			),
 		);
-		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $booking );
-		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
-		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
-			->shouldReceive( 'get_all' )->andReturn( array() );
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'render_button' )->andReturnUsing(
-			static function ( array $args ): void {
-				echo '<button data-label="' . $args['label'] . '"></button>';
-			}
-		);
-		$ui->shouldReceive( 'render_segmented' );
-		$ui->shouldReceive( 'render_toggle' );
-		Functions\when( 'get_posts' )->justReturn( array() );
-		Functions\when( 'get_the_title' )->justReturn( 'Evaluation' );
-		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
-		Functions\when( 'get_post' )->alias(
-			static function () {
-				$post              = new \WP_Post();
-				$post->post_type   = 'ffc_form';
-				$post->post_status = 'publish';
-				return $post;
-			}
-		);
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceFormInviteReader' );
-		$reader->shouldReceive( 'for_booking' )->andReturn(
+		$this->answers     = array(
 			array(
-				7 => array(
-					'sent_at'    => self::NOW,
-					'send_count' => 2,
-				),
-			)
+				'user_id' => '7',
+				'status'  => 'publish',
+			),
 		);
-		$reader->shouldReceive( 'answers' )->andReturn( array( 7 => 'publish' ) );
 
 		ob_start();
 		$this->page()->render_page();
@@ -524,65 +826,51 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertStringContainsString( '(sent 2 times)', $html );
 		$this->assertStringContainsString( 'Certificate issued', $html );
 		$this->assertStringContainsString( 'Invitations go out on their own once the event ends', $html, 'Before the event ends nothing can be sent.' );
-		$this->assertStringNotContainsString( 'data-label="Send to everyone who has not answered"', $html );
+		$this->assertNotContains( 'Send to everyone who has not answered', self::button_labels( $html ) );
 	}
 
 	public function test_a_status_cell_says_when_and_how(): void {
 		$this->assertStringContainsString( '—', AudienceAdminAttendance::status_html( null, null ) );
 		$this->assertStringContainsString( 'by hand', AudienceAdminAttendance::status_html( self::NOW, 'manual' ) );
-		$this->assertStringContainsString( '09:30', AudienceAdminAttendance::status_html( self::NOW, 'qr' ) );
+		$this->assertStringContainsString( '08:00', AudienceAdminAttendance::status_html( self::NOW, 'qr' ) );
 	}
 
 	/**
-	 * The roster a render or a poll reads.
+	 * The roster a render or a poll reads: Ana (7) checked in today by QR,
+	 * Bia (8) not.
 	 */
 	private function roster_present_for_7(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceAttendanceReader' );
-		$reader->shouldReceive( 'days_by_user' )->andReturn( array( 7 => array( self::TODAY ) ) );
-		$reader->shouldReceive( 'for_day' )->andReturn(
+		$this->attendance = array(
 			array(
-				array(
-					'user_id'    => 7,
-					'checked_at' => self::NOW,
-					'method'     => 'qr',
-				),
-			)
-		);
-		Functions\when( 'get_users' )->justReturn(
-			array(
-				(object) array(
-					'ID'           => 7,
-					'display_name' => 'Ana',
-				),
-				(object) array(
-					'ID'           => 8,
-					'display_name' => 'Bia',
-				),
-			)
+				'user_id'         => 7,
+				'attendance_date' => self::TODAY,
+				'checked_at'      => self::NOW,
+				'method'          => 'qr',
+			),
 		);
 	}
 
 	public function test_the_poll_reports_who_is_present_and_the_qr_only_while_open(): void {
 		$this->roster_present_for_7();
-		$window = array(
-			'id'                 => 11,
-			'booking_id'         => 5,
-			'window_date'        => self::TODAY,
-			'rotation_seconds'   => 60,
-			'opened_at'          => self::NOW - 60,
-			'opened_by'          => 3,
-			'closes_at'          => self::NOW + 3600,
-			'closed_at'          => null,
-			'closed_by'          => null,
-			'geofence_locations' => array(),
+		$this->windows = array(
+			array(
+				'id'                 => '11',
+				'booking_id'         => '5',
+				'window_date'        => self::TODAY,
+				'rotation_seconds'   => '60',
+				'opened_at'          => (string) ( self::NOW - 60 ),
+				'opened_by'          => '3',
+				'closes_at'          => (string) ( self::NOW + 3600 ),
+				'closed_at'          => null,
+				'closed_by'          => null,
+				'geofence_locations' => '',
+			),
 		);
-		$this->windows->shouldReceive( 'open_for' )->andReturn( $window, null );
-		$this->windows->shouldReceive( 'is_open' )->andReturn( true );
-		Functions\when( 'wp_salt' )->justReturn( 'salt' );
-		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 
-		$open   = AudienceAttendanceAjax::state( $this->booking(), self::TODAY, true, self::NOW + 15 );
-		$closed = AudienceAttendanceAjax::state( $this->booking(), self::TODAY, true, self::NOW + 15 );
+		$open = AudienceAttendanceAjax::state( $this->booking(), self::TODAY, true, self::NOW + 15 );
+		// The organiser closes check-in before the next poll.
+		$this->windows[0]['closed_at'] = (string) ( self::NOW + 10 );
+		$closed                        = AudienceAttendanceAjax::state( $this->booking(), self::TODAY, true, self::NOW + 15 );
 
 		$this->assertSame( 1, $open['present'] );
 		$this->assertSame( 2, $open['total'] );
@@ -598,35 +886,22 @@ class AudienceAdminAttendanceTest extends TestCase {
 	public function test_the_screen_draws_the_open_form_today_and_the_roster(): void {
 		$this->roster_present_for_7();
 		$_GET = array( 'booking_id' => '5' );
-		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
-		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
-		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
-			->shouldReceive( 'get_all' )->andReturn( array() );
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'render_button' )->andReturnUsing(
-			static function ( array $args ): void {
-				echo '<button data-label="' . $args['label'] . '"></button>';
-			}
-		);
-		$ui->shouldReceive( 'render_segmented' );
-		$ui->shouldReceive( 'render_toggle' );
-		Functions\when( 'get_posts' )->justReturn( array() );
 
 		ob_start();
 		$this->page()->render_page();
-		$html = (string) ob_get_clean();
+		$html    = (string) ob_get_clean();
+		$buttons = self::button_labels( $html );
 
 		$this->assertStringContainsString( 'ffc-page-scheduling-attendance', $html );
 		$this->assertStringContainsString( 'name="ffc_attendance_action" value="post_event"', $html );
 		$this->assertStringContainsString( 'Its calendar names no form, so this booking invites nobody.', $html );
 		$this->assertStringContainsString( 'name="ffc_attendance_action" value="open"', $html );
-		$this->assertStringContainsString( 'data-label="Open check-in"', $html );
+		$this->assertContains( 'Open check-in', $buttons );
 		$this->assertStringContainsString( 'name="rotation_seconds"', $html );
 		$this->assertStringNotContainsString( 'ffc-attendance-geofence', $html, 'No saved location, no geofence choice.' );
 		$this->assertStringContainsString( '<tr data-user-id="7">', $html );
-		$this->assertStringContainsString( 'data-label="Remove"', $html );
-		$this->assertStringContainsString( 'data-label="Mark present"', $html );
+		$this->assertContains( 'Remove', $buttons );
+		$this->assertContains( 'Mark present', $buttons );
 		$this->assertStringContainsString( 'id="ffc-attendance-date"', $html, 'A booking over several days has a day picker.' );
 		$this->assertMatchesRegularExpression( '/name="attendance_min_percent"[^>]*value="75"/', $html, 'Under "Any day" the share field still holds a value its min accepts, so the rule form can submit.' );
 	}
@@ -634,29 +909,6 @@ class AudienceAdminAttendanceTest extends TestCase {
 	public function test_a_manager_s_cards_save_as_they_change_and_a_checker_s_do_not(): void {
 		$this->roster_present_for_7();
 		$_GET = array( 'booking_id' => '5' );
-		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
-		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( self::NOW + 9000 );
-		Mockery::mock( 'alias:FreeFormCertificate\Security\GeofenceLocationRegistry' )
-			->shouldReceive( 'get_all' )->andReturn( array() );
-		$toggles = array();
-		$ui      = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'render_button' )->andReturnUsing(
-			static function ( array $args ): void {
-				echo '<button data-label="' . $args['label'] . '"></button>';
-			}
-		);
-		$ui->shouldReceive( 'render_segmented' )->andReturnUsing(
-			static function ( array $args ) use ( &$toggles ): void {
-				$toggles[ $args['name'] ] = $args['data'] ?? array();
-			}
-		);
-		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
-			static function ( array $args ) use ( &$toggles ): void {
-				$toggles[ $args['name'] ] = $args['data'] ?? array();
-			}
-		);
-		Functions\when( 'get_posts' )->justReturn( array() );
 
 		$this->caps = array( 'ffc_checkin_audiences', 'ffc_manage_audiences' );
 		ob_start();
@@ -667,45 +919,40 @@ class AudienceAdminAttendanceTest extends TestCase {
 			$this->assertStringContainsString( 'data-ffc-autosave-record-key="' . $key . '" data-ffc-autosave-record="audience_booking:5"', $html, $key );
 		}
 		foreach ( array( 'attendance_mode', 'post_event_custom', 'post_event_attendees_only' ) as $name ) {
-			$this->assertSame( 'audience_booking:5', $toggles[ $name ]['ffc-autosave-record'] ?? '', $name );
+			$this->assertMatchesRegularExpression( '/<input\b[^>]*name="' . $name . '"[^>]*data-ffc-autosave-record="audience_booking:5"/', $html, $name );
 		}
-		$this->assertStringNotContainsString( 'data-label="Save rule"', $html, 'Nothing is left to save by hand.' );
+		$this->assertNotContains( 'Save rule', self::button_labels( $html ), 'Nothing is left to save by hand.' );
 		$this->assertStringContainsString( 'data-ffc-master="ffc-attendance-mode" data-ffc-master-value="total"', $html, 'The share shows under Share of days only.' );
 		$this->assertStringContainsString( 'data-ffc-master="ffc-post-event-custom"', $html, 'The booking\'s own settings show only when it has them.' );
 
 		$this->caps = array( 'ffc_checkin_audiences' );
-		$toggles    = array();
 		ob_start();
 		$this->page()->render_page();
 		$html = (string) ob_get_clean();
 
 		$this->assertStringNotContainsString( 'data-ffc-autosave-record', $html, 'Without the manage capability the cards are read-only.' );
-		$this->assertSame( array(), $toggles['attendance_mode'] );
+		$this->assertMatchesRegularExpression( '/<input type="radio"[^>]*name="attendance_mode"/', $html, 'The rule control is still drawn.' );
 	}
 
 	public function test_after_the_day_closes_the_card_says_so_and_offers_no_open(): void {
 		$this->roster_present_for_7();
 		$_GET = array( 'booking_id' => '5' );
-		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
-		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
-		$this->window_writer->shouldReceive( 'auto_close_at' )->andReturn( 1000 );
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'render_button' )->andReturnUsing(
-			static function ( array $args ): void {
-				echo '<button data-label="' . $args['label'] . '"></button>';
-			}
+		// A one-day booking whose day has passed: check-in closed at 12:30.
+		$this->today       = '2020-03-02';
+		$this->booking_row = $this->booking(
+			array(
+				'booking_date' => '2020-03-02',
+				'end_date'     => null,
+			)
 		);
-		$ui->shouldReceive( 'render_segmented' );
-		$ui->shouldReceive( 'render_toggle' );
-		Functions\when( 'get_posts' )->justReturn( array() );
 
 		ob_start();
 		$this->page()->render_page();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Check-in closed on its own at 09:30', $html );
+		$this->assertStringContainsString( 'Check-in closed on its own at 12:30', $html );
 		$this->assertStringNotContainsString( 'value="open"', $html );
-		$this->assertStringNotContainsString( 'data-label="Open check-in"', $html );
+		$this->assertNotContains( 'Open check-in', self::button_labels( $html ) );
 	}
 
 	public function test_the_screen_on_another_day_offers_no_qr(): void {
@@ -714,23 +961,13 @@ class AudienceAdminAttendanceTest extends TestCase {
 			'booking_id' => '5',
 			'date'       => '2027-03-03',
 		);
-		$this->bookings->shouldReceive( 'get_by_id' )->with( 5 )->andReturn( $this->booking() );
-		$this->windows->shouldReceive( 'open_for' )->andReturn( null );
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'render_button' )->andReturnUsing(
-			static function ( array $args ): void {
-				echo '<button data-label="' . $args['label'] . '"></button>';
-			}
-		);
-		$ui->shouldReceive( 'render_segmented' );
-		$ui->shouldReceive( 'render_toggle' );
-		Functions\when( 'get_posts' )->justReturn( array() );
 
 		ob_start();
 		$this->page()->render_page();
 		$html = (string) ob_get_clean();
 
+		$this->assertStringContainsString( '<tr data-user-id="8">', $html, 'The roster is drawn.' );
 		$this->assertStringNotContainsString( 'value="open"', $html );
-		$this->assertStringNotContainsString( 'data-label="Mark present"', $html, 'A day that has not come yet cannot be marked.' );
+		$this->assertNotContains( 'Mark present', self::button_labels( $html ), 'A day that has not come yet cannot be marked.' );
 	}
 }

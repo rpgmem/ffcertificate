@@ -102,6 +102,9 @@ echo '<span id="ffc-cand-csv-progress-text"></span>';
 echo '</span>';
 echo '<span id="ffc-cand-csv-status" class="ffc-status" role="status" aria-live="polite" hidden></span>';
 echo '</p>';
+// Lines that differ from a stored candidate are listed here before the
+// operator confirms the import (#2245).
+echo '<ul id="ffc-cand-csv-errors" class="ffc-rec-csv-errors"></ul>';
 echo '</form>';
 
 // The CSV-import handlers (ffcRecruitmentImportNoticeChanged /

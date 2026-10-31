@@ -17,10 +17,9 @@
  *     subsequent load, so a leaked hash can only trigger this within
  *     the narrow `now() < start_datetime` window before the action
  *     naturally fires by time.
- *   - Cache propagation: after writing the new datetime, both the
- *     plugin's own FormCache and any third-party page-cache plugin
- *     (W3TC, LiteSpeed, Super Cache, WP Rocket, custom via the
- *     ffc_form_cache_purged hook) are notified.
+ *   - Cache propagation: after writing the new datetime, every
+ *     third-party page-cache plugin (W3TC, LiteSpeed, Super Cache,
+ *     WP Rocket, custom via the ffc_form_cache_purged hook) is notified.
  *
  * @package FreeFormCertificate\Frontend
  * @since 6.5.6
@@ -37,6 +36,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Service that decides whether a form is eligible for early-open and
  * executes the start-datetime flip when so.
+ *
+ * A refusal names its reason from a closed list, so the AJAX handler's
+ * message map is checked against it and needs no generic fallback (#2169).
+ *
+ * @phpstan-type EarlyOpenRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'early_open_disabled'|'already_opened'|'datetime_disabled'|'no_start_date'|'already_started'|'already_ended'|'not_today'}
  */
 class EarlyOpenAction {
 
@@ -77,7 +81,7 @@ class EarlyOpenAction {
 	 *
 	 * @param int    $form_id Form post id.
 	 * @param string $hash    Plaintext hash supplied by the public page.
-	 * @return array{ok: false, reason: string}|array{ok: true} ok=true when eligible.
+	 * @return EarlyOpenRefusal|array{ok: true} ok=true when eligible.
 	 *                                          reason is a stable string
 	 *                                          tag for telemetry / UX
 	 *                                          (`unknown_form`, `csv_disabled`,
@@ -211,7 +215,7 @@ class EarlyOpenAction {
 	 *                                         per-form audit ring buffer
 	 *                                         alongside the `action_early_open`
 	 *                                         result tag (#243 Sprint 6).
-	 * @return array{ok: false, reason: string}|array{ok: true, original_start_iso: string, new_start_iso: string}
+	 * @return EarlyOpenRefusal|array{ok: true, original_start_iso: string, new_start_iso: string}
 	 */
 	public static function execute( int $form_id, string $hash, array $audit_meta = array(), string $cpf_digits = '' ): array {
 		$eligibility = self::is_eligible( $form_id, $hash );
@@ -254,7 +258,7 @@ class EarlyOpenAction {
 		update_post_meta( $form_id, self::META_OPENED_AT, time() );
 		update_post_meta( $form_id, self::META_OPENED_FROM, $original_time_start );
 
-		// Invalidate the plugin's own object cache + page-cache plugins.
+		// Invalidate the page-cache plugins.
 		// The `ffc_form` CPT is registered with `'public' => false`, so
 		// the per-post `flush_post()` in purge_external_caches() doesn't
 		// help the visible surface — what visitors see is the page that
@@ -262,7 +266,6 @@ class EarlyOpenAction {
 		// can't associate with the form id. Use the aggressive site-wide
 		// purge for this one-shot, deliberate state change so the page
 		// hosting the shortcode actually picks up the new time_start.
-		\FreeFormCertificate\Submissions\FormCache::clear_form_cache( $form_id );
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $form_id, 'early_open' );
 		\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $form_id, 'early_open' );
 

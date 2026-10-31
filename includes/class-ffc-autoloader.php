@@ -281,8 +281,13 @@ class FFC_Autoloader {
 	 * Get all registered namespaces
 	 *
 	 * @return array<string>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function get_namespaces(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return array_keys( $this->namespace_map );
 	}
 
@@ -291,8 +296,13 @@ class FFC_Autoloader {
 	 *
 	 * @param string $class Class name with namespace.
 	 * @return array<string, mixed> Debug information
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function debug_class_mapping( string $class ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		if ( strpos( $class, self::NAMESPACE_PREFIX ) !== 0 ) {
 			return array(
 				'error' => 'Class does not use FreeFormCertificate namespace',

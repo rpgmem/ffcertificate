@@ -392,12 +392,60 @@ class AudienceScheduleRepositoryTest extends TestCase {
 		$this->assertSame(10, $result);
 	}
 
+	/**
+	 * The event-list, badge and booking-label settings are written on
+	 * creation with the same defaults the table declares (#2175).
+	 */
+	public function test_create_writes_the_display_settings_with_their_defaults(): void {
+		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
+			\PHPUnit\Framework\TestCase::assertSame(0, $data['show_event_list']);
+			\PHPUnit\Framework\TestCase::assertSame('side', $data['event_list_position']);
+			\PHPUnit\Framework\TestCase::assertSame('name', $data['audience_badge_format']);
+			\PHPUnit\Framework\TestCase::assertArrayHasKey('booking_label_singular', $data);
+			\PHPUnit\Framework\TestCase::assertNull($data['booking_label_singular']);
+			\PHPUnit\Framework\TestCase::assertArrayHasKey('booking_label_plural', $data);
+			\PHPUnit\Framework\TestCase::assertNull($data['booking_label_plural']);
+			return 1;
+		});
+		$this->wpdb->insert_id = 1;
+
+		AudienceScheduleRepository::create(['name' => 'Test']);
+	}
+
+	/**
+	 * A calendar created with display settings keeps them, rather than
+	 * waiting for its first update to store them (#2175).
+	 */
+	public function test_create_writes_the_posted_display_settings(): void {
+		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
+			\PHPUnit\Framework\TestCase::assertSame(1, $data['show_event_list']);
+			\PHPUnit\Framework\TestCase::assertSame('below', $data['event_list_position']);
+			\PHPUnit\Framework\TestCase::assertSame('parent_name', $data['audience_badge_format']);
+			\PHPUnit\Framework\TestCase::assertSame('session', $data['booking_label_singular']);
+			\PHPUnit\Framework\TestCase::assertSame('sessions', $data['booking_label_plural']);
+			return 1;
+		});
+		$this->wpdb->insert_id = 7;
+
+		$result = AudienceScheduleRepository::create([
+			'name'                   => 'Display',
+			'show_event_list'        => 1,
+			'event_list_position'    => 'below',
+			'audience_badge_format'  => 'parent_name',
+			'booking_label_singular' => 'session',
+			'booking_label_plural'   => 'sessions',
+		]);
+
+		$this->assertSame(7, $result);
+	}
+
 	public function test_create_passes_correct_format_array(): void {
 		$this->wpdb->shouldReceive('insert')->once()->andReturnUsing(function($table, $data, $format) {
 			\PHPUnit\Framework\TestCase::assertSame(
-				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%d', '%s', '%d'),
+				array('%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d'),
 				$format
 			);
+			\PHPUnit\Framework\TestCase::assertCount(count($data), $format, 'One format per column written.');
 			return 1;
 		});
 		$this->wpdb->insert_id = 1;

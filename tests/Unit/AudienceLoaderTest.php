@@ -143,13 +143,6 @@ class AudienceLoaderTest extends TestCase {
 	public function test_enqueue_admin_assets_enqueues_on_audience_page(): void {
 		$loader = AudienceLoader::get_instance();
 
-		// Stub the AssetHelper::asset_suffix call
-		// The class is already loaded via autoloader; we mock the static call
-		// by defining SCRIPT_DEBUG
-		if (!defined('SCRIPT_DEBUG')) {
-			define('SCRIPT_DEBUG', true);
-		}
-
 		Functions\expect('wp_enqueue_style')
 			->atLeast()->once();
 		Functions\expect('wp_enqueue_script')
@@ -163,10 +156,40 @@ class AudienceLoaderTest extends TestCase {
 		Functions\when('wp_create_nonce')->justReturn('test-nonce');
 		Functions\when('sanitize_text_field')->returnArg();
 		Functions\when('wp_unslash')->returnArg();
-		Functions\when('sanitize_text_field')->returnArg();
-		Functions\when('wp_unslash')->returnArg();
 
 		$loader->enqueue_admin_assets('toplevel_page_ffc-audience');
+	}
+
+	public function test_admin_pills_take_the_chosen_holiday_colours(): void {
+		$loader = AudienceLoader::get_instance();
+
+		Functions\when('get_option')->alias(
+			static fn( $name, $default = false ) => 'ffc_calendar_appearance' === $name
+				? array( 'colors' => array( 'holiday' => '#123456', 'optional' => '#4f6b8f' ) )
+				: $default
+		);
+		Functions\when('sanitize_hex_color')->returnArg();
+		Functions\when('wp_enqueue_style')->justReturn(true);
+		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_localize_script')->justReturn(true);
+		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
+		Functions\when('rest_url')->justReturn('https://example.com/wp-json/ffc/v1/audience/');
+		Functions\when('wp_create_nonce')->justReturn('test-nonce');
+		Functions\when('sanitize_text_field')->returnArg();
+		Functions\when('wp_unslash')->returnArg();
+		$inline = array();
+		Functions\when('wp_add_inline_style')->alias(
+			static function ( $handle, $css ) use ( &$inline ) {
+				$inline[] = array( $handle, $css );
+				return true;
+			}
+		);
+
+		$loader->enqueue_admin_assets('ffc-scheduling_page_ffc-scheduling-settings');
+
+		$admin = array_values( array_filter( $inline, static fn( $call ) => 'ffc-audience-admin' === $call[0] ) );
+		$this->assertCount( 1, $admin, 'The admin sheet carries the chosen colours (#2210).' );
+		$this->assertStringContainsString( '--ffc-holiday:#123456', $admin[0][1] );
 	}
 
 	// ==================================================================
@@ -213,20 +236,23 @@ class AudienceLoaderTest extends TestCase {
 	}
 
 	/**
-	 * Runs alone: it resets the process-wide SourceRegistry.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * Starts from an empty SourceRegistry, so only this init() can register the
+	 * source, and puts back the factories an earlier test registered.
 	 */
 	public function test_init_in_admin_registers_the_bookings_export_source(): void {
 		Functions\when('is_admin')->justReturn(true);
 		Functions\when('add_shortcode')->justReturn(null);
+		$factories = new \ReflectionProperty(\FreeFormCertificate\Core\SourceRegistry::class, 'factories');
+		$factories->setAccessible(true);
+		$saved = $factories->getValue();
 		\FreeFormCertificate\Core\SourceRegistry::reset();
 
-		AudienceLoader::get_instance()->init();
-
-		$source = \FreeFormCertificate\Core\SourceRegistry::get(\FreeFormCertificate\Audience\AudienceBookingExportSource::TYPE);
-		\FreeFormCertificate\Core\SourceRegistry::reset();
+		try {
+			AudienceLoader::get_instance()->init();
+			$source = \FreeFormCertificate\Core\SourceRegistry::get(\FreeFormCertificate\Audience\AudienceBookingExportSource::TYPE);
+		} finally {
+			$factories->setValue(null, $saved);
+		}
 
 		$this->assertInstanceOf(\FreeFormCertificate\Audience\AudienceBookingExportSource::class, $source);
 	}

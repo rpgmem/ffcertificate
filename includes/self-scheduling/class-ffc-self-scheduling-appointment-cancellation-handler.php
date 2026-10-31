@@ -137,17 +137,16 @@ class AppointmentCancellationHandler {
 				return;
 
 			case 'process':
-				$this->process_cancellation( $appointment_id, $token );
+				// The second submit cancels to rebook (#2244): once the
+				// booking is released the person lands on the calendar page.
+				$calendar = self::calendar_of( is_array( $appointment ) ? $appointment : array() );
+				$next     = $this->reschedule_requested() ? self::booking_page_url( $calendar ) : '';
+				$this->process_cancellation( $appointment_id, $token, $next, AppointmentHandler::sends_cancellation_email( $calendar ) );
 				return;
 
 			case 'confirm':
 			default:
-				$calendar = array();
-				if ( is_array( $appointment ) && ! empty( $appointment['calendar_id'] ) ) {
-					$calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
-					$found         = $calendar_repo->findById( (int) $appointment['calendar_id'] );
-					$calendar      = is_array( $found ) ? $found : array();
-				}
+				$calendar = self::calendar_of( is_array( $appointment ) ? $appointment : array() );
 				$this->render_confirm_form( is_array( $appointment ) ? $appointment : array(), $calendar );
 				return;
 		}
@@ -211,18 +210,62 @@ class AppointmentCancellationHandler {
 	}
 
 	/**
+	 * Whether the confirm POST came from the "cancel and book a new time"
+	 * button rather than the plain confirm. Only read after
+	 * confirm_submitted() verified the nonce.
+	 *
+	 * @return bool
+	 */
+	private function reschedule_requested(): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in confirm_submitted(); the value is compared against a literal.
+		return isset( $_POST['ffc_cancel_confirm'] ) && 'reschedule' === sanitize_text_field( (string) wp_unslash( $_POST['ffc_cancel_confirm'] ) );
+	}
+
+	/**
+	 * The appointment's calendar row, or an empty array.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @return array<string, mixed>
+	 */
+	private static function calendar_of( array $appointment ): array {
+		if ( empty( $appointment['calendar_id'] ) ) {
+			return array();
+		}
+		$calendar_repo = new \FreeFormCertificate\Repositories\CalendarRepository();
+		$found         = $calendar_repo->findById( (int) $appointment['calendar_id'] );
+		return is_array( $found ) ? $found : array();
+	}
+
+	/**
+	 * The page that publishes this calendar, or '' when none does — then the
+	 * page offers only the plain cancellation (#2244).
+	 *
+	 * @param array<string, mixed> $calendar Calendar row (may be empty).
+	 * @return string
+	 */
+	private static function booking_page_url( array $calendar ): string {
+		$post_id = isset( $calendar['post_id'] ) && is_numeric( $calendar['post_id'] ) ? (int) $calendar['post_id'] : 0;
+		return \FreeFormCertificate\Core\ShortcodePage::url( 'ffc_self_scheduling', $post_id );
+	}
+
+	/**
 	 * Run the cancellation and render the outcome.
 	 *
 	 * @param int    $appointment_id Appointment id.
 	 * @param string $token          Confirmation token (re-validated downstream).
+	 * @param string $next           Booking page to open after a reschedule, or ''.
+	 * @param bool   $emails         Whether the calendar e-mails the cancellation.
 	 * @return void
 	 */
-	private function process_cancellation( int $appointment_id, string $token ): void {
+	private function process_cancellation( int $appointment_id, string $token, string $next = '', bool $emails = true ): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified in confirm_submitted() before this method is reached; the token is the primary credential and is re-checked in cancel_appointment().
 		$reason = isset( $_POST['ffc_cancel_reason'] )
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- see above; nonce already verified.
 			? sanitize_textarea_field( (string) wp_unslash( $_POST['ffc_cancel_reason'] ) )
 			: '';
+		if ( '' !== $next && '' === $reason ) {
+			$reason = __( 'Rescheduled by the participant', 'ffcertificate' );
+		}
 
 		$result = $this->handler->cancel_appointment( $appointment_id, $token, $reason );
 
@@ -234,9 +277,17 @@ class AppointmentCancellationHandler {
 			return;
 		}
 
+		if ( '' !== $next ) {
+			wp_safe_redirect( $next );
+			exit;
+		}
+
+		// Promise an e-mail only when one is sent (#2244).
 		$this->render_notice(
 			__( 'Appointment cancelled', 'ffcertificate' ),
-			__( 'Your appointment has been cancelled. A confirmation e-mail is on its way.', 'ffcertificate' )
+			$emails
+				? __( 'Your appointment has been cancelled. A confirmation e-mail is on its way.', 'ffcertificate' )
+				: __( 'Your appointment has been cancelled.', 'ffcertificate' )
 		);
 	}
 
@@ -248,6 +299,7 @@ class AppointmentCancellationHandler {
 	 * @return void
 	 */
 	private function render_confirm_form( array $appointment, array $calendar ): void {
+		$booking_url   = self::booking_page_url( $calendar );
 		$date          = (string) ( $appointment['appointment_date'] ?? '' );
 		$start         = (string) ( $appointment['start_time'] ?? '' );
 		$calendar_name = (string) ( $calendar['title'] ?? __( 'Appointment', 'ffcertificate' ) );
@@ -282,7 +334,15 @@ class AppointmentCancellationHandler {
 				<button type="submit" name="ffc_cancel_confirm" value="1" class="ffc-cancel-confirm-btn">
 					<?php esc_html_e( 'Confirm cancellation', 'ffcertificate' ); ?>
 				</button>
+				<?php if ( '' !== $booking_url ) : ?>
+					<button type="submit" name="ffc_cancel_confirm" value="reschedule" class="ffc-cancel-reschedule-btn">
+						<?php esc_html_e( 'Cancel and book a new time', 'ffcertificate' ); ?>
+					</button>
+				<?php endif; ?>
 			</p>
+			<?php if ( '' !== $booking_url ) : ?>
+				<p class="ffc-cancel-reschedule-note"><?php esc_html_e( 'This appointment is cancelled first, then the calendar opens so you can pick a new time. The old time is released at once and may be taken by someone else.', 'ffcertificate' ); ?></p>
+			<?php endif; ?>
 		</form>
 		<?php
 		$this->render_page( __( 'Cancel appointment', 'ffcertificate' ), (string) ob_get_clean() );

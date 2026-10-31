@@ -9,23 +9,23 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminSubmissionEditPage;
+use FreeFormCertificate\Admin\AnswerCorrectionHandler;
 
 /**
  * Behavior tests for AdminSubmissionEditPage::render() and ::handle_save().
  *
- * The static collaborators (Capabilities, DateFormatter, Encryption,
- * DocumentFormatter, MagicLinkHelper, HtmlPolicy, DataSanitizer,
- * RequestInput, Debug) are autoloaded statics, so they're replaced with
- * Mockery alias mocks; this forces process isolation (see the
- * annotations below) so the aliases don't leak across tests.
+ * The static collaborators (Capabilities, DateFormatter, DocumentFormatter,
+ * MagicLinkHelper, DataSanitizer, RequestInput, Debug, PiiAccessPolicy) are
+ * the real classes, reading WordPress through global Brain\Monkey stubs: the
+ * capability decision is `current_user_can()`, the magic link is built from
+ * `home_url()`, and the link field is read from `$_POST`.
  *
  * The terminal wp_die()/wp_safe_redirect()/exit are turned into marker
  * exceptions so each branch is observable; SubmissionHandler is a normal
- * (non-alias) Mockery mock injected via the constructor.
+ * Mockery mock injected via the constructor, so the page never reaches
+ * storage.
  *
  * @covers \FreeFormCertificate\Admin\AdminSubmissionEditPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class AdminSubmissionEditPageTest extends TestCase {
 
@@ -34,15 +34,25 @@ class AdminSubmissionEditPageTest extends TestCase {
 	/** @var \Mockery\MockInterface */
 	private $handler;
 
-	/** @var \Mockery\MockInterface */
-	private $caps;
+	/**
+	 * Capabilities `current_user_can()` refuses; every other one is granted.
+	 *
+	 * @var list<string>
+	 */
+	private array $denied = array();
 
-	/** @var \Mockery\MockInterface */
-	private $ri;
+	/** @var array<string, mixed> `$_POST` as an earlier test left it. */
+	private array $post_backup = array();
+
+	/** @var array<string, mixed> `$_GET` as an earlier test left it. */
+	private array $get_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->post_backup = $_POST ?? array();
+		$this->get_backup  = $_GET ?? array();
+		$this->denied      = array();
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -72,6 +82,8 @@ class AdminSubmissionEditPageTest extends TestCase {
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce123' );
 		Functions\when( 'admin_url' )->returnArg();
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		Functions\when( 'wp_nonce_url' )->alias( static fn( $url, $action ) => $url . '&_wpnonce=' . $action );
 		Functions\when( 'get_post_meta' )->justReturn( array() );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_avatar' )->justReturn( '<img>' );
@@ -84,6 +96,17 @@ class AdminSubmissionEditPageTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( true );
 		Functions\when( 'get_user_by' )->justReturn( false );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
+		// The real Capabilities::current_user_can_admin_or() asks
+		// manage_options first, then the granular capability.
+		Functions\when( 'current_user_can' )->alias( fn( $cap ) => ! in_array( $cap, $this->denied, true ) );
+		// SettingsReader, Debug and MagicLinkHelper read options; every read
+		// answers its own default, so debug is off and the magic link falls
+		// back to home_url( '/valid/' ).
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'home_url' )->alias( static fn( $path = '' ) => 'https://example.org' . $path );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( (string) $format, (int) $ts ) );
+		Functions\when( 'wp_kses' )->alias( static fn ( $v, $allowed = array() ) => $v );
 		Functions\when( 'wp_die' )->alias(
 			static function ( $msg = '' ) {
 				throw new \RuntimeException( 'WP_DIE:' . $msg );
@@ -98,55 +121,23 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		// The save reads the stored answers back to carry the grading records (#1732).
 		$this->handler->shouldReceive( 'get_submission' )->andReturn( null )->byDefault();
-
-		// Static collaborator alias mocks (sensible defaults; overridable per test).
-		$this->caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
-
-		$df = Mockery::mock( 'alias:FreeFormCertificate\Core\DateFormatter' );
-		$df->shouldReceive( 'format_datetime' )->andReturn( '2026-01-01 10:00' )->byDefault();
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt_field' )->andReturn( '' )->byDefault();
-
-		// DocumentFormatter is a pure-PHP autoloaded class (real constant +
-		// static helpers, no WP deps) — use it as-is rather than alias-mocking.
-
-		$mlh = Mockery::mock( 'alias:FreeFormCertificate\Generators\MagicLinkHelper' );
-		$mlh->shouldReceive( 'generate_magic_link' )->andReturnUsing( static fn( $t ) => 'https://example.org/valid/?token=' . $t )->byDefault();
-
-		$html = Mockery::mock( 'alias:FreeFormCertificate\Core\HtmlPolicy' );
-		$html->shouldReceive( 'get_allowed_html_tags' )->andReturn( array() )->byDefault();
-
-		$san = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$san->shouldReceive( 'normalize_brazilian_name' )->andReturnUsing( static fn ( $v ) => 'NORM:' . $v )->byDefault();
-		$san->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( static fn( $v ) => (string) preg_replace( '/\D/', '', (string) $v ) )->byDefault();
-		$san->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
-		$san->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
-
-		$this->ri = Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-		->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-		->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-		->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$this->ri->shouldReceive( 'get_post_string' )->andReturn( '__keep__' )->byDefault();
-
-		$dbg = Mockery::mock( 'alias:FreeFormCertificate\Core\Debug' );
-		$dbg->shouldReceive( 'log_admin' )->andReturnNull()->byDefault();
-
-		// wp_kses passthrough (depends on HtmlPolicy alias being live).
-		Functions\when( 'wp_kses' )->alias( static fn ( $v, $allowed = array() ) => $v );
 	}
 
 	protected function tearDown(): void {
 		Monkey\tearDown();
-		unset(
-			$_POST['ffc_save_edit'],
-			$_POST['submission_id'],
-			$_POST['user_email'],
-			$_POST['data'],
-			$_POST['linked_user_id']
-		);
+		$_POST = $this->post_backup;
+		$_GET  = $this->get_backup;
 		parent::tearDown();
+	}
+
+	/**
+	 * JSON for the fixture's `data` column, as the database stores it.
+	 *
+	 * @param array<string,mixed> $data Data to encode.
+	 * @return string
+	 */
+	private static function json( array $data ): string {
+		return (string) json_encode( $data );
 	}
 
 	private function page(): AdminSubmissionEditPage {
@@ -172,7 +163,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$base = array(
 			'id'                => 42,
 			'form_id'           => 5,
-			'data'              => wp_json_encode_local(
+			'data'              => self::json(
 				array(
 					'nome_completo' => 'joão silva',
 					'curso'         => 'PHP',
@@ -215,7 +206,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_shows_error_without_permission(): void {
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		$this->denied = array( 'manage_options', 'ffc_edit_certificates' );
 
 		ob_start();
 		$this->page()->render( 1 );
@@ -256,10 +247,13 @@ class AdminSubmissionEditPageTest extends TestCase {
 		// System info section.
 		$this->assertStringContainsString( 'System Information', $html );
 		$this->assertStringContainsString( 'Magic Link Token', $html );
-		// Magic link card in the side panel: the link, Copy and Open certificate (#1614).
+		// Magic link card in the side panel (#1614): the link is masked behind an
+		// audited Reveal and the certificate opens through the audited route (#2241).
 		$this->assertStringContainsString( 'class="ffc-edit-layout"', $html );
-		$this->assertStringContainsString( 'data-url="https://example.org/valid/?token=', $html );
-		$this->assertMatchesRegularExpression( '#<a href="https://example.org/valid/\?token=[^"]+" class="ffc-btn ffc-btn-neutral ffc-icon-external" target="_blank" rel="noopener">Open certificate</a>#', $html );
+		$this->assertStringNotContainsString( '#token=TOKEN', $html, 'The bearer link is never in the page.' );
+		$this->assertStringContainsString( 'class="ffc-pii-value ffc-magic-link" data-field="magic_link"', $html );
+		$this->assertStringContainsString( 'data-field="magic_link"', $html );
+		$this->assertStringContainsString( 'href="admin-post.php?action=ffc_open_certificate&submission_id=42&_wpnonce=ffc_open_certificate_42" class="ffc-btn ffc-btn-neutral ffc-icon-external" target="_blank" rel="noopener">Open certificate</a>', $html );
 		$this->assertStringNotContainsString( 'style="display', $html, 'visibility is the shared class, never an inline style' );
 		// Encrypted IP notice.
 		$this->assertStringContainsString( 'User IP', $html );
@@ -492,8 +486,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/<input type="email" name="user_email"[^>]*data-ffc-pii-editable="1" disabled required>/', $html, 'the masked email is not posted until revealed' );
 		$this->assertStringContainsString( 'data-field="email"', $html );
 		$this->assertStringContainsString( 'data-field="cpf"', $html );
-		// Email, CPF and the IP under System Information and under the consent.
-		$this->assertSame( 4, substr_count( $html, 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"' ) );
+		// Email, CPF, the IP under System Information and under the consent, and
+		// the certificate's magic link (#2241).
+		$this->assertSame( 5, substr_count( $html, 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii"' ) );
 		$this->assertStringContainsString( 'data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'Reveal the email to edit it.', $html );
 	}
@@ -625,7 +620,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 	public function test_handle_save_dies_without_permission(): void {
 		$_POST['ffc_save_edit'] = '1';
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		$this->denied = array( 'manage_options', 'ffc_edit_certificates' );
 
 		$msg = $this->capture( fn () => $this->page()->handle_save() );
 		$this->assertStringStartsWith( 'WP_DIE:', $msg );
@@ -648,7 +643,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 			'nome_completo' => 'João Silva',
 			'curso'         => 'PHP',
 		);
-		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => self::json( $stored ) ) ) );
 
 		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, 'new@bar.com', $stored );
 
@@ -683,7 +678,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$_POST['ffc_save_edit'] = '1';
 		$_POST['submission_id'] = '42';
 
-		$this->ri->shouldReceive( 'get_post_string' )->andReturn( '15' );
+		$_POST['linked_user_id'] = '15';
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 15 ) );
 
 		$this->handler->shouldReceive( 'update_submission' )->once();
@@ -697,7 +692,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$_POST['ffc_save_edit'] = '1';
 		$_POST['submission_id'] = '42';
 
-		$this->ri->shouldReceive( 'get_post_string' )->andReturn( '' );
+		$_POST['linked_user_id'] = '';
 
 		$this->handler->shouldReceive( 'update_submission' )->once();
 		$this->handler->shouldReceive( 'update_user_link' )->once()->with( 42, null );
@@ -706,11 +701,66 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
 	}
 
+	/**
+	 * #2241 — changing the owner hands the certificate to an account of the
+	 * editor's choosing, so an editor without the manage capability cannot.
+	 */
+	public function test_handle_save_ignores_a_link_change_without_the_manage_capability(): void {
+		$this->denied            = array( 'manage_options', 'ffc_manage_certificates' );
+		$_POST['ffc_save_edit']  = '1';
+		$_POST['submission_id']  = '42';
+		$_POST['linked_user_id'] = '15';
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'ID' => 15 ) );
+
+		$this->handler->shouldReceive( 'update_submission' )->once();
+		$this->handler->shouldNotReceive( 'update_user_link' );
+
+		$msg = $this->capture( fn () => $this->page()->handle_save() );
+		$this->assertStringStartsWith( 'REDIRECT:', $msg );
+	}
+
+	public function test_render_offers_no_relink_without_the_manage_capability(): void {
+		$this->denied = array( 'manage_options', 'ffc_manage_certificates' );
+		Functions\when( 'get_userdata' )->justReturn(
+			(object) array(
+				'ID'           => 7,
+				'display_name' => 'Ana',
+				'user_email'   => 'ana@example.test',
+			)
+		);
+		Functions\when( 'get_avatar' )->justReturn( '' );
+		Functions\when( 'get_edit_user_link' )->justReturn( 'user-edit.php?user_id=7' );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'user_id' => 7 ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Ana', $html );
+		$this->assertStringNotContainsString( 'ffc-unlink-user-btn', $html );
+		$this->assertStringNotContainsString( 'ffc-relink-user-btn', $html );
+		$this->assertStringNotContainsString( 'ffc-user-search-input', $html );
+	}
+
+	public function test_render_hides_the_magic_link_from_a_user_who_cannot_reveal(): void {
+		$this->denied = array( 'manage_options', 'ffc_view_certificates_pii' );
+		Functions\when( 'user_can' )->alias( fn( $uid, $cap ) => ! in_array( $cap, $this->denied, true ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Opening the certificate or its link needs permission to reveal personal data.', $html );
+		$this->assertStringNotContainsString( 'ffc_open_certificate', $html );
+		$this->assertStringNotContainsString( 'data-field="magic_link"', $html );
+	}
+
 	public function test_handle_save_skips_link_for_invalid_user(): void {
 		$_POST['ffc_save_edit'] = '1';
 		$_POST['submission_id'] = '42';
 
-		$this->ri->shouldReceive( 'get_post_string' )->andReturn( '888' );
+		$_POST['linked_user_id'] = '888';
 		// get_userdata(888) -> false (default stub) means invalid.
 		Functions\when( 'get_userdata' )->justReturn( false );
 
@@ -725,7 +775,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 	 * to edit, and is still posted so a save keeps it.
 	 */
 	public function test_render_shows_the_window_leave_count_as_a_protected_fact(): void {
-		$row = $this->submission_row( array( 'data' => wp_json_encode_local( array( '_quiz_focus_losses' => 3 ) ) ) );
+		$row = $this->submission_row( array( 'data' => self::json( array( '_quiz_focus_losses' => 3 ) ) ) );
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
 
 		ob_start();
@@ -735,6 +785,56 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( '<dt class="ffc-facts__label">Times the quiz window was left</dt>', $html );
 		$this->assertStringNotContainsString( 'name="data[_quiz_focus_losses]"', $html );
 		$this->assertStringNotContainsString( 'type="text" id="ffc-edit-data-_quiz_focus_losses"', $html );
+	}
+
+	/**
+	 * The quiz result the plugin writes reads as named, protected facts, with
+	 * the pass flag in words and the percentage with its sign — never the key.
+	 */
+	public function test_render_names_the_quiz_result_keys(): void {
+		$row = $this->submission_row(
+			array(
+				'data' => self::json(
+					array(
+						'_quiz_score'          => 8,
+						'_quiz_max_score'      => 10,
+						'_quiz_percent'        => 80,
+						'_quiz_passed'         => '1',
+						'_quiz_correct_count'  => 4,
+						'_quiz_question_count' => 5,
+						'_quiz_attempt'        => 2,
+						'_quiz_new_key'        => 'x',
+					)
+				),
+			)
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		foreach ( array( 'Quiz score (points)', 'Quiz maximum score (points)', 'Quiz score (%)', 'Quiz passed', 'Questions answered correctly', 'Scored questions', 'Quiz attempt' ) as $label ) {
+			$this->assertStringContainsString( '<dt class="ffc-facts__label">' . $label . '</dt>', $html, $label );
+		}
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">80%<', $html );
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">Yes<', $html );
+		$this->assertStringNotContainsString( '>_quiz_score<', $html, 'A known key is never printed raw.' );
+		// An internal key with no label still reads as protected, not as an answer.
+		preg_match( '#<dl class="ffc-facts ffc-edit-protected">(.*?)</dl>#s', $html, $protected );
+		$this->assertStringContainsString( '_quiz_new_key', $protected[1] ?? '' );
+		$this->assertStringNotContainsString( 'ffc-edit-answers', $html, 'None of these is an answer.' );
+	}
+
+	public function test_render_says_no_when_the_quiz_was_failed(): void {
+		$row = $this->submission_row( array( 'data' => self::json( array( '_quiz_passed' => '0' ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $row );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<dd class="ffc-facts__value">No<', $html );
 	}
 
 	/**
@@ -749,7 +849,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 			'_quiz_pending' => array( 'essay' ),
 			'_quiz_grades'  => array( 'q1' => 2 ),
 		);
-		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => self::json( $stored ) ) ) );
 
 		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, '', $stored );
 
@@ -771,7 +871,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 			'curso'     => 'PHP',
 			'is_edited' => '1',
 		);
-		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => wp_json_encode_local( $stored ) ) ) );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( (array) $this->submission_row( array( 'data' => self::json( $stored ) ) ) );
 
 		$this->handler->shouldReceive( 'update_submission' )->once()->with( 42, '', array( 'curso' => 'PHP' ) );
 
@@ -806,7 +906,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 			$this->submission_row(
 				array(
 					'status' => 'quiz_pending',
-					'data'   => wp_json_encode_local( $data ),
+					'data'   => self::json( $data ),
 				)
 			)
 		);
@@ -817,7 +917,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'Grade open answers', $html );
 		$this->assertStringContainsString( 'earned 6 of 10 points. The passing score is 70%.', $html );
-		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" min="0" max="4" step="1" required', $html );
+		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="" min="0" max="4" step="1" required', $html );
+		$this->assertStringContainsString( 'data-confirm="Save the grades and send the result to the participant? This decides the attempt."', $html, 'Sending the result asks first (#2241).' );
+		$this->assertStringNotContainsString( 'ffc_grade_reason', $html, 'A first grade needs no reason.' );
 		$this->assertStringContainsString( '<form id="ffc-grade-form" method="POST" action="admin-post.php">', $html );
 		$this->assertStringContainsString( 'name="action" value="ffc_grade_submission"', $html );
 		$this->assertSame( 1, substr_count( $html, '<form id="ffc-grade-form"' ), 'The grading form is not nested in the edit form.' );
@@ -825,8 +927,50 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'name="data[_quiz_pending]"', $html );
 	}
 
+	/**
+	 * #2241 — an attempt a person graded shows its grades filled in, to
+	 * correct, with a required reason.
+	 */
+	public function test_render_offers_to_change_the_grades_of_a_graded_attempt(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( '_ffc_form_fields' === $key ) {
+					return array(
+						array(
+							'type'        => 'textarea',
+							'name'        => 'essay',
+							'label'       => 'Explain why',
+							'quiz_scored' => '1',
+							'quiz_text'   => 'manual',
+							'quiz_points' => '4',
+						),
+					);
+				}
+				return array( 'quiz_passing_score' => '70' );
+			}
+		);
+		$data = array(
+			'essay'         => 'Because.',
+			'_quiz_percent' => 90,
+			'_quiz_grades'  => array( 'essay' => 3 ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( $data ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Graded answers', $html );
+		$this->assertStringContainsString( 'The attempt scored 90%. The passing score is 70%.', $html );
+		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="3" min="0" max="4"', $html );
+		$this->assertStringContainsString( 'name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'Change grades', $html );
+		$this->assertStringContainsString( 'ffc-btn-caution', $html );
+		$this->assertStringContainsString( 'data-confirm="Change the grades?', $html );
+	}
+
 	public function test_render_hides_the_grading_card_from_a_user_who_cannot_grade(): void {
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->with( 'ffc_grade_certificates' )->andReturn( false );
+		$this->denied = array( 'manage_options', 'ffc_grade_certificates' );
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'status' => 'quiz_pending' ) ) );
 
 		ob_start();
@@ -846,6 +990,38 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-grade-form', $html );
 	}
 
+	public function test_render_offers_a_manager_the_answer_correction(): void {
+		$data = array(
+			'name'                                     => 'Ana Silv',
+			'auth_code'                                => 'ABCD1234EFGH',
+			AnswerCorrectionHandler::CORRECTED_KEY     => array( 'name' ),
+		);
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( $data ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Correct an answer', $html );
+		$this->assertStringContainsString( '<option value="name">', $html );
+		$this->assertStringNotContainsString( '<option value="auth_code">', $html, 'The certificate\'s identity is not offered.' );
+		$this->assertStringContainsString( 'name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'value="ffc_correct_answer"', $html );
+		$this->assertStringContainsString( 'Corrected after issue; see the activity log.', $html );
+		$this->assertStringNotContainsString( '_corrected_fields', $html, 'The marker list is not shown as an answer.' );
+	}
+
+	public function test_render_hides_the_answer_correction_from_an_operator(): void {
+		$this->denied = array( 'manage_options', 'ffc_manage_certificates' );
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( array( 'name' => 'Ana' ) ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-correct-form', $html );
+	}
+
 	public function test_render_reads_protected_fields_as_text(): void {
 		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row() );
 
@@ -861,13 +1037,3 @@ class AdminSubmissionEditPageTest extends TestCase {
 	}
 }
 
-/**
- * Local JSON encoder for the fixture (avoids depending on WP's wp_json_encode
- * being stubbed, since the fixture is built in PHP-land before render runs).
- *
- * @param array<string,mixed> $data Data to encode.
- * @return string
- */
-function wp_json_encode_local( array $data ): string {
-	return (string) json_encode( $data );
-}

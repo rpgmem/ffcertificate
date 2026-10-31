@@ -45,6 +45,8 @@ class RecruitmentPromotionServiceTest extends TestCase {
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
@@ -116,6 +118,9 @@ class RecruitmentPromotionServiceTest extends TestCase {
 				'list_type'    => 'preview',
 				'rank'         => '1',
 				'score'        => '90.0000',
+				'time_points'  => '12.5000',
+				'hab_emebs'    => '1',
+				'pcd_hash'     => 'hash-of-the-preliminary-row',
 				'status'       => 'empty',
 				'created_at'   => '2026-05-01 10:00:00',
 				'updated_at'   => '2026-05-01 10:00:00',
@@ -164,9 +169,11 @@ class RecruitmentPromotionServiceTest extends TestCase {
 		// Two insert calls expected (one per preview row); $wpdb->insert_id
 		// drives the new classification ID returned to the importer pipeline.
 		$inserts = 0;
+		$written = array();
 		$this->wpdb->shouldReceive( 'insert' )
 			->andReturnUsing(
-				function () use ( &$inserts ) {
+				function ( $table, $data ) use ( &$inserts, &$written ) {
+					$written[] = $data;
 					++$inserts;
 					$GLOBALS['wpdb']->insert_id = 100 + $inserts;
 					return 1;
@@ -181,6 +188,11 @@ class RecruitmentPromotionServiceTest extends TestCase {
 		$this->assertTrue( $result['success'], 'Snapshot expected to succeed; errors=' . implode( ',', $result['errors'] ) );
 		$this->assertSame( 2, $result['copied'] );
 		$this->assertSame( 2, $inserts, 'One INSERT per preview row copied' );
+		$this->assertSame( '12.5000', $written[0]['time_points'], 'Public columns survive the copy (#2245).' );
+		$this->assertSame( 1, $written[0]['hab_emebs'] );
+		$this->assertSame( '0', $written[1]['time_points'], 'A row without the column copies the default.' );
+		$this->assertSame( 0, $written[1]['hab_emebs'] );
+		$this->assertSame( 'hash-of-the-preliminary-row', $written[0]['pcd_hash'], 'PCD copies unchanged: its hash names no row id (#2245).' );
 
 		// Sanity: the transaction envelope is present.
 		$this->assertContains( 'START TRANSACTION', $query_log );

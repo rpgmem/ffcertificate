@@ -179,6 +179,26 @@ class SubmissionContext {
 	public bool $awaiting_grading = false;
 
 	/**
+	 * What the screen says instead of handing over a reprint (#2241): the
+	 * certificate's link went to its stored address. Null when the
+	 * certificate is shown.
+	 *
+	 * @var string|null
+	 */
+	public ?string $reprint_notice = null;
+
+	/**
+	 * The stored submission this form, CPF/RF and ticket already have (#2241),
+	 * looked up once and read by every stage that needs it: the rate-limit
+	 * guard, the spent-ticket check and the persister. `false` until the
+	 * lookup runs; null when nothing matched. Filled by
+	 * {@see \FreeFormCertificate\Frontend\ReprintDetector::row_for()}.
+	 *
+	 * @var object|false|null
+	 */
+	public $existing_row = false;
+
+	/**
 	 * Generated PDF payload handed back to the client.
 	 *
 	 * @var mixed

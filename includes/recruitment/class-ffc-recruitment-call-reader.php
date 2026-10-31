@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 6.12.0
  *
  * @phpstan-type CallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type NoticeCallRow \stdClass&object{id: numeric-string, classification_id: numeric-string, called_at: numeric-string|int, date_to_assume: string, time_to_assume: string, out_of_order: numeric-string, out_of_order_reason: string|null, cancellation_reason: string|null, cancelled_at: numeric-string|int|null, cancelled_by: numeric-string|null, notes: string|null, created_by: numeric-string, created_at: string, updated_at: string, candidate_id: numeric-string, adjutancy_id: numeric-string, rank: numeric-string}
  */
 class RecruitmentCallReader {
 
@@ -132,8 +133,13 @@ class RecruitmentCallReader {
 	 *
 	 * @param int $classification_id Classification ID.
 	 * @return list<CallRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_history_for_classification( int $classification_id ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
@@ -196,12 +202,92 @@ class RecruitmentCallReader {
 	}
 
 	/**
+	 * Every call of a notice, cancelled ones included, newest first, with the
+	 * classification it was made on (#2245): the record of who called whom.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return list<NoticeCallRow>
+	 */
+	public static function get_for_notice( int $notice_id ): array {
+		if ( $notice_id <= 0 ) {
+			return array();
+		}
+		$wpdb = self::db();
+
+		/**
+		 * Cast wpdb results to typed shape.
+		 *
+		 * @var list<NoticeCallRow>|null $results
+		 */
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.*, cl.candidate_id, cl.adjutancy_id, cl.rank FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d ORDER BY c.called_at DESC, c.id DESC',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id
+			)
+		);
+
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * How many calls a notice holds, cancelled ones included, for its CSV
+	 * export (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int
+	 */
+	public static function count_for_notice( int $notice_id ): int {
+		$wpdb = self::db();
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id
+			)
+		);
+	}
+
+	/**
+	 * One page of a notice's calls, newest id first, below the cursor, with
+	 * the classification each was made on: the keyset the batched CSV export
+	 * walks (#2245).
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @param int $cursor    Exclusive upper bound on the call ID.
+	 * @param int $size      Page size.
+	 * @return list<array<string, mixed>>
+	 */
+	public static function page_for_notice( int $notice_id, int $cursor, int $size ): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT c.*, cl.candidate_id, cl.adjutancy_id, cl.rank FROM %i c INNER JOIN %i cl ON cl.id = c.classification_id WHERE cl.notice_id = %d AND c.id < %d ORDER BY c.id DESC LIMIT %d',
+				self::get_table_name(),
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id,
+				$cursor,
+				$size
+			),
+			ARRAY_A
+		);
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
 	 * Count all calls for a classification, including cancelled.
 	 *
 	 * @param int $classification_id Classification ID.
 	 * @return int
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function count_for_classification( int $classification_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

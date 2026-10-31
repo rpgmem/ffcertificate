@@ -299,6 +299,41 @@ class DocumentFormatter {
 	}
 
 	/**
+	 * Format an RG/CIN number with mask.
+	 *
+	 * The check digit of an RG may be an `X`, so it survives normalization.
+	 * Any other length is returned as typed.
+	 *
+	 * @param string $cin RG/CIN to format.
+	 * @return string Formatted RG (XX.XXX.XXX-X)
+	 */
+	public static function format_cin( string $cin ): string {
+		$clean = strtoupper( preg_replace( '/[^0-9Xx]/', '', $cin ) ?? '' );
+
+		if ( 1 === preg_match( '/^(\d{2})(\d{3})(\d{3})([\dX])$/', $clean, $parts ) ) {
+			return $parts[1] . '.' . $parts[2] . '.' . $parts[3] . '-' . $parts[4];
+		}
+
+		return $cin;
+	}
+
+	/**
+	 * Format a CEP (postal code) with mask.
+	 *
+	 * @param string $cep CEP to format.
+	 * @return string Formatted CEP (XXXXX-XXX)
+	 */
+	public static function format_cep( string $cep ): string {
+		$clean = preg_replace( '/\D/', '', $cep ) ?? '';
+
+		if ( 8 === strlen( $clean ) ) {
+			return substr( $clean, 0, 5 ) . '-' . substr( $clean, 5 );
+		}
+
+		return $cep;
+	}
+
+	/**
 	 * Format authentication code with optional virtual prefix.
 	 *
 	 * @since 5.0.0 Added $prefix parameter.
@@ -717,6 +752,9 @@ class DocumentFormatter {
 			return '';
 		}
 
+		// An IPv4 address written inside IPv6 masks as the IPv4 address it is (#2109).
+		$ip = IpAddress::canonical( $ip ) ?? $ip;
+
 		if ( false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			$octets = explode( '.', $ip );
 			return $octets[0] . '.' . $octets[1] . '.***.***';
@@ -896,8 +934,13 @@ class DocumentFormatter {
 	 *
 	 * @param string $value Identifier to clean.
 	 * @return string Cleaned identifier
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function clean_identifier( string $value ): string {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) ?? '' );
 	}
 }

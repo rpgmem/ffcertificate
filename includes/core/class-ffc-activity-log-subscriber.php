@@ -48,7 +48,7 @@ class ActivityLogSubscriber {
 		add_action( 'ffcertificate_settings_saved', array( $this, 'on_settings_saved' ), 10, 1 );
 
 		// Daily cron: automatic log cleanup (v4.6.9).
-		add_action( 'ffcertificate_daily_cleanup_hook', array( $this, 'on_daily_cleanup' ) );
+		add_action( 'ffc_daily_cleanup', array( $this, 'on_daily_cleanup' ) );
 
 		// Fallback: run cleanup on admin visit when WP-Cron misses the schedule.
 		add_action( 'admin_init', array( $this, 'maybe_run_cleanup_fallback' ) );

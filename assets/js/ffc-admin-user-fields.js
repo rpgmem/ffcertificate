@@ -24,7 +24,8 @@
             input.value,
             format,
             S,
-            { pattern: $row.attr('data-regex'), message: $row.attr('data-regex-msg') }
+            { pattern: $row.attr('data-regex'), message: $row.attr('data-regex-msg') },
+            { uf: $('#ffc-user-custom-fields tr[data-field-key="uf"]').find('select, input').first().val() || '' }
         ));
     }
 
@@ -35,6 +36,7 @@
         }
 
         window.FFC.Fields.initMasks($container);
+        window.FFC.Fields.initCepLookup($container);
         window.FFC.Fields.initDependentSelects($container, S);
         window.FFC.Fields.initDualPost($container, S.dualPostShowValue);
 
@@ -43,6 +45,13 @@
             checkFormat($row, this);
             $(this).on('input change', function () {
                 checkFormat($row, this);
+            });
+        });
+
+        // The CEP is checked against the UF, so a new UF re-checks it (#2233).
+        $container.find('tr[data-field-key="uf"]').find('select, input').on('change', function () {
+            $container.find('tr[data-format="cep"]').find('input:not([type="hidden"])').each(function () {
+                checkFormat($(this).closest('tr[data-format]'), this);
             });
         });
     }

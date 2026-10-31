@@ -8,7 +8,10 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CsvDownloadLogExportSource: the per-phase authorization gate (nonce /
@@ -18,9 +21,11 @@ use FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource;
  * tested via SyncCsvExport / CsvStreamer. Split from the former inline
  * PublicCsvDownload::handle_export_log_request (issue #772).
  *
+ * Capabilities, Encryption, CsvDownloadAuditLog and ActivityLog are the real
+ * classes: the log entries carry ciphertexts the real cipher wrote, and a
+ * clear export is read off the activity log's buffer (#2121).
+ *
  * @covers \FreeFormCertificate\Frontend\Csv\CsvDownloadLogExportSource
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class CsvDownloadLogExportSourceTest extends TestCase {
 
@@ -44,8 +49,6 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\wp_unslash' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Core\sanitize_text_field' )->returnArg();
 		Functions\when( 'nocache_headers' )->justReturn( null );
 		Functions\when( 'wp_date' )->justReturn( '2023-11-14 22:13:20' );
 		Functions\when( 'wp_die' )->alias(
@@ -56,9 +59,16 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		);
 
 		$_GET = array( '_wpnonce' => 'n' );
+
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $fallback
+		);
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
 		$_GET = array();
 		Monkey\tearDown();
 		parent::tearDown();
@@ -107,9 +117,8 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 	public function test_authorize_rejects_without_audit_cap_403(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		// Edits the form, holds neither the audit capability nor manage_options.
 		Functions\when( 'current_user_can' )->alias( fn( $cap ) => 'edit_post' === $cap );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
 
 		try {
 			( new CsvDownloadLogExportSource( 42 ) )->authorize();
@@ -123,8 +132,6 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
 		Functions\when( 'current_user_can' )->justReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
 		$called = false;
 		Functions\when( 'nocache_headers' )->alias(
 			static function () use ( &$called ) {
@@ -152,68 +159,68 @@ class CsvDownloadLogExportSourceTest extends TestCase {
 	// ==================================================================
 
 	public function test_rows_decrypts_cpf_and_skips_non_array(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'is_configured' )->andReturn( true );
-		$audit = Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' );
-		$audit->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '52998224725' );
-		// The IP is read through the audit log's decryptor, never off the entry (#1574).
-		$audit->shouldReceive( 'decrypt_log_entry_ip' )->once()->andReturn( '1.2.3.4' );
-
+		// The IP is read through the audit log's decryptor, never off the entry
+		// (#1574): a plaintext `ip` beside the ciphertext must not win.
 		$log = array(
-			array( 'ts' => 1700000000, 'ip_encrypted' => 'v2:x', 'mode' => 'audit', 'cpf_encrypted' => 'e', 'result' => 'audit_pass' ),
+			array(
+				'ts'            => 1700000000,
+				'ip_encrypted'  => Encryption::encrypt( '1.2.3.4' ),
+				'ip'            => '9.9.9.9',
+				'mode'          => 'audit',
+				'cpf_encrypted' => Encryption::encrypt( Identifiers::CPF_A ),
+				'result'        => 'audit_pass',
+			),
 			'not-an-array',
 		);
 		Functions\when( 'get_post_meta' )->justReturn( $log );
-
-		$logged = $this->record_activity_log();
 
 		$rows = iterator_to_array( ( new CsvDownloadLogExportSource( 42 ) )->rows(), false );
 
 		// Encryption configured → no advisory row; one data row (non-array skipped).
 		$this->assertCount( 1, $rows );
-		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', '52998224725', 'audit_pass' ), $rows[0] );
+		$cpf = Identifiers::CPF_A;
+		$formatted = substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.3.4', 'audit', $formatted, 'audit_pass' ), $rows[0] );
 		// A clear export is a bulk reveal, recorded once (#1863).
-		$this->assertSame( array( array( 'pii_exported', 'info', array( 'export' => 'csv_download_log', 'rows' => 1 ), 1, 0 ) ), $logged->calls );
+		$entries = ActivityLogBuffer::entries();
+		$this->assertCount( 1, $entries );
+		$this->assertSame( 'pii_exported', $entries[0]['action'] );
+		$this->assertSame( 'info', $entries[0]['level'] );
+		$this->assertSame( 1, $entries[0]['user_id'] );
+		$this->assertSame(
+			array( 'export' => 'csv_download_log', 'rows' => 1 ),
+			ActivityLogBuffer::contexts()[0]['context']
+		);
 	}
 
 	public function test_rows_mask_the_cpf_and_ip_without_the_pii_cap_and_record_nothing(): void {
 		Functions\when( 'user_can' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'is_configured' )->andReturn( true );
-		$audit = Mockery::mock( 'alias:FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog' );
-		$audit->shouldReceive( 'decrypt_log_entry_cpf' )->andReturn( '51817842080' );
-		$audit->shouldReceive( 'decrypt_log_entry_ip' )->andReturn( '1.2.3.4' );
-		Functions\when( 'get_post_meta' )->justReturn( array( array( 'ts' => 1700000000, 'mode' => 'audit', 'result' => 'audit_pass' ) ) );
-		$logged = $this->record_activity_log();
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				array(
+					'ts'            => 1700000000,
+					'ip_encrypted'  => Encryption::encrypt( '1.2.3.4' ),
+					'mode'          => 'audit',
+					'cpf_encrypted' => Encryption::encrypt( '51817842080' ),
+					'result'        => 'audit_pass',
+				),
+			)
+		);
 
 		$rows = iterator_to_array( ( new CsvDownloadLogExportSource( 42 ) )->rows(), false );
 
 		$this->assertSame( array( '2023-11-14 22:13:20', '1.2.***.***', 'audit', '518.***.***-80', 'audit_pass' ), $rows[0] );
-		$this->assertSame( array(), $logged->calls, 'A masked export disclosed nothing.' );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A masked export disclosed nothing.' );
 	}
 
 	/**
-	 * Replace ActivityLog with a recorder.
+	 * Whether the cipher is configured is fixed by the wp-config constants the
+	 * bootstrap defines for the whole process; only an alias mock can answer
+	 * "not configured", so this test has a process of its own.
 	 *
-	 * @return object{calls: array<int, array<int, mixed>>}
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	private function record_activity_log(): object {
-		$recorder        = new \stdClass();
-		$recorder->calls = array();
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )
-			->andReturnUsing(
-				static function ( ...$args ) use ( $recorder ) {
-					$recorder->calls[] = $args;
-					return true;
-				}
-			);
-		return $recorder;
-	}
-
 	public function test_rows_emits_advisory_when_encryption_off(): void {
 		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
 			->shouldReceive( 'is_configured' )->andReturn( false );

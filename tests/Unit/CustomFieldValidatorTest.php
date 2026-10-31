@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Reregistration\CustomFieldValidator;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for CustomFieldValidator: required checks, type validation,
@@ -412,7 +413,7 @@ class CustomFieldValidatorTest extends TestCase {
 			'validation_rules' => array( 'format' => 'cpf' ),
 		));
 
-		$this->assertTrue( CustomFieldValidator::validate( $field, '529.982.247-25' ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, substr( Identifiers::CPF_A, 0, 3 ) . '.' . substr( Identifiers::CPF_A, 3, 3 ) . '.' . substr( Identifiers::CPF_A, 6, 3 ) . '-' . substr( Identifiers::CPF_A, 9 ) ) );
 	}
 
 	public function test_validate_cpf_invalid(): void {
@@ -426,11 +427,83 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// validate_format — RF format (#2227)
+	// ==================================================================
+
+	public function test_validate_rf_accepts_seven_digits_masked_or_bare(): void {
+		// The check-digit setting is read; RF_A satisfies it either way.
+		Functions\when( 'get_option' )->justReturn( array( 'validate_rf_check_digit' => 1 ) );
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, Identifiers::RF_A ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, substr( Identifiers::RF_A, 0, 3 ) . '.' . substr( Identifiers::RF_A, 3, 3 ) . '-' . substr( Identifiers::RF_A, 6 ) ) );
+	}
+
+	public function test_validate_rf_follows_the_check_digit_setting(): void {
+		Functions\when( 'get_option' )->justReturn( array( 'validate_rf_check_digit' => 1 ) );
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, Identifiers::RF_BAD_CHECK_DIGIT );
+		$this->assertInstanceOf( \WP_Error::class, $result, 'A wrong check digit is refused when Settings require it.' );
+		$this->assertSame( 'field_invalid_rf', $result->get_error_code() );
+	}
+
+	public function test_validate_rf_refuses_another_length(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'rf' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, '123456' );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_invalid_rf', $result->get_error_code() );
+	}
+
+	// ==================================================================
+	// validate_format — CEP format (#2233)
+	// ==================================================================
+
+	public function test_validate_cep_accepts_a_cep_in_the_forms_uf(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, '08615-070', array( 'uf' => 'SP' ) ) );
+		$this->assertTrue( CustomFieldValidator::validate( $field, '08615070' ), 'Without a UF in the form the UF check is skipped.' );
+	}
+
+	public function test_validate_cep_refuses_a_bad_format_and_repeated_digits(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$bad = CustomFieldValidator::validate( $field, '0861-507' );
+		$this->assertInstanceOf( \WP_Error::class, $bad );
+		$this->assertSame( 'field_invalid_cep', $bad->get_error_code() );
+		$this->assertStringContainsString( 'must be a valid CEP', $bad->get_error_message() );
+
+		$repeated = CustomFieldValidator::validate( $field, '11111-111' );
+		$this->assertInstanceOf( \WP_Error::class, $repeated );
+		$this->assertStringContainsString( 'all digits are the same', $repeated->get_error_message() );
+	}
+
+	public function test_validate_cep_refuses_a_cep_from_another_uf_naming_it(): void {
+		$field = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+
+		$result = CustomFieldValidator::validate( $field, '28615-070', array( 'uf' => 'sp' ) );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_invalid_cep', $result->get_error_code() );
+		$this->assertSame( 'This CEP does not belong to SP. Check the CEP or the UF.', $result->get_error_message() );
+	}
+
+	public function test_an_empty_optional_cep_passes_and_an_empty_required_one_does_not(): void {
+		$optional = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ) ) );
+		$this->assertTrue( CustomFieldValidator::validate( $optional, '' ) );
+
+		$required = $this->make_field( array( 'validation_rules' => array( 'format' => 'cep' ), 'is_required' => 1 ) );
+		$result   = CustomFieldValidator::validate( $required, '' );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_required', $result->get_error_code() );
+	}
+
+	// ==================================================================
 	// validate_format — email format
 	// ==================================================================
 
 	public function test_validate_email_valid(): void {
-		Functions\when( 'is_email' )->justReturn( true );
 		Functions\when( 'is_email' )->justReturn( true );
 
 		$field = $this->make_field( array(
@@ -441,7 +514,6 @@ class CustomFieldValidatorTest extends TestCase {
 	}
 
 	public function test_validate_email_invalid(): void {
-		Functions\when( 'is_email' )->justReturn( false );
 		Functions\when( 'is_email' )->justReturn( false );
 
 		$field = $this->make_field( array(

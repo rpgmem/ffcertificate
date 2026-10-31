@@ -4,6 +4,10 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// What the dashboard's message region says: alerts left for it (#2246).
+const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
+afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
+
 beforeAll(() => {
 	installDashboardFixtures();
 	Object.assign(window.ffcDashboard.strings, {
@@ -112,7 +116,6 @@ describe('audience-join — keep at least one group', () => {
 	it('after Leave all, shows a notice naming each kept group and its audience', async () => {
 		await render(payload({ locked: 2 }));
 		vi.spyOn(window, 'confirm').mockReturnValue(true);
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const kept = [
 			{ tree_id: 1, tree_name: 'Staff', group_id: 2, group_name: 'Morning' },
 			{ tree_id: 9, tree_name: 'Clubs', group_id: 10, group_name: 'Chess' },
@@ -137,7 +140,7 @@ describe('audience-join — keep at least one group', () => {
 			'You stay in "Morning" because "Staff" requires at least one group.',
 			'You stay in "Chess" because "Clubs" requires at least one group.',
 		]);
-		expect(alertSpy).not.toHaveBeenCalled();
+		expect(flashText()).toBe('');
 
 		// Shown once: the next render has no notice.
 		await render(payload({ locked: 2 }));
@@ -249,12 +252,11 @@ describe('audience-join — switch', () => {
 			opts.error({ responseJSON: { message: 'Not the same audience' } });
 			return {};
 		});
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$(row(3).querySelector('.ffc-audience-switch-btn')).trigger('click');
 		await flushPromises();
 
-		expect(alertSpy).toHaveBeenCalledWith('Not the same audience');
+		expect(flashText()).toBe('Not the same audience');
 		expect(row(3).querySelector('.ffc-audience-switch-btn').disabled).toBe(false);
 	});
 });

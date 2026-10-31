@@ -28,11 +28,18 @@ class BlockedDateRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'current_time' )->justReturn( '2030-01-01 00:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'wp_json_encode' )->alias( fn ( $v ) => json_encode( $v ) );
@@ -302,6 +309,84 @@ class BlockedDateRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
 		$this->assertFalse( $this->repository->isDateBlocked( 1, '2030-05-20' ) );
+	}
+
+	// ==================================================================
+	// #2244: one day for a NULL end date, overlap, duplicates, delete
+	// ==================================================================
+
+	public function test_a_block_without_an_end_date_is_read_for_its_own_day_only(): void {
+		$sql  = '';
+		$args = array();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( $query, ...$values ) use ( &$sql, &$args ) {
+				$sql  = $query;
+				$args = $values;
+				return 'SQL';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$this->repository->getBlocksForDate( 3, '2030-05-20' );
+
+		$this->assertStringContainsString( 'end_date >= %s OR (end_date IS NULL AND (start_date = %s OR block_type = %s))', $sql );
+		$this->assertSame( array( 'wp_ffc_self_scheduling_blocked_dates', 3, '2030-05-20', '2030-05-20', '2030-05-20', 'recurring' ), $args, 'Only a recurring block runs on without an end.' );
+	}
+
+	/** @return array<string, array{string, ?string, bool}> */
+	public function slots_against_a_morning_block(): array {
+		return array(
+			'starts inside'           => array( '10:00:00', '10:30:00', true ),
+			'starts before, overlaps' => array( '08:30:00', '09:30:00', true ),
+			'ends when it starts'     => array( '08:00:00', '09:00:00', false ),
+			'starts when it ends'     => array( '12:00:00', '12:30:00', false ),
+			'spans it'                => array( '08:00:00', '13:00:00', true ),
+			'start only, before'      => array( '08:30:00', null, false ),
+			'start only, inside'      => array( '09:00:00', null, true ),
+		);
+	}
+
+	/**
+	 * @dataProvider slots_against_a_morning_block
+	 */
+	public function test_a_time_range_closes_every_slot_it_overlaps( string $start, ?string $end, bool $closed ): void {
+		$blocks = array( array( 'block_type' => 'time_range', 'start_time' => '09:00:00', 'end_time' => '12:00:00' ) );
+
+		$this->assertSame( $closed, BlockedDateRepository::blocksMatch( $blocks, '2030-05-20', $start, $end ) );
+	}
+
+	public function test_is_covered_finds_a_full_day_over_the_range_and_the_same_time_range(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
+			array(
+				array( 'block_type' => 'full_day', 'start_date' => '2030-05-20', 'end_date' => '2030-05-22' ),
+				array( 'block_type' => 'full_day', 'start_date' => '2030-06-01', 'end_date' => null ),
+				array( 'block_type' => 'time_range', 'start_date' => '2030-07-01', 'end_date' => null, 'start_time' => '09:00:00', 'end_time' => '12:00:00' ),
+			)
+		);
+
+		$this->assertTrue( $this->repository->isCovered( 3, 'full_day', '2030-05-21', '2030-05-22' ) );
+		$this->assertTrue( $this->repository->isCovered( 3, 'time_range', '2030-05-20', '2030-05-20', '10:00:00', '11:00:00' ), 'A whole-day block covers a time range on it.' );
+		$this->assertTrue( $this->repository->isCovered( 3, 'full_day', '2030-06-01', '2030-06-01' ), 'No end date is the start date.' );
+		$this->assertTrue( $this->repository->isCovered( 3, 'time_range', '2030-07-01', '2030-07-01', '09:30:00', '11:00:00' ) );
+		$this->assertFalse( $this->repository->isCovered( 3, 'full_day', '2030-05-21', '2030-05-23' ), 'One day past the block.' );
+		$this->assertFalse( $this->repository->isCovered( 3, 'full_day', '2030-06-02', '2030-06-02' ) );
+		$this->assertFalse( $this->repository->isCovered( 3, 'time_range', '2030-07-01', '2030-07-01', '08:00:00', '10:00:00' ) );
+		$this->assertFalse( $this->repository->isCovered( 3, 'full_day', '2030-07-01', '2030-07-01' ), 'A time range does not cover the whole day.' );
+	}
+
+	public function test_delete_for_calendar_deletes_only_that_calendars_row(): void {
+		$this->wpdb->shouldReceive( 'delete' )->once()
+			->with( 'wp_ffc_self_scheduling_blocked_dates', array( 'id' => 9, 'calendar_id' => 3 ), array( '%d', '%d' ) )
+			->andReturn( 1, 0 );
+
+		$this->assertTrue( $this->repository->deleteForCalendar( 3, 9 ) );
+	}
+
+	public function test_delete_for_calendar_reports_a_row_it_did_not_find(): void {
+		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( 0 );
+
+		$this->assertFalse( $this->repository->deleteForCalendar( 3, 9 ) );
 	}
 
 	// ==================================================================

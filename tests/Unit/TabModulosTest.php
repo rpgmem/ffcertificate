@@ -15,13 +15,11 @@ use FreeFormCertificate\Settings\Tabs\TabModulos;
  * Covers init() tab metadata and both branches of render() (the real view
  * include on success, the error notice when the view file is missing).
  *
- * Runs in separate processes as defence: it preloads `Admin\AdminUI`, which
- * tests/fixtures/recruitment-admin-page-renderer-stubs.php shadows with a stub
- * for the rest of any process that has required it (#1432).
+ * It runs in the shared process (#2091). It once isolated itself as defence
+ * against a fixture that shadowed `Admin\AdminUI` for the rest of a process
+ * (#1432); that fixture is gone.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabModulos
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class TabModulosTest extends TestCase {
 
@@ -115,12 +113,19 @@ class TabModulosTest extends TestCase {
 	}
 
 	public function test_render_outputs_error_when_view_missing(): void {
-		// Force the real render()'s file_exists() guard to fail so the
-		// error-notice branch executes.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the real render() at a view file that does not exist, so its
+		// file_exists() guard fails and the error-notice branch executes.
+		// Brain\Monkey cannot name an anonymous class's hook callback, so the
+		// subclass's init() registration is stubbed.
+		Functions\when( 'add_action' )->justReturn( true );
+		$tab = new class() extends TabModulos {
+			protected function view_path( string $file ): string {
+				return sys_get_temp_dir() . '/ffc-missing-view-' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );

@@ -37,7 +37,7 @@ class AudienceFormInviteScanner {
 	 *
 	 * @var string
 	 */
-	public const CRON_HOOK = 'ffcertificate_audience_post_event_invites';
+	public const CRON_HOOK = 'ffc_audience_post_event_invites';
 
 	/**
 	 * Most invitations one run hands to the mailer; the rest wait an hour.

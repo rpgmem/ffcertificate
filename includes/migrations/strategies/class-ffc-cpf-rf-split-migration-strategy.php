@@ -38,6 +38,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * order (#1060).
  *
  * @phpstan-type CpfRfLegacyRow array{id: numeric-string, cpf_rf: string|null, cpf_rf_encrypted: string|null, cpf_rf_hash: string}
+ *
+ * @deprecated 6.43.0 A one-shot migration whose work is done (#2115).
+ * @removal    6.45.0
  */
 class CpfRfSplitMigrationStrategy implements MigrationStrategyInterface {
 

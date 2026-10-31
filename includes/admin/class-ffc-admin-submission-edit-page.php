@@ -35,7 +35,7 @@ class AdminSubmissionEditPage {
 	 *
 	 * @var array<int, string>
 	 */
-	private const PRESERVED_KEYS = array( '_quiz_pending', '_quiz_grades' );
+	private const PRESERVED_KEYS = array( '_quiz_pending', '_quiz_grades', AnswerCorrectionHandler::CORRECTED_KEY );
 
 	/**
 	 * Submission handler instance
@@ -98,6 +98,17 @@ class AdminSubmissionEditPage {
 	 */
 	private function can_edit_submission(): bool {
 		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_edit_certificates' );
+	}
+
+	/**
+	 * Whether the current user may change which account owns the submission.
+	 *
+	 * The owner reads the certificate unmasked, so relinking hands its data
+	 * to an account of the editor's choosing, their own included: it takes
+	 * the module's manage capability, not the edit one (#2241).
+	 */
+	private function can_change_owner(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_certificates' );
 	}
 
 	/**
@@ -171,6 +182,7 @@ class AdminSubmissionEditPage {
 						$this->render_grading_card();
 						$this->render_participant_data_section();
 						$this->render_dynamic_fields();
+						$this->render_correction_card();
 						$this->render_system_info_section();
 						$this->render_consent_section();
 						?>
@@ -185,6 +197,7 @@ class AdminSubmissionEditPage {
 				</div>
 			</form>
 			<?php $this->render_grading_form(); ?>
+			<?php $this->render_correction_form(); ?>
 		</div>
 		<?php
 	}
@@ -193,12 +206,27 @@ class AdminSubmissionEditPage {
 	 * Whether this attempt waits for grading and the current user may grade it.
 	 */
 	private function shows_grading(): bool {
-		return \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING === ( $this->sub_array['status'] ?? '' )
-			&& QuizGradingHandler::current_user_can_grade();
+		return QuizGradingHandler::current_user_can_grade()
+			&& ( $this->awaits_grading() || $this->can_regrade() );
 	}
 
 	/**
-	 * Main column: the open answers waiting for a grade (#1732).
+	 * Whether the attempt waits for a person's grade (#1732).
+	 */
+	private function awaits_grading(): bool {
+		return \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING === ( $this->sub_array['status'] ?? '' );
+	}
+
+	/**
+	 * Whether the attempt was graded by a person and its grades may change (#2241).
+	 */
+	private function can_regrade(): bool {
+		return ! $this->awaits_grading() && QuizGradingHandler::has_grades( $this->data );
+	}
+
+	/**
+	 * Main column: the open answers waiting for a grade (#1732), or the grades
+	 * already given, to correct (#2241).
 	 *
 	 * Its inputs belong to the grading form printed after the edit form, through
 	 * their `form` attribute: forms cannot nest, and the edit form's save must
@@ -208,30 +236,45 @@ class AdminSubmissionEditPage {
 		if ( ! $this->shows_grading() ) {
 			return;
 		}
-		$pending = QuizGrading::pending_questions( $this->data, (array) $this->fields );
+		$regrade = $this->can_regrade();
 		$config  = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_config', true );
 		$passing = \FreeFormCertificate\Core\ArrayValue::int( is_array( $config ) ? $config : array(), 'quiz_passing_score', 70 );
 
-		self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
-		echo '<p class="description">' . esc_html(
-			sprintf(
-				/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
-				__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
-				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
-				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
-				$passing
-			)
-		) . '</p>';
+		if ( $regrade ) {
+			$questions = QuizGrading::graded_questions( $this->data, (array) $this->fields );
+			self::card_open( __( 'Graded answers', 'ffcertificate' ), 'edit' );
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: 1: the attempt's percentage, 2: passing percentage */
+					__( 'The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_percent', 0 ),
+					$passing
+				)
+			) . '</p>';
+		} else {
+			$questions = QuizGrading::pending_questions( $this->data, (array) $this->fields );
+			self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
+					__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
+					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
+					$passing
+				)
+			) . '</p>';
+		}
 
-		foreach ( $pending as $name => $question ) {
-			$id = 'ffc-grade-' . sanitize_key( $name );
+		foreach ( $questions as $name => $question ) {
+			$id    = 'ffc-grade-' . sanitize_key( $name );
+			$value = $regrade && isset( $question['given'] ) ? (string) $question['given'] : '';
 			?>
 			<div class="ffc-grade-question">
 				<p><strong><?php echo esc_html( $question['label'] ); ?></strong></p>
 				<blockquote class="ffc-grade-answer"><?php echo '' !== $question['answer'] ? nl2br( esc_html( $question['answer'] ) ) : esc_html__( '(no answer)', 'ffcertificate' ); ?></blockquote>
 				<p>
 					<label for="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></label>
-					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
+					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" value="<?php echo esc_attr( $value ); ?>" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
 					<?php
 					/* translators: %d: points the question is worth */
 					echo esc_html( sprintf( __( 'of %d', 'ffcertificate' ), $question['worth'] ) );
@@ -240,23 +283,41 @@ class AdminSubmissionEditPage {
 			</div>
 			<?php
 		}
+
+		if ( $regrade ) {
+			?>
+			<p>
+				<label for="ffc-grade-reason"><strong><?php esc_html_e( 'Reason for the change', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-grade-reason" name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+			</p>
+			<?php
+		}
 		?>
 		<p class="ffc-edit-actions">
 			<?php
 			AdminUI::render_button(
 				array(
-					'label'    => __( 'Save grades and send the result', 'ffcertificate' ),
-					'category' => 'primary',
+					'label'    => $regrade ? __( 'Change grades', 'ffcertificate' ) : __( 'Save grades and send the result', 'ffcertificate' ),
+					'category' => $regrade ? 'caution' : 'primary',
 					'icon'     => 'save',
 					'type'     => 'submit',
 					'attrs'    => array(
-						'form' => 'ffc-grade-form',
+						'form'         => 'ffc-grade-form',
+						'data-confirm' => $regrade
+							? __( 'Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed.', 'ffcertificate' )
+							: __( 'Save the grades and send the result to the participant? This decides the attempt.', 'ffcertificate' ),
 					),
 				)
 			);
 			?>
 		</p>
-		<p class="description"><?php esc_html_e( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' ); ?></p>
+		<p class="description">
+			<?php
+			echo $regrade
+				? esc_html__( 'The reason and both grades are recorded in the activity log.', 'ffcertificate' )
+				: esc_html__( 'Saving decides the attempt: a pass issues the document, and the participant is emailed the result either way.', 'ffcertificate' );
+			?>
+		</p>
 		</div>
 		<?php
 	}
@@ -431,28 +492,28 @@ class AdminSubmissionEditPage {
 			echo '<p class="description">' . esc_html__( 'Submission created before magic links', 'ffcertificate' ) . '</p></div>';
 			return;
 		}
-		$magic_link = \FreeFormCertificate\Generators\MagicLinkHelper::generate_magic_link( $magic_token );
+
+		/*
+		 * The link opens the certificate and everything it prints, so it is
+		 * personal data: masked here, revealed and audited on demand, and the
+		 * certificate opens through the audited route (#2241).
+		 */
+		if ( ! $this->reveal_context() ) {
+			echo '<p class="description">' . esc_html__( 'Opening the certificate or its link needs permission to reveal personal data.', 'ffcertificate' ) . '</p></div>';
+			return;
+		}
 		?>
-		<p class="ffc-edit-magic-link">
-			<a href="<?php echo esc_url( $magic_link ); ?>" target="_blank" rel="noopener" class="ffc-magic-link"><?php echo esc_html( $magic_link ); ?></a>
+		<p class="ffc-edit-magic-link ffc-pii-row">
+			<span class="ffc-pii-value ffc-magic-link" data-field="magic_link">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
+			<?php echo $this->reveal_button( 'magic_link' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- PiiReveal::field_button() escapes every attribute. ?>
 		</p>
 		<p class="ffc-edit-actions">
 			<?php
 			AdminUI::render_button(
 				array(
-					'label' => __( 'Copy', 'ffcertificate' ),
-					'icon'  => 'copy',
-					'class' => 'ffc-copy-magic-link',
-					'attrs' => array(
-						'data-url' => $magic_link,
-					),
-				)
-			);
-			AdminUI::render_button(
-				array(
 					'label' => __( 'Open certificate', 'ffcertificate' ),
 					'icon'  => 'external',
-					'href'  => $magic_link,
+					'href'  => CertificateOpenHandler::url( (int) $this->sub_array['id'] ),
 					'attrs' => array(
 						'target' => '_blank',
 						'rel'    => 'noopener',
@@ -461,7 +522,7 @@ class AdminSubmissionEditPage {
 			);
 			?>
 		</p>
-		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Anyone with this link can download the certificate. Revealing it or opening the certificate is recorded in the activity log.', 'ffcertificate' ); ?></p>
 		</div>
 		<?php
 	}
@@ -629,26 +690,29 @@ class AdminSubmissionEditPage {
 										),
 									)
 								);
-								AdminUI::render_button(
-									array(
-										'label'    => __( 'Unlink User', 'ffcertificate' ),
-										'category' => 'caution',
-										'icon'     => 'unlink',
-										'class'    => 'ffc-unlink-user-btn',
-										'attrs'    => array(
-											'data-confirm' => __( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ),
-										),
-									)
-								);
-								AdminUI::render_button(
-									array(
-										'label' => __( 'Link to Another User', 'ffcertificate' ),
-										'icon'  => 'link',
-										'class' => 'ffc-relink-user-btn',
-									)
-								);
+								if ( $this->can_change_owner() ) {
+									AdminUI::render_button(
+										array(
+											'label'    => __( 'Unlink User', 'ffcertificate' ),
+											'category' => 'caution',
+											'icon'     => 'unlink',
+											'class'    => 'ffc-unlink-user-btn',
+											'attrs'    => array(
+												'data-confirm' => __( 'Are you sure you want to unlink this user from the submission?', 'ffcertificate' ),
+											),
+										)
+									);
+									AdminUI::render_button(
+										array(
+											'label' => __( 'Link to Another User', 'ffcertificate' ),
+											'icon'  => 'link',
+											'class' => 'ffc-relink-user-btn',
+										)
+									);
+								}
 								?>
 								</div>
+								<?php if ( $this->can_change_owner() ) : ?>
 								<p class="description">
 									<?php esc_html_e( 'Removes the link between this submission and the WordPress user.', 'ffcertificate' ); ?>
 									<?php esc_html_e( 'An unlinked submission has no account, which is the state the identity queue adopts.', 'ffcertificate' ); ?>
@@ -656,6 +720,7 @@ class AdminSubmissionEditPage {
 								<p class="description">
 									<?php esc_html_e( 'Choose another user to own this submission. The change is applied when you save.', 'ffcertificate' ); ?>
 								</p>
+								<?php endif; ?>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -667,7 +732,16 @@ class AdminSubmissionEditPage {
 					 * so changing the account no longer means unlinking, saving,
 					 * searching and saving again.
 					 */
-					?>
+					if ( ! $this->can_change_owner() ) :
+						if ( ! $current_user ) :
+							?>
+							<p class="ffc-no-user">
+								<em><?php esc_html_e( 'No user linked to this submission.', 'ffcertificate' ); ?></em>
+							</p>
+							<?php
+						endif;
+					else :
+						?>
 					<div class="ffc-user-search-container<?php echo $current_user ? ' ffc-hidden' : ''; ?>">
 						<?php if ( ! $current_user ) : ?>
 							<p class="ffc-no-user">
@@ -700,6 +774,7 @@ class AdminSubmissionEditPage {
 							<?php esc_html_e( 'Search for a WordPress user to link to this submission. The user will see this certificate in their dashboard.', 'ffcertificate' ); ?>
 						</p>
 					</div>
+					<?php endif; ?>
 				</div>
 		</div>
 		<?php
@@ -832,6 +907,53 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
+	 * Whether a data key is one the plugin writes itself (a leading underscore).
+	 *
+	 * @param string $key Data key.
+	 * @return bool
+	 */
+	private static function is_internal_key( string $key ): bool {
+		return '' !== $key && '_' === $key[0];
+	}
+
+	/**
+	 * Labels of the quiz keys the plugin writes into a submission's data, so
+	 * the screen names them instead of printing the key.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function internal_labels(): array {
+		return array(
+			'_quiz_score'          => __( 'Quiz score (points)', 'ffcertificate' ),
+			'_quiz_max_score'      => __( 'Quiz maximum score (points)', 'ffcertificate' ),
+			'_quiz_percent'        => __( 'Quiz score (%)', 'ffcertificate' ),
+			'_quiz_passed'         => __( 'Quiz passed', 'ffcertificate' ),
+			'_quiz_correct_count'  => __( 'Questions answered correctly', 'ffcertificate' ),
+			'_quiz_question_count' => __( 'Scored questions', 'ffcertificate' ),
+			'_quiz_attempt'        => __( 'Quiz attempt', 'ffcertificate' ),
+			'_quiz_focus_losses'   => __( 'Times the quiz window was left', 'ffcertificate' ),
+		);
+	}
+
+	/**
+	 * An internal value as a reader expects it: the pass flag in words, the
+	 * percentage with its sign.
+	 *
+	 * @param string $key   Data key.
+	 * @param string $value Stored value as text.
+	 * @return string
+	 */
+	private static function internal_value( string $key, string $value ): string {
+		if ( '_quiz_passed' === $key ) {
+			return '1' === $value ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
+		}
+		if ( '_quiz_percent' === $key && is_numeric( $value ) ) {
+			return $value . '%';
+		}
+		return $value;
+	}
+
+	/**
 	 * Render dynamic fields from JSON data
 	 *
 	 * The form answers as editable fields. A protected internal field
@@ -840,12 +962,11 @@ class AdminSubmissionEditPage {
 	 * field left out of the POST would be deleted.
 	 */
 	private function render_dynamic_fields(): void {
-		// Protected fields (read-only within JSON). The window-leave count
-		// is the browser's record of the attempt, not an answer (#1731).
-		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket', '_quiz_focus_losses' );
-		$internal_labels       = array(
-			'_quiz_focus_losses' => __( 'Times the quiz window was left', 'ffcertificate' ),
-		);
+		// Protected fields (read-only within JSON): the system keys, and every
+		// key the plugin writes with a leading underscore — the quiz result
+		// and the browser's record of the attempt (#1731) — none an answer.
+		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
+		$internal_labels       = self::internal_labels();
 
 		\FreeFormCertificate\Admin\AdminUI::render_section_open(
 			array(
@@ -873,8 +994,9 @@ class AdminSubmissionEditPage {
 
 			$display_value = is_array( $v ) ? implode( ', ', $v ) : (string) $v;
 
-			if ( in_array( $k, $protected_json_fields, true ) ) {
-				$protected .= sprintf(
+			if ( in_array( $k, $protected_json_fields, true ) || self::is_internal_key( (string) $k ) ) {
+				$display_value = self::internal_value( (string) $k, $display_value );
+				$protected    .= sprintf(
 					'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s<span class="description ffc-edit-note">%3$s</span></dd>',
 					esc_html( (string) $lbl ),
 					esc_html( $display_value ),
@@ -884,10 +1006,14 @@ class AdminSubmissionEditPage {
 			}
 
 			// An answer is locked: it reads as text, and the save keeps what is stored.
+			// One changed through the audited correction says so (#2241).
 			$answers .= sprintf(
-				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s</dd>',
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s%3$s</dd>',
 				esc_html( (string) $lbl ),
-				nl2br( esc_html( $display_value ) )
+				nl2br( esc_html( $display_value ) ),
+				in_array( $k, $this->corrected_fields(), true )
+					? '<span class="description ffc-edit-note ffc-icon-edit">' . esc_html__( 'Corrected after issue; see the activity log.', 'ffcertificate' ) . '</span>'
+					: ''
 			);
 		}
 
@@ -901,6 +1027,107 @@ class AdminSubmissionEditPage {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
 		}
 		\FreeFormCertificate\Admin\AdminUI::render_section_close();
+	}
+
+	/**
+	 * The answers changed through the audited correction (#2241).
+	 *
+	 * @return array<int, string>
+	 */
+	private function corrected_fields(): array {
+		$list = $this->data[ AnswerCorrectionHandler::CORRECTED_KEY ] ?? array();
+		return is_array( $list ) ? array_values( array_filter( $list, 'is_string' ) ) : array();
+	}
+
+	/**
+	 * The answers a correction may change, keyed by data key, with their label.
+	 *
+	 * @return array<string, string>
+	 */
+	private function correctable_answers(): array {
+		$out = array();
+		foreach ( $this->data as $k => $v ) {
+			$k = (string) $k;
+			if ( ! AnswerCorrectionHandler::is_correctable( $k ) || is_array( $v ) ) {
+				continue;
+			}
+			$label = $k;
+			foreach ( (array) $this->fields as $f ) {
+				if ( isset( $f['name'], $f['label'] ) && $f['name'] === $k ) {
+					$label = (string) $f['label'];
+				}
+			}
+			$out[ $k ] = $label;
+		}
+		return $out;
+	}
+
+	/**
+	 * Main column: correct one answer of an issued certificate (#2241).
+	 *
+	 * Its inputs belong to the correction form printed after the edit form,
+	 * like the grading card's: forms cannot nest.
+	 */
+	private function render_correction_card(): void {
+		$answers = $this->correctable_answers();
+		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $answers ) {
+			return;
+		}
+		self::card_open( __( 'Correct an answer', 'ffcertificate' ), 'edit' );
+		?>
+		<p class="description"><?php esc_html_e( 'For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ); ?></p>
+		<p>
+			<label for="ffc-correct-field"><strong><?php esc_html_e( 'Answer', 'ffcertificate' ); ?></strong></label><br>
+			<select id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" required>
+				<option value=""><?php esc_html_e( 'Choose an answer', 'ffcertificate' ); ?></option>
+				<?php foreach ( $answers as $key => $label ) : ?>
+					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+		<p>
+			<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
+			<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
+		</p>
+		<p>
+			<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the correction', 'ffcertificate' ); ?></strong></label><br>
+			<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+		</p>
+		<p class="ffc-edit-actions">
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Correct answer', 'ffcertificate' ),
+					'category' => 'caution',
+					'icon'     => 'save',
+					'type'     => 'submit',
+					'attrs'    => array(
+						'form'         => 'ffc-correct-form',
+						'data-confirm' => __( 'Correct this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
+					),
+				)
+			);
+			?>
+		</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The correction form the card's inputs post through, outside the edit form.
+	 */
+	private function render_correction_form(): void {
+		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $this->correctable_answers() ) {
+			return;
+		}
+		$id = (int) $this->sub_array['id'];
+		?>
+		<form id="ffc-correct-form" method="POST" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="<?php echo esc_attr( AnswerCorrectionHandler::ACTION ); ?>">
+			<input type="hidden" name="submission_id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<?php wp_nonce_field( AnswerCorrectionHandler::nonce_action( $id ) ); ?>
+		</form>
+		<?php
 	}
 
 	/**
@@ -942,8 +1169,9 @@ class AdminSubmissionEditPage {
 		// Update submission data (email + custom fields).
 		$this->submission_handler->update_submission( $id, $new_email, $clean_data );
 
-		// Update user link if changed (not __keep__).
-		if ( '__keep__' !== $linked_user_id ) {
+		// Update user link if changed (not __keep__). Changing the owner takes
+		// the manage capability; a post from an editor without it is ignored (#2241).
+		if ( '__keep__' !== $linked_user_id && $this->can_change_owner() ) {
 			$new_user_id = '' === $linked_user_id ? null : (int) $linked_user_id;
 
 			// Validate user exists if linking to a user.

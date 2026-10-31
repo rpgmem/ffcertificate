@@ -134,15 +134,13 @@ final class RecruitmentClassificationFilterManager {
 			if ( $rf_candidate_id > 0 && $candidate_id !== $rf_candidate_id ) {
 				continue;
 			}
-			// Both the name search and the subscription filter need the
-			// candidate row; fetch it once when either is active.
-			$candidate = ( $has_q || $has_sub )
-				? RecruitmentCandidateReader::get_by_id( $candidate_id )
-				: null;
-			if ( ( $has_q || $has_sub ) && null === $candidate ) {
-				continue;
-			}
+			// Only the name search needs the candidate row; PCD is the
+			// classification's own (#2245).
 			if ( $has_q ) {
+				$candidate = RecruitmentCandidateReader::get_by_id( $candidate_id );
+				if ( null === $candidate ) {
+					continue;
+				}
 				$name = (string) ( $candidate->name ?? '' );
 				$hay  = function_exists( 'mb_strtolower' ) ? mb_strtolower( $name, 'UTF-8' ) : strtolower( $name );
 				if ( false === strpos( $hay, $needle ) ) {
@@ -150,10 +148,9 @@ final class RecruitmentClassificationFilterManager {
 				}
 			}
 			if ( $has_sub ) {
-				// `verify()` returns null on hash decode failure — treat
-				// that as GERAL on the filter side, same defensive
-				// normalization the public shortcode uses for the badge.
-				$is_pcd           = true === RecruitmentPcdHasher::verify( (string) ( $candidate->pcd_hash ?? '' ), $candidate_id );
+				// PCD is the row's, per notice (#2245); an unrecognised
+				// hash reads as GERAL, as the public shortcode does.
+				$is_pcd           = RecruitmentPcdHasher::row_is_pcd( $row );
 				$row_subscription = $is_pcd ? 'pcd' : 'geral';
 				if ( $row_subscription !== $subscription ) {
 					continue;

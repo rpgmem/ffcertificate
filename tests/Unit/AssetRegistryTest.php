@@ -5,9 +5,9 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Core\AssetRegistry;
 
 /**
@@ -16,7 +16,6 @@ use FreeFormCertificate\Core\AssetRegistry;
  * The registrations moved here from Loader, and so did their tests.
  *
  * @covers \FreeFormCertificate\Core\AssetRegistry
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AssetRegistryTest extends TestCase {
@@ -33,11 +32,10 @@ class AssetRegistryTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 
-		// Alias mock: AssetHelper is final and static. The separate process
-		// gives each test a fresh class table for it.
-		$helper = Mockery::mock( 'alias:\FreeFormCertificate\Core\AssetHelper' );
-		$helper->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-		$helper->shouldReceive( 'core_script_config' )->andReturn( array( 'version' => '1.0.0' ) );
+		// AssetHelper runs for real: its suffix reads SCRIPT_DEBUG, which the
+		// suite leaves undefined, and the core config reads this setting.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
 
 		$registered = &$this->registered;
 		$localized  = &$this->localized;
@@ -147,7 +145,8 @@ class AssetRegistryTest extends TestCase {
 		$config = $this->localizations( 'ffc-core' );
 		$this->assertCount( 1, $config );
 		$this->assertSame( 'ffcCoreConfig', $config[0]['object_name'] );
-		$this->assertSame( array( 'version' => '1.0.0' ), $config[0]['l10n'] );
+		$this->assertSame( AssetHelper::core_script_config(), $config[0]['l10n'] );
+		$this->assertSame( FFC_VERSION, $config[0]['l10n']['version'] );
 	}
 
 	public function test_frontend_registers_the_field_behaviours_and_the_helpers_on_them(): void {
@@ -277,6 +276,25 @@ class AssetRegistryTest extends TestCase {
 	}
 
 	/**
+	 * The generator fetches the PDF bundles from the URLs WordPress would
+	 * have printed for their handles (#2241).
+	 */
+	public function test_the_pdf_generator_carries_the_bundle_urls(): void {
+		AssetRegistry::register_admin();
+
+		$libraries = $this->localizations( 'ffc-pdf-generator' );
+		$this->assertCount( 1, $libraries );
+		$this->assertSame( 'ffcPdfLibraries', $libraries[0]['object_name'] );
+		$this->assertSame(
+			array(
+				'html2canvas' => $this->registration( 'html2canvas' )['src'] . '?ver=' . FFC_HTML2CANVAS_PRO_VERSION,
+				'jspdf'       => $this->registration( 'jspdf' )['src'] . '?ver=' . FFC_JSPDF_VERSION,
+			),
+			$libraries[0]['l10n']
+		);
+	}
+
+	/**
 	 * The dependencies the call sites used to restate, asserted once here.
 	 *
 	 * @return array<string, array{0: string, 1: list<string>}>
@@ -286,7 +304,7 @@ class AssetRegistryTest extends TestCase {
 			'autosave reaches FFC.request and the FFC.Admin namespace' => array( 'ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
 			'the admin script carries the export button driver'       => array( 'ffc-admin-js', array( 'jquery', 'ffc-core', 'ffc-batched-export' ) ),
 			'the field behaviours build on FFC'                       => array( 'ffc-field-behaviours', array( 'jquery', 'ffc-core' ) ),
-			'the PDF generator needs both bundles, jQuery and FFC.Platform' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core', 'html2canvas', 'jspdf' ) ),
+			'the PDF generator needs jQuery and FFC.Platform, and fetches the bundles itself' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core' ) ),
 			'the calendar core needs nothing of FFC'                  => array( 'ffc-calendar-core', array( 'jquery' ) ),
 			'the geofence modules extend the geofence core'           => array( 'ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
 			'the URL shortener script calls FFC.request and the QR raster' => array( 'ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),

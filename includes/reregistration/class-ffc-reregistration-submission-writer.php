@@ -133,43 +133,7 @@ class ReregistrationSubmissionWriter {
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 
-		unset( $data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at'] );
-
-		if ( empty( $data ) ) {
-			return false;
-		}
-
-		$update_data = array();
-		$format      = array();
-
-		$field_formats = array(
-			'data'         => '%s',
-			'status'       => '%s',
-			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0 (#249 sub-escopos b/d).
-			'submitted_at' => '%d',
-			'reviewed_at'  => '%d',
-			'reviewed_by'  => '%d',
-			'notes'        => '%s',
-			'auth_code'    => '%s',
-			'magic_token'  => '%s',
-		);
-
-		foreach ( $data as $key => $value ) {
-			if ( ! isset( $field_formats[ $key ] ) ) {
-				continue;
-			}
-
-			if ( 'data' === $key && ! is_string( $value ) ) {
-				$value = wp_json_encode( $value );
-			}
-
-			if ( 'notes' === $key && null !== $value ) {
-				$value = sanitize_textarea_field( $value );
-			}
-
-			$update_data[ $key ] = $value;
-			$format[]            = $field_formats[ $key ];
-		}
+		list( $update_data, $format ) = self::columns( $data );
 
 		if ( empty( $update_data ) ) {
 			return false;
@@ -189,101 +153,281 @@ class ReregistrationSubmissionWriter {
 	}
 
 	/**
-	 * Approve a submission.
+	 * Update a submission only while its status is one of `$statuses` (#2242).
+	 *
+	 * The status test and the write are one statement, so a second request
+	 * that arrives after the first moved the row on — a double click, a stale
+	 * tab — changes nothing. Checking first and writing after would let both
+	 * pass the check.
+	 *
+	 * MySQL reports zero changed rows when the values are already the ones
+	 * written, so zero is told apart by reading the status again: a row still
+	 * in an allowed status was written (with what it already held), a row that
+	 * left was not.
+	 *
+	 * @param int                  $id       Submission ID.
+	 * @param array<string, mixed> $data     Update data, as for {@see self::update()}.
+	 * @param array<int, string>   $statuses Statuses the row may be in.
+	 * @return bool Whether the row was in an allowed status and holds `$data` now.
+	 */
+	public static function update_if_status( int $id, array $data, array $statuses ): bool {
+		list( $columns, $formats ) = self::columns( $data );
+
+		if ( empty( $columns ) || empty( $statuses ) ) {
+			return false;
+		}
+
+		$wpdb   = self::db();
+		$table  = self::get_table_name();
+		$set    = array();
+		$values = array( $table );
+		$i      = 0;
+
+		foreach ( $columns as $column => $value ) {
+			$format = $formats[ $i++ ];
+			if ( null === $value ) {
+				$set[]    = '%i = NULL';
+				$values[] = $column;
+				continue;
+			}
+			$set[]    = '%i = ' . $format;
+			$values[] = $column;
+			$values[] = $value;
+		}
+
+		$values[] = $id;
+		$values   = array_merge( $values, array_values( $statuses ) );
+
+		$query = 'UPDATE %i SET ' . implode( ', ', $set ) . ' WHERE id = %d AND status IN (' . implode( ',', array_fill( 0, count( $statuses ), '%s' ) ) . ')';
+
+		/**
+		 * `$query` is assembled from placeholders only — the SET list from the
+		 * fixed column map, the IN list from the status count — so it is a
+		 * runtime string rather than the `literal-string` the stub declares.
+		 * Every value travels in `$values`.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$sql = $wpdb->prepare( $query, $values ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders only; every value goes through prepare().
+
+		$affected = null === $sql ? false : $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared just above.
+
+		static::cache_delete( "id_{$id}" );
+
+		if ( false === $affected ) {
+			return false;
+		}
+		if ( $affected > 0 ) {
+			return true;
+		}
+
+		$status = $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM %i WHERE id = %d', $table, $id ) );
+
+		return is_string( $status ) && in_array( $status, $statuses, true );
+	}
+
+	/**
+	 * The writable columns of `$data`, with their formats.
+	 *
+	 * @param array<string, mixed> $data Update data.
+	 * @return array{0: array<string, mixed>, 1: list<string>}
+	 */
+	private static function columns( array $data ): array {
+		unset( $data['id'], $data['reregistration_id'], $data['user_id'], $data['created_at'] );
+
+		$update_data = array();
+		$format      = array();
+
+		$field_formats = array(
+			'data'             => '%s',
+			'status'           => '%s',
+			// `submitted_at`/`reviewed_at` are unix UTC int since 6.6.0 (#249 sub-escopos b/d).
+			'submitted_at'     => '%d',
+			'reviewed_at'      => '%d',
+			'reviewed_by'      => '%d',
+			'notes'            => '%s',
+			'auth_code'        => '%s',
+			'magic_token'      => '%s',
+			// Cleared by a reject or a return to draft, so the member is
+			// reminded again (#2242). Unix UTC int, like the stamp.
+			'reminder_sent_at' => '%d',
+		);
+
+		foreach ( $data as $key => $value ) {
+			if ( ! isset( $field_formats[ $key ] ) ) {
+				continue;
+			}
+
+			if ( 'data' === $key && ! is_string( $value ) ) {
+				$value = wp_json_encode( $value );
+			}
+
+			if ( 'notes' === $key && null !== $value ) {
+				$value = sanitize_textarea_field( $value );
+			}
+
+			$update_data[ $key ] = $value;
+			$format[]            = $field_formats[ $key ];
+		}
+
+		return array( $update_data, $format );
+	}
+
+	/**
+	 * The status a reviewer acts on (#2242).
+	 *
+	 * Approve and Reject are offered only on a submission awaiting review, and
+	 * the write is conditional on it, so a stale screen or a bulk "select all"
+	 * cannot approve a member who never answered, or re-review a decided row.
+	 *
+	 * @var list<string>
+	 */
+	public const REVIEWABLE_STATUSES = array( 'submitted' );
+
+	/**
+	 * The statuses a reviewer may send back to draft.
+	 *
+	 * @var list<string>
+	 */
+	public const RETURNABLE_STATUSES = array( 'submitted', 'approved', 'rejected' );
+
+	/**
+	 * Approve a submission awaiting review.
+	 *
+	 * THE CODE IS BORN HERE (#2242)
+	 *
+	 * The authentication code exists only for an approved record: verification
+	 * confirms nothing else. A row that already carries one — approved before,
+	 * then returned to draft and submitted again — keeps it, so a record
+	 * printed under the first approval still verifies. Only a row without one
+	 * gets a new code.
 	 *
 	 * @param int $id          Submission ID.
 	 * @param int $reviewer_id Reviewer user ID.
-	 * @return bool
+	 * @return bool Whether the row was awaiting review and is approved now.
 	 */
 	public static function approve( int $id, int $reviewer_id ): bool {
-		$result = self::update(
+		$wpdb = self::db();
+		$code = $wpdb->get_var( $wpdb->prepare( 'SELECT auth_code FROM %i WHERE id = %d', self::get_table_name(), $id ) );
+
+		return self::update_if_status(
 			$id,
 			array(
 				'status'      => 'approved',
 				'reviewed_at' => time(),
 				'reviewed_by' => $reviewer_id,
-			)
+				'auth_code'   => is_string( $code ) ? $code : \FreeFormCertificate\Core\AuthCodeService::generate_globally_unique_auth_code(),
+			),
+			self::REVIEWABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
 	}
 
 	/**
-	 * Reject a submission.
+	 * Shortest reason a reviewer may give for a reject or a return (#2242).
+	 *
+	 * The same floor the manual grading uses: it refuses an empty or "ok"
+	 * reason, and is not a quality bar.
+	 *
+	 * @var int
+	 */
+	public const MIN_REASON_LENGTH = 10;
+
+	/**
+	 * Whether a reviewer's reason is long enough to send to the member.
+	 *
+	 * @param string $reason Reason as typed.
+	 * @return bool
+	 */
+	public static function is_valid_reason( string $reason ): bool {
+		return mb_strlen( trim( $reason ) ) >= self::MIN_REASON_LENGTH;
+	}
+
+	/**
+	 * Reject a submission awaiting review.
+	 *
+	 * The code is deleted (#2242): a rejected record must not verify, and a
+	 * later approval issues a new one. The reason is what the member reads on
+	 * the dashboard banner, and the reminder mark is cleared so a rejected
+	 * member is reminded again before the deadline.
 	 *
 	 * @param int    $id          Submission ID.
 	 * @param int    $reviewer_id Reviewer user ID.
 	 * @param string $notes       Rejection reason.
-	 * @return bool
+	 * @return bool Whether the row was awaiting review and is rejected now.
 	 */
 	public static function reject( int $id, int $reviewer_id, string $notes = '' ): bool {
-		$result = self::update(
+		return self::update_if_status(
 			$id,
 			array(
-				'status'      => 'rejected',
-				'reviewed_at' => time(),
-				'reviewed_by' => $reviewer_id,
-				'notes'       => $notes,
-			)
+				'status'           => 'rejected',
+				'reviewed_at'      => time(),
+				'reviewed_by'      => $reviewer_id,
+				'notes'            => $notes,
+				'auth_code'        => null,
+				'reminder_sent_at' => null,
+			),
+			self::REVIEWABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return $result;
 	}
 
 	/**
 	 * Return a submission to draft (in_progress) so the user can revise it.
 	 *
 	 * Clears the review metadata and resets submitted_at so the user
-	 * sees it as an editable draft again.
+	 * sees it as an editable draft again. The reason goes in `notes`, which
+	 * the member reads on the dashboard banner (#2242), and the reminder mark
+	 * is cleared so the member is reminded again. The code stays stored
+	 * (#2242): verification refuses it while the row is not approved, and
+	 * approving the revision brings the same code back, so a printed record
+	 * still matches.
+	 *
+	 * @param int    $id     Submission ID.
+	 * @param string $reason Why the submission goes back to the member.
+	 * @return bool Whether the row was returnable and is a draft now.
+	 */
+	public static function return_to_draft( int $id, string $reason = '' ): bool {
+		return self::update_if_status(
+			$id,
+			array(
+				'status'           => 'in_progress',
+				'submitted_at'     => null,
+				'reviewed_at'      => null,
+				'reviewed_by'      => null,
+				'notes'            => '' !== $reason ? $reason : null,
+				'reminder_sent_at' => null,
+			),
+			self::RETURNABLE_STATUSES
+		);
+	}
+
+	/**
+	 * The member takes back a submission nobody has reviewed yet (#2242).
+	 *
+	 * Only a `submitted` row moves, in the same statement that tests it, so a
+	 * reviewer acting at the same moment wins or loses cleanly. The row leaves
+	 * the review queue as a draft; the answers stay.
 	 *
 	 * @param int $id Submission ID.
-	 * @return bool
+	 * @return bool Whether the row was awaiting review and is a draft now.
 	 */
-	public static function return_to_draft( int $id ): bool {
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		$result = $wpdb->update(
-			$table,
+	public static function retract( int $id ): bool {
+		return self::update_if_status(
+			$id,
 			array(
 				'status'       => 'in_progress',
 				'submitted_at' => null,
-				'reviewed_at'  => null,
-				'reviewed_by'  => null,
 				'notes'        => null,
 			),
-			array( 'id' => $id ),
-			array( '%s', '%s', '%s', '%s', '%s' ),
-			array( '%d' )
+			self::REVIEWABLE_STATUSES
 		);
-
-		static::cache_delete( "id_{$id}" );
-
-		return false !== $result;
 	}
 
 	/**
-	 * Bulk return multiple submissions to draft.
+	 * Bulk approve the selected submissions that await review.
 	 *
-	 * @param array<int> $ids Submission IDs.
-	 * @return int Number of submissions returned to draft.
-	 */
-	public static function bulk_return_to_draft( array $ids ): int {
-		$count = 0;
-		foreach ( $ids as $id ) {
-			if ( self::return_to_draft( (int) $id ) ) {
-				++$count;
-			}
-		}
-		return $count;
-	}
-
-	/**
-	 * Bulk approve multiple submissions.
+	 * A selected row in any other status is skipped, not approved (#2242):
+	 * the list is a whole campaign, so "select all" also selects every member
+	 * who has not answered yet.
 	 *
 	 * @param array<int> $ids         Submission IDs.
 	 * @param int        $reviewer_id Reviewer user ID.
@@ -400,6 +544,30 @@ class ReregistrationSubmissionWriter {
 		}
 
 		return $created;
+	}
+
+	/**
+	 * Create the missing submissions of every active campaign (#2242).
+	 *
+	 * Activation seeds a row per member once, so whoever joins one of the
+	 * campaign's audiences later — directly or through a child audience — had
+	 * a banner and no row: no invitation, no reminder, and absent from Pending
+	 * and the totals. The daily run calls this before the reminders and the
+	 * invitations, so a late joiner flows into both the same day.
+	 *
+	 * Cheap to repeat: `create_for_audience_members()` is one `INSERT IGNORE`
+	 * per 500 members over the table's unique key, so an existing row is
+	 * never touched and a run with no newcomer writes nothing. Campaigns
+	 * outside their window are included on purpose: an invitation may go out
+	 * before the opening date, and a campaign already past its end is expired
+	 * by the step that runs first.
+	 *
+	 * @return void
+	 */
+	public static function seed_active_campaigns(): void {
+		foreach ( ReregistrationRepository::get_active_ids() as $reregistration_id ) {
+			self::create_for_audience_members( $reregistration_id, ReregistrationRepository::get_audience_ids( $reregistration_id ) );
+		}
 	}
 
 	/**

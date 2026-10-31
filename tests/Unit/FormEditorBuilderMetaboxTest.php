@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -21,6 +22,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
@@ -56,6 +58,7 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		FormSubmissionCountWpdb::restore();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -105,6 +108,25 @@ class FormEditorBuilderMetaboxTest extends TestCase {
 
 		// Saved fields surface their label in a builder row.
 		$this->assertStringContainsString( 'Full Name', $html );
+	}
+
+	public function test_a_stored_tag_locks_once_the_form_has_submissions(): void {
+		FormSubmissionCountWpdb::restore();
+		FormSubmissionCountWpdb::install( 2 );
+
+		$html = $this->render( array( array( 'name' => 'course', 'label' => 'Course', 'type' => 'text' ) ) );
+
+		$this->assertMatchesRegularExpression( '/name="ffc_fields\[0\]\[name\]" value="course"[^>]*readonly/', $html );
+		$this->assertStringContainsString( 'name="ffc_fields[0][original_name]" value="course"', $html );
+		$this->assertStringContainsString( 'Locked: this form has submissions stored under this tag.', $html );
+		$this->assertStringNotContainsString( 'name="ffc_fields[TEMPLATE][original_name]"', $html, 'A new row is free to name itself.' );
+	}
+
+	public function test_a_tag_stays_editable_while_the_form_has_no_submissions(): void {
+		$html = $this->render( array( array( 'name' => 'course', 'label' => 'Course', 'type' => 'text' ) ) );
+
+		$this->assertDoesNotMatchRegularExpression( '/name="ffc_fields\[0\]\[name\]" value="course"[^>]*readonly/', $html );
+		$this->assertStringNotContainsString( 'original_name', $html );
 	}
 
 	public function test_a_saved_hidden_field_shows_its_fixed_value(): void {

@@ -14,19 +14,82 @@ use FreeFormCertificate\Core\CsvDownloadInterface;
 use FreeFormCertificate\Tests\Support\CallLog;
 
 /**
+ * The exports and imports run the real `AudienceReader`, `AudienceWriter`,
+ * `AudienceCsvImporter`, `UserCreator` and `FilenameHelper` over a `$wpdb`
+ * double that keeps audiences and memberships in memory, records every
+ * query and insert, and fails on any query it was not taught.
+ *
  * @covers \FreeFormCertificate\Audience\AudienceAdminImport
  * @covers \FreeFormCertificate\Audience\AudienceMembersExportSource
  * @covers \FreeFormCertificate\Audience\AudienceAudiencesExportSource
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AudienceAdminImportTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> */
+	private array $post_backup = array();
+
+	/** @var array<string, mixed> */
+	private array $get_backup = array();
+
+	/** @var array<string, mixed> */
+	private array $files_backup = array();
+
+	/**
+	 * Audiences, keyed by id.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $audiences = array();
+
+	/**
+	 * Members of each audience, as `audience_id => list<user_id>`.
+	 *
+	 * @var array<int, list<int>>
+	 */
+	private array $members = array();
+
+	/**
+	 * Every read query the double answered, in order.
+	 *
+	 * @var list<string>
+	 */
+	private array $queries = array();
+
+	/**
+	 * Every `$wpdb->insert()`, as `[ table, data ]`.
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $inserts = array();
+
+	/** @var int The id the next insert receives. */
+	private int $next_id = 100;
+
+	/**
+	 * Uploaded CSV files this test wrote, removed in tearDown.
+	 *
+	 * @var list<string>
+	 */
+	private array $files = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb     = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup  = $GLOBALS['wpdb'] ?? null;
+		$this->post_backup  = $_POST ?? array();
+		$this->get_backup   = $_GET ?? array();
+		$this->files_backup = $_FILES ?? array();
 
 		// The PII export rule (#1863): the exporter holds the PII cap unless a
 		// test says otherwise, and a masked cell asks is_email().
@@ -69,19 +132,199 @@ class AudienceAdminImportTest extends TestCase {
 		// doesn't fatal under Brain\Monkey.
 		Functions\when( 'wp_enqueue_script' )->justReturn( null );
 
-		global $wpdb;
-		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () { return func_get_arg(0); } )->byDefault();
-		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
-		$wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
+		$this->audiences = array();
+		$this->members   = array();
+		$this->queries   = array();
+		$this->inserts   = array();
+		$this->next_id   = 100;
+		$this->files     = array();
+
+		$GLOBALS['wpdb'] = $this->database();
 	}
 
 	protected function tearDown(): void {
 		unset( $_POST['ffc_import_action'], $_POST['_wpnonce'] );
+		foreach ( $this->files as $file ) {
+			if ( is_file( $file ) ) {
+				unlink( $file );
+			}
+		}
+		$_POST  = $this->post_backup;
+		$_GET   = $this->get_backup;
+		$_FILES = $this->files_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A database answering what the export sources and the importer ask, from
+	 * the in-memory stores above. Anything else fails the test.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		// Interpolates, so the reads below can dispatch on the query's intent.
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$values = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				return (string) preg_replace_callback(
+					'/%[ids]/',
+					static function ( $m ) use ( &$values ) {
+						$value = array_shift( $values );
+						if ( '%d' === $m[0] ) {
+							return (string) (int) $value;
+						}
+						return '%s' === $m[0] ? "'" . $value . "'" : (string) $value;
+					},
+					(string) $sql
+				);
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( preg_match( '/^SELECT \* FROM wp_ffc_audiences\s+ORDER BY /', $sql ) ) {
+					return array_map( static fn ( $row ) => (object) $row, array_values( $this->audiences ) );
+				}
+				$this->fail( 'Unexpected get_results: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( preg_match( '/^SELECT DISTINCT user_id FROM wp_ffc_audience_members WHERE audience_id IN \((\d+)\)$/', $sql, $m ) ) {
+					return array_map( 'strval', $this->members[ (int) $m[1] ] ?? array() );
+				}
+				$this->fail( 'Unexpected get_col: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = $sql;
+				if ( str_starts_with( $sql, 'SHOW TABLES LIKE ' ) ) {
+					return null; // No optional table exists on this install.
+				}
+				if ( preg_match( '/^SELECT COUNT\(\*\) FROM wp_ffc_audience_members WHERE audience_id = (\d+) AND user_id = (\d+)$/', $sql, $m ) ) {
+					return in_array( (int) $m[2], $this->members[ (int) $m[1] ] ?? array(), true ) ? '1' : '0';
+				}
+				if ( preg_match( "/^SELECT id FROM wp_ffc_audiences WHERE name = '(.*)' LIMIT 1$/", $sql, $m ) ) {
+					foreach ( $this->audiences as $id => $row ) {
+						if ( $row['name'] === $m[1] ) {
+							return (string) $id;
+						}
+					}
+					return null;
+				}
+				$this->fail( 'Unexpected get_var: ' . $sql );
+			}
+		);
+
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->inserts[] = array( $table, $data );
+				$id              = $this->next_id++;
+				if ( 'wp_ffc_audience_members' === $table ) {
+					$this->members[ (int) $data['audience_id'] ][] = (int) $data['user_id'];
+				} elseif ( 'wp_ffc_audiences' === $table ) {
+					$this->audiences[ $id ] = array_merge( array( 'id' => $id ), $data );
+				} else {
+					$this->fail( 'Unexpected insert into ' . $table );
+				}
+				$wpdb->insert_id = $id;
+				return 1;
+			}
+		);
+
+		foreach ( array( 'get_row', 'update', 'query', 'delete', 'replace' ) as $method ) {
+			$wpdb->shouldReceive( $method )->andReturnUsing(
+				function ( ...$args ) use ( $method ) {
+					$this->fail( 'Unexpected ' . $method . ': ' . print_r( $args, true ) );
+				}
+			);
+		}
+
+		return $wpdb;
+	}
+
+	/**
+	 * Store an audience.
+	 *
+	 * @param int         $id        Audience id.
+	 * @param string      $name      Name.
+	 * @param string|null $color     Colour, or null for none.
+	 * @param int|null    $parent_id Parent, or null for a top-level audience.
+	 */
+	private function audience( int $id, string $name, ?string $color = '#3788d8', ?int $parent_id = null ): void {
+		$this->audiences[ $id ] = array(
+			'id'        => $id,
+			'name'      => $name,
+			'color'     => $color,
+			'parent_id' => $parent_id,
+		);
+	}
+
+	/**
+	 * Write an uploaded CSV and return its path.
+	 *
+	 * @param string $content File content.
+	 * @return string
+	 */
+	private function upload( string $content ): string {
+		$path = (string) tempnam( sys_get_temp_dir(), 'ffc_admin_import_' );
+		file_put_contents( $path, $content );
+		$this->files[] = $path;
+		return $path;
+	}
+
+	/**
+	 * What the real importer reaches below the database: WordPress's user API
+	 * at its edge (accounts 10 and 11 exist; a created one is 77), the object
+	 * cache and the option writes.
+	 *
+	 * @return \ArrayObject<int, array<int, mixed>> Every wp_create_user() call.
+	 */
+	private function stub_import_path(): \ArrayObject {
+		$users = array(
+			'a@example.com' => 10,
+			'b@example.com' => 11,
+		);
+		Functions\when( 'get_user_by' )->alias(
+			static function ( $field, $value ) use ( $users ) {
+				return isset( $users[ $value ] ) ? new \WP_User( $users[ $value ] ) : false;
+			}
+		);
+		Functions\when( 'sanitize_email' )->alias( static fn ( $v ) => trim( strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_user' )->alias( static fn ( $v ) => preg_replace( '/[^a-z0-9_.-]/i', '', (string) $v ) );
+		Functions\when( 'remove_accents' )->returnArg();
+		Functions\when( 'username_exists' )->justReturn( false );
+		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'is_wp_error' )->alias( static fn ( $thing ) => $thing instanceof \WP_Error );
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_update_user' )->justReturn( 77 );
+		Functions\when( 'update_user_meta' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-10-29 12:00:00' );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'update_option' )->justReturn( true );
+		Functions\when( '_deprecated_function' )->justReturn( null );
+		$created = new \ArrayObject();
+		Functions\when( 'wp_create_user' )->alias(
+			static function ( ...$args ) use ( $created ) {
+				$created[] = $args;
+				return 77;
+			}
+		);
+		return $created;
 	}
 
 	// ==================================================================
@@ -215,14 +458,8 @@ class AudienceAdminImportTest extends TestCase {
 	public function test_export_members_csv_streams_header_and_rows(): void {
 		$download = $this->buffered_download();
 
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$reader->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 1, 'name' => 'Turma A' ) )
-		);
-		$reader->shouldReceive( 'get_members' )->with( 1 )->andReturn( array( 10, 11 ) );
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
-			->shouldReceive( 'get_export_filename' )->andReturn( 'members-export.csv' );
+		$this->audience( 1, 'Turma A' );
+		$this->members[1] = array( 10, 11 );
 
 		$u10 = (object) array( 'user_email' => 'a@example.com', 'display_name' => 'Ana' );
 		$u11 = (object) array( 'user_email' => 'b@example.com', 'display_name' => 'Bruno' );
@@ -247,16 +484,8 @@ class AudienceAdminImportTest extends TestCase {
 	public function test_export_audiences_csv_streams_hierarchical_rows(): void {
 		$download = $this->buffered_download();
 
-		$child  = (object) array( 'name' => 'Child', 'color' => null );
-		$parent = (object) array(
-			'name'     => 'Parent',
-			'color'    => '#abcdef',
-			'children' => array( $child ),
-		);
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
-			->shouldReceive( 'get_export_filename' )->andReturn( 'audiences-export.csv' );
+		$this->audience( 1, 'Parent', '#abcdef' );
+		$this->audience( 2, 'Child', null, 1 );
 
 		$page = new AudienceAdminImport( 'ffc-scheduling', new CsvStreamer( $download ) );
 		$ref  = new \ReflectionMethod( AudienceAdminImport::class, 'export_audiences_csv' );
@@ -274,10 +503,8 @@ class AudienceAdminImportTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_content_lists_child_audiences_in_both_selects(): void {
-		$child  = (object) array( 'id' => 21, 'name' => 'Class 1B' );
-		$parent = (object) array( 'id' => 20, 'name' => 'Grade 1', 'children' => array( $child ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_hierarchical' )->andReturn( array( $parent ) );
+		$this->audience( 20, 'Grade 1' );
+		$this->audience( 21, 'Class 1B', '#3788d8', 20 );
 
 		$page = new AudienceAdminImport( 'ffc-scheduling' );
 		ob_start();
@@ -438,17 +665,20 @@ class AudienceAdminImportTest extends TestCase {
 		$_POST['export_audience_id'] = '7';
 		$download                    = $this->buffered_download();
 
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' );
-		$reader->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 7, 'name' => 'Seven' ), (object) array( 'id' => 8, 'name' => 'Eight' ) )
-		);
-		$reader->shouldReceive( 'get_members' )->once()->with( 7 )->andReturn( array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
-			->shouldReceive( 'get_export_filename' )->andReturn( 'members.csv' );
+		$this->audience( 7, 'Seven' );
+		$this->audience( 8, 'Eight' );
+		$this->members[8] = array( 10 );
+		Functions\when( 'get_user_by' )->justReturn( false );
 
 		( new AudienceAdminImport( 'ffc-scheduling', new CsvStreamer( $download ) ) )->handle_csv_import();
 		unset( $_POST['ffc_action'], $_POST['export_audience_id'] );
 
+		$member_reads = array_values( array_filter( $this->queries, static fn ( $q ) => str_contains( $q, 'wp_ffc_audience_members' ) ) );
+		$this->assertSame(
+			array( 'SELECT DISTINCT user_id FROM wp_ffc_audience_members WHERE audience_id IN (7)' ),
+			$member_reads,
+			'Only the chosen audience\'s members are read, once.'
+		);
 		$this->assertTrue( $download->finished );
 		$this->assertStringContainsString( 'email;name;audience_name', $download->output );
 	}
@@ -457,11 +687,6 @@ class AudienceAdminImportTest extends TestCase {
 		$this->grant( array( 'ffc_export_audiences' ) );
 		$_POST['ffc_action'] = 'export_audiences';
 		$download            = $this->buffered_download();
-
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceReader' )
-			->shouldReceive( 'get_hierarchical' )->andReturn( array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\FilenameHelper' )
-			->shouldReceive( 'get_export_filename' )->andReturn( 'audiences.csv' );
 
 		( new AudienceAdminImport( 'ffc-scheduling', new CsvStreamer( $download ) ) )->handle_csv_import();
 		unset( $_POST['ffc_action'] );
@@ -529,61 +754,72 @@ class AudienceAdminImportTest extends TestCase {
 	}
 
 	/**
+	 * A sheet PHP did not upload is never read: the file below is a valid
+	 * import, so had the importer run, it would have asked the database
+	 * about the row (and written it).
+	 *
 	 * @dataProvider import_actions
 	 */
 	public function test_import_refuses_a_file_php_did_not_upload( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );
 		$notices = $this->capture_notices();
+		$this->stub_import_path();
 		Functions\when( 'is_uploaded_file' )->justReturn( false );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCsvImporter' )
-			->shouldNotReceive( 'import_members', 'import_audiences' );
+		$file = $this->upload(
+			'import_members' === $action ? "email,audience_id\na@example.com,4\n" : "name\nNew Group\n"
+		);
 		$_POST['ffc_action'] = $action;
-		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => '/etc/passwd' );
+		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => $file );
 
 		( new AudienceAdminImport( 'ffc-scheduling' ) )->handle_csv_import();
 		unset( $_POST['ffc_action'], $_FILES[ $file_key ] );
 
 		$this->assertSame( array( array( 'Invalid file upload.', 'error' ) ), $notices->getArrayCopy() );
+		$this->assertSame( array(), $this->queries, 'The importer never ran.' );
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	/**
+	 * Three rows import and six are refused: the counts go in one notice and
+	 * only the first five errors follow it. The members sheet also proves the
+	 * form's audience and create-users choices reach the importer: every
+	 * membership lands in audience 12, and the unknown address is created.
+	 *
 	 * @dataProvider import_actions
 	 */
 	public function test_import_success_reports_counts_and_the_first_five_errors( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );
 		$notices = $this->capture_notices();
+		$created = $this->stub_import_path();
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
-		$result   = array(
-			'success'  => true,
-			'imported' => 3,
-			'skipped'  => 1,
-			'errors'   => array( 'e1', 'e2', 'e3', 'e4', 'e5', 'e6' ),
-		);
-		$importer = Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCsvImporter' );
 		if ( 'import_members' === $action ) {
-			$importer->shouldReceive( 'import_members' )->once()->with( '/tmp/upload.csv', 12, true )->andReturn( $result );
+			$file   = $this->upload(
+				"email,name\na@example.com,Ana\n" . str_repeat( "not-an-email,Bad\n", 6 ) . "b@example.com,Bruno\nnew@example.com,New Person\n"
+			);
+			$errors = array_map( static fn ( $row ) => 'Row ' . $row . ': Invalid email address.', range( 3, 7 ) );
 			$_POST['import_audience_id'] = '12';
 			$_POST['create_users']       = '1';
 		} else {
-			$importer->shouldReceive( 'import_audiences' )->once()->with( '/tmp/upload.csv' )->andReturn( $result );
+			$file   = $this->upload( "name,color\nOne,\n" . str_repeat( ",#ff0000\n", 6 ) . "Two,\nThree,\n" );
+			$errors = array_map( static fn ( $row ) => 'Row ' . $row . ': Empty name.', range( 3, 7 ) );
 		}
 		$_POST['ffc_action'] = $action;
-		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => '/tmp/upload.csv' );
+		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => $file );
 
 		( new AudienceAdminImport( 'ffc-scheduling' ) )->handle_csv_import();
 		unset( $_POST['ffc_action'], $_POST['import_audience_id'], $_POST['create_users'], $_FILES[ $file_key ] );
 
-		$this->assertSame(
-			array(
-				array( 'Import completed. 3 imported, 1 skipped. 6 errors occurred.', 'success' ),
-				array( 'e1', 'warning' ),
-				array( 'e2', 'warning' ),
-				array( 'e3', 'warning' ),
-				array( 'e4', 'warning' ),
-				array( 'e5', 'warning' ),
-			),
-			$notices->getArrayCopy()
-		);
+		$expected = array( array( 'Import completed. 3 imported, 6 skipped. 6 errors occurred.', 'success' ) );
+		foreach ( $errors as $error ) {
+			$expected[] = array( $error, 'warning' );
+		}
+		$this->assertSame( $expected, $notices->getArrayCopy() );
+		if ( 'import_members' === $action ) {
+			$this->assertSame( array( 12 => array( 10, 11, 77 ) ), $this->members, 'Every membership lands in the audience the form chose.' );
+			$this->assertCount( 1, $created, 'create_users reached the importer: the unknown address got an account.' );
+		} else {
+			$this->assertSame( array( 'One', 'Two', 'Three' ), array_column( $this->audiences, 'name' ) );
+		}
 	}
 
 	/**
@@ -592,12 +828,15 @@ class AudienceAdminImportTest extends TestCase {
 	public function test_import_success_without_errors_reports_only_counts( string $action, string $file_key ): void {
 		$this->grant( array( 'manage_options' ) );
 		$notices = $this->capture_notices();
+		$this->stub_import_path();
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
-		$result = array( 'success' => true, 'imported' => 2, 'skipped' => 0, 'errors' => array() );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCsvImporter' )
-			->shouldReceive( 'import_members', 'import_audiences' )->andReturn( $result );
+		$file = $this->upload(
+			'import_members' === $action
+				? "email,name,audience_id\na@example.com,Ana,4\nb@example.com,Bruno,4\n"
+				: "name,color\nOne,#112233\nTwo,#445566\n"
+		);
 		$_POST['ffc_action'] = $action;
-		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => '/tmp/upload.csv' );
+		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => $file );
 
 		( new AudienceAdminImport( 'ffc-scheduling' ) )->handle_csv_import();
 		unset( $_POST['ffc_action'], $_FILES[ $file_key ] );
@@ -609,21 +848,33 @@ class AudienceAdminImportTest extends TestCase {
 	}
 
 	/**
+	 * A refused import is reported as one error notice carrying the
+	 * importer's message.
+	 *
+	 * The earlier version had a mocked importer return two errors and proved
+	 * they were joined. The real importer stops at its first failure, so a
+	 * failed result carries one error; what this proves now is that it
+	 * reaches the operator as an error rather than as a success.
+	 *
 	 * @dataProvider import_actions
 	 */
-	public function test_import_failure_joins_errors_into_one_notice( string $action, string $file_key ): void {
+	public function test_import_failure_reports_the_error_in_one_notice( string $action, string $file_key ): void {
 		$this->grant( array( 'ffc_import_audiences' ) );
 		$notices = $this->capture_notices();
+		$this->stub_import_path();
 		Functions\when( 'is_uploaded_file' )->justReturn( true );
-		$result = array( 'success' => false, 'imported' => 0, 'skipped' => 0, 'errors' => array( 'Missing column.', 'Empty file.' ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Audience\AudienceCsvImporter' )
-			->shouldReceive( 'import_members', 'import_audiences' )->andReturn( $result );
+		$file = $this->upload( "unrelated\nvalue\n" );
 		$_POST['ffc_action'] = $action;
-		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => '/tmp/upload.csv' );
+		$_FILES[ $file_key ] = array( 'error' => UPLOAD_ERR_OK, 'tmp_name' => $file );
 
 		( new AudienceAdminImport( 'ffc-scheduling' ) )->handle_csv_import();
 		unset( $_POST['ffc_action'], $_FILES[ $file_key ] );
 
-		$this->assertSame( array( array( 'Missing column. Empty file.', 'error' ) ), $notices->getArrayCopy() );
+		$column = 'import_members' === $action ? 'email' : 'name';
+		$this->assertSame(
+			array( array( 'Required column "' . $column . '" not found in CSV.', 'error' ) ),
+			$notices->getArrayCopy()
+		);
+		$this->assertSame( array(), $this->inserts );
 	}
 }

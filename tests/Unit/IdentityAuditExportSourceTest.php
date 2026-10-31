@@ -106,18 +106,85 @@ class IdentityAuditExportSourceTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The superglobal as an earlier test left it. */
+	private array $get_backup = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\\Maintenance\\IdentityAuditExportSource' );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->get_backup  = $_GET ?? array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Install a `$wpdb` double whose only answer is the foreign-key probe of
+	 * `MigrationForeignKeys::get_status()`: the constraint names given. Any
+	 * other query fails the test.
+	 *
+	 * @param list<string>            $constraints Names `information_schema` holds.
+	 * @param list<array<int, mixed>> $probes      Filled with the bound arguments of each probe.
+	 * @return void
+	 */
+	private function install_constraints( array $constraints, array &$probes ): void {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$prepared     = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$prepared ) {
+				$prepared[] = $args;
+				return 'Q' . ( count( $prepared ) - 1 ) . ':' . $args[0];
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) use ( $constraints, &$prepared, &$probes ) {
+				if ( false !== strpos( (string) $sql, 'information_schema.TABLE_CONSTRAINTS' ) && preg_match( '/^Q(\d+):/', (string) $sql, $match ) ) {
+					$probes[] = array_slice( $prepared[ (int) $match[1] ], 1 );
+					return $constraints;
+				}
+				$this->fail( 'Unexpected get_col(): ' . $sql );
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
+	}
+
+	/**
+	 * The acceptance record the real `IdentityAcceptance` reads: empty, and
+	 * any other option read fails the test.
+	 *
+	 * @return void
+	 */
+	private function stub_empty_acceptance_record(): void {
+		Functions\when( 'get_option' )->alias(
+			function ( $key, $fallback = false ) {
+				if ( IdentityAcceptance::OPTION === $key ) {
+					return array();
+				}
+				$this->fail( 'Unexpected get_option(): ' . $key );
+			}
+		);
 	}
 
 	/**
@@ -830,6 +897,8 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * this alias-mocks the registry rather than injecting — the constructor is
 	 * typed, so a non-tool cannot be passed in.
 	 *
+	 * Own process: the real registry always holds the auditor, so only a replaced registry class reaches this branch.
+	 *
 	 * @runInSeparateProcess
 	 * @preserveGlobalState disabled
 	 */
@@ -1023,29 +1092,24 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * case this row exists to report. This test drives the real seam, so the
 	 * 21 tests above that stub it hide nothing.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real `MigrationForeignKeys` asks `information_schema` through the
+	 * `$wpdb` double. The double answers with more names than the migration
+	 * declares, so the set is complete whatever the canonical count is, and
+	 * the note's number is the one the double supplied -- never a restatement
+	 * of a list another file owns.
 	 */
 	public function test_the_foreign_key_note_reads_the_live_constraints(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
-			->shouldReceive( 'get_status' )
-			->once()
-			->andReturn(
-				array(
-					'total_constraints'    => 7,
-					'existing_constraints' => 7,
-					'is_complete'          => true,
-					'existing'             => array( 'fk_ffc_submissions_user' ),
-				)
-			);
+		$installed = array();
+		for ( $i = 1; $i <= 20; $i++ ) {
+			$installed[] = 'fk_ffc_constraint_' . $i;
+		}
+		$probes = array();
+		$this->install_constraints( $installed, $probes );
 
-		// THE REAL SOURCE, so the real acceptance record is read -- these two
-		// drive `foreign_key_status()` end to end through an alias mock and
-		// cannot use the stubbed subclass. Both run in their own process, so
-		// teaching Patchwork `get_option` here cannot reach a later test; that
-		// containment is why this stub is acceptable where `setUp()` would not
-		// be (#1534).
-		Functions\when( 'get_option' )->justReturn( array() );
+		// THE REAL SOURCE, so the real acceptance record is read: these two
+		// drive `foreign_key_status()` end to end and cannot use the stubbed
+		// subclass.
+		$this->stub_empty_acceptance_record();
 
 		$seen   = array();
 		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
@@ -1053,8 +1117,10 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$rows = $this->rows( $source );
 		$last = end( $rows );
 
+		$this->assertCount( 1, $probes, 'The live constraints are read exactly once.' );
+		$this->assertSame( array( DB_NAME, 'fk_ffc_%' ), $probes[0], 'The probe asks this database for the plugin\'s foreign keys.' );
 		$this->assertSame( 'foreign_keys', $last['check'] );
-		$this->assertStringContainsString( 'all 7', $last['note'] );
+		$this->assertStringContainsString( 'all 20', $last['note'] );
 	}
 
 	/**
@@ -1063,30 +1129,17 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * Never the missing ones: the canonical list lives in
 	 * `MigrationForeignKeys` and is not public, so restating it here would be
 	 * a claim about a value another file owns — the kind that goes stale in
-	 * silence while still reading as authoritative.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * silence while still reading as authoritative -- which is also why this
+	 * test reads the total off the note rather than naming it.
 	 */
 	public function test_an_incomplete_constraint_set_names_what_is_installed(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Migrations\MigrationForeignKeys' )
-			->shouldReceive( 'get_status' )
-			->andReturn(
-				array(
-					'total_constraints'    => 7,
-					'existing_constraints' => 2,
-					'is_complete'          => false,
-					'existing'             => array( 'fk_ffc_user_profiles_user', 'fk_ffc_submissions_user' ),
-				)
-			);
+		$probes = array();
+		$this->install_constraints( array( 'fk_ffc_user_profiles_user', 'fk_ffc_submissions_user' ), $probes );
 
-		// THE REAL SOURCE, so the real acceptance record is read -- these two
-		// drive `foreign_key_status()` end to end through an alias mock and
-		// cannot use the stubbed subclass. Both run in their own process, so
-		// teaching Patchwork `get_option` here cannot reach a later test; that
-		// containment is why this stub is acceptable where `setUp()` would not
-		// be (#1534).
-		Functions\when( 'get_option' )->justReturn( array() );
+		// THE REAL SOURCE, so the real acceptance record is read: these two
+		// drive `foreign_key_status()` end to end and cannot use the stubbed
+		// subclass.
+		$this->stub_empty_acceptance_record();
 
 		$seen   = array();
 		$source = new IdentityAuditExportSource( $this->auditor( array(), $seen ) );
@@ -1094,7 +1147,10 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$rows = $this->rows( $source );
 		$last = end( $rows );
 
-		$this->assertStringContainsString( 'only 2 of 7', $last['note'] );
+		$this->assertCount( 1, $probes );
+		$this->assertMatchesRegularExpression( '/only 2 of (\d+) /', $last['note'] );
+		preg_match( '/only 2 of (\d+) /', $last['note'], $match );
+		$this->assertGreaterThan( 2, (int) $match[1], 'Two installed constraints are fewer than the migration declares.' );
 		$this->assertStringContainsString( 'fk_ffc_submissions_user, fk_ffc_user_profiles_user', $last['note'] );
 	}
 
@@ -1102,45 +1158,73 @@ class IdentityAuditExportSourceTest extends TestCase {
 	 * No capability, no file — and the source runs its own gate rather than
 	 * trusting whoever constructed it.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real `Capabilities` gate runs over a `current_user_can` that holds
+	 * nothing, and the test records which capabilities were asked for.
 	 */
 	public function test_authorize_refuses_without_the_danger_zone_capability(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
-
+		$asked = array();
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( &$asked ) {
+				$asked[] = $cap;
+				return false;
+			}
+		);
+		$nonce_checks = 0;
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function () use ( &$nonce_checks ) {
+				++$nonce_checks;
+				return 1;
+			}
+		);
 		Functions\when( 'wp_die' )->alias(
 			function () {
 				throw new \RuntimeException( 'denied' );
 			}
 		);
 
-		$this->expectException( \RuntimeException::class );
-		( new ExportSourceWithStubbedSchemaProbe() )->authorize();
+		try {
+			( new ExportSourceWithStubbedSchemaProbe() )->authorize();
+			$this->fail( 'authorize() must refuse a user without the Danger Zone capability.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'denied', $e->getMessage() );
+		}
+		$this->assertSame( array( 'manage_options', 'ffc_manage_settings_dangerzone' ), $asked );
+		$this->assertSame( 0, $nonce_checks, 'The capability refusal comes before the nonce is read.' );
 	}
 
 	/**
 	 * The capability is not the whole gate: every operator who can run the
 	 * audit holds it, so the nonce is what ties the download to this request.
 	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real `Capabilities` and `RequestInput` run: the user holds the
+	 * capability, and the request carries a nonce that does not verify.
 	 */
 	public function test_authorize_refuses_without_the_nonce(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' )
-			->shouldReceive( 'current_user_can_admin_or' )->andReturn( true );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\RequestInput' )
-			->shouldReceive( 'get_get_string' )->andReturn( 'wrong' );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		$_GET['_wpnonce'] = 'wrong';
 
-		Functions\when( 'wp_verify_nonce' )->justReturn( false );
+		$verified = array();
+		Functions\when( 'wp_verify_nonce' )->alias(
+			static function ( $nonce, $action ) use ( &$verified ) {
+				$verified[] = array( $nonce, $action );
+				return false;
+			}
+		);
 		Functions\when( 'wp_die' )->alias(
 			function () {
 				throw new \RuntimeException( 'denied' );
 			}
 		);
 
-		$this->expectException( \RuntimeException::class );
-		( new ExportSourceWithStubbedSchemaProbe() )->authorize();
+		try {
+			( new ExportSourceWithStubbedSchemaProbe() )->authorize();
+			$this->fail( 'authorize() must refuse a request whose nonce does not verify.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'denied', $e->getMessage() );
+		}
+		$this->assertSame( array( array( 'wrong', IdentityAuditExportSource::NONCE ) ), $verified, 'The request\'s own nonce is checked against the export\'s action.' );
 	}
 
 

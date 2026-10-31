@@ -125,6 +125,94 @@ final class QuizGrading {
 			}
 		}
 
+		$previous = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
+
+		return self::result( $data, $form_config, $score, $max, $correct, $counted, array_merge( $previous, $given ) );
+	}
+
+	/**
+	 * The questions of an attempt already graded, with their worth (#2241).
+	 *
+	 * The worth is read from the form; a question that has since left it is
+	 * worth what it was given, so a regrade can lower it but not raise it.
+	 *
+	 * @param array<string, mixed>             $data   Stored submission data.
+	 * @param array<int, array<string, mixed>> $fields Form fields configuration.
+	 * @return array<string, array{label: string, worth: int, answer: string, given: int}> Keyed by question name.
+	 */
+	public static function graded_questions( array $data, array $fields ): array {
+		$graded = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
+		$out    = array();
+		foreach ( $graded as $name => $given ) {
+			$name  = (string) $name;
+			$given = is_numeric( $given ) ? (int) $given : 0;
+			$field = null;
+			foreach ( $fields as $candidate ) {
+				if ( ArrayValue::string( $candidate, 'name' ) === $name ) {
+					$field = $candidate;
+					break;
+				}
+			}
+			$answer       = $data[ $name ] ?? '';
+			$out[ $name ] = array(
+				'label'  => null !== $field ? ArrayValue::string( $field, 'label', $name ) : $name,
+				'worth'  => null !== $field ? max( $given, QuizQuestion::points( $field ) ) : $given,
+				'answer' => is_array( $answer ) ? implode( ', ', array_map( 'strval', $answer ) ) : ( is_scalar( $answer ) ? (string) $answer : '' ),
+				'given'  => $given,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Replace the grades an attempt was given and recompute its result (#2241).
+	 *
+	 * The automatic part is untouched: the difference between the new and
+	 * the old grade is all that moves the score, and the maximum stays where
+	 * grading left it.
+	 *
+	 * @param array<string, mixed>                                                        $data        Stored submission data.
+	 * @param array<string, array{label: string, worth: int, answer: string, given: int}> $graded      {@see graded_questions()}.
+	 * @param array<string, mixed>                                                        $form_config Form configuration.
+	 * @param array<string, int>                                                          $grades      New points, keyed by question name.
+	 * @return GradingResult|\WP_Error An error when a graded question has no new grade.
+	 */
+	public static function regrade( array $data, array $graded, array $form_config, array $grades ) {
+		$score   = ArrayValue::int( $data, '_quiz_score', 0 );
+		$max     = ArrayValue::int( $data, '_quiz_max_score', 0 );
+		$correct = ArrayValue::int( $data, '_quiz_correct_count', 0 );
+		$counted = ArrayValue::int( $data, '_quiz_question_count', 0 );
+		$given   = array();
+
+		foreach ( $graded as $name => $question ) {
+			if ( ! array_key_exists( $name, $grades ) ) {
+				return new \WP_Error( 'ffc_grade_missing', __( 'Give every open answer a grade.', 'ffcertificate' ) );
+			}
+			$new            = min( $question['worth'], max( 0, $grades[ $name ] ) );
+			$given[ $name ] = $new;
+			$score         += $new - $question['given'];
+			$was_right      = $question['worth'] > 0 && $question['given'] >= $question['worth'];
+			$is_right       = $question['worth'] > 0 && $new >= $question['worth'];
+			$correct       += (int) $is_right - (int) $was_right;
+		}
+
+		$previous = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
+		return self::result( $data, $form_config, max( 0, $score ), $max, max( 0, $correct ), $counted, array_merge( $previous, $given ) );
+	}
+
+	/**
+	 * The attempt's data and status for a score.
+	 *
+	 * @param array<string, mixed> $data        Stored submission data.
+	 * @param array<string, mixed> $form_config Form configuration.
+	 * @param int                  $score       Points earned.
+	 * @param int                  $max         Maximum points.
+	 * @param int                  $correct     Questions answered right.
+	 * @param int                  $counted     Questions scored.
+	 * @param array<string, mixed> $grades      Grades given, keyed by question name.
+	 * @return GradingResult
+	 */
+	private static function result( array $data, array $form_config, int $score, int $max, int $correct, int $counted, array $grades ): array {
 		// Never above 100%: an attempt stored without a snapshot cannot tell which
 		// of the form's manual questions its maximum already holds.
 		$percent = $max > 0 ? min( 100, (int) round( ( $score / $max ) * 100 ) ) : 0;
@@ -140,7 +228,6 @@ final class QuizGrading {
 			$status = SubmissionStatus::QUIZ_IN_PROGRESS;
 		}
 
-		$previous = isset( $data['_quiz_grades'] ) && is_array( $data['_quiz_grades'] ) ? $data['_quiz_grades'] : array();
 		unset( $data['_quiz_pending'] );
 		$data['_quiz_score']          = $score;
 		$data['_quiz_max_score']      = $max;
@@ -148,7 +235,7 @@ final class QuizGrading {
 		$data['_quiz_passed']         = $passed ? '1' : '0';
 		$data['_quiz_correct_count']  = $correct;
 		$data['_quiz_question_count'] = $counted;
-		$data['_quiz_grades']         = array_merge( $previous, $given );
+		$data['_quiz_grades']         = $grades;
 
 		return array(
 			'data'      => $data,

@@ -84,6 +84,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 				</p>
 			</td>
 		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Unidentified address', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'         => 'ip_captcha_unresolved',
+						'id'           => 'ip_captcha_unresolved',
+						'value'        => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $ffcertificate_s['ip']['captcha_unresolved'] ?? null ),
+						'default'      => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+						'legend'       => __( 'Unidentified address', 'ffcertificate' ),
+						'options'      => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'Let through', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Count together', 'ffcertificate' ),
+						),
+						'descriptions' => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network.', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap.', 'ffcertificate' ),
+						),
+						'data'         => array( 'ffc-autosave-key' => 'ip_captcha_unresolved' ),
+					)
+				);
+				?>
+				<p class="description"><?php esc_html_e( 'IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
 	</tbody></table>
 </div>
 
@@ -113,6 +139,32 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 					max="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX ); ?>"
 					data-ffc-autosave-key="ip_device_check_window_seconds" required>
 				<p class="description"><?php esc_html_e( 'Fixed windows, not sliding: the count resets on the boundary, so an address that hits the cap waits at most one window.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row"><?php esc_html_e( 'Unidentified address', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'         => 'ip_device_check_unresolved',
+						'id'           => 'ip_device_check_unresolved',
+						'value'        => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $ffcertificate_s['ip']['device_check_unresolved'] ?? null ),
+						'default'      => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
+						'legend'       => __( 'Unidentified address', 'ffcertificate' ),
+						'options'      => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'Let through', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Count together', 'ffcertificate' ),
+						),
+						'descriptions' => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'A visitor whose address cannot be read is not counted. Recommended when visitors reach the site from private addresses, such as an internal network.', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Every visitor whose address cannot be read shares one count. Stricter, but on an internal network it puts everyone under a single cap.', 'ffcertificate' ),
+						),
+						'data'         => array( 'ffc-autosave-key' => 'ip_device_check_unresolved' ),
+					)
+				);
+				?>
+				<p class="description"><?php esc_html_e( 'IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 	</tbody></table>
@@ -307,9 +359,10 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 	<?php
 	$ffc_read_endpoints = array(
-		'calendar_slots'  => __( 'Calendar — Slots (GET /calendars/{id}/slots)', 'ffcertificate' ),
-		'calendar_list'   => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
-		'calendar_detail' => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
+		'calendar_slots'    => __( 'Calendar — Slots (GET /calendars/{id}/slots, and the booking form\'s slot and month reads)', 'ffcertificate' ),
+		'calendar_list'     => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
+		'calendar_detail'   => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
+		'audience_bookings' => __( 'Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too', 'ffcertificate' ),
 	);
 	foreach ( $ffc_read_endpoints as $ffc_ep_key => $ffc_ep_label ) :
 		$ffc_ep = $ffcertificate_s['read']['endpoints'][ $ffc_ep_key ] ?? array(
@@ -544,7 +597,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		?>
 	</p>
 	<table class="form-table" role="presentation" data-ffc-section="rl-whitelist"><tbody>
-		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line', 'ffcertificate' ); ?></p></td></tr>
+		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="whitelist_ips" rows="5" class="large-text code"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48.', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="whitelist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['emails'] ) ); ?></textarea></td></tr>
 		<tr><th><?php esc_html_e( 'Domains', 'ffcertificate' ); ?></th><td><textarea name="whitelist_email_domains" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['email_domains'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'Format: *@domain.com', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Tax IDs (CPFs)', 'ffcertificate' ); ?></th><td><textarea name="whitelist_cpfs" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['whitelist']['cpfs'] ) ); ?></textarea></td></tr>
@@ -570,7 +623,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		?>
 	</p>
 	<table class="form-table" role="presentation" data-ffc-section="rl-blacklist"><tbody>
-		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['ips'] ) ); ?></textarea></td></tr>
+		<tr><th><?php esc_html_e( 'IPs', 'ffcertificate' ); ?></th><td><textarea name="blacklist_ips" rows="5" class="large-text code"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['ips'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48.', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Emails', 'ffcertificate' ); ?></th><td><textarea name="blacklist_emails" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['emails'] ) ); ?></textarea></td></tr>
 		<tr><th><?php esc_html_e( 'Domains', 'ffcertificate' ); ?></th><td><textarea name="blacklist_email_domains" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['email_domains'] ) ); ?></textarea><p class="description"><?php esc_html_e( 'Format: *@domain.com', 'ffcertificate' ); ?></p></td></tr>
 		<tr><th><?php esc_html_e( 'Tax IDs (CPFs)', 'ffcertificate' ); ?></th><td><textarea name="blacklist_cpfs" rows="5" class="large-text"><?php echo esc_textarea( implode( "\n", $ffcertificate_s['blacklist']['cpfs'] ) ); ?></textarea></td></tr>
@@ -673,8 +726,29 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 <?php endif; ?>
 <?php if ( ! empty( $ffcertificate_stats['top_ips'] ) ) : ?>
 	<h3><?php esc_html_e( 'Top blocked IPs:', 'ffcertificate' ); ?></h3>
+	<?php
+	// Masked for everyone; a holder of the settings reveal cap gets an
+	// audited Reveal beside each address (#2109).
+	$ffcertificate_reveal_nonce = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( \FreeFormCertificate\Settings\Tabs\TabRateLimit::PII_CAP )
+		? wp_create_nonce( 'ffc_reveal_pii_nonce' )
+		: '';
+	?>
 	<ol><?php foreach ( $ffcertificate_stats['top_ips'] as $ffcertificate_ip ) : ?>
-		<li><?php echo esc_html( $ffcertificate_ip['identifier'] ); ?> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)</li>
+		<li class="ffc-pii-row"><code class="ffc-pii-value" data-field="ip"><?php echo esc_html( $ffcertificate_ip['label'] ); ?></code> (<?php echo esc_html( number_format( $ffcertificate_ip['count'] ) ); ?>x)
+		<?php
+		if ( '' !== $ffcertificate_reveal_nonce && ! empty( $ffcertificate_ip['log_id'] ) ) {
+			$ffcertificate_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+				array(
+					'field'         => 'ip',
+					'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_RATE_LIMIT_LOG,
+					'submission-id' => (int) $ffcertificate_ip['log_id'],
+					'nonce'         => $ffcertificate_reveal_nonce,
+				)
+			);
+			echo $ffcertificate_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+		}
+		?>
+		</li>
 	<?php endforeach; ?></ol>
 <?php endif; ?>
 </div>

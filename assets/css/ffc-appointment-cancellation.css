@@ -59,6 +59,30 @@
 	background: var(--ffc-danger-hover);
 }
 
+/* "Cancel and book a new time" (#2244): the caution tone, because it
+   releases the slot like the plain confirm but is not the page's main act. */
+.ffc-cancel-reschedule-btn {
+	display: inline-block;
+	margin-inline-start: 0.5rem;
+	padding: 0.6rem 1.25rem;
+	font-size: var(--ffc-font-size-lg);
+	color: var(--ffc-warning-text);
+	background: var(--ffc-warning-bg);
+	border: 1px solid var(--ffc-warning-border);
+	border-radius: var(--ffc-radius-sm);
+	cursor: pointer;
+}
+
+.ffc-cancel-reschedule-btn:hover,
+.ffc-cancel-reschedule-btn:focus {
+	border-color: var(--ffc-warning-text);
+}
+
+.ffc-cancel-reschedule-note {
+	color: var(--ffc-text-muted);
+	font-size: var(--ffc-font-size-sm);
+}
+
 /* ==========================================================================
    ACCESSIBILITY — HIGH CONTRAST (forced-colors)
    Gives a border back to whatever had only a background. No effect outside
@@ -67,7 +91,8 @@
 
 @media (forced-colors: active) {
     /* Controls: without a contour, a button stops looking clickable. */
-    .ffc-cancel-confirm-btn {
+    .ffc-cancel-confirm-btn,
+    .ffc-cancel-reschedule-btn {
         border: 1px solid ButtonText;
     }
 }

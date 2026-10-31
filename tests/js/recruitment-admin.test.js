@@ -689,6 +689,76 @@ describe('ffc-recruitment-admin: confirm modal', () => {
 		expect(onConfirm.mock.calls[0][1]).toBe(false);  // checkbox state
 	});
 
+	it('openConfirmModal: fields gate the CTA and reach onConfirm as values (#2245)', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{
+				title: 'Call?',
+				cta: 'Call',
+				fields: [
+					{ name: 'date_to_assume', label: 'Date', type: 'date', value: '2026-05-20', required: true },
+					{ name: 'time_to_assume', label: 'Time', type: 'time', value: '', required: true },
+					{ name: 'bad name', label: 'Ignored', type: 'text' },
+				],
+			},
+			onConfirm
+		);
+		const modal = getModalOverlay();
+		const inputs = modal.querySelectorAll('[data-ffc-confirm-field]');
+		expect(inputs.length).toBe(2);
+		expect(inputs[0].type).toBe('date');
+		expect(inputs[0].value).toBe('2026-05-20');
+		expect(document.activeElement).toBe(inputs[0]);
+		const cta = modal.querySelector('.ffc-confirm-modal-confirm');
+		expect(cta.disabled).toBe(true); // time still empty
+
+		inputs[1].value = '09:00';
+		inputs[1].dispatchEvent(new Event('input', { bubbles: true }));
+		expect(cta.disabled).toBe(false);
+
+		cta.click();
+		expect(onConfirm.mock.calls[0][2]).toEqual({ date_to_assume: '2026-05-20', time_to_assume: '09:00' });
+	});
+
+	it('openConfirmModal: a field value with quotes is set as text, never as markup', () => {
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{ title: 'X', cta: 'OK', fields: [{ name: 'note', label: 'N', value: '"><img src=x onerror=alert(1)>' }] },
+			vi.fn()
+		);
+		const modal = getModalOverlay();
+		expect(modal.querySelector('img')).toBeNull();
+		expect(modal.querySelector('[data-ffc-confirm-field="note"]').value).toBe('"><img src=x onerror=alert(1)>');
+	});
+
+	it('openConfirmModal: onChange shows a warning and hides the checkbox, which then reports null', () => {
+		const onConfirm = vi.fn();
+		window.ffcRecruitmentAdmin.openConfirmModal(
+			{
+				title: 'Call?',
+				cta: 'Call',
+				checkboxLabel: 'Notify',
+				fields: [{ name: 'date_to_assume', label: 'Date', type: 'date', value: '2026-05-21' }],
+				onChange: (v) => (v.date_to_assume < '2026-05-20' ? { warning: 'PAST', hideCheckbox: true } : {}),
+			},
+			onConfirm
+		);
+		const modal = getModalOverlay();
+		const warning = modal.querySelector('.ffc-confirm-modal-warning');
+		const boxWrap = modal.querySelector('.ffc-confirm-modal-checkbox');
+		expect(warning.hidden).toBe(true);
+		expect(boxWrap.hidden).toBe(false);
+
+		const date = modal.querySelector('[data-ffc-confirm-field="date_to_assume"]');
+		date.value = '2026-05-01';
+		date.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(warning.hidden).toBe(false);
+		expect(warning.textContent).toBe('PAST');
+		expect(boxWrap.hidden).toBe(true);
+
+		modal.querySelector('.ffc-confirm-modal-confirm').click();
+		expect(onConfirm.mock.calls[0][1]).toBeNull();
+	});
+
 	it('openConfirmModal: checkboxChecked:false renders the checkbox unchecked', () => {
 		const onConfirm = vi.fn();
 		window.ffcRecruitmentAdmin.openConfirmModal(

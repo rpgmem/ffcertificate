@@ -47,6 +47,9 @@ class OperatorCertificatesRestController {
 	 */
 	private const ISSUE_CAP = 'ffc_manage_certificates';
 
+	/** The certificates module's reveal capability, asked by the PDF route. */
+	private const PII_CAP = 'ffc_view_certificates_pii';
+
 	/**
 	 * Per-user_id rate-limit for issuance — a runaway guard, not friction: an
 	 * operator working a queue can legitimately issue hundreds per hour.
@@ -138,8 +141,8 @@ class OperatorCertificatesRestController {
 	}
 
 	/**
-	 * PDF gate: any logged-in user may reach the route; the handler then enforces
-	 * capability OR ownership of the specific certificate.
+	 * PDF gate: any logged-in user may reach the route; the handler then asks
+	 * `PiiAccessPolicy` about the specific certificate.
 	 *
 	 * @return bool
 	 */
@@ -185,7 +188,7 @@ class OperatorCertificatesRestController {
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
 				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( $user_id, self::RATE_ACTION, self::RATE_PER_HOUR, self::RATE_PER_DAY );
 				if ( ! $rate_check['allowed'] ) {
-					return new \WP_Error( 'rate_limited', $rate_check['message'] ?? __( 'Too many requests. Please try again later.', 'ffcertificate' ), array( 'status' => 429 ) );
+					return new \WP_Error( 'rate_limited', $rate_check['message'], array( 'status' => 429 ) );
 				}
 			}
 
@@ -265,8 +268,17 @@ class OperatorCertificatesRestController {
 	 *
 	 * Delivers the same `pdf_data` (HTML + assets) payload the web + magic-link
 	 * paths use, rendered to PDF client-side — the plugin has no server-side PDF
-	 * binary renderer. Gated by the management capability OR ownership of the
-	 * specific certificate.
+	 * binary renderer.
+	 *
+	 * The document prints the person's data in clear, so it is gated by the
+	 * one reveal policy every other surface uses (#2246): the owner receives
+	 * their own certificate with no audit row, a holder of
+	 * `ffc_view_certificates_pii` (or `manage_options`) receives it and the
+	 * read is logged, and anyone else is answered exactly as if the id did not
+	 * exist. The management capability alone no longer opens it, since it
+	 * grants no right to see personal data. A row that is not a certificate
+	 * (trashed, a quiz in progress, failed or awaiting grading) is not served
+	 * to anyone.
 	 *
 	 * @param \WP_REST_Request $request REST request.
 	 * @return \WP_REST_Response|\WP_Error
@@ -284,23 +296,39 @@ class OperatorCertificatesRestController {
 
 			$handler    = new \FreeFormCertificate\Submissions\SubmissionHandler();
 			$submission = $handler->get_submission( $submission_id );
-			if ( ! $submission ) {
-				return new \WP_Error( 'certificate_not_found', __( 'Certificate not found', 'ffcertificate' ), array( 'status' => 404 ) );
+
+			// One answer for "no such certificate" and "not yours to see", so the
+			// route cannot be used to learn which ids exist.
+			$not_found = new \WP_Error( 'certificate_not_found', __( 'Certificate not found', 'ffcertificate' ), array( 'status' => 404 ) );
+			if ( ! is_array( $submission )
+				|| in_array( \FreeFormCertificate\Core\ArrayValue::string( $submission, 'status' ), \FreeFormCertificate\Core\SubmissionStatus::NOT_A_CERTIFICATE, true ) ) {
+				return $not_found;
 			}
 
-			// Capability OR ownership. Never trust a request-supplied owner id — derive
-			// the owner from the stored row and the caller from the session.
+			// Never trust a request-supplied owner id: the owner comes from the
+			// stored row and the caller from the session.
 			$owner_id = isset( $submission['user_id'] ) ? (int) $submission['user_id'] : 0;
-			$can      = Capabilities::current_user_can_admin_or( self::ISSUE_CAP )
-				|| ( $owner_id > 0 && get_current_user_id() === $owner_id );
-			if ( ! $can ) {
-				return new \WP_Error( 'forbidden', __( 'You are not allowed to access this certificate.', 'ffcertificate' ), array( 'status' => 403 ) );
+			$tier     = \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAP, $owner_id > 0 ? $owner_id : null );
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_MASKED === $tier ) {
+				return $not_found;
 			}
 
 			$generator = new \FreeFormCertificate\Generators\PdfGenerator();
 			$pdf_data  = $generator->generate_pdf_data( $submission_id, $handler );
 			if ( is_wp_error( $pdf_data ) ) {
 				return $pdf_data;
+			}
+
+			// Staff reading someone else's certificate is a reveal; the owner
+			// reading their own is not (`PiiAccessPolicy::should_audit()`).
+			if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_REVEAL === $tier && class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'submission_pdf_revealed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+					array( 'channel' => 'rest' ),
+					get_current_user_id(),
+					$submission_id
+				);
 			}
 
 			return rest_ensure_response(

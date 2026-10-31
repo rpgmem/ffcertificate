@@ -211,6 +211,18 @@ body.ffc-rereg-modal-open {
     font-style: italic;
 }
 
+/* Review decision modal (#2242): a narrower dialog for the reason. */
+#ffc-review-decision-modal .ffc-rereg-modal-content {
+    max-width: 560px;
+}
+
+.ffc-review-decision-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ffc-spacing-sm);
+    margin-bottom: 0;
+}
+
 /* Submission details content */
 .ffc-submission-meta {
     margin-bottom: var(--ffc-spacing-lg);

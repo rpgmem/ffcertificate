@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '5';
+	public const SCHEMA_REVISION = '11';
 
 	/**
 	 * Option holding the revision last applied.
@@ -145,6 +145,7 @@ class AudienceActivator {
             post_event_form_id bigint(20) unsigned DEFAULT NULL,
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT 0,
+            appearance_names longtext DEFAULT NULL,
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -243,6 +244,7 @@ class AudienceActivator {
             schedule_id bigint(20) unsigned NOT NULL,
             holiday_date date NOT NULL,
             description varchar(255) DEFAULT NULL,
+            kind varchar(20) NOT NULL DEFAULT 'holiday',
             created_by bigint(20) unsigned NOT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -348,25 +350,28 @@ class AudienceActivator {
             description varchar(300) NOT NULL COMMENT 'Required, 15-300 chars',
             status enum('active','cancelled') DEFAULT 'active',
             created_by bigint(20) unsigned NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             cancelled_by bigint(20) unsigned DEFAULT NULL,
-            cancelled_at datetime DEFAULT NULL,
+            cancelled_at bigint(20) unsigned DEFAULT NULL,
             cancellation_reason varchar(500) DEFAULT NULL COMMENT 'Required when cancelling',
             end_date date DEFAULT NULL COMMENT 'Last day of a range, NULL for a single day',
             time_mode enum('daily','span') DEFAULT NULL COMMENT 'Hours of a range: daily or span',
             skipped_dates text DEFAULT NULL COMMENT 'JSON list of blocked days a range left out',
+            day_times text DEFAULT NULL COMMENT 'JSON hours of each day of a span, frozen at creation',
             attendance_mode enum('single','total') DEFAULT NULL,
             attendance_min_percent tinyint(3) unsigned DEFAULT NULL,
             post_event_custom tinyint(1) DEFAULT 0,
             post_event_form_id bigint(20) unsigned DEFAULT NULL,
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT NULL,
+            series_id bigint(20) unsigned DEFAULT NULL COMMENT 'First booking of its weekly series',
             PRIMARY KEY (id),
-            KEY idx_environment (environment_id),
             KEY idx_date (booking_date),
             KEY idx_status (status),
             KEY idx_created_by (created_by),
-            KEY idx_env_date_status (environment_id, booking_date, status)
+            KEY idx_env_status_date (environment_id, status, booking_date),
+            KEY idx_end_booking_date (end_date, booking_date),
+            KEY idx_series (series_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -911,8 +916,14 @@ class AudienceActivator {
 
 		$healed = self::migrate_audience_tree_access_columns();
 		$healed = self::migrate_booking_range_columns() && $healed;
+		$healed = self::migrate_booking_day_times_column() && $healed;
+		$healed = self::migrate_booking_indexes() && $healed;
+		$healed = self::migrate_booking_timestamps() && $healed;
+		$healed = self::migrate_booking_series_column() && $healed;
 		$healed = self::migrate_booking_attendance_columns() && $healed;
 		$healed = self::migrate_post_event_form_columns() && $healed;
+		$healed = self::migrate_holiday_kind_column() && $healed;
+		$healed = self::migrate_schedule_appearance_names_column() && $healed;
 
 		// The attendance tables of #1947 and the invitations of #1948 reach
 		// upgraded installs here: the version-gated chain below never creates
@@ -974,6 +985,163 @@ class AudienceActivator {
 	}
 
 	/**
+	 * Add the frozen hours of a span to bookings (#2243), and freeze them on
+	 * the active spans that do not end in the past.
+	 *
+	 * A span's middle days took the space's opening window read at every
+	 * conflict check, so editing the working hours moved bookings already
+	 * made. The hours each span takes today are written once, which is what
+	 * those readers computed until now; past spans are left as they are,
+	 * since nothing books against them any more. The walk is bounded by the
+	 * active spans still to happen, a handful on any install.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_booking_day_times_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'day_times', 'text DEFAULT NULL', 'skipped_dates' );
+		if ( ! self::has_columns( $table_name, array( 'day_times' ) ) ) {
+			return false;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot migration over the plugin's own table; there is no WordPress API for it and the result is used once.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, environment_id, booking_date, end_date, time_mode, skipped_dates, day_times, start_time, end_time FROM %i
+                WHERE status = 'active' AND time_mode = 'span' AND day_times IS NULL AND end_date > booking_date AND end_date >= CURDATE()",
+				$table_name
+			)
+		);
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_object( $row ) ) {
+				continue;
+			}
+			$days = array();
+			foreach ( AudienceBookingRules::booked_days( (string) ( $row->booking_date ?? '' ), (string) ( $row->end_date ?? '' ), isset( $row->skipped_dates ) ? (string) $row->skipped_dates : null ) as $day ) {
+				$days[] = array( 'date' => $day ) + AudienceBookingRules::stored_day_times( $row, $day );
+			}
+			$frozen = AudienceBookingRules::encode_day_times( $days, 'span' );
+			if ( null !== $frozen ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot migration over the plugin's own table; there is no WordPress API for it.
+				$wpdb->update( $table_name, array( 'day_times' => $frozen ), array( 'id' => (int) ( $row->id ?? 0 ) ), array( '%s' ), array( '%d' ) );
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Give bookings the two indexes their hot reads need, and drop the ones
+	 * they replace (#2243).
+	 *
+	 * The conflict read and the writer's `FOR UPDATE` filter on the space,
+	 * `status = 'active'` and a `booking_date` range, so the equality columns
+	 * come first: `(environment_id, status, booking_date)`. It replaces
+	 * `(environment_id, booking_date, status)`, whose range column in the
+	 * middle left `status` unused, and `(environment_id)`, a prefix of it.
+	 * The hourly invitation scan reads `end_date` in a range, or a NULL
+	 * `end_date` and `booking_date` in a range; `(end_date, booking_date)`
+	 * serves both halves. The new indexes are added before the old ones go,
+	 * so the space is never without an index on `environment_id`.
+	 *
+	 * @return bool Whether the table now has exactly these indexes, or does not exist yet.
+	 */
+	private static function migrate_booking_indexes(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_index_if_missing( $table_name, 'idx_env_status_date', '(environment_id, status, booking_date)' );
+		self::add_index_if_missing( $table_name, 'idx_end_booking_date', '(end_date, booking_date)' );
+		if ( ! self::index_exists( $table_name, 'idx_env_status_date' ) || ! self::index_exists( $table_name, 'idx_end_booking_date' ) ) {
+			return false;
+		}
+
+		foreach ( array( 'idx_env_date_status', 'idx_environment' ) as $replaced ) {
+			if ( self::index_exists( $table_name, $replaced ) ) {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Schema change on the plugin's own table; WordPress exposes no API for DROP INDEX.
+				$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX %i', $table_name, $replaced ) );
+			}
+		}
+
+		return ! self::index_exists( $table_name, 'idx_env_date_status' ) && ! self::index_exists( $table_name, 'idx_environment' );
+	}
+
+	/**
+	 * Add the column that ties the occurrences of a weekly series (#2243).
+	 *
+	 * Each occurrence stays an ordinary booking, with its own attendance,
+	 * invitations and cancellation; `series_id` names the first one, so the
+	 * series can be told once and cancelled from a date onward.
+	 *
+	 * @return bool Whether the column and its index exist, or the table does not exist yet.
+	 */
+	private static function migrate_booking_series_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'series_id', 'bigint(20) unsigned DEFAULT NULL', 'post_event_attendees_only' );
+		self::add_index_if_missing( $table_name, 'idx_series', 'series_id' );
+
+		return self::has_columns( $table_name, array( 'series_id' ) ) && self::index_exists( $table_name, 'idx_series' );
+	}
+
+	/**
+	 * Store a booking's creation and cancellation as UTC seconds (#2243).
+	 *
+	 * Both are instants the list, the CSV and the details show, and they
+	 * disagreed: `created_at` was MySQL's `CURRENT_TIMESTAMP`, in the
+	 * database session's zone, and `cancelled_at` was `current_time()`, in
+	 * the site's. Each converts by the rule of the zone that wrote it:
+	 * `UNIX_TIMESTAMP()` reads `created_at` in the same session zone that
+	 * stamped it, so that column is staged, filled and swapped here; and
+	 * {@see self::migrate_datetime_column_to_unix()} reads `cancelled_at` in
+	 * `wp_timezone()`.
+	 *
+	 * @return bool Whether both columns are now BIGINT, or the table does not exist yet.
+	 */
+	private static function migrate_booking_timestamps(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_bookings';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		$created_type = strtolower( (string) self::column_type( $table_name, 'created_at' ) );
+		if ( '' !== $created_type && 0 !== strpos( $created_type, 'bigint' ) ) {
+			self::add_column_if_missing( $table_name, 'created_at_ts', 'BIGINT UNSIGNED NOT NULL DEFAULT 0', 'created_at' );
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- One-shot schema migration on the plugin's own table.
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET created_at_ts = UNIX_TIMESTAMP(created_at) WHERE created_at_ts = 0 AND created_at IS NOT NULL', $table_name ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN %i', $table_name, 'created_at' ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i CHANGE %i %i BIGINT UNSIGNED NOT NULL DEFAULT 0', $table_name, 'created_at_ts', 'created_at' ) );
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		}
+		self::migrate_datetime_column_to_unix( $table_name, 'cancelled_at', true );
+
+		foreach ( array( 'created_at', 'cancelled_at' ) as $column ) {
+			$type = strtolower( (string) self::column_type( $table_name, $column ) );
+			if ( '' !== $type && 0 !== strpos( $type, 'bigint' ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Add the attendance rule to bookings (#1947).
 	 *
 	 * Both default to NULL, which reads as the *single* rule: one day of
@@ -993,6 +1161,47 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'attendance_min_percent', 'tinyint(3) unsigned DEFAULT NULL', 'attendance_mode' );
 
 		return self::has_columns( $table_name, array( 'attendance_mode', 'attendance_min_percent' ) );
+	}
+
+	/**
+	 * Add a calendar's own names to schedules (#2223): the JSON override of
+	 * the state names and the Show "Closed" switch, read through
+	 * CalendarAppearance::clean_override(). NULL reads as no override, so an
+	 * existing calendar keeps the general names.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_schedule_appearance_names_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'appearance_names', 'longtext DEFAULT NULL', 'post_event_attendees_only' );
+
+		return self::has_columns( $table_name, array( 'appearance_names' ) );
+	}
+
+	/**
+	 * Add the kind to closed dates (#2202): a holiday or an optional holiday.
+	 * It defaults to `holiday`, so every closed date stored before reads as
+	 * it did.
+	 *
+	 * @return bool Whether the table now has the column, or does not exist yet.
+	 */
+	private static function migrate_holiday_kind_column(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_holidays';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'kind', "varchar(20) NOT NULL DEFAULT 'holiday'", 'description' );
+
+		return self::has_columns( $table_name, array( 'kind' ) );
 	}
 
 	/**
@@ -1067,8 +1276,13 @@ class AudienceActivator {
 	 * Drop all audience tables (for uninstall)
 	 *
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function drop_tables(): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		// Drop in reverse order of dependencies.
@@ -1097,8 +1311,13 @@ class AudienceActivator {
 	 * Get table status information
 	 *
 	 * @return array<string, array{exists: bool, count: int}>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_tables_status(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		global $wpdb;
 
 		$tables = array(

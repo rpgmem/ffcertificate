@@ -116,6 +116,7 @@ final class Icons {
 		'send'           => '<path d="M21 3L3 10.5l7 2.5 2.5 7z"/><path d="M21 3L10 13"/>',
 		'layout'         => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
 		'qr'             => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20.5 14v.01M14 20.5h.01M17.5 20.5H21v-3.5"/>',
+		'user-call'      => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1.3-3.6 3.8-5.5 6.5-5.5s5.2 1.9 6.5 5.5M17 6.5a3.5 3.5 0 0 1 0 5M19.5 4a7 7 0 0 1 0 10"/>',
 		'user-check'     => '<circle cx="10" cy="8" r="4"/><path d="M3 21c1.4-3.8 4-5.8 7-5.8 1.6 0 3 .5 4.2 1.5M15.5 18.5l2 2 4-4.5"/>',
 		// A schedule exception: a time opened for one participant (#1881),
 		// chosen by the maintainer from three options.
@@ -186,6 +187,13 @@ final class Icons {
 		'replicate-down' => '<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-4h12v4"/>',
 		'promote'        => '<path d="M12 21V8M6 14l6-6 6 6M4 3h16"/>',
 		'switch'         => '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><path d="M14 5h3a2 2 0 0 1 2 2v3M17 8l2 2 2-2"/><path d="M10 19H7a2 2 0 0 1-2-2v-3M7 16l-2-2-2 2"/>',
+		// The migration cards' families (#2115): a key and data encrypted at
+		// rest, a value reduced to its hash, a log cleaned of what it should
+		// not hold, and a location removed.
+		'encryption'     => '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M12 3v3M15 3v3M9 18v3M12 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/><rect x="9.5" y="12" width="5" height="3.5" rx=".5"/><path d="M10.5 12v-1a1.5 1.5 0 0 1 3 0v1"/>',
+		'hash'           => '<path d="M6 3v2M9 3v1M12 3v2M15 3v1M18 3v2M4 7h16l-5.5 5.5h-5z"/><path d="M10.5 15v6M13.5 15v6M9 16.8h6M9 19.2h6"/>',
+		'log-clean'      => '<path d="M3 5h9M3 9h9M3 13h6M3 17h5M21 3l-5.5 7.5M13.5 9.5l3.5 2.8-3.4 7.2-5.1-3.7zM11 16.5l2 1.5"/>',
+		'map-pin-x'      => '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><path d="M10 7.5l4 4M14 7.5l-4 4"/>',
 	);
 
 	/**
@@ -229,6 +237,7 @@ final class Icons {
 		'download'       => 'download',
 		'edit'           => 'edit',
 		'email'          => 'email',
+		'encryption'     => 'encryption',
 		'eraser'         => 'eraser',
 		'error'          => 'error',
 		'external'       => 'external',
@@ -241,6 +250,7 @@ final class Icons {
 		'globe'          => 'globe',
 		'grid'           => 'grid',
 		'grip'           => 'grip',
+		'hash'           => 'hash',
 		'help'           => 'help',
 		'history'        => 'history',
 		'id'             => 'id-card',
@@ -253,9 +263,11 @@ final class Icons {
 		'link'           => 'link',
 		'list'           => 'list',
 		'lock'           => 'lock',
+		'log-clean'      => 'log-clean',
 		'login'          => 'login',
 		'logout'         => 'logout',
 		'map-pin'        => 'map-pin',
+		'map-pin-x'      => 'map-pin-x',
 		'megaphone'      => 'megaphone',
 		'merge'          => 'merge',
 		'minus'          => 'minus',
@@ -296,6 +308,7 @@ final class Icons {
 		'unlock'         => 'unlock',
 		'upload'         => 'upload',
 		'user'           => 'user',
+		'user-call'      => 'user-call',
 		'user-check'     => 'user-check',
 		'user-clock'     => 'user-clock',
 		'user-minus'     => 'user-minus',

@@ -120,12 +120,17 @@ class CaptchaProvider {
 	/**
 	 * Whether the configured strategy needs the ALTCHA widget on the page.
 	 *
-	 * Asked by the enqueue site, so a site on the math challenge never ships
-	 * 111 KB it cannot use.
+	 * Nothing asks: the widget bundle is enqueued from
+	 * {@see AltchaCaptcha::render_fields()}, where the widget renders.
 	 *
 	 * @return bool
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function needs_altcha_widget(): bool {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$id = self::resolve()->id();
 
 		return AltchaCaptcha::ID === $id || CompositeCaptcha::ID === $id;

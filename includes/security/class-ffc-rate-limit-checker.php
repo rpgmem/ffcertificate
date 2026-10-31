@@ -20,6 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Rate Limit Checker.
+ *
+ * A denial always carries the message shown to the visitor, so a caller
+ * never needs a fallback of its own (#2153).
+ *
+ * @phpstan-type RateLimitVerdict array{allowed: true}|array{allowed: false, message: string, reason?: string, wait_seconds?: int}
  */
 final class RateLimitChecker {
 
@@ -45,6 +50,40 @@ final class RateLimitChecker {
 	 * @var array<string, mixed>|null
 	 */
 	private static ?array $settings_cache = null;
+
+	/**
+	 * The read endpoints and their limits before an administrator saves the
+	 * Rate Limit tab (#259, #2243). The tab shows and saves these; a stored
+	 * endpoint overrides its entry here, and an endpoint never saved reads
+	 * this one, so a limit the tab shows as on is on.
+	 *
+	 * @var array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
+	 */
+	public const READ_ENDPOINT_DEFAULTS = array(
+		'calendar_slots'    => array(
+			'enabled'        => true,
+			'max_per_minute' => 60,
+			'max_per_hour'   => 1000,
+		),
+		'calendar_list'     => array(
+			'enabled'        => true,
+			'max_per_minute' => 30,
+			'max_per_hour'   => 500,
+		),
+		'calendar_detail'   => array(
+			'enabled'        => true,
+			'max_per_minute' => 60,
+			'max_per_hour'   => 1000,
+		),
+		// The audience calendar's month read: one request per month
+		// navigated, so these leave a person untouched and stop a loop.
+		// Counted for logged-in callers too, by account.
+		'audience_bookings' => array(
+			'enabled'        => true,
+			'max_per_minute' => 30,
+			'max_per_hour'   => 500,
+		),
+	);
 
 	/**
 	 * Get settings.
@@ -151,7 +190,7 @@ final class RateLimitChecker {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes (cookie, ua, screen, ...).
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check (e.g. for managers).
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
 		$s = self::get_settings();
@@ -217,7 +256,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $ip IP address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_ip_limit( string $ip, ?int $form_id = null ): array {
 		return ( new IpLimiter( new RateLimitSupport() ) )->check( $ip, $form_id );
@@ -228,7 +267,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $email Email address.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_email_limit( string $email, ?int $form_id = null ): array {
 		return ( new EmailLimiter( new RateLimitSupport() ) )->check( $email, $form_id );
@@ -239,7 +278,7 @@ final class RateLimitChecker {
 	 *
 	 * @param string   $cpf CPF document.
 	 * @param int|null $form_id Form ID.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_cpf_limit( string $cpf, ?int $form_id = null ): array {
 		return ( new CpfLimiter( new RateLimitSupport() ) )->check( $cpf, $form_id );
@@ -248,7 +287,7 @@ final class RateLimitChecker {
 	/**
 	 * Check global limit.
 	 *
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_global_limit(): array {
 		$s  = self::get_settings()['global'];
@@ -329,7 +368,7 @@ final class RateLimitChecker {
 	 *
 	 * @param int                   $form_id Form ID (post ID).
 	 * @param array<string, string> $signals Map of signal name -> SHA-256 hex hash.
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_device_limit( int $form_id, array $signals ): array {
 		return ( new DeviceLimiter( new RateLimitSupport() ) )->check( $form_id, $signals );
@@ -367,7 +406,7 @@ final class RateLimitChecker {
 	 * that length the IP-only ceiling stops being sufficient.
 	 *
 	 * @param string $ip IP address.
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_verification( string $ip ): array {
 		$settings = self::get_settings();
@@ -379,7 +418,7 @@ final class RateLimitChecker {
 		$max_per_hour = 10;
 		$max_per_day  = 30;
 
-		$hour_key   = 'ffc_verify_ip_' . md5( $ip ) . '_hour_' . gmdate( 'YmdH' );
+		$hour_key   = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) ) . '_hour_' . gmdate( 'YmdH' );
 		$hour_count = RateCounter::get( $hour_key );
 
 		if ( $hour_count >= $max_per_hour ) {
@@ -393,7 +432,7 @@ final class RateLimitChecker {
 			);
 		}
 
-		$day_key   = 'ffc_verify_ip_' . md5( $ip ) . '_day_' . gmdate( 'Ymd' );
+		$day_key   = 'ffc_verify_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) ) . '_day_' . gmdate( 'Ymd' );
 		$day_count = RateCounter::get( $day_key );
 
 		if ( $day_count >= $max_per_day ) {
@@ -450,8 +489,8 @@ final class RateLimitChecker {
 
 		if ( 'ip' === $type ) {
 			// Transients, so the counters persist without an object cache (#1861).
-			RateCounter::increment( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_hour', 3600 );
-			RateCounter::put( 'ffc_rate_ip_' . md5( $identifier . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
+			RateCounter::increment( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', 3600 );
+			RateCounter::put( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
 		}
 
 		if ( 'global' === $type ) {
@@ -473,13 +512,13 @@ final class RateLimitChecker {
 	 * @param string      $ip IP address.
 	 * @param string|null $email Email address.
 	 * @param string|null $cpf CPF document.
-	 * @return array{allowed: bool, message?: string, reason?: string}
+	 * @return RateLimitVerdict
 	 */
 	private static function check_blacklist( string $ip, ?string $email, ?string $cpf ): array {
 		$s  = self::get_settings();
 		$bl = $s['blacklist'];
 
-		if ( in_array( $ip, $bl['ips'], true ) ) {
+		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $bl['ips'] ) ) {
 			return array(
 				'allowed' => false,
 				'reason'  => 'ip_blacklisted',
@@ -529,7 +568,7 @@ final class RateLimitChecker {
 		$s  = self::get_settings();
 		$wl = $s['whitelist'];
 
-		if ( in_array( $ip, $wl['ips'], true ) ) {
+		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $wl['ips'] ) ) {
 			return true;
 		}
 
@@ -569,7 +608,7 @@ final class RateLimitChecker {
 	 * @param string $action  Action identifier (e.g. 'password_change', 'privacy_request').
 	 * @param int    $max_per_hour Max attempts per hour (default 5).
 	 * @param int    $max_per_day  Max attempts per day (default 10).
-	 * @return array{allowed: bool, message?: string, wait_seconds?: int}
+	 * @return RateLimitVerdict
 	 */
 	public static function check_user_limit( int $user_id, string $action = 'default', int $max_per_hour = 5, int $max_per_day = 10 ): array {
 		if ( $user_id <= 0 ) {
@@ -621,12 +660,17 @@ final class RateLimitChecker {
 	 * without an object cache, #1861); their TTLs mirror the window length
 	 * (60 / 3600 seconds).
 	 *
+	 * A logged-in caller can be counted by account instead of by address
+	 * (#2243): many members of an institution share one address, and a
+	 * per-address cap would then cap the whole building.
+	 *
 	 * @since 6.6.2
 	 * @param string $ip            Client IP.
 	 * @param string $endpoint_key  Endpoint identifier (e.g. `calendar_slots`).
-	 * @return array{allowed: bool, message?: string, reason?: string, wait_seconds?: int}
+	 * @param int    $user_id       Account to count instead of the address, or 0.
+	 * @return RateLimitVerdict
 	 */
-	public static function check_read_limit( string $ip, string $endpoint_key ): array {
+	public static function check_read_limit( string $ip, string $endpoint_key, int $user_id = 0 ): array {
 		$s        = self::get_settings();
 		$endpoint = self::read_endpoint_settings( $s, $endpoint_key );
 		if ( null === $endpoint || empty( $endpoint['enabled'] ) ) {
@@ -638,7 +682,7 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_minute' );
+			$mc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute' );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
@@ -650,7 +694,7 @@ final class RateLimitChecker {
 		}
 
 		if ( $max_hour > 0 ) {
-			$hc = RateCounter::get( 'ffc_rate_read_' . md5( $ip . '|' . $endpoint_key ) . '_hour' );
+			$hc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour' );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
@@ -674,10 +718,11 @@ final class RateLimitChecker {
 	 * @since 6.6.2
 	 * @param string $ip           Client IP.
 	 * @param string $endpoint_key Endpoint identifier.
+	 * @param int    $user_id      Account to count instead of the address, or 0.
 	 * @return void
 	 */
-	public static function record_read_attempt( string $ip, string $endpoint_key ): void {
-		$identifier = $ip . '|' . $endpoint_key;
+	public static function record_read_attempt( string $ip, string $endpoint_key, int $user_id = 0 ): void {
+		$identifier = self::read_subject( $ip, $user_id ) . '|' . $endpoint_key;
 
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
 		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );
@@ -688,6 +733,18 @@ final class RateLimitChecker {
 		// `'read'` short-circuits all of them and reuses just the day
 		// counter persistence at the end.
 		self::record_attempt( 'read', $identifier );
+	}
+
+	/**
+	 * Who a read is counted against: the account when one is given, the
+	 * address's keyed fingerprint otherwise.
+	 *
+	 * @param string $ip      Client IP.
+	 * @param int    $user_id Account, or 0.
+	 * @return string
+	 */
+	private static function read_subject( string $ip, int $user_id ): string {
+		return $user_id > 0 ? 'user:' . $user_id : \FreeFormCertificate\Core\IpAddress::fingerprint( $ip );
 	}
 
 	/**
@@ -703,7 +760,7 @@ final class RateLimitChecker {
 	public static function is_ip_whitelisted( string $ip ): bool {
 		$wl  = self::get_settings()['whitelist'] ?? array();
 		$ips = is_array( $wl ) && isset( $wl['ips'] ) && is_array( $wl['ips'] ) ? $wl['ips'] : array();
-		return in_array( $ip, $ips, true );
+		return \FreeFormCertificate\Core\IpAddress::in_any( $ip, $ips );
 	}
 
 	/**
@@ -721,9 +778,11 @@ final class RateLimitChecker {
 			return null;
 		}
 		$endpoints = $read['endpoints'] ?? array();
-		if ( ! is_array( $endpoints ) || ! isset( $endpoints[ $endpoint_key ] ) || ! is_array( $endpoints[ $endpoint_key ] ) ) {
-			return null;
+		$stored    = is_array( $endpoints ) && isset( $endpoints[ $endpoint_key ] ) && is_array( $endpoints[ $endpoint_key ] ) ? $endpoints[ $endpoint_key ] : null;
+		$default   = self::READ_ENDPOINT_DEFAULTS[ $endpoint_key ] ?? null;
+		if ( null === $default ) {
+			return $stored;
 		}
-		return $endpoints[ $endpoint_key ];
+		return null === $stored ? $default : array_replace( $default, $stored );
 	}
 }

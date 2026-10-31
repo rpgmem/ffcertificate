@@ -1,0 +1,59 @@
+name: Suite order
+
+# The PHP suite in a random order, as an alarm rather than a gate (#2197).
+#
+# CI runs the suite in its declared order (the shards) and reversed (the
+# `PHPUnit (PHP 8.4, reverse order)` gate in ci.yml). Both orders are fixed,
+# so a test that depends on state another test leaves behind passes forever
+# once those two orders happen to satisfy it. A random order explores a new
+# permutation on every run.
+#
+# It never runs on a pull request, so a dependency it finds cannot redden
+# someone else's change. A failure is triaged into its own issue carrying the
+# seed, and reproduced locally with:
+#   vendor/bin/phpunit --order-by=random --random-order-seed=<seed>
+
+on:
+  push:
+    branches: [develop]
+  schedule:
+    # Daily, so the alarm keeps exploring on quiet days. 05:17 UTC keeps it
+    # off the hour and outside business hours in Brazil.
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Seed to replay (empty draws one from the run id)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  random:
+    name: PHPUnit (PHP 8.4, random order)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-composer
+        with:
+          php-version: '8.4'
+      - name: Choose the seed
+        id: seed
+        env:
+          INPUT_SEED: ${{ github.event.inputs.seed }}
+        run: |
+          seed="${INPUT_SEED:-$(( GITHUB_RUN_ID % 2147483647 ))}"
+          case "$seed" in
+            ''|*[!0-9]*) echo "::error::The seed must be a non-negative integer, got '$seed'."; exit 1 ;;
+          esac
+          echo "seed=$seed" >> "$GITHUB_OUTPUT"
+          echo "::notice::Random order seed: $seed (replay: vendor/bin/phpunit --order-by=random --random-order-seed=$seed)"
+      - name: Run PHPUnit in random order
+        run: vendor/bin/phpunit --order-by=random --random-order-seed=${{ steps.seed.outputs.seed }}

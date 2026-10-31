@@ -64,7 +64,8 @@ final class RecruitmentAdminActions {
 				$id = RequestInput::get_get_int( 'notice_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_notice_' . $id );
-					RecruitmentNoticeWriter::delete( $id );
+					// Draft only, with its rows, in one transaction (#2245).
+					RecruitmentDeleteService::delete_notice( $id );
 				}
 				wp_safe_redirect(
 					add_query_arg(
@@ -78,20 +79,23 @@ final class RecruitmentAdminActions {
 				exit;
 
 			case 'delete-adjutancy':
-				$id = RequestInput::get_get_int( 'adjutancy_id' );
+				$id  = RequestInput::get_get_int( 'adjutancy_id' );
+				$msg = '';
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_adjutancy_' . $id );
 					// DeleteService gates on §14: rejects when notice_adjutancy
 					// or classification rows reference this adjutancy. The
-					// envelope's success flag is opaque from the redirect path
-					// (UI lands in sprint B's edit screen with proper feedback).
-					RecruitmentDeleteService::delete_adjutancy( $id );
+					// redirect says which of the two happened (#2245).
+					$msg = RecruitmentDeleteService::delete_adjutancy( $id )['success'] ? 'adjutancy-deleted' : 'adjutancy-in-use';
 				}
 				wp_safe_redirect(
 					add_query_arg(
-						array(
-							'page' => RecruitmentAdminPage::PAGE_SLUG,
-							'tab'  => 'adjutancies',
+						array_filter(
+							array(
+								'page'    => RecruitmentAdminPage::PAGE_SLUG,
+								'tab'     => 'adjutancies',
+								'ffc_msg' => $msg,
+							)
 						),
 						admin_url( 'admin.php' )
 					)
@@ -99,24 +103,28 @@ final class RecruitmentAdminActions {
 				exit;
 
 			case 'delete-reason':
-				$id = RequestInput::get_get_int( 'reason_id' );
+				$id  = RequestInput::get_get_int( 'reason_id' );
+				$msg = '';
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_reason_' . $id );
 					// Reasons are referentially gated like adjutancies: a
 					// reason that's still linked to any classification's
 					// preview_reason_id can't be removed without orphaning
-					// the audit trail. Silently no-op on a blocked delete;
-					// the list table's deletion gate already explains the
-					// rule via the row-action confirm copy.
+					// the audit trail. The redirect says so (#2245).
+					$msg = 'reason-in-use';
 					if ( 0 === RecruitmentReasonReader::count_references( $id ) ) {
 						RecruitmentReasonWriter::delete( $id );
+						$msg = 'reason-deleted';
 					}
 				}
 				wp_safe_redirect(
 					add_query_arg(
-						array(
-							'page' => RecruitmentAdminPage::PAGE_SLUG,
-							'tab'  => 'reasons',
+						array_filter(
+							array(
+								'page'    => RecruitmentAdminPage::PAGE_SLUG,
+								'tab'     => 'reasons',
+								'ffc_msg' => $msg,
+							)
 						),
 						admin_url( 'admin.php' )
 					)

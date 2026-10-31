@@ -13,8 +13,12 @@ use FreeFormCertificate\API\UserSummaryRestController;
 /**
  * Tests for UserSummaryRestController: route registration, summary data,
  * capability gating, and exception handling.
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
+ *
+ * Runs the real AudienceQueryService, ReregistrationFrontend (through
+ * ReregistrationRepository and AudienceReader), AppointmentRepository,
+ * CalendarRepository and DateFormatter over a `$wpdb` double. Every
+ * `prepare()` is recorded and answered with a token, so `get_var()` /
+ * `get_row()` / `get_results()` dispatch on the SQL and arguments behind it.
  */
 class UserSummaryRestControllerTest extends TestCase {
 
@@ -23,14 +27,56 @@ class UserSummaryRestControllerTest extends TestCase {
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
 
-	/** @var object Mock $wpdb */
+	/** @var Mockery\MockInterface The `$wpdb` double. */
 	private $wpdb;
+
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = [];
+
+	/**
+	 * Tables that `SHOW TABLES LIKE` reports as present.
+	 *
+	 * @var list<string>
+	 */
+	private array $tables = [];
+
+	/** What the certificate COUNT(*) on the submissions table answers. */
+	private ?string $certificate_count = '0';
+
+	/** What the audience booking COUNT(DISTINCT) answers. */
+	private ?string $booking_count = '0';
+
+	/** The next upcoming appointment row, or null for none. */
+	private ?array $appointment_row = null;
+
+	/** The calendar row findById() reads, or null for none. */
+	private ?array $calendar_row = null;
+
+	/**
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		$this->registered_routes = [];
+		$this->prepared          = [];
+		$this->tables            = [];
+		$this->certificate_count = '0';
+		$this->booking_count     = '0';
+		$this->appointment_row   = null;
+		$this->calendar_row      = null;
 
 		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
 			$this->registered_routes[] = array(
@@ -55,28 +101,93 @@ class UserSummaryRestControllerTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( function() {
 			return new \DateTimeZone( 'UTC' );
 		});
+		Functions\when( 'current_time' )->justReturn( '2026-08-09' );
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-		// Alias mocks for static-only dependencies
-		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
 
-		$rereg_mock = Mockery::mock( 'alias:\FreeFormCertificate\Reregistration\ReregistrationFrontend' );
-		$rereg_mock->shouldReceive( 'get_user_reregistrations' )->andReturn( array() )->byDefault();
-
-		// Global $wpdb mock
-		$this->wpdb = Mockery::mock( 'wpdb' )->makePartial();
+		$this->wpdb         = Mockery::mock( 'wpdb' );
 		$this->wpdb->prefix = 'wp_';
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( '' )->byDefault();
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null )->byDefault();
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' )->byDefault();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				if ( 1 === count( $args ) && is_array( $args[0] ) ) {
+					$args = $args[0];
+				}
+				$this->prepared[] = array( (string) $sql, array_values( $args ) );
+				return 'Q' . ( count( $this->prepared ) - 1 );
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql, $args ] = $this->statement( $query );
+				if ( false !== strpos( $sql, 'SHOW TABLES LIKE' ) ) {
+					return in_array( $args[0], $this->tables, true ) ? $args[0] : null;
+				}
+				if ( false !== strpos( $sql, 'COUNT(DISTINCT b.id)' ) ) {
+					return $this->booking_count;
+				}
+				if ( ( false !== strpos( $sql, 'COUNT(*)' ) || false !== strpos( $sql, 'COUNT(DISTINCT form_id)' ) ) && 'wp_ffc_submissions' === ( $args[0] ?? null ) ) {
+					return $this->certificate_count;
+				}
+				return null;
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql, $args ] = $this->statement( $query );
+				if ( false !== strpos( $sql, 'appointment_date >= %s' ) ) {
+					return $this->appointment_row;
+				}
+				if ( false !== strpos( $sql, 'WHERE id = %d' ) && 'wp_ffc_self_scheduling_calendars' === ( $args[0] ?? null ) ) {
+					return $this->calendar_row;
+				}
+				return null;
+			}
+		);
+		// The user's audiences (and anything else listed) are empty, so the
+		// real ReregistrationFrontend finds no active campaign.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
 		$GLOBALS['wpdb'] = $this->wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
-		unset( $GLOBALS['wpdb'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * The prepared statement behind a token the double handed out.
+	 *
+	 * @param mixed $query Token returned by prepare().
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function statement( $query ): array {
+		$index = (int) substr( (string) $query, 1 );
+		return $this->prepared[ $index ] ?? array( (string) $query, array() );
+	}
+
+	/**
+	 * Prepared statements whose SQL matches a pattern.
+	 *
+	 * @param string $pattern Regular expression.
+	 * @return list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private function prepared_matching( string $pattern ): array {
+		return array_values(
+			array_filter(
+				$this->prepared,
+				static fn( array $p ) => 1 === preg_match( $pattern, $p[0] )
+			)
+		);
 	}
 
 	/**
@@ -113,8 +224,8 @@ class UserSummaryRestControllerTest extends TestCase {
 		$ctrl->register_routes();
 
 		$this->assertSame(
-			'is_user_logged_in',
-			$this->registered_routes[0]['args']['permission_callback']
+			'rest_permission',
+			$this->registered_routes[0]['args']['permission_callback'][1]
 		);
 	}
 
@@ -125,7 +236,6 @@ class UserSummaryRestControllerTest extends TestCase {
 	public function test_get_user_summary_returns_all_zeros_when_no_capabilities(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->justReturn( false );
-		Functions\when( 'user_can' )->justReturn( false );
 
 		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -136,6 +246,9 @@ class UserSummaryRestControllerTest extends TestCase {
 		$this->assertNull( $result['next_appointment'] );
 		$this->assertSame( 0, $result['upcoming_group_events'] );
 		$this->assertSame( 0, $result['pending_reregistrations'] );
+		// The reregistration count asked for the user's audiences, found none.
+		$audience_reads = $this->prepared_matching( '/m\.user_id = %d/' );
+		$this->assertSame( 5, $audience_reads[0][1][2] ?? null );
 	}
 
 	public function test_get_user_summary_returns_zeros_even_when_user_id_is_zero(): void {
@@ -156,22 +269,20 @@ class UserSummaryRestControllerTest extends TestCase {
 	// get_user_summary() — exception path
 	// ------------------------------------------------------------------
 
-	public function test_get_user_summary_returns_defaults_on_exception(): void {
-		// Make get_current_user_id throw to trigger the catch block
+	/**
+	 * #2246 — a failure answers an error, never a row of zeros the screen
+	 * would read as "nothing here".
+	 */
+	public function test_get_user_summary_returns_error_on_exception(): void {
 		Functions\when( 'get_current_user_id' )->alias( function() {
 			throw new \Exception( 'Simulated failure' );
 		});
 
-		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
-		$request = $this->make_request();
-		$result  = $ctrl->get_user_summary( $request );
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
 
-		// On exception, returns defaults (NOT WP_Error)
-		$this->assertIsArray( $result );
-		$this->assertSame( 0, $result['total_certificates'] );
-		$this->assertNull( $result['next_appointment'] );
-		$this->assertSame( 0, $result['upcoming_group_events'] );
-		$this->assertSame( 0, $result['pending_reregistrations'] );
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'summary_error', $result->get_error_code() );
+		$this->assertSame( 500, $result->get_error_data()['status'] );
 	}
 
 	// ------------------------------------------------------------------
@@ -184,13 +295,43 @@ class UserSummaryRestControllerTest extends TestCase {
 	public function test_get_user_summary_counts_only_certificates(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' === $cap );
-		$this->wpdb->shouldReceive( 'prepare' )
-			->once()
-			->with( Mockery::pattern( '/status NOT IN \(%s, %s, %s, %s\)/' ), Mockery::any(), 5, 'trash', 'quiz_in_progress', 'quiz_failed', 'quiz_pending' )
-			->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '2' );
+		$this->certificate_count = '2';
+
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+		$counts = $this->prepared_matching( '/status NOT IN \(%s, %s, %s, %s\)/' );
+		$this->assertCount( 1, $counts, 'The certificate count is prepared exactly once.' );
+		$this->assertSame(
+			array( 'wp_ffc_submissions', 5, 'trash', 'quiz_in_progress', 'quiz_failed', 'quiz_pending' ),
+			$counts[0][1]
+		);
+		$this->assertSame( 2, $result['total_certificates'] );
+	}
+
+	/**
+	 * #2246 — without the history capability the list keeps one certificate
+	 * per form, and the card counts the same thing.
+	 */
+	public function test_get_user_summary_counts_forms_without_history_capability(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_own_certificates' === $cap );
+		$this->certificate_count = '3';
+
+		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+		$counts = $this->prepared_matching( '/status NOT IN/' );
+		$this->assertStringContainsString( 'COUNT(DISTINCT form_id)', $counts[0][0] );
+		$this->assertSame( 3, $result['total_certificates'] );
+	}
+
+	public function test_get_user_summary_counts_every_certificate_with_history_capability(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => in_array( $cap, array( 'ffc_view_own_certificates', 'ffc_view_own_certificate_history' ), true ) );
 
 		( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
+
+		$counts = $this->prepared_matching( '/status NOT IN/' );
+		$this->assertStringContainsString( 'SELECT COUNT(*)', $counts[0][0] );
 	}
 
 	public function test_get_user_summary_counts_certificates_when_manage_options(): void {
@@ -200,13 +341,8 @@ class UserSummaryRestControllerTest extends TestCase {
 			return $cap === 'manage_options';
 		});
 
-		// The DB query for certificates count
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '7' );
-
-		// table_exists check for audience bookings
-		// wpdb->get_var for SHOW TABLES LIKE returns table name (truthy)
-		// but we've already set default to '7', so table_exists will see a string — that's fine
-		// The audience bookings count will also return '7', but that's acceptable.
+		// The DB query for certificates count.
+		$this->certificate_count = '7';
 
 		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -225,28 +361,20 @@ class UserSummaryRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->alias( function( $cap ) {
 			return $cap === 'manage_options';
 		});
-		Functions\when( 'wp_cache_get' )->justReturn( false );
-		Functions\when( 'wp_cache_set' )->justReturn( true );
 
-		// Certificates count
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
-
-		// The next-appointment lookup now goes through
+		// The next-appointment lookup goes through
 		// AppointmentRepository::findNextUpcomingForUser() and the
 		// calendar title is fetched separately via CalendarRepository
-		// (issue #340 centralization). Two get_row() returns: first the
-		// appointment row, then the calendar row.
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
-			array(
-				'id'               => 1,
-				'appointment_date' => '2026-06-15',
-				'start_time'       => '10:30:00',
-				'calendar_id'      => 42,
-			),
-			array(
-				'id'    => 42,
-				'title' => 'Main Calendar',
-			)
+		// (issue #340 centralization): one row each.
+		$this->appointment_row = array(
+			'id'               => 1,
+			'appointment_date' => '2026-06-15',
+			'start_time'       => '10:30:00',
+			'calendar_id'      => 42,
+		);
+		$this->calendar_row    = array(
+			'id'    => 42,
+			'title' => 'Main Calendar',
 		);
 
 		Functions\when( 'get_option' )->alias( function( $key, $default = false ) {
@@ -264,6 +392,11 @@ class UserSummaryRestControllerTest extends TestCase {
 		$this->assertNotNull( $result['next_appointment'] );
 		$this->assertSame( 'Main Calendar', $result['next_appointment']['title'] );
 		$this->assertSame( '10:30', $result['next_appointment']['time'] );
+		$this->assertSame( '2026-06-15', $result['next_appointment']['date'], 'The wall-clock date renders as stored (#2246).' );
+		$next_reads = $this->prepared_matching( '/appointment_date >= %s/' );
+		$this->assertSame( '2026-08-09', end( $next_reads[0][1] ), 'The lower bound is the site\'s today.' );
+		$calendar_reads = $this->prepared_matching( '/WHERE id = %d/' );
+		$this->assertSame( array( 'wp_ffc_self_scheduling_calendars', 42 ), $calendar_reads[0][1] ?? null );
 	}
 
 	public function test_get_user_summary_next_appointment_null_when_no_upcoming(): void {
@@ -272,8 +405,7 @@ class UserSummaryRestControllerTest extends TestCase {
 			return $cap === 'manage_options';
 		});
 
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->appointment_row = null;
 
 		$ctrl    = new UserSummaryRestController( 'ffc/v1' );
 		$request = $this->make_request();
@@ -288,14 +420,15 @@ class UserSummaryRestControllerTest extends TestCase {
 		Functions\when( 'current_user_can' )->alias( function ( $cap ) {
 			return 'ffc_view_own_audience_bookings' === $cap;
 		} );
-		Functions\when( 'current_time' )->justReturn( '2026-08-09' );
 		// table_exists(ffc_audience_bookings) → true.
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_audience_bookings' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Audience\AudienceQueryService' )
-			->shouldReceive( 'count_user_bookings' )->andReturn( 3 );
+		$this->tables        = array( 'wp_ffc_audience_bookings' );
+		$this->booking_count = '3';
 
 		$result = ( new UserSummaryRestController( 'ffc/v1' ) )->get_user_summary( $this->make_request() );
 
 		$this->assertSame( 3, $result['upcoming_group_events'] );
+		$counts = $this->prepared_matching( '/COUNT\(DISTINCT b\.id\)/' );
+		$this->assertCount( 1, $counts );
+		$this->assertSame( array( 5, 5, '2026-08-09', 'cancelled' ), array_slice( $counts[0][1], 4 ) );
 	}
 }

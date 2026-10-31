@@ -29,6 +29,7 @@ require_once __DIR__ . '/class-ffc-recruitment-rest-support-trait.php';
  * REST controller for the recruitment candidates slice.
  *
  * @phpstan-import-type CandidateRow from RecruitmentCandidateReader
+ * @phpstan-import-type CallRow from RecruitmentCallReader
  */
 final class RecruitmentCandidatesRestController {
 
@@ -108,8 +109,7 @@ final class RecruitmentCandidatesRestController {
 		// itself only checks "logged in" so the owner-clause inside the
 		// policy can authorise the candidate themselves; the handler then
 		// runs RecruitmentPiiAccessPolicy::resolve() to enforce the tier
-		// and writes an audit row (subject to dedup + the audit_pii_reveals
-		// setting) when the requester is on the `reveal` tier.
+		// and writes an audit row for every reveal on the `reveal` tier.
 		register_rest_route(
 			$ns,
 			$base . '/candidates/(?P<id>\d+)/reveal-pii',
@@ -194,54 +194,31 @@ final class RecruitmentCandidatesRestController {
 	}
 
 	/**
-	 * PATCH /candidates/{id} — re-encrypts on cpf/rf/email change.
+	 * PATCH /candidates/{id} — the edit screen's rules (#2245).
+	 *
+	 * Name, phone and notes for the manage capability; the e-mail only for
+	 * a caller who may see it; CPF and RF never. Every change is logged.
+	 * See {@see RecruitmentCandidateEditor}.
 	 *
 	 * @param \WP_REST_Request $request Request.
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function update_candidate( \WP_REST_Request $request ) {
-		$id   = (int) $request->get_param( 'id' );
-		$data = $request->get_params();
-
-		$update = array_intersect_key( $data, array_flip( array( 'name', 'phone', 'notes' ) ) );
-
-		// Encrypt cpf/rf/email via the SensitiveFieldRegistry if supplied.
-		$plaintexts = array();
-		foreach ( array( 'cpf', 'rf', 'email' ) as $key ) {
-			if ( isset( $data[ $key ] ) && is_string( $data[ $key ] ) && '' !== trim( $data[ $key ] ) ) {
-				$value = trim( $data[ $key ] );
-				if ( 'email' === $key ) {
-					$value = strtolower( $value );
-				} else {
-					$value = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value );
-				}
-				$plaintexts[ $key ] = $value;
-			}
+		$id     = (int) $request->get_param( 'id' );
+		$before = RecruitmentCandidateReader::get_by_id( $id );
+		if ( null === $before ) {
+			return new \WP_Error( 'recruitment_candidate_not_found', '', array( 'status' => 404 ) );
 		}
 
-		if ( ! empty( $plaintexts ) ) {
-			$encrypted = SensitiveFieldRegistry::encrypt_fields(
-				SensitiveFieldRegistry::CONTEXT_RECRUITMENT_CANDIDATE,
-				$plaintexts
-			);
-			$update    = array_merge( $update, $encrypted );
-		}
+		$params = $request->get_params();
+		$input  = array_intersect_key(
+			$params,
+			array_flip( array_merge( RecruitmentCandidateEditor::FIELDS, RecruitmentCandidateEditor::IDENTIFIERS ) )
+		);
 
-		if ( empty( $update ) ) {
-			return new \WP_Error(
-				'recruitment_candidate_update_no_writable_fields',
-				'',
-				array( 'status' => 400 )
-			);
-		}
-
-		$ok = RecruitmentCandidateWriter::update( $id, $update );
-		if ( ! $ok ) {
-			return new \WP_Error(
-				'recruitment_candidate_update_failed',
-				'',
-				array( 'status' => 409 )
-			);
+		$result = RecruitmentCandidateEditor::update( $before, $input );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		$candidate = RecruitmentCandidateReader::get_by_id( $id );
@@ -399,6 +376,10 @@ final class RecruitmentCandidatesRestController {
 					continue; // Draft notices are never exposed.
 				}
 
+				// What the notice shows the public is what it shows its own
+				// candidate (#2245): the score only when the score column is on.
+				$columns = RecruitmentPublicShortcodeRenderer::parse_columns_config( (string) $notice->public_columns_config );
+
 				if ( ! isset( $out[ $notice_id ] ) ) {
 					$out[ $notice_id ] = array(
 						'notice'          => array(
@@ -412,14 +393,17 @@ final class RecruitmentCandidatesRestController {
 					);
 				}
 
-				$out[ $notice_id ]['classifications'][] = array(
+				$entry = array(
 					'id'        => (int) $cls->id,
 					'list_type' => $cls->list_type,
 					'rank'      => (int) $cls->rank,
-					'score'     => $cls->score,
 					'status'    => $cls->status,
-					'calls'     => $calls_by_class[ (int) $cls->id ] ?? array(),
+					'calls'     => array_map( array( self::class, 'shape_call_for_candidate' ), $calls_by_class[ (int) $cls->id ] ?? array() ),
 				);
+				if ( $columns['score'] ) {
+					$entry['score'] = $cls->score;
+				}
+				$out[ $notice_id ]['classifications'][] = $entry;
 			}
 		}
 
@@ -429,6 +413,29 @@ final class RecruitmentCandidatesRestController {
 	// ─────────────────────────────────────────────────────────────────────
 	// Helpers
 	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Shape a call for its own candidate (#2245).
+	 *
+	 * The same facts "My calls" shows: when, where to report and when the
+	 * call was reverted and why. The operator's out-of-order reason and who
+	 * created or cancelled the call are staff records, not the candidate's.
+	 *
+	 * @param object $call Call row (CallRow shape).
+	 * @phpstan-param CallRow $call
+	 * @return array{id: int, called_at: int, date_to_assume: string, time_to_assume: string, notes: string|null, cancelled_at: int|null, cancellation_reason: string|null}
+	 */
+	public static function shape_call_for_candidate( object $call ): array {
+		return array(
+			'id'                  => (int) $call->id,
+			'called_at'           => (int) $call->called_at,
+			'date_to_assume'      => (string) $call->date_to_assume,
+			'time_to_assume'      => (string) $call->time_to_assume,
+			'notes'               => $call->notes,
+			'cancelled_at'        => null === $call->cancelled_at ? null : (int) $call->cancelled_at,
+			'cancellation_reason' => $call->cancellation_reason,
+		);
+	}
 
 	/**
 	 * Shape a candidate for the admin-side responses.
@@ -472,7 +479,17 @@ final class RecruitmentCandidatesRestController {
 			'pii_masked'   => ! $clear,
 			'phone'        => $candidate->phone,
 			'notes'        => $candidate->notes,
-			'is_pcd'       => RecruitmentPcdHasher::verify( $candidate->pcd_hash, (int) $candidate->id ),
+			// PCD is per notice classification (#2245), not per candidate.
+			'pcd'          => array_map(
+				static fn( object $cls ): array => array(
+					'classification_id' => (int) $cls->id,
+					'notice_id'         => (int) $cls->notice_id,
+					'adjutancy_id'      => (int) $cls->adjutancy_id,
+					'list_type'         => (string) $cls->list_type,
+					'is_pcd'            => RecruitmentPcdHasher::row_is_pcd( $cls ),
+				),
+				RecruitmentClassificationRepository::get_for_candidate( (int) $candidate->id )
+			),
 			'created_at'   => $candidate->created_at,
 			'updated_at'   => $candidate->updated_at,
 		);

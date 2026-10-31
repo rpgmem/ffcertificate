@@ -65,8 +65,6 @@ class SettingsAjaxEndpoint {
 	public static function allowlist(): array {
 		$bool_settings = array(
 			// Cache tab (ffc_settings).
-			'cache_enabled',
-			'cache_auto_warm',
 			'qr_cache_enabled',
 			// SMTP tab. Note: `disable_all_emails` is intentionally NOT here —
 			// the kill-switch carries the dangerzone sub-cap (#739 §4.4) and is
@@ -142,6 +140,9 @@ class SettingsAjaxEndpoint {
 			// read from an HR specification, and a blocked registration is
 			// worse than a stored typo the audit finds later.
 			'validate_rf_check_digit',
+			// General tab — the address lookup by CEP (#2234). Default OFF:
+			// each CEP typed goes to a third party.
+			'cep_lookup_enabled',
 			// Certificates tab — check the visitor's browser (#2030).
 			'browser_check',
 		);
@@ -230,7 +231,6 @@ class SettingsAjaxEndpoint {
 			'preview_reason_required_granted',
 			'preview_reason_required_appeal_denied',
 			'preview_reason_required_appeal_granted',
-			'audit_pii_reveals',
 		);
 		// The convocation send mode, on the same tab (#1757). Gated by the
 		// tab's own capability, the one its Save button checks.
@@ -291,8 +291,7 @@ class SettingsAjaxEndpoint {
 		);
 
 		// Per-endpoint enable toggles under `read.endpoints.<ep>.enabled`.
-		// Keep the endpoint list aligned with TabRateLimit::$defaults['read']['endpoints'].
-		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+		foreach ( array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS ) as $ffc_ep ) {
 			$rate_limit_paths[ 'read_endpoint_' . $ffc_ep . '_enabled' ] = array( 'read', 'endpoints', $ffc_ep, 'enabled' );
 		}
 
@@ -309,14 +308,6 @@ class SettingsAjaxEndpoint {
 		// [ type, extra ] — extra may carry min/max (for int) or
 		// as=url/multiline_text (for string).
 		$flat_typed = array(
-			// Cache tab.
-			'cache_expiration'            => array(
-				'int',
-				array(
-					'min' => 60,
-					'max' => 604800,
-				),
-			),
 			// Advanced tab.
 			'activity_log_retention_days' => array(
 				'int',
@@ -362,6 +353,8 @@ class SettingsAjaxEndpoint {
 				),
 			),
 			'code_editor_theme'           => array( 'string', array() ),
+			// General tab — the lookup's primary provider (#2234).
+			'cep_lookup_primary'          => array( 'enum', array( 'options' => array( 'viacep', 'brasilapi' ) ) ),
 			// General tab.
 			'dark_mode'                   => array( 'string', array() ),
 			'cleanup_days'                => array(
@@ -480,6 +473,16 @@ class SettingsAjaxEndpoint {
 					'max' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX,
 				),
 			),
+			'ip_captcha_unresolved'          => array(
+				array( 'ip', 'captcha_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
+			'ip_device_check_unresolved'     => array(
+				array( 'ip', 'device_check_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
 			'ip_apply_to'                    => array( array( 'ip', 'apply_to' ), 'string', array() ),
 			'ip_message'                     => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'email_max_per_day'              => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
@@ -534,7 +537,7 @@ class SettingsAjaxEndpoint {
 		);
 
 		// Per-endpoint numeric thresholds under read.endpoints.<ep>.{max_per_minute,max_per_hour}.
-		foreach ( array( 'calendar_slots', 'calendar_list', 'calendar_detail' ) as $ffc_ep ) {
+		foreach ( array_keys( \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS ) as $ffc_ep ) {
 			$rate_limit_typed[ 'read_endpoint_' . $ffc_ep . '_max_per_minute' ] = array(
 				array( 'read', 'endpoints', $ffc_ep, 'max_per_minute' ),
 				'int',

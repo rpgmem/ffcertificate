@@ -72,6 +72,21 @@ final class RateLimitSettingsReader {
 	public const DEVICE_CHECK_WINDOW_MAX = 3600;
 
 	/**
+	 * A caller whose address could not be resolved is let through uncounted.
+	 */
+	public const UNRESOLVED_ALLOW = 'allow';
+
+	/**
+	 * Every caller whose address could not be resolved counts in one bucket.
+	 */
+	public const UNRESOLVED_SHARE = 'share';
+
+	/**
+	 * The two policies for an unresolved address (#2106), the default first.
+	 */
+	public const UNRESOLVED_POLICIES = array( self::UNRESOLVED_ALLOW, self::UNRESOLVED_SHARE );
+
+	/**
 	 * Read a value from `ffc_rate_limit_settings`.
 	 *
 	 * @param string $key     Settings key.
@@ -145,6 +160,34 @@ final class RateLimitSettingsReader {
 	 */
 	public static function device_check_window(): int {
 		return self::clamp_device_check_window( self::ip()['device_check_window_seconds'] ?? self::DEVICE_CHECK_WINDOW_DEFAULT );
+	}
+
+	/**
+	 * A stored policy for an unresolved address, or the default.
+	 *
+	 * @param mixed $value Stored or posted value.
+	 * @return string One of {@see self::UNRESOLVED_POLICIES}.
+	 */
+	public static function clamp_unresolved_policy( $value ): string {
+		return in_array( $value, self::UNRESOLVED_POLICIES, true ) ? (string) $value : self::UNRESOLVED_ALLOW;
+	}
+
+	/**
+	 * Whether the ALTCHA challenge counts unresolved callers together.
+	 *
+	 * @return bool
+	 */
+	public static function captcha_counts_unresolved(): bool {
+		return self::UNRESOLVED_SHARE === self::clamp_unresolved_policy( self::ip()['captcha_unresolved'] ?? null );
+	}
+
+	/**
+	 * Whether the device test's ping counts unresolved callers together.
+	 *
+	 * @return bool
+	 */
+	public static function device_check_counts_unresolved(): bool {
+		return self::UNRESOLVED_SHARE === self::clamp_unresolved_policy( self::ip()['device_check_unresolved'] ?? null );
 	}
 
 	/**

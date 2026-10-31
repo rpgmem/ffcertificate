@@ -8,11 +8,20 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\DocumentFormatter;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Tests\Support\Identifiers;
 use FreeFormCertificate\UserDashboard\UserManager;
 
 /**
  * Tests for UserManager: profile retrieval/update, CPF/RF masking,
  * email retrieval, name extraction, and delegation methods.
+ *
+ * Every test runs in the shared process over the real
+ * UserIdentifiersQueryService, UserProfileService, Encryption (with the
+ * bootstrap's key constants) and DocumentFormatter: the stored rows carry
+ * real ciphertext, so a test asserts on what the real decrypt and mask
+ * produce, and on what the real encrypt and hash wrote.
  *
  * @covers \FreeFormCertificate\UserDashboard\UserManager
  */
@@ -23,9 +32,26 @@ class UserManagerTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/**
+	 * The `$wpdb` global before the test, restored in tearDown().
+	 *
+	 * @var mixed
+	 */
+	private $previous_wpdb;
+
+	/** Whether `$wpdb` was set before the test. */
+	private bool $had_wpdb = false;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb      = array_key_exists( 'wpdb', $GLOBALS );
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' )->makePartial();
@@ -37,6 +63,9 @@ class UserManagerTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults = array() ) {
@@ -59,8 +88,25 @@ class UserManagerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->previous_wpdb;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * Real ciphertext for a stored column, under the bootstrap's keys.
+	 *
+	 * @param string $plain Value to encrypt.
+	 * @return string
+	 */
+	private function encrypted( string $plain ): string {
+		$cipher = Encryption::encrypt( $plain );
+		$this->assertIsString( $cipher );
+		return $cipher;
 	}
 
 	// ==================================================================
@@ -478,56 +524,27 @@ class UserManagerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_user_cpfs_masked() — with decryption (runInSeparateProcess)
+	// get_user_cpfs_masked() — with decryption
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_cpfs_masked_decrypts_and_masks_cpf(): void {
-		// Alias mock for Encryption::decrypt
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->with( 'enc_cpf_123' )
-			->once()
-			->andReturn( '51817842080' );
-
-		// Alias mock for DocumentFormatter::mask_cpf
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->with( '51817842080' )
-			->once()
-			->andReturn( '123.***.***-01' );
-
-		// Alias mock for Utils::get_submissions_table
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => 'enc_cpf_123', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
 			) );
 
 		$result = UserManager::get_user_cpfs_masked( 42 );
 
-		$this->assertSame( array( '123.***.***-01' ), $result );
+		$this->assertSame( array( DocumentFormatter::mask_cpf( Identifiers::CPF_A ) ), $result );
+		$this->assertStringNotContainsString( Identifiers::CPF_A, $result[0], 'The CPF must come back masked, never in clear.' );
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real decrypt never throws: a stored value it cannot read comes
+	 * back as null, and the row is skipped without reaching the mask.
 	 */
-	public function test_get_user_cpfs_masked_handles_decrypt_exception(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andThrow( new \Exception( 'Decryption failed' ) );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )->never();
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
+	public function test_get_user_cpfs_masked_skips_a_row_that_does_not_decrypt(): void {
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
@@ -539,98 +556,49 @@ class UserManagerTest extends TestCase {
 		$this->assertSame( array(), $result );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_cpfs_masked_deduplicates_results(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturn( '51817842080' );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->andReturn( '123.***.***-01' );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-		// Two rows with the same CPF → should deduplicate
+		// Two rows carrying the same CPF under two different ciphertexts
+		// (each encryption draws its own IV) → one masked value.
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
 			) );
 
 		$result = UserManager::get_user_cpfs_masked( 42 );
 
 		$this->assertCount( 1, $result );
-		$this->assertSame( '123.***.***-01', $result[0] );
+		$this->assertSame( DocumentFormatter::mask_cpf( Identifiers::CPF_A ), $result[0] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_cpfs_masked_uses_rf_when_cpf_empty(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->with( 'enc_rf_456' )
-			->once()
-			->andReturn( 'RF12345' );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->with( 'RF12345' )
-			->once()
-			->andReturn( 'RF1***5' );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf_456' ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => $this->encrypted( Identifiers::RF_A ) ),
 			) );
 
 		$result = UserManager::get_user_cpfs_masked( 42 );
 
-		$this->assertSame( array( 'RF1***5' ), $result );
+		$this->assertSame( array( DocumentFormatter::mask( DocumentFormatter::MASK_RF, Identifiers::RF_A ) ), $result );
 	}
 
 	// ==================================================================
-	// get_user_cpf_masked() — with decryption (runInSeparateProcess)
+	// get_user_cpf_masked() — with decryption
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_cpf_masked_returns_first_cpf(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturnUsing( function ( $val ) {
-				return $val === 'enc1' ? '11111111111' : '22222222222';
-			} );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->andReturnUsing( function ( $val ) {
-				return $val === '11111111111' ? '111.***.***-11' : '222.***.***-22';
-			} );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => 'enc1', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => 'enc2', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_B ), 'rf_encrypted' => null ),
 			) );
 
 		$result = UserManager::get_user_cpf_masked( 42 );
 
-		$this->assertSame( '111.***.***-11', $result );
+		$this->assertSame( DocumentFormatter::mask_cpf( Identifiers::CPF_A ), $result );
 	}
 
 	// ==================================================================
@@ -661,60 +629,25 @@ class UserManagerTest extends TestCase {
 	// get_user_identifiers_masked() — with decryption
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_identifiers_masked_separates_cpfs_and_rfs(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturnUsing( function ( $val ) {
-				$map = array(
-					'enc_cpf' => '51817842080',
-					'enc_rf'  => 'RF999',
-				);
-				return $map[ $val ] ?? '';
-			} );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->andReturnUsing( function ( $val ) {
-				$map = array(
-					'51817842080' => '123.***.***-01',
-					'RF999'       => 'RF***9',
-				);
-				return $map[ $val ] ?? '';
-			} );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => null, 'rf_encrypted' => 'enc_rf' ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => null, 'rf_encrypted' => $this->encrypted( Identifiers::RF_A ) ),
 			) );
 
 		$result = UserManager::get_user_identifiers_masked( 42 );
 
-		$this->assertSame( array( '123.***.***-01' ), $result['cpfs'] );
-		$this->assertSame( array( 'RF***9' ), $result['rfs'] );
+		$this->assertSame( array( DocumentFormatter::mask_cpf( Identifiers::CPF_A ) ), $result['cpfs'] );
+		$this->assertSame( array( DocumentFormatter::mask( DocumentFormatter::MASK_RF, Identifiers::RF_A ) ), $result['rfs'] );
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real decrypt never throws: a stored value it cannot read comes
+	 * back as null, and the row lands in neither bucket.
 	 */
-	public function test_get_user_identifiers_masked_handles_exception(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andThrow( new \Exception( 'Decryption error' ) );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )->never();
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
+	public function test_get_user_identifiers_masked_skips_a_row_that_does_not_decrypt(): void {
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
@@ -726,27 +659,13 @@ class UserManagerTest extends TestCase {
 		$this->assertSame( array( 'cpfs' => array(), 'rfs' => array() ), $result );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_identifiers_masked_deduplicates(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturn( '51817842080' );
-
-		$fmtMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DocumentFormatter' );
-		$fmtMock->shouldReceive( 'mask_cpf' )
-			->andReturn( '123.***.***-01' );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
-		// Same CPF in two rows
+		// Same CPF in two rows, under two different ciphertexts.
 		$this->wpdb->shouldReceive( 'get_results' )
 			->once()
 			->andReturn( array(
-				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
-				array( 'cpf_encrypted' => 'enc_cpf', 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
+				array( 'cpf_encrypted' => $this->encrypted( Identifiers::CPF_A ), 'rf_encrypted' => null ),
 			) );
 
 		$result = UserManager::get_user_identifiers_masked( 42 );
@@ -808,29 +727,13 @@ class UserManagerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// get_user_emails() — with decryption (runInSeparateProcess)
+	// get_user_emails() — with decryption
 	// ==================================================================
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_emails_decrypts_and_validates_emails(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturnUsing( function ( $val ) {
-				$map = array(
-					'enc_email_1' => 'alice@example.com',
-					'enc_email_2' => 'bob@example.com',
-				);
-				return $map[ $val ] ?? '';
-			} );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_col' )
 			->once()
-			->andReturn( array( 'enc_email_1', 'enc_email_2' ) );
+			->andReturn( array( $this->encrypted( 'alice@example.com' ), $this->encrypted( 'bob@example.com' ) ) );
 
 		$mock_user             = new \stdClass();
 		$mock_user->user_email = 'alice@example.com';
@@ -848,20 +751,10 @@ class UserManagerTest extends TestCase {
 		$this->assertCount( 2, $result );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_user_emails_skips_invalid_emails(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andReturn( 'not-an-email' );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
 		$this->wpdb->shouldReceive( 'get_col' )
 			->once()
-			->andReturn( array( 'enc_bad' ) );
+			->andReturn( array( $this->encrypted( 'not-an-email' ) ) );
 
 		$mock_user             = new \stdClass();
 		$mock_user->user_email = 'valid@example.com';
@@ -878,16 +771,10 @@ class UserManagerTest extends TestCase {
 	}
 
 	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
+	 * The real decrypt never throws: a stored value it cannot read comes
+	 * back as null and is dropped, leaving the account e-mail.
 	 */
-	public function test_get_user_emails_handles_decrypt_exception(): void {
-		$encMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$encMock->shouldReceive( 'decrypt' )
-			->andThrow( new \Exception( 'Key missing' ) );
-
-		$utilsMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Utils' );
-
+	public function test_get_user_emails_skips_a_value_that_does_not_decrypt(): void {
 		$this->wpdb->shouldReceive( 'get_col' )
 			->once()
 			->andReturn( array( 'enc_fail' ) );
@@ -1294,15 +1181,7 @@ class UserManagerTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_user_custom_color_hash', $captured );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_update_extended_profile_encrypts_sensitive_key_and_stores_hash(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'encrypt' )->with( '51817842080' )->once()->andReturn( 'ENC' );
-		$enc->shouldReceive( 'hash' )->with( '51817842080' )->once()->andReturn( 'HASH' );
-
 		$this->mock_table_exists( 'wp_ffc_user_profiles', false );
 		Functions\when( 'sanitize_key' )->returnArg();
 
@@ -1325,16 +1204,18 @@ class UserManagerTest extends TestCase {
 
 		$result = UserManager::update_extended_profile(
 			42,
-			array( 'cpf' => '51817842080' ),
+			array( 'cpf' => Identifiers::CPF_A ),
 			array( 'cpf' )
 		);
 
 		$this->assertTrue( $result );
 		// The ciphertext is an attribute of one user, so it stays in the meta;
 		// the hash is an index, so it goes to its column (#1313).
-		$this->assertSame( 'ENC', $captured['ffc_user_cpf'] );
+		$this->assertArrayHasKey( 'ffc_user_cpf', $captured );
+		$this->assertNotSame( Identifiers::CPF_A, $captured['ffc_user_cpf'], 'The CPF must be stored encrypted, never in clear.' );
+		$this->assertSame( Identifiers::CPF_A, Encryption::decrypt( (string) $captured['ffc_user_cpf'] ) );
 		$this->assertArrayNotHasKey( 'ffc_user_cpf_hash', $captured );
-		$this->assertSame( 'HASH', $inserted['cpf_hash'] ?? null );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $inserted['cpf_hash'] ?? null );
 		$this->assertSame(
 			42,
 			(int) ( $inserted['user_id'] ?? 0 ),
@@ -1409,13 +1290,8 @@ class UserManagerTest extends TestCase {
 		$this->assertSame( 'blue', $profile['custom_color'] );
 	}
 
-	/**
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_get_extended_profile_decrypts_sensitive_extra_meta(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_CPF' )->once()->andReturn( '51817842080' );
+		$stored = $this->encrypted( Identifiers::CPF_A );
 
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
 		// get_row returning a non-empty row keeps get_profile on the fast
@@ -1425,8 +1301,8 @@ class UserManagerTest extends TestCase {
 		);
 
 		Functions\when( 'sanitize_key' )->returnArg();
-		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
-			return 'ffc_user_cpf' === $key ? 'ENC_CPF' : '';
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) use ( $stored ) {
+			return 'ffc_user_cpf' === $key ? $stored : '';
 		} );
 
 		$profile = UserManager::get_extended_profile(
@@ -1435,7 +1311,7 @@ class UserManagerTest extends TestCase {
 			array( 'cpf' )
 		);
 
-		$this->assertSame( '51817842080', $profile['cpf'] );
+		$this->assertSame( Identifiers::CPF_A, $profile['cpf'] );
 	}
 
 	/**
@@ -1443,13 +1319,9 @@ class UserManagerTest extends TestCase {
 	 * caller's custom-field row says it is not (#1538): `birth_date` is fed by
 	 * a reregistration field seeded non-sensitive, and trusting that flag
 	 * would pre-fill the form with ciphertext.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_get_extended_profile_decrypts_a_map_sensitive_key_the_caller_did_not_flag(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$enc->shouldReceive( 'decrypt' )->with( 'ENC_BIRTH' )->once()->andReturn( '1990-05-20' );
+		$stored = $this->encrypted( '1990-05-20' );
 
 		$this->mock_table_exists( 'wp_ffc_user_profiles', true );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn(
@@ -1457,8 +1329,8 @@ class UserManagerTest extends TestCase {
 		);
 
 		Functions\when( 'sanitize_key' )->returnArg();
-		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) {
-			return 'ffc_user_birth_date' === $key ? 'ENC_BIRTH' : '';
+		Functions\when( 'get_user_meta' )->alias( function ( $uid, $key ) use ( $stored ) {
+			return 'ffc_user_birth_date' === $key ? $stored : '';
 		} );
 
 		$profile = UserManager::get_extended_profile( 42, array( 'birth_date' ), array() );

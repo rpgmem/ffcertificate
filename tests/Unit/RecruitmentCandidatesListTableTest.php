@@ -8,20 +8,59 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentCandidatesListTable;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Smoke tests for the Candidates list table.
  *
+ * RecruitmentCandidateReader, RecruitmentAdjutancyReader, DataSanitizer,
+ * SensitiveFieldRegistry and Encryption (hashing with the bootstrap's keys)
+ * are the real ones, over a `$wpdb` double that answers the candidate and
+ * adjutancy tables by SQL text and bound hash, and records every query, so
+ * the table runs in the shared process.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentCandidatesListTable
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentCandidatesListTableTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
 	private RecruitmentCandidatesListTable $table;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var string SQL of the last prepare(). */
+	private string $sql = '';
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/** @var list<string> SQL of every query run, in order. */
+	private array $queries = array();
+
+	/** @var int What the paginated count answers. */
+	private int $count = 0;
+
+	/** @var list<object> Rows the paginated page answers. */
+	private array $rows = array();
+
+	/** @var array<string, object> Candidate rows keyed by `cpf_hash`. */
+	private array $by_cpf_hash = array();
+
+	/** @var array<string, object> Candidate rows keyed by `rf_hash`. */
+	private array $by_rf_hash = array();
+
+	/** @var array<string, list<int>> Candidate ids keyed by `email_hash`. */
+	private array $by_email_hash = array();
+
+	/** @var list<object> Rows the adjutancy table holds. */
+	private array $adjutancies = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -44,36 +83,79 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( fn( $v ) => json_encode( $v ) );
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'get_edit_user_link' )->justReturn( '/wp-admin/user-edit.php?user_id=1' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
 
-		// Real stub for the admin page (PAGE_SLUG constant).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdminPage { public const PAGE_SLUG = "ffc-recruitment"; }'
-			);
-		}
-		// Reader stub — drives prepare_items() + resolve_id_constraint().
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentCandidateReader', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentCandidateReader {'
-				. ' public static $count = 0;'
-				. ' public static $rows = array();'
-				. ' public static $cpf_row = null;'
-				. ' public static $rf_row = null;'
-				. ' public static $email_ids = array();'
-				. ' public static function count_paginated_filtered( $s, $c, $a, $st ) { return self::$count; }'
-				. ' public static function get_paginated_filtered( $s, $c, $a, $st, $pp, $off ) { return self::$rows; }'
-				. ' public static function get_by_cpf_hash( $h ) { return self::$cpf_row; }'
-				. ' public static function get_by_rf_hash( $h ) { return self::$rf_row; }'
-				. ' public static function get_ids_by_email_hash( $h ) { return self::$email_ids; } }'
-			);
-		}
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count     = 0;
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows      = array();
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = null;
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rf_row    = null;
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array();
+		$this->sql           = '';
+		$this->bound         = array();
+		$this->queries       = array();
+		$this->count         = 0;
+		$this->rows          = array();
+		$this->by_cpf_hash   = array();
+		$this->by_rf_hash    = array();
+		$this->by_email_hash = array();
+		$this->adjutancies   = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => (string) $v );
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->sql   = (string) $sql;
+				$this->bound = ( 1 === count( $args ) && is_array( $args[0] ) ) ? $args[0] : $args;
+				return (string) $sql;
+			}
+		);
+		// RecruitmentCandidateReader::get_by_cpf_hash() / get_by_rf_hash().
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () {
+				$this->queries[] = $this->sql;
+				$this->assertSame( 'wp_ffc_recruitment_candidate', $this->bound[0] );
+				$hash = (string) $this->bound[1];
+				if ( 'SELECT * FROM %i WHERE cpf_hash = %s LIMIT 1' === $this->sql ) {
+					return $this->by_cpf_hash[ $hash ] ?? null;
+				}
+				if ( 'SELECT * FROM %i WHERE rf_hash = %s LIMIT 1' === $this->sql ) {
+					return $this->by_rf_hash[ $hash ] ?? null;
+				}
+				$this->fail( 'Unexpected get_row query: ' . $this->sql );
+			}
+		);
+		// RecruitmentCandidateReader::get_ids_by_email_hash().
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function () {
+				$this->queries[] = $this->sql;
+				$this->assertSame( 'SELECT id FROM %i WHERE email_hash = %s', $this->sql, 'Unexpected get_col query.' );
+				$this->assertSame( 'wp_ffc_recruitment_candidate', $this->bound[0] );
+				return array_map( 'strval', $this->by_email_hash[ (string) $this->bound[1] ] ?? array() );
+			}
+		);
+		// RecruitmentCandidateReader::count_paginated_filtered().
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function () {
+				$this->queries[] = $this->sql;
+				$this->assertStringStartsWith( 'SELECT COUNT(DISTINCT c.id) FROM %i c', $this->sql, 'Unexpected get_var query.' );
+				return (string) $this->count;
+			}
+		);
+		// RecruitmentCandidateReader::get_paginated_filtered() and
+		// RecruitmentAdjutancyReader::get_all().
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function () {
+				$this->queries[] = $this->sql;
+				if ( 'SELECT * FROM %i ORDER BY name ASC' === $this->sql ) {
+					$this->assertSame( 'wp_ffc_recruitment_adjutancy', $this->bound[0] );
+					return $this->adjutancies;
+				}
+				$this->assertStringStartsWith( 'SELECT DISTINCT c.* FROM %i c', $this->sql, 'Unexpected get_results query.' );
+				return $this->rows;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 
 		$this->table = new RecruitmentCandidatesListTable();
 	}
@@ -83,8 +165,20 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 			$_REQUEST['cpf'], $_REQUEST['rf'], $_REQUEST['email'], $_REQUEST['s'],
 			$_REQUEST['adjutancy_id'], $_REQUEST['status']
 		);
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * The CPF formatted the way an operator types it, built from the digits.
+	 */
+	private static function formatted_cpf( string $digits ): string {
+		return sprintf( '%s.%s.%s-%s', substr( $digits, 0, 3 ), substr( $digits, 3, 3 ), substr( $digits, 6, 3 ), substr( $digits, 9, 2 ) );
 	}
 
 	private function call_protected( string $method, array $args = array() ) {
@@ -208,8 +302,8 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 
 	public function test_prepare_items_maps_reader_rows_into_items(): void {
 		Functions\when( '_prime_user_caches' )->justReturn( null );
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count = 2;
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows  = array(
+		$this->count = 2;
+		$this->rows  = array(
 			$this->candidate_obj( 1, 'Alpha', 7 ),
 			$this->candidate_obj( 2, 'Beta', null ),
 		);
@@ -225,19 +319,18 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 
 	public function test_prepare_items_empty_when_id_constraint_resolves_empty(): void {
 		// CPF typed but no matching candidate → constraint = empty array.
-		$_REQUEST['cpf'] = '123.456.789-00';
-
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'hash' )->andReturn( 'abc' );
-		// cpf_row stays null → resolve returns empty array → 0 rows.
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$count = 0;
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rows  = array();
+		$_REQUEST['cpf'] = self::formatted_cpf( Identifiers::CPF_A );
+		// A page the paginated query would answer, were it reached.
+		$this->count = 1;
+		$this->rows  = array( $this->candidate_obj( 1, 'Alpha' ) );
 
 		$this->table->prepare_items();
 
 		$this->assertSame( array(), $this->get_items() );
+		// Only the CPF lookup ran: the empty constraint short-circuits both
+		// the count and the page without a query.
+		$this->assertSame( array( 'SELECT * FROM %i WHERE cpf_hash = %s LIMIT 1' ), $this->queries );
+		$this->assertSame( Encryption::hash( Identifiers::CPF_A ), $this->bound[1] );
 	}
 
 	// ------------------------------------------------------------------
@@ -256,58 +349,36 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 	}
 
 	public function test_resolve_id_constraint_intersects_cpf_and_email(): void {
-		// `normalize_email` too, since #1313 gave the e-mail a canonical form:
-		// the operator search hashes through the registry, which reaches it.
-		// An alias mock answers only what it declares, so the omission surfaces
-		// as a BadMethodCallException rather than a wrong value.
-		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
-		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'hash' )->andReturn( 'hashval' );
-
 		// CPF resolves to candidate id 5; email resolves to ids [5, 9] → ∩ = [5].
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = (object) array( 'id' => 5 );
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array( 5, 9 );
+		// The e-mail is hashed in its canonical form (#1313), so the stored
+		// hash is of the lower-cased address the operator typed in mixed case.
+		$this->by_cpf_hash[ Encryption::hash( Identifiers::CPF_A ) ] = (object) array( 'id' => 5 );
+		$this->by_email_hash[ Encryption::hash( 'a@b.com' ) ]         = array( 5, 9 );
 
-		$out = $this->call_static_private( 'resolve_id_constraint', array( '123', '', 'a@b.com' ) );
+		$out = $this->call_static_private( 'resolve_id_constraint', array( self::formatted_cpf( Identifiers::CPF_A ), '', ' A@B.com ' ) );
 		$this->assertSame( array( 5 ), $out );
 	}
 
 	public function test_resolve_id_constraint_empty_when_intersection_disjoint(): void {
-		// `normalize_email` too, since #1313 gave the e-mail a canonical form:
-		// the operator search hashes through the registry, which reaches it.
-		// An alias mock answers only what it declares, so the omission surfaces
-		// as a BadMethodCallException rather than a wrong value.
-		$sanitizer = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$sanitizer->shouldReceive( 'normalize_cpf_rf' )->andReturn( '12345678900' );
-		$sanitizer->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'hash' )->andReturn( 'hashval' );
+		$this->by_cpf_hash[ Encryption::hash( Identifiers::CPF_A ) ] = (object) array( 'id' => 5 );
+		$this->by_email_hash[ Encryption::hash( 'a@b.com' ) ]         = array( 9 );
 
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$cpf_row   = (object) array( 'id' => 5 );
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$email_ids = array( 9 );
-
-		$out = $this->call_static_private( 'resolve_id_constraint', array( '123', '', 'a@b.com' ) );
+		$out = $this->call_static_private( 'resolve_id_constraint', array( Identifiers::CPF_A, '', 'a@b.com' ) );
 		$this->assertSame( array(), $out );
 	}
 
 	public function test_resolve_cpf_or_rf_to_ids_empty_for_blank_digits(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '' );
-
 		$out = $this->call_static_private( 'resolve_cpf_or_rf_to_ids', array( 'abc', 'cpf' ) );
 		$this->assertSame( array(), $out );
+		$this->assertSame( array(), $this->queries, 'No digits must mean no lookup.' );
 	}
 
 	public function test_resolve_cpf_or_rf_to_ids_returns_id_for_rf_match(): void {
-		Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' )
-			->shouldReceive( 'normalize_cpf_rf' )->andReturn( '999' );
-		Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' )
-			->shouldReceive( 'hash' )->andReturn( 'h' );
-		\FreeFormCertificate\Recruitment\RecruitmentCandidateReader::$rf_row = (object) array( 'id' => 42 );
+		$this->by_rf_hash[ Encryption::hash( Identifiers::RF_A ) ] = (object) array( 'id' => 42 );
+		// The same hash under the CPF column must not be what answers an RF lookup.
+		$this->by_cpf_hash[ Encryption::hash( Identifiers::RF_A ) ] = (object) array( 'id' => 1 );
 
-		$out = $this->call_static_private( 'resolve_cpf_or_rf_to_ids', array( '999', 'rf' ) );
+		$out = $this->call_static_private( 'resolve_cpf_or_rf_to_ids', array( Identifiers::RF_A, 'rf' ) );
 		$this->assertSame( array( 42 ), $out );
 	}
 
@@ -343,16 +414,7 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 	}
 
 	public function test_extra_tablenav_top_renders_filters_and_adjutancy_options(): void {
-		// Adjutancy reader stub (separate class from the candidate reader).
-		if ( ! class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdjutancyReader {'
-				. ' public static $rows = array();'
-				. ' public static function get_all() { return self::$rows; } }'
-			);
-		}
-		\FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader::$rows = array(
+		$this->adjutancies = array(
 			(object) array( 'id' => 4, 'name' => 'Adjutancy Four' ),
 		);
 

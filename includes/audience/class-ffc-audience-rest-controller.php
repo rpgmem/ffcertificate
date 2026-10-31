@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Audience;
 
+use FreeFormCertificate\Scheduling\ClosedDateKind;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -25,8 +27,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * REST API controller for audience endpoints.
  *
  * @phpstan-import-type EnvironmentRow from AudienceEnvironmentRepository
+ * @phpstan-import-type ScheduleRow from AudienceScheduleRepository
+ * @phpstan-import-type BookingRow from AudienceBookingReader
  */
 class AudienceRestController {
+
+	use \FreeFormCertificate\API\ReadRateLimitGuardTrait;
 
 	/**
 	 * Namespace for REST routes
@@ -37,6 +43,12 @@ class AudienceRestController {
 	 * Resource base
 	 */
 	private const REST_BASE = 'audience';
+
+	/**
+	 * Most days one `GET /bookings` may cover, both ends included (#2243).
+	 * The month view shows up to six weeks, so 62 leaves room for both.
+	 */
+	public const MAX_READ_SPAN_DAYS = 62;
 
 	/**
 	 * Register REST routes
@@ -131,6 +143,30 @@ class AudienceRestController {
 						'type'    => 'boolean',
 						'default' => false,
 					),
+					// Why an override takes days from other bookings, sent to
+					// their owners and participants (#2243).
+					'override_reason'  => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					// A weekly series (#2243): the last day it may reach, the
+					// dates the booker chose to leave out, and whether this
+					// call only lists what each date would meet.
+					'repeat_until'     => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'skip_dates'       => array(
+						'type'    => 'array',
+						'items'   => array( 'type' => 'string' ),
+						'default' => array(),
+					),
+					'preview'          => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
 				),
 			)
 		);
@@ -152,6 +188,63 @@ class AudienceRestController {
 					'reason' => array(
 						'type'              => 'string',
 						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'scope'  => array(
+						'type'    => 'string',
+						'enum'    => array( 'this', AudienceBookingSeries::SCOPE_FOLLOWING ),
+						'default' => 'this',
+					),
+				),
+			)
+		);
+
+		// Edit or move a booking (#2243): the same fields as creating one,
+		// except who it is for, which stays as booked.
+		register_rest_route(
+			self::NAMESPACE,
+			'/' . self::REST_BASE . '/bookings/(?P<id>\d+)',
+			array(
+				'methods'             => \WP_REST_Server::EDITABLE,
+				'callback'            => array( $this, 'update_booking' ),
+				'permission_callback' => array( $this, 'check_cancel_permission' ),
+				'args'                => array(
+					'id'               => array(
+						'type'              => 'integer',
+						'required'          => true,
+						'sanitize_callback' => 'absint',
+					),
+					'description'      => array(
+						'type'              => 'string',
+						'required'          => true,
+						'sanitize_callback' => 'sanitize_textarea_field',
+					),
+					'environment_id'   => array(
+						'type'              => 'integer',
+						'sanitize_callback' => 'absint',
+					),
+					'booking_date'     => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'start_time'       => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'end_time'         => array(
+						'type'              => 'string',
+						'default'           => '',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'confirm_override' => array(
+						'type'    => 'boolean',
+						'default' => false,
+					),
+					'override_reason'  => array(
+						'type'              => 'string',
+						'default'           => '',
 						'sanitize_callback' => 'sanitize_textarea_field',
 					),
 				),
@@ -264,13 +357,8 @@ class AudienceRestController {
 			return false;
 		}
 
-		// Admin/audience bypass can cancel anything.
-		if ( AudienceScheduleRepository::user_has_bypass_capability() ) {
-			return true;
-		}
-
 		$booking_id = $request->get_param( 'id' );
-		$booking    = AudienceBookingReader::get_by_id( $booking_id );
+		$booking    = AudienceBookingReader::get_by_id( is_numeric( $booking_id ) ? (int) $booking_id : 0 );
 
 		if ( ! $booking ) {
 			return false;
@@ -281,13 +369,18 @@ class AudienceRestController {
 			return true;
 		}
 
-		// Check if user has cancel_others permission on this schedule.
 		$environment = AudienceEnvironmentRepository::get_by_id( (int) $booking->environment_id );
-		if ( $environment ) {
-			return AudienceScheduleRepository::user_can_cancel_others( (int) $environment->schedule_id, get_current_user_id() );
+		if ( ! $environment ) {
+			return false;
 		}
 
-		return false;
+		// The audience bypass cancels anyone's booking only where the
+		// calendar's switch lets it, as it does for creating (#2243); with the
+		// switch off its holder needs the cancel-others permission like
+		// everyone else, which administrators keep.
+		$schedule_id = (int) $environment->schedule_id;
+		return AudienceScheduleRepository::user_has_bypass( $schedule_id )
+			|| AudienceScheduleRepository::user_can_cancel_others( $schedule_id, get_current_user_id() );
 	}
 
 	/**
@@ -384,16 +477,46 @@ class AudienceRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function get_bookings( \WP_REST_Request $request ): \WP_REST_Response {
-		$start_date     = $request->get_param( 'start_date' );
-		$end_date       = $request->get_param( 'end_date' );
+		$start_date     = (string) $request->get_param( 'start_date' );
+		$end_date       = (string) $request->get_param( 'end_date' );
 		$schedule_id    = $request->get_param( 'schedule_id' );
 		$environment_id = $request->get_param( 'environment_id' );
 
-		// Build query args.
+		// The month read is the one a script would loop over to copy the
+		// calendar, so it takes the read rate limit, for logged-in callers
+		// too, counted by account (#2243). The span cap below bounds one
+		// request; this bounds how many.
+		$blocked = $this->guard_read( 'audience_bookings', true );
+		if ( null !== $blocked ) {
+			$data = $blocked->get_error_data();
+			$wait = is_array( $data ) && is_array( $data['headers'] ?? null ) ? (int) ( $data['headers']['Retry-After'] ?? 60 ) : 60;
+			return new \WP_REST_Response(
+				self::refusal( 429, $blocked->get_error_message(), 'rate_limit_exceeded' )->get_data(),
+				429,
+				array( 'Retry-After' => (string) max( 1, $wait ) )
+			);
+		}
+
+		// The read is public, so its span is bounded (#2243): the month view
+		// asks for at most six weeks, and anything wider is refused rather
+		// than read.
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $start_date )
+			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
+			|| $end_date < $start_date ) {
+			return self::refusal( 400, __( 'Invalid date range.', 'ffcertificate' ) );
+		}
+		if ( AudienceBookingRules::range_length( $start_date, $end_date ) > self::MAX_READ_SPAN_DAYS ) {
+			/* translators: %d: the most days one calendar read may cover. */
+			return self::refusal( 400, sprintf( __( 'A calendar read can cover at most %d days.', 'ffcertificate' ), self::MAX_READ_SPAN_DAYS ) );
+		}
+
+		// Build query args. The calendars the caller may read are filtered
+		// in the query, so a private calendar's rows are never fetched.
 		$args = array(
-			'start_date' => $start_date,
-			'end_date'   => $end_date,
-			'status'     => null, // Get all statuses.
+			'start_date'   => $start_date,
+			'end_date'     => $end_date,
+			'status'       => null, // Get all statuses.
+			'schedule_ids' => $this->readable_schedule_ids(),
 		);
 
 		if ( $schedule_id ) {
@@ -404,36 +527,31 @@ class AudienceRestController {
 			$args['environment_id'] = $environment_id;
 		}
 
-		// Get bookings.
 		$bookings = AudienceBookingReader::get_all( $args );
 
-		// Enforce schedule visibility: drop any booking whose owning schedule
-		// the caller may not read. Covers both the scoped request (a private
-		// schedule_id/environment_id the caller can't see yields no rows) and
-		// the unscoped request (which otherwise returns every schedule's
-		// bookings, including private ones). Each row carries `schedule_id`
-		// from the reader's INNER JOIN on the environments table.
-		$readable_schedule_ids = $this->readable_schedule_ids();
-		if ( null !== $readable_schedule_ids ) {
-			$bookings = array_values(
-				array_filter(
-					$bookings,
-					static function ( $booking ) use ( $readable_schedule_ids ) {
-						return in_array( (int) $booking->schedule_id, $readable_schedule_ids, true );
-					}
-				)
-			);
-		}
+		// Every booking's audiences, in one query.
+		$audiences_by_booking = AudienceBookingReader::get_audiences_for_bookings(
+			array_map( static fn( $booking ): int => (int) $booking->id, $bookings )
+		);
 
 		// Get user info for each booking.
 		$user_id      = get_current_user_id();
 		$is_logged_in = is_user_logged_in();
-		$has_bypass   = AudienceScheduleRepository::user_has_bypass_capability();
+		// Whether the caller cancels others' bookings, per calendar: the
+		// bypass counts only where the calendar's switch allows it (#2243).
+		$cancels_others = array();
+		$has_bypass     = static function ( $booking ) use ( &$cancels_others, $user_id ): bool {
+			$schedule_id = (int) ( $booking->schedule_id ?? 0 );
+			if ( ! isset( $cancels_others[ $schedule_id ] ) ) {
+				$cancels_others[ $schedule_id ] = $user_id > 0 && AudienceScheduleRepository::user_has_bypass( $schedule_id );
+			}
+			return $cancels_others[ $schedule_id ];
+		};
 
 		// Transform bookings for response.
 		$bookings_data = array_map(
-			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass ) {
-				$audiences = AudienceBookingReader::get_booking_audiences( (int) $booking->id );
+			function ( $booking ) use ( $user_id, $is_logged_in, $has_bypass, $audiences_by_booking ) {
+				$audiences = $audiences_by_booking[ (int) $booking->id ] ?? array();
 
 				// Non-logged-in users get public data (no personal details like created_by).
 				if ( ! $is_logged_in ) {
@@ -484,7 +602,8 @@ class AudienceRestController {
 					'description'      => $booking->description,
 					'status'           => $booking->status,
 					'created_by'       => (int) $booking->created_by,
-					'can_cancel'       => $has_bypass || (int) $booking->created_by === $user_id,
+					'series_id'        => (int) ( $booking->series_id ?? 0 ),
+					'can_cancel'       => $has_bypass( $booking ) || (int) $booking->created_by === $user_id,
 					'audiences'        => array_map(
 						function ( $a ) {
 							return array(
@@ -513,16 +632,29 @@ class AudienceRestController {
 				return array(
 					'holiday_date' => $h->holiday_date,
 					'description'  => $h->description,
+					'kind'         => ClosedDateKind::normalize( $h->kind ?? null ),
 				);
 			},
 			$holidays
 		);
 
+		// What each closed date is (#2202), for the cell's label. A date
+		// closed as a holiday anywhere in scope reads as a holiday.
+		$holiday_kinds = array();
+		$note_kind     = static function ( string $date, $kind ) use ( &$holiday_kinds ): void {
+			$kind = ClosedDateKind::normalize( $kind );
+			if ( ! isset( $holiday_kinds[ $date ] ) || ClosedDateKind::HOLIDAY === $kind ) {
+				$holiday_kinds[ $date ] = $kind;
+			}
+		};
+
 		foreach ( $global_holidays as $gh ) {
 			$holidays_formatted[] = array(
 				'holiday_date' => $gh['date'],
 				'description'  => $gh['description'] ?? __( 'Holiday', 'ffcertificate' ),
+				'kind'         => ClosedDateKind::normalize( $gh['kind'] ?? null ),
 			);
+			$note_kind( (string) $gh['date'], $gh['kind'] ?? null );
 		}
 
 		// Which spaces are open on which days (#1859). Without an environment
@@ -540,6 +672,7 @@ class AudienceRestController {
 			$dates = array();
 			foreach ( AudienceEnvironmentRepository::get_holidays( (int) $scope_schedule_id, $start_date, $end_date ) as $h ) {
 				$dates[] = $h->holiday_date;
+				$note_kind( (string) $h->holiday_date, $h->kind ?? null );
 			}
 			$schedule_holidays[ (string) $scope_schedule_id ] = $dates;
 		}
@@ -553,6 +686,7 @@ class AudienceRestController {
 				'environments'      => $availability,
 				'schedule_holidays' => $schedule_holidays,
 				'global_holidays'   => array_column( $global_holidays, 'date' ),
+				'holiday_kinds'     => (object) $holiday_kinds,
 			),
 			200
 		);
@@ -578,22 +712,157 @@ class AudienceRestController {
 	 * @return \WP_REST_Response
 	 */
 	public function create_booking( \WP_REST_Request $request ): \WP_REST_Response {
-		$environment_id     = (int) $request->get_param( 'environment_id' );
-		$booking_date       = (string) $request->get_param( 'booking_date' );
-		$is_all_day         = ! empty( $request->get_param( 'is_all_day' ) );
-		$start_time         = (string) $request->get_param( 'start_time' );
-		$end_time           = (string) $request->get_param( 'end_time' );
 		$booking_type       = $request->get_param( 'booking_type' );
-		$description        = (string) $request->get_param( 'description' );
 		$audience_ids_param = $request->get_param( 'audience_ids' );
 		$audience_ids       = $audience_ids_param ? $audience_ids_param : array();
 		$user_ids_param     = $request->get_param( 'user_ids' );
 		$user_ids           = $user_ids_param ? $user_ids_param : array();
-		$confirm_override   = ! empty( $request->get_param( 'confirm_override' ) );
-		$end_date           = (string) $request->get_param( 'end_date' );
-		$time_mode          = (string) $request->get_param( 'time_mode' );
-		$time_mode          = '' === $time_mode ? 'daily' : $time_mode;
-		$skip_blocked       = ! empty( $request->get_param( 'skip_blocked' ) );
+		$user_id            = get_current_user_id();
+
+		$slot = $this->slot_from_request( $request, $user_id );
+		if ( $slot instanceof \WP_REST_Response ) {
+			return $slot;
+		}
+		$environment    = $slot['environment'];
+		$schedule       = $slot['schedule'];
+		$environment_id = $slot['environment_id'];
+		$schedule_id    = $slot['schedule_id'];
+		$booking_date   = $slot['booking_date'];
+		$end_date       = $slot['end_date'];
+		$is_range       = $slot['is_range'];
+		$is_all_day     = $slot['is_all_day'];
+		$start_time     = $slot['start_time'];
+		$end_time       = $slot['end_time'];
+		$time_mode      = $slot['time_mode'];
+		$skip_blocked   = $slot['skip_blocked'];
+		$description    = $slot['description'];
+
+		// Validate booking type has required data.
+		if ( 'audience' === $booking_type && empty( $audience_ids ) ) {
+			return self::refusal( 400, __( 'At least one audience must be selected.', 'ffcertificate' ) );
+		}
+
+		if ( 'individual' === $booking_type && empty( $user_ids ) ) {
+			return self::refusal( 400, __( 'At least one user must be selected.', 'ffcertificate' ) );
+		}
+
+		// Only the participants the caller may book for (#2243).
+		$audience_ids = self::positive_ids( $audience_ids );
+		$user_ids     = self::positive_ids( $user_ids );
+		$refused      = self::participant_refusal( (string) $booking_type, $audience_ids, $user_ids, $user_id );
+		if ( null !== $refused ) {
+			return $refused;
+		}
+
+		// A weekly series repeats this one day (#2243).
+		$repeat_until = (string) $request->get_param( 'repeat_until' );
+		if ( '' !== $repeat_until ) {
+			if ( $is_range ) {
+				return self::refusal( 400, __( 'A weekly series repeats one day. Choose one day, not several.', 'ffcertificate' ) );
+			}
+			return $this->create_series(
+				$request,
+				$schedule,
+				$environment,
+				array(
+					'environment_id' => $environment_id,
+					'booking_date'   => $booking_date,
+					'start_time'     => $start_time,
+					'end_time'       => $end_time,
+					'is_all_day'     => $is_all_day ? 1 : 0,
+					'booking_type'   => $booking_type,
+					'description'    => $description,
+					'audience_ids'   => $audience_ids,
+					'user_ids'       => $user_ids,
+				),
+				$repeat_until
+			);
+		}
+
+		$checked = $this->check_rules_and_conflicts( $slot, $request, $user_id, 0 );
+		if ( $checked instanceof \WP_REST_Response ) {
+			return $checked;
+		}
+		$reasons         = $checked['reasons'];
+		$conflicts       = $checked['conflicts'];
+		$override_reason = $checked['override_reason'];
+
+		$booking_data = array(
+			'environment_id' => $environment_id,
+			'booking_date'   => $booking_date,
+			'start_time'     => $start_time,
+			'end_time'       => $end_time,
+			'is_all_day'     => $is_all_day ? 1 : 0,
+			'booking_type'   => $booking_type,
+			'description'    => $description,
+			'audience_ids'   => $audience_ids,
+			'user_ids'       => $user_ids,
+			'end_date'       => $end_date,
+			'time_mode'      => $time_mode,
+			'skip_blocked'   => $skip_blocked,
+		);
+
+		// The bookings this one overrides give way to it on the days that
+		// clash. The writer takes those days in the transaction that inserts
+		// this one: doing it after the insert left the insert to find them
+		// still active and refuse.
+		if ( ! empty( $conflicts ) ) {
+			$booking_data['override_ids']  = array_map( static fn( $conflict ): int => (int) $conflict->id, $conflicts );
+			$booking_data['override_note'] = $override_reason;
+		}
+
+		/**
+		 * Fires before an audience booking is created.
+		 *
+		 * @since 4.6.4
+		 * @param array $booking_data Booking data to be inserted.
+		 */
+		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
+
+		// Create the booking.
+		$overridden = array();
+		$booking_id = AudienceBookingWriter::create( $booking_data, $overridden );
+
+		if ( ! $booking_id ) {
+			return self::refusal( 500, __( 'Failed to create booking.', 'ffcertificate' ) );
+		}
+
+		self::announce_overrides( $overridden, (int) $booking_id, $override_reason, $reasons, $slot, $user_id );
+
+		// Trigger notification hook.
+		do_action( 'ffcertificate_audience_booking_created', $booking_id );
+
+		return new \WP_REST_Response(
+			array(
+				'success'    => true,
+				'booking_id' => $booking_id,
+				'message'    => __( 'Booking created successfully.', 'ffcertificate' ),
+			),
+			201
+		);
+	}
+
+	/**
+	 * Read and check the when, where and text of a booking request: the space
+	 * and its calendar, the caller's permission to book there, the dates, the
+	 * hours and the description (#2243). Shared by creating and editing a
+	 * booking, so both refuse the same things the same way.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @param int              $user_id The caller.
+	 * @return array{environment: EnvironmentRow, schedule: ScheduleRow, environment_id: int, schedule_id: int, booking_date: string, end_date: string, is_range: bool, is_all_day: bool, start_time: string, end_time: string, time_mode: string, skip_blocked: bool, description: string}|\WP_REST_Response
+	 */
+	private function slot_from_request( \WP_REST_Request $request, int $user_id ) {
+		$environment_id = (int) $request->get_param( 'environment_id' );
+		$booking_date   = (string) $request->get_param( 'booking_date' );
+		$is_all_day     = ! empty( $request->get_param( 'is_all_day' ) );
+		$start_time     = (string) $request->get_param( 'start_time' );
+		$end_time       = (string) $request->get_param( 'end_time' );
+		$description    = (string) $request->get_param( 'description' );
+		$end_date       = (string) $request->get_param( 'end_date' );
+		$time_mode      = (string) $request->get_param( 'time_mode' );
+		$time_mode      = '' === $time_mode ? 'daily' : $time_mode;
+		$skip_blocked   = ! empty( $request->get_param( 'skip_blocked' ) );
 
 		// Validate environment exists.
 		$environment = AudienceEnvironmentRepository::get_by_id( $environment_id );
@@ -602,7 +871,6 @@ class AudienceRestController {
 		}
 
 		$schedule_id = (int) $environment->schedule_id;
-		$user_id     = get_current_user_id();
 
 		// Check user permission on this schedule. Holding the audience bypass
 		// capability is a permission to book even where the calendar's toggle
@@ -632,9 +900,9 @@ class AudienceRestController {
 				return self::refusal( 400, __( 'An all-day booking covers one day.', 'ffcertificate' ) );
 			}
 
-			if ( count( AudienceBookingRules::range_days( $booking_date, $end_date ) ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
-				/* translators: %d: the most days one booking may cover. */
-				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d days.', 'ffcertificate' ), AudienceBookingRules::MAX_RANGE_DAYS ) );
+			if ( AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
+				/* translators: %d: the most consecutive days one booking may cover. */
+				return self::refusal( 400, sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::max_range_days() ) );
 			}
 		} else {
 			$end_date = $booking_date;
@@ -666,19 +934,49 @@ class AudienceRestController {
 			return self::refusal( 400, __( 'Description must be between 15 and 300 characters.', 'ffcertificate' ) );
 		}
 
-		// Validate booking type has required data.
-		if ( 'audience' === $booking_type && empty( $audience_ids ) ) {
-			return self::refusal( 400, __( 'At least one audience must be selected.', 'ffcertificate' ) );
-		}
+		return array(
+			'environment'    => $environment,
+			'schedule'       => $schedule,
+			'environment_id' => $environment_id,
+			'schedule_id'    => $schedule_id,
+			'booking_date'   => $booking_date,
+			'end_date'       => $end_date,
+			'is_range'       => $is_range,
+			'is_all_day'     => $is_all_day,
+			'start_time'     => $start_time,
+			'end_time'       => $end_time,
+			'time_mode'      => $time_mode,
+			'skip_blocked'   => $skip_blocked,
+			'description'    => $description,
+		);
+	}
 
-		if ( 'individual' === $booking_type && empty( $user_ids ) ) {
-			return self::refusal( 400, __( 'At least one user must be selected.', 'ffcertificate' ) );
-		}
+	/**
+	 * Check a booking's days against the calendar's rules and the room's other
+	 * bookings (#2243). A caller without the bypass is refused on the first
+	 * broken rule; one who may override is asked to confirm, and an override
+	 * that takes days from other bookings needs a reason. Shared by creating
+	 * and moving a booking; a moved booking never clashes with itself.
+	 *
+	 * @param array<string, mixed> $slot       What {@see self::slot_from_request()} returned.
+	 * @param \WP_REST_Request     $request    Request object.
+	 * @param int                  $user_id    The caller.
+	 * @param int                  $exclude_id The booking being moved; 0 on create.
+	 * @phpstan-param array{environment: EnvironmentRow, schedule: ScheduleRow, environment_id: int, schedule_id: int, booking_date: string, end_date: string, is_range: bool, is_all_day: bool, start_time: string, end_time: string, time_mode: string, skip_blocked: bool, description: string} $slot
+	 * @return array{reasons: list<array{code: string, message: string}>, conflicts: list<BookingRow>, override_reason: string}|\WP_REST_Response
+	 */
+	private function check_rules_and_conflicts( array $slot, \WP_REST_Request $request, int $user_id, int $exclude_id ) {
+		$schedule         = $slot['schedule'];
+		$environment      = $slot['environment'];
+		$schedule_id      = $slot['schedule_id'];
+		$environment_id   = $slot['environment_id'];
+		$confirm_override = ! empty( $request->get_param( 'confirm_override' ) );
+		$override_reason  = trim( (string) $request->get_param( 'override_reason' ) );
 
 		$has_bypass = AudienceScheduleRepository::user_has_bypass( $schedule_id, $user_id );
 
 		// The days this booking takes, after any skipped blocked days.
-		$plan = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $start_time, $end_time, $time_mode, $skip_blocked );
+		$plan = AudienceBookingRules::occurrences( $environment_id, $slot['booking_date'], $slot['end_date'], $slot['start_time'], $slot['end_time'], $slot['time_mode'], $slot['skip_blocked'] );
 		if ( empty( $plan['days'] ) ) {
 			return self::refusal( 400, __( 'Every day of the range is blocked.', 'ffcertificate' ) );
 		}
@@ -699,7 +997,7 @@ class AudienceRestController {
 		$conflicts       = array();
 		$colliding_dates = array();
 		foreach ( $plan['days'] as $day ) {
-			$found = AudienceBookingReader::get_conflicts( $environment_id, $day['date'], $day['start_time'], $day['end_time'] );
+			$found = AudienceBookingReader::get_conflicts( $environment_id, $day['date'], $day['start_time'], $day['end_time'], $exclude_id > 0 ? $exclude_id : null );
 			if ( ! empty( $found ) ) {
 				$colliding_dates[] = $day['date'];
 				foreach ( $found as $conflict ) {
@@ -714,10 +1012,10 @@ class AudienceRestController {
 				$refused->data['colliding_dates'] = $colliding_dates;
 				return $refused;
 			}
-			// Overriding cancels the other booking whole, every day of a range,
-			// even when only one of its days clashes: the warning says so.
+			// Overriding takes only the days that clash (#2243): the other
+			// booking keeps its other days, attendance and invitations.
 			$conflict_reason            = AudienceBookingRules::reason( AudienceBookingRules::CONFLICT );
-			$conflict_reason['message'] = __( 'This time slot is already booked for this environment. Confirming cancels that booking entirely, on every day it covers.', 'ffcertificate' );
+			$conflict_reason['message'] = __( 'This time slot is already booked for this environment. Confirming cancels that booking on the days that clash; its other days stay booked.', 'ffcertificate' );
 			$reasons[]                  = $conflict_reason;
 		}
 
@@ -730,6 +1028,10 @@ class AudienceRestController {
 					'message'         => __( 'This booking breaks the calendar rules. Confirm to book anyway.', 'ffcertificate' ),
 					'reasons'         => $reasons,
 					'colliding_dates' => $colliding_dates,
+					'reason_required' => empty( $conflicts ) ? null : array(
+						'min' => AudienceBookingRules::OVERRIDE_REASON_MIN,
+						'max' => AudienceBookingRules::OVERRIDE_REASON_MAX,
+					),
 					'conflicts'       => array_map(
 						static function ( $b ) {
 							return array(
@@ -746,59 +1048,61 @@ class AudienceRestController {
 			);
 		}
 
-		$booking_data = array(
-			'environment_id' => $environment_id,
-			'booking_date'   => $booking_date,
-			'start_time'     => $start_time,
-			'end_time'       => $end_time,
-			'is_all_day'     => $is_all_day ? 1 : 0,
-			'booking_type'   => $booking_type,
-			'description'    => $description,
-			'audience_ids'   => $audience_ids,
-			'user_ids'       => $user_ids,
-			'end_date'       => $end_date,
-			'time_mode'      => $time_mode,
-			'skip_blocked'   => $skip_blocked,
-		);
-
-		// The bookings this one overrides give way to it. The writer cancels
-		// them in the transaction that inserts this one: cancelling them after
-		// the insert left the insert to find them still active and refuse.
-		$override_reason = __( 'Overridden by a priority booking: the space is no longer available at this time.', 'ffcertificate' );
+		// The people who lose days are told why, in the operator's words (#2243).
 		if ( ! empty( $conflicts ) ) {
-			$booking_data['override_ids']  = array_map( static fn( $conflict ): int => (int) $conflict->id, $conflicts );
-			$booking_data['override_note'] = $override_reason;
+			$reason_length = mb_strlen( $override_reason );
+			if ( $reason_length < AudienceBookingRules::OVERRIDE_REASON_MIN || $reason_length > AudienceBookingRules::OVERRIDE_REASON_MAX ) {
+				return self::refusal(
+					400,
+					/* translators: 1: fewest characters, 2: most characters. */
+					sprintf( __( 'Write why the other booking gives way, between %1$d and %2$d characters. It is sent to the people who lose those days.', 'ffcertificate' ), AudienceBookingRules::OVERRIDE_REASON_MIN, AudienceBookingRules::OVERRIDE_REASON_MAX ),
+					'override_reason_required'
+				);
+			}
 		}
 
-		/**
-		 * Fires before an audience booking is created.
-		 *
-		 * @since 4.6.4
-		 * @param array $booking_data Booking data to be inserted.
-		 */
-		do_action( 'ffcertificate_before_audience_booking_create', $booking_data );
+		return array(
+			'reasons'         => $reasons,
+			'conflicts'       => $conflicts,
+			'override_reason' => $override_reason,
+		);
+	}
 
-		// Create the booking.
-		$booking_id = AudienceBookingWriter::create( $booking_data );
-
-		if ( ! $booking_id ) {
-			return self::refusal( 500, __( 'Failed to create booking.', 'ffcertificate' ) );
-		}
-
+	/**
+	 * Tell the other listeners which bookings gave way to a confirmed
+	 * override, and write the override to the activity log (#1859, #2243).
+	 * Shared by creating and moving a booking.
+	 *
+	 * @param array<int, list<string>> $overridden      Each booking that gave way and the days it lost; empty when cancelled whole.
+	 * @param int                      $booking_id      The booking that took the slot.
+	 * @param string                   $override_reason The operator's reason.
+	 * @param array<int, mixed>        $reasons         The rules broken and conflicts overridden.
+	 * @param array<string, mixed>     $slot            What {@see self::slot_from_request()} returned.
+	 * @param int                      $user_id         The caller.
+	 * @phpstan-param list<array{code: string, message: string}> $reasons
+	 * @return void
+	 */
+	private static function announce_overrides( array $overridden, int $booking_id, string $override_reason, array $reasons, array $slot, int $user_id ): void {
 		$cancelled_ids = array();
-		foreach ( $conflicts as $conflict ) {
-			$cancelled_ids[] = (int) $conflict->id;
+		$trimmed       = array();
+		foreach ( $overridden as $overridden_id => $lost_days ) {
+			if ( empty( $lost_days ) ) {
+				$cancelled_ids[] = (int) $overridden_id;
+			} else {
+				$trimmed[ (int) $overridden_id ] = $lost_days;
+			}
 
 			/**
-			 * Fires when a booking is cancelled because a confirmed
-			 * override took its slot (#1859).
+			 * Fires when a booking gives way to a confirmed override (#1859):
+			 * cancelled whole, or only on the days that clashed (#2243).
 			 *
 			 * @since 6.40.0
-			 * @param int    $cancelled_id The booking that gave way.
-			 * @param int    $booking_id   The booking that took the slot.
-			 * @param string $reason       The cancellation reason.
+			 * @param int      $overridden_id The booking that gave way.
+			 * @param int      $booking_id    The booking that took the slot.
+			 * @param string   $reason        The operator's reason.
+			 * @param string[] $lost_days     The days it lost (Y-m-d); empty when it was cancelled whole.
 			 */
-			do_action( 'ffcertificate_audience_booking_overridden', (int) $conflict->id, (int) $booking_id, $override_reason );
+			do_action( 'ffcertificate_audience_booking_overridden', (int) $overridden_id, (int) $booking_id, $override_reason, $lost_days );
 		}
 
 		if ( ! empty( $reasons ) ) {
@@ -807,30 +1111,265 @@ class AudienceRestController {
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
 				array(
 					'booking_id'         => (int) $booking_id,
-					'schedule_id'        => $schedule_id,
-					'environment_id'     => $environment_id,
-					'booking_date'       => $booking_date,
-					'start_time'         => $start_time,
-					'end_time'           => $end_time,
+					'schedule_id'        => $slot['schedule_id'],
+					'environment_id'     => $slot['environment_id'],
+					'booking_date'       => $slot['booking_date'],
+					'start_time'         => $slot['start_time'],
+					'end_time'           => $slot['end_time'],
 					'reasons'            => array_column( $reasons, 'code' ),
 					'cancelled_bookings' => $cancelled_ids,
+					'trimmed_bookings'   => $trimmed,
+					'override_reason'    => $override_reason,
 					'confirmed_at'       => time(),
 				),
 				$user_id
 			);
 		}
+	}
 
-		// Trigger notification hook.
-		do_action( 'ffcertificate_audience_booking_created', $booking_id );
+	/**
+	 * Create a weekly series, or list what each of its dates would meet
+	 * (#2243).
+	 *
+	 * Every occurrence is an ordinary booking: the calendar's rules and the
+	 * room's conflicts are checked on each date, the way a single booking is
+	 * checked. A date that meets any of them is listed with the reasons and
+	 * left out, never overridden; the override stays a decision about one
+	 * booking. The same call serves the preview and the creation, so what
+	 * the booker was shown is what is booked: a date that went wrong between
+	 * the two answers again with the fresh list instead of being booked.
+	 *
+	 * The occurrences are tied by `series_id`. Each fires the usual
+	 * `ffcertificate_audience_booking_created`, and the e-mail is sent once,
+	 * for the first, listing every date.
+	 *
+	 * @param \WP_REST_Request    $request      Request.
+	 * @param object              $schedule     The calendar.
+	 * @param object              $environment  The space.
+	 * @param array<string,mixed> $booking_data The fields every occurrence shares, with the first date.
+	 * @param string              $repeat_until Last day the series may reach (Y-m-d).
+	 * @phpstan-param ScheduleRow $schedule
+	 * @phpstan-param EnvironmentRow $environment
+	 * @return \WP_REST_Response
+	 */
+	private function create_series( \WP_REST_Request $request, object $schedule, object $environment, array $booking_data, string $repeat_until ): \WP_REST_Response {
+		$first_date = (string) $booking_data['booking_date'];
+
+		if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $repeat_until ) || $repeat_until <= $first_date ) {
+			return self::refusal( 400, __( 'Repeat until must be a valid date after the first one.', 'ffcertificate' ) );
+		}
+		if ( AudienceBookingRules::weekly_count( $first_date, $repeat_until ) > AudienceBookingRules::SERIES_MAX_WEEKS ) {
+			/* translators: %d: the most weeks a series may repeat. */
+			return self::refusal( 400, sprintf( __( 'A weekly series can repeat for at most %d weeks.', 'ffcertificate' ), AudienceBookingRules::SERIES_MAX_WEEKS ), 'series_too_long' );
+		}
+
+		$environment_id = (int) $environment->id;
+		$is_all_day     = ! empty( $booking_data['is_all_day'] );
+		$skip_dates     = array_values( array_filter( array_map( 'strval', (array) $request->get_param( 'skip_dates' ) ), array( \FreeFormCertificate\Core\DateFormatter::class, 'is_valid_date' ) ) );
+
+		$occurrences = array();
+		foreach ( AudienceBookingRules::weekly_dates( $first_date, $repeat_until ) as $date ) {
+			$start_time = (string) $booking_data['start_time'];
+			$end_time   = (string) $booking_data['end_time'];
+			if ( $is_all_day ) {
+				$window     = AudienceBookingRules::all_day_window( $environment_id, $date );
+				$start_time = $window['start'];
+				$end_time   = $window['end'];
+			}
+
+			$problems = AudienceBookingRules::violations( $schedule, $environment, $date, $start_time, $end_time );
+			if ( ! empty( AudienceBookingReader::get_conflicts( $environment_id, $date, $start_time, $end_time ) ) ) {
+				$problems[] = AudienceBookingRules::reason( AudienceBookingRules::CONFLICT );
+			}
+
+			$occurrences[] = array(
+				'date'       => $date,
+				'start_time' => $start_time,
+				'end_time'   => $end_time,
+				'problems'   => $problems,
+				'skipped'    => in_array( $date, $skip_dates, true ),
+			);
+		}
+
+		$listed   = array_map(
+			static function ( array $occurrence ): array {
+				return array(
+					'date'     => $occurrence['date'],
+					'label'    => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $occurrence['date'] ),
+					'problems' => $occurrence['problems'],
+				);
+			},
+			$occurrences
+		);
+		$bookable = array_values( array_filter( $occurrences, static fn( array $o ): bool => empty( $o['problems'] ) ) );
+
+		if ( ! empty( $request->get_param( 'preview' ) ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success'     => true,
+					'preview'     => true,
+					'occurrences' => $listed,
+					'bookable'    => count( $bookable ),
+				),
+				200
+			);
+		}
+
+		// A date with a problem the booker did not agree to leave out:
+		// something changed since the preview.
+		foreach ( $occurrences as $occurrence ) {
+			if ( ! empty( $occurrence['problems'] ) && ! $occurrence['skipped'] ) {
+				return new \WP_REST_Response(
+					array(
+						'success'     => false,
+						'code'        => 'series_changed',
+						'message'     => __( 'Some dates changed since the check. Review the list and confirm again.', 'ffcertificate' ),
+						'occurrences' => $listed,
+						'bookable'    => count( $bookable ),
+					),
+					409
+				);
+			}
+		}
+
+		$to_book = array_values( array_filter( $bookable, static fn( array $o ): bool => ! $o['skipped'] ) );
+		if ( empty( $to_book ) ) {
+			return self::refusal( 400, __( 'No date of the series can be booked.', 'ffcertificate' ), 'series_empty' );
+		}
+
+		$created = array();
+		$failed  = array();
+		foreach ( $to_book as $occurrence ) {
+			$data = array_merge(
+				$booking_data,
+				array(
+					'booking_date' => $occurrence['date'],
+					'start_time'   => $occurrence['start_time'],
+					'end_time'     => $occurrence['end_time'],
+					'end_date'     => $occurrence['date'],
+					'time_mode'    => 'daily',
+					'skip_blocked' => false,
+				)
+			);
+
+			/** This action is documented in create_booking(). */
+			do_action( 'ffcertificate_before_audience_booking_create', $data );
+
+			$booking_id = AudienceBookingWriter::create( $data );
+			if ( $booking_id ) {
+				$created[] = (int) $booking_id;
+			} else {
+				$failed[] = $occurrence['date'];
+			}
+		}
+
+		if ( empty( $created ) ) {
+			return self::refusal( 500, __( 'Failed to create booking.', 'ffcertificate' ) );
+		}
+
+		if ( count( $created ) > 1 ) {
+			AudienceBookingWriter::assign_series( $created );
+		}
+
+		foreach ( $created as $booking_id ) {
+			/** This action is documented in create_booking(). */
+			do_action( 'ffcertificate_audience_booking_created', $booking_id );
+		}
+
+		$message = sprintf(
+			/* translators: %d: how many weekly bookings were created. */
+			_n( '%d weekly booking created.', '%d weekly bookings created.', count( $created ), 'ffcertificate' ),
+			count( $created )
+		);
+		if ( ! empty( $failed ) ) {
+			$message .= ' ' . sprintf(
+				/* translators: %s: the dates that could not be booked, comma-separated. */
+				__( 'These dates could not be booked: %s.', 'ffcertificate' ),
+				implode( ', ', array_map( array( \FreeFormCertificate\Core\DateFormatter::class, 'format_wallclock_date' ), $failed ) )
+			);
+		}
 
 		return new \WP_REST_Response(
 			array(
-				'success'    => true,
-				'booking_id' => $booking_id,
-				'message'    => __( 'Booking created successfully.', 'ffcertificate' ),
+				'success'      => true,
+				'booking_id'   => $created[0],
+				'booking_ids'  => $created,
+				'failed_dates' => $failed,
+				'message'      => $message,
 			),
 			201
 		);
+	}
+
+	/**
+	 * The distinct positive integers of a request's id list.
+	 *
+	 * @param mixed $ids The raw parameter.
+	 * @return list<int>
+	 */
+	private static function positive_ids( $ids ): array {
+		if ( ! is_array( $ids ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $ids as $id ) {
+			if ( is_numeric( $id ) && (int) $id > 0 ) {
+				$out[ (int) $id ] = (int) $id;
+			}
+		}
+
+		return array_values( $out );
+	}
+
+	/**
+	 * Why the caller may not book these participants, or null when it may (#2243).
+	 *
+	 * The calendar only offers a booker their own audiences, but the route
+	 * took any ids, so a caller who could book anywhere could reach every
+	 * member of any audience: the e-mail, the dashboard, the check-in and the
+	 * post-event invite. A WordPress administrator or a holder of the
+	 * audience bypass may book any audience; everyone else books the
+	 * audiences they belong to, or one of those audiences' ancestors, as the
+	 * calendar offers them. An individual booking names people directly, so
+	 * it takes the right to manage audiences. Every id must exist.
+	 *
+	 * @param string     $booking_type `audience` or `individual`.
+	 * @param array<int> $audience_ids Requested audiences.
+	 * @param array<int> $user_ids     Requested people.
+	 * @param int        $user_id      The caller.
+	 * @return \WP_REST_Response|null
+	 */
+	private static function participant_refusal( string $booking_type, array $audience_ids, array $user_ids, int $user_id ): ?\WP_REST_Response {
+		$privileged = AudienceScheduleRepository::user_has_bypass_capability();
+
+		if ( 'individual' === $booking_type && ! AudienceBookingRules::can_book_individuals() ) {
+			return self::refusal( 403, __( 'You do not have permission to book for individual users.', 'ffcertificate' ) );
+		}
+
+		foreach ( $user_ids as $id ) {
+			if ( ! get_userdata( $id ) ) {
+				return self::refusal( 400, __( 'One of the selected users does not exist.', 'ffcertificate' ) );
+			}
+		}
+
+		$own_ids = null;
+		foreach ( $audience_ids as $id ) {
+			if ( null === AudienceReader::get_by_id( $id ) ) {
+				return self::refusal( 400, __( 'One of the selected audiences does not exist.', 'ffcertificate' ) );
+			}
+			if ( $privileged ) {
+				continue;
+			}
+			if ( null === $own_ids ) {
+				$own_ids = array_map( static fn( $audience ): int => (int) $audience->id, AudienceReader::get_user_audiences( $user_id, true ) );
+			}
+			if ( ! in_array( $id, $own_ids, true ) ) {
+				return self::refusal( 403, __( 'You can only book for audiences you belong to.', 'ffcertificate' ) );
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -855,6 +1394,154 @@ class AudienceRestController {
 		}
 
 		return new \WP_REST_Response( $body, $status );
+	}
+
+	/**
+	 * Edit or move a booking (#2243).
+	 *
+	 * The booking keeps its id, so its participants, attendance and
+	 * invitations stay with it, and its participants receive one "changed"
+	 * e-mail. A request without a date changes the description only. A
+	 * request with one moves the booking within its own calendar, through the
+	 * same checks a new booking passes: the rules, and the room's other
+	 * bookings, which a bypass holder may override with a reason. A booking
+	 * whose first day has come keeps its date, hours and space, so the
+	 * attendance taken stays true to where and when it happened.
+	 *
+	 * Who may edit is who may cancel: the owner, or a holder of the
+	 * calendar's bypass where the calendar allows it.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response
+	 */
+	public function update_booking( \WP_REST_Request $request ): \WP_REST_Response {
+		$booking_id = (int) $request->get_param( 'id' );
+		$booking    = AudienceBookingReader::get_by_id( $booking_id );
+		if ( ! $booking ) {
+			return self::refusal( 404, __( 'Booking not found.', 'ffcertificate' ) );
+		}
+		if ( 'active' !== $booking->status ) {
+			return self::refusal( 400, __( 'Only an active booking can be changed.', 'ffcertificate' ) );
+		}
+
+		$user_id = get_current_user_id();
+		$before  = array(
+			'environment_id' => (int) $booking->environment_id,
+			'booking_date'   => (string) $booking->booking_date,
+			'end_date'       => isset( $booking->end_date ) ? (string) $booking->end_date : null,
+			'time_mode'      => isset( $booking->time_mode ) ? (string) $booking->time_mode : null,
+			'start_time'     => (string) $booking->start_time,
+			'end_time'       => (string) $booking->end_time,
+			'description'    => (string) $booking->description,
+		);
+
+		// Without a date the request changes the description only.
+		if ( '' === (string) $request->get_param( 'booking_date' ) ) {
+			$description = (string) $request->get_param( 'description' );
+			$length      = mb_strlen( $description );
+			if ( $length < 15 || $length > 300 ) {
+				return self::refusal( 400, __( 'Description must be between 15 and 300 characters.', 'ffcertificate' ) );
+			}
+			if ( $description === $before['description'] ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => true,
+						'changed' => false,
+						'message' => __( 'Nothing changed.', 'ffcertificate' ),
+					),
+					200
+				);
+			}
+			if ( ! AudienceBookingWriter::update( $booking_id, array( 'description' => $description ) ) ) {
+				return self::refusal( 500, __( 'Failed to change booking.', 'ffcertificate' ) );
+			}
+			self::announce_change( $booking_id, $before );
+			return self::changed_response();
+		}
+
+		// A booking whose first day has come keeps its date, hours and space.
+		if ( $before['booking_date'] <= AudienceBookingRules::today() ) {
+			return self::refusal( 400, __( 'This booking has started: only its description can change.', 'ffcertificate' ), 'booking_started' );
+		}
+
+		$slot = $this->slot_from_request( $request, $user_id );
+		if ( $slot instanceof \WP_REST_Response ) {
+			return $slot;
+		}
+
+		// A booking moves within its own calendar.
+		$current = AudienceEnvironmentRepository::get_by_id( $before['environment_id'] );
+		if ( ! $current || (int) $current->schedule_id !== $slot['schedule_id'] ) {
+			return self::refusal( 400, __( 'A booking can only move to a space of its own calendar.', 'ffcertificate' ) );
+		}
+
+		$checked = $this->check_rules_and_conflicts( $slot, $request, $user_id, $booking_id );
+		if ( $checked instanceof \WP_REST_Response ) {
+			return $checked;
+		}
+
+		$data = array(
+			'environment_id' => $slot['environment_id'],
+			'booking_date'   => $slot['booking_date'],
+			'end_date'       => $slot['end_date'],
+			'start_time'     => $slot['start_time'],
+			'end_time'       => $slot['end_time'],
+			'is_all_day'     => $slot['is_all_day'] ? 1 : 0,
+			'time_mode'      => $slot['time_mode'],
+			'skip_blocked'   => $slot['skip_blocked'],
+			'description'    => $slot['description'],
+		);
+		if ( ! empty( $checked['conflicts'] ) ) {
+			$data['override_ids']  = array_map( static fn( $conflict ): int => (int) $conflict->id, $checked['conflicts'] );
+			$data['override_note'] = $checked['override_reason'];
+		}
+
+		$overridden = array();
+		if ( ! AudienceBookingWriter::move( $booking_id, $data, $overridden ) ) {
+			if ( AudienceBookingReader::is_cancelled( $booking_id ) ) {
+				return self::refusal( 400, __( 'Only an active booking can be changed.', 'ffcertificate' ) );
+			}
+			return self::refusal( 500, __( 'Failed to change booking.', 'ffcertificate' ) );
+		}
+
+		self::announce_overrides( $overridden, $booking_id, $checked['override_reason'], $checked['reasons'], $slot, $user_id );
+		self::announce_change( $booking_id, $before );
+
+		return self::changed_response();
+	}
+
+	/**
+	 * Tell the listeners a booking changed (#2243).
+	 *
+	 * @param int                  $booking_id The booking.
+	 * @param array<string, mixed> $before     Its date, hours, space and description before the change.
+	 * @return void
+	 */
+	private static function announce_change( int $booking_id, array $before ): void {
+		/**
+		 * Fires after an audience booking is edited or moved (#2243).
+		 *
+		 * @since 6.43.0
+		 * @param int                  $booking_id The booking, under the same id.
+		 * @param array<string, mixed> $before     `environment_id`, `booking_date`, `end_date`, `time_mode`, `start_time`, `end_time` and `description` before the change.
+		 */
+		do_action( 'ffcertificate_audience_booking_changed', $booking_id, $before );
+	}
+
+	/**
+	 * The answer to a change that was saved.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	private static function changed_response(): \WP_REST_Response {
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'changed' => true,
+				'message' => __( 'Booking changed. Its participants will be told.', 'ffcertificate' ),
+			),
+			200
+		);
 	}
 
 	/**
@@ -899,8 +1586,47 @@ class AudienceRestController {
 			);
 		}
 
-		// Cancel the booking.
+		// A date of a weekly series may take every later date with it, and
+		// the series is told in one e-mail (#2243).
+		if ( AudienceBookingSeries::SCOPE_FOLLOWING === $request->get_param( 'scope' ) && (int) ( $booking->series_id ?? 0 ) > 0 ) {
+			$cancelled = AudienceBookingSeries::cancel_following( $booking, $reason );
+			if ( array() === $cancelled ) {
+				return new \WP_REST_Response(
+					array(
+						'success' => false,
+						'message' => __( 'Booking is already cancelled.', 'ffcertificate' ),
+					),
+					400
+				);
+			}
+
+			return new \WP_REST_Response(
+				array(
+					'success'   => true,
+					'cancelled' => $cancelled,
+					'message'   => sprintf(
+						/* translators: %d: how many dates of the series were cancelled. */
+						_n( '%d date of the series cancelled.', '%d dates of the series cancelled.', count( $cancelled ), 'ffcertificate' ),
+						count( $cancelled )
+					),
+				),
+				200
+			);
+		}
+
+		// Cancel the booking. A request that lost the race to another one
+		// changes nothing and is told so, without a second e-mail (#2243).
 		$result = AudienceBookingWriter::cancel( $booking_id, $reason );
+
+		if ( ! $result && AudienceBookingReader::is_cancelled( (int) $booking_id ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Booking is already cancelled.', 'ffcertificate' ),
+				),
+				400
+			);
+		}
 
 		if ( ! $result ) {
 			return new \WP_REST_Response(
@@ -912,8 +1638,16 @@ class AudienceRestController {
 			);
 		}
 
-		// Trigger notification hook.
-		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason );
+		/**
+		 * Fires after an audience booking is cancelled.
+		 *
+		 * @param int                  $booking_id The cancelled booking.
+		 * @param string               $reason     The cancellation reason.
+		 * @param array<string, mixed> $context    Empty for one booking; for dates of a weekly
+		 *                                         series cancelled together, `series_lead` (the
+		 *                                         first id), `series_ids` and `series_dates`.
+		 */
+		do_action( 'ffcertificate_audience_booking_cancelled', $booking_id, $reason, array() );
 
 		return new \WP_REST_Response(
 			array(
@@ -941,11 +1675,46 @@ class AudienceRestController {
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $booking_date )
 			|| ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
 			|| $end_date <= $booking_date
-			|| count( AudienceBookingRules::range_days( $booking_date, $end_date ) ) > AudienceBookingRules::MAX_RANGE_DAYS ) {
+			|| AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
 			return $booking_date;
 		}
 
 		return $end_date;
+	}
+
+	/**
+	 * Display names of the people a booking would clash for (#2243): the
+	 * first ten in name order, and how many more there are. One query.
+	 *
+	 * @param int[] $user_ids User IDs.
+	 * @return array{names: list<string>, more: int}
+	 */
+	private static function affected_names( array $user_ids ): array {
+		$limit = 10;
+		if ( empty( $user_ids ) ) {
+			return array(
+				'names' => array(),
+				'more'  => 0,
+			);
+		}
+
+		$users = get_users(
+			array(
+				'include' => $user_ids,
+				'orderby' => 'display_name',
+				'number'  => $limit,
+				'fields'  => array( 'display_name' ),
+			)
+		);
+		$names = array();
+		foreach ( $users as $user ) {
+			$names[] = (string) $user->display_name;
+		}
+
+		return array(
+			'names' => $names,
+			'more'  => max( 0, count( $user_ids ) - count( $names ) ),
+		);
 	}
 
 	/**
@@ -983,6 +1752,22 @@ class AudienceRestController {
 						'message' => __( 'Invalid date format.', 'ffcertificate' ),
 					),
 					400
+				);
+			}
+
+			// A range longer than the cap is refused here, with the message the
+			// create endpoint gives, so the check does not pass a booking the
+			// next step would refuse (#2243).
+			$end_date = sanitize_text_field( (string) $request->get_param( 'end_date' ) );
+			if ( '' !== $end_date
+				&& \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date )
+				&& $end_date > $booking_date
+				&& AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
+				return self::refusal(
+					400,
+					/* translators: %d: the most consecutive days one booking may cover. */
+					sprintf( __( 'A booking can cover at most %d consecutive days.', 'ffcertificate' ), AudienceBookingRules::max_range_days() ),
+					'range_too_long'
 				);
 			}
 
@@ -1060,11 +1845,18 @@ class AudienceRestController {
 				$is_hard_conflict          = true;
 			}
 
-			// 2. Check same audience group on same day (soft conflict)
-			if ( ! $is_hard_conflict && ! empty( $audience_ids ) ) {
+			$env_ids = array_map( static fn( $conflict ): int => (int) $conflict->id, $env_conflicts );
+
+			// 2. Check same audience group on same day (soft conflict). Run
+			// with a room clash too, so a booker who overrides it learns
+			// everything in one round (#2243).
+			if ( ! empty( $audience_ids ) ) {
 				$same_day = array();
 				foreach ( $plan['days'] as $day ) {
 					foreach ( AudienceBookingReader::get_audience_same_day_bookings( $day['date'], $audience_ids, null, $scope_schedule_id, $readable_schedule_ids ) as $found ) {
+						if ( in_array( (int) $found->id, $env_ids, true ) ) {
+							continue;
+						}
 						$same_day[ (int) $found->id . '-' . (string) ( $found->audience_name ?? '' ) ] = $found;
 					}
 				}
@@ -1085,52 +1877,64 @@ class AudienceRestController {
 				}
 			}
 
-			// 3. Check user conflicts — members with overlapping bookings (soft conflict)
-			// Only check if no hard conflict detected.
-			if ( ! $is_hard_conflict ) {
-				$user_conflicts = array(
-					'bookings'       => array(),
-					'affected_users' => array(),
+			// 3. Check user conflicts — members with overlapping bookings (soft
+			// conflict), with or without a room clash (#2243).
+			$user_conflicts = array(
+				'bookings'       => array(),
+				'affected_users' => array(),
+			);
+			foreach ( $plan['days'] as $day ) {
+				$found = AudienceBookingReader::get_user_conflicts(
+					$day['date'],
+					$day['start_time'],
+					$day['end_time'],
+					$audience_ids,
+					$user_ids,
+					null,
+					$scope_schedule_id,
+					$readable_schedule_ids
 				);
-				foreach ( $plan['days'] as $day ) {
-					$found = AudienceBookingReader::get_user_conflicts(
-						$day['date'],
-						$day['start_time'],
-						$day['end_time'],
-						$audience_ids,
-						$user_ids,
-						null,
-						$scope_schedule_id,
-						$readable_schedule_ids
-					);
-					foreach ( $found['bookings'] as $booking ) {
+				foreach ( $found['bookings'] as $booking ) {
+					// A booking already reported as the room's clash is not
+					// reported a second time as the people's.
+					if ( ! in_array( (int) $booking->id, $env_ids, true ) ) {
 						$user_conflicts['bookings'][ (int) $booking->id ] = $booking;
 					}
-					$user_conflicts['affected_users'] = array_merge( $user_conflicts['affected_users'], $found['affected_users'] );
 				}
-				$user_conflicts['bookings']       = array_values( $user_conflicts['bookings'] );
-				$user_conflicts['affected_users'] = array_values( array_unique( $user_conflicts['affected_users'] ) );
+				$user_conflicts['affected_users'] = array_merge( $user_conflicts['affected_users'], $found['affected_users'] );
+			}
+			$user_conflicts['bookings']       = array_values( $user_conflicts['bookings'] );
+			$user_conflicts['affected_users'] = array_values( array_unique( $user_conflicts['affected_users'] ) );
 
-				if ( ! empty( $user_conflicts['bookings'] ) ) {
-					$response_data['type']           = 'user';
-					$response_data['bookings']       = array_map(
-						function ( $b ) {
-							return array(
-								'id'          => $b->id,
-								'start_time'  => $b->start_time,
-								'end_time'    => $b->end_time,
-								'description' => $b->description,
-							);
-						},
-						$user_conflicts['bookings']
-					);
-					$response_data['affected_users'] = $user_conflicts['affected_users'];
+			if ( ! empty( $user_conflicts['bookings'] ) ) {
+				// The people who clash, by name (#2243), so the booker knows
+				// whom to ask rather than only how many.
+				$names                           = self::affected_names( $user_conflicts['affected_users'] );
+				$response_data['affected_names'] = $names['names'];
+				$response_data['affected_more']  = $names['more'];
+				$response_data['affected_users'] = $user_conflicts['affected_users'];
+				$user_bookings                   = array_map(
+					function ( $b ) {
+						return array(
+							'id'          => $b->id,
+							'start_time'  => $b->start_time,
+							'end_time'    => $b->end_time,
+							'description' => $b->description,
+						);
+					},
+					$user_conflicts['bookings']
+				);
+				if ( $is_hard_conflict ) {
+					$response_data['user_bookings'] = $user_bookings;
+				} else {
+					$response_data['type']     = 'user';
+					$response_data['bookings'] = $user_bookings;
 				}
+			}
 
-				// Audience same-day is also a soft conflict.
-				if ( 'none' === $response_data['type'] && ! empty( $response_data['audience_same_day'] ) ) {
-					$response_data['type'] = 'audience_same_day';
-				}
+			// Audience same-day is also a soft conflict.
+			if ( 'none' === $response_data['type'] && ! empty( $response_data['audience_same_day'] ) ) {
+				$response_data['type'] = 'audience_same_day';
 			}
 
 			return new \WP_REST_Response(

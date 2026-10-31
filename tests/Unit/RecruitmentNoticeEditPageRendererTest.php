@@ -18,22 +18,91 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer;
  *    seeds the client justification gate from the full (unfiltered/unpaginated)
  *    definitive queue (#Item7).
  *  - render_* smoke tests — each public static section renderer is driven
- *    through ob_start()/ob_get_clean() with a stdClass notice fixture and the
- *    data collaborators (readers / repositories / badge helpers) alias-mocked,
- *    so the data-prep private helpers and the included templates execute. We
- *    assert the captured markup contains a handful of load-bearing substrings.
+ *    through ob_start()/ob_get_clean() with a stdClass notice fixture. The
+ *    collaborators are the real classes (the recruitment readers and
+ *    repositories, the filter manager, the PCD hasher, the admin badges,
+ *    AdminUI), over a `$wpdb` double that answers from the rows each test
+ *    stores and fails on any query it does not know, so the data-prep
+ *    private helpers and the included templates execute. We assert the
+ *    captured markup contains a handful of load-bearing substrings.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentNoticeEditPageRendererTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var array<string, mixed> `$_GET` before the test, restored afterwards. */
+	private array $get_backup = array();
+
+	/**
+	 * Adjutancy rows the database holds, keyed by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $adjutancies = array();
+
+	/**
+	 * Classification rows of notice 7, keyed by list_type.
+	 *
+	 * @var array<string, array<int, object>>
+	 */
+	private array $classifications = array();
+
+	/**
+	 * Adjutancy ids attached to notice 7.
+	 *
+	 * @var array<int, int>
+	 */
+	private array $attached = array();
+
+	/**
+	 * Candidate rows the database holds, keyed by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $candidates = array();
+
+	/**
+	 * Reason rows the database holds.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $reasons = array();
+
+	/** @var list<object> Call rows the active-call lookup answers. */
+	private array $calls = array();
+
+	/** @var list<object> Call rows the notice's calls record answers. */
+	private array $notice_calls = array();
+
+	/** @var array<int, string> Display names of the accounts that exist. */
+	private array $users = array();
+
+	/** @var array<string, bool> Capabilities the user holds; every one unless a test says otherwise. */
+	private array $caps = array();
+
+	/**
+	 * Every query the double answered, as [method, sql, bound args].
+	 *
+	 * @var list<array{0: string, 1: string, 2: array<int, mixed>}>
+	 */
+	private array $queries = array();
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->get_backup = $_GET ?? array();
+		$_GET             = array();
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -47,9 +116,16 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentNoticeEditPageRenderer' );
 
 		$this->stub_wp_functions();
+		$this->install_wpdb();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
+		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -60,13 +136,16 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	 * helpers echo or return a tiny recognizable token.
 	 */
 	private function stub_wp_functions(): void {
-		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_textarea', 'wp_kses_post', 'sanitize_key', 'esc_html__', 'esc_attr__', 'number_format_i18n' ) as $fn ) {
+		foreach ( array( '__', '_x', 'esc_html_x', 'esc_html', 'esc_attr', 'esc_textarea', 'wp_kses_post', 'sanitize_key', 'esc_html__', 'esc_attr__', 'number_format_i18n' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
 
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static fn( $s ) => print $s );
 		Functions\when( 'esc_attr_e' )->alias( static fn( $s ) => print $s );
+
+		Functions\when( 'current_user_can' )->alias( fn ( $cap ) => $this->caps[ $cap ] ?? true );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 
 		Functions\when( 'selected' )->justReturn( '' );
 		Functions\when( 'checked' )->justReturn( '' );
@@ -81,55 +160,134 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => $n === 1 ? $single : $plural );
 		Functions\when( 'paginate_links' )->justReturn( '<a class="page-numbers">2</a>' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null, $tz = null ) => gmdate( $format, $ts ?? time() ) );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_users' )->alias(
+			fn( $args ) => array_values(
+				array_filter(
+					array_map( fn( $id ) => isset( $this->users[ $id ] ) ? (object) array( 'ID' => $id, 'display_name' => $this->users[ $id ] ) : null, $args['include'] ?? array() )
+				)
+			)
+		);
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		// The readers cache through the object cache: always a miss.
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// No setting stored: every reader takes its default.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
 	}
 
 	/**
-	 * Declare stub classes for the two retired-façade names the notice-edit
-	 * templates still reference (RecruitmentNoticeRepository::DEFAULT_…,
-	 * RecruitmentAdjutancyRepository::get_by_id). These names no longer exist
-	 * in includes/ — see the production-issue note in the test for
-	 * render_general_section. Declared here (guarded) so the included
-	 * templates can execute under test.
+	 * Install a `$wpdb` double answering the recruitment readers from the
+	 * rows the test stored. A query it does not recognise fails the test.
 	 */
-	private function declare_template_facade_stubs(): void {
-		if ( ! class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentNoticeRepository', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentNoticeRepository {'
-				. ' const DEFAULT_PUBLIC_COLUMNS_CONFIG = \'{"rank":true,"name":true,"adjutancy":true,"status":true,"pcd_badge":true,"score":false,"preview_reason":false}\';'
-				. ' }'
-			);
-		}
-		if ( ! class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentAdjutancyRepository', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdjutancyRepository {'
-				. ' public static function get_by_id( $id ) {'
-				. ' return (object) array( "id" => (int) $id, "slug" => "adj-" . (int) $id, "name" => "Adjutancy " . (int) $id );'
-				. ' } }'
-			);
-		}
+	private function install_wpdb(): void {
+		$this->adjutancies     = array();
+		$this->classifications = array();
+		$this->attached        = array();
+		$this->candidates      = array();
+		$this->reasons         = array();
+		$this->queries         = array();
+
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				// Some readers bind one array of arguments.
+				$this->bound = ( 1 === count( $args ) && is_array( $args[0] ) ) ? array_values( $args[0] ) : $args;
+				return (string) $sql;
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_row', $sql, $this->bound );
+				if ( 'SELECT * FROM %i WHERE id = %d' === $sql && 'wp_ffc_recruitment_adjutancy' === $this->bound[0] ) {
+					return $this->adjutancies[ (int) $this->bound[1] ] ?? null;
+				}
+				throw new \LogicException( 'Unexpected get_row: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_results', $sql, $this->bound );
+				$table           = $this->bound[0];
+				if ( 'wp_ffc_recruitment_adjutancy' === $table && str_contains( $sql, 'ORDER BY name ASC' ) ) {
+					return array_values( $this->adjutancies );
+				}
+				if ( 'wp_ffc_recruitment_classification' === $table && str_contains( $sql, 'notice_id = %d AND list_type = %s' ) ) {
+					return 7 === (int) $this->bound[1] ? ( $this->classifications[ (string) $this->bound[2] ] ?? array() ) : array();
+				}
+				if ( 'wp_ffc_recruitment_candidate' === $table && str_contains( $sql, 'WHERE id IN' ) ) {
+					$ids = array_map( 'intval', array_slice( $this->bound, 1 ) );
+					return array_values( array_intersect_key( $this->candidates, array_flip( $ids ) ) );
+				}
+				if ( 'wp_ffc_recruitment_reason' === $table && str_contains( $sql, 'ORDER BY label ASC' ) ) {
+					return $this->reasons;
+				}
+				if ( 'wp_ffc_recruitment_call' === $table && str_contains( $sql, 'WHERE classification_id IN' ) ) {
+					return $this->calls;
+				}
+				if ( 'wp_ffc_recruitment_call' === $table && str_contains( $sql, 'WHERE cl.notice_id = %d' ) ) {
+					return 7 === (int) $this->bound[2] ? $this->notice_calls : array();
+				}
+				throw new \LogicException( 'Unexpected get_results: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_var', $sql, $this->bound );
+				if ( str_contains( (string) $sql, 'WHERE notice_id = %d AND list_type = %s' ) && 'wp_ffc_recruitment_classification' === $this->bound[0] ) {
+					return 7 === (int) $this->bound[1] ? (string) count( $this->classifications[ (string) $this->bound[2] ] ?? array() ) : '0';
+				}
+				if ( str_contains( (string) $sql, 'INNER JOIN' ) ) {
+					return '0';
+				}
+				throw new \LogicException( 'Unexpected get_var: ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			function ( $sql ) {
+				$this->queries[] = array( 'get_col', $sql, $this->bound );
+				if ( 'SELECT adjutancy_id FROM %i WHERE notice_id = %d' === $sql && 'wp_ffc_recruitment_notice_adjutancy' === $this->bound[0] ) {
+					return 7 === (int) $this->bound[1] ? array_map( 'strval', $this->attached ) : array();
+				}
+				throw new \LogicException( 'Unexpected get_col: ' . $sql );
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	/**
-	 * Declare a stub `RecruitmentAdminPage` carrying the PAGE_SLUG constant
-	 * (used by the filter-form template) plus pure badge helpers. Declared
-	 * (not alias-mocked) because Mockery alias mocks can't supply the
-	 * constant. Declared before the renderer autoloads the real one, so this
-	 * wins in the isolated process.
+	 * Store an adjutancy row.
 	 */
-	private function declare_admin_page_stub(): void {
-		if ( ! class_exists( '\\FreeFormCertificate\\Recruitment\\RecruitmentAdminPage', false ) ) {
-			eval(
-				'namespace FreeFormCertificate\Recruitment;'
-				. ' class RecruitmentAdminPage {'
-				. ' const PAGE_SLUG = "ffc-recruitment";'
-				. ' public static function notice_status_badge( $s ) { return "<span class=\"notice-badge\">" . $s . "</span>"; }'
-				. ' public static function classification_status_badge( $s ) { return "<span class=\"status-badge\">" . $s . "</span>"; }'
-				. ' public static function adjutancy_badge( $a ) { return "<span class=\"adj-badge\"></span>"; }'
-				. ' }'
-			);
+	private function store_adjutancy( int $id, string $slug, string $name ): void {
+		$this->adjutancies[ $id ] = (object) array(
+			'id'    => $id,
+			'slug'  => $slug,
+			'name'  => $name,
+			'color' => '#123456',
+		);
+	}
+
+	/**
+	 * Which list_types of notice 7 were read, in order.
+	 *
+	 * @return list<string>
+	 */
+	private function classification_reads(): array {
+		$out = array();
+		foreach ( $this->queries as $q ) {
+			if ( 'wp_ffc_recruitment_classification' === ( $q[2][0] ?? '' ) ) {
+				$out[] = (string) $q[2][2];
+			}
 		}
+		return $out;
 	}
 
 	private function notice( array $overrides = array() ): object {
@@ -172,10 +330,8 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	}
 
 	public function test_groups_empties_by_adjutancy_slug_sorted_by_rank_excluding_non_empty(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
-			static fn( $id ) => (object) array( 'slug' => 'adj-' . (int) $id )
-		);
+		$this->store_adjutancy( 1, 'adj-1', 'Adjutancy 1' );
+		$this->store_adjutancy( 2, 'adj-2', 'Adjutancy 2' );
 
 		$rows = array(
 			$this->row( 10, 3, 'empty', 1 ),
@@ -210,18 +366,19 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 
 		$this->assertSame( array(), $this->invoke( $rows ) );
+		$this->assertSame( array(), $this->queries, 'no adjutancy is looked up without an empty row' );
 	}
 
 	public function test_falls_back_to_hashed_id_key_when_adjutancy_slug_missing(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_by_id' )->andReturn( null );
-
+		// No adjutancy row 7 is stored: the reader finds nothing.
 		$map = $this->invoke( array( $this->row( 99, 1, 'empty', 7 ) ) );
 
 		$this->assertSame(
 			array( '#7' => array( array( 'id' => 99, 'rank' => 1 ) ) ),
 			$map
 		);
+		$this->assertCount( 1, $this->queries, 'the adjutancy was looked up' );
+		$this->assertSame( array( 'wp_ffc_recruitment_adjutancy', 7 ), $this->queries[0][2] );
 	}
 
 	// ------------------------------------------------------------------
@@ -241,6 +398,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_csv_import_section_preliminary_shows_import_form(): void {
+		$this->store_classifications( array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ), array() );
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
 		$html = (string) ob_get_clean();
@@ -249,6 +407,16 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'name="csv_file"', $html );
 		// preliminary status exposes the "definitive" radio path.
 		$this->assertStringContainsString( 'value="definitive"', $html );
+	}
+
+	public function test_a_preliminary_notice_without_a_preliminary_list_offers_no_definitive_import(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_csv_import_section( $this->notice( array( 'status' => 'preliminary' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'name="csv_file"', $html, 'The preliminary import stays available.' );
+		$this->assertStringNotContainsString( 'value="definitive"', $html, 'The definitive list needs a preliminary one first (#2245).' );
+		$this->assertStringContainsString( 'once the preliminary list has been imported', $html );
 	}
 
 	public function test_render_csv_import_section_definitive_disables_import(): void {
@@ -265,17 +433,6 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_general_section_renders_code_name_and_toggles_grid(): void {
-		$this->declare_template_facade_stubs();
-
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'get_toggle' )->andReturnUsing(
-			static fn( $args ) => '<span class="ffc-control-toggle" data-name="' . $args['name'] . '"></span>'
-		);
-		$ui->shouldReceive( 'render_toggle' )->andReturnUsing(
-			static fn( $args ) => print '<span class="ffc-control-toggle" data-name="' . $args['name'] . '"></span>'
-		);
-		$ui->shouldReceive( 'render_save_button' )->once()->with( 'Save general', array( 'value' => 'Save general' ) );
-
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_general_section( $this->notice() );
 		$html = (string) ob_get_clean();
@@ -287,16 +444,14 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'public_columns[rank]', $html );
 		// the dedicated preview_reason row uses render_toggle.
 		$this->assertStringContainsString( 'public_columns[preview_reason]', $html );
+		// The real AdminUI drew the toggles and the one save button.
+		$this->assertStringContainsString( 'ffc-control-toggle', $html );
+		$this->assertSame( 1, substr_count( $html, '<p class="submit">' ), 'one save button' );
+		$this->assertMatchesRegularExpression( '/<button[^>]*type="submit"[^>]*>/', $html );
+		$this->assertStringContainsString( 'value="Save general"', $html );
 	}
 
 	public function test_render_general_section_tolerates_invalid_columns_json(): void {
-		$this->declare_template_facade_stubs();
-
-		$ui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$ui->shouldReceive( 'get_toggle' )->andReturn( '<span class="ffc-control-toggle"></span>' );
-		$ui->shouldReceive( 'render_toggle' )->andReturnUsing( static fn() => print '' );
-		$ui->shouldReceive( 'render_save_button' );
-
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_general_section( $this->notice( array( 'public_columns_config' => 'not-json' ) ) );
 		$html = (string) ob_get_clean();
@@ -310,63 +465,59 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_status_section_preliminary_renders_promote_options_no_definitive(): void {
-		$cls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'definitive' )->andReturn( array() );
-
-		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
-		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">preliminary</span>' );
-
+		// No definitive rows stored for notice 7.
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'preliminary' ) ) );
 		$html = (string) ob_get_clean();
 
+		$this->assertSame( array( 'definitive' ), $this->classification_reads() );
 		$this->assertStringContainsString( 'Status', $html );
+		$this->assertStringContainsString( 'ffc-recruitment-status-preliminary', $html, 'the real status badge' );
 		// dual-path snapshot button when no definitive list exists.
 		$this->assertStringContainsString( 'ffcRecruitmentSnapshotPromote', $html );
-		// resolve_status_transitions drops definitive → still offers back-to-draft.
-		$this->assertStringContainsString( 'target_status', $html );
+		// No way back to draft (#2245): the only transition is the promotion,
+		// which has its own dual-path block, so no plain transition button.
+		$this->assertStringNotContainsString( 'target_status', $html );
+		$this->assertStringNotContainsString( 'Back to draft', $html );
 	}
 
-	public function test_render_status_section_preliminary_with_existing_definitive_single_button(): void {
-		$cls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'definitive' )->andReturn(
-			array( $this->row( 1, 1, 'empty', 1 ) )
-		);
-
-		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
-		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">preliminary</span>' );
+	public function test_render_status_section_preliminary_with_a_stale_definitive_list_still_replaces_it(): void {
+		$this->classifications['definitive'] = array( $this->cls_row( 1, 1, 'empty', 1, 100 ) );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'preliminary' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'A definitive list already exists', $html );
-		$this->assertStringNotContainsString( 'ffcRecruitmentSnapshotPromote', $html );
+		$this->assertSame( array( 'definitive' ), $this->classification_reads() );
+		// #2245: the list from the earlier cycle is replaced by either path,
+		// never kept by a bare status flip.
+		$this->assertStringContainsString( 'A definitive list from an earlier cycle exists (1 row). Either option below replaces it.', $html );
+		$this->assertStringContainsString( 'ffcRecruitmentSnapshotPromote', $html );
+		$this->assertStringContainsString( 'A — Copy preliminary as definitive', $html );
+		$this->assertStringContainsString( 'The definitive list from the earlier cycle is replaced.', $html );
+		$this->assertStringNotContainsString( 'name="target_status" value="definitive"', $html );
 	}
 
 	public function test_render_status_section_definitive_renders_close_transition(): void {
-		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
-		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">definitive</span>' );
-
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'ffc-recruitment-status-definitive', $html, 'the real status badge' );
 		// definitive offers close + back-to-preliminary transition buttons.
 		$this->assertStringContainsString( 'target_status', $html );
 		$this->assertStringContainsString( 'ffc_recruitment_transition_notice', $html );
+		$this->assertSame( array(), $this->queries, 'only the preliminary state reads the definitive list' );
 	}
 
 	public function test_render_status_section_closed_renders_reopen_and_reopened_note(): void {
-		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
-		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">closed</span>' );
-
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_status_section(
 			$this->notice( array( 'status' => 'closed', 'was_reopened' => '1' ) )
 		);
 		$html = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'ffc-recruitment-status-closed', $html, 'the real status badge' );
 		// closed → definitive reopen transition, with reason_label data attr.
 		$this->assertStringContainsString( 'data-ffc-confirm-reason-label', $html );
 		// was_reopened note rendered.
@@ -374,13 +525,11 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	}
 
 	public function test_render_status_section_draft_renders_single_transition(): void {
-		$page = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
-		$page->shouldReceive( 'notice_status_badge' )->andReturn( '<span class="badge">draft</span>' );
-
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'draft' ) ) );
 		$html = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'ffc-recruitment-status-draft', $html, 'the real status badge' );
 		$this->assertStringContainsString( 'target_status', $html );
 	}
 
@@ -389,16 +538,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_adjutancies_section_partitions_attached_and_detached(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_all' )->andReturn(
-			array(
-				(object) array( 'id' => 1, 'slug' => 'A1', 'name' => 'Alpha' ),
-				(object) array( 'id' => 2, 'slug' => 'B2', 'name' => 'Bravo' ),
-			)
-		);
-
-		$na = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$na->shouldReceive( 'get_adjutancy_ids_for_notice' )->with( 7 )->andReturn( array( 1 ) );
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
+		$this->store_adjutancy( 2, 'B2', 'Bravo' );
+		$this->attached = array( 1 );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice() );
@@ -413,13 +555,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 	}
 
 	public function test_render_adjutancies_section_no_attached_shows_empty_note(): void {
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 1, 'slug' => 'A1', 'name' => 'Alpha' ) )
-		);
-
-		$na = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$na->shouldReceive( 'get_adjutancy_ids_for_notice' )->with( 7 )->andReturn( array() );
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice() );
@@ -428,66 +564,72 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'No adjutancies attached yet', $html );
 	}
 
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function adjutancy_locked_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	/**
+	 * @dataProvider adjutancy_locked_statuses
+	 */
+	public function test_adjutancies_are_read_only_once_the_notice_is_past_preliminary( string $status ): void {
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
+		$this->store_adjutancy( 2, 'B2', 'Bravo' );
+		$this->attached = array( 1 );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice( array( 'status' => $status ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'A1', $html, 'The attached adjutancies still show.' );
+		$this->assertStringNotContainsString( 'ffcDetachAdjutancy', $html );
+		$this->assertStringNotContainsString( 'ffcAttachAdjutancy', $html );
+		$this->assertStringContainsString( 'only while the notice is in draft or preliminary', $html );
+	}
+
+	public function test_a_draft_notice_takes_adjutancy_changes(): void {
+		$this->store_adjutancy( 1, 'A1', 'Alpha' );
+		$this->store_adjutancy( 2, 'B2', 'Bravo' );
+		$this->attached = array( 1 );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $this->notice( array( 'status' => 'draft' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffcDetachAdjutancy', $html );
+		$this->assertStringContainsString( 'ffcAttachAdjutancy', $html );
+	}
+
 	// ------------------------------------------------------------------
 	// render_classifications_section() — full data-prep + table render
 	// ------------------------------------------------------------------
 
 	/**
-	 * Wire up all the collaborators the classifications section + table touch:
-	 * classification repo (preview/definitive), filter manager, candidate
-	 * reader, adjutancy reader, reason reader, pcd hasher, admin badges,
-	 * subscription badge, and the attached-adjutancies repo. Returns nothing;
-	 * the alias mocks live for the rest of the (isolated) process.
+	 * Store the rows the classifications section + table read: the preview
+	 * and definitive lists of notice 7, a candidate per row, an adjutancy
+	 * per row and one reason. No filter is in the request, so the real
+	 * filter manager passes every row through.
+	 *
+	 * @param array<int, object> $preview_rows    Preview list.
+	 * @param array<int, object> $definitive_rows Definitive list.
 	 */
-	private function wire_classifications_collaborators(
-		array $preview_rows,
-		array $definitive_rows
-	): void {
-		// Declare the stubs BEFORE any alias mock so the real classes don't
-		// get autoloaded transitively (the renderer references them directly).
-		$this->declare_admin_page_stub();
-		$this->declare_template_facade_stubs();
-
-		$cls = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationRepository' );
-		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'preview' )->andReturn( $preview_rows );
-		$cls->shouldReceive( 'get_for_notice' )->with( 7, 'definitive' )->andReturn( $definitive_rows );
-
-		$fm = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentClassificationFilterManager' );
-		$fm->shouldReceive( 'read_filters' )->andReturn(
-			array( 'adjutancy_id' => 0, 'query' => '', 'cpf' => '', 'rf' => '', 'subscription' => '' )
+	private function store_classifications( array $preview_rows, array $definitive_rows ): void {
+		$this->classifications = array(
+			'preview'    => $preview_rows,
+			'definitive' => $definitive_rows,
 		);
-		$fm->shouldReceive( 'apply_filters' )->andReturnUsing( static fn( $rows ) => $rows );
-
-		$cand = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$cand->shouldReceive( 'get_by_ids' )->andReturnUsing(
-			static function ( $ids ) {
-				$out = array();
-				foreach ( (array) $ids as $id ) {
-					$out[] = (object) array( 'id' => (int) $id, 'name' => 'Cand ' . (int) $id, 'pcd_hash' => '' );
-				}
-				return $out;
-			}
-		);
-
-		$adj = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdjutancyReader' );
-		$adj->shouldReceive( 'get_by_id' )->andReturnUsing(
-			static fn( $id ) => (object) array( 'id' => (int) $id, 'slug' => 'adj-' . (int) $id, 'name' => 'Adj ' . (int) $id )
-		);
-
-		$reason = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
-		$reason->shouldReceive( 'get_all' )->andReturn(
-			array( (object) array( 'id' => 1, 'label' => 'Reason 1', 'applies_to' => '' ) )
-		);
-		$reason->shouldReceive( 'decode_applies_to' )->andReturn( array() );
-
-		$pcd = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPcdHasher' );
-		$pcd->shouldReceive( 'verify' )->andReturn( false );
-
-		$sc = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPublicShortcodeRenderer' );
-		$sc->shouldReceive( 'render_subscription_badge' )->andReturn( '<span class="sub-badge"></span>' );
-
-		$na = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentNoticeAdjutancyRepository' );
-		$na->shouldReceive( 'get_adjutancy_ids_for_notice' )->with( 7 )->andReturn( array() );
+		foreach ( array_merge( $preview_rows, $definitive_rows ) as $row ) {
+			$cid                      = (int) $row->candidate_id;
+			$this->candidates[ $cid ] = (object) array( 'id' => $cid, 'name' => 'Cand ' . $cid, 'pcd_hash' => '' );
+			$aid                      = (int) $row->adjutancy_id;
+			$this->store_adjutancy( $aid, 'adj-' . $aid, 'Adj ' . $aid );
+		}
+		$this->reasons = array( (object) array( 'id' => 1, 'label' => 'Reason 1', 'applies_to' => '' ) );
 	}
 
 	private function cls_row( int $id, int $rank, string $status, int $adjutancy_id, int $candidate_id ): object {
@@ -503,8 +645,35 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A call row as the table stores it.
+	 *
+	 * @param array<string, mixed> $overrides Columns to change.
+	 */
+	private function call( int $id, int $classification_id, int $created_by, array $overrides = array() ): object {
+		return (object) array_merge(
+			array(
+				'id'                  => (string) $id,
+				'classification_id'   => (string) $classification_id,
+				'called_at'           => '1780308000',
+				'date_to_assume'      => '2026-06-01',
+				'time_to_assume'      => '09:30:00',
+				'out_of_order'        => '0',
+				'out_of_order_reason' => null,
+				'cancellation_reason' => null,
+				'cancelled_at'        => null,
+				'cancelled_by'        => null,
+				'notes'               => null,
+				'created_by'          => (string) $created_by,
+				'created_at'          => '2026-06-01 09:00:00',
+				'updated_at'          => '2026-06-01 09:00:00',
+			),
+			$overrides
+		);
+	}
+
 	public function test_render_classifications_section_with_definitive_rows_renders_actions_table(): void {
-		$this->wire_classifications_collaborators(
+		$this->store_classifications(
 			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
 			array(
 				$this->cls_row( 60, 1, 'called', 1, 600 ),
@@ -513,7 +682,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		);
 
 		ob_start();
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Classifications', $html );
@@ -529,10 +698,145 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-cls-preview-status', $html );
 		// empties map handed to JS on the definitive panel.
 		$this->assertStringContainsString( 'data-ffc-empties', $html );
+		// The candidates came from the store, through the real reader.
+		$this->assertStringContainsString( 'Cand 600', $html );
+		$this->assertStringContainsString( 'Cand 500', $html );
+		$this->assertStringContainsString( 'Reason 1', $html );
+	}
+
+	public function test_flags_a_candidate_with_no_email_on_the_definitive_list_only(): void {
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array(
+				$this->cls_row( 60, 1, 'empty', 1, 600 ),
+				$this->cls_row( 61, 2, 'empty', 1, 601 ),
+			)
+		);
+		$this->candidates[601]->email_hash = 'hash-601';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, substr_count( $html, 'No email — contact manually' ), 'Only the definitive row whose candidate has no address is flagged; the preview list takes no calls (#2245).' );
+		$this->assertMatchesRegularExpression( '/Cand 600 <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">No email/', $html );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool, 2: bool}>
+	 */
+	public static function notice_states(): array {
+		// status => [ preliminary statuses editable, definitive actions shown ].
+		return array(
+			'draft'       => array( 'draft', false, false ),
+			'preliminary' => array( 'preliminary', true, false ),
+			'definitive'  => array( 'definitive', false, true ),
+			'closed'      => array( 'closed', false, false ),
+		);
+	}
+
+	/**
+	 * @dataProvider notice_states
+	 */
+	public function test_the_lists_offer_only_what_the_notice_status_allows( string $status, bool $marks, bool $calls ): void {
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array( $this->cls_row( 60, 1, 'hired', 1, 600 ) )
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => $status ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( $marks, 1 === preg_match( '/<select class="ffc-cls-preview-status" data-cls-id="50">/', $html ), 'Preliminary statuses change only while the notice is preliminary (#2245).' );
+		$this->assertSame( $calls, str_contains( $html, 'ffcRecruitmentClsAct' ), 'Call, outcomes, reopen and undo only on a definitive notice.' );
+	}
+
+	public function test_cancel_names_the_rows_active_call(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array(
+			$this->call( 91, 60, 3 ),
+			$this->call( 90, 60, 3, array( 'cancelled_at' => '1777968000' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html );
+		$this->assertStringNotContainsString( 'data-call-id="90"', $html, 'A cancelled call is never the one to end.' );
+	}
+
+	/**
+	 * An Operator: view and call, no manage.
+	 */
+	private function as_operator(): void {
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_manage_recruitment' => false,
+			'ffc_view_recruitment'   => true,
+			'ffc_call_recruitment'   => true,
+		);
+	}
+
+	public function test_an_operator_records_outcomes_and_ends_only_their_own_call(): void {
+		$this->as_operator();
+		$this->store_classifications(
+			array( $this->cls_row( 50, 1, 'empty', 1, 500 ) ),
+			array(
+				$this->cls_row( 60, 1, 'called', 1, 600 ),
+				$this->cls_row( 61, 2, 'called', 1, 601 ),
+				$this->cls_row( 62, 3, 'hired', 1, 602 ),
+			)
+		);
+		$this->calls = array(
+			$this->call( 91, 60, 7 ),
+			$this->call( 92, 61, 3 ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-cls-bulk-toolbar', $html, 'The Operator calls.' );
+		$this->assertStringContainsString( 'data-cls-id="61" data-cls-action="hired"', $html, 'The Operator records an outcome on anyone\'s call.' );
+		$this->assertMatchesRegularExpression( '/data-cls-action="cancel" data-call-id="91"/', $html, 'Their own call can be cancelled.' );
+		$this->assertStringNotContainsString( 'data-call-id="92"', $html, 'Another operator\'s call cannot.' );
+		$this->assertStringNotContainsString( 'data-cls-action="override"', $html, 'Undoing a decision is the Manager\'s.' );
+		$this->assertMatchesRegularExpression( '/<select class="ffc-cls-preview-status" data-cls-id="50" disabled>/', $html, 'The preliminary statuses are the Manager\'s.' );
+	}
+
+	public function test_a_viewer_reads_the_lists_without_actions(): void {
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_manage_recruitment' => false,
+			'ffc_call_recruitment'   => false,
+			'ffc_view_recruitment'   => true,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 61, 1, 'empty', 1, 601 ) ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Cand 601', $html );
+		$this->assertStringNotContainsString( 'ffcRecruitmentClsAct', $html );
+		$this->assertStringNotContainsString( 'ffc-cls-bulk-toolbar', $html );
+	}
+
+	public function test_the_status_section_offers_no_transition_to_a_non_manager(): void {
+		$this->store_classifications( array(), array() );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_status_section( $this->notice( array( 'status' => 'definitive' ) ), false );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'target_status', $html );
+		$this->assertStringContainsString( 'Current state:', $html );
 	}
 
 	public function test_render_classifications_section_empty_lists_render_no_rows_notice(): void {
-		$this->wire_classifications_collaborators( array(), array() );
+		$this->store_classifications( array(), array() );
 
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice() );
@@ -541,6 +845,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( '(no rows)', $html );
 		// no definitive rows → default tab is preliminary.
 		$this->assertStringContainsString( 'data-ffc-clspanel="preliminary"', $html );
+		$this->assertSame( array( 'preview', 'definitive' ), $this->classification_reads() );
 	}
 
 	// ------------------------------------------------------------------
@@ -559,5 +864,215 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-copy-target="#ffc-notice-shortcode"', $html );
 		// The bare shortcode is offered as the selector alternative.
 		$this->assertStringContainsString( '<code>[ffc_recruitment_queue]</code>', $html );
+	}
+
+	// ------------------------------------------------------------------
+	// Definitive list: call columns, status filter, select across pages,
+	// and the calls record (#2245)
+	// ------------------------------------------------------------------
+
+	public function test_the_definitive_list_shows_when_each_row_was_called_and_for_when(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'hired', 1, 600 ), $this->cls_row( 61, 2, 'empty', 1, 601 ) ) );
+		$this->calls = array( $this->call( 91, 60, 3 ) );
+		$this->users = array( 3 => 'Olga Operator' );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Date to assume</th>', $html );
+		$this->assertStringContainsString( '<th>Called on</th>', $html );
+		$this->assertStringContainsString( '09:30', $html, 'The time to assume is shown as stored, with no time zone.' );
+		$this->assertStringContainsString( 'Olga Operator', $html, 'A WordPress administrator sees who called.' );
+	}
+
+	public function test_called_by_is_hidden_without_the_history_capability(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => false,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array( $this->call( 91, 60, 3 ) );
+		$this->users = array( 3 => 'Olga Operator' );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Called on</th>', $html );
+		$this->assertStringNotContainsString( 'Called by', $html );
+		$this->assertStringNotContainsString( 'Olga Operator', $html );
+	}
+
+	public function test_the_module_administrator_tier_sees_who_called(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => true,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'called', 1, 600 ) ) );
+		$this->calls = array( $this->call( 91, 60, 99 ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<th>Called by</th>', $html );
+		$this->assertStringContainsString( 'Deleted user #99', $html, 'An account that no longer exists is named by its ID.' );
+	}
+
+	public function test_the_status_filter_counts_each_status_and_narrows_the_list(): void {
+		$this->store_classifications(
+			array(),
+			array(
+				$this->cls_row( 60, 1, 'hired', 1, 600 ),
+				$this->cls_row( 61, 2, 'empty', 1, 601 ),
+				$this->cls_row( 62, 3, 'empty', 1, 602 ),
+			)
+		);
+		$_GET['ffc_cls_status'] = 'empty';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'All <span class="ffc-rec-status-count">(3)</span>', $html, 'The counts are taken before the status narrows the list.' );
+		$this->assertStringContainsString( 'class="current" aria-current="page">Waiting <span class="ffc-rec-status-count">(2)</span>', $html );
+		$this->assertStringContainsString( 'Hired <span class="ffc-rec-status-count">(1)</span>', $html );
+		$this->assertStringNotContainsString( 'Withdrew <span', $html, 'A status no row holds is not offered.' );
+		$this->assertStringNotContainsString( 'data-cls-id="60"', $html, 'The hired row is filtered out.' );
+		$this->assertStringContainsString( 'data-cls-id="61"', $html );
+		$this->assertStringContainsString( 'name="ffc_cls_status" value="empty"', $html, 'The filter form keeps the status.' );
+	}
+
+	public function test_an_unknown_status_filter_shows_the_whole_list(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'hired', 1, 600 ) ) );
+		$_GET['ffc_cls_status'] = 'bogus';
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-cls-id="60"', $html );
+		$this->assertStringNotContainsString( 'name="ffc_cls_status"', $html );
+	}
+
+	public function test_select_all_across_pages_carries_every_waiting_row_of_the_filtered_list(): void {
+		$rows = array();
+		for ( $i = 1; $i <= 52; $i++ ) {
+			$rows[] = $this->cls_row( 100 + $i, $i, 51 === $i ? 'hired' : 'empty', 1, 500 + $i );
+		}
+		$this->store_classifications( array(), $rows );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match( '/data-ffc-waiting-ids="([^"]*)"/', $html, $m ) );
+		$ids = json_decode( html_entity_decode( $m[1] ), true );
+		$this->assertCount( 51, $ids, 'Every waiting row of every page, the hired one excluded.' );
+		$this->assertNotContains( 151, $ids );
+		$this->assertStringContainsString( 'All 50 waiting rows on this page are selected.', $html );
+		$this->assertStringContainsString( 'Select all 51 waiting rows on every page', $html );
+	}
+
+	public function test_select_all_across_pages_is_absent_when_one_page_holds_every_waiting_row(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 1, 'empty', 1, 600 ) ) );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'ffc-rec-select-all-pages', $html );
+	}
+
+	public function test_the_calls_record_is_absent_without_calls(): void {
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$this->assertSame( '', (string) ob_get_clean() );
+	}
+
+	public function test_the_calls_record_lists_active_and_cancelled_calls_with_who_did_what(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->users        = array(
+			3 => 'Olga Operator',
+			5 => 'Mara Manager',
+		);
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 92, 60, 3, array( 'out_of_order' => '1', 'out_of_order_reason' => 'PCD reserve' ) ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+			(object) array_merge(
+				(array) $this->call(
+					91,
+					60,
+					3,
+					array(
+						'cancelled_at'        => '1780394400',
+						'cancelled_by'        => '5',
+						'cancellation_reason' => 'Wrong date',
+					)
+				),
+				array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' )
+			),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<h2 class="ffc-icon-user-call">Calls</h2>', $html );
+		$this->assertStringContainsString( 'Cand 600', $html );
+		$this->assertStringContainsString( 'PCD reserve', $html, 'The out-of-order justification is part of the record.' );
+		$this->assertStringContainsString( 'Active', $html );
+		$this->assertStringContainsString( 'Cancelled on', $html );
+		$this->assertStringContainsString( 'by Mara Manager', $html );
+		$this->assertStringContainsString( 'Wrong date', $html );
+		$this->assertStringContainsString( '<th scope="col">Called by</th>', $html );
+		$this->assertSame( 2, substr_count( $html, 'Olga Operator' ) );
+	}
+
+	public function test_the_calls_record_names_nobody_without_the_history_capability(): void {
+		$this->caps = array(
+			'manage_options'               => false,
+			'ffc_view_recruitment_history' => false,
+		);
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->users        = array( 3 => 'Olga Operator', 5 => 'Mara Manager' );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 91, 60, 3, array( 'cancelled_at' => '1780394400', 'cancelled_by' => '5' ) ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'Cancelled on', $html );
+		$this->assertStringNotContainsString( 'Called by', $html );
+		$this->assertStringNotContainsString( 'Olga Operator', $html );
+		$this->assertStringNotContainsString( 'Mara Manager', $html );
+	}
+
+	public function test_the_export_buttons_show_only_with_the_export_capability(): void {
+		$this->store_classifications( array(), array( $this->cls_row( 60, 4, 'called', 1, 600 ) ) );
+		$this->notice_calls = array(
+			(object) array_merge( (array) $this->call( 91, 60, 3 ), array( 'candidate_id' => '600', 'adjutancy_id' => '1', 'rank' => '4' ) ),
+		);
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'data-ffc-rec-export="list" data-notice-id="7"', $html );
+		$this->assertStringContainsString( 'data-ffc-rec-export="calls" data-notice-id="7"', $html );
+
+		$this->caps = array(
+			'manage_options'         => false,
+			'ffc_export_recruitment' => false,
+		);
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'data-ffc-rec-export', $html );
 	}
 }

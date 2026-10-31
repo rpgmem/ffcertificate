@@ -95,40 +95,22 @@ class DashboardShortcode {
 		}
 
 		// Check for admin view-as mode — delegated to DashboardViewMode.
-		$view_as_user_id  = DashboardViewMode::get_view_as_user_id();
+		$view_as_user_id = DashboardViewMode::get_view_as_user_id();
+		if ( false === $view_as_user_id && DashboardViewMode::is_view_as_request() ) {
+			return DashboardViewMode::render_invalid_link_notice();
+		}
 		$is_admin_viewing = $view_as_user_id && get_current_user_id() !== $view_as_user_id;
 
 		// Enqueue assets — delegated to DashboardAssetManager.
 		DashboardAssetManager::enqueue_assets( $view_as_user_id );
 
-		// Check user permissions.
-		$user_id = $view_as_user_id ? $view_as_user_id : get_current_user_id();
-		$user    = get_user_by( 'id', $user_id );
-
-		// Check if user has FFC permissions (based on capabilities, not just role).
-		$can_view_certificates = $user && (
-			user_can( $user, 'ffc_view_own_certificates' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_appointments = $user && (
-			user_can( $user, 'ffc_view_own_appointments' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		$can_view_audience_bookings = $user && (
-			user_can( $user, 'ffc_view_own_audience_bookings' ) ||
-			user_can( $user, 'manage_options' )
-		);
-
-		// Only show audience tab if user actually belongs to at least one audience group.
-		if ( $can_view_audience_bookings ) {
-			$can_view_audience_bookings = DashboardAssetManager::user_has_audience_groups( $user_id );
-		}
-
-		// Check if user has any reregistration submissions.
-		$can_view_reregistrations = class_exists( '\FreeFormCertificate\Reregistration\ReregistrationSubmissionReader' )
-			&& ! empty( \FreeFormCertificate\Reregistration\ReregistrationSubmissionReader::get_all_by_user( $user_id ) );
+		// Check user permissions: one answer shared with the localized script.
+		$user_id                    = $view_as_user_id ? $view_as_user_id : get_current_user_id();
+		$tabs                       = DashboardAssetManager::tab_permissions( (int) $user_id );
+		$can_view_certificates      = $tabs['certificates'];
+		$can_view_appointments      = $tabs['appointments'];
+		$can_view_audience_bookings = $tabs['audience'];
+		$can_view_reregistrations   = $tabs['reregistrations'];
 
 		// Recruitment tab — visible when the user has at least one
 		// classification across recruitment notices (joined via
@@ -139,7 +121,8 @@ class DashboardShortcode {
 		// the gate signal AND the tab body — avoiding a second pass over
 		// the repository layer.
 		$recruitment_html = '';
-		if ( class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
+		if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'recruitment' )
+			&& class_exists( '\FreeFormCertificate\Recruitment\RecruitmentDashboardSection' ) ) {
 			// Pass the already-resolved (view-as-aware) $user_id explicitly
 			// so the recruitment section renders for the impersonated user
 			// when an admin is in view-as mode — not the admin's own row.
@@ -150,6 +133,21 @@ class DashboardShortcode {
 		// Get current tab - default to first available tab.
 		$default_tab = $can_view_certificates ? 'certificates' : ( $can_view_appointments ? 'appointments' : ( $can_view_audience_bookings ? 'audience' : ( $can_view_reregistrations ? 'reregistrations' : ( $can_view_recruitment ? 'recruitment' : 'profile' ) ) ) );
 		$current_tab = \FreeFormCertificate\Core\RequestInput::get_get_string( 'tab', $default_tab );
+
+		// A `?tab=` naming a tab this account does not have -- a typo, an old
+		// bookmark, a module switched off -- opens the default one instead of
+		// a dashboard with no panel at all (#2246).
+		$visible = array(
+			'certificates'    => $can_view_certificates,
+			'appointments'    => $can_view_appointments,
+			'audience'        => $can_view_audience_bookings,
+			'reregistrations' => $can_view_reregistrations,
+			'recruitment'     => $can_view_recruitment,
+			'profile'         => true,
+		);
+		if ( empty( $visible[ $current_tab ] ) ) {
+			$current_tab = $default_tab;
+		}
 
 		// Start output buffering.
 		ob_start();
@@ -338,11 +336,16 @@ class DashboardShortcode {
 		// normal case (#1212). The password-setting screen lives on the
 		// dashboard's page on purpose -- no new page, no new option, and
 		// therefore nothing for `uninstall.php` and the fresh-install gate.
+		$invite_unusable = false;
 		if ( PasswordInvite::request_has_link() ) {
 			$password_screen = self::render_set_password();
 			if ( '' !== $password_screen ) {
 				return $password_screen;
 			}
+			// The link reached us and no longer works: say so, instead of a
+			// bare "please log in" that reads as if the link were never read
+			// (#2246).
+			$invite_unusable = true;
 		}
 
 		// The notice is a plugin root of its own and loads the dashboard's
@@ -353,7 +356,28 @@ class DashboardShortcode {
 		?>
 		<div class="ffc-shortcode">
 			<?php
-			$permalink   = get_permalink();
+			$permalink = get_permalink();
+			if ( $invite_unusable ) {
+				$expired_html = Notice::render(
+					'warning',
+					'clock',
+					__( 'This invitation link has expired or was already used. If you already chose a password, log in; otherwise ask for a new one.', 'ffcertificate' ),
+					'',
+					array(
+						'role'    => 'alert',
+						'hook'    => 'invite-expired',
+						'actions' => Button::html(
+							array(
+								'label'    => __( 'Forgot your password?', 'ffcertificate' ),
+								'category' => 'neutral',
+								'icon'     => 'key',
+								'href'     => wp_lostpassword_url( $permalink ? $permalink : '' ),
+							)
+						),
+					)
+				);
+				echo $expired_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
 			$notice_html = Notice::render(
 				'warning',
 				'lock',
@@ -399,8 +423,6 @@ class DashboardShortcode {
 
 		DashboardAssetManager::enqueue_assets( 0 );
 
-		$ffc_key     = $pair['key'];
-		$ffc_login   = $pair['login'];
 		$ffc_error   = RequestInput::get_get_string( 'ffc_password_error' );
 		$ffc_min_len = PasswordInvite::MIN_PASSWORD_LENGTH;
 
@@ -464,20 +486,20 @@ class DashboardShortcode {
 		foreach ( $reregistrations as $rereg ) {
 			$title    = (string) $rereg['title'];
 			$pdf_link = '';
-			if ( ! empty( $rereg['magic_link'] ) ) {
+			if ( ! empty( $rereg['can_download'] ) ) {
+				// Built in the browser from the signed-in REST route (#2242),
+				// by the same handler as the table's button.
 				$pdf_link = Button::html(
 					array(
 						'label'    => __( 'Download Record', 'ffcertificate' ),
 						'category' => 'neutral',
 						'icon'     => 'download',
-						'href'     => (string) $rereg['magic_link'],
 						// Not `ffc-btn-pdf`: that class takes the dashboard's
 						// compact table-row size, and a banner action has the
 						// family's standard size like its siblings (#1887).
-						'class'    => 'ffc-rereg-banner-record',
+						'class'    => 'ffc-rereg-banner-record ffc-rereg-download-record',
 						'attrs'    => array(
-							'target' => '_blank',
-							'rel'    => 'noopener',
+							'data-submission-id' => (string) (int) $rereg['submission_id'],
 						),
 					)
 				);
@@ -490,7 +512,19 @@ class DashboardShortcode {
 					}
 					$html .= self::reregistration_banner( 'success', 'success', $title, esc_html__( 'Your reregistration has been approved.', 'ffcertificate' ), $pdf_link );
 				} elseif ( 'submitted' === $rereg['submission_status'] ) {
-					$html .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link );
+					// Retract (#2242): the member takes back a submission nobody
+					// reviewed yet, while the window is open. The script asks
+					// for confirmation first.
+					$retract = empty( $rereg['can_retract'] ) ? '' : Button::html(
+						array(
+							'label'    => __( 'Retract submission', 'ffcertificate' ),
+							'category' => 'caution',
+							'icon'     => 'restore',
+							'class'    => 'ffc-rereg-retract',
+							'attrs'    => array( 'data-reregistration-id' => (string) (int) $rereg['id'] ),
+						)
+					);
+					$html   .= self::reregistration_banner( 'info', 'clock', $title, esc_html__( 'Your reregistration has been submitted and is pending review.', 'ffcertificate' ), $pdf_link . $retract );
 				} else {
 					/*
 					 * Every other non-submittable status (#1125). The two `if`s
@@ -549,6 +583,13 @@ class DashboardShortcode {
 					'attrs'    => array( 'data-reregistration-id' => (string) $rereg['id'] ),
 				)
 			);
+
+			// The reviewer's reason for a rejection or a return to draft
+			// (#2242), on its own line under the deadline.
+			$reason = isset( $rereg['review_reason'] ) && is_string( $rereg['review_reason'] ) ? $rereg['review_reason'] : '';
+			if ( '' !== $reason ) {
+				$deadline .= '<br><strong>' . esc_html__( 'Reviewer\'s note:', 'ffcertificate' ) . '</strong> ' . nl2br( esc_html( $reason ) );
+			}
 
 			// Three days or fewer is urgent: the danger tone, where the old
 			// banner repainted its warning one by hand.

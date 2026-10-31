@@ -152,6 +152,8 @@ final class AudienceAdminAudienceRenderer {
 					| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
 					</a>
+				<?php elseif ( ! $is_active && $can_delete && AudienceBookingReader::count_for_audience_tree( (int) $audience->id ) > 0 ) : ?>
+					| <span class="description"><?php esc_html_e( 'Has bookings, kept', 'ffcertificate' ); ?></span>
 				<?php elseif ( ! $is_active && $can_delete ) : ?>
 					| <a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
 						<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
@@ -764,9 +766,14 @@ final class AudienceAdminAudienceRenderer {
 		$ds_target    = 'ffc_ds_map_' . (string) $field->id;
 		$is_regex     = ( 'custom_regex' === $format );
 
-		$source       = isset( $field->field_source ) && 'standard' === $field->field_source ? 'standard' : 'custom';
-		$is_standard  = ( 'standard' === $source );
-		$locked_attr  = $is_standard ? ' disabled' : '';
+		$source      = isset( $field->field_source ) && 'standard' === $field->field_source ? 'standard' : 'custom';
+		$is_standard = ( 'standard' === $source );
+		$locked_attr = $is_standard ? ' disabled' : '';
+		// A custom field anybody answered keeps its key, type, sensitivity and
+		// profile binding, and cannot be deleted (#2242). The server enforces
+		// it; the row draws it.
+		$answered     = ! $is_standard && \FreeFormCertificate\Reregistration\CustomFieldReader::has_answers( $field );
+		$answer_lock  = ( $is_standard || $answered ) ? ' disabled' : '';
 		$field_group  = (string) ( $field->field_group ?? '' );
 		$profile_key  = (string) ( $field->field_profile_key ?? '' );
 		$mask         = (string) ( $field->field_mask ?? '' );
@@ -790,7 +797,7 @@ final class AudienceAdminAudienceRenderer {
 				<div class="ffc-field-main-row">
 					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
 					<input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e( 'Field Label', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_label ); ?>">
-					<select class="ffc-field-type"<?php echo esc_attr( $locked_attr ); ?>>
+					<select class="ffc-field-type"<?php echo esc_attr( $answer_lock ); ?>>
 						<?php foreach ( $field_types as $type => $label ) : ?>
 							<option value="<?php echo esc_attr( $type ); ?>" <?php selected( $field->field_type, $type ); ?>><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
@@ -827,12 +834,15 @@ final class AudienceAdminAudienceRenderer {
 							'class'       => 'ffc-field-sensitive-label',
 							'label'       => __( 'Sensitive', 'ffcertificate' ),
 							'checked'     => $is_sensitive,
-							'disabled'    => $is_standard,
+							'disabled'    => $is_standard || $answered,
 							'title'       => __( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ),
 						)
 					);
 					?>
 				</div>
+				<?php if ( $answered ) : ?>
+					<p class="description ffc-field-answer-lock ffc-icon-lock"><?php esc_html_e( 'Already answered: the key, type, sensitivity and profile binding are locked, and the field cannot be deleted. Label, help text and options stay editable; deactivate it to stop asking.', 'ffcertificate' ); ?></p>
+				<?php endif; ?>
 				<?php if ( 'acknowledgment' === $field->field_type ) : ?>
 					<div class="ffc-field-html-container">
 						<p class="description"><?php esc_html_e( 'Notice shown at the end of the reregistration form and printed on the record PDF. Use "Replicate lists to children" to push it to descendant audiences.', 'ffcertificate' ); ?></p>
@@ -856,8 +866,8 @@ final class AudienceAdminAudienceRenderer {
 					</div>
 				<?php endif; ?>
 				<div class="ffc-field-details-row" style="display:none;">
-					<input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e( 'field_key', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_key ); ?>"<?php echo esc_attr( $locked_attr ); ?>>
-					<input type="text" class="ffc-field-profile-key" placeholder="<?php esc_attr_e( 'profile_key (optional)', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $profile_key ); ?>"<?php echo esc_attr( $locked_attr ); ?>>
+					<input type="text" class="ffc-field-key" placeholder="<?php esc_attr_e( 'field_key', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_key ); ?>"<?php echo esc_attr( $answer_lock ); ?>>
+					<input type="text" class="ffc-field-profile-key" placeholder="<?php esc_attr_e( 'profile_key (optional)', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $profile_key ); ?>"<?php echo esc_attr( $answer_lock ); ?>>
 					<input type="text" class="ffc-field-mask" placeholder="<?php esc_attr_e( 'Mask (cpf, phone, cep…)', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $mask ); ?>"<?php echo esc_attr( $locked_attr ); ?>>
 					<div class="ffc-field-options-container" <?php echo $is_select ? '' : 'style="display:none;"'; ?>>
 						<textarea class="ffc-field-choices" placeholder="<?php esc_attr_e( 'Options (one per line)', 'ffcertificate' ); ?>" rows="3"><?php echo esc_textarea( $choices_text ); ?></textarea>
@@ -941,7 +951,7 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 			</div>
 			<div class="ffc-field-actions">
-				<?php self::render_field_actions( ! $is_standard ); ?>
+				<?php self::render_field_actions( ! $is_standard && ! $answered ); ?>
 			</div>
 		</div>
 		<?php

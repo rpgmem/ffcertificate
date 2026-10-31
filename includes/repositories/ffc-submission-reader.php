@@ -45,6 +45,11 @@ class SubmissionReader extends AbstractRepository {
 	private const COUNT_CACHE_TTL = 5 * MINUTE_IN_SECONDS;
 
 	/**
+	 * Most accounts a name search matches; a broader term narrows to these.
+	 */
+	private const NAME_MATCH_LIMIT = 200;
+
+	/**
 	 * Cached column existence checks to avoid repeated INFORMATION_SCHEMA queries
 	 *
 	 * @since 4.6.13
@@ -110,167 +115,63 @@ class SubmissionReader extends AbstractRepository {
 
 	/**
 	 * Audit: submissions whose `user_id` points to a WP user that no longer
-	 * exists (orphaned link after the user was deleted). Read-only.
+	 * exists.
 	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Moved to SubmissionIdentityAudit (#2241).
+	 * @removal    6.45.0
 	 */
 	public function find_orphan_user_links( int $limit = 50 ): array {
-		$limit = max( 1, $limit );
-		$rows  = $this->wpdb->get_results(
-			$this->wpdb->prepare(
-				'SELECT s.id, s.user_id, s.form_id FROM %i s LEFT JOIN %i u ON u.ID = s.user_id WHERE s.user_id IS NOT NULL AND s.user_id <> 0 AND u.ID IS NULL ORDER BY s.id DESC LIMIT %d',
-				$this->table,
-				$this->wpdb->users,
-				$limit
-			),
-			ARRAY_A
-		);
-		return is_array( $rows ) ? $rows : array();
+		_deprecated_function( __METHOD__, '6.43.0', SubmissionIdentityAudit::class . '::find_orphan_user_links()' );
+
+		return ( new SubmissionIdentityAudit() )->find_orphan_user_links( $limit );
 	}
 
 	/**
-	 * Audit: WP users linked to submissions carrying more than one distinct
-	 * `cpf_hash` (or `rf_hash`) — i.e. a single user bound to multiple
-	 * identities, the detectable form of "the submission CPF doesn't match the
-	 * linked user" (CPF/RF are not stored on the user side to compare against).
-	 * Read-only.
-	 *
-	 * CPF AND RF ARE COUNTED SEPARATELY, AND THAT IS THE POINT
-	 *
-	 * One CPF plus one RF is an ordinary person, not a conflict. Each column
-	 * gets its own `COUNT(DISTINCT)` and the `HAVING` asks for more than one
-	 * of EITHER, so a user with one of each scores 1 and 1 and is not reported.
-	 *
-	 * `NULLIF( …, '' )` IS NOT DECORATION
-	 *
-	 * `COUNT(DISTINCT)` ignores NULL but counts the empty string as a value, so
-	 * a user with a real hash on some rows and `''` on others scored 2 and was
-	 * reported as holding two identities. Both siblings in this class filter
-	 * `<> ''` and this one did not, which is how the asymmetry was found; the
-	 * fix is here rather than in a `WHERE` because a row whose CPF is empty may
-	 * still carry a real RF, and a `WHERE` would drop it from both counts
-	 * (#1295).
-	 *
-	 * IT NAMES THE HASHES, NOT ONLY HOW MANY
-	 *
-	 * A count alone says an account holds two identifiers and withholds which
-	 * two, so there is nothing to choose between -- the same half-answer the
-	 * cross-store sibling gave until #1344. The `GROUP_CONCAT` carries the
-	 * values the `COUNT` aggregates away, per column, so the consumer that
-	 * picks a column by count picks the matching list with it.
+	 * Audit: WP users linked to submissions carrying more than one identity.
 	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Moved to SubmissionIdentityAudit (#2241).
+	 * @removal    6.45.0
 	 */
 	public function find_users_with_multiple_identities( int $limit = 50 ): array {
-		$limit = max( 1, $limit );
-		$rows  = $this->wpdb->get_results(
-			$this->wpdb->prepare(
-				"SELECT user_id, COUNT(DISTINCT NULLIF( cpf_hash, '' )) AS cpf_count, COUNT(DISTINCT NULLIF( rf_hash, '' )) AS rf_count, GROUP_CONCAT(DISTINCT NULLIF( cpf_hash, '' ) ORDER BY cpf_hash SEPARATOR '|') AS cpf_related, GROUP_CONCAT(DISTINCT NULLIF( rf_hash, '' ) ORDER BY rf_hash SEPARATOR '|') AS rf_related FROM %i WHERE user_id IS NOT NULL AND user_id <> 0 GROUP BY user_id HAVING COUNT(DISTINCT NULLIF( cpf_hash, '' )) > 1 OR COUNT(DISTINCT NULLIF( rf_hash, '' )) > 1 ORDER BY user_id ASC LIMIT %d",
-				$this->table,
-				$limit
-			),
-			ARRAY_A
-		);
+		_deprecated_function( __METHOD__, '6.43.0', SubmissionIdentityAudit::class . '::find_users_with_multiple_identities()' );
 
-		$out = array();
-		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$row                          = (array) $row;
-			$row['cpf_related_truncated'] = self::list_is_short( $row, 'cpf_related', 'cpf_count' );
-			$row['rf_related_truncated']  = self::list_is_short( $row, 'rf_related', 'rf_count' );
-			$out[]                        = $row;
-		}
-
-		return $out;
+		return ( new SubmissionIdentityAudit() )->find_users_with_multiple_identities( $limit );
 	}
 
 	/**
-	 * Whether a `GROUP_CONCAT` list holds fewer values than its own count.
-	 *
-	 * `GROUP_CONCAT` stops at `group_concat_max_len` and drops the tail with no
-	 * error, so a short list reads exactly like a complete one; the count is
-	 * aggregated separately and is never truncated, which makes their
-	 * disagreement the only signal that exists (#1344).
-	 *
-	 * `IdentityConflictQuery` carries the same three lines rather than sharing
-	 * them: it lives in `Maintenance` and this class in `Repositories`, and a
-	 * helper would buy four lines at the price of a new edge on the
-	 * module-boundary baseline. The producer flags its own aggregate, because
-	 * a consumer cannot tell a short list from a complete one.
-	 *
-	 * @param array<string, mixed> $row    One grouped row.
-	 * @param string               $values Key holding the concatenated values.
-	 * @param string               $count  Key holding the count of those values.
-	 * @return bool
-	 */
-	private static function list_is_short( array $row, string $values, string $count ): bool {
-		$raw    = $row[ $values ] ?? '';
-		$joined = is_string( $raw ) ? $raw : '';
-		$listed = '' === $joined ? 0 : count( explode( '|', $joined ) );
-
-		$total   = $row[ $count ] ?? 0;
-		$counted = is_numeric( $total ) ? (int) $total : 0;
-
-		return $counted !== $listed;
-	}
-
-	/**
-	 * Audit: submissions with no `user_id` whose `cpf_hash` matches another
-	 * submission that IS linked — they probably should be linked too. Read-only.
-	 *
-	 * Matching is by `cpf_hash` (the primary identity in this system); RF-only
-	 * matches are not considered here.
+	 * Audit: unlinked submissions whose `cpf_hash` matches a linked one.
 	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Moved to SubmissionIdentityAudit (#2241).
+	 * @removal    6.45.0
 	 */
 	public function find_unlinked_with_matching_identity( int $limit = 50 ): array {
-		$limit = max( 1, $limit );
-		$rows  = $this->wpdb->get_results(
-			$this->wpdb->prepare(
-				"SELECT s.id, s.form_id, s.cpf_hash FROM %i s WHERE ( s.user_id IS NULL OR s.user_id = 0 ) AND s.cpf_hash IS NOT NULL AND s.cpf_hash <> '' AND EXISTS ( SELECT 1 FROM %i s2 WHERE s2.cpf_hash = s.cpf_hash AND s2.user_id IS NOT NULL AND s2.user_id <> 0 ) ORDER BY s.id DESC LIMIT %d",
-				$this->table,
-				$this->table,
-				$limit
-			),
-			ARRAY_A
-		);
-		return is_array( $rows ) ? $rows : array();
+		_deprecated_function( __METHOD__, '6.43.0', SubmissionIdentityAudit::class . '::find_unlinked_with_matching_identity()' );
+
+		return ( new SubmissionIdentityAudit() )->find_unlinked_with_matching_identity( $limit );
 	}
 
 	/**
-	 * Audit: a single `cpf_hash` shared across more than one linked `user_id`
-	 * — an identity collision (same CPF on multiple WP accounts). Read-only.
-	 *
-	 * IT NAMES THE ACCOUNTS, NOT ONLY HOW MANY
-	 *
-	 * Knowing that a CPF belongs to two accounts without knowing which two is
-	 * not something anyone can act on, and a merge cannot start from it. The
-	 * `GROUP_CONCAT` carries the ids the `COUNT` aggregates away (#1344).
+	 * Audit: a single `cpf_hash` shared across more than one linked account.
 	 *
 	 * @param int $limit Max rows.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Moved to SubmissionIdentityAudit (#2241).
+	 * @removal    6.45.0
 	 */
 	public function find_shared_identities( int $limit = 50 ): array {
-		$limit = max( 1, $limit );
-		$rows  = $this->wpdb->get_results(
-			$this->wpdb->prepare(
-				"SELECT cpf_hash, COUNT(DISTINCT user_id) AS user_count, GROUP_CONCAT(DISTINCT user_id ORDER BY user_id SEPARATOR '|') AS related FROM %i WHERE cpf_hash IS NOT NULL AND cpf_hash <> '' AND user_id IS NOT NULL AND user_id <> 0 GROUP BY cpf_hash HAVING COUNT(DISTINCT user_id) > 1 ORDER BY user_count DESC LIMIT %d",
-				$this->table,
-				$limit
-			),
-			ARRAY_A
-		);
+		_deprecated_function( __METHOD__, '6.43.0', SubmissionIdentityAudit::class . '::find_shared_identities()' );
 
-		$out = array();
-		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$row                      = (array) $row;
-			$row['related_truncated'] = self::list_is_short( $row, 'related', 'user_count' );
-			$out[]                    = $row;
-		}
-
-		return $out;
+		return ( new SubmissionIdentityAudit() )->find_shared_identities( $limit );
 	}
 
 	/**
@@ -351,8 +252,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param string $email Email address.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE email_hash = %s ORDER BY id DESC LIMIT %d',
@@ -376,8 +282,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param string $cpf Cpf.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$clean_cpf   = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf );
 		$id_hash     = $this->hash( 'cpf', $clean_cpf );
 		$hash_column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean_cpf ) ? 'rf_hash' : 'cpf_hash';
@@ -408,8 +319,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param int $limit Limit.
 	 * @param int $offset Offset.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
@@ -434,8 +350,13 @@ class SubmissionReader extends AbstractRepository {
 	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms.
 	 * @param string|null              $status Status filter (publish, trash, null = all).
 	 * @return array<int, array<string, mixed>> Array of submissions
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		// Handle multiple form IDs with custom query.
 		if ( is_array( $form_ids ) && ! empty( $form_ids ) ) {
 			$form_ids_int          = array_map( 'absint', $form_ids );
@@ -596,6 +517,21 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * How many submissions a form holds outside the trash (#2241).
+	 *
+	 * Once there is one, the form's field names are stored in its rows and
+	 * its layout regenerates certificates already issued.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int
+	 */
+	public function countLiveByForm( int $form_id ): int {
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE form_id = %d AND status <> %s', $this->table, $form_id, \FreeFormCertificate\Core\SubmissionStatus::TRASH )
+		);
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0
@@ -680,60 +616,7 @@ class SubmissionReader extends AbstractRepository {
 		}
 
 		if ( ! empty( $args['search'] ) ) {
-			$search_term       = $args['search'];
-			$search_conditions = array();
-
-			// 1. Search by ID (if numeric)
-			if ( is_numeric( $search_term ) ) {
-				$search_conditions[] = $this->wpdb->prepare( 'id = %d', intval( $search_term ) );
-			}
-
-			// 2. Search by auth_code (exact match, case insensitive)
-			$search_conditions[] = $this->wpdb->prepare(
-				'UPPER(auth_code) = UPPER(%s)',
-				$search_term
-			);
-
-			// 3. Search by email/CPF/RF hash (for encrypted data).
-			//
-			// One hash PER COLUMN, not one hash for all three (#1313): each
-			// identifier now has its own canonical form, so a single hash of
-			// the raw term can only ever match the column whose form happens
-			// to be the identity. That also repairs a defect this line carried
-			// -- an operator pasting `123.456.789-09` hashed the punctuation
-			// and matched no row, because `cpf_hash` holds the digits.
-			$email_hash = $this->hash( 'email', $search_term );
-			$id_hash    = $this->hash( 'cpf', $search_term );
-
-			if ( null !== $email_hash ) {
-				$search_conditions[] = $this->wpdb->prepare( 'email_hash = %s', $email_hash );
-			}
-			if ( null !== $id_hash ) {
-				$search_conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $id_hash );
-				$search_conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
-			}
-
-			// 4. Search in unencrypted data field (legacy/fallback).
-			// Skipped for terms shorter than 4 chars: a leading-wildcard LIKE
-			// on a TEXT column triggers a full-table scan and cannot use any
-			// index, so short terms would scan millions of rows for little gain.
-			if ( strlen( $search_term ) >= 4 ) {
-				$search_conditions[] = $this->wpdb->prepare(
-					"(data IS NOT NULL AND data != '' AND data LIKE %s)",
-					'%' . $this->wpdb->esc_like( $search_term ) . '%'
-				);
-			}
-
-			// 5. Search by magic_token prefix. The KEY magic_token index is
-			// B-tree and can only accelerate leading-anchored LIKE patterns
-			// ('term%'), so we never use a leading wildcard here.
-			$search_conditions[] = $this->wpdb->prepare(
-				'magic_token LIKE %s',
-				$this->wpdb->esc_like( $search_term ) . '%'
-			);
-
-			// Combine all search conditions with OR.
-			$where[] = '(' . implode( ' OR ', $search_conditions ) . ')';
+			$where[] = $this->search_condition( (string) $args['search'], $where );
 		}
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where );
@@ -774,6 +657,87 @@ class SubmissionReader extends AbstractRepository {
 			'items' => $items,
 			'total' => (int) $total,
 			'pages' => ceil( $total / $args['per_page'] ),
+		);
+	}
+
+	/**
+	 * The WHERE fragment a search term adds (#2241).
+	 *
+	 * The indexed lookups come first: id, auth code, the e-mail/CPF/RF
+	 * hashes and a magic-token prefix, each answered by an index. The
+	 * leading-wildcard LIKE over `data` reads every row, so it runs only
+	 * when they find nothing, only on an install without encryption (with
+	 * it, `data` is NULL and the scan can match nothing), and only for a
+	 * term of 4 characters or more.
+	 *
+	 * @param string                  $search_term Search term as typed.
+	 * @param array<int, string|null> $where  The filters already applied (status, forms).
+	 * @param bool|null               $encrypted   Whether rows store their data encrypted; read from Encryption when null.
+	 * @return string
+	 */
+	private function search_condition( string $search_term, array $where, ?bool $encrypted = null ): string {
+		$conditions = array();
+
+		if ( is_numeric( $search_term ) ) {
+			$conditions[] = $this->wpdb->prepare( 'id = %d', intval( $search_term ) );
+		}
+
+		// The column compares case-insensitively, so the term is cleaned
+		// rather than wrapped in UPPER(), which kept the unique index from
+		// answering. Cleaning also strips the `C-` prefix and the hyphens a
+		// pasted code carries.
+		$code = \FreeFormCertificate\Core\DocumentFormatter::clean_auth_code( $search_term );
+		if ( '' !== $code ) {
+			$conditions[] = $this->wpdb->prepare( 'auth_code = %s', $code );
+		}
+
+		// One hash PER COLUMN, not one hash for all three (#1313): each
+		// identifier has its own canonical form, so `123.456.789-09` matches
+		// the digits `cpf_hash` holds.
+		$email_hash = $this->hash( 'email', $search_term );
+		$id_hash    = $this->hash( 'cpf', $search_term );
+		if ( null !== $email_hash ) {
+			$conditions[] = $this->wpdb->prepare( 'email_hash = %s', $email_hash );
+		}
+		if ( null !== $id_hash ) {
+			$conditions[] = $this->wpdb->prepare( 'cpf_hash = %s', $id_hash );
+			$conditions[] = $this->wpdb->prepare( 'rf_hash = %s', $id_hash );
+		}
+
+		// The name lives inside the encrypted data, so no query reaches it;
+		// the account a submission is linked to carries one in clear.
+		$user_ids = $this->linked_user_ids( $search_term );
+		if ( array() !== $user_ids ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $user_ids ), '%d' ) );
+            // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is %d repeated to match count($user_ids); Interpolated* is file-disabled above.
+			$conditions[] = $this->wpdb->prepare( "user_id IN ({$placeholders})", ...$user_ids );
+            // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+		}
+
+		// A B-tree index answers a leading-anchored prefix only.
+		$conditions[] = $this->wpdb->prepare( 'magic_token LIKE %s', $this->wpdb->esc_like( $search_term ) . '%' );
+
+		$indexed     = '(' . implode( ' OR ', $conditions ) . ')';
+		$encrypted ??= \FreeFormCertificate\Core\Encryption::is_configured();
+		if ( strlen( $search_term ) < 4 || $encrypted ) {
+			return $indexed;
+		}
+
+		$filters = implode( ' AND ', array_merge( $where, array( $indexed ) ) );
+		/**
+		 * `{$filters}` is imploded from literal fragments whose values were
+		 * bound by prepare() above; the table is bound with `%i`.
+		 *
+		 * @phpstan-ignore argument.type
+		 */
+		$hit = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT 1 FROM %i WHERE {$filters} LIMIT 1", $this->table ) );
+		if ( null !== $hit ) {
+			return $indexed;
+		}
+
+		return (string) $this->wpdb->prepare(
+			"(data IS NOT NULL AND data != '' AND data LIKE %s)",
+			'%' . $this->wpdb->esc_like( $search_term ) . '%'
 		);
 	}
 
@@ -910,6 +874,66 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * The latest submission of a form for the CPF/RF or ticket a participant
+	 * typed (#2241): the one lookup behind a reprint, the quiz attempt count
+	 * and the spent-ticket check.
+	 *
+	 * A ticket, when given, decides alone. It is read by its hash; on an
+	 * install without encryption no hash is ever written, so it is read by a
+	 * LIKE over the plaintext `data` instead (a compatibility shim, logged in
+	 * CLAUDE.md "Legacy and tech debt"). A CPF/RF is read by its hash only,
+	 * in the column its digit count selects.
+	 *
+	 * Never cached: it is a uniqueness probe, and a cached answer would
+	 * defeat the check it exists to perform.
+	 *
+	 * @since 6.43.0
+	 * @param int       $form_id   Form ID.
+	 * @param string    $cpf_rf    CPF/RF as typed, formatted or not.
+	 * @param string    $ticket    Normalised ticket code.
+	 * @param bool|null $encrypted Whether the install encrypts; read from Encryption when null.
+	 * @return object|null The row, or null when nothing matches.
+	 */
+	public function findForReprint( int $form_id, string $cpf_rf, string $ticket = '', ?bool $encrypted = null ): ?object {
+		$encrypted ??= \FreeFormCertificate\Core\Encryption::is_configured();
+
+		if ( '' !== $ticket ) {
+			if ( $encrypted ) {
+				$ticket_hash = $this->hash( 'ticket', $ticket );
+				return null === $ticket_hash ? null : $this->latest_row( 'SELECT * FROM %i WHERE form_id = %d AND ticket_hash = %s ORDER BY id DESC LIMIT 1', $form_id, $ticket_hash );
+			}
+			$like = '%' . $this->wpdb->esc_like( '"ticket":"' . $ticket . '"' ) . '%';
+			return $this->latest_row( 'SELECT * FROM %i WHERE form_id = %d AND data LIKE %s ORDER BY id DESC LIMIT 1', $form_id, $like );
+		}
+
+		$clean = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf_rf );
+		if ( '' === $clean || ! $encrypted ) {
+			return null;
+		}
+		$id_hash = $this->hash( 'cpf', $clean );
+		if ( null === $id_hash ) {
+			return null;
+		}
+		$query = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $clean )
+			? 'SELECT * FROM %i WHERE form_id = %d AND rf_hash = %s ORDER BY id DESC LIMIT 1'
+			: 'SELECT * FROM %i WHERE form_id = %d AND cpf_hash = %s ORDER BY id DESC LIMIT 1';
+		return $this->latest_row( $query, $form_id, $id_hash );
+	}
+
+	/**
+	 * Run one `form_id` + value lookup and return its row.
+	 *
+	 * @param literal-string $query   Query with `%i`, `%d` and `%s` placeholders, in that order.
+	 * @param int            $form_id Form ID.
+	 * @param string         $value   The value matched.
+	 * @return object|null
+	 */
+	private function latest_row( string $query, int $form_id, string $value ): ?object {
+		$row = $this->wpdb->get_row( $this->wpdb->prepare( $query, $this->table, $form_id, $value ) );
+		return is_object( $row ) ? $row : null;
+	}
+
+	/**
 	 * SQL fragment for the WP_User_Query orderby rewrite that sorts
 	 * users by "non-trash certificates issued to them". Returns a
 	 * self-contained SELECT subquery — the caller wraps it as
@@ -926,6 +950,36 @@ class SubmissionReader extends AbstractRepository {
 	 */
 	public function sql_user_certificate_count_subquery(): string {
 		return "(SELECT user_id, COUNT(*) AS cnt FROM {$this->table} WHERE user_id IS NOT NULL AND status != 'trash' GROUP BY user_id)";
+	}
+
+	/**
+	 * The accounts whose name or login contains a search term.
+	 *
+	 * A submission keeps the name only inside its encrypted data, so the
+	 * list finds it by name through the account it is linked to; one with
+	 * no account is not found by name. A number or an e-mail is answered
+	 * by the indexed lookups and asks nothing here.
+	 *
+	 * @param string $search_term Search term as typed.
+	 * @return array<int, int> Up to NAME_MATCH_LIMIT user ids.
+	 */
+	private function linked_user_ids( string $search_term ): array {
+		$term = trim( $search_term );
+		if ( mb_strlen( $term ) < 2 || is_numeric( $term ) || false !== strpos( $term, '@' ) ) {
+			return array();
+		}
+
+		$ids = get_users(
+			array(
+				'search'         => '*' . $term . '*',
+				'search_columns' => array( 'display_name', 'user_login', 'user_nicename' ),
+				'fields'         => 'ID',
+				'number'         => self::NAME_MATCH_LIMIT,
+				'count_total'    => false,
+			)
+		);
+
+		return array_values( array_filter( array_map( 'intval', (array) $ids ) ) );
 	}
 
 	/**

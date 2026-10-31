@@ -8,6 +8,7 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\ActivityLog;
 use FreeFormCertificate\Core\PiiExport;
 
 /**
@@ -15,12 +16,20 @@ use FreeFormCertificate\Core\PiiExport;
  * module's PII cap, masked otherwise, and a clear export recorded.
  *
  * @covers \FreeFormCertificate\Core\PiiExport
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class PiiExportTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** @var bool Whether $GLOBALS['wpdb'] existed before the test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The $wpdb the test replaced. */
+	private $wpdb_backup = null;
+
+	/** @var array<string, mixed> $_SERVER before the test. */
+	private array $server_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -29,9 +38,28 @@ class PiiExportTest extends TestCase {
 		Functions\when( 'is_email' )->alias( static fn( $v ) => is_string( $v ) && 1 === substr_count( $v, '@' ) );
 		// No dynamic sensitive key unless a test says so.
 		Functions\when( 'wp_cache_get' )->justReturn( array() );
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$this->server_backup = $_SERVER;
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+
+		// No test here should query: a log entry is only buffered.
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$GLOBALS['wpdb'] = $wpdb;
+
+		$this->reset_activity_log();
 	}
 
 	protected function tearDown(): void {
+		$this->reset_activity_log();
+		$_SERVER = $this->server_backup;
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -70,15 +98,59 @@ class PiiExportTest extends TestCase {
 		$this->assertSame( '', PiiExport::cell( 'cpf', '', false ) );
 	}
 
+	/**
+	 * The real ActivityLog::log() runs and buffers the entry; the buffer is
+	 * what a shutdown flush would write, so the entry is asserted there and
+	 * no query reaches the database.
+	 */
 	public function test_log_records_the_export_and_its_rows(): void {
-		Mockery::getConfiguration()->setConstantsMap(
-			array( 'FreeFormCertificate\Core\ActivityLog' => array( 'LEVEL_INFO' => 'info' ) )
+		// The activity log on, every level and category logged, no debug area
+		// on: get_option is stubbed so the branch does not depend on order.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
 		);
-		Mockery::mock( 'alias:FreeFormCertificate\Core\ActivityLog' )
-			->shouldReceive( 'log' )->once()
-			->with( 'pii_exported', 'info', array( 'export' => 'submissions', 'rows' => 7 ), 4, 0 )
-			->andReturn( true );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'current_time' )->justReturn( '2026-10-28 10:00:00' );
+		Functions\when( 'add_action' )->justReturn( true );
 
 		PiiExport::log( 'submissions', 7 );
+
+		$buffer = $this->activity_buffer();
+		$this->assertCount( 1, $buffer, 'One activity-log entry is buffered.' );
+		$entry = $buffer[0];
+		$this->assertSame( 'pii_exported', $entry['action'] );
+		$this->assertSame( 'info', $entry['level'] );
+		$this->assertSame( array( 'export' => 'submissions', 'rows' => 7 ), json_decode( (string) $entry['context'], true ) );
+		$this->assertSame( 4, $entry['user_id'], 'The exporting user is recorded.' );
+		$this->assertSame( 0, $entry['submission_id'] );
+	}
+
+	/**
+	 * ActivityLog's private static write buffer.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function activity_buffer(): array {
+		$ref = new \ReflectionProperty( ActivityLog::class, 'write_buffer' );
+		$ref->setAccessible( true );
+		$value = $ref->getValue();
+		return is_array( $value ) ? $value : array();
+	}
+
+	/**
+	 * Empty ActivityLog's static buffer and switch its bulk-operation pause
+	 * off, so no entry leaks between tests in the shared process.
+	 */
+	private function reset_activity_log(): void {
+		foreach ( array( 'write_buffer' => array(), 'logging_disabled' => false ) as $name => $value ) {
+			$ref = new \ReflectionProperty( ActivityLog::class, $name );
+			$ref->setAccessible( true );
+			$ref->setValue( null, $value );
+		}
 	}
 }

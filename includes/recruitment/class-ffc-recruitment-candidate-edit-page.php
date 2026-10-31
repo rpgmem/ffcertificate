@@ -37,7 +37,6 @@ namespace FreeFormCertificate\Recruitment;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\DocumentFormatter;
 use FreeFormCertificate\Core\Encryption;
-use FreeFormCertificate\Core\SensitiveFieldRegistry;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -580,114 +579,31 @@ final class RecruitmentCandidateEditPage {
 			exit;
 		}
 
-		$name  = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '';
-		$phone = isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['phone'] ) ) : '';
-		$notes = isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['notes'] ) ) : '';
-
-		// Read the pre-update row so we can audit-log the diff after the
-		// repository write lands. Done BEFORE the update because the
-		// repository's update method invalidates the cache key but
-		// returns the wpdb int affected-rows, not the updated row.
 		$before = RecruitmentCandidateReader::get_by_id( $id );
+		if ( null === $before ) {
+			wp_safe_redirect( self::back_url() );
+			exit;
+		}
 
-		// #739 §4.1 / #1863 — the email is written only by whoever may see it
-		// (the candidate themselves, or the reveal tier), and only when the
-		// field was posted: it stays disabled, so out of the POST, until a
-		// reveal fills it. Enforced on the loaded row (not a form flag), so a
-		// masked-tier operator can never overwrite or clear the stored
-		// address even by forging the field.
-		$email_tier     = null !== $before ? RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() ) : RecruitmentPiiAccessPolicy::TIER_MASKED;
-		$email_editable = RecruitmentPiiAccessPolicy::TIER_UNMASKED === $email_tier
-			|| ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $email_tier && isset( $_POST['email'] ) );
-
-		$update = array(
-			'name'  => $name,
-			'phone' => '' === $phone ? null : $phone,
-			'notes' => '' === $notes ? null : $notes,
+		$input = array(
+			'name'  => isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['name'] ) ) : '',
+			'phone' => isset( $_POST['phone'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['phone'] ) ) : '',
+			'notes' => isset( $_POST['notes'] ) ? sanitize_textarea_field( wp_unslash( (string) $_POST['notes'] ) ) : '',
 		);
 
-		// Email: re-encrypt + re-hash via the registry path so the new value is
-		// consistent with the rest of the system. Empty string means "clear the
-		// email" — repository nulls both columns. Untouched for the lower tiers.
-		$email = null;
-		if ( $email_editable ) {
-			$email = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
-			if ( '' === $email ) {
-				$update['email_encrypted'] = null;
-				$update['email_hash']      = null;
-			} else {
-				$update['email_encrypted'] = Encryption::encrypt( $email );
-				$update['email_hash']      = SensitiveFieldRegistry::hash_identifier( 'email', $email );
-			}
+		// #739 §4.1 / #1863 — the email field stays disabled, so out of the
+		// POST, until a reveal fills it. The candidate themselves always
+		// writes it (an absent field clears it, as before); the reveal tier
+		// writes it only when it was posted. The editor refuses it to the
+		// masked tier whatever the form says (#2245).
+		$tier = RecruitmentPiiAccessPolicy::resolve( $before, get_current_user_id() );
+		if ( RecruitmentPiiAccessPolicy::TIER_UNMASKED === $tier || ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier && isset( $_POST['email'] ) ) ) {
+			$input['email'] = isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( (string) $_POST['email'] ) ) ) : '';
 		}
 
-		RecruitmentCandidateWriter::update( $id, $update );
-
-		if ( null !== $before ) {
-			$changes = self::diff_general_fields( $before, $name, $phone, $notes, $email );
-			RecruitmentActivityLogger::candidate_fields_edited( $id, $changes );
-		}
+		RecruitmentCandidateEditor::update( $before, $input );
 
 		self::redirect_with_notice( $id, 'saved' );
-	}
-
-	/**
-	 * Diff the four General-section fields against the pre-update row,
-	 * returning the entries that actually changed. Used by handle_save()
-	 * to feed the audit logger — empty diff means "operator pressed
-	 * Save without changing anything" and the logger short-circuits.
-	 *
-	 * The `email` field is reported as the SHA-256 hash digests of the
-	 * old / new addresses (never plaintext); the other three live
-	 * unencrypted in the candidate table by design (§12) and are
-	 * logged as-is.
-	 *
-	 * @since 6.6.2
-	 * @param object      $before Pre-update candidate row.
-	 * @phpstan-param CandidateRow $before
-	 * @param string      $name  New name.
-	 * @param string      $phone New phone (empty string means "clear").
-	 * @param string      $notes New notes (empty string means "clear").
-	 * @param string|null $email New email (empty string means "clear"); null
-	 *                           when the email was not editable (#739 §4.1), so
-	 *                           it is left out of the diff entirely.
-	 * @return array<string, array{old: scalar|null, new: scalar|null}>
-	 */
-	private static function diff_general_fields( object $before, string $name, string $phone, string $notes, ?string $email ): array {
-		$old_name  = (string) ( $before->name ?? '' );
-		$old_phone = null === $before->phone ? '' : (string) $before->phone;
-		$old_notes = null === $before->notes ? '' : (string) $before->notes;
-
-		$changes = array();
-		if ( $old_name !== $name ) {
-			$changes['name'] = array(
-				'old' => $old_name,
-				'new' => $name,
-			);
-		}
-		if ( $old_phone !== $phone ) {
-			$changes['phone'] = array(
-				'old' => $old_phone,
-				'new' => $phone,
-			);
-		}
-		if ( $old_notes !== $notes ) {
-			$changes['notes'] = array(
-				'old' => $old_notes,
-				'new' => $notes,
-			);
-		}
-		if ( null !== $email ) {
-			$old_email_hash = null === $before->email_hash ? '' : (string) $before->email_hash;
-			$new_email_hash = '' === $email ? '' : (string) SensitiveFieldRegistry::hash_identifier( 'email', $email );
-			if ( $old_email_hash !== $new_email_hash ) {
-				$changes['email_hash'] = array(
-					'old' => $old_email_hash,
-					'new' => $new_email_hash,
-				);
-			}
-		}
-		return $changes;
 	}
 
 	/**
@@ -755,7 +671,15 @@ final class RecruitmentCandidateEditPage {
 			self::redirect_with_notice( $id, 'link-user-not-found' );
 		}
 
+		$refusal = self::link_refusal( $id, (int) $user->ID );
+		if ( null !== $refusal ) {
+			self::redirect_with_notice( $id, $refusal );
+		}
+
+		$candidate = RecruitmentCandidateReader::get_by_id( $id );
+		$previous  = null === $candidate || null === $candidate->user_id ? 0 : (int) $candidate->user_id;
 		RecruitmentCandidateWriter::set_user_id( $id, (int) $user->ID );
+		RecruitmentActivityLogger::candidate_account_linked( $id, $previous, (int) $user->ID );
 		self::redirect_with_notice( $id, 'link-user-ok' );
 	}
 
@@ -773,9 +697,53 @@ final class RecruitmentCandidateEditPage {
 		check_admin_referer( 'ffc_recruitment_link_candidate_user_' . $id );
 
 		if ( $id > 0 ) {
+			$candidate = RecruitmentCandidateReader::get_by_id( $id );
 			RecruitmentCandidateWriter::set_user_id( $id, null );
+			if ( null !== $candidate && null !== $candidate->user_id ) {
+				RecruitmentActivityLogger::candidate_account_unlinked( $id, (int) $candidate->user_id );
+			}
 		}
 		self::redirect_with_notice( $id, 'unlink-user-ok' );
+	}
+
+	/**
+	 * Why linking a candidate to an account is refused, or null when it is
+	 * allowed (#2245).
+	 *
+	 * The candidate's owner reads their own data unmasked, so a link is a
+	 * grant of access. Linking to oneself is never allowed: an operator
+	 * would become the owner of data they may not reveal. Anyone else may
+	 * be linked by a holder of the PII capability, who can read the data
+	 * anyway, or by an operator when the account carries the candidate's
+	 * own CPF, RF or e-mail.
+	 *
+	 * @param int $candidate_id Candidate ID.
+	 * @param int $user_id      Account to link.
+	 * @return string|null Notice key of the refusal, or null.
+	 */
+	public static function link_refusal( int $candidate_id, int $user_id ): ?string {
+		if ( get_current_user_id() === $user_id ) {
+			return 'link-user-self';
+		}
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_pii' ) ) {
+			return null;
+		}
+
+		$candidate = RecruitmentCandidateReader::get_by_id( $candidate_id );
+		if ( null === $candidate ) {
+			return 'link-user-mismatch';
+		}
+		$email = '';
+		if ( is_string( $candidate->email_encrypted ) && '' !== $candidate->email_encrypted ) {
+			$email = (string) Encryption::decrypt( $candidate->email_encrypted );
+		}
+		$owner = \FreeFormCertificate\UserDashboard\UserCreator::resolve_existing_user(
+			is_string( $candidate->cpf_hash ) && '' !== $candidate->cpf_hash ? $candidate->cpf_hash : null,
+			is_string( $candidate->rf_hash ) && '' !== $candidate->rf_hash ? $candidate->rf_hash : null,
+			$email
+		);
+
+		return $user_id === $owner ? null : 'link-user-mismatch';
 	}
 
 	/**
@@ -889,7 +857,11 @@ final class RecruitmentCandidateEditPage {
 		$current_obj    = RecruitmentAdjutancyReader::get_by_id( $current_adj_id );
 		$current_label  = null !== $current_obj ? (string) $current_obj->slug : '#' . $current_adj_id;
 
-		if ( count( $candidates ) < 2 ) {
+		// Read-only once the notice has published its definitive list (#2245).
+		$notice   = RecruitmentNoticeReader::get_by_id( $notice_id );
+		$editable = null !== $notice && RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::ROW_ADJUTANCY, (string) $notice->status );
+
+		if ( count( $candidates ) < 2 || ! $editable ) {
 			return '<code>' . esc_html( $current_label ) . '</code>';
 		}
 

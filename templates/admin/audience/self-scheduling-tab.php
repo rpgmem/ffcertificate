@@ -2,7 +2,7 @@
 /**
  * Template: Audience admin settings — Self-Scheduling tab (visibility + business-hours messages).
  * In-scope: $display_mode, $visibility_message, $scheduling_message,
- * $bh_viewing_message, $bh_booking_message.
+ * $bh_viewing_message, $bh_booking_message, $closeout_days.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -168,6 +168,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php
 									/* translators: %hours% is a placeholder token the admin can use in the message */
 									esc_html_e( 'Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today\'s working hours.', 'ffcertificate' );
+									?>
+								</p>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<?php \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save Settings', 'ffcertificate' ), array( 'value' => __( 'Save Settings', 'ffcertificate' ) ) ); ?>
+			</div>
+		</form>
+
+		<!-- Old appointment close-out (#2285) -->
+		<form method="post" action="">
+			<?php wp_nonce_field( 'ffc_ss_closeout_settings', 'ffc_ss_closeout_nonce' ); ?>
+			<input type="hidden" name="ffc_action" value="save_ss_closeout_settings">
+
+			<div class="card">
+				<h2 class="ffc-icon-calendar-check"><?php esc_html_e( 'Close Old Appointments', 'ffcertificate' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'Once a day, appointments whose date passed this many days ago and that nobody closed are closed: a confirmed one is marked completed, a pending one is cancelled, since nobody approved it in time. No e-mail is sent, and an attendance mark already set is kept. The Appointments list offers the same close-out on demand.', 'ffcertificate' ); ?>
+				</p>
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row">
+								<label for="ffc_ss_closeout_days"><?php esc_html_e( 'Days after the appointment', 'ffcertificate' ); ?></label>
+							</th>
+							<td>
+								<input type="number" name="ffc_ss_closeout_days" id="ffc_ss_closeout_days" class="small-text" required
+										min="0"
+										max="<?php echo esc_attr( (string) \FreeFormCertificate\SelfScheduling\AppointmentCloseout::MAX_DAYS ); ?>"
+										value="<?php echo esc_attr( (string) $closeout_days ); ?>">
+								<p class="description">
+									<?php
+									echo esc_html(
+										sprintf(
+											/* translators: 1: highest accepted value, 2: default value */
+											__( 'From 0 to %1$d (default %2$d). 0 turns the close-out off, the daily run and the button alike.', 'ffcertificate' ),
+											\FreeFormCertificate\SelfScheduling\AppointmentCloseout::MAX_DAYS,
+											\FreeFormCertificate\SelfScheduling\AppointmentCloseout::DEFAULT_DAYS
+										)
+									);
 									?>
 								</p>
 							</td>

@@ -47,14 +47,11 @@ class QRCodeGeneratorTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 		Functions\when( 'wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
-
-		// Namespaced stubs: FreeFormCertificate\Generators\*
-		Functions\when( 'esc_attr__' )->returnArg();
-		Functions\when( 'get_option' )->justReturn( array() );
-		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
-		Functions\when( 'sanitize_text_field' )->returnArg();
-		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
-		Functions\when( 'wp_delete_file' )->alias( function( $f ) { if ( file_exists( $f ) ) { @unlink( $f ); } } );
+		// generate() prefers wp_tempnam() when it exists. Stubbed here so the
+		// branch is chosen rather than inherited from whichever earlier class
+		// taught Patchwork the function (#2091); the fallback without it is
+		// QRCodeGeneratorTempFileTest's, in a process of its own.
+		Functions\when( 'wp_tempnam' )->alias( static fn( $prefix = '' ) => tempnam( sys_get_temp_dir(), (string) $prefix ) );
 
 		$this->generator = new QRCodeGenerator();
 		$this->ref = new \ReflectionClass( QRCodeGenerator::class );

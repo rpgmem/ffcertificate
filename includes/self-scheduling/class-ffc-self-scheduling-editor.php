@@ -44,6 +44,7 @@ class SelfSchedulingEditor {
 		// Delegated handlers.
 		new SelfSchedulingSaveHandler();
 		$this->cleanup_handler = new SelfSchedulingCleanupHandler();
+		new CalendarBlockedDates();
 	}
 
 	/**
@@ -131,6 +132,8 @@ class SelfSchedulingEditor {
 					'deleting'         => __( 'Deleting...', 'ffcertificate' ),
 					'cancelling'       => __( 'Cancelling...', 'ffcertificate' ),
 					'cleanup'          => self::cleanup_dialog_strings(),
+					'blocksNonce'      => CalendarBlockedDates::nonce(),
+					'blockRemove'      => __( 'Remove this block? The dates open for booking again.', 'ffcertificate' ),
 					'errorDeleting'    => __( 'Error deleting appointments', 'ffcertificate' ),
 					'errorServer'      => __( 'Error communicating with server', 'ffcertificate' ),
 					'schedulingForced' => __( 'Forced to Private because Visibility is Private.', 'ffcertificate' ),
@@ -181,6 +184,18 @@ class SelfSchedulingEditor {
 				/* translators: %d: number of appointments */
 				'confirmSilent' => __( 'Cancel %d appointment(s)', 'ffcertificate' ),
 				'type'          => $type,
+			),
+			// Adding a block that reaches open appointments (#2244).
+			'block'     => array(
+				'title'         => __( 'Block and cancel appointments', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'body'          => __( '%1$d open appointment(s) of the calendar "%2$s" fall on what you are blocking. They will be cancelled, and each person booked will receive the calendar\'s cancellation e-mail with the reason.', 'ffcertificate' ),
+				/* translators: 1: number of appointments, 2: calendar title */
+				'bodySilent'    => __( '%1$d open appointment(s) of the calendar "%2$s" fall on what you are blocking. They will be cancelled. This calendar does not send cancellation e-mails, so nobody will be notified.', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirm'       => __( 'Block and cancel %d', 'ffcertificate' ),
+				/* translators: %d: number of appointments */
+				'confirmSilent' => __( 'Block and cancel %d', 'ffcertificate' ),
 			),
 			'all'       => array(
 				'title'   => __( 'Delete all appointments', 'ffcertificate' ),
@@ -261,9 +276,10 @@ class SelfSchedulingEditor {
 	 * calendar has.
 	 *
 	 * @param bool $occupancy Whether the occupancy tab exists.
+	 * @param bool $saved     Whether the calendar exists (the blocked-dates tab needs its row).
 	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
 	 */
-	private static function tab_definitions( bool $occupancy ): array {
+	private static function tab_definitions( bool $occupancy, bool $saved = false ): array {
 		$tabs = array(
 			array(
 				'key'     => 'calendar',
@@ -315,6 +331,13 @@ class SelfSchedulingEditor {
 				'masters' => array( 'admin_bypass' ),
 			),
 			array(
+				'key'     => 'names',
+				'icon'    => 'ffc-icon-tag',
+				'label'   => __( 'Names', 'ffcertificate' ),
+				'title'   => __( 'Calendar names', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
 				'key'     => 'emails',
 				'icon'    => 'ffc-icon-email',
 				'label'   => __( 'Emails', 'ffcertificate' ),
@@ -322,6 +345,24 @@ class SelfSchedulingEditor {
 				'masters' => array(),
 			),
 		);
+		if ( $saved ) {
+			// Blocked dates (#2244) write rows of the calendar, so they exist
+			// once the calendar does.
+			array_splice(
+				$tabs,
+				3,
+				0,
+				array(
+					array(
+						'key'     => 'blocks',
+						'icon'    => 'ffc-icon-lock',
+						'label'   => __( 'Blocked dates', 'ffcertificate' ),
+						'title'   => __( 'Blocked dates', 'ffcertificate' ),
+						'masters' => array(),
+					),
+				)
+			);
+		}
 		if ( $occupancy ) {
 			$tabs[] = array(
 				'key'     => 'occupancy',
@@ -361,8 +402,11 @@ class SelfSchedulingEditor {
 
 		wp_nonce_field( 'ffc_self_scheduling_config_nonce', 'ffc_self_scheduling_config_nonce' );
 
+		// A save that would have moved booked slots says so above the tabs (#2244).
+		SlotGridLock::render_notice( (int) $post->ID );
+
 		AdminUI::render_vertical_tabs(
-			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ) ),
+			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status ),
 			function ( string $key ) use ( $post, $config, $mode_locked ): void {
 				switch ( $key ) {
 					case 'calendar':
@@ -375,6 +419,9 @@ class SelfSchedulingEditor {
 					case 'window':
 						$this->render_tab_window( $config );
 						break;
+					case 'blocks':
+						CalendarBlockedDates::render( (int) $post->ID );
+						break;
 					case 'cancellation':
 						$this->render_tab_cancellation( $config );
 						break;
@@ -386,6 +433,9 @@ class SelfSchedulingEditor {
 						break;
 					case 'bypass':
 						$this->render_tab_bypass( $config );
+						break;
+					case 'names':
+						$this->render_tab_names( $post );
 						break;
 					case 'emails':
 						$this->render_tab_emails( $post );
@@ -576,6 +626,9 @@ class SelfSchedulingEditor {
 				<td>
 					<input type="number" id="slot_duration" name="ffc_self_scheduling_config[slot_duration]" value="<?php echo esc_attr( $config['slot_duration'] ); ?>" min="5" max="480" step="5" required /> <?php esc_html_e( 'minutes', 'ffcertificate' ); ?>
 					<p class="description"><?php esc_html_e( 'Duration of each appointment slot', 'ffcertificate' ); ?></p>
+					<?php if ( $mode_locked ) : ?>
+						<p class="description"><?php esc_html_e( 'This calendar has bookings: a change to the duration, the break or the working hours that would move or remove the slot of an open appointment is refused on save, and the appointments that hold it are listed.', 'ffcertificate' ); ?></p>
+					<?php endif; ?>
 				</td>
 			</tr>
 			<tr class="ffc-regular-only">
@@ -1045,6 +1098,21 @@ class SelfSchedulingEditor {
 			</tr>
 		</table>
 		<?php
+	}
+
+	/**
+	 * Render the Names tab (#2223): this calendar's own state names and
+	 * closed-label choice, each inheriting the general one when empty.
+	 *
+	 * @param object $post Post object.
+	 * @phpstan-param \WP_Post $post
+	 * @return void
+	 */
+	private function render_tab_names( object $post ): void {
+		$ffc_names_base    = 'ffc_calendar_names';
+		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
+		$ffc_names_booking = true;
+		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
 	}
 
 	/**

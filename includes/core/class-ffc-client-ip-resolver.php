@@ -212,11 +212,11 @@ class ClientIpResolver {
 			return self::VERDICT_DIRECT;
 		}
 
-		if ( self::ip_in_any_range( $remote, self::cloudflare_ranges() ) ) {
+		if ( IpAddress::in_any( $remote, self::cloudflare_ranges() ) ) {
 			return self::VERDICT_CLOUDFLARE;
 		}
 
-		if ( self::ip_in_any_range( $remote, self::trusted_proxies() ) ) {
+		if ( IpAddress::in_any( $remote, self::trusted_proxies() ) ) {
 			return self::VERDICT_TRUSTED_PROXY;
 		}
 
@@ -228,7 +228,7 @@ class ClientIpResolver {
 		// never fires there and the verdict correctly falls through to `direct`.
 		if ( self::is_private_or_reserved( $remote ) ) {
 			$boundary = self::first_public_xff_hop();
-			if ( null !== $boundary && self::ip_in_any_range( $boundary, self::cloudflare_ranges() ) ) {
+			if ( null !== $boundary && IpAddress::in_any( $boundary, self::cloudflare_ranges() ) ) {
 				return self::VERDICT_CLOUDFLARE_VIA_PROXY;
 			}
 		}
@@ -314,7 +314,7 @@ class ClientIpResolver {
 		$trusted    = array_merge( $cloudflare, self::trusted_proxies() );
 
 		// 1. Behind Cloudflare → the CDN header is authoritative.
-		if ( self::ip_in_any_range( $remote, $cloudflare ) ) {
+		if ( IpAddress::in_any( $remote, $cloudflare ) ) {
 			$cf = self::server_string( 'HTTP_CF_CONNECTING_IP' );
 			if ( '' !== $cf && filter_var( $cf, FILTER_VALIDATE_IP ) ) {
 				return $cf;
@@ -322,7 +322,7 @@ class ClientIpResolver {
 		}
 
 		// 2. Behind a configured trusted proxy → right→left XFF walk.
-		if ( self::ip_in_any_range( $remote, $trusted ) ) {
+		if ( IpAddress::in_any( $remote, $trusted ) ) {
 			$client = self::rightmost_untrusted_xff( $trusted );
 			if ( null !== $client ) {
 				return $client;
@@ -336,7 +336,7 @@ class ClientIpResolver {
 		// automatically in `direct` mode (the CF range set is cleared upstream).
 		if ( self::is_private_or_reserved( $remote ) ) {
 			$boundary = self::first_public_xff_hop();
-			if ( null !== $boundary && self::ip_in_any_range( $boundary, $cloudflare ) ) {
+			if ( null !== $boundary && IpAddress::in_any( $boundary, $cloudflare ) ) {
 				$cf = self::server_string( 'HTTP_CF_CONNECTING_IP' );
 				if ( '' !== $cf && filter_var( $cf, FILTER_VALIDATE_IP ) ) {
 					return $cf;
@@ -369,7 +369,7 @@ class ClientIpResolver {
 			if ( '' === $hop || ! filter_var( $hop, FILTER_VALIDATE_IP ) ) {
 				continue;
 			}
-			if ( ! self::ip_in_any_range( $hop, $trusted ) ) {
+			if ( ! IpAddress::in_any( $hop, $trusted ) ) {
 				return $hop;
 			}
 		}
@@ -535,67 +535,6 @@ class ClientIpResolver {
 	}
 
 	/**
-	 * True when `$ip` falls inside any of the given CIDR ranges (or equals a
-	 * literal IP entry).
-	 *
-	 * @param string             $ip     Candidate IP.
-	 * @param array<int, string> $ranges CIDR ranges / literal IPs.
-	 */
-	private static function ip_in_any_range( string $ip, array $ranges ): bool {
-		foreach ( $ranges as $range ) {
-			if ( self::ip_in_range( $ip, $range ) ) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * True when `$ip` is inside CIDR `$range` (v4 or v6). A range without a `/`
-	 * is treated as a literal single-address match.
-	 *
-	 * @param string $ip    Candidate IP.
-	 * @param string $range CIDR range or literal IP.
-	 */
-	private static function ip_in_range( string $ip, string $range ): bool {
-		if ( strpos( $range, '/' ) === false ) {
-			return $ip === $range;
-		}
-
-		list( $subnet, $bits ) = explode( '/', $range, 2 );
-
-		$ip_bin     = inet_pton( $ip );
-		$subnet_bin = inet_pton( $subnet );
-
-		if ( false === $ip_bin || false === $subnet_bin || strlen( $ip_bin ) !== strlen( $subnet_bin ) ) {
-			// Mismatched families (v4 vs v6) never match.
-			return false;
-		}
-
-		$bits = (int) $bits;
-		if ( $bits < 0 || $bits > ( strlen( $ip_bin ) * 8 ) ) {
-			return false;
-		}
-
-		$whole_bytes = intdiv( $bits, 8 );
-		$remainder   = $bits % 8;
-
-		if ( $whole_bytes > 0 && strncmp( $ip_bin, $subnet_bin, $whole_bytes ) !== 0 ) {
-			return false;
-		}
-
-		if ( 0 === $remainder ) {
-			return true;
-		}
-
-		$mask     = chr( 0xFF << ( 8 - $remainder ) & 0xFF );
-		$ip_byte  = $ip_bin[ $whole_bytes ];
-		$sub_byte = $subnet_bin[ $whole_bytes ];
-
-		return ( ord( $ip_byte ) & ord( $mask ) ) === ( ord( $sub_byte ) & ord( $mask ) );
-	}
-
-	/**
 	 * Hash an IP for logs/telemetry per the project PII convention. Never log
 	 * a raw IP.
 	 *
@@ -603,6 +542,8 @@ class ClientIpResolver {
 	 * @return string 16-char sha256 prefix.
 	 */
 	private static function hash_ip( string $ip ): string {
-		return substr( hash( 'sha256', $ip ), 0, 16 );
+		// Keyed, never a bare digest: an unsalted hash of an IPv4 address is
+		// reversed by hashing all 2^32 of them (#2109).
+		return substr( Encryption::keyed_hash( $ip, 'debug_ip' ), 0, 16 );
 	}
 }

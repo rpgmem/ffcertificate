@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Core\AssetHelper;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabUrlShortener;
@@ -18,7 +18,6 @@ use FreeFormCertificate\Settings\Tabs\TabUrlShortener;
  * real enqueue_scripts() so the tab class body is covered end-to-end.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabUrlShortener
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabUrlShortenerTest extends TestCase {
@@ -103,22 +102,21 @@ class TabUrlShortenerTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_includes_real_view(): void {
-		// The shipped view reads SettingsReader::all() and iterates the
-		// public post types; stub both so the include runs cleanly.
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'all' )->andReturn(
-			array(
-				'url_shortener_enabled'       => 1,
-				'url_shortener_prefix'        => 'go',
-				'url_shortener_code_length'   => 6,
-				'url_shortener_auto_create'   => 1,
-				'url_shortener_redirect_type' => 302,
-				'url_shortener_post_types'    => array( 'post', 'page' ),
-			)
-		);
-		$reader->shouldReceive( 'get' )->andReturnUsing(
-			function ( $key, $default = '' ) {
-				return $default;
+		// The shipped view reads the real SettingsReader::all(), which reads
+		// the option; the stored array is what the view draws.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				if ( 'ffc_settings' !== $key ) {
+					return $default;
+				}
+				return array(
+					'url_shortener_enabled'       => 1,
+					'url_shortener_prefix'        => 'go',
+					'url_shortener_code_length'   => 6,
+					'url_shortener_auto_create'   => 1,
+					'url_shortener_redirect_type' => 302,
+					'url_shortener_post_types'    => array( 'post', 'page' ),
+				);
 			}
 		);
 
@@ -150,12 +148,17 @@ class TabUrlShortenerTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_error_when_view_missing(): void {
-		// Force the real render()'s file_exists() guard to fail so its error
-		// branch (the "view file not found" notice) executes.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the real render() at a view that does not exist, through the
+		// `view_path()` seam (#1811), so its error branch (the "view file not
+		// found" notice) executes.
+		$tab = new class() extends TabUrlShortener {
+			protected function view_path( string $file ): string {
+				return __DIR__ . '/no-such-view-directory/' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );
@@ -180,12 +183,14 @@ class TabUrlShortenerTest extends TestCase {
 	public function test_enqueue_scripts_enqueues_autosave_on_url_shortener_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'url_shortener' );
 
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
-
+		// The real AssetHelper and AssetRegistry run. The suffix depends on
+		// SCRIPT_DEBUG, which an earlier test in the process may have
+		// defined, so it is read rather than assumed.
 		$handles = array();
-		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {
-			$handles[] = $h;
+		$sources = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function ( $h, $src = '' ) use ( &$handles, &$sources ) {
+			$handles[]     = $h;
+			$sources[ $h ] = $src;
 		} );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
@@ -197,6 +202,7 @@ class TabUrlShortenerTest extends TestCase {
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-section-collapse', $handles );
 		$this->assertContains( 'ffc-url-shortener-settings', $handles );
+		$this->assertSame( FFC_PLUGIN_URL . 'assets/js/ffc-url-shortener-settings' . AssetHelper::asset_suffix() . '.js', $sources['ffc-url-shortener-settings'] );
 	}
 
 	// ==================================================================
@@ -204,8 +210,12 @@ class TabUrlShortenerTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_option_returns_default_for_missing_key(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->with( 'missing', 'fallback' )->andReturn( 'fallback' );
+		// The real SettingsReader reads a stored array without the key.
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				return 'ffc_settings' === $key ? array( 'url_shortener_prefix' => 'go' ) : $default;
+			}
+		);
 
 		$this->assertSame( 'fallback', $this->tab->get_option( 'missing', 'fallback' ) );
 	}

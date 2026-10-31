@@ -90,9 +90,9 @@ final class AudienceAccountEmail {
 
 	/**
 	 * Whether an account appears on an audience screen: a member of some
-	 * audience, or holder of some calendar's user-access row. The reveal
-	 * endpoint serves only those, so the type cannot be used to read the
-	 * email of an arbitrary account by id.
+	 * audience, holder of some calendar's user-access row, or a custom user
+	 * of some booking (#2243). The reveal endpoint serves only those, so the
+	 * type cannot be used to read the email of an arbitrary account by id.
 	 *
 	 * @param int $user_id Account ID.
 	 * @return bool
@@ -102,6 +102,26 @@ final class AudienceAccountEmail {
 			return false;
 		}
 		return AudienceReader::is_member_of_any( $user_id )
-			|| AudienceScheduleRepository::has_any_permission( $user_id );
+			|| AudienceScheduleRepository::has_any_permission( $user_id )
+			|| AudienceBookingReader::is_participant_of_any( $user_id );
+	}
+
+	/**
+	 * The email an AJAX answer may carry about an account: in clear only to
+	 * its owner, masked to everyone else (#2243). A reveal goes through the
+	 * audited button, never through the answer itself.
+	 *
+	 * @param int    $user_id The account.
+	 * @param string $email   Its stored email.
+	 * @return string
+	 */
+	public static function for_response( int $user_id, string $email ): string {
+		if ( '' === $email ) {
+			return '';
+		}
+		if ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED === \FreeFormCertificate\Core\PiiAccessPolicy::resolve( self::PII_CAP, $user_id ) ) {
+			return $email;
+		}
+		return \FreeFormCertificate\Core\DocumentFormatter::mask_email( $email );
 	}
 }

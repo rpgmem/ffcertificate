@@ -5,22 +5,28 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Core\DataSanitizer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for DataSanitizer: recursive data sanitization and
- * Brazilian name normalization.
+ * Brazilian name normalization. HtmlPolicy is the real class: the allowed
+ * tags wp_kses() receives are its own list (#2119).
  *
  * @covers \FreeFormCertificate\Core\DataSanitizer
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class DataSanitizerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/**
+	 * The allowed-tags argument of every wp_kses() call.
+	 *
+	 * @var array<int, mixed>
+	 */
+	private array $kses_allowed = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -31,20 +37,13 @@ class DataSanitizerTest extends TestCase {
 			return strtolower(preg_replace('/[^a-zA-Z0-9_\-]/', '', $key));
 		});
 
-		// Stub wp_kses: for unit testing purposes, strip HTML tags
+		// Stub wp_kses: for unit testing purposes, strip HTML tags, and
+		// record the allowed list it was given.
+		$this->kses_allowed = array();
 		Functions\when('wp_kses')->alias(function ($data, $allowed_tags) {
+			$this->kses_allowed[] = $allowed_tags;
 			return strip_tags($data);
 		});
-
-		// Mock HtmlPolicy::get_allowed_html_tags() — called by recursive_sanitize
-		$utils_mock = Mockery::mock('alias:FreeFormCertificate\Core\HtmlPolicy');
-		$utils_mock->shouldReceive('get_allowed_html_tags')
-			->andReturn(array(
-				'b'      => array(),
-				'strong' => array(),
-				'i'      => array(),
-				'em'     => array(),
-			));
 	}
 
 	protected function tearDown(): void {
@@ -64,6 +63,15 @@ class DataSanitizerTest extends TestCase {
 	public function test_recursive_sanitize_string_strips_html_tags(): void {
 		$result = DataSanitizer::recursive_sanitize('<script>alert("xss")</script>');
 		$this->assertSame('alert("xss")', $result);
+	}
+
+	public function test_recursive_sanitize_filters_through_the_html_policy(): void {
+		DataSanitizer::recursive_sanitize('<b>bold</b>');
+
+		$this->assertSame(
+			array( \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
+			$this->kses_allowed
+		);
 	}
 
 	public function test_recursive_sanitize_empty_string_returns_empty(): void {
@@ -229,11 +237,15 @@ class DataSanitizerTest extends TestCase {
 	// ==================================================================
 
 	public function test_normalize_cpf_rf_strips_dots_and_dashes(): void {
-		$this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123.456.789-00' ) );
+		$cpf    = Identifiers::CPF_A;
+		$masked = substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+		$this->assertSame( $cpf, DataSanitizer::normalize_cpf_rf( $masked ) );
 	}
 
 	public function test_normalize_cpf_rf_strips_spaces_and_slashes(): void {
-		$this->assertSame( '12345678900', DataSanitizer::normalize_cpf_rf( '123 456/789-00' ) );
+		$cpf   = Identifiers::CPF_A;
+		$input = substr( $cpf, 0, 3 ) . ' ' . substr( $cpf, 3, 3 ) . '/' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+		$this->assertSame( $cpf, DataSanitizer::normalize_cpf_rf( $input ) );
 	}
 
 	public function test_normalize_cpf_rf_returns_empty_for_no_digits(): void {
@@ -246,5 +258,43 @@ class DataSanitizerTest extends TestCase {
 
 	public function test_normalize_cpf_rf_keeps_long_digit_strings(): void {
 		$this->assertSame( '1234567890123456', DataSanitizer::normalize_cpf_rf( '1234-5678-9012-3456' ) );
+	}
+
+	// ==================================================================
+	// Moved from UtilsTest (#2092)
+	// ==================================================================
+
+	public function test_normalize_name_all_uppercase(): void {
+		$this->assertSame( 'Alex Pereira da Silva', DataSanitizer::normalize_brazilian_name( 'ALEX PEREIRA DA SILVA' ) );
+	}
+
+	public function test_normalize_name_all_lowercase(): void {
+		$this->assertSame( 'Maria dos Santos e Oliveira', DataSanitizer::normalize_brazilian_name( 'maria dos santos e oliveira' ) );
+	}
+
+	public function test_normalize_name_connectives_lowercase(): void {
+		$result = DataSanitizer::normalize_brazilian_name( 'JOÃO DE SOUZA FILHO' );
+		$this->assertSame( 'João de Souza Filho', $result );
+	}
+
+	public function test_normalize_name_first_word_connective_capitalized(): void {
+		// Even if the first word is a connective, it gets capitalized
+		$this->assertSame( 'Da Silva', DataSanitizer::normalize_brazilian_name( 'da silva' ) );
+	}
+
+	public function test_normalize_name_italian_connectives(): void {
+		$this->assertSame( 'Marco di Pietro du Valle', DataSanitizer::normalize_brazilian_name( 'MARCO DI PIETRO DU VALLE' ) );
+	}
+
+	public function test_normalize_name_empty(): void {
+		$this->assertSame( '', DataSanitizer::normalize_brazilian_name( '' ) );
+	}
+
+	public function test_normalize_name_accented_characters(): void {
+		$this->assertSame( 'José das Neves', DataSanitizer::normalize_brazilian_name( 'JOSÉ DAS NEVES' ) );
+	}
+
+	public function test_normalize_name_extra_spaces(): void {
+		$this->assertSame( 'Ana Clara', DataSanitizer::normalize_brazilian_name( '  ANA   CLARA  ' ) );
 	}
 }

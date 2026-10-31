@@ -8,62 +8,116 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Recruitment\RecruitmentClassificationFilterManager;
+use FreeFormCertificate\Recruitment\RecruitmentPcdHasher;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for the recruitment classification filter manager — read_filters
  * (GET-param normalization + CPF/RF candidate-id resolution) and
  * apply_filters (AND-composed row filtering).
  *
+ * The candidate reader, the sanitizer, the encryption hash and the PCD hasher
+ * are the real classes: candidates live in a `$wpdb` double keyed by id and by
+ * CPF hash, the hash salt comes from the bootstrap's keys, and the PCD hasher
+ * reads a stubbed `wp_salt()`.
+ *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentClassificationFilterManager
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentClassificationFilterManagerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var \Mockery\MockInterface */
-	private $candRepoMock;
+	/**
+	 * A CPF in its `ddd.ddd.ddd-dd` display form, built from the standard fixture.
+	 *
+	 * @param string $cpf Eleven digits.
+	 * @return string
+	 */
+	private static function mask_cpf( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9, 2 );
+	}
 
-	/** @var \Mockery\MockInterface */
-	private $sanitizerMock;
+	/**
+	 * Candidate rows by id.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $candidates = array();
 
-	/** @var \Mockery\MockInterface */
-	private $encryptionMock;
+	/**
+	 * Candidate rows by CPF hash.
+	 *
+	 * @var array<string, object>
+	 */
+	private array $by_cpf_hash = array();
 
-	/** @var \Mockery\MockInterface */
-	private $pcdHasherMock;
+	/**
+	 * CPF hashes the reader was asked for, in order.
+	 *
+	 * @var list<string>
+	 */
+	private array $cpf_lookups = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
+		$this->candidates  = array();
+		$this->by_cpf_hash = array();
+		$this->cpf_lookups = array();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_salt' )->justReturn( 'test-auth-salt' );
 
-		$this->candRepoMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentCandidateReader' );
-		$this->candRepoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null )->byDefault();
-		$this->candRepoMock->shouldReceive( 'get_by_rf_hash' )->andReturn( null )->byDefault();
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-
-		$this->sanitizerMock = Mockery::mock( 'alias:FreeFormCertificate\Core\DataSanitizer' );
-		$this->sanitizerMock->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing(
-			fn( $v ) => preg_replace( '/\D/', '', (string) $v )
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( $sql, ...$args ) => array(
+				'sql'  => $sql,
+				'args' => $args,
+			)
 		);
-
-		$this->encryptionMock = Mockery::mock( 'alias:FreeFormCertificate\Core\Encryption' );
-		$this->encryptionMock->shouldReceive( 'hash' )->andReturnUsing( fn( $v ) => 'hash:' . $v );
-
-		$this->pcdHasherMock = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentPcdHasher' );
-		$this->pcdHasherMock->shouldReceive( 'verify' )->andReturn( false )->byDefault();
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $query ) {
+				$this->assertSame( 'wp_ffc_recruitment_candidate', $query['args'][0] );
+				$value = $query['args'][1];
+				if ( str_contains( $query['sql'], 'cpf_hash = %s' ) ) {
+					$this->cpf_lookups[] = (string) $value;
+					return $this->by_cpf_hash[ $value ] ?? null;
+				}
+				if ( str_contains( $query['sql'], 'WHERE id = %d' ) ) {
+					return $this->candidates[ (int) $value ] ?? null;
+				}
+				return null;
+			}
+		);
+		$GLOBALS['wpdb'] = $wpdb;
 	}
 
 	protected function tearDown(): void {
 		unset( $_GET['ffc_cls_adj'], $_GET['ffc_cls_q'], $_GET['ffc_cls_cpf'], $_GET['ffc_cls_rf'], $_GET['ffc_cls_sub'] );
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -88,10 +142,9 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_read_filters_resolves_cpf_to_candidate_id_when_match_found(): void {
-		$_GET['ffc_cls_cpf'] = '123.456.789-00';
-		$this->candRepoMock->shouldReceive( 'get_by_cpf_hash' )
-			->with( 'hash:12345678900' )
-			->andReturn( (object) array( 'id' => 7 ) );
+		$_GET['ffc_cls_cpf'] = self::mask_cpf( Identifiers::CPF_A );
+		// The lookup is keyed on the hash of the digits only.
+		$this->by_cpf_hash[ (string) Encryption::hash( Identifiers::CPF_A ) ] = (object) array( 'id' => 7 );
 
 		$filters = RecruitmentClassificationFilterManager::read_filters( 1 );
 
@@ -99,11 +152,11 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	}
 
 	public function test_read_filters_marks_cpf_candidate_minus_one_when_no_match(): void {
-		$_GET['ffc_cls_cpf'] = '12345678900';
-		$this->candRepoMock->shouldReceive( 'get_by_cpf_hash' )->andReturn( null );
+		$_GET['ffc_cls_cpf'] = Identifiers::CPF_A;
 
 		$filters = RecruitmentClassificationFilterManager::read_filters( 1 );
 
+		$this->assertSame( array( (string) Encryption::hash( Identifiers::CPF_A ) ), $this->cpf_lookups );
 		$this->assertSame( -1, $filters['cpf_candidate_id'] );
 	}
 
@@ -193,8 +246,8 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 1 ),
 			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 2 ),
 		);
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( (object) array( 'name' => 'John Doe' ) );
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->with( 2 )->andReturn( (object) array( 'name' => 'Jane Smith' ) );
+		$this->candidates[1] = (object) array( 'name' => 'John Doe' );
+		$this->candidates[2] = (object) array( 'name' => 'Jane Smith' );
 
 		$filters = array( 'query' => 'doe' );
 
@@ -206,7 +259,7 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 
 	public function test_apply_filters_drops_rows_when_candidate_lookup_fails_during_name_search(): void {
 		$rows = array( (object) array( 'adjutancy_id' => 0, 'candidate_id' => 99 ) );
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->with( 99 )->andReturn( null );
+		// No candidate 99 in the table.
 
 		$out = RecruitmentClassificationFilterManager::apply_filters( $rows, array( 'query' => 'anything' ) );
 
@@ -218,14 +271,20 @@ class RecruitmentClassificationFilterManagerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_apply_filters_subscription_pcd_keeps_only_pcd_candidates(): void {
+		// PCD is read off the classification row, so the same candidate can
+		// be kept in one notice and dropped from another (#2245).
 		$rows = array(
-			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 1 ),
-			(object) array( 'adjutancy_id' => 0, 'candidate_id' => 2 ),
+			(object) array( 'notice_id' => 7, 'adjutancy_id' => 0, 'candidate_id' => 1, 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 7, 1, 0, true ) ),
+			(object) array( 'notice_id' => 7, 'adjutancy_id' => 0, 'candidate_id' => 2, 'pcd_hash' => RecruitmentPcdHasher::compute_for_row( 7, 2, 0, false ) ),
 		);
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->with( 1 )->andReturn( (object) array( 'name' => 'A', 'pcd_hash' => 'pcd-1' ) );
-		$this->candRepoMock->shouldReceive( 'get_by_id' )->with( 2 )->andReturn( (object) array( 'name' => 'B', 'pcd_hash' => 'no-pcd-2' ) );
-		$this->pcdHasherMock->shouldReceive( 'verify' )->with( 'pcd-1', 1 )->andReturn( true );
-		$this->pcdHasherMock->shouldReceive( 'verify' )->with( 'no-pcd-2', 2 )->andReturn( false );
+		$this->candidates[1] = (object) array(
+			'name'     => 'A',
+			'pcd_hash' => RecruitmentPcdHasher::compute( 1, false ),
+		);
+		$this->candidates[2] = (object) array(
+			'name'     => 'B',
+			'pcd_hash' => RecruitmentPcdHasher::compute( 2, true ),
+		);
 
 		$filters = array( 'subscription' => 'pcd' );
 

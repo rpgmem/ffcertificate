@@ -9,18 +9,34 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\API\FormRestController;
+use FreeFormCertificate\Core\Encryption;
+use FreeFormCertificate\Core\IpAddress;
 use FreeFormCertificate\Repositories\FormRepository;
+use FreeFormCertificate\Security\RateLimitChecker;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for FormRestController: route registration, get_forms,
  * get_form, and submit_form endpoints.
+ *
+ * The injected FormRepository stays a plain instance mock. submit_form()
+ * runs the web form's real stages over a `$wpdb` double: RateLimiter (with
+ * its transients held in the test), Geofence and GpsReading, ReprintDetector,
+ * AccessRestrictionChecker, SubmissionHandler and SubmissionRepository, and
+ * Encryption with the bootstrap's key constants. The double answers the
+ * rate-limit, auth-code and reprint queries, records every write, and records
+ * any other query as unexpected, which assertPostConditions() fails on (the
+ * controller catches every exception, a failed assertion included).
+ *
  * @covers \FreeFormCertificate\API\FormRestController
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class FormRestControllerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
+
+	/** A public address (the resolver discards loopback and private ones). */
+	private const CLIENT_IP = '198.51.100.7';
 
 	/** @var array Captured route registrations */
 	private array $registered_routes = [];
@@ -28,15 +44,76 @@ class FormRestControllerTest extends TestCase {
 	/** @var \Mockery\MockInterface&FormRepository Mock for FormRepository (injected) */
 	private $form_repo_mock;
 
-	/** @var \Mockery\MockInterface Mock for SubmissionHandler (overload) */
-	private $submission_handler_mock;
+	/**
+	 * Every prepared statement, in order: [ sql, args ].
+	 *
+	 * @var list<array{0: string, 1: array<int, mixed>}>
+	 */
+	private array $prepared = array();
+
+	/**
+	 * Every insert the double ran: [ table, data ].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>}>
+	 */
+	private array $inserts = array();
+
+	/**
+	 * Every update the double ran: [ table, data, where ].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}>
+	 */
+	private array $updates = array();
+
+	/** @var list<string> Queries the double did not expect. */
+	private array $unexpected = array();
+
+	/** @var int CPF/RF lookups of an earlier submission the controller ran. */
+	private int $id_lookups = 0;
+
+	/** @var object|null The earlier submission that lookup finds. */
+	private $earlier_row = null;
+
+	/** @var int|false The id the submissions insert answers; false makes it fail. */
+	private $submission_id = 1;
+
+	/** @var array<string, mixed> Transients the rate limiter reads, by key. */
+	private array $transients = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> `$_SERVER` before this test. */
+	private array $server_backup = array();
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		class_exists( '\\FreeFormCertificate\\API\\FormRestController' );
+		// Several methods this class reaches are deprecated (#2089) and emit
+		// the notice; stub it so each test chooses the branch rather than
+		// inheriting it from an earlier class.
+		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
 
 		$this->registered_routes = [];
+		$this->prepared          = array();
+		$this->inserts           = array();
+		$this->updates           = array();
+		$this->unexpected        = array();
+		$this->id_lookups        = 0;
+		$this->earlier_row       = null;
+		$this->submission_id     = 1;
+		$this->transients        = array();
+
+		// RateLimitChecker memoises its settings; start every test from the option.
+		$cache = new \ReflectionProperty( RateLimitChecker::class, 'settings_cache' );
+		$cache->setAccessible( true );
+		$cache->setValue( null, null );
+
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
 
 		// Capture register_rest_route calls
 		Functions\when( 'register_rest_route' )->alias( function( $namespace, $route, $args ) {
@@ -48,13 +125,44 @@ class FormRestControllerTest extends TestCase {
 		});
 
 		Functions\when( '__' )->returnArg();
-		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'is_email' )->alias( function( $email ) { return (bool) filter_var( $email, FILTER_VALIDATE_EMAIL ); } );
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/form/1' );
 		Functions\when( 'sanitize_email' )->returnArg();
 		Functions\when( 'home_url' )->alias( function( $path = '' ) { return 'https://example.com' . $path; } );
+		// Nothing is configured: every debug area and the activity log are off,
+		// and the rate limits run on their defaults.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		Functions\when( 'wp_parse_args' )->alias(
+			static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args )
+		);
+		// An integration's request: the geofence's administrator bypass never applies.
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_transient' )->alias(
+			function ( $key ) {
+				unset( $this->transients[ $key ] );
+				return true;
+			}
+		);
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null ) => gmdate( $format, null === $ts ? time() : (int) $ts )
+		);
 
 		// rest_ensure_response now wraps the array in a fake response so
 		// get_forms() can set pagination headers. Existing tests that
@@ -82,46 +190,151 @@ class FormRestControllerTest extends TestCase {
 		$this->form_repo_mock->shouldReceive( 'getFields' )->andReturn( array() )->byDefault();
 		$this->form_repo_mock->shouldReceive( 'getBackground' )->andReturn( '' )->byDefault();
 
-		// Overload mock for SubmissionHandler (instantiated with new)
-		$this->submission_handler_mock = Mockery::mock( 'overload:\FreeFormCertificate\Submissions\SubmissionHandler' );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->andReturn( 1 )->byDefault();
+		// The caller's address, read by the real client-IP resolver.
+		$this->server_backup = $_SERVER;
+		unset( $_SERVER['HTTP_CLIENT_IP'], $_SERVER['HTTP_X_FORWARDED_FOR'], $_SERVER['HTTP_X_FORWARDED'], $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'], $_SERVER['HTTP_FORWARDED_FOR'], $_SERVER['HTTP_FORWARDED'] );
+		$_SERVER['REMOTE_ADDR'] = self::CLIENT_IP;
 
-		// Alias mocks for static-only classes
-		$utils_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\Utils' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' )->shouldReceive( 'get_user_ip' )->andReturn( '127.0.0.1' )->byDefault()
-			->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default )
-			->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default )
-			->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$utils_mock->shouldReceive( 'debug_log' )->byDefault();
-
-		// DocumentFormatter is loaded for real (its PREFIX_* constants are needed
-		// by the controller). validate_cpf/rf and format_auth_code are pure.
-		$data_sanitizer_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\DataSanitizer' );
-		$data_sanitizer_mock->shouldReceive( 'recursive_sanitize' )->andReturnUsing( function( $data ) { return $data; } )->byDefault();
-		$data_sanitizer_mock->shouldReceive( 'normalize_cpf_rf' )->andReturnUsing( function( $value ) {
-			return preg_replace( '/[^0-9]/', '', (string) $value ) ?? '';
-		} )->byDefault();
-		$data_sanitizer_mock->shouldReceive( 'normalize_email' )->andReturnUsing( static fn( $v ) => strtolower( trim( (string) $v ) ) )->byDefault();
-		$data_sanitizer_mock->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' )->byDefault();
-
-		$this->geofence_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\Geofence' );
-		Mockery::mock( 'alias:\FreeFormCertificate\Security\GpsReading' )->shouldReceive( 'from_request' )->andReturn( array( 'reading' => null, 'status' => '' ) )->byDefault();
-		$this->geofence_mock->shouldReceive( 'get_form_config' )->andReturn( null )->byDefault();
-		$this->geofence_mock->shouldReceive( 'check_submission' )->andReturn( array( 'allowed' => true ) )->byDefault();
-
-		$this->rate_limiter_mock = Mockery::mock( 'alias:\FreeFormCertificate\Security\RateLimiter' );
-		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-		$this->rate_limiter_mock->shouldReceive( 'check_email_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
-		$this->rate_limiter_mock->shouldReceive( 'check_cpf_limit' )->andReturn( array( 'allowed' => true ) )->byDefault();
+		$this->install_wpdb();
 	}
 
-	/** @var \Mockery\MockInterface Geofence alias */
-	private $geofence_mock;
+	/**
+	 * A `$wpdb` double answering the queries the submission stages run.
+	 */
+	private function install_wpdb(): void {
+		$wpdb             = Mockery::mock( 'wpdb' );
+		$wpdb->prefix     = 'wp_';
+		$wpdb->insert_id  = 0;
+		$wpdb->last_error = '';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->prepared[] = array( (string) $sql, $args );
+				return 'Q' . ( count( $this->prepared ) - 1 );
+			}
+		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => addcslashes( (string) $v, '_%\\' ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql ] = $this->statement( $query );
+				if ( false !== strpos( $sql, 'SELECT count FROM %i WHERE type=%s' ) ) {
+					// No rate-limit counter stored yet.
+					return null;
+				}
+				if ( false !== strpos( $sql, 'SELECT COUNT(*) FROM %i WHERE email_hash=%s' ) ) {
+					return '0';
+				}
+				if ( false !== strpos( $sql, 'SELECT id FROM %i WHERE auth_code = %s' ) || false !== strpos( $sql, 'SELECT id FROM %i WHERE validation_code = %s' ) ) {
+					// The generated code is free.
+					return null;
+				}
+				$this->unexpected[] = 'get_var(): ' . $sql;
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql ] = $this->statement( $query );
+				if ( false !== strpos( $sql, 'SELECT id,count FROM %i WHERE type=%s' ) ) {
+					return null;
+				}
+				if ( preg_match( '/^SELECT \* FROM %i WHERE form_id = %d AND (cpf_hash|rf_hash) = %s ORDER BY id DESC LIMIT 1$/', $sql ) ) {
+					++$this->id_lookups;
+					// By default no earlier submission of this CPF: not a reprint.
+					return $this->earlier_row;
+				}
+				$this->unexpected[] = 'get_row(): ' . $sql;
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql ]            = $this->statement( $query );
+				$this->unexpected[] = 'get_results(): ' . $sql;
+				return array();
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $query ) {
+				[ $sql ]            = $this->statement( $query );
+				$this->unexpected[] = 'query(): ' . $sql;
+				return false;
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( $wpdb ) {
+				$this->inserts[] = array( (string) $table, (array) $data );
+				if ( 'wp_ffc_submissions' === $table ) {
+					if ( false === $this->submission_id ) {
+						return false;
+					}
+					$wpdb->insert_id = $this->submission_id;
+					return 1;
+				}
+				if ( 'wp_ffc_rate_limits' === $table ) {
+					return 1;
+				}
+				$this->unexpected[] = 'insert(): ' . $table;
+				return false;
+			}
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[] = array( (string) $table, (array) $data, (array) $where );
+				if ( 'wp_ffc_submissions' !== $table ) {
+					$this->unexpected[] = 'update(): ' . $table;
+				}
+				return 1;
+			}
+		);
 
-	/** @var \Mockery\MockInterface RateLimiter alias */
-	private $rate_limiter_mock;
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
+	}
+
+	/**
+	 * The prepared statement behind a token the double handed out.
+	 *
+	 * @param mixed $query Token returned by prepare().
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function statement( $query ): array {
+		$query = (string) $query;
+		if ( 1 === preg_match( '/^Q(\d+)$/', $query, $m ) ) {
+			return $this->prepared[ (int) $m[1] ];
+		}
+		return array( $query, array() );
+	}
+
+	/**
+	 * The rows written to one table.
+	 *
+	 * @param string $table Table name, prefixed.
+	 * @return list<array<string, mixed>>
+	 */
+	private function inserted_into( string $table ): array {
+		$rows = array();
+		foreach ( $this->inserts as [ $name, $data ] ) {
+			if ( $table === $name ) {
+				$rows[] = $data;
+			}
+		}
+		return $rows;
+	}
+
+	protected function assertPostConditions(): void {
+		$this->assertSame( array(), $this->unexpected, 'The controller ran a query the test did not expect.' );
+		parent::assertPostConditions();
+	}
 
 	protected function tearDown(): void {
+		$_SERVER = $this->server_backup;
+		ActivityLogBuffer::reset();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -776,18 +989,22 @@ class FormRestControllerTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	/**
-	 * Serve a form's config and fields the way FormConfigResolver reads them,
-	 * and stub what the real stages call.
+	 * Serve a form's config, fields and geofence the way the stages read
+	 * them, and stub what the real stages call.
 	 *
-	 * @param array<string, mixed>             $config Form config.
-	 * @param array<int, array<string, mixed>> $fields Form fields.
+	 * @param array<string, mixed>             $config   Form config.
+	 * @param array<int, array<string, mixed>> $fields   Form fields.
+	 * @param array<string, mixed>|string      $geofence Stored geofence config; '' for none.
 	 */
-	private function serve_form( array $config, array $fields ): void {
+	private function serve_form( array $config, array $fields, $geofence = '' ): void {
 		Functions\when( 'get_post' )->justReturn( $this->make_post( 1 ) );
 		Functions\when( 'get_post_meta' )->alias(
-			static function ( $id, $key ) use ( $config, $fields ) {
+			static function ( $id, $key ) use ( $config, $fields, $geofence ) {
 				if ( '_ffc_form_config' === $key ) {
 					return $config;
+				}
+				if ( '_ffc_geofence_config' === $key ) {
+					return $geofence;
 				}
 				return '_ffc_form_fields' === $key ? $fields : '';
 			}
@@ -796,14 +1013,8 @@ class FormRestControllerTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'current_time' )->justReturn( '2026-10-17 10:00:00' );
-
-		Mockery::mock( 'alias:\FreeFormCertificate\Frontend\ReprintDetector' )
-			->shouldReceive( 'detect' )
-			->andReturn( array( 'is_reprint' => false, 'id' => 0, 'date' => '', 'data' => array() ) )
-			->byDefault();
-
-		$this->rate_limiter_mock->shouldReceive( 'check_all' )->andReturn( array( 'allowed' => true ) )->byDefault();
-		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->byDefault();
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'wp_rand' )->alias( static fn( $min = 0, $max = 0 ) => random_int( (int) $min, (int) $max ) );
 	}
 
 	/** Fields of a plain certificate form: a name and an email. */
@@ -814,20 +1025,35 @@ class FormRestControllerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
+
+	/**
+	 * The extra data of the one submission row written, decrypted.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function stored_data(): array {
+		$rows = $this->inserted_into( 'wp_ffc_submissions' );
+		$this->assertCount( 1, $rows, 'Exactly one submission row is written.' );
+		$this->assertNull( $rows[0]['data'], 'With encryption configured the plaintext column stays empty.' );
+		$json = Encryption::decrypt( (string) $rows[0]['data_encrypted'] );
+		$data = json_decode( (string) $json, true );
+		$this->assertIsArray( $data );
+		return $data;
+	}
+
 	public function test_submit_form_stores_only_the_defined_fields_and_never_the_client_auth_code(): void {
 		$fields   = $this->plain_fields();
 		$fields[] = array( 'type' => 'hidden', 'name' => 'track', 'default_value' => 'official' );
 		$this->serve_form( array(), $fields );
-
-		$stored = null;
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )
-			->once()
-			->andReturnUsing(
-				function ( $form_id, $title, $data ) use ( &$stored ) {
-					$stored = $data;
-					return 42;
-				}
-			);
+		$this->submission_id = 42;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -844,11 +1070,14 @@ class FormRestControllerTest extends TestCase {
 			)
 		);
 
-		$this->assertIsArray( $stored );
+		$stored = $this->stored_data();
 		$this->assertSame( 'Safety', $stored['course'] );
 		$this->assertSame( 'official', $stored['track'], 'A hidden field keeps the form\'s value.' );
 		$this->assertArrayNotHasKey( 'not_a_field', $stored, 'A key the form does not define is not stored.' );
-		$this->assertArrayNotHasKey( 'auth_code', $stored, 'The caller never chooses the authentication code.' );
+		$this->assertArrayNotHasKey( 'auth_code', $stored );
+		$row = $this->inserted_into( 'wp_ffc_submissions' )[0];
+		$this->assertNotSame( 'CHOSENBYCLNT', $row['auth_code'], 'The caller never chooses the authentication code.' );
+		$this->assertSame( 12, strlen( (string) $row['auth_code'] ) );
 
 		$data = $result->get_data();
 		$this->assertSame( 42, $data['submission_id'] );
@@ -857,7 +1086,6 @@ class FormRestControllerTest extends TestCase {
 
 	public function test_submit_form_requires_the_consent_the_web_form_requires(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->never();
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form( $this->make_request( array( 'id' => 1 ), array( 'email' => 'jane@example.com' ) ) );
@@ -865,6 +1093,7 @@ class FormRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'submission_rejected', $result->get_error_code() );
 		$this->assertSame( 400, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->inserted_into( 'wp_ffc_submissions' ), 'Nothing is stored.' );
 	}
 
 	public function test_submit_form_applies_the_password_restriction_from_the_body(): void {
@@ -875,7 +1104,6 @@ class FormRestControllerTest extends TestCase {
 			),
 			$this->plain_fields()
 		);
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->never();
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -892,6 +1120,7 @@ class FormRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'submission_rejected', $result->get_error_code() );
 		$this->assertSame( 'Incorrect password.', $result->get_error_message() );
+		$this->assertSame( array(), $this->inserted_into( 'wp_ffc_submissions' ), 'Nothing is stored.' );
 	}
 
 	public function test_submit_form_passes_the_password_restriction_with_the_right_password(): void {
@@ -902,7 +1131,7 @@ class FormRestControllerTest extends TestCase {
 			),
 			$this->plain_fields()
 		);
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->once()->andReturn( 7 );
+		$this->submission_id = 7;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -917,6 +1146,7 @@ class FormRestControllerTest extends TestCase {
 		);
 
 		$this->assertSame( 7, $result->get_data()['submission_id'] );
+		$this->assertCount( 1, $this->inserted_into( 'wp_ffc_submissions' ) );
 	}
 
 	public function test_submit_form_applies_the_denylist(): void {
@@ -925,11 +1155,10 @@ class FormRestControllerTest extends TestCase {
 		$this->serve_form(
 			array(
 				'restrictions'      => array( 'denylist' => '1' ),
-				'denied_users_list' => '51817842080',
+				'denied_users_list' => Identifiers::CPF_A,
 			),
 			$fields
 		);
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->never();
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -937,7 +1166,7 @@ class FormRestControllerTest extends TestCase {
 				array( 'id' => 1 ),
 				array(
 					'email'            => 'jane@example.com',
-					'cpf_rf'           => '518.178.420-80',
+					'cpf_rf'           => self::masked( Identifiers::CPF_A ),
 					'ffc_lgpd_consent' => '1',
 				)
 			)
@@ -945,6 +1174,7 @@ class FormRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'submission_rejected', $result->get_error_code() );
+		$this->assertSame( array(), $this->inserted_into( 'wp_ffc_submissions' ), 'Nothing is stored.' );
 	}
 
 	public function test_submit_form_scores_the_quiz_and_issues_nothing_below_the_pass_mark(): void {
@@ -963,12 +1193,7 @@ class FormRestControllerTest extends TestCase {
 			),
 			$fields
 		);
-		Mockery::mock( 'alias:\FreeFormCertificate\Core\Encryption' )->shouldReceive( 'is_configured' )->andReturn( false );
-
-		$repo = Mockery::mock();
-		$repo->shouldReceive( 'updateStatus' )->once()->with( 55, 'quiz_in_progress' );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->once()->andReturn( 55 );
-		$this->submission_handler_mock->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->submission_id = 55;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -985,13 +1210,17 @@ class FormRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'submission_rejected', $result->get_error_code() );
 		$this->assertFalse( $result->get_error_data()['quiz']['passed'] );
+		$this->assertCount( 1, $this->inserted_into( 'wp_ffc_submissions' ) );
+		$this->assertSame(
+			array( array( 'wp_ffc_submissions', array( 'status' => 'quiz_in_progress' ), array( 'id' => 55 ) ) ),
+			$this->updates,
+			'The attempt is stored as in progress, not issued.'
+		);
 	}
 
 	public function test_submit_form_records_the_rate_limit_attempts(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->once()->andReturn( 9 );
-		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->once()->with( 'ip', '127.0.0.1', 1 );
-		$this->rate_limiter_mock->shouldReceive( 'record_attempt' )->once()->with( 'email', 'jane@example.com', 1 );
+		$this->submission_id = 9;
 
 		$ctrl = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$ctrl->submit_form(
@@ -1003,12 +1232,59 @@ class FormRestControllerTest extends TestCase {
 				)
 			)
 		);
+
+		$recorded = array();
+		foreach ( $this->inserted_into( 'wp_ffc_rate_limits' ) as $row ) {
+			$recorded[] = array( $row['type'], $row['identifier'], $row['form_id'], $row['window_type'] );
+		}
+		$this->assertSame(
+			array(
+				array( 'ip', IpAddress::fingerprint( self::CLIENT_IP ), 1, 'day' ),
+				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'day' ),
+				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'month' ),
+			),
+			$recorded,
+			'One attempt is recorded for the address and one for the e-mail, against the form.'
+		);
+	}
+
+	public function test_submit_form_looks_an_earlier_submission_up_once(): void {
+		// The rate-limit guard and the persister both ask whether this CPF
+		// already has a certificate; they share one lookup (#2241). The
+		// certificate is its logged-in owner's, so the reprint is handed over.
+		$fields   = $this->plain_fields();
+		$fields[] = array( 'type' => 'text', 'name' => 'cpf_rf', 'label' => 'CPF' );
+		$this->serve_form( array(), $fields );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		$this->earlier_row = (object) array(
+			'id'              => '44',
+			'user_id'         => '9',
+			'status'          => 'publish',
+			'submission_date' => '1750000000',
+			'data'            => '{}',
+			'auth_code'       => 'ABCD1234EFGH',
+		);
+
+		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+		$result = $ctrl->submit_form(
+			$this->make_request(
+				array( 'id' => 1 ),
+				array(
+					'email'            => 'jane@example.com',
+					'cpf_rf'           => self::masked( Identifiers::CPF_A ),
+					'ffc_lgpd_consent' => '1',
+				)
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 1, $this->id_lookups );
 	}
 
 	public function test_submit_form_answers_429_when_rate_limited(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andReturn( array( 'allowed' => false, 'message' => 'Slow down' ) );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )->never();
+		// The address has already used the hour's default allowance (5).
+		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour' ] = 5;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -1023,12 +1299,20 @@ class FormRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 429, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->inserted_into( 'wp_ffc_submissions' ), 'Nothing is stored.' );
 	}
 
 	public function test_submit_form_answers_403_when_the_geofence_blocks(): void {
-		$this->serve_form( array(), $this->plain_fields() );
-		$this->geofence_mock->shouldReceive( 'check_submission' )->andReturn(
-			array( 'allowed' => false, 'message' => 'Outside window', 'reason' => 'datetime' )
+		// The form's date window closed long ago.
+		$this->serve_form(
+			array(),
+			$this->plain_fields(),
+			array(
+				'datetime_enabled' => '1',
+				'date_start'       => '2000-01-01',
+				'date_end'         => '2000-01-02',
+				'msg_datetime'     => 'Outside window',
+			)
 		);
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
@@ -1045,12 +1329,13 @@ class FormRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 403, $result->get_error_data()['status'] );
 		$this->assertSame( 'Outside window', $result->get_error_message() );
+		$this->assertSame( array(), $this->inserted_into( 'wp_ffc_submissions' ), 'Nothing is stored.' );
 	}
 
 	public function test_submit_form_hides_the_raw_repository_error(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->submission_handler_mock->shouldReceive( 'process_submission' )
-			->andReturn( new \WP_Error( 'db_error', 'Duplicate entry for key' ) );
+		// The submissions insert fails, so the handler answers a WP_Error.
+		$this->submission_id = false;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(
@@ -1063,14 +1348,21 @@ class FormRestControllerTest extends TestCase {
 			)
 		);
 
+		$this->assertCount( 1, $this->inserted_into( 'wp_ffc_submissions' ), 'The insert was attempted.' );
 		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'submission_rejected', $result->get_error_code() );
 		$this->assertArrayNotHasKey( 'detail', $result->get_error_data() );
 	}
 
 	public function test_submit_form_returns_500_on_exception(): void {
 		Functions\when( 'get_post' )->justReturn( $this->make_post( 1 ) );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
-		$this->rate_limiter_mock->shouldReceive( 'check_ip_limit' )->andThrow( new \Exception( 'boom' ) );
+		// The rate limiter's first read, in the first stage, throws.
+		Functions\when( 'get_transient' )->alias(
+			static function () {
+				throw new \Exception( 'boom' );
+			}
+		);
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form( $this->make_request( array( 'id' => 1 ), array( 'email' => 'jane@example.com' ) ) );

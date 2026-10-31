@@ -12,25 +12,37 @@ use FreeFormCertificate\Recruitment\RecruitmentReasonEditPage;
 
 /**
  * Behavior tests for RecruitmentReasonEditPage::render() and ::handle_save().
- * The terminal wp_safe_redirect()/exit and wp_die() are replaced by marker
- * exceptions so each branch is observable; the reader (constant + helper
- * source) is defined as a guarded real stub via eval (alias mocks can't
- * expose constants or real static helpers), while the writer and AdminUI
- * are alias-mocked.
+ * Terminal wp_safe_redirect()/exit and wp_die() become marker exceptions so
+ * each branch is observable, so no test reaches the `exit`. Capabilities,
+ * AdminUI, RecruitmentReasonReader and RecruitmentReasonWriter are the real
+ * ones: the capability check runs over a stubbed current_user_can(), and the
+ * repository halves over a `$wpdb` double that answers the row by id and
+ * records every update.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentReasonEditPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var \Mockery\MockInterface */
-	private $caps;
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
-	/** @var \Mockery\MockInterface */
-	private $reader;
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var object|null The reason row the database holds. */
+	private ?object $row = null;
+
+	/** @var array<int, mixed> Arguments of the last prepare(). */
+	private array $bound = array();
+
+	/**
+	 * Every `$wpdb->update()`, as [table, data, where].
+	 *
+	 * @var list<array{0: string, 1: array<string, mixed>, 2: array<string, mixed>}>
+	 */
+	private array $updates = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -55,6 +67,7 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn ( $v ) => (int) $v );
+		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
 		Functions\when( 'submit_button' )->justReturn( null );
@@ -73,34 +86,45 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 			}
 		);
 
-		$this->caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( true )->byDefault();
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-01-01 00:00:00' );
 
-		$adminui = Mockery::mock( 'alias:FreeFormCertificate\Admin\AdminUI' );
-		$adminui->shouldReceive( 'render_toggle' )->andReturnNull()->byDefault();
-		$adminui->shouldReceive( 'render_save_button' )->andReturnUsing(
-			static function ( string $label ): void {
-				echo '<p class="submit"><button type="submit">' . $label . '</button></p>';
-			}
-		)->byDefault();
+		$this->row     = null;
+		$this->bound   = array();
+		$this->updates = array();
 
-		// RecruitmentReasonReader::get_by_id() returns the row under test;
-		// decode_applies_to() mirrors the real CSV-split contract. The
-		// alias replaces the autoloaded class wholesale; the page never
-		// reads DEFAULT_COLOR because every row stub carries a color.
-		$this->reader = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonReader' );
-		$this->reader->shouldReceive( 'get_by_id' )->andReturn( null )->byDefault();
-		$this->reader->shouldReceive( 'decode_applies_to' )->andReturnUsing(
-			static function ( $stored ) {
-				$stored = trim( (string) $stored );
-				return '' === $stored
-					? array( 'denied', 'granted', 'appeal_denied', 'appeal_granted' )
-					: array_values( array_filter( array_map( 'trim', explode( ',', $stored ) ) ) );
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			function ( $sql, ...$args ) {
+				$this->bound = $args;
+				return (string) $sql;
 			}
-		)->byDefault();
+		);
+		// RecruitmentReasonReader::get_by_id() binds the table, then the id.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			fn() => ( null !== $this->row && (int) $this->row->id === (int) $this->bound[1] ) ? $this->row : null
+		);
+		$wpdb->shouldReceive( 'update' )->andReturnUsing(
+			function ( $table, $data, $where ) {
+				$this->updates[] = array( $table, $data, $where );
+				return 1;
+			}
+		);
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		unset( $_GET['reason_id'], $_POST['reason_id'], $_POST['label'], $_POST['color'], $_POST['applies_to'] );
 		parent::tearDown();
@@ -128,14 +152,14 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 	// ----- render() ---------------------------------------------------
 
 	public function test_render_denied_when_no_cap(): void {
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$msg = $this->capture( static fn () => RecruitmentReasonEditPage::render() );
 		$this->assertStringStartsWith( 'WP_DIE:', $msg );
 	}
 
 	public function test_render_existing_reason_outputs_form(): void {
-		$this->reader->shouldReceive( 'get_by_id' )->with( 7 )->andReturn( $this->reason_row() );
+		$this->row = $this->reason_row();
 		$_GET['reason_id'] = '7';
 
 		ob_start();
@@ -146,12 +170,16 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		$this->assertStringContainsString( 'name="label"', $html );
 		$this->assertStringContainsString( 'ffc_recruitment_save_reason', $html );
 		$this->assertStringContainsString( 'medical', $html );
+		// The stored set ticks exactly its two toggles.
+		$this->assertMatchesRegularExpression( '/id="ffc-reason-edit-applies-denied"[^>]* checked/', $html );
+		$this->assertMatchesRegularExpression( '/id="ffc-reason-edit-applies-granted"[^>]* checked/', $html );
+		$this->assertDoesNotMatchRegularExpression( '/id="ffc-reason-edit-applies-appeal_denied"[^>]* checked/', $html );
 	}
 
 	public function test_render_applies_all_when_stored_empty(): void {
-		$row = $this->reason_row();
+		$row             = $this->reason_row();
 		$row->applies_to = '';
-		$this->reader->shouldReceive( 'get_by_id' )->with( 7 )->andReturn( $row );
+		$this->row       = $row;
 		$_GET['reason_id'] = '7';
 
 		ob_start();
@@ -159,6 +187,9 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Applies to', $html );
+		// Stored empty means "applies to all", drawn as every box unchecked.
+		$this->assertStringContainsString( 'id="ffc-reason-edit-applies-appeal_granted"', $html );
+		$this->assertStringNotContainsString( ' checked', $html );
 	}
 
 	public function test_render_not_found_shows_notice(): void {
@@ -174,10 +205,11 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 	// ----- handle_save() ----------------------------------------------
 
 	public function test_save_denied_when_no_cap(): void {
-		$this->caps->shouldReceive( 'current_user_can_admin_or' )->andReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$msg = $this->capture( static fn () => RecruitmentReasonEditPage::handle_save() );
 		$this->assertStringStartsWith( 'WP_DIE:', $msg );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	public function test_save_bad_nonce_dies(): void {
@@ -190,6 +222,7 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 
 		$msg = $this->capture( static fn () => RecruitmentReasonEditPage::handle_save() );
 		$this->assertSame( 'NONCE_FAIL', $msg );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	public function test_save_invalid_id_redirects_back(): void {
@@ -198,24 +231,10 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		$msg = $this->capture( static fn () => RecruitmentReasonEditPage::handle_save() );
 		$this->assertStringStartsWith( 'REDIRECT:', $msg );
 		$this->assertStringContainsString( 'tab=reasons', $msg );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	public function test_save_happy_path_updates_and_redirects(): void {
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' );
-		$writer->shouldReceive( 'update' )
-			->once()
-			->with(
-				7,
-				Mockery::on(
-					static function ( $data ) {
-						return 'New Label' === $data['label']
-							&& '#00ff00' === $data['color']
-							&& array( 'denied', 'granted' ) === $data['applies_to'];
-					}
-				)
-			)
-			->andReturn( true );
-
 		$_POST['reason_id']  = '7';
 		$_POST['label']      = 'New Label';
 		$_POST['color']      = '#00ff00';
@@ -225,25 +244,29 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		$this->assertStringContainsString( 'REDIRECT:', $msg );
 		$this->assertStringContainsString( 'ffc_msg=saved', $msg );
 		$this->assertStringContainsString( 'reason_id=7', $msg );
+
+		$this->assertCount( 1, $this->updates, 'The writer must update the row once.' );
+		[ $table, $data, $where ] = $this->updates[0];
+		$this->assertSame( 'wp_ffc_recruitment_reason', $table );
+		$this->assertSame( array( 'id' => 7 ), $where );
+		$this->assertSame( 'New Label', $data['label'] );
+		$this->assertSame( '#00ff00', $data['color'] );
+		// The non-string entry is dropped; the rest is stored as CSV.
+		$this->assertSame( 'denied,granted', $data['applies_to'] );
 	}
 
 	public function test_save_missing_fields_default_to_empty(): void {
-		$writer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentReasonWriter' );
-		$writer->shouldReceive( 'update' )
-			->once()
-			->with(
-				7,
-				Mockery::on(
-					static function ( $data ) {
-						return '' === $data['label'] && '' === $data['color'] && array() === $data['applies_to'];
-					}
-				)
-			)
-			->andReturn( true );
-
 		$_POST['reason_id'] = '7';
 
 		$msg = $this->capture( static fn () => RecruitmentReasonEditPage::handle_save() );
 		$this->assertStringContainsString( 'REDIRECT:', $msg );
+
+		$this->assertCount( 1, $this->updates, 'The writer must update the row once.' );
+		[ , $data ] = $this->updates[0];
+		$this->assertSame( '', $data['label'] );
+		// An empty color is stored as the reader's default badge color.
+		$this->assertSame( \FreeFormCertificate\Recruitment\RecruitmentReasonReader::DEFAULT_COLOR, $data['color'] );
+		// An empty selection is stored empty (= applies to every status).
+		$this->assertSame( '', $data['applies_to'] );
 	}
 }

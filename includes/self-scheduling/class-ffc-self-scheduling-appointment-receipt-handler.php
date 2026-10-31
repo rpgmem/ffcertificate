@@ -73,24 +73,24 @@ class AppointmentReceiptHandler {
 			wp_die( esc_html__( 'Appointment not found.', 'ffcertificate' ), 404 );
 		}
 
-		// Verify access (either logged in user owns it, admin, or has valid token).
-		$has_access = false;
+		// Who may read it, and how (#2244). The owner and the holder of the
+		// confirmation token get the receipt as it is. Staff who can open the
+		// appointments get it masked, the way every staff screen draws it;
+		// the audited Reveal lives on the appointment's admin screen. Before,
+		// manage_options read any receipt unmasked, and nothing was logged.
+		$owner_id  = (int) ( $appointment['user_id'] ?? 0 );
+		$is_owner  = $owner_id > 0 && is_user_logged_in() && get_current_user_id() === $owner_id;
+		$has_token = ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token );
+		$is_staff  = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_appointments' );
 
-		if ( current_user_can( 'manage_options' ) ) {
-			$has_access = true;
-		} elseif ( is_user_logged_in() && get_current_user_id() === $appointment['user_id'] ) {
-			$has_access = true;
-		} elseif ( ! empty( $token ) && ! empty( $appointment['confirmation_token'] ) && hash_equals( (string) $appointment['confirmation_token'], (string) $token ) ) {
-			$has_access = true;
-		}
-
-		if ( ! $has_access ) {
+		if ( ! $is_owner && ! $has_token && ! $is_staff ) {
 			wp_die( esc_html__( 'You do not have permission to view this appointment receipt.', 'ffcertificate' ), 403 );
 		}
+		$masked = ! $is_owner && ! $has_token;
 
 		// Block receipt for pending appointments (awaiting admin approval).
 		$appointment_status = $appointment['status'] ?? 'pending';
-		if ( 'pending' === $appointment_status && ! current_user_can( 'manage_options' ) ) {
+		if ( 'pending' === $appointment_status && ! $is_staff ) {
 			wp_die( esc_html__( 'This appointment is awaiting admin approval. The receipt will be available after confirmation.', 'ffcertificate' ), 403 );
 		}
 
@@ -110,7 +110,7 @@ class AppointmentReceiptHandler {
 		}
 
 		// Generate and display receipt.
-		$this->display_receipt( $appointment, $calendar );
+		$this->display_receipt( $appointment, $calendar, $masked );
 		exit;
 	}
 
@@ -149,9 +149,10 @@ class AppointmentReceiptHandler {
 	 *
 	 * @param array<string, mixed> $appointment Appointment.
 	 * @param array<string, mixed> $calendar Calendar.
+	 * @param bool                 $masked   Staff copy: e-mail, phone and CPF/RF masked.
 	 * @return void
 	 */
-	private function display_receipt( array $appointment, array $calendar ): void {
+	private function display_receipt( array $appointment, array $calendar, bool $masked = false ): void {
 		// Enqueue PDF scripts.
 		$this->enqueue_pdf_scripts();
 
@@ -159,7 +160,7 @@ class AppointmentReceiptHandler {
 		$pdf_data = null;
 		try {
 			$pdf_generator = new \FreeFormCertificate\Generators\PdfGenerator();
-			$pdf_data      = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar );
+			$pdf_data      = $pdf_generator->generate_appointment_pdf_data( $appointment, $calendar, $masked );
 		} catch ( \Exception $e ) {
 			// Fallback: PDF download will capture receipt HTML (without QR code).
 			$pdf_data = null;
@@ -186,6 +187,11 @@ class AppointmentReceiptHandler {
 					$phone = '';
 				}
 			}
+		}
+
+		if ( $masked ) {
+			$email = '' === $email ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email );
+			$phone = '' === $phone ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_phone( (string) $phone );
 		}
 
 		// appointment_date / start_time / end_time are Category B wall-clock

@@ -25,6 +25,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AdminActivityLogPage {
 
 	/**
+	 * Capability that reveals an entry's client address (#2109).
+	 */
+	public const PII_CAP = 'ffc_view_activity_log_pii';
+
+	/**
 	 * Constructor. Registers the batched CSV-export source with the shared
 	 * registry (#772). Done here — not in register_menu(), which is hooked on
 	 * `admin_menu` and never fires on admin-ajax — so the unified dispatcher can
@@ -68,6 +73,8 @@ class AdminActivityLogPage {
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+		// The client address is masked, with an audited Reveal (#2109).
+		\FreeFormCertificate\Core\PiiReveal::enqueue_assets();
 		wp_enqueue_script(
 			'ffc-admin-activity-log',
 			FFC_PLUGIN_URL . "assets/js/ffc-admin-activity-log{$s}.js",
@@ -217,6 +224,8 @@ class AdminActivityLogPage {
 			'submission_updated'                           => __( 'Submission Updated', 'ffcertificate' ),
 			'submission_deleted'                           => __( 'Submission Deleted', 'ffcertificate' ),
 			'quiz_graded'                                  => __( 'Quiz Graded', 'ffcertificate' ),
+			'quiz_regraded'                                => __( 'Quiz Regraded', 'ffcertificate' ),
+			'submission_answer_corrected'                  => __( 'Answer Corrected', 'ffcertificate' ),
 			'data_accessed'                                => __( 'Data Accessed', 'ffcertificate' ),
 			'access_denied'                                => __( 'Access Denied', 'ffcertificate' ),
 			'settings_changed'                             => __( 'Settings Changed', 'ffcertificate' ),
@@ -242,6 +251,7 @@ class AdminActivityLogPage {
 			'submission_restored'                          => __( 'Submission Restored', 'ffcertificate' ),
 			'submission_moved'                             => __( 'Submission Moved to Another Form', 'ffcertificate' ),
 			'submission_pii_revealed'                      => __( 'Submission Personal Data Revealed', 'ffcertificate' ),
+			'submission_pdf_revealed'                      => __( 'Certificate PDF Read by Staff', 'ffcertificate' ),
 			'bulk_trash'                                   => __( 'Submissions Bulk Trashed', 'ffcertificate' ),
 			'bulk_restore'                                 => __( 'Submissions Bulk Restored', 'ffcertificate' ),
 			'bulk_delete'                                  => __( 'Submissions Bulk Deleted', 'ffcertificate' ),
@@ -269,8 +279,10 @@ class AdminActivityLogPage {
 			'appointment_cancelled'                        => __( 'Appointment Cancelled', 'ffcertificate' ),
 			'appointment_pii_revealed'                     => __( 'Appointment Personal Data Revealed', 'ffcertificate' ),
 			'appointment_booked_with_override'             => __( 'Appointment Booked Outside the Rules', 'ffcertificate' ),
+			'appointment_booked_on_behalf'                 => __( 'Appointment Booked on Behalf of a Person', 'ffcertificate' ),
 			'appointment_bulk_purged'                      => __( 'Calendar Appointments Purged', 'ffcertificate' ),
 			'appointment_bulk_cancelled'                   => __( 'Calendar Future Appointments Cancelled', 'ffcertificate' ),
+			'appointment_bulk_closed'                      => __( 'Old Appointments Closed', 'ffcertificate' ),
 			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
 			'audience_booking_override'                    => __( 'Audience Booking Made Outside the Rules', 'ffcertificate' ),
 
@@ -280,8 +292,16 @@ class AdminActivityLogPage {
 			'reregistration_reminders_sent'                => __( 'Reregistration Reminders Sent', 'ffcertificate' ),
 			'reregistration_pii_revealed'                  => __( 'Reregistration Personal Data Revealed', 'ffcertificate' ),
 			'reregistration_details_viewed'                => __( 'Reregistration Details Viewed', 'ffcertificate' ),
+			'reregistration_record_verified'               => __( 'Reregistration Record Verified', 'ffcertificate' ),
+			'reregistration_record_downloaded'             => __( 'Reregistration Record Downloaded', 'ffcertificate' ),
+			'reregistration_submission_rejected'           => __( 'Reregistration Submission Rejected', 'ffcertificate' ),
+			'reregistration_submission_returned'           => __( 'Reregistration Submission Returned to Draft', 'ffcertificate' ),
+			'reregistration_submission_retracted'          => __( 'Reregistration Submission Retracted', 'ffcertificate' ),
 			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
+			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
+			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
+			'custom_field_locked_change_refused'           => __( 'Answered Field Change Refused', 'ffcertificate' ),
 
 			// Recruitment.
 			'recruitment_notice_status_changed'            => __( 'Recruitment Notice Status Changed', 'ffcertificate' ),
@@ -291,6 +311,9 @@ class AdminActivityLogPage {
 			'recruitment_call_cancelled'                   => __( 'Recruitment Call Cancelled', 'ffcertificate' ),
 			'recruitment_candidate_promoted'               => __( 'Candidate Promoted', 'ffcertificate' ),
 			'recruitment_candidate_deleted'                => __( 'Candidate Deleted', 'ffcertificate' ),
+			'recruitment_candidate_account_linked'         => __( 'Candidate Linked to an Account', 'ffcertificate' ),
+			'recruitment_candidate_account_unlinked'       => __( 'Candidate Unlinked from an Account', 'ffcertificate' ),
+			'recruitment_notice_deleted'                   => __( 'Notice Deleted', 'ffcertificate' ),
 			'recruitment_candidate_fields_edited'          => __( 'Candidate Fields Edited', 'ffcertificate' ),
 			'recruitment_pii_revealed'                     => __( 'Candidate Personal Data Revealed', 'ffcertificate' ),
 			'recruitment_classification_status_changed'    => __( 'Classification Status Changed', 'ffcertificate' ),
@@ -381,7 +404,7 @@ class AdminActivityLogPage {
 
 		if ( 'operator_ip_bypass' === $action ) {
 			$rows = array(
-				array( __( 'Bypassed IP', 'ffcertificate' ), (string) ( $context['bypassed_ip'] ?? '' ) ),
+				array( __( 'Bypassed IP', 'ffcertificate' ), \FreeFormCertificate\Core\DocumentFormatter::mask_ip( (string) ( $context['bypassed_ip'] ?? '' ) ) ),
 				array( __( 'Operator (masked)', 'ffcertificate' ), (string) ( $context['operator_cpf_masked'] ?? '' ) ),
 				array( __( 'Submission ID', 'ffcertificate' ), (string) ( $context['submission_id'] ?? '' ) ),
 			);
@@ -555,6 +578,11 @@ class AdminActivityLogPage {
 		if ( empty( $logs ) ) {
 			return '';
 		}
+		// The address is masked for everyone; a holder of the reveal cap gets
+		// a Reveal beside it, audited like every other one (#2109).
+		$ffcertificate_reveal_nonce = \FreeFormCertificate\Core\PiiAccessPolicy::can_reveal_any( self::PII_CAP )
+			? wp_create_nonce( 'ffc_reveal_pii_nonce' )
+			: '';
 		ob_start();
 		foreach ( $logs as $ffcertificate_log ) :
 			?>
@@ -588,7 +616,23 @@ class AdminActivityLogPage {
 					?>
 				</td>
 				<td>
-					<code><?php echo esc_html( (string) ( $ffcertificate_log['user_ip'] ?? '' ) ); ?></code>
+					<?php
+					$ffcertificate_ip = (string) ( $ffcertificate_log['user_ip'] ?? '' );
+					if ( '' !== $ffcertificate_ip ) {
+						echo '<code class="ffc-pii-value" data-field="ip">' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ffcertificate_ip ) ) . '</code>';
+						if ( '' !== $ffcertificate_reveal_nonce ) {
+							$ffcertificate_reveal_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+								array(
+									'field'         => 'ip',
+									'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
+									'submission-id' => (int) ( $ffcertificate_log['id'] ?? 0 ),
+									'nonce'         => $ffcertificate_reveal_nonce,
+								)
+							);
+							echo ' ' . $ffcertificate_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+						}
+					}
+					?>
 				</td>
 				<td>
 					<?php
@@ -596,7 +640,7 @@ class AdminActivityLogPage {
 						// wp_json_encode returns string|false. The false case (circular
 						// refs, malformed UTF-8) is treated as "no context" so the
 						// admin still sees a valid <details> block.
-						$ffcertificate_context_json = wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_json = wp_json_encode( self::mask_addresses( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 						if ( false === $ffcertificate_context_json ) {
 							$ffcertificate_context_json = '';
 						}
@@ -633,6 +677,25 @@ class AdminActivityLogPage {
 			<?php
 		endforeach;
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Every address in an entry's details masked, whatever key holds it
+	 * (#2109). Details carry the address under several keys (`ip`,
+	 * `triggered_by_ip`, `bypassed_ip`, an older geofence `identifier`), so
+	 * the test is the value: a string that is an IP address is masked.
+	 *
+	 * @param mixed $context Decoded details, or a scalar inside them.
+	 * @return mixed
+	 */
+	public static function mask_addresses( $context ) {
+		if ( is_array( $context ) ) {
+			return array_map( array( self::class, 'mask_addresses' ), $context );
+		}
+		if ( is_string( $context ) && null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $context );
+		}
+		return $context;
 	}
 
 	/**

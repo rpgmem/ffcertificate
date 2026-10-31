@@ -15,6 +15,17 @@
 
 (function($, window) {
     'use strict';
+
+    /**
+     * Warn that a public function is deprecated and leaves in 6.45.0 (#2089).
+     *
+     * @param {string} name - Qualified function name.
+     */
+    function warnDeprecated(name) {
+        if (window.console && typeof window.console.warn === 'function') {
+            window.console.warn('FFC: ' + name + '() is deprecated since 6.43.0 and will be removed in 6.45.0.');
+        }
+    }
     
     // Initialize FFC namespace
     window.FFC = window.FFC || {};
@@ -41,8 +52,12 @@
          * 
          * @param {string} email - Email address
          * @return {boolean} - True if valid format
+         *
+         * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+         * @removal 6.45.0
          */
         validateEmail: function(email) {
+            warnDeprecated('FFC.Frontend.Validation.validateEmail');
             var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return re.test(email);
         }

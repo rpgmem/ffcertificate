@@ -65,8 +65,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 * Get all global blocks (applies to all calendars)
 	 *
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function getGlobalBlocks(): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$results = $this->wpdb->get_results(
 			$this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
 			ARRAY_A
@@ -84,21 +89,40 @@ class BlockedDateRepository extends AbstractRepository {
 	 *
 	 * @param int         $calendar_id Calendar ID.
 	 * @param string      $date Date in Y-m-d format.
-	 * @param string|null $time Optional time to check for partial blocks.
+	 * @param string|null $time     Optional time to check for partial blocks.
+	 * @param string|null $end_time End of the slot starting at $time; with it a
+	 *                              time-range block closes any slot it overlaps.
 	 * @return bool
 	 */
-	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null ): bool {
-		// Check calendar-specific and global blocks.
+	public function isDateBlocked( int $calendar_id, string $date, ?string $time = null, ?string $end_time = null ): bool {
+		return self::blocksMatch( $this->getBlocksForDate( $calendar_id, $date ), $date, $time, $end_time );
+	}
+
+	/**
+	 * The calendar-specific and global blocks that reach a date, in one query,
+	 * so a caller checking every slot of the day reads them once (#2244).
+	 *
+	 * A full-day or time-range block with no end date is one day, the day it
+	 * starts (#2244): the month view always read it so, while this query read
+	 * it as never ending. Only a recurring block runs on without an end.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Date in Y-m-d format.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getBlocksForDate( int $calendar_id, string $date ): array {
 		$blocks_raw = $this->wpdb->get_results(
 			$this->wpdb->prepare(
 				'SELECT * FROM %i
                 WHERE (calendar_id = %d OR calendar_id IS NULL)
                 AND start_date <= %s
-                AND (end_date IS NULL OR end_date >= %s)',
+                AND (end_date >= %s OR (end_date IS NULL AND (start_date = %s OR block_type = %s)))',
 				$this->table,
 				$calendar_id,
 				$date,
-				$date
+				$date,
+				$date,
+				'recurring'
 			),
 			ARRAY_A
 		);
@@ -108,7 +132,22 @@ class BlockedDateRepository extends AbstractRepository {
 		 * @var array<int, array<string, mixed>> $blocks
 		 */
 		$blocks = is_array( $blocks_raw ) ? $blocks_raw : array();
+		return $blocks;
+	}
 
+	/**
+	 * Whether any of the blocks read by getBlocksForDate() closes the date, or
+	 * the time on it.
+	 *
+	 * @param array<int, array<string, mixed>> $blocks Blocks for the date.
+	 * @param string                           $date   Date in Y-m-d format.
+	 * @param string|null                      $time     Optional time to check for partial blocks.
+	 * @param string|null                      $end_time End of the slot starting at $time. With it a
+	 *                                                   time-range block closes every slot it overlaps
+	 *                                                   (#2244); without it, only a slot starting inside it.
+	 * @return bool
+	 */
+	public static function blocksMatch( array $blocks, string $date, ?string $time = null, ?string $end_time = null ): bool {
 		foreach ( $blocks as $block ) {
 			// Full day block.
 			if ( 'full_day' === $block['block_type'] ) {
@@ -117,7 +156,7 @@ class BlockedDateRepository extends AbstractRepository {
 
 			// Time range block - only if time is provided.
 			if ( 'time_range' === $block['block_type'] && null !== $time ) {
-				if ( $time >= $block['start_time'] && $time < $block['end_time'] ) {
+				if ( self::overlaps( $block, $time, $end_time ) ) {
 					return true;
 				}
 			}
@@ -131,13 +170,84 @@ class BlockedDateRepository extends AbstractRepository {
 				// json_decode() of a non-JSON string is null, which
 				// matchesRecurringPattern() already accepts.
 				$pattern = json_decode( ArrayValue::string( $block, 'recurring_pattern' ), true );
-				if ( $this->matchesRecurringPattern( $date, $time, is_array( $pattern ) ? $pattern : array() ) ) {
+				if ( self::matchesRecurringPattern( $date, $time, is_array( $pattern ) ? $pattern : array() ) ) {
 					return true;
 				}
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether a time-range block reaches a slot (#2244).
+	 *
+	 * Times compare as `H:i:s` text, which orders them correctly.
+	 *
+	 * @param array<string, mixed> $block    Time-range block.
+	 * @param string               $start    Slot start.
+	 * @param string|null          $end_time Slot end; null tests the start alone.
+	 * @return bool
+	 */
+	private static function overlaps( array $block, string $start, ?string $end_time ): bool {
+		$block_start = ArrayValue::string( $block, 'start_time' );
+		$block_end   = ArrayValue::string( $block, 'end_time' );
+		if ( null === $end_time || '' === $end_time ) {
+			return $start >= $block_start && $start < $block_end;
+		}
+		return $start < $block_end && $end_time > $block_start;
+	}
+
+	/**
+	 * Whether the calendar already has a block covering the one described,
+	 * so adding it would change nothing (#2244): the same time range on the
+	 * date, or a full-day block over every day of it.
+	 *
+	 * @param int         $calendar_id Calendar ID.
+	 * @param string      $type        full_day | time_range.
+	 * @param string      $start_date  First date.
+	 * @param string      $end_date    Last date (the first for a time range).
+	 * @param string|null $start_time  Time-range start.
+	 * @param string|null $end_time    Time-range end.
+	 * @return bool
+	 */
+	public function isCovered( int $calendar_id, string $type, string $start_date, string $end_date, ?string $start_time = null, ?string $end_time = null ): bool {
+		foreach ( $this->findByCalendar( $calendar_id ) as $block ) {
+			$from = ArrayValue::string( $block, 'start_date' );
+			$to   = ArrayValue::string( $block, 'end_date' );
+			$to   = '' === $to ? $from : $to;
+			if ( 'full_day' === ( $block['block_type'] ?? '' ) && $from <= $start_date && $to >= $end_date ) {
+				return true;
+			}
+			if ( 'time_range' === $type && 'time_range' === ( $block['block_type'] ?? '' ) && $from === $start_date
+				&& ArrayValue::string( $block, 'start_time' ) <= (string) $start_time && ArrayValue::string( $block, 'end_time' ) >= (string) $end_time ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Delete one of a calendar's blocks; a global block or another calendar's
+	 * is left alone (#2244).
+	 *
+	 * @param int $calendar_id Calendar ID.
+	 * @param int $block_id    Block ID.
+	 * @return bool True when a row was deleted.
+	 */
+	public function deleteForCalendar( int $calendar_id, int $block_id ): bool {
+		$deleted = $this->wpdb->delete(
+			$this->table,
+			array(
+				'id'          => $block_id,
+				'calendar_id' => $calendar_id,
+			),
+			array( '%d', '%d' )
+		);
+		if ( $deleted ) {
+			$this->clear_cache();
+		}
+		return (bool) $deleted;
 	}
 
 	/**
@@ -257,8 +367,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 *
 	 * @param int $days_old Number of days past end date.
 	 * @return int|false Number of deleted rows
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function deleteExpiredBlocks( int $days_old = 30 ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$cutoff_ts   = strtotime( "-{$days_old} days" );
 		$cutoff_date = gmdate( 'Y-m-d', $cutoff_ts ? $cutoff_ts : time() );
 
@@ -287,7 +402,7 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @param array<string, mixed> $pattern Pattern.
 	 * @return bool
 	 */
-	private function matchesRecurringPattern( string $date, ?string $time, array $pattern ): bool {
+	private static function matchesRecurringPattern( string $date, ?string $time, array $pattern ): bool {
 		if ( empty( $pattern['type'] ) ) {
 			return false;
 		}
@@ -330,8 +445,13 @@ class BlockedDateRepository extends AbstractRepository {
 	 * @param int $calendar_id Calendar ID.
 	 * @param int $days Number of days to look ahead.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public function getUpcomingBlocks( int $calendar_id, int $days = 30 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$start_date = gmdate( 'Y-m-d' );
 		$end_ts     = strtotime( "+{$days} days" );
 		$end_date   = gmdate( 'Y-m-d', $end_ts ? $end_ts : time() );

@@ -8,20 +8,26 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Encryption;
 use FreeFormCertificate\Frontend\Submission\SubmissionPersister;
 use FreeFormCertificate\Frontend\Submission\SubmissionContext;
 use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for SubmissionPersister — the submission persistence + reprint/quiz
  * resolution pipeline stage.
  *
- * The stage fans out to a wide set of static collaborators (ReprintDetector,
- * AccessRestrictionChecker, Encryption, ScheduleExceptionSession, ActivityLog,
- * RequestInput, SubmissionRepository, DataSanitizer) plus an injected
- * SubmissionHandler instance. Statics are replaced with Mockery `alias:` mocks
- * (requires process isolation so the aliases do not leak); the handler and its
- * repository are plain mocks injected/returned.
+ * The stage's static collaborators run for real — ReprintDetector,
+ * AccessRestrictionChecker, Encryption (with the bootstrap's key constants),
+ * SensitiveFieldRegistry, ScheduleExceptionSession, ActivityLog, RequestInput,
+ * SubmissionRepository's table name and DataSanitizer — over a `$wpdb` double
+ * that answers each query by its SQL text and records the reads and the
+ * one-use claim, plus global WordPress stubs. The injected SubmissionHandler
+ * and the repository it returns are plain instance mocks. Only the
+ * unconfigured-encryption test replaces a class, so only it runs in its own
+ * process.
  *
  * Coverage:
  *   - apply() normal flow: fresh insert, ticket consumption, schedule
@@ -36,7 +42,6 @@ use FreeFormCertificate\Frontend\Submission\SubmissionRejected;
  *   - persist_schedule_exception(): full override + audit pair, no-op update.
  *
  * @covers \FreeFormCertificate\Frontend\Submission\SubmissionPersister
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class SubmissionPersisterTest extends TestCase {
@@ -46,25 +51,125 @@ class SubmissionPersisterTest extends TestCase {
 	/** @var Mockery\MockInterface */
 	private $wpdb;
 
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
+
+	/** @var array<string, mixed> The `$_POST` an earlier test left. */
+	private array $post_backup = array();
+
+	/** @var mixed The REMOTE_ADDR an earlier test left (null when unset). */
+	private $remote_addr_backup;
+
+	/** @var array<string, mixed> What `get_option( 'ffc_settings' )` answers. */
+	private array $settings = array();
+
+	/** @var object|null The row the reprint lookup by CPF/RF finds. */
+	private $reprint_row = null;
+
+	/** @var object|null The row the quiz lookup finds. */
+	private $quiz_row = null;
+
+	/** @var bool Whether the one-use schedule-exception claim wins. */
+	private bool $claim_wins = true;
+
+	/** @var list<array{column: string, args: array<int, mixed>}> CPF/RF lookups, as prepared. */
+	private array $id_lookups = array();
+
+	/** @var list<array<int, mixed>> Arguments of each one-use claim INSERT. */
+	private array $claims = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
-		class_exists( '\\FreeFormCertificate\\Frontend\\Submission\\SubmissionPersister' );
+		$this->settings     = array();
+		$this->reprint_row  = null;
+		$this->quiz_row     = null;
+		$this->claim_wins   = true;
+		$this->id_lookups = array();
+		$this->claims       = array();
 
-		global $wpdb;
-		$wpdb         = Mockery::mock( 'wpdb' );
-		$wpdb->prefix = 'wp_';
-		$this->wpdb   = $wpdb;
+		$this->post_backup        = $_POST ?? array();
+		$this->remote_addr_backup = $_SERVER['REMOTE_ADDR'] ?? null;
+		unset( $_SERVER['REMOTE_ADDR'] );
+
+		$wpdb          = Mockery::mock( 'wpdb' );
+		$wpdb->prefix  = 'wp_';
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				$flat = 1 === count( $args ) && is_array( $args[0] ) ? $args[0] : $args;
+				return array(
+					'sql'  => $sql,
+					'args' => $flat,
+				);
+			}
+		);
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => addcslashes( (string) $v, '_%\\' ) );
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $q ) {
+				if ( false !== strpos( $q['sql'], 'ticket_hash = %s' ) || false !== strpos( $q['sql'], 'data LIKE %s' ) ) {
+					return null;
+				}
+				// The one CPF/RF lookup a submission runs (#2241), shared by
+				// the reprint and the quiz attempt count.
+				if ( preg_match( '/AND (cpf_hash|rf_hash) = %s ORDER BY id DESC LIMIT 1/', $q['sql'], $m ) ) {
+					$this->id_lookups[] = array(
+						'column' => $m[1],
+						'args'   => $q['args'],
+					);
+					return $this->reprint_row ?? $this->quiz_row;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $q['sql'] );
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) use ( $wpdb ) {
+				if ( 0 === strpos( $q['sql'], 'INSERT IGNORE INTO wp_options (option_name, option_value, autoload)' ) ) {
+					$this->claims[]      = $q['args'];
+					$wpdb->rows_affected = $this->claim_wins ? 1 : 0;
+					return $wpdb->rows_affected;
+				}
+				$this->fail( 'Unexpected query(): ' . $q['sql'] );
+			}
+		);
+		$this->wpdb = $wpdb;
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $wpdb;
+
+		ActivityLogBuffer::reset();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'current_time' )->justReturn( '2026-06-30 12:00:00' );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
-		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		// Explicit, so Debug::is_enabled() and the activity-log switch read
+		// this test's settings rather than whatever an earlier test left.
+		Functions\when( 'get_option' )->alias(
+			fn( $key ) => 'ffc_settings' === $key ? $this->settings : array()
+		);
 	}
 
 	protected function tearDown(): void {
+		ActivityLogBuffer::reset();
+		$_POST = $this->post_backup;
+		if ( null === $this->remote_addr_backup ) {
+			unset( $_SERVER['REMOTE_ADDR'] );
+		} else {
+			$_SERVER['REMOTE_ADDR'] = $this->remote_addr_backup;
+		}
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -75,9 +180,9 @@ class SubmissionPersisterTest extends TestCase {
 		$ctx->form_id            = 10;
 		$ctx->form_config        = array();
 		$ctx->fields_config      = array();
-		$ctx->submission_data    = array( 'email' => 'a@b.com', 'cpf_rf' => '51817842080' );
+		$ctx->submission_data    = array( 'email' => 'a@b.com', 'cpf_rf' => Identifiers::CPF_A );
 		$ctx->user_email         = 'a@b.com';
-		$ctx->val_cpf            = '51817842080';
+		$ctx->val_cpf            = Identifiers::CPF_A;
 		$ctx->val_ticket         = '';
 		$ctx->has_exception      = false;
 		$ctx->restriction_result = array( 'is_ticket' => false );
@@ -92,10 +197,6 @@ class SubmissionPersisterTest extends TestCase {
 	 * A handler + repository pair as mocks (handler injected). The repo is a
 	 * typed SubmissionRepository mock because the handler's get_repository()
 	 * return type is enforced (the real handler class is loaded).
-	 *
-	 * Pass an existing repo via $repo to reuse one (e.g. a SubmissionRepository
-	 * `alias:` mock) instead of minting a fresh double — minting a second double
-	 * of the same FQCN triggers a "Cannot redeclare" fatal.
 	 */
 	private function handlerWithRepo( &$repo = null ) {
 		if ( null === $repo ) {
@@ -106,19 +207,23 @@ class SubmissionPersisterTest extends TestCase {
 		return $handler;
 	}
 
-	/** A handler with no repository mock (for tests that alias-mock the repo class). */
+	/** A handler with no repository mock. */
 	private function bareHandler() {
 		return Mockery::mock( 'FreeFormCertificate\\Submissions\\SubmissionHandler' );
 	}
 
-	/** Alias-mock ReprintDetector returning a (non-)reprint result. */
-	private function stubReprintDetector( array $result ): void {
-		$rd = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ReprintDetector' );
-		$rd->shouldReceive( 'detect' )->andReturn( $result )->byDefault();
-	}
-
-	private function noReprint(): array {
-		return array( 'is_reprint' => false, 'id' => 0, 'date' => '', 'data' => array() );
+	/** A stored submission row the lookups can find. */
+	private function storedRow( array $fields ): object {
+		return (object) array_merge(
+			array(
+				'id'              => '1',
+				'status'          => 'publish',
+				'data'            => json_encode( array() ),
+				'submission_date' => '1767225600',
+				'auth_code'       => '',
+			),
+			$fields
+		);
 	}
 
 	// =====================================================================
@@ -126,7 +231,6 @@ class SubmissionPersisterTest extends TestCase {
 	// =====================================================================
 
 	public function test_normal_flow_fresh_insert_populates_context(): void {
-		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Form' ) );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 
@@ -155,20 +259,15 @@ class SubmissionPersisterTest extends TestCase {
 			'event'      => 'Workshop',
 		);
 
-		$rd = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ReprintDetector' );
-		$rd->shouldReceive( 'detect' )->andReturn(
-			$this->noReprint(),
-			array(
-				'is_reprint' => true,
-				'id'         => '555',
-				'date'       => 'then',
-				'data'       => array(),
-			)
-		);
-
 		$repo    = null;
 		$handler = $this->handlerWithRepo( $repo );
-		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 555 );
+		// The insert stores the row the reprint lookup finds the second time.
+		$handler->shouldReceive( 'process_submission' )->once()->andReturnUsing(
+			function () {
+				$this->reprint_row = $this->storedRow( array( 'id' => '555' ) );
+				return 555;
+			}
+		);
 		$repo->shouldReceive( 'update' )->once()->with( 555, array( 'audience_booking_id' => 5 ) )->andReturn( 1 );
 
 		$persister = new SubmissionPersister( $handler );
@@ -180,15 +279,19 @@ class SubmissionPersisterTest extends TestCase {
 	}
 
 	public function test_normal_flow_consumes_ticket(): void {
-		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'get_post_meta' )->justReturn( array( 'generated_codes_list' => "TICKET1\nTICKET2" ) );
+		$meta_writes = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( ...$args ) use ( &$meta_writes ) {
+				$meta_writes[] = $args;
+				return true;
+			}
+		);
 
 		$handler = $this->handlerWithRepo();
 		$handler->shouldReceive( 'process_submission' )->andReturn( 7 );
-
-		$arc = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\AccessRestrictionChecker' );
-		$arc->shouldReceive( 'consume_ticket' )->once()->with( 10, 'TICKET1' );
 
 		$persister = new SubmissionPersister( $handler );
 		$ctx       = $this->ctx(
@@ -200,10 +303,14 @@ class SubmissionPersisterTest extends TestCase {
 		$persister->apply( $ctx );
 
 		$this->assertSame( 7, $ctx->submission_id );
+		$this->assertSame(
+			array( array( 10, '_ffc_form_config', array( 'generated_codes_list' => 'TICKET2' ) ) ),
+			$meta_writes,
+			'The used ticket leaves the form\'s code list, once.'
+		);
 	}
 
 	public function test_normal_flow_persists_schedule_exception(): void {
-		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( false );
 
@@ -216,12 +323,6 @@ class SubmissionPersisterTest extends TestCase {
 				'schedule_end_override'   => '12:00:00',
 			)
 		)->andReturn( true );
-
-		$ses = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ScheduleExceptionSession' );
-		$ses->shouldReceive( 'try_consume_jti' )->once()->with( 'jti-1', 9999 )->andReturn( true );
-
-		// ActivityLog is left unloaded -> class_exists() false -> log() skipped.
-		$this->assertFalse( class_exists( '\FreeFormCertificate\Core\ActivityLog', false ) );
 
 		$persister = new SubmissionPersister( $handler );
 		$ctx       = $this->ctx(
@@ -238,15 +339,16 @@ class SubmissionPersisterTest extends TestCase {
 		$persister->apply( $ctx );
 
 		$this->assertSame( 88, $ctx->submission_id );
+		$this->assertSame( array( array( 'ffc_sched_exc_used_jti-1', '9999' ) ), $this->claims, 'The token is claimed once, by its jti and expiry.' );
+		// The activity log is off in these settings, so nothing is buffered.
+		$this->assertSame( array(), ActivityLogBuffer::entries() );
 	}
 
 	public function test_normal_flow_reprint_surfaces_auth_code(): void {
-		$this->stubReprintDetector(
+		$this->reprint_row = $this->storedRow(
 			array(
-				'is_reprint' => true,
-				'id'         => '321',
-				'date'       => '2026-01-01 00:00:00',
-				'data'       => array( 'auth_code' => 'AUTH-XYZ' ),
+				'id'   => '321',
+				'data' => json_encode( array( 'auth_code' => 'AUTH-XYZ' ) ),
 			)
 		);
 		Functions\when( 'get_post' )->justReturn( null );
@@ -261,12 +363,56 @@ class SubmissionPersisterTest extends TestCase {
 
 		$this->assertTrue( $ctx->is_reprint );
 		$this->assertSame( 321, $ctx->submission_id );
-		$this->assertSame( '2026-01-01 00:00:00', $ctx->real_submission_date );
+		$this->assertSame( '1767225600', $ctx->real_submission_date, 'The stored submission date (unix seconds) is surfaced.' );
 		$this->assertSame( 'AUTH-XYZ', $ctx->submission_data['auth_code'] );
 	}
 
+	public function test_a_reprint_for_someone_else_sends_the_link_instead_of_the_certificate(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'user_id' => '9' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx();
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->is_reprint );
+		$this->assertNotNull( $ctx->reprint_notice, 'Whoever types a CPF/RF does not get the certificate on screen.' );
+		// The row has no e-mail on record, so the notice says to contact the organizer.
+		$this->assertStringContainsString( 'contact the organizer', (string) $ctx->reprint_notice );
+	}
+
+	public function test_a_reprint_for_its_logged_in_owner_hands_the_certificate_over(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'user_id' => '9' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+
+		$ctx = $this->ctx();
+		( new SubmissionPersister( $this->handlerWithRepo() ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->is_reprint );
+		$this->assertNull( $ctx->reprint_notice );
+	}
+
+	public function test_a_revoked_certificate_is_not_reprinted_nor_issued_again(): void {
+		$this->reprint_row = $this->storedRow( array( 'id' => '321', 'status' => 'trash' ) );
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $this->ctx() );
+			$this->fail( 'A revoked certificate must be refused.' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'certificate_revoked', $e->get_payload()['code'] );
+			$this->assertSame( 'This certificate was revoked.', $e->get_payload()['message'] );
+		}
+	}
+
 	public function test_normal_flow_db_failure_throws_rejected(): void {
-		$this->stubReprintDetector( $this->noReprint() );
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( true );
 
@@ -314,9 +460,7 @@ class SubmissionPersisterTest extends TestCase {
 		// quiz_status === 'publish' -> no updateStatus call.
 
 		$persister = new SubmissionPersister( $handler );
-		// find_quiz_submission returns null because Encryption not configured.
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
+		// No earlier attempt is stored, so find_quiz_submission() returns null.
 
 		$ctx = $this->ctx(
 			array(
@@ -347,13 +491,10 @@ class SubmissionPersisterTest extends TestCase {
 	public function test_quiz_records_the_window_leave_count_only_when_reset( string $reset, $posted, ?int $expected ): void {
 		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'Quiz' ) );
 		Functions\when( 'is_wp_error' )->justReturn( false );
-		Functions\when( 'wp_unslash' )->returnArg();
 		$_POST['ffc_quiz_focus_losses'] = $posted;
 
 		$handler = $this->handlerWithRepo();
 		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 901 );
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
 
 		$ctx = $this->ctx(
 			array(
@@ -369,7 +510,6 @@ class SubmissionPersisterTest extends TestCase {
 		);
 
 		( new SubmissionPersister( $handler ) )->apply( $ctx );
-		unset( $_POST['ffc_quiz_focus_losses'] );
 
 		if ( null === $expected ) {
 			$this->assertArrayNotHasKey( '_quiz_focus_losses', $ctx->submission_data );
@@ -398,9 +538,6 @@ class SubmissionPersisterTest extends TestCase {
 		$handler = $this->handlerWithRepo( $repo );
 		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 901 );
 		$repo->shouldReceive( 'updateStatus' )->once()->with( 901, 'quiz_in_progress' );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
 
 		$persister = new SubmissionPersister( $handler );
 		$ctx       = $this->ctx(
@@ -440,9 +577,6 @@ class SubmissionPersisterTest extends TestCase {
 		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 902 );
 		$repo->shouldReceive( 'updateStatus' )->once()->with( 902, 'quiz_pending' );
 
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
-
 		$fields   = $this->quizFieldsConfig();
 		$fields[] = array(
 			'type'        => 'textarea',
@@ -478,27 +612,13 @@ class SubmissionPersisterTest extends TestCase {
 	public function test_quiz_refuses_a_new_attempt_while_the_last_awaits_grading(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
-		$existing = (object) array(
-			'id'              => '80',
-			'status'          => 'quiz_pending',
-			'data'            => json_encode( array( '_quiz_attempt' => 1 ) ),
-			'submission_date' => '2026-01-01 00:00:00',
-			'auth_code'       => '',
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'     => '80',
+				'status' => 'quiz_pending',
+				'data'   => json_encode( array( '_quiz_attempt' => 1 ) ),
+			)
 		);
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
-		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
-
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturn( 'cpf' );
-
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
 
 		$handler = $this->bareHandler();
 		$handler->shouldReceive( 'process_submission' )->never();
@@ -527,27 +647,13 @@ class SubmissionPersisterTest extends TestCase {
 
 		// Existing submission has _quiz_attempt = 1; max_attempts = 1 -> next
 		// attempt (2) > max -> exhausted rejection before any insert.
-		$existing = (object) array(
-			'id'              => '50',
-			'status'          => 'quiz_in_progress',
-			'data'            => json_encode( array( '_quiz_attempt' => 1 ) ),
-			'submission_date' => '2026-01-01 00:00:00',
-			'auth_code'       => '',
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'     => '50',
+				'status' => 'quiz_in_progress',
+				'data'   => json_encode( array( '_quiz_attempt' => 1 ) ),
+			)
 		);
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
-		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
-
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
-
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
 
 		$handler = $this->bareHandler();
 		$handler->shouldReceive( 'process_submission' )->never();
@@ -578,34 +684,15 @@ class SubmissionPersisterTest extends TestCase {
 
 		// Existing in-progress, attempt 1, max_attempts 2 -> attempt 2 == max,
 		// not passed -> status quiz_failed -> UPDATE path -> failed feedback.
-		$existing = (object) array(
-			'id'              => '60',
-			'status'          => 'quiz_in_progress',
-			'data'            => json_encode( array( '_quiz_attempt' => 1 ) ),
-			'submission_date' => '2026-01-01 00:00:00',
-			'auth_code'       => '',
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'     => '60',
+				'status' => 'quiz_in_progress',
+				'data'   => json_encode( array( '_quiz_attempt' => 1 ) ),
+			)
 		);
 
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
-		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
-		$enc->shouldReceive( 'encrypt' )->andReturnUsing( static fn( $v ) => 'enc:' . $v )->byDefault();
-
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
-
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
-
-		// The SubmissionRepository alias mock is itself an instance of the class,
-		// so reuse it as the handler's repository (avoids a second double of the
-		// same FQCN, which would fatal with "Cannot redeclare").
 		$captured = null;
-		$repo     = $srepo;
 		$handler  = $this->handlerWithRepo( $repo );
 		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
 			function ( $id, $fields ) use ( &$captured ) {
@@ -639,32 +726,182 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 'quiz_failed', $captured[1]['status'] );
 		// Encryption configured -> data stored encrypted.
 		$this->assertArrayHasKey( 'data_encrypted', $captured[1] );
+		$this->assertArrayNotHasKey( 'data', $captured[1] );
+		$stored = json_decode( (string) Encryption::decrypt( (string) $captured[1]['data_encrypted'] ), true );
+		$this->assertSame( 2, $stored['_quiz_attempt'], 'The encrypted data carries the second attempt.' );
+	}
+
+	/**
+	 * #2241 — with encryption on, the attempt lives in `data_encrypted` and
+	 * `data` is NULL; the earlier read of `data` alone counted every attempt
+	 * as the first, so the limit never held.
+	 */
+	public function test_quiz_attempt_limit_reads_the_encrypted_payload(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'             => '51',
+				'status'         => 'quiz_in_progress',
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( (string) json_encode( array( '_quiz_attempt' => 2 ) ) ),
+			)
+		);
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 2,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'B' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertTrue( $e->get_payload()['quiz']['attempts_exhausted'] );
+		}
+	}
+
+	/**
+	 * @dataProvider provider_stored_attempts
+	 *
+	 * @param array<string, mixed> $row      Stored payload columns.
+	 * @param int                  $expected Attempt the row records.
+	 */
+	public function test_previous_attempt_reads_either_column_and_counts_a_row_as_one( array $row, int $expected ): void {
+		$this->assertSame( $expected, SubmissionPersister::previous_attempt( $this->storedRow( $row ) ) );
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, int}>
+	 */
+	public static function provider_stored_attempts(): array {
+		return array(
+			'plaintext data'       => array( array( 'data' => '{"_quiz_attempt":3}' ), 3 ),
+			'unreadable payload'   => array(
+				array(
+					'data'           => null,
+					'data_encrypted' => null,
+				),
+				1,
+			),
+			'payload without one' => array( array( 'data' => '{}' ), 1 ),
+		);
+	}
+
+	public function test_previous_attempt_decrypts_the_encrypted_column(): void {
+		$row = $this->storedRow(
+			array(
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( '{"_quiz_attempt":4}' ),
+			)
+		);
+		$this->assertSame( 4, SubmissionPersister::previous_attempt( $row ) );
+	}
+
+	/**
+	 * #2241 — a retry stores a unix timestamp (the column is BIGINT; a MySQL
+	 * date string was truncated to its year) and, when it passes, schedules
+	 * the certificate e-mail an insert would have.
+	 */
+	public function test_quiz_retry_that_passes_stores_a_timestamp_and_schedules_the_email(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'             => '61',
+				'status'         => 'quiz_in_progress',
+				'data'           => null,
+				'data_encrypted' => Encryption::encrypt( '{"_quiz_attempt":1}' ),
+			)
+		);
+
+		$captured = null;
+		$handler  = $this->handlerWithRepo( $repo );
+		$repo->shouldReceive( 'update' )->once()->andReturnUsing(
+			function ( $id, $fields ) use ( &$captured ) {
+				$captured = $fields;
+				return 1;
+			}
+		);
+		$handler->shouldReceive( 'schedule_async_pipeline' )->once()->with( 61 );
+
+		$before = time();
+		$ctx    = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 3,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertSame( 'publish', $captured['status'] );
+		$this->assertIsInt( $captured['submission_date'] );
+		$this->assertGreaterThanOrEqual( $before, $captured['submission_date'] );
+		$this->assertLessThanOrEqual( time(), $captured['submission_date'] );
+		$this->assertSame( (string) $captured['submission_date'], $ctx->real_submission_date );
+		$this->assertSame( 2, $ctx->submission_data['_quiz_attempt'] );
+	}
+
+	public function test_quiz_retry_whose_update_fails_is_rejected_without_email(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'     => '62',
+				'status' => 'quiz_in_progress',
+				'data'   => '{"_quiz_attempt":1}',
+			)
+		);
+
+		$handler = $this->handlerWithRepo( $repo );
+		$repo->shouldReceive( 'update' )->once()->andReturn( false );
+		$handler->shouldReceive( 'schedule_async_pipeline' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'db_error', $e->get_payload()['code'] );
+		}
 	}
 
 	public function test_quiz_already_passed_is_reprint(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 
-		$existing = (object) array(
-			'id'              => '70',
-			'status'          => 'publish',
-			'data'            => json_encode( array() ),
-			'submission_date' => '2025-12-31 00:00:00',
-			'auth_code'       => 'PREVAUTH',
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'              => '70',
+				'status'          => 'publish',
+				'submission_date' => '2025-12-31 00:00:00',
+				'auth_code'       => 'PREVAUTH',
+			)
 		);
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( true )->byDefault();
-		$enc->shouldReceive( 'hash' )->andReturn( 'hh' )->byDefault();
-
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
-
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
-		$this->wpdb->shouldReceive( 'get_row' )->andReturn( $existing );
 
 		$handler = $this->bareHandler();
 		$handler->shouldReceive( 'process_submission' )->never();
@@ -691,9 +928,6 @@ class SubmissionPersisterTest extends TestCase {
 	public function test_quiz_insert_db_failure_throws_rejected(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( true );
-
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( false )->byDefault();
 
 		$error = Mockery::mock();
 		$error->shouldReceive( 'get_error_code' )->andReturn( 'q_err' );
@@ -803,43 +1037,36 @@ class SubmissionPersisterTest extends TestCase {
 	}
 
 	public function test_find_quiz_submission_uses_rf_column_for_7_digits(): void {
-		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
-		$enc->shouldReceive( 'is_configured' )->andReturn( true );
-		$enc->shouldReceive( 'hash' )->with( '1234567' )->andReturn( 'rfhash' );
-
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '1234567' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
-
-		$row = (object) array( 'id' => '11' );
-		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
-			function ( $sql ) {
-				$this->assertStringContainsString( 'rf_hash', $sql );
-				return 'SQL';
-			}
-		);
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
+		$row            = (object) array( 'id' => '11' );
+		$this->quiz_row = $row;
 
 		$persister = new SubmissionPersister( $this->bareHandler() );
-		$this->assertSame( $row, $persister->find_quiz_submission( 5, '1234567' ) );
+		$this->assertSame( $row, $persister->find_quiz_submission( 5, Identifiers::RF_A ) );
+
+		$this->assertCount( 1, $this->id_lookups );
+		$this->assertSame( 'rf_hash', $this->id_lookups[0]['column'] );
+		$this->assertSame(
+			array( 'wp_ffc_submissions', 5, Encryption::hash( Identifiers::RF_A ) ),
+			$this->id_lookups[0]['args'],
+			'The lookup runs on the submissions table by the RF\'s search hash.'
+		);
 	}
 
+	/**
+	 * Runs in its own process because it replaces Encryption: the bootstrap
+	 * defines the key constants is_configured() reads, so no stored state
+	 * can make the real class report itself unconfigured.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_find_quiz_submission_null_when_encryption_unconfigured(): void {
 		$enc = Mockery::mock( 'alias:FreeFormCertificate\\Core\\Encryption' );
 		$enc->shouldReceive( 'is_configured' )->andReturn( false );
 
-		$srepo = Mockery::mock( 'alias:FreeFormCertificate\\Repositories\\SubmissionRepository' );
-		$srepo->shouldReceive( 'get_submissions_table' )->andReturn( 'wp_ffc_submissions' );
-
-		$ds = Mockery::mock( 'alias:FreeFormCertificate\\Core\\DataSanitizer' );
-		$ds->shouldReceive( 'normalize_cpf_rf' )->andReturn( '51817842080' );
-		$ds->shouldReceive( 'classify_cpf_rf' )->andReturnUsing( static fn( $v ) => 7 === strlen( (string) preg_replace( '/\D/', '', (string) $v ) ) ? 'rf' : 'cpf' );
-
 		$persister = new SubmissionPersister( $this->bareHandler() );
-		$this->assertNull( $persister->find_quiz_submission( 5, '51817842080' ) );
+		$this->assertNull( $persister->find_quiz_submission( 5, Identifiers::CPF_A ) );
+		$this->assertSame( array(), $this->id_lookups, 'No lookup runs without encryption.' );
 	}
 
 	// =====================================================================
@@ -847,25 +1074,25 @@ class SubmissionPersisterTest extends TestCase {
 	// =====================================================================
 
 	public function test_maybe_persist_returns_false_when_claim_lost(): void {
-		$ses = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ScheduleExceptionSession' );
-		$ses->shouldReceive( 'try_consume_jti' )->once()->andReturn( false );
+		$this->claim_wins = false;
 
-		$persister = new SubmissionPersister( $this->handlerWithRepo() );
+		$handler = $this->handlerWithRepo( $repo );
+		$repo->shouldNotReceive( 'update' );
+
+		$persister = new SubmissionPersister( $handler );
 		$result    = $persister->maybe_persist_schedule_exception(
 			1,
 			10,
 			array( 'jti' => 'x', 'exp' => 1 ),
-			'51817842080'
+			Identifiers::CPF_A
 		);
 
 		$this->assertFalse( $result );
+		$this->assertSame( array( array( 'ffc_sched_exc_used_x', '1' ) ), $this->claims );
 	}
 
 	public function test_maybe_persist_returns_true_when_claim_won(): void {
-		$ses = Mockery::mock( 'alias:FreeFormCertificate\\Frontend\\ScheduleExceptionSession' );
-		$ses->shouldReceive( 'try_consume_jti' )->once()->andReturn( true );
-
-		// ActivityLog unloaded -> log() skipped after the repo update.
+		// The activity log is off in these settings, so log() returns early.
 		$handler = $this->handlerWithRepo( $repo );
 		$repo->shouldReceive( 'update' )->once()->andReturn( true );
 
@@ -874,10 +1101,11 @@ class SubmissionPersisterTest extends TestCase {
 			1,
 			10,
 			array( 'jti' => 'x', 'exp' => 1, 'start' => '08:00:00' ),
-			'51817842080'
+			Identifiers::CPF_A
 		);
 
 		$this->assertTrue( $result );
+		$this->assertCount( 1, $this->claims );
 	}
 
 	// =====================================================================
@@ -885,18 +1113,15 @@ class SubmissionPersisterTest extends TestCase {
 	// =====================================================================
 
 	public function test_persist_schedule_exception_logs_audit_pair(): void {
+		ActivityLogBuffer::stub_functions();
+		$this->settings         = ActivityLogBuffer::ENABLED_SETTINGS;
+		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
+
 		$handler = $this->handlerWithRepo( $repo );
 		$repo->shouldReceive( 'update' )->once()->with(
 			1,
 			array( 'schedule_start_override' => '08:00:00' )
 		)->andReturn( true );
-
-		$log = Mockery::mock( 'alias:FreeFormCertificate\\Core\\ActivityLog' );
-		$log->shouldReceive( 'log' )->twice();
-
-		$ri = Mockery::mock( 'alias:FreeFormCertificate\\Core\\RequestInput' );
-		$ri->shouldReceive( 'get_user_ip' )->andReturn( '203.0.113.5' );
-
 
 		$persister = new SubmissionPersister( $handler );
 		$persister->persist_schedule_exception(
@@ -908,28 +1133,32 @@ class SubmissionPersisterTest extends TestCase {
 				'operator_cpf_hash'   => 'ohash',
 				'operator_cpf_masked' => '***',
 			),
-			'51817842080'
+			Identifiers::CPF_A
 		);
 
-		$this->assertTrue( true );
+		$logged = ActivityLogBuffer::contexts();
+		$this->assertSame( array( 'schedule_override_created', 'operator_ip_bypass' ), array_column( $logged, 'action' ) );
+		$this->assertSame( hash( 'sha256', Identifiers::CPF_A ), $logged[0]['context']['participant_cpf_hash'] );
+		$this->assertSame( '08:00:00', $logged[0]['context']['schedule_start_after'] );
+		$this->assertSame( '203.0.113.5', $logged[1]['context']['bypassed_ip'] );
+		$this->assertSame( 'ohash', $logged[1]['context']['operator_cpf_hash'] );
 	}
 
 	public function test_persist_schedule_exception_skips_update_when_no_overrides(): void {
+		ActivityLogBuffer::stub_functions();
+		$this->settings = ActivityLogBuffer::ENABLED_SETTINGS;
+
 		$handler = $this->handlerWithRepo( $repo );
 		// Empty overrides -> no repo update.
 		$repo->shouldReceive( 'update' )->never();
-
-		$log = Mockery::mock( 'alias:FreeFormCertificate\\Core\\ActivityLog' );
-		$log->shouldReceive( 'log' )->twice();
-
-		$ri = Mockery::mock( 'alias:FreeFormCertificate\\Core\\RequestInput' );
-		$ri->shouldReceive( 'get_user_ip' )->andReturn( '' );
-
 
 		$persister = new SubmissionPersister( $handler );
 		// Empty participant cpf -> participant_cpf_hash = ''.
 		$persister->persist_schedule_exception( 1, 10, array(), '' );
 
-		$this->assertTrue( true );
+		$logged = ActivityLogBuffer::contexts();
+		$this->assertSame( array( 'schedule_override_created', 'operator_ip_bypass' ), array_column( $logged, 'action' ) );
+		$this->assertSame( '', $logged[0]['context']['participant_cpf_hash'] );
+		$this->assertNull( $logged[0]['context']['schedule_start_after'] );
 	}
 }

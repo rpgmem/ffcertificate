@@ -21,9 +21,21 @@ class UserCreatorTest extends TestCase {
 	/** @var list<array{0: string, 1: string, 2: string}> Notices emitted during a test. */
 	private array $deprecations = array();
 
+	/** @var bool Whether $GLOBALS['wpdb'] existed before the test. */
+	private bool $had_wpdb = false;
+
+	/** @var mixed The $wpdb the test replaced. */
+	private $wpdb_backup = null;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+
+		// Not staff unless a test says so (#2246).
+		Functions\when( 'user_can' )->justReturn( false );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -63,12 +75,20 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'wp_cache_flush' )->justReturn( true );
+		// clear_cache() with no key asks the backend first (#2241); without
+		// group flushing it falls back to wp_cache_flush(), stubbed above.
+		Functions\when( 'wp_cache_supports' )->justReturn( false );
 
 		// Namespaced stubs: prevent "is not defined" errors when Sprint 27 tests run first.
 		// Core namespace (Debug calls get_option/get_current_user_id).
 	}
 
 	protected function tearDown(): void {
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -496,14 +516,14 @@ class UserCreatorTest extends TestCase {
 	 * 500 accounts otherwise means 500 synchronous account notifications from
 	 * inside a batch loop. The user is created either way; only the mail goes.
 	 *
-	 * **`overload:` is right here and `alias:` is not** — the opposite of the
-	 * reregistration confirmation, which is static. `create_ffc_user()` reaches
-	 * the notification through `new EmailHandler()`, and `overload:` is what
-	 * intercepts a constructor.
+	 * `create_ffc_user()` reaches the notification through a real
+	 * `new EmailHandler()`, whose `send_wp_user_notification()` runs down to
+	 * WordPress's `wp_new_user_notification()`; counting that call is what
+	 * tells a sent notification from a suppressed one. No setting disables
+	 * mail here (the option reads empty), so the handler sends whenever it is
+	 * reached.
 	 *
 	 * @dataProvider provide_notify_flag
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 * @param bool $notify   What the caller asks for.
 	 * @param int  $expected How many notifications should go out.
 	 */
@@ -523,10 +543,14 @@ class UserCreatorTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( null );
 		Functions\when( 'wp_update_user' )->justReturn( 556 );
 		Functions\when( 'update_user_meta' )->justReturn( true );
-		Functions\when( 'wp_new_user_notification' )->justReturn( null );
-
-		$handler = Mockery::mock( 'overload:FreeFormCertificate\Integrations\EmailHandler' );
-		$handler->shouldReceive( 'send_wp_user_notification' )->times( $expected );
+		// The real EmailHandler's constructor registers its hooks.
+		Functions\when( 'add_action' )->justReturn( true );
+		$notifications = array();
+		Functions\when( 'wp_new_user_notification' )->alias(
+			static function ( ...$args ) use ( &$notifications ) {
+				$notifications[] = $args;
+			}
+		);
 
 		$result = UserCreator::get_or_create_user_dual(
 			'BULK-CPF',
@@ -538,6 +562,10 @@ class UserCreatorTest extends TestCase {
 		);
 
 		$this->assertSame( 556, $result, 'The account is created either way.' );
+		$this->assertCount( $expected, $notifications, 'The account notification goes out only when asked.' );
+		if ( 1 === $expected ) {
+			$this->assertSame( array( 556, null, 'user' ), $notifications[0] );
+		}
 	}
 
 	/** @return array<string, array{bool, int}> */
@@ -746,6 +774,46 @@ class UserCreatorTest extends TestCase {
 		Functions\expect( 'update_user_meta' )->never();
 
 		$this->assertSame( 62, UserCreator::get_or_create_user_dual( null, null, 'mail62@example.test' ) );
+	}
+
+	/**
+	 * #2246 — an e-mail-only match on a staff account rewrites nothing: no
+	 * role, no capability, no name. The account is still the one returned.
+	 *
+	 * @dataProvider staff_accounts
+	 */
+	public function test_an_email_match_never_rewrites_a_staff_account( string $capability ): void {
+		$this->answering( array() );
+
+		$user               = Mockery::mock( 'WP_User' );
+		$user->ID           = 63;
+		$user->display_name = 'admin63';
+		$user->user_login   = 'admin63';
+		$user->allcaps      = array( $capability => true );
+		$user->shouldNotReceive( 'add_role' );
+		$user->shouldNotReceive( 'add_cap' );
+		Functions\when( 'get_user_by' )->justReturn( $user );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'user_can' )->alias( static fn( $id, $cap ) => 63 === (int) $id && $capability === $cap );
+		$updated = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_update_user', 63 );
+		$meta    = \FreeFormCertificate\Tests\Support\CallLog::record( 'update_user_meta', true );
+
+		$result = UserCreator::get_or_create_user_dual( null, null, 'admin63@example.test', array( 'nome_completo' => 'Someone Else' ) );
+
+		$this->assertSame( 63, $result );
+		$this->assertSame( 0, $updated->count(), 'The name is not rewritten.' );
+		$this->assertSame( 0, $meta->count(), 'No metadata is written.' );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function staff_accounts(): array {
+		return array(
+			'WordPress administrator'     => array( 'manage_options' ),
+			'FFC Administrator'           => array( 'ffc_view_settings_pii' ),
+			'a module\'s Administrator'   => array( 'ffc_view_certificates_pii' ),
+		);
 	}
 
 	public function test_appointments_are_adopted_by_both_hashes_and_grant_their_capability(): void {

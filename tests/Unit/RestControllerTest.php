@@ -107,6 +107,13 @@ class RestControllerTest extends TestCase {
 	// suppress_rest_api_notices() — starts buffer when REST_REQUEST
 	// ==================================================================
 
+	/**
+	 * Its own process: REST_REQUEST is a constant, and once defined it would
+	 * make every later test in the process a REST request (#2123).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_suppress_notices_starts_buffer_when_rest_request(): void {
 		if ( ! defined( 'REST_REQUEST' ) ) {
 			define( 'REST_REQUEST', true );
@@ -157,6 +164,13 @@ class RestControllerTest extends TestCase {
 	// suppress_rest_api_notices() — the rest_pre_serve_request closure
 	// ==================================================================
 
+	/**
+	 * Its own process: REST_REQUEST is a constant, and once defined it would
+	 * make every later test in the process a REST request (#2123).
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_suppress_notices_closure_cleans_active_buffer(): void {
 		if ( ! defined( 'REST_REQUEST' ) ) {
 			define( 'REST_REQUEST', true );

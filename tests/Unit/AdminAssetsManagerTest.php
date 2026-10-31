@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Brain\Monkey\Actions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminAssetsManager;
@@ -17,15 +16,12 @@ use FreeFormCertificate\Admin\AdminAssetsManager;
  *
  * @covers \FreeFormCertificate\Admin\AdminAssetsManager
  * @covers \FreeFormCertificate\Admin\AdminConditionalAssets
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class AdminAssetsManagerTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var Mockery\MockInterface Alias mock for Utils */
-	private $utils_mock;
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -35,6 +31,12 @@ class AdminAssetsManagerTest extends TestCase {
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, (int) $d ) );
+		// LabelSorter guards on function_exists( 'get_locale' ): stub it so the
+		// branch is chosen here, not inherited from an earlier test.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		// The form editor's code editor guards on function_exists(
+		// 'get_current_screen' ): no screen here, chosen rather than inherited.
+		Functions\when( 'get_current_screen' )->justReturn( null );
 
 		// pcov does not record lines for files first autoloaded mid-test-method,
 		// so the extracted conditional-assets class's coverage would attribute to
@@ -48,7 +50,7 @@ class AdminAssetsManagerTest extends TestCase {
 		Functions\when('esc_attr')->returnArg();
 		Functions\when('esc_attr__')->returnArg();
 		Functions\when('wp_kses_post')->returnArg();
-		Functions\when('absint')->justReturn(1);
+		Functions\when('absint')->alias(static fn($v) => abs((int) $v));
 		Functions\when('sanitize_text_field')->returnArg();
 		Functions\when('wp_unslash')->returnArg();
 		Functions\when('sanitize_key')->returnArg();
@@ -67,19 +69,6 @@ class AdminAssetsManagerTest extends TestCase {
 		// overrides get_posts to exercise the id-keyed branch.
 		Functions\when('get_posts')->justReturn(array());
 
-		// Utils alias mock
-		$this->utils_mock = Mockery::mock('alias:\FreeFormCertificate\Core\AssetHelper');
-		$this->utils_mock->shouldReceive( 'enqueue_common_style' )->andReturnUsing( static fn() => \wp_enqueue_style( 'ffc-common', FFC_PLUGIN_URL . 'assets/css/ffc-common.min.css', array(), FFC_VERSION ) )->byDefault();
-		$ri_mock = Mockery::mock( 'alias:\FreeFormCertificate\Core\RequestInput' );
-		$ri_mock->shouldReceive( 'get_get_key' )->andReturnUsing( static fn( $key, $default = '' ) => isset( $_GET[ $key ] ) ? (string) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'get_get_int' )->andReturnUsing( static fn( $key, $default = 0 ) => isset( $_GET[ $key ] ) ? (int) $_GET[ $key ] : $default );
-		$ri_mock->shouldReceive( 'has_get' )->andReturnUsing( static fn( $key ) => isset( $_GET[ $key ] ) );
-		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('.min')->byDefault();
-		$this->utils_mock->shouldReceive('enqueue_dark_mode')->byDefault();
-		$this->utils_mock->shouldReceive('core_script_config')->andReturn(array( 'version' => '1.0.0' ))->byDefault();
-		$ri_mock->shouldReceive('get_get_string')->andReturnUsing( function ( $key, $default = '' ) {
-			return isset( $_GET[ $key ] ) && is_string( $_GET[ $key ] ) ? $_GET[ $key ] : $default;
-		} )->byDefault();
 	}
 
 	protected function tearDown(): void {
@@ -430,13 +419,14 @@ class AdminAssetsManagerTest extends TestCase {
 		global $post_type;
 		$post_type = 'ffc_form';
 
-		// `true`: the Dark Mode select is on a plugin admin screen and auto-saves,
-		// so the script has to be present in the `off` state as well — it is what
+		// The Dark Mode select is on a plugin admin screen and auto-saves, so
+		// the script has to be present in the `off` state as well — it is what
 		// repaints <html> when the option changes without a reload.
-		$this->utils_mock->shouldReceive('enqueue_dark_mode')->once()->with( true );
-
+		$scripts = array();
 		Functions\when('wp_enqueue_media')->justReturn(true);
-		Functions\when('wp_enqueue_script')->justReturn(true);
+		Functions\when('wp_enqueue_script')->alias(function ($handle) use (&$scripts) {
+			$scripts[] = $handle;
+		});
 		Functions\when('wp_enqueue_style')->justReturn(true);
 		Functions\when('wp_localize_script')->justReturn(true);
 		Functions\when('admin_url')->justReturn('https://example.com/wp-admin/admin-ajax.php');
@@ -444,13 +434,21 @@ class AdminAssetsManagerTest extends TestCase {
 
 		$manager = new AdminAssetsManager();
 		$manager->enqueue_admin_assets('post.php');
+
+		$this->assertContains('ffc-dark-mode', $scripts, 'the dark-mode script loads while the option is off');
 	}
 
+	/**
+	 * Its own process: SCRIPT_DEBUG is a constant, and a debug install is the
+	 * only way to see the screen ask AssetHelper for the suffix rather than
+	 * spell `.min` itself.
+	 *
+	 * @runInSeparateProcess
+	 */
 	public function test_enqueue_admin_assets_uses_asset_suffix(): void {
+		define( 'SCRIPT_DEBUG', true );
 		global $post_type;
 		$post_type = 'ffc_form';
-
-		$this->utils_mock->shouldReceive('asset_suffix')->andReturn('');
 
 		$script_urls = [];
 		Functions\when('wp_enqueue_media')->justReturn(true);
@@ -468,6 +466,7 @@ class AdminAssetsManagerTest extends TestCase {
 		$manager->enqueue_admin_assets('post.php');
 
 		// With empty suffix, URLs should NOT contain .min
+		$this->assertNotEmpty($script_urls);
 		foreach ($script_urls as $handle => $url) {
 			$this->assertStringNotContainsString('.min', $url, "Script $handle URL should not contain .min when suffix is empty");
 		}

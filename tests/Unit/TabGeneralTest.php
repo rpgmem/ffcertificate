@@ -6,7 +6,6 @@ namespace FreeFormCertificate\Tests\Unit;
 use FreeFormCertificate\Settings\SettingsTab;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Settings\Tabs\TabGeneral;
@@ -18,7 +17,6 @@ use FreeFormCertificate\Settings\Tabs\TabGeneral;
  * real enqueue_scripts() so the tab class body is covered end-to-end.
  *
  * @covers \FreeFormCertificate\Settings\Tabs\TabGeneral
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
 class TabGeneralTest extends TestCase {
@@ -104,28 +102,16 @@ class TabGeneralTest extends TestCase {
 
 	public function test_render_includes_real_view(): void {
 		// The shipped view resolves every $ffcertificate_get_option(...) call
-		// through SettingsReader::get (via the bound $settings->get_option
-		// closure); stub it to return the passed default so the include runs.
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->andReturnUsing(
-			function ( $key, $default = '' ) {
-				return $default;
-			}
-		);
-
-		// WP core date/time formats (divergence notice) — keep aligned with
-		// the plugin defaults so the divergence branch is exercised without
-		// depending on real option storage.
-		Functions\when( 'get_option' )->alias(
-			function ( $key, $default = false ) {
-				if ( 'date_format' === $key ) {
-					return 'Y-m-d';
-				}
-				if ( 'time_format' === $key ) {
-					return 'H:i';
-				}
-				return $default;
-			}
+		// through the real SettingsReader::get; an empty `ffc_settings` makes
+		// every key fall back to the default the view passes. The WP core
+		// date/time formats (divergence notice) stay aligned with the plugin
+		// defaults.
+		$this->stub_options(
+			array(),
+			array(
+				'date_format' => 'Y-m-d',
+				'time_format' => 'H:i',
+			)
 		);
 
 		Functions\when( 'date_i18n' )->alias(
@@ -158,30 +144,17 @@ class TabGeneralTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_shows_divergence_notice(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->andReturnUsing(
-			function ( $key, $default = '' ) {
-				if ( 'date_format' === $key ) {
-					return 'd/m/Y';
-				}
-				if ( 'time_format' === $key ) {
-					return 'g:i a';
-				}
-				return $default;
-			}
-		);
-
-		// WP global formats differ from the plugin's -> divergence banner.
-		Functions\when( 'get_option' )->alias(
-			function ( $key, $default = false ) {
-				if ( 'date_format' === $key ) {
-					return 'Y-m-d';
-				}
-				if ( 'time_format' === $key ) {
-					return 'H:i';
-				}
-				return $default;
-			}
+		// The plugin's stored formats differ from WordPress's global ones ->
+		// divergence banner.
+		$this->stub_options(
+			array(
+				'date_format' => 'd/m/Y',
+				'time_format' => 'g:i a',
+			),
+			array(
+				'date_format' => 'Y-m-d',
+				'time_format' => 'H:i',
+			)
 		);
 
 		Functions\when( 'date_i18n' )->alias(
@@ -206,18 +179,15 @@ class TabGeneralTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_smart_matches_legacy_date_format(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->andReturnUsing(
-			function ( $key, $default = '' ) {
-				// A pre-#248 combined date+time value that strips to a preset.
-				if ( 'date_format' === $key ) {
-					return 'Y-m-d H:i';
-				}
-				return $default;
-			}
+		// A pre-#248 combined date+time value that strips to a preset; the
+		// WordPress core formats read back empty.
+		$this->stub_options(
+			array( 'date_format' => 'Y-m-d H:i' ),
+			array(
+				'date_format' => '',
+				'time_format' => '',
+			)
 		);
-
-		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'date_i18n' )->alias(
 			function ( $fmt, $ts = null ) {
 				return gmdate( (string) $fmt, null === $ts ? time() : (int) $ts );
@@ -240,12 +210,23 @@ class TabGeneralTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_error_when_view_missing(): void {
-		// Force the real render()'s file_exists() guard to fail so its error
-		// branch (the "view file not found" notice) executes.
-		Functions\when( 'FreeFormCertificate\\Settings\\Tabs\\file_exists' )->justReturn( false );
+		// Point the view path at a file that does not exist, so the real
+		// render()'s file_exists() guard fails and its error branch (the
+		// "view file not found" notice) executes.
+		$tab = new class() extends TabGeneral {
+			/**
+			 * A view path that never exists.
+			 *
+			 * @param string $file View file name.
+			 * @return string
+			 */
+			protected function view_path( string $file ): string {
+				return FFC_PLUGIN_DIR . 'includes/settings/views/missing-' . $file;
+			}
+		};
 
 		ob_start();
-		$this->tab->render();
+		$tab->render();
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'notice notice-error', $output );
@@ -270,8 +251,10 @@ class TabGeneralTest extends TestCase {
 	public function test_enqueue_scripts_enqueues_autosave_on_general_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'general' );
 
-		$utils = Mockery::mock( 'alias:FreeFormCertificate\Core\AssetHelper' );
-		$utils->shouldReceive( 'asset_suffix' )->andReturn( '.min' );
+		// The real AssetRegistry registers each shared handle through the
+		// real AssetHelper::asset_suffix() before enqueuing it.
+		Functions\when( 'plugins_url' )->returnArg();
+		Functions\when( 'wp_script_is' )->justReturn( false );
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {
@@ -292,9 +275,27 @@ class TabGeneralTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_option_returns_default_for_missing_key(): void {
-		$reader = Mockery::mock( 'alias:FreeFormCertificate\Settings\SettingsReader' );
-		$reader->shouldReceive( 'get' )->with( 'missing', 'fallback' )->andReturn( 'fallback' );
+		$this->stub_options( array( 'present' => 'stored' ), array() );
 
 		$this->assertSame( 'fallback', $this->tab->get_option( 'missing', 'fallback' ) );
+		$this->assertSame( 'stored', $this->tab->get_option( 'present', 'fallback' ) );
+	}
+
+	/**
+	 * Answer get_option(): `ffc_settings` with the plugin's stored settings,
+	 * any other key from the WordPress core options given, else the default.
+	 *
+	 * @param array<string, mixed> $ffc_settings Stored plugin settings.
+	 * @param array<string, mixed> $core         WordPress core options.
+	 */
+	private function stub_options( array $ffc_settings, array $core ): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( $ffc_settings, $core ) {
+				if ( \FreeFormCertificate\Settings\SettingsReader::OPTION_KEY === $key ) {
+					return $ffc_settings;
+				}
+				return array_key_exists( $key, $core ) ? $core[ $key ] : $default;
+			}
+		);
 	}
 }

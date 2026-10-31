@@ -261,7 +261,12 @@ class SubmissionHandler {
 					$rf_hash_val,
 					$user_email,
 					$submission_data,
-					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE
+					\FreeFormCertificate\UserDashboard\CapabilityManager::CONTEXT_CERTIFICATE,
+					true,
+					// An anonymous form proves no identifier, so it claims no
+					// one else's unlinked records (#2244); a logged-in person,
+					// or Identity Resolution, does.
+					is_user_logged_in()
 				);
 
 				if ( ! is_wp_error( $user_result ) ) {
@@ -344,15 +349,26 @@ class SubmissionHandler {
 		// `dispatch_async_pipeline()` rehydrates the eight values from the row
 		// and the form and fires the public hook with them, so no external
 		// listener notices the change.
-		if ( $send_email && function_exists( 'wp_schedule_single_event' ) ) {
-			wp_schedule_single_event(
-				time() + 1,
-				self::ASYNC_PIPELINE_HOOK,
-				array( (int) $submission_id )
-			);
+		if ( $send_email ) {
+			$this->schedule_async_pipeline( (int) $submission_id );
 		}
 
 		return $submission_id;
+	}
+
+	/**
+	 * Schedules the e-mail pipeline for one submission, one second from now.
+	 *
+	 * Public because a quiz retry that passes updates its row instead of
+	 * inserting one, and is e-mailed its certificate the same way (#2241).
+	 *
+	 * @param int $submission_id Submission ID.
+	 * @return void
+	 */
+	public function schedule_async_pipeline( int $submission_id ): void {
+		if ( $submission_id > 0 && function_exists( 'wp_schedule_single_event' ) ) {
+			wp_schedule_single_event( time() + 1, self::ASYNC_PIPELINE_HOOK, array( $submission_id ) );
+		}
 	}
 
 	/**
@@ -491,6 +507,28 @@ class SubmissionHandler {
 			is_array( $form_config ) ? $form_config : array(),
 			$magic_token
 		);
+	}
+
+	/**
+	 * Drops the cached copies of a row that verification reads.
+	 *
+	 * The auth-code and magic-token lookups cache the row under their own
+	 * keys, which an update by id does not clear: after a change to the
+	 * answers, verification would keep serving the old ones until the key
+	 * expired.
+	 *
+	 * @param array<string, mixed> $submission The row, as read before the change.
+	 */
+	public static function forget_cached_lookups( array $submission ): void {
+		foreach ( array(
+			'auth_'  => 'auth_code',
+			'token_' => 'magic_token',
+		) as $prefix => $column ) {
+			$value = $submission[ $column ] ?? '';
+			if ( is_string( $value ) && '' !== $value ) {
+				wp_cache_delete( $prefix . $value, 'ffc_submissions' );
+			}
+		}
 	}
 
 	/**
@@ -803,6 +841,7 @@ class SubmissionHandler {
 	 * Ensure magic token exists
 	 *
 	 * @param int $submission_id Submission ID.
+	 * @return string The stored token, or '' when the submission is missing or the save failed.
 	 */
 	public function ensure_magic_token( int $submission_id ): string {
 		$submission = $this->repository->findById( $submission_id );
@@ -820,14 +859,14 @@ class SubmissionHandler {
 		// Generate new token.
 		$magic_token = $this->generate_magic_token();
 
-		// Save to database.
-		$this->repository->update(
+		// Save to database; a token the save refused would open nothing (#2187).
+		$saved = $this->repository->update(
 			$submission_id,
 			array(
 				'magic_token' => $magic_token,
 			)
 		);
 
-		return $magic_token;
+		return false === $saved ? '' : $magic_token;
 	}
 }

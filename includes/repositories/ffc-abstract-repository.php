@@ -197,8 +197,8 @@ abstract class AbstractRepository {
 	 */
 	public function findAll( array $conditions = array(), string $order_by = 'id', string $order = 'DESC', ?int $limit = null, int $offset = 0 ): array {
 		$where    = $this->build_where_clause( $conditions );
-		$order_by = $this->sanitize_order_column( $order_by );
 		$order    = strtoupper( $order ) === 'ASC' ? 'ASC' : 'DESC';
+		$order_by = $this->order_clause( $this->sanitize_order_column( $order_by ), $order );
 		if ( $limit ) {
 			$results = $this->wpdb->get_results(
 				/**
@@ -209,12 +209,12 @@ abstract class AbstractRepository {
 				 * values are *inside* the clause. Safety comes from there — each condition is
 				 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
 				 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
-				 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
-				 * `ASC`/`DESC`; the table is bound with `%i`.
+				 * `order_clause()` over a column allowlisted by `sanitize_order_column()`
+				 * and a direction collapsed to `ASC`/`DESC`; the table is bound with `%i`.
 				 *
 				 * @phpstan-ignore argument.type
 				 */
-				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
+				$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} LIMIT %d OFFSET %d", $this->table, $limit, $offset ),
 				ARRAY_A
 			);
 			/**
@@ -234,12 +234,12 @@ abstract class AbstractRepository {
 			 * values are *inside* the clause. Safety comes from there — each condition is
 			 * built as `prepare( '%i = %s', $key, $value )` over a column allowlisted by
 			 * `get_allowed_where_columns()` — not from this call. `{$order_by}` is
-			 * allowlisted by `sanitize_order_column()` and `{$order}` collapses to
-			 * `ASC`/`DESC`; the table is bound with `%i`.
+			 * `order_clause()` over a column allowlisted by `sanitize_order_column()`
+			 * and a direction collapsed to `ASC`/`DESC`; the table is bound with `%i`.
 			 *
 			 * @phpstan-ignore argument.type
 			 */
-			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by} {$order}", $this->table ),
+			$this->wpdb->prepare( "SELECT * FROM %i {$where} ORDER BY {$order_by}", $this->table ),
 			ARRAY_A
 		);
 		/**
@@ -340,6 +340,21 @@ abstract class AbstractRepository {
 	}
 
 	/**
+	 * The ORDER BY clause for an allowlisted column and a direction.
+	 *
+	 * Override to add tie-breakers to a column whose values repeat. Both
+	 * arguments are already safe: the column passed `sanitize_order_column()`
+	 * and the direction is `ASC` or `DESC`.
+	 *
+	 * @param string $column    Allowlisted column.
+	 * @param string $direction `ASC` or `DESC`.
+	 * @return string
+	 */
+	protected function order_clause( string $column, string $direction ): string {
+		return "{$column} {$direction}";
+	}
+
+	/**
 	 * Get allowed ORDER BY columns. Override in child classes to extend.
 	 *
 	 * @return array<int, string>
@@ -423,12 +438,24 @@ abstract class AbstractRepository {
 	/**
 	 * Clear cache.
 	 *
+	 * Without a key, only this repository's group is emptied: `wp_cache_flush()`
+	 * empties the whole object cache, every other plugin's entries and, on a
+	 * multisite with a persistent cache, every site's (#2241). It stays only as
+	 * the fallback for a backend that cannot flush one group.
+	 *
+	 * `wp_cache_supports()` is called without a `function_exists()` guard on
+	 * purpose: WordPress defines it since 6.1, below the plugin's floor, and a
+	 * guard would make the branch a test takes depend on whether an earlier
+	 * test in the process stubbed the function.
+	 *
 	 * @param string|null $key Key.
 	 * @return void
 	 */
 	protected function clear_cache( ?string $key = null ): void {
 		if ( $key ) {
 			wp_cache_delete( $key, $this->cache_group );
+		} elseif ( wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( $this->cache_group );
 		} else {
 			wp_cache_flush();
 		}

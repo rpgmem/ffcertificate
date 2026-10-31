@@ -40,6 +40,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- Every statement in this class runs against one of the plugin's own ffc_* tables, which WordPress exposes no API for. Caching is decided per read at the repository layer, not per statement (#1042).
 /**
  * Service: ingest → validate → promote → commit batched CSV imports.
+ *
+ * @phpstan-import-type Diff from RecruitmentReimportDiff
  */
 final class CsvStagingService {
 
@@ -87,11 +89,23 @@ final class CsvStagingService {
 			);
 		}
 
-		if ( 'preview' === $list_type && 'draft' !== $notice->status && 'preliminary' !== $notice->status ) {
+		if ( 'preview' === $list_type && ! RecruitmentNoticeLocks::allows( RecruitmentNoticeLocks::IMPORT_PREVIEW, (string) $notice->status ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_invalid_state_for_preview_import' ),
 			);
+		}
+
+		// The batched path refuses the same notices as the single request
+		// before staging a single row (#2245).
+		if ( 'definitive' === $list_type ) {
+			$blocked = RecruitmentCsvImporter::definitive_import_block( $notice_id, (string) $notice->status );
+			if ( null !== $blocked ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( $blocked ),
+				);
+			}
 		}
 
 		$parse = CsvParser::parse( $csv_content );
@@ -114,6 +128,18 @@ final class CsvStagingService {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_notice_has_no_adjutancies' ),
+			);
+		}
+
+		// The same row rules as the single request, before anything is
+		// staged (#2245). The batched path used to stage every row and
+		// check only what SQL could group: a non-numeric rank became 0 and
+		// a malformed CPF reached the candidate table.
+		$validation = CsvValidator::validate( $rows, $notice_id, $list_type, $adjutancy_map );
+		if ( array() !== $validation ) {
+			return array(
+				'ok'     => false,
+				'errors' => $validation,
 			);
 		}
 
@@ -228,7 +254,7 @@ final class CsvStagingService {
 	 *
 	 * Called at the top of `ingest_job` so each new import starts from
 	 * a clean tail of forgotten jobs. The DELETE pair is guarded by
-	 * `created_at < NOW() - INTERVAL` so it's bounded and safe to call
+	 * `created_at` older than the TTL so it's bounded and safe to call
 	 * on every import.
 	 *
 	 * @return int Number of staging rows deleted (best-effort count).
@@ -238,16 +264,22 @@ final class CsvStagingService {
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
 
+		// `created_at` is written with current_time( 'mysql' ), the site's
+		// time zone, so the cutoff is computed in that zone too; the
+		// database's NOW() is in the server's, and the two can be hours
+		// apart (#2245).
+		$cutoff = wp_date( 'Y-m-d H:i:s', time() - self::STAGING_JOB_TTL_SECONDS );
+
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
-				self::STAGING_JOB_TTL_SECONDS
+				"DELETE s FROM {$staging_table} s INNER JOIN {$jobs_table} j ON s.job_id = j.job_id WHERE j.created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names from $wpdb->prefix.
+				$cutoff
 			)
 		);
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$jobs_table} WHERE created_at < (NOW() - INTERVAL %d SECOND)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
-				self::STAGING_JOB_TTL_SECONDS
+				"DELETE FROM {$jobs_table} WHERE created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name from $wpdb->prefix.
+				$cutoff
 			)
 		);
 
@@ -282,9 +314,10 @@ final class CsvStagingService {
 	 * Job status transitions:
 	 *   ingested → validated  (no errors)
 	 *   ingested → invalid    (errors collected; staging preserved)
+	 *   ingested → needs_ack  (rows differ from stored candidates, #2245)
 	 *
 	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, errors: list<string>}|array{ok: false, errors: list<string>}
+	 * @return array{ok: true, errors: list<string>, mismatches: list<array{line: int, candidate_id: int, fields: list<string>}>}|array{ok: false, errors: list<string>}
 	 */
 	public static function validate_job( string $job_id ) {
 		global $wpdb;
@@ -300,7 +333,7 @@ final class CsvStagingService {
 				'errors' => array( 'recruitment_import_job_not_found' ),
 			);
 		}
-		if ( ! in_array( $job->status, array( 'ingested', 'invalid' ), true ) ) {
+		if ( ! in_array( $job->status, array( 'ingested', 'invalid', 'needs_ack' ), true ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_invalid_state_for_validate' ),
@@ -416,9 +449,48 @@ final class CsvStagingService {
 			}
 		}
 
+		// Rule 6 — compare the rows with the stored candidates (#2245), the
+		// same check the single-request import runs. A conflict is an error;
+		// a mismatch parks the job in `needs_ack` until the operator accepts
+		// that the stored identity is kept.
+		$mismatches = array();
+		if ( empty( $errors ) ) {
+			/**
+			 * Staged identity columns.
+			 *
+			 * @var list<\stdClass&object{line_no: numeric-string, cpf_normalized: string|null, rf_normalized: string|null, email: string|null, name: string|null}>|null $staged
+			 */
+			$staged        = $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT line_no, cpf_normalized, rf_normalized, email, name FROM %i WHERE job_id = %s ORDER BY row_no',
+					$staging_table,
+					$job_id
+				)
+			);
+			$identity_rows = array();
+			foreach ( is_array( $staged ) ? $staged : array() as $r ) {
+				$identity_rows[] = array(
+					'line'  => (int) $r->line_no,
+					'cpf'   => (string) $r->cpf_normalized,
+					'rf'    => (string) $r->rf_normalized,
+					'email' => (string) $r->email,
+					'name'  => (string) $r->name,
+				);
+			}
+			$identity   = RecruitmentImportIdentityCheck::check( $identity_rows );
+			$errors     = $identity['conflicts'];
+			$mismatches = $identity['mismatches'];
+		}
+
 		// Transition the job. Status determines what /promote and
 		// /commit accept; staging rows stay put either way.
-		$next_status = empty( $errors ) ? 'validated' : 'invalid';
+		if ( ! empty( $errors ) ) {
+			$next_status = 'invalid';
+		} elseif ( ! empty( $mismatches ) ) {
+			$next_status = 'needs_ack';
+		} else {
+			$next_status = 'validated';
+		}
 		$wpdb->update(
 			$jobs_table,
 			array(
@@ -431,8 +503,9 @@ final class CsvStagingService {
 		);
 
 		return array(
-			'ok'     => true,
-			'errors' => $errors,
+			'ok'         => true,
+			'errors'     => $errors,
+			'mismatches' => $mismatches,
 		);
 	}
 
@@ -459,11 +532,15 @@ final class CsvStagingService {
 	 * just gets reused on retry because `upsert_candidate` is
 	 * lookup-then-create).
 	 *
-	 * @param string $job_id Job identifier.
-	 * @param int    $size   Rows to process in this batch (clamped to 10–100).
+	 * A job parked in `needs_ack` is promoted only when the operator
+	 * acknowledged the identity mismatches (#2245).
+	 *
+	 * @param string $job_id               Job identifier.
+	 * @param int    $size                 Rows to process in this batch (clamped to 10–100).
+	 * @param bool   $acknowledge_identity The operator accepted the identity mismatches.
 	 * @return array{ok: true, processed: int, total: int, done: bool}|array{ok: false, errors: list<string>}
 	 */
-	public static function promote_batch( string $job_id, int $size ) {
+	public static function promote_batch( string $job_id, int $size, bool $acknowledge_identity = false ) {
 		global $wpdb;
 		$jobs_table    = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -477,7 +554,13 @@ final class CsvStagingService {
 				'errors' => array( 'recruitment_import_job_not_found' ),
 			);
 		}
-		if ( ! in_array( $job->status, array( 'validated', 'promoting' ), true ) ) {
+		if ( 'needs_ack' === $job->status && ! $acknowledge_identity ) {
+			return array(
+				'ok'     => false,
+				'errors' => array( RecruitmentImportIdentityCheck::MISMATCH_CODE ),
+			);
+		}
+		if ( ! in_array( $job->status, array( 'validated', 'needs_ack', 'promoting' ), true ) ) {
 			return array(
 				'ok'     => false,
 				'errors' => array( 'recruitment_import_job_invalid_state_for_promote' ),
@@ -488,7 +571,7 @@ final class CsvStagingService {
 
 		$batch = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
+				"SELECT id, notice_id, adjutancy_id, name, cpf_normalized, rf_normalized, email, phone, pcd FROM {$staging_table} WHERE job_id = %s AND processed = 0 ORDER BY row_no LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- {$table} is $wpdb->prefix . 'ffc_…' built in this class; every value is bound through a %s/%d placeholder.
 				$job_id,
 				$size
 			)
@@ -508,7 +591,7 @@ final class CsvStagingService {
 
 		// Flip the job to 'promoting' on the first non-empty batch so
 		// subsequent /validate or /commit calls see the correct state.
-		if ( 'validated' === $job->status ) {
+		if ( 'validated' === $job->status || 'needs_ack' === $job->status ) {
 			$wpdb->update(
 				$jobs_table,
 				array(
@@ -547,10 +630,13 @@ final class CsvStagingService {
 				$staging_table,
 				array(
 					'candidate_id' => (int) $candidate_id,
+					// Computed here, where the candidate is known, so the
+					// swap copies it with the row (#2245).
+					'pcd_hash'     => RecruitmentPcdHasher::compute_for_row( (int) $row->notice_id, (int) $candidate_id, (int) $row->adjutancy_id, 1 === (int) $row->pcd ),
 					'processed'    => 1,
 				),
 				array( 'id' => (int) $row->id ),
-				array( '%d', '%d' ),
+				array( '%d', '%s', '%d' ),
 				array( '%d' )
 			);
 			++$processed_now;
@@ -616,10 +702,16 @@ final class CsvStagingService {
 	 *      just leaves an orphaned 'committed' job + its staging,
 	 *      reaped on the next ingest_job TTL sweep.
 	 *
-	 * @param string $job_id Job identifier.
-	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>}
+	 * A swap over a list that already has rows waits for the operator
+	 * (#2245): without `$confirm_reimport` it answers with the comparison
+	 * and changes nothing, and the job stays promoted for the confirmed
+	 * call. The manual preliminary marks are carried onto the new rows.
+	 *
+	 * @param string $job_id           Job identifier.
+	 * @param bool   $confirm_reimport The operator confirmed the comparison.
+	 * @return array{ok: true, inserted: int}|array{ok: false, errors: list<string>, diff?: Diff}
 	 */
-	public static function commit_job( string $job_id ) {
+	public static function commit_job( string $job_id, bool $confirm_reimport = false ) {
 		global $wpdb;
 		$jobs_table           = $wpdb->prefix . 'ffc_recruitment_import_jobs';
 		$staging_table        = $wpdb->prefix . 'ffc_recruitment_import_staging';
@@ -658,6 +750,34 @@ final class CsvStagingService {
 			);
 		}
 
+		// Re-checked at the swap: calls may have been made while the job was
+		// promoting, and a definitive swap must never wipe a called row.
+		if ( 'definitive' === (string) $job->list_type ) {
+			$notice  = RecruitmentNoticeReader::get_by_id( (int) $job->notice_id );
+			$blocked = null === $notice
+				? 'recruitment_notice_not_found'
+				: RecruitmentCsvImporter::definitive_import_block( (int) $job->notice_id, (string) $notice->status );
+			if ( null !== $blocked && 'committed' !== $job->status ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( $blocked ),
+				);
+			}
+		}
+
+		$stored = RecruitmentClassificationRepository::get_for_notice( (int) $job->notice_id, (string) $job->list_type );
+		if ( ! empty( $stored ) && ! $confirm_reimport && 'committed' !== $job->status ) {
+			$diff = RecruitmentReimportDiff::compute( $stored, self::staged_rows( $job_id ) );
+			if ( ! RecruitmentReimportDiff::is_identical( $diff ) ) {
+				return array(
+					'ok'     => false,
+					'errors' => array( RecruitmentReimportDiff::CONFIRM_CODE ),
+					'diff'   => $diff,
+				);
+			}
+		}
+		$marks = 'preview' === (string) $job->list_type ? RecruitmentReimportDiff::marks( $stored ) : array();
+
 		$wpdb->query( 'START TRANSACTION' );
 		try {
 			RecruitmentClassificationRepository::delete_all_for_notice_list( (int) $job->notice_id, (string) $job->list_type );
@@ -665,8 +785,8 @@ final class CsvStagingService {
 			$inserted = $wpdb->query(
 				$wpdb->prepare(
 					'INSERT INTO %i
-						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, status, created_at, updated_at)
-					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, %s, %s, %s
+						(candidate_id, adjutancy_id, notice_id, list_type, `rank`, score, time_points, hab_emebs, pcd_hash, status, created_at, updated_at)
+					 SELECT candidate_id, adjutancy_id, notice_id, %s, rank_value, score, time_points, hab_emebs, pcd_hash, %s, %s, %s
 					 FROM %i
 					 WHERE job_id = %s AND processed = 1
 					 ORDER BY row_no',
@@ -685,6 +805,27 @@ final class CsvStagingService {
 					'ok'     => false,
 					'errors' => array( 'recruitment_import_swap_failed' ),
 				);
+			}
+
+			if ( ! empty( $marks ) && ! RecruitmentReimportDiff::restore_marks( $marks, self::ids_by_key( (int) $job->notice_id, (string) $job->list_type ) ) ) {
+				$wpdb->query( 'ROLLBACK' );
+				return array(
+					'ok'     => false,
+					'errors' => array( 'recruitment_import_swap_failed' ),
+				);
+			}
+
+			// Same rule as the single request: the definitive list and the
+			// promotion commit together or not at all (#2245).
+			if ( 'definitive' === (string) $job->list_type ) {
+				$transition = RecruitmentNoticeStateMachine::transition_to( (int) $job->notice_id, 'definitive' );
+				if ( ! $transition['success'] ) {
+					$wpdb->query( 'ROLLBACK' );
+					return array(
+						'ok'     => false,
+						'errors' => $transition['errors'],
+					);
+				}
 			}
 
 			$wpdb->update(
@@ -708,6 +849,10 @@ final class CsvStagingService {
 		}
 
 		RecruitmentActivityLogger::csv_imported( (int) $job->notice_id, (string) $job->list_type, (int) $inserted );
+		RecruitmentAccountLinker::schedule(
+			(int) $job->notice_id,
+			'definitive' === (string) $job->list_type ? 'definitive' : null
+		);
 
 		// Post-commit cleanup. Outside the transaction so the swap is
 		// already durable; if these fail, the orphan reaper at the top
@@ -719,5 +864,66 @@ final class CsvStagingService {
 			'ok'       => true,
 			'inserted' => (int) $inserted,
 		);
+	}
+
+	/**
+	 * The promoted staging rows of a job, in the shape the comparison reads.
+	 *
+	 * @param string $job_id Job identifier.
+	 * @return list<array{candidate_id: int, adjutancy_id: int, rank: int, score: string}>
+	 */
+	private static function staged_rows( string $job_id ): array {
+		global $wpdb;
+		/**
+		 * Promoted staging rows.
+		 *
+		 * @var list<\stdClass&object{candidate_id: numeric-string|null, adjutancy_id: numeric-string|null, rank_value: numeric-string|null, score: string|null}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT candidate_id, adjutancy_id, rank_value, score FROM %i WHERE job_id = %s AND processed = 1 ORDER BY row_no',
+				$wpdb->prefix . 'ffc_recruitment_import_staging',
+				$job_id
+			)
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'candidate_id' => (int) $row->candidate_id,
+				'adjutancy_id' => (int) $row->adjutancy_id,
+				'rank'         => (int) $row->rank_value,
+				'score'        => (string) $row->score,
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * The classification IDs of a notice's list, by comparison key.
+	 *
+	 * @param int    $notice_id Notice ID.
+	 * @param string $list_type List type.
+	 * @return array<string, int>
+	 */
+	private static function ids_by_key( int $notice_id, string $list_type ): array {
+		global $wpdb;
+		/**
+		 * Rows just inserted by the swap.
+		 *
+		 * @var list<\stdClass&object{id: numeric-string, candidate_id: numeric-string, adjutancy_id: numeric-string}>|null $rows
+		 */
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT id, candidate_id, adjutancy_id FROM %i WHERE notice_id = %d AND list_type = %s',
+				$wpdb->prefix . 'ffc_recruitment_classification',
+				$notice_id,
+				$list_type
+			)
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[ RecruitmentReimportDiff::key( (int) $row->candidate_id, (int) $row->adjutancy_id ) ] = (int) $row->id;
+		}
+		return $out;
 	}
 }

@@ -8,14 +8,21 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Frontend\AppointmentVerificationLookup;
+use FreeFormCertificate\Frontend\ReregistrationVerificationLookup;
 use FreeFormCertificate\Frontend\VerificationHandler;
 use FreeFormCertificate\Submissions\SubmissionHandler;
+use FreeFormCertificate\Tests\Support\Identifiers;
 
 /**
  * Tests for VerificationHandler: certificate search with fallback chain,
  * magic token verification, data merging, and appointment result building.
  *
  * @covers \FreeFormCertificate\Frontend\VerificationHandler
+ * @covers \FreeFormCertificate\Frontend\CertificateVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\AppointmentVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\ReregistrationVerificationLookup
+ * @covers \FreeFormCertificate\Frontend\VerificationResult
  */
 class VerificationHandlerTest extends TestCase {
 
@@ -25,6 +32,15 @@ class VerificationHandlerTest extends TestCase {
 	private $submission_handler;
 	private $renderer;
 	private \ReflectionClass $ref;
+
+	/**
+	 * A CPF in the `xxx.xxx.xxx-xx` mask a visitor types.
+	 *
+	 * @param string $cpf Eleven digits.
+	 */
+	private static function masked( string $cpf ): string {
+		return substr( $cpf, 0, 3 ) . '.' . substr( $cpf, 3, 3 ) . '.' . substr( $cpf, 6, 3 ) . '-' . substr( $cpf, 9 );
+	}
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -473,7 +489,7 @@ class VerificationHandlerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// build_appointment_result() — private method
+	// AppointmentVerificationLookup::result()
 	// ==================================================================
 
 	public function test_build_appointment_result_builds_correct_structure(): void {
@@ -494,7 +510,7 @@ class VerificationHandlerTest extends TestCase {
 			'created_at'        => '2026-03-01 10:00:00',
 		);
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'appointment', $result['type'] );
@@ -535,7 +551,7 @@ class VerificationHandlerTest extends TestCase {
 		$wpdb->shouldReceive( 'get_row' )
 			->andReturn( array( 'id' => '3', 'title' => 'Sala de Consulta' ) );
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertSame( 'Sala de Consulta', $result['data']['calendar_title'] );
 	}
@@ -561,7 +577,7 @@ class VerificationHandlerTest extends TestCase {
 		// Calendar not found
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertSame( '', $result['data']['calendar_title'] );
 	}
@@ -573,7 +589,7 @@ class VerificationHandlerTest extends TestCase {
 			'calendar_id' => '0',
 		);
 
-		$result = $this->invokePrivate( 'build_appointment_result', [ $appointment ] );
+		$result = ( new AppointmentVerificationLookup() )->result( $appointment );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( '', $result['data']['name'] );
@@ -778,6 +794,69 @@ class VerificationHandlerTest extends TestCase {
 		$this->assertFalse( $result['found'] );
 	}
 
+	/**
+	 * #2241 — the trash is the revocation: a trashed certificate is found as
+	 * revoked, with no data and no PDF, on both verification paths.
+	 */
+	public function test_a_trashed_certificate_reads_as_revoked_by_auth_code(): void {
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'id'         => '9',
+				'email'      => 'x@example.com',
+				'auth_code'  => 'ABCD1234EFGH',
+				'data'       => '{"name":"Ana"}',
+				'status'     => 'trash',
+				'revoked_at' => '1767225600',
+			)
+		);
+		$this->submission_handler->shouldNotReceive( 'decrypt_submission_data' );
+
+		$result = $this->invokePrivate( 'search_certificate', [ 'ABCD-1234-EFGH' ] );
+
+		$this->assertFalse( $result['found'] );
+		$this->assertTrue( $result['revoked'] );
+		$this->assertSame( 1767225600, $result['revoked_at'] );
+		$this->assertSame( array(), $result['data'], 'A revoked certificate carries none of its data.' );
+	}
+
+	public function test_a_trashed_certificate_reads_as_revoked_by_magic_token(): void {
+		$this->submission_handler
+			->shouldReceive( 'get_submission_by_token' )
+			->andReturn( array( 'id' => 9, 'status' => 'trash', 'revoked_at' => null, 'email' => 'x@example.com', 'magic_token' => str_repeat( 'ee', 16 ) ) );
+
+		$result = $this->handler->verify_by_magic_token( str_repeat( 'ee', 16 ) );
+
+		$this->assertFalse( $result['found'] );
+		$this->assertTrue( $result['revoked'] );
+		$this->assertSame( 0, $result['revoked_at'], 'A row trashed before the date was recorded has none.' );
+		$this->assertArrayNotHasKey( 'email', $result['data'] );
+	}
+
+	public function test_verify_certificate_says_when_it_was_revoked(): void {
+		global $wpdb;
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( 'd/m/Y', $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'id'         => '9',
+				'auth_code'  => 'ABCD1234EFGH',
+				'status'     => 'trash',
+				'revoked_at' => '1767225600',
+			)
+		);
+		$this->renderer->shouldNotReceive( 'format_verification_response' );
+
+		$result = $this->handler->verify_certificate( 'ABCD-1234-EFGH' );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertSame( 'This certificate was revoked on 01/01/2026.', $result['message'] );
+	}
+
+	public function test_a_revocation_with_no_date_says_so_without_one(): void {
+		$this->assertSame( 'This certificate was revoked.', VerificationHandler::revoked_message( 0 ) );
+	}
+
 	public function test_magic_token_falls_back_to_appointment(): void {
 		$valid_token = str_repeat( 'dd', 16 );
 
@@ -895,7 +974,7 @@ class VerificationHandlerTest extends TestCase {
 	}
 
 	// ==================================================================
-	// search_reregistration_by_code() — private method
+	// ReregistrationVerificationLookup::by_code() / by_token()
 	// ==================================================================
 
 	public function test_search_reregistration_by_code_no_class_returns_not_found(): void {
@@ -904,7 +983,7 @@ class VerificationHandlerTest extends TestCase {
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_code', [ 'REREG1234567' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_code( 'REREG1234567' );
 
 		$this->assertFalse( $result['found'] );
 	}
@@ -918,7 +997,7 @@ class VerificationHandlerTest extends TestCase {
 			'user_id'           => '10',
 			'auth_code'         => 'REREG1234567',
 			'status'            => 'submitted',
-			'data'              => '{"fields":{"display_name":"Maria Silva","cpf":"111.222.333-44"}}',
+			'data'              => '{"fields":{"display_name":"Maria Silva","cpf":"' . self::masked( Identifiers::CPF_A ) . '"}}',
 			'magic_token'       => 'reregtoken123',
 			'submitted_at'      => '2026-02-15 10:00:00',
 		);
@@ -934,13 +1013,13 @@ class VerificationHandlerTest extends TestCase {
 
 		Functions\when( 'get_userdata' )->justReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_code', [ 'REREG1234567' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_code( 'REREG1234567' );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'reregistration', $result['type'] );
 		$this->assertSame( 'Rematrícula 2026', $result['reregistration']['title'] );
 		$this->assertSame( 'Maria Silva', $result['reregistration']['display_name'] );
-		$this->assertSame( '111.222.333-44', $result['reregistration']['cpf'] );
+		$this->assertSame( self::masked( Identifiers::CPF_A ), $result['reregistration']['cpf'] );
 		$this->assertSame( 'submitted', $result['reregistration']['status'] );
 	}
 
@@ -952,7 +1031,7 @@ class VerificationHandlerTest extends TestCase {
 		global $wpdb;
 		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_magic_token', [ 'sometoken123' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_token( 'sometoken123' );
 
 		$this->assertFalse( $result['found'] );
 	}
@@ -966,7 +1045,7 @@ class VerificationHandlerTest extends TestCase {
 			'user_id'           => '20',
 			'auth_code'         => 'RTKN12345678',
 			'status'            => 'approved',
-			'data'              => '{"fields":{"display_name":"João","cpf":"555.666.777-88"}}',
+			'data'              => '{"fields":{"display_name":"João","cpf":"' . self::masked( Identifiers::CPF_B ) . '"}}',
 			'magic_token'       => 'magictoken64hex',
 			'submitted_at'      => '2026-02-10',
 		);
@@ -981,7 +1060,7 @@ class VerificationHandlerTest extends TestCase {
 
 		Functions\when( 'get_userdata' )->justReturn( null );
 
-		$result = $this->invokePrivate( 'search_reregistration_by_magic_token', [ 'magictoken64hex' ] );
+		$result = ( new ReregistrationVerificationLookup() )->by_token( 'magictoken64hex' );
 
 		$this->assertTrue( $result['found'] );
 		$this->assertSame( 'reregistration', $result['type'] );

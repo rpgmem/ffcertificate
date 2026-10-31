@@ -14,9 +14,13 @@ use FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy;
  * Tests for EmailHashRehashMigrationStrategy: rehash legacy unsalted
  * email_hash values using the salted Encryption::hash().
  *
+ * Runs in the shared process with the real Encryption (the bootstrap's key
+ * constants) over a `$wpdb` double. Only global functions are stubbed: the
+ * in-memory `get_option` also answers the `ffc_settings` reads that
+ * Encryption's failure path makes (no settings, so logging is off), and the
+ * strategy imports `WP_Error`, so no alias is needed.
+ *
  * @covers \FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
  */
 class EmailHashRehashMigrationStrategyTest extends TestCase {
 
@@ -30,9 +34,14 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 	/** @var array<string, mixed> */
 	private array $options;
 
+	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
+	private array $wpdb_backup = array( false, null );
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' )->makePartial();
@@ -44,10 +53,6 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturn( array() )->byDefault();
 		$wpdb->shouldReceive( 'update' )->andReturn( 1 )->byDefault();
 		$this->wpdb = $wpdb;
-
-		if ( ! class_exists( 'FreeFormCertificate\Migrations\Strategies\WP_Error' ) ) {
-			class_alias( 'WP_Error', 'FreeFormCertificate\Migrations\Strategies\WP_Error' );
-		}
 
 		// In-memory option store so cursor + completion latch behave naturally.
 		$this->options = array();
@@ -66,16 +71,15 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 		Functions\when( 'get_option' )->alias( $get_opt );
 		Functions\when( 'update_option' )->alias( $set_opt );
 
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\__' )->returnArg();
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\get_option' )->alias( $get_opt );
-		Functions\when( 'FreeFormCertificate\Migrations\Strategies\update_option' )->alias( $set_opt );
-		Functions\when( 'FreeFormCertificate\Core\get_option' )->justReturn( array() );
-		Functions\when( 'FreeFormCertificate\Settings\get_option' )->justReturn( array() );
-
 		$this->strategy = new EmailHashRehashMigrationStrategy();
 	}
 
 	protected function tearDown(): void {
+		if ( $this->wpdb_backup[0] ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup[1];
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
 	}

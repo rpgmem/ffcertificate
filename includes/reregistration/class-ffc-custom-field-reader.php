@@ -239,6 +239,48 @@ class CustomFieldReader {
 	}
 
 	/**
+	 * The fields a form over several audiences shows, one per `field_key`
+	 * (#2225).
+	 *
+	 * Every audience carries its own copy of the standard fields, so a form
+	 * reaching a child and its parent -- or two audiences -- met the same key
+	 * once per copy, each with its own id, and posted it twice. The most
+	 * specific definition wins: a child's over its parent's, since that is
+	 * where an operator customised it. Between audiences of equal depth the
+	 * first one listed wins. A field keeps the place of its first
+	 * occurrence, so the order the parent set stays.
+	 *
+	 * @param array<int> $audience_ids Audience IDs, in display order.
+	 * @param bool       $active_only  Only active fields.
+	 * @return list<CustomFieldRow>
+	 */
+	public static function get_for_audiences( array $audience_ids, bool $active_only = true ): array {
+		$fields = array();
+		$depths = array();
+
+		foreach ( $audience_ids as $aud_id ) {
+			$chain = array();
+			foreach ( self::get_by_audience_with_parents( (int) $aud_id, $active_only ) as $field ) {
+				$source = (int) ( $field->source_audience_id ?? 0 );
+				if ( ! isset( $chain[ $source ] ) ) {
+					$chain[ $source ] = count( $chain );
+				}
+				$depth = $chain[ $source ];
+				$key   = (string) $field->field_key;
+				if ( ! isset( $fields[ $key ] ) ) {
+					$fields[ $key ] = $field;
+					$depths[ $key ] = $depth;
+				} elseif ( $depth > $depths[ $key ] ) {
+					$fields[ $key ] = $field;
+					$depths[ $key ] = $depth;
+				}
+			}
+		}
+
+		return array_values( $fields );
+	}
+
+	/**
 	 * Get all fields for a user based on their audience memberships.
 	 *
 	 * @param int  $user_id    User ID.
@@ -325,8 +367,13 @@ class CustomFieldReader {
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only consider active fields.
 	 * @return array<string> Ordered group keys.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_groups_for_audience( int $audience_id, bool $active_only = true ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$grouped = self::get_by_audience_grouped( $audience_id, $active_only );
 		return array_keys( $grouped );
 	}
@@ -334,14 +381,16 @@ class CustomFieldReader {
 	/**
 	 * Get fields that map to a user profile key (field_profile_key IS NOT NULL).
 	 *
-	 * Used by the data processor to sync reregistration data back to the
-	 * WordPress user profile upon approval.
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return list<CustomFieldRow>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_profile_fields( int $audience_id, bool $active_only = true ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$fields = self::get_by_audience( $audience_id, $active_only );
 		return array_values(
 			array_filter(
@@ -378,13 +427,16 @@ class CustomFieldReader {
 	/**
 	 * Get the set of sensitive field_keys for an audience.
 	 *
-	 * Convenient lookup form used in hot paths (validation, encryption).
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return array<string> field_keys of sensitive fields.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_sensitive_keys_for_audience( int $audience_id, bool $active_only = true ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$fields = self::get_sensitive_fields( $audience_id, $active_only );
 		return array_map(
 			static function ( $field ) {
@@ -397,13 +449,16 @@ class CustomFieldReader {
 	/**
 	 * Get fields for an audience indexed by field_key.
 	 *
-	 * Used by the data processor and renderer to perform O(1) field lookups.
-	 *
 	 * @param int  $audience_id Audience ID.
 	 * @param bool $active_only Only active fields.
 	 * @return array<string, object>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_by_audience_keyed( int $audience_id, bool $active_only = true ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$fields = self::get_by_audience( $audience_id, $active_only );
 		$keyed  = array();
 		foreach ( $fields as $field ) {
@@ -469,8 +524,13 @@ class CustomFieldReader {
 	 * @param int $user_id  User ID.
 	 * @param int $field_id Field ID.
 	 * @return mixed|null Field value or null if not set.
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function get_user_field_value( int $user_id, int $field_id ) {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		$data = self::get_user_data( $user_id );
 		$key  = 'field_' . $field_id;
 		return $data[ $key ] ?? null;
@@ -479,13 +539,14 @@ class CustomFieldReader {
 	/**
 	 * Validate a field value against its definition.
 	 *
-	 * @param object $field Field definition object.
-	 * @param mixed  $value Value to validate.
+	 * @param object               $field   Field definition object.
+	 * @param mixed                $value   Value to validate.
+	 * @param array<string, mixed> $context The form's other values by field key.
 	 * @phpstan-param CustomFieldRow $field
 	 * @return true|\WP_Error True if valid, WP_Error with message if invalid.
 	 */
-	public static function validate_field_value( object $field, $value ) {
-		return CustomFieldValidator::validate( $field, $value );
+	public static function validate_field_value( object $field, $value, array $context = array() ) {
+		return CustomFieldValidator::validate( $field, $value, $context );
 	}
 
 	/**
@@ -693,5 +754,172 @@ class CustomFieldReader {
 			}
 		}
 		return $ids;
+	}
+
+	/**
+	 * Ids of the standard fields with a given key that carry no validation
+	 * rules, for a one-shot step that gives them the definition's.
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return list<int>
+	 */
+	public static function standard_field_ids_without_rules( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT id FROM %i WHERE field_source = 'standard' AND field_key = %s AND ( validation_rules IS NULL OR validation_rules = '' OR validation_rules = 'null' )",
+				self::get_table_name(),
+				$field_key
+			)
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$ids = array();
+		foreach ( $rows as $raw ) {
+			$id = is_numeric( $raw ) ? (int) $raw : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
+
+	/**
+	 * Where a standard field sits in each audience that carries it:
+	 * `audience_id => sort_order`, for a one-shot step that places a new
+	 * field beside an existing one.
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return array<int, int>
+	 */
+	public static function standard_field_positions( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT audience_id, sort_order FROM %i WHERE field_source = 'standard' AND field_key = %s",
+				self::get_table_name(),
+				$field_key
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$audience_id = is_array( $row ) && is_numeric( $row['audience_id'] ?? null ) ? (int) $row['audience_id'] : 0;
+			if ( $audience_id > 0 ) {
+				$out[ $audience_id ] = is_numeric( $row['sort_order'] ?? null ) ? (int) $row['sort_order'] : 0;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * The stored options of every standard field with a given key, by id --
+	 * what a one-shot options update needs to compare against the shipped
+	 * list before touching a row (#2225).
+	 *
+	 * @param string $field_key Standard field key.
+	 * @return array<int, string> Field id => raw `field_options` JSON ('' when NULL).
+	 */
+	public static function standard_field_options( string $field_key ): array {
+		if ( '' === $field_key ) {
+			return array();
+		}
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id, field_options FROM %i WHERE field_source = 'standard' AND field_key = %s",
+				self::get_table_name(),
+				$field_key
+			),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $rows as $row ) {
+			$id = is_array( $row ) && is_numeric( $row['id'] ?? null ) ? (int) $row['id'] : 0;
+			if ( $id > 0 ) {
+				$out[ $id ] = is_string( $row['field_options'] ?? null ) ? $row['field_options'] : '';
+			}
+		}
+		return $out;
+	}
+	/**
+	 * Whether anybody answered this field yet (#2242).
+	 *
+	 * Once they have, the field's key, type, sensitivity and profile binding
+	 * are locked and it cannot be deleted: answers are stored by key, read by
+	 * type, encrypted by sensitivity and copied by binding, so changing any of
+	 * them silently loses what was answered. Two stores hold answers:
+	 *
+	 *  - a reregistration submission's `data`, keyed by `field_key`
+	 *    (`{"fields":{"<key>":…}}`);
+	 *  - the user's profile meta, keyed by `field_<id>` in a serialised array.
+	 *
+	 * A yes is memoised for the request, keyed by id and key; a no is not,
+	 * because the first answer can arrive at any moment and a stale no would
+	 * leave the field unlocked.
+	 *
+	 * @param object $field Field row.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return bool
+	 */
+	public static function has_answers( object $field ): bool {
+		static $memo = array();
+
+		$id  = (int) $field->id;
+		$key = (string) $field->field_key;
+		$tag = $id . '|' . $key;
+		if ( isset( $memo[ $tag ] ) ) {
+			return $memo[ $tag ];
+		}
+
+		$wpdb     = self::db();
+		$answered = false;
+		if ( '' !== $key ) {
+			$answered = null !== $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT 1 FROM %i WHERE data LIKE %s LIMIT 1',
+					ReregistrationSubmissionReader::get_table_name(),
+					'%' . $wpdb->esc_like( '"' . $key . '":' ) . '%'
+				)
+			);
+		}
+
+		if ( ! $answered && $id > 0 ) {
+			$users    = get_users(
+				array(
+					'meta_key'     => self::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run only when the editor renders a field or a locked property changes; one row is enough.
+					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
+					'meta_compare' => 'LIKE',
+					'number'       => 1,
+					'fields'       => 'ID',
+					'count_total'  => false,
+				)
+			);
+			$answered = ! empty( $users );
+		}
+
+		if ( $answered ) {
+			$memo[ $tag ] = true;
+		}
+		return $answered;
 	}
 }

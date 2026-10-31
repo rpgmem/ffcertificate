@@ -14,27 +14,42 @@ use FreeFormCertificate\Recruitment\RecruitmentAdminPage;
  * Dispatch-level tests for {@see RecruitmentAdminPage} — the `render_page()`
  * router, `register_menu()` wiring and the four 3-state cap gate helpers that
  * the helper-focused sibling test (`RecruitmentAdminPageTest`) declared out of
- * scope. Collaborators (Capabilities, the edit pages, the action dispatcher,
- * the tab renderer) are alias-mocked; capability outcomes are driven per-test
- * by a granted-caps allowlist so each 3-state branch is reachable.
+ * scope.
+ *
+ * The collaborators are the real classes: `Capabilities`, the four edit pages,
+ * the action dispatcher and the tab renderer. Capability outcomes are driven
+ * per test by a granted-caps allowlist behind `current_user_can()`, which
+ * never grants `manage_options`, so each 3-state branch is reachable. The
+ * tab renderer's list tables read a `$wpdb` double that answers every
+ * recruitment table with no rows and refuses anything else, and the router's
+ * branch is observed in the markup the real renderer prints.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentAdminPage
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
  */
 class RecruitmentAdminPageDispatchTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
-	/** @var array<int,string> Capabilities the mocked Capabilities gate grants. */
+	/** @var array<int,string> Capabilities `current_user_can()` grants. */
 	private $granted = array();
 
-	/** @var array<string,int> Render calls recorded from the alias-mocked renderer. */
-	private $renderCalls = array();
+	/** @var list<string> URLs `wp_safe_redirect()` was asked to go to. */
+	private array $redirects = array();
+
+	/** @var mixed The `$wpdb` global an earlier test left, restored afterwards. */
+	private $wpdb_backup;
+
+	/** @var bool Whether `$wpdb` was set before this test. */
+	private bool $had_wpdb = false;
 
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+
+		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
+		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb']   = $this->database();
+
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -48,69 +63,111 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPage' );
 
+		// WP escaping / i18n stubs, as the real renderer's own test stubs them.
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $s ) { echo $s; } );
+		Functions\when( 'esc_attr_e' )->alias( static function ( $s ) { echo $s; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_editor' )->alias(
+			static function ( $content, $id ) {
+				echo '<textarea id="' . $id . '">' . $content . '</textarea>';
+			}
+		);
+		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias(
 			static fn( $key ) => strtolower( (string) preg_replace( '/[^a-z0-9_\-]/i', '', (string) $key ) )
 		);
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias(
+			static fn( $args, $url = '' ) => $url . '?' . http_build_query( (array) $args )
+		);
+		Functions\when( 'wp_nonce_url' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'settings_fields' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		// Every option is empty: the recruitment settings fall back to their
+		// defaults and the Email Model's disabled notice stays silent.
+		Functions\when( 'get_option' )->justReturn( array() );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		// LabelSorter takes the WordPress branch only when get_locale() exists, and
+		// whether it does depends on what ran earlier in the process: choose it here.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+
+		$this->granted = array();
+		Functions\when( 'current_user_can' )->alias(
+			fn( $cap ): bool => in_array( $cap, $this->granted, true )
+		);
+
 		// wp_die halts in production; make it observable as an exception.
 		Functions\when( 'wp_die' )->alias(
 			static function ( $msg = '' ) {
 				throw new \RuntimeException( 'wp_die:' . (string) $msg );
 			}
 		);
-
-		$caps = Mockery::mock( 'alias:FreeFormCertificate\Core\Capabilities' );
-		$caps->shouldReceive( 'current_user_can_admin_or' )->andReturnUsing(
-			fn( $cap ) => in_array( $cap, $this->granted, true )
+		// wp_safe_redirect is followed by `exit` in the dispatcher; throwing
+		// stands in for it and records where the request was sent.
+		$this->redirects = array();
+		Functions\when( 'wp_safe_redirect' )->alias(
+			function ( $url ) {
+				$this->redirects[] = (string) $url;
+				throw new \RuntimeException( 'redirected' );
+			}
 		);
-
-		// The edit pages + action dispatcher are fire-and-observe voids.
-		foreach (
-			array(
-				'RecruitmentNoticeEditPage',
-				'RecruitmentCandidateEditPage',
-				'RecruitmentAdjutancyEditPage',
-				'RecruitmentReasonEditPage',
-			) as $cls
-		) {
-			$m = Mockery::mock( 'alias:FreeFormCertificate\\Recruitment\\' . $cls );
-			$m->shouldReceive( 'render' )->andReturnNull()->byDefault();
-		}
-
-		$actions = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminActions' );
-		$actions->shouldReceive( 'dispatch' )->andReturnNull()->byDefault();
-
-		// Tab renderer: record which tab partial ran so the router branch is
-		// observable without depending on real markup.
-		$renderer = Mockery::mock( 'alias:FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer' );
-		foreach (
-			array(
-				'render_flash_notice',
-				'render_tabs',
-				'render_notices_tab',
-				'render_adjutancies_tab',
-				'render_reasons_tab',
-				'render_candidates_tab',
-				'render_settings_tab',
-			) as $method
-		) {
-			$renderer->shouldReceive( $method )->andReturnUsing(
-				function () use ( $method ) {
-					$this->renderCalls[ $method ] = ( $this->renderCalls[ $method ] ?? 0 ) + 1;
-					return null;
-				}
-			)->byDefault();
-		}
 	}
 
 	protected function tearDown(): void {
 		$_GET = array();
+		if ( $this->had_wpdb ) {
+			$GLOBALS['wpdb'] = $this->wpdb_backup;
+		} else {
+			unset( $GLOBALS['wpdb'] );
+		}
 		Monkey\tearDown();
 		parent::tearDown();
+	}
+
+	/**
+	 * A database whose recruitment tables are empty. Any other read, and any
+	 * write at all, is not declared, so it fails the test.
+	 *
+	 * @return Mockery\MockInterface
+	 */
+	private function database() {
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static fn( $query, ...$args ) => $query . ' -- ' . (string) json_encode( $args )
+		);
+		$recruitment_only = function ( $query ) {
+			if ( false === strpos( (string) $query, 'wp_ffc_recruitment_' ) ) {
+				$this->fail( 'Unexpected query: ' . (string) $query );
+			}
+		};
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $query ) use ( $recruitment_only ) {
+				$recruitment_only( $query );
+				return array();
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $query ) use ( $recruitment_only ) {
+				$recruitment_only( $query );
+				return 0;
+			}
+		);
+
+		return $wpdb;
 	}
 
 	/** Capture render_page() output. */
@@ -124,6 +181,23 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		return $out;
 	}
 
+	/**
+	 * The heading the real renderer opens a tab's screen with.
+	 *
+	 * @param string $icon  Registry icon class of the tab.
+	 * @param string $label Tab label.
+	 * @return string
+	 */
+	private function tab_heading( string $icon, string $label ): string {
+		return '<div class="card"><h2 class="' . $icon . '">' . $label . '</h2>';
+	}
+
+	/** The notices tab's screen opened, in the panel the router named. */
+	private function assertNoticesTab( string $out ): void {
+		$this->assertStringContainsString( 'id="ffc-recruitment-tabpanel-notices"', $out );
+		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-megaphone', 'Notices' ), $out );
+	}
+
 	// ------------------------------------------------------------------
 	// render_page() — access gate
 	// ------------------------------------------------------------------
@@ -134,9 +208,9 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		$this->granted = array( 'ffc_manage_recruitment' );
 		$_GET          = array();
 
-		$this->render();
+		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
+		$this->assertNoticesTab( $out );
 		$this->assertTrue( RecruitmentAdminPage::can_view() );
 	}
 
@@ -158,11 +232,21 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 	// render_page() — edit-screen hijack
 	// ------------------------------------------------------------------
 
-	public function test_render_page_edit_notice_requires_manage_cap(): void {
+	public function test_render_page_edit_notice_opens_to_a_viewer(): void {
 		$this->granted = array( 'ffc_view_recruitment' ); // view only, not manage
 		$_GET          = array( 'action' => 'edit-notice' );
 
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'Notice not found.', $out, 'The notice screen opens to view holders (#2245).' );
+	}
+
+	public function test_render_page_edit_candidate_still_requires_manage_cap(): void {
+		$this->granted = array( 'ffc_view_recruitment', 'ffc_call_recruitment' );
+		$_GET          = array( 'action' => 'edit-candidate' );
+
 		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'wp_die:' );
 		$this->render();
 	}
 
@@ -176,16 +260,30 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		$out = $this->render();
 
 		$this->assertStringContainsString( 'ffc-recruitment-admin', $out );
-		$this->assertArrayHasKey( 'render_flash_notice', $this->renderCalls );
+		// The flash notice the real renderer draws for `saved`.
+		$this->assertStringContainsString( 'notice-success', $out );
+		$this->assertStringContainsString( 'Saved.', $out );
+		// The real notice edit page, reached with no id.
+		$this->assertStringContainsString( 'Notice not found.', $out );
+		$this->assertStringNotContainsString( 'ffc-recruitment-tabpanel-', $out, 'An edit screen replaces the tab strip.' );
 	}
 
 	public function test_render_page_edit_candidate_and_adjutancy_and_reason_screens(): void {
-		$this->granted = array( 'ffc_view_recruitment', 'ffc_manage_recruitment' );
+		// The reason edit page gates on its own manage cap (GAP I), so the
+		// user holds it too; the other two gate on `ffc_manage_recruitment`.
+		$this->granted = array( 'ffc_view_recruitment', 'ffc_manage_recruitment', 'ffc_manage_recruitment_reasons' );
 
-		foreach ( array( 'edit-candidate', 'edit-adjutancy', 'edit-reason' ) as $action ) {
+		foreach (
+			array(
+				'edit-candidate' => 'Candidate not found.',
+				'edit-adjutancy' => 'Adjutancy not found.',
+				'edit-reason'    => 'Reason not found.',
+			) as $action => $screen
+		) {
 			$_GET = array( 'action' => $action );
 			$out  = $this->render();
 			$this->assertStringContainsString( 'wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin', $out );
+			$this->assertStringContainsString( $screen, $out, $action . ' routes to its own edit page' );
 		}
 	}
 
@@ -194,34 +292,54 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_render_page_dispatches_non_edit_action_then_renders_tab(): void {
+		// A view-only user's crafted delete link reaches the dispatcher, which
+		// refuses it without the delete cap: no redirect, and the tab renders.
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array( 'action' => 'delete-notice' );
 
 		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
+		$this->assertSame( array(), $this->redirects );
+		$this->assertNoticesTab( $out );
 		$this->assertStringContainsString( 'ffc-recruitment-admin', $out );
+	}
+
+	public function test_render_page_hands_a_non_edit_action_to_the_dispatcher(): void {
+		// With the delete cap the dispatcher acts on the action: it sends the
+		// request back to the action's own tab before any tab renders.
+		$this->granted = array( 'ffc_view_recruitment', 'ffc_delete_recruitment' );
+		$_GET          = array( 'action' => 'delete-adjutancy' );
+
+		try {
+			$this->render();
+			$this->fail( 'The dispatcher should have redirected.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+
+		$this->assertSame(
+			array( 'https://example.com/wp-admin/admin.php?page=ffc-recruitment&tab=adjutancies' ),
+			$this->redirects
+		);
 	}
 
 	public function test_render_page_defaults_to_notices_tab(): void {
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array();
 
-		$this->render();
-
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
+		$this->assertNoticesTab( $this->render() );
 	}
 
 	public function test_render_page_renders_adjutancies_and_candidates_tabs(): void {
 		$this->granted = array( 'ffc_view_recruitment' );
 
 		$_GET = array( 'tab' => 'adjutancies' );
-		$this->render();
-		$this->assertArrayHasKey( 'render_adjutancies_tab', $this->renderCalls );
+		$out  = $this->render();
+		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-building', 'Adjutancies' ), $out );
 
 		$_GET = array( 'tab' => 'candidates' );
-		$this->render();
-		$this->assertArrayHasKey( 'render_candidates_tab', $this->renderCalls );
+		$out  = $this->render();
+		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-id', 'Candidates' ), $out );
 	}
 
 	public function test_render_page_settings_tab_needs_settings_view_cap(): void {
@@ -230,47 +348,46 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array( 'tab' => 'settings' );
 
-		$this->render();
+		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
-		$this->assertArrayNotHasKey( 'render_settings_tab', $this->renderCalls );
+		$this->assertNoticesTab( $out );
+		$this->assertStringNotContainsString( $this->tab_heading( 'ffc-icon-settings', 'Settings' ), $out );
 	}
 
 	public function test_render_page_settings_tab_renders_with_settings_view_cap(): void {
 		$this->granted = array( 'ffc_view_recruitment', 'ffc_view_recruitment_settings' );
 		$_GET          = array( 'tab' => 'settings' );
 
-		$this->render();
+		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_settings_tab', $this->renderCalls );
+		$this->assertStringContainsString( 'id="ffc-recruitment-tabpanel-settings"', $out );
+		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-settings', 'Settings' ), $out );
 	}
 
 	public function test_render_page_reasons_tab_needs_reasons_cap(): void {
 		$this->granted = array( 'ffc_view_recruitment' ); // no reasons cap
 		$_GET          = array( 'tab' => 'reasons' );
 
-		$this->render();
+		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
-		$this->assertArrayNotHasKey( 'render_reasons_tab', $this->renderCalls );
+		$this->assertNoticesTab( $out );
+		$this->assertStringNotContainsString( $this->tab_heading( 'ffc-icon-clipboard', 'Reasons' ), $out );
 	}
 
 	public function test_render_page_reasons_tab_renders_with_reasons_view_cap(): void {
 		$this->granted = array( 'ffc_view_recruitment', 'ffc_view_recruitment_reasons' );
 		$_GET          = array( 'tab' => 'reasons' );
 
-		$this->render();
+		$out = $this->render();
 
-		$this->assertArrayHasKey( 'render_reasons_tab', $this->renderCalls );
+		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-clipboard', 'Reasons' ), $out );
 	}
 
 	public function test_render_page_unknown_tab_falls_back_to_notices(): void {
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array( 'tab' => 'bogus' );
 
-		$this->render();
-
-		$this->assertArrayHasKey( 'render_notices_tab', $this->renderCalls );
+		$this->assertNoticesTab( $this->render() );
 	}
 
 	// ------------------------------------------------------------------

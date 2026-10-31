@@ -115,7 +115,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_orphan_user_links( int $limit = 50 ): array {
-		return $this->reader->find_orphan_user_links( $limit );
+		return ( new SubmissionIdentityAudit() )->find_orphan_user_links( $limit );
 	}
 
 	/**
@@ -126,7 +126,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_users_with_multiple_identities( int $limit = 50 ): array {
-		return $this->reader->find_users_with_multiple_identities( $limit );
+		return ( new SubmissionIdentityAudit() )->find_users_with_multiple_identities( $limit );
 	}
 
 	/**
@@ -136,7 +136,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_unlinked_with_matching_identity( int $limit = 50 ): array {
-		return $this->reader->find_unlinked_with_matching_identity( $limit );
+		return ( new SubmissionIdentityAudit() )->find_unlinked_with_matching_identity( $limit );
 	}
 
 	/**
@@ -146,7 +146,7 @@ class SubmissionRepository extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function find_shared_identities( int $limit = 50 ): array {
-		return $this->reader->find_shared_identities( $limit );
+		return ( new SubmissionIdentityAudit() )->find_shared_identities( $limit );
 	}
 
 	/**
@@ -175,8 +175,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param string $email Email address.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByEmail( string $email, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByEmail( $email, $limit );
 	}
 
@@ -186,8 +191,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param string $cpf Cpf.
 	 * @param int    $limit Limit.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByCpfRf( string $cpf, int $limit = 10 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByCpfRf( $cpf, $limit );
 	}
 
@@ -198,8 +208,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param int $limit Limit.
 	 * @param int $offset Offset.
 	 * @return array<int, array<string, mixed>>
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function findByFormId( int $form_id, int $limit = 100, int $offset = 0 ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->findByFormId( $form_id, $limit, $offset );
 	}
 
@@ -209,8 +224,13 @@ class SubmissionRepository extends AbstractRepository {
 	 * @param int|array<int, int>|null $form_ids Single form ID, array of IDs, or null for all forms.
 	 * @param string|null              $status Status filter (publish, trash, null = all).
 	 * @return array<int, array<string, mixed>> Array of submissions
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2241).
+	 * @removal    6.45.0
 	 */
 	public function getForExport( $form_ids = null, ?string $status = 'publish' ): array {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		return $this->reader->getForExport( $form_ids, $status );
 	}
 
@@ -240,6 +260,16 @@ class SubmissionRepository extends AbstractRepository {
 	 */
 	public function getExportKeysBatch( ?array $form_ids, ?string $status, int $cursor_id, int $limit ): array {
 		return $this->reader->getExportKeysBatch( $form_ids, $status, $cursor_id, $limit );
+	}
+
+	/**
+	 * How many submissions a form holds outside the trash (#2241).
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int
+	 */
+	public function countLiveByForm( int $form_id ): int {
+		return $this->reader->countLiveByForm( $form_id );
 	}
 
 	/**
@@ -325,6 +355,20 @@ class SubmissionRepository extends AbstractRepository {
 	 */
 	public function countByFormAndRfHash( int $form_id, string $rf_hash ): int {
 		return $this->reader->countByFormAndRfHash( $form_id, $rf_hash );
+	}
+
+	/**
+	 * The latest submission of a form for a CPF/RF or ticket.
+	 *
+	 * @since 6.43.0
+	 * @param int       $form_id   Form ID.
+	 * @param string    $cpf_rf    CPF/RF as typed.
+	 * @param string    $ticket    Normalised ticket code.
+	 * @param bool|null $encrypted Whether the install encrypts; read from Encryption when null.
+	 * @return object|null
+	 */
+	public function findForReprint( int $form_id, string $cpf_rf, string $ticket = '', ?bool $encrypted = null ): ?object {
+		return $this->reader->findForReprint( $form_id, $cpf_rf, $ticket, $encrypted );
 	}
 
 	/**

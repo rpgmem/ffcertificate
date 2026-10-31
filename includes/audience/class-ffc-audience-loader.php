@@ -220,6 +220,9 @@ class AudienceLoader {
 			array( 'ffc-common' ),
 			FFC_VERSION
 		);
+		// The admin lists draw the closed-date pills too, so the colours an
+		// administrator picked reach them as they reach the calendars (#2210).
+		\FreeFormCertificate\Scheduling\CalendarAppearance::enqueue_colors( 'ffc-audience-admin' );
 
 		// Admin JS.
 		wp_enqueue_script(
@@ -241,6 +244,11 @@ class AudienceLoader {
 		// styles live in ffc-admin.css, which every `?page=ffc-*` screen loads.
 		if ( 'ffc-scheduling-calendars' === $page ) {
 			\FreeFormCertificate\Admin\AdminUI::enqueue_shortcode_copy();
+		}
+		// The holiday colours (#2202) use the picker the Email Model uses.
+		if ( 'ffc-scheduling-settings' === $page ) {
+			wp_enqueue_style( 'wp-color-picker' );
+			wp_enqueue_script( 'wp-color-picker' );
 		}
 		if ( 'ffc-scheduling-audiences' === $page ) {
 			wp_enqueue_script( 'jquery-ui-sortable' );
@@ -385,6 +393,8 @@ class AudienceLoader {
 			'audiences'            => __( 'Audiences', 'ffcertificate' ),
 			'users'                => __( 'Users', 'ffcertificate' ),
 			'cancelReasonLabel'    => __( 'Cancel Reason', 'ffcertificate' ),
+			/* translators: %d: number of bookings selected for cancellation. */
+			'bulkCancelSentence'   => __( '%d bookings will be cancelled and their participants e-mailed.', 'ffcertificate' ),
 			'close'                => __( 'Close', 'ffcertificate' ),
 			'allDay'               => __( 'All Day', 'ffcertificate' ),
 			'audience'             => __( 'Audience', 'ffcertificate' ),

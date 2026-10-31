@@ -5,7 +5,6 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
-use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\ExpiredTicketsCleanup;
@@ -13,7 +12,6 @@ use FreeFormCertificate\Admin\ExpiredTicketsCleanup;
 /**
  * Tests for the ExpiredTicketsCleanup daily cron introduced in 6.5.6.
  *
- * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  * @covers \FreeFormCertificate\Admin\ExpiredTicketsCleanup
  */
@@ -24,15 +22,15 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	/** @var array<int, array<string, mixed>> */
 	private array $meta_store = array();
 
-	/** @var array<int, bool> form_id => has_expired */
-	private array $expired_map = array();
-
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 0 ) );
+		Functions\when( 'wp_timezone' )->alias( static function () {
+			return new \DateTimeZone( 'UTC' );
+		} );
 
 		$this->meta_store = array();
 		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) {
@@ -49,13 +47,15 @@ class ExpiredTicketsCleanupTest extends TestCase {
 		parent::tearDown();
 	}
 
-	private function stub_geofence(): void {
-		$expired = &$this->expired_map;
-		Mockery::mock( 'alias:FreeFormCertificate\Security\Geofence' )
-			->shouldReceive( 'has_form_expired' )
-			->andReturnUsing( function ( $id ) use ( &$expired ) {
-				return $expired[ $id ] ?? false;
-			} );
+	/**
+	 * Store the geofence end date that makes the real Geofence::has_form_expired()
+	 * answer $expired for this form: a date long past, or one far in the future.
+	 */
+	private function set_expired( int $form_id, bool $expired ): void {
+		$this->meta_store[ $form_id ]['_ffc_geofence_config'] = array(
+			'date_end' => $expired ? '2000-01-01' : '2999-12-31',
+			'time_end' => '23:59:59',
+		);
 	}
 
 	private function stub_get_posts( array $ids ): void {
@@ -125,38 +125,34 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// ==================================================================
 
 	public function test_skip_when_config_missing(): void {
-		$this->stub_geofence();
 		// No meta at all → get_post_meta returns '' → not array.
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
 	public function test_skip_when_ticket_gate_off(): void {
-		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '' ),
 			'generated_codes_list' => "A\nB",
 		);
-		$this->expired_map[1] = true;
+		$this->set_expired( 1, true );
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
 	public function test_skip_when_form_not_expired(): void {
-		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "A\nB",
 		);
-		$this->expired_map[1] = false;
+		$this->set_expired( 1, false );
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
 	public function test_skip_when_codes_list_empty(): void {
-		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "  \n  ",
 		);
-		$this->expired_map[1] = true;
+		$this->set_expired( 1, true );
 		$this->assertFalse( ExpiredTicketsCleanup::purge_form_if_eligible( 1 ) );
 	}
 
@@ -165,12 +161,11 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// ==================================================================
 
 	public function test_purge_wipes_codes_and_returns_true(): void {
-		$this->stub_geofence();
 		$this->meta_store[1]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "A1\nB2\nC3",
 		);
-		$this->expired_map[1] = true;
+		$this->set_expired( 1, true );
 
 		$r = ExpiredTicketsCleanup::purge_form_if_eligible( 1 );
 
@@ -185,7 +180,6 @@ class ExpiredTicketsCleanupTest extends TestCase {
 	// ==================================================================
 
 	public function test_run_counts_purged_forms(): void {
-		$this->stub_geofence();
 		$this->stub_get_posts( array( 1, 2, 3 ) );
 
 		// Form 1 — eligible.
@@ -193,27 +187,26 @@ class ExpiredTicketsCleanupTest extends TestCase {
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "X",
 		);
-		$this->expired_map[1] = true;
+		$this->set_expired( 1, true );
 
 		// Form 2 — not expired.
 		$this->meta_store[2]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "X",
 		);
-		$this->expired_map[2] = false;
+		$this->set_expired( 2, false );
 
 		// Form 3 — eligible.
 		$this->meta_store[3]['_ffc_form_config'] = array(
 			'restrictions'         => array( 'ticket' => '1' ),
 			'generated_codes_list' => "Y\nZ",
 		);
-		$this->expired_map[3] = true;
+		$this->set_expired( 3, true );
 
 		$this->assertSame( 2, ExpiredTicketsCleanup::run() );
 	}
 
 	public function test_run_returns_zero_when_no_forms(): void {
-		$this->stub_geofence();
 		$this->stub_get_posts( array() );
 		$this->assertSame( 0, ExpiredTicketsCleanup::run() );
 	}

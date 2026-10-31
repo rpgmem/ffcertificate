@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Tests\Unit;
 
+use FreeFormCertificate\Tests\Support\FormSubmissionCountWpdb;
 use Brain\Monkey;
 use Brain\Monkey\Functions;
 use Mockery;
@@ -21,6 +22,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
 		// The layout box normalises the form's background colour on render; null falls back to white.
 		Functions\when( 'sanitize_hex_color' )->justReturn( null );
@@ -99,6 +101,7 @@ class FormEditorMetaboxRendererTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		FormSubmissionCountWpdb::restore();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

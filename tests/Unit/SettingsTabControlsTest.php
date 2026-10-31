@@ -62,15 +62,6 @@ class SettingsTabControlsTest extends TestCase {
 		$this->assertStringNotContainsString( 'name="ffc_settings[captcha_altcha_hide_', $src, 'The stored keys are no longer posted directly.' );
 	}
 
-	public function test_the_cache_expiration_steps_still_autosave(): void {
-		$src  = self::source( 'includes/settings/views/ffc-tab-cache.php' );
-		$from = strpos( $src, "'name'    => 'ffc_settings[cache_expiration]'" );
-		$this->assertNotFalse( $from );
-		$call = substr( $src, (int) $from, 900 );
-
-		$this->assertStringContainsString( "'data'    => array( 'ffc-autosave-key' => 'cache_expiration' )", $call );
-	}
-
 	public function test_the_smtp_mode_locks_while_total_mail_queue_is_active(): void {
 		$src = self::source( 'includes/settings/views/ffc-tab-smtp.php' );
 

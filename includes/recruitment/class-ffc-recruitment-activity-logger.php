@@ -28,6 +28,8 @@
  *   - recruitment_bulk_call_created     { classification_ids, date_to_assume, time_to_assume, count }
  *   - recruitment_call_cancelled        { call_id, classification_id, reason }
  *   - recruitment_candidate_promoted    { candidate_id, user_id }
+ *   - recruitment_candidate_account_linked   { candidate_id, previous_user, linked_user }
+ *   - recruitment_candidate_account_unlinked { candidate_id, previous_user }
  *   - recruitment_candidate_deleted     { candidate_id, reason? }
  *   - recruitment_classification_deleted { classification_id, reason? }
  *   - recruitment_adjutancy_deleted     { adjutancy_id }
@@ -86,8 +88,13 @@ final class RecruitmentActivityLogger {
 	 * @param string $list_type `preview` or `definitive`.
 	 * @param int    $error_count Number of validation/DB errors.
 	 * @return void
+	 *
+	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
+	 * @removal    6.45.0
 	 */
 	public static function csv_import_failed( int $notice_id, string $list_type, int $error_count ): void {
+		_deprecated_function( __METHOD__, '6.43.0' );
+
 		ActivityLog::log(
 			'recruitment_csv_import_failed',
 			ActivityLog::LEVEL_WARNING,
@@ -291,6 +298,49 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * Candidate linked to an account by staff (#2245).
+	 *
+	 * The owner of a candidate reads it unmasked, so who granted that and
+	 * to whom is part of the audit trail.
+	 *
+	 * @param int $candidate_id Candidate ID.
+	 * @param int $previous     Account linked before, 0 for none.
+	 * @param int $user_id      Account linked now.
+	 * @return void
+	 */
+	public static function candidate_account_linked( int $candidate_id, int $previous, int $user_id ): void {
+		ActivityLog::log(
+			'recruitment_candidate_account_linked',
+			ActivityLog::LEVEL_WARNING,
+			array(
+				'candidate_id'  => $candidate_id,
+				'previous_user' => $previous,
+				'linked_user'   => $user_id,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
+	 * Candidate unlinked from its account by staff (#2245).
+	 *
+	 * @param int $candidate_id Candidate ID.
+	 * @param int $previous     Account that was linked.
+	 * @return void
+	 */
+	public static function candidate_account_unlinked( int $candidate_id, int $previous ): void {
+		ActivityLog::log(
+			'recruitment_candidate_account_unlinked',
+			ActivityLog::LEVEL_WARNING,
+			array(
+				'candidate_id'  => $candidate_id,
+				'previous_user' => $previous,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Candidate "General" fields edited (name / phone / notes / email)
 	 * via the admin edit page — issue #331 "Edit estendido" frontend.
 	 *
@@ -355,6 +405,27 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * Draft notice deleted with its lists and adjutancy links (#2245).
+	 *
+	 * @param int    $notice_id       Notice ID (the row no longer exists at log time).
+	 * @param string $code            Notice code, so the entry still names it.
+	 * @param int    $classifications Classification rows removed with it.
+	 * @return void
+	 */
+	public static function notice_deleted( int $notice_id, string $code, int $classifications ): void {
+		ActivityLog::log(
+			'recruitment_notice_deleted',
+			ActivityLog::LEVEL_WARNING,
+			array(
+				'notice_id'       => $notice_id,
+				'code'            => $code,
+				'classifications' => $classifications,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Candidate hard-deleted (gate already checked by RecruitmentDeleteService).
 	 *
 	 * @param int         $candidate_id Candidate ID (the row no longer exists at log time).
@@ -412,49 +483,16 @@ final class RecruitmentActivityLogger {
 	/**
 	 * Sensitive PII revealed on the candidate detail screen (#330).
 	 *
-	 * Dedup: a transient keyed on (user_id, candidate_id, field_key) suppresses
-	 * repeated logs within {@see self::PII_REVEAL_DEDUP_SECONDS}. The intent is
-	 * audit-grade trail for investigations — collapsing accidental double-clicks
-	 * and rapid re-reveals of the same field by the same operator keeps the log
-	 * readable without losing signal.
-	 *
-	 * Honors the `audit_pii_reveals` recruitment setting: when the operator
-	 * disables the toggle, the reveal still works but no log row is written.
-	 * Defaults to true (audit on) so production behavior is conservative.
+	 * Every reveal is logged (#2245). A setting used to switch this off and
+	 * repeated reveals were folded into one row per minute; both left the
+	 * recruitment module outside the plugin's single reveal policy, under
+	 * which a reveal is always audited.
 	 *
 	 * @param int    $candidate_id Candidate row ID.
 	 * @param string $field_key    Logical field key (`cpf`, `rf`, `email`).
-	 * @return bool True if a log entry was written; false on dedup hit or setting off.
+	 * @return bool True when the entry was handed to the activity log.
 	 */
 	public static function pii_revealed( int $candidate_id, string $field_key ): bool {
-		// Read the option directly so we don't pull in the
-		// RecruitmentSettings::defaults() path (which calls translation
-		// helpers) for what is just a boolean check. Defaults to true
-		// when the key is missing — first save after upgrade keeps audit
-		// on by default.
-		$opts = get_option( 'ffc_recruitment_settings', array() );
-		if ( is_array( $opts ) && array_key_exists( 'audit_pii_reveals', $opts ) && ! $opts['audit_pii_reveals'] ) {
-			return false;
-		}
-
-		$user_id = get_current_user_id();
-
-		// Transient key — short enough to keep readable, distinct per
-		// (user, candidate, field) tuple. wp_using_ext_object_cache() handles
-		// the multi-frontend case automatically (transient API falls back to
-		// the options table when no object cache is wired up).
-		$dedup_key = sprintf(
-			'ffc_pii_reveal_%d_%d_%s',
-			$user_id,
-			$candidate_id,
-			preg_replace( '/[^a-z0-9_]+/', '', $field_key )
-		);
-
-		if ( false !== get_transient( $dedup_key ) ) {
-			return false;
-		}
-		set_transient( $dedup_key, 1, self::PII_REVEAL_DEDUP_SECONDS );
-
 		ActivityLog::log(
 			'recruitment_pii_revealed',
 			ActivityLog::LEVEL_INFO,
@@ -462,16 +500,9 @@ final class RecruitmentActivityLogger {
 				'candidate_id' => $candidate_id,
 				'field_key'    => $field_key,
 			),
-			$user_id
+			get_current_user_id()
 		);
 
 		return true;
 	}
-
-	/**
-	 * Dedup window for pii_revealed() in seconds. 60s collapses the obvious
-	 * UX cases (operator clicks "Reveal", masks it, clicks again) while still
-	 * splitting genuinely separate review sessions across rows.
-	 */
-	private const PII_REVEAL_DEDUP_SECONDS = 60;
 }

@@ -34,8 +34,7 @@ use FreeFormCertificate\Tests\Support\FormControls;
  * hidden deadline row and the custom-mode rows only appear in the second.
  *
  * @covers \FreeFormCertificate\SelfScheduling\SelfSchedulingEditor
- * @runClassInSeparateProcess
- * @preserveGlobalState disabled
+
  */
 class SelfSchedulingEditorFieldParityTest extends TestCase {
 
@@ -63,6 +62,8 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 			return htmlspecialchars( (string) $text, ENT_QUOTES );
 		};
 		Functions\when( '__' )->returnArg();
+		// The calendar names partial reads the default state names (#2223).
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'esc_html__' )->alias( $attr );
 		Functions\when( 'esc_html' )->alias( $attr );
 		Functions\when( 'esc_attr' )->alias( $attr );
@@ -200,6 +201,10 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 			}
 		);
 
+		// No grid refusal left by a save (#2244).
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
+
 		$editor = new SelfSchedulingEditor();
 		$editor->add_custom_metaboxes();
 
@@ -270,7 +275,12 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$before = self::before( $bookings );
 		$this->assertGreaterThan( 40, count( $before['controls'] ), 'The frozen inventory lost its fields, so the comparison would prove little.' );
 
-		$this->assertSame( self::in_the_button_family( $before['controls'] ), FormControls::inventory( $this->render_normal_column() ) );
+		// The Names tab (#2223) came after the tabs: its controls are asserted
+		// apart, and the rest compares with the frozen inventory.
+		$after = FormControls::inventory( $this->render_normal_column() );
+		$names = array_filter( $after, static fn( array $control ): bool => str_starts_with( (string) ( $control['attrs']['name'] ?? '' ), 'ffc_calendar_names[' ) );
+		$this->assertNotEmpty( $names, 'The Names tab posts the calendar\'s own names.' );
+		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names ) ) );
 	}
 
 	/**
@@ -317,7 +327,8 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, 'name="ffc_self_scheduling_config_nonce"' ) );
 		$this->assertSame( 1, substr_count( $html, 'data-ffc-vtabs' ) );
 
-		$keys = array( 'calendar', 'slots', 'window', 'cancellation', 'approval', 'access', 'bypass', 'emails' );
+		// The Blocked dates tab (#2244) sits after the booking window on a saved calendar.
+		$keys = array( 'calendar', 'slots', 'window', 'blocks', 'cancellation', 'approval', 'access', 'bypass', 'names', 'emails' );
 		if ( array() !== $meta ) {
 			$keys[] = 'occupancy'; // A saved custom-mode calendar, as the report box required.
 		}

@@ -81,6 +81,66 @@
             // Bookings CSV export button (own method so it registers even on
             // pages where initCalendarPermissions early-returns).
             this.initBookingsExport();
+
+            // Bulk cancel on the bookings list (#2243), its own method for
+            // the same reason.
+            this.initBulkCancel();
+        },
+
+        /**
+         * Cancel the ticked bookings together (#2243). The warning is the
+         * shared override dialog with a reason field: it names how many are
+         * cancelled and enables its button once a reason is written.
+         */
+        initBulkCancel: function() {
+            var cfg = typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin : {};
+            var strings = cfg.strings || {};
+
+            function selected() {
+                return $('.ffc-bookings-select:checked').map(function() { return this.value; }).get();
+            }
+
+            function refresh() {
+                var count = selected().length;
+                $('#ffc-bookings-bulk-cancel').prop('disabled', count === 0).attr('aria-disabled', count === 0 ? 'true' : 'false');
+            }
+
+            $(document).on('change', '#ffc-bookings-select-all', function() {
+                $('.ffc-bookings-select').prop('checked', this.checked);
+                refresh();
+            });
+            $(document).on('change', '.ffc-bookings-select', refresh);
+
+            $(document).on('click', '#ffc-bookings-bulk-cancel', function(e) {
+                e.preventDefault();
+                var ids = selected();
+                if (!ids.length) {
+                    return;
+                }
+                var $btn = $(this);
+
+                FFC.overrideConfirm({
+                    reasons: [String(strings.bulkCancelSentence || '%d bookings will be cancelled and their participants e-mailed.').replace('%d', ids.length)],
+                    strings: cfg.cancelConfirm || {},
+                    agreeCategory: 'danger',
+                    reasonField: { label: strings.cancelReasonLabel || 'Cancel Reason', min: 1 }
+                }).then(function(reason) {
+                    if (!reason) {
+                        return;
+                    }
+                    $btn.prop('disabled', true).addClass('ffc-btn-loading');
+                    FFC.request('ffc_audience_cancel_bookings', { booking_ids: ids, reason: reason }, { nonce: cfg.adminNonce || '' })
+                        .then(function(data) {
+                            alert((data && data.message) || strings.bookingCancelled || '');
+                            window.location.reload();
+                        })
+                        .catch(function(err) {
+                            $btn.removeClass('ffc-btn-loading');
+                            refresh();
+                            alert((err && err.fromServer) ? err.message : (strings.error || 'An error occurred.'));
+                        });
+                });
+            });
         },
 
         /**
@@ -253,8 +313,10 @@
                         }
 
                         if (b.users && b.users.length > 0) {
-                            var userList = b.users.map(function(u) { return u.name + ' (' + u.email + ')'; }).join(', ');
-                            html += '<tr><th>' + esc(strings.users || 'Users') + '</th><td>' + esc(userList) + '</td></tr>';
+                            // email_html is escaped server-side: the masked address plus,
+                            // for whoever may reveal it, the audited Reveal button.
+                            var userList = b.users.map(function(u) { return '<div>' + esc(u.name) + ' ' + (u.email_html || esc(u.email)) + '</div>'; }).join('');
+                            html += '<tr><th>' + esc(strings.users || 'Users') + '</th><td>' + userList + '</td></tr>';
                         }
 
                         if (b.status === 'cancelled' && b.cancel_reason) {
@@ -294,11 +356,14 @@
                 FFC.confirmRangeCancel({
                     count: $link.attr('data-days'),
                     label: $link.attr('data-date-label'),
+                    series: $link.attr('data-series') === '1',
                     strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {}
                 }).then(function(agreed) {
                     if (!agreed) {
                         return;
                     }
+                    // A date of a weekly series may take the later dates with it (#2243).
+                    var following = agreed && agreed.choice === 'following';
 
                     var reason = prompt(strings.cancelReason || 'Please provide a reason for cancellation:');
                     if (reason === null) {
@@ -307,8 +372,13 @@
 
                     $link.css('pointer-events', 'none').css('opacity', '0.5');
 
-                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason }, { nonce: adminNonce })
+                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason, scope: following ? 'following' : 'this' }, { nonce: adminNonce })
                         .then(function() {
+                            // The later dates sit on other rows, maybe other pages: reload.
+                            if (following) {
+                                window.location.reload();
+                                return;
+                            }
                             // Update the row status and remove cancel link
                             var $row = $link.closest('tr');
                             $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
@@ -507,15 +577,71 @@
                         environment_id: $btn.data('environment_id') || '',
                         status:         $btn.data('status') || '',
                         date_from:      $btn.data('date_from') || '',
-                        date_to:        $btn.data('date_to') || ''
+                        date_to:        $btn.data('date_to') || '',
+                        audience_id:    $btn.data('audience_id') || '',
+                        s:              $btn.attr('data-s') || ''
                     }
                 });
             });
         }
     };
 
+    /**
+     * Edit a holiday or closed date in place (#2212). Each list row is
+     * followed by a hidden edit row holding a real form, so saving needs no
+     * script: this only swaps the two rows, and puts the stored values back
+     * when the edit is cancelled. Delegated on document, so it holds on
+     * every screen that prints the rows, whatever else that screen inits.
+     */
+    function bindHolidayEdit() {
+        function rowsOf(key) {
+            return {
+                view: $('[data-ffc-holiday-view]').filter(function() { return $(this).attr('data-ffc-holiday-view') === key; }),
+                edit: $('[data-ffc-holiday-edit]').filter(function() { return $(this).attr('data-ffc-holiday-edit') === key; })
+            };
+        }
+
+        function close(key) {
+            var rows = rowsOf(key);
+            var form = rows.edit.find('form')[0];
+            if (form) {
+                form.reset();
+            }
+            rows.edit.prop('hidden', true);
+            rows.view.prop('hidden', false);
+            rows.view.find('[data-ffc-holiday-edit-open]').trigger('focus');
+        }
+
+        $(document).on('click', '[data-ffc-holiday-edit-open]', function(e) {
+            e.preventDefault();
+            var rows = rowsOf($(this).attr('data-ffc-holiday-edit-open'));
+            rows.view.prop('hidden', true);
+            rows.edit.prop('hidden', false);
+            rows.edit.find('input[type="date"]').first().trigger('focus');
+        });
+
+        $(document).on('click', '[data-ffc-holiday-cancel]', function(e) {
+            e.preventDefault();
+            close($(this).attr('data-ffc-holiday-cancel'));
+        });
+
+        $(document).on('keydown', '.ffc-holiday-edit-row', function(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                close($(this).attr('data-ffc-holiday-edit'));
+            }
+        });
+    }
+
     $(document).ready(function() {
         FFCAudienceAdmin.init();
+        bindHolidayEdit();
+
+        // The calendar colours (#2202, #2215) take the picker the Email Model uses;
+        // its Default button restores the colour the plugin ships with.
+        if (typeof $.fn.wpColorPicker === 'function') {
+            $('.ffc-calendar-color').wpColorPicker();
+        }
     });
 
 })(jQuery);

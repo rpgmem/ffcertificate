@@ -90,4 +90,30 @@ class RateLimitSettingsReaderTest extends TestCase {
 		$this->stub_option( array( 'ip' => 'bogus' ) );
 		$this->assertSame( array(), RateLimitSettingsReader::ip() );
 	}
+
+	public function test_an_unidentified_address_is_let_through_by_default(): void {
+		$this->stub_option( array() );
+
+		$this->assertFalse( RateLimitSettingsReader::captcha_counts_unresolved() );
+		$this->assertFalse( RateLimitSettingsReader::device_check_counts_unresolved() );
+	}
+
+	public function test_each_throttle_reads_its_own_unresolved_policy(): void {
+		$this->stub_option( array( 'ip' => array( 'captcha_unresolved' => 'share' ) ) );
+
+		$this->assertTrue( RateLimitSettingsReader::captcha_counts_unresolved() );
+		$this->assertFalse( RateLimitSettingsReader::device_check_counts_unresolved() );
+
+		$this->stub_option( array( 'ip' => array( 'device_check_unresolved' => 'share' ) ) );
+
+		$this->assertFalse( RateLimitSettingsReader::captcha_counts_unresolved() );
+		$this->assertTrue( RateLimitSettingsReader::device_check_counts_unresolved() );
+	}
+
+	public function test_an_unknown_policy_falls_back_to_letting_through(): void {
+		$this->assertSame( 'allow', RateLimitSettingsReader::clamp_unresolved_policy( 'block' ) );
+		$this->assertSame( 'allow', RateLimitSettingsReader::clamp_unresolved_policy( null ) );
+		$this->assertSame( 'allow', RateLimitSettingsReader::clamp_unresolved_policy( array( 'share' ) ) );
+		$this->assertSame( 'share', RateLimitSettingsReader::clamp_unresolved_policy( 'share' ) );
+	}
 }

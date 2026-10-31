@@ -653,3 +653,73 @@ describe('ffc-calendar-frontend.js — the bypass override warning (#1859)', () 
 		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons[0].code).toBe('daily_limit');
 	});
 });
+
+describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () => {
+	let options;
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		options = null;
+		window.FFCCalendarCore = function (_$container, opts) {
+			options = opts;
+			this.options = opts;
+			this.refresh = () => {};
+		};
+		window.FFC.request.mockReturnValue(new Promise(() => {}));
+		document.body.innerHTML =
+			'<div id="ffc-calendar-container-7"></div>' +
+			'<script type="application/json" id="ffc-calendar-config-7">{"calendarId":7,"workingDays":[1,2,3,4,5]}</script>';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it('draws the closed cell name, escaped', () => {
+		window.ffcCalendar.strings.closedCell = 'Encerrado <b>';
+		window.ffcCalendarFrontend.initCalendarCore();
+		const html = options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true);
+		const $badge = window.$('<div>').html(html).find('.ffc-day-badge.ffc-badge-closed');
+		expect($badge.text()).toBe('Encerrado <b>');
+		expect($badge.find('b').length).toBe(0);
+	});
+
+	it('names an available day only when a name is set, and never over its bookings (#2221)', () => {
+		const monday = new Date();
+		monday.setDate(monday.getDate() + ((8 - monday.getDay()) % 7 || 7));
+		const dateStr = monday.toISOString().slice(0, 10);
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(options.getDayContent(dateStr, monday, false, false)).toBe('');
+
+		window.ffcCalendar.strings.availableCell = 'Livre <i>';
+		window.ffcCalendarFrontend.initCalendarCore();
+		const $badge = window.$('<div>').html(options.getDayContent(dateStr, monday, false, false)).find('.ffc-badge-available');
+		expect($badge.text()).toBe('Livre <i>');
+		expect($badge.find('i').length).toBe(0);
+
+		const sunday = new Date(monday);
+		sunday.setDate(monday.getDate() - 1);
+		expect(options.getDayContent(sunday.toISOString().slice(0, 10), sunday, false, false)).toBe('');
+	});
+
+	it('draws nothing when the switch is off, and a holiday stays a holiday', () => {
+		window.ffcCalendar.strings.closedCell = 'Fechado';
+		window.ffcCalendar.strings.showClosedLabel = false;
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true)).toBe('');
+		expect(options.getDayContent('2026-06-15', new Date(2026, 5, 15), true, false)).toContain('ffc-badge-holiday');
+	});
+
+	it("takes this calendar's own names over the general ones (#2223)", () => {
+		window.ffcCalendar.strings.closedCell = 'Fechado';
+		window.ffcCalendar.strings.booked = 'Ocupado';
+		document.getElementById('ffc-calendar-config-7').textContent = JSON.stringify({
+			calendarId: 7,
+			workingDays: [1, 2, 3, 4, 5],
+			labels: { closedCell: 'Sem atendimento', showClosedLabel: true, bookings: 'sessões' },
+		});
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(options.getDayContent('2026-06-14', new Date(2026, 5, 14), false, true)).toContain('Sem atendimento');
+		expect(options.legendItems[1].label).toBe('Ocupado');
+		expect(options.strings.bookings).toBe('sessões');
+		expect(window.ffcCalendar.strings.closedCell).toBe('Fechado');
+	});
+});

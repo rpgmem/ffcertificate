@@ -14,7 +14,7 @@
  * - Drive the maintenance tools (obsolete shortcode cleanup, short-URL cleanup,
  *   public access disabler, submission link audit).
  * - Serve the AJAX date-format preview.
- * - Handle cache warm / clear actions.
+ * - Handle the page-cache purge action.
  *
  * Behavior is preserved verbatim from Settings: same nonce checks, capability
  *
@@ -667,33 +667,10 @@ class SettingsActionHandler {
 			return;
 		}
 
-		// Warm Cache.
-		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'warm_cache' ) {
-			check_admin_referer( 'ffc_warm_cache' );
-
-			// Autoloader handles class loading.
-			$warmed = \FreeFormCertificate\Submissions\FormCache::warm_all_forms();
-
-			wp_safe_redirect(
-				add_query_arg(
-					array(
-						'page'  => 'ffc-settings',
-						'tab'   => 'cache',
-						'msg'   => 'cache_warmed',
-						'count' => $warmed,
-					),
-					admin_url( 'admin.php' )
-				)
-			);
-			exit;
-		}
-
-		// Clear Cache.
+		// Purge page caches. The no-JS fallback of the AJAX button.
 		if ( isset( $_GET['action'] ) && sanitize_key( wp_unslash( $_GET['action'] ) ) === 'clear_cache' ) {
 			check_admin_referer( 'ffc_clear_cache' );
 
-			// Autoloader handles class loading.
-			\FreeFormCertificate\Submissions\FormCache::clear_all_cache();
 			\FreeFormCertificate\Submissions\FormCache::purge_external_caches_for_all_forms( 'manual_clear_all' );
 
 			wp_safe_redirect(

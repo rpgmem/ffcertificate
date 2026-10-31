@@ -64,7 +64,6 @@ function makeRereg(over = {}) {
 		is_active: true,
 		can_submit: true,
 		can_download: false,
-		magic_link: '',
 	}, over);
 }
 
@@ -118,17 +117,21 @@ describe('FFCDashboard.panels.reregistrations.render', () => {
 		expect(buttons[0].classList.contains('ffc-icon-edit')).toBe(true);
 	});
 
-	it('renders the Download Record link only when both can_download and magic_link present', () => {
+	it('renders the Download Record button only when can_download, with no public link (#2242)', () => {
 		panel().render([
-			makeRereg({ can_download: true, magic_link: 'https://x.test/m' }),
-			makeRereg({ can_download: false, magic_link: 'https://x.test/m' }),
-			makeRereg({ can_download: true, magic_link: '' }),
+			makeRereg({ can_download: true, submission_id: 7 }),
+			makeRereg({ can_download: false, submission_id: 8 }),
 		], 1);
 		const buttons = document.querySelectorAll('#ffc-tabpanel-reregistrations .ffc-btn-pdf');
 		expect(buttons.length).toBe(1);
+		expect(buttons[0].tagName).toBe('BUTTON');
+		expect(buttons[0].getAttribute('href')).toBeNull();
+		expect(buttons[0].classList.contains('ffc-rereg-download-record')).toBe(true);
+		expect(buttons[0].getAttribute('data-submission-id')).toBe('7');
 		// The icon is the registry's download class (#1826), not a data: mask.
 		expect(buttons[0].classList.contains('ffc-icon-download')).toBe(true);
 	});
+
 
 	it('attaches the prefixed status class with the status value', () => {
 		panel().render([
@@ -285,5 +288,143 @@ describe('FFCDashboard.panels.reregistrations.load', () => {
 		await flushPromises();
 
 		expect(document.getElementById('ffc-tabpanel-reregistrations').innerHTML).toContain('Error');
+	});
+});
+
+// ----------------------------------------------------------------------
+// View answers (#2227)
+// ----------------------------------------------------------------------
+
+describe('FFCDashboard.panels.reregistrations answers', () => {
+	beforeAll(() => {
+		window.ffcDashboard.strings.viewAnswers = 'View answers';
+		window.ffcDashboard.strings.reveal = 'Reveal';
+		panel().bindEvents();
+	});
+
+	beforeEach(() => {
+		window.ffcDashboard.viewAsUserId = 0;
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const answers = (over = {}) => Object.assign({
+		submission_id: 3,
+		rows: [
+			{ key: 'rf', label: 'RF', value: '802.***-5' },
+			{ key: 'vinculo', label: 'Bond', value: '' },
+			{ key: 'nome', label: 'Name', value: '<b>Maria</b>' },
+		],
+		masked: true,
+		can_reveal: true,
+	}, over);
+
+	function mockAnswers(responses) {
+		const urls = [];
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			urls.push(opts.url);
+			opts.success(responses.shift());
+			return {};
+		});
+		return urls;
+	}
+
+	it('offers View answers only on a sent submission', () => {
+		panel().render([
+			makeRereg({ submission_id: 3, can_view_answers: true, is_active: false }),
+			makeRereg({ submission_id: 4, can_view_answers: false }),
+		], 1);
+
+		const buttons = document.querySelectorAll('.ffc-rereg-answers-toggle');
+		expect(buttons.length).toBe(1);
+		expect(buttons[0].getAttribute('data-submission-id')).toBe('3');
+		expect(buttons[0].getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('opens the answers under the row, escaped, and closes them again', async () => {
+		const urls = mockAnswers([answers()]);
+		panel().render([makeRereg({ submission_id: 3, can_view_answers: true })], 1);
+
+		window.$('.ffc-rereg-answers-toggle').trigger('click');
+		await flushPromises();
+
+		expect(urls[0]).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations/3/answers');
+		const row = document.querySelector('.ffc-rereg-answers-row');
+		expect(row.previousElementSibling.querySelector('.ffc-rereg-answers-toggle')).not.toBeNull();
+		const dd = row.querySelectorAll('dd');
+		expect(dd[0].textContent).toBe('802.***-5');
+		expect(dd[1].textContent).toBe('—');
+		expect(dd[2].innerHTML).toBe('&lt;b&gt;Maria&lt;/b&gt;');
+		expect(window.$('.ffc-rereg-answers-toggle').attr('aria-expanded')).toBe('true');
+
+		window.$('.ffc-rereg-answers-toggle').trigger('click');
+		expect(document.querySelector('.ffc-rereg-answers-row')).toBeNull();
+		expect(window.$('.ffc-rereg-answers-toggle').attr('aria-expanded')).toBe('false');
+	});
+
+	it('reveals on request and drops the button once nothing is masked', async () => {
+		window.ffcDashboard.viewAsUserId = 7;
+		const urls = mockAnswers([
+			answers(),
+			answers({ rows: [{ key: 'rf', label: 'RF', value: '802.633-5' }], masked: false, can_reveal: false }),
+		]);
+		panel().render([makeRereg({ submission_id: 3, can_view_answers: true })], 1);
+
+		window.$('.ffc-rereg-answers-toggle').trigger('click');
+		await flushPromises();
+		window.$('.ffc-rereg-answers-reveal').trigger('click');
+		await flushPromises();
+
+		expect(urls[1]).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations/3/answers?reveal=1&viewAsUserId=7');
+		expect(document.querySelector('.ffc-rereg-answers-row dd').textContent).toBe('802.633-5');
+		expect(document.querySelector('.ffc-rereg-answers-reveal')).toBeNull();
+	});
+
+	it('shows an error in the row when the answers cannot load', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+		panel().render([makeRereg({ submission_id: 3, can_view_answers: true })], 1);
+
+		window.$('.ffc-rereg-answers-toggle').trigger('click');
+		await flushPromises();
+
+		expect(document.querySelector('.ffc-rereg-answers-row').innerHTML).toContain('Error');
+	});
+
+	it('downloads the Record from the signed-in route and builds the PDF (#2242)', async () => {
+		window.ffcDashboard.viewAsUserId = 0;
+		const urls = mockAnswers([{ pdf_data: { html: '<p>x</p>', filename: 'record.pdf' } }]);
+		window.ffcGeneratePDF = vi.fn();
+		panel().render([makeRereg({ submission_id: 9, can_download: true })], 1);
+
+		window.$('.ffc-rereg-download-record').trigger('click');
+		await flushPromises();
+
+		expect(urls[0]).toBe('https://x.test/wp-json/ffc/v1/user/reregistrations/9/record');
+		expect(window.ffcGeneratePDF).toHaveBeenCalledWith({ html: '<p>x</p>', filename: 'record.pdf' }, 'record.pdf');
+		const btn = document.querySelector('.ffc-rereg-download-record');
+		expect(btn.disabled).toBe(false);
+		expect(btn.classList.contains('ffc-btn-loading')).toBe(false);
+		delete window.ffcGeneratePDF;
+	});
+
+	it('shows an error beside the button when the Record is refused', async () => {
+		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
+			opts.error();
+			return {};
+		});
+		window.ffcGeneratePDF = vi.fn();
+		panel().render([makeRereg({ submission_id: 9, can_download: true })], 1);
+
+		window.$('.ffc-rereg-download-record').trigger('click');
+		await flushPromises();
+
+		expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-rereg-download-record').nextElementSibling.textContent).toContain('Error');
+		delete window.ffcGeneratePDF;
 	});
 });

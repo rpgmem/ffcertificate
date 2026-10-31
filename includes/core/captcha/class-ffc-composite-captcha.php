@@ -168,14 +168,12 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 			return;
 		}
 
-		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'captcha_fallback_used',
 			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 			array(
 				'provider' => MathCaptcha::ID,
-				'ip_hash'  => '' === $ip ? '' : substr( hash( 'sha256', $ip ), 0, 16 ),
+				'ip_hash'  => substr( \FreeFormCertificate\Core\IpAddress::fingerprint( \FreeFormCertificate\Core\RequestInput::get_user_ip() ), 0, 16 ),
 			)
 		);
 	}
