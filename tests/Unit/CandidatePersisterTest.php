@@ -30,7 +30,7 @@ use PHPUnit\Framework\TestCase;
  * Coverage targets every public path:
  *   - upsert_candidate(): new-candidate insert (full PII), insert with empty
  *     fields, insert DB failure, existing-candidate update (matched by cpf,
- *     then by rf), and the wp_user promotion branch.
+ *     then by rf). Account creation left the persister in #2245.
  *   - build_adjutancy_map(): empty notice and a populated slug→id map.
  *
  * @covers \FreeFormCertificate\Recruitment\CandidatePersister
@@ -358,7 +358,7 @@ class CandidatePersisterTest extends TestCase {
 		$this->assertSame( array( 'id' => 5 ), $updates[0]['where'] );
 	}
 
-	public function test_upsert_promotes_candidate_when_user_resolved(): void {
+	public function test_upsert_never_links_an_account_even_when_the_identity_is_known(): void {
 		$this->wpdb->insert_id = 314;
 		$cpf_hash              = SensitiveFieldRegistry::hash_identifier( 'cpf', Identifiers::CPF_A );
 		$rf_hash               = SensitiveFieldRegistry::hash_identifier( 'rf', Identifiers::RF_A );
@@ -379,23 +379,16 @@ class CandidatePersisterTest extends TestCase {
 				static fn( array $u ): bool => array_key_exists( 'user_id', $u['data'] )
 			)
 		);
-		$this->assertCount( 1, $links );
-		$this->assertSame( 808, $links[0]['data']['user_id'] );
-		$this->assertSame( array( 'id' => 314 ), $links[0]['where'] );
-
-		$logged = array_values(
-			array_filter(
-				ActivityLogBuffer::contexts(),
-				static fn( array $e ): bool => 'recruitment_candidate_promoted' === $e['action']
-			)
-		);
-		$this->assertCount( 1, $logged );
+		$this->assertSame( array(), $links, 'Accounts come from RecruitmentAccountLinker, after the import commits (#2245).' );
+		$this->assertSame( 0, $this->preparedCount( 'SELECT user_id FROM %i WHERE (' ), 'No account lookup during the import.' );
 		$this->assertSame(
-			array(
-				'candidate_id' => 314,
-				'user_id'      => 808,
-			),
-			$logged[0]['context']
+			array(),
+			array_values(
+				array_filter(
+					ActivityLogBuffer::contexts(),
+					static fn( array $e ): bool => 'recruitment_candidate_promoted' === $e['action']
+				)
+			)
 		);
 	}
 

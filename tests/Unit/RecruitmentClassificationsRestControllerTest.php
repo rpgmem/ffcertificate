@@ -109,6 +109,13 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 	/** @var list<string> Statements the double does not answer. */
 	private array $unexpected = array();
 
+	/**
+	 * Calls the notice already has, as `count_calls_for_notice()` reads them.
+	 *
+	 * @var int
+	 */
+	private int $notice_calls = 0;
+
 	/** @var array<string, mixed> The stored `ffc_settings` option. */
 	private array $ffc_settings = array();
 
@@ -142,6 +149,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->queries              = array();
 		$this->reads                = array();
 		$this->unexpected           = array();
+		$this->notice_calls         = 0;
 		$this->next_id              = 500;
 		$this->ffc_settings         = ActivityLogBuffer::ENABLED_SETTINGS;
 		$this->recruitment_settings = array( 'email_mode' => 'ask' );
@@ -173,6 +181,8 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$this->registered_routes = array();
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		Functions\when( 'register_rest_route' )->alias(
 			function ( $namespace, $route, $args ) {
 				$this->registered_routes[] = compact( 'namespace', 'route', 'args' );
@@ -374,6 +384,9 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		}
 		if ( 0 === strpos( $sql, 'SHOW TABLES LIKE ' ) ) {
 			return null;
+		}
+		if ( 0 === strpos( $sql, 'SELECT COUNT(*) FROM ' . self::T_CALL . ' c' ) ) {
+			return (string) $this->notice_calls;
 		}
 		if ( 1 === preg_match( '/^SELECT COUNT\(\*\) FROM ' . self::T_STAGING . ' WHERE job_id = \S+ AND processed = 0$/', $sql ) ) {
 			return (string) $this->unpromoted;
@@ -1127,8 +1140,7 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		$this->assertSame( 400, $result->get_error_data()['status'] );
 	}
 
-	public function test_promote_preview_definitive_import_transition_failure_returns_409(): void {
-		// A draft notice takes the definitive list, but cannot move to definitive.
+	public function test_promote_preview_definitive_import_refuses_a_draft_before_any_write(): void {
 		$this->notice( 7, 'draft' );
 		$this->attach( 7, 3, 'teacher' );
 
@@ -1137,9 +1149,51 @@ class RecruitmentClassificationsRestControllerTest extends TestCase {
 		);
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'recruitment_invalid_transition: draft->definitive', $result->get_error_code() );
+		$this->assertSame( 'recruitment_definitive_import_requires_preliminary', $result->get_error_code() );
 		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ), 'Refused before any write (#2245).' );
 		$this->assertSame( array(), $this->logged( 'recruitment_notice_promoted' ) );
+	}
+
+	/**
+	 * @dataProvider provider_published_statuses
+	 */
+	public function test_promote_preview_definitive_import_refuses_a_published_notice( string $status ): void {
+		$this->notice( 7, $status );
+		$this->attach( 7, 3, 'teacher' );
+
+		$result = $this->controller->promote_preview(
+			$this->make_request( array( 'id' => 7, 'mode' => 'definitive_import' ), $this->csv_files( $this->valid_csv() ) )
+		);
+
+		$this->assertSame( 'recruitment_definitive_import_requires_preliminary', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
+		$this->assertSame( $status, $this->rows[ self::T_NOTICE ][7]->status );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provider_published_statuses(): array {
+		return array(
+			'definitive' => array( 'definitive' ),
+			'closed'     => array( 'closed' ),
+		);
+	}
+
+	public function test_promote_preview_definitive_import_refuses_a_notice_with_calls(): void {
+		$this->notice( 7, 'preliminary' );
+		$this->attach( 7, 3, 'teacher' );
+		$this->notice_calls = 2;
+
+		$result = $this->controller->promote_preview(
+			$this->make_request( array( 'id' => 7, 'mode' => 'definitive_import' ), $this->csv_files( $this->valid_csv() ) )
+		);
+
+		$this->assertSame( 'recruitment_definitive_import_blocked_by_calls', $result->get_error_code() );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
+		$this->assertSame( array(), $this->writes_to( 'delete', self::T_CLASSIFICATION ) );
 	}
 
 	public function test_promote_preview_definitive_import_full_success(): void {

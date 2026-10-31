@@ -1993,10 +1993,6 @@ msgstr "Atendendo a uma solicitação de dados (Ferramentas de Privacidade do Wo
 msgid "Answers an arithmetic question."
 msgstr "Responde a uma pergunta de aritmética."
 
-#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:96
-msgid "Any classifications, calls and adjutancy links referencing it are detached."
-msgstr "Quaisquer classificações, chamadas e vínculos de matérias que façam referência a ele estão desanexados."
-
 #: includes/settings/views/documentation/reference-tokens.php:106
 msgid "Any custom field name you created"
 msgstr "Qualquer nome de campo personalizado que você criou."
@@ -16941,10 +16937,6 @@ msgstr "O novo horário de encerramento deve ser posterior ao atual."
 msgid "The new close time must stay within the same day."
 msgstr "O novo horário de encerramento deve permanecer dentro do mesmo dia."
 
-#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:95
-msgid "The notice and its candidate rows will be permanently removed."
-msgstr "O aviso e as respectivas listas de candidatos serão removidos permanentemente."
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:236
 msgid "The notice moves to `definitive`. The classification list is locked as final."
 msgstr "O edital passa a ser considerado \"definitivo\". A lista de classificação é bloqueada como final."
@@ -22809,10 +22801,6 @@ msgstr "A aba Agendamento → Configurações → Importar e Exportar importa e 
 
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
 msgstr "Uma campanha exibe a união dos campos personalizados dos públicos-alvo vinculados (os campos padrão de identidade/contato e os personalizados). Cada envio pode ser exportado como PDF da Ficha. O campo padrão de data de nascimento lê e grava a data de nascimento única e criptografada do perfil do usuário, usada pelas Mensagens por Data."
-
-
-msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
-msgstr "Os candidatos são importados de CSV (cabeçalhos: name, cpf, rf, email, adjutancy, rank, score, pcd, além dos opcionais phone, time_points, hab_emebs) para a lista preliminar ou para a definitiva. As convocações são registradas por candidato; convocar fora da ordem de classificação exige um motivo. Os resultados levam o candidato por called → accepted / not_shown / hired / withdrew. Importar um candidato também vincula ou cria a sua conta do WordPress (localizada por CPF, RF ou e-mail), o que permite que ele acompanhe as próprias convocações."
 
 msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
 msgstr "Um medidor de capacidade e avisos de densidade e de contraste ajudam a manter o código legível, e o painel de pré-visualização também permite imprimi-lo. Um código de evento pode abrir o próprio evento, um link pré-preenchido do Google Agenda ou um link assinado para um arquivo .ics; esse link pode ter uma data opcional de \"válido até\", após a qual informa que expirou, enquanto um link sem essa data nunca expira. O gerador reabre com o último design baixado por cada usuário (apenas o design, nunca o conteúdo), e \"Restaurar padrão\" volta ao design global."
@@ -30713,3 +30701,43 @@ msgstr "O calendário de agendamento funciona pelo teclado: cada dia é um botã
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
 msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Blocked dates (once the calendar is saved), Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, Names, Emails, and Occupancy (on a saved custom-mode calendar). A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
 msgstr "Um calendário pessoal agenda atendimentos individuais em horários (por exemplo, consultas). Cada calendário é criado no menu Agendamento → Calendários Pessoais e configurado em uma única caixa Configuração do Calendário, dividida em abas: Calendário, Vagas e horários, Janela de agendamento, Datas bloqueadas (depois que o calendário é salvo), Cancelamento, Aprovação e lista de espera, Quem pode ver e agendar, Exceção para administradores, Nomes, E-mails e Ocupação (em um calendário salvo no modo personalizado). Um ponto nas abas Cancelamento e Exceção para administradores mostra se cada uma está ativa."
+
+#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:99
+msgid "The draft notice, its imported lists and its adjutancy links will be permanently removed."
+msgstr "O edital em rascunho, suas listas importadas e seus vínculos de matérias serão removidos permanentemente."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:313
+msgid "Notice Deleted"
+msgstr "Edital Excluído"
+
+#: includes/core/class-ffc-scheduled-tasks.php:210
+msgid "Recruitment: candidate accounts (one per batch)"
+msgstr "Recrutamento: contas dos candidatos (um por lote)"
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:116
+msgid "Only a draft notice can be deleted. A published notice can only be closed."
+msgstr "Somente um edital em rascunho pode ser excluído. Um edital publicado só pode ser encerrado."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:117
+msgid "Could not delete the notice. Nothing was removed."
+msgstr "Não foi possível excluir o edital. Nada foi removido."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:122
+msgid "The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported."
+msgstr "A lista definitiva só pode ser importada enquanto o edital está em `preliminary`. Nada foi importado."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:123
+msgid "The definitive list cannot be replaced: this notice already has calls. Nothing was imported."
+msgstr "A lista definitiva não pode ser substituída: este edital já tem chamadas. Nada foi importado."
+
+#: includes/settings/views/documentation/feature-recruitment.php:68
+msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. The definitive list is imported only while the notice is preliminary and has no calls, and the import promotes the notice in the same step, so a refused import changes nothing. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew."
+msgstr "Os candidatos são importados por CSV (cabeçalhos: name, cpf, rf, email, adjutancy, rank, score, pcd, além dos opcionais phone, time_points, hab_emebs) para a lista preliminar ou para a definitiva. A lista definitiva só é importada enquanto o edital está preliminar e sem chamadas, e a importação promove o edital no mesmo passo, de modo que uma importação recusada não altera nada. As convocações são registradas por candidato; convocar fora da ordem de classificação exige um motivo. Os resultados levam o candidato por called → accepted / not_shown / hired / withdrew."
+
+#: includes/settings/views/documentation/feature-recruitment.php:70
+msgid "Candidate accounts are linked or created once the notice reaches preliminary, never for a draft. A background task handles them in batches after the import: it links an existing WordPress account (matched by CPF, RF or e-mail) and creates one only when none exists, without the welcome e-mail. A candidate who already has an account keeps it, so a re-import moves nothing. The linked account is what lets the candidate follow their own call-ups."
+msgstr "As contas dos candidatos são vinculadas ou criadas quando o edital chega a preliminar, nunca em rascunho. Uma tarefa em segundo plano cuida delas em lotes depois da importação: vincula uma conta do WordPress existente (encontrada por CPF, RF ou e-mail) e só cria uma quando não existe nenhuma, sem o e-mail de boas-vindas. Um candidato que já tem conta continua com ela, então uma nova importação não move nada. É a conta vinculada que permite ao candidato acompanhar as próprias convocações."
+
+#: includes/settings/views/documentation/feature-recruitment.php:71
+msgid "Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay."
+msgstr "Somente um edital em rascunho pode ser excluído, e suas listas importadas e vínculos de matérias vão junto. Um edital publicado é encerrado em vez disso, para que suas chamadas e seu histórico permaneçam."

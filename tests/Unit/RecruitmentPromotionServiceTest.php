@@ -45,6 +45,8 @@ class RecruitmentPromotionServiceTest extends TestCase {
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(

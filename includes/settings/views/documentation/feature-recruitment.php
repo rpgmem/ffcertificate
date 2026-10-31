@@ -65,7 +65,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 
 	<h4><?php esc_html_e( 'Import & call-ups', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. The definitive list is imported only while the notice is preliminary and has no calls, and the import promotes the notice in the same step, so a refused import changes nothing. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew.', 'ffcertificate' ); ?></p>
+
+	<p><?php esc_html_e( 'Candidate accounts are linked or created once the notice reaches preliminary, never for a draft. A background task handles them in batches after the import: it links an existing WordPress account (matched by CPF, RF or e-mail) and creates one only when none exists, without the welcome e-mail. A candidate who already has an account keeps it, so a re-import moves nothing. The linked account is what lets the candidate follow their own call-ups.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
 	<table class="widefat striped">

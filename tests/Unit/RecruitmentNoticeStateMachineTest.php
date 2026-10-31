@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Tests\Support\CallLog;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +45,8 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 
 		$this->wpdb->shouldReceive( 'prepare' )
 			->andReturnUsing(
@@ -231,5 +234,28 @@ class RecruitmentNoticeStateMachineTest extends TestCase {
 
 		$this->assertTrue( $result['success'] );
 		$this->assertSame( 2, $query_calls, 'set_status + mark_opened (no mark_reopened — never closed before)' );
+	}
+
+	public function test_reaching_preliminary_queues_the_account_batch(): void {
+		$queued = CallLog::record( 'wp_schedule_single_event', true );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'draft' ) );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( 1 );
+
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'preliminary' );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 1, $queued->count(), 'Accounts are made once the list leaves draft (#2245).' );
+		$this->assertSame( array( 5, 0 ), $queued->calls()[0][2] );
+	}
+
+	public function test_closing_does_not_queue_the_account_batch(): void {
+		$queued = CallLog::record( 'wp_schedule_single_event', true );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $this->notice_stub( 'definitive' ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+
+		$result = RecruitmentNoticeStateMachine::transition_to( 5, 'closed' );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 0, $queued->count() );
 	}
 }

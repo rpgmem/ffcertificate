@@ -109,7 +109,22 @@ class RecruitmentNoticesListTableTest extends TestCase {
 				return array_map( 'strval', $this->notice_adjutancies[ (int) $this->bound[1] ] ?? array() );
 			}
 		);
-		// RecruitmentNoticeWriter::delete().
+		// RecruitmentDeleteService::delete_notice(): the notice read, the call
+		// count, and the transaction around the deletes.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function () {
+				$this->assertSame( 'SELECT * FROM %i WHERE id = %d', $this->sql, 'Unexpected get_row query.' );
+				foreach ( $this->notices as $notice ) {
+					if ( (int) $notice->id === (int) $this->bound[1] ) {
+						return $notice;
+					}
+				}
+				return null;
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		// The deletes themselves.
 		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
 			function ( $table, $where ) {
 				$this->deletes[] = array( $table, $where );
@@ -143,8 +158,9 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	private function deleted_ids(): array {
 		$ids = array();
 		foreach ( $this->deletes as $delete ) {
-			$this->assertSame( 'wp_ffc_recruitment_notice', $delete[0] );
-			$ids[] = (int) $delete[1]['id'];
+			if ( 'wp_ffc_recruitment_notice' === $delete[0] ) {
+				$ids[] = (int) $delete[1]['id'];
+			}
 		}
 		return $ids;
 	}
@@ -318,13 +334,34 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_column_code_renders_edit_and_delete_row_actions(): void {
-		$out = $this->call_protected( 'column_code', array( array( 'id' => 5, 'code' => 'EDITAL-5' ) ) );
+		$out = $this->call_protected( 'column_code', array( array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => 'draft' ) ) );
 
 		$this->assertStringContainsString( 'EDITAL-5', $out );
 		$this->assertStringContainsString( 'action=edit-notice', $out );
 		$this->assertStringContainsString( 'action=delete-notice', $out );
 		$this->assertStringContainsString( 'submitdelete', $out );
 		$this->assertStringContainsString( 'row-actions', $out );
+	}
+
+	/**
+	 * @dataProvider provider_published_statuses
+	 */
+	public function test_column_code_offers_no_delete_on_a_published_notice( string $status ): void {
+		$out = $this->call_protected( 'column_code', array( array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => $status ) ) );
+
+		$this->assertStringContainsString( 'action=edit-notice', $out );
+		$this->assertStringNotContainsString( 'action=delete-notice', $out, 'Only a draft is deletable (#2245).' );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provider_published_statuses(): array {
+		return array(
+			'preliminary' => array( 'preliminary' ),
+			'definitive'  => array( 'definitive' ),
+			'closed'      => array( 'closed' ),
+		);
 	}
 
 	// ------------------------------------------------------------------
@@ -422,9 +459,14 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 
+		// The activity log stays off: no settings, so the delete is not logged.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_option' )->justReturn( array() );
+		$this->seed_reader( array( $this->notice_obj( 3, 'A', 'A' ), $this->notice_obj( 4, 'B', 'B', 'definitive' ) ) );
+
 		$this->call_protected( 'process_bulk_action' );
 
-		$this->assertSame( array( 3, 4 ), $this->deleted_ids() );
+		$this->assertSame( array( 3 ), $this->deleted_ids(), 'The published notice in the selection is kept (#2245).' );
 	}
 
 	public function test_process_bulk_action_denied_without_delete_cap(): void {

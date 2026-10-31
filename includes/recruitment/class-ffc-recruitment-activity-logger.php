@@ -360,6 +360,27 @@ final class RecruitmentActivityLogger {
 	}
 
 	/**
+	 * Draft notice deleted with its lists and adjutancy links (#2245).
+	 *
+	 * @param int    $notice_id       Notice ID (the row no longer exists at log time).
+	 * @param string $code            Notice code, so the entry still names it.
+	 * @param int    $classifications Classification rows removed with it.
+	 * @return void
+	 */
+	public static function notice_deleted( int $notice_id, string $code, int $classifications ): void {
+		ActivityLog::log(
+			'recruitment_notice_deleted',
+			ActivityLog::LEVEL_WARNING,
+			array(
+				'notice_id'       => $notice_id,
+				'code'            => $code,
+				'classifications' => $classifications,
+			),
+			get_current_user_id()
+		);
+	}
+
+	/**
 	 * Candidate hard-deleted (gate already checked by RecruitmentDeleteService).
 	 *
 	 * @param int         $candidate_id Candidate ID (the row no longer exists at log time).

@@ -418,6 +418,32 @@ class RecruitmentClassificationRepository {
 	}
 
 	/**
+	 * Delete every classification of a notice, whatever its list (#2245).
+	 *
+	 * Only a draft notice is ever deleted, so no row here can carry a call;
+	 * {@see RecruitmentDeleteService::delete_notice()} checks that before it
+	 * calls this inside its transaction.
+	 *
+	 * @param int $notice_id Notice ID.
+	 * @return int|false Rows deleted, or false on a database error.
+	 */
+	public static function delete_all_for_notice( int $notice_id ) {
+		$wpdb  = self::db();
+		$table = self::get_table_name();
+
+		$result = $wpdb->delete( $table, array( 'notice_id' => $notice_id ), array( '%d' ) );
+		if ( false === $result ) {
+			return false;
+		}
+
+		if ( $result > 0 ) {
+			do_action( 'ffc_recruitment_public_cache_dirty' );
+		}
+
+		return (int) $result;
+	}
+
+	/**
 	 * Count distinct notices each promoted candidate participates in,
 	 * grouped by their linked `wp_users.ID`. Used by the admin Users
 	 * list "Notices" column to render the per-user count in one batch

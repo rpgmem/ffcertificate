@@ -1997,10 +1997,6 @@ msgstr ""
 msgid "Answers an arithmetic question."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:96
-msgid "Any classifications, calls and adjutancy links referencing it are detached."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-tokens.php:106
 msgid "Any custom field name you created"
 msgstr ""
@@ -16889,10 +16885,6 @@ msgstr ""
 msgid "The new close time must stay within the same day."
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:95
-msgid "The notice and its candidate rows will be permanently removed."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:236
 msgid "The notice moves to `definitive`. The classification list is locked as final."
 msgstr ""
@@ -22726,10 +22718,6 @@ msgid "The Scheduling → Settings → Import & Export tab imports and exports a
 msgstr ""
 
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
-msgstr ""
-
-
-msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew. Importing a candidate also links or creates their WordPress account (matched by CPF, RF or e-mail), which is what lets them follow their own call-ups."
 msgstr ""
 
 msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
@@ -30629,4 +30617,44 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:20
 msgid "A personal calendar books one-on-one appointments in time slots (e.g. consultations). Each calendar is created under the Scheduling menu → Personal Calendars and configured in one Calendar Configuration box, split into tabs: Calendar, Slots & hours, Booking window, Blocked dates (once the calendar is saved), Cancellation, Approval & waitlist, Who can see and book, Administrator bypass, Names, Emails, and Occupancy (on a saved custom-mode calendar). A dot on the Cancellation and Administrator bypass tabs shows whether each is on."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notices-list-table.php:99
+msgid "The draft notice, its imported lists and its adjutancy links will be permanently removed."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:313
+msgid "Notice Deleted"
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php:210
+msgid "Recruitment: candidate accounts (one per batch)"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:116
+msgid "Only a draft notice can be deleted. A published notice can only be closed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:117
+msgid "Could not delete the notice. Nothing was removed."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:122
+msgid "The definitive list can only be imported while the notice is in `preliminary`. Nothing was imported."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php:123
+msgid "The definitive list cannot be replaced: this notice already has calls. Nothing was imported."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:68
+msgid "Candidates are imported from CSV (headers: name, cpf, rf, email, adjutancy, rank, score, pcd, plus optional phone, time_points, hab_emebs) into either the preliminary or the definitive list. The definitive list is imported only while the notice is preliminary and has no calls, and the import promotes the notice in the same step, so a refused import changes nothing. Call-ups are recorded per candidate; calling out of rank order requires a reason. Outcomes move a candidate through called → accepted / not_shown / hired / withdrew."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:70
+msgid "Candidate accounts are linked or created once the notice reaches preliminary, never for a draft. A background task handles them in batches after the import: it links an existing WordPress account (matched by CPF, RF or e-mail) and creates one only when none exists, without the welcome e-mail. A candidate who already has an account keeps it, so a re-import moves nothing. The linked account is what lets the candidate follow their own call-ups."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:71
+msgid "Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay."
 msgstr ""

@@ -558,6 +558,14 @@ jobs:
         # exact selection; it then checks the per-date block read and the
         # per-slot capacity count, and deletes what it planted.
         run: php .github/scripts/self-scheduling-query-check.php "$HOME/wp"
+      - name: Check the recruitment import, promotion and deletion flow
+        # #2245: every recruitment unit test mocks $wpdb, so none could see a
+        # definitive import wipe called rows before its state check refused
+        # it, a notice deletion orphan its lists, or accounts created inside
+        # an import that rolled back. The script runs import -> promote ->
+        # call -> refused re-import -> refused delete -> cancel on one notice,
+        # deletes a draft with its rows, and removes what it planted.
+        run: php .github/scripts/recruitment-flow-check.php "$HOME/wp"
       - name: Plant the residue the sweeps must remove
         # #1290: removal used to intersect a hand-written list, and the list
         # named 31 of the 60 live capabilities, so 40 survived every uninstall.

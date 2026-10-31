@@ -178,18 +178,13 @@ class RecruitmentNoticeAdjutancyRepository {
 	/**
 	 * Detach all adjutancies from a notice.
 	 *
-	 * Convenience method used by the notice deletion path (if/when notice
-	 * deletion is added) and by tests. Not used in v1's main flows.
+	 * The notice deletion path calls it inside its transaction (#2245), which
+	 * is what took it off the #2089 deprecation list.
 	 *
 	 * @param int $notice_id Notice ID.
 	 * @return int Number of pairs removed.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
 	 */
 	public static function detach_all_for_notice( int $notice_id ): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
 		$wpdb  = self::db();
 		$table = self::get_table_name();
 

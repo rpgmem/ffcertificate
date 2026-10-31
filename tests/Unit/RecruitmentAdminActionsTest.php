@@ -49,6 +49,20 @@ class RecruitmentAdminActionsTest extends TestCase {
 	/** @var array<int, object> Candidate rows by id. */
 	private array $candidates = array();
 
+	/**
+	 * Notice rows by id, as the reader resolves them.
+	 *
+	 * @var array<int, object>
+	 */
+	private array $notices = array();
+
+	/**
+	 * Transaction statements run, in order.
+	 *
+	 * @var list<string>
+	 */
+	private array $statements = array();
+
 	/** @var array<int, int> Classification count per candidate id. */
 	private array $candidate_classifications = array();
 
@@ -99,6 +113,8 @@ class RecruitmentAdminActionsTest extends TestCase {
 		$this->prepared                  = array();
 		$this->reason_refs               = array();
 		$this->candidates                = array();
+		$this->notices                   = array();
+		$this->statements                = array();
 		$this->candidate_classifications = array();
 		$this->adjutancies               = array();
 		$this->adjutancy_notices         = array();
@@ -115,6 +131,12 @@ class RecruitmentAdminActionsTest extends TestCase {
 			}
 		);
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $q ) => $this->answer_var( (string) $q ) );
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) {
+				$this->statements[] = (string) $q;
+				return 1;
+			}
+		);
 		$wpdb->shouldReceive( 'get_row' )->andReturnUsing( fn( $q ) => $this->answer_row( (string) $q ) );
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing( fn( $q ) => $this->answer_col( (string) $q ) );
 		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
@@ -155,6 +177,9 @@ class RecruitmentAdminActionsTest extends TestCase {
 
 	private function answer_var( string $token ) {
 		[ $sql, $args ] = $this->statement( $token );
+		if ( false !== strpos( $sql, 'INNER JOIN %i cl ON cl.id = c.classification_id' ) ) {
+			return '0';
+		}
 		$table          = (string) $args[0];
 		$id             = (int) $args[1];
 		if ( 'SELECT COUNT(*) FROM %i WHERE preview_reason_id = %d' === $sql && 'wp_ffc_recruitment_classification' === $table ) {
@@ -175,6 +200,9 @@ class RecruitmentAdminActionsTest extends TestCase {
 		$id             = (int) $args[1];
 		if ( 'SELECT * FROM %i WHERE id = %d' === $sql && 'wp_ffc_recruitment_candidate' === $table ) {
 			return $this->candidates[ $id ] ?? null;
+		}
+		if ( 'SELECT * FROM %i WHERE id = %d' === $sql && 'wp_ffc_recruitment_notice' === $table ) {
+			return $this->notices[ $id ] ?? null;
 		}
 		if ( 'SELECT * FROM %i WHERE id = %d' === $sql && 'wp_ffc_recruitment_adjutancy' === $table ) {
 			return $this->adjutancies[ $id ] ?? null;
@@ -204,17 +232,56 @@ class RecruitmentAdminActionsTest extends TestCase {
 		return '';
 	}
 
-	public function test_delete_notice_deletes_and_redirects_to_notices_tab(): void {
+	public function test_delete_notice_deletes_a_draft_with_its_rows_and_redirects(): void {
 		$_GET['notice_id'] = '42';
+		$this->notices[42] = (object) array(
+			'id'     => '42',
+			'code'   => 'ED-42',
+			'status' => 'draft',
+		);
 
 		$url = $this->dispatchCapture( 'delete-notice' );
 
 		$this->assertSame(
-			array( array( 'wp_ffc_recruitment_notice', array( 'id' => 42 ) ) ),
+			array(
+				array( 'wp_ffc_recruitment_classification', array( 'notice_id' => 42 ) ),
+				array( 'wp_ffc_recruitment_notice_adjutancy', array( 'notice_id' => 42 ) ),
+				array( 'wp_ffc_recruitment_notice', array( 'id' => 42 ) ),
+			),
 			$this->deletes
 		);
+		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->statements, 'One transaction (#2245).' );
 		$this->assertStringContainsString( 'tab=notices', $url );
 		$this->assertStringContainsString( 'page=ffc-recruitment', $url );
+	}
+
+	/**
+	 * @dataProvider provider_published_statuses
+	 */
+	public function test_delete_notice_refuses_a_published_notice( string $status ): void {
+		$_GET['notice_id'] = '42';
+		$this->notices[42] = (object) array(
+			'id'     => '42',
+			'code'   => 'ED-42',
+			'status' => $status,
+		);
+
+		$url = $this->dispatchCapture( 'delete-notice' );
+
+		$this->assertSame( array(), $this->deletes, 'Only a draft is deleted (#2245).' );
+		$this->assertSame( array(), $this->statements );
+		$this->assertStringContainsString( 'tab=notices', $url );
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provider_published_statuses(): array {
+		return array(
+			'preliminary' => array( 'preliminary' ),
+			'definitive'  => array( 'definitive' ),
+			'closed'      => array( 'closed' ),
+		);
 	}
 
 	public function test_dispatch_is_noop_without_manage_cap(): void {

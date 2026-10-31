@@ -107,7 +107,9 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffcertificate_audience_post_event_invites', $cleared );
 		// The old-appointment close-out (#2285).
 		$this->assertContains( 'ffcertificate_self_scheduling_closeout', $cleared );
-		$this->assertCount( 15, $cleared );
+		// The recruitment account batch (#2245).
+		$this->assertContains( 'ffc_recruitment_account_link_batch', $cleared );
+		$this->assertCount( 16, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

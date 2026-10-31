@@ -180,6 +180,12 @@ final class RecruitmentNoticeStateMachine {
 				RecruitmentNoticeWriter::mark_closed( $notice_id );
 				break;
 		}
+
+		// Accounts are made once the list is published, never for a draft
+		// (#2245). Queued, not run here: a notice can hold thousands of rows.
+		if ( 'preliminary' === $new_status || 'definitive' === $new_status ) {
+			RecruitmentAccountLinker::schedule( $notice_id, $new_status );
+		}
 	}
 
 	/**

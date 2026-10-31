@@ -104,6 +104,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'remove_accents' )->returnArg();
 		Functions\when( 'sanitize_user' )->returnArg();
 		Functions\when( 'wp_generate_password' )->justReturn( 'generated-password' );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->justReturn( true );
 		$created = &$this->created_users;
 		Functions\when( 'wp_create_user' )->alias(
 			static function ( $username ) use ( &$created ) {
@@ -259,10 +261,12 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	private function notice_stub( string $status ): object {
 		return (object) array(
-			'id'     => '5',
-			'code'   => 'EDITAL',
-			'name'   => 'Edital',
-			'status' => $status,
+			'id'        => '5',
+			'code'      => 'EDITAL',
+			'name'      => 'Edital',
+			'status'    => $status,
+			'opened_at' => null,
+			'closed_at' => null,
 		);
 	}
 
@@ -596,8 +600,9 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	}
 
 	public function test_promote_batch_processes_rows_and_flips_state(): void {
-		// upsert_candidate path → no existing candidate, then create; the
-		// account creation fails, so no user is linked to the candidate.
+		// upsert_candidate path → no existing candidate, then create. No
+		// account is resolved here any more (#2245): that is the account
+		// batch's job, once the notice leaves draft.
 		$this->arrange_new_candidates();
 
 		$this->on(
@@ -654,7 +659,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		$candidate_updates = array_map( static fn( array $c ): array => $c[2][1], $this->calls_to( 'update', '/^wp_ffc_recruitment_candidate$/' ) );
 		$this->assertCount( 1, $candidate_updates, 'Only the pcd-hash refresh touches the candidate: no user is linked.' );
 		$this->assertSame( RecruitmentPcdHasher::compute( 100, false ), $candidate_updates[0]['pcd_hash'] );
-		$this->assertSame( array( 'alice' ), $this->created_users );
+		$this->assertSame( array(), $this->created_users, 'The import creates no account (#2245).' );
 	}
 
 	// ==================================================================
@@ -737,6 +742,7 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 
 	public function test_commit_job_swaps_staging_into_classifications(): void {
 		$this->arrange_promoting_job();
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
 		$this->on( 'query', '/^(START TRANSACTION|COMMIT)$/', 1 );
 		$this->on( 'query', '/^INSERT INTO `wp_ffc_recruitment_classification`/', 4, 1 );
 		$this->on( 'update', '/^wp_ffc_recruitment_import_jobs$/', 1, 1 );
@@ -805,15 +811,16 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	}
 
 	public function test_import_definitive_commits_rows_on_happy_path(): void {
-		$this->store_notice( $this->notice_stub( 'definitive' ) );
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
 		$this->arrange_run_writes( 200 );
+		$this->arrange_promotion();
 
 		$out = RecruitmentCsvImporter::import_definitive(
 			5,
 			self::HEADER . 'Alice,' . Identifiers::CPF_A . ",,a@b.test,mat,1,90,Sim\nBob," . Identifiers::CPF_B . ',,b@b.test,mat,2,80,Não'
 		);
 
-		$this->assertTrue( $out['success'] );
+		$this->assertTrue( $out['success'], implode( ' | ', $out['errors'] ) );
 		$this->assertSame( 2, $out['inserted'] );
 		$this->assertSame( array(), $out['errors'] );
 		$this->assertSame( array( 'START TRANSACTION', 'COMMIT' ), $this->transaction_statements() );
@@ -833,10 +840,72 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 			array( Encryption::hash( Identifiers::CPF_A ), Encryption::hash( Identifiers::CPF_B ) ),
 			array_column( $this->candidate_inserts(), 'cpf_hash' )
 		);
+		$this->assertCount( 1, $this->calls_to( 'query', "/SET status = 'definitive'/" ), 'The promotion ran inside the transaction (#2245).' );
+		$this->assertSame( array(), $this->created_users, 'Accounts come from the batch, not the import.' );
+	}
+
+	public function test_import_definitive_rolls_back_the_rows_when_the_promotion_loses(): void {
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
+		$this->arrange_run_writes( 200 );
+		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', '0' );
+		// Another request promoted the notice first: the conditional UPDATE matches nothing.
+		$this->on( 'query', "/SET status = 'definitive'/", 0, 1 );
+
+		$out = RecruitmentCsvImporter::import_definitive(
+			5,
+			self::HEADER . 'Alice,' . Identifiers::CPF_A . ',,a@b.test,mat,1,90,Sim'
+		);
+
+		$this->assertFalse( $out['success'] );
+		$this->assertSame( array( 'recruitment_transition_race_lost' ), $out['errors'] );
+		$this->assertSame( array( 'START TRANSACTION', 'ROLLBACK' ), $this->transaction_statements() );
+	}
+
+	/**
+	 * @dataProvider provider_refused_statuses
+	 */
+	public function test_import_definitive_refuses_before_any_write( string $status, int $calls, string $error ): void {
+		$this->store_notice( $this->notice_stub( $status ) );
+		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', (string) $calls );
+
+		$out = RecruitmentCsvImporter::import_definitive(
+			5,
+			self::HEADER . 'Alice,' . Identifiers::CPF_A . ',,a@b.test,mat,1,90,Sim'
+		);
+
+		$this->assertFalse( $out['success'] );
+		$this->assertSame( array( $error ), $out['errors'] );
+		$this->assertSame( array(), $this->calls_to( 'query' ), 'Refused before the transaction opens (#2245).' );
+		$this->assertSame( array(), $this->calls_to( 'delete' ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: int, 2: string}>
+	 */
+	public function provider_refused_statuses(): array {
+		return array(
+			'draft'                   => array( 'draft', 0, 'recruitment_definitive_import_requires_preliminary' ),
+			'definitive'              => array( 'definitive', 0, 'recruitment_definitive_import_requires_preliminary' ),
+			'closed'                  => array( 'closed', 0, 'recruitment_definitive_import_requires_preliminary' ),
+			'preliminary with calls'  => array( 'preliminary', 3, 'recruitment_definitive_import_blocked_by_calls' ),
+		);
+	}
+
+	/**
+	 * Arrange the promotion the definitive run commits with its rows: no
+	 * calls on the notice, the conditional status UPDATE and the stamps.
+	 *
+	 * @return void
+	 */
+	private function arrange_promotion(): void {
+		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', '0' );
+		$this->on( 'query', "/SET status = 'definitive'/", 1, 1 );
+		$this->on( 'query', '/^UPDATE `?wp_ffc_recruitment_notice`? SET (opened_at|was_reopened)/', 1 );
 	}
 
 	public function test_import_definitive_rolls_back_when_classification_insert_fails(): void {
-		$this->store_notice( $this->notice_stub( 'definitive' ) );
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
+		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', '0' );
 		// The classification insert fails → rollback.
 		$this->arrange_run_writes( false );
 
@@ -851,7 +920,8 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 	}
 
 	public function test_import_definitive_propagates_validation_errors(): void {
-		$this->store_notice( $this->notice_stub( 'definitive' ) );
+		$this->store_notice( $this->notice_stub( 'preliminary' ) );
+		$this->on( 'get_var', '/FROM `?wp_ffc_recruitment_call`? c/', '0' );
 
 		// Row references an adjutancy slug not attached to the notice.
 		$out = RecruitmentCsvImporter::import_definitive(

@@ -64,7 +64,8 @@ final class RecruitmentAdminActions {
 				$id = RequestInput::get_get_int( 'notice_id' );
 				if ( $id > 0 ) {
 					check_admin_referer( 'ffc_recruitment_delete_notice_' . $id );
-					RecruitmentNoticeWriter::delete( $id );
+					// Draft only, with its rows, in one transaction (#2245).
+					RecruitmentDeleteService::delete_notice( $id );
 				}
 				wp_safe_redirect(
 					add_query_arg(
