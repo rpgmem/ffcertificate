@@ -156,20 +156,29 @@ trait DatabaseHelperTrait {
 	/**
 	 * Add an index to a table if it doesn't already exist.
 	 *
+	 * A specification without its parentheses is wrapped: `ADD INDEX idx col`
+	 * is a syntax error, and a bare `'series_id'` once left an index uncreated
+	 * and a schema heal re-running on every request (#2345).
+	 *
 	 * @param string $table_name Full table name.
 	 * @param string $index_name Index name.
 	 * @param string $columns    Column specification (e.g. '(form_id, status)').
-	 * @return bool True if index was added, false if already existed.
+	 * @return bool True if the index was added; false if it already existed or the ALTER failed.
 	 */
 	protected static function add_index_if_missing( string $table_name, string $index_name, string $columns ): bool {
 		if ( self::index_exists( $table_name, $index_name ) ) {
 			return false;
 		}
 
+		$columns = trim( $columns );
+		if ( '(' !== substr( $columns, 0, 1 ) ) {
+			$columns = '(' . $columns . ')';
+		}
+
 		global $wpdb;
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $columns is a column specification from trusted internal config.
-		$wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD INDEX %i {$columns}", $table_name, $index_name ) );
-		return true;
+		$result = $wpdb->query( $wpdb->prepare( "ALTER TABLE %i ADD INDEX %i {$columns}", $table_name, $index_name ) );
+		return false !== $result;
 	}
 
 	/**

@@ -313,6 +313,36 @@ class DatabaseHelperTraitTest extends TestCase {
 		$this->assertStringContainsString( '(form_id)', (string) $captured );
 	}
 
+	public function test_add_index_if_missing_wraps_a_bare_column_spec(): void {
+		// `ADD INDEX idx col` is a syntax error; a bare spec left the series
+		// index uncreated and the audience heal re-running on every request.
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$captured = null;
+		$this->wpdb->shouldReceive( 'query' )
+			->once()
+			->andReturnUsing(
+				function ( $sql ) use ( &$captured ) {
+					$captured = $sql;
+					return 1;
+				}
+			);
+
+		$this->assertTrue(
+			DatabaseHelperTraitHost::pub_add_index_if_missing( 'wp_foo', 'idx_series', ' series_id ' )
+		);
+		$this->assertStringEndsWith( '(series_id)', (string) $captured );
+	}
+
+	public function test_add_index_if_missing_reports_a_failed_alter(): void {
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'query' )->once()->andReturn( false );
+
+		$this->assertFalse(
+			DatabaseHelperTraitHost::pub_add_index_if_missing( 'wp_foo', 'idx_form', '(form_id)' )
+		);
+	}
+
 	// ──────────────────────────────────────────────────────────────.
 	// add_columns_if_missing() + add_indexes_if_missing() — aggregates
 	// ──────────────────────────────────────────────────────────────.
