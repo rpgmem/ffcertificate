@@ -11,6 +11,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Dev toolchain: `minimatch` forced to 11.0.1 or later through `overrides`** (#2334). Clears GHSA-g3hv-75wg-m249, reached through ESLint and through `glob` 7 under `clean-css-cli`; no upstream release had moved off the vulnerable range. Nothing ships: the build output is byte-identical.
 
+### Fixed
+
+- **Audience Calendars: the weekly-series index is created, and the schema heal stops re-running on every request** (#2345). The index was declared without parentheses, so its `ALTER` failed, the revision never pinned and each request logged a database error. The index helper now wraps a bare column list and reports a failed `ALTER`.
+
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
 ### Added

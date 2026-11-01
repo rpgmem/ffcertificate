@@ -453,6 +453,7 @@ class AudienceActivatorTest extends TestCase {
 		// A weekly series is found by its first booking (#2243).
 		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date', 'idx_series' ), $indexes );
 		$this->assertStringContainsString( "ADD COLUMN 'series_id'", $alters );
+		$this->assertStringContainsString( "ADD INDEX 'idx_series' (series_id)", $alters, 'the series index carries its parentheses' );
 		$this->assertLessThan(
 			strpos( $alters, "DROP INDEX 'idx_environment'" ),
 			strpos( $alters, "ADD INDEX 'idx_env_status_date'" ),

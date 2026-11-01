@@ -1094,7 +1094,7 @@ class AudienceActivator {
 		}
 
 		self::add_column_if_missing( $table_name, 'series_id', 'bigint(20) unsigned DEFAULT NULL', 'post_event_attendees_only' );
-		self::add_index_if_missing( $table_name, 'idx_series', 'series_id' );
+		self::add_index_if_missing( $table_name, 'idx_series', '(series_id)' );
 
 		return self::has_columns( $table_name, array( 'series_id' ) ) && self::index_exists( $table_name, 'idx_series' );
 	}
