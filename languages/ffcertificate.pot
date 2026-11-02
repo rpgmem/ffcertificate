@@ -22497,9 +22497,6 @@ msgstr ""
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr ""
 
-msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: a holder of ffc_manage_certificates can fix a typo in an issued certificate with the pencil beside the answer under Form answers, which opens the correction under that answer with its current value filled in. It changes one answer at a time, the name included but never CPF/RF or e-mail, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as corrected, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
-msgstr ""
-
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
 msgstr ""
 
@@ -24831,10 +24828,6 @@ msgstr ""
 msgid "A person grades the answer, from 0 to the points. A submission with such an answer waits as \"Awaiting Grading\"; the certificate, or the result, is emailed once it is graded."
 msgstr ""
 
-#: includes/settings/views/documentation/submissions-list.php:30
-msgid "A quiz attempt awaiting grading opens with a \"Grade open answers\" card above the record: each open answer, a points field from 0 to what the question is worth, and what the automatic questions already earned. Saving the grades decides the attempt — a pass issues the document, a result below the passing score becomes Retry or Failed — and emails the participant the result. It needs the \"Grade quiz answers\" capability."
-msgstr ""
-
 #: includes/admin/class-ffc-admin.php:395
 msgid "Answers graded: the attempt is below the passing score, and the participant was told the result."
 msgstr ""
@@ -24845,10 +24838,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin.php:402
 msgid "Give every open answer a grade."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php:199
-msgid "Grade open answers"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:188
@@ -29132,40 +29121,7 @@ msgid "The CEP comes right before the address, and audiences created before this
 msgstr ""
 
 #. includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Change grades"
-msgstr ""
-
-#. includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed."
-msgstr ""
-
-#. includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Graded answers"
-msgstr ""
-
-#. includes/admin/class-ffc-admin.php
-msgid "Grades changed and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed."
-msgstr ""
-
-#. includes/admin/class-ffc-admin-activity-log-page.php
-msgid "Quiz Regraded"
-msgstr ""
-
-#. includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Reason for the change"
-msgstr ""
-
-#. includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "Save the grades and send the result to the participant? This decides the attempt."
-msgstr ""
-
-#. includes/admin/class-ffc-admin.php
-msgid "Say why the grade changes: the reason is required."
-msgstr ""
-
-#. includes/admin/class-ffc-admin-submission-edit-page.php
-#, php-format
-msgid "The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake."
 msgstr ""
 
 #. includes/admin/class-ffc-admin-submission-edit-page.php
@@ -29184,52 +29140,12 @@ msgstr ""
 msgid "A form takes submissions only while it is published: a draft, a private or a trashed form refuses them, with a message asking the visitor to contact the organizer, even when its shortcode is still on a page. What a participant types prints in the certificate as text; markup typed into a field is shown as written, never drawn."
 msgstr ""
 
-#: includes/admin/class-ffc-answer-correction-handler.php
-msgid "You do not have permission to correct answers."
-msgstr ""
-
-#: includes/admin/class-ffc-admin.php
-msgid "Answer corrected and recorded in the activity log. The certificate shows it the next time it is generated."
-msgstr ""
-
-#: includes/admin/class-ffc-admin.php
-msgid "Say why the answer changes: the reason is required."
-msgstr ""
-
 #: includes/admin/class-ffc-admin.php
 msgid "The new value is the same as the stored one, so nothing changed."
 msgstr ""
 
-#: includes/admin/class-ffc-admin.php
-msgid "That answer cannot be corrected here. CPF/RF and e-mail are changed through identity resolution."
-msgstr ""
-
-#: includes/admin/class-ffc-admin.php
-msgid "The answer could not be corrected. Reload the submission and try again."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-activity-log-page.php
-msgid "Answer Corrected"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Corrected after issue; see the activity log."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "New value"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Reason for the correction"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Correct answer"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Correct this answer? The old and new values and the reason are recorded in the activity log."
 msgstr ""
 
 #: includes/frontend/class-ffc-verification-handler.php
@@ -31178,10 +31094,6 @@ msgstr ""
 msgid "Quiz attempt"
 msgstr ""
 
-#: includes/settings/views/documentation/submissions-list.php
-msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so a correction cannot change them."
-msgstr ""
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Forgot your password?"
 msgstr ""
@@ -31347,12 +31259,122 @@ msgstr ""
 msgid "The password is stored encrypted with the plugin's key and never shown again: the tab says a password is saved, and \"Change password\" opens an empty field for a new one. Saving with the field closed or empty keeps the saved password; to stop using one, turn custom SMTP off. Only a holder of ffc_manage_settings_smtp can change it."
 msgstr ""
 
-#. includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "A typo in an issued certificate? Use the answer's pencil. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1041
+msgid "A typo in an answer? Use its pencil to amend it. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
 msgstr ""
 
-#. translators: %s: the answer's label
-#. includes/admin/class-ffc-admin-submission-edit-page.php
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1121
 #, php-format
-msgid "Correct %s"
+msgid "Amend %s"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1211
+msgid "Amend answer"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:349
+msgid "Amend grades"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:340
+msgid "Amend the grades? The amendment is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1218
+msgid "Amend this answer? The old and new values and the reason are recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1148
+msgid "Amended after issue; see the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:228
+msgid "Answer Amended"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:433
+msgid "Answer amended and recorded in the activity log. The certificate shows it the next time it is generated."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:257
+#, php-format
+msgid "Awaiting grading · %d open answer"
+msgid_plural "Awaiting grading · %d open answers"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:227
+msgid "Grades Amended"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:426
+msgid "Grades amended and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:31
+msgid "Grading happens in the same Form answers section. While a quiz attempt awaits grading the section opens with a chip saying how many open answers wait, the points the automatic questions already earned, and under each open answer a points field from 0 to what the question is worth. Saving the grades decides the attempt — a pass issues the document, a result below the passing score becomes Retry or Failed — and emails the participant the result. An open answer amended before the grades are saved is saved with them: first the answer, then the grades, and nothing at all if the amendment cannot be saved. Once graded, the grades stay filled in and can be amended with a reason, recorded in the Activity Log; the participant is e-mailed again only when the result changes between passed and not passed. Grading needs the \"Grade quiz answers\" capability."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:267
+#, php-format
+msgid "Not passed · %1$d of %2$d (%3$d%%)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:265
+#, php-format
+msgid "Passed · %1$d of %2$d (%3$d%%)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:329
+msgid "Reason for amending the grades"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1204
+msgid "Reason for the amendment"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:345
+msgid "Save the amendment and grades and send the result"
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:436
+msgid "Say why the answer is amended: the reason is required."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:429
+msgid "Say why the grades are amended: the reason is required."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:444
+msgid "That answer cannot be amended here. CPF/RF and e-mail are changed through identity resolution."
+msgstr ""
+
+#: includes/admin/class-ffc-admin.php:449
+msgid "The answer could not be amended. Reload the submission and try again."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:277
+#, php-format
+msgid "The attempt scored %1$d%%. The passing score is %2$d%%. Amend a grade only to fix a mistake."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:27
+msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: an answer can be amended to fix a typo in an issued certificate, with the pencil beside it under Form answers, which opens the amendment under that answer with its current value filled in. A holder of ffc_manage_certificates may amend any answer, the name included but never CPF/RF or e-mail; a holder of the \"Grade quiz answers\" capability may amend the open answers of a quiz. It changes one answer at a time, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as amended, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
+msgstr ""
+
+#: includes/settings/views/documentation/submissions-list.php:32
+msgid "Under Form answers, the quiz result the plugin records is listed with readable names among the protected fields: the score in points and in percent, the maximum score, whether the quiz was passed, the questions answered correctly, the scored questions, the attempt number and the times the quiz window was left. None of them is an answer, so an amendment cannot change them."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1232
+msgid "While the attempt awaits grading, the amendment is saved with the grades: first the answer, then the grades. If the amendment cannot be saved, nothing is."
+msgstr ""
+
+#: includes/admin/class-ffc-answer-correction-handler.php:164
+msgid "You do not have permission to amend this answer."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-submission-edit-page.php:1139
+msgctxt "quiz answer graded by hand"
+msgid "Open"
 msgstr ""

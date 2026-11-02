@@ -116,8 +116,30 @@
     overflow-wrap: anywhere;
 }
 
-/* Quiz grading card (#1732): one open answer per block. */
-.ffc-grade-question + .ffc-grade-question {
+/*
+ * Grading inside "Form answers" (#2356): the summary above the answers, each
+ * open answer quoted with its points field, the save at the foot.
+ */
+.ffc-grade-summary {
+    margin-top: 0;
+}
+
+.ffc-answer-tag {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-2xs);
+    padding: 0 var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 600;
+}
+
+.ffc-grade-points {
+    margin: 0;
+}
+
+.ffc-grade-footer {
     margin-top: var(--ffc-spacing-md);
     padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-border-light);
@@ -320,7 +342,7 @@
 }
 
 /*
- * An answer is corrected on its own row (#2354): the value and its pencil
+ * An answer is amended on its own row (#2354): the value and its pencil
  * share a line, and the editor the pencil opens sits under the value.
  */
 .ffc-answer-row {
@@ -346,7 +368,8 @@
     background: var(--ffc-gray-50);
 }
 
-.ffc-correct-inline[hidden] {
+.ffc-correct-inline[hidden],
+.ffc-correct-inline [hidden] {
     display: none;
 }
 

@@ -275,6 +275,99 @@ class QuizGradingHandlerTest extends TestCase {
 		$this->assertSame( array(), $this->updates );
 	}
 	// =====================================================================
+	// Amending an open answer while it waits (#2356)
+	// =====================================================================
+
+	/**
+	 * An amender whose outcome is fixed, recording when it ran.
+	 *
+	 * @param string             $outcome What `correct()` returns.
+	 * @param array<int, string> $order   Receives `amend` when it runs.
+	 */
+	private function amender( string $outcome, array &$order ): \FreeFormCertificate\Admin\AnswerCorrectionHandler {
+		$amender = Mockery::mock( \FreeFormCertificate\Admin\AnswerCorrectionHandler::class );
+		$amender->shouldReceive( 'correct' )->with( 5, 'essay', 'Because of this.', 'A typo in the answer' )->andReturnUsing(
+			function () use ( $outcome, &$order ) {
+				$order[] = array() === $this->updates ? 'amend' : 'amend after a grade';
+				return $outcome;
+			}
+		);
+		return $amender;
+	}
+
+	public function test_an_amendment_rides_the_grading_save_answer_first(): void {
+		$order = array();
+		$spy   = $this->grader( $this->row() );
+
+		$this->assertSame( 'quiz_graded_passed', $spy->amend_and_grade( $this->amender( 'answer_corrected', $order ), 5, 'essay', 'Because of this.', 'A typo in the answer', array( 'essay' => 4 ) ) );
+		$this->assertSame( array( 'amend' ), $order, 'The answer is amended before any grade is written.' );
+		$this->assertSame( SubmissionStatus::PUBLISH, $this->updates[5]['status'], 'Then the grades are saved.' );
+		$this->assertCount( 1, $spy->sent );
+	}
+
+	public function test_a_refused_amendment_saves_no_grade(): void {
+		$order = array();
+		$spy   = $this->grader( $this->row() );
+
+		$this->assertSame( 'answer_no_reason', $spy->amend_and_grade( $this->amender( 'answer_no_reason', $order ), 5, 'essay', 'Because of this.', 'A typo in the answer', array( 'essay' => 4 ) ) );
+		$this->assertSame( array(), $this->updates );
+		$this->assertSame( array(), $spy->sent );
+	}
+
+	public function test_an_unchanged_answer_still_grades(): void {
+		$order = array();
+		$spy   = $this->grader( $this->row() );
+
+		$this->assertSame( 'quiz_graded_not_passed', $spy->amend_and_grade( $this->amender( 'answer_unchanged', $order ), 5, 'essay', 'Because of this.', 'A typo in the answer', array( 'essay' => 0 ) ) );
+		$this->assertSame( array( 'amend' ), $order );
+		$this->assertSame( SubmissionStatus::QUIZ_IN_PROGRESS, $this->updates[5]['status'] );
+	}
+
+	public function test_an_incomplete_grading_amends_nothing(): void {
+		$order = array();
+		$spy   = $this->grader( $this->row() );
+
+		$this->assertSame( 'quiz_grade_incomplete', $spy->amend_and_grade( $this->amender( 'answer_corrected', $order ), 5, 'essay', 'Because of this.', 'A typo in the answer', array() ) );
+		$this->assertSame( array(), $order, 'The grades are checked before the answer is touched.' );
+		$this->assertSame( array(), $this->updates );
+	}
+
+	public function test_an_attempt_already_graded_takes_no_combined_save(): void {
+		$order = array();
+		$spy   = $this->grader( $this->graded_row( SubmissionStatus::PUBLISH, 4 ) );
+
+		$this->assertSame( 'quiz_grade_stale', $spy->amend_and_grade( $this->amender( 'answer_corrected', $order ), 5, 'essay', 'Because of this.', 'A typo in the answer', array( 'essay' => 4 ) ) );
+		$this->assertSame( array(), $order );
+	}
+
+	public function test_handle_refuses_an_amendment_the_user_may_not_make(): void {
+		$_POST = array(
+			'submission_id'     => '5',
+			'ffc_correct_field' => 'name',
+			'ffc_grade'         => array( 'essay' => '4' ),
+		);
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		// A grader without the manager capability: only open answers.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_grade_certificates' === $cap );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\expect( 'wp_die' )->once()->andThrow( new \RuntimeException( 'die' ) );
+		$spy = $this->grader( $this->row() );
+
+		try {
+			$spy->handle();
+			$this->fail( 'A grader may not amend a closed answer.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		} finally {
+			$_POST = array();
+		}
+		$this->assertSame( array(), $this->updates );
+	}
+
+	// =====================================================================
 	// Regrade (#2241)
 	// =====================================================================
 
