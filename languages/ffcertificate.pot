@@ -31408,3 +31408,15 @@ msgstr ""
 #: includes/settings/views/documentation/scheduling-audiences.php:97
 msgid "The Post-event form tab on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This tab and the Attendance rule tab save each change as it is made, and the sentences describing them, in the tabs and in the summary, follow; reload the page to see the invitations."
 msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php:21
+msgid "Each type opens with example content, so the preview shows a code at once: the site address, its name, an open network, the administrator's e-mail, a sample phone number, your own contact card, a profile named after the site, or an event today from 9:00 to 10:00. Replace it with your own. A type you already typed into keeps what you typed."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-page.php:153
+msgid "MyNetwork"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php:25
+msgid "While the content is still the example, the code carries it directly and no short URL is created, not even on a download or a print. Once you change the content, the short URL works as described above: it is created on the first download or print."
+msgstr ""

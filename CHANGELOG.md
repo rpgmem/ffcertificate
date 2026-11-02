@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Attendance screen: vertical tabs and a summary** (#2360). Participants, Check-in by QR code, Attendance rule and Post-event form become the editors' vertical tabs, Participants open first and each action landing on its tab; a side summary shows the day, who is present, the check-in, the rule and the form.
 - **Reregistration campaign editor in vertical tabs** (#2362). Campaign, Email Notifications, Import answers and Invitations become tabs, with Save and a summary (status, period, affected users) in a side column. The editor layout is now the shared `.ffc-editor`.
 - **Recruitment candidate editor in vertical tabs** (#2363). General, Sensitive data, Classifications, History and Permanent deletion become tabs, each with its own save, beside a summary of the linked account, the classifications, the calls and the latest activity.
+- **QR Code Generator: each type opens with example content** (#2365). The preview draws at once from the site address, its name, an open network and the like; while the content is still the example no short URL is created, and one is created on the first download after a change.
 
 ### Security
 

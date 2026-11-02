@@ -148,6 +148,7 @@ describe('ffc-qr-generator.js', () => {
 	it('switching type shows its fields and redraws', async () => {
 		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 
 		window.$('input[value="wifi"]').prop('checked', true).trigger('change');
 		await flush();
@@ -534,6 +535,7 @@ describe('ffc-qr-generator.js', () => {
 		window.$('#ffc-qr-url').val('example.org').trigger('input');
 
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 		vi.advanceTimersByTime(400);
 
 		expect(spy).not.toHaveBeenCalled();
@@ -549,6 +551,7 @@ describe('ffc-qr-generator.js', () => {
 		vi.useFakeTimers();
 		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 
 		window.$('#ffc-qr-url').val('example.org').trigger('input');
 		expect(spy).not.toHaveBeenCalled();
@@ -611,6 +614,8 @@ describe('ffc-qr-generator.js', () => {
 				: { success: true, data: OK },
 		}));
 		window.FFC.QrGenerator.init();
+		await flush();
+		spy.mockClear();
 
 		window.$('#ffc-qr-design-reset').trigger('click');
 		await flush();
@@ -691,5 +696,58 @@ describe('ffc-qr-generator.js', () => {
 		// The radios keep their own values: only the checked one moved.
 		expect($form.find('[data-ffc-qr-design="qr_design_dots"]').map(function () { return this.value; }).get()).toEqual(['square', 'dots']);
 		expect($form.find('[data-ffc-qr-hex-for]').val()).toBe('#abcdef');
+	});
+
+	describe('example content (#2365)', () => {
+		beforeEach(() => {
+			window.ffcQrGenerator.examples = { url: { url: 'https://site.test/' } };
+			window.$('#ffc-qr-url').val('');
+		});
+		afterEach(() => {
+			delete window.ffcQrGenerator.examples;
+		});
+
+		it('fills an empty type with its example and draws it at once, with no short URL', async () => {
+			const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-url').val()).toBe('https://site.test/');
+			expect(spy).toHaveBeenCalledTimes(1);
+			expect(spy.mock.calls[0][1]).toMatchObject({ type: 'url', fields: { url: 'https://site.test/' }, short: '' });
+			expect(window.FFC.QrGenerator.isExample(window.$('#ffc-qr-generator'))).toBe(true);
+		});
+
+		it('a changed field asks for the short URL again', async () => {
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			window.$('#ffc-qr-url').val('https://site.test/news');
+			const $form = window.$('#ffc-qr-generator');
+			expect(window.FFC.QrGenerator.isExample($form)).toBe(false);
+			expect(window.FFC.QrGenerator.collect($form).short).toBe('1');
+		});
+
+		it('a download of the example creates no short URL', async () => {
+			const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: Object.assign({}, OK, { short: { example: true } }) } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+			spy.mockClear();
+
+			await window.FFC.QrGenerator.ensureShort(window.$('#ffc-qr-generator'));
+
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it('a type the user already typed into keeps what they typed', async () => {
+			window.$('#ffc-qr-url').val('mine.test');
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-url').val()).toBe('mine.test');
+			expect(window.FFC.QrGenerator.isExample(window.$('#ffc-qr-generator'))).toBe(false);
+		});
 	});
 });
