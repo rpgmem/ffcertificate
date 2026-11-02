@@ -13,7 +13,7 @@ use FreeFormCertificate\Services\UserService;
 use FreeFormCertificate\UserDashboard\CapabilityManager;
 
 /**
- * Tests for UserService: full profile retrieval, capabilities,
+ * Tests for UserService: full profile retrieval,
  * user statistics, personal data export, and FFC data presence check.
  *
  * Runs the real UserManager, UserProfileRepository, CapabilityManager,
@@ -255,7 +255,8 @@ class UserServiceTest extends TestCase {
 		$this->assertSame('john@example.com', $result['email']);
 		$this->assertSame('2024-01-15 10:30:00', $result['member_since']);
 		$this->assertSame(['ffc_end_user'], $result['roles']);
-		$this->assertArrayHasKey('capabilities', $result);
+		// No capability map: nothing read it, and it cost one user_can() per cap (#2342).
+		$this->assertArrayNotHasKey('capabilities', $result);
 	}
 
 	// ==================================================================
@@ -365,36 +366,6 @@ class UserServiceTest extends TestCase {
 
 		$this->assertArrayHasKey('preferences', $result);
 		$this->assertNull($result['preferences']);
-	}
-
-	// ==================================================================
-	// get_user_capabilities
-	// ==================================================================
-
-	public function test_get_user_capabilities_returns_cap_status_map(): void {
-		$all     = CapabilityManager::get_all_capabilities();
-		$granted = [$all[0], $all[1]];
-
-		Functions\when('user_can')->alias(function ($uid, $cap) use ($granted) {
-			return 42 === $uid && in_array($cap, $granted, true);
-		});
-
-		$result = UserService::get_user_capabilities(42);
-
-		$this->assertCount(count(array_unique($all)), $result);
-		$this->assertTrue($result[$all[0]]);
-		$this->assertTrue($result[$all[1]]);
-		$this->assertFalse($result[$all[2]]);
-	}
-
-	public function test_get_user_capabilities_reports_every_cap_false_when_user_holds_none(): void {
-		// Default: user_can returns false (from setUp)
-		$result = UserService::get_user_capabilities(42);
-
-		$this->assertSame(
-			array_fill_keys(CapabilityManager::get_all_capabilities(), false),
-			$result
-		);
 	}
 
 	// ==================================================================

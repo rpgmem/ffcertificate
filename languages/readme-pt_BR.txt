@@ -262,6 +262,17 @@ Em um modelo de certificado, use estas marcações dinâmicas. A lista completa,
 * `{{field_name}}` - Qualquer nome de campo definido no Construtor de formulários
 * Exemplos comuns: `{{name}}`, `{{email}}`, `{{cpf_rf}}`, `{{ticket}}`
 
+== Changelog ==
+
+O histórico completo de cada versão fica em [CHANGELOG.md](CHANGELOG.md), em inglês.
+
+== Upgrade Notice ==
+
+= 6.43.0 =
+⚠ Quatro funções de Encryption foram removidas, a rota de PDF do operador exige ffc_view_certificates_pii e GET /candidates/{id} devolve pcd por classificação. Novo: séries semanais de público, presença e bloqueios no calendário pessoal, motivos de revisão no recadastramento, endereço pelo CEP.
+
+Esta seção resume só a versão oferecida — o atualizador nunca oferece uma versão anterior. O que mudou em cada versão, e as issues de cada mudança, está em [CHANGELOG.md](CHANGELOG.md).
+
 == Privacidade e tratamento de dados ==
 
 = Dados coletados =

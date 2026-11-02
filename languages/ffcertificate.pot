@@ -9492,7 +9492,7 @@ msgid "Invalid RF format."
 msgstr ""
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:339 includes/frontend/submission/class-ffc-field-sanitizer.php:78
-msgid "Invalid RF. Must contain only numbers."
+msgid "Invalid RF: its check digit does not match. Check the number and try again."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:274

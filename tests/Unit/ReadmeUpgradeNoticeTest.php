@@ -110,10 +110,13 @@ final class ReadmeUpgradeNoticeTest extends TestCase {
 	 * What the updater will actually hand WordPress.
 	 */
 	private static function runtime_notice(): string {
-		$method = new ReflectionMethod( '\FreeFormCertificate\Integrations\GithubUpdater', 'upgrade_notice' );
+		// The parser `upgrade_notice()` runs on the file, called directly:
+		// `upgrade_notice()` also reads the site locale, a WordPress function
+		// that may or may not be defined depending on which test ran first.
+		$method = new ReflectionMethod( '\FreeFormCertificate\Integrations\GithubUpdater', 'notice_from' );
 		$method->setAccessible( true );
 
-		return (string) $method->invoke( null );
+		return (string) $method->invoke( null, self::readme() );
 	}
 
 	/**
@@ -186,6 +189,37 @@ final class ReadmeUpgradeNoticeTest extends TestCase {
 		$this->assertNotSame( '', $notice, 'The updater parsed nothing -- WordPress would show no notice at all.' );
 		$this->assertStringNotContainsString( '=', substr( $notice, 0, 1 ), 'The parser kept the version heading in the body.' );
 		$this->assertStringNotContainsString( 'CHANGELOG.md', $notice, 'The parser swallowed the section trailer into the entry body.' );
+	}
+
+	/**
+	 * A translated readme carries the same entry, translated, by the same rules.
+	 *
+	 * The updater shows it to a site in that language (#2342), so it is held
+	 * to what the English one is held to: one entry, naming `readme.txt`'s
+	 * `Stable tag`, within the norm, parsed by the runtime parser, and the
+	 * pointer. Whether it says what the English one says is not reachable.
+	 */
+	public function test_each_translated_readme_carries_the_same_entry(): void {
+		$files = glob( self::root() . '/languages/readme-*.txt' ) ?: array();
+		$this->assertNotSame( array(), $files, 'No translated readme was found; the check below would pass on nothing.' );
+
+		preg_match( '/^Stable tag:\s*(\S+)\s*$/m', self::readme(), $tag );
+		$parse = new ReflectionMethod( '\FreeFormCertificate\Integrations\GithubUpdater', 'notice_from' );
+		$parse->setAccessible( true );
+
+		foreach ( $files as $file ) {
+			$contents = (string) file_get_contents( $file );
+			$name     = basename( $file );
+			preg_match( '/^==\s*Upgrade Notice\s*==\s*$(.*?)(?=^==\s|\z)/ms', $contents, $section );
+			preg_match_all( '/^=\s*(\S+)\s*=\s*$/m', $section[1] ?? '', $versions );
+			$notice = (string) $parse->invoke( null, $contents );
+
+			$this->assertSame( array( $tag[1] ?? '' ), $versions[1], "{$name}: the section must hold one entry, naming readme.txt's Stable tag." );
+			$this->assertNotSame( '', $notice, "{$name}: the updater parsed no notice." );
+			$this->assertLessThanOrEqual( self::MAX_CHARS, mb_strlen( $notice ), "{$name}: the notice is over the character norm." );
+			$this->assertStringContainsString( 'CHANGELOG.md', $section[1] ?? '', "{$name}: the section must point at CHANGELOG.md." );
+			$this->assertStringNotContainsString( 'CHANGELOG.md', $notice, "{$name}: the parser swallowed the trailer." );
+		}
 	}
 
 	/**

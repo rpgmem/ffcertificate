@@ -530,10 +530,29 @@ class GithubUpdater {
 	 * guard's to fail in CI, not this method's to hide at runtime by
 	 * returning nothing.
 	 *
+	 * IN THE SITE'S LANGUAGE (#2342)
+	 *
+	 * When the plugin ships a translated readme for the site's locale, its
+	 * notice comes first: the offered release's translation, then the
+	 * installed one, then the English text in the same order. The site
+	 * locale rather than the viewer's, because the update object is built
+	 * once for the whole site, often by cron.
+	 *
 	 * @param array<string, string>|null $release Release payload being offered, if any.
 	 * @return string Plain text; empty when the section is absent or malformed.
 	 */
 	private static function upgrade_notice( ?array $release = null ): string {
+		$locale = function_exists( 'get_locale' ) ? (string) get_locale() : '';
+		if ( in_array( $locale, self::readme_locales(), true ) ) {
+			$translated = wp_strip_all_tags( self::notice_from( (string) ( $release[ 'readme_' . $locale ] ?? '' ) ) );
+			if ( '' === $translated ) {
+				$translated = self::notice_from( self::installed_file( 'languages/readme-' . $locale . '.txt' ) );
+			}
+			if ( '' !== $translated ) {
+				return $translated;
+			}
+		}
+
 		if ( null !== $release && '' !== ( $release['upgrade_notice'] ?? '' ) ) {
 			return $release['upgrade_notice'];
 		}

@@ -76,9 +76,9 @@ class PrivacyExporters {
 		$bundle  = \FreeFormCertificate\Services\UserService::export_personal_data( (int) $user->ID );
 		$profile = is_array( $bundle['profile'] ?? null ) ? $bundle['profile'] : array();
 
-		// That bundle merges three sources with different value types
-		// (the WP user object, an optional `ffc_user_profiles` row, a
-		// capability map), so it is read through `ArrayValue` rather
+		// That bundle merges sources with different value types (the WP
+		// user object and an optional `ffc_user_profiles` row), so it is
+		// read through `ArrayValue` rather
 		// than cast: `(string)` on a non-scalar yields the literal
 		// `Array`, and this one would land in an LGPD export (#1060).
 		$data = array(

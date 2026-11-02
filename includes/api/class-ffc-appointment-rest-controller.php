@@ -464,7 +464,7 @@ class AppointmentRestController {
 	 * @param \Exception $e       The exception.
 	 */
 	private function log_rest_error( string $context, \Exception $e ): void {
-		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_rest_api(
 				"REST API error: {$context}",
 				array(

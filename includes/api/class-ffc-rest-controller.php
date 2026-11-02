@@ -9,13 +9,15 @@
  *   UserDataRestController   – /user/* (coordinator → 6 sub-controllers)
  *   CalendarRestController   – /calendars, /calendars/{id}, /calendars/{id}/slots
  *   AppointmentRestController – /calendars/{id}/appointments, /appointments/{id}
+ *   CertificatesCalendarRestController – /certificates/calendar
+ *   OperatorCertificatesRestController – /operator/certificates, /operator/certificates/{id}/pdf
  *
  * Namespace: /wp-json/ffc/v1/
  *
  * @package FreeFormCertificate\API
  * @since 3.0.0
  * @version 3.3.0 - Added strict types and type hints
- * @version 4.6.1 - Refactored into coordinator + 5 sub-controllers
+ * @version 4.6.1 - Refactored into coordinator + sub-controllers
  */
 
 declare(strict_types=1);

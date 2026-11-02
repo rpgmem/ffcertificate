@@ -9505,8 +9505,8 @@ msgid "Invalid RF format."
 msgstr "Formato de RF inválido."
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:339 includes/frontend/submission/class-ffc-field-sanitizer.php:78
-msgid "Invalid RF. Must contain only numbers."
-msgstr "Código RF inválido. Deve conter apenas números."
+msgid "Invalid RF: its check digit does not match. Check the number and try again."
+msgstr "RF inválido: o dígito verificador não confere. Confira o número e tente de novo."
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:274
 msgid "Invalid short URL."

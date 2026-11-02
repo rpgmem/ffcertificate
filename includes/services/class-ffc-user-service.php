@@ -84,31 +84,7 @@ class UserService {
 			$profile['birth_date'] = is_string( $stored ) ? (string) \FreeFormCertificate\Core\BirthDate::normalize( $stored ) : '';
 		}
 
-		// Capabilities.
-		$profile['capabilities'] = self::get_user_capabilities( $user_id );
-
 		return $profile;
-	}
-
-	/**
-	 * Get user's FFC capabilities with their grant status
-	 *
-	 * @param int $user_id WordPress user ID.
-	 * @return array<string, bool> Associative array of capability => bool
-	 */
-	public static function get_user_capabilities( int $user_id ): array {
-		if ( ! class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
-			return array();
-		}
-
-		$all_caps = \FreeFormCertificate\UserDashboard\CapabilityManager::get_all_capabilities();
-		$result   = array();
-
-		foreach ( $all_caps as $cap ) {
-			$result[ $cap ] = user_can( $user_id, $cap );
-		}
-
-		return $result;
 	}
 
 	/**

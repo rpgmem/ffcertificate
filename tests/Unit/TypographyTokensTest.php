@@ -126,7 +126,7 @@ class TypographyTokensTest extends TestCase {
 		// The screenshot viewer (#1716) loads in core's modal without
 		// ffc-common, so it cannot read the scale; its glyph buttons are sized
 		// as glyph boxes.
-		'ffc-screenshots.css'              => 4,
+		'ffc-screenshots.css'              => 2,
 	);
 
 	/**

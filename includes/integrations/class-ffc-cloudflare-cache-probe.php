@@ -57,6 +57,13 @@ final class CloudflareCacheProbe {
 	private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
 
 	/**
+	 * How long a failed loopback is remembered (seconds). A failure says
+	 * nothing about the edge, so it is retried soon rather than shown for
+	 * six hours (#2342).
+	 */
+	private const ERROR_TTL = 15 * MINUTE_IN_SECONDS;
+
+	/**
 	 * `cf-cache-status` values that mean the edge cached (or tried to cache) the
 	 * HTML — any of these on a normal page means "Cache Everything"-style rules
 	 * are active. `DYNAMIC` / `BYPASS` are deliberately absent (they are safe).
@@ -86,7 +93,7 @@ final class CloudflareCacheProbe {
 		}
 
 		$result = self::run();
-		set_transient( self::TRANSIENT_KEY, $result, self::CACHE_TTL );
+		set_transient( self::TRANSIENT_KEY, $result, self::STATUS_ERROR === $result['status'] ? self::ERROR_TTL : self::CACHE_TTL );
 
 		return $result;
 	}

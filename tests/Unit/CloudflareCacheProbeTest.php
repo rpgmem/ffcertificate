@@ -90,19 +90,26 @@ class CloudflareCacheProbeTest extends TestCase {
 		$err->shouldReceive( 'get_error_message' )->andReturn( 'timeout' );
 		Functions\when( 'wp_remote_get' )->justReturn( $err );
 		Functions\when( 'is_wp_error' )->justReturn( true );
-		Functions\when( 'set_transient' )->justReturn( true );
+		$ttl = null;
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value, $expiration ) use ( &$ttl ) {
+				$ttl = $expiration;
+				return true;
+			}
+		);
 
 		$out = CloudflareCacheProbe::get( true );
 		$this->assertSame( CloudflareCacheProbe::STATUS_ERROR, $out['status'] );
 		$this->assertSame( 'timeout', $out['detail'] );
+		$this->assertSame( 15 * MINUTE_IN_SECONDS, $ttl, 'A failed loopback is retried soon, not shown for six hours.' );
 	}
 
 	public function test_probe_caches_result_via_set_transient(): void {
 		$this->stub_request_with_cache_status( 'HIT' );
 		$captured = null;
 		Functions\when( 'set_transient' )->alias(
-			static function ( $key, $value ) use ( &$captured ) {
-				$captured = array( $key, $value );
+			static function ( $key, $value, $expiration ) use ( &$captured ) {
+				$captured = array( $key, $value, $expiration );
 				return true;
 			}
 		);
@@ -110,5 +117,6 @@ class CloudflareCacheProbeTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertSame( CloudflareCacheProbe::TRANSIENT_KEY, $captured[0] );
 		$this->assertSame( CloudflareCacheProbe::STATUS_CACHING, $captured[1]['status'] );
+		$this->assertSame( 6 * HOUR_IN_SECONDS, $captured[2] );
 	}
 }

@@ -36,7 +36,7 @@ final class UserIdentifiersQueryService {
 	 * Return every masked CPF / RF the user appears with, deduped.
 	 * Each row is decrypted, the CPF takes precedence when both
 	 * columns are populated, and the resulting plaintext is masked
-	 * through `DocumentFormatter::mask_cpf()`.
+	 * through `DocumentFormatter::mask_cpf()` or `mask_rf()`.
 	 *
 	 * @since 6.6.2
 	 * @param int $user_id WordPress user ID.
@@ -48,18 +48,22 @@ final class UserIdentifiersQueryService {
 		$out = array();
 		foreach ( $rows as $row ) {
 			try {
-				$plain = null;
+				$masked = '';
 				if ( ! empty( $row['cpf_encrypted'] ) ) {
 					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['cpf_encrypted'] );
+					if ( ! empty( $plain ) ) {
+						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
+					}
 				} elseif ( ! empty( $row['rf_encrypted'] ) ) {
+					// An RF takes its own shape (#2342): the CPF mask on seven digits is no shape at all.
 					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
+					if ( ! empty( $plain ) ) {
+						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $plain );
+					}
 				}
 
-				if ( ! empty( $plain ) ) {
-					$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
-					if ( ! empty( $masked ) && ! in_array( $masked, $out, true ) ) {
-						$out[] = $masked;
-					}
+				if ( '' !== $masked && ! in_array( $masked, $out, true ) ) {
+					$out[] = $masked;
 				}
 			} catch ( \Exception $e ) {
 				if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -147,7 +151,7 @@ final class UserIdentifiersQueryService {
 				} elseif ( ! empty( $row['rf_encrypted'] ) ) {
 					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $row['rf_encrypted'] );
 					if ( ! empty( $plain ) ) {
-						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $plain );
+						$masked = \FreeFormCertificate\Core\DocumentFormatter::mask_rf( $plain );
 						if ( ! empty( $masked ) && ! in_array( $masked, $rfs, true ) ) {
 							$rfs[] = $masked;
 						}
