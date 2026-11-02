@@ -27538,10 +27538,6 @@ msgid "This booking is cancelled, so it takes no check-in."
 msgstr "Esta reserva está cancelada, então não recebe check-in."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below."
-msgstr "O check-in por QR code só abre no próprio dia. A presença em outros dias pode ser marcada manualmente abaixo."
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 #, php-format
 msgid "Closes on its own at %1$s. The code changes every %2$d seconds."
 msgstr "Encerra sozinho às %1$s. O código muda a cada %2$d segundos."
@@ -27676,10 +27672,6 @@ msgid "Attendance and QR check-in"
 msgstr "Presença e check-in por QR"
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
-msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
-
-#: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
 msgstr "O participante lê o código com a câmera do celular, faz login se for pedido e confirma. Só pessoas da reserva (seus usuários personalizados e os membros de seus públicos) podem fazer check-in, uma vez por dia. Um código exibido na tela vale durante sua rotação e a anterior; um link copiado dele expira em poucos minutos. A localização de um check-in com área vem do navegador do participante e pode ser falsificada: dificulta o check-in de outro lugar, mas não comprova a presença."
 
@@ -27783,10 +27775,6 @@ msgstr "Formulário de certificado pós-evento"
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
 msgstr "A aba Formulário pós-evento de um calendário indica o formulário de certificado para onde os agendamentos levam, por quantos dias ele fica aberto depois do evento (1 a 90) e se só são convidados os que cumpriram a regra de presença do agendamento. O formulário abre quando termina o último dia do agendamento. As perguntas são campos comuns desse formulário de certificado."
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made, and the sentences describing them follow; reload the page to see the invitations."
-msgstr "O cartão Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences. Este cartão e o cartão Regra de presença salvam cada alteração assim que ela é feita, e as frases que os descrevem acompanham; recarregue a página para ver os convites."
 
 #: includes/frontend/class-ffc-form-invite.php
 msgid "This invitation link is not valid."
@@ -27961,10 +27949,6 @@ msgstr "somente global; o formulário a que um agendamento leva é escolhido no 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
 msgstr "O check-in não pode mais ser aberto hoje: a reserva já terminou. Marque a presença à mão abaixo."
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
-msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão abaixo."
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Changes save as you make them. Reload the page to see the invitations."
@@ -31472,3 +31456,37 @@ msgstr "Esta campanha ainda não alcança nenhum público-alvo. Adicione um na a
 #: includes/settings/views/documentation/feature-reregistration.php:45
 msgid "The campaign editor shows these settings in tabs: Campaign, Email Notifications and, once the campaign exists, Import answers and Invitations. Save and a summary of the status, the period and the affected users sit beside them; Campaign and Email Notifications are saved together."
 msgstr "O editor da campanha mostra essas configurações em abas: Campanha, Notificações por e-mail e, depois que a campanha existe, Importar respostas e Convites. Salvar e um resumo com o status, o período e os usuários afetados ficam ao lado; Campanha e Notificações por e-mail são salvas juntas."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:595
+msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab."
+msgstr "O check-in por QR code só abre no próprio dia. A presença em outros dias pode ser marcada manualmente na aba Participantes."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:639
+#, php-format
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand on the Participants tab."
+msgstr "O check-in encerrou sozinho às %s, 30 minutos após o fim da reserva hoje. A presença ainda pode ser marcada à mão na aba Participantes."
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:529
+#, php-format
+msgid "Closed at %s"
+msgstr "Encerrado às %s"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:517
+msgid "None: the booking is cancelled"
+msgstr "Nenhum: a reserva foi cancelada"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:531
+msgid "Not open yet"
+msgstr "Ainda não aberto"
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:520
+msgid "Opens only on the day itself"
+msgstr "Abre só no próprio dia"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:88
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in by QR code, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alvo abre a tela de presença, em quatro abas: Participantes, que abre primeiro, Check-in por QR code, Regra de presença e Formulário pós-evento. Ao lado delas, um resumo mostra o dia, quantos estão presentes, o check-in, a regra e o formulário. No próprio dia, até 30 minutos após o fim da reserva, Abrir check-in inicia o check-in daquele dia: escolha com que frequência o código muda (1, 2, 3, 5 ou 10 minutos) e, opcionalmente, as áreas de geolocalização salvas em que o participante precisa estar. Projetar o QR code abre uma página em tela cheia para projetor ou monitor; o código muda sozinho e a página conta quem está presente. O check-in encerra quando você clica em Encerrar check-in, ou sozinho 30 minutos após o fim da reserva naquele dia. Abrir de novo inicia um novo check-in, e os códigos do anterior deixam de valer."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:97
+msgid "The Post-event form tab on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This tab and the Attendance rule tab save each change as it is made, and the sentences describing them, in the tabs and in the summary, follow; reload the page to see the invitations."
+msgstr "A aba Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences. Esta aba e a aba Regra de presença salvam cada alteração assim que ela é feita, e as frases que as descrevem, nas abas e no resumo, acompanham; recarregue a página para ver os convites."

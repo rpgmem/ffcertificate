@@ -54,6 +54,15 @@ class AudienceAdminAttendance {
 	public const VIEW_PROJECT = 'project';
 
 	/**
+	 * The screen's tabs (#2360). Participants opens unless a write lands on
+	 * another.
+	 */
+	public const TAB_PARTICIPANTS = 'participants';
+	public const TAB_CHECKIN      = 'checkin';
+	public const TAB_RULE         = 'rule';
+	public const TAB_POST_EVENT   = 'post-event';
+
+	/**
 	 * Menu slug prefix.
 	 *
 	 * @var string
@@ -187,6 +196,7 @@ class AudienceAdminAttendance {
 				array(
 					'date'    => $date,
 					'message' => $message,
+					'tab'     => self::tab_for( $action ),
 				)
 			)
 		);
@@ -385,12 +395,140 @@ class AudienceAdminAttendance {
 			$this->render_day_picker( (int) ( $booking->id ?? 0 ), $days, $date );
 		}
 
-		echo '<div class="ffc-boxed ffc-attendance">';
-		$this->render_checkin_card( $booking, $date, $today, $window, $now );
-		$this->render_rule_card( $booking, $date );
-		$this->render_post_event_card( $booking, $date, $roster, $now );
-		$this->render_participants_card( $booking, $date, $today, $roster );
-		echo '</div></div>';
+		// The editor layout the calendar screens use (#2360): vertical tabs,
+		// Participants open unless a handler names another, and a summary
+		// of the day beside them.
+		$tabs   = self::tabs();
+		$active = AudienceEditorTabs::active( array_column( $tabs, 'key' ), self::TAB_PARTICIPANTS );
+
+		echo '<div class="ffc-boxed ffc-attendance"><div class="ffc-editor"><div class="ffc-editor__main">';
+		AudienceEditorTabs::open( $tabs, $active );
+		foreach ( $tabs as $tab ) {
+			AudienceEditorTabs::panel_open( $tab, $active );
+			switch ( $tab['key'] ) {
+				case self::TAB_PARTICIPANTS:
+					$this->render_participants_card( $booking, $date, $today, $roster );
+					break;
+				case self::TAB_CHECKIN:
+					$this->render_checkin_card( $booking, $date, $today, $window, $now );
+					break;
+				case self::TAB_RULE:
+					$this->render_rule_card( $booking, $date );
+					break;
+				default:
+					$this->render_post_event_card( $booking, $date, $roster, $now );
+			}
+			AudienceEditorTabs::panel_close();
+		}
+		AudienceEditorTabs::close();
+		echo '</div><div class="ffc-editor__side">';
+		$this->render_summary_card( $booking, $date, $today, $roster, $window, $now );
+		echo '</div></div></div></div>';
+	}
+
+	/**
+	 * The screen's tabs, in display order.
+	 *
+	 * @return list<array{key: string, label: string, icon: string}>
+	 */
+	public static function tabs(): array {
+		return array(
+			array(
+				'key'   => self::TAB_PARTICIPANTS,
+				'label' => __( 'Participants', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-users',
+			),
+			array(
+				'key'   => self::TAB_CHECKIN,
+				'label' => __( 'Check-in by QR code', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-qr',
+			),
+			array(
+				'key'   => self::TAB_RULE,
+				'label' => __( 'Attendance rule', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-checkmark',
+			),
+			array(
+				'key'   => self::TAB_POST_EVENT,
+				'label' => __( 'Post-event form', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-award',
+			),
+		);
+	}
+
+	/**
+	 * The tab a write lands back on, so the screen opens where the action was.
+	 *
+	 * @param string $action The write performed.
+	 * @return string
+	 */
+	public static function tab_for( string $action ): string {
+		$map = array(
+			'open'       => self::TAB_CHECKIN,
+			'close'      => self::TAB_CHECKIN,
+			'rule'       => self::TAB_RULE,
+			'post_event' => self::TAB_POST_EVENT,
+			'invite'     => self::TAB_POST_EVENT,
+			'invite_all' => self::TAB_POST_EVENT,
+		);
+		return $map[ $action ] ?? self::TAB_PARTICIPANTS;
+	}
+
+	/**
+	 * The day at a glance, beside the tabs: the day shown, who is present,
+	 * the check-in, the rule and the post-event form. The rule and form
+	 * lines are refreshed by the same fragments as their tabs, and the count
+	 * by the same poll as the list.
+	 *
+	 * @param object                    $booking Booking row.
+	 * @param string                    $date    Day shown.
+	 * @param string                    $today   Today.
+	 * @param array<string, mixed>      $roster  Roster.
+	 * @param array<string, mixed>|null $window  The window open now, if any.
+	 * @param int                       $now     Unix time.
+	 * @phpstan-param array{rows: list<array{user_id: int, name: string, present_at: int|null, method: string|null, days: list<string>, met: bool}>, present: int, total: int, required: int, days: list<string>} $roster
+	 * @return void
+	 */
+	private function render_summary_card( object $booking, string $date, string $today, array $roster, ?array $window, int $now ): void {
+		$applied = AudiencePostEventForm::settings( $booking );
+
+		echo '<div class="card ffc-attendance-summary"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Day', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( DateFormatter::format_wallclock_date( $date ) ) . '</dd>';
+		/* translators: 1: people present, 2: people expected */
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Present', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . wp_kses_post( sprintf( __( '%1$s of %2$s', 'ffcertificate' ), '<strong class="ffc-attendance-present">' . (int) $roster['present'] . '</strong>', '<strong>' . (int) $roster['total'] . '</strong>' ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Check-in', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( self::checkin_state( $booking, $date, $today, $window, $now ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Attendance rule', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value" id="ffc-attendance-summary-rule">' . esc_html( self::rule_summary( $booking ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value" id="ffc-attendance-summary-post-event">' . esc_html( self::post_event_status( $booking, $applied, AudiencePostEventForm::is_custom( $booking ) ) ) . '</dd>';
+		echo '</dl></div>';
+	}
+
+	/**
+	 * The check-in in a few words, for the summary.
+	 *
+	 * @param object                    $booking Booking row.
+	 * @param string                    $date    Day shown.
+	 * @param string                    $today   Today.
+	 * @param array<string, mixed>|null $window  The window open now, if any.
+	 * @param int                       $now     Unix time.
+	 * @return string
+	 */
+	public static function checkin_state( object $booking, string $date, string $today, ?array $window, int $now ): string {
+		if ( 'active' !== ( $booking->status ?? '' ) ) {
+			return __( 'None: the booking is cancelled', 'ffcertificate' );
+		}
+		if ( $date !== $today ) {
+			return __( 'Opens only on the day itself', 'ffcertificate' );
+		}
+		if ( null !== $window ) {
+			/* translators: %s: time check-in closes on its own */
+			return sprintf( __( 'Open until %s', 'ffcertificate' ), DateFormatter::format_time( (int) $window['closes_at'] ) );
+		}
+		$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
+		if ( $closes <= $now ) {
+			/* translators: %s: time check-in closed on its own */
+			return sprintf( __( 'Closed at %s', 'ffcertificate' ), DateFormatter::format_time( $closes ) );
+		}
+		return __( 'Not open yet', 'ffcertificate' );
 	}
 
 	/**
@@ -448,15 +586,13 @@ class AudienceAdminAttendance {
 	private function render_checkin_card( object $booking, string $date, string $today, ?array $window, int $now ): void {
 		$booking_id = (int) ( $booking->id ?? 0 );
 
-		echo '<div class="card"><h2 class="ffc-icon-qr">' . esc_html__( 'Check-in by QR code', 'ffcertificate' ) . '</h2>';
-
 		if ( 'active' !== ( $booking->status ?? '' ) ) {
-			echo '<p>' . esc_html__( 'This booking is cancelled, so it takes no check-in.', 'ffcertificate' ) . '</p></div>';
+			echo '<p>' . esc_html__( 'This booking is cancelled, so it takes no check-in.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 
 		if ( $date !== $today ) {
-			echo '<p>' . esc_html__( 'Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below.', 'ffcertificate' ) . '</p></div>';
+			echo '<p>' . esc_html__( 'Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 
@@ -493,14 +629,14 @@ class AudienceAdminAttendance {
 					'type'     => 'submit',
 				)
 			);
-			echo '</form></div>';
+			echo '</form>';
 			return;
 		}
 
 		$closes = AudienceCheckinWindowWriter::auto_close_at( $booking, $date );
 		if ( $closes <= $now ) {
 			/* translators: %s: time check-in closed on its own */
-			echo '<p>' . esc_html( sprintf( __( 'Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p></div>';
+			echo '<p>' . esc_html( sprintf( __( 'Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand on the Participants tab.', 'ffcertificate' ), DateFormatter::format_time( $closes ) ) ) . '</p>';
 			return;
 		}
 
@@ -535,7 +671,7 @@ class AudienceAdminAttendance {
 				'type'     => 'submit',
 			)
 		);
-		echo '</form></div>';
+		echo '</form>';
 	}
 
 	/**
@@ -550,7 +686,6 @@ class AudienceAdminAttendance {
 		$can_edit = Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 		$id       = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
-		echo '<div class="card"><h2 class="ffc-icon-checkmark">' . esc_html__( 'Attendance rule', 'ffcertificate' ) . '</h2>';
 		echo '<form method="post">' . $this->form_fields( (int) ( $booking->id ?? 0 ), 'rule', $date ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts by form_fields().
 		AdminUI::render_segmented(
 			array(
@@ -573,7 +708,7 @@ class AudienceAdminAttendance {
 		echo '<p class="ffc-collapsed-target" data-ffc-master="ffc-attendance-mode" data-ffc-master-value="' . esc_attr( AudienceAttendanceRule::TOTAL ) . '"><label for="ffc-attendance-percent">' . esc_html__( 'Minimum share of days (%)', 'ffcertificate' ) . '</label> ';
 		echo '<input type="number" id="ffc-attendance-percent" name="attendance_min_percent" min="1" max="100" step="1" required class="small-text" value="' . esc_attr( (string) ( $rule['percent'] > 0 ? $rule['percent'] : AudienceAttendanceRule::DEFAULT_PERCENT ) ) . '"' . self::data_attrs( RecordAutosave::attrs( 'audience_booking', $id, 'attendance_min_percent' ) ) . disabled( ! $can_edit, true, false ) . '></p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- data_attrs() escapes each name and value.
 		echo '<p class="description" id="ffc-attendance-rule-summary">' . esc_html( self::rule_summary( $booking ) ) . '</p>';
-		echo '</form></div>';
+		echo '</form>';
 	}
 
 	/**
@@ -598,7 +733,6 @@ class AudienceAdminAttendance {
 		$fields = $custom ? $applied : AudiencePostEventForm::of_schedule( $schedule );
 		$id     = $can_edit ? (int) ( $booking->id ?? 0 ) : 0;
 
-		echo '<div class="card"><h2 class="ffc-icon-award">' . esc_html__( 'Post-event form', 'ffcertificate' ) . '</h2>';
 		echo '<p class="ffc-attendance-post-event-status" id="ffc-attendance-post-event-status">' . esc_html( self::post_event_status( $booking, $applied, $custom ) ) . '</p>';
 		// Always printed, hidden while empty, so an autosave that picks a form
 		// with no page can show it without a reload (#2026).
@@ -641,7 +775,6 @@ class AudienceAdminAttendance {
 		if ( AudiencePostEventForm::is_form( $applied['form_id'] ) && array() !== $roster['rows'] ) {
 			$this->render_invite_tracking( $booking, $date, $roster, $now );
 		}
-		echo '</div>';
 	}
 
 	/**
@@ -783,9 +916,11 @@ class AudienceAdminAttendance {
 		$applied = AudiencePostEventForm::settings( $booking );
 
 		return array(
-			'ffc-attendance-rule-summary'      => self::rule_summary( $booking ),
-			'ffc-attendance-post-event-status' => self::post_event_status( $booking, $applied, AudiencePostEventForm::is_custom( $booking ) ),
-			'ffc-post-event-no-page'           => AudienceFormInviteMailer::missing_page_text( $applied['form_id'] ),
+			'ffc-attendance-rule-summary'       => self::rule_summary( $booking ),
+			'ffc-attendance-summary-rule'       => self::rule_summary( $booking ),
+			'ffc-attendance-post-event-status'  => self::post_event_status( $booking, $applied, AudiencePostEventForm::is_custom( $booking ) ),
+			'ffc-attendance-summary-post-event' => self::post_event_status( $booking, $applied, AudiencePostEventForm::is_custom( $booking ) ),
+			'ffc-post-event-no-page'            => AudienceFormInviteMailer::missing_page_text( $applied['form_id'] ),
 		);
 	}
 
@@ -831,8 +966,7 @@ class AudienceAdminAttendance {
 		$multi      = count( $roster['days'] ) > 1;
 		$can_mark   = $date <= $today;
 
-		echo '<div class="card ffc-attendance-participants" data-booking-id="' . esc_attr( (string) $booking_id ) . '" data-date="' . esc_attr( $date ) . '">';
-		echo '<h2 class="ffc-icon-users">' . esc_html__( 'Participants', 'ffcertificate' ) . '</h2>';
+		echo '<div class="ffc-attendance-participants" data-booking-id="' . esc_attr( (string) $booking_id ) . '" data-date="' . esc_attr( $date ) . '">';
 		/* translators: 1: people present, 2: people expected, 3: the day */
 		echo '<p class="ffc-attendance-count">' . wp_kses_post( sprintf( __( '%1$s of %2$s present on %3$s', 'ffcertificate' ), '<strong class="ffc-attendance-present">' . (int) $roster['present'] . '</strong>', '<strong>' . (int) $roster['total'] . '</strong>', esc_html( DateFormatter::format_wallclock_date( $date ) ) ) ) . '</p>';
 
@@ -1034,6 +1168,9 @@ class AudienceAdminAttendance {
 
 		wp_enqueue_style( 'ffc-audience-attendance', FFC_PLUGIN_URL . "assets/css/ffc-audience-attendance{$s}.css", array( 'ffc-common' ), FFC_VERSION );
 		wp_enqueue_script( 'ffc-audience-attendance', FFC_PLUGIN_URL . "assets/js/ffc-audience-attendance{$s}.js", array(), FFC_VERSION, true );
+		if ( ! $projection ) {
+			AdminUI::enqueue_vertical_tabs();
+		}
 		if ( ! $projection && Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			RecordAutosave::enqueue();
 		}
