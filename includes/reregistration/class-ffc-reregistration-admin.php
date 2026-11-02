@@ -218,6 +218,9 @@ class ReregistrationAdmin {
 		// The campaign's toggles save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
+		// The campaign editor is drawn in vertical tabs (#2362).
+		\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-reregistration-admin{$s}.js",

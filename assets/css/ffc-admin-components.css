@@ -531,3 +531,48 @@ table.ffc-calendar-names-table th {
 table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-cell {
     margin-left: var(--ffc-spacing-xs);
 }
+
+/* ==========================================================================
+   EDITORS IN VERTICAL TABS (#1761, #2362)
+   An editor draws the vertical-tab component above inside a box of its
+   own, with a side column for Save and a summary. Shared by the audience
+   calendar and audience editors, the attendance screen, the reregistration
+   campaign and the recruitment candidate, so it lives here rather than in
+   one module's sheet. The component's negative margins fit a metabox's
+   inset, which this box does not have.
+   ========================================================================== */
+
+.ffc-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: var(--ffc-spacing-2xl);
+    align-items: start;
+    margin-top: var(--ffc-spacing-xl);
+}
+
+.ffc-editor__main {
+    min-width: 0;
+}
+
+.ffc-boxed .ffc-editor__tabs {
+    margin: var(--ffc-spacing-xl) 0 0;
+    overflow: hidden;
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    box-shadow: var(--ffc-shadow-sm);
+}
+
+.ffc-editor .ffc-editor__tabs {
+    margin-top: 0;
+}
+
+.ffc-editor__side .card {
+    min-width: 0;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-editor {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

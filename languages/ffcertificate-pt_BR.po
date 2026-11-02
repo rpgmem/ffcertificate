@@ -19940,10 +19940,6 @@ msgstr "Com erro:"
 msgid "Finishing…"
 msgstr "Finalizando…"
 
-#: templates/admin/reregistration/import-panel.php:26
-msgid "Import answers from a spreadsheet"
-msgstr "Importar respostas de uma planilha"
-
 #: includes/reregistration/class-ffc-reregistration-admin.php:294
 #, php-format
 msgid "Imported %1$d. Skipped %2$d."
@@ -20053,10 +20049,6 @@ msgstr "Não foi possível falar com o servidor."
 #, php-format
 msgid "The value in column \"%s\" is not valid for that field."
 msgstr "O valor da coluna \"%s\" não é válido para esse campo."
-
-#: templates/admin/reregistration/import-panel.php:34
-msgid "This campaign reaches no audience yet. Add one above and save before importing."
-msgstr "Esta campanha ainda não alcança nenhum público-alvo. Adicione um acima e salve antes de importar."
 
 #: includes/reregistration/class-ffc-reregistration-import-messages.php:76
 msgid "This import cannot be applied: it has not been validated, or it was blocked."
@@ -31460,3 +31452,23 @@ msgstr "Você não tem permissão para retificar esta resposta."
 msgctxt "quiz answer graded by hand"
 msgid "Open"
 msgstr "Aberta"
+
+#: templates/admin/reregistration/form.php:258
+msgid "Affected users"
+msgstr "Usuários afetados"
+
+#: templates/admin/reregistration/form.php:237
+msgid "Campaign and Email Notifications are saved together."
+msgstr "Campanha e Notificações por e-mail são salvas juntas."
+
+#: templates/admin/reregistration/form.php:60
+msgid "Import answers"
+msgstr "Importar respostas"
+
+#: templates/admin/reregistration/import-panel.php:33
+msgid "This campaign reaches no audience yet. Add one on the Campaign tab and save before importing."
+msgstr "Esta campanha ainda não alcança nenhum público-alvo. Adicione um na aba Campanha e salve antes de importar."
+
+#: includes/settings/views/documentation/feature-reregistration.php:45
+msgid "The campaign editor shows these settings in tabs: Campaign, Email Notifications and, once the campaign exists, Import answers and Invitations. Save and a summary of the status, the period and the affected users sit beside them; Campaign and Email Notifications are saved together."
+msgstr "O editor da campanha mostra essas configurações em abas: Campanha, Notificações por e-mail e, depois que a campanha existe, Importar respostas e Convites. Salvar e um resumo com o status, o período e os usuários afetados ficam ao lado; Campanha e Notificações por e-mail são salvas juntas."

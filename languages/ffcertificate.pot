@@ -19858,10 +19858,6 @@ msgstr ""
 msgid "Finishing…"
 msgstr ""
 
-#: templates/admin/reregistration/import-panel.php:26
-msgid "Import answers from a spreadsheet"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-admin.php:294
 #, php-format
 msgid "Imported %1$d. Skipped %2$d."
@@ -19970,10 +19966,6 @@ msgstr ""
 #: includes/reregistration/class-ffc-reregistration-import-messages.php:142
 #, php-format
 msgid "The value in column \"%s\" is not valid for that field."
-msgstr ""
-
-#: templates/admin/reregistration/import-panel.php:34
-msgid "This campaign reaches no audience yet. Add one above and save before importing."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-import-messages.php:76
@@ -31377,4 +31369,24 @@ msgstr ""
 #: includes/admin/class-ffc-admin-submission-edit-page.php:1139
 msgctxt "quiz answer graded by hand"
 msgid "Open"
+msgstr ""
+
+#: templates/admin/reregistration/form.php:258
+msgid "Affected users"
+msgstr ""
+
+#: templates/admin/reregistration/form.php:237
+msgid "Campaign and Email Notifications are saved together."
+msgstr ""
+
+#: templates/admin/reregistration/form.php:60
+msgid "Import answers"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php:33
+msgid "This campaign reaches no audience yet. Add one on the Campaign tab and save before importing."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php:45
+msgid "The campaign editor shows these settings in tabs: Campaign, Email Notifications and, once the campaign exists, Import answers and Invitations. Save and a summary of the status, the period and the affected users sit beside them; Campaign and Email Notifications are saved together."
 msgstr ""

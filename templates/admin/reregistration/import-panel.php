@@ -3,7 +3,7 @@
  * Template: Reregistration admin — CSV import panel (#1214, sprint 5).
  *
  * **Outside the campaign's `<form>`, and only on a campaign that exists** — the
- * same two reasons the Invitations box beside it gives. A file input and three
+ * same two reasons the Invitations panel beside it gives. A file input and three
  * buttons inside that form would submit the campaign on the first click, and
  * an import needs an `audience_id` that is one of the campaign's, which a
  * campaign being created does not have yet.
@@ -22,8 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 ?>
-<div class="card ffc-rereg-import-box">
-	<h2 class="ffc-icon-upload"><?php esc_html_e( 'Import answers from a spreadsheet', 'ffcertificate' ); ?></h2>
+<div class="ffc-rereg-import-box">
 	<div class="inside">
 		<p class="description">
 			<?php esc_html_e( 'Loads this campaign\'s answers for people of one audience. The file is checked in full before anything is written: if any row fails, nothing is imported.', 'ffcertificate' ); ?>
@@ -31,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<?php if ( array() === $import_audiences ) : ?>
 			<p class="ffc-rereg-import-empty">
-				<?php esc_html_e( 'This campaign reaches no audience yet. Add one above and save before importing.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'This campaign reaches no audience yet. Add one on the Campaign tab and save before importing.', 'ffcertificate' ); ?>
 			</p>
 		<?php else : ?>
 			<div class="ffc-rereg-import-controls">

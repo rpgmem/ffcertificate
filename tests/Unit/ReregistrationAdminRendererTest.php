@@ -422,7 +422,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$this->assertSame( array(), $this->preparedWith( 'WHERE id = %d' ), 'Neither a campaign nor an audience is read by id.' );
 		$this->assertSame( array(), $this->preparedWith( 'SELECT audience_id FROM %i WHERE reregistration_id' ), 'No linked audiences are read.' );
-		$this->assertStringContainsString( '<h1>New Reregistration</h1>', $html );
+		$this->assertStringContainsString( 'New Reregistration</h1>', $html );
 		$this->assertStringContainsString( 'Create Reregistration', $html );
 		$this->assertStringContainsString( 'data-selected="[]"', $html );
 		$this->assertStringNotContainsString( 'ffc-rereg-send-invitations', $html, 'An unsaved campaign has nobody to invite.' );
@@ -440,12 +440,12 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_form( 'ffc-reregistration', 7 ) );
 
-		$this->assertStringContainsString( '<h1>Edit Reregistration</h1>', $html );
+		$this->assertStringContainsString( 'Edit Reregistration</h1>', $html );
 		$this->assertStringContainsString( 'data-selected="[3,9]"', $html );
 		$this->assertStringContainsString( 'value="Census 2026"', $html );
 		$this->assertToggle( $html, 'rereg_auto_approve', true );
 		$this->assertToggle( $html, 'rereg_email_reminder', false );
-		$this->assertStringContainsString( '<strong>Affected users:</strong> 3', $html );
+		$this->assertStringContainsString( '<dd class="ffc-facts__value" id="ffc-affected-users">3</dd>', $html );
 		$this->assertStringContainsString( 'ffc-rereg-send-invitations', $html );
 		// The import picker offers the live audience and drops the deleted one.
 		$this->assertStringContainsString( '<option value="3">Teachers</option>', $html );

@@ -70,7 +70,7 @@ class AudienceEditorTabsTest extends TestCase {
 		AudienceEditorTabs::close();
 		$html = (string) ob_get_clean();
 
-		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical">', $html );
+		$this->assertStringStartsWith( '<div class="ffc-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical">', $html );
 		$this->assertStringContainsString( '<a href="#ffc-tab-general" id="ffc-tabnav-general" class="ffc-vtabs__tab" role="tab" aria-controls="ffc-tabpanel-general" aria-selected="false" tabindex="-1"><span class="ffc-vtabs__icon ffc-icon-calendar" aria-hidden="true"></span><span class="ffc-vtabs__label">General</span></a>', $html );
 		$this->assertStringContainsString( '<a href="#ffc-tab-closed-dates" id="ffc-tabnav-closed-dates" class="ffc-vtabs__tab is-active" role="tab" aria-controls="ffc-tabpanel-closed-dates" aria-selected="true" tabindex="0">', $html );
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel" role="tabpanel" aria-labelledby="ffc-tabnav-general" tabindex="0"><h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-calendar" aria-hidden="true"></span>General</h2>body-general</section>', $html );

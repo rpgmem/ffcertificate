@@ -660,7 +660,7 @@ class AudienceAdminCalendarTest extends TestCase {
 			$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-' . $title . '</h2>', $output );
 		}
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
-		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-save">Save<\/h2>/', $output );
+		$this->assertMatchesRegularExpression( '/<div class="ffc-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-save">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
 		// The card draws the list column's cell, copy button included (#1814).
 		$this->assertMatchesRegularExpression(
