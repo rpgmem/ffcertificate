@@ -281,7 +281,7 @@ class OperatorCertificatesRestController {
 					'submission_id'  => $submission_id,
 					'auth_code'      => DocumentFormatter::format_auth_code( $auth_code, DocumentFormatter::PREFIX_CERTIFICATE ),
 					'pdf_endpoint'   => rest_url( $this->namespace . '/operator/certificates/' . $submission_id . '/pdf' ),
-					'validation_url' => home_url( '/validate-certificate/' ),
+					'validation_url' => \FreeFormCertificate\Generators\MagicLinkHelper::get_verification_page_url(),
 					'message'        => __( 'Certificate issued successfully', 'ffcertificate' ),
 				)
 			);

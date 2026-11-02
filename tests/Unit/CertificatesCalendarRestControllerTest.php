@@ -221,24 +221,20 @@ class CertificatesCalendarRestControllerTest extends TestCase {
 	}
 
 	public function test_get_calendar_builds_events_and_filters_by_month(): void {
-		// Four form ids: 10 (geofence in-month), 20 (geofence out-of-month →
-		// filtered), 30 (get_post returns null → skipped), 40 (no resolvable
-		// date → build_entry_for_post returns null).
-		$GLOBALS['ffc_test_wp_query_queue'] = array( array( 10, 20, 30, 40 ) );
+		// Four forms: 10 (geofence in-month), 20 (geofence out-of-month →
+		// filtered), 30 (not a post → skipped), 40 (no resolvable date →
+		// build_entry_for_post returns null). The query hands back the posts
+		// themselves, primed with their meta, never ids read one by one (#2342).
+		$make = static function ( int $id, string $date ): \WP_Post {
+			$post              = new \WP_Post();
+			$post->ID          = $id;
+			$post->post_date   = $date;
+			$post->post_status = 'publish';
+			return $post;
+		};
+		$GLOBALS['ffc_test_wp_query_queue'] = array( array( $make( 10, '2026-01-01 00:00:00' ), $make( 20, '2026-01-01 00:00:00' ), 30, $make( 40, '' ) ) );
+		Functions\expect( 'get_post' )->never();
 
-		Functions\when( 'update_meta_cache' )->justReturn( true );
-		Functions\when( 'get_post' )->alias(
-			function ( $id ) {
-				if ( 30 === $id ) {
-					return null;
-				}
-				$post              = new \WP_Post();
-				$post->ID          = (int) $id;
-				$post->post_date   = 40 === $id ? '' : '2026-01-01 00:00:00';
-				$post->post_status = 'publish';
-				return $post;
-			}
-		);
 		Functions\when( 'get_post_meta' )->alias(
 			function ( $id ) {
 				if ( 10 === $id ) {
@@ -270,18 +266,12 @@ class CertificatesCalendarRestControllerTest extends TestCase {
 	}
 
 	public function test_get_calendar_falls_back_to_post_date_source(): void {
-		$GLOBALS['ffc_test_wp_query_queue'] = array( array( 7 ) );
+		$post                               = new \WP_Post();
+		$post->ID                           = 7;
+		$post->post_date                    = '2026-05-09 08:00:00';
+		$post->post_status                  = 'private';
+		$GLOBALS['ffc_test_wp_query_queue'] = array( array( $post ) );
 
-		Functions\when( 'update_meta_cache' )->justReturn( true );
-		Functions\when( 'get_post' )->alias(
-			function ( $id ) {
-				$post              = new \WP_Post();
-				$post->ID          = (int) $id;
-				$post->post_date   = '2026-05-09 08:00:00';
-				$post->post_status = 'private';
-				return $post;
-			}
-		);
 		Functions\when( 'get_post_meta' )->justReturn( '' ); // no geofence → post_date fallback.
 		Functions\when( 'get_the_title' )->justReturn( 'Plain title' );
 		Functions\when( 'get_edit_post_link' )->justReturn( 'https://example.test/edit/7' );

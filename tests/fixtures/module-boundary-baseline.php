@@ -18,7 +18,6 @@ return array(
 	'API>Security',
 	'API>SelfScheduling',
 	'API>Services',
-	'API>Settings',
 	'API>Submissions',
 	'API>UserDashboard',
 	'Admin>Audience',

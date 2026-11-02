@@ -321,7 +321,7 @@ class CalendarRestController {
 			$slots               = $appointment_handler->get_available_slots( $calendar_id, $date );
 
 			if ( is_wp_error( $slots ) ) {
-				return $slots;
+				return \FreeFormCertificate\SelfScheduling\AppointmentHandler::rest_error( $slots );
 			}
 
 			return rest_ensure_response(

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Forms API: ISO 8601 dates** (#2342). Each response date gains an `_iso` twin with the site's offset; the raw fields are deprecated, removal in 6.46.0. The certificates calendar reads its forms in two queries, not one per form.
+
 ### Security
 
 - **Dev toolchain: `minimatch` forced to 11.0.1 or later through `overrides`** (#2334). Clears GHSA-g3hv-75wg-m249, reached through ESLint and through `glob` 7 under `clean-css-cli`; no upstream release had moved off the vulnerable range. Nothing ships: the build output is byte-identical.
@@ -16,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Audience Calendars: the weekly-series index is created, and the schema heal stops re-running on every request** (#2345). The index was declared without parentheses, so its `ALTER` failed, the revision never pinned and each request logged a database error. The index helper now wraps a bare column list and reports a failed `ALTER`.
 - **Forms API and staff e-mails: `GET /submissions` bounds its page and size, and the new-issuance e-mail masks every personal key the plugin knows** (#2342). The list refuses the trash as a status, sends `X-WP-Total`, and a refused read logs the address's keyed fingerprint.
+- **Forms API: correct statuses, consent, staff access and limits** (#2342). Appointment errors answer 400/403/404/409 instead of 500, `"consent": false` is not consent, staff read and cancel the bookings they make, authenticated calls are counted per account, `validation_url` names the real page, and a 429 sends `Retry-After`; the `X-RateLimit-*` headers, which named a pool no route counts against, are gone.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

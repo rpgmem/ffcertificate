@@ -142,6 +142,39 @@ final class DateFormatter {
 	}
 
 	/**
+	 * An instant as ISO 8601 with the site's offset, for API responses (#2342).
+	 *
+	 * A unix integer (Category A) is an instant already. A `DATETIME` string
+	 * is read in the site's timezone, which is how `current_time( 'mysql' )`
+	 * wrote it; WordPress pins PHP to UTC, so parsing it bare would shift it
+	 * by the offset. Integrations get one format with its offset, whatever
+	 * the column stores.
+	 *
+	 * @param int|string|null $value Unix seconds or a site-local `Y-m-d H:i:s`.
+	 * @return string|null `2026-11-02T06:00:00-03:00`, or null when empty or unparseable.
+	 */
+	public static function iso8601( $value ): ?string {
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+
+		if ( is_int( $value ) || ctype_digit( (string) $value ) ) {
+			$ts = (int) $value;
+			if ( $ts <= 0 ) {
+				return null;
+			}
+			$formatted = \wp_date( DATE_ATOM, $ts );
+			return false === $formatted ? null : $formatted;
+		}
+
+		try {
+			return ( new \DateTimeImmutable( (string) $value, \wp_timezone() ) )->format( DATE_ATOM );
+		} catch ( \Exception $e ) {
+			return null;
+		}
+	}
+
+	/**
 	 * Format a wall-clock DATE string (Category B) in the configured date
 	 * format, WITHOUT applying the site timezone.
 	 *

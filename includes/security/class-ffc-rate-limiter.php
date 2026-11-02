@@ -58,10 +58,11 @@ class RateLimiter {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes.
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check.
+	 * @param bool                       $skip_ip     Set true to bypass the per-address check, for an authenticated API caller whose requests share one server address (#2342).
 	 * @return RateLimitVerdict
 	 */
-	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
-		return RateLimitChecker::check_all( $ip, $email, $cpf, $form_id, $device_signals, $skip_device );
+	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false, bool $skip_ip = false ): array {
+		return RateLimitChecker::check_all( $ip, $email, $cpf, $form_id, $device_signals, $skip_device, $skip_ip );
 	}
 
 	/**

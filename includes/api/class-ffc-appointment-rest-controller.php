@@ -25,6 +25,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class AppointmentRestController {
 
 	/**
+	 * Per-account limit on staff bookings, a runaway guard (#2342).
+	 */
+	private const RATE_ACTION   = 'staff_book_appointment';
+	private const RATE_PER_HOUR = 300;
+	private const RATE_PER_DAY  = 2000;
+
+	/**
 	 * API namespace
 	 *
 	 * @var non-falsy-string
@@ -187,11 +194,12 @@ class AppointmentRestController {
 				);
 			}
 
-			// Rate limiting (prevent automated booking abuse).
+			// The route is staff-only, so the anonymous per-address pool does
+			// not fit it: an office of operators shares one address (#2342).
+			// A per-account limit stays on as a runaway guard, as on the
+			// operator certificate route.
 			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-				$ip         = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_ip_limit( $ip );
-
+				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( get_current_user_id(), self::RATE_ACTION, self::RATE_PER_HOUR, self::RATE_PER_DAY );
 				if ( ! $rate_check['allowed'] ) {
 					return new \WP_Error(
 						'rate_limit_exceeded',
@@ -199,9 +207,6 @@ class AppointmentRestController {
 						array( 'status' => 429 )
 					);
 				}
-
-				// A check that never records never trips (#1861).
-				\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip );
 			}
 
 			$appointment_data = array(
@@ -217,7 +222,8 @@ class AppointmentRestController {
 				'user_notes'       => isset( $params['notes'] ) ? sanitize_textarea_field( $params['notes'] ) : '',
 				// Sanitised as the booking form's AJAX handler does (#1861).
 				'custom_data'      => \FreeFormCertificate\Core\RequestInput::text_array( $params['custom_data'] ?? array() ),
-				'consent_given'    => isset( $params['consent'] ) ? 1 : 0,
+				// A JSON `false` or `"no"` is not consent (#2342).
+				'consent_given'    => true === filter_var( $params['consent'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) ? 1 : 0,
 				'consent_text'     => isset( $params['consent_text'] ) ? sanitize_textarea_field( $params['consent_text'] ) : '',
 				'user_ip'          => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				'user_agent'       => isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '',
@@ -244,7 +250,7 @@ class AppointmentRestController {
 			$result              = $appointment_handler->process_appointment( $appointment_data );
 
 			if ( is_wp_error( $result ) ) {
-				return $result;
+				return \FreeFormCertificate\SelfScheduling\AppointmentHandler::rest_error( $result );
 			}
 
 			return rest_ensure_response(
@@ -335,7 +341,9 @@ class AppointmentRestController {
 					'email'            => $email_display,
 					'phone'            => $phone_display,
 					'user_notes'       => $appointment['user_notes'] ?? '',
+					// @removal 6.46.0 -- `created_at` as a site-local DATETIME with no offset; `created_at_iso` replaces it (#2342).
 					'created_at'       => $appointment['created_at'],
+					'created_at_iso'   => \FreeFormCertificate\Core\DateFormatter::iso8601( $appointment['created_at'] ?? null ),
 				)
 			);
 
@@ -375,7 +383,7 @@ class AppointmentRestController {
 			$result              = $appointment_handler->cancel_appointment( $appointment_id, '', $reason );
 
 			if ( is_wp_error( $result ) ) {
-				return $result;
+				return \FreeFormCertificate\SelfScheduling\AppointmentHandler::rest_error( $result );
 			}
 
 			return rest_ensure_response(
@@ -415,12 +423,15 @@ class AppointmentRestController {
 	public function check_appointment_access( $request ): bool {
 		$appointment_id = absint( $request->get_param( 'id' ) );
 
-		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass() ) {
-			return true;
-		}
-
 		if ( ! is_user_logged_in() ) {
 			return false;
+		}
+
+		// Staff who book on behalf of a person can read and cancel what they
+		// booked (#2342); the personal data stays masked by the PII policy and
+		// the cancellation keeps the calendar's rules unless they bypass them.
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			return true;
 		}
 
 		if ( ! class_exists( '\FreeFormCertificate\Repositories\AppointmentRepository' ) ) {
@@ -432,6 +443,14 @@ class AppointmentRestController {
 
 		if ( ! $appointment ) {
 			return false;
+		}
+
+		// The bypass is a per-calendar setting (#2342), as the handler reads it.
+		$calendar_id = (int) ( $appointment['calendar_id'] ?? 0 );
+		$calendar    = $calendar_id > 0 ? ( new \FreeFormCertificate\Repositories\CalendarRepository() )->findById( $calendar_id ) : null;
+		$post_id     = is_array( $calendar ) && isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
+		if ( \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $post_id ) ) {
+			return true;
 		}
 
 		return get_current_user_id() === (int) $appointment['user_id'];
