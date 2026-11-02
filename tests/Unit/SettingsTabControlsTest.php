@@ -82,5 +82,10 @@ class SettingsTabControlsTest extends TestCase {
 		// Whitespace-tolerant: the array alignment moves when a key is added.
 		$this->assertMatchesRegularExpression( "/'id'\\s+=> 'ffc-smtp-pass-change'/", $src );
 		$this->assertMatchesRegularExpression( "/'id'\\s+=> 'ffc-smtp-pass-cancel'/", $src );
+		// A button's icon is the registry name, without the class prefix:
+		// 'ffc-icon-key' draws nothing (#2354).
+		$this->assertMatchesRegularExpression( "/'icon'\\s+=> 'key'/", $src );
+		$this->assertMatchesRegularExpression( "/'icon'\\s+=> 'cross'/", $src );
+		$this->assertStringNotContainsString( "=> 'ffc-icon-", $src );
 	}
 }

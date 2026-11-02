@@ -11,6 +11,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Forms API: ISO 8601 dates** (#2342). Each response date gains an `_iso` twin with the site's offset; the raw fields are deprecated, removal in 6.46.0. The certificates calendar reads its forms in two queries, not one per form.
 
+### Changed
+
+- **Submission edit: an answer is corrected on its own row** (#2354). A pencil beside each correctable answer opens the correction under it, with the current value filled in; the separate card and its answer list are gone. Handler, capability and audit unchanged.
+
 ### Security
 
 - **Dev toolchain: `minimatch` forced to 11.0.1 or later through `overrides`** (#2334). Clears GHSA-g3hv-75wg-m249, reached through ESLint and through `glob` 7 under `clean-css-cli`; no upstream release had moved off the vulnerable range. Nothing ships: the build output is byte-identical.
@@ -25,6 +29,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Forms API: correct statuses, consent, staff access and limits** (#2342). Appointment errors answer 400/403/404/409 instead of 500, `"consent": false` is not consent, staff read and cancel the bookings they make, authenticated calls are counted per account, `validation_url` names the real page, and a 429 sends `Retry-After`; the `X-RateLimit-*` headers, which named a pool no route counts against, are gone.
 - **Address lookup by CEP: an outage or a throttled lookup no longer reads as a wrong CEP** (#2342). The message names a service that did not answer, or the seconds left before the next lookup; it is announced on the CEP field, focus moves to the number only while the CEP still has it, the progress bar matches the six-second limit, and the readme lists the lookup as a third-party service.
 - **Integrations cleanup: RF masks, Cloudflare probe, CEP quota, screenshot viewer, RF message, translated upgrade notice** (#2342). An RF of any length keeps its mask, the Cloudflare probe keeps a result 12 h and retries a failure on the updater's schedule, a cached CEP spends no quota, the viewer draws registry icons and pans by keyboard, and a pt_BR site reads the notice in Portuguese.
+- **SMTP tab: the Change password and Cancel buttons draw their icons** (#2354). They named the icon with its class prefix, which draws nothing.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

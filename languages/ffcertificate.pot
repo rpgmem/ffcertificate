@@ -22497,7 +22497,7 @@ msgstr ""
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr ""
 
-msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: a holder of ffc_manage_certificates can fix a typo in an issued certificate with Correct an answer. It changes one answer at a time, the name included but never CPF/RF or e-mail, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as corrected, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
+msgid "The edit screen lets you correct the participant email and, with ffc_manage_certificates, link, unlink or re-link the WordPress user. The LGPD consent status is shown for reference only. Identity and integrity fields are read-only: submission id, date, status, magic-link token, IP, CPF/RF and the auth code (so a certificate can never be silently re-pointed). The form answers are read-only too, with one exception: a holder of ffc_manage_certificates can fix a typo in an issued certificate with the pencil beside the answer under Form answers, which opens the correction under that answer with its current value filled in. It changes one answer at a time, the name included but never CPF/RF or e-mail, asks for a reason of at least 10 characters, records the old value (masked when personal) and the new one in the Activity Log, marks the answer as corrected, and does not e-mail the participant. The certificate shows the new value the next time it is generated."
 msgstr ""
 
 msgid "Export the current (filtered) submissions to CSV in the background. The export contains decrypted personal data (email, IP, CPF/RF), the magic-link token and the consent record, so it is gated by its own capability."
@@ -29217,18 +29217,6 @@ msgid "Corrected after issue; see the activity log."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Correct an answer"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
-msgid "Choose an answer"
-msgstr ""
-
-#: includes/admin/class-ffc-admin-submission-edit-page.php
 msgid "New value"
 msgstr ""
 
@@ -31357,4 +31345,14 @@ msgstr ""
 
 #. includes/settings/views/documentation/reference-emails.php
 msgid "The password is stored encrypted with the plugin's key and never shown again: the tab says a password is saved, and \"Change password\" opens an empty field for a new one. Saving with the field closed or empty keeps the saved password; to stop using one, turn custom SMTP off. Only a holder of ffc_manage_settings_smtp can change it."
+msgstr ""
+
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+msgid "A typo in an issued certificate? Use the answer's pencil. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution."
+msgstr ""
+
+#. translators: %s: the answer's label
+#. includes/admin/class-ffc-admin-submission-edit-page.php
+#, php-format
+msgid "Correct %s"
 msgstr ""

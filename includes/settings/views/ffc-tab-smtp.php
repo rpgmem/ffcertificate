@@ -220,7 +220,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 											array(
 												'label'    => __( 'Change password', 'ffcertificate' ),
 												'category' => 'neutral',
-												'icon'     => 'ffc-icon-key',
+												'icon'     => 'key',
 												'id'       => 'ffc-smtp-pass-change',
 												'disabled' => ! $ffcertificate_pass_edit,
 												'attrs'    => $ffcertificate_pass_edit ? array( 'aria-controls' => 'ffc-smtp-pass-edit' ) : array( 'title' => __( 'Only someone who manages SMTP can change the password.', 'ffcertificate' ) ),
@@ -241,7 +241,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 												array(
 													'label' => __( 'Cancel', 'ffcertificate' ),
 													'category' => 'neutral',
-													'icon' => 'ffc-icon-cross',
+													'icon' => 'cross',
 													'id'   => 'ffc-smtp-pass-cancel',
 												)
 											);

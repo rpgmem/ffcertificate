@@ -31,6 +31,39 @@ jQuery(document).ready(function($) {
         }, 2000);
     });
 
+    // ========================================
+    // Correct an answer on its own row (#2354)
+    // ========================================
+    // One editor, printed hidden; a pencil moves it under its answer, names
+    // the answer in the hidden field and fills in the current value.
+    var $editor = $('#ffc-correct-inline');
+
+    function closeCorrection() {
+        var $open = $('.ffc-correct-open[aria-expanded="true"]');
+        $editor.prop('hidden', true);
+        $('#ffc-correct-field').val('');
+        $open.attr('aria-expanded', 'false');
+        return $open;
+    }
+
+    $('.ffc-correct-open').on('click', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        closeCorrection();
+        $btn.closest('.ffc-facts__value').append($editor);
+        $('#ffc-correct-field').val($btn.attr('data-field'));
+        $('#ffc-correct-value').val($btn.attr('data-value'));
+        $('#ffc-correct-reason').val('');
+        $editor.prop('hidden', false);
+        $btn.attr('aria-expanded', 'true');
+        $('#ffc-correct-value').trigger('focus');
+    });
+
+    $('.ffc-correct-cancel').on('click', function(e) {
+        e.preventDefault();
+        closeCorrection().trigger('focus');
+    });
+
     // Reveal PII (#739 §3.3) is handled by the shared ffc-pii-reveal.js.
 
     // ========================================

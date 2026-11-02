@@ -182,7 +182,6 @@ class AdminSubmissionEditPage {
 						$this->render_grading_card();
 						$this->render_participant_data_section();
 						$this->render_dynamic_fields();
-						$this->render_correction_card();
 						$this->render_system_info_section();
 						$this->render_consent_section();
 						?>
@@ -975,6 +974,14 @@ class AdminSubmissionEditPage {
 			)
 		);
 
+		// An answer is corrected on its own row (#2354): a pencil opens the
+		// editor under it. Its inputs belong to the correction form printed
+		// after the edit form, as before: forms cannot nest.
+		$correctable = AnswerCorrectionHandler::current_user_can_correct() ? $this->correctable_answers() : array();
+		if ( array() !== $correctable ) {
+			echo '<p class="description">' . esc_html__( 'A typo in an issued certificate? Use the answer\'s pencil. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ) . '</p>';
+		}
+
 		$answers   = '';
 		$protected = '';
 		foreach ( $this->data as $k => $v ) {
@@ -1007,13 +1014,33 @@ class AdminSubmissionEditPage {
 
 			// An answer is locked: it reads as text, and the save keeps what is stored.
 			// One changed through the audited correction says so (#2241).
+			$pencil = '';
+			if ( isset( $correctable[ (string) $k ] ) ) {
+				$pencil = AdminUI::button(
+					array(
+						/* translators: %s: the answer's label */
+						'label'     => sprintf( __( 'Correct %s', 'ffcertificate' ), (string) $lbl ),
+						'category'  => 'neutral',
+						'icon'      => 'edit',
+						'icon_only' => true,
+						'class'     => 'ffc-correct-open',
+						'attrs'     => array(
+							'data-field'    => (string) $k,
+							'data-value'    => $display_value,
+							'aria-controls' => 'ffc-correct-inline',
+							'aria-expanded' => 'false',
+						),
+					)
+				);
+			}
 			$answers .= sprintf(
-				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s%3$s</dd>',
+				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value"><div class="ffc-answer-row"><span class="ffc-answer-value">%2$s</span>%4$s</div>%3$s</dd>',
 				esc_html( (string) $lbl ),
 				nl2br( esc_html( $display_value ) ),
 				in_array( $k, $this->corrected_fields(), true )
 					? '<span class="description ffc-edit-note ffc-icon-edit">' . esc_html__( 'Corrected after issue; see the activity log.', 'ffcertificate' ) . '</span>'
-					: ''
+					: '',
+				$pencil // Built by AdminUI::button(), which escapes every attribute.
 			);
 		}
 
@@ -1025,6 +1052,9 @@ class AdminSubmissionEditPage {
 		}
 		if ( '' !== $protected ) {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
+		}
+		if ( array() !== $correctable ) {
+			$this->render_correction_editor();
 		}
 		\FreeFormCertificate\Admin\AdminUI::render_section_close();
 	}
@@ -1063,52 +1093,49 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
-	 * Main column: correct one answer of an issued certificate (#2241).
+	 * The editor a row's pencil opens, under that row (#2241, #2354).
 	 *
-	 * Its inputs belong to the correction form printed after the edit form,
-	 * like the grading card's: forms cannot nest.
+	 * Printed once, hidden; the script moves it into the row it corrects,
+	 * names the answer in the hidden field and fills in the current value.
+	 * Its inputs belong to the correction form printed after the edit form:
+	 * forms cannot nest.
 	 */
-	private function render_correction_card(): void {
-		$answers = $this->correctable_answers();
-		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $answers ) {
-			return;
-		}
-		self::card_open( __( 'Correct an answer', 'ffcertificate' ), 'edit' );
+	private function render_correction_editor(): void {
 		?>
-		<p class="description"><?php esc_html_e( 'For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ); ?></p>
-		<p>
-			<label for="ffc-correct-field"><strong><?php esc_html_e( 'Answer', 'ffcertificate' ); ?></strong></label><br>
-			<select id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" required>
-				<option value=""><?php esc_html_e( 'Choose an answer', 'ffcertificate' ); ?></option>
-				<?php foreach ( $answers as $key => $label ) : ?>
-					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
-		<p>
-			<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
-			<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
-		</p>
-		<p>
-			<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the correction', 'ffcertificate' ); ?></strong></label><br>
-			<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
-		</p>
-		<p class="ffc-edit-actions">
-			<?php
-			AdminUI::render_button(
-				array(
-					'label'    => __( 'Correct answer', 'ffcertificate' ),
-					'category' => 'caution',
-					'icon'     => 'save',
-					'type'     => 'submit',
-					'attrs'    => array(
-						'form'         => 'ffc-correct-form',
-						'data-confirm' => __( 'Correct this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
-					),
-				)
-			);
-			?>
-		</p>
+		<div id="ffc-correct-inline" class="ffc-correct-inline" hidden>
+			<input type="hidden" id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" value="">
+			<p>
+				<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
+			</p>
+			<p>
+				<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the correction', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+			</p>
+			<p class="ffc-edit-actions">
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Correct answer', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'save',
+						'type'     => 'submit',
+						'attrs'    => array(
+							'form'         => 'ffc-correct-form',
+							'data-confirm' => __( 'Correct this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
+						),
+					)
+				);
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Cancel', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'cross',
+						'class'    => 'ffc-correct-cancel',
+					)
+				);
+				?>
+			</p>
 		</div>
 		<?php
 	}
