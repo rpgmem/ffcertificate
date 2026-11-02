@@ -79,7 +79,7 @@ describe('FFC.Fields masks', () => {
 });
 
 describe('FFC.Fields format checks', () => {
-	const S = { invalidCpf: 'bad cpf', invalidRf: 'bad rf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidFormat: 'bad' };
+	const S = { invalidCpf: 'bad cpf', invalidRf: 'bad rf', invalidEmail: 'bad email', invalidPhone: 'bad phone', invalidUrl: 'bad url', invalidFormat: 'bad' };
 
 	it('accepts a valid CPF and refuses wrong digits or a repeated run', () => {
 		expect(window.FFC.Fields.validateCpf('529.982.247-25')).toBe(true);
@@ -95,6 +95,11 @@ describe('FFC.Fields format checks', () => {
 		expect(window.FFC.Fields.formatError('a@b.co', 'email', S)).toBe('');
 		expect(window.FFC.Fields.formatError('(11) 98765-4321', 'phone', S)).toBe('');
 		expect(window.FFC.Fields.formatError('123', 'phone', S)).toBe('bad phone');
+		// A web address with a dot in its host, scheme optional (#2368).
+		expect(window.FFC.Fields.formatError('site.com.br/page?x=1', 'url', S)).toBe('');
+		expect(window.FFC.Fields.formatError('https://exemplo.gov.br', 'url', S)).toBe('');
+		expect(window.FFC.Fields.formatError('exemplo', 'url', S)).toBe('bad url');
+		expect(window.FFC.Fields.formatError('http://exemplo .com', 'url', S)).toBe('bad url');
 		expect(window.FFC.Fields.formatError('x', 'unknown', S)).toBe('');
 		expect(window.FFC.Fields.formatError('518.178-0', 'rf', S)).toBe('');
 		expect(window.FFC.Fields.formatError('51817', 'rf', S)).toBe('bad rf');

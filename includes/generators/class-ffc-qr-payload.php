@@ -255,6 +255,11 @@ final class QrPayload {
 	/**
 	 * A dialable number: digits with an optional leading `+`, 3 to 15 digits.
 	 *
+	 * The generator types numbers through the plugin's phone mask, (DD)
+	 * 98765-4321, which has no country code; a code read from abroad, and a
+	 * WhatsApp link anywhere, needs one. So a number of 10 or 11 digits with
+	 * no `+` is a Brazilian number and takes +55 (#2368).
+	 *
 	 * @param string $raw As typed, with spaces, dashes or brackets.
 	 * @return string '' when it is not a phone number.
 	 */
@@ -262,7 +267,13 @@ final class QrPayload {
 		$plus   = 0 === strpos( ltrim( $raw ), '+' );
 		$digits = (string) preg_replace( '/\D+/', '', $raw );
 		$length = strlen( $digits );
-		return $length >= 3 && $length <= 15 ? ( $plus ? '+' : '' ) . $digits : '';
+		if ( $length < 3 || $length > 15 ) {
+			return '';
+		}
+		if ( ! $plus && ( 10 === $length || 11 === $length ) ) {
+			return '+55' . $digits;
+		}
+		return ( $plus ? '+' : '' ) . $digits;
 	}
 
 	/**

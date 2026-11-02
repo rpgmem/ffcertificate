@@ -164,7 +164,12 @@ class QrPayloadTest extends TestCase {
 
 	public function test_phone_sms_and_whatsapp_normalise_the_number(): void {
 		$this->assertSame( 'tel:+5511987654321', QrPayload::build( 'phone', array( 'phone' => '+55 (11) 98765-4321' ) ) );
-		$this->assertSame( 'SMSTO:11987654321:Oi: tudo bem?', QrPayload::build( 'sms', array( 'phone' => '11 98765 4321', 'message' => 'Oi: tudo bem?' ) ) );
+		// A number typed through the phone mask has no country code: +55 (#2368).
+		$this->assertSame( 'SMSTO:+5511987654321:Oi: tudo bem?', QrPayload::build( 'sms', array( 'phone' => '11 98765 4321', 'message' => 'Oi: tudo bem?' ) ) );
+		$this->assertSame( 'tel:+5511987654321', QrPayload::build( 'phone', array( 'phone' => '(11) 98765-4321' ) ) );
+		$this->assertSame( 'tel:+551132654321', QrPayload::build( 'phone', array( 'phone' => '(11) 3265-4321' ) ) );
+		$this->assertSame( 'https://wa.me/5511987654321', QrPayload::build( 'whatsapp', array( 'phone' => '(11) 98765-4321' ) ) );
+		$this->assertSame( 'tel:190', QrPayload::build( 'phone', array( 'phone' => '190' ) ), 'A short service number takes no country code.' );
 		$this->assertSame( 'https://wa.me/5511987654321?text=Quero%20o%20certificado', QrPayload::build( 'whatsapp', array( 'phone' => '+55 11 98765-4321', 'message' => 'Quero o certificado' ) ) );
 		$this->assertSame( 'https://wa.me/5511987654321', QrPayload::build( 'whatsapp', array( 'phone' => '5511987654321' ) ) );
 	}

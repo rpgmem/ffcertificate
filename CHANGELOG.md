@@ -19,6 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration campaign editor in vertical tabs** (#2362). Campaign, Email Notifications, Import answers and Invitations become tabs, with Save and a summary (status, period, affected users) in a side column. The editor layout is now the shared `.ffc-editor`.
 - **Recruitment candidate editor in vertical tabs** (#2363). General, Sensitive data, Classifications, History and Permanent deletion become tabs, each with its own save, beside a summary of the linked account, the classifications, the calls and the latest activity.
 - **QR Code Generator: each type opens with example content** (#2365). The preview draws at once from the site address, its name, an open network and the like; while the content is still the example no short URL is created, and one is created on the first download after a change.
+- **QR Code Generator: the plugin's masks, checks and CEP lookup** (#2368). Phones take the (DD) 98765-4321 mask and the code adds +55; e-mails are checked and lower-cased; a vCard's website is checked; its postal code comes first and fills the address when the CEP lookup is on.
 
 ### Security
 

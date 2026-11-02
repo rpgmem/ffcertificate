@@ -82,10 +82,12 @@ class QrGeneratorPage {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster', 'ffc-branding-media' );
 		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-design' );
+		// The vCard's masks, checks and CEP lookup are the shared ones (#2368).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script(
 			'ffc-qr-generator',
 			FFC_PLUGIN_URL . "assets/js/ffc-qr-generator{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-qr-design', 'ffc-qr-raster' ),
+			array( 'jquery', 'ffc-core', 'ffc-qr-design', 'ffc-qr-raster', 'ffc-field-behaviours' ),
 			FFC_VERSION,
 			true
 		);
@@ -126,6 +128,12 @@ class QrGeneratorPage {
 					'reset'           => __( 'Design reset to the global default.', 'ffcertificate' ),
 					/* translators: %s: title of the short URL */
 					'saved'           => __( '"%s" is stored and now counts the scans. Copy the link to share it.', 'ffcertificate' ),
+					// The vCard's format checks (#2368), read by FFC.Fields.formatError().
+					'invalidEmail'    => __( 'Invalid email.', 'ffcertificate' ),
+					'invalidPhone'    => __( 'Invalid phone number.', 'ffcertificate' ),
+					'invalidCep'      => __( 'Invalid CEP.', 'ffcertificate' ),
+					'cepRepeated'     => __( 'Invalid CEP: all digits are the same.', 'ffcertificate' ),
+					'invalidUrl'      => __( 'Invalid web address.', 'ffcertificate' ),
 				),
 			)
 		);
@@ -144,7 +152,7 @@ class QrGeneratorPage {
 		$email = (string) $user->user_email;
 		$site  = (string) get_bloginfo( 'name' );
 		$home  = home_url( '/' );
-		$phone = '+55 11 99999-9999';
+		$phone = '(11) 99999-9999';
 
 		return array(
 			'url'      => array( 'url' => $home ),

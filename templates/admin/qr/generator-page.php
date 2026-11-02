@@ -40,18 +40,21 @@ $ffc_qr_types = array(
 );
 
 $ffc_qr_vcard_fields = array(
+	// Label, input type, then what the shared field behaviours read (#2368):
+	// the mask, the format check, and the key the CEP lookup fills.
 	'first_name'   => array( __( 'First name', 'ffcertificate' ), 'text' ),
 	'last_name'    => array( __( 'Last name', 'ffcertificate' ), 'text' ),
 	'organization' => array( __( 'Organisation', 'ffcertificate' ), 'text' ),
 	'job_title'    => array( __( 'Job title', 'ffcertificate' ), 'text' ),
-	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel' ),
-	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel' ),
-	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email' ),
-	'website'      => array( __( 'Website', 'ffcertificate' ), 'url' ),
-	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text' ),
-	'city'         => array( __( 'City', 'ffcertificate' ), 'text' ),
-	'region'       => array( __( 'State', 'ffcertificate' ), 'text' ),
-	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text' ),
+	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
+	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
+	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email', '', 'email' ),
+	'website'      => array( __( 'Website', 'ffcertificate' ), 'url', '', 'url' ),
+	// The postal code comes first: a found CEP fills the rest.
+	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text', 'cep', 'cep', 'cep' ),
+	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text', '', '', 'endereco' ),
+	'city'         => array( __( 'City', 'ffcertificate' ), 'text', '', '', 'cidade' ),
+	'region'       => array( __( 'State', 'ffcertificate' ), 'text', '', '', 'uf' ),
 	'country'      => array( __( 'Country', 'ffcertificate' ), 'text' ),
 );
 ?>
@@ -162,7 +165,7 @@ $ffc_qr_vcard_fields = array(
 
 				<table class="form-table" role="presentation" data-ffc-qr-type="email" hidden>
 					<tbody>
-						<tr>
+						<tr data-format="email">
 							<th scope="row"><label for="ffc-qr-email"><?php esc_html_e( 'To', 'ffcertificate' ); ?></label></th>
 							<td><input type="email" id="ffc-qr-email" class="regular-text" data-ffc-qr-field="email:email"></td>
 						</tr>
@@ -180,11 +183,11 @@ $ffc_qr_vcard_fields = array(
 				<?php foreach ( array( 'phone', 'sms', 'whatsapp' ) as $ffc_type ) : ?>
 				<table class="form-table" role="presentation" data-ffc-qr-type="<?php echo esc_attr( $ffc_type ); ?>" hidden>
 					<tbody>
-						<tr>
+						<tr data-format="phone">
 							<th scope="row"><label for="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone"><?php esc_html_e( 'Phone number', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="tel" id="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone" class="regular-text" placeholder="+55 11 98765-4321" data-ffc-qr-field="<?php echo esc_attr( $ffc_type ); ?>:phone">
-								<p class="description"><?php esc_html_e( 'With the country code, so it works from anywhere.', 'ffcertificate' ); ?></p>
+								<input type="tel" id="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone" class="regular-text" placeholder="(11) 98765-4321" data-mask="phone" inputmode="numeric" data-ffc-qr-field="<?php echo esc_attr( $ffc_type ); ?>:phone">
+								<p class="description"><?php esc_html_e( 'Area code and number. The code adds +55, so it works from anywhere.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 						<?php if ( 'phone' !== $ffc_type ) : ?>
@@ -200,9 +203,9 @@ $ffc_qr_vcard_fields = array(
 				<table class="form-table" role="presentation" data-ffc-qr-type="vcard" hidden>
 					<tbody>
 						<?php foreach ( $ffc_qr_vcard_fields as $ffc_key => $ffc_field ) : ?>
-						<tr>
+						<tr data-field-key="<?php echo esc_attr( $ffc_field[4] ?? $ffc_key ); ?>" data-format="<?php echo esc_attr( $ffc_field[3] ?? '' ); ?>">
 							<th scope="row"><label for="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_field[0] ); ?></label></th>
-							<td><input type="<?php echo esc_attr( $ffc_field[1] ); ?>" id="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>" class="regular-text" data-ffc-qr-field="vcard:<?php echo esc_attr( $ffc_key ); ?>"></td>
+							<td><input type="<?php echo esc_attr( $ffc_field[1] ); ?>" id="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>" class="regular-text" data-ffc-qr-field="vcard:<?php echo esc_attr( $ffc_key ); ?>"<?php echo '' !== ( $ffc_field[2] ?? '' ) ? ' data-mask="' . esc_attr( $ffc_field[2] ) . '" inputmode="numeric"' : ''; ?>></td>
 						</tr>
 						<?php endforeach; ?>
 						<tr>
