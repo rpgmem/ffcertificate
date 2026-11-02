@@ -31334,3 +31334,27 @@ msgstr ""
 #. includes/settings/views/documentation/reference-privacy.php
 msgid "When the address lookup is on (Settings → General), each CEP typed on the reregistration form or the admin user screen is sent from the server to ViaCEP or BrasilAPI, and nothing else is sent with it. The answer is cached for 30 days. Off by default."
 msgstr ""
+
+#. includes/settings/views/ffc-tab-smtp.php
+msgid "Password saved"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-smtp.php
+msgid "Change password"
+msgstr ""
+
+#. includes/settings/views/ffc-tab-smtp.php
+msgid "Only someone who manages SMTP can change the password."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-smtp.php
+msgid "The password is never shown. To replace it, click \"Change password\", type the new one and save; \"Cancel\" keeps the saved one."
+msgstr ""
+
+#. includes/settings/views/ffc-tab-smtp.php
+msgid "The saved password can no longer be read, because the encryption key changed. Type it again and save."
+msgstr ""
+
+#. includes/settings/views/documentation/reference-emails.php
+msgid "The password is stored encrypted with the plugin's key and never shown again: the tab says a password is saved, and \"Change password\" opens an empty field for a new one. Saving with the field closed or empty keeps the saved password; to stop using one, turn custom SMTP off. Only a holder of ffc_manage_settings_smtp can change it."
+msgstr ""

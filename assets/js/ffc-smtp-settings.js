@@ -54,4 +54,19 @@ jQuery(document).ready(function ($) {
 
 	// Initial state on page load.
 	applyVisibility();
+
+	// The saved password is never sent to the browser (#2342). "Change
+	// password" opens an empty field; "Cancel" closes and empties it, so
+	// saving afterwards keeps the stored password.
+	$(document).on('click', '#ffc-smtp-pass-change', function () {
+		$('#ffc-smtp-pass-saved').prop('hidden', true);
+		$('#ffc-smtp-pass-edit').prop('hidden', false);
+		$('#smtp_pass').val('').trigger('focus');
+	});
+	$(document).on('click', '#ffc-smtp-pass-cancel', function () {
+		$('#smtp_pass').val('');
+		$('#ffc-smtp-pass-edit').prop('hidden', true);
+		$('#ffc-smtp-pass-saved').prop('hidden', false);
+		$('#ffc-smtp-pass-change').trigger('focus');
+	});
 });

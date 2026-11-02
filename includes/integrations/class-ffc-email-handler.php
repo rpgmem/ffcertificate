@@ -69,7 +69,7 @@ class EmailHandler {
 			$phpmailer->SMTPAuth   = true;
 			$phpmailer->Port       = isset( $settings['smtp_port'] ) ? (int) $settings['smtp_port'] : 587;
 			$phpmailer->Username   = isset( $settings['smtp_user'] ) ? $settings['smtp_user'] : '';
-			$phpmailer->Password   = isset( $settings['smtp_pass'] ) ? $settings['smtp_pass'] : '';
+			$phpmailer->Password   = SmtpPassword::read( $settings );
 			$phpmailer->SMTPSecure = isset( $settings['smtp_secure'] ) ? $settings['smtp_secure'] : 'tls';
 
 			if ( ! empty( $settings['smtp_from_email'] ) ) {

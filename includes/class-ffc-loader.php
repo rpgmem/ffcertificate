@@ -546,6 +546,11 @@ class Loader {
 		// `init` because it queries the form post type.
 		add_action( 'init', array( \FreeFormCertificate\Security\GeofenceWindowMessages::class, 'maybe_migrate' ), 20 );
 
+		// Encrypt an SMTP password saved before it was encrypted at rest
+		// (#2342). `admin_init` so a front-end request never writes the
+		// option; no flag, because an encrypted value returns at once.
+		add_action( 'admin_init', array( \FreeFormCertificate\Integrations\SmtpPassword::class, 'maybe_encrypt_stored' ) );
+
 		$this->ensure_admin_capabilities();
 		$this->ensure_admin_role_assigned();
 		$this->ensure_taxonomy_renamed();

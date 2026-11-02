@@ -103,7 +103,7 @@ class EmailHandlerTest extends TestCase {
 			'smtp_host'       => 'smtp.example.com',
 			'smtp_port'       => '465',
 			'smtp_user'       => 'user@example.com',
-			'smtp_pass'       => 'secret',
+			'smtp_pass'       => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'secret' ),
 			'smtp_secure'     => 'ssl',
 			'smtp_from_email' => 'noreply@example.com',
 			'smtp_from_name'  => 'My App',

@@ -359,8 +359,16 @@ class SettingsSaveHandler {
 			$clean['smtp_user'] = sanitize_text_field( $new['smtp_user'] );
 		}
 
-		if ( isset( $new['smtp_pass'] ) ) {
-			$clean['smtp_pass'] = sanitize_text_field( $new['smtp_pass'] );
+		// The password is read raw: `$new` went through sanitize_text_field(),
+		// which changes a password holding `<`, `%xx` or extra spaces. An empty
+		// field keeps the stored one, so saving with "Change password" closed
+		// never erases it; turning authentication off is how to stop using it
+		// (#2342).
+		$raw_settings = \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_settings' );
+		$typed_pass   = isset( $raw_settings['smtp_pass'] ) && is_string( $raw_settings['smtp_pass'] ) ? $raw_settings['smtp_pass'] : '';
+		$stored_pass  = \FreeFormCertificate\Integrations\SmtpPassword::for_storage( $typed_pass );
+		if ( '' !== $stored_pass ) {
+			$clean['smtp_pass'] = $stored_pass;
 		}
 
 		if ( isset( $new['smtp_secure'] ) ) {
