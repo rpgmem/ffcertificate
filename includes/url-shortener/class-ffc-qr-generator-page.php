@@ -100,6 +100,7 @@ class QrGeneratorPage {
 				'shortenNonce'  => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_SHORTEN ),
 				'remember'      => QrGeneratorAjaxEndpoint::ACTION_REMEMBER,
 				'rememberNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_REMEMBER ),
+				'examples'      => self::examples(),
 				'i18n'          => array(
 					/* translators: 1: percentage of the code in use, 2: characters that still fit, 3: error correction level (L, M, Q or H) */
 					'usage'           => __( '%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two).', 'ffcertificate' ),
@@ -127,6 +128,49 @@ class QrGeneratorPage {
 					'saved'           => __( '"%s" is stored and now counts the scans. Copy the link to share it.', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Example content for each type (#2365), filled into a type's empty
+	 * fields when it opens so the preview draws at once. A code still holding
+	 * its example creates no short URL, because nobody chose its content.
+	 *
+	 * @return array<string, array<string, string>> Field values keyed by type, then by field key.
+	 */
+	public static function examples(): array {
+		$user  = wp_get_current_user();
+		$name  = trim( (string) $user->display_name );
+		$email = (string) $user->user_email;
+		$site  = (string) get_bloginfo( 'name' );
+		$home  = home_url( '/' );
+		$phone = '+55 11 99999-9999';
+
+		return array(
+			'url'      => array( 'url' => $home ),
+			'text'     => array( 'text' => '' !== $site ? $site : $home ),
+			'wifi'     => array(
+				'ssid'     => __( 'MyNetwork', 'ffcertificate' ),
+				'security' => 'nopass',
+			),
+			'email'    => array( 'email' => (string) get_option( 'admin_email' ) ),
+			'phone'    => array( 'phone' => $phone ),
+			'sms'      => array( 'phone' => $phone ),
+			'whatsapp' => array( 'phone' => $phone ),
+			'vcard'    => array(
+				'first_name' => '' !== $name ? $name : $site,
+				'email'      => $email,
+			),
+			'social'   => array(
+				'network'  => (string) array_key_first( \FreeFormCertificate\Generators\QrPayload::NETWORKS ),
+				'username' => '' !== sanitize_title( $site ) ? sanitize_title( $site ) : 'example',
+			),
+			'event'    => array(
+				'title' => __( 'Event', 'ffcertificate' ),
+				'date'  => (string) wp_date( 'Y-m-d' ),
+				'start' => '09:00',
+				'end'   => '10:00',
+			),
 		);
 	}
 

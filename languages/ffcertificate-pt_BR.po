@@ -31478,3 +31478,15 @@ msgstr "O link Presença na linha de uma reserva em Agendamentos de Público-alv
 #: includes/settings/views/documentation/scheduling-audiences.php:97
 msgid "The Post-event form tab on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This tab and the Attendance rule tab save each change as it is made, and the sentences describing them, in the tabs and in the summary, follow; reload the page to see the invitations."
 msgstr "A aba Formulário pós-evento na tela de Presença de um agendamento diz qual formulário vale e quando está aberto. O interruptor dá a esse agendamento uma configuração própria no lugar da do calendário, inclusive Nenhum para não convidar ninguém; alterá-lo exige ffc_manage_audiences. Esta aba e a aba Regra de presença salvam cada alteração assim que ela é feita, e as frases que as descrevem, nas abas e no resumo, acompanham; recarregue a página para ver os convites."
+
+#: includes/settings/views/documentation/feature-qr-generator.php:21
+msgid "Each type opens with example content, so the preview shows a code at once: the site address, its name, an open network, the administrator's e-mail, a sample phone number, your own contact card, a profile named after the site, or an event today from 9:00 to 10:00. Replace it with your own. A type you already typed into keeps what you typed."
+msgstr "Cada tipo abre com um conteúdo de exemplo, para a visualização já mostrar um código: o endereço do site, o nome dele, uma rede aberta, o e-mail do administrador, um número de telefone de exemplo, o seu próprio cartão de contato, um perfil com o nome do site ou um evento hoje das 9h às 10h. Troque pelo seu conteúdo. Um tipo em que você já digitou mantém o que você digitou."
+
+#: includes/url-shortener/class-ffc-qr-generator-page.php:153
+msgid "MyNetwork"
+msgstr "MinhaRede"
+
+#: includes/settings/views/documentation/feature-qr-generator.php:25
+msgid "While the content is still the example, the code carries it directly and no short URL is created, not even on a download or a print. Once you change the content, the short URL works as described above: it is created on the first download or print."
+msgstr "Enquanto o conteúdo ainda é o exemplo, o código leva o conteúdo direto e nenhuma URL curta é criada, nem ao baixar ou imprimir. Quando você altera o conteúdo, a URL curta funciona como descrito acima: é criada no primeiro download ou impressão."

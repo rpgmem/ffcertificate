@@ -24,6 +24,10 @@
 	// The short URL the code carries: created on a download, or picked with
 	// "Use this"; valid while `key` matches the content it was made for.
 	var shortUrl = { code: '', key: '' };
+	// What each type held when its example was filled in (#2365): while the
+	// fields still say exactly that, nobody chose the content, so the code
+	// carries it directly and no short URL is created on a download.
+	var examples = {};
 	// What had the focus when the saved overlay opened, to give it back.
 	var savedOpener = null;
 	// What the operator asked for, kept while a circular address locks the switch.
@@ -102,6 +106,57 @@
 	}
 
 	/**
+	 * The active type's fields, without the short URL title.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {string}
+	 */
+	function fieldsKey($form) {
+		var parsed = JSON.parse(contentKey($form));
+		return JSON.stringify([parsed[0], parsed[1]]);
+	}
+
+	/**
+	 * Whether the active type still holds the example it was opened with.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {boolean}
+	 */
+	function isExample($form) {
+		return examples[activeType($form)] === fieldsKey($form);
+	}
+
+	/**
+	 * Fill the active type's fields with its example when they are all
+	 * empty, so the preview draws at once (#2365). A type the user has
+	 * already typed into keeps what they typed.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function fillExample($form) {
+		var type = activeType($form);
+		var example = (cfg.examples || {})[type];
+		if (!example || Object.prototype.hasOwnProperty.call(examples, type)) {
+			return;
+		}
+		var empty = true;
+		$form.find('[data-ffc-qr-field^="' + type + ':"]').each(function () {
+			if (this.type === 'checkbox' ? this.checked : (this.tagName !== 'SELECT' && String($(this).val() || '').trim() !== '')) {
+				empty = false;
+			}
+		});
+		if (!empty) {
+			return;
+		}
+		Object.keys(example).forEach(function (key) {
+			$form.find('[data-ffc-qr-field="' + type + ':' + key + '"]').val(String(example[key]));
+		});
+		examples[type] = fieldsKey($form);
+		$form.find('#ffc-qr-network').trigger('change.ffcQrPrefix');
+		showWifiEnterprise($form);
+	}
+
+	/**
 	 * The message an error carries: a 4xx reply arrives through the request's
 	 * failure path, so its message sits in `data`, not in `message`.
 	 *
@@ -152,7 +207,7 @@
 				shortUrl = { code: '', key: '' };
 				showSaved(null);
 			}
-			request.short = wantShort ? '1' : '';
+			request.short = wantShort && !isExample($form) ? '1' : '';
 			request.short_code = shortUrl.code;
 		}
 		return request;
@@ -212,7 +267,7 @@
 	 */
 	function ensureShort($form) {
 		var state = current && current.short;
-		if (!state || state.circular || !state.example || !wantShort) {
+		if (!state || state.circular || !state.example || !wantShort || isExample($form)) {
 			return Promise.resolve();
 		}
 		var $status = $('#ffc-qr-generator-status');
@@ -490,13 +545,14 @@
 		$form.on('submit', function (e) { e.preventDefault(); });
 		$form.on('change', 'input[name="type"]', function () {
 			showType($form);
+			fillExample($form);
 			refresh($form);
 		});
 		$form.on('change input', '[data-ffc-qr-field], [data-ffc-qr-design], #qr_default_margin, #qr_default_error_level', function () {
 			schedule($form);
 		});
 		// Social: show the chosen network's prefix before the user name.
-		$form.on('change', '#ffc-qr-network', function () {
+		$form.on('change change.ffcQrPrefix', '#ffc-qr-network', function () {
 			$('#ffc-qr-social-prefix').text(String($(this).find('option:selected').attr('data-ffc-qr-prefix') || ''));
 		});
 		$form.on('change', '[data-ffc-qr-field="wifi:security"]', function () {
@@ -599,11 +655,14 @@
 				});
 		});
 
+		examples = {};
 		showType($form);
+		fillExample($form);
+		refresh($form);
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print, ensureShort: ensureShort, errorMessage: errorMessage };
+	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print, ensureShort: ensureShort, errorMessage: errorMessage, isExample: isExample };
 
 	$(init);
 })(jQuery);

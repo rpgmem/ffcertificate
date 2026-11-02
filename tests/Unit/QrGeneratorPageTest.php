@@ -44,7 +44,18 @@ class QrGeneratorPageTest extends TestCase {
 		( new QrGeneratorPage() )->register_menu();
 	}
 
+	/** Stub what the example content reads (#2365). */
+	private function stub_examples(): void {
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'display_name' => 'Ana Lima', 'user_email' => 'ana@site.test' ) );
+		Functions\when( 'get_bloginfo' )->justReturn( 'School Portal' );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://site.test' . $p );
+		Functions\when( 'sanitize_title' )->alias( static fn( $t ) => strtolower( str_replace( ' ', '-', (string) $t ) ) );
+		Functions\when( 'wp_date' )->justReturn( '2026-11-02' );
+		Functions\when( 'get_option' )->alias( static fn( $k, $d = false ) => 'admin_email' === $k ? 'admin@site.test' : array() );
+	}
+
 	public function test_assets_load_on_its_screen_only(): void {
+		$this->stub_examples();
 		Functions\when( 'add_submenu_page' )->justReturn( 'short-urls_page_ffc-qr-generator' );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
@@ -79,6 +90,21 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertSame( 'nonce-ffc_qr_shorten', $localized['ffcQrGenerator']['shortenNonce'] );
 		$this->assertSame( 'ffc_qr_remember', $localized['ffcQrGenerator']['remember'] );
 		$this->assertSame( 'nonce-ffc_qr_remember', $localized['ffcQrGenerator']['rememberNonce'] );
+	}
+
+	public function test_every_type_opens_with_example_content_the_payload_accepts(): void {
+		$this->stub_examples();
+		$examples = QrGeneratorPage::examples();
+
+		// Every type has an example, so every type draws when it opens.
+		$this->assertSame( \FreeFormCertificate\Generators\QrPayload::TYPES, array_keys( $examples ) );
+		$this->assertSame( 'https://site.test/', $examples['url']['url'] );
+		$this->assertSame( 'nopass', $examples['wifi']['security'], 'An open network needs no password to be valid.' );
+		$this->assertSame( 'admin@site.test', $examples['email']['email'] );
+		$this->assertSame( array( 'first_name' => 'Ana Lima', 'email' => 'ana@site.test' ), $examples['vcard'] );
+		$this->assertSame( 'school-portal', $examples['social']['username'] );
+		$this->assertArrayHasKey( $examples['social']['network'], \FreeFormCertificate\Generators\QrPayload::NETWORKS );
+		$this->assertSame( array( 'title' => 'Event', 'date' => '2026-11-02', 'start' => '09:00', 'end' => '10:00' ), $examples['event'] );
 	}
 
 	public function test_render_refuses_without_the_manage_tier(): void {

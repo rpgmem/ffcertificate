@@ -302,4 +302,21 @@ class QrPayloadTest extends TestCase {
 		// Only the .ics link can expire; a malformed date is no error for the others.
 		$this->assertStringStartsWith( 'BEGIN:VEVENT', (string) QrPayload::build( 'event', $this->event( array( 'until' => 'garbage' ) ) ) );
 	}
+
+	public function test_the_generator_examples_all_build_a_payload(): void {
+		// The generator opens each type with an example (#2365); every one
+		// must be content the payload accepts, or the preview opens empty.
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'display_name' => 'Ana Lima', 'user_email' => 'ana@site.test' ) );
+		Functions\when( 'get_bloginfo' )->justReturn( 'School Portal' );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://site.test' . $p );
+		Functions\when( 'sanitize_title' )->alias( static fn( $t ) => strtolower( str_replace( ' ', '-', (string) $t ) ) );
+		Functions\when( 'wp_date' )->justReturn( '2026-11-02' );
+		Functions\when( 'get_option' )->alias( static fn( $k, $d = false ) => 'admin_email' === $k ? 'admin@site.test' : $d );
+
+		foreach ( \FreeFormCertificate\UrlShortener\QrGeneratorPage::examples() as $type => $fields ) {
+			$payload = QrPayload::build( $type, $fields );
+			$this->assertIsString( $payload, $type . ': ' . ( $payload instanceof \WP_Error ? $payload->get_error_message() : '' ) );
+			$this->assertNotSame( '', $payload, $type );
+		}
+	}
 }
