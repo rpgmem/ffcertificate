@@ -321,6 +321,7 @@ final class QrPayload {
 
 		$optional = array(
 			'TITLE'               => $get( 'job_title' ),
+			'ROLE'                => $get( 'role' ),
 			'TEL;TYPE=WORK,VOICE' => self::phone_number( $get( 'phone' ) ),
 			'TEL;TYPE=CELL'       => self::phone_number( $get( 'mobile' ) ),
 			'EMAIL;TYPE=INTERNET' => $email,

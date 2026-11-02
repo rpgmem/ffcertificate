@@ -31537,3 +31537,16 @@ msgstr "Um cartão de contato no formato vCard 3.0, o que os celulares leem com 
 #: includes/settings/views/documentation/feature-qr-generator.php:22
 msgid "The contact card is a vCard 3.0, the version phones read most widely; the type links its specification. The department goes into the organisation, after its name. vCard 3.0 has a single street line, so the number and the neighbourhood are written on it after the street."
 msgstr "O cartão de contato é um vCard 3.0, a versão que os celulares leem com mais amplitude; o tipo traz o link da especificação. O departamento vai na organização, depois do nome dela. O vCard 3.0 tem uma única linha de rua, então o número e o bairro vão nela, depois da rua."
+
+#: includes/settings/views/documentation/feature-qr-generator.php:23
+msgid "A contact card also has a Role, apart from the job title, and a Download .vcf button under the code saves the card itself, the same one the code carries, to send by e-mail or import into a phone or an e-mail client. Nothing is stored."
+msgstr "Um cartão de contato também tem Função, separada do cargo, e o botão Baixar .vcf, abaixo do código, salva o próprio cartão, o mesmo que o código leva, para mandar por e-mail ou importar no celular ou num programa de e-mail. Nada é gravado."
+
+#: templates/admin/qr/generator-page.php:430
+msgid "Download .vcf"
+msgstr "Baixar .vcf"
+
+#: includes/url-shortener/class-ffc-qr-generator-page.php:138
+msgctxt "vcf file name prefix"
+msgid "contact"
+msgstr "contato"

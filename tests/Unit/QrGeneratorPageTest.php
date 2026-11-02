@@ -27,6 +27,7 @@ class QrGeneratorPageTest extends TestCase {
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_x' )->returnArg();
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $s ) => strip_tags( (string) $s ) );
 	}
@@ -180,6 +181,9 @@ class QrGeneratorPageTest extends TestCase {
 		// The vCard says its format and links the standard (#2372).
 		$this->assertStringContainsString( 'href="https://datatracker.ietf.org/doc/html/rfc2426"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:department"', $html );
+		// The role field and the card's own download, hidden until the vCard type (#2374).
+		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:role"', $html );
+		$this->assertMatchesRegularExpression( '/<button[^>]*id="ffc-qr-vcf"[^>]*hidden="hidden"/', $html );
 		$this->assertMatchesRegularExpression( '/<tr data-field-key="bairro"[^>]*>.*?data-ffc-qr-field="vcard:neighborhood"/s', $html, 'The CEP lookup fills the neighbourhood.' );
 		$this->assertStringContainsString( 'href="https://site.test/wp-admin/admin.php?page=ffc-short-urls"', $html );
 		$this->assertStringContainsString( 'name="design[qr_design_dots]" value="square"  checked="checked"', $html, 'Nothing remembered: the global design.' );

@@ -56,6 +56,7 @@
 		});
 		showWifiEnterprise($form);
 		showShort($form);
+		$('#ffc-qr-vcf').prop('hidden', type !== 'vcard');
 	}
 
 	/**
@@ -460,6 +461,7 @@
 					: fill(i18n.usage, [usage.percent, usage.remaining, usage.level]));
 				showStatus($status, data);
 				$buttons.prop('disabled', false);
+				$('#ffc-qr-vcf').prop('disabled', !data.payload);
 			})
 			.catch(function (err) {
 				if (mine !== sequence) {
@@ -469,6 +471,7 @@
 				$preview.empty();
 				$usage.text('');
 				$buttons.prop('disabled', true);
+				$('#ffc-qr-vcf').prop('disabled', true);
 				window.FFC.status($status, 'error', errorMessage(err));
 			});
 	}
@@ -482,6 +485,23 @@
 	 */
 	function filename($form, ext) {
 		return 'qr-' + activeType($form) + '-' + new Date().toISOString().slice(0, 10) + '.' + ext;
+	}
+
+	/**
+	 * The .vcf file name: the prefix and the contact's name, in ASCII.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {string}
+	 */
+	function vcfName($form) {
+		var name = [$form.find('[data-ffc-qr-field="vcard:first_name"]').val(), $form.find('[data-ffc-qr-field="vcard:last_name"]').val()]
+			.join(' ')
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '');
+		return (i18n.vcfName || 'contact') + (name ? '-' + name : '') + '.vcf';
 	}
 
 	/**
@@ -623,6 +643,14 @@
 					})
 					.catch(function () { window.FFC.status('#ffc-qr-generator-status', 'error', i18n.error || ''); });
 			}).catch(function () {});
+		});
+		// The card the code carries, as a file (#2374): the payload the server
+		// drew, so the file and the code can never disagree.
+		$('#ffc-qr-vcf').on('click', function () {
+			if (!current || !current.payload || activeType($form) !== 'vcard') {
+				return;
+			}
+			window.FFC.QrRaster.download(window.FFC.QrRaster.encode(String(current.payload)), vcfName($form), 'text/vcard;charset=utf-8');
 		});
 		$('#ffc-qr-print').on('click', function () {
 			if (!current || !current.svg) {
