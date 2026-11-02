@@ -318,3 +318,38 @@
         transition: none;
     }
 }
+
+/*
+ * An answer is corrected on its own row (#2354): the value and its pencil
+ * share a line, and the editor the pencil opens sits under the value.
+ */
+.ffc-answer-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-answer-value {
+    min-width: 0;
+}
+
+.ffc-answer-row .ffc-correct-open {
+    flex: none;
+}
+
+.ffc-correct-inline {
+    margin-top: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md);
+    border: 1px dashed var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-gray-50);
+}
+
+.ffc-correct-inline[hidden] {
+    display: none;
+}
+
+.ffc-correct-inline p:first-of-type {
+    margin-top: 0;
+}

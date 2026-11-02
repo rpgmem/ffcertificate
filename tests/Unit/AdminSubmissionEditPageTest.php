@@ -1002,10 +1002,16 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Correct an answer', $html );
-		$this->assertStringContainsString( '<option value="name">', $html );
-		$this->assertStringNotContainsString( '<option value="auth_code">', $html, 'The certificate\'s identity is not offered.' );
+		// The answer is corrected on its own row (#2354): a pencil per
+		// correctable answer, carrying the key and the current value.
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-btn-icon[^"]*ffc-correct-open"[^>]*aria-label="Correct name"[^>]*data-field="name" data-value="Ana Silv"/', $html );
+		$this->assertSame( 1, substr_count( $html, 'ffc-correct-open' ), 'Only the answer gets a pencil; the auth code does not.' );
+		$this->assertStringNotContainsString( '<option value=', $html, 'The answer is no longer picked from a list.' );
+		$this->assertStringContainsString( '<div id="ffc-correct-inline" class="ffc-correct-inline" hidden>', $html );
+		$this->assertStringContainsString( 'id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" value=""', $html );
 		$this->assertStringContainsString( 'name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'ffc-correct-cancel', $html );
+		$this->assertLessThan( strpos( $html, 'id="ffc-correct-inline"' ), strpos( $html, 'Form answers' ), 'The editor lives in the Form answers section.' );
 		$this->assertStringContainsString( 'value="ffc_correct_answer"', $html );
 		$this->assertStringContainsString( 'Corrected after issue; see the activity log.', $html );
 		$this->assertStringNotContainsString( '_corrected_fields', $html, 'The marker list is not shown as an answer.' );
@@ -1020,6 +1026,19 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringNotContainsString( 'ffc-correct-form', $html );
+		$this->assertStringNotContainsString( 'ffc-correct-open', $html, 'No pencil without the capability.' );
+	}
+
+	public function test_render_offers_no_pencil_for_a_list_answer(): void {
+		$this->handler->shouldReceive( 'get_submission' )->with( 42 )->andReturn( $this->submission_row( array( 'data' => self::json( array( 'topics' => array( 'a', 'b' ) ) ) ) ) );
+
+		ob_start();
+		$this->page()->render( 42 );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'a, b', $html );
+		$this->assertStringNotContainsString( 'ffc-correct-open', $html );
+		$this->assertStringNotContainsString( 'ffc-correct-inline', $html, 'No editor when nothing can be corrected.' );
 	}
 
 	public function test_render_reads_protected_fields_as_text(): void {

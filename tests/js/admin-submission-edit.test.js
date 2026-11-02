@@ -382,3 +382,61 @@ describe('Consent section', () => {
 		expect(details.hasAttribute('style')).toBe(false);
 	});
 });
+
+// An answer is corrected on its own row (#2354).
+describe('answer correction on its row', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<dl class="ffc-facts">
+				<dt>Full Name</dt>
+				<dd class="ffc-facts__value" id="row-name"><div class="ffc-answer-row"><span>Ana Silv</span>
+					<button type="button" class="ffc-correct-open" data-field="name" data-value="Ana Silv" aria-expanded="false">p</button></div></dd>
+				<dt>School</dt>
+				<dd class="ffc-facts__value" id="row-school"><div class="ffc-answer-row"><span>North</span>
+					<button type="button" class="ffc-correct-open" data-field="school" data-value="North" aria-expanded="false">p</button></div></dd>
+			</dl>
+			<div id="ffc-correct-inline" hidden>
+				<input type="hidden" id="ffc-correct-field" value="">
+				<textarea id="ffc-correct-value"></textarea>
+				<textarea id="ffc-correct-reason"></textarea>
+				<button type="button" class="ffc-correct-cancel">Cancel</button>
+			</div>`;
+		await loadOnReady();
+	});
+
+	it('opens under the row, names the answer and fills in its value', () => {
+		const pencil = document.querySelector('[data-field="school"]');
+		pencil.click();
+
+		const editor = document.getElementById('ffc-correct-inline');
+		expect(editor.hidden).toBe(false);
+		expect(editor.parentElement.id).toBe('row-school');
+		expect(document.getElementById('ffc-correct-field').value).toBe('school');
+		expect(document.getElementById('ffc-correct-value').value).toBe('North');
+		expect(pencil.getAttribute('aria-expanded')).toBe('true');
+		expect(document.activeElement.id).toBe('ffc-correct-value');
+	});
+
+	it('moves to another row and clears the reason', () => {
+		document.querySelector('[data-field="school"]').click();
+		document.getElementById('ffc-correct-reason').value = 'half a reason';
+		document.querySelector('[data-field="name"]').click();
+
+		expect(document.getElementById('ffc-correct-inline').parentElement.id).toBe('row-name');
+		expect(document.getElementById('ffc-correct-field').value).toBe('name');
+		expect(document.getElementById('ffc-correct-value').value).toBe('Ana Silv');
+		expect(document.getElementById('ffc-correct-reason').value).toBe('');
+		expect(document.querySelector('[data-field="school"]').getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('cancel hides the editor, empties the answer and returns focus to the pencil', () => {
+		const pencil = document.querySelector('[data-field="name"]');
+		pencil.click();
+		document.querySelector('.ffc-correct-cancel').click();
+
+		expect(document.getElementById('ffc-correct-inline').hidden).toBe(true);
+		expect(document.getElementById('ffc-correct-field').value).toBe('');
+		expect(pencil.getAttribute('aria-expanded')).toBe('false');
+		expect(document.activeElement).toBe(pencil);
+	});
+});
