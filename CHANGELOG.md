@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Address lookup by CEP: an outage or a throttled lookup no longer reads as a wrong CEP** (#2342). The message names a service that did not answer, or the seconds left before the next lookup; it is announced on the CEP field, focus moves to the number only while the CEP still has it, the progress bar matches the six-second limit, and the readme lists the lookup as a third-party service.
 - **Integrations cleanup: RF masks, Cloudflare probe, CEP quota, screenshot viewer, RF message, translated upgrade notice** (#2342). An RF of any length keeps its mask, the Cloudflare probe keeps a result 12 h and retries a failure on the updater's schedule, a cached CEP spends no quota, the viewer draws registry icons and pans by keyboard, and a pt_BR site reads the notice in Portuguese.
 - **SMTP tab: the Change password and Cancel buttons draw their icons** (#2354). They named the icon with its class prefix, which draws nothing.
+- **Scheduling: the calendar names table lines up** (#2358). Core's settings-row rules reached its cells, so headings, fields and state names sat at different heights and offsets; the table now takes one padding and one alignment.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
