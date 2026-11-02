@@ -296,6 +296,9 @@ each change references, see [CHANGELOG.md](CHANGELOG.md).
 * Appointment and group bookings (date, time, contact details)
 * Submission and action timestamps
 
+= Third-party services =
+* Address lookup by CEP (off by default): when on, each CEP typed in a form is sent from the server to ViaCEP or BrasilAPI to find its address. Only the eight digits travel, never who typed them, and each answer is cached for 30 days.
+
 = Data Storage =
 All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user meta and options. The main tables:
 

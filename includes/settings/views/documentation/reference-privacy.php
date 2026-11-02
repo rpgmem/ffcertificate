@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'E-mails to staff (new submission and new appointment notices, the Date Messages summary) carry personal data masked, with a link to the screen where the recipient can reveal it.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The REST API returns personal data masked too. A caller allowed to reveal adds reveal=1 to a submission or appointment request to receive it in clear, and that read is audited.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Activity-log entries store the client IP address encrypted, and an entry whose details carry a sensitive field (such as CPF or an IP address) has those details encrypted too; the log is still personal data. Entries written before 6.34.0 kept the address in clear until the "Activity Log: Encrypt Client IPs" migration runs. The debug logs hash IP addresses instead.', 'ffcertificate' ); ?> <a href="#config-advanced"><?php esc_html_e( 'Key health & rotation is on the Advanced page', 'ffcertificate' ); ?></a>.</li>
+			<li><?php esc_html_e( 'When the address lookup is on (Settings → General), each CEP typed on the reregistration form or the admin user screen is sent from the server to ViaCEP or BrasilAPI, and nothing else is sent with it. The answer is cached for 30 days. Off by default.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 

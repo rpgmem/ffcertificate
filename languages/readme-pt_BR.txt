@@ -271,6 +271,9 @@ Em um modelo de certificado, use estas marcações dinâmicas. A lista completa,
 * Agendamentos e agendamentos de grupo (data, horário, dados de contato)
 * Datas e horários dos envios e das ações
 
+= Serviços de terceiros =
+* Busca de endereço pelo CEP (desligada por padrão): quando ligada, cada CEP digitado num formulário é enviado pelo servidor ao ViaCEP ou à BrasilAPI para achar o endereço. Só os oito dígitos viajam, nunca quem os digitou, e cada resposta fica em cache por 30 dias.
+
 = Armazenamento =
 Todos os dados ficam nas tabelas próprias do plugin, `wp_ffc_*`, e em user meta e opções com o prefixo `ffc_`. As principais tabelas:
 

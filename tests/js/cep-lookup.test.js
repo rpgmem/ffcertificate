@@ -9,6 +9,8 @@ const STRINGS = {
 	filled: 'FILLED',
 	cityOnly: 'CITY_ONLY',
 	notFound: 'NOT_FOUND',
+	unavailable: 'UNAVAILABLE',
+	tooMany: 'WAIT %d',
 };
 
 beforeAll(() => {
@@ -104,6 +106,7 @@ describe('FFC.Fields.initCepLookup', () => {
 
 	it('locks the address while searching and fills it no sooner than three seconds', () => {
 		form({ endereco: 'Typed street', numero: '12', complemento: 'apto 3' });
+		window.$('#cep').trigger('focus');
 		typeCep('01001-000');
 
 		expect(window.$('#endereco').prop('readOnly')).toBe(true);
@@ -187,17 +190,57 @@ describe('FFC.Fields.initCepLookup', () => {
 
 		vi.advanceTimersByTime(3000);
 		expect(window.$('#endereco').prop('readOnly')).toBe(false);
-		expect(window.$('.ffc-cep-status').text()).toBe('NOT_FOUND');
+		expect(window.$('.ffc-cep-status').text()).toBe('UNAVAILABLE');
 	});
 
 	it('treats a failed request like an outage and gives the server six seconds', () => {
 		form();
 		typeCep('01001-000');
 		expect(requests[0].options.timeout).toBe(6000);
-		requests[0].deferred.reject({ status: 429 });
+		requests[0].deferred.reject({ status: 500 });
 		vi.advanceTimersByTime(3000);
 		expect(window.$('#endereco').prop('readOnly')).toBe(false);
-		expect(window.$('.ffc-cep-status').text()).toBe('NOT_FOUND');
+		expect(window.$('.ffc-cep-status').text()).toBe('UNAVAILABLE');
+	});
+
+	it('names the wait the server sent when the lookups are throttled', () => {
+		form();
+		typeCep('01001-000');
+		requests[0].deferred.reject({ status: 429, responseJSON: { success: false, data: { retryAfter: 42 } } });
+		vi.advanceTimersByTime(3000);
+		expect(window.$('#endereco').prop('readOnly')).toBe(false);
+		expect(window.$('.ffc-cep-status').text()).toBe('WAIT 42');
+	});
+
+	it('falls back to a minute when a throttled answer carries no wait', () => {
+		form();
+		typeCep('01001-000');
+		requests[0].deferred.reject({ status: 429 });
+		vi.advanceTimersByTime(3000);
+		expect(window.$('.ffc-cep-status').text()).toBe('WAIT 60');
+	});
+
+	it('ties the status to the CEP field for screen readers', () => {
+		form();
+		const id = window.$('.ffc-cep-status').attr('id');
+		expect(id).toMatch(/^ffc-cep-status-/);
+		expect(window.$('#cep').attr('aria-describedby')).toBe(id);
+	});
+
+	it('moves on to the number only while the CEP still has the focus', () => {
+		form();
+		window.$('#cep').trigger('focus');
+		typeCep('01001-000');
+		answer({ status: 'found', address: SE });
+		vi.advanceTimersByTime(3000);
+		expect(document.activeElement.id).toBe('numero');
+
+		window.$('#cep').trigger('focus');
+		typeCep('20040-002');
+		window.$('#complemento').trigger('focus');
+		answer({ status: 'found', address: { street: 'Av. Rio Branco', neighborhood: 'Centro', city: 'Rio de Janeiro', uf: 'RJ' } }, 1);
+		vi.advanceTimersByTime(3000);
+		expect(document.activeElement.id).toBe('complemento');
 	});
 
 	it('abandons the lookup in flight when the CEP changes', () => {
