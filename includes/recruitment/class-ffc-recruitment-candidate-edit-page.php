@@ -89,18 +89,127 @@ final class RecruitmentCandidateEditPage {
 			return;
 		}
 
-		echo '<h1>' . sprintf(
+		echo '<h1 class="wp-heading-inline">' . sprintf(
 			/* translators: %s — candidate name */
 			esc_html__( 'Edit candidate — %s', 'ffcertificate' ),
 			esc_html( (string) $candidate->name )
 		) . '</h1>';
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Candidates', 'ffcertificate' ) . '</a></p>';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Candidates', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => self::back_url(),
+			)
+		);
+		echo '<hr class="wp-header-end">';
 
-		self::render_general_section( $candidate );
-		self::render_sensitive_section( $candidate );
-		self::render_classifications_section( $candidate );
-		self::render_history_section( $candidate );
-		self::render_delete_section( $candidate );
+		// Read once, for the tabs and the summary beside them.
+		$class_data   = self::prepare_classifications_section_data( $candidate );
+		$history_rows = self::prepare_history_rows( RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id ) );
+
+		// The editor layout the calendar screens use (#2363): vertical tabs,
+		// each section its own panel with its own form, and a summary in a
+		// side column.
+		$tabs   = self::tabs();
+		$active = RequestInput::get_get_key( 'tab_section' );
+		$active = in_array( $active, array_column( $tabs, 'key' ), true ) ? $active : 'general';
+
+		echo '<div class="ffc-editor"><div class="ffc-editor__main">';
+		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-editor__tabs' );
+		foreach ( $tabs as $tab ) {
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $tab, $active );
+			switch ( $tab['key'] ) {
+				case 'general':
+					self::render_general_section( $candidate );
+					break;
+				case 'sensitive':
+					self::render_sensitive_section( $candidate );
+					break;
+				case 'classifications':
+					self::render_classifications_section( $candidate, $class_data );
+					break;
+				case 'history':
+					self::render_history_section( $history_rows );
+					break;
+				default:
+					self::render_delete_section( $candidate );
+			}
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close();
+		}
+		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_close();
+		echo '</div><div class="ffc-editor__side">';
+		self::render_summary( $candidate, $class_data, $history_rows );
+		echo '</div></div>';
+	}
+
+	/**
+	 * The screen's tabs, in display order.
+	 *
+	 * @return list<array{key: string, label: string, icon: string}>
+	 */
+	public static function tabs(): array {
+		return array(
+			array(
+				'key'   => 'general',
+				'label' => __( 'General', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-id',
+			),
+			array(
+				'key'   => 'sensitive',
+				'label' => __( 'Sensitive data', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-lock',
+			),
+			array(
+				'key'   => 'classifications',
+				'label' => __( 'Classifications', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-list',
+			),
+			array(
+				'key'   => 'history',
+				'label' => __( 'History', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-history',
+			),
+			array(
+				'key'   => 'delete',
+				'label' => __( 'Permanent deletion', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-delete',
+			),
+		);
+	}
+
+	/**
+	 * The candidate at a glance, beside the tabs: the linked account, the
+	 * classifications, the calls and the latest activity.
+	 *
+	 * @param object                                                      $candidate    Candidate row.
+	 * @param array<string, mixed>                                        $class_data   {@see prepare_classifications_section_data()}.
+	 * @param array<int, array{when: string, who: string, event: string}> $history_rows {@see prepare_history_rows()}, most recent first.
+	 * @phpstan-param CandidateRow $candidate
+	 * @phpstan-param array{
+	 *     classifications: array<int, ClassificationRow>,
+	 *     calls_by_class: array<int, list<CallRow>>,
+	 *     notice_labels: array<int, string>,
+	 *     adjutancy_cells: array<int, string>,
+	 *     status_cells: array<int, string>
+	 * } $class_data
+	 * @phpstan-param list<array{when: string, who: string, event: string}> $history_rows
+	 * @return void
+	 */
+	private static function render_summary( object $candidate, array $class_data, array $history_rows ): void {
+		$user_id = null === $candidate->user_id ? 0 : (int) $candidate->user_id;
+		$user    = $user_id > 0 ? get_userdata( $user_id ) : false;
+		$classes = $class_data['classifications'];
+		$calls   = 0;
+		foreach ( $class_data['calls_by_class'] as $rows ) {
+			$calls += count( $rows );
+		}
+
+		echo '<div class="card"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Linked WP user', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( $user instanceof \WP_User ? $user->user_login : '—' ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Classifications', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) count( $classes ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Calls', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) $calls ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Last activity', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( array() !== $history_rows ? $history_rows[0]['when'] : '—' ) . '</dd>';
+		echo '</dl></div>';
 	}
 
 	/**
@@ -358,17 +467,24 @@ final class RecruitmentCandidateEditPage {
 	/**
 	 * Section 3: Classifications + call history for this candidate.
 	 *
-	 * @param object $candidate Candidate row.
+	 * @param object               $candidate Candidate row.
+	 * @param array<string, mixed> $data      {@see prepare_classifications_section_data()}, read once by {@see render()}.
 	 * @phpstan-param CandidateRow $candidate
+	 * @phpstan-param array{
+	 *     classifications: array<int, ClassificationRow>,
+	 *     calls_by_class: array<int, list<CallRow>>,
+	 *     notice_labels: array<int, string>,
+	 *     adjutancy_cells: array<int, string>,
+	 *     status_cells: array<int, string>
+	 * } $data
 	 * @return void
 	 */
-	private static function render_classifications_section( object $candidate ): void {
+	private static function render_classifications_section( object $candidate, array $data ): void {
 		// LOGIC pass — fetch the candidate's classifications and (when any
 		// exist) the bulk call-history grouping + the per-row presentation
 		// cells (notice code + Adjutancy control) that each depend on a DB
 		// read. The section view below consumes these locals and emits only
 		// markup.
-		$data            = self::prepare_classifications_section_data( $candidate );
 		$classifications = $data['classifications'];
 		$calls_by_class  = $data['calls_by_class'];
 		$notice_labels   = $data['notice_labels'];
@@ -411,18 +527,11 @@ final class RecruitmentCandidateEditPage {
 	 * the audit trail before committing a destructive action.
 	 *
 	 * @since 6.6.2
-	 * @param object $candidate Candidate row.
-	 * @phpstan-param CandidateRow $candidate
+	 * @param array<int, array{when: string, who: string, event: string}> $history_rows {@see prepare_history_rows()}, read once by {@see render()}.
+	 * @phpstan-param list<array{when: string, who: string, event: string}> $history_rows
 	 * @return void
 	 */
-	private static function render_history_section( object $candidate ): void {
-		$entries = RecruitmentCandidateHistoryService::get_for_candidate( (int) $candidate->id );
-
-		// LOGIC pass — resolve each entry's actor + event summary (both need
-		// a lookup: get_userdata / summarize_event) here so the section view
-		// stays pure markup. Byte-identical to the previous inline loop.
-		$history_rows = self::prepare_history_rows( $entries );
-
+	private static function render_history_section( array $history_rows ): void {
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/candidate-edit/history-section.php';
 	}
 

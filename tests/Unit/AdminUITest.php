@@ -804,11 +804,11 @@ class AdminUITest extends TestCase {
 		);
 
 		ob_start();
-		AdminUI::vertical_tabs_open( $tabs, 'members', 'ffc-aud-editor__tabs' );
+		AdminUI::vertical_tabs_open( $tabs, 'members', 'ffc-editor__tabs' );
 		AdminUI::vertical_tab_panel_open( $tabs[0], 'members' );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringStartsWith( '<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical"><li', $html );
+		$this->assertStringStartsWith( '<div class="ffc-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav" role="tablist" aria-orientation="vertical"><li', $html );
 		$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-users" aria-hidden="true"></span>Members</h2>', $html, 'Without a title the panel heading is the label.' );
 	}
 

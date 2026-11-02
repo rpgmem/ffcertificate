@@ -564,8 +564,8 @@ function buildAudienceCalendarEditor(activeKey = 'general') {
 	const section = (key, body) =>
 		`<section id="ffc-tabpanel-${key}" class="ffc-vtabs__panel${key === activeKey ? ' is-active' : ''}" role="tabpanel">${body}</section>`;
 	document.body.innerHTML =
-		`<div class="ffc-aud-editor"><div class="ffc-aud-editor__main">` +
-		`<div class="ffc-aud-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav">${nav}</ul>` +
+		`<div class="ffc-editor"><div class="ffc-editor__main">` +
+		`<div class="ffc-editor__tabs ffc-vtabs" data-ffc-vtabs><ul class="ffc-vtabs__nav">${nav}</ul>` +
 		`<div class="ffc-vtabs__panels">` +
 		`<form id="ffc-schedule-form" method="post" action="">` +
 		section('general', '<input name="schedule_name" id="schedule_name" required>') +
@@ -574,7 +574,7 @@ function buildAudienceCalendarEditor(activeKey = 'general') {
 		`</form>` +
 		section('closed-dates', '<form class="ffc-holiday-form"><input type="date" name="holiday_date" required></form>') +
 		`</div></div></div>` +
-		`<div class="ffc-aud-editor__side"><div class="card"><input type="submit" name="submit" form="ffc-schedule-form" value="Update Calendar"></div></div>` +
+		`<div class="ffc-editor__side"><div class="card"><input type="submit" name="submit" form="ffc-schedule-form" value="Update Calendar"></div></div>` +
 		`</div>`;
 }
 

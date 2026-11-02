@@ -95,6 +95,7 @@ return array(
 	'Recruitment>Shortcodes',
 	'Recruitment>UserDashboard',
 	'Repositories>Core',
+	'Reregistration>Admin',
 	'Reregistration>Audience',
 	'Reregistration>Core',
 	'Reregistration>Scheduling',

@@ -12,7 +12,6 @@
  *
  * Variables in scope (provided by the including method):
  *
- * @var array<int, array<string, mixed>>                        $entries      Raw history entries (only the empty-check is read here).
  * @var array<int, array{when: string, who: string, event: string}> $history_rows Resolved display cells.
  *
  * @package FreeFormCertificate\Recruitment
@@ -23,11 +22,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-history">' . esc_html__( 'History', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
-if ( empty( $entries ) ) {
+if ( array() === $history_rows ) {
 	echo '<p><em>' . esc_html__( '(no activity recorded for this candidate)', 'ffcertificate' ) . '</em></p>';
 	echo '</div></div>';
 	return;
@@ -49,4 +46,4 @@ foreach ( $history_rows as $row ) {
 }
 echo '</tbody></table>';
 
-echo '</div></div>';
+echo '</div>';

@@ -348,15 +348,17 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
-		// Screen header + the five section cards (#1631).
-		$this->assertStringContainsString( '<h1>Edit candidate — Jane Doe</h1>', $html );
-		$this->assertSame( 5, substr_count( $html, '<div class="card"><h2 class="ffc-icon-' ) );
+		// Screen header, the five sections as vertical tabs and the summary
+		// beside them (#2363).
+		$this->assertStringContainsString( 'Edit candidate — Jane Doe</h1>', $html );
+		$this->assertSame( 5, substr_count( $html, '<section id="ffc-tabpanel-' ) );
+		$this->assertSame( array( 'general', 'sensitive', 'classifications', 'history', 'delete' ), array_column( RecruitmentCandidateEditPage::tabs(), 'key' ) );
+		$this->assertMatchesRegularExpression( '/id="ffc-tabnav-general" class="ffc-vtabs__tab is-active"/', $html, 'General opens by default.' );
+		$this->assertStringNotContainsString( '<div class="card"><h2 class="ffc-icon-id"', $html, 'No stacked section cards left.' );
 		$this->assertStringNotContainsString( 'postbox', $html );
-		$this->assertStringContainsString( 'General', $html );
-		$this->assertStringContainsString( 'Sensitive data (admin only)', $html );
-		$this->assertStringContainsString( 'Classifications + call history', $html );
-		$this->assertStringContainsString( 'History', $html );
-		$this->assertStringContainsString( 'Hard-delete candidate', $html );
+		$side = substr( $html, (int) strpos( $html, 'ffc-editor__side' ) );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">Summary</h2>', $side );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Calls</dt><dd class="ffc-facts__value">0</dd>', $side );
 
 		// General form fields + nonce.
 		$this->assertStringContainsString( 'name="name"', $html );
