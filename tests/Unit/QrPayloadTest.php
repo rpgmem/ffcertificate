@@ -244,6 +244,13 @@ class QrPayloadTest extends TestCase {
 		$this->assertStringContainsString( "ADR;TYPE=WORK:;;Butantã;;;;\r\n", $only, 'A neighbourhood alone is still the street line.' );
 	}
 
+	public function test_a_vcard_carries_the_role_apart_from_the_job_title(): void {
+		$card = (string) QrPayload::build( 'vcard', array( 'first_name' => 'Ana', 'job_title' => 'Teacher', 'role' => 'Coordinator, pedagogy' ) );
+
+		// ROLE is the role held, TITLE the job title (#2374).
+		$this->assertStringContainsString( "TITLE:Teacher\r\nROLE:Coordinator\\, pedagogy\r\n", $card );
+	}
+
 	public function test_a_vcard_of_an_organisation_alone_names_it(): void {
 		$card = (string) QrPayload::build( 'vcard', array( 'organization' => 'SME' ) );
 

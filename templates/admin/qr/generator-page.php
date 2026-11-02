@@ -48,6 +48,8 @@ $ffc_qr_vcard_fields = array(
 	// The second component of ORG, where vCard puts a department (#2372).
 	'department'   => array( __( 'Department', 'ffcertificate' ), 'text' ),
 	'job_title'    => array( __( 'Job title', 'ffcertificate' ), 'text' ),
+	// The role held, apart from the job title (vCard ROLE, #2374).
+	'role'         => array( __( 'Role', 'ffcertificate' ), 'text' ),
 	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
 	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
 	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email', '', 'email' ),
@@ -420,6 +422,17 @@ $ffc_qr_vcard_fields = array(
 							'id'       => 'ffc-qr-download',
 							'class'    => 'ffc-qr-generator__download',
 							'disabled' => true,
+						)
+					);
+					// The contact card itself, for an e-mail or an import (#2374).
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Download .vcf', 'ffcertificate' ),
+							'icon'     => 'id',
+							'id'       => 'ffc-qr-vcf',
+							'class'    => 'ffc-qr-generator__vcf',
+							'disabled' => true,
+							'attrs'    => array( 'hidden' => 'hidden' ),
 						)
 					);
 					\FreeFormCertificate\Admin\AdminUI::render_button(

@@ -134,6 +134,8 @@ class QrGeneratorPage {
 					'invalidCep'      => __( 'Invalid CEP.', 'ffcertificate' ),
 					'cepRepeated'     => __( 'Invalid CEP: all digits are the same.', 'ffcertificate' ),
 					'invalidUrl'      => __( 'Invalid web address.', 'ffcertificate' ),
+					// The .vcf file name's prefix (#2374).
+					'vcfName'         => _x( 'contact', 'vcf file name prefix', 'ffcertificate' ),
 				),
 			)
 		);

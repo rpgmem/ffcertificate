@@ -136,12 +136,23 @@
 
 .ffc-page-qr-generator .ffc-qr-generator__actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--ffc-spacing-xs);
     margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__download {
     flex: 1 1 auto;
+}
+
+/* The contact card's own download takes a line under the code's (#2374). */
+.ffc-page-qr-generator .ffc-qr-generator__vcf {
+    flex: 1 1 100%;
+    order: 1;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__vcf[hidden] {
+    display: none;
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__preview {

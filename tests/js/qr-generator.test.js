@@ -803,4 +803,50 @@ describe('ffc-qr-generator.js', () => {
 			expect(document.querySelector('.ffc-field-message')).toBeNull();
 		});
 	});
+
+	describe('the .vcf download (#2374)', () => {
+		function mountVcard() {
+			document.body.innerHTML = `
+				<form id="ffc-qr-generator">
+					<input type="radio" name="type" value="url">
+					<input type="radio" name="type" value="vcard" checked>
+					<table data-ffc-qr-type="vcard">
+						<tr><td><input data-ffc-qr-field="vcard:first_name" value="Ana Clara"></td></tr>
+						<tr><td><input data-ffc-qr-field="vcard:last_name" value="Lima Gonçalves"></td></tr>
+					</table>
+				</form>
+				<div id="ffc-qr-generator-preview"></div><span id="ffc-qr-generator-usage"></span><div id="ffc-qr-generator-status"></div>
+				<button id="ffc-qr-download" disabled></button><button id="ffc-qr-print" disabled></button>
+				<button id="ffc-qr-vcf" disabled hidden></button>`;
+			window.$(document).off();
+		}
+
+		it('shows on the vCard type and saves the payload the code carries', async () => {
+			mountVcard();
+			const card = 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ana Clara Lima Gonçalves\r\nEND:VCARD';
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: Object.assign({}, OK, { payload: card }) } }));
+			const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-vcf').prop('hidden')).toBe(false);
+			expect(window.$('#ffc-qr-vcf').prop('disabled')).toBe(false);
+			window.$('#ffc-qr-vcf').trigger('click');
+
+			expect(download).toHaveBeenCalledTimes(1);
+			const [data, name, mime] = download.mock.calls[0];
+			expect(new TextDecoder().decode(Uint8Array.from(atob(data), (c) => c.charCodeAt(0)))).toBe(card);
+			expect(name).toBe('contact-ana-clara-lima-goncalves.vcf');
+			expect(mime).toBe('text/vcard;charset=utf-8');
+		});
+
+		it('hides on any other type', () => {
+			mountVcard();
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('input[value="url"]').prop('checked', true).trigger('change');
+			expect(window.$('#ffc-qr-vcf').prop('hidden')).toBe(true);
+		});
+	});
 });
