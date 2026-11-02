@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Dev toolchain: `minimatch` forced to 11.0.1 or later through `overrides`** (#2334). Clears GHSA-g3hv-75wg-m249, reached through ESLint and through `glob` 7 under `clean-css-cli`; no upstream release had moved off the vulnerable range. Nothing ships: the build output is byte-identical.
 - ⚠ **Reprints: a CPF/RF typed by someone else returns no certificate code, on the API or a passed quiz, and its link is e-mailed at most once a day** (#2342). The submit route answers `reprint: true` with the notice; the operator route ignores a chosen code and unknown keys, and stores no client address.
+- **Updater: a release is offered only with a SHA-256 digest, a github.com download and a version tag, and an unreachable GitHub is retried after 10 min, 30 min, 1 h and 2 h, then 12 h after the first failure** (#2342). No admin page waits on it in between; the details modal falls back to the installed readme.
 
 ### Fixed
 

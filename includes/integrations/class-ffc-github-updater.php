@@ -12,8 +12,10 @@
  * admin enables background auto-updates via WordPress's own per-plugin toggle
  * (which appears because the plugin is placed in `no_update` when current).
  *
- * Repo is public, so no token is needed; a 12h transient + ETag conditional
- * requests keep the unauthenticated 60/h rate limit at bay.
+ * Repo is public, so no token is needed; a 12h cache + ETag conditional
+ * requests keep the unauthenticated 60/h rate limit at bay, and a failed
+ * check is retried on a fixed schedule rather than on every admin load
+ * ({@see GithubUpdater::get_latest_release()}).
  *
  * @package FreeFormCertificate\Integrations
  * @since   6.18.0
@@ -57,9 +59,29 @@ class GithubUpdater {
 	private const CACHE_KEY = 'ffc_github_update';
 
 	/**
-	 * Cache TTL in seconds (12h).
+	 * Cache TTL in seconds (12h): how long a successful check stands, and how
+	 * long after the first failure a failed cycle waits before starting over.
 	 */
 	private const CACHE_TTL = 43200;
+
+	/**
+	 * How long the transient itself lives (7 days). Longer than the TTL on
+	 * purpose: the payload, the ETag and the retry state must survive the
+	 * 12h window, since freshness is read from `fetched_at`, not from expiry.
+	 */
+	private const STORE_TTL = 604800;
+
+	/**
+	 * Waits after the 1st, 2nd, 3rd and 4th failure in a row (10 min, 30 min,
+	 * 1 h, 2 h). A 5th failure waits until 12h after the first one, and the
+	 * cycle then starts over (#2342).
+	 */
+	private const RETRY_DELAYS = array( 600, 1800, 3600, 7200 );
+
+	/**
+	 * A release tag: `X.Y.Z` or the cache-bust `X.Y.Z.N`, with an optional `v`.
+	 */
+	private const TAG_PATTERN = '/^v?\d+\.\d+\.\d+(?:\.\d+)?$/';
 
 	/**
 	 * The screenshots the readme's `== Screenshots ==` captions describe, in
@@ -187,10 +209,10 @@ class GithubUpdater {
 			return $res;
 		}
 
-		$release = self::get_latest_release();
-		if ( null === $release ) {
-			return $res;
-		}
+		// With no release to describe (GitHub unreachable, or between retries)
+		// the modal describes the installed copy rather than letting WordPress
+		// ask wordpress.org about a plugin it does not host (#2342).
+		$release = self::get_latest_release() ?? self::installed_release();
 
 		$info                = new \stdClass();
 		$info->name          = 'Free Form Certificate';
@@ -385,6 +407,32 @@ class GithubUpdater {
 		}
 
 		return $tmp;
+	}
+
+	/**
+	 * The installed copy, in the shape of a release payload, for the details
+	 * modal when no release is known: every metadata field is empty, so
+	 * {@see GithubUpdater::compat()} and {@see GithubUpdater::readme()} fall
+	 * back to the installed files, and there is no download link.
+	 *
+	 * @since 6.44.0
+	 * @return array<string, string>
+	 */
+	private static function installed_release(): array {
+		$repo = (string) apply_filters( 'ffc_github_updater_repo', self::REPO );
+		return array(
+			'version'        => defined( 'FFC_VERSION' ) ? (string) FFC_VERSION : '',
+			'package'        => '',
+			'sha256'         => '',
+			'url'            => 'https://github.com/' . $repo,
+			'changelog'      => '',
+			'published_at'   => '',
+			'requires'       => '',
+			'tested'         => '',
+			'requires_php'   => '',
+			'upgrade_notice' => '',
+			'readme'         => '',
+		) + self::translated_readmes( array() );
 	}
 
 	/**
@@ -728,6 +776,14 @@ class GithubUpdater {
 	/**
 	 * Return the parsed latest release, from cache or a fresh fetch.
 	 *
+	 * A check that reached GitHub — a release, a 304, or an answer with no
+	 * usable release — stands for 12h. A check that did not is retried after
+	 * {@see GithubUpdater::RETRY_DELAYS}; after the fourth retry fails, the
+	 * next attempt waits until 12h after the first failure and the count
+	 * starts over. Between those times no request is made, so an unreachable
+	 * GitHub costs one 10s timeout per attempt, never one per admin page
+	 * (#2342). Meanwhile the last payload, however old, is served.
+	 *
 	 * @return array<string, string>|null
 	 */
 	private static function get_latest_release(): ?array {
@@ -735,36 +791,82 @@ class GithubUpdater {
 		$cache      = is_array( $cache ) ? $cache : array();
 		$fetched_at = isset( $cache['fetched_at'] ) ? (int) $cache['fetched_at'] : 0;
 		$cached     = self::to_payload( $cache['payload'] ?? null );
+		$now        = time();
 
-		// Fresh cache hit.
-		if ( $fetched_at > 0 && ( time() - $fetched_at ) < self::CACHE_TTL && null !== $cached ) {
+		// The last successful check still stands, whether or not it found a release.
+		if ( $fetched_at > 0 && ( $now - $fetched_at ) < self::CACHE_TTL ) {
+			return $cached;
+		}
+
+		// A failed check is waiting for its retry time.
+		if ( isset( $cache['retry_at'] ) && $now < (int) $cache['retry_at'] ) {
 			return $cached;
 		}
 
 		$etag    = isset( $cache['etag'] ) ? (string) $cache['etag'] : '';
 		$fetched = self::fetch_release( $etag );
 
-		// Fetch failed → reuse a stale payload if we have one (never break the scan).
 		if ( null === $fetched ) {
+			set_site_transient( self::CACHE_KEY, self::after_failure( $cache, $now ), self::STORE_TTL );
 			return $cached;
 		}
 
-		// 304 Not Modified → refresh the TTL, keep the cached payload + ETag.
+		// 304 Not Modified → the cached payload and ETag stand for another 12h.
 		if ( 'not_modified' === $fetched['status'] ) {
-			$cache['fetched_at'] = time();
-			set_site_transient( self::CACHE_KEY, $cache, self::CACHE_TTL );
+			$store = array(
+				'payload'    => $cache['payload'] ?? null,
+				'etag'       => $etag,
+				'fetched_at' => $now,
+			);
+			set_site_transient( self::CACHE_KEY, $store, self::STORE_TTL );
 			return $cached;
 		}
 
 		$payload = self::to_payload( $fetched['payload'] ?? null );
 		$store   = array(
 			'payload'    => $payload,
-			'etag'       => $fetched['etag'] ?? '',
-			'fetched_at' => time(),
+			// An ETag stored beside a payload whose readme did not arrive would
+			// keep that gap until the next release: every later check is a 304.
+			'etag'       => ( null !== $payload && '' !== $payload['readme'] ) ? (string) ( $fetched['etag'] ?? '' ) : '',
+			'fetched_at' => $now,
 		);
-		set_site_transient( self::CACHE_KEY, $store, self::CACHE_TTL );
+		set_site_transient( self::CACHE_KEY, $store, self::STORE_TTL );
 
 		return $payload;
+	}
+
+	/**
+	 * The cache after a failed check: the payload and ETag kept, the failure
+	 * counted, and the time of the next attempt.
+	 *
+	 * @since 6.44.0
+	 * @param array<mixed> $cache Cache before the attempt.
+	 * @param int          $now   Time of the attempt.
+	 * @return array<string, mixed>
+	 */
+	private static function after_failure( array $cache, int $now ): array {
+		$failures = ( isset( $cache['failures'] ) ? (int) $cache['failures'] : 0 ) + 1;
+		$first    = ! empty( $cache['first_failure_at'] ) ? (int) $cache['first_failure_at'] : $now;
+
+		$cache['failures']         = $failures;
+		$cache['first_failure_at'] = $first;
+		if ( $failures <= count( self::RETRY_DELAYS ) ) {
+			$cache['retry_at'] = $now + self::RETRY_DELAYS[ $failures - 1 ];
+		} else {
+			// The cycle is spent: wait out the 12h from its first failure, then start over.
+			$cache['retry_at']         = $first + self::CACHE_TTL;
+			$cache['failures']         = 0;
+			$cache['first_failure_at'] = 0;
+		}
+
+		self::debug_log(
+			'Release check failed',
+			array(
+				'failures' => $failures,
+				'retry_at' => $cache['retry_at'],
+			)
+		);
+		return $cache;
 	}
 
 	/**
@@ -775,15 +877,17 @@ class GithubUpdater {
 	 * @return array<string, string>|null
 	 */
 	private static function to_payload( $raw ): ?array {
-		if ( ! is_array( $raw ) || empty( $raw['package'] ) ) {
+		// A payload with no digest cannot be verified before install, so it is
+		// not offered; one cached before the digest was required is dropped too.
+		if ( ! is_array( $raw ) || empty( $raw['package'] ) || empty( $raw['sha256'] ) ) {
 			return null;
 		}
 		return array(
 			'version'        => (string) ( $raw['version'] ?? '' ),
-			// The empty() guard above already proved 'package' exists and is
-			// truthy, so a ?? here would be a redundant null-coalesce (PHPStan).
+			// The empty() guard above already proved 'package' and 'sha256'
+			// exist and are truthy, so a ?? here would be redundant (PHPStan).
 			'package'        => (string) $raw['package'],
-			'sha256'         => (string) ( $raw['sha256'] ?? '' ),
+			'sha256'         => (string) $raw['sha256'],
 			'url'            => (string) ( $raw['url'] ?? '' ),
 			'changelog'      => (string) ( $raw['changelog'] ?? '' ),
 			'published_at'   => (string) ( $raw['published_at'] ?? '' ),
@@ -817,8 +921,14 @@ class GithubUpdater {
 	/**
 	 * Fetch releases/latest with an ETag conditional request.
 	 *
+	 * Null means GitHub was not reached or did not answer usefully (network
+	 * error, a status other than 200/304, a body that is not a release), which
+	 * is retried. A release that is reached but cannot be offered (no built
+	 * asset, no digest, a foreign host, a malformed tag) is a successful check
+	 * with no payload, which is not.
+	 *
 	 * @param string $etag Prior ETag (sent as If-None-Match; a 304 costs no rate limit).
-	 * @return array{status: string, payload?: array<string, string>, etag?: string}|null
+	 * @return array{status: string, payload?: array<string, string>|null, etag?: string}|null
 	 */
 	private static function fetch_release( string $etag ) {
 		$repo    = (string) apply_filters( 'ffc_github_updater_repo', self::REPO );
@@ -860,7 +970,10 @@ class GithubUpdater {
 
 		$payload = self::parse_release( $data );
 		if ( null === $payload ) {
-			return null;
+			return array(
+				'status'  => 'ok',
+				'payload' => null,
+			);
 		}
 
 		$payload = array_merge( $payload, self::fetch_release_readme( $repo, (string) $data['tag_name'] ) );
@@ -877,13 +990,21 @@ class GithubUpdater {
 	/**
 	 * Normalize a releases/latest response down to what the updater needs.
 	 * Selects the built `ffcertificate-*.zip` asset (never the source zipball)
-	 * and its SHA-256 digest; returns null if no proper asset is attached.
+	 * and its SHA-256 digest. Returns null when the tag is not a version, no
+	 * such asset is attached, it has no digest, or it is not served from
+	 * `https://github.com/` (#2342).
 	 *
 	 * @param array<string, mixed> $data Decoded GitHub release.
 	 * @return array<string, string>|null
 	 */
 	private static function parse_release( array $data ): ?array {
-		$version = ltrim( (string) $data['tag_name'], 'v' );
+		$tag = (string) $data['tag_name'];
+		if ( 1 !== preg_match( self::TAG_PATTERN, $tag ) ) {
+			self::debug_log( 'Release tag is not a version', array( 'tag' => $tag ) );
+			return null;
+		}
+
+		$version = ltrim( $tag, 'v' );
 		$package = '';
 		$sha256  = '';
 
@@ -903,7 +1024,8 @@ class GithubUpdater {
 			}
 		}
 
-		if ( '' === $package ) {
+		if ( '' === $package || '' === $sha256 || 0 !== strpos( $package, 'https://github.com/' ) ) {
+			self::debug_log( 'Release asset refused', array( 'package' => $package ) );
 			return null;
 		}
 
