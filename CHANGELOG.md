@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR Code Generator: each type opens with example content** (#2365). The preview draws at once from the site address, its name, an open network and the like; while the content is still the example no short URL is created, and one is created on the first download after a change.
 - **QR Code Generator: the plugin's masks, checks and CEP lookup** (#2368). Phones take the (DD) 98765-4321 mask and the code adds +55; e-mails are checked and lower-cased; a vCard's website is checked; its postal code comes first and fills the address when the CEP lookup is on.
 - **Recruitment notice editor in vertical tabs** (#2370). Classifications (open first), Calls, General with the status, Adjutancies and Import candidates become tabs, beside the site shortcode and a summary of the status, adjutancies, list rows and calls.
+- **QR Code Generator: vCard department, number and neighbourhood** (#2372). The department joins ORG, the number and the neighbourhood (filled by the CEP lookup) join the street line, and the type says it is vCard 3.0 with a link to RFC 2426.
 
 ### Security
 

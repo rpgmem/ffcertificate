@@ -31446,3 +31446,12 @@ msgstr ""
 #: includes/settings/views/documentation/feature-recruitment.php:90
 msgid "The notice screen shows its sections as tabs: Classifications, which opens first, Calls, General with the status below the notice's own fields, Adjutancies and Import candidates. Beside them sit the shortcode that shows the notice on the site and a summary of the status, the adjutancies, each list's rows and the calls."
 msgstr ""
+
+#: templates/admin/qr/generator-page.php:213
+#, php-format
+msgid "A contact card in the vCard 3.0 format, which phones read most widely. Specification: %s."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php:22
+msgid "The contact card is a vCard 3.0, the version phones read most widely; the type links its specification. The department goes into the organisation, after its name. vCard 3.0 has a single street line, so the number and the neighbourhood are written on it after the street."
+msgstr ""

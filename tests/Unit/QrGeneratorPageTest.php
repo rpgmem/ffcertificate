@@ -177,6 +177,10 @@ class QrGeneratorPageTest extends TestCase {
 		$this->assertStringContainsString( 'role="dialog" aria-modal="true" aria-labelledby="ffc-qr-short-saved-title"', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-short-saved-url" class="ffc-qr-saved__url" readonly', $html );
 		$this->assertStringContainsString( 'id="ffc-qr-short-saved-copy"', $html );
+		// The vCard says its format and links the standard (#2372).
+		$this->assertStringContainsString( 'href="https://datatracker.ietf.org/doc/html/rfc2426"', $html );
+		$this->assertStringContainsString( 'data-ffc-qr-field="vcard:department"', $html );
+		$this->assertMatchesRegularExpression( '/<tr data-field-key="bairro"[^>]*>.*?data-ffc-qr-field="vcard:neighborhood"/s', $html, 'The CEP lookup fills the neighbourhood.' );
 		$this->assertStringContainsString( 'href="https://site.test/wp-admin/admin.php?page=ffc-short-urls"', $html );
 		$this->assertStringContainsString( 'name="design[qr_design_dots]" value="square"  checked="checked"', $html, 'Nothing remembered: the global design.' );
 	}

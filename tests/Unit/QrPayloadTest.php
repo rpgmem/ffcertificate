@@ -222,6 +222,28 @@ class QrPayloadTest extends TestCase {
 		);
 	}
 
+	public function test_a_vcard_puts_the_department_in_org_and_the_number_and_neighbourhood_on_the_street(): void {
+		$card = (string) QrPayload::build(
+			'vcard',
+			array(
+				'organization' => 'SME',
+				'department'   => 'DRE Butantã; Núcleo',
+				'street'       => 'Rua X',
+				'number'       => '10',
+				'neighborhood' => 'Butantã',
+				'city'         => 'São Paulo',
+			)
+		);
+
+		// ORG's second component is the department, escaped on its own (#2372).
+		$this->assertStringContainsString( "ORG:SME;DRE Butantã\\; Núcleo\r\n", $card );
+		// vCard 3.0 has one street line: the number and the neighbourhood join it.
+		$this->assertStringContainsString( "ADR;TYPE=WORK:;;Rua X\\, 10\\, Butantã;São Paulo;;;\r\n", $card );
+
+		$only = (string) QrPayload::build( 'vcard', array( 'first_name' => 'Ana', 'neighborhood' => 'Butantã' ) );
+		$this->assertStringContainsString( "ADR;TYPE=WORK:;;Butantã;;;;\r\n", $only, 'A neighbourhood alone is still the street line.' );
+	}
+
 	public function test_a_vcard_of_an_organisation_alone_names_it(): void {
 		$card = (string) QrPayload::build( 'vcard', array( 'organization' => 'SME' ) );
 
