@@ -284,3 +284,11 @@
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-success-text);
 }
+
+/* The vCard's format note, above its fields (#2372). */
+.ffc-qr-vcard-format {
+    padding: 0 0 var(--ffc-spacing-sm);
+    color: var(--ffc-text-muted);
+    text-align: left;
+    caption-side: top;
+}

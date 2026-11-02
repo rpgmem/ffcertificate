@@ -312,8 +312,14 @@ final class QrPayload {
 			'FN:' . self::text_escape( '' !== $full ? $full : $org ),
 		);
 
+		// A department is the second component of ORG (#2372). Each part is
+		// escaped on its own, so the separator between them stays a separator.
+		$department = $get( 'department' );
+		if ( '' !== $org || '' !== $department ) {
+			$lines[] = 'ORG:' . self::text_escape( $org ) . ( '' !== $department ? ';' . self::text_escape( $department ) : '' );
+		}
+
 		$optional = array(
-			'ORG'                 => $org,
 			'TITLE'               => $get( 'job_title' ),
 			'TEL;TYPE=WORK,VOICE' => self::phone_number( $get( 'phone' ) ),
 			'TEL;TYPE=CELL'       => self::phone_number( $get( 'mobile' ) ),
@@ -327,7 +333,11 @@ final class QrPayload {
 			}
 		}
 
-		$address = array( $get( 'street' ), $get( 'city' ), $get( 'region' ), $get( 'postcode' ), $get( 'country' ) );
+		// vCard 3.0 has one street line and no neighbourhood component, so
+		// the number and the neighbourhood join the street, which every
+		// reader shows (#2372).
+		$street  = implode( ', ', array_filter( array( $get( 'street' ), $get( 'number' ), $get( 'neighborhood' ) ), static fn( string $part ): bool => '' !== $part ) );
+		$address = array( $street, $get( 'city' ), $get( 'region' ), $get( 'postcode' ), $get( 'country' ) );
 		if ( '' !== implode( '', $address ) ) {
 			$lines[] = 'ADR;TYPE=WORK:;;' . implode( ';', array_map( array( self::class, 'text_escape' ), $address ) );
 		}

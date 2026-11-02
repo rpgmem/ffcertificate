@@ -45,6 +45,8 @@ $ffc_qr_vcard_fields = array(
 	'first_name'   => array( __( 'First name', 'ffcertificate' ), 'text' ),
 	'last_name'    => array( __( 'Last name', 'ffcertificate' ), 'text' ),
 	'organization' => array( __( 'Organisation', 'ffcertificate' ), 'text' ),
+	// The second component of ORG, where vCard puts a department (#2372).
+	'department'   => array( __( 'Department', 'ffcertificate' ), 'text' ),
 	'job_title'    => array( __( 'Job title', 'ffcertificate' ), 'text' ),
 	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
 	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
@@ -53,6 +55,9 @@ $ffc_qr_vcard_fields = array(
 	// The postal code comes first: a found CEP fills the rest.
 	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text', 'cep', 'cep', 'cep' ),
 	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text', '', '', 'endereco' ),
+	// The key the CEP lookup moves focus to once it has filled the street.
+	'number'       => array( __( 'Number', 'ffcertificate' ), 'text', '', '', 'endereco_numero' ),
+	'neighborhood' => array( __( 'Neighborhood', 'ffcertificate' ), 'text', '', '', 'bairro' ),
 	'city'         => array( __( 'City', 'ffcertificate' ), 'text', '', '', 'cidade' ),
 	'region'       => array( __( 'State', 'ffcertificate' ), 'text', '', '', 'uf' ),
 	'country'      => array( __( 'Country', 'ffcertificate' ), 'text' ),
@@ -201,6 +206,15 @@ $ffc_qr_vcard_fields = array(
 				<?php endforeach; ?>
 
 				<table class="form-table" role="presentation" data-ffc-qr-type="vcard" hidden>
+					<caption class="ffc-qr-vcard-format">
+						<?php
+						printf(
+							/* translators: %s: link to the vCard 3.0 specification */
+							esc_html__( 'A contact card in the vCard 3.0 format, which phones read most widely. Specification: %s.', 'ffcertificate' ),
+							'<a href="https://datatracker.ietf.org/doc/html/rfc2426" target="_blank" rel="noopener noreferrer">RFC 2426</a>'
+						);
+						?>
+					</caption>
 					<tbody>
 						<?php foreach ( $ffc_qr_vcard_fields as $ffc_key => $ffc_field ) : ?>
 						<tr data-field-key="<?php echo esc_attr( $ffc_field[4] ?? $ffc_key ); ?>" data-format="<?php echo esc_attr( $ffc_field[3] ?? '' ); ?>">
