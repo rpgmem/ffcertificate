@@ -3972,10 +3972,6 @@ msgstr "Status da Classificação Alterado"
 msgid "Classifications"
 msgstr "Classificações"
 
-#: templates/admin/recruitment/candidate-edit/classifications-section.php:32
-msgid "Classifications + call history"
-msgstr "Classificações + histórico de chamadas"
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:148
 msgid "Classifications can only be removed while the notice is in draft or preliminary status."
 msgstr "As classificações só podem ser removidas quando o edital estiver em fase de rascunho ou preliminar."
@@ -8682,10 +8678,6 @@ msgstr "Grupos:"
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:179 templates/public/recruitment/section-open.php:53
 msgid "HAB. EMEBs"
 msgstr "HAB. EMEBs"
-
-#: templates/admin/recruitment/candidate-edit/delete-section.php:31
-msgid "Hard-delete candidate"
-msgstr "Exclusão permanente de candidato"
 
 #: templates/admin/recruitment/candidate-edit/delete-section.php:61
 msgid "Hard-delete this candidate?"
@@ -15135,10 +15127,6 @@ msgstr "Enviando…"
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
 msgstr "Confidencial"
-
-#: templates/admin/recruitment/candidate-edit/sensitive-section.php:32
-msgid "Sensitive data (admin only)"
-msgstr "Dados sensíveis (somente para administradores)"
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:397
 msgid "Sensitive data (email, CPF/RF, IP) is encrypted in the database."
@@ -31456,6 +31444,18 @@ msgstr "Esta campanha ainda não alcança nenhum público-alvo. Adicione um na a
 #: includes/settings/views/documentation/feature-reregistration.php:45
 msgid "The campaign editor shows these settings in tabs: Campaign, Email Notifications and, once the campaign exists, Import answers and Invitations. Save and a summary of the status, the period and the affected users sit beside them; Campaign and Email Notifications are saved together."
 msgstr "O editor da campanha mostra essas configurações em abas: Campanha, Notificações por e-mail e, depois que a campanha existe, Importar respostas e Convites. Salvar e um resumo com o status, o período e os usuários afetados ficam ao lado; Campanha e Notificações por e-mail são salvas juntas."
+
+#: includes/settings/views/documentation/feature-recruitment.php:87
+msgid "A candidate's edit screen shows its sections as tabs: General, Sensitive data, Classifications, History and Permanent deletion, each with its own save. Beside them a summary names the linked account and counts the classifications, the calls and the latest activity."
+msgstr "A tela de edição de um candidato mostra suas seções em abas: Geral, Dados sensíveis, Classificações, Histórico e Exclusão permanente, cada uma com o próprio botão de salvar. Ao lado delas, um resumo indica a conta vinculada e conta as classificações, os chamados e a última atividade."
+
+#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:173
+msgid "Permanent deletion"
+msgstr "Exclusão permanente"
+
+#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:158
+msgid "Sensitive data"
+msgstr "Dados sensíveis"
 
 #: includes/audience/class-ffc-audience-admin-attendance.php:595
 msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab."

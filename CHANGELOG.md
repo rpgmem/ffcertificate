@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Submission edit: answers, amendments and grading share one card** (#2356). Form answers now carries the grading: a chip with what waits or the result, the points field under each open answer, the save at the foot. "Correction" means grading and "amendment" changing an answer or a grade; a grader may amend open answers, and an amendment made while grading is saved first, with the grades.
 - **Attendance screen: vertical tabs and a summary** (#2360). Participants, Check-in by QR code, Attendance rule and Post-event form become the editors' vertical tabs, Participants open first and each action landing on its tab; a side summary shows the day, who is present, the check-in, the rule and the form.
 - **Reregistration campaign editor in vertical tabs** (#2362). Campaign, Email Notifications, Import answers and Invitations become tabs, with Save and a summary (status, period, affected users) in a side column. The editor layout is now the shared `.ffc-editor`.
+- **Recruitment candidate editor in vertical tabs** (#2363). General, Sensitive data, Classifications, History and Permanent deletion become tabs, each with its own save, beside a summary of the linked account, the classifications, the calls and the latest activity.
 
 ### Security
 

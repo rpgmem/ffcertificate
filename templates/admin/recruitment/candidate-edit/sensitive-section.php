@@ -28,8 +28,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-lock">' . esc_html__( 'Sensitive data (admin only)', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 if ( RecruitmentPiiAccessPolicy::TIER_REVEAL === $tier ) {
@@ -118,4 +116,4 @@ echo '</tbody></table>';
 // assets/js/ffc-recruitment-candidate-edit.js (a document-delegated
 // handler that's inert unless the reveal-tier buttons are present).
 
-echo '</div></div>';
+echo '</div>';

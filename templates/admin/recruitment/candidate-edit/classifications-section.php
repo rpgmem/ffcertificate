@@ -29,8 +29,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-list">' . esc_html__( 'Classifications + call history', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 if ( empty( $classifications ) ) {
@@ -95,4 +93,4 @@ if ( empty( $classifications ) ) {
 	}
 }
 
-echo '</div></div>';
+echo '</div>';
