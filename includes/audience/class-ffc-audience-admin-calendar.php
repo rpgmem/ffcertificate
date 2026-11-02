@@ -396,8 +396,8 @@ class AudienceAdminCalendar {
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
 
-		<div class="ffc-aud-editor">
-		<div class="ffc-aud-editor__main">
+		<div class="ffc-editor">
+		<div class="ffc-editor__main">
 		<?php AudienceEditorTabs::open( $tabs, $active ); ?>
 		<?php // One form across the first four tabs: the tabs only show and hide its panels, so one Save posts every field. ?>
 		<form method="post" action="" class="ffc-form" id="ffc-schedule-form">
@@ -904,7 +904,7 @@ class AudienceAdminCalendar {
 		<?php AudienceEditorTabs::close(); ?>
 		</div>
 
-		<div class="ffc-aud-editor__side">
+		<div class="ffc-editor__side">
 			<?php if ( $can_manage ) : ?>
 			<div class="card">
 				<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>

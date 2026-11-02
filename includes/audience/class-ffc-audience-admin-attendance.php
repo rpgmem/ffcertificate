@@ -401,7 +401,7 @@ class AudienceAdminAttendance {
 		$tabs   = self::tabs();
 		$active = AudienceEditorTabs::active( array_column( $tabs, 'key' ), self::TAB_PARTICIPANTS );
 
-		echo '<div class="ffc-boxed ffc-attendance"><div class="ffc-aud-editor"><div class="ffc-aud-editor__main">';
+		echo '<div class="ffc-boxed ffc-attendance"><div class="ffc-editor"><div class="ffc-editor__main">';
 		AudienceEditorTabs::open( $tabs, $active );
 		foreach ( $tabs as $tab ) {
 			AudienceEditorTabs::panel_open( $tab, $active );
@@ -421,7 +421,7 @@ class AudienceAdminAttendance {
 			AudienceEditorTabs::panel_close();
 		}
 		AudienceEditorTabs::close();
-		echo '</div><div class="ffc-aud-editor__side">';
+		echo '</div><div class="ffc-editor__side">';
 		$this->render_summary_card( $booking, $date, $today, $roster, $window, $now );
 		echo '</div></div></div></div>';
 	}

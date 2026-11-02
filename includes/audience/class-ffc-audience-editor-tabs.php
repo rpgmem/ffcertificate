@@ -71,7 +71,7 @@ final class AudienceEditorTabs {
 	 * @return void
 	 */
 	public static function open( array $tabs, string $active ): void {
-		AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-aud-editor__tabs' );
+		AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-editor__tabs' );
 	}
 
 	/**

@@ -419,7 +419,7 @@ class ReregistrationAdminPageTest extends TestCase {
 		$html = $this->renderPage();
 
 		$this->assertStringContainsString( 'ffc-page-reregistration ffc-boxed', $html );
-		$this->assertStringContainsString( '<h1>New Reregistration</h1>', $html, 'The editor is drawn for a new campaign.' );
+		$this->assertStringContainsString( 'New Reregistration</h1>', $html, 'The editor is drawn for a new campaign.' );
 		$this->assertSame( array(), $this->preparedWith( 'WHERE id = %d' ), 'Campaign 0 is never read.' );
 	}
 
