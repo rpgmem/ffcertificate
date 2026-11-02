@@ -119,13 +119,8 @@ class CepLookup {
 		}
 		$digits = str_replace( '-', '', trim( $cep ) );
 
-		$cached = get_transient( self::CACHE_PREFIX . $digits );
-		if ( is_array( $cached ) && isset( $cached['status'], $cached['address'], $cached['provider'] ) ) {
-			/**
-			 * An answer this class cached.
-			 *
-			 * @var array{status: string, address: array{street: string, neighborhood: string, city: string, uf: string, complement: string}, provider: string} $cached
-			 */
+		$cached = self::cached( $cep );
+		if ( null !== $cached ) {
 			return $cached;
 		}
 
@@ -142,6 +137,33 @@ class CepLookup {
 		}
 
 		return $answer;
+	}
+
+	/**
+	 * The cached answer for a CEP, or null when there is none.
+	 *
+	 * Answering from here costs no outbound request, which is why the form's
+	 * per-IP throttle does not count it (#2342).
+	 *
+	 * @since 6.44.0
+	 * @param string $cep CEP, masked or bare; one the offline rule refuses has no entry.
+	 * @return array{status: string, address: array{street: string, neighborhood: string, city: string, uf: string, complement: string}, provider: string}|null
+	 */
+	public static function cached( string $cep ): ?array {
+		if ( CepRule::OK !== CepRule::check( $cep ) ) {
+			return null;
+		}
+
+		$cached = get_transient( self::CACHE_PREFIX . str_replace( '-', '', trim( $cep ) ) );
+		if ( is_array( $cached ) && isset( $cached['status'], $cached['address'], $cached['provider'] ) ) {
+			/**
+			 * An answer this class cached.
+			 *
+			 * @var array{status: string, address: array{street: string, neighborhood: string, city: string, uf: string, complement: string}, provider: string} $cached
+			 */
+			return $cached;
+		}
+		return null;
 	}
 
 	/**

@@ -228,6 +228,31 @@ class CepLookupEndpointTest extends TestCase {
 		$this->assertLessThanOrEqual( 600, $data['retryAfter'] );
 	}
 
+	public function test_a_cached_cep_answers_after_the_window_is_spent(): void {
+		$_POST['cep'] = '01001-000';
+		$this->send( array( CepLookupEndpoint::class, 'handle_lookup' ) );
+		for ( $i = 0; $i < 29; $i++ ) {
+			$_POST['cep'] = sprintf( '010%02d-000', $i + 10 );
+			$this->send( array( CepLookupEndpoint::class, 'handle_lookup' ) );
+		}
+		$requests = count( $this->requests );
+
+		// The window is spent, but this CEP is cached: no provider is asked,
+		// so the lookup costs nothing and is answered (#2342).
+		$_POST['cep']           = '01001-000';
+		[ $ok, $data, $status ] = $this->send( array( CepLookupEndpoint::class, 'handle_lookup' ) );
+
+		$this->assertTrue( $ok );
+		$this->assertNull( $status );
+		$this->assertSame( 'found', $data['status'] );
+		$this->assertSame( $requests, count( $this->requests ) );
+
+		$_POST['cep']    = '01099-000';
+		[ $ok, , $code ] = $this->send( array( CepLookupEndpoint::class, 'handle_lookup' ) );
+		$this->assertFalse( $ok, 'A CEP not in the cache still meets the spent window.' );
+		$this->assertSame( 429, $code );
+	}
+
 	public function test_the_test_needs_the_settings_capability(): void {
 		$_POST['cep'] = '01001-000';
 

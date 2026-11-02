@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Integrations;
 
 use FreeFormCertificate\Core\AssetHelper;
+use FreeFormCertificate\Core\Icons;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -71,6 +72,15 @@ final class ScreenshotViewer {
 				'zoomOut'  => __( 'Zoom out', 'ffcertificate' ),
 				/* translators: %1$s: number of the screenshot shown, %2$s: number of screenshots */
 				'counter'  => __( '%1$s of %2$s', 'ffcertificate' ),
+				// Registry drawings, so the buttons draw what every other
+				// screen draws (#2342).
+				'icons'    => array(
+					'zoomOut'  => Icons::svg( 'minus', 22 ),
+					'zoomIn'   => Icons::svg( 'plus', 22 ),
+					'close'    => Icons::svg( 'x', 22 ),
+					'previous' => Icons::svg( 'chevron-left', 32 ),
+					'next'     => Icons::svg( 'chevron-right', 32 ),
+				),
 			)
 		);
 	}

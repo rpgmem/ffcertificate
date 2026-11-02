@@ -79,7 +79,9 @@ final class PluginDetailsAssetsTest extends TestCase {
 			$key = strtolower( $title );
 			if ( in_array( $key, array( 'description', 'installation', 'frequently asked questions', 'screenshots' ), true ) ) {
 				$tabs[] = $key;
-			} elseif ( ! in_array( $key, array( 'changelog', 'upgrade notice' ), true ) ) {
+			} else {
+				// The changelog pointer and the upgrade notice count too: the
+				// notice is read in the site's language (#2342).
 				++$others;
 			}
 			if ( 'screenshots' === $key ) {

@@ -6,11 +6,13 @@
  * image in an overlay inside the modal instead, with the caption and a
  * counter. The arrows, the keyboard and a swipe move between screenshots; a
  * click on the image, the wheel, a pinch or the zoom buttons enlarge it, and
- * an enlarged image can be dragged.
+ * an enlarged image can be dragged, or moved with the arrow keys.
  *
  * Progressive enhancement, no dependencies: without this script each link
- * still opens its image, as before. Labels come from `ffcScreenshots`,
- * localized by the PHP that enqueues this file.
+ * still opens its image, as before. Labels and the buttons' icons come from
+ * `ffcScreenshots`, localized by the PHP that enqueues this file; the icons
+ * are the plugin's registry drawings (`Core\Icons::svg()`), since the modal
+ * loads none of the plugin's sheets.
  */
 ( function () {
 	'use strict';
@@ -19,6 +21,7 @@
 	var MAX = 4;
 	var STEP = 1.25;
 	var SWIPE = 50;
+	var PAN = 40;
 
 	var labels = Object.assign(
 		{
@@ -29,6 +32,7 @@
 			zoomIn: 'Zoom in',
 			zoomOut: 'Zoom out',
 			counter: '%1$s of %2$s',
+			icons: {},
 		},
 		window.ffcScreenshots || {}
 	);
@@ -49,7 +53,8 @@
 		el.className = spec.className;
 		el.setAttribute( 'aria-label', spec.label );
 		el.title = spec.label;
-		el.textContent = spec.glyph;
+		// Server-built SVG from the icon registry, never page content.
+		el.innerHTML = ( labels.icons && labels.icons[ spec.icon ] ) || '';
 		return el;
 	}
 
@@ -73,18 +78,22 @@
 		bar.className = 'ffc-shots-bar';
 		var caption = document.createElement( 'p' );
 		caption.className = 'ffc-shots-caption';
+		// One live region for the counter and the caption, so a move is
+		// announced once; the image itself carries no alt, since the caption
+		// beside it says the same thing.
+		bar.setAttribute( 'aria-live', 'polite' );
+		bar.setAttribute( 'aria-atomic', 'true' );
 		var count = document.createElement( 'span' );
 		count.className = 'ffc-shots-count';
-		count.setAttribute( 'aria-live', 'polite' );
 		bar.appendChild( count );
 		bar.appendChild( caption );
 
 		var controls = {
-			zoomOut: button( { className: 'ffc-shots-button ffc-shots-zoom-out', label: labels.zoomOut, glyph: '−' } ),
-			zoomIn: button( { className: 'ffc-shots-button ffc-shots-zoom-in', label: labels.zoomIn, glyph: '+' } ),
-			close: button( { className: 'ffc-shots-button ffc-shots-close', label: labels.close, glyph: '×' } ),
-			previous: button( { className: 'ffc-shots-button ffc-shots-previous', label: labels.previous, glyph: '‹' } ),
-			next: button( { className: 'ffc-shots-button ffc-shots-next', label: labels.next, glyph: '›' } ),
+			zoomOut: button( { className: 'ffc-shots-button ffc-shots-zoom-out', label: labels.zoomOut, icon: 'zoomOut' } ),
+			zoomIn: button( { className: 'ffc-shots-button ffc-shots-zoom-in', label: labels.zoomIn, icon: 'zoomIn' } ),
+			close: button( { className: 'ffc-shots-button ffc-shots-close', label: labels.close, icon: 'close' } ),
+			previous: button( { className: 'ffc-shots-button ffc-shots-previous', label: labels.previous, icon: 'previous' } ),
+			next: button( { className: 'ffc-shots-button ffc-shots-next', label: labels.next, icon: 'next' } ),
 		};
 
 		var tools = document.createElement( 'div' );
@@ -159,7 +168,6 @@
 		var text = thumb ? thumb.getAttribute( 'alt' ) || '' : '';
 
 		ui.img.src = link.getAttribute( 'href' );
-		ui.img.alt = text;
 		ui.caption.textContent = text;
 		ui.count.textContent = labels.counter.replace( '%1$s', String( index + 1 ) ).replace( '%2$s', String( links.length ) );
 
@@ -198,10 +206,10 @@
 				close();
 				break;
 			case 'ArrowLeft':
-				show( index - 1 );
-				break;
 			case 'ArrowRight':
-				show( index + 1 );
+			case 'ArrowUp':
+			case 'ArrowDown':
+				arrow( event.key );
 				break;
 			case '+':
 			case '=':
@@ -220,6 +228,22 @@
 				return;
 		}
 		event.preventDefault();
+	}
+
+	// At the fitted size the side arrows change screenshot; enlarged, every
+	// arrow moves the image, as a drag does.
+	function arrow( name ) {
+		if ( scale === MIN ) {
+			if ( name === 'ArrowLeft' ) {
+				show( index - 1 );
+			} else if ( name === 'ArrowRight' ) {
+				show( index + 1 );
+			}
+			return;
+		}
+		x += name === 'ArrowLeft' ? PAN : name === 'ArrowRight' ? -PAN : 0;
+		y += name === 'ArrowUp' ? PAN : name === 'ArrowDown' ? -PAN : 0;
+		render();
 	}
 
 	// Keeps Tab inside the dialog while it is open.

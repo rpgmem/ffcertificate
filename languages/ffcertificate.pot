@@ -2823,7 +2823,7 @@ msgid "Below"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:149
-msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours."
+msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. A result is kept for 12 hours; a failed request is retried after 10 minutes, 30 minutes, 1 hour and 2 hours."
 msgstr ""
 
 #. 1: minimum hours, 2: maximum hours, 3: default hours
@@ -9492,7 +9492,7 @@ msgid "Invalid RF format."
 msgstr ""
 
 #: includes/api/class-ffc-operator-certificates-rest-controller.php:339 includes/frontend/submission/class-ffc-field-sanitizer.php:78
-msgid "Invalid RF. Must contain only numbers."
+msgid "Invalid RF: its check digit does not match. Check the number and try again."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:274

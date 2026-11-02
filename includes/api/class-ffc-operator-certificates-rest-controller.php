@@ -425,7 +425,7 @@ class OperatorCertificatesRestController {
 			}
 		} elseif ( 7 === strlen( $cpf ) ) {
 			if ( ! DocumentFormatter::validate_rf( $cpf ) ) {
-				return new \WP_Error( 'invalid_rf', __( 'Invalid RF. Must contain only numbers.', 'ffcertificate' ), array( 'status' => 400 ) );
+				return new \WP_Error( 'invalid_rf', __( 'Invalid RF: its check digit does not match. Check the number and try again.', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
 		} else {
 			return new \WP_Error( 'invalid_cpf_rf', __( 'CPF/RF must be exactly 7 or 11 digits', 'ffcertificate' ), array( 'status' => 400 ) );

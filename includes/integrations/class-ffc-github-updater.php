@@ -28,6 +28,7 @@ namespace FreeFormCertificate\Integrations;
 
 use WP_Error;
 use FreeFormCertificate\Core\RequestInput;
+use FreeFormCertificate\Core\RetrySchedule;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -70,13 +71,6 @@ class GithubUpdater {
 	 * 12h window, since freshness is read from `fetched_at`, not from expiry.
 	 */
 	private const STORE_TTL = 604800;
-
-	/**
-	 * Waits after the 1st, 2nd, 3rd and 4th failure in a row (10 min, 30 min,
-	 * 1 h, 2 h). A 5th failure waits until 12h after the first one, and the
-	 * cycle then starts over (#2342).
-	 */
-	private const RETRY_DELAYS = array( 600, 1800, 3600, 7200 );
 
 	/**
 	 * A release tag: `X.Y.Z` or the cache-bust `X.Y.Z.N`, with an optional `v`.
@@ -530,10 +524,29 @@ class GithubUpdater {
 	 * guard's to fail in CI, not this method's to hide at runtime by
 	 * returning nothing.
 	 *
+	 * IN THE SITE'S LANGUAGE (#2342)
+	 *
+	 * When the plugin ships a translated readme for the site's locale, its
+	 * notice comes first: the offered release's translation, then the
+	 * installed one, then the English text in the same order. The site
+	 * locale rather than the viewer's, because the update object is built
+	 * once for the whole site, often by cron.
+	 *
 	 * @param array<string, string>|null $release Release payload being offered, if any.
 	 * @return string Plain text; empty when the section is absent or malformed.
 	 */
 	private static function upgrade_notice( ?array $release = null ): string {
+		$locale = function_exists( 'get_locale' ) ? (string) get_locale() : '';
+		if ( in_array( $locale, self::readme_locales(), true ) ) {
+			$translated = wp_strip_all_tags( self::notice_from( (string) ( $release[ 'readme_' . $locale ] ?? '' ) ) );
+			if ( '' === $translated ) {
+				$translated = self::notice_from( self::installed_file( 'languages/readme-' . $locale . '.txt' ) );
+			}
+			if ( '' !== $translated ) {
+				return $translated;
+			}
+		}
+
 		if ( null !== $release && '' !== ( $release['upgrade_notice'] ?? '' ) ) {
 			return $release['upgrade_notice'];
 		}
@@ -777,10 +790,8 @@ class GithubUpdater {
 	 * Return the parsed latest release, from cache or a fresh fetch.
 	 *
 	 * A check that reached GitHub — a release, a 304, or an answer with no
-	 * usable release — stands for 12h. A check that did not is retried after
-	 * {@see GithubUpdater::RETRY_DELAYS}; after the fourth retry fails, the
-	 * next attempt waits until 12h after the first failure and the count
-	 * starts over. Between those times no request is made, so an unreachable
+	 * usable release — stands for 12h. A check that did not is retried on
+	 * {@see RetrySchedule}, whose cycle here is those 12h. Between those times no request is made, so an unreachable
 	 * GitHub costs one 10s timeout per attempt, never one per admin page
 	 * (#2342). Meanwhile the last payload, however old, is served.
 	 *
@@ -799,7 +810,7 @@ class GithubUpdater {
 		}
 
 		// A failed check is waiting for its retry time.
-		if ( isset( $cache['retry_at'] ) && $now < (int) $cache['retry_at'] ) {
+		if ( RetrySchedule::waiting( $cache, $now ) ) {
 			return $cached;
 		}
 
@@ -842,27 +853,14 @@ class GithubUpdater {
 	 * @since 6.44.0
 	 * @param array<mixed> $cache Cache before the attempt.
 	 * @param int          $now   Time of the attempt.
-	 * @return array<string, mixed>
+	 * @return array<mixed>
 	 */
 	private static function after_failure( array $cache, int $now ): array {
-		$failures = ( isset( $cache['failures'] ) ? (int) $cache['failures'] : 0 ) + 1;
-		$first    = ! empty( $cache['first_failure_at'] ) ? (int) $cache['first_failure_at'] : $now;
-
-		$cache['failures']         = $failures;
-		$cache['first_failure_at'] = $first;
-		if ( $failures <= count( self::RETRY_DELAYS ) ) {
-			$cache['retry_at'] = $now + self::RETRY_DELAYS[ $failures - 1 ];
-		} else {
-			// The cycle is spent: wait out the 12h from its first failure, then start over.
-			$cache['retry_at']         = $first + self::CACHE_TTL;
-			$cache['failures']         = 0;
-			$cache['first_failure_at'] = 0;
-		}
-
+		$cache = RetrySchedule::after_failure( $cache, $now, self::CACHE_TTL );
 		self::debug_log(
 			'Release check failed',
 			array(
-				'failures' => $failures,
+				'failures' => $cache['failures'],
 				'retry_at' => $cache['retry_at'],
 			)
 		);

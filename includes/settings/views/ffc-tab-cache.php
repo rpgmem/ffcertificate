@@ -169,7 +169,7 @@ if ( $ffcertificate_cf_behind ) :
 					<td>
 						<span class="<?php echo esc_attr( $ffcertificate_cf_cls ); ?>"><?php echo esc_html( $ffcertificate_cf_msg ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Best-effort: a loopback request to the front page reads the edge cf-cache-status header. A result is kept for 12 hours; a failed request is retried after 10 minutes, 30 minutes, 1 hour and 2 hours.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>

@@ -84,10 +84,10 @@ class FieldSanitizer {
 						}
 					}
 
-					// Validate RF (7 digits) - must be numeric.
+					// An RF (7 digits, already digits only) fails only on its check digit (#2342).
 					if ( strlen( $value ) === 7 ) {
 						if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_rf( $value ) ) {
-							throw new SubmissionRejected( array( 'message' => __( 'Invalid RF. Must contain only numbers.', 'ffcertificate' ) ) );
+							throw new SubmissionRejected( array( 'message' => __( 'Invalid RF: its check digit does not match. Check the number and try again.', 'ffcertificate' ) ) );
 						}
 					}
 				}

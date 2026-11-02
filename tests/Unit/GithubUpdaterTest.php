@@ -44,6 +44,9 @@ class GithubUpdaterTest extends TestCase {
 		Functions\when( 'wpautop' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_user_locale' )->justReturn( 'en_US' );
+		// upgrade_notice() guards on function_exists( 'get_locale' ), so the
+		// branch is chosen here rather than inherited from an earlier test.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'is_wp_error' )->alias(
 			static function ( $thing ) {
@@ -1021,6 +1024,37 @@ class GithubUpdaterTest extends TestCase {
 		$this->assertSame( '', $info->download_link );
 		$this->assertArrayHasKey( 'description', $info->sections );
 		$this->assertSame( $this->installed_compat()['tested'], $info->tested );
+	}
+
+	public function test_a_site_in_a_translated_language_reads_the_translated_notice(): void {
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		$readme = "== Upgrade Notice ==\n\n= 6.18.0 =\nAviso em português.\n\nVeja o CHANGELOG.md.\n";
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.', 'readme_pt_BR' => $readme ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( 'Aviso em português.', $item->upgrade_notice );
+	}
+
+	public function test_a_translated_site_falls_back_to_the_installed_translation(): void {
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.' ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$installed = (string) file_get_contents( dirname( __DIR__, 2 ) . '/languages/readme-pt_BR.txt' );
+		preg_match( '/^==\s*Upgrade Notice\s*==.*?^=\s*\S+\s*=\s*$\R+(.+?)$/ms', $installed, $m );
+		$this->assertSame( trim( $m[1] ), $item->upgrade_notice );
+		$this->assertNotSame( 'English notice.', $item->upgrade_notice );
+	}
+
+	public function test_a_site_in_another_language_reads_the_english_notice(): void {
+		Functions\when( 'get_locale' )->justReturn( 'de_DE' );
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.', 'readme_pt_BR' => "== Upgrade Notice ==\n\n= 6.18.0 =\nAviso.\n" ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( 'English notice.', $item->upgrade_notice );
 	}
 
 	// ------------------------------------------------------------------

@@ -113,6 +113,12 @@ class CepLookupEndpoint {
 			wp_send_json_success( CepLookup::lookup( $cep ) );
 		}
 
+		// A cached answer sends nothing to the provider, so it spends nothing (#2342).
+		$cached = CepLookup::cached( $cep );
+		if ( null !== $cached ) {
+			wp_send_json_success( $cached );
+		}
+
 		if ( ! WindowThrottle::take( self::THROTTLE_PREFIX, self::CAP, self::WINDOW, true ) ) {
 			wp_send_json_error( array( 'retryAfter' => WindowThrottle::seconds_left( self::WINDOW ) ), 429 );
 		}

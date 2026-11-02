@@ -114,6 +114,17 @@ class UserIdentifiersQueryServiceTest extends TestCase {
 		$this->assertSame( array( self::partial( Identifiers::CPF_A ) ), $out );
 	}
 
+	public function test_get_cpfs_masked_for_user_masks_an_rf_in_its_own_shape(): void {
+		// RF length varies by agency. The CPF mask hands any length but 7 or 11
+		// to the generic mask, so an eight-digit RF lost its shape (#2342).
+		$this->wpdb->shouldReceive( 'get_results' )->twice()->andReturn(
+			array( array( 'cpf_encrypted' => null, 'rf_encrypted' => Encryption::encrypt( '12345678' ) ) )
+		);
+
+		$this->assertSame( array( '123.***-8' ), UserIdentifiersQueryService::get_cpfs_masked_for_user( 42 ) );
+		$this->assertSame( array( '123.***-8' ), UserIdentifiersQueryService::get_typed_identifiers_for_user( 42 )['rfs'] );
+	}
+
 	public function test_get_cpfs_masked_for_user_returns_empty_when_no_rows(): void {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
 
