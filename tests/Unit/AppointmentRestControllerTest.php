@@ -574,19 +574,20 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertFalse( ( new AppointmentRestController( 'ffc/v1' ) )->check_create_permission() );
 	}
 
-	public function test_create_appointment_records_the_rate_limit_attempt(): void {
-		// Inactive, so the real handler refuses right after the attempt is recorded.
+	public function test_create_appointment_counts_the_account_not_the_address(): void {
+		// The route is staff-only: an office of operators shares one address,
+		// so the per-address pool does not apply; a per-account runaway guard
+		// counts the booking instead (#2342).
+		$this->sign_in_as_operator( 5 );
 		$this->store_calendar( array( 'id' => 3, 'status' => 'inactive' ) );
 
 		( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
 			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
-		$this->assertSame( 1, $this->transients[ $this->ip_hour_key() ] ?? null, 'The hour counter of the caller\'s address went up by one.' );
-		$this->assertCount( 1, $this->inserts, 'Exactly one attempt reached the counter table.' );
-		$this->assertSame( 'ip', $this->inserts[0][1]['type'] );
-		$this->assertSame( IpAddress::fingerprint( self::CLIENT_IP ), $this->inserts[0][1]['identifier'] );
-		$this->assertSame( 'day', $this->inserts[0][1]['window_type'] );
+		$this->assertArrayNotHasKey( $this->ip_hour_key(), $this->transients, 'The address pool is not touched.' );
+		$this->assertSame( array(), $this->inserts, 'No address attempt reaches the counter table.' );
+		$this->assertContains( 1, array_intersect_key( $this->transients, array_flip( preg_grep( '/^ffc_rate_user_5_staff_book_appointment_hour_/', array_keys( $this->transients ) ) ) ), 'The operator\'s hour counter went up by one.' );
 	}
 
 	public function test_create_appointment_sanitizes_custom_data_like_the_booking_form(): void {
@@ -943,14 +944,32 @@ class AppointmentRestControllerTest extends TestCase {
 	// check_appointment_access()
 	// ------------------------------------------------------------------
 
-	public function test_check_appointment_access_bypass_returns_true(): void {
+	public function test_check_appointment_access_bypass_on_its_calendar_returns_true(): void {
+		// The bypass is per calendar (#2342), so the appointment is read to
+		// find its calendar before the answer.
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 42 );
 		$this->holdCaps( array( 'ffc_bypass_appointments' ) );
+		$this->store_calendar( array( 'id' => 3 ) );
+		$this->appointments[1] = array( 'id' => '1', 'user_id' => '99', 'calendar_id' => '3' );
 
-		$ctrl = new AppointmentRestController( 'ffc/v1' );
+		$ctrl    = new AppointmentRestController( 'ffc/v1' );
 		$request = $this->make_request( array( 'id' => 1 ) );
 
 		$this->assertTrue( $ctrl->check_appointment_access( $request ) );
-		$this->assertSame( array(), $this->appointment_reads, 'The bypass answers before any appointment is read.' );
+		$this->assertSame( array( 1 ), $this->appointment_reads );
+	}
+
+	public function test_check_appointment_access_lets_staff_who_book_read_and_cancel(): void {
+		// Staff book on behalf of a person, so the booking is the person's;
+		// they could not read or cancel it until #2342.
+		$this->sign_in_as_operator( 5 );
+
+		$ctrl    = new AppointmentRestController( 'ffc/v1' );
+		$request = $this->make_request( array( 'id' => 1 ) );
+
+		$this->assertTrue( $ctrl->check_appointment_access( $request ) );
+		$this->assertSame( array(), $this->appointment_reads, 'The capability answers before any appointment is read.' );
 	}
 
 	public function test_check_appointment_access_not_logged_in_returns_false(): void {
@@ -1093,9 +1112,12 @@ class AppointmentRestControllerTest extends TestCase {
 	}
 
 	public function test_create_appointment_rate_limited(): void {
+		$this->sign_in_as_operator( 5 );
 		$this->store_calendar( array( 'id' => 3 ) );
-		// The caller's address is already at the default hourly cap.
-		$this->transients[ $this->ip_hour_key() ] = 5;
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
+		// The operator's account is at the hour's runaway cap (#2342).
+		$this->transients[ 'ffc_rate_user_5_staff_book_appointment_hour_' . gmdate( 'YmdH' ) ]               = 300;
+		$this->transients[ 'ffc_rate_user_5_staff_book_appointment_hour_' . gmdate( 'YmdH', time() + 60 ) ] = 300;
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
 			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
@@ -1104,6 +1126,38 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
 		$this->assertSame( array(), $this->inserts, 'A refused request records no attempt.' );
+	}
+
+	public function test_a_json_false_is_not_consent_and_answers_400(): void {
+		// `isset()` read `"consent": false` as consent (#2342); the handler's
+		// refusal is a client error, not the 500 WordPress gives a bare error.
+		$this->sign_in_as_operator( 5 );
+		$this->store_calendar( array( 'id' => 3 ) );
+
+		foreach ( array( false, 'false', 'no', 0, '0' ) as $refusal ) {
+			$booking            = $this->valid_booking();
+			$booking['consent'] = $refusal;
+			$result             = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+				$this->make_request( array( 'id' => 3 ), $booking )
+			);
+
+			$this->assertInstanceOf( \WP_Error::class, $result, var_export( $refusal, true ) . ' is not consent.' );
+			$this->assertSame( 'consent_required', $result->get_error_code() );
+			$this->assertSame( 400, $result->get_error_data()['status'] );
+		}
+		$this->assertSame( array(), $this->appointment_inserts );
+	}
+
+	public function test_an_inactive_calendar_answers_409(): void {
+		$this->sign_in_as_operator( 5 );
+		$this->store_calendar( array( 'id' => 3, 'status' => 'inactive' ) );
+
+		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(
+			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
+		);
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 409, $result->get_error_data()['status'] );
 	}
 
 	public function test_an_operator_without_book_own_books_on_behalf_of_a_person(): void {

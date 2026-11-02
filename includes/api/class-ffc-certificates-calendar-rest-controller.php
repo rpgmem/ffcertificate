@@ -124,37 +124,23 @@ class CertificatesCalendarRestController {
 		$month_start = sprintf( '%04d-%02d-01', $year, $month );
 		$month_end   = gmdate( 'Y-m-t', (int) strtotime( $month_start ) );
 
+		// One query for the posts and one for their meta (#2342): reading ids
+		// and then each post cost a query per form ever created. The month is
+		// still decided in PHP, because a form's date may be its geofence
+		// window, which lives in meta, before its publication date.
 		$query = new \WP_Query(
 			array(
 				'post_type'              => self::POST_TYPE,
 				'post_status'            => self::STATUSES,
 				'posts_per_page'         => -1,
-				'fields'                 => 'ids',
 				'no_found_rows'          => true,
 				'update_post_term_cache' => false,
+				'update_post_meta_cache' => true,
 			)
 		);
 
-		/**
-		 * Narrow the type to int[].
-		 *
-		 * `fields => 'ids'` guarantees an int[] at runtime, but PHPStan widens
-		 * WP_Query::$posts to array<int|WP_Post> — annotate explicitly so the
-		 * downstream update_meta_cache / get_post calls type-check at level 8.
-		 *
-		 * @var int[] $ids
-		 */
-		$ids = $query->posts;
-		if ( empty( $ids ) ) {
-			return new \WP_REST_Response( array(), 200 );
-		}
-
-		// Prime the meta cache so the per-post get_post_meta calls below stay in memory.
-		update_meta_cache( 'post', $ids );
-
 		$events = array();
-		foreach ( $ids as $id ) {
-			$post = get_post( $id );
+		foreach ( is_array( $query->posts ) ? $query->posts : array() as $post ) {
 			if ( ! $post instanceof \WP_Post ) {
 				continue;
 			}

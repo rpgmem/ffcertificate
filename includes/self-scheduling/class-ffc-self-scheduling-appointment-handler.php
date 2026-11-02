@@ -421,6 +421,53 @@ class AppointmentHandler {
 	}
 
 	/**
+	 * The HTTP status each of the handler's error codes means over REST (#2342).
+	 *
+	 * The handler returns plain `WP_Error`s, which WordPress REST answers with
+	 * 500 when they carry no status: a missing consent or a taken slot read as
+	 * a server failure to an integration. Codes not listed are client errors.
+	 *
+	 * @var array<string, int>
+	 */
+	private const REST_STATUS = array(
+		'invalid_calendar'      => 404,
+		'calendar_not_found'    => 404,
+		'not_found'             => 404,
+		'unauthorized'          => 403,
+		'capability_denied'     => 403,
+		'calendar_private'      => 403,
+		'calendar_inactive'     => 409,
+		'invalid_slot'          => 409,
+		'already_cancelled'     => 409,
+		'not_cancellable'       => 409,
+		'cancellation_disabled' => 409,
+		'deadline_passed'       => 409,
+		'status_changed'        => 409,
+		'creation_failed'       => 500,
+		'booking_error'         => 500,
+		'cancellation_failed'   => 500,
+	);
+
+	/**
+	 * A handler error with the HTTP status REST should answer with.
+	 *
+	 * An error that already carries a status keeps it; any other code the
+	 * handler or its validators return is the caller's to fix (400).
+	 *
+	 * @param \WP_Error $error Error from the handler.
+	 * @return \WP_Error
+	 */
+	public static function rest_error( \WP_Error $error ): \WP_Error {
+		$data = $error->get_error_data();
+		if ( is_array( $data ) && isset( $data['status'] ) ) {
+			return $error;
+		}
+
+		$status = self::REST_STATUS[ (string) $error->get_error_code() ] ?? 400;
+		return new \WP_Error( $error->get_error_code(), $error->get_error_message(), array_merge( is_array( $data ) ? $data : array(), array( 'status' => $status ) ) );
+	}
+
+	/**
 	 * The error a read of a calendar hidden from the visitor answers with.
 	 *
 	 * @since 6.40.0
@@ -670,6 +717,11 @@ class AppointmentHandler {
 		$has_bypass       = \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, $calendar_post_id );
 
 		if ( $has_bypass ) {
+			$can_cancel   = true;
+			$cancelled_by = get_current_user_id();
+		} elseif ( is_user_logged_in() && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			// Staff cancel the bookings they manage (#2342), within the
+			// calendar's rules: only the bypass lifts those.
 			$can_cancel   = true;
 			$cancelled_by = get_current_user_id();
 		} elseif ( is_user_logged_in() && get_current_user_id() === (int) $appointment['user_id'] ) {

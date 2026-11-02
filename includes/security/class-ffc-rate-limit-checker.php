@@ -190,9 +190,10 @@ final class RateLimitChecker {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes (cookie, ua, screen, ...).
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check (e.g. for managers).
+	 * @param bool                       $skip_ip     Set true to bypass the per-address check, for an authenticated API caller whose requests share one server address (#2342).
 	 * @return RateLimitVerdict
 	 */
-	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
+	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false, bool $skip_ip = false ): array {
 		$s = self::get_settings();
 
 		$bl = self::check_blacklist( $ip, $email, $cpf );
@@ -223,7 +224,7 @@ final class RateLimitChecker {
 				return $g; }
 		}
 
-		if ( $s['ip']['enabled'] && self::applies_to_form( $s['ip']['apply_to'], $form_id ) ) {
+		if ( ! $skip_ip && $s['ip']['enabled'] && self::applies_to_form( $s['ip']['apply_to'], $form_id ) ) {
 			$i = self::check_ip_limit( $ip, $form_id );
 			if ( ! $i['allowed'] ) {
 				RateLimitLogger::log_attempt( 'ip', $ip, 'blocked', $i['reason'] ?? '', $form_id );
