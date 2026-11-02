@@ -25,8 +25,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-megaphone">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -78,4 +76,4 @@ echo '</tbody></table>';
 \FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save general', 'ffcertificate' ), array( 'value' => __( 'Save general', 'ffcertificate' ) ) );
 echo '</form>';
 
-echo '</div></div>';
+echo '</div>';

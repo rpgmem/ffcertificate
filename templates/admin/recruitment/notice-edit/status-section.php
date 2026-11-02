@@ -27,8 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-tag">' . esc_html__( 'Status', 'ffcertificate' ) . '</h2>';
+// Part of the General tab since #2370, below the notice's own fields.
+echo '<div class="ffc-rec-notice-status">';
+echo '<h3 class="ffc-icon-tag">' . esc_html__( 'Status', 'ffcertificate' ) . '</h3>';
 echo '<div>';
 
 echo '<p><strong>' . esc_html__( 'Current state:', 'ffcertificate' ) . '</strong> ';

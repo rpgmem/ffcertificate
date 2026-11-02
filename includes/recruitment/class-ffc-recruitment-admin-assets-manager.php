@@ -154,8 +154,8 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
-		// The candidate editor is drawn in vertical tabs (#2363).
-		if ( 'edit-candidate' === \FreeFormCertificate\Core\RequestInput::get_get_key( 'action' ) ) {
+		// The candidate (#2363) and notice (#2370) editors are drawn in vertical tabs.
+		if ( in_array( \FreeFormCertificate\Core\RequestInput::get_get_key( 'action' ), array( 'edit-candidate', 'edit-notice' ), true ) ) {
 			\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
 		}
 		wp_localize_script(

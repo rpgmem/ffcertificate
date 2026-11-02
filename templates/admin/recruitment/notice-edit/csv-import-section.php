@@ -22,8 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-upload">' . esc_html__( 'Import candidates (CSV)', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 if ( ! \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::allows( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::IMPORT_PREVIEW, $status ) ) {
@@ -118,4 +116,4 @@ echo '</form>';
 // data-notice-id attribute; strings/nonce/REST root come from the
 // localized ffcRecruitmentNoticeEdit object.
 
-echo '</div></div>';
+echo '</div>';

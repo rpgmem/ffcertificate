@@ -961,6 +961,8 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_calls_section( object $notice ): void {
 		$calls = RecruitmentCallReader::get_for_notice( (int) $notice->id );
 		if ( empty( $calls ) ) {
+			// The tab is always there (#2370), so an empty record says so.
+			echo '<p>' . esc_html__( 'No call has been made on this notice yet.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 		$total        = count( $calls );
@@ -983,8 +985,6 @@ final class RecruitmentNoticeEditPageRenderer {
 			$users = self::user_names( $ids );
 		}
 
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-user-call">' . esc_html__( 'Calls', 'ffcertificate' ) . '</h2>';
 		self::render_export_button( (int) $notice->id, 'calls' );
 		echo '<p class="description">' . esc_html(
 			$show_callers
@@ -1027,7 +1027,13 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo wp_kses_post(
 				(string) paginate_links(
 					array(
-						'base'      => add_query_arg( 'ffc_calls_paged', '%#%', remove_query_arg( 'ffc_calls_paged' ) ),
+						'base'      => add_query_arg(
+							array(
+								'ffc_calls_paged' => '%#%',
+								'tab_section'     => 'calls',
+							),
+							remove_query_arg( 'ffc_calls_paged' )
+						),
 						'format'    => '',
 						'prev_text' => '&laquo;',
 						'next_text' => '&raquo;',
@@ -1038,7 +1044,33 @@ final class RecruitmentNoticeEditPageRenderer {
 			);
 			echo '</div></div>';
 		}
-		echo '</div>';
+	}
+
+	/**
+	 * The notice at a glance, beside the tabs (#2370): its status, how many
+	 * adjutancies it takes, the rows of each list and the calls made.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	public static function render_summary( object $notice ): void {
+		$id = (int) $notice->id;
+
+		echo '<div class="card"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice_status_badge() returns escaped HTML.
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Status', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . RecruitmentAdminPage::notice_status_badge( (string) $notice->status ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) count( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $id ) ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Classifications', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html(
+			sprintf(
+				/* translators: 1: rows of the definitive list, 2: rows of the preliminary list */
+				__( '%1$d definitive · %2$d preliminary', 'ffcertificate' ),
+				RecruitmentClassificationRepository::count_for_notice_list( $id, 'definitive' ),
+				RecruitmentClassificationRepository::count_for_notice_list( $id, 'preview' )
+			)
+		) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Calls', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) RecruitmentCallReader::count_for_notice( $id ) ) . '</dd>';
+		echo '</dl></div>';
 	}
 
 	/**
