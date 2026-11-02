@@ -135,6 +135,13 @@
     font-weight: 600;
 }
 
+/* Its ground is its only boundary, which forced colours remove. */
+@media (forced-colors: active) {
+    .ffc-answer-tag {
+        border: 1px solid CanvasText;
+    }
+}
+
 .ffc-grade-points {
     margin: 0;
 }
