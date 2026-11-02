@@ -154,6 +154,10 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
+		// The candidate editor is drawn in vertical tabs (#2363).
+		if ( 'edit-candidate' === \FreeFormCertificate\Core\RequestInput::get_get_key( 'action' ) ) {
+			\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+		}
 		wp_localize_script(
 			'ffc-recruitment-candidate-edit',
 			'ffcRecruitmentCandidateEdit',

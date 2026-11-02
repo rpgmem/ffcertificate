@@ -3973,10 +3973,6 @@ msgstr ""
 msgid "Classifications"
 msgstr ""
 
-#: templates/admin/recruitment/candidate-edit/classifications-section.php:32
-msgid "Classifications + call history"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:148
 msgid "Classifications can only be removed while the notice is in draft or preliminary status."
 msgstr ""
@@ -8682,10 +8678,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:179 templates/public/recruitment/section-open.php:53
 msgid "HAB. EMEBs"
-msgstr ""
-
-#: templates/admin/recruitment/candidate-edit/delete-section.php:31
-msgid "Hard-delete candidate"
 msgstr ""
 
 #: templates/admin/recruitment/candidate-edit/delete-section.php:61
@@ -15088,10 +15080,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:436 includes/audience/class-ffc-audience-admin-audience-renderer.php:573
 msgid "Sensitive"
-msgstr ""
-
-#: templates/admin/recruitment/candidate-edit/sensitive-section.php:32
-msgid "Sensitive data (admin only)"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-submission-edit-page.php:397
@@ -31389,4 +31377,16 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:45
 msgid "The campaign editor shows these settings in tabs: Campaign, Email Notifications and, once the campaign exists, Import answers and Invitations. Save and a summary of the status, the period and the affected users sit beside them; Campaign and Email Notifications are saved together."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:87
+msgid "A candidate's edit screen shows its sections as tabs: General, Sensitive data, Classifications, History and Permanent deletion, each with its own save. Beside them a summary names the linked account and counts the classifications, the calls and the latest activity."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:173
+msgid "Permanent deletion"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:158
+msgid "Sensitive data"
 msgstr ""
