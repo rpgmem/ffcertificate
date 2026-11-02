@@ -122,3 +122,44 @@ describe('ffc-smtp-settings — initial visibility with custom mode', () => {
 		expect(document.getElementById('smtp-options').classList.contains('ffc-hidden')).toBe(false);
 	});
 });
+
+// The saved SMTP password is never sent to the browser (#2342): "Change
+// password" opens an empty field, "Cancel" closes and empties it.
+describe('ffc-smtp-settings: change password', () => {
+	beforeEach(async () => {
+		window.$(document).off();
+		document.body.innerHTML = `
+			<input type="checkbox" id="emails_enabled" checked />
+			<div class="ffc-secret-row" id="ffc-smtp-pass-saved">
+				<span class="ffc-pill ffc-secret-saved">Password saved</span>
+				<button type="button" id="ffc-smtp-pass-change">Change password</button>
+			</div>
+			<div class="ffc-secret-row" id="ffc-smtp-pass-edit" hidden>
+				<input type="password" name="ffc_settings[smtp_pass]" id="smtp_pass" value="" />
+				<button type="button" id="ffc-smtp-pass-cancel">Cancel</button>
+			</div>
+		`;
+		loadScript('assets/js/ffc-smtp-settings.js');
+		await new Promise((r) => setTimeout(r, 0));
+	});
+
+	it('opens an empty field and focuses it', () => {
+		document.getElementById('ffc-smtp-pass-change').click();
+
+		expect(document.getElementById('ffc-smtp-pass-edit').hidden).toBe(false);
+		expect(document.getElementById('ffc-smtp-pass-saved').hidden).toBe(true);
+		expect(document.activeElement.id).toBe('smtp_pass');
+		expect(document.getElementById('smtp_pass').value).toBe('');
+	});
+
+	it('cancel empties the field, so saving keeps the stored password', () => {
+		document.getElementById('ffc-smtp-pass-change').click();
+		document.getElementById('smtp_pass').value = 'half-typed';
+		document.getElementById('ffc-smtp-pass-cancel').click();
+
+		expect(document.getElementById('smtp_pass').value).toBe('');
+		expect(document.getElementById('ffc-smtp-pass-edit').hidden).toBe(true);
+		expect(document.getElementById('ffc-smtp-pass-saved').hidden).toBe(false);
+		expect(document.activeElement.id).toBe('ffc-smtp-pass-change');
+	});
+});

@@ -487,3 +487,26 @@
 .ffc-pii-reveal-bar {
     clear: both;
 }
+
+/* A saved secret (#2342): the screen says one is saved and never shows it.
+   The row holds the badge and its button, or the empty field and Cancel. */
+.ffc-admin-page .ffc-secret-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-admin-page .ffc-secret-row[hidden] {
+    display: none;
+}
+
+.ffc-admin-page .ffc-secret-saved {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    font-weight: 600;
+}
+
+.ffc-admin-page .ffc-secret-reason {
+    color: var(--ffc-text-muted);
+}

@@ -583,10 +583,53 @@ class SettingsSaveHandlerTest extends TestCase {
 			'smtp_pass'      => 's3cret',
 			'smtp_from_name' => 'Acme Certs',
 		);
+		$_POST['ffc_settings'] = $new;
 		$result = $this->invoke( 'save_smtp_settings', array( array(), $new ) );
 		$this->assertSame( 'mailer@example.com', $result['smtp_user'] );
-		$this->assertSame( 's3cret', $result['smtp_pass'] );
+		// Stored encrypted, never as typed (#2342).
+		$this->assertStringStartsWith( 'v2:', $result['smtp_pass'] );
+		$this->assertSame( 's3cret', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
 		$this->assertSame( 'Acme Certs', $result['smtp_from_name'] );
+	}
+
+	public function test_smtp_pass_is_stored_as_typed_not_through_the_text_sanitiser(): void {
+		// The real sanitiser strips `<…`, `%xx` and runs of spaces: a password
+		// holding them was saved wrong and SMTP failed with no visible reason.
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) preg_replace( '/<[^>]*>?|%[a-f0-9]{2}|\s+/i', ' ', (string) $v ) ) );
+		$typed                 = 'a<b  %41 c';
+		$_POST['ffc_settings'] = array( 'smtp_pass' => $typed );
+
+		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'smtp_pass' => sanitize_text_field( $typed ) ) ) );
+
+		$this->assertSame( $typed, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+	}
+
+	public function test_an_empty_smtp_pass_keeps_the_saved_one(): void {
+		$saved                 = array( 'smtp_pass' => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'kept' ) );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => '', 'smtp_host' => 'smtp.example.com' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( $saved, array( 'smtp_pass' => '', 'smtp_host' => 'smtp.example.com' ) ) );
+
+		$this->assertSame( $saved['smtp_pass'], $result['smtp_pass'] );
+		$this->assertSame( 'smtp.example.com', $result['smtp_host'] );
+	}
+
+	public function test_a_closed_password_field_posts_nothing_and_keeps_the_saved_one(): void {
+		$saved                 = array( 'smtp_pass' => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'kept' ) );
+		$_POST['ffc_settings'] = array( 'smtp_host' => 'smtp.example.com' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( $saved, array( 'smtp_host' => 'smtp.example.com' ) ) );
+
+		$this->assertSame( 'kept', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+	}
+
+	public function test_smtp_pass_is_not_saved_without_the_smtp_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => 'intruder' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'intruder' ) ) );
+
+		$this->assertSame( 'old', $result['smtp_pass'] );
 	}
 
 	public function test_smtp_secure_and_mode_stored(): void {
