@@ -67,6 +67,8 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_x' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
@@ -915,8 +917,18 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Grade open answers', $html );
+		// One card (#2356): the chip says what waits, the open answer carries
+		// its points field on its own row, the save sits at the foot.
+		$this->assertStringNotContainsString( 'Grade open answers', $html, 'The separate grading card is gone.' );
+		$this->assertStringContainsString( '<span class="ffc-section__chip">Awaiting grading · 1 open answer</span>', $html );
+		$this->assertMatchesRegularExpression( '/<details class="ffc-section" open data-ffc-section><summary[^>]*>.*Form answers/sU', $html, 'The answers open while grading waits.' );
+		$this->assertStringContainsString( 'Explain why <span class="ffc-answer-tag">Open</span></dt>', $html );
+		$this->assertStringContainsString( '<blockquote class="ffc-grade-answer">Because <b>so</b>.</blockquote>', $html, 'The stubbed esc_html returns its argument.' );
+		$this->assertSame( 1, substr_count( $html, '>Because' ), 'The open answer is shown once.' );
 		$this->assertStringContainsString( 'earned 6 of 10 points. The passing score is 70%.', $html );
+		$this->assertMatchesRegularExpression( '/class="[^"]*ffc-icon-award[^"]*ffc-grade-save"/', $html, 'Grading wears the award icon.' );
+		$this->assertStringContainsString( 'data-label-amend="Save the amendment and grades and send the result"', $html );
+		$this->assertStringContainsString( 'data-form="ffc-grade-form"', $html, 'Amending the open answer rides the grading save.' );
 		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="" min="0" max="4" step="1" required', $html );
 		$this->assertStringContainsString( 'data-confirm="Save the grades and send the result to the participant? This decides the attempt."', $html, 'Sending the result asks first (#2241).' );
 		$this->assertStringNotContainsString( 'ffc_grade_reason', $html, 'A first grade needs no reason.' );
@@ -960,13 +972,13 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->page()->render( 42 );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Graded answers', $html );
+		$this->assertStringNotContainsString( 'Graded answers', $html, 'The separate card is gone (#2356).' );
 		$this->assertStringContainsString( 'The attempt scored 90%. The passing score is 70%.', $html );
 		$this->assertStringContainsString( 'name="ffc_grade[essay]" form="ffc-grade-form" value="3" min="0" max="4"', $html );
-		$this->assertStringContainsString( 'name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="10"', $html );
-		$this->assertStringContainsString( 'Change grades', $html );
-		$this->assertStringContainsString( 'ffc-btn-caution', $html );
-		$this->assertStringContainsString( 'data-confirm="Change the grades?', $html );
+		$this->assertStringContainsString( 'name="ffc_grade_reason" form="ffc-grade-form" rows="2" class="large-text" required minlength="10"', $html );
+		$this->assertStringContainsString( 'Reason for amending the grades', $html );
+		$this->assertMatchesRegularExpression( '/class="ffc-btn ffc-btn-caution ffc-icon-edit ffc-grade-save"[^>]*>Amend grades</', $html, 'Amending wears the pencil.' );
+		$this->assertStringContainsString( 'data-confirm="Amend the grades?', $html );
 	}
 
 	public function test_render_hides_the_grading_card_from_a_user_who_cannot_grade(): void {
@@ -1004,7 +1016,7 @@ class AdminSubmissionEditPageTest extends TestCase {
 
 		// The answer is corrected on its own row (#2354): a pencil per
 		// correctable answer, carrying the key and the current value.
-		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-btn-icon[^"]*ffc-correct-open"[^>]*aria-label="Correct name"[^>]*data-field="name" data-value="Ana Silv"/', $html );
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-btn-icon[^"]*ffc-correct-open"[^>]*aria-label="Amend name"[^>]*data-field="name" data-value="Ana Silv" data-form="ffc-correct-form"/', $html );
 		$this->assertSame( 1, substr_count( $html, 'ffc-correct-open' ), 'Only the answer gets a pencil; the auth code does not.' );
 		$this->assertStringNotContainsString( '<option value=', $html, 'The answer is no longer picked from a list.' );
 		$this->assertStringContainsString( '<div id="ffc-correct-inline" class="ffc-correct-inline" hidden>', $html );
@@ -1013,7 +1025,9 @@ class AdminSubmissionEditPageTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-correct-cancel', $html );
 		$this->assertLessThan( strpos( $html, 'id="ffc-correct-inline"' ), strpos( $html, 'Form answers' ), 'The editor lives in the Form answers section.' );
 		$this->assertStringContainsString( 'value="ffc_correct_answer"', $html );
-		$this->assertStringContainsString( 'Corrected after issue; see the activity log.', $html );
+		$this->assertStringContainsString( 'Amended after issue; see the activity log.', $html );
+		$this->assertStringContainsString( 'name="ffc_correct_reason" form="ffc-correct-form"', $html );
+		$this->assertStringContainsString( 'Reason for the amendment', $html );
 		$this->assertStringNotContainsString( '_corrected_fields', $html, 'The marker list is not shown as an answer.' );
 	}
 

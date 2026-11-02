@@ -109,7 +109,71 @@ class QuizGradingHandler {
 		if ( is_array( $sub ) && SubmissionStatus::QUIZ_PENDING !== ( $sub['status'] ?? '' ) ) {
 			$this->redirect( $this->regrade( $id, $this->posted_grades(), RequestInput::get_post_string( 'ffc_grade_reason' ) ) );
 		}
+
+		// An open answer amended while it waits rides this save (#2356).
+		$field = sanitize_key( RequestInput::get_post_string( 'ffc_correct_field' ) );
+		if ( '' !== $field ) {
+			$amender = new AnswerCorrectionHandler( $this->submission_handler );
+			if ( ! AnswerCorrectionHandler::current_user_can_amend( $field, $amender->form_fields( $id ) ) ) {
+				wp_die( esc_html__( 'You do not have permission to amend this answer.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+			}
+			$this->redirect(
+				$this->amend_and_grade(
+					$amender,
+					$id,
+					$field,
+					RequestInput::get_post_string( 'ffc_correct_value' ),
+					RequestInput::get_post_string( 'ffc_correct_reason' ),
+					$this->posted_grades()
+				)
+			);
+		}
 		$this->redirect( $this->grade( $id, $this->posted_grades() ) );
+	}
+
+	/**
+	 * Amend one answer of an attempt awaiting grading, then grade it (#2356).
+	 *
+	 * The order is the one the screen promises: the answer first, then the
+	 * grades, and nothing at all when the amendment cannot be saved. The grades
+	 * are checked before the answer is touched, so an incomplete grading does
+	 * not leave an amendment behind with no result.
+	 *
+	 * @param AnswerCorrectionHandler $amender Amends the answer.
+	 * @param int                     $id      Submission ID.
+	 * @param string                  $field   Data key of the answer.
+	 * @param string                  $value   New value, as typed.
+	 * @param string                  $reason  Why the answer changes.
+	 * @param array<string, int>      $grades  Points given, keyed by question name.
+	 * @return string The amendment's refusal, or what {@see grade()} returns.
+	 */
+	public function amend_and_grade( AnswerCorrectionHandler $amender, int $id, string $field, string $value, string $reason, array $grades ): string {
+		$sub = $this->submission_handler->get_submission( $id );
+		if ( ! is_array( $sub ) || SubmissionStatus::QUIZ_PENDING !== ( $sub['status'] ?? '' ) ) {
+			return 'quiz_grade_stale';
+		}
+
+		$form_id     = (int) ( $sub['form_id'] ?? 0 );
+		$data        = json_decode( is_string( $sub['data'] ?? null ) ? $sub['data'] : '', true );
+		$data        = is_array( $data ) ? $data : array();
+		$fields      = get_post_meta( $form_id, '_ffc_form_fields', true );
+		$form_config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$dry_run     = QuizGrading::apply(
+			$data,
+			QuizGrading::pending_questions( $data, is_array( $fields ) ? $fields : array() ),
+			is_array( $form_config ) ? $form_config : array(),
+			$grades
+		);
+		if ( is_wp_error( $dry_run ) ) {
+			return 'quiz_grade_incomplete';
+		}
+
+		// A pencil opened and left as it was amends nothing, and blocks nothing.
+		$amended = $amender->correct( $id, $field, $value, $reason );
+		if ( ! in_array( $amended, array( 'answer_corrected', 'answer_unchanged' ), true ) ) {
+			return $amended;
+		}
+		return $this->grade( $id, $grades );
 	}
 
 	/**

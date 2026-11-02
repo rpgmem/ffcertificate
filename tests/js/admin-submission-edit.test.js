@@ -440,3 +440,57 @@ describe('answer correction on its row', () => {
 		expect(document.activeElement).toBe(pencil);
 	});
 });
+
+// An open answer awaiting grading is amended with the grades (#2356).
+describe('amending an open answer while it waits for grading', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<dl class="ffc-facts">
+				<dt>Name</dt>
+				<dd class="ffc-facts__value" id="row-name"><div class="ffc-answer-row"><span>Ana</span>
+					<button type="button" class="ffc-correct-open" data-field="name" data-value="Ana" data-form="ffc-correct-form" aria-expanded="false">p</button></div></dd>
+				<dt>Essay</dt>
+				<dd class="ffc-facts__value" id="row-essay"><div class="ffc-answer-row"><span>Because.</span>
+					<button type="button" class="ffc-correct-open" data-field="essay" data-value="Because." data-form="ffc-grade-form" aria-expanded="false">p</button></div></dd>
+			</dl>
+			<div id="ffc-correct-inline" hidden>
+				<input type="hidden" id="ffc-correct-field" form="ffc-correct-form" value="">
+				<textarea id="ffc-correct-value" form="ffc-correct-form"></textarea>
+				<textarea id="ffc-correct-reason" form="ffc-correct-form"></textarea>
+				<button type="submit" class="ffc-amend-own" form="ffc-correct-form">Amend answer</button>
+				<button type="button" class="ffc-correct-cancel">Cancel</button>
+				<p class="ffc-amend-with-grade" hidden>Saved with the grades.</p>
+			</div>
+			<button type="submit" class="ffc-grade-save" form="ffc-grade-form" data-label-amend="Save the amendment and grades">Save grades</button>`;
+		await loadOnReady();
+	});
+
+	const formOf = (id) => document.getElementById(id).getAttribute('form');
+
+	it('moves the editor inputs onto the grading form and relabels its save', () => {
+		document.querySelector('[data-field="essay"]').click();
+
+		expect(['ffc-correct-field', 'ffc-correct-value', 'ffc-correct-reason'].map(formOf)).toEqual(['ffc-grade-form', 'ffc-grade-form', 'ffc-grade-form']);
+		expect(document.querySelector('.ffc-amend-own').hidden).toBe(true);
+		expect(document.querySelector('.ffc-amend-with-grade').hidden).toBe(false);
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save the amendment and grades');
+	});
+
+	it('keeps any other answer on its own save', () => {
+		document.querySelector('[data-field="essay"]').click();
+		document.querySelector('[data-field="name"]').click();
+
+		expect(formOf('ffc-correct-value')).toBe('ffc-correct-form');
+		expect(document.querySelector('.ffc-amend-own').hidden).toBe(false);
+		expect(document.querySelector('.ffc-amend-with-grade').hidden).toBe(true);
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save grades');
+	});
+
+	it('cancel restores the correction form and the grading label', () => {
+		document.querySelector('[data-field="essay"]').click();
+		document.querySelector('.ffc-correct-cancel').click();
+
+		expect(formOf('ffc-correct-reason')).toBe('ffc-correct-form');
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save grades');
+	});
+});
