@@ -510,3 +510,24 @@
 .ffc-admin-page .ffc-secret-reason {
     color: var(--ffc-text-muted);
 }
+
+/* A calendar's own names (#2358). The table sits inside a settings row, so
+   core's `.form-table th` and `.form-table td` reach its cells: a 200px
+   top-aligned header with 20px of padding, and 15px around each field.
+   Its cells take one padding and one vertical alignment, so a column's
+   heading, its fields and the state names line up. */
+table.ffc-calendar-names-table th,
+table.ffc-calendar-names-table td {
+    width: auto;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    vertical-align: middle;
+    line-height: 1.4;
+}
+
+table.ffc-calendar-names-table th {
+    font-weight: 600;
+}
+
+table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-cell {
+    margin-left: var(--ffc-spacing-xs);
+}
