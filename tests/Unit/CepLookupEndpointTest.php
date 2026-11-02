@@ -283,6 +283,6 @@ class CepLookupEndpointTest extends TestCase {
 		$this->assertIsArray( $config );
 		$this->assertSame( 'ffc_cep_lookup', $config['action'] );
 		$this->assertSame( 'nonce-ffc_cep_lookup', $config['nonce'] );
-		$this->assertSame( array( 'searching', 'filled', 'cityOnly', 'notFound' ), array_keys( $config['strings'] ) );
+		$this->assertSame( array( 'searching', 'filled', 'cityOnly', 'notFound', 'unavailable', 'tooMany' ), array_keys( $config['strings'] ) );
 	}
 }

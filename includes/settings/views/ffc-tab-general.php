@@ -564,7 +564,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 5. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 6. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -621,7 +621,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		</tbody>
 	</table>
 	<p class="description ffc-icon-info">
-		<?php esc_html_e( 'No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form\'s lookups are limited per address. The visitor\'s browser never talks to these services.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form\'s lookups are limited per IP address. The visitor\'s browser never talks to these services.', 'ffcertificate' ); ?>
 	</p>
 </div>
 

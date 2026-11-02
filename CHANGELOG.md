@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the weekly-series index is created, and the schema heal stops re-running on every request** (#2345). The index was declared without parentheses, so its `ALTER` failed, the revision never pinned and each request logged a database error. The index helper now wraps a bare column list and reports a failed `ALTER`.
 - **Forms API and staff e-mails: `GET /submissions` bounds its page and size, and the new-issuance e-mail masks every personal key the plugin knows** (#2342). The list refuses the trash as a status, sends `X-WP-Total`, and a refused read logs the address's keyed fingerprint.
 - **Forms API: correct statuses, consent, staff access and limits** (#2342). Appointment errors answer 400/403/404/409 instead of 500, `"consent": false` is not consent, staff read and cancel the bookings they make, authenticated calls are counted per account, `validation_url` names the real page, and a 429 sends `Retry-After`; the `X-RateLimit-*` headers, which named a pool no route counts against, are gone.
+- **Address lookup by CEP: an outage or a throttled lookup no longer reads as a wrong CEP** (#2342). The message names a service that did not answer, or the seconds left before the next lookup; it is announced on the CEP field, focus moves to the number only while the CEP still has it, the progress bar matches the six-second limit, and the readme lists the lookup as a third-party service.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
