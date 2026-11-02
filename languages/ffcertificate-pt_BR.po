@@ -16921,8 +16921,8 @@ msgid "The Recruitment module manages public-tender candidate queues: import cla
 msgstr "O módulo de Recrutamento gerencia as filas de candidatos para concursos: importa candidatos classificados, publica a classificação e registra as convocações. Ele está localizado no menu administrativo principal \"Recrutamento\"."
 
 #: includes/settings/views/documentation/operations-updates.php:27
-msgid "The release lookup is cached for 12 hours and uses conditional requests, so the update check does not hammer the source on every admin page load. A new release can therefore take up to ~12 hours to appear, or use \"Check again\" on the Updates screen to refresh immediately."
-msgstr "A consulta de versão é armazenada em cache por 12 horas e utiliza requisições condicionais; assim, a verificação de atualizações não sobrecarrega a fonte a cada carregamento de página administrativa. Portanto, uma nova versão pode levar até cerca de 12 horas para aparecer, ou você pode usar a opção \"Verificar novamente\" na tela de Atualizações para atualizar imediatamente."
+msgid "The release lookup is cached for 12 hours and uses conditional requests. When GitHub cannot be reached, it tries again after 10 minutes, 30 minutes, 1 hour and 2 hours, then waits until 12 hours after the first failure; no admin page waits on it in between. A new release can therefore take up to ~12 hours to appear, or use \"Check again\" on the Updates screen to refresh immediately."
+msgstr "A consulta de versão fica em cache por 12 horas e usa requisições condicionais. Quando o GitHub não responde, ela tenta de novo após 10 minutos, 30 minutos, 1 hora e 2 horas, e depois espera até 12 horas após a primeira falha; nenhuma página do admin fica esperando por ela nesse intervalo. Uma nova versão pode levar até cerca de 12 horas para aparecer, ou use \"Verificar novamente\" na tela de Atualizações para atualizar na hora."
 
 #: includes/settings/views/documentation/feature-reregistration.php:48
 msgid "The reminder is sent once per member per campaign. There are exactly two ways it goes out a second time, and both are deliberate:"
@@ -17029,8 +17029,8 @@ msgid "The two passwords did not match. Try again."
 msgstr "As duas senhas não coincidem. Tente novamente."
 
 #: includes/settings/views/documentation/operations-updates.php:26
-msgid "The update installs the built release ZIP (not the source snapshot) and verifies its SHA-256 checksum before installing. If the checksum does not match, the install is aborted with \"Update package integrity check (SHA-256) failed. Installation aborted.\" — retry the update; a persistent failure means a corrupted or tampered download."
-msgstr "A atualização instala o arquivo ZIP da versão compilada (não o snapshot do código-fonte) e verifica seu checksum SHA-256 antes da instalação. Se o checksum não coincidir, a instalação é abortada com a mensagem \"Falha na verificação de integridade do pacote de atualização (SHA-256). Instalação abortada.\" — tente realizar a atualização novamente; uma falha persistente indica que o download está corrompido ou foi adulterado."
+msgid "The update installs the built release ZIP (not the source snapshot) and verifies its SHA-256 checksum before installing. A release is offered only when its ZIP is served from github.com with a published checksum and its tag is a version number. If the checksum does not match, the install is aborted with \"Update package integrity check (SHA-256) failed. Installation aborted.\" — retry the update; a persistent failure means a corrupted or tampered download."
+msgstr "A atualização instala o arquivo ZIP da versão compilada (não o snapshot do código-fonte) e verifica seu checksum SHA-256 antes da instalação. Uma versão só é oferecida quando seu ZIP vem de github.com com checksum publicado e sua tag é um número de versão. Se o checksum não coincidir, a instalação é abortada com a mensagem \"Falha na verificação de integridade do pacote de atualização (SHA-256). Instalação abortada.\" — tente realizar a atualização novamente; uma falha persistente indica que o download está corrompido ou foi adulterado."
 
 #: includes/settings/views/ffc-tab-url-shortener.php:66
 msgid "The URL prefix for short links (e.g. \"go\", \"r\", \"l\"). Only letters, numbers, and hyphens."

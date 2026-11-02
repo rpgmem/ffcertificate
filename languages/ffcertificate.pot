@@ -16869,7 +16869,7 @@ msgid "The Recruitment module manages public-tender candidate queues: import cla
 msgstr ""
 
 #: includes/settings/views/documentation/operations-updates.php:27
-msgid "The release lookup is cached for 12 hours and uses conditional requests, so the update check does not hammer the source on every admin page load. A new release can therefore take up to ~12 hours to appear, or use \"Check again\" on the Updates screen to refresh immediately."
+msgid "The release lookup is cached for 12 hours and uses conditional requests. When GitHub cannot be reached, it tries again after 10 minutes, 30 minutes, 1 hour and 2 hours, then waits until 12 hours after the first failure; no admin page waits on it in between. A new release can therefore take up to ~12 hours to appear, or use \"Check again\" on the Updates screen to refresh immediately."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-reregistration.php:48
@@ -16977,7 +16977,7 @@ msgid "The two passwords did not match. Try again."
 msgstr ""
 
 #: includes/settings/views/documentation/operations-updates.php:26
-msgid "The update installs the built release ZIP (not the source snapshot) and verifies its SHA-256 checksum before installing. If the checksum does not match, the install is aborted with \"Update package integrity check (SHA-256) failed. Installation aborted.\" — retry the update; a persistent failure means a corrupted or tampered download."
+msgid "The update installs the built release ZIP (not the source snapshot) and verifies its SHA-256 checksum before installing. A release is offered only when its ZIP is served from github.com with a published checksum and its tag is a version number. If the checksum does not match, the install is aborted with \"Update package integrity check (SHA-256) failed. Installation aborted.\" — retry the update; a persistent failure means a corrupted or tampered download."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:66
