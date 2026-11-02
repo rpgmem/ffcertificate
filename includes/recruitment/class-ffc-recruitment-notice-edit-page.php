@@ -124,32 +124,104 @@ final class RecruitmentNoticeEditPage {
 			return;
 		}
 
-		echo '<h1>' . sprintf(
+		echo '<h1 class="wp-heading-inline">' . sprintf(
 			/* translators: %s — notice code */
 			esc_html__( 'Edit notice — %s', 'ffcertificate' ),
 			'<code>' . esc_html( (string) $notice->code ) . '</code>'
 		) . '</h1>';
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Notices', 'ffcertificate' ) . '</a></p>';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Notices', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => self::back_url(),
+			)
+		);
+		echo '<hr class="wp-header-end">';
 
-		// The name, the public columns, the status and the adjutancies are
-		// the Manager's; the Operator sees the status and works the lists.
-		if ( $can_manage ) {
-			RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+		// The editor layout the calendar screens use (#2370): the work lists
+		// first, Classifications open unless a write lands elsewhere, and the
+		// shortcode and a summary in a side column. The name, the public
+		// columns, the status moves and the adjutancies are the Manager's;
+		// the Operator sees the status under General and works the lists.
+		$tabs   = self::tabs( $can_manage );
+		$active = RequestInput::get_get_key( 'tab_section' );
+		$active = in_array( $active, array_column( $tabs, 'key' ), true ) ? $active : 'classifications';
+
+		echo '<div class="ffc-editor"><div class="ffc-editor__main">';
+		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-editor__tabs' );
+		foreach ( $tabs as $tab ) {
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $tab, $active );
+			switch ( $tab['key'] ) {
+				case 'classifications':
+					RecruitmentNoticeEditPageRenderer::render_classifications_section( $notice );
+					break;
+				case 'calls':
+					RecruitmentNoticeEditPageRenderer::render_calls_section( $notice );
+					break;
+				case 'general':
+					if ( $can_manage ) {
+						RecruitmentNoticeEditPageRenderer::render_general_section( $notice );
+					}
+					RecruitmentNoticeEditPageRenderer::render_status_section( $notice, $can_manage );
+					break;
+				case 'adjutancies':
+					RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
+					break;
+				default:
+					RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
+			}
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close();
 		}
+		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_close();
+		echo '</div><div class="ffc-editor__side">';
 		RecruitmentNoticeEditPageRenderer::render_shortcode_section( $notice );
-		RecruitmentNoticeEditPageRenderer::render_status_section( $notice, $can_manage );
+		RecruitmentNoticeEditPageRenderer::render_summary( $notice );
+		echo '</div></div>';
+	}
+
+	/**
+	 * The screen's tabs for the current user, in display order.
+	 *
+	 * The CSV import is the strict `ffc_import_recruitment` tier (GAP H),
+	 * hidden from a manager who holds the page-level capability but not the
+	 * carved-out import one; the REST endpoint enforces the same capability.
+	 *
+	 * @param bool $can_manage Whether the user manages the notice.
+	 * @return list<array{key: string, label: string, icon: string}>
+	 */
+	public static function tabs( bool $can_manage ): array {
+		$tabs = array(
+			array(
+				'key'   => 'classifications',
+				'label' => __( 'Classifications', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-list',
+			),
+			array(
+				'key'   => 'calls',
+				'label' => __( 'Calls', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-user-call',
+			),
+			array(
+				'key'   => 'general',
+				'label' => __( 'General', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-megaphone',
+			),
+		);
 		if ( $can_manage ) {
-			RecruitmentNoticeEditPageRenderer::render_adjutancies_section( $notice );
+			$tabs[] = array(
+				'key'   => 'adjutancies',
+				'label' => __( 'Adjutancies', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-building',
+			);
 		}
-		// The CSV import section is the strict `ffc_import_recruitment` tier
-		// (GAP H) — hidden from a manager who holds the page-level
-		// `ffc_manage_recruitment` but not the carved-out import cap. The REST
-		// endpoint enforces the same cap regardless.
 		if ( current_user_can( 'ffc_import_recruitment' ) ) {
-			RecruitmentNoticeEditPageRenderer::render_csv_import_section( $notice );
+			$tabs[] = array(
+				'key'   => 'import',
+				'label' => __( 'Import candidates', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-upload',
+			);
 		}
-		RecruitmentNoticeEditPageRenderer::render_classifications_section( $notice );
-		RecruitmentNoticeEditPageRenderer::render_calls_section( $notice );
+		return $tabs;
 	}
 
 	/**
@@ -330,11 +402,13 @@ final class RecruitmentNoticeEditPage {
 		wp_safe_redirect(
 			add_query_arg(
 				array(
-					'page'      => RecruitmentAdminPage::PAGE_SLUG,
-					'tab'       => 'notices',
-					'action'    => 'edit-notice',
-					'notice_id' => $notice_id,
-					'ffc_msg'   => $message_key,
+					'page'        => RecruitmentAdminPage::PAGE_SLUG,
+					'tab'         => 'notices',
+					'action'      => 'edit-notice',
+					'notice_id'   => $notice_id,
+					// Every caller saves the notice or moves its status (#2370).
+					'tab_section' => 'general',
+					'ffc_msg'     => $message_key,
 				),
 				admin_url( 'admin.php' )
 			)

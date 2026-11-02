@@ -27,6 +27,7 @@ use FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer;
  *    captured markup contains a handful of load-bearing substrings.
  *
  * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPageRenderer
+ * @covers \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage
  */
 class RecruitmentNoticeEditPageRendererTest extends TestCase {
 
@@ -685,7 +686,8 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Classifications', $html );
+		// The heading is the tab's own since #2370; the panel draws it.
+		$this->assertStringNotContainsString( '<div class="card">', $html );
 		// filter form.
 		$this->assertStringContainsString( 'ffc-cls-filters', $html );
 		// both tab panels present.
@@ -985,10 +987,11 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-rec-select-all-pages', $html );
 	}
 
-	public function test_the_calls_record_is_absent_without_calls(): void {
+	public function test_the_calls_record_says_so_without_calls(): void {
 		ob_start();
 		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
-		$this->assertSame( '', (string) ob_get_clean() );
+		// The Calls tab is always there (#2370), so an empty record says so.
+		$this->assertSame( '<p>No call has been made on this notice yet.</p>', (string) ob_get_clean() );
 	}
 
 	public function test_the_calls_record_lists_active_and_cancelled_calls_with_who_did_what(): void {
@@ -1018,7 +1021,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		RecruitmentNoticeEditPageRenderer::render_calls_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<h2 class="ffc-icon-user-call">Calls</h2>', $html );
+		$this->assertStringNotContainsString( '<h2 class="ffc-icon-user-call">Calls</h2>', $html, 'The tab draws the heading (#2370).' );
 		$this->assertStringContainsString( 'Cand 600', $html );
 		$this->assertStringContainsString( 'PCD reserve', $html, 'The out-of-order justification is part of the record.' );
 		$this->assertStringContainsString( 'Active', $html );
@@ -1074,5 +1077,32 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringNotContainsString( 'data-ffc-rec-export', $html );
+	}
+
+	public function test_the_summary_counts_each_list_the_adjutancies_and_the_calls(): void {
+		$this->classifications['definitive'] = array( $this->cls_row( 1, 1, 'empty', 1, 100 ), $this->cls_row( 2, 2, 'empty', 2, 101 ) );
+		$this->classifications['preview']    = array( $this->cls_row( 3, 1, 'empty', 1, 102 ) );
+		$this->attached                      = array( 4, 5, 6 );
+
+		ob_start();
+		RecruitmentNoticeEditPageRenderer::render_summary( $this->notice( array( 'status' => 'definitive' ) ) );
+		$html = (string) ob_get_clean();
+
+		// Beside the tabs since #2370.
+		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">Summary</h2>', $html );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Adjutancies</dt><dd class="ffc-facts__value">3</dd>', $html );
+		$this->assertStringContainsString( '2 definitive · 1 preliminary', $html );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Calls</dt><dd class="ffc-facts__value">0</dd>', $html );
+	}
+
+	public function test_the_tabs_follow_what_the_user_may_do(): void {
+		$keys = static fn( array $tabs ): array => array_column( $tabs, 'key' );
+
+		// Classifications first for everyone; General carries the status too.
+		$this->assertSame( array( 'classifications', 'calls', 'general', 'adjutancies', 'import' ), $keys( \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage::tabs( true ) ) );
+		$this->assertSame( array( 'classifications', 'calls', 'general', 'import' ), $keys( \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage::tabs( false ) ), 'An Operator gets no adjutancies.' );
+
+		$this->caps['ffc_import_recruitment'] = false;
+		$this->assertSame( array( 'classifications', 'calls', 'general', 'adjutancies' ), $keys( \FreeFormCertificate\Recruitment\RecruitmentNoticeEditPage::tabs( true ) ), 'Import is the strict import tier.' );
 	}
 }

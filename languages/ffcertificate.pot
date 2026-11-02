@@ -31429,3 +31429,20 @@ msgstr ""
 #: includes/settings/views/documentation/feature-qr-generator.php:21
 msgid "The fields check what is typed the way the rest of the plugin does. A phone number takes the (DD) 98765-4321 mask and the code adds +55, so a call, an SMS or a WhatsApp chat works from anywhere; an e-mail is checked and stored in lower case; a contact card's website must look like a web address. On a contact card the postal code comes first and, when the CEP lookup is on (Settings → General), fills in the street, the city and the state."
 msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:1067
+#, php-format
+msgid "%1$d definitive · %2$d preliminary"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page.php:220
+msgid "Import candidates"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:965
+msgid "No call has been made on this notice yet."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php:90
+msgid "The notice screen shows its sections as tabs: Classifications, which opens first, Calls, General with the status below the notice's own fields, Adjutancies and Import candidates. Beside them sit the shortcode that shows the notice on the site and a summary of the status, the adjutancies, each list's rows and the calls."
+msgstr ""
