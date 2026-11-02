@@ -27444,10 +27444,6 @@ msgid "This booking is cancelled, so it takes no check-in."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand below."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
 #, php-format
 msgid "Closes on its own at %1$s. The code changes every %2$d seconds."
 msgstr ""
@@ -27582,10 +27578,6 @@ msgid "Attendance and QR check-in"
 msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php
 msgid "A participant scans the code with the phone camera, logs in if asked and confirms. Only people on the booking (its custom users and the members of its audiences) can check in, once per day. A code shown on the screen is valid for its rotation and the one before; a link copied from it expires within minutes. The location of an area check-in comes from the participant's browser and can be faked: it makes checking in from elsewhere harder, it does not prove presence."
 msgstr ""
 
@@ -27688,10 +27680,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The Post-event form tab of a calendar names the certificate form its bookings lead to, how many days it stays open after the event (1 to 90) and whether only people whose attendance meets the booking's rule are invited. The form opens when the booking's last day ends. The questions are ordinary fields of that certificate form."
-msgstr ""
-
-#: includes/settings/views/documentation/scheduling-audiences.php
-msgid "The Post-event form card on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This card and the Attendance rule card save each change as it is made, and the sentences describing them follow; reload the page to see the invitations."
 msgstr ""
 
 #: includes/frontend/class-ffc-form-invite.php
@@ -27866,10 +27854,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
 msgid "Check-in can no longer be opened today: the booking has ended. Mark attendance by hand below."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-attendance.php
-msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand below."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-attendance.php
@@ -31389,4 +31373,38 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:158
 msgid "Sensitive data"
+
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:595
+msgid "Check-in by QR code opens only on the day itself. Attendance on other days can be marked by hand on the Participants tab."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:639
+#, php-format
+msgid "Check-in closed on its own at %s, 30 minutes after the booking ended today. Attendance can still be marked by hand on the Participants tab."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:529
+#, php-format
+msgid "Closed at %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:517
+msgid "None: the booking is cancelled"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:531
+msgid "Not open yet"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-attendance.php:520
+msgid "Opens only on the day itself"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:88
+msgid "The Attendance link in a booking's row of Audience Bookings opens its attendance screen, in four tabs: Participants, which opens first, Check-in by QR code, Attendance rule and Post-event form. Beside them a summary shows the day, how many are present, the check-in, the rule and the form. On the day itself, until 30 minutes after the booking ends, Open check-in starts a check-in for that day: choose how often the code changes (1, 2, 3, 5 or 10 minutes) and, optionally, the saved geolocation areas the participant must be inside. Project the QR code opens a full-screen page for a projector or a screen; the code changes on its own and the page counts who is present. Check-in closes when you press Close check-in, or on its own 30 minutes after the booking ends that day. Opening it again starts a new check-in, and codes from the previous one stop working."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:97
+msgid "The Post-event form tab on a booking's Attendance screen says which form applies and when it is open. Its switch gives that booking settings of its own instead of its calendar's, including None to invite nobody; changing it needs ffc_manage_audiences. This tab and the Attendance rule tab save each change as it is made, and the sentences describing them, in the tabs and in the summary, follow; reload the page to see the invitations."
 msgstr ""

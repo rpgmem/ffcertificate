@@ -333,9 +333,11 @@ class RecordAutosaveEntitiesTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'ffc-attendance-rule-summary'      => 'As saved, 3 of the 4 booked day(s) are required.',
-				'ffc-attendance-post-event-status' => 'Its calendar names no form, so this booking invites nobody.',
-				'ffc-post-event-no-page'           => '',
+				'ffc-attendance-rule-summary'       => 'As saved, 3 of the 4 booked day(s) are required.',
+				'ffc-attendance-summary-rule'       => 'As saved, 3 of the 4 booked day(s) are required.',
+				'ffc-attendance-post-event-status'  => 'Its calendar names no form, so this booking invites nobody.',
+				'ffc-attendance-summary-post-event' => 'Its calendar names no form, so this booking invites nobody.',
+				'ffc-post-event-no-page'            => '',
 			),
 			AudienceRecordAutosave::booking_fragments( 5 )
 		);

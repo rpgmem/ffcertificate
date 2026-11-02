@@ -111,7 +111,8 @@ final class RecruitmentCandidateEditPage {
 		// each section its own panel with its own form, and a summary in a
 		// side column.
 		$tabs   = self::tabs();
-		$active = \FreeFormCertificate\Audience\AudienceEditorTabs::active( array_column( $tabs, 'key' ), 'general' );
+		$active = RequestInput::get_get_key( 'tab_section' );
+		$active = in_array( $active, array_column( $tabs, 'key' ), true ) ? $active : 'general';
 
 		echo '<div class="ffc-editor"><div class="ffc-editor__main">';
 		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_open( $tabs, $active, extra_class: 'ffc-editor__tabs' );
