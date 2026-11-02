@@ -34,11 +34,11 @@
 			});
 	}
 
+	// The count shows in the Participants tab and in the summary (#2360).
 	function setCount(root, state) {
-		var count = root.querySelector('.ffc-attendance-present');
-		if (count) {
+		document.querySelectorAll('.ffc-attendance-present').forEach(function (count) {
 			count.textContent = String(state.present);
-		}
+		});
 	}
 
 	function refreshList(root, state) {

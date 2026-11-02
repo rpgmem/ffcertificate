@@ -639,9 +639,11 @@ class AudienceAdminAttendanceTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'ffc-attendance-rule-summary'      => 'As saved, 1 of the 3 booked day(s) are required.',
-				'ffc-attendance-post-event-status' => 'Participants are invited to "Evaluation", open from 2027-03-03 12:00 to 2027-03-05 12:00.',
-				'ffc-post-event-no-page'           => 'No published page embeds this form, so no invitation can be sent. Publish a page holding [ffc_form id="40"].',
+				'ffc-attendance-rule-summary'       => 'As saved, 1 of the 3 booked day(s) are required.',
+				'ffc-attendance-summary-rule'       => 'As saved, 1 of the 3 booked day(s) are required.',
+				'ffc-attendance-post-event-status'  => 'Participants are invited to "Evaluation", open from 2027-03-03 12:00 to 2027-03-05 12:00.',
+				'ffc-attendance-summary-post-event' => 'Participants are invited to "Evaluation", open from 2027-03-03 12:00 to 2027-03-05 12:00.',
+				'ffc-post-event-no-page'            => 'No published page embeds this form, so no invitation can be sent. Publish a page holding [ffc_form id="40"].',
 			),
 			$fragments
 		);
@@ -969,5 +971,47 @@ class AudienceAdminAttendanceTest extends TestCase {
 		$this->assertStringContainsString( '<tr data-user-id="8">', $html, 'The roster is drawn.' );
 		$this->assertStringNotContainsString( 'value="open"', $html );
 		$this->assertNotContains( 'Mark present', self::button_labels( $html ), 'A day that has not come yet cannot be marked.' );
+	}
+
+	public function test_the_screen_is_four_tabs_with_participants_open_and_a_summary_beside(): void {
+		$this->roster_present_for_7();
+		$_GET = array( 'booking_id' => '5' );
+
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+
+		// The calendar editor's layout (#2360): tabs, then the summary column.
+		$this->assertSame( 4, substr_count( $html, '<section id="ffc-tabpanel-' ), 'One panel per tab.' );
+		$this->assertMatchesRegularExpression( '/id="ffc-tabnav-participants" class="ffc-vtabs__tab is-active"/', $html, 'Participants opens by default.' );
+		$this->assertStringNotContainsString( '<div class="card"><h2', $html, 'No stacked cards left in the main column.' );
+		$this->assertLessThan( strpos( $html, 'ffc-attendance-summary' ), strpos( $html, 'ffc-vtabs__panels' ), 'The summary sits after the tabs.' );
+		$this->assertStringContainsString( 'id="ffc-attendance-summary-rule"', $html );
+		$this->assertStringContainsString( 'id="ffc-attendance-summary-post-event"', $html );
+		$this->assertSame( 2, substr_count( $html, 'class="ffc-attendance-present"' ), 'The count shows in the tab and in the summary, so the poll updates both.' );
+
+		$_GET['tab'] = AudienceAdminAttendance::TAB_CHECKIN;
+		ob_start();
+		$this->page()->render_page();
+		$html = (string) ob_get_clean();
+		$this->assertMatchesRegularExpression( '/id="ffc-tabnav-checkin" class="ffc-vtabs__tab is-active"/', $html, 'A named tab opens.' );
+	}
+
+	public function test_a_write_lands_back_on_its_own_tab(): void {
+		$this->assertSame( AudienceAdminAttendance::TAB_CHECKIN, AudienceAdminAttendance::tab_for( 'open' ) );
+		$this->assertSame( AudienceAdminAttendance::TAB_CHECKIN, AudienceAdminAttendance::tab_for( 'close' ) );
+		$this->assertSame( AudienceAdminAttendance::TAB_RULE, AudienceAdminAttendance::tab_for( 'rule' ) );
+		$this->assertSame( AudienceAdminAttendance::TAB_POST_EVENT, AudienceAdminAttendance::tab_for( 'invite_all' ) );
+		$this->assertSame( AudienceAdminAttendance::TAB_PARTICIPANTS, AudienceAdminAttendance::tab_for( 'mark' ) );
+		$this->assertSame( array_column( AudienceAdminAttendance::tabs(), 'key' ), array( 'participants', 'checkin', 'rule', 'post-event' ) );
+	}
+
+	public function test_the_summary_names_the_check_in_state(): void {
+		$booking = $this->booking( array( 'booking_date' => '2020-03-02', 'end_date' => null ) );
+
+		$this->assertSame( 'Opens only on the day itself', AudienceAdminAttendance::checkin_state( $booking, '2020-03-03', '2020-03-02', null, 0 ) );
+		$this->assertSame( 'Open until 12:30', AudienceAdminAttendance::checkin_state( $booking, '2020-03-02', '2020-03-02', array( 'closes_at' => strtotime( '2020-03-02 12:30:00 UTC' ) ), 0 ) );
+		$booking->status = 'cancelled';
+		$this->assertSame( 'None: the booking is cancelled', AudienceAdminAttendance::checkin_state( $booking, '2020-03-02', '2020-03-02', null, 0 ) );
 	}
 }
