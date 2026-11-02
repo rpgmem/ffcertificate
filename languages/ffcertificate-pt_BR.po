@@ -21979,9 +21979,6 @@ msgstr "WhatsApp"
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
-msgid "With the country code, so it works from anywhere."
-msgstr "Com o código do país, para funcionar de qualquer lugar."
-
 msgid "A calendar file (.ics) for any calendar app"
 msgstr "Um arquivo de agenda (.ics) para qualquer app de calendário"
 
@@ -31502,3 +31499,15 @@ msgstr "MinhaRede"
 #: includes/settings/views/documentation/feature-qr-generator.php:25
 msgid "While the content is still the example, the code carries it directly and no short URL is created, not even on a download or a print. Once you change the content, the short URL works as described above: it is created on the first download or print."
 msgstr "Enquanto o conteúdo ainda é o exemplo, o código leva o conteúdo direto e nenhuma URL curta é criada, nem ao baixar ou imprimir. Quando você altera o conteúdo, a URL curta funciona como descrito acima: é criada no primeiro download ou impressão."
+
+#: templates/admin/qr/generator-page.php:190
+msgid "Area code and number. The code adds +55, so it works from anywhere."
+msgstr "DDD e número. O código acrescenta +55, para funcionar de qualquer lugar."
+
+#: includes/url-shortener/class-ffc-qr-generator-page.php:136
+msgid "Invalid web address."
+msgstr "Endereço web inválido."
+
+#: includes/settings/views/documentation/feature-qr-generator.php:21
+msgid "The fields check what is typed the way the rest of the plugin does. A phone number takes the (DD) 98765-4321 mask and the code adds +55, so a call, an SMS or a WhatsApp chat works from anywhere; an e-mail is checked and stored in lower case; a contact card's website must look like a web address. On a contact card the postal code comes first and, when the CEP lookup is on (Settings → General), fills in the street, the city and the state."
+msgstr "Os campos conferem o que é digitado como o resto do plugin. Um telefone usa a máscara (DD) 98765-4321 e o código acrescenta +55, para uma ligação, um SMS ou uma conversa no WhatsApp funcionarem de qualquer lugar; um e-mail é conferido e gravado em minúsculas; o site de um cartão de contato precisa ter cara de endereço web. Num cartão de contato o CEP vem primeiro e, com a consulta de CEP ligada (Configurações → Geral), preenche a rua, a cidade e o estado."

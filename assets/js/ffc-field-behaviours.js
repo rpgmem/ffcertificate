@@ -9,7 +9,7 @@
  *   types a document the same way (#1920)
  * - dependent selects (`.ffc-dependent-select` → a hidden JSON input)
  * - the dual-post toggle (the accumulation fields follow `acumulo_cargos`)
- * - format checks (`cpf`, `email`, `phone`, `custom_regex`) and the CPF and RF
+ * - format checks (`cpf`, `email`, `phone`, `url`, `custom_regex`) and the CPF and RF
  *   validators every screen shares
  * - the address lookup by CEP (#2234), when Settings → General turns it on
  *
@@ -312,9 +312,9 @@
      * An empty value is fine here; requiredness is the caller's question.
      *
      * @param {string} value
-     * @param {string} format   cpf | rf | cep | email | phone | custom_regex
+     * @param {string} format   cpf | rf | cep | email | phone | url | custom_regex
      * @param {Object} strings  invalidCpf, invalidRf, invalidCep, cepRepeated, cepWrongUf,
-     *                          invalidEmail, invalidPhone, invalidFormat
+     *                          invalidEmail, invalidPhone, invalidUrl, invalidFormat
      * @param {Object} [regex]  {pattern, message} for custom_regex
      * @param {Object} [context] {uf} -- the form's UF, for the CEP check
      * @return {string}
@@ -345,6 +345,11 @@
         }
         if (format === 'email') {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? '' : (S.invalidEmail || 'Invalid email.');
+        }
+        // A web address with a dot in its host; the scheme may be left out
+        // (#2368). The server still decides what it accepts.
+        if (format === 'url') {
+            return /^(https?:\/\/)?[^\s\/?#.]+(\.[^\s\/?#.]+)+([\/?#]\S*)?$/i.test(val) ? '' : (S.invalidUrl || 'Invalid web address.');
         }
         if (format === 'phone') {
             return /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.replace(/\s+/g, '')) ? '' : (S.invalidPhone || 'Invalid phone number.');

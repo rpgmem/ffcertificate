@@ -157,6 +157,39 @@
 	}
 
 	/**
+	 * The content fields take the plugin's shared behaviours (#2368): the
+	 * phone and CEP masks, the e-mail, phone, URL and CEP checks, and, on the
+	 * vCard, the CEP lookup that fills the street, the city and the state.
+	 * Wired once per form, since the shared functions bind directly on the
+	 * elements.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function wireFields($form) {
+		var fields = window.FFC && window.FFC.Fields;
+		if (!fields || $form.attr('data-ffc-qr-wired')) {
+			return;
+		}
+		$form.attr('data-ffc-qr-wired', '1');
+		fields.initMasks($form);
+		fields.initCepLookup($form.find('[data-ffc-qr-type="vcard"]'));
+		$form.on('input change', 'tr[data-format]:not([data-format=""]) input', function (e) {
+			var format = $(this).closest('tr').attr('data-format');
+			if (format === 'email' && e.type === 'change') {
+				// The plugin stores an address trimmed and in lower case.
+				this.value = String(this.value || '').trim().toLowerCase();
+			}
+			var message = fields.formatError(this.value, format, i18n);
+			if (!message) {
+				window.FFC.clearFieldMessage(this);
+			} else if (e.type === 'change') {
+				// Said once the person leaves the field, not at every keystroke.
+				window.FFC.fieldMessage(this, 'error', message);
+			}
+		});
+	}
+
+	/**
 	 * The message an error carries: a 4xx reply arrives through the request's
 	 * failure path, so its message sits in `data`, not in `message`.
 	 *
@@ -656,6 +689,7 @@
 		});
 
 		examples = {};
+		wireFields($form);
 		showType($form);
 		fillExample($form);
 		refresh($form);

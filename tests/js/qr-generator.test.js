@@ -750,4 +750,57 @@ describe('ffc-qr-generator.js', () => {
 			expect(window.FFC.QrGenerator.isExample(window.$('#ffc-qr-generator'))).toBe(false);
 		});
 	});
+
+	describe('field masks and checks (#2368)', () => {
+		beforeAll(() => {
+			if (!window.FFC.Fields) { loadScript('assets/js/ffc-field-behaviours.js'); }
+		});
+
+		function mountFields() {
+			document.body.innerHTML = `
+				<form id="ffc-qr-generator">
+					<input type="radio" name="type" value="phone" checked>
+					<table data-ffc-qr-type="phone"><tr data-format="phone"><td><input id="phone" data-mask="phone" data-ffc-qr-field="phone:phone"></td></tr></table>
+					<table data-ffc-qr-type="email" hidden><tr data-format="email"><td><input id="email" type="email" data-ffc-qr-field="email:email"></td></tr></table>
+					<table data-ffc-qr-type="vcard" hidden>
+						<tr data-field-key="website" data-format="url"><td><input id="site" data-ffc-qr-field="vcard:website"></td></tr>
+						<tr data-field-key="cep" data-format="cep"><td><input id="cep" data-mask="cep" data-ffc-qr-field="vcard:postcode"></td></tr>
+					</table>
+				</form>
+				<div id="ffc-qr-generator-preview"></div><span id="ffc-qr-generator-usage"></span><div id="ffc-qr-generator-status"></div>`;
+			window.$(document).off();
+		}
+
+		it('types the phone and the postal code through the shared masks', () => {
+			mountFields();
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('#phone').val('11987654321').trigger('input');
+			window.$('#cep').val('01310100').trigger('input');
+
+			expect(window.$('#phone').val()).toBe('(11) 98765-4321');
+			expect(window.$('#cep').val()).toBe('01310-100');
+		});
+
+		it('says a broken value under its field when the person leaves it, and lower-cases an address', () => {
+			mountFields();
+			window.ffcQrGenerator.i18n.invalidEmail = 'Bad e-mail';
+			window.ffcQrGenerator.i18n.invalidUrl = 'Bad address';
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('#email').val(' Ana@Site.TEST ').trigger('change');
+			expect(window.$('#email').val()).toBe('ana@site.test');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+
+			window.$('#site').val('nodot').trigger('input');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+			window.$('#site').trigger('change');
+			expect(document.querySelector('.ffc-field-message').textContent).toContain('Bad address');
+
+			window.$('#site').val('site.test').trigger('input');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+		});
+	});
 });
