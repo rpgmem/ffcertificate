@@ -2818,8 +2818,8 @@ msgid "Below"
 msgstr "Abaixo"
 
 #: includes/settings/views/ffc-tab-cache.php:149
-msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours."
-msgstr "Best-effort: uma requisição de loopback para a página inicial lê o cabeçalho de borda `cf-cache-status`. Armazenado em cache por até 6 horas."
+msgid "Best-effort: a loopback request to the front page reads the edge cf-cache-status header. A result is kept for 12 hours; a failed request is retried after 10 minutes, 30 minutes, 1 hour and 2 hours."
+msgstr "Melhor esforço: uma requisição de loopback para a página inicial lê o cabeçalho de borda cf-cache-status. Um resultado vale por 12 horas; uma requisição que falhou é repetida após 10 minutos, 30 minutos, 1 hora e 2 horas."
 
 #. 1: minimum hours, 2: maximum hours, 3: default hours
 #: includes/settings/tabs/class-ffc-tab-reregistration.php:170

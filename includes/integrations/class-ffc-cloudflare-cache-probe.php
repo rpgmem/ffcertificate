@@ -29,6 +29,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
+use FreeFormCertificate\Core\RetrySchedule;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -54,14 +56,7 @@ final class CloudflareCacheProbe {
 	public const STATUS_ERROR = 'error';
 
 	/** How long a verdict is trusted before the next loopback (seconds). */
-	private const CACHE_TTL = 6 * HOUR_IN_SECONDS;
-
-	/**
-	 * How long a failed loopback is remembered (seconds). A failure says
-	 * nothing about the edge, so it is retried soon rather than shown for
-	 * six hours (#2342).
-	 */
-	private const ERROR_TTL = 15 * MINUTE_IN_SECONDS;
+	private const CACHE_TTL = 12 * HOUR_IN_SECONDS;
 
 	/**
 	 * `cf-cache-status` values that mean the edge cached (or tried to cache) the
@@ -80,9 +75,15 @@ final class CloudflareCacheProbe {
 	 * @return array{status:string, raw:string, checked:int, detail:string}
 	 */
 	public static function get( bool $force = false ): array {
-		if ( ! $force ) {
-			$cached = get_transient( self::TRANSIENT_KEY );
-			if ( is_array( $cached ) && isset( $cached['status'] ) ) {
+		$cached = get_transient( self::TRANSIENT_KEY );
+		$cached = is_array( $cached ) ? $cached : array();
+		$now    = time();
+
+		// A verdict stands for its twelve hours; a failed loopback says nothing
+		// about the edge, so it waits only for its retry time (#2342).
+		if ( ! $force && isset( $cached['status'] ) ) {
+			$failed = self::STATUS_ERROR === $cached['status'];
+			if ( ! $failed || RetrySchedule::waiting( $cached, $now ) ) {
 				return array(
 					'status'  => (string) $cached['status'],
 					'raw'     => (string) ( $cached['raw'] ?? '' ),
@@ -93,7 +94,14 @@ final class CloudflareCacheProbe {
 		}
 
 		$result = self::run();
-		set_transient( self::TRANSIENT_KEY, $result, self::STATUS_ERROR === $result['status'] ? self::ERROR_TTL : self::CACHE_TTL );
+		if ( self::STATUS_ERROR === $result['status'] ) {
+			// Kept until one cycle after the retry, so the failure count
+			// survives to the next attempt.
+			$state = RetrySchedule::after_failure( $result + array_intersect_key( $cached, array_flip( array( 'failures', 'first_failure_at' ) ) ), $now, self::CACHE_TTL );
+			set_transient( self::TRANSIENT_KEY, $state, max( 1, (int) $state['retry_at'] - $now ) + self::CACHE_TTL );
+		} else {
+			set_transient( self::TRANSIENT_KEY, $result, self::CACHE_TTL );
+		}
 
 		return $result;
 	}
