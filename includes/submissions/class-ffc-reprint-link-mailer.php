@@ -23,17 +23,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Sends a certificate's link to its stored address, at most once per window.
+ * Sends a certificate's link to its stored address, at most once per day.
  */
 class ReprintLinkMailer {
 
 	/**
-	 * How long a certificate waits before its link is sent again.
-	 */
-	public const THROTTLE_SECONDS = 15 * MINUTE_IN_SECONDS;
-
-	/**
-	 * Transient prefix that marks a link as sent within the window.
+	 * Transient prefix that marks a link as sent today.
 	 */
 	private const TRANSIENT_PREFIX = 'ffc_reprint_link_';
 
@@ -55,10 +50,11 @@ class ReprintLinkMailer {
 
 	/**
 	 * Send the certificate's link to its stored address, unless it was sent
-	 * within the window.
+	 * today.
 	 *
-	 * Within the window the notice repeats and nothing is sent, so the form
-	 * cannot be used to flood a person's inbox.
+	 * One e-mail per certificate per day in the site's timezone (#2342): the
+	 * rest of that day the notice says the link already went, and nothing is
+	 * sent, so neither the form nor the API can flood a person's inbox.
 	 *
 	 * @param int    $submission_id Submission ID.
 	 * @param string $stored_email  The address stored on the certificate.
@@ -93,12 +89,22 @@ class ReprintLinkMailer {
 			);
 		}
 
-		set_transient( $key, time(), self::THROTTLE_SECONDS );
+		set_transient( $key, time(), self::seconds_until_midnight() );
 
 		return array(
 			'status'       => 'sent',
 			'masked_email' => $masked,
 		);
+	}
+
+	/**
+	 * Seconds left in today, in the site's timezone; never under a minute.
+	 *
+	 * @return int
+	 */
+	public static function seconds_until_midnight(): int {
+		$midnight = new \DateTimeImmutable( 'tomorrow', wp_timezone() );
+		return max( MINUTE_IN_SECONDS, $midnight->getTimestamp() - time() );
 	}
 
 	/**
@@ -113,6 +119,13 @@ class ReprintLinkMailer {
 	public static function message( array $result ): string {
 		if ( 'no_email' === $result['status'] ) {
 			return __( 'A certificate already exists for this CPF/RF, but it has no e-mail address on record. Please contact the organizer.', 'ffcertificate' );
+		}
+		if ( 'throttled' === $result['status'] ) {
+			return sprintf(
+				/* translators: %s: the masked e-mail address the link was sent to */
+				__( 'A certificate already exists for this CPF/RF. Its link was already sent today to the registered e-mail (%s).', 'ffcertificate' ),
+				$result['masked_email']
+			);
 		}
 		if ( 'failed' === $result['status'] ) {
 			return __( 'A certificate already exists for this CPF/RF, but the e-mail with its link could not be sent. Please contact the organizer.', 'ffcertificate' );

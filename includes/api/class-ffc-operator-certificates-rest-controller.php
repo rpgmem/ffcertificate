@@ -195,11 +195,12 @@ class OperatorCertificatesRestController {
 			$form_config = $this->form_repository->getConfig( $form_id );
 			$form_fields = $this->form_repository->getFields( $form_id );
 
-			$submission_data = DataSanitizer::recursive_sanitize( $params );
+			// The code is the certificate's proof of authenticity, so it is
+			// never the caller's to choose (#2342), as on the submit route.
+			unset( $params['auth_code'] );
 
-			// Reused validation (same as the public path): required fields, CPF/RF
-			// algorithm, email format.
-			$validation_errors = $this->validate_required_fields( $submission_data, $form_fields );
+			$checked           = DataSanitizer::recursive_sanitize( $params );
+			$validation_errors = $this->validate_required_fields( $checked, $form_fields );
 			if ( ! empty( $validation_errors ) ) {
 				return new \WP_Error(
 					'validation_failed',
@@ -211,22 +212,49 @@ class OperatorCertificatesRestController {
 				);
 			}
 
-			$cpf_error = $this->validate_cpf_rf( $submission_data );
+			// The API's own error codes come first, as integrations read them.
+			$cpf_error = $this->validate_cpf_rf( $checked );
 			if ( is_wp_error( $cpf_error ) ) {
 				return $cpf_error;
 			}
-
-			if ( ! empty( $submission_data['email'] ) && ! is_email( $submission_data['email'] ) ) {
+			if ( ! empty( $checked['email'] ) && ! is_email( $checked['email'] ) ) {
 				return new \WP_Error( 'invalid_email', __( 'Invalid email address', 'ffcertificate' ), array( 'status' => 400 ) );
 			}
+
+			// Only the keys the form defines are stored, and a hidden field
+			// carries the form's value, as on the web form (#2342); then the
+			// form's per-field rules run on what is kept.
+			$submission_data = $this->form_fields_only( $checked, $form_fields );
+
+			$rule_errors = array();
+			$rules       = new \FreeFormCertificate\Frontend\Submission\FieldRulesGuard();
+			foreach ( $form_fields as $field ) {
+				$error = $rules->check( $field, $submission_data );
+				if ( null !== $error ) {
+					$rule_errors[] = $error;
+				}
+			}
+			if ( array() !== $rule_errors ) {
+				return new \WP_Error(
+					'validation_failed',
+					$rule_errors[0],
+					array(
+						'status' => 400,
+						'errors' => $rule_errors,
+					)
+				);
+			}
+
+			$user_email = isset( $submission_data['email'] ) ? DataSanitizer::normalize_email( sanitize_email( (string) $submission_data['email'] ) ) : '';
 
 			if ( ! class_exists( '\FreeFormCertificate\Submissions\SubmissionHandler' ) ) {
 				return new \WP_Error( 'handler_not_found', __( 'Submission handler not available', 'ffcertificate' ), array( 'status' => 500 ) );
 			}
 
-			$handler    = new \FreeFormCertificate\Submissions\SubmissionHandler();
-			$user_email = isset( $submission_data['email'] ) ? DataSanitizer::normalize_email( sanitize_email( (string) $submission_data['email'] ) ) : '';
-			$result     = $handler->process_submission( $form_id, (string) $form->post_title, $submission_data, $user_email, $form_fields, $form_config );
+			$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
+			// The request comes from the operator's machine, not the
+			// participant's, so no client address is recorded (#2342).
+			$result = $handler->process_submission( $form_id, (string) $form->post_title, $submission_data, $user_email, $form_fields, $form_config, array( 'record_ip' => false ) );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -345,6 +373,39 @@ class OperatorCertificatesRestController {
 	}
 
 	/**
+	 * The answers keyed by the fields the form defines.
+	 *
+	 * Any other key in the body is dropped, a display-only field carries
+	 * nothing, and a hidden field carries the value the form defines, never
+	 * the request's (#2342), the rules the web form's field stage applies.
+	 *
+	 * @param array<string, mixed>             $data   Sanitized request body.
+	 * @param array<int, array<string, mixed>> $fields Form fields configuration.
+	 * @return array<string, mixed>
+	 */
+	private function form_fields_only( array $data, array $fields ): array {
+		$kept = array();
+		foreach ( $fields as $field ) {
+			$name = isset( $field['name'] ) ? (string) $field['name'] : '';
+			$type = isset( $field['type'] ) ? (string) $field['type'] : '';
+			if ( '' === $name || in_array( $type, array( 'info', 'embed' ), true ) ) {
+				continue;
+			}
+			if ( 'hidden' === $type ) {
+				$kept[ $name ] = sanitize_text_field( (string) ( $field['default_value'] ?? '' ) );
+				continue;
+			}
+			if ( array_key_exists( $name, $data ) ) {
+				$kept[ $name ] = $data[ $name ];
+			}
+		}
+		if ( ! empty( $data['ffc_lgpd_consent'] ) ) {
+			$kept['ffc_lgpd_consent'] = '1';
+		}
+		return $kept;
+	}
+
+	/**
 	 * Validate CPF/RF in the submission data (mirrors the public path's check).
 	 * Normalizes into $submission_data['cpf_rf'] in place.
 	 *
@@ -375,8 +436,8 @@ class OperatorCertificatesRestController {
 	}
 
 	/**
-	 * Required-field validation. Mirrors FormRestController::validate_required_fields
-	 * so the operator endpoint stays independent of the public controller.
+	 * Required-field validation, reported as one list naming every missing
+	 * field, before the field stages reject on the first problem they meet.
 	 *
 	 * @param array<string, mixed>             $data   Submission data.
 	 * @param array<int, array<string, mixed>> $fields Form fields configuration.

@@ -141,6 +141,12 @@ class SubmissionPersister {
 				$real_submission_date = $existing->submission_date;
 				$is_reprint           = true;
 
+				// A passed quiz is a certificate like any other: without a
+				// ticket, only its logged-in owner gets it on screen (#2342).
+				if ( '' === $val_ticket ) {
+					$this->send_to_stranger( $ctx, \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx ), $submission_id );
+				}
+
 				// Surface the stored auth_code for the success card/message.
 				if ( ! empty( $existing->auth_code ) && empty( $submission_data['auth_code'] ) ) {
 					$submission_data['auth_code'] = $existing->auth_code;
@@ -325,11 +331,8 @@ class SubmissionPersister {
 				// the certificate on screen; anyone else gets its link sent to
 				// the address stored on it (#2241). A ticket is a code its
 				// holder was given, and keeps handing the certificate over.
-				$owner = $reprint_result['user_id'];
-				if ( '' === $val_ticket && ( $owner <= 0 || get_current_user_id() !== $owner ) ) {
-					$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
-					$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
-					$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
+				if ( '' === $val_ticket ) {
+					$this->send_to_stranger( $ctx, $reprint_result, $submission_id );
 				}
 
 				// Surface the existing auth_code so the success card and message can show it.
@@ -399,6 +402,29 @@ class SubmissionPersister {
 		$ctx->is_quiz              = $is_quiz;
 		$ctx->quiz_score           = $quiz_score;
 		$ctx->awaiting_grading     = $awaiting && ! $is_reprint;
+	}
+
+	/**
+	 * Hand a reprint to a caller who is not its logged-in owner by e-mail.
+	 *
+	 * Anyone can type a CPF/RF, so the certificate goes to the address stored
+	 * on it and the screen only says where, masked (#2241). The quiz path
+	 * reaches here too: a passed attempt is a certificate (#2342).
+	 *
+	 * @param SubmissionContext                                              $ctx            Submission context.
+	 * @param array{user_id: int, email: string, data: array<string, mixed>} $reprint_result The stored submission.
+	 * @param int                                                            $submission_id  Submission ID.
+	 * @return void
+	 */
+	private function send_to_stranger( SubmissionContext $ctx, array $reprint_result, int $submission_id ): void {
+		$owner = $reprint_result['user_id'];
+		if ( $owner > 0 && get_current_user_id() === $owner ) {
+			return;
+		}
+
+		$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
+		$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
+		$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
 	}
 
 	/**

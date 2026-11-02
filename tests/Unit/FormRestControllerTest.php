@@ -1281,6 +1281,46 @@ class FormRestControllerTest extends TestCase {
 		$this->assertSame( 1, $this->id_lookups );
 	}
 
+	public function test_submit_form_hands_a_stranger_no_code_on_a_reprint(): void {
+		// The CPF already has a certificate that belongs to another account:
+		// the link goes to its stored address, and the caller gets the web
+		// form's notice, never the code or the id (#2342).
+		$fields   = $this->plain_fields();
+		$fields[] = array( 'type' => 'text', 'name' => 'cpf_rf', 'label' => 'CPF' );
+		$this->serve_form( array(), $fields );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$this->earlier_row = (object) array(
+			'id'              => '44',
+			'user_id'         => '9',
+			'status'          => 'publish',
+			'submission_date' => '1750000000',
+			'data'            => '{"email":"owner@example.com"}',
+			'auth_code'       => 'ABCD1234EFGH',
+		);
+		// Sent earlier today: nothing goes out again, and the notice says so.
+		$this->transients['ffc_reprint_link_44'] = time();
+
+		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+		$result = $ctrl->submit_form(
+			$this->make_request(
+				array( 'id' => 1 ),
+				array(
+					'email'            => 'attacker@example.com',
+					'cpf_rf'           => self::masked( Identifiers::CPF_A ),
+					'ffc_lgpd_consent' => '1',
+				)
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result );
+		$data = $result->data;
+		$this->assertTrue( $data['reprint'] );
+		$this->assertArrayNotHasKey( 'auth_code', $data );
+		$this->assertArrayNotHasKey( 'submission_id', $data );
+		$this->assertStringNotContainsString( 'ABCD', (string) json_encode( $data ) );
+		$this->assertStringContainsString( 'already sent today', $data['message'] );
+	}
+
 	public function test_submit_form_answers_429_when_rate_limited(): void {
 		$this->serve_form( array(), $this->plain_fields() );
 		// The address has already used the hour's default allowance (5).

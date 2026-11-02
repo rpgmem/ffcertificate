@@ -568,6 +568,19 @@ class FormRestController {
 				return $this->rejection_error( $rejected->get_payload() );
 			}
 
+			// A reprint for someone who is not the certificate's owner: its
+			// link went to the address stored on it, and the caller gets the
+			// same notice the web form shows, never the code (#2342).
+			if ( null !== $ctx->reprint_notice ) {
+				return rest_ensure_response(
+					array(
+						'success' => true,
+						'reprint' => true,
+						'message' => $ctx->reprint_notice,
+					)
+				);
+			}
+
 			$auth_code = isset( $ctx->submission_data['auth_code'] ) && is_scalar( $ctx->submission_data['auth_code'] )
 				? (string) $ctx->submission_data['auth_code']
 				: '';
