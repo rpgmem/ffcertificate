@@ -137,6 +137,27 @@ class SubmissionRestControllerTest extends TestCase {
 		$this->assertArrayHasKey( 'search', $args );
 	}
 
+	public function test_submissions_list_bounds_the_page_and_its_size(): void {
+		// per_page=0 divided by zero, page=0 read a negative OFFSET, and
+		// nothing capped the size (#2342): GET /forms' bounds now hold here.
+		$ctrl = new SubmissionRestController( 'ffc/v1', Mockery::mock( SubmissionRepository::class ) );
+		$ctrl->register_routes();
+		$args = $this->registered_routes[0]['args']['args'];
+
+		$page     = $args['page']['sanitize_callback'];
+		$per_page = $args['per_page']['sanitize_callback'];
+		$this->assertSame( 1, $page( 0 ) );
+		$this->assertSame( 1, $page( -3 ) );
+		$this->assertSame( 4, $page( '4' ) );
+		$this->assertSame( 1, $per_page( 0 ) );
+		$this->assertSame( SubmissionRestController::MAX_PER_PAGE, $per_page( 1000000 ) );
+		$this->assertSame( 25, $per_page( 25 ) );
+
+		// The trash is not a listable status.
+		$this->assertNotContains( 'trash', $args['status']['enum'] );
+		$this->assertContains( 'publish', $args['status']['enum'] );
+	}
+
 	// ------------------------------------------------------------------
 	// get_submissions() returns error when repo is null
 	// ------------------------------------------------------------------

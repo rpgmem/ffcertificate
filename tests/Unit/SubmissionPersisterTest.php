@@ -925,6 +925,68 @@ class SubmissionPersisterTest extends TestCase {
 		$this->assertSame( 'PREVAUTH', $ctx->submission_data['auth_code'] );
 	}
 
+	public function test_a_passed_quiz_reprint_for_someone_else_sends_the_link(): void {
+		// A passed attempt is a certificate: typing its CPF/RF with any answers
+		// does not hand it over on screen to someone else (#2342).
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'        => '70',
+				'user_id'   => '9',
+				'status'    => 'publish',
+				'auth_code' => 'PREVAUTH',
+			)
+		);
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'B' ),
+			)
+		);
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertTrue( $ctx->is_reprint );
+		$this->assertNotNull( $ctx->reprint_notice );
+	}
+
+	public function test_a_passed_quiz_reprint_for_its_owner_hands_it_over(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 9 );
+		$this->quiz_row = $this->storedRow(
+			array(
+				'id'      => '70',
+				'user_id' => '9',
+				'status'  => 'publish',
+			)
+		);
+
+		$handler = $this->bareHandler();
+		$handler->shouldReceive( 'process_submission' )->never();
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'     => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+				),
+				'fields_config'   => $this->quizFieldsConfig(),
+				'submission_data' => array( 'q1' => 'A' ),
+			)
+		);
+		( new SubmissionPersister( $handler ) )->apply( $ctx );
+
+		$this->assertNull( $ctx->reprint_notice );
+	}
+
 	public function test_quiz_insert_db_failure_throws_rejected(): void {
 		Functions\when( 'get_post' )->justReturn( null );
 		Functions\when( 'is_wp_error' )->justReturn( true );

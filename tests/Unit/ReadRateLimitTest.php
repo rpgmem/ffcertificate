@@ -196,6 +196,52 @@ class ReadRateLimitTest extends TestCase {
 		unset( $_SERVER['REMOTE_ADDR'] );
 	}
 
+	public function test_a_refused_read_logs_the_address_as_its_fingerprint(): void {
+		// A bare sha256 of "ip|endpoint" is reversed by a table of the IPv4
+		// space; the log now carries the keyed fingerprint (#2342).
+		$this->settings['logging']  = array(
+			'enabled'        => true,
+			'log_allowed'    => false,
+			'retention_days' => 30,
+			'max_logs'       => 10000,
+		);
+		$_SERVER['REMOTE_ADDR']     = '1.1.1.1';
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'apply_filters' )->returnArg( 2 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+
+		$logged = array();
+		global $wpdb;
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $data ) use ( &$logged ) {
+				if ( 'wp_ffc_rate_limit_logs' === $table ) {
+					$logged[] = $data;
+				}
+				return 1;
+			}
+		);
+
+		$guard = new class() {
+			use \FreeFormCertificate\API\ReadRateLimitGuardTrait;
+
+			public function run(): ?\WP_Error {
+				return $this->guard_read( 'calendar_slots' );
+			}
+		};
+		$guard->run();
+		$guard->run();
+		$this->assertInstanceOf( \WP_Error::class, $guard->run() );
+
+		$this->assertNotEmpty( $logged, 'The refused read is logged.' );
+		$identifier = $logged[0]['identifier'];
+		$this->assertNotSame( hash( 'sha256', '1.1.1.1|calendar_slots' ), $identifier );
+		$this->assertSame( hash( 'sha256', \FreeFormCertificate\Core\IpAddress::fingerprint( '1.1.1.1' ) . '|calendar_slots' ), $identifier );
+
+		unset( $_SERVER['REMOTE_ADDR'] );
+	}
+
 	public function test_check_read_limit_skips_minute_gate_when_threshold_zero(): void {
 		// max_per_minute=0 means "no per-minute cap"; the hour gate still applies.
 		$this->settings['read']['endpoints']['calendar_slots']['max_per_minute'] = 0;

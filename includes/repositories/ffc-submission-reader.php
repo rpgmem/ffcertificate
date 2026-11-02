@@ -594,6 +594,11 @@ class SubmissionReader extends AbstractRepository {
 
 		$args = wp_parse_args( $args, $defaults );
 
+		// A page below 1 is a negative OFFSET and a size of 0 a division by
+		// zero; whatever the caller passed, read a real page (#2342).
+		$args['page']     = max( 1, (int) $args['page'] );
+		$args['per_page'] = max( 1, (int) $args['per_page'] );
+
 		$where = array( $this->wpdb->prepare( 'status = %s', $args['status'] ) );
 
 		if ( ! empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
@@ -651,11 +656,11 @@ class SubmissionReader extends AbstractRepository {
 		 *
 		 * @phpstan-ignore argument.type
 		 */
-		$total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
+		$total = (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
 		return array(
 			'items' => $items,
-			'total' => (int) $total,
+			'total' => $total,
 			'pages' => ceil( $total / $args['per_page'] ),
 		);
 	}

@@ -93,7 +93,9 @@ trait ReadRateLimitGuardTrait {
 		$result = RateLimiter::check_read_limit( $ip, $endpoint_key, $user_id );
 
 		if ( ! $result['allowed'] ) {
-			$identifier = $ip . '|' . $endpoint_key;
+			// The address enters the log as its keyed fingerprint (#2342): a
+			// bare sha256 of an IPv4 address is reversed by a table of all 2^32.
+			$identifier = \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) . '|' . $endpoint_key;
 			$reason     = isset( $result['reason'] ) ? (string) $result['reason'] : 'read_limit';
 
 			RateLimitLogger::log_attempt( 'read', $identifier, 'blocked', $reason, null );

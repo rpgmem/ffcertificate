@@ -413,11 +413,10 @@ class EmailHandler {
 			$display_v = is_array( $v ) ? implode( ', ', $v ) : $v;
 
 			// Personal data travels masked (#1863): an e-mail is a copy no
-			// reveal can audit, so CPF, RF, RG, email and phone reach staff
-			// masked, and the link below opens the screen where they reveal.
-			if ( in_array( $k, array( 'cpf', 'cpf_rf', 'rg', 'rf', 'email', 'user_email', 'phone', 'telefone', 'celular' ), true ) ) {
-				$display_v = \FreeFormCertificate\Core\DocumentFormatter::mask_any( (string) $k, (string) $display_v );
-			}
+			// reveal can audit, so every key the plugin knows as personal
+			// reaches staff masked, through the one key-to-kind map (#2342),
+			// and the link below opens the screen where they reveal.
+			$display_v = \FreeFormCertificate\Core\DocumentFormatter::mask_field_value( (string) $k, $display_v );
 
 			// Format auth code with certificate prefix.
 			if ( 'auth_code' === $k ) {

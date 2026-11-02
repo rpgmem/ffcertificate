@@ -340,9 +340,12 @@ class EmailHandlerTest extends TestCase {
 			10,
 			'Test Certificate',
 			array(
-				'name'  => 'John',
-				'cpf'   => '51817842080',
-				'email' => 'john@example.com',
+				'name'                => 'John',
+				'cpf'                 => '51817842080',
+				'email'               => 'john@example.com',
+				// Keys the plugin's one key-to-kind map knows (#2342).
+				'data_nascimento'     => '1990-04-15',
+				'email_institucional' => 'john@edu.example.com',
 			),
 			'john@example.com',
 			array(),
@@ -357,6 +360,8 @@ class EmailHandlerTest extends TestCase {
 		$this->assertStringNotContainsString( '51817842080', $body );
 		$this->assertStringContainsString( 'j***@example.com', $body );
 		$this->assertStringNotContainsString( 'john@example.com', $body );
+		$this->assertStringNotContainsString( '1990-04-15', $body );
+		$this->assertStringNotContainsString( 'john@edu.example.com', $body );
 		$this->assertStringContainsString( 'page=ffc-submissions', $body );
 	}
 

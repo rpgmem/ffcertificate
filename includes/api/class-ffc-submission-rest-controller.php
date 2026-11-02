@@ -27,6 +27,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SubmissionRestController {
 
 	/**
+	 * Largest page `GET /submissions` returns, as `GET /forms` does (#2342).
+	 */
+	public const MAX_PER_PAGE = 100;
+
+	/**
+	 * Page size when `per_page` is omitted.
+	 */
+	public const DEFAULT_PER_PAGE = 20;
+
+	/**
 	 * API namespace
 	 *
 	 * @var non-falsy-string
@@ -66,15 +76,17 @@ class SubmissionRestController {
 				'args'                => array(
 					'page'     => array(
 						'default'           => 1,
-						'sanitize_callback' => 'absint',
+						'sanitize_callback' => static fn( $value ): int => max( 1, (int) $value ),
 					),
 					'per_page' => array(
-						'default'           => 20,
-						'sanitize_callback' => 'absint',
+						'default'           => self::DEFAULT_PER_PAGE,
+						'sanitize_callback' => static fn( $value ): int => min( self::MAX_PER_PAGE, max( 1, (int) $value ) ),
 					),
+					// A certificate or a quiz attempt; the trash is not listed (#2342).
 					'status'   => array(
-						'default'           => 'publish',
-						'sanitize_callback' => 'sanitize_text_field',
+						'default' => \FreeFormCertificate\Core\SubmissionStatus::PUBLISH,
+						'type'    => 'string',
+						'enum'    => array_merge( array( \FreeFormCertificate\Core\SubmissionStatus::PUBLISH ), \FreeFormCertificate\Core\SubmissionStatus::UNPASSED_QUIZ ),
 					),
 					'search'   => array(
 						'default'           => '',
@@ -233,7 +245,11 @@ class SubmissionRestController {
 				'per_page'     => $per_page,
 			);
 
-			return rest_ensure_response( $response );
+			$rest_response = rest_ensure_response( $response );
+			$rest_response->header( 'X-WP-Total', (string) $result['total'] );
+			$rest_response->header( 'X-WP-TotalPages', (string) $result['pages'] );
+
+			return $rest_response;
 
 		} catch ( \Exception $e ) {
 			$this->log_rest_error( 'get_submissions', $e );

@@ -98,10 +98,25 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		$request->shouldReceive( 'get_param' )->with( 'reveal' )->andReturn( false );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'user_can' )->justReturn( false );
+		// The list sends its totals as headers (#2342), so the response is
+		// an object that carries them.
+		Functions\when( 'rest_ensure_response' )->alias(
+			static fn( $data ) => new class( $data ) {
+				/** @var array<string, string> */
+				public array $headers = array();
+				/** @param mixed $data */
+				public function __construct( public $data ) {}
+				public function header( string $key, string $value ): void {
+					$this->headers[ $key ] = $value;
+				}
+			}
+		);
 
-		$result = $ctrl->get_submissions( $request );
+		$response = $ctrl->get_submissions( $request );
+		$result   = $response->data;
 
 		$this->assertIsArray( $result );
+		$this->assertSame( '1', $response->headers['X-WP-Total'] );
 		$this->assertSame( 1, $result['total'] );
 		$this->assertSame( 3, $result['items'][0]['id'] );
 		$this->assertSame( 'Ana', $result['items'][0]['data']['name'] );

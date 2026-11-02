@@ -413,7 +413,8 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertSame( 'read', $logs[0]['type'] );
 		$this->assertSame( 'blocked', $logs[0]['action'] );
 		$this->assertSame( $reason, $logs[0]['reason'] );
-		$this->assertSame( hash( 'sha256', RequestInput::get_user_ip() . '|' . $endpoint_key ), $logs[0]['identifier'] );
+		// The address enters as its keyed fingerprint, never hashed bare (#2342).
+		$this->assertSame( hash( 'sha256', \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ), $logs[0]['identifier'] );
 	}
 
 	/**
