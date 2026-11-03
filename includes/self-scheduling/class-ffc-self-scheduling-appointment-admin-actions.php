@@ -96,7 +96,11 @@ class AppointmentAdminActions {
 		$start    = (string) $appointment['start_time'];
 		$capacity = WaitlistPromoter::slot_capacity( $calendar, $date, $start );
 
-		$this->appointments->begin_transaction();
+		// Without a transaction the recount below locks nothing, so the slot
+		// could fill between the count and the confirmation.
+		if ( ! $this->appointments->begin_transaction() ) {
+			return new \WP_Error( 'confirmation_failed', __( 'Failed to confirm appointment.', 'ffcertificate' ) );
+		}
 		try {
 			// The pending row is one of the active rows the count reads, so
 			// the slot holds it while the active rows number at most
@@ -107,7 +111,7 @@ class AppointmentAdminActions {
 			}
 			$changed = $this->appointments->confirmPending( $appointment_id, $actor );
 			$this->appointments->commit();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$this->appointments->rollback();
 			return new \WP_Error( 'confirmation_failed', __( 'Failed to confirm appointment.', 'ffcertificate' ) );
 		}

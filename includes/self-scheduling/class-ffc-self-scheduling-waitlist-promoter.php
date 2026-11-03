@@ -127,7 +127,11 @@ class WaitlistPromoter {
 
 		$promoted_id = null;
 
-		$this->appointment_repository->begin_transaction();
+		// Without a transaction the recount below locks nothing, so a refused
+		// START TRANSACTION promotes nobody; the next freed spot tries again.
+		if ( ! $this->appointment_repository->begin_transaction() ) {
+			return null;
+		}
 		try {
 			// Recount under lock; only promote if the freed spot is genuinely open.
 			if ( $this->appointment_repository->isSlotAvailable( $calendar_id, $date, $start_time, $capacity, true ) ) {
@@ -139,7 +143,7 @@ class WaitlistPromoter {
 				}
 			}
 			$this->appointment_repository->commit();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$this->appointment_repository->rollback();
 			return null;
 		}

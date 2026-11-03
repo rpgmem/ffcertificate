@@ -66,7 +66,7 @@ class AppointmentAdminActionsTest extends TestCase {
 	public function test_confirm_refuses_a_custom_slot_that_no_longer_exists(): void {
 		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
 		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'schedule_type' => 'custom', 'custom_slots' => '[]' ) );
-		$this->appointments->shouldReceive( 'begin_transaction' )->once();
+		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointments->shouldReceive( 'rollback' )->once();
 		$this->appointments->shouldReceive( 'isSlotAvailable' )->never();
 		$this->appointments->shouldReceive( 'confirmPending' )->never();
@@ -77,10 +77,30 @@ class AppointmentAdminActionsTest extends TestCase {
 	public function test_confirm_rolls_back_on_a_database_exception(): void {
 		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
 		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'max_appointments_per_slot' => 2 ) );
-		$this->appointments->shouldReceive( 'begin_transaction' )->once();
+		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 3, true )->andThrow( new \Exception( 'lock wait' ) );
 		$this->appointments->shouldReceive( 'rollback' )->once();
 		$this->notifier->shouldReceive( 'schedule_email_notifications' )->never();
+
+		$this->assertSame( 'confirmation_failed', $this->actions->confirm( 5, 1 )->get_error_code() );
+	}
+
+	public function test_confirm_rolls_back_on_an_error(): void {
+		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
+		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'max_appointments_per_slot' => 2 ) );
+		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->andThrow( new \TypeError( 'bad row' ) );
+		$this->appointments->shouldReceive( 'rollback' )->once();
+
+		$this->assertSame( 'confirmation_failed', $this->actions->confirm( 5, 1 )->get_error_code() );
+	}
+
+	public function test_confirm_refuses_when_the_transaction_does_not_start(): void {
+		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
+		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'max_appointments_per_slot' => 2 ) );
+		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( false );
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->never();
+		$this->appointments->shouldReceive( 'confirmPending' )->never();
 
 		$this->assertSame( 'confirmation_failed', $this->actions->confirm( 5, 1 )->get_error_code() );
 	}
@@ -89,7 +109,8 @@ class AppointmentAdminActionsTest extends TestCase {
 		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
 		$calendar = array( 'max_appointments_per_slot' => 1 );
 		$this->calendars->shouldReceive( 'findById' )->andReturn( $calendar );
-		$this->appointments->shouldReceive( 'begin_transaction', 'commit' )->once();
+		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->appointments->shouldReceive( 'commit' )->once();
 		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 2, true )->andReturn( true );
 		$this->appointments->shouldReceive( 'confirmPending' )->with( 5, 9 )->andReturn( 1 );
 		$this->notifier->shouldReceive( 'schedule_email_notifications' )->once()->with(

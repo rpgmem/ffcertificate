@@ -172,8 +172,27 @@ class AppointmentHandler {
 			$data['approved_at'] = time();
 		}
 
+		/**
+		 * Fires before an appointment is created in the database.
+		 *
+		 * Fired before the transaction opens (#2343), so a listener never runs
+		 * while the slot's rows are locked. `status` is the one requested: a
+		 * full slot with a waitlist turns the booking into `waitlist` under the
+		 * lock, which `ffcertificate_after_appointment_create` reports.
+		 *
+		 * @since 4.6.4
+		 * @param array<string, mixed> $data     Appointment data.
+		 * @param array<string, mixed> $calendar Calendar configuration.
+		 */
+		do_action( 'ffcertificate_before_appointment_create', array_diff_key( $data, array_flip( array( 'confirm_override', 'booked_by' ) ) ), $calendar );
+
 		// === BEGIN TRANSACTION: Atomic validate + insert ===.
-		$this->appointment_repository->begin_transaction();
+		// Without a transaction the FOR UPDATE locks below hold nothing, and two
+		// requests could both take the last spot, so a refused START TRANSACTION
+		// refuses the booking.
+		if ( ! $this->appointment_repository->begin_transaction() ) {
+			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
+		}
 
 		$is_waitlist      = false;
 		$override_reasons = array();
@@ -206,15 +225,6 @@ class AppointmentHandler {
 				unset( $data['approved_at'] );
 			}
 
-			/**
-			 * Fires before an appointment is created in the database.
-			 *
-			 * @since 4.6.4
-			 * @param array $data     Appointment data.
-			 * @param array<string, mixed> $calendar Calendar configuration.
-			 */
-			do_action( 'ffcertificate_before_appointment_create', $data, $calendar );
-
 			// Create appointment (inside transaction — protected by locks).
 			$appointment_id = $this->appointment_repository->createAppointment( $data );
 
@@ -224,7 +234,9 @@ class AppointmentHandler {
 			}
 
 			$this->appointment_repository->commit();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
+			// \Throwable, not \Exception: a TypeError from a hooked callback
+			// would otherwise leave the transaction open with its row locks.
 			$this->appointment_repository->rollback();
 			return new \WP_Error( 'booking_error', __( 'An error occurred while booking. Please try again.', 'ffcertificate' ) );
 		}
