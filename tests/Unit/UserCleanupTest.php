@@ -240,6 +240,9 @@ class UserCleanupTest extends TestCase {
 	/** @var array<int, string> Recorded UPDATE queries from the sweep harness. */
 	private array $recorded_updates = [];
 
+	/** @var array<int, string> SHOW TABLES and SHOW COLUMNS statements the sweep harness answered. */
+	private array $schema_reads = [];
+
 	/**
 	 * Query-inspecting harness: interpolate %i/%d so get_var / get_results /
 	 * query can branch on the real SQL, and record the UPDATEs fired into
@@ -251,6 +254,7 @@ class UserCleanupTest extends TestCase {
 	 */
 	private function installSweepHarness(array $present_tables, array $absent_columns = []): void {
 		$this->recorded_updates = [];
+		$this->schema_reads     = [];
 
 		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(fn($v) => $v)->byDefault();
 		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function ($q, ...$args) {
@@ -262,6 +266,7 @@ class UserCleanupTest extends TestCase {
 		// No data-subject footprint (COUNT → 0); SHOW TABLES → present list.
 		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($q) use ($present_tables) {
 			if (strpos($q, 'SHOW TABLES') !== false) {
+				$this->schema_reads[] = $q;
 				foreach ($present_tables as $t) {
 					if (strpos($q, $t) !== false) {
 						return $t;
@@ -274,6 +279,7 @@ class UserCleanupTest extends TestCase {
 		// column_exists → present unless the column is in $absent_columns.
 		$this->wpdb->shouldReceive('get_results')->andReturnUsing(function ($q) use ($absent_columns) {
 			if (strpos($q, 'SHOW COLUMNS') !== false) {
+				$this->schema_reads[] = $q;
 				foreach ($absent_columns as $c) {
 					if (preg_match('/LIKE\s+' . preg_quote($c, '/') . '\b/', $q)) {
 						return [];
@@ -336,6 +342,22 @@ class UserCleanupTest extends TestCase {
 		UserCleanup::anonymize_user_data(42);
 
 		$this->assertStringNotContainsString('edited_by', implode("\n", $this->recorded_updates));
+	}
+
+	public function test_a_bulk_deletion_reads_the_schema_once(): void {
+		$this->installSweepHarness(['wp_ffc_self_scheduling_calendars', 'wp_ffc_user_profiles']);
+		$this->wpdb->shouldReceive('delete')->andReturn(0);
+
+		UserCleanup::anonymize_user_data(42);
+		UserCleanup::anonymize_user_data(43);
+
+		// The footprint probe (UserService) asks its own tables on each call;
+		// what is counted here is what only the cleanup asks.
+		$columns = array_filter($this->schema_reads, static fn($q) => strpos($q, 'SHOW COLUMNS') !== false);
+		$short   = array_filter($this->schema_reads, static fn($q) => strpos($q, 'wp_ffc_short_urls') !== false);
+		$this->assertCount(2, $columns, 'The two calendar columns are read once, not once per account.');
+		$this->assertCount(1, $short, 'An absent table is asked about once.');
+		$this->assertStringContainsString('WHERE created_by = 43', implode("\n", $this->recorded_updates), 'The second deletion still runs its updates.');
 	}
 
 	// ==================================================================

@@ -23392,7 +23392,7 @@ msgstr ""
 msgid "Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Data Migrations, not a blind edit."
 msgstr ""
 
-msgid "Before a personal-calendar appointment is stored — args ( data, calendar )."
+msgid "Before a personal-calendar appointment is stored, outside its transaction; status is the one requested — args ( data, calendar )."
 msgstr ""
 
 msgid "Configure personal calendars and their booking windows."

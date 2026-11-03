@@ -235,7 +235,7 @@ class AppointmentHandlerTest extends TestCase {
 			$this->makeCalendar( array( 'requires_approval' => '1' ) )
 		);
 
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
 			->with( Mockery::on( function( $data ) {
@@ -279,7 +279,7 @@ class AppointmentHandlerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar( array( 'requires_approval' => 0 ) ) );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->validator->shouldReceive( 'get_override_reasons' )->andReturn( array( array( 'code' => 'too_far', 'message' => 'Too far' ) ) );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
@@ -316,7 +316,7 @@ class AppointmentHandlerTest extends TestCase {
 			$this->makeCalendar( array( 'requires_approval' => 0 ) )
 		);
 
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
 			->with( Mockery::on( function( $data ) {
@@ -345,7 +345,7 @@ class AppointmentHandlerTest extends TestCase {
 
 	public function test_process_validation_failure_rolls_back(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn(
 			new \WP_Error( 'slot_full', 'Slot is full' )
 		);
@@ -367,7 +367,7 @@ class AppointmentHandlerTest extends TestCase {
 
 	public function test_process_creation_failure_rolls_back(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( null );
 		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
@@ -568,7 +568,7 @@ class AppointmentHandlerTest extends TestCase {
 			) )
 		);
 
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		// The validator diverted this booking to the waitlist.
 		$this->validator->shouldReceive( 'is_waitlist_requested' )->andReturn( true );
@@ -814,7 +814,7 @@ class AppointmentHandlerTest extends TestCase {
 
 	public function test_process_booking_exception_rolls_back(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		// Validation throws inside the try → catch converts it to a booking_error.
 		$this->validator->shouldReceive( 'validate' )->andThrow( new \RuntimeException( 'boom' ) );
 		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
@@ -830,11 +830,74 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertSame( 'booking_error', $result->get_error_code() );
 	}
 
+	public function test_process_booking_error_inside_the_transaction_rolls_back(): void {
+		// A TypeError is an \Error, not an \Exception: before #2343 it escaped
+		// the catch and left the transaction open with its row locks.
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->validator->shouldReceive( 'validate' )->andThrow( new \TypeError( 'listener broke' ) );
+		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-03-01',
+			'start_time'       => '09:00',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertSame( 'booking_error', $result->get_error_code() );
+	}
+
+	public function test_process_refuses_the_booking_when_the_transaction_does_not_start(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( false );
+		$this->validator->shouldReceive( 'validate' )->never();
+		$this->appointmentRepo->shouldReceive( 'createAppointment' )->never();
+
+		$result = $this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-03-01',
+			'start_time'       => '09:00',
+			'consent_given'    => '1',
+		) );
+
+		$this->assertSame( 'booking_error', $result->get_error_code() );
+	}
+
+	public function test_the_before_create_hook_fires_outside_the_transaction(): void {
+		$order = array();
+		Functions\when( 'do_action' )->alias(
+			static function ( $hook, ...$args ) use ( &$order ) {
+				if ( 'ffcertificate_before_appointment_create' === $hook ) {
+					$order[] = 'hook';
+					$order[] = array_key_exists( 'booked_by', $args[0] ) ? 'booked_by leaked' : 'clean';
+				}
+			}
+		);
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturnUsing(
+			static function () use ( &$order ) {
+				$order[] = 'begin';
+				return false;
+			}
+		);
+
+		$this->handler->process_appointment( array(
+			'calendar_id'      => 1,
+			'appointment_date' => '2026-03-01',
+			'start_time'       => '09:00',
+			'consent_given'    => '1',
+			'booked_by'        => 3,
+		) );
+
+		$this->assertSame( array( 'hook', 'clean', 'begin' ), $order, 'A listener never runs while the slot is locked.' );
+	}
+
 	public function test_process_user_linking_early_returns_without_email(): void {
 		// cpf_rf present + no logged-in user → create_or_link_user() is invoked,
 		// but with no email it early-returns and booking proceeds unchanged.
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()->andReturn( 200 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
@@ -873,7 +936,7 @@ class AppointmentHandlerTest extends TestCase {
 				) ),
 			) )
 		);
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( 201 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
@@ -902,7 +965,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'email_config' => 'null' ) )
 		);
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( 202 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
@@ -937,7 +1000,7 @@ class AppointmentHandlerTest extends TestCase {
 				'email_config' => wp_json_encode( array( 'send_user_confirmation' => 1 ) ),
 			) )
 		);
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( 203 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
@@ -1170,7 +1233,7 @@ class AppointmentHandlerTest extends TestCase {
 
 	public function test_process_custom_mode_takes_the_end_time_from_the_block(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->customCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
 			->with( Mockery::on( static fn ( $data ) => '13:00:00' === $data['end_time'] ) )
@@ -1193,7 +1256,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'working_hours' => array( array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ) ) ) )
 		);
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->once()
 			->with( Mockery::on( static fn ( $data ) => '09:30:00' === $data['start_time'] ), Mockery::any(), true )
 			->andReturn( true );
@@ -1308,7 +1371,7 @@ class AppointmentHandlerTest extends TestCase {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn(
 			$this->makeCalendar( array( 'email_config' => $email_config ) )
 		);
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->andReturn( 500 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();

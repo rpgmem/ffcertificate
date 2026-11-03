@@ -23474,8 +23474,8 @@ msgstr "O RF tem um dígito verificador, e o formulário nunca o conferiu — po
 msgid "Apply these directly only on a NEW install with no encrypted data yet. On a site that already stores data, defining a new FFC_ENCRYPTION_KEY makes existing encrypted records unreadable, and a new FFC_HASH_SALT invalidates the stored search hashes — both are repaired by a planned key rotation (S7b) at Settings → Data Migrations, not a blind edit."
 msgstr "Aplique essas configurações diretamente apenas em uma instalação nova, que ainda não contenha dados criptografados. Em um site que já armazena dados, definir uma nova `FFC_ENCRYPTION_KEY` torna ilegíveis os registros criptografados existentes, e um novo `FFC_HASH_SALT` invalida os hashes de busca armazenados — ambos os problemas são resolvidos por meio de uma rotação de chaves planejada (S7b) em Configurações → Migrações de Dados, e não por uma edição direta sem critérios."
 
-msgid "Before a personal-calendar appointment is stored — args ( data, calendar )."
-msgstr "Antes de um agendamento de calendário pessoal ser armazenado — argumentos ( data, calendar )."
+msgid "Before a personal-calendar appointment is stored, outside its transaction; status is the one requested — args ( data, calendar )."
+msgstr "Antes de um agendamento de calendário pessoal ser armazenado, fora da sua transação; o status é o solicitado — argumentos ( data, calendar )."
 
 msgid "Configure personal calendars and their booking windows."
 msgstr "Configure calendários pessoais e suas janelas de agendamento."
