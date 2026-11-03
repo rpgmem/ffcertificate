@@ -43,6 +43,10 @@ class Deactivator {
 		wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 		wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
 		wp_unschedule_hook( 'ffc_audience_notification_batch' );
+		// The one-shot submission pipeline and its pre-#1248 name (#2343): a
+		// pending event would otherwise fire into code that is not loaded.
+		wp_unschedule_hook( \FreeFormCertificate\Submissions\SubmissionHandler::ASYNC_PIPELINE_HOOK );
+		wp_unschedule_hook( 'ffcertificate_process_submission_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();

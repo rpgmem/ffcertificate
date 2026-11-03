@@ -113,7 +113,10 @@ class DeactivatorTest extends TestCase {
 		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
 			$this->assertContains( $legacy, $cleared );
 		}
-		$this->assertCount( 22, $cleared );
+		// The one-shot submission pipeline, under its name and its pre-#1248 one (#2343).
+		$this->assertContains( 'ffc_process_submission_async', $cleared );
+		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
+		$this->assertCount( 24, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

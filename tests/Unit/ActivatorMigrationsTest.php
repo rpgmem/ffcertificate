@@ -292,6 +292,44 @@ class ActivatorMigrationsTest extends TestCase {
 		$this->assertNotEmpty( $unique, 'The routine must add the UNIQUE index when none exists.' );
 	}
 
+	public function test_upgrade_auth_code_logs_how_many_duplicates_it_removed(): void {
+		// The dedupe used to delete in silence: a certificate whose code
+		// verified another one vanished with no trace (#2343).
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default_value = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default_value
+		);
+		foreach ( array( 'wp_json_encode' => 'json_encode' ) as $fn => $alias ) {
+			Functions\when( $fn )->alias( $alias );
+		}
+		Functions\when( 'current_time' )->justReturn( '2026-11-03 10:00:00' );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() )->byDefault();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static fn( $sql ) => 0 === strpos( (string) $sql, 'DELETE t1' ) ? 2 : 1
+		);
+
+		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$buffer->setAccessible( true );
+		$buffer->setValue( null, array() );
+
+		$this->invoke_private( 'upgrade_auth_code_unique_constraints' );
+
+		$entries = array_values( array_filter( $buffer->getValue(), static fn( $e ) => 'auth_code_duplicates_removed' === ( $e['action'] ?? '' ) ) );
+		$buffer->setValue( null, array() );
+		$shutdown = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'shutdown_registered' );
+		$shutdown->setAccessible( true );
+		$shutdown->setValue( null, false );
+
+		$this->assertNotEmpty( $entries, 'The removed duplicates are logged.' );
+		$this->assertStringContainsString( '"removed":2', (string) ( $entries[0]['context'] ?? '' ) );
+	}
+
 	public function test_upgrade_auth_code_skips_when_unique_present(): void {
 		// A UNIQUE index already on the column → continue (no ALTER). `$wpdb`
 		// hands the column back as the STRING "0" -- an int here is what let

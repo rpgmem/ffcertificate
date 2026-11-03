@@ -139,6 +139,7 @@ class AdminLoaderTest extends TestCase {
 			'AdminMenuIcons'                        => array( 'action', 'admin_enqueue_scripts', Admin\AdminMenuIcons::class . '::print_css' ),
 			'DeviceThresholdUpgradeNotice'          => array( 'action', 'admin_notices', Admin\DeviceThresholdUpgradeNotice::class . '::maybe_render' ),
 			'CaptchaModeNotice'                     => array( 'action', 'admin_notices', Admin\CaptchaModeNotice::class . '::maybe_render' ),
+			'CreatedPagesNotice'                    => array( 'action', 'admin_notices', Admin\CreatedPagesNotice::class . '::maybe_render' ),
 			'EncryptionKeyHealthNotice'             => array( 'action', 'admin_notices', Admin\EncryptionKeyHealthNotice::class . '::maybe_render' ),
 			'HtmlRefsNotice'                        => array( 'action', 'admin_notices', Admin\HtmlRefsNotice::class . '::maybe_render' ),
 			'SettingsAjaxEndpoint'                  => array( 'action', 'wp_ajax_' . Admin\SettingsAjaxEndpoint::AJAX_ACTION, Admin\SettingsAjaxEndpoint::class . '::handle' ),

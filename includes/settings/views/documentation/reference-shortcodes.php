@@ -108,4 +108,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+	<p class="description"><?php esc_html_e( 'Activation creates two pages when none exists at their address: Certificate Verification at /valid, holding [ffc_verification], and My Dashboard at /dashboard, holding [user_dashboard_personal]. Their titles follow the site language, the account that activated the plugin is their author, and a notice at the top of the admin names them, with a link to edit each, until it is dismissed.', 'ffcertificate' ); ?></p>
 </div>

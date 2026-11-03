@@ -95,6 +95,8 @@ class UserDashboardActivatorTest extends TestCase {
 
 		// Default WP function stubs (happy path: page already exists).
 		Functions\when( '__' )->returnArg();
+		// The page the activation creates is authored by the activating account (#2343).
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'dbDelta' )->justReturn( array() );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -313,8 +315,21 @@ class UserDashboardActivatorTest extends TestCase {
 			}
 		);
 
+		// No page recorded yet; the one created here is recorded (#2343).
+		Functions\when( 'get_option' )->justReturn( array() );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
 		UserDashboardActivator::create_tables();
 
+		$this->assertSame( 7, $inserted['post_author'] ?? null, 'The page is authored by the account that activated the plugin.' );
+		$this->assertSame( array( 77 ), $written[ \FreeFormCertificate\Core\ManagedPages::OPTION ] ?? null, 'The created page is recorded for the notice.' );
+		$this->assertSame( 77, $written['ffc_dashboard_page_id'] ?? null );
 		$this->assertSame( array( 'ffc_end_user' ), $this->added_roles, 'The real RoleRegistrar::register_role() creates the end-user role.' );
 		$this->assertSame(
 			\FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES,
@@ -340,7 +355,7 @@ class UserDashboardActivatorTest extends TestCase {
 		);
 
 		// Existing dashboard page → reuse its ID, no insert.
-		$existing      = new \stdClass();
+		$existing      = new \WP_Post();
 		$existing->ID  = 555;
 		Functions\when( 'get_page_by_path' )->justReturn( $existing );
 		$saved_option = null;
@@ -370,6 +385,7 @@ class UserDashboardActivatorTest extends TestCase {
 	public function test_admin_caps_skipped_when_no_administrator_role(): void {
 		Functions\when( 'get_role' )->justReturn( null ); // no admin role → cap loop skipped.
 		Functions\when( 'get_page_by_path' )->justReturn( null );
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$consulted = array();
 		Functions\when( 'get_role' )->alias(

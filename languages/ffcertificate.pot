@@ -1169,10 +1169,6 @@ msgstr ""
 msgid "Account access"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:54
-msgid "Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To also clear that encrypted data, run the Erase Personal Data tool above — that is the path that honours an actual erasure request."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-record.php:128
 msgid "Accumulated position/function"
 msgstr ""
@@ -16803,10 +16799,6 @@ msgstr ""
 msgid "the personal dashboard page is flagged not-to-cache so users never see each other's data."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:61
-msgid "The plugin contributes ready-to-adapt privacy-policy wording to Settings → Privacy → Policy Guide, describing what personal data it collects, how it is stored, how long it is kept (using your configured activity-log retention), who can access it and the subject's rights. Review it, trim the sections for modules you do not use, and copy it into your site's own privacy page."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-privacy.php:22
 msgid "The plugin is built to help you meet data-protection obligations (the Brazilian LGPD and equivalents). Sensitive data is encrypted at rest, and the plugin plugs into WordPress's own Privacy Tools so you can answer access and erasure requests with the standard core screens."
 msgstr ""
@@ -26101,10 +26093,6 @@ msgstr ""
 msgid "The REST API returns personal data masked too. A caller allowed to reveal adds reveal=1 to a submission or appointment request to receive it in clear, and that read is audited."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-privacy.php:32
-msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. Those screens show the data they need unmasked, because the screens themselves are restricted."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-emails.php:20
 msgid "The notices sent to staff carry personal data masked (CPF, RF, e-mail, phone, names in the Date Messages summary), with a link to the screen where it can be revealed and audited."
 msgstr ""
@@ -31515,4 +31503,74 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:83
 msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:74
+msgid "Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To honour an actual erasure request, run Erase Personal Data first and delete the account afterwards: once the account is gone the eraser still finds the certificates and appointments whose stored e-mail matches, but no longer the activity-log entries, attendance lines and date-message deliveries, which it reaches only through the account."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php:111
+msgid "Activation creates two pages when none exists at their address: Certificate Verification at /valid, holding [ffc_verification], and My Dashboard at /dashboard, holding [user_dashboard_personal]. Their titles follow the site language, the account that activated the plugin is their author, and a notice at the top of the admin names them, with a link to edit each, until it is dismissed."
+msgstr ""
+
+#: includes/class-ffc-activator.php:862
+msgid "Certificate Verification"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:126
+#, php-format
+msgid "Certificate submissions are deleted automatically %d days after they were made."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:351
+msgid "Duplicate Authentication Codes Removed"
+msgstr ""
+
+#: includes/admin/class-ffc-created-pages-notice.php:87
+msgid "Each one holds the shortcode that draws it, so it can be renamed, moved or added to a menu. Deleting the plugin with its data removes a page only while its content is still that shortcode alone."
+msgstr ""
+
+#: includes/admin/class-ffc-created-pages-notice.php:83
+msgid "Free Form Certificate created these pages"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:93
+msgid "If a form records quiz answers, your answers and score are kept with your submission. If a site sends date messages, such as a birthday greeting, the date is read from your profile and each message sent is recorded."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:95
+msgid "Location, device and abuse prevention"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-user-dashboard-activator.php:335
+msgid "My Dashboard"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:97
+msgid "Some forms and check-ins are available only at certain places. Your browser may then ask for your device's location. The position is compared with the allowed areas and is not stored; a form remembers only that the check passed."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:33
+msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. The activity log shows a client address masked, behind the same audited Reveal; identity resolution shows the data it needs unmasked, because the screen itself is restricted."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:87
+msgid "The plugin contributes ready-to-adapt privacy-policy wording to Settings → Privacy → Policy Guide, describing what personal data it collects, the location, device and abuse-prevention checks, what it stores in the browser, the address lookup, how data is stored, how long it is kept (using your configured activity-log and device-signal retention, and the submission cleanup when it is on), who can access it and the subject's rights. Review it, trim the sections for modules you do not use, and copy it into your site's own privacy page."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:107
+msgid "The site stores a few items in your browser: a short-lived cookie while you set a password from an invitation, a cookie that carries an approved schedule exception for one form, a device identifier, and the list of forms you have already submitted from this browser, which is used only to show a notice."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:103
+#, php-format
+msgid "To limit repeated or automated submissions, we record a device identifier kept in your browser and technical signals about your device and browser with each submission, and keep them for %d days. Attempts that exceed the limits are logged with your IP address (encrypted) and a keyed hash of the e-mail or document used; the log keeps only the most recent entries."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:99
+msgid "When a form is restricted by the location of your internet connection, your IP address is sent to an IP geolocation service (ip-api.com, over an unencrypted connection on its free plan, or ipinfo.io) to find its approximate region."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:109
+msgid "When the address lookup is on, the postal code (CEP) you type is sent from our server to ViaCEP or BrasilAPI to find its address; nothing else is sent with it. Short links count how many times they were opened and record nothing about who opened them."
 msgstr ""

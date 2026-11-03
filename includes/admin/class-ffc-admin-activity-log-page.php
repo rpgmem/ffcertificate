@@ -348,6 +348,7 @@ class AdminActivityLogPage {
 
 			// Migrations.
 			'migration_foreign_keys'                       => __( 'Foreign Keys Migration', 'ffcertificate' ),
+			'auth_code_duplicates_removed'                 => __( 'Duplicate Authentication Codes Removed', 'ffcertificate' ),
 			'legacy_columns_dropped'                       => __( 'Legacy Columns Dropped', 'ffcertificate' ),
 			'cpf_rf_split_migration_batch'                 => __( 'CPF/RF Split Migration Batch', 'ffcertificate' ),
 			'cpf_rf_split_unknown_length'                  => __( 'CPF/RF Split: Unknown Length', 'ffcertificate' ),

@@ -191,6 +191,7 @@ class PrivacyHandlerTest extends TestCase {
 		Functions\when('esc_html__')->returnArg();
 		Functions\when('wp_kses_post')->returnArg();
 		Functions\when('get_option')->justReturn(['activity_log_retention_days' => 45]);
+		$this->resetRateLimitSettings();
 
 		$captured = null;
 		Functions\expect('wp_add_privacy_policy_content')
@@ -208,6 +209,69 @@ class PrivacyHandlerTest extends TestCase {
 		// The tutorial-classed guidance is present (excluded from the copy
 		// button by the Policy Guide, but emitted in the markup).
 		$this->assertStringContainsString('privacy-policy-tutorial', $captured[1]);
+	}
+
+	public function test_the_suggested_text_names_every_flow_and_the_configured_windows(): void {
+		Functions\when('esc_html__')->returnArg();
+		Functions\when('wp_kses_post')->returnArg();
+		Functions\when('get_option')->alias(
+			static function ($key, $default_value = false) {
+				if ('ffc_settings' === $key) {
+					return ['activity_log_retention_days' => 45, 'cleanup_enabled' => 1, 'cleanup_days' => 400];
+				}
+				if ('ffc_rate_limit_settings' === $key) {
+					return ['device' => ['retention_days' => 30]];
+				}
+				return $default_value;
+			}
+		);
+		$this->resetRateLimitSettings();
+
+		$captured = '';
+		Functions\expect('wp_add_privacy_policy_content')->once()->andReturnUsing(
+			function ($name, $content) use (&$captured) {
+				$captured = $content;
+			}
+		);
+
+		PrivacyHandler::add_privacy_policy_content();
+
+		foreach (['ip-api.com', 'location', 'cookie', 'ViaCEP', 'quiz', 'birthday', 'Short links', 'exceed the limits'] as $flow) {
+			$this->assertStringContainsStringIgnoringCase($flow, $captured, "The suggested text omits: {$flow}.");
+		}
+		$this->assertStringContainsString('for 30 days', $captured, 'Device signals use the configured retention.');
+		$this->assertStringContainsString('400 days after', $captured, 'The submission cleanup is named when it is on.');
+		$this->resetRateLimitSettings();
+	}
+
+	public function test_the_submission_cleanup_is_not_promised_while_it_is_off(): void {
+		Functions\when('esc_html__')->returnArg();
+		Functions\when('wp_kses_post')->returnArg();
+		Functions\when('get_option')->justReturn(['cleanup_days' => 400]);
+		$this->resetRateLimitSettings();
+
+		$captured = '';
+		Functions\expect('wp_add_privacy_policy_content')->once()->andReturnUsing(
+			function ($name, $content) use (&$captured) {
+				$captured = $content;
+			}
+		);
+
+		PrivacyHandler::add_privacy_policy_content();
+
+		$this->assertStringNotContainsString('deleted automatically', $captured);
+		$this->resetRateLimitSettings();
+	}
+
+	/**
+	 * The rate-limit settings memo would carry one test's values into the
+	 * next; the policy text reads the device retention through it.
+	 */
+	private function resetRateLimitSettings(): void {
+		Functions\when('wp_parse_args')->alias(static fn($args, $defaults) => array_merge($defaults, (array) $args));
+		$prop = new \ReflectionProperty(\FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache');
+		$prop->setAccessible(true);
+		$prop->setValue(null, null);
 	}
 
 	/**
