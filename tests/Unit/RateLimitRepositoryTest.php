@@ -260,11 +260,17 @@ class RateLimitRepositoryTest extends TestCase {
 			}
 		);
 
+		$before = time();
 		RateLimitRepository::get_submission_count( 'cpf', Identifiers::CPF_A, $period, null );
+		$after = time();
 
 		$this->assertCount( 1, $queries );
-		$this->assertStringContainsString( sprintf( 'INTERVAL %d DAY', $days ), $queries[0] );
-		$this->assertSame( 1, substr_count( $queries[0], 'INTERVAL' ), 'One window per count.' );
+		// `submission_date` is a unix instant, so the window is one too; a
+		// DATETIME comparison was always false and counted nothing (#2339).
+		$this->assertSame( 1, preg_match( '/submission_date >= (\d+)/', $queries[0], $m ), 'The window compares an instant.' );
+		$this->assertStringNotContainsString( 'NOW()', $queries[0] );
+		$this->assertGreaterThanOrEqual( $before - $days * DAY_IN_SECONDS, (int) $m[1] );
+		$this->assertLessThanOrEqual( $after - $days * DAY_IN_SECONDS, (int) $m[1] );
 	}
 
 	/**

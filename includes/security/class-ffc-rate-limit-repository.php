@@ -177,7 +177,7 @@ final class RateLimitRepository {
 				$t,
 				array(
 					'count'        => $e->count + 1,
-					'last_attempt' => current_time( 'mysql' ),
+					'last_attempt' => gmdate( 'Y-m-d H:i:s' ),
 				),
 				array( 'id' => $e->id ),
 				array( '%d', '%s' ),
@@ -194,7 +194,7 @@ final class RateLimitRepository {
 					'window_type'  => $window,
 					'window_start' => $ws,
 					'window_end'   => $we,
-					'last_attempt' => current_time( 'mysql' ),
+					'last_attempt' => gmdate( 'Y-m-d H:i:s' ),
 				),
 				array( '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
 			);
@@ -218,8 +218,12 @@ final class RateLimitRepository {
 	 */
 	public static function get_submission_count( string $field, string $value, string $period, ?int $form_id ): int {
 		global $wpdb;
-		$t  = $wpdb->prefix . 'ffc_submissions';
-		$dw = sprintf( 'AND submission_date >= DATE_SUB(NOW(), INTERVAL %d DAY)', self::SUBMISSION_WINDOW_DAYS[ $period ] );
+		$t = $wpdb->prefix . 'ffc_submissions';
+		// `submission_date` is a unix instant since 6.6.0 (#249), so the window
+		// is one too. Comparing it with `DATE_SUB(NOW(), …)` (a DATETIME) was
+		// always false, every count read 0 and no period limit ever blocked
+		// (#2339).
+		$dw = sprintf( 'AND submission_date >= %d', time() - self::SUBMISSION_WINDOW_DAYS[ $period ] * DAY_IN_SECONDS );
 		$fw = $form_id ? $wpdb->prepare( 'AND form_id=%d', $form_id ) : '';
 
 		// The value arrives as the visitor typed it, and the hash it is
@@ -272,7 +276,7 @@ final class RateLimitRepository {
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-		return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $t, $type, $identifier ) ) );
+		return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>%s ORDER BY id DESC LIMIT 1", $t, $type, $identifier, gmdate( 'Y-m-d H:i:s' ) ) ) );
 	}
 
 	/**
@@ -296,9 +300,9 @@ final class RateLimitRepository {
 				'form_id'        => $form_id,
 				'count'          => 999,
 				'window_type'    => 'hour',
-				'window_start'   => current_time( 'mysql' ),
+				'window_start'   => gmdate( 'Y-m-d H:i:s' ),
 				'window_end'     => gmdate( 'Y-m-d H:i:s', $blocked_ts ),
-				'last_attempt'   => current_time( 'mysql' ),
+				'last_attempt'   => gmdate( 'Y-m-d H:i:s' ),
 				'is_blocked'     => 1,
 				'blocked_until'  => gmdate( 'Y-m-d H:i:s', $blocked_ts ),
 				'blocked_reason' => 'abuse',

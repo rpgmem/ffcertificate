@@ -269,7 +269,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->handler->shouldReceive( 'get_available_slots' )->once()->andReturn( array() );
 
 		$this->callAjax( 'ajax_get_available_slots' );
-		$minute = array_values( array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_rate_read_' ) && '_minute' === substr( $k, -7 ) ) );
+		$minute = array_values( array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_rate_read_' ) && 1 === preg_match( '/_minute_\d+$/', $k ) ) );
 		$this->assertCount( 1, $minute, 'The read was counted against the public read pool (#2244).' );
 
 		$this->transients[ $minute[0] ] = 60; // The default per-minute cap.
@@ -352,7 +352,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['date']             = '2026-03-15';
 		$_POST['time']             = '09:00';
 		$_SERVER['REMOTE_ADDR']    = '203.0.113.9';
-		$this->transients[ 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) ) . '_hour' ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) ) . '_hour', HOUR_IN_SECONDS, 5 );
 		$this->handler->shouldNotReceive( 'process_appointment' );
 
 		$this->callAjax( 'ajax_book_appointment' );

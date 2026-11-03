@@ -89,7 +89,9 @@ final class RateLimitLogger {
 	 */
 	public static function cleanup_expired(): int {
 		global $wpdb;
-		$deleted = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < NOW()', $wpdb->prefix . 'ffc_rate_limits' ) );
+		// Every window column is written in UTC by PHP, so it is compared with
+		// PHP's UTC clock, never the database's `NOW()` (#2339).
+		$deleted = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < %s', $wpdb->prefix . 'ffc_rate_limits', gmdate( 'Y-m-d H:i:s' ) ) );
 
 		$d = RateLimitChecker::get_settings()['device'];
 		if ( ! empty( $d['retention_days'] ) ) {

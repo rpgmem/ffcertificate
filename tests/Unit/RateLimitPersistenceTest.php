@@ -163,7 +163,7 @@ class RateLimitPersistenceTest extends TestCase {
 		$result = RateLimiter::check_ip_limit( '198.51.100.7' );
 		$this->assertFalse( $result['allowed'] );
 		$this->assertSame( 'ip_hour_limit', $result['reason'] );
-		$this->assertSame( 3, RateCounter::get( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.7' ) ) . '_hour' ) );
+		$this->assertSame( 3, RateCounter::get( RateCounter::windowed( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.7' ) ) . '_hour', HOUR_IN_SECONDS ) ) );
 	}
 
 	public function test_ip_cooldown_holds_across_requests(): void {

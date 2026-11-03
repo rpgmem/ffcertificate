@@ -21122,9 +21122,6 @@ msgstr ""
 msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
 msgstr ""
 
-msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log)"
-msgstr ""
-
 msgid "Expired ticket cleanup"
 msgstr ""
 
@@ -31573,4 +31570,16 @@ msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:109
 msgid "When the address lookup is on, the postal code (CEP) you type is sent from our server to ViaCEP or BrasilAPI to find its address; nothing else is sent with it. Short links count how many times they were opened and record nothing about who opened them."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php:217
+msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log, rate-limit counters, device signals)"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "Windows and cleanup"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "the e-mail and CPF/RF limits count the submissions made in the last 1, 7, 30 and 365 days. The per-hour and per-minute counters start again at each new hour or minute, so a visitor who keeps trying is let through once the window rolls. The daily cleanup deletes expired counters and the device signals older than their retention."
 msgstr ""

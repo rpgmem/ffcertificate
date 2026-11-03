@@ -94,90 +94,9 @@ final class RateLimitChecker {
 		if ( null !== self::$settings_cache ) {
 			return self::$settings_cache;
 		}
-		$defaults             = array(
-			'ip'        => array(
-				'enabled'          => true,
-				'max_per_hour'     => 5,
-				'max_per_day'      => 20,
-				'cooldown_seconds' => 60,
-				'apply_to'         => 'all',
-				'message'          => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
-			),
-			'email'     => array(
-				'enabled'        => true,
-				'max_per_day'    => 3,
-				'max_per_week'   => 10,
-				'max_per_month'  => 30,
-				'wait_hours'     => 24,
-				'apply_to'       => 'all',
-				'message'        => __( 'You already have {count} certificates.', 'ffcertificate' ),
-				'check_database' => true,
-			),
-			'cpf'       => array(
-				'enabled'         => false,
-				'max_per_month'   => 5,
-				'max_per_year'    => 50,
-				'block_threshold' => 3,
-				'block_hours'     => 1,
-				'block_duration'  => 24,
-				'apply_to'        => 'all',
-				'message'         => __( 'CPF/RF limit reached.', 'ffcertificate' ),
-				'check_database'  => true,
-			),
-			'global'    => array(
-				'enabled'        => false,
-				'max_per_minute' => 100,
-				'max_per_hour'   => 1000,
-				'message'        => __( 'System unavailable.', 'ffcertificate' ),
-			),
-			'device'    => array(
-				'enabled'                   => false,
-				'max_per_form'              => 1,
-				// 6.3.2: bumped from 5 to 7 to keep the same ~55% match-ratio
-				// against the new 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%).
-				// Existing installs keep their saved value; this default only
-				// applies to fresh installs that have never persisted the array.
-				'match_threshold'           => 7,
-				// 6.7.8: two-tier match. On top of `match_threshold` (total
-				// signals matched), a fuzzy block additionally requires at
-				// least this many STRONG_SIGNALS to match — so matching only
-				// weak signals (identical across same-model fleets) can no
-				// longer trigger a false block. 0 disables the strong tier
-				// (legacy behavior). Capped at count(STRONG_SIGNALS) = 6.
-				'match_strong_min'          => 2,
-				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
-				'bypass_logged_in_managers' => true,
-				'bypass_whitelist_signals'  => array(),
-				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
-				'retention_days'            => 90,
-				'log_blocks'                => true,
-			),
-			'whitelist' => array(
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'blacklist' => array(
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'logging'   => array(
-				'enabled'        => true,
-				'log_allowed'    => false,
-				'log_blocked'    => true,
-				'retention_days' => 30,
-				'max_logs'       => 10000,
-			),
-			'ui'        => array(
-				'show_remaining'  => true,
-				'show_wait_time'  => true,
-				'countdown_timer' => true,
-			),
-		);
-		self::$settings_cache = wp_parse_args( get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, $defaults ), $defaults );
+		// One declaration of the defaults, merged recursively (#2339): see
+		// RateLimitSettingsReader::effective().
+		self::$settings_cache = \FreeFormCertificate\Settings\RateLimitSettingsReader::effective();
 		return self::$settings_cache;
 	}
 
@@ -490,7 +409,7 @@ final class RateLimitChecker {
 
 		if ( 'ip' === $type ) {
 			// Transients, so the counters persist without an object cache (#1861).
-			RateCounter::increment( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', 3600 );
+			RateCounter::increment( RateCounter::windowed( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', HOUR_IN_SECONDS ), HOUR_IN_SECONDS );
 			RateCounter::put( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
 		}
 
@@ -683,7 +602,7 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute' );
+			$mc = RateCounter::get( RateCounter::windowed( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute', MINUTE_IN_SECONDS ) );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
@@ -695,7 +614,7 @@ final class RateLimitChecker {
 		}
 
 		if ( $max_hour > 0 ) {
-			$hc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour' );
+			$hc = RateCounter::get( RateCounter::windowed( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour', HOUR_IN_SECONDS ) );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
@@ -725,8 +644,8 @@ final class RateLimitChecker {
 	public static function record_read_attempt( string $ip, string $endpoint_key, int $user_id = 0 ): void {
 		$identifier = self::read_subject( $ip, $user_id ) . '|' . $endpoint_key;
 
-		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
-		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );
+		RateCounter::increment( RateCounter::windowed( 'ffc_rate_read_' . md5( $identifier ) . '_minute', MINUTE_IN_SECONDS ), MINUTE_IN_SECONDS );
+		RateCounter::increment( RateCounter::windowed( 'ffc_rate_read_' . md5( $identifier ) . '_hour', HOUR_IN_SECONDS ), HOUR_IN_SECONDS );
 
 		// Persist the day counter too so the admin "rate-limit log" tab
 		// surfaces read activity alongside the other types. `record_attempt`

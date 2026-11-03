@@ -367,8 +367,7 @@ class CalendarRestControllerTest extends TestCase {
 			'max_per_minute' => 0,
 			'max_per_hour'   => 1,
 		);
-		$key                      = 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_hour';
-		$this->transients[ $key ] = 1;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_hour', HOUR_IN_SECONDS, 1 );
 	}
 
 	/**
@@ -382,8 +381,7 @@ class CalendarRestControllerTest extends TestCase {
 			'max_per_minute' => 1,
 			'max_per_hour'   => 0,
 		);
-		$key                      = 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_minute';
-		$this->transients[ $key ] = 1;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_minute', MINUTE_IN_SECONDS, 1 );
 	}
 
 	/**

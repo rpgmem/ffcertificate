@@ -293,7 +293,7 @@ class SubmissionGuardsTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'slow down',
 		);
-		$this->transients[ self::ip_hour_key( null ) ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( null ), HOUR_IN_SECONDS, 5 );
 
 		try {
 			( new IpRateLimitGuard() )->apply( $this->ctx() );
@@ -310,13 +310,13 @@ class SubmissionGuardsTest extends TestCase {
 		$ctx = $this->ctx();
 		( new IpRateLimitGuard() )->apply( $ctx );
 		$this->assertFalse( $ctx->has_exception );
-		$this->assertContains( self::ip_hour_key( null ), $this->transient_reads, 'The limiter was consulted.' );
+		$this->assertNotEmpty( array_filter( $this->transient_reads, static fn( $k ) => \FreeFormCertificate\Tests\Support\WindowedCounter::matches( $k, self::ip_hour_key( null ) ) ), 'The limiter was consulted.' );
 		$this->assertCount( 1, $this->reads, 'The daily counter was read from the table.' );
 	}
 
 	public function test_ip_guard_skipped_on_exception_path(): void {
 		// A counter that would block, so only the skip lets the guard pass.
-		$this->transients[ self::ip_hour_key( null ) ] = 99;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( null ), HOUR_IN_SECONDS, 99 );
 		$ctx                                            = $this->ctx();
 		$ctx->has_exception                             = true;
 		( new IpRateLimitGuard() )->apply( $ctx );
@@ -664,7 +664,7 @@ class SubmissionGuardsTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'limited',
 		);
-		$this->transients[ self::ip_hour_key( 0 ) ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( 0 ), HOUR_IN_SECONDS, 5 );
 		$before                                     = $this->transients;
 		$ctx                                        = $this->ctx();
 		$ctx->user_email                            = 'a@b.co';
@@ -684,7 +684,7 @@ class SubmissionGuardsTest extends TestCase {
 		$ctx->user_email = 'a@b.co';
 		( new RateLimitGuard() )->apply( $ctx );
 		$this->assertSame( array( 'ip/day', 'email/day', 'email/month' ), $this->counter_rows() );
-		$this->assertSame( 1, $this->transients[ self::ip_hour_key( 0 ) ] ?? null, 'The hourly IP counter moved.' );
+		$this->assertSame( 1, \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, self::ip_hour_key( 0 ), HOUR_IN_SECONDS ), 'The hourly IP counter moved.' );
 	}
 
 	// ===================== AccessRestrictionGuard =====================

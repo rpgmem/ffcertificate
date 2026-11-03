@@ -21204,9 +21204,6 @@ msgstr "Copiar as Datas de Nascimento Armazenadas para o Perfil"
 msgid "Fill the profile birth date of every account that answered a reregistration before the field existed, from the newest submission (or, failing that, the stored field values). The full date is stored encrypted, with its day and month beside it for scheduled messages. Completion here means every such account was EXAMINED: one whose stored answers hold no valid date is read, left alone, and counted as done."
 msgstr "Preenche a data de nascimento do perfil de toda conta que respondeu a um recadastramento antes de o campo existir, a partir da submissão mais recente (ou, na falta dela, dos valores de campo armazenados). A data completa é armazenada criptografada, com o dia e o mês ao lado para as mensagens agendadas. Aqui, concluído significa que toda conta dessas foi EXAMINADA: uma cujas respostas armazenadas não têm data válida é lida, deixada como está, e contada como feita."
 
-msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log)"
-msgstr "Limpeza diária (submissões, exportações, sessões expiradas, log de atividades)"
-
 msgid "Expired ticket cleanup"
 msgstr "Limpeza de tickets expirados"
 
@@ -31656,3 +31653,15 @@ msgstr "Quando um formulário é restrito pela localização da sua conexão com
 #: includes/privacy/class-ffc-privacy-handler.php:109
 msgid "When the address lookup is on, the postal code (CEP) you type is sent from our server to ViaCEP or BrasilAPI to find its address; nothing else is sent with it. Short links count how many times they were opened and record nothing about who opened them."
 msgstr "Quando a busca de endereço está ligada, o CEP que você digita é enviado do nosso servidor ao ViaCEP ou à BrasilAPI para achar o endereço; nada mais é enviado junto. Os links curtos contam quantas vezes foram abertos e não registram nada sobre quem os abriu."
+
+#: includes/core/class-ffc-scheduled-tasks.php:217
+msgid "Daily cleanup (submissions, export jobs, expired sessions, activity log, rate-limit counters, device signals)"
+msgstr "Limpeza diária (submissões, exportações, sessões expiradas, log de atividades, contadores de limite de taxa, sinais do dispositivo)"
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "Windows and cleanup"
+msgstr "Janelas e limpeza"
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "the e-mail and CPF/RF limits count the submissions made in the last 1, 7, 30 and 365 days. The per-hour and per-minute counters start again at each new hour or minute, so a visitor who keeps trying is let through once the window rolls. The daily cleanup deletes expired counters and the device signals older than their retention."
+msgstr "os limites por e-mail e por CPF/RF contam os envios feitos nos últimos 1, 7, 30 e 365 dias. Os contadores por hora e por minuto recomeçam a cada nova hora ou minuto, então um visitante que continua tentando é liberado quando a janela vira. A limpeza diária apaga os contadores expirados e os sinais do dispositivo mais antigos que a retenção."

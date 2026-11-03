@@ -91,10 +91,13 @@ final class GeolocationSettingsReader {
 		return ! empty( self::all()['ip_api_cascade'] );
 	}
 
-	/** TTL for cached IP-resolved locations, in seconds (default 600). */
+	/**
+	 * TTL for cached IP-resolved locations, in seconds (default 600), kept
+	 * between 300 and 3600 on read as on save (#2339), so a value written
+	 * before the bound or outside the tab still lands in range.
+	 */
 	public static function ip_cache_ttl(): int {
-		$opt = self::all();
-		return ! empty( $opt['ip_cache_ttl'] ) ? absint( $opt['ip_cache_ttl'] ) : 600;
+		return self::clamp_ttl( self::all()['ip_cache_ttl'] ?? null, 300 );
 	}
 
 	/** The ipinfo.io API key (default empty string). */
@@ -102,10 +105,26 @@ final class GeolocationSettingsReader {
 		return (string) ( self::all()['ipinfo_api_key'] ?? '' );
 	}
 
-	/** TTL for cached GPS-resolved locations, in seconds (default 600). */
+	/** TTL for cached GPS-resolved locations, in seconds (default 600, kept between 60 and 3600 on read). */
 	public static function gps_cache_ttl(): int {
-		$opt = self::all();
-		return ! empty( $opt['gps_cache_ttl'] ) ? absint( $opt['gps_cache_ttl'] ) : 600;
+		return self::clamp_ttl( self::all()['gps_cache_ttl'] ?? null, 60 );
+	}
+
+	/**
+	 * A cache TTL in range: 600 when absent or not a number, otherwise
+	 * between `$min` and 3600 seconds.
+	 *
+	 * @param mixed $value Stored value.
+	 * @param int   $min   Lowest TTL in seconds.
+	 * @return int
+	 */
+	public static function clamp_ttl( $value, int $min ): int {
+		// 0 is what an absent or cleared value used to read as, and it has
+		// always meant the default.
+		if ( ! is_numeric( $value ) || (int) $value <= 0 ) {
+			return 600;
+		}
+		return max( $min, min( 3600, (int) $value ) );
 	}
 
 	/**

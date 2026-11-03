@@ -258,6 +258,29 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 17, $deleted );
 	}
 
+	public function test_cleanup_expired_compares_windows_with_the_utc_clock(): void {
+		// The window columns are written in UTC by PHP; the database's NOW()
+		// is in its own time zone (#2339).
+		$this->stub_settings( array( 'device' => array( 'retention_days' => 0 ) ) );
+
+		global $wpdb;
+		$prepared = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$prepared ) {
+				$prepared[] = array( $sql, $args );
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+
+		$before = gmdate( 'Y-m-d H:i:s' );
+		RateLimitLogger::cleanup_expired();
+		$after = gmdate( 'Y-m-d H:i:s' );
+
+		$this->assertSame( 'DELETE FROM %i WHERE window_end < %s', $prepared[0][0] );
+		$this->assertContains( $prepared[0][1][1], array( $before, $after ) );
+	}
+
 	public function test_cleanup_expired_also_cleans_device_signals_when_retention_set(): void {
 		$this->stub_settings(
 			array(

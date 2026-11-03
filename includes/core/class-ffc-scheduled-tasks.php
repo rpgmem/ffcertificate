@@ -214,7 +214,7 @@ final class ScheduledTasks {
 	public static function label( string $hook ): string {
 		switch ( $hook ) {
 			case 'ffc_daily_cleanup':
-				return __( 'Daily cleanup (submissions, export jobs, expired sessions, activity log)', 'ffcertificate' );
+				return __( 'Daily cleanup (submissions, export jobs, expired sessions, activity log, rate-limit counters, device signals)', 'ffcertificate' );
 			case 'ffc_daily_expired_tickets_cleanup':
 				return __( 'Expired ticket cleanup', 'ffcertificate' );
 			case 'ffc_reregistration_expire':

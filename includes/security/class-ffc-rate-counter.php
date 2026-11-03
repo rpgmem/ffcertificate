@@ -54,6 +54,21 @@ final class RateCounter {
 	}
 
 	/**
+	 * A counter key for the current fixed window of `$seconds`.
+	 *
+	 * The window number is part of the key, the way `WindowThrottle` does
+	 * it (#2339). A key without one re-armed its expiry on every hit, so a
+	 * caller who kept coming back inside the window was never released.
+	 *
+	 * @param string $key     Counter key (`ffc_` prefixed), without a window.
+	 * @param int    $seconds Window length in seconds.
+	 * @return string
+	 */
+	public static function windowed( string $key, int $seconds ): string {
+		return $key . '_' . (int) floor( time() / max( 1, $seconds ) );
+	}
+
+	/**
 	 * Store a value outright, such as the time of the last attempt.
 	 *
 	 * @param string $key   Counter key (`ffc_` prefixed).

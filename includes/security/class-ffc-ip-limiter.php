@@ -61,7 +61,7 @@ class IpLimiter implements RateLimitStrategy {
 		}
 
 		// Persistent with or without an object cache (#1861).
-		$hc = RateCounter::get( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour' );
+		$hc = RateCounter::get( RateCounter::windowed( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour', HOUR_IN_SECONDS ) );
 		if ( $hc >= $s['max_per_hour'] ) {
 			return array(
 				'allowed'      => false,

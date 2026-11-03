@@ -89,7 +89,7 @@ class IpGeolocation {
 
 		// Cache successful result.
 		if ( ! is_wp_error( $location ) && $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
-			self::cache_location( $ip, $location, $settings['ip_cache_ttl'] ?? 600 );
+			self::cache_location( $ip, $location, \FreeFormCertificate\Settings\GeolocationSettingsReader::ip_cache_ttl() );
 		}
 
 		return $location;

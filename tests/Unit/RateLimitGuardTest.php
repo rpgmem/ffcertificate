@@ -235,7 +235,11 @@ class RateLimitGuardTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'too many',
 		);
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) . '0' ) . '_hour' ] = 5;
+		// The key carries the hour's number: this hour and the next, so a run
+		// that crosses the hour still finds the counter.
+		foreach ( array( 0, HOUR_IN_SECONDS ) as $ahead ) {
+			$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) . '0' ) . '_hour_' . (int) floor( ( time() + $ahead ) / HOUR_IN_SECONDS ) ] = 5;
+		}
 
 		$ctx             = $this->ctx();
 		$ctx->user_email = 'a@b.co';

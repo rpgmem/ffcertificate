@@ -585,7 +585,7 @@ class AppointmentRestControllerTest extends TestCase {
 			$this->make_request( array( 'id' => 3 ), $this->valid_booking() )
 		);
 
-		$this->assertArrayNotHasKey( $this->ip_hour_key(), $this->transients, 'The address pool is not touched.' );
+		$this->assertNull( \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, $this->ip_hour_key(), HOUR_IN_SECONDS ), 'The address pool is not touched.' );
 		$this->assertSame( array(), $this->inserts, 'No address attempt reaches the counter table.' );
 		$this->assertContains( 1, array_intersect_key( $this->transients, array_flip( preg_grep( '/^ffc_rate_user_5_staff_book_appointment_hour_/', array_keys( $this->transients ) ) ) ), 'The operator\'s hour counter went up by one.' );
 	}

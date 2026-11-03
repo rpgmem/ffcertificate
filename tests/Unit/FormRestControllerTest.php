@@ -1259,7 +1259,7 @@ class FormRestControllerTest extends TestCase {
 		// An integration sends every request from one server address; the
 		// per-address pool the web form uses does not apply to it (#2342).
 		$this->serve_form( array(), $this->plain_fields() );
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour' ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour', HOUR_IN_SECONDS, 5 );
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(

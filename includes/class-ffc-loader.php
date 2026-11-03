@@ -1270,6 +1270,15 @@ class Loader {
 		// module turned off must not keep its abandoned rows.
 		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Reregistration\ReregistrationImportStagingService::class, 'sweep_stale_jobs' ) );
 		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Recruitment\CsvStagingService::class, 'sweep_stale_jobs' ) );
+		// #2339: expired rate-limit windows and device signals past their
+		// retention. The cleanup existed and nothing called it, so the counter
+		// table grew forever and device fingerprints were never let go.
+		add_action(
+			'ffc_daily_cleanup',
+			static function (): void {
+				\FreeFormCertificate\Security\RateLimitLogger::cleanup_expired();
+			}
+		);
 		// Module-specific cron callbacks are bound to their module toggle, so a
 		// disabled module stops its scheduled work (expiring registrations,
 		// emailing reminders) rather than running silently. The cron events stay

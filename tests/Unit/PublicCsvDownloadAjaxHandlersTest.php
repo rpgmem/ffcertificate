@@ -322,7 +322,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	 */
 	private function exhaust_ip_hour_limit(): void {
 		$max = RateLimitChecker::get_settings()['ip']['max_per_hour'];
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour' ] = $max;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour', HOUR_IN_SECONDS, (int) $max );
 	}
 
 	// ==================================================================

@@ -558,6 +558,14 @@ jobs:
         # exact selection; it then checks the per-date block read and the
         # per-slot capacity count, and deletes what it planted.
         run: php .github/scripts/self-scheduling-query-check.php "$HOME/wp"
+      - name: Check the e-mail and CPF/RF period limits
+        # #2339: the submission count compared a unix instant with a DATETIME,
+        # so every count read 0 and no period limit ever blocked, while the
+        # unit tests (against a $wpdb double) stayed green. The script plants
+        # submissions 1 hour to 400 days old, asserts each period counts its
+        # own and each limiter refuses at its maximum, reads a temporary block
+        # back, and deletes what it planted.
+        run: php .github/scripts/rate-limit-period-check.php "$HOME/wp"
       - name: Check the recruitment import, promotion and deletion flow
         # #2245: every recruitment unit test mocks $wpdb, so none could see a
         # definitive import wipe called rows before its state check refused

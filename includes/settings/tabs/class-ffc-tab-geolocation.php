@@ -322,6 +322,8 @@ class TabGeolocation extends SettingsTab {
 			$cases = self::preset_to_cases( $preset );
 		}
 
+		$ffc_ip_cache_ttl   = \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_cache_ttl' );
+		$ffc_gps_cache_ttl  = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_cache_ttl' );
 		$ffc_gps_tolerance  = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_accuracy_tolerance' );
 		$ffc_gps_weak_share = \FreeFormCertificate\Core\RequestInput::get_post_string( 'gps_weak_share' );
 
@@ -333,9 +335,14 @@ class TabGeolocation extends SettingsTab {
 			'ip_api_cascade'         => isset( $_POST['ip_api_cascade'] ),
 			'ipinfo_api_key'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
 			'ip_cache_enabled'       => isset( $_POST['ip_cache_enabled'] ),
-			'ip_cache_ttl'           => max( 300, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'ip_cache_ttl', 600 ) ) ),
+			// A cleared field is "not supplied", never the floor (#1114, #2339).
+			'ip_cache_ttl'           => '' === $ffc_ip_cache_ttl
+				? \FreeFormCertificate\Settings\GeolocationSettingsReader::ip_cache_ttl()
+				: \FreeFormCertificate\Settings\GeolocationSettingsReader::clamp_ttl( $ffc_ip_cache_ttl, 300 ),
 
-			'gps_cache_ttl'          => max( 60, min( 3600, \FreeFormCertificate\Core\RequestInput::get_post_int( 'gps_cache_ttl', 600 ) ) ),
+			'gps_cache_ttl'          => '' === $ffc_gps_cache_ttl
+				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_cache_ttl()
+				: \FreeFormCertificate\Settings\GeolocationSettingsReader::clamp_ttl( $ffc_gps_cache_ttl, 60 ),
 			// A cleared field is "not supplied", never the floor (#1114).
 			'gps_accuracy_tolerance' => '' === $ffc_gps_tolerance
 				? \FreeFormCertificate\Settings\GeolocationSettingsReader::gps_accuracy_tolerance()

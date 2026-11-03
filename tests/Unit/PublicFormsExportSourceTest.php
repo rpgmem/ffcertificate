@@ -435,7 +435,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 	public function test_authorize_start_rejects_when_rate_limited(): void {
 		// The hour counter of this address is at the default limit of 5.
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour' ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour', HOUR_IN_SECONDS, 5 );
 		$this->post_start_gate();
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
