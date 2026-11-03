@@ -378,6 +378,20 @@ foreach ( $ffcertificate_options as $ffcertificate_option ) {
 	delete_option( $ffcertificate_option );
 }
 
+// Every other `ffc_` option, by prefix (#2343). The list above names the ones
+// written through a constant or a variable, which no static scan sees; the
+// sweep catches a key a future release forgets to add there, the way user
+// meta has always been swept. `esc_like()` is load-bearing on the
+// underscore, as it is on the table and user-meta sweeps.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time sweep over the plugin's own options by prefix; WordPress has no API to delete options by prefix.
+$wpdb->query(
+	$wpdb->prepare(
+		'DELETE FROM %i WHERE option_name LIKE %s',
+		$wpdb->options,
+		$wpdb->esc_like( 'ffc_' ) . '%'
+	)
+);
+
 // ──────────────────────────────────────
 // 3. Delete transients
 // ──────────────────────────────────────
@@ -391,6 +405,10 @@ delete_transient( 'ffc_activity_stats_90' );
 
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time wildcard delete; bounded by table scope, no user input.
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_ffc\\_%' OR option_name LIKE '\\_transient\\_\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_\\_ffc\\_%'" );
+
+// Site transients are stored under their own prefix (#2343).
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time wildcard delete; bounded by table scope, no user input.
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_site\\_transient\\_ffc\\_%' OR option_name LIKE '\\_site\\_transient\\_timeout\\_ffc\\_%'" );
 
 // ──────────────────────────────────────
 // 4. Clear scheduled cron hooks
@@ -434,10 +452,11 @@ wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 // ──────────────────────────────────────
 // 5. Delete all FFC custom posts (CPTs)
 // ──────────────────────────────────────
-// Both CPTs registered by the plugin — `ffc_form` (certificate forms)
-// and `ffc_self_scheduling` (self-scheduling calendars). wp_delete_post
-// with force=true also clears each post's post_meta + revisions.
-foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
+// Every CPT registered by the plugin — `ffc_form` (certificate forms),
+// `ffc_self_scheduling` (self-scheduling calendars) and `ffc_cert_template`
+// (the certificate template pool, #2343). wp_delete_post with force=true also
+// clears each post's post_meta + revisions.
+foreach ( array( 'ffc_form', 'ffc_self_scheduling', 'ffc_cert_template' ) as $ffcertificate_cpt ) {
 	$ffcertificate_post_ids = get_posts(
 		array(
 			'post_type'      => $ffcertificate_cpt,
@@ -451,6 +470,27 @@ foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
 		foreach ( $ffcertificate_post_ids as $ffcertificate_post_id ) {
 			wp_delete_post( $ffcertificate_post_id, true );
 		}
+	}
+}
+
+// The verification and dashboard pages the activation created (#2343), only
+// while they are still what it created: the `_ffc_managed_page` marker and a
+// body that is nothing but the plugin's shortcode. A page someone edited is
+// theirs now and stays. Block markup around the shortcode does not count as
+// an edit -- the block editor wraps it on the first save.
+$ffcertificate_managed_pages = get_posts(
+	array(
+		'post_type'      => 'page',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'meta_key'       => '_ffc_managed_page', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Uninstall-time lookup of at most two pages.
+		'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Uninstall-time lookup of at most two pages.
+	)
+);
+foreach ( $ffcertificate_managed_pages as $ffcertificate_page ) {
+	$ffcertificate_body = trim( (string) preg_replace( '/<!--\s*\/?wp:[^>]*-->/', '', (string) $ffcertificate_page->post_content ) );
+	if ( in_array( $ffcertificate_body, array( '[ffc_verification]', '[user_dashboard_personal]' ), true ) ) {
+		wp_delete_post( (int) $ffcertificate_page->ID, true );
 	}
 }
 
@@ -621,8 +661,11 @@ $ffcertificate_user_ids = $wpdb->get_col(
 	)
 );
 
+$ffcertificate_default_role = (string) get_option( 'default_role', 'subscriber' );
+
 foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
-	$ffcertificate_user = new WP_User( (int) $ffcertificate_uid );
+	$ffcertificate_user         = new WP_User( (int) $ffcertificate_uid );
+	$ffcertificate_was_end_user = isset( $ffcertificate_user->caps['ffc_end_user'] );
 
 	// `array_keys()` snapshots before the loop: `remove_cap()` rebuilds
 	// `$user->caps`, so iterating it directly would mutate what is being read.
@@ -634,6 +677,13 @@ foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
 
 	foreach ( $ffcertificate_legacy_caps as $ffcertificate_cap ) {
 		$ffcertificate_user->remove_cap( $ffcertificate_cap );
+	}
+
+	// An account whose only role was `ffc_end_user` is left with none, which
+	// WordPress shows as "No role for this site" and lets do nothing. It gets
+	// the site's default role, as a new registration would (#2343).
+	if ( $ffcertificate_was_end_user && array() === $ffcertificate_user->roles && '' !== $ffcertificate_default_role && null !== get_role( $ffcertificate_default_role ) ) {
+		$ffcertificate_user->set_role( $ffcertificate_default_role );
 	}
 }
 

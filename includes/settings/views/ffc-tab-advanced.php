@@ -911,13 +911,16 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<td>
 					<?php
 					$ffcertificate_delete_on_uninstall = '1' === (string) ( $ffcertificate_get_option( 'delete_data_on_uninstall', '0' ) );
+					// Arming the purge is a Danger Zone action (#2343): an
+					// account without that capability sees the state, not the switch.
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
 						array(
-							'name'    => 'ffc_settings[delete_data_on_uninstall]',
-							'id'      => 'ffc_delete_data_on_uninstall',
-							'checked' => $ffcertificate_delete_on_uninstall,
-							'label'   => __( 'Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin', 'ffcertificate' ),
-							'data'    => array( 'ffc-autosave-key' => 'delete_data_on_uninstall' ),
+							'name'     => 'ffc_settings[delete_data_on_uninstall]',
+							'id'       => 'ffc_delete_data_on_uninstall',
+							'checked'  => $ffcertificate_delete_on_uninstall,
+							'disabled' => ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ),
+							'label'    => __( 'Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin', 'ffcertificate' ),
+							'data'     => array( 'ffc-autosave-key' => 'delete_data_on_uninstall' ),
 						)
 					);
 					?>

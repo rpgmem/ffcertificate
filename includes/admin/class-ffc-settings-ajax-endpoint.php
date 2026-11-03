@@ -127,11 +127,6 @@ class SettingsAjaxEndpoint {
 			'activity_log_cat_recruitment',
 			'activity_log_cat_migrations',
 			'activity_log_cat_system',
-			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
-			// data (tables, options, CPT posts, roles, caps). Default OFF
-			// matches the WooCommerce / EDD / Yoast convention so plugin
-			// deletion never wipes data unintentionally.
-			'delete_data_on_uninstall',
 			// General tab — submission auto-delete opt-in (#936). Default OFF;
 			// gates the day-window field so no site purges data unintentionally.
 			'cleanup_enabled',
@@ -203,6 +198,17 @@ class SettingsAjaxEndpoint {
 				'path'   => array( 'disable_all_emails' ),
 				'type'   => 'bool',
 				'invert' => true,
+				'cap'    => 'ffc_manage_settings_dangerzone',
+			),
+			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
+			// data (tables, options, CPT posts, roles, caps). Default OFF
+			// matches the WooCommerce / EDD / Yoast convention so plugin
+			// deletion never wipes data unintentionally. Arming it is a
+			// destructive decision, so it carries the dangerzone sub-cap like
+			// every other Danger Zone action (#2343).
+			'delete_data_on_uninstall'      => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings_dangerzone',
 			),
 			// Raw kill-switch slot (legacy JS key) — same dangerzone gate as the

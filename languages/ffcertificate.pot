@@ -17808,10 +17808,6 @@ msgstr ""
 msgid "two"
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:73
-msgid "Two destructive tools live here: \"Delete all plugin data on uninstall\" (when on, deleting the plugin drops its tables, options, roles/capabilities and transients — off by default), and a \"Delete submissions\" action (all, or for one form, with an option to reset the ID counter). Both are irreversible."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-audiences.php:41
 msgid "Two linked dropdowns (e.g. Division → Sector); the second list depends on the first choice."
 msgstr ""
@@ -31515,4 +31511,8 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:61
 msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php:83
+msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
 msgstr ""
