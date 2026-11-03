@@ -280,7 +280,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	 * @return array{0: array<string, string>, 1: array{answer: int, hash: string}}
 	 */
 	private function answered_post( array $fields = array() ): array {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'public_csv' );
 		$post      = $fields + array(
 			'_ffc_pcd_nonce'   => 'n',
 			'form_id'          => (string) self::FORM_ID,
@@ -386,8 +386,8 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'json_success', $e->getMessage() );
 		}
 		// The challenge is still unspent, so the download can redeem it once.
-		$this->assertTrue( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'] ) );
-		$this->assertFalse( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'] ) );
+		$this->assertTrue( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'], 'public_csv' ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( (string) $challenge['answer'], $challenge['hash'], 'public_csv' ) );
 	}
 
 	public function test_ajax_info_rejects_missing_form_id(): void {

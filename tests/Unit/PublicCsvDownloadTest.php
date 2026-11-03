@@ -757,7 +757,7 @@ class PublicCsvDownloadTest extends TestCase {
 		$method = new \ReflectionMethod( \FreeFormCertificate\Core\SecurityService::class, 'issue_token' );
 		$method->setAccessible( true );
 
-		return (string) $method->invoke( null, $answer, time() + 600 );
+		return (string) $method->invoke( null, $answer, time() + 600, 'public_csv' );
 	}
 
 	// ==================================================================

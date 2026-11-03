@@ -137,9 +137,16 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * of its own and the signature covers the canonical JSON of every field,
 	 * so there is no boundary left to move.
 	 *
+	 * THE CONTEXT IS SIGNED, NOT SENT (#2339)
+	 *
+	 * The form or action the challenge is issued for joins the signed payload
+	 * but not the parameters, so the widget's wire format is unchanged and a
+	 * proof solved for one form fails its signature on another.
+	 *
+	 * @param string $context What the challenge is issued for ({@see CaptchaContext}).
 	 * @return array{parameters: array<string, int|string>, signature: string} Challenge in the widget's v2 wire format.
 	 */
-	public static function create_challenge(): array {
+	public static function create_challenge( string $context = '' ): array {
 		$nonce   = bin2hex( random_bytes( 16 ) );
 		$salt    = bin2hex( random_bytes( 16 ) );
 		$counter = random_int( 0, CaptchaSettings::complexity() );
@@ -156,7 +163,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 
 		return array(
 			'parameters' => $parameters,
-			'signature'  => ChallengeSigner::sign( self::signed_payload( $parameters ) ),
+			'signature'  => ChallengeSigner::sign( self::signed_payload( $parameters, $context ) ),
 		);
 	}
 
@@ -266,10 +273,11 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * On its own the widget is the only way through, so a visitor without
 	 * JavaScript is told so.
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return string Escaped HTML.
 	 */
-	public function render_fields(): string {
-		return $this->render_widget( true );
+	public function render_fields( string $context = '' ): string {
+		return $this->render_widget( true, $context );
 	}
 
 	/**
@@ -281,10 +289,12 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * field the visitor is about to answer — telling them in red that the
 	 * form cannot be submitted, immediately above the thing that submits it.
 	 *
-	 * @param bool $ffc_altcha_noscript_notice Whether to emit the notice.
+	 * @param bool   $ffc_altcha_noscript_notice Whether to emit the notice.
+	 * @param string $context                    What the challenge is issued for; the
+	 *                                           widget fetches with it on every request.
 	 * @return string Escaped HTML.
 	 */
-	public function render_widget( bool $ffc_altcha_noscript_notice ): string {
+	public function render_widget( bool $ffc_altcha_noscript_notice, string $context = '' ): string {
 		// Enqueued here rather than from a page-type branch, so the scripts
 		// follow the widget onto every surface that renders it. Shortcodes
 		// render during `the_content`, well before `wp_footer`, and both
@@ -292,7 +302,10 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 		\wp_enqueue_script( 'ffc-captcha' );
 
 		$ffc_altcha_challenge_url = \add_query_arg(
-			array( 'action' => AltchaChallengeEndpoint::AJAX_ACTION ),
+			array(
+				'action'  => AltchaChallengeEndpoint::AJAX_ACTION,
+				'context' => $context,
+			),
 			\admin_url( 'admin-ajax.php' )
 		);
 
@@ -323,10 +336,11 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * {@inheritDoc}
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function verify( array $request ) {
-		$proof = $this->authenticate( $request );
+	public function verify( array $request, string $context = '' ) {
+		$proof = $this->authenticate( $request, $context );
 
 		if ( is_string( $proof ) ) {
 			return $proof;
@@ -343,10 +357,11 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * {@inheritDoc}
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function peek( array $request ) {
-		$proof = $this->authenticate( $request );
+	public function peek( array $request, string $context = '' ) {
+		$proof = $this->authenticate( $request, $context );
 
 		if ( is_string( $proof ) ) {
 			return $proof;
@@ -371,9 +386,10 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * ours; the solution is checked last, against parameters that are.
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return array{signature: string, ttl: int}|string Proof, or an error message.
 	 */
-	private function authenticate( array $request ) {
+	private function authenticate( array $request, string $context ) {
 		$generic = \__( 'Error: Verification failed. Please try again.', 'ffcertificate' );
 
 		$payload = $this->decode( $request[ self::FIELD ] ?? null );
@@ -386,7 +402,7 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			return $generic;
 		}
 
-		if ( ! ChallengeSigner::matches( self::signed_payload( $parameters ), $payload['signature'] ) ) {
+		if ( ! ChallengeSigner::matches( self::signed_payload( $parameters, $context ), $payload['signature'] ) ) {
 			return $generic;
 		}
 
@@ -524,16 +540,22 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * `math|…` payload (`SecurityService::payload()`), so no payload of one
 	 * strategy can ever be read as the other's.
 	 *
+	 * The context comes last, after the sorted parameters, under a key no
+	 * parameter uses; {@see CaptchaContext::sanitize()} keeps `|` and `=` out
+	 * of it, so the reading stays unique.
+	 *
 	 * @param array<string, int|string> $parameters Challenge parameters.
+	 * @param string                    $context    What the challenge is issued for.
 	 * @return string Canonical payload for {@see ChallengeSigner}.
 	 */
-	private static function signed_payload( array $parameters ): string {
+	private static function signed_payload( array $parameters, string $context ): string {
 		ksort( $parameters );
 
 		$fields = array( self::ID );
 		foreach ( $parameters as $key => $value ) {
 			$fields[] = $key . '=' . (string) $value;
 		}
+		$fields[] = 'context=' . $context;
 
 		return implode( '|', $fields );
 	}
@@ -548,9 +570,13 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 	 * strategy. `provider` is still returned so the client can recognise the
 	 * payload and skip it rather than guess.
 	 *
+	 * @param string $context Unused: the widget fetches its challenge with the
+	 *                        context its markup names.
 	 * @return array<string, mixed>
 	 */
-	public function challenge_payload(): array {
+	public function challenge_payload( string $context = '' ): array {
+		unset( $context );
+
 		return array( 'provider' => self::ID );
 	}
 }

@@ -374,7 +374,7 @@ class PublicFormsExportSourceTest extends TestCase {
 	 * A solved math challenge, posted as the form posts it.
 	 */
 	private function post_solved_captcha(): void {
-		$captcha                     = SecurityService::generate_simple_captcha();
+		$captcha                     = SecurityService::generate_simple_captcha( 'public_csv' );
 		$_POST['ffc_captcha_ans']    = (string) $captcha['answer'];
 		$_POST['ffc_captcha_hash']   = $captcha['hash'];
 		$this->nonces[ PublicCsvDownload::NONCE_ACTION ] = 'page-nonce';

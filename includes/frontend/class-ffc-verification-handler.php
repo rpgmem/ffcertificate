@@ -402,11 +402,12 @@ class VerificationHandler {
 		}
 
 		// Validate honeypot + captcha via centralised service.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );
 		if ( true !== $security_check ) {
 			wp_send_json_error(
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-					array( 'message' => $security_check )
+					array( 'message' => $security_check ),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY
 				)
 			);
 		}
@@ -418,7 +419,8 @@ class VerificationHandler {
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
 					array(
 						'message' => __( 'Too many verification attempts. Please try again later.', 'ffcertificate' ),
-					)
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY
 				)
 			);
 		}
@@ -432,7 +434,8 @@ class VerificationHandler {
 					array(
 						'message' => self::revoked_message( (int) $result['revoked_at'] ),
 						'revoked' => true,
-					)
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY
 				)
 			);
 		}
@@ -440,7 +443,8 @@ class VerificationHandler {
 		if ( ! $result['found'] ) {
 			wp_send_json_error(
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-					array( 'message' => __( 'Document not found or invalid code.', 'ffcertificate' ) )
+					array( 'message' => __( 'Document not found or invalid code.', 'ffcertificate' ) ),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY
 				)
 			);
 		}
@@ -448,7 +452,7 @@ class VerificationHandler {
 		$pdf_data = $this->pdf_data( $result );
 
 		if ( is_wp_error( $pdf_data ) ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $pdf_data->get_error_message() ), \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY ) );
 		}
 
 		$html = $this->response_html( $result );

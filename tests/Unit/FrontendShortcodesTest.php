@@ -157,7 +157,7 @@ class FrontendShortcodesTest extends TestCase {
 	public function test_generate_security_fields_contains_honeypot_and_captcha(): void {
 		Functions\when( 'wp_rand' )->justReturn( 3 );
 
-		$html = $this->shortcodes->generate_security_fields();
+		$html = $this->shortcodes->generate_security_fields( 'verify' );
 
 		$this->assertStringContainsString( 'ffc-honeypot-field', $html );
 		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );

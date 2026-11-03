@@ -194,7 +194,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$reflection = new \ReflectionMethod( \FreeFormCertificate\Core\SecurityService::class, 'issue_token' );
 		$reflection->setAccessible( true );
 
-		return (string) $reflection->invoke( null, (string) $answer, time() + 600 );
+		return (string) $reflection->invoke( null, (string) $answer, time() + 600, \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 	}
 
 	/**

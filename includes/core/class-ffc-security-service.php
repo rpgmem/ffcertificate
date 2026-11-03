@@ -40,9 +40,10 @@ class SecurityService {
 	 * automated parsing significantly harder while keeping the challenge
 	 * trivial for humans.
 	 *
+	 * @param string $context What the challenge is issued for; part of the signed payload (#2339).
 	 * @return array<string, mixed> Array with 'label', 'hash', and 'answer'
 	 */
-	public static function generate_simple_captcha(): array {
+	public static function generate_simple_captcha( string $context = '' ): array {
 		list( $n1, $n2, $answer, $operator_symbol ) = self::pick_operation();
 
 		$display1   = \wp_rand( 0, 1 ) ? self::number_to_word( $n1 ) : (string) $n1;
@@ -54,7 +55,7 @@ class SecurityService {
 		return array(
 			/* translators: 1: first operand (digit or word), 2: operator (symbol or word), 3: second operand (digit or word) */
 			'label'  => sprintf( \esc_html__( 'Security: How much is %1$s %2$s %3$s?', 'ffcertificate' ), $display1, $display_op, $display2 ),
-			'hash'   => self::issue_token( (string) $answer, $expires ),
+			'hash'   => self::issue_token( (string) $answer, $expires, $context ),
 			'answer' => $answer,
 		);
 	}
@@ -134,17 +135,21 @@ class SecurityService {
 	 * change — the expiry rides inside the value instead of in a new input
 	 * that four render sites and three scripts would have to learn about.
 	 *
+	 * The context is signed and not carried: the verifier supplies the one it
+	 * expects, so a token issued for another form fails its signature.
+	 *
 	 * @param string $answer  Expected answer.
 	 * @param int    $expires Unix UTC timestamp the challenge dies at.
+	 * @param string $context What the challenge is issued for.
 	 * @return string Opaque token.
 	 */
-	private static function issue_token( string $answer, int $expires ): string {
+	private static function issue_token( string $answer, int $expires, string $context ): string {
 		// The nonce is what makes every issued challenge distinct. Without it
 		// two visitors drawing the same answer in the same second would share
 		// a token, and the first to submit would burn the other's challenge.
 		$nonce = bin2hex( random_bytes( 8 ) );
 
-		return $expires . '.' . $nonce . '.' . Captcha\ChallengeSigner::sign( self::payload( $answer, $expires, $nonce ) );
+		return $expires . '.' . $nonce . '.' . Captcha\ChallengeSigner::sign( self::payload( $answer, $expires, $nonce, $context ) );
 	}
 
 	/**
@@ -153,10 +158,11 @@ class SecurityService {
 	 * @param string $answer  Expected answer.
 	 * @param int    $expires Unix UTC timestamp the challenge dies at.
 	 * @param string $nonce   Per-challenge random value.
+	 * @param string $context What the challenge is issued for.
 	 * @return string Canonical payload.
 	 */
-	private static function payload( string $answer, int $expires, string $nonce ): string {
-		return 'math|' . $answer . '|' . $expires . '|' . $nonce;
+	private static function payload( string $answer, int $expires, string $nonce, string $context ): string {
+		return 'math|' . $answer . '|' . $expires . '|' . $nonce . '|' . $context;
 	}
 
 	/**
@@ -170,12 +176,16 @@ class SecurityService {
 	 * that: the token is signed with a site-derived key, it carries an expiry
 	 * inside the signed payload, and redeeming it burns it.
 	 *
-	 * @param string $answer User's answer.
-	 * @param string $hash   Token issued with the challenge.
+	 * Since #2339 the token is bound to the context it was issued for, so a
+	 * challenge solved on one form is refused on another.
+	 *
+	 * @param string $answer  User's answer.
+	 * @param string $hash    Token issued with the challenge.
+	 * @param string $context Context the caller expects.
 	 * @return bool True if correct, false otherwise
 	 */
-	public static function verify_simple_captcha( string $answer, string $hash ): bool {
-		$proof = self::authenticate_token( $answer, $hash );
+	public static function verify_simple_captcha( string $answer, string $hash, string $context = '' ): bool {
+		$proof = self::authenticate_token( $answer, $hash, $context );
 		if ( null === $proof ) {
 			// A wrong answer spends the token too (#2339). It used to leave the
 			// token live, so one challenge could be tried against every one of
@@ -208,7 +218,10 @@ class SecurityService {
 			return null;
 		}
 		$ttl = (int) $parts[0] - time();
-		return $ttl > 0 ? array( 'signature' => $parts[2], 'ttl' => $ttl ) : null;
+		return $ttl > 0 ? array(
+			'signature' => $parts[2],
+			'ttl'       => $ttl,
+		) : null;
 	}
 
 	/**
@@ -225,12 +238,13 @@ class SecurityService {
 	 * token as valid would only move the contradiction downstream.
 	 *
 	 * @since 6.23.0
-	 * @param string $answer User's answer.
-	 * @param string $hash   Token issued with the challenge.
+	 * @param string $answer  User's answer.
+	 * @param string $hash    Token issued with the challenge.
+	 * @param string $context Context the caller expects.
 	 * @return bool True when the answer is correct and the token is unspent.
 	 */
-	public static function peek_simple_captcha( string $answer, string $hash ): bool {
-		$proof = self::authenticate_token( $answer, $hash );
+	public static function peek_simple_captcha( string $answer, string $hash, string $context = '' ): bool {
+		$proof = self::authenticate_token( $answer, $hash, $context );
 
 		return null !== $proof && ! Captcha\ChallengeStore::is_spent( $proof['signature'] );
 	}
@@ -242,12 +256,13 @@ class SecurityService {
 	 * agree on: shape, expiry and signature. Redemption is deliberately left
 	 * to the callers, because that is the only thing they differ on.
 	 *
-	 * @param string $answer User's answer.
-	 * @param string $hash   Token issued with the challenge.
+	 * @param string $answer  User's answer.
+	 * @param string $hash    Token issued with the challenge.
+	 * @param string $context Context the caller expects.
 	 * @return array{signature: string, ttl: int}|null Null when the token
 	 *                                                 does not authenticate.
 	 */
-	private static function authenticate_token( string $answer, string $hash ): ?array {
+	private static function authenticate_token( string $answer, string $hash, string $context ): ?array {
 		// Note: '' === trim() handles both empty and whitespace-only, and — unlike empty() —
 		// does not reject a valid answer of "0" (which can happen for n - n subtraction).
 		$answer = trim( $answer );
@@ -271,7 +286,7 @@ class SecurityService {
 			return null;
 		}
 
-		if ( ! Captcha\ChallengeSigner::matches( self::payload( $answer, $expires, $nonce ), $signature ) ) {
+		if ( ! Captcha\ChallengeSigner::matches( self::payload( $answer, $expires, $nonce, $context ), $signature ) ) {
 			return null;
 		}
 
@@ -285,11 +300,12 @@ class SecurityService {
 	 * Validate security fields (honeypot + captcha)
 	 *
 	 * @since 2.10.0
-	 * @param array<string, mixed> $data Form data containing security fields.
+	 * @param array<string, mixed> $data    Form data containing security fields.
+	 * @param string               $context What the request acts on ({@see Captcha\CaptchaContext}), never read from `$data`.
 	 * @return bool|string True if valid, error message string if invalid
 	 */
-	public static function validate_security_fields( array $data ) {
-		return self::run_security_gate( $data, true );
+	public static function validate_security_fields( array $data, string $context ) {
+		return self::run_security_gate( $data, $context, true );
 	}
 
 	/**
@@ -303,21 +319,23 @@ class SecurityService {
 	 * replay hole this gate exists to close.
 	 *
 	 * @since 6.23.0
-	 * @param array<string, mixed> $data Form data containing security fields.
+	 * @param array<string, mixed> $data    Form data containing security fields.
+	 * @param string               $context What the request acts on, never read from `$data`.
 	 * @return bool|string True if valid, error message string if invalid.
 	 */
-	public static function peek_security_fields( array $data ) {
-		return self::run_security_gate( $data, false );
+	public static function peek_security_fields( array $data, string $context ) {
+		return self::run_security_gate( $data, $context, false );
 	}
 
 	/**
 	 * Shared body of the two security gates.
 	 *
 	 * @param array<string, mixed> $data    Form data containing security fields.
+	 * @param string               $context What the request acts on.
 	 * @param bool                 $consume Whether to spend the challenge.
 	 * @return bool|string True if valid, error message string if invalid.
 	 */
-	private static function run_security_gate( array $data, bool $consume ) {
+	private static function run_security_gate( array $data, string $context, bool $consume ) {
 		// Check honeypot.
 		if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
 			return \__( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
@@ -326,7 +344,7 @@ class SecurityService {
 		// The captcha half belongs to whichever strategy is configured; the
 		// honeypot above is provider-independent, which is why it stays here.
 		$provider = Captcha\CaptchaProvider::resolve();
-		$result   = $consume ? $provider->verify( $data ) : $provider->peek( $data );
+		$result   = $consume ? $provider->verify( $data, $context ) : $provider->peek( $data, $context );
 
 		if ( true !== $result ) {
 			/**
@@ -350,10 +368,15 @@ class SecurityService {
 	 * (via `Shortcodes`) and once inline in the self-scheduling booking form —
 	 * and the copies had already drifted apart.
 	 *
+	 * The context travels on the container as `data-ffc-captcha-context`, so
+	 * the cached-page refresh can ask for a challenge bound to the same thing.
+	 *
+	 * @param string $context What the challenge is issued for ({@see Captcha\CaptchaContext}).
 	 * @return string Escaped HTML.
 	 */
-	public static function render_security_fields(): string {
-		$ffc_captcha_fields = Captcha\CaptchaProvider::resolve()->render_fields();
+	public static function render_security_fields( string $context ): string {
+		$ffc_captcha_context = $context;
+		$ffc_captcha_fields  = Captcha\CaptchaProvider::resolve()->render_fields( $context );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/security-fields.php';
@@ -376,15 +399,16 @@ class SecurityService {
 	 * mints its own) is returned untouched.
 	 *
 	 * @param array<string, mixed> $payload Error payload for wp_send_json_error().
+	 * @param string               $context What the replacement is issued for: the surface that rejected.
 	 * @return array<string, mixed> Payload with a usable challenge attached.
 	 */
-	public static function with_fresh_challenge( array $payload ): array {
+	public static function with_fresh_challenge( array $payload, string $context ): array {
 		if ( ! empty( $payload['refresh_captcha'] ) ) {
 			return $payload;
 		}
 
 		$payload['refresh_captcha'] = true;
 
-		return array_merge( $payload, Captcha\CaptchaProvider::resolve()->challenge_payload() );
+		return array_merge( $payload, Captcha\CaptchaProvider::resolve()->challenge_payload( $context ) );
 	}
 }

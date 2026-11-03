@@ -646,7 +646,7 @@ class SelfSchedulingShortcode {
 								// and the two had drifted — the hidden input carried an id
 								// here and not there.
 								// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside render_security_fields().
-								echo \FreeFormCertificate\Core\SecurityService::render_security_fields();
+								echo \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 								?>
 
 								<!-- LGPD Consent -->

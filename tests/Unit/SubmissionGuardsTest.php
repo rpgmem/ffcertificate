@@ -373,8 +373,9 @@ class SubmissionGuardsTest extends TestCase {
 	}
 
 	public function test_security_guard_passes_when_valid(): void {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'form:7' );
 		$_POST     = array(
+			'form_id'          => '7',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
 		);
@@ -382,6 +383,22 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertNull( ( new SecurityFieldsGuard() )->apply( $this->ctx() ) );
 		$spent = array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_captcha_used_' ) );
 		$this->assertCount( 1, $spent, 'A valid answer spends its challenge.' );
+	}
+
+	public function test_security_guard_refuses_a_challenge_issued_for_another_form(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'form:7' );
+		$_POST     = array(
+			'form_id'          => '8',
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		);
+
+		try {
+			( new SecurityFieldsGuard() )->apply( $this->ctx() );
+			$this->fail( 'A challenge solved on form 7 must not pass on form 8.' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertStringContainsString( 'incorrect', $e->get_payload()['message'] );
+		}
 	}
 
 	// ===================== FormConfigResolver =====================

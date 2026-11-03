@@ -181,12 +181,12 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7', '8' );
-		$_POST['blocks']   = '2';
+		$_POST['contexts'] = array( 'form:7', 'form:8' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$data = $this->json_responses[0]['data'];
 
@@ -215,12 +215,12 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7' );
-		$_POST['blocks']   = '2';
+		$_POST['contexts'] = array( 'form:7', 'booking' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$data = $this->json_responses[0]['data'];
 
@@ -236,14 +236,40 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7' );
-		$_POST['blocks']   = '1';
+		$_POST['contexts'] = array( 'form:7' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$this->assertArrayNotHasKey( 'captchas', $this->json_responses[0]['data'] );
+	}
+
+	/**
+	 * Each challenge is bound to what its block names (#2339), and a name
+	 * that is not a context falls to '', which no verifier asks for.
+	 */
+	public function test_handle_binds_each_challenge_to_its_block_context(): void {
+		$provider = Mockery::mock( '\FreeFormCertificate\Core\Captcha\CaptchaProviderInterface' );
+		$seen     = array();
+		$provider->shouldReceive( 'challenge_payload' )->andReturnUsing(
+			function ( string $context = '' ) use ( &$seen ) {
+				$seen[] = $context;
+				return array( 'provider' => 'math', 'new_label' => $context, 'new_hash' => 'h' . count( $seen ) );
+			}
+		);
+		self::use_strategy( $provider );
+		$this->stubWordPress();
+
+		$_POST['contexts'] = array( 'form:7', 'public_csv', 'form:7|x', array( 'nested' ) );
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['contexts'] );
+
+		$this->assertSame( array( 'form:7', 'form:7', 'public_csv', '', '' ), $seen, 'The default challenge takes the first block\'s context, then one per block.' );
 	}
 
 	/**
@@ -264,12 +290,12 @@ class DynamicFragmentsTest extends TestCase {
 
 		$this->stubWordPress();
 
-		$_POST['blocks'] = '5000';
+		$_POST['contexts'] = array_fill( 0, 5000, 'verify' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['blocks'] );
+		unset( $_POST['contexts'] );
 
 		$this->assertCount( 20, $this->json_responses[0]['data']['captchas'] );
 		$this->assertSame( 21, $calls, 'One default challenge plus the capped list — never 5000.' );
