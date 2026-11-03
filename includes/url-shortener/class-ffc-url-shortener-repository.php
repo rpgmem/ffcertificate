@@ -78,6 +78,15 @@ class UrlShortenerRepository extends AbstractRepository {
 		return 'ffc_short_urls';
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return UrlShortenerReader::LOOKUP_CACHE_KEYS;
+	}
+
 	// ─────────────────────────────────────────────.
 	// Reads — delegate to UrlShortenerReader.
 	// ─────────────────────────────────────────────.

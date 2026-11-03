@@ -279,7 +279,11 @@ abstract class AbstractRepository {
 		$result = $this->wpdb->insert( $this->table, $data );
 
 		if ( $result ) {
-			$this->clear_cache();
+			// Only a miss could be stale, and no lookup caches one: the keys the
+			// new row can be found by are cleared, not the whole group (#2343),
+			// which without `flush_group` was the whole site cache.
+			$this->clear_cache( 'id_' . (int) $this->wpdb->insert_id );
+			$this->clear_alternate_keys( $data );
 			return $this->wpdb->insert_id;
 		}
 
@@ -295,6 +299,10 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows updated, or false on error
 	 */
 	public function update( int $id, array $data ) {
+		// The row as it was, so a key it WAS found by is cleared even when the
+		// update changes that column (a short code renamed, a token rotated).
+		$before = $this->row_for_alternate_keys( $id );
+
 		$result = $this->wpdb->update(
 			$this->table,
 			$data,
@@ -303,6 +311,8 @@ abstract class AbstractRepository {
 
 		if ( false !== $result ) {
 			$this->clear_cache( "id_{$id}" );
+			$this->clear_alternate_keys( $before );
+			$this->clear_alternate_keys( $data );
 		} else {
 			$this->log_db_error( 'update', $id );
 		}
@@ -317,15 +327,69 @@ abstract class AbstractRepository {
 	 * @return int|false Number of rows deleted, or false on error
 	 */
 	public function delete( int $id ) {
+		$before = $this->row_for_alternate_keys( $id );
 		$result = $this->wpdb->delete( $this->table, array( 'id' => $id ) );
 
 		if ( $result ) {
 			$this->clear_cache( "id_{$id}" );
+			$this->clear_alternate_keys( $before );
 		} elseif ( false === $result ) {
 			$this->log_db_error( 'delete', $id );
 		}
 
 		return $result;
+	}
+
+	/**
+	 * The keys, other than `id_*`, a reader of this cache group stores a row
+	 * under: key prefix => the column whose value completes it (#2343).
+	 *
+	 * Clearing only `id_*` on a write left those copies alive for their whole
+	 * expiry with a persistent object cache -- a disabled short URL kept
+	 * redirecting, a deleted certificate kept verifying, a saved calendar kept
+	 * its old settings. Every class that writes a group returns the same map,
+	 * read from the group's Reader, which owns the keys.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return array();
+	}
+
+	/**
+	 * The columns a row's alternate keys are built from, read before a write;
+	 * nothing is read when the group has no alternate key.
+	 *
+	 * @param int $id Record ID.
+	 * @return array<string, mixed>
+	 */
+	private function row_for_alternate_keys( int $id ): array {
+		$columns = array_values( $this->alternate_cache_keys() );
+		if ( array() === $columns ) {
+			return array();
+		}
+
+		$row = $this->wpdb->get_row(
+			$this->wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table, $id ),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? $row : array();
+	}
+
+	/**
+	 * Clear the alternate keys a row's values complete.
+	 *
+	 * @param array<string, mixed> $row Row, or the data written.
+	 * @return void
+	 */
+	private function clear_alternate_keys( array $row ): void {
+		foreach ( $this->alternate_cache_keys() as $prefix => $column ) {
+			$value = $row[ $column ] ?? null;
+			if ( is_scalar( $value ) && '' !== (string) $value ) {
+				$this->clear_cache( $prefix . $value );
+			}
+		}
 	}
 
 	/**

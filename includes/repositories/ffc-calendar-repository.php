@@ -44,6 +44,16 @@ class CalendarRepository extends AbstractRepository {
 	}
 
 	/**
+	 * The calendar is also cached by its post (`post_*`), which a save must
+	 * clear with the row (#2343).
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return array( 'post_' => 'post_id' );
+	}
+
+	/**
 	 * Allowed ORDER BY columns: the generic set plus `title`, which the
 	 * calendars REST list sorts by (#2146). Without it `sanitize_order_column()`
 	 * silently turns that sort into an `id` sort.

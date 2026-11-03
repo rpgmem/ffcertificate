@@ -166,6 +166,16 @@ class SelfSchedulingCPTTest extends TestCase {
 				if ( preg_match( '/^SELECT \* FROM ' . self::CALENDARS . ' WHERE post_id = (\d+)$/', $sql, $m ) ) {
 					return $this->calendars[ (int) $m[1] ] ?? null;
 				}
+				// A write reads the row first, to clear the keys it is cached
+				// under (#2343).
+				if ( preg_match( '/^SELECT \* FROM ' . self::CALENDARS . ' WHERE id = (\d+)$/', $sql, $m ) ) {
+					foreach ( $this->calendars as $calendar ) {
+						if ( (int) ( $calendar['id'] ?? 0 ) === (int) $m[1] ) {
+							return $calendar;
+						}
+					}
+					return null;
+				}
 				throw new \RuntimeException( 'Unexpected get_row: ' . $sql );
 			}
 		);

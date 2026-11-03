@@ -50,6 +50,15 @@ class UrlShortenerWriter extends AbstractRepository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return UrlShortenerReader::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Increment the click counter for a short URL.
 	 *
 	 * Uses a lightweight UPDATE without cache invalidation since

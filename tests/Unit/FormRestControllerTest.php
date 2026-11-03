@@ -245,6 +245,11 @@ class FormRestControllerTest extends TestCase {
 					// By default no earlier submission of this CPF: not a reprint.
 					return $this->earlier_row;
 				}
+				// An update reads the row first, to clear the keys it is cached
+				// under (#2343).
+				if ( 'SELECT * FROM %i WHERE id = %d' === $sql ) {
+					return null;
+				}
 				$this->unexpected[] = 'get_row(): ' . $sql;
 				return null;
 			}
