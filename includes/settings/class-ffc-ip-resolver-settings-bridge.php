@@ -40,6 +40,23 @@ final class IpResolverSettingsBridge {
 		// range injection (priority 10) — the cleared CF set must be final.
 		add_filter( 'ffc_cloudflare_ip_ranges', array( self::class, 'filter_cloudflare_ranges' ), 20 );
 		add_filter( 'ffc_ip_shadow_logging', array( self::class, 'filter_shadow_logging' ) );
+		add_filter( 'ffc_ip_trust_private_peer', array( self::class, 'filter_trust_private_peer' ) );
+	}
+
+	/**
+	 * Whether a private TCP peer is the site's own proxy (#2339).
+	 *
+	 * True when the operator said so on the tab, or chose the Cloudflare
+	 * mode, which is the same statement: every request reaches the site
+	 * through Cloudflare, so a private peer is the host's hop in between.
+	 *
+	 * @param mixed $trusted Incoming flag.
+	 * @return bool
+	 */
+	public static function filter_trust_private_peer( $trusted ): bool {
+		return IpDiagnosticsSettingsReader::private_peer_is_proxy()
+			|| IpDiagnosticsSettingsReader::PROXY_CLOUDFLARE === IpDiagnosticsSettingsReader::trusted_proxy_mode()
+			|| (bool) $trusted;
 	}
 
 	/**

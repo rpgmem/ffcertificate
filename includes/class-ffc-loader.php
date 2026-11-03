@@ -432,6 +432,9 @@ class Loader {
 		// Registered unconditionally — IP resolution and WP-Cron both run
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
+		// Counts the requests whose forwarded header the legacy strategy
+		// trusted and the secure one would not (#2339), for IP Diagnostics.
+		\FreeFormCertificate\Core\IpHeaderDivergence::init();
 
 		// Saving a form purges the page caches that embed it. Wired here,
 		// explicitly, rather than by an `add_action( 'init', … )` at the

@@ -61,6 +61,7 @@ class TabIpDiagnosticsTest extends TestCase {
 		Functions\when( 'submit_button' )->justReturn( null );
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'human_time_diff' )->justReturn( '1 hour' );
+		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'wp_admin_notice' )->justReturn( null );
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias(
@@ -107,6 +108,69 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertStringNotContainsString( 'developers.cloudflare.com', $html );
 		// ...and the behind-host-proxy context note must.
 		$this->assertStringContainsString( 'reverse proxy', $html );
+	}
+
+	public function test_cloudflare_via_a_private_peer_is_not_trusted_until_confirmed(): void {
+		// #2339: on an intranet the private peer is the visitor, who can send
+		// both headers, so the verdict alone no longer makes CF authoritative.
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$html                             = $this->render_to_string();
+
+		$this->assertStringContainsString( 'only once you confirm below', $html );
+		$this->assertStringContainsString( 'name="ffc_ip_private_peer_proxy"', $html );
+	}
+
+	public function test_a_forged_header_seen_on_real_traffic_is_reported_under_legacy(): void {
+		Functions\when( 'get_transient' )->justReturn(
+			array(
+				'count' => 3,
+				'first' => time() - 3600,
+				'last'  => time() - 60,
+			)
+		);
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
+		Functions\when( 'wp_date' )->justReturn( '2026-11-03 10:00' );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+
+		$html = $this->render_to_string();
+
+		$this->assertStringContainsString( 'Forwarded headers on real traffic:', $html );
+		$this->assertStringContainsString( '3 requests in the last 7 days', $html );
+	}
+
+	public function test_no_forged_header_warning_without_a_tally(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+
+		$this->assertStringNotContainsString( 'Forwarded headers on real traffic:', $this->render_to_string() );
+	}
+
+	public function test_direct_mode_behind_a_proxy_is_explained(): void {
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_ip_diagnostics_settings' === $key
+				? array(
+					'strategy'           => 'secure',
+					'trusted_proxy_mode' => 'direct',
+				)
+				: $default
+		);
+		$_SERVER['REMOTE_ADDR']          = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77';
+
+		$html = $this->render_to_string();
+
+		$this->assertStringContainsString( 'Direct mode behind a proxy:', $html );
+		$this->assertStringContainsString( 'shares one rate-limit count', $html );
+	}
+
+	public function test_the_guide_does_not_claim_protection_under_legacy(): void {
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+		$html                   = $this->render_to_string();
+
+		$this->assertStringNotContainsString( 'already protects you', $html );
+		$this->assertStringContainsString( 'Legacy strategy takes the address from headers a visitor can forge', $html );
 	}
 
 	public function test_custom_cidr_field_warns_against_cloudflare_ranges(): void {
@@ -159,6 +223,7 @@ class TabIpDiagnosticsTest extends TestCase {
 			'ffc_ip_trusted_proxy_mode' => 'custom',
 			'ffc_ip_custom_proxies'     => "192.0.2.0/24\nnot-a-cidr\n10.0.0.0/8",
 			'ffc_ip_shadow_logging'     => '1',
+			'ffc_ip_private_peer_proxy' => '1',
 		);
 
 		$this->render_to_string();
@@ -169,6 +234,7 @@ class TabIpDiagnosticsTest extends TestCase {
 		// The invalid entry is dropped; valid CIDRs survive.
 		$this->assertSame( "192.0.2.0/24\n10.0.0.0/8", $captured['custom_proxies'] );
 		$this->assertSame( 1, $captured['shadow_logging'] );
+		$this->assertSame( 1, $captured['private_peer_proxy'] );
 	}
 
 	public function test_recommendation_shown_when_strategy_legacy(): void {

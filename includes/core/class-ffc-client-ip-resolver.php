@@ -168,6 +168,24 @@ class ClientIpResolver {
 
 		self::maybe_shadow_log( $mode, $ip );
 
+		if ( self::MODE_LEGACY === $mode && self::UNKNOWN !== $ip ) {
+			$secure = self::resolve_secure();
+			if ( $secure !== $ip ) {
+				/**
+				 * Fires when the legacy strategy took the address from a
+				 * forwarded header the secure one does not trust (#2339).
+				 *
+				 * Under legacy that header decides the address every limit
+				 * and the geofence see, and anybody can send it, so IP
+				 * Diagnostics counts these to show whether the site's real
+				 * traffic carries one. No address is passed.
+				 *
+				 * @since 6.44.0
+				 */
+				do_action( 'ffcertificate_ip_header_disagrees' );
+			}
+		}
+
 		return $ip;
 	}
 
@@ -330,11 +348,12 @@ class ClientIpResolver {
 		}
 
 		// 3. Host-proxy topology (#920): a private/reserved TCP peer (managed-
-		// hosting LB) with a Cloudflare edge as the first public XFF hop. The
-		// client cannot forge a private REMOTE_ADDR, so CF-Connecting-IP is
-		// trustworthy here without the admin registering the LB by hand. Skipped
-		// automatically in `direct` mode (the CF range set is cleared upstream).
-		if ( self::is_private_or_reserved( $remote ) ) {
+		// hosting LB) with a Cloudflare edge as the first public XFF hop. Only
+		// when the operator confirmed a load balancer or Cloudflare is in
+		// front (#2339): on an intranet the private peer is the visitor's own
+		// computer, which can write any X-Forwarded-For and CF-Connecting-IP it
+		// likes. Skipped in `direct` mode too (the CF range set is cleared).
+		if ( self::trusts_private_peer() && self::is_private_or_reserved( $remote ) ) {
 			$boundary = self::first_public_xff_hop();
 			if ( null !== $boundary && IpAddress::in_any( $boundary, $cloudflare ) ) {
 				$cf = self::server_string( 'HTTP_CF_CONNECTING_IP' );
@@ -346,6 +365,28 @@ class ClientIpResolver {
 
 		// 4. Direct connection → the TCP peer is the client.
 		return $remote;
+	}
+
+	/**
+	 * Whether a private or reserved TCP peer is a proxy of the site's own.
+	 *
+	 * Off by default (#2339). A private `REMOTE_ADDR` is a host load balancer
+	 * on managed hosting and the visitor's own computer on an intranet, and
+	 * nothing in a request tells the two apart, so only the operator can say
+	 * which this site is.
+	 *
+	 * @since 6.44.0
+	 * @return bool True when the secure strategy may read Cloudflare's header
+	 *              through a private peer.
+	 */
+	public static function trusts_private_peer(): bool {
+		/**
+		 * Filter whether a private TCP peer is the site's own proxy.
+		 *
+		 * @since 6.44.0
+		 * @param bool $trusted Default false.
+		 */
+		return (bool) apply_filters( 'ffc_ip_trust_private_peer', false );
 	}
 
 	/**

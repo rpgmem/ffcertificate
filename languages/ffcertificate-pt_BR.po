@@ -4101,10 +4101,6 @@ msgstr "Não foi possível obter os intervalos de IP da Cloudflare. A lista obti
 msgid "The Cloudflare IP ranges could not be fetched. The bundled list stays in use."
 msgstr "Não foi possível obter os intervalos de IP da Cloudflare. A lista embutida no plugin continua em uso."
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:449
-msgid "Cloudflare is in front of this site, reaching PHP through your host's reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP automatically — no extra configuration is needed. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)"
-msgstr "A Cloudflare está posicionada à frente deste site, acessando o PHP por meio do proxy reverso da sua hospedagem. Com a estratégia \"Secure\", o IP real do cliente é obtido automaticamente a partir do cabeçalho `CF-Connecting-IP` — não é necessária nenhuma configuração adicional. (Avançado: para também confiar em um proxy que não seja da Cloudflare, adicione o endereço dele na opção \"Custom\" abaixo.)"
-
 #: includes/settings/views/ffc-tab-cache.php:140
 msgid "Cloudflare is in front of this site. Its default (caching static assets only, HTML bypassed) is safe. Do NOT enable \"Cache Everything\", APO, or a Cache Rule that caches HTML for pages containing FFC forms or the personal dashboard."
 msgstr "A Cloudflare está atuando à frente deste site. A configuração padrão (cache apenas de recursos estáticos, com o HTML sendo ignorado) é segura. NÃO ative as opções \"Cache Everything\" ou APO, nem crie uma Regra de Cache que armazene em cache o HTML de páginas que contenham formulários FFC ou o painel pessoal."
@@ -11199,10 +11195,6 @@ msgstr "Nenhum calendário encontrado."
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:265
 msgid "No candidates classified yet."
 msgstr "Nenhum candidato classificado ainda."
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:671
-msgid "No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free."
-msgstr "Nenhuma CDN foi detectada. O Cloudflare é opcional — o modo Auto/Direct combinado com a identificação de dispositivo (*device fingerprinting*) já oferece proteção —, mas ele fornece gratuitamente um IP de cliente que não pode ser falsificado."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:204
 msgid "No certificates found"
@@ -25345,10 +25337,6 @@ msgstr "Sempre claro."
 msgid "Applies to the Certificate HTML editor on the form edit screen. On is the default."
 msgstr "Aplica-se ao editor HTML do certificado na tela de edição do formulário. Ligado é o padrão."
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:631
-msgid "Applies when the secure strategy is active."
-msgstr "Aplica-se quando a estratégia segura está ativa."
-
 #: includes/settings/views/ffc-tab-public-design.php:121
 msgid "Arial, on every device."
 msgstr "Arial, em todos os dispositivos."
@@ -31695,3 +31683,74 @@ msgstr "o limite por IP e os dois cartões dizem o que acontece com um visitante
 #: includes/settings/views/documentation/config-captcha.php:54
 msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed."
 msgstr "Independentemente do modo em vigor, o token é assinado com uma chave derivada deste site, expira e é aceito uma única vez e só onde foi emitido: um desafio resolvido em um formulário é recusado em outro, então uma resposta capturada não pode ser reutilizada."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:195
+#, php-format
+msgid "%1$d request in the last 7 days named its address in a forwarded header that differs from its connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below."
+msgid_plural "%1$d requests in the last 7 days named their address in a forwarded header that differs from their connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below."
+msgstr[0] "%1$d requisição nos últimos 7 dias informou seu endereço em um cabeçalho encaminhado diferente da sua conexão (a mais recente: %2$s). Na estratégia Legado esse cabeçalho decide o endereço que os limites de taxa e a cerca geográfica veem, e qualquer pessoa pode enviá-lo. Mude para Segura abaixo."
+msgstr[1] "%1$d requisições nos últimos 7 dias informaram seu endereço em um cabeçalho encaminhado diferente da sua conexão (a mais recente: %2$s). Na estratégia Legado esse cabeçalho decide o endereço que os limites de taxa e a cerca geográfica veem, e qualquer pessoa pode enviá-lo. Mude para Segura abaixo."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:748
+msgid "Applies when the secure strategy is active. Direct behind a proxy or Cloudflare: every visitor arrives from the proxy's address, so they all share one address and one rate-limit count."
+msgstr "Vale quando a estratégia segura está ativa. Direto atrás de um proxy ou do Cloudflare: todo visitante chega pelo endereço do proxy, então todos compartilham um endereço e uma contagem de limite de taxa."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:567
+msgid "Cloudflare appears to be in front of this site, reaching PHP through a private address. The Secure strategy reads CF-Connecting-IP through a private address only once you confirm below that a load balancer or Cloudflare sits in front: on an intranet the private address is the visitor's own computer, which can send that header too."
+msgstr "O Cloudflare parece estar na frente deste site, chegando ao PHP por um endereço privado. A estratégia Segura lê o CF-Connecting-IP por um endereço privado só depois que você confirmar abaixo que um balanceador de carga ou o Cloudflare fica na frente: em uma intranet o endereço privado é o próprio computador do visitante, que também pode enviar esse cabeçalho."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:572
+msgid "Cloudflare is in front of this site, reaching PHP through your host's reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)"
+msgstr "O Cloudflare está na frente deste site, chegando ao PHP pelo proxy reverso da sua hospedagem. Com a estratégia Segura, o IP real do cliente é obtido do CF-Connecting-IP. (Avançado: para confiar também em um proxy que não seja o Cloudflare, adicione o endereço dele em Personalizado abaixo.)"
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:29
+msgid "Direct behind a proxy or Cloudflare makes every visitor arrive from the proxy's address, so they all share one address and one rate-limit count; the tab warns when your own request shows that. Load balancer in front says whether a private connection address is your host's load balancer: when it is on, or in the Cloudflare mode, the secure strategy reads Cloudflare's header through it; when it is off, a private address is the visitor, which is right on an intranet, where a visitor could otherwise send that header."
+msgstr "Direto atrás de um proxy ou do Cloudflare faz todo visitante chegar pelo endereço do proxy, então todos compartilham um endereço e uma contagem de limite de taxa; a aba avisa quando a sua própria requisição mostra isso. Balanceador de carga na frente diz se um endereço de conexão privado é o balanceador de carga da sua hospedagem: ligado, ou no modo Cloudflare, a estratégia segura lê o cabeçalho do Cloudflare por ele; desligado, um endereço privado é o visitante, o que é o certo em uma intranet, onde um visitante poderia enviar esse cabeçalho."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:239
+msgid "Direct mode behind a proxy:"
+msgstr "Modo Direto atrás de um proxy:"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:761
+msgid "Every request reaches this site through my host's load balancer or Cloudflare"
+msgstr "Toda requisição chega a este site pelo balanceador de carga da minha hospedagem ou pelo Cloudflare"
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:36
+msgid "Forwarded headers on real traffic"
+msgstr "Cabeçalhos encaminhados no tráfego real"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:207
+msgid "Forwarded headers on real traffic:"
+msgstr "Cabeçalhos encaminhados no tráfego real:"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:754
+msgid "Load balancer in front"
+msgstr "Balanceador de carga na frente"
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:867
+msgid "No CDN was detected, and the Legacy strategy takes the address from headers a visitor can forge. Switch to Secure above for an address nobody can forge; Cloudflare adds bot protection on the free plan."
+msgstr "Nenhuma CDN foi detectada, e a estratégia Legado obtém o endereço de cabeçalhos que um visitante pode forjar. Mude para Segura acima para um endereço que ninguém pode forjar; o Cloudflare acrescenta proteção contra bots no plano gratuito."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:861
+msgid "No CDN was detected. Cloudflare is optional: the Secure strategy already reads the connection address, which a visitor cannot forge, and the device limit adds a second signal. Cloudflare adds bot protection on the free plan."
+msgstr "Nenhuma CDN foi detectada. O Cloudflare é opcional: a estratégia Segura já lê o endereço da conexão, que um visitante não pode forjar, e o limite por dispositivo acrescenta um segundo sinal. O Cloudflare acrescenta proteção contra bots no plano gratuito."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:864
+msgid "No CDN was detected. The Secure strategy already reads the connection address, which a visitor cannot forge. The device limit (Settings → Rate Limit) is off, so the address is the only signal; Cloudflare adds bot protection on the free plan."
+msgstr "Nenhuma CDN foi detectada. A estratégia Segura já lê o endereço da conexão, que um visitante não pode forjar. O limite por dispositivo (Configurações → Limite de Taxa) está desligado, então o endereço é o único sinal; o Cloudflare acrescenta proteção contra bots no plano gratuito."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:764
+msgid "On: when the connection comes from a private address, the Secure strategy takes the visitor from Cloudflare's header. Off: a private address is the visitor, which is right on an intranet, where visitors could otherwise send that header themselves. The Cloudflare mode above implies On."
+msgstr "Ligado: quando a conexão vem de um endereço privado, a estratégia Segura obtém o visitante do cabeçalho do Cloudflare. Desligado: um endereço privado é o visitante, o que é o certo em uma intranet, onde os visitantes poderiam enviar esse cabeçalho. O modo Cloudflare acima equivale a Ligado."
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:236
+msgid "This request arrived through a proxy, and the Direct mode ignores the header that names the visitor. Every visitor therefore reads as the proxy's address and shares one rate-limit count. Choose Auto or Cloudflare below, unless the proxy is not yours."
+msgstr "Esta requisição chegou por um proxy, e o modo Direto ignora o cabeçalho que identifica o visitante. Assim todo visitante aparece com o endereço do proxy e compartilha uma contagem de limite de taxa. Escolha Automático ou Cloudflare abaixo, a menos que o proxy não seja seu."
+
+#: includes/settings/views/documentation/developer-hooks-api.php:41
+msgid "Whether the secure strategy reads CF-Connecting-IP through a private connection address. False by default; the IP Diagnostics tab sets it from the Load balancer in front toggle or the Cloudflare mode."
+msgstr "Se a estratégia segura lê o CF-Connecting-IP por um endereço de conexão privado. Falso por padrão; a aba Diagnóstico de IP o define pela opção Balanceador de carga na frente ou pelo modo Cloudflare."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:36
+msgid "under the Legacy strategy, a warning counting the requests of the last 7 days whose forwarded header named a different address from their connection. Under Legacy that header decides the address, and anybody can send it. Only the count and the time of the latest are kept."
+msgstr "na estratégia Legado, um aviso que conta as requisições dos últimos 7 dias cujo cabeçalho encaminhado informou um endereço diferente da sua conexão. No Legado esse cabeçalho decide o endereço, e qualquer pessoa pode enviá-lo. Só a contagem e o horário da mais recente são guardados."

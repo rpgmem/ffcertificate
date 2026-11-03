@@ -70,6 +70,21 @@ class ClientIpResolverTest extends TestCase {
 		);
 	}
 
+	/**
+	 * Secure strategy with the operator's confirmation that a private peer is
+	 * the site's own load balancer (#2339).
+	 */
+	private function stub_filters_secure_trusting_private_peer(): void {
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $hook, $value = null ) {
+				if ( 'ffc_ip_resolver_mode' === $hook ) {
+					return ClientIpResolver::MODE_SECURE;
+				}
+				return 'ffc_ip_trust_private_peer' === $hook ? true : $value;
+			}
+		);
+	}
+
 	// ---- mode() -------------------------------------------------------------
 
 	public function test_mode_defaults_to_legacy(): void {
@@ -223,7 +238,7 @@ class ClientIpResolverTest extends TestCase {
 
 	public function test_secure_trusts_cf_header_behind_private_lb_with_cf_boundary(): void {
 		$this->stub_request_funcs();
-		$this->stub_filters_secure_mode();
+		$this->stub_filters_secure_trusting_private_peer();
 		// Topology: client → Cloudflare edge → private host LB → PHP.
 		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';                 // private LB peer.
 		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1'; // client, CF edge.
@@ -231,9 +246,45 @@ class ClientIpResolverTest extends TestCase {
 		$this->assertSame( '203.0.113.77', ClientIpResolver::resolve() );
 	}
 
-	public function test_secure_via_proxy_when_lb_appends_its_own_private_hop(): void {
+	/**
+	 * #2339: on an intranet the private peer is the visitor's own computer,
+	 * which can write both headers. Without the operator's confirmation the
+	 * peer is the client.
+	 */
+	public function test_secure_ignores_cf_header_from_a_private_peer_until_confirmed(): void {
 		$this->stub_request_funcs();
 		$this->stub_filters_secure_mode();
+		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '203.0.113.77, 104.16.0.1';
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '203.0.113.77';
+		$this->assertSame( '10.0.0.5', ClientIpResolver::resolve() );
+		$this->assertFalse( ClientIpResolver::trusts_private_peer() );
+	}
+
+	public function test_legacy_announces_a_header_the_secure_strategy_would_not_trust(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR']          = '198.51.100.7';
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.9';
+
+		\Brain\Monkey\Actions\expectDone( 'ffcertificate_ip_header_disagrees' )->once();
+
+		$this->assertSame( '203.0.113.9', ClientIpResolver::resolve() );
+	}
+
+	public function test_legacy_stays_quiet_when_both_strategies_agree(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_passthrough();
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.7';
+
+		\Brain\Monkey\Actions\expectDone( 'ffcertificate_ip_header_disagrees' )->never();
+
+		$this->assertSame( '198.51.100.7', ClientIpResolver::resolve() );
+	}
+
+	public function test_secure_via_proxy_when_lb_appends_its_own_private_hop(): void {
+		$this->stub_request_funcs();
+		$this->stub_filters_secure_trusting_private_peer();
 		// LB appends itself → the CF edge is no longer the rightmost hop, but it
 		// is still the first PUBLIC hop scanning right→left.
 		$_SERVER['REMOTE_ADDR']           = '10.0.0.5';

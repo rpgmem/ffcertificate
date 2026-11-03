@@ -125,6 +125,17 @@ final class IpDiagnosticsSettingsReader {
 	}
 
 	/**
+	 * Whether the operator confirmed that a private connection address is the
+	 * site's own load balancer or Cloudflare path (#2339). Off by default.
+	 *
+	 * @since 6.44.0
+	 * @return bool
+	 */
+	public static function private_peer_is_proxy(): bool {
+		return ! empty( self::all()['private_peer_proxy'] );
+	}
+
+	/**
 	 * Admin-supplied custom trusted-proxy CIDRs / literal IPs (used when
 	 * `trusted_proxy_mode` is `custom`). Stored as a newline/comma-separated
 	 * string; returned here as a clean list of non-empty trimmed entries.
