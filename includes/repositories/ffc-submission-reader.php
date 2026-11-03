@@ -105,6 +105,27 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * The keys, other than `id_*`, this group caches a submission under:
+	 * prefix => column. Read by every class that writes the group, so a write
+	 * clears the copies verification reads (#2343).
+	 *
+	 * @var array<string, string>
+	 */
+	public const LOOKUP_CACHE_KEYS = array(
+		'auth_'  => 'auth_code',
+		'token_' => 'magic_token',
+	);
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return self::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Get allowed order columns.
 	 *
 	 * @return array<int, string>

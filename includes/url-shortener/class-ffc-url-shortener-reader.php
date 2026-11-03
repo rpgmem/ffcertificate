@@ -93,6 +93,27 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
+	 * The keys, other than `id_*`, this group caches a short URL under:
+	 * prefix => column. Read by every class that writes the group, so a
+	 * disabled, trashed or deleted short URL stops redirecting at once (#2343).
+	 *
+	 * @var array<string, string>
+	 */
+	public const LOOKUP_CACHE_KEYS = array(
+		'code_' => 'short_code',
+		'post_' => 'post_id',
+	);
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return self::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Find a short URL record by its short code.
 	 *
 	 * @param string $code The short code (e.g. "abc123").

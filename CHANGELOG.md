@@ -42,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **SMTP tab: the Change password and Cancel buttons draw their icons** (#2354). They named the icon with its class prefix, which draws nothing.
 - **Scheduling: the calendar names table lines up** (#2358). Core's settings-row rules reached its cells, so headings, fields and state names sat at different heights and offsets; the table now takes one padding and one alignment.
 - **Schema and integrity: foreign keys complete, unique indexes stay put, updated installs get every table, network activation refused** (#2343). CASCADE orphans are deleted, constraint names carry the table prefix, and the core and module schema heal once per release.
+- **Object cache: a write clears every key a row is cached under** (#2343). A disabled or deleted short URL stops redirecting, a deleted certificate stops verifying and a saved calendar shows its new settings at once with a persistent object cache; an insert no longer flushes the whole cache group.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

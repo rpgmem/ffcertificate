@@ -276,33 +276,27 @@ class AbstractRepositoryTest extends TestCase {
 		$this->assertFalse( $result );
 	}
 
-	public function test_insert_flushes_only_its_own_cache_group(): void {
+	public function test_insert_clears_only_the_new_row_key(): void {
+		// No lookup caches a miss, so an insert has nothing stale but the key
+		// of the row it created: no group flush, and never the whole object
+		// cache, which a backend without `flush_group` meant (#2343).
 		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
-		$groups = array();
-		Functions\when( 'wp_cache_flush_group' )->alias(
-			static function ( string $group ) use ( &$groups ): bool {
-				$groups[] = $group;
+		$this->wpdb->insert_id = 41;
+		$deleted = array();
+		Functions\when( 'wp_cache_delete' )->alias(
+			static function ( $key, $group ) use ( &$deleted ): bool {
+				$deleted[] = $group . ':' . $key;
 				return true;
 			}
 		);
-		$flush = CallLog::record( 'wp_cache_flush', true );
-
-		$this->repo->insert( array( 'name' => 'test' ) );
-
-		$this->assertSame( array( 'ffc_test' ), $groups, 'Only the repository\'s own group is flushed.' );
-		$this->assertSame( 0, $flush->count(), 'The whole object cache is never flushed when the backend can flush a group.' );
-	}
-
-	public function test_insert_falls_back_to_full_flush_without_group_support(): void {
-		$this->wpdb->shouldReceive( 'insert' )->once()->andReturn( 1 );
-		Functions\when( 'wp_cache_supports' )->justReturn( false );
 		$group = CallLog::record( 'wp_cache_flush_group', true );
 		$flush = CallLog::record( 'wp_cache_flush', true );
 
 		$this->repo->insert( array( 'name' => 'test' ) );
 
-		$this->assertSame( 0, $group->count(), 'A backend without group flushing is never asked to flush one.' );
-		$this->assertSame( 1, $flush->count(), 'The full flush stays as the fallback.' );
+		$this->assertSame( array( 'ffc_test:id_41' ), $deleted );
+		$this->assertSame( 0, $group->count() );
+		$this->assertSame( 0, $flush->count() );
 	}
 
 	public function test_update_returns_rows_affected(): void {

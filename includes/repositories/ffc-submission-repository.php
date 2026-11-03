@@ -95,6 +95,15 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return SubmissionReader::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Get allowed order columns.
 	 *
 	 * @return array<int, string>
