@@ -330,11 +330,13 @@ class UserDashboardActivator {
 	 * dashboard shortcode.
 	 */
 	private static function create_dashboard_page(): void {
-		\FreeFormCertificate\Core\ManagedPages::ensure(
+		$page_id = \FreeFormCertificate\Core\ManagedPages::ensure(
 			'dashboard',
 			__( 'My Dashboard', 'ffcertificate' ),
-			'[user_dashboard_personal]',
-			'ffc_dashboard_page_id'
+			'[user_dashboard_personal]'
 		);
+		if ( $page_id > 0 ) {
+			update_option( 'ffc_dashboard_page_id', $page_id );
+		}
 	}
 }

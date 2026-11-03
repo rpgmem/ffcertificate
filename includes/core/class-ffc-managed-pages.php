@@ -35,21 +35,20 @@ final class ManagedPages {
 	public const META = '_ffc_managed_page';
 
 	/**
-	 * Create the page at `$slug` unless one exists, and store its id.
+	 * Create the page at `$slug` unless one exists.
 	 *
-	 * An existing page at the slug is adopted as it is: its id is stored and
-	 * nothing about it changes.
+	 * An existing page at the slug is adopted as it is: its id is returned
+	 * and nothing about it changes. The caller stores the id under its own
+	 * option, written as a literal so the option-write guard sees it.
 	 *
 	 * @param string $slug      Page slug, e.g. `valid`.
 	 * @param string $title     Translated page title.
 	 * @param string $shortcode The page body, e.g. `[ffc_verification]`.
-	 * @param string $option    Option the page id is stored under.
 	 * @return int The page id, or 0 when none could be created.
 	 */
-	public static function ensure( string $slug, string $title, string $shortcode, string $option ): int {
+	public static function ensure( string $slug, string $title, string $shortcode ): int {
 		$existing = get_page_by_path( $slug );
 		if ( $existing instanceof \WP_Post ) {
-			update_option( $option, $existing->ID );
 			return (int) $existing->ID;
 		}
 
@@ -74,7 +73,6 @@ final class ManagedPages {
 			return 0;
 		}
 
-		update_option( $option, $page_id );
 		update_post_meta( $page_id, self::META, '1' );
 		self::record( $page_id );
 

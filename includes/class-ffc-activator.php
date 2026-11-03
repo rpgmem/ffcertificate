@@ -857,12 +857,14 @@ class Activator {
 	 * Create verification page.
 	 */
 	private static function create_verification_page(): void {
-		\FreeFormCertificate\Core\ManagedPages::ensure(
+		$page_id = \FreeFormCertificate\Core\ManagedPages::ensure(
 			'valid',
 			__( 'Certificate Verification', 'ffcertificate' ),
-			'[ffc_verification]',
-			'ffc_verification_page_id'
+			'[ffc_verification]'
 		);
+		if ( $page_id > 0 ) {
+			update_option( 'ffc_verification_page_id', $page_id );
+		}
 	}
 
 	/**
