@@ -265,6 +265,14 @@ class TabGeolocation extends SettingsTab {
 		// Handle location delete via GET link (before POST check).
 		$this->handle_location_delete();
 
+		// A refused delete (#2339) names the forms that read the location.
+		$ffc_in_use_key = 'ffc_location_in_use_' . get_current_user_id();
+		$ffc_in_use     = get_transient( $ffc_in_use_key );
+		if ( is_string( $ffc_in_use ) && '' !== $ffc_in_use ) {
+			delete_transient( $ffc_in_use_key );
+			\FreeFormCertificate\Core\AdminNotice::render( 'error', esc_html( $ffc_in_use ) );
+		}
+
 		// Handle form submission.
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
 		if ( $_POST && isset( $_POST['ffc_save_geolocation'] ) ) {
@@ -458,10 +466,14 @@ class TabGeolocation extends SettingsTab {
 			wp_die( esc_html__( 'You do not have permission to manage locations.', 'ffcertificate' ) );
 		}
 
-		GeofenceLocationRegistry::delete( $id );
+		$removed = GeofenceLocationRegistry::delete_unused( $id );
 
-		// Redirect back to remove the query parameters.
+		// Redirect back to remove the query parameters. A location a form
+		// reads from stays, and the screen says which forms (#2339).
 		$redirect_url = remove_query_arg( array( 'ffc_delete_location', '_wpnonce' ) );
+		if ( is_wp_error( $removed ) && 'ffc_location_in_use' === $removed->get_error_code() ) {
+			set_transient( 'ffc_location_in_use_' . get_current_user_id(), $removed->get_error_message(), MINUTE_IN_SECONDS );
+		}
 		wp_safe_redirect( $redirect_url );
 		exit;
 	}

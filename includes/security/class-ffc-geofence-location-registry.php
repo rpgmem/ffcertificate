@@ -26,6 +26,15 @@ class GeofenceLocationRegistry {
 	const OPTION_KEY = 'ffc_geofence_locations';
 
 	/**
+	 * Below this radius, in metres, an area is smaller than the error of a
+	 * typical reading (#2339): a phone's GPS indoors is often 20 to 100 m off,
+	 * and a position from Wi-Fi or the IP address far more.
+	 *
+	 * @var int
+	 */
+	public const SMALL_RADIUS_METRES = 100;
+
+	/**
 	 * Return every registered location.
 	 *
 	 * @return array<int, array<string, mixed>>
@@ -149,6 +158,110 @@ class GeofenceLocationRegistry {
 		}
 
 		return $deleted;
+	}
+
+	/**
+	 * The forms whose geofence names a location, by id (#2339).
+	 *
+	 * A form names a location in its GPS areas or in its IP areas, when that
+	 * side reads from the registry. A trashed or draft form still counts: it
+	 * comes back with its configuration, and deleting the location under it
+	 * would leave it with no area.
+	 *
+	 * @since 6.44.0
+	 * @param string $id Location ID.
+	 * @return array<int, string> Form titles keyed by form id.
+	 */
+	public static function forms_using( string $id ): array {
+		if ( '' === $id ) {
+			return array();
+		}
+
+		$form_ids = get_posts(
+			array(
+				'post_type'      => 'ffc_form',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+				// phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- the cold delete path of an admin screen; forms are few.
+				'meta_key'       => '_ffc_geofence_config',
+			)
+		);
+
+		$sides = array(
+			'geo_area'    => 'geo_area_location_ids',
+			'geo_ip_area' => 'geo_ip_area_location_ids',
+		);
+		$using = array();
+		foreach ( (array) $form_ids as $form_id ) {
+			$form_id = (int) $form_id;
+			$config  = get_post_meta( $form_id, '_ffc_geofence_config', true );
+			if ( ! is_array( $config ) ) {
+				continue;
+			}
+
+			foreach ( $sides as $side => $ids_key ) {
+				if ( 'locations' !== ( $config[ $side . '_source' ] ?? '' ) ) {
+					continue;
+				}
+				if ( in_array( $id, array_map( 'strval', (array) ( $config[ $ids_key ] ?? array() ) ), true ) ) {
+					$title             = get_the_title( $form_id );
+					$using[ $form_id ] = '' !== $title ? $title : sprintf( '#%d', $form_id );
+					break;
+				}
+			}
+		}
+
+		return $using;
+	}
+
+	/**
+	 * Delete a location unless a form names it (#2339).
+	 *
+	 * Deleting a location a form reads from left that form with no area,
+	 * which used to mean no restriction at all. The refusal names the forms,
+	 * so the operator knows where to change it first.
+	 *
+	 * @since 6.44.0
+	 * @param string $id Location ID.
+	 * @return true|\WP_Error True when deleted.
+	 */
+	public static function delete_unused( string $id ) {
+		$using = self::forms_using( $id );
+		if ( ! empty( $using ) ) {
+			return new \WP_Error(
+				'ffc_location_in_use',
+				sprintf(
+					/* translators: %s: comma-separated list of form titles */
+					__( 'This location is used by these forms; choose another area for them first: %s', 'ffcertificate' ),
+					implode( ', ', $using )
+				),
+				array( 'forms' => $using )
+			);
+		}
+
+		if ( ! self::delete( $id ) ) {
+			return new \WP_Error( 'ffc_location_not_found', __( 'Location not found.', 'ffcertificate' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Names of the locations whose radius is below {@see self::SMALL_RADIUS_METRES}.
+	 *
+	 * @since 6.44.0
+	 * @return array<int, string>
+	 */
+	public static function small_area_names(): array {
+		$names = array();
+		foreach ( self::get_all() as $location ) {
+			if ( (float) ( $location['radius'] ?? 0 ) < self::SMALL_RADIUS_METRES ) {
+				$names[] = '' !== (string) ( $location['name'] ?? '' ) ? (string) $location['name'] : (string) ( $location['id'] ?? '' );
+			}
+		}
+		return $names;
 	}
 
 	/**

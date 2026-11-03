@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Named-location registry', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A location a form reads from cannot be deleted: the screen names the forms that use it, so you can choose another area for them first. A location with a radius under 100 m is flagged, because a phone\'s GPS indoors is often 20 to 100 m off and a position from Wi-Fi or the IP address far more.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'IP geolocation API', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Backend IP validation needs an external lookup service. It is off by default; the per-form IP toggle stays disabled until you enable it here.', 'ffcertificate' ); ?></p>

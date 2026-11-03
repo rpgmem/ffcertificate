@@ -147,6 +147,20 @@ class GeofenceCheckSubmissionTest extends TestCase {
 		$this->assertSame( array( GpsReading::REASON_OUTSIDE ), self::denied() );
 	}
 
+	/**
+	 * #2339: a location restriction with no valid area refuses, and the
+	 * refusal is logged. It used to pass every visitor.
+	 */
+	public function test_a_geofence_with_no_valid_area_refuses(): void {
+		$this->config['geo_areas'] = 'not an area';
+
+		$result = Geofence::check_submission( 7, self::reading( self::INSIDE ) );
+
+		$this->assertFalse( $result['allowed'] );
+		$this->assertSame( 'no_areas_defined', $result['reason'] );
+		$this->assertSame( array( 'no_areas_defined' ), self::denied() );
+	}
+
 	public function test_no_reading_follows_the_policy(): void {
 		$none = array( 'reading' => null, 'status' => '' );
 

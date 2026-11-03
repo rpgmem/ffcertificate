@@ -34,6 +34,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'The visitor\'s position is used to decide and then discarded: it is not stored with the submission and is not written to any log. With geolocation debugging on, the debug entries say which area matched, never where the visitor was. Entries written before 6.42.0 did record the position; the "Activity Log: Delete Logged Locations" migration removes them.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'A refusal is recorded in the activity log as "Access Denied" with its reason; the visitor\'s address is the entry\'s own, encrypted and shown masked. Entries written before 6.43.0 also copied the address in clear into their details; the "Activity Log: Clear Refused Addresses" migration removes that copy.', 'ffcertificate' ); ?></p>
 
+	<p><?php esc_html_e( 'The GPS reading is what the visitor\'s browser reports, position and error alike, and a browser can report any values: the check stops someone using the page as built from outside the area, not someone who sends a made-up reading. Pair it with the IP check, under the Secure strategy, where that matters.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A form with the location restriction on and no valid area refuses submissions and tells the visitor so, rather than passing everyone.', 'ffcertificate' ); ?></p>
+
 	<h4><?php esc_html_e( 'Area source: registered locations vs custom coordinates', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'You pick where the allowed GPS area comes from; IP validation reuses the GPS areas unless "Use different areas for IP validation" is checked, in which case IP gets its own source:', 'ffcertificate' ); ?></p>
 	<ul>

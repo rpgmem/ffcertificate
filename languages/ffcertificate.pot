@@ -31685,3 +31685,37 @@ msgstr ""
 #: includes/settings/views/documentation/config-geolocation.php:36
 msgid "ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text."
 msgstr ""
+
+#: includes/settings/views/documentation/forms-geolocation.php:38
+msgid "A form with the location restriction on and no valid area refuses submissions and tells the visitor so, rather than passing everyone."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:25
+msgid "A location a form reads from cannot be deleted: the screen names the forms that use it, so you can choose another area for them first. A location with a radius under 100 m is flagged, because a phone's GPS indoors is often 20 to 100 m off and a position from Wi-Fi or the IP address far more."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:212
+msgid "Small areas:"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-geolocation.php:37
+msgid "The GPS reading is what the visitor's browser reports, position and error alike, and a browser can report any values: the check stops someone using the page as built from outside the area, not someone who sends a made-up reading. Pair it with the IP check, under the Secure strategy, where that matters."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:423
+msgid "The position and its error are what the visitor's browser reports, and a browser can report any values. A lower number turns away more visitors with imprecise devices without stopping one who sends a made-up reading; pair the GPS check with the IP check where that matters."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:206
+#, php-format
+msgid "These locations have a radius under %1$d m: %2$s. A phone's GPS indoors is often 20 to 100 m off, and a position from Wi-Fi or the IP address far more, so visitors standing inside may read as outside or as location unavailable."
+msgstr ""
+
+#: includes/security/class-ffc-geofence.php:352
+msgid "This form cannot be used right now: its location restriction has no valid area. Please let the site's administrator know."
+msgstr ""
+
+#: includes/security/class-ffc-geofence-location-registry.php:237
+#, php-format
+msgid "This location is used by these forms; choose another area for them first: %s"
+msgstr ""

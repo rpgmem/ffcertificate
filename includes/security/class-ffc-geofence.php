@@ -282,6 +282,16 @@ class Geofence {
 			);
 		}
 
+		if ( empty( self::gps_areas( $config ) ) ) {
+			self::log_access_denied( $context, 'no_areas_defined' );
+
+			return array(
+				'allowed' => false,
+				'reason'  => 'no_areas_defined',
+				'message' => self::no_area_message(),
+			);
+		}
+
 		$gps = $use_gps
 			? GpsReading::decide(
 				self::gps_areas( $config ),
@@ -331,6 +341,15 @@ class Geofence {
 			'reason'  => $reason,
 			'message' => $message,
 		);
+	}
+
+	/**
+	 * What a visitor reads when a form's location restriction has no area.
+	 *
+	 * @return string
+	 */
+	private static function no_area_message(): string {
+		return __( 'This form cannot be used right now: its location restriction has no valid area. Please let the site\'s administrator know.', 'ffcertificate' );
 	}
 
 	/**
@@ -489,10 +508,13 @@ class Geofence {
 		// Parse areas.
 		$areas = self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) );
 
+		// The location restriction is on and names no valid area: refuse
+		// (#2339). Passing it meant a deleted location or a mistyped area
+		// silently lifted the restriction the operator asked for.
 		if ( empty( $areas ) ) {
 			return array(
-				'valid'   => true, // No areas defined = no restriction.
-				'message' => '',
+				'valid'   => false,
+				'message' => self::no_area_message(),
 				'details' => array( 'reason' => 'no_areas_defined' ),
 			);
 		}

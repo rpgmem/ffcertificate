@@ -34,6 +34,8 @@ class LocationsAjaxEndpointTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		// No form reads a location unless a test says so (#2339).
+		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'sanitize_key' )->alias( function ( $key ) {
 			return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $key ) );
 		} );
@@ -192,5 +194,40 @@ class LocationsAjaxEndpointTest extends TestCase {
 			$this->assertSame( 'json_success', $e->getMessage() );
 		}
 		$this->assertSame( array( array( 'id' => 'loc_other', 'name' => 'Kept' ) ), $this->stored );
+	}
+
+	/**
+	 * #2339: a location a form reads from is not deleted, and the refusal
+	 * names the form.
+	 */
+	public function test_a_location_a_form_reads_from_is_not_deleted(): void {
+		Functions\when( 'get_posts' )->justReturn( array( 42 ) );
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				'geo_area_source'       => 'locations',
+				'geo_area_location_ids' => array( 'loc_existing' ),
+			)
+		);
+		Functions\when( 'get_the_title' )->justReturn( 'Workshop certificate' );
+		$this->stored = array( array( 'id' => 'loc_existing', 'name' => 'Campus' ) );
+		$_POST        = array( 'id' => 'loc_existing' );
+		$status       = null;
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data, $code = null ) use ( &$status ) {
+				$status = array( $data, $code );
+				throw new \RuntimeException( 'json_error' );
+			}
+		);
+
+		try {
+			LocationsAjaxEndpoint::handle_delete();
+			$this->fail( 'expected a JSON response' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
+		}
+
+		$this->assertSame( 409, $status[1] );
+		$this->assertStringContainsString( 'Workshop certificate', $status[0]['message'] );
+		$this->assertCount( 1, $this->stored, 'The location stays.' );
 	}
 }
