@@ -318,11 +318,6 @@ msgid_plural "%d caps"
 msgstr[0] "%d cap"
 msgstr[1] "%d caps"
 
-#. %d: number of submissions
-#: includes/privacy/class-ffc-privacy-erasers.php:89
-msgid "%d certificate submissions anonymized (auth codes and verification links preserved)."
-msgstr "%d envios de certificados anonimizados (códigos de autorização e links de verificação preservados)."
-
 #. %d: number of days remaining
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:439
 msgid "%d day left"
@@ -19401,10 +19396,6 @@ msgstr "Você pode participar de no máximo %d grupos. Saia de um antes de entra
 msgid "You can only postpone the close on the form's scheduled close day."
 msgstr "Você só pode adiar o fechamento na data de encerramento programada do formulário."
 
-#: includes/privacy/class-ffc-privacy-handler.php:104
-msgid "You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress \"Export Personal Data\" and \"Erase Personal Data\" tools, which cover the data this plugin stores. Certificate authentication codes and verification tokens may be retained in anonymised form so that certificates already issued remain verifiable after erasure."
-msgstr "Você pode solicitar uma cópia dos seus dados pessoais ou pedir que eles sejam excluídos. O administrador pode atender a essas solicitações utilizando as ferramentas \"Exportar Dados Pessoais\" e \"Excluir Dados Pessoais\" do WordPress, que abrangem os dados armazenados por este plugin. Códigos de autenticação de certificados e tokens de verificação podem ser mantidos de forma anonimizada, para que certificados já emitidos continuem passíveis de verificação após a exclusão."
-
 #: includes/settings/views/documentation/reference-html-styling.php:18
 msgid "You can use HTML and inline CSS to style your certificate:"
 msgstr "Você pode usar HTML e CSS embutido para estilizar seu certificado:"
@@ -22973,9 +22964,6 @@ msgstr "Envios de recadastramento e candidaturas de recrutamento são exportados
 
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
 msgstr "Em Ferramentas → Exportar Dados Pessoais e Ferramentas → Apagar Dados Pessoais, o plugin registra seus próprios manipuladores. Cada um atua sobre os registros vinculados à conta do WordPress que tem o e-mail solicitado e, nos registros sem conta vinculada, sobre aqueles cujo e-mail armazenado corresponde a ele — assim, um certificado ou agendamento feito sem login também é encontrado:"
-
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
-msgstr "um apagador remove os dados pessoais criptografados (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, exclui as participações da pessoa em públicos-alvo, vínculos de reservas, convites para formulários pós-evento, permissões de agenda, perfil armazenado e configurações de usuário FFC, e desvincula suas linhas de presença e suas entradas do registro de atividades. Códigos de autenticação e tokens de verificação podem ser mantidos de forma anonimizada para que certificados já emitidos continuem verificáveis depois que os dados da pessoa forem apagados."
 
 msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
 msgstr "exportadores reúnem os dados FFC da pessoa: perfil, certificados, agendamentos, grupos de público-alvo, reservas de público-alvo, presenças em reservas de público-alvo, convites para formulários pós-evento, envios de recadastramento (com as respostas descriptografadas), candidaturas de recrutamento e suas classificações, e configurações de usuário FFC."
@@ -31550,3 +31538,29 @@ msgstr "Baixar .vcf"
 msgctxt "vcf file name prefix"
 msgid "contact"
 msgstr "contato"
+
+#: includes/privacy/class-ffc-privacy-erasers.php:102
+#, php-format
+msgid "%d certificate submissions: e-mail, CPF/RF and IP address removed. The form answers are retained so each certificate stays verifiable and can be reprinted; delete the submission if that is no longer needed."
+msgstr "%d envios de certificado: e-mail, CPF/RF e endereço IP removidos. As respostas do formulário são mantidas para que cada certificado continue verificável e possa ser reemitido; exclua o envio se isso não for mais necessário."
+
+#: includes/privacy/class-ffc-privacy-erasers.php:145
+#, php-format
+msgid "%d rate-limit records removed."
+msgstr "%d registros de limite de requisições removidos."
+
+#: includes/privacy/class-ffc-privacy-exporters.php:1341
+msgid "Birthday (day and month)"
+msgstr "Aniversário (dia e mês)"
+
+#: includes/privacy/class-ffc-privacy-exporters.php:1342
+msgid "QR code generator design"
+msgstr "Aparência do gerador de QR Code"
+
+#: includes/privacy/class-ffc-privacy-handler.php:104
+msgid "You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress \"Export Personal Data\" and \"Erase Personal Data\" tools, which cover the data this plugin stores. When data is erased, a certificate's form answers are kept without the e-mail address, identification numbers or IP address, so that a certificate already issued remains verifiable."
+msgstr "Você pode solicitar uma cópia dos seus dados pessoais ou pedir que sejam apagados. O administrador pode atender a essas solicitações pelas ferramentas \"Exportar dados pessoais\" e \"Apagar dados pessoais\" do WordPress, que abrangem os dados que este plugin armazena. Quando os dados são apagados, as respostas do formulário de um certificado são mantidas sem o endereço de e-mail, os números de identificação e o endereço IP, para que um certificado já emitido continue verificável."
+
+#: includes/settings/views/documentation/reference-privacy.php:48
+msgid "an eraser clears the identifiers (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, clears an appointment's other personal data, deletes the device signals recorded with the person's submissions, the rate-limit records kept for their e-mail and documents, their audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines, date-message deliveries and activity-log entries, clearing the client address and the encrypted detail on those entries. A certificate's form answers are kept, so it stays verifiable and can be reprinted: the eraser reports those submissions as retained, with that reason. Delete the submission when that is no longer needed."
+msgstr "um apagador remove os identificadores (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, apaga os demais dados pessoais de um agendamento, exclui os sinais de dispositivo registrados com os envios da pessoa, os registros de limite de requisições mantidos para o e-mail e os documentos dela, suas participações em públicos, vínculos de reservas, convites de formulário pós-evento, permissões de agenda, perfil armazenado e configurações de usuário do FFC, e desvincula suas linhas de presença, envios de mensagens de data e entradas do log de atividades, limpando o endereço do cliente e o detalhe criptografado dessas entradas. As respostas do formulário de um certificado são mantidas, para que ele continue verificável e possa ser reemitido: o apagador informa esses envios como mantidos, com esse motivo. Exclua o envio quando isso não for mais necessário."

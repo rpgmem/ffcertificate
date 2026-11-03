@@ -247,10 +247,12 @@ class UserCleanup {
 	/**
 	 * Handle email change in WordPress
 	 *
-	 * When a user's email changes, reindex email_hash on their submissions
-	 * so that searches by the new email find their records.
-	 *
-	 * Does NOT alter email_encrypted (historical record of email at submission time).
+	 * Records the change and touches the profile timestamp. It does NOT
+	 * rewrite `email_hash` on the user's submissions any more (#2343): rows
+	 * linked to an account are found by `user_id`, and a hash rewritten to the
+	 * new address let a recycled address match another person's unlinked
+	 * rows in a privacy export. The hash stays the one of the address the
+	 * submission was made with, as `email_encrypted` always did.
 	 *
 	 * @param int      $user_id Updated user ID.
 	 * @param \WP_User $old_user_data User data before the update.
@@ -270,22 +272,6 @@ class UserCleanup {
 		}
 
 		global $wpdb;
-		$submissions_table = $wpdb->prefix . 'ffc_submissions';
-
-		// Reindex email_hash for submissions linked to this user_id.
-		// Must mirror SubmissionHandler exactly: Encryption::hash without normalization.
-		$new_email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $new_email );
-
-		if ( null !== $new_email_hash ) {
-			$wpdb->query(
-				$wpdb->prepare(
-					'UPDATE %i SET email_hash = %s WHERE user_id = %d',
-					$submissions_table,
-					$new_email_hash,
-					$user_id
-				)
-			);
-		}
 
 		// Update profile timestamp.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';

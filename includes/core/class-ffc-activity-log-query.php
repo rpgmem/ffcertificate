@@ -316,6 +316,42 @@ class ActivityLogQuery {
 	}
 
 	/**
+	 * Erasure-request helper (#2343): what {@see self::redact_user_id()} does,
+	 * plus the person's own data on those rows -- the client address, in both
+	 * the encrypted column and the legacy plain one, and the encrypted context.
+	 *
+	 * The line itself stays: it is the audit record of what happened, and the
+	 * plain `context` is the operator-facing summary the log screen shows.
+	 * Account deletion keeps calling `redact_user_id()`, because deleting an
+	 * account is not an erasure request (CLAUDE.md "Security & PII
+	 * conventions").
+	 *
+	 * @param int $user_id WP user ID whose rows are erased.
+	 * @return int Number of log rows rewritten.
+	 */
+	public static function erase_user_data( int $user_id ): int {
+		global $wpdb;
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+		if ( $exists !== $table_name ) {
+			return 0;
+		}
+
+		$rows = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET user_id = NULL, user_ip = NULL, user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
 	 * The row's client IP, readable.
 	 *
 	 * The address is stored only in `user_ip_encrypted` (#1574). A row written

@@ -369,10 +369,10 @@ class UserCleanupTest extends TestCase {
 	}
 
 	// ==================================================================
-	// handle_email_change — reindexes email_hash
+	// handle_email_change — leaves email_hash alone (#2343)
 	// ==================================================================
 
-	public function test_handle_email_change_updates_email_hash_on_submissions(): void {
+	public function test_handle_email_change_does_not_rewrite_submission_hashes(): void {
 		$new_user = new \WP_User();
 		$new_user->user_email = 'new@example.com';
 		Functions\when('get_userdata')->justReturn($new_user);
@@ -380,7 +380,9 @@ class UserCleanupTest extends TestCase {
 		$old_user = new \WP_User();
 		$old_user->user_email = 'old@example.com';
 
-		$this->wpdb->shouldReceive('query')->once()->andReturn(3);
+		// A rewritten hash let a recycled address match another person's
+		// unlinked rows in an export; linked rows are found by user_id.
+		$this->wpdb->shouldNotReceive('query');
 		$this->wpdb->shouldReceive('get_var')->andReturn(null); // no profiles table
 
 		UserCleanup::handle_email_change(42, $old_user);

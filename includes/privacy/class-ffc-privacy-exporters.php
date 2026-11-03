@@ -7,9 +7,9 @@
  *
  * Exports user data from all FFC tables. Split out of PrivacyHandler
  * (#591 phase-3) so the data-export concern lives apart from the
- * registration/policy controller. Behaviour is identical — WordPress
- * core invokes these via callable, and the return shapes, pagination
- * and DB queries are unchanged.
+ * registration/policy controller. Every value is exported the way the
+ * subject should read it: decrypted, under a translated label, with dates
+ * in the site's format (#2343).
  *
  * @package FreeFormCertificate\Privacy
  * @since 6.12.0
@@ -131,7 +131,7 @@ class PrivacyExporters {
 		if ( ! empty( $reg_date ) ) {
 			$data[] = array(
 				'name'  => __( 'Member Since', 'ffcertificate' ),
-				'value' => $reg_date,
+				'value' => self::local_datetime( $reg_date ),
 			);
 		}
 
@@ -171,14 +171,17 @@ class PrivacyExporters {
 		$table  = $wpdb->prefix . 'ffc_submissions';
 		$offset = ( $page - 1 ) * self::ITEMS_PER_PAGE;
 
+		// Trashed rows are the subject's data too until they are deleted, so
+		// they are exported with their status rather than left out (#2343).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot maintenance pass: it must read the live state of the table, so caching it would be wrong rather than merely useless.
 		$submissions = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT t.id, t.form_id, t.submission_date, t.auth_code, t.consent_given,
-                    t.email_encrypted, p.post_title AS form_title
+				"SELECT t.id, t.form_id, t.submission_date, t.auth_code, t.consent_given, t.status,
+                    t.email_encrypted, t.cpf_encrypted, t.rf_encrypted, t.data, t.data_encrypted,
+                    p.post_title AS form_title
              FROM %i t
              LEFT JOIN %i p ON t.form_id = p.ID
-             WHERE {$owns} AND t.status != 'trash'
+             WHERE {$owns}
              ORDER BY t.submission_date DESC, t.id DESC
              LIMIT %d OFFSET %d",
 				$table,
@@ -188,29 +191,30 @@ class PrivacyExporters {
 			),
 			ARRAY_A
 		);
+		if ( ! is_array( $submissions ) ) {
+			$submissions = array();
+		}
 
 		$export_items = array();
 
 		foreach ( $submissions as $sub ) {
-			$email_display = '';
-			if ( ! empty( $sub['email_encrypted'] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$plain         = \FreeFormCertificate\Core\Encryption::decrypt( $sub['email_encrypted'] );
-				$email_display = ( is_string( $plain ) && ! empty( $plain ) ) ? $plain : '';
-			}
-
-			$auth_code = $sub['auth_code'] ?? '';
+			$auth_code = (string) ( $sub['auth_code'] ?? '' );
 			if ( strlen( $auth_code ) === 12 ) {
 				$auth_code = substr( $auth_code, 0, 4 ) . '-' . substr( $auth_code, 4, 4 ) . '-' . substr( $auth_code, 8, 4 );
 			}
 
-			$data = array(
+			$data   = array(
 				array(
 					'name'  => __( 'Form', 'ffcertificate' ),
 					'value' => $sub['form_title'] ?? __( 'Unknown', 'ffcertificate' ),
 				),
 				array(
 					'name'  => __( 'Submission Date', 'ffcertificate' ),
-					'value' => $sub['submission_date'] ?? '',
+					'value' => \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $sub['submission_date'] ?? 0 ) > 0 ? (int) $sub['submission_date'] : null ),
+				),
+				array(
+					'name'  => __( 'Status', 'ffcertificate' ),
+					'value' => self::status_label( 'submission', (string) ( $sub['status'] ?? '' ) ),
 				),
 				array(
 					'name'  => __( 'Auth Code', 'ffcertificate' ),
@@ -218,13 +222,22 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Email', 'ffcertificate' ),
-					'value' => $email_display,
-				),
-				array(
-					'name'  => __( 'Consent Given', 'ffcertificate' ),
-					'value' => ! empty( $sub['consent_given'] ) ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
+					'value' => self::readable( $sub['email_encrypted'] ?? null ),
 				),
 			);
+			$data   = array_merge( $data, self::document_rows( $sub ) );
+			$data[] = array(
+				'name'  => __( 'Consent Given', 'ffcertificate' ),
+				'value' => ! empty( $sub['consent_given'] ) ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
+			);
+
+			$labels = self::form_field_labels( (int) ( $sub['form_id'] ?? 0 ) );
+			foreach ( self::answers( $sub, 'data', 'data_encrypted' ) as $key => $value ) {
+				$data[] = array(
+					'name'  => $labels[ $key ] ?? self::humanize( (string) $key ),
+					'value' => self::readable( $value ),
+				);
+			}
 
 			$export_items[] = array(
 				'group_id'    => 'ffc-certificates',
@@ -274,7 +287,8 @@ class PrivacyExporters {
 		$appointments = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT t.id, t.appointment_date, t.start_time, t.end_time, t.status,
-                    t.name, t.email_encrypted, t.phone_encrypted, t.user_notes,
+                    t.name, t.email_encrypted, t.phone_encrypted, t.cpf_encrypted, t.rf_encrypted,
+                    t.custom_data_encrypted, t.user_notes,
                     p.post_title AS calendar_title
              FROM %i t
              LEFT JOIN %i p ON t.calendar_id = p.ID
@@ -288,38 +302,29 @@ class PrivacyExporters {
 			),
 			ARRAY_A
 		);
+		if ( ! is_array( $appointments ) ) {
+			$appointments = array();
+		}
 
 		$export_items = array();
 
 		foreach ( $appointments as $appt ) {
-			$email_display = '';
-			if ( ! empty( $appt['email_encrypted'] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$plain         = \FreeFormCertificate\Core\Encryption::decrypt( $appt['email_encrypted'] );
-				$email_display = ( is_string( $plain ) && ! empty( $plain ) ) ? $plain : '';
-			}
-
-			$phone_display = '';
-			if ( ! empty( $appt['phone_encrypted'] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-				$plain         = \FreeFormCertificate\Core\Encryption::decrypt( $appt['phone_encrypted'] );
-				$phone_display = ( is_string( $plain ) && ! empty( $plain ) ) ? $plain : '';
-			}
-
-			$data = array(
+			$data   = array(
 				array(
 					'name'  => __( 'Calendar', 'ffcertificate' ),
 					'value' => $appt['calendar_title'] ?? __( 'Unknown', 'ffcertificate' ),
 				),
 				array(
 					'name'  => __( 'Date', 'ffcertificate' ),
-					'value' => $appt['appointment_date'] ?? '',
+					'value' => \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( (string) ( $appt['appointment_date'] ?? '' ) ),
 				),
 				array(
 					'name'  => __( 'Time', 'ffcertificate' ),
-					'value' => ( $appt['start_time'] ?? '' ) . ' - ' . ( $appt['end_time'] ?? '' ),
+					'value' => \FreeFormCertificate\Core\DateFormatter::format_schedule( $appt['start_time'] ?? null, $appt['end_time'] ?? null ),
 				),
 				array(
 					'name'  => __( 'Status', 'ffcertificate' ),
-					'value' => $appt['status'] ?? '',
+					'value' => self::status_label( 'appointment', (string) ( $appt['status'] ?? '' ) ),
 				),
 				array(
 					'name'  => __( 'Name', 'ffcertificate' ),
@@ -327,17 +332,24 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Email', 'ffcertificate' ),
-					'value' => $email_display,
+					'value' => self::readable( $appt['email_encrypted'] ?? null ),
 				),
 				array(
 					'name'  => __( 'Phone', 'ffcertificate' ),
-					'value' => $phone_display,
-				),
-				array(
-					'name'  => __( 'Notes', 'ffcertificate' ),
-					'value' => $appt['user_notes'] ?? '',
+					'value' => self::readable( $appt['phone_encrypted'] ?? null ),
 				),
 			);
+			$data   = array_merge( $data, self::document_rows( $appt ) );
+			$data[] = array(
+				'name'  => __( 'Notes', 'ffcertificate' ),
+				'value' => $appt['user_notes'] ?? '',
+			);
+			foreach ( self::answers( $appt, 'custom_data', 'custom_data_encrypted' ) as $key => $value ) {
+				$data[] = array(
+					'name'  => self::humanize( (string) $key ),
+					'value' => self::readable( $value ),
+				);
+			}
 
 			$export_items[] = array(
 				'group_id'    => 'ffc-appointments',
@@ -415,7 +427,7 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Joined Date', 'ffcertificate' ),
-					'value' => $group['joined_date'] ?? '',
+					'value' => self::local_datetime( $group['joined_date'] ?? null ),
 				),
 			);
 
@@ -513,7 +525,7 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Status', 'ffcertificate' ),
-					'value' => $booking['status'] ?? '',
+					'value' => self::status_label( 'booking', (string) ( $booking['status'] ?? '' ) ),
 				),
 			);
 
@@ -648,15 +660,15 @@ class PrivacyExporters {
 			$data = array(
 				array(
 					'name'  => __( 'Action', 'ffcertificate' ),
-					'value' => (string) ( $row['action'] ?? '' ),
+					'value' => \FreeFormCertificate\Admin\AdminActivityLogPage::get_action_label( (string) ( $row['action'] ?? '' ) ),
 				),
 				array(
 					'name'  => __( 'Level', 'ffcertificate' ),
-					'value' => (string) ( $row['level'] ?? '' ),
+					'value' => self::status_label( 'level', (string) ( $row['level'] ?? '' ) ),
 				),
 				array(
 					'name'  => __( 'Date', 'ffcertificate' ),
-					'value' => (string) ( $row['created_at'] ?? '' ),
+					'value' => self::local_datetime( $row['created_at'] ?? null ),
 				),
 			);
 
@@ -853,7 +865,7 @@ class PrivacyExporters {
              WHERE user_id = %d AND meta_key LIKE %s',
 				$wpdb->usermeta,
 				$user->ID,
-				'ffc_%'
+				$wpdb->esc_like( 'ffc_' ) . '%'
 			),
 			ARRAY_A
 		);
@@ -865,18 +877,32 @@ class PrivacyExporters {
 			);
 		}
 
-		// Sensitive keys that should not be exported in plain text.
-		$redact_keys = array( 'ffc_cpf_rf_hash' );
-
-		$data = array();
+		// Values are read the way the subject should read them (#2343): a
+		// serialized array is opened, an encrypted value decrypted, a custom
+		// field named by its label, and a hash -- one-way, meaningless to the
+		// subject -- left out.
+		$labels = self::custom_field_labels();
+		$data   = array();
 		foreach ( $meta_rows as $row ) {
-			$value = $row['meta_value'];
-			if ( in_array( $row['meta_key'], $redact_keys, true ) ) {
-				$value = '[hash]';
+			$key = (string) $row['meta_key'];
+			if ( '_hash' === substr( $key, -5 ) ) {
+				continue;
 			}
+			$value = maybe_unserialize( (string) $row['meta_value'] );
+
+			if ( 'ffc_custom_fields_data' === $key && is_array( $value ) ) {
+				foreach ( $value as $field_key => $field_value ) {
+					$data[] = array(
+						'name'  => $labels[ (string) $field_key ] ?? self::humanize( (string) $field_key ),
+						'value' => self::readable( $field_value ),
+					);
+				}
+				continue;
+			}
+
 			$data[] = array(
-				'name'  => $row['meta_key'],
-				'value' => $value,
+				'name'  => self::usermeta_label( $key, $labels ),
+				'value' => self::usermeta_value( $key, $value ),
 			);
 		}
 
@@ -899,10 +925,9 @@ class PrivacyExporters {
 	 * Export reregistration submissions (#1574).
 	 *
 	 * A reregistration is always tied to an account, so only the account
-	 * finds it. The answers are exported by field key with every encrypted
-	 * value decrypted -- the key is what the record stores, and reading the
-	 * field labels would couple this module to the reregistration one for no
-	 * gain in what the subject receives.
+	 * finds it. Each answer is exported under its field's label, read from the
+	 * custom-fields table (the key when the field is gone), with every
+	 * encrypted value decrypted (#2343).
 	 *
 	 * @param string $email_address User email.
 	 * @param int    $page          Page number.
@@ -949,6 +974,7 @@ class PrivacyExporters {
 			$rows = array();
 		}
 		$export_items = array();
+		$labels       = self::custom_field_labels();
 
 		foreach ( $rows as $row ) {
 			$data = array(
@@ -958,11 +984,11 @@ class PrivacyExporters {
 				),
 				array(
 					'name'  => __( 'Status', 'ffcertificate' ),
-					'value' => $row['status'],
+					'value' => self::status_label( 'reregistration', $row['status'] ),
 				),
 				array(
 					'name'  => __( 'Submitted', 'ffcertificate' ),
-					'value' => null !== $row['submitted_at'] ? (string) wp_date( 'Y-m-d H:i', (int) $row['submitted_at'] ) : '',
+					'value' => null !== $row['submitted_at'] ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['submitted_at'] ) : '',
 				),
 			);
 
@@ -970,7 +996,7 @@ class PrivacyExporters {
 			$fields  = is_array( $decoded ) && is_array( $decoded['fields'] ?? null ) ? $decoded['fields'] : array();
 			foreach ( $fields as $key => $value ) {
 				$data[] = array(
-					'name'  => (string) $key,
+					'name'  => $labels[ (string) $key ] ?? self::humanize( (string) $key ),
 					'value' => self::readable( $value ),
 				);
 			}
@@ -1130,6 +1156,228 @@ class PrivacyExporters {
 			),
 			$rows
 		);
+	}
+
+	/**
+	 * A stored status code as the subject should read it (#2343).
+	 *
+	 * The maps are the ones the plugin's own screens print, restated here
+	 * rather than read from each module so the privacy module stays free of
+	 * a dependency on modules that may be switched off. An unknown code is
+	 * humanised rather than shown raw.
+	 *
+	 * @param string $kind   'submission', 'appointment', 'booking', 'reregistration' or 'level'.
+	 * @param string $status Stored code.
+	 * @return string
+	 */
+	private static function status_label( string $kind, string $status ): string {
+		$maps = array(
+			'submission'     => array(
+				'publish' => __( 'Published', 'ffcertificate' ),
+				'trash'   => __( 'Trash', 'ffcertificate' ),
+			),
+			'appointment'    => array(
+				'pending'   => __( 'Pending Approval', 'ffcertificate' ),
+				'confirmed' => __( 'Confirmed', 'ffcertificate' ),
+				'cancelled' => __( 'Cancelled', 'ffcertificate' ),
+				'completed' => __( 'Completed', 'ffcertificate' ),
+				'no_show'   => __( 'No Show', 'ffcertificate' ),
+			),
+			'booking'        => array(
+				'active'    => __( 'Active', 'ffcertificate' ),
+				'cancelled' => __( 'Cancelled', 'ffcertificate' ),
+			),
+			'reregistration' => array(
+				'pending'     => __( 'Pending', 'ffcertificate' ),
+				'in_progress' => __( 'In Progress', 'ffcertificate' ),
+				'submitted'   => __( 'Submitted — Pending Review', 'ffcertificate' ),
+				'approved'    => __( 'Approved', 'ffcertificate' ),
+				'rejected'    => __( 'Rejected', 'ffcertificate' ),
+				'expired'     => __( 'Expired', 'ffcertificate' ),
+			),
+			'level'          => array(
+				'info'    => __( 'Info', 'ffcertificate' ),
+				'warning' => __( 'Warning', 'ffcertificate' ),
+				'error'   => __( 'Error', 'ffcertificate' ),
+				'debug'   => __( 'Debug', 'ffcertificate' ),
+			),
+		);
+
+		return $maps[ $kind ][ $status ] ?? self::humanize( $status );
+	}
+
+	/**
+	 * A site-local `DATETIME` (what `current_time( 'mysql' )` writes) in the
+	 * site's date and time format. Read through the central ISO conversion,
+	 * which knows the value is local; parsing it bare would shift it by the
+	 * site's offset.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return string
+	 */
+	private static function local_datetime( $value ): string {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return '';
+		}
+		$iso = \FreeFormCertificate\Core\DateFormatter::iso8601( $value );
+		return null === $iso ? $value : \FreeFormCertificate\Core\DateFormatter::format_datetime( $iso );
+	}
+
+	/**
+	 * CPF and RF rows of a submission or appointment, decrypted, when present.
+	 *
+	 * @param array<string, mixed> $row Row carrying `cpf_encrypted` / `rf_encrypted`.
+	 * @return list<array{name: string, value: string}>
+	 */
+	private static function document_rows( array $row ): array {
+		$rows = array();
+		foreach ( array(
+			'CPF' => 'cpf_encrypted',
+			'RF'  => 'rf_encrypted',
+		) as $label => $column ) {
+			$value = self::readable( $row[ $column ] ?? null );
+			if ( '' !== $value ) {
+				$rows[] = array(
+					'name'  => $label,
+					'value' => $value,
+				);
+			}
+		}
+		return $rows;
+	}
+
+	/**
+	 * The answers a row stores as JSON: the encrypted column first, the plain
+	 * one when there is no key or no ciphertext, as the CSV export reads them.
+	 *
+	 * @param array<string, mixed> $row           Row.
+	 * @param string               $plain_key     Plain JSON column.
+	 * @param string               $encrypted_key Encrypted JSON column.
+	 * @return array<string, mixed>
+	 */
+	private static function answers( array $row, string $plain_key, string $encrypted_key ): array {
+		$json = null;
+		if ( ! empty( $row[ $encrypted_key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			$plain = \FreeFormCertificate\Core\Encryption::decrypt( (string) $row[ $encrypted_key ] );
+			$json  = is_string( $plain ) && '' !== $plain ? $plain : null;
+		}
+		if ( null === $json && ! empty( $row[ $plain_key ] ) && is_string( $row[ $plain_key ] ) ) {
+			$json = $row[ $plain_key ];
+		}
+		$decoded = null === $json ? null : json_decode( $json, true );
+		if ( ! is_array( $decoded ) ) {
+			return array();
+		}
+
+		// The consent flag is the separate "Consent Given" row already.
+		unset( $decoded['ffc_lgpd_consent'] );
+		return $decoded;
+	}
+
+	/**
+	 * Field name => label of a form, from its builder definition.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return array<string, string>
+	 */
+	private static function form_field_labels( int $form_id ): array {
+		static $cache = array();
+		if ( $form_id <= 0 ) {
+			return array();
+		}
+		if ( ! isset( $cache[ $form_id ] ) ) {
+			$labels = array();
+			$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
+			foreach ( is_array( $fields ) ? $fields : array() as $field ) {
+				if ( is_array( $field ) && is_scalar( $field['name'] ?? null ) && is_scalar( $field['label'] ?? null ) && '' !== (string) $field['label'] ) {
+					$labels[ (string) $field['name'] ] = wp_strip_all_tags( (string) $field['label'] );
+				}
+			}
+			$cache[ $form_id ] = $labels;
+		}
+		return $cache[ $form_id ];
+	}
+
+	/**
+	 * Field key => label of the custom fields (reregistration answers and the
+	 * profile fields kept in user meta). Read from the table rather than the
+	 * reregistration module, which may be switched off.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function custom_field_labels(): array {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_custom_fields';
+		if ( ! self::table_exists( $table ) ) {
+			return array();
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-shot privacy export over the plugin's own ffc_* table: it must read the live state.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT field_key, field_label FROM %i ORDER BY id ASC', $table ),
+			ARRAY_A
+		);
+
+		$labels = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$key = (string) ( $row['field_key'] ?? '' );
+			if ( '' !== $key && ! isset( $labels[ $key ] ) ) {
+				$labels[ $key ] = (string) ( $row['field_label'] ?? $key );
+			}
+		}
+		return $labels;
+	}
+
+	/**
+	 * The label of an `ffc_*` user-meta key.
+	 *
+	 * @param string                $key    Meta key.
+	 * @param array<string, string> $labels Custom-field labels.
+	 * @return string
+	 */
+	private static function usermeta_label( string $key, array $labels ): string {
+		$known = array(
+			'ffc_registration_date'   => __( 'Member Since', 'ffcertificate' ),
+			'ffc_user_birth_date'     => __( 'Birth date', 'ffcertificate' ),
+			'ffc_user_birth_md'       => __( 'Birthday (day and month)', 'ffcertificate' ),
+			'ffc_qr_generator_design' => __( 'QR code generator design', 'ffcertificate' ),
+		);
+		if ( isset( $known[ $key ] ) ) {
+			return $known[ $key ];
+		}
+		if ( str_starts_with( $key, 'ffc_user_' ) ) {
+			$field = substr( $key, strlen( 'ffc_user_' ) );
+			return $labels[ $field ] ?? self::humanize( $field );
+		}
+		return self::humanize( (string) preg_replace( '/^ffc_/', '', $key ) );
+	}
+
+	/**
+	 * The value of an `ffc_*` user-meta key, readable.
+	 *
+	 * @param string $key   Meta key.
+	 * @param mixed  $value Unserialized value.
+	 * @return string
+	 */
+	private static function usermeta_value( string $key, $value ): string {
+		if ( 'ffc_registration_date' === $key ) {
+			return self::local_datetime( $value );
+		}
+		$readable = self::readable( $value );
+		if ( 'ffc_user_birth_date' === $key && '' !== $readable ) {
+			return \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $readable );
+		}
+		return $readable;
+	}
+
+	/**
+	 * A stored key as words: `endereco_numero` reads "Endereco numero".
+	 *
+	 * @param string $key Key.
+	 * @return string
+	 */
+	private static function humanize( string $key ): string {
+		$words = trim( str_replace( array( '_', '-' ), ' ', $key ) );
+		return '' === $words ? $key : ucfirst( $words );
 	}
 
 	/**

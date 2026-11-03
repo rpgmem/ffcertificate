@@ -101,7 +101,7 @@ class PrivacyHandler {
 
 		$content .= '<h2>' . esc_html__( 'Your rights over your data', 'ffcertificate' ) . '</h2>';
 
-		$content .= '<p>' . $hint . esc_html__( 'You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress "Export Personal Data" and "Erase Personal Data" tools, which cover the data this plugin stores. Certificate authentication codes and verification tokens may be retained in anonymised form so that certificates already issued remain verifiable after erasure.', 'ffcertificate' ) . '</p>';
+		$content .= '<p>' . $hint . esc_html__( 'You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress "Export Personal Data" and "Erase Personal Data" tools, which cover the data this plugin stores. When data is erased, a certificate\'s form answers are kept without the e-mail address, identification numbers or IP address, so that a certificate already issued remains verifiable.', 'ffcertificate' ) . '</p>';
 
 		return $content;
 	}
