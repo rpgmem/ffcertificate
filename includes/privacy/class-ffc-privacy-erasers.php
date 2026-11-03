@@ -185,7 +185,16 @@ class PrivacyErasers {
 				$wpdb->prepare( "SELECT t.cpf_encrypted, t.rf_encrypted FROM %i t WHERE {$owns}", $table ),
 				ARRAY_A
 			);
-			foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+
+			/**
+			 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+			 *
+			 * @var list<array{cpf_encrypted: string|null, rf_encrypted: string|null}>|null $rows
+			 */
+			if ( ! is_array( $rows ) ) {
+				continue;
+			}
+			foreach ( $rows as $row ) {
 				foreach ( array( 'cpf_encrypted', 'rf_encrypted' ) as $column ) {
 					$cipher = $row[ $column ] ?? null;
 					if ( ! is_string( $cipher ) || '' === $cipher ) {
@@ -216,7 +225,7 @@ class PrivacyErasers {
 			$wpdb->prepare( "SELECT t.id FROM %i t WHERE {$owns}", $wpdb->prefix . 'ffc_submissions' )
 		);
 
-		return array_values( array_map( 'intval', is_array( $ids ) ? $ids : array() ) );
+		return array_values( array_map( static fn( $id ): int => is_numeric( $id ) ? (int) $id : 0, is_array( $ids ) ? $ids : array() ) );
 	}
 
 	/**

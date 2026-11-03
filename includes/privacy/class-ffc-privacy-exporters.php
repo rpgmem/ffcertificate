@@ -191,6 +191,12 @@ class PrivacyExporters {
 			),
 			ARRAY_A
 		);
+
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<array{id: numeric-string, form_id: numeric-string, submission_date: numeric-string|null, auth_code: string|null, consent_given: string|null, status: string|null, email_encrypted: string|null, cpf_encrypted: string|null, rf_encrypted: string|null, data: string|null, data_encrypted: string|null, form_title: string|null}>|null $submissions
+		 */
 		if ( ! is_array( $submissions ) ) {
 			$submissions = array();
 		}
@@ -231,7 +237,7 @@ class PrivacyExporters {
 				'value' => ! empty( $sub['consent_given'] ) ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' ),
 			);
 
-			$labels = self::form_field_labels( (int) ( $sub['form_id'] ?? 0 ) );
+			$labels = self::form_field_labels( (int) $sub['form_id'] );
 			foreach ( self::answers( $sub, 'data', 'data_encrypted' ) as $key => $value ) {
 				$data[] = array(
 					'name'  => $labels[ $key ] ?? self::humanize( (string) $key ),
@@ -302,6 +308,12 @@ class PrivacyExporters {
 			),
 			ARRAY_A
 		);
+
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<array{id: numeric-string, appointment_date: string|null, start_time: string|null, end_time: string|null, status: string|null, name: string|null, email_encrypted: string|null, phone_encrypted: string|null, cpf_encrypted: string|null, rf_encrypted: string|null, custom_data_encrypted: string|null, user_notes: string|null, calendar_title: string|null}>|null $appointments
+		 */
 		if ( ! is_array( $appointments ) ) {
 			$appointments = array();
 		}
@@ -1256,9 +1268,10 @@ class PrivacyExporters {
 	 * @return array<string, mixed>
 	 */
 	private static function answers( array $row, string $plain_key, string $encrypted_key ): array {
-		$json = null;
-		if ( ! empty( $row[ $encrypted_key ] ) && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
-			$plain = \FreeFormCertificate\Core\Encryption::decrypt( (string) $row[ $encrypted_key ] );
+		$json      = null;
+		$encrypted = $row[ $encrypted_key ] ?? null;
+		if ( is_string( $encrypted ) && '' !== $encrypted && class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			$plain = \FreeFormCertificate\Core\Encryption::decrypt( $encrypted );
 			$json  = is_string( $plain ) && '' !== $plain ? $plain : null;
 		}
 		if ( null === $json && ! empty( $row[ $plain_key ] ) && is_string( $row[ $plain_key ] ) ) {
@@ -1270,8 +1283,13 @@ class PrivacyExporters {
 		}
 
 		// The consent flag is the separate "Consent Given" row already.
-		unset( $decoded['ffc_lgpd_consent'] );
-		return $decoded;
+		$answers = array();
+		foreach ( $decoded as $key => $value ) {
+			if ( 'ffc_lgpd_consent' !== $key ) {
+				$answers[ (string) $key ] = $value;
+			}
+		}
+		return $answers;
 	}
 
 	/**
@@ -1317,11 +1335,16 @@ class PrivacyExporters {
 			ARRAY_A
 		);
 
+		/**
+		 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+		 *
+		 * @var list<array{field_key: string, field_label: string}>|null $rows
+		 */
 		$labels = array();
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$key = (string) ( $row['field_key'] ?? '' );
+			$key = $row['field_key'];
 			if ( '' !== $key && ! isset( $labels[ $key ] ) ) {
-				$labels[ $key ] = (string) ( $row['field_label'] ?? $key );
+				$labels[ $key ] = $row['field_label'];
 			}
 		}
 		return $labels;

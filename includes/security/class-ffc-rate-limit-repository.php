@@ -82,7 +82,12 @@ final class RateLimitRepository {
 			if ( '' === $value ) {
 				continue;
 			}
-			$variants = array( $value, 'email' === $type ? strtolower( $value ) : (string) preg_replace( '/\D+/', '', $value ) );
+			$variants = array(
+				$value,
+				'email' === $type
+					? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $value )
+					: \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value ),
+			);
 			foreach ( $variants as $variant ) {
 				if ( '' !== $variant ) {
 					$keys[ self::storage_identifier( $type, $variant ) ] = true;
