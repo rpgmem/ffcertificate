@@ -308,9 +308,11 @@ class ReregistrationFrontend {
 	public static function ajax_submit(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		// Honeypot check (defense-in-depth — form already requires login).
-		if ( ! empty( $_POST['ffc_honeypot_trap'] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
+		// Honeypot check (defense-in-depth — the form already requires login):
+		// the trap field alone (#2339), see Honeypot::check_trap().
+		$honeypot = \FreeFormCertificate\Core\Honeypot::check_trap( wp_unslash( $_POST ) );
+		if ( true !== $honeypot ) {
+			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
 		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
@@ -366,9 +368,11 @@ class ReregistrationFrontend {
 	public static function ajax_save_draft(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		// Honeypot check (defense-in-depth).
-		if ( ! empty( $_POST['ffc_honeypot_trap'] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
+		// Honeypot check (defense-in-depth — the form already requires login):
+		// the trap field alone (#2339), see Honeypot::check_trap().
+		$honeypot = \FreeFormCertificate\Core\Honeypot::check_trap( wp_unslash( $_POST ) );
+		if ( true !== $honeypot ) {
+			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
 		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;

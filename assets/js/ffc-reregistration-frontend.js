@@ -338,6 +338,18 @@
         }
     }
 
+    /* ─── Honeypot ─────────────────────────────────────── */
+
+    // The trap field and the render-time stamp travel with every save and
+    // submit (#2339). The request is built by hand, so without this the
+    // server's honeypot never saw either.
+    function withHoneypot($container, payload) {
+        $container.find('.ffc-rereg-honeypot input').each(function () {
+            payload[this.name] = this.value;
+        });
+        return payload;
+    }
+
     /* ─── Save Draft ───────────────────────────────────── */
 
     function initDraft($container) {
@@ -360,7 +372,7 @@
 
         return FFC.request(
             'ffc_save_reregistration_draft',
-            { reregistration_id: id, fields: getFields($container) },
+            withHoneypot($container, { reregistration_id: id, fields: getFields($container) }),
             { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
         )
             .then(function () {
@@ -440,7 +452,7 @@
 
             FFC.request(
                 'ffc_submit_reregistration',
-                { reregistration_id: id, fields: getFields($container) },
+                withHoneypot($container, { reregistration_id: id, fields: getFields($container) }),
                 { nonce: ffcReregistration.nonce, ajaxUrl: ffcReregistration.ajaxUrl }
             )
                 .then(function (data) {

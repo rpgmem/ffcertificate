@@ -239,6 +239,7 @@ class SecurityServiceTest extends TestCase {
 		$data      = array(
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		$this->assertIsString( SecurityService::peek_security_fields( $data, 'public_csv' ) );
@@ -301,6 +302,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
 		$result = SecurityService::validate_security_fields($data, '');
@@ -315,12 +317,13 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => 'bot-filled-this',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
 		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
-		$this->assertStringContainsString('Honeypot', $result);
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $result );
 	}
 
 	public function test_validate_security_fields_missing_captcha_ans_returns_error_string(): void {
@@ -329,6 +332,7 @@ class SecurityServiceTest extends TestCase {
 		$data = [
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
 		$result = SecurityService::validate_security_fields($data, '');
@@ -343,6 +347,7 @@ class SecurityServiceTest extends TestCase {
 		$data = [
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
+			'ffc_hp_ts'         => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
 		$result = SecurityService::validate_security_fields($data, '');
@@ -358,6 +363,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) ($captcha['answer'] + 1),
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
 		$result = SecurityService::validate_security_fields($data, '');
@@ -419,6 +425,7 @@ class SecurityServiceTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
 				'ffc_captcha_hash' => $captcha['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			), ''
 		);
 

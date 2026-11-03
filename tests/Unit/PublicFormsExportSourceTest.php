@@ -377,6 +377,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$captcha                     = SecurityService::generate_simple_captcha( 'public_csv' );
 		$_POST['ffc_captcha_ans']    = (string) $captcha['answer'];
 		$_POST['ffc_captcha_hash']   = $captcha['hash'];
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$this->nonces[ PublicCsvDownload::NONCE_ACTION ] = 'page-nonce';
 		$_POST['_ffc_pcd_nonce']     = 'page-nonce';
 	}
@@ -465,7 +466,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
 
-		$this->assertSame( 'Security Error: Request blocked (Honeypot).', $payload['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $payload['message'] );
 		$this->assertTrue( $payload['refresh_captcha'], 'A fresh challenge rides on the refusal.' );
 		$this->assertNotEmpty( $payload['new_hash'] );
 	}

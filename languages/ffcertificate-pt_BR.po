@@ -1932,10 +1932,6 @@ msgstr "Ocorreu um erro. Por favor, tente novamente."
 msgid "an event-title heading in a semantic colour, a greeting, one context line, and a details box."
 msgstr "um título do evento em uma cor semântica, uma saudação, uma linha de contexto e uma caixa de detalhes."
 
-#: includes/settings/views/documentation/reference-security.php:64
-msgid "An invisible honeypot field plus a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
-msgstr "Um campo *honeypot* invisível combinado com um desafio que o visitante precisa superar. Duas opções estão disponíveis: uma questão aritmética que funciona sem JavaScript e o ALTCHA, uma prova de trabalho (*proof-of-work*) resolvida no navegador e servida inteiramente a partir deste site. Em ambos os casos, o token é assinado, possui data de validade e só pode ser utilizado uma vez. As duas opções também podem funcionar simultaneamente, garantindo que visitantes sem JavaScript ainda consigam prosseguir — esse modo visa a acessibilidade, e não um reforço na segurança, uma vez que o servidor aceita qualquer uma das provas. Escolha o modo em Configurações → Captcha."
-
 #: includes/api/class-ffc-user-certificates-rest-controller.php:182 includes/api/class-ffc-form-rest-controller.php:301 includes/api/class-ffc-form-rest-controller.php:396 includes/api/class-ffc-form-rest-controller.php:492 includes/api/class-ffc-form-rest-controller.php:702 includes/api/class-ffc-operator-certificates-rest-controller.php:259 includes/api/class-ffc-operator-certificates-rest-controller.php:315 includes/api/class-ffc-calendar-rest-controller.php:199 includes/api/class-ffc-calendar-rest-controller.php:284 includes/api/class-ffc-calendar-rest-controller.php:335 includes/api/class-ffc-user-profile-rest-controller.php:209 includes/api/class-ffc-user-profile-rest-controller.php:301 includes/api/class-ffc-user-appointments-rest-controller.php:245 includes/api/class-ffc-submission-rest-controller.php:212 includes/api/class-ffc-submission-rest-controller.php:285 includes/api/class-ffc-submission-rest-controller.php:396 includes/api/class-ffc-appointment-rest-controller.php:239 includes/api/class-ffc-appointment-rest-controller.php:303 includes/api/class-ffc-appointment-rest-controller.php:349 includes/core/class-ffc-ajax-trait.php:166 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:334 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:409
 msgid "An unexpected error occurred."
 msgstr "Ocorreu um erro inesperado."
@@ -14752,10 +14748,6 @@ msgstr "A verificação de segurança falhou. Por favor, atualize a página."
 #: includes/core/class-ffc-ajax-trait.php:46 includes/core/class-ffc-ajax-trait.php:52
 msgid "Security check failed. Please reload the page."
 msgstr "A verificação de segurança falhou. Por favor, recarregue a página."
-
-#: includes/core/class-ffc-security-service.php:297
-msgid "Security Error: Request blocked (Honeypot)."
-msgstr "Erro de segurança: Solicitação bloqueada (Honeypot)."
 
 #. 1: first operand (digit or word), 2: operator (symbol or word), 3: second operand (digit or word)
 #: includes/core/class-ffc-security-service.php:56
@@ -31801,3 +31793,11 @@ msgstr "Este formulário não pode ser usado agora: a restrição de localizaç�
 #, php-format
 msgid "This location is used by these forms; choose another area for them first: %s"
 msgstr "Este local é usado por estes formulários; escolha outra área para eles antes: %s"
+
+#: includes/settings/views/documentation/reference-security.php:73
+msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
+msgstr "Um campo honeypot invisível e um horário assinado de quando o formulário foi exibido: um envio feito menos de 3 segundos depois de o formulário aparecer é recusado, com a mesma mensagem de um honeypot preenchido. Depois, um desafio que o visitante precisa resolver. Há dois disponíveis: uma pergunta de aritmética que funciona sem JavaScript, e o ALTCHA, uma prova de trabalho resolvida no navegador e servida inteiramente por este site. Em ambos os casos o token é assinado, expira e só pode ser usado uma vez. Os dois também podem funcionar lado a lado, para que um visitante sem JavaScript ainda tenha como passar — esse modo amplia o alcance, não a força, já que o servidor aceita qualquer uma das provas. Escolha o modo em Configurações → Captcha."
+
+#: includes/core/class-ffc-honeypot.php:133
+msgid "Your submission could not be accepted. Please wait a moment and try again."
+msgstr "Não foi possível aceitar o seu envio. Aguarde um instante e tente de novo."

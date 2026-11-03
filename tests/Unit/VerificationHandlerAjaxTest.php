@@ -302,6 +302,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			'nonce'            => 'ok',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		) + $fields;
 	}
 
@@ -376,6 +377,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 			'nonce'            => 'ok',
 			'ffc_captcha_ans'  => (string) ( $challenge['answer'] + 1 ),
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		try {

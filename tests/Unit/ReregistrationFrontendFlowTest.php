@@ -532,7 +532,7 @@ class ReregistrationFrontendFlowTest extends TestCase {
 
 		$this->call( 'ajax_submit' );
 
-		$this->assertSame( 'Invalid submission.', $this->response['data']['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $this->response['data']['message'] );
 		$this->assertSame( array(), $this->ran, 'The honeypot answers before any store is read.' );
 	}
 
@@ -597,7 +597,7 @@ class ReregistrationFrontendFlowTest extends TestCase {
 
 		$this->call( 'ajax_save_draft' );
 
-		$this->assertSame( 'Invalid submission.', $this->response['data']['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $this->response['data']['message'] );
 		$this->assertSame( array(), $this->ran, 'The honeypot answers before any store is read.' );
 	}
 

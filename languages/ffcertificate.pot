@@ -1936,10 +1936,6 @@ msgstr ""
 msgid "an event-title heading in a semantic colour, a greeting, one context line, and a details box."
 msgstr ""
 
-#: includes/settings/views/documentation/reference-security.php:64
-msgid "An invisible honeypot field plus a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
-msgstr ""
-
 #: includes/api/class-ffc-user-certificates-rest-controller.php:182 includes/api/class-ffc-form-rest-controller.php:301 includes/api/class-ffc-form-rest-controller.php:396 includes/api/class-ffc-form-rest-controller.php:492 includes/api/class-ffc-form-rest-controller.php:702 includes/api/class-ffc-operator-certificates-rest-controller.php:259 includes/api/class-ffc-operator-certificates-rest-controller.php:315 includes/api/class-ffc-calendar-rest-controller.php:199 includes/api/class-ffc-calendar-rest-controller.php:284 includes/api/class-ffc-calendar-rest-controller.php:335 includes/api/class-ffc-user-profile-rest-controller.php:209 includes/api/class-ffc-user-profile-rest-controller.php:301 includes/api/class-ffc-user-appointments-rest-controller.php:245 includes/api/class-ffc-submission-rest-controller.php:212 includes/api/class-ffc-submission-rest-controller.php:285 includes/api/class-ffc-submission-rest-controller.php:396 includes/api/class-ffc-appointment-rest-controller.php:239 includes/api/class-ffc-appointment-rest-controller.php:303 includes/api/class-ffc-appointment-rest-controller.php:349 includes/core/class-ffc-ajax-trait.php:166 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:334 includes/self-scheduling/class-ffc-self-scheduling-appointment-ajax-handler.php:409
 msgid "An unexpected error occurred."
 msgstr ""
@@ -14708,10 +14704,6 @@ msgstr ""
 
 #: includes/core/class-ffc-ajax-trait.php:46 includes/core/class-ffc-ajax-trait.php:52
 msgid "Security check failed. Please reload the page."
-msgstr ""
-
-#: includes/core/class-ffc-security-service.php:297
-msgid "Security Error: Request blocked (Honeypot)."
 msgstr ""
 
 #. 1: first operand (digit or word), 2: operator (symbol or word), 3: second operand (digit or word)
@@ -31718,4 +31710,12 @@ msgstr ""
 #: includes/security/class-ffc-geofence-location-registry.php:237
 #, php-format
 msgid "This location is used by these forms; choose another area for them first: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-security.php:73
+msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
+msgstr ""
+
+#: includes/core/class-ffc-honeypot.php:133
+msgid "Your submission could not be accepted. Please wait a moment and try again."
 msgstr ""

@@ -335,6 +335,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		// Provide valid captcha so security check passes
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		// calendar_id, date, time missing
 
 		$this->callAjax( 'ajax_book_appointment' );
@@ -348,6 +349,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['nonce']            = 'valid';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_POST['calendar_id']      = '1';
 		$_POST['date']             = '2026-03-15';
 		$_POST['time']             = '09:00';
@@ -368,6 +370,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['ffc_honeypot_trap'] = 'bot-value';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_POST['calendar_id'] = '1';
 		$_POST['date'] = '2026-03-15';
 		$_POST['time'] = '09:00';
@@ -376,7 +379,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		$error = $this->firstResponse( 'error' );
 		$this->assertNotNull( $error );
-		$this->assertStringContainsString( 'Honeypot', $error['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $error['message'] );
 	}
 
 	public function test_book_appointment_wp_error_from_handler(): void {
@@ -390,6 +393,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent'] = '1';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent';
 
 		$this->handler->shouldReceive( 'process_appointment' )
@@ -415,6 +419,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['REMOTE_ADDR']    = '127.0.0.1';
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
@@ -457,6 +462,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['REMOTE_ADDR']    = '127.0.0.1';
 
 		$apptRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );

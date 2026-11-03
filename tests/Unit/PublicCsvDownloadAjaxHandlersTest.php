@@ -288,6 +288,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			'cpf'              => '',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 		return array(
 			$post,

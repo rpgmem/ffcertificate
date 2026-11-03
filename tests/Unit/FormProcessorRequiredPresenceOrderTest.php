@@ -211,6 +211,7 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 			'form_id'          => 1,
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		) + $fields;
 	}
 

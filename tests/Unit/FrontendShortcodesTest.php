@@ -160,7 +160,7 @@ class FrontendShortcodesTest extends TestCase {
 		$html = $this->shortcodes->generate_security_fields( 'verify' );
 
 		$this->assertStringContainsString( 'ffc-honeypot-field', $html );
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
 
@@ -180,7 +180,7 @@ class FrontendShortcodesTest extends TestCase {
 		// rejected as a bot. The tempered-dot regex asserts the input sits
 		// inside a single <label>…</label> with no closing tag in between.
 		$this->assertMatchesRegularExpression(
-			'#<label[^>]*>(?:(?!</label>).)*name="ffc_honeypot_trap"(?:(?!</label>).)*</label>#s',
+			'#<label[^>]*>(?:(?!</label>).)*name="ffc_hp_x7"(?:(?!</label>).)*</label>#s',
 			$html,
 			'honeypot input must be inside its <label> for an accessible association'
 		);
@@ -370,7 +370,7 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'textarea', $html );
 		$this->assertStringContainsString( 'ffc-lgpd-consent', $html );
 		$this->assertStringContainsString( 'ffc-submit-btn', $html );
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 
 		// The Submit is a family button (#1880): primary with the check icon,
 		// full width, and `ffc-submit-btn` kept as the hook scripts read.
