@@ -857,30 +857,12 @@ class Activator {
 	 * Create verification page.
 	 */
 	private static function create_verification_page(): void {
-		$existing_page = get_page_by_path( 'valid' );
-
-		if ( $existing_page ) {
-			update_option( 'ffc_verification_page_id', $existing_page->ID );
-			return;
-		}
-
-		$page_data = array(
-			'post_title'     => 'Certificate Verification',
-			'post_content'   => '[ffc_verification]',
-			'post_status'    => 'publish',
-			'post_type'      => 'page',
-			'post_name'      => 'valid',
-			'post_author'    => 1,
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
+		\FreeFormCertificate\Core\ManagedPages::ensure(
+			'valid',
+			__( 'Certificate Verification', 'ffcertificate' ),
+			'[ffc_verification]',
+			'ffc_verification_page_id'
 		);
-
-		$page_id = wp_insert_post( $page_data, true );
-
-		if ( ! is_wp_error( $page_id ) ) {
-			update_option( 'ffc_verification_page_id', $page_id );
-			update_post_meta( $page_id, '_ffc_managed_page', '1' );
-		}
 	}
 
 	/**
@@ -940,8 +922,11 @@ class Activator {
 				continue;
 			}
 
-			// Remove duplicate auth_codes (keep the most recent) before adding constraint.
-			$wpdb->query(
+			// Remove duplicate auth_codes (keep the most recent) before adding
+			// constraint. The rows removed are counted and logged (#2343): a
+			// duplicate is a certificate whose code verified another, and an
+			// operator asking where one went needs to find this.
+			$removed = $wpdb->query(
 				$wpdb->prepare(
 					"DELETE t1 FROM %i t1
                      INNER JOIN %i t2
@@ -957,6 +942,16 @@ class Activator {
 					$column
 				)
 			);
+			if ( is_int( $removed ) && $removed > 0 && class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'auth_code_duplicates_removed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+					array(
+						'table'   => $table,
+						'removed' => $removed,
+					)
+				);
+			}
 
 			// Drop old non-unique indexes.
 			foreach ( array_unique( $old_index_names ) as $name ) {

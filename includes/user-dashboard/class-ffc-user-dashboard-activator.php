@@ -330,29 +330,11 @@ class UserDashboardActivator {
 	 * dashboard shortcode.
 	 */
 	private static function create_dashboard_page(): void {
-		$existing_page = get_page_by_path( 'dashboard' );
-
-		if ( $existing_page ) {
-			update_option( 'ffc_dashboard_page_id', $existing_page->ID );
-			return;
-		}
-
-		$page_data = array(
-			'post_title'     => 'My Dashboard',
-			'post_content'   => '[user_dashboard_personal]',
-			'post_status'    => 'publish',
-			'post_type'      => 'page',
-			'post_name'      => 'dashboard',
-			'post_author'    => 1,
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
+		\FreeFormCertificate\Core\ManagedPages::ensure(
+			'dashboard',
+			__( 'My Dashboard', 'ffcertificate' ),
+			'[user_dashboard_personal]',
+			'ffc_dashboard_page_id'
 		);
-
-		$page_id = wp_insert_post( $page_data, true );
-
-		if ( ! is_wp_error( $page_id ) ) {
-			update_option( 'ffc_dashboard_page_id', $page_id );
-			update_post_meta( $page_id, '_ffc_managed_page', '1' );
-		}
 	}
 }

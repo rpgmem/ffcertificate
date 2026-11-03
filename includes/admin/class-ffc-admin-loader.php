@@ -117,6 +117,7 @@ class AdminLoader {
 		AdminMenuIcons::init();
 		DeviceThresholdUpgradeNotice::init();
 		CaptchaModeNotice::init();
+		CreatedPagesNotice::init();
 		EncryptionKeyHealthNotice::init();
 		HtmlRefsNotice::init();
 		SettingsAjaxEndpoint::init();

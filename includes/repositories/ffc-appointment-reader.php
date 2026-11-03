@@ -160,7 +160,8 @@ class AppointmentReader extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, ?int $limit = null, int $offset = 0 ): array {
-		// Use Encryption::hash without normalization to match SubmissionHandler convention.
+		// The same normalised, salted hash every writer stores, so a lookup by e-mail
+		// matches however the address was typed.
 		$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $email );
 		if ( null === $email_hash ) {
 			return array();

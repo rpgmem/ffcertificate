@@ -285,9 +285,14 @@ Esta seção resume só a versão oferecida — o atualizador nunca oferece uma 
 * Endereços IP (para limite de taxa, geofencing e trilha de auditoria)
 * Agendamentos e agendamentos de grupo (data, horário, dados de contato)
 * Datas e horários dos envios e das ações
+* Respostas e notas de quiz, guardadas com o envio
+* Sinais do dispositivo e um identificador guardado no navegador, registrados a cada envio para limitar envios repetidos ou automatizados
+* A localização do dispositivo, quando um formulário ou um check-in só vale em certos lugares: comparada com as áreas permitidas e não armazenada
+* No navegador: um cookie de uma hora ao definir a senha por um convite, um cookie para uma exceção de prazo aprovada, o identificador do dispositivo e a lista de formulários já enviados daquele navegador
 
 = Serviços de terceiros =
 * Busca de endereço pelo CEP (desligada por padrão): quando ligada, cada CEP digitado num formulário é enviado pelo servidor ao ViaCEP ou à BrasilAPI para achar o endereço. Só os oito dígitos viajam, nunca quem os digitou, e cada resposta fica em cache por 30 dias.
+* Geolocalização por IP (desligada por padrão): quando um formulário é limitado pela localização da conexão do visitante, o endereço IP é enviado ao ip-api.com (por HTTP sem criptografia no plano gratuito) ou ao ipinfo.io.
 
 = Armazenamento =
 Todos os dados ficam nas tabelas próprias do plugin, `wp_ffc_*`, e em user meta e opções com o prefixo `ffc_`. As principais tabelas:
@@ -301,7 +306,9 @@ Todos os dados ficam nas tabelas próprias do plugin, `wp_ffc_*`, e em user meta
 Excluir o plugin remove suas tabelas, opções e user meta só quando a opção de apagar todos os dados do plugin na desinstalação está ligada em Configurações → Avançado.
 
 = Retenção =
-* Limpeza automática configurável dos envios antigos
+* Exclusão automática opcional dos envios antigos (desligada por padrão, configurável em dias)
+* As entradas do registro de atividades são apagadas após um número configurável de dias (90 por padrão)
+* Os sinais do dispositivo são apagados após um número configurável de dias (90 por padrão); o registro de limite de taxa guarda só as entradas mais recentes
 * Exclusão manual no painel do administrador
 * Os exportadores e apagadores de dados pessoais do WordPress são registrados
 * Apagar um envio invalida seu link mágico e seu QR code

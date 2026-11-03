@@ -299,9 +299,14 @@ each change references, see [CHANGELOG.md](CHANGELOG.md).
 * IP addresses (for rate limiting, geofencing and the audit trail)
 * Appointment and group bookings (date, time, contact details)
 * Submission and action timestamps
+* Quiz answers and scores, kept with the submission
+* Device signals and a browser-kept device identifier, recorded with each submission to limit repeated or automated ones
+* The device's location, when a form or a check-in is limited to certain places: checked against the allowed areas and not stored
+* In the browser: a one-hour cookie while setting a password from an invitation, a cookie for an approved schedule exception, the device identifier, and the list of forms already submitted from that browser
 
 = Third-party services =
 * Address lookup by CEP (off by default): when on, each CEP typed in a form is sent from the server to ViaCEP or BrasilAPI to find its address. Only the eight digits travel, never who typed them, and each answer is cached for 30 days.
+* IP geolocation (off by default): when a form is limited by the location of the visitor's connection, the IP address is sent to ip-api.com (over plain HTTP on its free plan) or to ipinfo.io.
 
 = Data Storage =
 All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user meta and options. The main tables:
@@ -315,7 +320,9 @@ All data lives in the plugin's own `wp_ffc_*` tables and in `ffc_`-prefixed user
 Deleting the plugin removes its tables, options and user meta only when "Delete all plugin data on uninstall" is enabled in Settings → Advanced.
 
 = Data Retention =
-* Configurable automatic cleanup for old submissions
+* Optional automatic deletion of old submissions (off by default, configurable in days)
+* Activity-log entries are deleted after a configurable number of days (90 by default)
+* Device signals are deleted after a configurable number of days (90 by default); the rate-limit log keeps only its most recent entries
 * Manual deletion in the admin panel
 * WordPress personal-data exporters and erasers are registered
 * Deleting a submission invalidates its magic link and QR code

@@ -119,6 +119,7 @@ class ActivityLog {
 			'identity_accepted_unresolvable'     => 'data_access',
 			'identity_acceptance_withdrawn'      => 'data_access',
 			'migration_foreign_keys'             => 'migrations',
+			'auth_code_duplicates_removed'       => 'migrations',
 			'activity_log_clear_plaintext_batch' => 'migrations',
 			'cpf_rf_split_unknown_length'        => 'migrations',
 			'cpf_rf_split_migration_batch'       => 'migrations',
