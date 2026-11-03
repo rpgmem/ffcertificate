@@ -164,4 +164,33 @@ class IpAddressTest extends TestCase {
 		$this->assertFalse( IpAddress::in_any( '203.0.113.7', $list ) );
 		$this->assertFalse( IpAddress::in_any( '203.0.113.7', array() ) );
 	}
+
+	/**
+	 * #2339: a proxy range no wider than /8 (IPv4) or /16 (IPv6).
+	 *
+	 * @dataProvider trustable_ranges
+	 */
+	public function test_a_proxy_range_must_not_cover_a_slice_of_the_internet( string $entry, bool $expected ): void {
+		$this->assertSame( $expected, IpAddress::is_trustable_range( $entry ) );
+	}
+
+	/**
+	 * @return array<string, array{string, bool}>
+	 */
+	public static function trustable_ranges(): array {
+		return array(
+			'an IPv4 address'           => array( '203.0.113.7', true ),
+			'an IPv6 address'           => array( '2001:db8::1', true ),
+			'IPv4 at the floor'         => array( '10.0.0.0/8', true ),
+			'IPv4 below the floor'      => array( '10.0.0.0/7', false ),
+			'IPv4 everything'           => array( '0.0.0.0/0', false ),
+			'Cloudflare IPv4 widest'    => array( '104.16.0.0/12', true ),
+			'IPv6 at the floor'         => array( '2400::/16', true ),
+			'IPv6 below the floor'      => array( '2000::/3', false ),
+			'Cloudflare IPv6 widest'    => array( '2a06:98c0::/29', true ),
+			'not an address'            => array( 'not-a-cidr', false ),
+			'a prefix that is no number' => array( '10.0.0.0/x', false ),
+			'a prefix past the family'  => array( '10.0.0.0/33', false ),
+		);
+	}
 }

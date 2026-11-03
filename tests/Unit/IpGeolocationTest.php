@@ -308,13 +308,19 @@ class IpGeolocationTest extends TestCase {
 	// get_location() — fetch / cache / cascade paths
 	// ==================================================================
 
-	/** Enable the geolocation API with the given extra settings. */
-	private function enable_geo( array $extra = array() ): void {
+	/**
+	 * Enable the geolocation API with the given extra settings.
+	 *
+	 * @param array<string, mixed> $extra       Settings over the defaults.
+	 * @param bool                 $ipapi_https Whether the site has ip-api.com's HTTPS plan
+	 *                                          (the `ffc_ipapi_use_https` filter, #2339).
+	 */
+	private function enable_geo( array $extra = array(), bool $ipapi_https = true ): void {
 		$geo = array_merge( array( 'ip_api_enabled' => '1', 'ip_api_service' => 'ip-api' ), $extra );
 		Functions\when( 'get_option' )->justReturn( $geo );
 		Functions\when( 'apply_filters' )->alias(
-			static function ( $tag, $val = null ) {
-				return $val;
+			static function ( $tag, $val = null ) use ( $ipapi_https ) {
+				return 'ffc_ipapi_use_https' === $tag ? $ipapi_https : $val;
 			}
 		);
 	}
@@ -441,13 +447,102 @@ class IpGeolocationTest extends TestCase {
 		$this->assertSame( 'api_error', $result->get_error_code() );
 	}
 
-	public function test_get_location_unknown_service_returns_error(): void {
+	public function test_an_unknown_service_falls_to_the_https_default(): void {
 		$this->enable_geo( array( 'ip_api_service' => 'bogus' ) );
+		$urls = array();
+		$this->stub_http(
+			static function ( $url ) use ( &$urls ) {
+				$urls[] = $url;
+				return new \WP_Error( 'http_fail', 'down' );
+			}
+		);
+
+		IpGeolocation::get_location( '8.8.8.8' );
+
+		$this->assertCount( 1, $urls );
+		$this->assertStringStartsWith( 'https://ipinfo.io/', $urls[0] );
+	}
+
+	/**
+	 * #2339: a visitor address is never sent in clear text. Without the HTTPS
+	 * plan, a site configured for ip-api.com asks ipinfo.io instead, and the
+	 * cascade does not fall back to ip-api.com either.
+	 */
+	public function test_ipapi_is_not_asked_without_its_https_plan(): void {
+		$this->enable_geo( array( 'ip_api_service' => 'ip-api', 'ip_api_cascade' => '1' ), false );
+		$urls = array();
+		$this->stub_http(
+			static function ( $url ) use ( &$urls ) {
+				$urls[] = $url;
+				return new \WP_Error( 'http_fail', 'down' );
+			}
+		);
+
+		IpGeolocation::get_location( '8.8.8.8' );
+
+		$this->assertSame( array( 'https://ipinfo.io/8.8.8.8/json' ), $urls );
+	}
+
+	public function test_ipapi_is_asked_over_https(): void {
+		$this->enable_geo();
+		$urls = array();
+		$this->stub_http(
+			static function ( $url ) use ( &$urls ) {
+				$urls[] = $url;
+				return new \WP_Error( 'http_fail', 'down' );
+			}
+		);
+
+		IpGeolocation::get_location( '8.8.8.8' );
+
+		$this->assertStringStartsWith( 'https://ip-api.com/', $urls[0] );
+	}
+
+	public function test_a_failed_lookup_is_remembered_and_not_repeated(): void {
+		$this->enable_geo();
+		$store = array();
+		Functions\when( 'get_transient' )->alias( static fn( $k ) => $store[ $k ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			static function ( $k, $v, $ttl ) use ( &$store ) {
+				$store[ $k ] = $v;
+				return true;
+			}
+		);
+		$calls = 0;
+		$this->stub_http(
+			static function () use ( &$calls ) {
+				++$calls;
+				return new \WP_Error( 'http_fail', 'down' );
+			}
+		);
+
+		IpGeolocation::get_location( '8.8.8.8' );
+		Functions\when( 'get_transient' )->alias( static fn( $k ) => $store[ $k ] ?? false );
+		$second = IpGeolocation::get_location( '8.8.8.8' );
+
+		$this->assertSame( 1, $calls, 'The second lookup must not reach the service.' );
+		$this->assertInstanceOf( \WP_Error::class, $second );
+		$this->assertSame( 'ip_lookup_failed_recently', $second->get_error_code() );
+	}
+
+	public function test_the_cache_holds_no_address_and_its_key_is_not_an_md5(): void {
+		$this->enable_geo( array( 'ip_cache_enabled' => '1' ) );
+		$stored = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $k, $v ) use ( &$stored ) {
+				$stored[ $k ] = $v;
+				return true;
+			}
+		);
+		$body = (string) wp_json_encode( array( 'status' => 'success', 'country' => 'US', 'countryCode' => 'US', 'lat' => 1, 'lon' => 2 ) );
+		$this->stub_http( static fn() => array( 'body' => $body ) );
 
 		$result = IpGeolocation::get_location( '8.8.8.8' );
 
-		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertSame( 'unknown_service', $result->get_error_code() );
+		$this->assertSame( '8.8.8.8', $result['ip'] );
+		$this->assertCount( 1, $stored );
+		$this->assertNotSame( 'ffc_ip_geo_' . md5( '8.8.8.8' ), array_keys( $stored )[0] );
+		$this->assertNotContains( '8.8.8.8', array_values( $stored )[0] );
 	}
 
 	public function test_get_location_cascades_to_alternative_on_primary_failure(): void {

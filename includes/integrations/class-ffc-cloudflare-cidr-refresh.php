@@ -21,6 +21,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Integrations;
 
+use FreeFormCertificate\Core\IpAddress;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -80,21 +82,36 @@ final class CloudflareCidrRefresh {
 	}
 
 	/**
-	 * Fetch both published lists and cache them. A fetch that yields nothing
-	 * (network error, empty body) leaves the previous cache intact.
+	 * Fetch both published lists and cache them.
+	 *
+	 * Each half stands alone (#2339): a half whose fetch yields nothing keeps
+	 * the ranges it had, so a failed IPv6 list never empties the IPv6 set while
+	 * the IPv4 one is refreshed. Only a run in which both halves fail leaves
+	 * the cache untouched.
 	 *
 	 * @return int Number of ranges cached this run (0 = kept last-known-good).
 	 */
 	public static function run(): int {
-		$ranges = array_values(
-			array_unique(
-				array_merge( self::fetch_list( self::IPV4_URL ), self::fetch_list( self::IPV6_URL ) )
-			)
-		);
+		$ipv4 = self::fetch_list( self::IPV4_URL, false );
+		$ipv6 = self::fetch_list( self::IPV6_URL, true );
 
-		if ( empty( $ranges ) ) {
+		if ( empty( $ipv4 ) && empty( $ipv6 ) ) {
 			return 0;
 		}
+
+		$cache    = self::get_cache();
+		$previous = ( is_array( $cache ) && isset( $cache['ranges'] ) && is_array( $cache['ranges'] ) )
+			? array_values( array_filter( $cache['ranges'], 'is_string' ) )
+			: array();
+
+		if ( empty( $ipv4 ) ) {
+			$ipv4 = array_values( array_filter( $previous, static fn( string $r ): bool => false === strpos( $r, ':' ) ) );
+		}
+		if ( empty( $ipv6 ) ) {
+			$ipv6 = array_values( array_filter( $previous, static fn( string $r ): bool => false !== strpos( $r, ':' ) ) );
+		}
+
+		$ranges = array_values( array_unique( array_merge( $ipv4, $ipv6 ) ) );
 
 		update_option(
 			self::OPTION_KEY,
@@ -143,10 +160,15 @@ final class CloudflareCidrRefresh {
 	/**
 	 * Fetch one published list and return its valid CIDR/IP lines.
 	 *
-	 * @param string $url Cloudflare list URL (fixed host; SSL verified).
+	 * Only lines of the list's own family, and only ranges a proxy may own
+	 * ({@see IpAddress::is_trustable_range()}), are kept: a tampered body
+	 * cannot widen the trusted set to a slice of the internet (#2339).
+	 *
+	 * @param string $url  Cloudflare list URL (fixed host; SSL verified).
+	 * @param bool   $ipv6 Whether the list is the IPv6 one.
 	 * @return array<int, string>
 	 */
-	private static function fetch_list( string $url ): array {
+	private static function fetch_list( string $url, bool $ipv6 ): array {
 		$response = wp_remote_get(
 			$url,
 			array(
@@ -173,33 +195,11 @@ final class CloudflareCidrRefresh {
 		$out = array();
 		foreach ( $lines as $line ) {
 			$line = trim( (string) $line );
-			if ( '' !== $line && self::is_valid_cidr( $line ) ) {
+			if ( '' !== $line && ( false !== strpos( $line, ':' ) ) === $ipv6 && IpAddress::is_trustable_range( $line ) ) {
 				$out[] = $line;
 			}
 		}
 
 		return $out;
-	}
-
-	/**
-	 * Shape-validate a CIDR / literal IP line (defence against a tampered or
-	 * unexpected response body).
-	 *
-	 * @param string $cidr Candidate line.
-	 */
-	private static function is_valid_cidr( string $cidr ): bool {
-		if ( strpos( $cidr, '/' ) === false ) {
-			return (bool) filter_var( $cidr, FILTER_VALIDATE_IP );
-		}
-
-		list( $ip, $bits ) = explode( '/', $cidr, 2 );
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) || ! ctype_digit( $bits ) ) {
-			return false;
-		}
-
-		$max   = filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ? 128 : 32;
-		$value = (int) $bits;
-
-		return $value >= 0 && $value <= $max;
 	}
 }

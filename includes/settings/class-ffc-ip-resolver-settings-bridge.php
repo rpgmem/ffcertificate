@@ -82,7 +82,10 @@ final class IpResolverSettingsBridge {
 		$proxies = is_array( $proxies ) ? array_values( array_filter( $proxies, 'is_string' ) ) : array();
 
 		if ( IpDiagnosticsSettingsReader::PROXY_CUSTOM === IpDiagnosticsSettingsReader::trusted_proxy_mode() ) {
-			$proxies = array_merge( $proxies, IpDiagnosticsSettingsReader::custom_proxies() );
+			// An entry stored before the floor existed (#2339) is dropped
+			// here too, so a /0 saved long ago cannot trust every address.
+			$custom  = array_filter( IpDiagnosticsSettingsReader::custom_proxies(), array( \FreeFormCertificate\Core\IpAddress::class, 'is_trustable_range' ) );
+			$proxies = array_merge( $proxies, $custom );
 		}
 
 		return array_values( array_unique( $proxies ) );

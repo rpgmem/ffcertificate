@@ -307,20 +307,13 @@ class TabIpDiagnostics extends SettingsTab {
 	}
 
 	/**
-	 * Shape-validate a CIDR / literal IP.
+	 * Whether an entry may be trusted as a proxy: an address, or a range no
+	 * wider than /8 (IPv4) or /16 (IPv6) — #2339.
 	 *
 	 * @param string $cidr Candidate entry.
 	 */
 	private function is_valid_cidr( string $cidr ): bool {
-		if ( strpos( $cidr, '/' ) === false ) {
-			return (bool) filter_var( $cidr, FILTER_VALIDATE_IP );
-		}
-		list( $ip, $bits ) = explode( '/', $cidr, 2 );
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) || ! ctype_digit( $bits ) ) {
-			return false;
-		}
-		$max = filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ? 128 : 32;
-		return (int) $bits >= 0 && (int) $bits <= $max;
+		return \FreeFormCertificate\Core\IpAddress::is_trustable_range( $cidr );
 	}
 
 	/**
@@ -771,7 +764,7 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<tr class="' . esc_attr( $custom_row_class ) . '" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="' . esc_attr( IpDiagnosticsSettingsReader::PROXY_CUSTOM ) . '">';
 		echo '<th scope="row">' . esc_html__( 'Custom proxy CIDRs', 'ffcertificate' ) . '</th><td>';
 		echo '<textarea name="ffc_ip_custom_proxies" rows="4" cols="40" class="large-text code" placeholder="10.0.0.0/8">' . esc_textarea( $custom ) . '</textarea>';
-		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line, no wider than /8 for IPv4 or /16 for IPv6: a wider range is not saved, because it would trust a slice of the internet no proxy owns. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		// (#920 ①) Steer admins away from the common mistake of pasting the
 		// Cloudflare ranges here — they are detected and refreshed automatically.
 		\FreeFormCertificate\Core\AdminNotice::callout(

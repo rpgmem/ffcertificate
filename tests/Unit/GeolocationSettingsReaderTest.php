@@ -132,7 +132,7 @@ class GeolocationSettingsReaderTest extends TestCase {
 
 	public function test_ip_api_service_default_and_value(): void {
 		$this->stub_option( array() );
-		$this->assertSame( 'ip-api', GeolocationSettingsReader::ip_api_service() );
+		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service(), 'The HTTPS service is the default (#2339).' );
 
 		$this->stub_option( array( 'ip_api_service' => 'ipinfo' ) );
 		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service() );

@@ -213,7 +213,7 @@ class TabGeolocationTest extends TestCase {
 		$defaults = $ref->invoke( $this->tab );
 
 		$this->assertFalse( $defaults['ip_api_enabled'] );
-		$this->assertSame( 'ip-api', $defaults['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $defaults['ip_api_service'] );
 		$this->assertFalse( $defaults['ip_api_cascade'] );
 		$this->assertSame( '', $defaults['ipinfo_api_key'] );
 		$this->assertTrue( $defaults['ip_cache_enabled'] );
@@ -254,7 +254,7 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertTrue( $settings['ip_api_enabled'] );
 		// Defaults should be present for keys not in saved settings
-		$this->assertSame( 'ip-api', $settings['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $settings['ip_api_service'] );
 	}
 
 	public function test_get_settings_returns_defaults_when_no_saved_settings(): void {
@@ -509,7 +509,7 @@ class TabGeolocationTest extends TestCase {
 		$this->assertSame( 'custom', TabGeolocation::cases_to_preset( $mixed ) );
 	}
 
-	public function test_save_settings_defaults_invalid_service_to_ip_api(): void {
+	public function test_save_settings_defaults_invalid_service_to_ipinfo(): void {
 		$_POST['ip_api_service'] = 'invalid_service';
 		$_POST['api_fallback']   = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
@@ -528,7 +528,7 @@ class TabGeolocationTest extends TestCase {
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
-		$this->assertSame( 'ip-api', $captured_settings['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
 	}
 
 	public function test_save_settings_clamps_ip_cache_ttl(): void {

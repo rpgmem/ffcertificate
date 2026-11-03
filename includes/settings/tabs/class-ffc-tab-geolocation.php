@@ -208,7 +208,7 @@ class TabGeolocation extends SettingsTab {
 		return array(
 			// IP Geolocation API Settings.
 			'ip_api_enabled'         => false,
-			'ip_api_service'         => 'ip-api', // 'ip-api' or 'ipinfo'
+			'ip_api_service'         => 'ipinfo', // 'ipinfo' (HTTPS, default) or 'ip-api' (HTTPS plan only, #2339)
 			'ip_api_cascade'         => false, // Use both with fallback.
 			'ipinfo_api_key'         => '',
 			'ip_cache_enabled'       => true,
@@ -331,7 +331,7 @@ class TabGeolocation extends SettingsTab {
 			'ip_api_enabled'         => isset( $_POST['ip_api_enabled'] ),
 			'ip_api_service'         => in_array( $ffc_ip_api_service, array( 'ip-api', 'ipinfo' ), true )
 				? $ffc_ip_api_service
-				: 'ip-api',
+				: 'ipinfo',
 			'ip_api_cascade'         => isset( $_POST['ip_api_cascade'] ),
 			'ipinfo_api_key'         => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ipinfo_api_key' ),
 			'ip_cache_enabled'       => isset( $_POST['ip_cache_enabled'] ),

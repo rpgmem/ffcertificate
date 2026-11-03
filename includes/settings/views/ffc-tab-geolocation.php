@@ -203,6 +203,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<p class="description">
 				<?php esc_html_e( 'Configure external IP geolocation services for backend validation. These services detect user location by IP address.', 'ffcertificate' ); ?>
 			</p>
+			<?php
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'info',
+				esc_html__( 'When this is on, the IP address of each visitor who submits a geofenced form is sent, over HTTPS, to the service chosen below, which answers with its approximate location. The site\'s privacy policy should say so; the text the plugin suggests for it does.', 'ffcertificate' ),
+				array(
+					'title'   => __( 'Visitor addresses leave this site:', 'ffcertificate' ),
+					'classes' => array( 'inline' ),
+				)
+			);
+			?>
 
 			<table class="form-table" role="presentation"><tbody>
 				<!-- Enable IP API -->
@@ -242,15 +252,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</th>
 					<td>
 						<select name="ip_api_service" id="ffc_ip_api_service">
-							<option value="ip-api" <?php selected( $settings['ip_api_service'], 'ip-api' ); ?>>
-								<?php esc_html_e( 'ip-api.com (Free, 45 req/min, no key)', 'ffcertificate' ); ?>
-							</option>
 							<option value="ipinfo" <?php selected( $settings['ip_api_service'], 'ipinfo' ); ?>>
-								<?php esc_html_e( 'ipinfo.io (50k/month free, requires key)', 'ffcertificate' ); ?>
+								<?php esc_html_e( 'ipinfo.io (HTTPS on the free tier; a free key raises the limit)', 'ffcertificate' ); ?>
+							</option>
+							<option value="ip-api" <?php selected( $settings['ip_api_service'], 'ip-api' ); ?>>
+								<?php esc_html_e( 'ip-api.com (HTTPS on its paid plan only)', 'ffcertificate' ); ?>
 							</option>
 						</select>
 						<p class="description">
-							<?php esc_html_e( 'Select which IP geolocation service to use. ip-api.com is free without API key.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Visitor addresses are sent over HTTPS only. ip-api.com serves HTTPS on its paid plan, so it is asked only when the ffc_ipapi_use_https filter says the site has one; otherwise ipinfo.io is asked instead. A failed lookup is not repeated for 5 minutes.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -290,8 +300,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 								class="regular-text"
 								placeholder="<?php esc_attr_e( 'Enter your ipinfo.io API key', 'ffcertificate' ); ?>">
 						<p class="description">
-							<?php esc_html_e( 'Required only if using ipinfo.io service. Free tier: 50,000 requests/month.', 'ffcertificate' ); ?>
-							<a href="https://ipinfo.io/signup" target="_blank"><?php esc_html_e( 'Get your free API key', 'ffcertificate' ); ?></a>
+							<?php esc_html_e( 'Optional. Without a key ipinfo.io answers a limited number of lookups a day; a free key raises that to 50,000 a month.', 'ffcertificate' ); ?>
+							<a href="https://ipinfo.io/signup" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Get your free API key', 'ffcertificate' ); ?></a>
 						</p>
 					</td>
 				</tr>

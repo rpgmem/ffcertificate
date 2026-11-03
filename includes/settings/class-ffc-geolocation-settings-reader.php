@@ -81,9 +81,9 @@ final class GeolocationSettingsReader {
 		return ! empty( self::all()['ip_cache_enabled'] );
 	}
 
-	/** IP-geolocation provider service id (default 'ip-api'). */
+	/** IP-geolocation provider service id (default 'ipinfo', the HTTPS one — #2339). */
 	public static function ip_api_service(): string {
-		return self::all()['ip_api_service'] ?? 'ip-api';
+		return self::all()['ip_api_service'] ?? 'ipinfo';
 	}
 
 	/** Whether both IP providers are used with fallback (default false). */

@@ -32,6 +32,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class IpAddress {
 
 	/**
+	 * Shortest IPv4 prefix a proxy range may have.
+	 *
+	 * @var int
+	 */
+	public const MIN_PREFIX_IPV4 = 8;
+
+	/**
+	 * Shortest IPv6 prefix a proxy range may have.
+	 *
+	 * @var int
+	 */
+	public const MIN_PREFIX_IPV6 = 16;
+
+	/**
 	 * The address in its canonical text form, or null when it is not one.
 	 *
 	 * An IPv4 address written inside IPv6 comes back as IPv4, and an IPv6
@@ -116,6 +130,35 @@ final class IpAddress {
 		}
 
 		return null === $bits ? $text : $text . '/' . $bits;
+	}
+
+	/**
+	 * Whether an entry may be trusted as a proxy range (#2339).
+	 *
+	 * An address or a CIDR range whose prefix is at least /8 for IPv4 and
+	 * /16 for IPv6. Anything shorter covers a slice of the internet no proxy
+	 * owns, so trusting it would let a large share of visitors choose their
+	 * own address through a forwarded header — the same as no proxy check at
+	 * all. Cloudflare's widest published range is /13 for IPv4 and /29 for
+	 * IPv6, so the floor never refuses one of theirs.
+	 *
+	 * @since 6.44.0
+	 * @param string $entry Address or CIDR range.
+	 * @return bool
+	 */
+	public static function is_trustable_range( string $entry ): bool {
+		$entry = trim( $entry );
+		if ( null === self::range( $entry ) ) {
+			return false;
+		}
+		if ( false === strpos( $entry, '/' ) ) {
+			return true;
+		}
+
+		list( $ip, $bits ) = explode( '/', $entry, 2 );
+		$floor             = filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ? self::MIN_PREFIX_IPV6 : self::MIN_PREFIX_IPV4;
+
+		return ctype_digit( $bits ) && (int) $bits >= $floor;
 	}
 
 	/**

@@ -3186,10 +3186,6 @@ msgstr ""
 msgid "Cache IP geolocation results to reduce API calls"
 msgstr ""
 
-#: includes/settings/views/documentation/config-geolocation.php:37
-msgid "Cache lookups (TTL 300–3600s) to save API calls."
-msgstr ""
-
 #: includes/settings/tabs/class-ffc-tab-cache.php:95
 msgid "Cache settings view file not found."
 msgstr ""
@@ -9588,24 +9584,12 @@ msgstr ""
 msgid "IP resolution settings saved."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:232
-msgid "ip-api.com (Free, 45 req/min, no key)"
-msgstr ""
-
-#: includes/settings/views/documentation/config-geolocation.php:35
-msgid "ip-api.com (free, ~45 requests/min, no key) or ipinfo.io (needs an API key)."
-msgstr ""
-
 #: includes/settings/views/documentation/forms-geolocation.php:25
 msgid "IP:"
 msgstr ""
 
 #: templates/submission-success.php:110
 msgid "iPhone / iPad: after the PDF opens, tap Share → \"Save to Files\" to keep it on your device."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:235
-msgid "ipinfo.io (50k/month free, requires key)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:269
@@ -11719,10 +11703,6 @@ msgstr ""
 
 #: includes/core/class-ffc-security-service.php:99
 msgid "one"
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:618
-msgid "One CIDR or IP per line. Used only with the Custom mode above."
 msgstr ""
 
 #: includes/settings/views/documentation/overview.php:51
@@ -13858,10 +13838,6 @@ msgstr ""
 msgid "Required columns: name. Optional: color, parent (parent audience name)."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:279
-msgid "Required only if using ipinfo.io service. Free tier: 50,000 requests/month."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:262
 msgid "Required?"
 msgstr ""
@@ -14903,10 +14879,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:408
 msgid "Select users"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-geolocation.php:239
-msgid "Select which IP geolocation service to use. ip-api.com is free without API key."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-restriction-metabox.php:80
@@ -22732,9 +22704,6 @@ msgid "Add a tab to the Scheduling settings screen — args ( tabs )."
 msgstr ""
 
 msgid "The page URL used for a form's schedule-exception link — args ( url, form_id )."
-msgstr ""
-
-msgid "Call the IP geolocation API over HTTPS instead of HTTP — args ( false )."
 msgstr ""
 
 msgid "Turn off the GitHub update check — args ( true ) — or point it at another repository — args ( repo )."
@@ -31537,10 +31506,6 @@ msgstr ""
 msgid "To limit repeated or automated submissions, we record a device identifier kept in your browser and technical signals about your device and browser with each submission, and keep them for %d days. Attempts that exceed the limits are logged with your IP address (encrypted) and a keyed hash of the e-mail or document used; the log keeps only the most recent entries."
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:99
-msgid "When a form is restricted by the location of your internet connection, your IP address is sent to an IP geolocation service (ip-api.com, over an unencrypted connection on its free plan, or ipinfo.io) to find its approximate region."
-msgstr ""
-
 #: includes/privacy/class-ffc-privacy-handler.php:109
 msgid "When the address lookup is on, the postal code (CEP) you type is sent from our server to ViaCEP or BrasilAPI to find its address; nothing else is sent with it. Short links count how many times they were opened and record nothing about who opened them."
 msgstr ""
@@ -31671,4 +31636,52 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-ip-diagnostics.php:36
 msgid "under the Legacy strategy, a warning counting the requests of the last 7 days whose forwarded header named a different address from their connection. Under Legacy that header decides the address, and anybody can send it. Only the count and the time of the latest are kept."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:38
+msgid "Cache lookups (TTL 300–3600s) to save API calls. The cache key is a keyed hash and the cache holds no address. A failed lookup is not repeated for 5 minutes."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:767
+msgid "One CIDR or IP per line, no wider than /8 for IPv4 or /16 for IPv6: a wider range is not saved, because it would trust a slice of the internet no proxy owns. Used only with the Custom mode above."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:303
+msgid "Optional. Without a key ipinfo.io answers a limited number of lookups a day; a free key raises that to 50,000 a month."
+msgstr ""
+
+#: includes/settings/views/documentation/developer-hooks-api.php:63
+msgid "Says the site has ip-api.com's paid HTTPS plan, so ip-api.com may be asked; without it ipinfo.io is asked instead, since visitor addresses are never sent in clear text — args ( false )."
+msgstr ""
+
+#: includes/integrations/class-ffc-ip-geolocation.php:82
+msgid "The IP geolocation service failed a moment ago. It will be asked again in a few minutes."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:263
+msgid "Visitor addresses are sent over HTTPS only. ip-api.com serves HTTPS on its paid plan, so it is asked only when the ffc_ipapi_use_https filter says the site has one; otherwise ipinfo.io is asked instead. A failed lookup is not repeated for 5 minutes."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:211
+msgid "Visitor addresses leave this site:"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:99
+msgid "When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:209
+msgid "When this is on, the IP address of each visitor who submits a geofenced form is sent, over HTTPS, to the service chosen below, which answers with its approximate location. The site's privacy policy should say so; the text the plugin suggests for it does."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:259
+msgid "ip-api.com (HTTPS on its paid plan only)"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:256
+msgid "ipinfo.io (HTTPS on the free tier; a free key raises the limit)"
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:36
+msgid "ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text."
 msgstr ""
