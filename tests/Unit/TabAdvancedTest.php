@@ -133,6 +133,8 @@ class TabAdvancedTest extends TestCase {
 		Functions\when( 'number_format_i18n' )->returnArg();
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'get_posts' )->justReturn( array() );
+		// No Danger Zone capability: the purge switch is shown, not armed (#2343).
+		Functions\when( 'current_user_can' )->justReturn( false );
 
 		ob_start();
 		$this->tab->render();
@@ -141,6 +143,7 @@ class TabAdvancedTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-settings-wrap', $output );
 		$this->assertStringContainsString( 'Activity Log', $output );
 		$this->assertStringContainsString( 'Danger Zone', $output );
+		$this->assertMatchesRegularExpression( '/id="ffc_delete_data_on_uninstall"[^>]*disabled/', $output, 'Without the Danger Zone capability the purge cannot be armed.' );
 	}
 
 	// ==================================================================

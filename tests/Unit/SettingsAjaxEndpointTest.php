@@ -98,6 +98,14 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'ffc_manage_settings_dangerzone', $list['disable_all_emails']['cap'] );
 	}
 
+	public function test_arming_the_uninstall_purge_requires_dangerzone(): void {
+		// Arming it decides that deleting the plugin wipes every table, so it
+		// is a Danger Zone action like the purge itself (#2343).
+		$list = SettingsAjaxEndpoint::allowlist();
+		$this->assertSame( 'ffc_manage_settings_dangerzone', $list['delete_data_on_uninstall']['cap'] );
+		$this->assertSame( 'ffc_settings', $list['delete_data_on_uninstall']['option'] );
+	}
+
 	// ==================================================================
 	// sanitize_value
 	// ==================================================================

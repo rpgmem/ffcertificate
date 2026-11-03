@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **SMTP password: encrypted at rest and never sent back to the browser** (#2342). The SMTP tab shows "Password saved" and a Change password button; saving with the field closed or empty keeps it; it is stored as typed. Settings viewers see only that one is saved. A plaintext one is encrypted on the next admin visit.
 - **Privacy tools: erasure reports kept certificate answers as retained and reaches signals, limits and log data; exports read decrypted, labelled and dated** (#2343). The eraser no longer says "anonymized", logs the address masked and stops leaving device signals, rate-limit rows, date-message links and activity-log addresses behind.
 - **Rate limits, export files and imports keep less personal data** (#2343). E-mail and CPF/RF identifiers in the rate-limit tables are keyed hashes, with a migration card that deletes the older unkeyed rows; export temp files older than a day are swept daily and the folder goes on a full uninstall; import staging is swept daily.
+- **Uninstall and Danger Zone: arming the purge needs the Danger Zone capability, and a full uninstall leaves less behind** (#2343). It now also removes every `ffc_` option and site transient, the certificate templates and the unedited pages the plugin created, and gives a former end user the site's default role.
 
 ### Fixed
 
