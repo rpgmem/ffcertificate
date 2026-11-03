@@ -47,6 +47,34 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		$this->assertContains( 'ffc_trusted_proxies', $hooks );
 		$this->assertContains( 'ffc_cloudflare_ip_ranges', $hooks );
 		$this->assertContains( 'ffc_ip_shadow_logging', $hooks );
+		$this->assertContains( 'ffc_ip_trust_private_peer', $hooks );
+	}
+
+	/**
+	 * #2339: a private peer is trusted only on the operator's word — the
+	 * toggle, or the Cloudflare mode, which says the same thing.
+	 *
+	 * @dataProvider private_peer_cases
+	 *
+	 * @param array<string, mixed> $option   Stored settings.
+	 * @param bool                 $expected Whether a private peer is trusted.
+	 */
+	public function test_a_private_peer_is_trusted_only_when_the_operator_says_so( array $option, bool $expected ): void {
+		$this->with_option( $option );
+		$this->assertSame( $expected, IpResolverSettingsBridge::filter_trust_private_peer( false ) );
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, bool}>
+	 */
+	public static function private_peer_cases(): array {
+		return array(
+			'nothing stored'        => array( array(), false ),
+			'auto, toggle off'      => array( array( 'trusted_proxy_mode' => 'auto' ), false ),
+			'auto, toggle on'       => array( array( 'trusted_proxy_mode' => 'auto', 'private_peer_proxy' => 1 ), true ),
+			'cloudflare mode'       => array( array( 'trusted_proxy_mode' => 'cloudflare' ), true ),
+			'direct, toggle off'    => array( array( 'trusted_proxy_mode' => 'direct' ), false ),
+		);
 	}
 
 	public function test_filter_mode_returns_stored_strategy(): void {

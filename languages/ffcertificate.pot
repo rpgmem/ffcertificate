@@ -4102,10 +4102,6 @@ msgstr ""
 msgid "The Cloudflare IP ranges could not be fetched. The bundled list stays in use."
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:449
-msgid "Cloudflare is in front of this site, reaching PHP through your host's reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP automatically — no extra configuration is needed. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-cache.php:140
 msgid "Cloudflare is in front of this site. Its default (caching static assets only, HTML bypassed) is safe. Do NOT enable \"Cache Everything\", APO, or a Cache Rule that caches HTML for pages containing FFC forms or the personal dashboard."
 msgstr ""
@@ -11181,10 +11177,6 @@ msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode.php:265
 msgid "No candidates classified yet."
-msgstr ""
-
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:671
-msgid "No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free."
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:204
@@ -25263,10 +25255,6 @@ msgstr ""
 msgid "Applies to the Certificate HTML editor on the form edit screen. On is the default."
 msgstr ""
 
-#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:631
-msgid "Applies when the secure strategy is active."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-public-design.php:121
 msgid "Arial, on every device."
 msgstr ""
@@ -31612,4 +31600,75 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:54
 msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:195
+#, php-format
+msgid "%1$d request in the last 7 days named its address in a forwarded header that differs from its connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below."
+msgid_plural "%1$d requests in the last 7 days named their address in a forwarded header that differs from their connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:748
+msgid "Applies when the secure strategy is active. Direct behind a proxy or Cloudflare: every visitor arrives from the proxy's address, so they all share one address and one rate-limit count."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:567
+msgid "Cloudflare appears to be in front of this site, reaching PHP through a private address. The Secure strategy reads CF-Connecting-IP through a private address only once you confirm below that a load balancer or Cloudflare sits in front: on an intranet the private address is the visitor's own computer, which can send that header too."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:572
+msgid "Cloudflare is in front of this site, reaching PHP through your host's reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)"
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:29
+msgid "Direct behind a proxy or Cloudflare makes every visitor arrive from the proxy's address, so they all share one address and one rate-limit count; the tab warns when your own request shows that. Load balancer in front says whether a private connection address is your host's load balancer: when it is on, or in the Cloudflare mode, the secure strategy reads Cloudflare's header through it; when it is off, a private address is the visitor, which is right on an intranet, where a visitor could otherwise send that header."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:239
+msgid "Direct mode behind a proxy:"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:761
+msgid "Every request reaches this site through my host's load balancer or Cloudflare"
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:36
+msgid "Forwarded headers on real traffic"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:207
+msgid "Forwarded headers on real traffic:"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:754
+msgid "Load balancer in front"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:867
+msgid "No CDN was detected, and the Legacy strategy takes the address from headers a visitor can forge. Switch to Secure above for an address nobody can forge; Cloudflare adds bot protection on the free plan."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:861
+msgid "No CDN was detected. Cloudflare is optional: the Secure strategy already reads the connection address, which a visitor cannot forge, and the device limit adds a second signal. Cloudflare adds bot protection on the free plan."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:864
+msgid "No CDN was detected. The Secure strategy already reads the connection address, which a visitor cannot forge. The device limit (Settings → Rate Limit) is off, so the address is the only signal; Cloudflare adds bot protection on the free plan."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:764
+msgid "On: when the connection comes from a private address, the Secure strategy takes the visitor from Cloudflare's header. Off: a private address is the visitor, which is right on an intranet, where visitors could otherwise send that header themselves. The Cloudflare mode above implies On."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:236
+msgid "This request arrived through a proxy, and the Direct mode ignores the header that names the visitor. Every visitor therefore reads as the proxy's address and shares one rate-limit count. Choose Auto or Cloudflare below, unless the proxy is not yours."
+msgstr ""
+
+#: includes/settings/views/documentation/developer-hooks-api.php:41
+msgid "Whether the secure strategy reads CF-Connecting-IP through a private connection address. False by default; the IP Diagnostics tab sets it from the Load balancer in front toggle or the Cloudflare mode."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:36
+msgid "under the Legacy strategy, a warning counting the requests of the last 7 days whose forwarded header named a different address from their connection. Under Legacy that header decides the address, and anybody can send it. Only the count and the time of the latest are kept."
 msgstr ""
