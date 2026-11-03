@@ -395,6 +395,28 @@ final class RateLimitChecker {
 	}
 
 	/**
+	 * Count a captcha that did not verify against the caller's address
+	 * (#2339), the way a submission is counted, so guessing the challenge
+	 * spends the same per-address budget as submitting.
+	 *
+	 * Listens on `ffcertificate_captcha_failed`. Off when the IP limit is off.
+	 *
+	 * @param mixed $data Form data the challenge came with.
+	 * @return void
+	 */
+	public static function record_captcha_failure( $data = array() ): void {
+		if ( empty( self::get_settings()['ip']['enabled'] ) ) {
+			return;
+		}
+		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		if ( '' === $ip ) {
+			return;
+		}
+		$form_id = is_array( $data ) && isset( $data['form_id'] ) && is_numeric( $data['form_id'] ) ? (int) $data['form_id'] : 0;
+		self::record_attempt( 'ip', $ip, $form_id > 0 ? $form_id : null );
+	}
+
+	/**
 	 * Format wait time.
 	 *
 	 * @param int $seconds Seconds.

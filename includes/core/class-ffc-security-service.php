@@ -177,12 +177,38 @@ class SecurityService {
 	public static function verify_simple_captcha( string $answer, string $hash ): bool {
 		$proof = self::authenticate_token( $answer, $hash );
 		if ( null === $proof ) {
+			// A wrong answer spends the token too (#2339). It used to leave the
+			// token live, so one challenge could be tried against every one of
+			// its 46 answers. Only a token of the right shape and still in date
+			// is burnt, so a forged string writes nothing.
+			$token = self::token_parts( $hash );
+			if ( null !== $token ) {
+				Captcha\ChallengeStore::redeem( $token['signature'], $token['ttl'] );
+			}
 			return false;
 		}
 
-		// Burn the token last: an unauthentic or expired proof must not be
-		// able to evict a legitimate one from the ledger.
 		return Captcha\ChallengeStore::redeem( $proof['signature'], $proof['ttl'] );
+	}
+
+	/**
+	 * The signature and remaining life of a token of the right shape that is
+	 * still in date, without checking the answer.
+	 *
+	 * @param string $hash Token issued with the challenge.
+	 * @return array{signature: string, ttl: int}|null
+	 */
+	private static function token_parts( string $hash ): ?array {
+		$parts = explode( '.', $hash );
+		if ( 3 !== count( $parts )
+			|| 1 !== preg_match( '/^\d+$/', $parts[0] )
+			|| 1 !== preg_match( '/^[0-9a-f]{16}$/', $parts[1] )
+			|| 1 !== preg_match( '/^[0-9a-f]{64}$/', $parts[2] )
+		) {
+			return null;
+		}
+		$ttl = (int) $parts[0] - time();
+		return $ttl > 0 ? array( 'signature' => $parts[2], 'ttl' => $ttl ) : null;
 	}
 
 	/**
@@ -300,8 +326,21 @@ class SecurityService {
 		// The captcha half belongs to whichever strategy is configured; the
 		// honeypot above is provider-independent, which is why it stays here.
 		$provider = Captcha\CaptchaProvider::resolve();
+		$result   = $consume ? $provider->verify( $data ) : $provider->peek( $data );
 
-		return $consume ? $provider->verify( $data ) : $provider->peek( $data );
+		if ( true !== $result ) {
+			/**
+			 * Fires when a submitted captcha does not verify (#2339), so the
+			 * failed attempt counts against the caller's address the way a
+			 * submission does.
+			 *
+			 * @since 6.44.0
+			 * @param array<string, mixed> $data Form data the challenge came with.
+			 */
+			do_action( 'ffcertificate_captcha_failed', $data );
+		}
+
+		return $result;
 	}
 
 	/**

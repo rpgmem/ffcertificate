@@ -1270,6 +1270,10 @@ class Loader {
 		// module turned off must not keep its abandoned rows.
 		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Reregistration\ReregistrationImportStagingService::class, 'sweep_stale_jobs' ) );
 		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Recruitment\CsvStagingService::class, 'sweep_stale_jobs' ) );
+		// #2339: a captcha that does not verify counts against the caller's
+		// address, so guessing it spends the per-address budget. Fired from
+		// SecurityService, which sits in Core and cannot reach Security.
+		add_action( 'ffcertificate_captcha_failed', array( \FreeFormCertificate\Security\RateLimitChecker::class, 'record_captcha_failure' ) );
 		// #2339: expired rate-limit windows and device signals past their
 		// retention. The cleanup existed and nothing called it, so the counter
 		// table grew forever and device fingerprints were never let go.
