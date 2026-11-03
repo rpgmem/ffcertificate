@@ -170,6 +170,15 @@ class GeolocationSettingsReaderTest extends TestCase {
 		$this->assertSame( 1800, GeolocationSettingsReader::ip_cache_ttl() );
 	}
 
+	public function test_cache_ttls_are_clamped_on_read(): void {
+		// A value written outside the tab, or before a bound moved, still
+		// lands in range (#2339).
+		$this->stub_option( array( 'ip_cache_ttl' => 30, 'gps_cache_ttl' => 99999 ) );
+
+		$this->assertSame( 300, GeolocationSettingsReader::ip_cache_ttl() );
+		$this->assertSame( 3600, GeolocationSettingsReader::gps_cache_ttl() );
+	}
+
 	public function test_gps_cache_ttl_default_and_value(): void {
 		$this->stub_option( array() );
 		$this->assertSame( 600, GeolocationSettingsReader::gps_cache_ttl() );

@@ -40,6 +40,51 @@ class RateLimitSettingsReaderTest extends TestCase {
 		} );
 	}
 
+	public function test_a_partially_saved_group_keeps_every_default_leaf(): void {
+		// The runtime merged shallowly, so this stored group dropped
+		// max_per_hour and refused every submission (#2339).
+		Functions\when( '__' )->returnArg();
+		$this->stub_option( array( 'ip' => array( 'enabled' => true ) ) );
+
+		$settings = RateLimitSettingsReader::effective();
+
+		$this->assertSame( 5, $settings['ip']['max_per_hour'] );
+		$this->assertSame( 20, $settings['ip']['max_per_day'] );
+		$this->assertSame( 3, $settings['email']['max_per_day'], 'A group never saved reads its defaults.' );
+	}
+
+	public function test_a_stored_list_replaces_the_default_list_whole(): void {
+		Functions\when( '__' )->returnArg();
+		$this->stub_option(
+			array(
+				'device'    => array( 'signals_enabled' => array( 'cookie', 'ua' ) ),
+				'whitelist' => array( 'ips' => array( '10.0.0.1' ) ),
+			)
+		);
+
+		$settings = RateLimitSettingsReader::effective();
+
+		$this->assertSame( array( 'cookie', 'ua' ), $settings['device']['signals_enabled'], 'Merging by index would put back the signals that were turned off.' );
+		$this->assertSame( array( '10.0.0.1' ), $settings['whitelist']['ips'] );
+		$this->assertSame( 90, $settings['device']['retention_days'] );
+	}
+
+	public function test_the_runtime_and_the_tab_read_the_same_settings(): void {
+		Functions\when( '__' )->returnArg();
+		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		$this->stub_option( array( 'ip' => array( 'max_per_day' => 9 ) ) );
+		$cache = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$cache->setAccessible( true );
+		$cache->setValue( null, null );
+
+		$runtime = \FreeFormCertificate\Security\RateLimitChecker::get_settings();
+		$cache->setValue( null, null );
+
+		$this->assertSame( RateLimitSettingsReader::effective(), $runtime );
+		$this->assertSame( 9, $runtime['ip']['max_per_day'] );
+		$this->assertSame( 5, $runtime['ip']['max_per_hour'] );
+	}
+
 	public function test_option_key_constant(): void {
 		$this->assertSame( 'ffc_rate_limit_settings', RateLimitSettingsReader::OPTION_KEY );
 	}

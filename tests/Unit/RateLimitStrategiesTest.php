@@ -127,7 +127,9 @@ class RateLimitStrategiesTest extends TestCase {
 					$count         = $this->counters[ $m[1] . ':' . $m[3] ] ?? null;
 					return null === $count ? null : (string) $count;
 				}
-				if ( preg_match( "/^SELECT COUNT\\(\\*\\) FROM `wp_ffc_submissions` WHERE (\\w+)='([^']*)' AND submission_date >= DATE_SUB\\(NOW\\(\\), INTERVAL (\\d+) DAY\\) AND form_id=(\\d+)$/", $sql, $m ) ) {
+				if ( preg_match( "/^SELECT COUNT\\(\\*\\) FROM `wp_ffc_submissions` WHERE (\\w+)='([^']*)' AND submission_date >= (\\d+) AND form_id=(\\d+)$/", $sql, $m ) ) {
+					// The window is an instant (#2339); read back the days it spans.
+					$m[3]          = (string) (int) round( ( time() - (int) $m[3] ) / DAY_IN_SECONDS );
 					$this->reads[] = array( 'submissions', $m[1], $m[2], (int) $m[3], (int) $m[4] );
 					return (string) ( $this->submissions[ $m[1] . ':' . $m[3] ] ?? 0 );
 				}
@@ -157,8 +159,8 @@ class RateLimitStrategiesTest extends TestCase {
 	/**
 	 * The transient key IpLimiter keeps the per-hour counter under.
 	 */
-	private function ip_hour_key( string $ip, int $form_id ): string {
-		return 'ffc_rate_ip_' . md5( IpAddress::fingerprint( $ip ) . $form_id ) . '_hour';
+	private function ip_hour_key( string $ip, int $form_id, int $ahead = 0 ): string {
+		return 'ffc_rate_ip_' . md5( IpAddress::fingerprint( $ip ) . $form_id ) . '_hour_' . (int) floor( ( time() + $ahead ) / HOUR_IN_SECONDS );
 	}
 
 	// ===================== IpLimiter =====================
@@ -170,7 +172,10 @@ class RateLimitStrategiesTest extends TestCase {
 	}
 
 	public function test_ip_blocks_on_hour_limit(): void {
-		$this->transients[ $this->ip_hour_key( '1.2.3.4', 7 ) ] = 99;
+		// The key carries the hour's number: seed this hour and the next, so a
+		// run that crosses the hour still finds its counter.
+		$this->transients[ $this->ip_hour_key( '1.2.3.4', 7 ) ]                   = 99;
+		$this->transients[ $this->ip_hour_key( '1.2.3.4', 7, HOUR_IN_SECONDS ) ] = 99;
 		$s       = array(
 			'ip' => array( 'enabled' => true, 'max_per_hour' => 5, 'max_per_day' => 50, 'cooldown_seconds' => 0, 'message' => 'wait {time}' ),
 		);

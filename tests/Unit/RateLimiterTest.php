@@ -1051,7 +1051,7 @@ class RateLimiterTest extends TestCase {
 
 		// The two IP keys: per-form hour counter (+1 on top of cached 2)
 		// and the "last attempt" timestamp.
-		$matched_hour = array_filter( array_keys( $captured ), static fn( $k ) => str_ends_with( $k, '_hour' ) );
+		$matched_hour = array_filter( array_keys( $captured ), static fn( $k ) => 1 === preg_match( '/_hour_\d+$/', $k ) );
 		$matched_last = array_filter( array_keys( $captured ), static fn( $k ) => str_ends_with( $k, '_last' ) );
 		$this->assertNotEmpty( $matched_hour, 'IP hour counter cache key must be written' );
 		$this->assertNotEmpty( $matched_last, 'IP last-attempt cache key must be written' );

@@ -330,6 +330,24 @@ class TabGeolocationTest extends TestCase {
 		$this->assertArrayNotHasKey( 'gps_fallback', $captured_settings );
 	}
 
+	public function test_a_cleared_cache_ttl_keeps_the_stored_value(): void {
+		// A cleared field posts '', which absint() read as 0 and the floor
+		// then stored as 300 -- a value nobody typed (#2339).
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['gps_fallback_preset'] = 'hybrid';
+		$_POST['ip_cache_ttl']        = '';
+		$_POST['gps_cache_ttl']       = '5000';
+		$this->use_option_store( array( 'ffc_geolocation_settings' => array( 'ip_cache_ttl' => 1200, 'gps_cache_ttl' => 120 ) ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 1200, $this->options['ffc_geolocation_settings']['ip_cache_ttl'] );
+		$this->assertSame( 3600, $this->options['ffc_geolocation_settings']['gps_cache_ttl'], 'A typed value is clamped.' );
+	}
+
 	public function test_save_settings_custom_preset_reads_per_case_radios(): void {
 		$_POST['ip_api_service']     = 'ip-api';
 		$_POST['api_fallback']       = 'gps_only';
