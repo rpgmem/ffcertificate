@@ -29,7 +29,15 @@ class RateLimitActivator {
 	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.3.0';
+	public const DB_VERSION = '1.4.0';
+
+	/**
+	 * The last row of each table written before e-mail and CPF identifiers
+	 * were keyed (#2343): the rows the "Rate Limit: Keyed Identifiers"
+	 * migration deletes. Recorded once, the first time this version's
+	 * schema runs; a fresh install records zero, so it has nothing to clean.
+	 */
+	public const KEYED_CUTOVER_OPTION = 'ffc_rate_limit_keyed_cutover';
 
 	/**
 	 * Create tables.
@@ -150,8 +158,30 @@ class RateLimitActivator {
 
 		dbDelta( $sql_signals );
 
+		self::record_keyed_cutover();
+
 		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
 		return true;
+	}
+
+	/**
+	 * Record, once, the last row id of the counter and log tables, so the
+	 * rows hashed before identifiers were keyed can be told apart from the
+	 * ones after (#2343): both are 64 hex characters.
+	 *
+	 * @return void
+	 */
+	private static function record_keyed_cutover(): void {
+		if ( false !== get_option( self::KEYED_CUTOVER_OPTION, false ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$cutover = array();
+		foreach ( array( 'ffc_rate_limits', 'ffc_rate_limit_logs' ) as $suffix ) {
+			$cutover[ $suffix ] = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $wpdb->prefix . $suffix ) );
+		}
+		add_option( self::KEYED_CUTOVER_OPTION, $cutover, '', false );
 	}
 
 	/**

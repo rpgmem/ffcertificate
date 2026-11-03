@@ -138,7 +138,7 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					function ( $data ) use ( $email ) {
-						return $data['identifier'] === hash( 'sha256', $email )
+						return $data['identifier'] === \FreeFormCertificate\Core\Encryption::keyed_hash( $email, 'rate_limit_email' )
 							&& $data['identifier'] !== $email
 							&& 'email' === $data['type'];
 					}
@@ -177,7 +177,7 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					function ( $data ) use ( $cpf ) {
-						return $data['identifier'] === hash( 'sha256', $cpf )
+						return $data['identifier'] === \FreeFormCertificate\Core\Encryption::keyed_hash( $cpf, 'rate_limit_cpf' )
 							&& $data['identifier'] !== $cpf;
 					}
 				),
@@ -204,7 +204,7 @@ class RateLimitRepositoryTest extends TestCase {
 
 		RateLimitRepository::get_count_from_db( 'email', $email, 'day', null );
 
-		$this->assertContains( hash( 'sha256', $email ), $captured );
+		$this->assertContains( \FreeFormCertificate\Core\Encryption::keyed_hash( $email, 'rate_limit_email' ), $captured );
 		$this->assertNotContains( $email, $captured );
 	}
 

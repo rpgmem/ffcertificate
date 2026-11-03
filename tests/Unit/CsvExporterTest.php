@@ -22,6 +22,9 @@ use FreeFormCertificate\Admin\CsvExporter;
  */
 class CsvExporterTest extends TestCase {
 
+	/** @var string The uploads directory the age sweep reads. */
+	private string $uploads = '';
+
 	use MockeryPHPUnitIntegration;
 
 	protected function setUp(): void {
@@ -29,9 +32,20 @@ class CsvExporterTest extends TestCase {
 		Monkey\setUp();
 		class_exists( '\\FreeFormCertificate\Admin\CsvExporter' );
 		Functions\when( '__' )->returnArg();
+		// The age sweep (#2343) reads the uploads directory; an empty temp
+		// directory unless a test fills it.
+		$this->uploads = sys_get_temp_dir() . '/ffc-csv-exporter-' . uniqid();
+		mkdir( $this->uploads . '/ffc-tmp', 0777, true );
+		Functions\when( 'wp_upload_dir' )->justReturn( array( 'basedir' => $this->uploads ) );
+		Functions\when( 'wp_delete_file' )->alias( static fn( $file ) => unlink( $file ) );
 	}
 
 	protected function tearDown(): void {
+		foreach ( array_diff( (array) scandir( $this->uploads . '/ffc-tmp' ), array( '.', '..' ) ) as $file ) {
+			unlink( $this->uploads . '/ffc-tmp/' . $file );
+		}
+		rmdir( $this->uploads . '/ffc-tmp' );
+		rmdir( $this->uploads );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -112,5 +126,23 @@ class CsvExporterTest extends TestCase {
 		$this->assertSame( 0, CsvExporter::cleanup_stale_export_jobs() );
 
 		unset( $GLOBALS['wpdb'] );
+	}
+
+	public function test_the_age_sweep_deletes_only_export_files_older_than_a_day(): void {
+		// An export whose transient is gone -- expired and deleted by core, or
+		// never in wp_options under an object cache -- left its file behind.
+		$old   = $this->uploads . '/ffc-tmp/ffc-export-old.csv';
+		$fresh = $this->uploads . '/ffc-tmp/ffc-export-fresh.csv';
+		$guard = $this->uploads . '/ffc-tmp/.htaccess';
+		file_put_contents( $old, 'a' );
+		file_put_contents( $fresh, 'b' );
+		file_put_contents( $guard, "Deny from all\n" );
+		touch( $old, time() - DAY_IN_SECONDS - 60 );
+		touch( $guard, time() - DAY_IN_SECONDS - 60 );
+
+		$this->assertSame( 1, CsvExporter::sweep_temp_files_by_age() );
+		$this->assertFileDoesNotExist( $old );
+		$this->assertFileExists( $fresh, 'A file younger than a day may belong to a live job.' );
+		$this->assertFileExists( $guard, 'The directory guard is not an export.' );
 	}
 }

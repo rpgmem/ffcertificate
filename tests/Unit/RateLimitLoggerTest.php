@@ -152,7 +152,7 @@ class RateLimitLoggerTest extends TestCase {
 
 		RateLimitLogger::log_attempt( 'email', 'user@example.com', 'blocked', 'email_day', 7 );
 
-		$this->assertSame( hash( 'sha256', 'user@example.com' ), $captured['identifier'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( 'user@example.com', 'rate_limit_email' ), $captured['identifier'] );
 	}
 
 	public function test_log_attempt_populates_row_metadata(): void {

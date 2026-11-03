@@ -39,6 +39,11 @@ class RateLimitActivatorTest extends TestCase {
 
 		Functions\when( 'update_option' )->justReturn( true );
 		Functions\when( 'delete_option' )->justReturn( true );
+		// The keyed-identifier cutover (#2343) is recorded once, after the
+		// tables; these tests are about the tables, so it is already there.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => RateLimitActivator::KEYED_CUTOVER_OPTION === $key ? array() : $fallback
+		);
 	}
 
 	protected function tearDown(): void {
@@ -103,6 +108,38 @@ class RateLimitActivatorTest extends TestCase {
 		$this->assertStringContainsString( 'sig_permissions', $delta_calls[0] );
 		$this->assertStringContainsString( 'sig_mediaqueries', $delta_calls[0] );
 		$this->assertStringContainsString( 'sig_math', $delta_calls[0] );
+	}
+
+	public function test_the_keyed_cutover_is_recorded_once_with_each_table_last_id(): void {
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . '|' . implode( ',', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $sql ) {
+				if ( false !== strpos( (string) $sql, 'MAX(id)' ) ) {
+					return false !== strpos( (string) $sql, 'wp_ffc_rate_limit_logs' ) ? '812' : '40';
+				}
+				return null;
+			}
+		);
+		Functions\when( 'dbDelta' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( false );
+		$added = array();
+		Functions\when( 'add_option' )->alias(
+			static function ( $key, $value ) use ( &$added ) {
+				$added[ $key ] = $value;
+				return true;
+			}
+		);
+
+		RateLimitActivator::create_tables();
+
+		$this->assertSame(
+			array(
+				'ffc_rate_limits'     => 40,
+				'ffc_rate_limit_logs' => 812,
+			),
+			$added[ RateLimitActivator::KEYED_CUTOVER_OPTION ] ?? null
+		);
 	}
 
 	public function test_create_tables_updates_option(): void {

@@ -212,8 +212,8 @@ class PrivacyErasureScopeTest extends TestCase {
 				$keys[ $delete[1]['type'] ][] = $delete[1]['identifier'];
 			}
 		}
-		$this->assertContains( hash( 'sha256', 'ana@example.com' ), $keys['email'], 'The address as the limiter hashes it, lowercased.' );
-		$this->assertContains( hash( 'sha256', Identifiers::CPF_A ), $keys['cpf'], 'The CPF read off the submission before it was cleared.' );
+		$this->assertContains( \FreeFormCertificate\Core\Encryption::keyed_hash( 'ana@example.com', 'rate_limit_email' ), $keys['email'], 'The address as the limiter hashes it, lowercased.' );
+		$this->assertContains( \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'rate_limit_cpf' ), $keys['cpf'], 'The CPF read off the submission before it was cleared.' );
 	}
 
 	public function test_a_rate_limit_erasure_with_nothing_to_hash_deletes_nothing(): void {

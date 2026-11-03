@@ -202,6 +202,7 @@ $ffcertificate_options = array(
 	'ffc_rate_limit_settings',
 	'ffc_captcha_mode_notice_dismissed',
 	'ffc_rate_limit_db_version',
+	'ffc_rate_limit_keyed_cutover',
 	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
@@ -677,5 +678,28 @@ foreach ( array_keys( $ffcertificate_roles->roles ) as $ffcertificate_role_slug 
 		if ( isset( $ffcertificate_role->capabilities[ $ffcertificate_cap ] ) ) {
 			$ffcertificate_role->remove_cap( $ffcertificate_cap );
 		}
+	}
+}
+
+// ──────────────────────────────────────
+// Batched CSV export temp directory (#2343)
+// ──────────────────────────────────────
+// Exports stage a file under `uploads/ffc-tmp` that can hold decrypted
+// personal data. Each is deleted after its download and swept daily, but the
+// directory, with its `.htaccess` and any file an abandoned job left, stayed
+// behind a full uninstall. Only the files the plugin writes there are removed,
+// and the directory only once it is empty.
+$ffcertificate_upload = wp_upload_dir( null, false );
+$ffcertificate_tmp    = trailingslashit( (string) ( $ffcertificate_upload['basedir'] ?? '' ) ) . 'ffc-tmp';
+if ( is_dir( $ffcertificate_tmp ) ) {
+	foreach ( (array) glob( $ffcertificate_tmp . '/{*.csv,.htaccess,index.php}', GLOB_BRACE ) as $ffcertificate_tmp_file ) {
+		if ( is_string( $ffcertificate_tmp_file ) && is_file( $ffcertificate_tmp_file ) ) {
+			wp_delete_file( $ffcertificate_tmp_file );
+		}
+	}
+	$ffcertificate_left = scandir( $ffcertificate_tmp );
+	if ( is_array( $ffcertificate_left ) && array() === array_diff( $ffcertificate_left, array( '.', '..' ) ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removes the plugin's own emptied temp directory on uninstall; WP_Filesystem would need credentials on a path with no user present.
+		rmdir( $ffcertificate_tmp );
 	}
 }

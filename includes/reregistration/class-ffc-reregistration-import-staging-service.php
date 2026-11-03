@@ -1049,11 +1049,29 @@ class ReregistrationImportStagingService {
 	}
 
 	/**
+	 * The daily-cleanup entry to the stale-job sweep (#2343), after checking
+	 * the tables exist, since the cron runs whether or not the module ever
+	 * created them.
+	 *
+	 * @return void
+	 */
+	public static function sweep_stale_jobs(): void {
+		global $wpdb;
+		$jobs = self::jobs_table();
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $jobs ) ) !== $jobs ) {
+			return;
+		}
+		self::cleanup_stale_jobs();
+	}
+
+	/**
 	 * Drop jobs older than the TTL, rows first.
 	 *
-	 * Opportunistic, on the ingest path, for the reason recruitment does the
-	 * same: an abandoned job holds cleartext identifiers, and no cron is
-	 * guaranteed to run on a site that imports once a year.
+	 * On the ingest path, and from the daily cleanup since #2343: an
+	 * abandoned job holds cleartext identifiers, and a site that imports once
+	 * a year would otherwise keep them until the next import. The TTL is the
+	 * same on both paths, so the cron deletes nothing the next import would
+	 * not; imports finish in minutes, so no live job is reached.
 	 *
 	 * @return void
 	 */

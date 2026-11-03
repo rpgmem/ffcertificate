@@ -38,14 +38,11 @@ final class RateLimitLogger {
 			return;
 		}
 
-		// Nothing is stored in the clear (#2109). An address — the identifier of
-		// the `ip`, `blacklist` and `whitelist` rows — becomes its fingerprint,
-		// so the statistics still group by caller; any other identifier its
-		// sha256 hash. The request address itself is kept only encrypted, for
-		// the masked list of top blocked addresses.
-		$stored_identifier = in_array( $type, array( 'ip', 'blacklist', 'whitelist' ), true )
-			? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier )
-			: hash( 'sha256', (string) $identifier );
+		// Nothing is stored in the clear (#2109, #2343): the identifier is keyed
+		// exactly as the counter table keys it, so the two tables agree. The
+		// request address itself is kept only encrypted, for the masked list
+		// of top blocked addresses.
+		$stored_identifier = RateLimitRepository::storage_identifier( $type, (string) $identifier );
 
 		global $wpdb;
 		$wpdb->insert(
