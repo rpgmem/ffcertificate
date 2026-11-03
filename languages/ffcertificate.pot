@@ -8908,10 +8908,6 @@ msgstr ""
 msgid "How many non-cookie signals (strong + weak) must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:46
-msgid "how many of those must be strong signals (default 2); 0 disables the strong tier."
-msgstr ""
-
 #: includes/settings/views/documentation/config-rate-limit.php:45
 msgid "how many signals must match (default 7)."
 msgstr ""
@@ -15738,10 +15734,6 @@ msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:312 includes/frontend/class-ffc-verification-response-renderer.php:470 includes/settings/views/documentation/feature-record.php:92
 msgid "State"
-msgstr ""
-
-#: includes/settings/views/documentation/config-rate-limit.php:52
-msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The allowlist wins immediately; the blocklist is checked first and denies outright."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:593 includes/settings/views/ffc-tab-cache.php:244 includes/settings/views/documentation/config-activity-log.php:27 includes/settings/views/documentation/config-rate-limit.php:58
@@ -28633,9 +28625,6 @@ msgstr ""
 msgid "Unidentified address:"
 msgstr ""
 
-msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
-msgstr ""
-
 msgid "One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48."
 msgstr ""
 
@@ -31582,4 +31571,45 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:62
 msgid "the e-mail and CPF/RF limits count the submissions made in the last 1, 7, 30 and 365 days. The per-hour and per-minute counters start again at each new hour or minute, so a visitor who keeps trying is let through once the window rolls. The daily cleanup deletes expired counters and the device signals older than their retention."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:57
+msgid "A visitor whose address cannot be read is not held to the per-address limit; the other limits still apply. Recommended when visitors reach the site from private addresses."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:608
+msgid "An address on this list skips every limit. An e-mail, a domain or a CPF/RF on it skips only the limits on that e-mail or CPF/RF, because the visitor types them: the address, device and global limits and the captcha still apply."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:56
+msgid "Every visitor whose address cannot be read shares one count of submissions. Stricter, but on an internal network it puts everyone under a single cap."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-rate-limit.php:106
+msgid "It was saved as the number of strong signals enabled."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:51
+msgid "No signals"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:57
+msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
+msgstr ""
+
+#: includes/settings/class-ffc-rate-limit-settings-reader.php:281
+#, php-format
+msgid "The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:51
+msgid "a submission that sends no signals (JavaScript off, for example) is counted as one shared device per form, so it cannot step around the limit. With the default of 1 per form, only one such submission is accepted."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:50
+msgid "how many of those must be strong signals (default 2); 0 disables the strong tier. It cannot be saved above the number of strong signals enabled, since no device could then match."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:43
+msgid "the IP limit and both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" does not count them; \"Count together\" puts all of them under one shared cap. The IP limit counts them together by default, as it always has; the two cards let them through by default. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
 msgstr ""

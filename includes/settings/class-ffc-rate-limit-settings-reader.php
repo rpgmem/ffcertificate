@@ -125,6 +125,7 @@ final class RateLimitSettingsReader {
 				// What each throttle does with a caller the resolver could
 				// not read (#2106): let it through, or count it with every
 				// other unresolved caller.
+				'submission_unresolved'       => self::UNRESOLVED_SHARE,
 				'captcha_unresolved'          => self::UNRESOLVED_ALLOW,
 				'device_check_unresolved'     => self::UNRESOLVED_ALLOW,
 			),
@@ -368,11 +369,24 @@ final class RateLimitSettingsReader {
 	/**
 	 * A stored policy for an unresolved address, or the default.
 	 *
-	 * @param mixed $value Stored or posted value.
+	 * @param mixed  $value    Stored or posted value.
+	 * @param string $fallback Policy for anything else.
 	 * @return string One of {@see self::UNRESOLVED_POLICIES}.
 	 */
-	public static function clamp_unresolved_policy( $value ): string {
-		return in_array( $value, self::UNRESOLVED_POLICIES, true ) ? (string) $value : self::UNRESOLVED_ALLOW;
+	public static function clamp_unresolved_policy( $value, string $fallback = self::UNRESOLVED_ALLOW ): string {
+		return in_array( $value, self::UNRESOLVED_POLICIES, true ) ? (string) $value : $fallback;
+	}
+
+	/**
+	 * Whether the per-address submission limit counts unresolved callers
+	 * together (#2339). Defaults to counting them, which is what the limit
+	 * always did: every unresolved caller reads as one address. An intranet
+	 * of private addresses is the case for letting them through.
+	 *
+	 * @return bool
+	 */
+	public static function submission_counts_unresolved(): bool {
+		return self::UNRESOLVED_SHARE === self::clamp_unresolved_policy( self::ip()['submission_unresolved'] ?? null, self::UNRESOLVED_SHARE );
 	}
 
 	/**

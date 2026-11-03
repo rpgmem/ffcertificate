@@ -1200,7 +1200,7 @@ class SubmissionPersisterTest extends TestCase {
 
 		$logged = ActivityLogBuffer::contexts();
 		$this->assertSame( array( 'schedule_override_created', 'operator_ip_bypass' ), array_column( $logged, 'action' ) );
-		$this->assertSame( hash( 'sha256', Identifiers::CPF_A ), $logged[0]['context']['participant_cpf_hash'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'schedule_exception_cpf' ), $logged[0]['context']['participant_cpf_hash'] );
 		$this->assertSame( '08:00:00', $logged[0]['context']['schedule_start_after'] );
 		$this->assertSame( '203.0.113.5', $logged[1]['context']['bypassed_ip'] );
 		$this->assertSame( 'ohash', $logged[1]['context']['operator_cpf_hash'] );

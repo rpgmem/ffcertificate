@@ -173,15 +173,19 @@ final class RateLimitRepository {
 		$e = $wpdb->get_row( $wpdb->prepare( "SELECT id,count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start=%s", $t, $type, $identifier, $window, $ws ) );
 
 		if ( $e ) {
-			$wpdb->update(
-				$t,
-				array(
-					'count'        => $e->count + 1,
-					'last_attempt' => gmdate( 'Y-m-d H:i:s' ),
-				),
-				array( 'id' => $e->id ),
-				array( '%d', '%s' ),
-				array( '%d' )
+			// The increment happens in the database (#2339): adding one to the
+			// count read above lost every hit that landed between the read and
+			// the write. The first hit of a window still reads, then inserts;
+			// two of those racing can write two rows when `form_id` is NULL,
+			// which the unique key does not cover, and the read then takes the
+			// newest row, so the loss is at most the first hits of a window.
+			$wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET count = count + 1, last_attempt = %s WHERE id = %d',
+					$t,
+					gmdate( 'Y-m-d H:i:s' ),
+					(int) $e->id
+				)
 			);
 		} else {
 			$wpdb->insert(

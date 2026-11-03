@@ -151,6 +151,7 @@ class TabRateLimit extends SettingsTab {
 						$this->stored_int( $stored, 'ip', 'device_check_window_seconds', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT )
 					)
 				),
+				'submission_unresolved'       => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( isset( $_POST['ip_submission_unresolved'] ) ? \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_submission_unresolved' ) : ( $stored['ip']['submission_unresolved'] ?? null ), \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE ),
 				'captcha_unresolved'          => $this->post_unresolved_policy( 'ip_captcha_unresolved', $stored['ip']['captcha_unresolved'] ?? null ),
 				'device_check_unresolved'     => $this->post_unresolved_policy( 'ip_device_check_unresolved', $stored['ip']['device_check_unresolved'] ?? null ),
 			),
@@ -250,7 +251,7 @@ class TabRateLimit extends SettingsTab {
 		// says so, rather than storing a limit that silently does nothing.
 		$strong = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_signals_in( $settings['device']['signals_enabled'] );
 		if ( $settings['device']['match_strong_min'] > $strong ) {
-			$this->refused_strong_min                = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_min_conflict( $settings['device']['match_strong_min'], $settings['device']['signals_enabled'] );
+			$this->refused_strong_min               = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_min_conflict( $settings['device']['match_strong_min'], $settings['device']['signals_enabled'] );
 			$settings['device']['match_strong_min'] = $strong;
 		}
 

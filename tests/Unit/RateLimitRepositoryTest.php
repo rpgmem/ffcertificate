@@ -88,19 +88,13 @@ class RateLimitRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array( 'id' => 9, 'count' => 3 )
 		);
-		$this->wpdb->shouldReceive( 'update' )
+		// The increment is done by the database, so a hit between the read
+		// and the write is not lost (#2339).
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => array( $sql, $args ) );
+		$this->wpdb->shouldReceive( 'update' )->never();
+		$this->wpdb->shouldReceive( 'query' )
 			->once()
-			->with(
-				'wp_ffc_rate_limits',
-				Mockery::on(
-					function ( $data ) {
-						return 4 === $data['count'];
-					}
-				),
-				array( 'id' => 9 ),
-				array( '%d', '%s' ),
-				array( '%d' )
-			)
+			->with( Mockery::on( static fn( $q ) => is_array( $q ) && 'UPDATE %i SET count = count + 1, last_attempt = %s WHERE id = %d' === $q[0] && 9 === $q[1][2] ) )
 			->andReturn( 1 );
 
 		RateLimitRepository::increment_counter( 'ip', '1.1.1.1', 'hour', null );

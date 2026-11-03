@@ -479,6 +479,11 @@ class SettingsAjaxEndpoint {
 					'max' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX,
 				),
 			),
+			'ip_submission_unresolved'       => array(
+				array( 'ip', 'submission_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
 			'ip_captcha_unresolved'          => array(
 				array( 'ip', 'captcha_unresolved' ),
 				'enum',
