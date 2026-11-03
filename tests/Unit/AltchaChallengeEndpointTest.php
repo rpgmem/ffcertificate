@@ -235,6 +235,24 @@ class AltchaChallengeEndpointTest extends TestCase {
 		);
 	}
 
+	public function test_the_refusal_says_how_long_to_wait(): void {
+		// #2339: the widget's glue reads the wait and shows it, instead of
+		// asking for a reload that would only ask for another challenge.
+		// `Retry-After` itself is a header, which PHP never lists under the
+		// CLI; the body carries the same number.
+		$this->mock_ip( '203.0.113.14' );
+		$this->set_mint_cap( 1 );
+
+		$this->call_handle();
+		$this->call_handle();
+
+		$this->assertSame( array( 429 ), $this->statuses );
+		$wait = $this->responses[1]['retryAfter'];
+		$this->assertIsInt( $wait );
+		$this->assertGreaterThanOrEqual( 1, $wait );
+		$this->assertLessThanOrEqual( CaptchaSettings::mint_window(), $wait, 'The wait ends with the caller\'s window, never later.' );
+	}
+
 	public function test_the_throttle_is_per_address(): void {
 		// Institutional NAT already crowds one address; one visitor must not
 		// be able to lock out another site's entirely.

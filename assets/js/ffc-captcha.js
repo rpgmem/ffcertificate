@@ -16,6 +16,11 @@
  *      is a bare "Verification failed", and the most likely cause here is
  *      structural rather than transient — the widget refuses to run outside a
  *      secure context, so a site served over plain HTTP fails every time.
+ *   4. Say how long to wait when the challenge endpoint refuses a network
+ *      over its cap (#2339). The widget fetches the challenge itself and only
+ *      throws on a 429, so each widget is given a fetch that reads the
+ *      refusal's `Retry-After` first. Asking for a reload there would ask for
+ *      one more challenge and be refused again.
  *
  * @since 6.23.0
  */
@@ -86,6 +91,98 @@
 	}
 
 	/**
+	 * Seconds a 429 response asks the caller to wait, or 0 when it says none.
+	 *
+	 * The header first, the body's `retryAfter` second: a server that had
+	 * already sent output cannot add the header, and the body is read from a
+	 * clone so the widget can still read its own copy.
+	 *
+	 * @param {Response} response
+	 * @returns {Promise<number>}
+	 */
+	function retryAfter(response) {
+		var header = parseInt(response.headers && response.headers.get('Retry-After'), 10);
+		if (header > 0) {
+			return Promise.resolve(header);
+		}
+		if (typeof response.clone !== 'function') {
+			return Promise.resolve(0);
+		}
+		return response.clone().json().then(function (body) {
+			var seconds = parseInt(body && body.retryAfter, 10);
+			return seconds > 0 ? seconds : 0;
+		}, function () {
+			return 0;
+		});
+	}
+
+	/**
+	 * A fetch for one widget that notes when the endpoint refused it.
+	 *
+	 * The note is the moment the widget may ask again, kept on the element so
+	 * the error state, which carries no reason, can tell a refusal from any
+	 * other failure.
+	 *
+	 * @param {Element} widget
+	 * @returns {Function}
+	 */
+	function fetchFor(widget) {
+		return function (url, init) {
+			return window.fetch(url, init).then(function (response) {
+				if (429 !== response.status) {
+					widget.ffcRetryAt = 0;
+					return response;
+				}
+				return retryAfter(response).then(function (seconds) {
+					widget.ffcRetryAt = Date.now() + Math.max(1, seconds) * 1000;
+					return response;
+				});
+			});
+		};
+	}
+
+	/**
+	 * Give each widget the fetch that reads a refusal's wait.
+	 *
+	 * Once per element: `configure()` merges, so the fetch stays while other
+	 * options change.
+	 */
+	function installFetch() {
+		if (typeof window.fetch !== 'function') {
+			return;
+		}
+		var found = widgets();
+		for (var i = 0; i < found.length; i++) {
+			if (found[i].ffcFetchInstalled || typeof found[i].configure !== 'function') {
+				continue;
+			}
+			try {
+				found[i].configure({ fetch: fetchFor(found[i]) });
+				found[i].ffcFetchInstalled = true;
+			} catch (e) {
+				// The widget then keeps its own fetch and the generic message.
+			}
+		}
+	}
+
+	/**
+	 * A wait in words: seconds under a minute, else minutes, else hours.
+	 *
+	 * @param {number} seconds
+	 * @returns {string}
+	 */
+	function duration(seconds) {
+		seconds = Math.max(1, Math.round(seconds));
+		if (seconds < 60) {
+			return seconds + ' s';
+		}
+		if (seconds < 3600) {
+			return Math.ceil(seconds / 60) + ' min';
+		}
+		return Math.ceil(seconds / 3600) + ' h';
+	}
+
+	/**
 	 * Every ALTCHA widget on the page, or inside a root when one is given.
 	 */
 	function widgets(root) {
@@ -138,6 +235,40 @@
 		existing.textContent = message;
 	}
 
+	/**
+	 * Say how long to wait, then let the visitor try again by themselves.
+	 *
+	 * When the wait is over the message goes and the widget returns to its
+	 * unverified state, so a click asks for a challenge in the new window —
+	 * no reload, which on a long form would lose what was typed.
+	 *
+	 * @param {Element} widget
+	 * @param {number}  seconds
+	 */
+	function showLimited(widget, seconds) {
+		var config  = cfg();
+		var message = (config.limitedMessage || 'Too many verification requests from this network. Try again in %s.')
+			.replace('%s', duration(seconds));
+
+		showFailure(widget, message);
+
+		if (widget.ffcRetryTimer) {
+			clearTimeout(widget.ffcRetryTimer);
+		}
+		widget.ffcRetryTimer = setTimeout(function () {
+			widget.ffcRetryTimer = null;
+			widget.ffcRetryAt    = 0;
+			clearFailure(widget);
+			if (typeof widget.reset === 'function') {
+				try {
+					widget.reset();
+				} catch (e) {
+					// A widget that cannot reset still takes a click.
+				}
+			}
+		}, Math.ceil(seconds) * 1000);
+	}
+
 	function clearFailure(widget) {
 		var existing = widget.parentNode
 			&& widget.parentNode.querySelector('.ffc-altcha-error');
@@ -164,6 +295,11 @@
 			var config = cfg();
 
 			if ('error' === String(state).toLowerCase()) {
+				var wait = widget.ffcRetryAt ? (widget.ffcRetryAt - Date.now()) / 1000 : 0;
+				if (wait > 0) {
+					showLimited(widget, wait);
+					return;
+				}
 				showFailure(
 					widget,
 					window.isSecureContext === false
@@ -178,6 +314,7 @@
 	}
 
 	registerStrings();
+	installFetch();
 	watchStates();
 
 	// A widget that upgrades after this module ran resolves its language on
@@ -187,6 +324,7 @@
 	if ('loading' === document.readyState) {
 		document.addEventListener('DOMContentLoaded', function () {
 			reapplyLanguage(cfg().language);
+			installFetch();
 		});
 	}
 
@@ -199,5 +337,5 @@
 	// `registerStrings` is exposed so the store can be re-seeded after the
 	// widget bundle loads late, and so a test can exercise it without
 	// re-running this module and stacking a second set of listeners.
-	window.FFCCaptcha = { reset: resetAll, registerStrings: registerStrings };
+	window.FFCCaptcha = { reset: resetAll, registerStrings: registerStrings, installFetch: installFetch };
 })();
