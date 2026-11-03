@@ -41,6 +41,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Integrations cleanup: RF masks, Cloudflare probe, CEP quota, screenshot viewer, RF message, translated upgrade notice** (#2342). An RF of any length keeps its mask, the Cloudflare probe keeps a result 12 h and retries a failure on the updater's schedule, a cached CEP spends no quota, the viewer draws registry icons and pans by keyboard, and a pt_BR site reads the notice in Portuguese.
 - **SMTP tab: the Change password and Cancel buttons draw their icons** (#2354). They named the icon with its class prefix, which draws nothing.
 - **Scheduling: the calendar names table lines up** (#2358). Core's settings-row rules reached its cells, so headings, fields and state names sat at different heights and offsets; the table now takes one padding and one alignment.
+- **Schema and integrity: foreign keys complete, unique indexes stay put, updated installs get every table, network activation refused** (#2343). CASCADE orphans are deleted, constraint names carry the table prefix, and the core and module schema heal once per release.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

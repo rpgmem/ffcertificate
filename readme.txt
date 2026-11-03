@@ -178,6 +178,10 @@ One optional hardening step. Batched CSV exports stage a temporary file (which m
 
 The temp file is already short-lived (random name, deleted right after download, daily cleanup cron), so this is defence-in-depth. See `docs/DEPLOYMENT.md` for details.
 
+= Does it work on WordPress Multisite? =
+
+Yes, per site. Every table, setting and role belongs to one site, and so does the uninstall, so the plugin refuses to be network activated: activate it from the Plugins screen of each site that uses it. Deleting it removes the data of the site it is deleted from.
+
 = How do I translate the plugin? =
 
 The plugin is translation-ready with the `ffcertificate` text domain. Use Loco Translate or Poedit with the `languages/ffcertificate.pot` template. A Portuguese (Brazil) translation is included.

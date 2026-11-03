@@ -31564,3 +31564,23 @@ msgstr "Você pode solicitar uma cópia dos seus dados pessoais ou pedir que sej
 #: includes/settings/views/documentation/reference-privacy.php:48
 msgid "an eraser clears the identifiers (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, clears an appointment's other personal data, deletes the device signals recorded with the person's submissions, the rate-limit records kept for their e-mail and documents, their audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines, date-message deliveries and activity-log entries, clearing the client address and the encrypted detail on those entries. A certificate's form answers are kept, so it stays verifiable and can be reprinted: the eraser reports those submissions as retained, with that reason. Delete the submission when that is no longer needed."
 msgstr "um apagador remove os identificadores (e-mail e seu hash de busca, CPF/RF, o IP do cliente, …) dos certificados e agendamentos e os desvincula da conta, apaga os demais dados pessoais de um agendamento, exclui os sinais de dispositivo registrados com os envios da pessoa, os registros de limite de requisições mantidos para o e-mail e os documentos dela, suas participações em públicos, vínculos de reservas, convites de formulário pós-evento, permissões de agenda, perfil armazenado e configurações de usuário do FFC, e desvincula suas linhas de presença, envios de mensagens de data e entradas do log de atividades, limpando o endereço do cliente e o detalhe criptografado dessas entradas. As respostas do formulário de um certificado são mantidas, para que ele continue verificável e possa ser reemitido: o apagador informa esses envios como mantidos, com esse motivo. Exclua o envio quando isso não for mais necessário."
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:139
+msgid "Activate it from the Plugins screen of each site that uses it; deleting it removes the data of the site it is deleted from"
+msgstr "Ative-o pela tela de Plugins de cada site que o usa; excluí-lo remove os dados do site em que foi excluído"
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:138
+msgid "Every table, setting and role belongs to one site, and so does the uninstall, so the plugin refuses to be network activated"
+msgstr "Cada tabela, configuração e papel pertence a um site, assim como a desinstalação, então o plugin recusa a ativação em rede"
+
+#: includes/class-ffc-activator.php:40
+msgid "Free Form Certificate cannot be network activated. Activate it on each site that uses it, from that site's Plugins screen."
+msgstr "O Free Form Certificate não pode ser ativado em rede. Ative-o em cada site que o usa, pela tela de Plugins desse site."
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:136
+msgid "Multisite: \"cannot be network activated\""
+msgstr "Multisite: \"não pode ser ativado em rede\""
+
+#: includes/class-ffc-activator.php:41
+msgid "Plugin activation refused"
+msgstr "Ativação do plugin recusada"

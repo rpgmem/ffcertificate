@@ -266,26 +266,25 @@ class SelfSchedulingActivatorTest extends TestCase {
 	// maybe_migrate() — skips when tables missing
 	// ==================================================================
 
-	public function test_maybe_migrate_skips_when_tables_missing(): void {
-		// Neither appointments nor calendars table exists
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function ( $query ) {
-				if ( stripos( $query, 'SHOW TABLES LIKE' ) !== false ) {
-					return null;
-				}
-				return null;
-			} );
+	public function test_maybe_migrate_creates_every_missing_table(): void {
+		// An install updated in place, never activated: no table exists, and
+		// maybe_migrate() is the only runtime path that can create them (#2343).
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
-		$query_called = false;
-		$this->wpdb->shouldReceive( 'query' )
-			->andReturnUsing( function () use ( &$query_called ) {
-				$query_called = true;
-				return 1;
-			} );
+		$created = array();
+		Functions\when( 'dbDelta' )->alias(
+			function ( $sql ) use ( &$created ) {
+				if ( preg_match( '/CREATE TABLE\s+(\S+)/', (string) $sql, $m ) ) {
+					$created[] = $m[1];
+				}
+				return array();
+			}
+		);
 
 		SelfSchedulingActivator::maybe_migrate();
 
-		$this->assertFalse( $query_called, 'No ALTER TABLE queries should run when tables do not exist' );
+		$this->assertCount( 3, array_unique( $created ), 'Every table the module declares is created when it is missing.' );
 	}
 
 	// ==================================================================

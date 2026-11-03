@@ -151,6 +151,7 @@ class IdentityAuditExportSourceTest extends TestCase {
 	private function install_constraints( array $constraints, array &$probes ): void {
 		$wpdb         = Mockery::mock( 'wpdb' );
 		$wpdb->prefix = 'wp_';
+		$wpdb->users  = 'wp_users';
 		$prepared     = array();
 		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			static function ( ...$args ) use ( &$prepared ) {
@@ -158,13 +159,22 @@ class IdentityAuditExportSourceTest extends TestCase {
 				return 'Q' . ( count( $prepared ) - 1 ) . ':' . $args[0];
 			}
 		);
-		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+		// The status reads the user_id keys of this install's tables (#2343);
+		// one row per constraint, each on its own table.
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $sql ) use ( $constraints, &$prepared, &$probes ) {
-				if ( false !== strpos( (string) $sql, 'information_schema.TABLE_CONSTRAINTS' ) && preg_match( '/^Q(\d+):/', (string) $sql, $match ) ) {
+				if ( false !== strpos( (string) $sql, 'information_schema.KEY_COLUMN_USAGE' ) && preg_match( '/^Q(\d+):/', (string) $sql, $match ) ) {
 					$probes[] = array_slice( $prepared[ (int) $match[1] ], 1 );
-					return $constraints;
+					$rows     = array();
+					foreach ( $constraints as $i => $name ) {
+						$rows[] = (object) array(
+							'TABLE_NAME'      => 'wp_ffc_table_' . $i,
+							'CONSTRAINT_NAME' => $name,
+						);
+					}
+					return $rows;
 				}
-				$this->fail( 'Unexpected get_col(): ' . $sql );
+				$this->fail( 'Unexpected get_results(): ' . $sql );
 			}
 		);
 		$GLOBALS['wpdb'] = $wpdb;
@@ -1118,7 +1128,8 @@ class IdentityAuditExportSourceTest extends TestCase {
 		$last = end( $rows );
 
 		$this->assertCount( 1, $probes, 'The live constraints are read exactly once.' );
-		$this->assertSame( array( DB_NAME, 'fk_ffc_%' ), $probes[0], 'The probe asks this database for the plugin\'s foreign keys.' );
+		$this->assertSame( array( DB_NAME, 'wp_users' ), array_slice( $probes[0], 0, 2 ), 'The probe asks this database for keys referencing this install\'s users.' );
+		$this->assertContains( 'wp_ffc_submissions', $probes[0], 'The probe is scoped to this install\'s tables.' );
 		$this->assertSame( 'foreign_keys', $last['check'] );
 		$this->assertStringContainsString( 'all 20', $last['note'] );
 	}

@@ -31482,3 +31482,23 @@ msgstr ""
 #: includes/settings/views/documentation/reference-privacy.php:48
 msgid "an eraser clears the identifiers (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, clears an appointment's other personal data, deletes the device signals recorded with the person's submissions, the rate-limit records kept for their e-mail and documents, their audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines, date-message deliveries and activity-log entries, clearing the client address and the encrypted detail on those entries. A certificate's form answers are kept, so it stays verifiable and can be reprinted: the eraser reports those submissions as retained, with that reason. Delete the submission when that is no longer needed."
 msgstr ""
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:139
+msgid "Activate it from the Plugins screen of each site that uses it; deleting it removes the data of the site it is deleted from"
+msgstr ""
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:138
+msgid "Every table, setting and role belongs to one site, and so does the uninstall, so the plugin refuses to be network activated"
+msgstr ""
+
+#: includes/class-ffc-activator.php:40
+msgid "Free Form Certificate cannot be network activated. Activate it on each site that uses it, from that site's Plugins screen."
+msgstr ""
+
+#: includes/settings/views/documentation/operations-troubleshooting.php:136
+msgid "Multisite: \"cannot be network activated\""
+msgstr ""
+
+#: includes/class-ffc-activator.php:41
+msgid "Plugin activation refused"
+msgstr ""

@@ -26,8 +26,23 @@ class Activator {
 
 	/**
 	 * Activate.
+	 *
+	 * Network activation is refused (#2343): every table, option and role is
+	 * per site, and so is the uninstall, so a network-wide activation would
+	 * create the schema on the main site only and leave every other site with
+	 * a plugin that is "active" and has no tables. Activate it per site.
+	 *
+	 * @param bool $network_wide Whether WordPress is activating the plugin for the whole network.
 	 */
-	public static function activate(): void {
+	public static function activate( bool $network_wide = false ): void {
+		if ( $network_wide && function_exists( 'is_multisite' ) && is_multisite() ) {
+			wp_die(
+				esc_html__( 'Free Form Certificate cannot be network activated. Activate it on each site that uses it, from that site\'s Plugins screen.', 'ffcertificate' ),
+				esc_html__( 'Plugin activation refused', 'ffcertificate' ),
+				array( 'back_link' => true )
+			);
+		}
+
 		self::seed_fresh_install_settings();
 		self::create_submissions_table();
 		self::create_activity_log_table();
@@ -364,6 +379,29 @@ class Activator {
 			$parts[] = implode( '|', array( $name, $definition['type'], $definition['after'], $definition['index'] ?? '' ) );
 		}
 		return md5( implode( "\n", $parts ) );
+	}
+
+	/**
+	 * Bring the core schema up to this release on an install that was updated
+	 * in place rather than activated (#2343).
+	 *
+	 * An update does not fire the activation hook, so everything only
+	 * `activate()` did -- creating the submissions table, the `auth_code`
+	 * UNIQUE upgrade, the composite indexes and the user foreign keys -- never
+	 * reached an upgraded install. Gated on `FFC_VERSION` like the module
+	 * chains, so it runs once per release, not per request.
+	 *
+	 * @return void
+	 */
+	public static function maybe_upgrade_schema(): void {
+		if ( FFC_VERSION !== get_option( 'ffc_core_schema_version', '' ) ) {
+			self::create_submissions_table();
+			self::upgrade_auth_code_unique_constraints();
+			self::add_composite_indexes();
+			update_option( 'ffc_core_schema_version', FFC_VERSION, true );
+		}
+
+		self::maybe_add_foreign_keys( true );
 	}
 
 	/**
@@ -773,13 +811,26 @@ class Activator {
 	 *
 	 * @since 4.9.7
 	 * @since 6.18.0 Flag-guarded via the `ffc_foreign_keys_db_version` option.
+	 *
+	 * @param bool $from_request Whether the call comes from a request rather than activation.
 	 */
-	public static function maybe_add_foreign_keys(): void {
+	public static function maybe_add_foreign_keys( bool $from_request = false ): void {
 		if ( FFC_VERSION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
 			return;
 		}
 		if ( ! class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
 			return;
+		}
+
+		// From a request (an update applied in place, #2343) one attempt per
+		// version is enough: an install that cannot take a key (MyISAM) would
+		// otherwise query information_schema on every page. Activation keeps
+		// retrying regardless, as it always did.
+		if ( $from_request ) {
+			if ( FFC_VERSION === get_option( 'ffc_foreign_keys_attempted_version', '' ) ) {
+				return;
+			}
+			update_option( 'ffc_foreign_keys_attempted_version', FFC_VERSION, true );
 		}
 
 		\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
@@ -875,7 +926,10 @@ class Activator {
 			$old_index_names = array();
 
 			foreach ( $indexes as $idx ) {
-				if ( (int) 0 === $idx->Non_unique ) {
+				// `$wpdb` hands every column back as a string, so the comparison is
+				// on the cast value; comparing the raw "0" to an int never matched
+				// and rebuilt the index on every run (#2343).
+				if ( 0 === (int) $idx->Non_unique ) {
 					$has_unique = true;
 				} else {
 					$old_index_names[] = $idx->Key_name;

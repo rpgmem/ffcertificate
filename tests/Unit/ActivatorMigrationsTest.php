@@ -293,31 +293,38 @@ class ActivatorMigrationsTest extends TestCase {
 	}
 
 	public function test_upgrade_auth_code_skips_when_unique_present(): void {
-		// A UNIQUE index already on the column → continue (no ALTER).
+		// A UNIQUE index already on the column → continue (no ALTER). `$wpdb`
+		// hands the column back as the STRING "0" -- an int here is what let
+		// the old `(int) 0 === $idx->Non_unique` pass while every activation
+		// dropped and re-added the index (#2343).
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn(
-			array( (object) array( 'Non_unique' => 0, 'Key_name' => 'uq_auth_code' ) )
+			array( (object) array( 'Non_unique' => '0', 'Key_name' => 'uq_auth_code' ) )
 		);
+		$statements = array();
+		$this->capture_queries( $statements );
+
 		$this->invoke_private( 'upgrade_auth_code_unique_constraints' );
-		$this->assertTrue( true );
+
+		$this->assertSame( array(), $statements, 'An index already UNIQUE is neither dropped nor re-added.' );
 	}
 
 	// ───────────── maybe_add_foreign_keys (flag-guard) ─────────────
 
 	/**
-	 * The constraint names MigrationForeignKeys::get_status() expects.
+	 * Table => the constraint name MigrationForeignKeys gives it.
 	 *
-	 * @var list<string>
+	 * @var array<string, string>
 	 */
 	private const FK_CONSTRAINTS = array(
-		'fk_ffc_submissions_user',
-		'fk_ffc_appointments_user',
-		'fk_ffc_activity_log_user',
-		'fk_ffc_attendance_user',
-		'fk_ffc_audience_members_user',
-		'fk_ffc_booking_users_user',
-		'fk_ffc_schedule_perms_user',
-		'fk_ffc_user_profiles_user',
-		'fk_ffc_form_invites_user',
+		'wp_ffc_submissions'                   => 'wp_fk_ffc_submissions_user',
+		'wp_ffc_self_scheduling_appointments'  => 'wp_fk_ffc_appointments_user',
+		'wp_ffc_activity_log'                  => 'wp_fk_ffc_activity_log_user',
+		'wp_ffc_audience_attendance'           => 'wp_fk_ffc_attendance_user',
+		'wp_ffc_audience_members'              => 'wp_fk_ffc_audience_members_user',
+		'wp_ffc_audience_booking_users'        => 'wp_fk_ffc_booking_users_user',
+		'wp_ffc_audience_schedule_permissions' => 'wp_fk_ffc_schedule_perms_user',
+		'wp_ffc_user_profiles'                 => 'wp_fk_ffc_user_profiles_user',
+		'wp_ffc_audience_form_invites'         => 'wp_fk_ffc_form_invites_user',
 	);
 
 	/**
@@ -327,8 +334,8 @@ class ActivatorMigrationsTest extends TestCase {
 	 * the tables named in `$myisam` report another engine, so their key is
 	 * skipped. get_status() then reports the constraints in `$present`.
 	 *
-	 * @param list<string> $myisam  Tables whose engine is not InnoDB.
-	 * @param list<string> $present Constraint names the status query returns.
+	 * @param list<string>          $myisam  Tables whose engine is not InnoDB.
+	 * @param array<string, string> $present Table => constraint the status query returns.
 	 */
 	private function foreign_key_schema( array $myisam, array $present ): void {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
@@ -343,21 +350,34 @@ class ActivatorMigrationsTest extends TestCase {
 				return null;
 			}
 		);
+		$this->wpdb->users = 'wp_users';
+		$probes            = 0;
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
-			static function ( $query ) {
+			static function ( $query ) use ( $present, &$probes ) {
 				$q = (string) $query;
 				if ( false !== strpos( $q, 'SHOW COLUMNS' ) && false !== strpos( $q, 'user_id' ) ) {
 					return array( (object) array( 'Field' => 'user_id' ) );
 				}
-				return array(); // No foreign key exists yet.
+				if ( false !== strpos( $q, 'KEY_COLUMN_USAGE' ) ) {
+					// One probe per table while the migration runs finds nothing
+					// yet; the status read after it sees what was added.
+					++$probes;
+					if ( $probes <= 9 ) {
+						return array();
+					}
+					$rows = array();
+					foreach ( $present as $table => $name ) {
+						$rows[] = (object) array(
+							'TABLE_NAME'      => $table,
+							'CONSTRAINT_NAME' => $name,
+						);
+					}
+					return $rows;
+				}
+				return array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( (object) array( 'Null' => 'YES' ) );
-		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
-			static function ( $query ) use ( $present ) {
-				return false !== strpos( (string) $query, "CONSTRAINT_TYPE = 'FOREIGN KEY'" ) ? $present : array();
-			}
-		);
 	}
 
 	/**
@@ -397,7 +417,7 @@ class ActivatorMigrationsTest extends TestCase {
 
 		Activator::maybe_add_foreign_keys();
 
-		$this->assertSame( self::FK_CONSTRAINTS, $this->added_constraints( $statements ), 'The migration should have run and added every constraint.' );
+		$this->assertSame( array_values( self::FK_CONSTRAINTS ), $this->added_constraints( $statements ), 'The migration should have run and added every constraint.' );
 		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_db_version'] ?? null );
 	}
 
@@ -407,12 +427,90 @@ class ActivatorMigrationsTest extends TestCase {
 		$statements = array();
 		$this->capture_option_writes( $recorded );
 		$this->capture_queries( $statements );
-		$present = array_values( array_diff( self::FK_CONSTRAINTS, array( 'fk_ffc_activity_log_user' ) ) );
+		$present = self::FK_CONSTRAINTS;
+		unset( $present['wp_ffc_activity_log'] );
 		$this->foreign_key_schema( array( 'wp_ffc_activity_log' ), $present );
 
 		Activator::maybe_add_foreign_keys();
 
-		$this->assertSame( $present, $this->added_constraints( $statements ), 'The migration should have run, skipping only the MyISAM table.' );
+		$this->assertSame( array_values( $present ), $this->added_constraints( $statements ), 'The migration should have run, skipping only the MyISAM table.' );
 		$this->assertArrayNotHasKey( 'ffc_foreign_keys_db_version', $recorded );
+	}
+
+	// ───────────── maybe_upgrade_schema (#2343) ─────────────
+
+	public function test_upgrade_schema_runs_the_activation_only_steps_once_per_version(): void {
+		// An install updated in place: the core steps only activate() ran
+		// reach it here, and the version is pinned so the next request skips.
+		$recorded   = array();
+		$statements = array();
+		$this->capture_option_writes( $recorded );
+		$this->capture_queries( $statements );
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( '' );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_db_version' === $key ? FFC_VERSION : ''
+		);
+
+		Activator::maybe_upgrade_schema();
+
+		$this->assertSame( FFC_VERSION, $recorded['ffc_core_schema_version'] ?? null );
+		$unique = array_filter( $statements, static fn( $sql ) => false !== strpos( $sql, 'ADD UNIQUE INDEX' ) );
+		$this->assertNotEmpty( $unique, 'The auth_code UNIQUE upgrade reached an install that was never re-activated.' );
+		$indexes = array_filter( $statements, static fn( $sql ) => false !== strpos( $sql, 'idx_form_status_date' ) );
+		$this->assertNotEmpty( $indexes, 'The composite indexes reached it too.' );
+	}
+
+	public function test_upgrade_schema_is_silent_on_the_current_version(): void {
+		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		$this->wpdb->shouldNotReceive( 'query' );
+		$this->wpdb->shouldNotReceive( 'get_var' );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		Activator::maybe_upgrade_schema();
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_a_request_tries_the_foreign_keys_once_per_version(): void {
+		// MyISAM never completes, so the done-flag never pins; from a request
+		// the attempt is recorded and not repeated until the next version.
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_attempted_version' === $key ? FFC_VERSION : ''
+		);
+		$this->wpdb->shouldNotReceive( 'get_var' );
+		$this->wpdb->shouldNotReceive( 'get_results' );
+
+		Activator::maybe_add_foreign_keys( true );
+
+		$this->addToAssertionCount( 1 );
+	}
+
+	public function test_a_request_records_its_foreign_key_attempt(): void {
+		$recorded = array();
+		$this->capture_option_writes( $recorded );
+		$this->foreign_key_schema( array( 'wp_ffc_activity_log' ), array() );
+
+		Activator::maybe_add_foreign_keys( true );
+
+		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_attempted_version'] ?? null );
+		$this->assertArrayNotHasKey( 'ffc_foreign_keys_db_version', $recorded, 'An incomplete set still does not pin the done-flag.' );
+	}
+
+	// ───────────── network activation (#2343) ─────────────
+
+	public function test_network_activation_is_refused(): void {
+		Functions\when( 'is_multisite' )->justReturn( true );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_die' )->alias(
+			static function ( $message ) {
+				throw new \RuntimeException( (string) $message );
+			}
+		);
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'cannot be network activated' );
+
+		Activator::activate( true );
 	}
 }

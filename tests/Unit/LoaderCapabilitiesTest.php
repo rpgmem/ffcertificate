@@ -749,6 +749,8 @@ class LoaderCapabilitiesTest extends TestCase {
 			'ffc_admin_caps_version_v6'                             => FFC_VERSION,
 			'ffc_submissions_db_version'                            => ( new \ReflectionMethod( \FreeFormCertificate\Activator::class, 'submissions_schema_fingerprint' ) )->invoke( null ),
 			'ffc_perf_indexes_db_version'                           => FFC_VERSION,
+			'ffc_core_schema_version'                               => FFC_VERSION,
+			'ffc_foreign_keys_db_version'                           => FFC_VERSION,
 			'ffc_submission_date_unix_migrated'                     => '1',
 			'ffc_submitted_at_unix_migrated'                        => '1',
 			'ffc_sibling_instants_unix_migrated'                    => '1',
@@ -864,6 +866,8 @@ class LoaderCapabilitiesTest extends TestCase {
 		foreach ( array(
 			'ffc_submissions_db_version',
 			'ffc_perf_indexes_db_version',
+			'ffc_core_schema_version',
+			'ffc_foreign_keys_db_version',
 			'ffc_submission_date_unix_migrated',
 			'ffc_submitted_at_unix_migrated',
 			'ffc_sibling_instants_unix_migrated',
