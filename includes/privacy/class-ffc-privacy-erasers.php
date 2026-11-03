@@ -5,7 +5,8 @@
  * Personal Data Erasers for WordPress Privacy Tools
  * (Tools > Erase Personal Data) for LGPD/GDPR compliance.
  *
- * Anonymizes/deletes user data across all FFC tables. Split out of
+ * Removes what identifies the person across all FFC tables, and reports what
+ * is retained and why. Split out of
  * PrivacyHandler (#591 phase-3) so the data-erase concern lives apart
  * from the registration/policy controller. Behaviour is identical —
  * WordPress core invokes this via callable, and the return shape and
@@ -39,13 +40,18 @@ class PrivacyErasers {
 	/**
 	 * Erase personal data across all FFC tables
 	 *
-	 * Strategy:
-	 * - Submissions: SET user_id = NULL, clear encrypted PII columns
-	 *   (preserve auth_code, magic_token for public certificate verification)
-	 * - Appointments: SET user_id = NULL, clear PII fields
-	 * - Audience members/booking users/permissions: DELETE
-	 * - User profiles: DELETE
-	 * - Activity log: SET user_id = NULL
+	 * Strategy (retain records, drop what identifies the person):
+	 * - Submissions: SET user_id = NULL and clear the identifiers (e-mail,
+	 *   CPF/RF, their hashes, IP). The answers stay, so the certificate stays
+	 *   verifiable and reprintable, and the rows are REPORTED as retained
+	 *   with that reason (#2343) -- never described as anonymised.
+	 * - Device signals of those submissions: DELETE.
+	 * - Appointments: SET user_id = NULL, clear PII fields.
+	 * - Rate-limit counters and logs keyed on the person's identifiers: DELETE.
+	 * - Account data: memberships, permissions, profile, invitations and
+	 *   user meta deleted; attendance, date-message deliveries and activity
+	 *   lines kept as records without the person.
+	 * - Reregistrations and recruitment candidacies: reported as retained.
 	 *
 	 * @param string $email_address User email.
 	 * @param int    $page Page number.
@@ -70,10 +76,15 @@ class PrivacyErasers {
 		$items_retained = 0;
 		$messages       = array();
 
-		// 1. Submissions: anonymize (preserve certificate verification)
+		// Read before the identifiers are cleared below: the rate-limit
+		// tables key on them, and the device signals on the submission ids.
+		$documents      = self::documents_of( $subject );
+		$submission_ids = self::submission_ids_of( $subject );
+
+		// 1. Submissions: the identifiers go, the answers stay (#2343).
 		$submissions_table = $wpdb->prefix . 'ffc_submissions';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for; reads of it are cached by the matching *Reader and invalidated by the *Writer.
-		$rows = $wpdb->query(
+		$rows = (int) $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE %i t
              SET t.user_id = NULL, t.email_encrypted = NULL, t.email_hash = NULL,
@@ -85,13 +96,16 @@ class PrivacyErasers {
 		);
 		if ( $rows > 0 ) {
 			$items_removed  += $rows;
-			$items_retained += $rows; // Certificate records retained (anonymized).
+			$items_retained += $rows;
 			$messages[]      = sprintf(
-				/* translators: %d: number of submissions */
-				__( '%d certificate submissions anonymized (auth codes and verification links preserved).', 'ffcertificate' ),
+				/* translators: %d: number of certificate submissions */
+				__( '%d certificate submissions: e-mail, CPF/RF and IP address removed. The form answers are retained so each certificate stays verifiable and can be reprinted; delete the submission if that is no longer needed.', 'ffcertificate' ),
 				$rows
 			);
 		}
+
+		// 1b. Device signals recorded with those submissions.
+		$items_removed += self::erase_device_signals( $submission_ids );
 
 		// 2. Appointments: anonymize PII.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
@@ -121,6 +135,18 @@ class PrivacyErasers {
 			}
 		}
 
+		// 3. Rate-limit counters and logs keyed on the person's identifiers.
+		$limits = \FreeFormCertificate\Security\RateLimitRepository::erase_identifiers( 'email', array( $email_address ) )
+			+ \FreeFormCertificate\Security\RateLimitRepository::erase_identifiers( 'cpf', $documents );
+		if ( $limits > 0 ) {
+			$items_removed += $limits;
+			$messages[]     = sprintf(
+				/* translators: %d: number of rate-limit records */
+				__( '%d rate-limit records removed.', 'ffcertificate' ),
+				$limits
+			);
+		}
+
 		// Everything below is keyed on the account, and a subject without
 		// one has nothing there; the retained records are reported either way.
 		if ( $user_id > 0 ) {
@@ -131,6 +157,99 @@ class PrivacyErasers {
 		$items_retained += self::report_retained_records( $subject, $messages );
 
 		return self::finish( $email_address, $items_removed, $items_retained, $messages );
+	}
+
+	/**
+	 * The CPF/RF values on the subject's submissions and appointments, read
+	 * before the eraser clears them, for the rate-limit tables that key on
+	 * them.
+	 *
+	 * @param PrivacySubject $subject Request subject.
+	 * @return list<string>
+	 */
+	private static function documents_of( PrivacySubject $subject ): array {
+		global $wpdb;
+		if ( ! class_exists( '\FreeFormCertificate\Core\Encryption' ) ) {
+			return array();
+		}
+
+		$owns   = $subject->owns_row( 't' );
+		$values = array();
+		foreach ( array( 'ffc_submissions', 'ffc_self_scheduling_appointments' ) as $name ) {
+			$table = $wpdb->prefix . $name;
+			if ( ! self::table_exists( $table ) ) {
+				continue;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read of the plugin's own ffc_* table during an erasure request; it must read the live state.
+			$rows = $wpdb->get_results(
+				$wpdb->prepare( "SELECT t.cpf_encrypted, t.rf_encrypted FROM %i t WHERE {$owns}", $table ),
+				ARRAY_A
+			);
+
+			/**
+			 * Rows as `$wpdb` hands them back, checked against the SELECT above.
+			 *
+			 * @var list<array{cpf_encrypted: string|null, rf_encrypted: string|null}>|null $rows
+			 */
+			if ( ! is_array( $rows ) ) {
+				continue;
+			}
+			foreach ( $rows as $row ) {
+				foreach ( array( 'cpf_encrypted', 'rf_encrypted' ) as $column ) {
+					$cipher = $row[ $column ] ?? null;
+					if ( ! is_string( $cipher ) || '' === $cipher ) {
+						continue;
+					}
+					$plain = \FreeFormCertificate\Core\Encryption::decrypt( $cipher );
+					if ( is_string( $plain ) && '' !== $plain ) {
+						$values[ $plain ] = true;
+					}
+				}
+			}
+		}
+
+		return array_map( 'strval', array_keys( $values ) );
+	}
+
+	/**
+	 * IDs of the subject's submissions, read before they lose the link.
+	 *
+	 * @param PrivacySubject $subject Request subject.
+	 * @return list<int>
+	 */
+	private static function submission_ids_of( PrivacySubject $subject ): array {
+		global $wpdb;
+		$owns = $subject->owns_row( 't' );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Read of the plugin's own ffc_* table during an erasure request; it must read the live state.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare( "SELECT t.id FROM %i t WHERE {$owns}", $wpdb->prefix . 'ffc_submissions' )
+		);
+
+		return array_values( array_map( static fn( $id ): int => is_numeric( $id ) ? (int) $id : 0, is_array( $ids ) ? $ids : array() ) );
+	}
+
+	/**
+	 * Delete the device signals recorded with the given submissions.
+	 *
+	 * @param array<int, int> $submission_ids Submission IDs.
+	 * @return int Rows deleted.
+	 */
+	private static function erase_device_signals( array $submission_ids ): int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'ffc_device_signals';
+		if ( array() === $submission_ids || ! self::table_exists( $table ) ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( array_chunk( $submission_ids, 500 ) as $chunk ) {
+			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Write to one of the plugin's own ffc_* tables; $placeholders is a list of %d whose ids are all bound.
+			$rows     = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE submission_id IN ({$placeholders})", array_merge( array( $table ), $chunk ) ) );
+			$deleted += is_int( $rows ) ? $rows : 0;
+		}
+
+		return $deleted;
 	}
 
 	/**
@@ -214,8 +333,22 @@ class PrivacyErasers {
 			}
 		}
 
-		// 7. Activity log: SET user_id = NULL.
-		\FreeFormCertificate\Core\ActivityLogQuery::redact_user_id( $user_id );
+		// 6b. Date-message deliveries (#2343): a record of a send, so the
+		// line stays and loses the person, as account deletion does.
+		$date_log_table = $wpdb->prefix . 'ffc_date_message_log';
+		if ( self::table_exists( $date_log_table ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Write to one of the plugin's own ffc_* tables, which WordPress has no API for.
+			$rows = $wpdb->query(
+				$wpdb->prepare( 'UPDATE %i SET user_id = NULL WHERE user_id = %d', $date_log_table, $user_id )
+			);
+			if ( $rows > 0 ) {
+				$items_removed += (int) $rows;
+			}
+		}
+
+		// 7. Activity log: the lines stay as the audit record, without the
+		// person, the client address or the encrypted context (#2343).
+		$items_removed += \FreeFormCertificate\Core\ActivityLogQuery::erase_user_data( $user_id );
 
 		// 8. ffc_* user meta: DELETE.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk statement over the plugin's own ffc_* user-meta keys, matched by prefix — the WordPress meta API cannot filter by key prefix, and doing it per user per key would be thousands of queries.
@@ -224,7 +357,7 @@ class PrivacyErasers {
 				'DELETE FROM %i WHERE user_id = %d AND meta_key LIKE %s',
 				$wpdb->usermeta,
 				$user_id,
-				'ffc_%'
+				$wpdb->esc_like( 'ffc_' ) . '%'
 			)
 		);
 		if ( $meta_deleted > 0 ) {
@@ -308,7 +441,7 @@ class PrivacyErasers {
 				'privacy_data_erased',
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
 				array(
-					'email'          => $email_address,
+					'email'          => \FreeFormCertificate\Core\DocumentFormatter::mask( \FreeFormCertificate\Core\DocumentFormatter::MASK_EMAIL, $email_address ),
 					'items_removed'  => $items_removed,
 					'items_retained' => $items_retained,
 				)

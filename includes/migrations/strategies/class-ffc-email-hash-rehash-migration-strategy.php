@@ -8,8 +8,9 @@
  * Background: two code paths historically wrote email_hash with raw
  * hash('sha256', ...) (no salt):
  *   - AppointmentRepository::createAppointment (all appointments).
- *   - UserCleanup::handle_email_change (submissions reindexed on email change).
- * Both have been corrected to use Encryption::hash(), but existing rows
+ *   - UserCleanup::handle_email_change (submissions reindexed on email change;
+ *     it no longer rewrites the hash at all since #2343).
+ * Both have been corrected, but existing rows
  * still hold the unsalted value and therefore never match lookups that use
  * the salted hash.
  *

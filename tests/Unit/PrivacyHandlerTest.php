@@ -67,6 +67,21 @@ class PrivacyHandlerTest extends TestCase {
 			}
 			return $sql;
 		})->byDefault();
+
+		// The eraser reads the subject's documents and submission ids before
+		// clearing them (#2343); the exports read the site's date format and
+		// a form's field labels.
+		$this->wpdb->shouldReceive('get_results')->andReturn(array())->byDefault();
+		$this->wpdb->shouldReceive('get_col')->andReturn(array())->byDefault();
+		$this->wpdb->shouldReceive('get_var')->andReturn(null)->byDefault();
+		$this->wpdb->shouldReceive('delete')->andReturn(0)->byDefault();
+		Functions\when('is_email')->alias(static fn ($v) => false !== strpos((string) $v, '@') ? $v : false);
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn ($v) => addcslashes((string) $v, '_%\\'))->byDefault();
+		Functions\when('get_option')->alias(static fn ($name, $default = false) => $default);
+		Functions\when('wp_timezone')->justReturn(new \DateTimeZone('UTC'));
+		Functions\when('wp_date')->alias(static fn ($format, $ts) => gmdate($format, (int) $ts));
+		Functions\when('get_post_meta')->justReturn('');
+		Functions\when('maybe_unserialize')->alias(static fn ($v) => is_string($v) && false !== ($u = @unserialize($v)) ? $u : $v);
 	}
 
 	protected function tearDown(): void {
@@ -360,7 +375,8 @@ class PrivacyHandlerTest extends TestCase {
 
 		$this->assertContains('Member Since', $names);
 		$idx = array_search('Member Since', $names);
-		$this->assertSame('2024-01-15', $values[$idx]);
+		// A site-local DATETIME in the site's format (#2343).
+		$this->assertSame('15/01/2024 00:00', $values[$idx]);
 	}
 
 	/**
@@ -1013,7 +1029,7 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertSame('ffc-activity-log', $result['data'][0]['group_id']);
 		$this->assertSame('ffc-activity-9', $result['data'][0]['item_id']);
 		$this->assertSame(
-			array('privacy_request', 'info', '2026-10-30 10:00:00'),
+			array('Privacy Request', 'Info', '30/10/2026 10:00'),
 			array_column($result['data'][0]['data'], 'value')
 		);
 		$this->assertStringNotContainsString('context', $sql, 'The operator-facing context is never read.');
@@ -1175,7 +1191,8 @@ class PrivacyHandlerTest extends TestCase {
 		$this->assertSame('ffc-usermeta', $item['group_id']);
 		$this->assertSame('ffc-usermeta-42', $item['item_id']);
 		$this->assertCount(2, $item['data']);
-		$this->assertSame('ffc_theme_preference', $item['data'][0]['name']);
+		// The key reads as words, not as the stored meta key (#2343).
+		$this->assertSame('Theme preference', $item['data'][0]['name']);
 		$this->assertSame('dark', $item['data'][0]['value']);
 	}
 
@@ -1194,24 +1211,13 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyExporters::export_usermeta('user@example.com');
 
+		// A one-way hash means nothing to the subject, so it is left out
+		// rather than shown as a placeholder (#2343).
 		$item = $result['data'][0];
-
-		$hash_entry = null;
-		$setting_entry = null;
-		foreach ($item['data'] as $d) {
-			if ($d['name'] === 'ffc_cpf_rf_hash') {
-				$hash_entry = $d;
-			}
-			if ($d['name'] === 'ffc_some_setting') {
-				$setting_entry = $d;
-			}
-		}
-
-		$this->assertNotNull($hash_entry);
-		$this->assertSame('[hash]', $hash_entry['value']);
-
-		$this->assertNotNull($setting_entry);
-		$this->assertSame('visible', $setting_entry['value']);
+		$this->assertSame(
+			array(array('name' => 'Some setting', 'value' => 'visible')),
+			$item['data']
+		);
 	}
 
 	// ==================================================================
@@ -1229,12 +1235,20 @@ class PrivacyHandlerTest extends TestCase {
 			$queries[] = $sql;
 			return 2;
 		});
-		$this->wpdb->shouldReceive('delete')->never();
+		// Only the rate-limit tables, which key on the address and not on an
+		// account, are touched by a delete (#2343).
+		$deleted_from = array();
+		$this->wpdb->shouldReceive('delete')->andReturnUsing(function ($table) use (&$deleted_from) {
+			$deleted_from[] = $table;
+			return 0;
+		});
 		$this->wpdb->shouldReceive('get_var')->andReturnUsing(function ($sql) {
 			return 0 === strpos((string) $sql, 'SHOW TABLES LIKE ') ? substr((string) $sql, 17) : '0';
 		});
 
 		$result = PrivacyErasers::erase_personal_data('nobody@example.com');
+
+		$this->assertSame(array('wp_ffc_rate_limits', 'wp_ffc_rate_limit_logs'), $deleted_from);
 
 		$this->assertTrue($result['items_removed']);
 		$this->assertCount(2, $queries, 'Submissions and appointments, and no user-meta delete.');
@@ -1350,16 +1364,9 @@ class PrivacyHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive('query')
 			->andReturn(0);
 
-		// wpdb->delete: audience members=3, booking users=0, permissions=0, profiles=0
-		$delete_call = 0;
+		// wpdb->delete: audience members=3, every other table 0.
 		$this->wpdb->shouldReceive('delete')
-			->andReturnUsing(function () use (&$delete_call) {
-				$delete_call++;
-				if ($delete_call === 1) {
-					return 3; // audience members
-				}
-				return 0;
-			});
+			->andReturnUsing(static fn ($table) => 'wp_ffc_audience_members' === $table ? 3 : 0);
 
 		$result = PrivacyErasers::erase_personal_data('user@example.com');
 

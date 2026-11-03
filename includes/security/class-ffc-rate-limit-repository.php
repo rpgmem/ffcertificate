@@ -59,6 +59,64 @@ final class RateLimitRepository {
 	}
 
 	/**
+	 * Delete the counters and the log lines kept for a person's identifiers,
+	 * for an erasure request (#2343).
+	 *
+	 * Both tables store an identifier only as {@see self::storage_identifier()}
+	 * makes it, which {@see RateLimitLogger::log_attempt()} mirrors, so the
+	 * raw values are turned into that key here and never reach a statement.
+	 * Each value is tried as given and as the limiter receives it (an address
+	 * lowercased, a CPF/RF as digits), because the limiter hashes what the
+	 * submission carried and the caller may hold a different spelling.
+	 *
+	 * @param string             $type   Identifier type, 'email' or 'cpf'.
+	 * @param array<int, string> $values Raw identifiers.
+	 * @return int Rows deleted across both tables.
+	 */
+	public static function erase_identifiers( string $type, array $values ): int {
+		global $wpdb;
+
+		$keys = array();
+		foreach ( $values as $value ) {
+			$value = trim( $value );
+			if ( '' === $value ) {
+				continue;
+			}
+			$variants = array(
+				$value,
+				'email' === $type
+					? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $value )
+					: \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value ),
+			);
+			foreach ( $variants as $variant ) {
+				if ( '' !== $variant ) {
+					$keys[ self::storage_identifier( $type, $variant ) ] = true;
+				}
+			}
+		}
+		if ( array() === $keys ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( array( 'ffc_rate_limits', 'ffc_rate_limit_logs' ) as $table ) {
+			foreach ( array_keys( $keys ) as $key ) {
+				$rows     = $wpdb->delete(
+					$wpdb->prefix . $table,
+					array(
+						'type'       => $type,
+						'identifier' => $key,
+					),
+					array( '%s', '%s' )
+				);
+				$deleted += is_int( $rows ) ? $rows : 0;
+			}
+		}
+
+		return $deleted;
+	}
+
+	/**
 	 * Get count from db.
 	 *
 	 * @param string   $type Type.

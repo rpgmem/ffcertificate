@@ -320,11 +320,6 @@ msgid_plural "%d caps"
 msgstr[0] ""
 msgstr[1] ""
 
-#. %d: number of submissions
-#: includes/privacy/class-ffc-privacy-erasers.php:89
-msgid "%d certificate submissions anonymized (auth codes and verification links preserved)."
-msgstr ""
-
 #. %d: number of days remaining
 #: includes/shortcodes/class-ffc-dashboard-shortcode.php:439
 msgid "%d day left"
@@ -19344,10 +19339,6 @@ msgstr ""
 msgid "You can only postpone the close on the form's scheduled close day."
 msgstr ""
 
-#: includes/privacy/class-ffc-privacy-handler.php:104
-msgid "You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress \"Export Personal Data\" and \"Erase Personal Data\" tools, which cover the data this plugin stores. Certificate authentication codes and verification tokens may be retained in anonymised form so that certificates already issued remain verifiable after erasure."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-html-styling.php:18
 msgid "You can use HTML and inline CSS to style your certificate:"
 msgstr ""
@@ -22890,9 +22881,6 @@ msgid "Reregistration submissions and recruitment candidacies are exported but n
 msgstr ""
 
 msgid "Under Tools → Export Personal Data and Tools → Erase Personal Data, the plugin registers its own handlers. Each one works on the records linked to the WordPress account that has the requested e-mail address and, for records linked to no account, on those whose stored e-mail matches it — so a certificate or appointment made without logging in is found too:"
-msgstr ""
-
-msgid "an eraser clears the encrypted personal data (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, deletes the person's audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines and activity-log entries. Authentication codes and verification tokens may be kept in anonymised form so certificates already issued remain verifiable after the person's data is erased."
 msgstr ""
 
 msgid "exporters gather the person's FFC data: profile, certificates, appointments, audience groups, audience bookings, audience attendance, post-event form invitations, reregistration submissions (with their answers decrypted), recruitment candidacies and their classifications, and FFC user settings."
@@ -31467,4 +31455,30 @@ msgstr ""
 #: includes/url-shortener/class-ffc-qr-generator-page.php:138
 msgctxt "vcf file name prefix"
 msgid "contact"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-erasers.php:102
+#, php-format
+msgid "%d certificate submissions: e-mail, CPF/RF and IP address removed. The form answers are retained so each certificate stays verifiable and can be reprinted; delete the submission if that is no longer needed."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-erasers.php:145
+#, php-format
+msgid "%d rate-limit records removed."
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:1341
+msgid "Birthday (day and month)"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-exporters.php:1342
+msgid "QR code generator design"
+msgstr ""
+
+#: includes/privacy/class-ffc-privacy-handler.php:104
+msgid "You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress \"Export Personal Data\" and \"Erase Personal Data\" tools, which cover the data this plugin stores. When data is erased, a certificate's form answers are kept without the e-mail address, identification numbers or IP address, so that a certificate already issued remains verifiable."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-privacy.php:48
+msgid "an eraser clears the identifiers (e-mail and its lookup hash, CPF/RF, the client IP, …) from the certificates and appointments and unlinks them from the account, clears an appointment's other personal data, deletes the device signals recorded with the person's submissions, the rate-limit records kept for their e-mail and documents, their audience memberships, booking links, post-event form invitations, schedule permissions, stored profile and FFC user settings, and unlinks their attendance lines, date-message deliveries and activity-log entries, clearing the client address and the encrypted detail on those entries. A certificate's form answers are kept, so it stays verifiable and can be reprinted: the eraser reports those submissions as retained, with that reason. Delete the submission when that is no longer needed."
 msgstr ""
