@@ -2664,7 +2664,7 @@ class AudienceRestControllerTest extends TestCase {
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 3 );
 		// The account's minute counter already holds the default cap.
-		Functions\when( 'get_transient' )->alias( static fn( $key ) => str_ends_with( (string) $key, '_minute' ) ? 30 : false );
+		Functions\when( 'get_transient' )->alias( static fn( $key ) => 1 === preg_match( '/_minute_\d+$/', (string) $key ) ? 30 : false );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\when( 'wp_unslash' )->returnArg();
 		$_SERVER['REMOTE_ADDR'] = '203.0.113.5';
