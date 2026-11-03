@@ -51,6 +51,11 @@ class TabGeolocationTest extends TestCase {
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
+		// The location-in-use notice (#2339): no refused delete is pending,
+		// and no form reads a location unless a test says so.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';

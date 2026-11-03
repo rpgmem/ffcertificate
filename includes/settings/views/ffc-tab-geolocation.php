@@ -194,6 +194,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</tr>
 				</tfoot>
 			</table>
+			<?php
+			// Areas smaller than a reading's usual error (#2339).
+			$ffc_small_areas = \FreeFormCertificate\Security\GeofenceLocationRegistry::small_area_names();
+			if ( ! empty( $ffc_small_areas ) ) {
+				\FreeFormCertificate\Core\AdminNotice::callout(
+					'warning',
+					esc_html(
+						sprintf(
+							/* translators: 1: radius in metres, 2: comma-separated location names */
+							__( 'These locations have a radius under %1$d m: %2$s. A phone\'s GPS indoors is often 20 to 100 m off, and a position from Wi-Fi or the IP address far more, so visitors standing inside may read as outside or as location unavailable.', 'ffcertificate' ),
+							\FreeFormCertificate\Security\GeofenceLocationRegistry::SMALL_RADIUS_METRES,
+							implode( ', ', $ffc_small_areas )
+						)
+					),
+					array(
+						'title'   => __( 'Small areas:', 'ffcertificate' ),
+						'classes' => array( 'inline' ),
+					)
+				);
+			}
+			?>
 		</div>
 
 
@@ -397,6 +418,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</p>
 						<p class="description">
 							<?php esc_html_e( 'Range: 1 to 3. Default: 1.5.', 'ffcertificate' ); ?>
+						</p>
+						<p class="description">
+							<?php esc_html_e( 'The position and its error are what the visitor\'s browser reports, and a browser can report any values. A lower number turns away more visitors with imprecise devices without stopping one who sends a made-up reading; pair the GPS check with the IP check where that matters.', 'ffcertificate' ); ?>
 						</p>
 						<div class="notice notice-warning inline">
 							<p>

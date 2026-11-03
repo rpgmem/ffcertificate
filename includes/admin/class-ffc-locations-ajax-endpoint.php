@@ -110,9 +110,10 @@ class LocationsAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'Missing location id.', 'ffcertificate' ) ), 400 );
 		}
 
-		$removed = GeofenceLocationRegistry::delete( $id );
-		if ( ! $removed ) {
-			wp_send_json_error( array( 'message' => __( 'Location not found.', 'ffcertificate' ) ), 404 );
+		$removed = GeofenceLocationRegistry::delete_unused( $id );
+		if ( is_wp_error( $removed ) ) {
+			$status = 'ffc_location_in_use' === $removed->get_error_code() ? 409 : 404;
+			wp_send_json_error( array( 'message' => $removed->get_error_message() ), $status );
 		}
 
 		wp_send_json_success( array( 'id' => $id ) );
