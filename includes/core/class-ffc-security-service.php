@@ -218,10 +218,13 @@ class SecurityService {
 			return null;
 		}
 		$ttl = (int) $parts[0] - time();
-		return $ttl > 0 ? array(
+		if ( $ttl <= 0 ) {
+			return null;
+		}
+		return array(
 			'signature' => $parts[2],
 			'ttl'       => $ttl,
-		) : null;
+		);
 	}
 
 	/**
