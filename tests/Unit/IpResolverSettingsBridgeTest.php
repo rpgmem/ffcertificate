@@ -98,6 +98,16 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		$this->assertSame( array( '10.0.0.0/8', '192.0.2.0/24', '198.51.100.0/24' ), $out );
 	}
 
+	public function test_a_custom_range_stored_wider_than_the_floor_is_not_trusted(): void {
+		$this->with_option(
+			array(
+				'trusted_proxy_mode' => 'custom',
+				'custom_proxies'     => "0.0.0.0/0\n192.0.2.0/24",
+			)
+		);
+		$this->assertSame( array( '192.0.2.0/24' ), IpResolverSettingsBridge::filter_trusted_proxies( array() ) );
+	}
+
 	public function test_non_custom_mode_leaves_trusted_proxies_untouched(): void {
 		$this->with_option( array( 'trusted_proxy_mode' => 'auto', 'custom_proxies' => '192.0.2.0/24' ) );
 		$this->assertSame( array( '10.0.0.0/8' ), IpResolverSettingsBridge::filter_trusted_proxies( array( '10.0.0.0/8' ) ) );

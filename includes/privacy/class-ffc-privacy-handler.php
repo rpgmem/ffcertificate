@@ -96,7 +96,7 @@ class PrivacyHandler {
 
 		$content .= '<p>' . $hint . esc_html__( 'Some forms and check-ins are available only at certain places. Your browser may then ask for your device\'s location. The position is compared with the allowed areas and is not stored; a form remembers only that the check passed.', 'ffcertificate' ) . '</p>';
 
-		$content .= '<p>' . $hint . esc_html__( 'When a form is restricted by the location of your internet connection, your IP address is sent to an IP geolocation service (ip-api.com, over an unencrypted connection on its free plan, or ipinfo.io) to find its approximate region.', 'ffcertificate' ) . '</p>';
+		$content .= '<p>' . $hint . esc_html__( 'When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region.', 'ffcertificate' ) . '</p>';
 
 		$content .= '<p>' . $hint . sprintf(
 			/* translators: %d: number of days device signals are retained. */

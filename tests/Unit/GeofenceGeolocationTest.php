@@ -319,6 +319,10 @@ class GeofenceGeolocationTest extends TestCase {
 			}
 		);
 
+		// No lookup failed a moment ago, so the service is asked (#2339).
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
+
 		$requests        = new \stdClass();
 		$requests->calls = array();
 		Functions\when( 'wp_remote_get' )->alias(

@@ -221,7 +221,7 @@ class TabIpDiagnosticsTest extends TestCase {
 			'ffc_save_ip_diagnostics'   => '1',
 			'ffc_ip_strategy'           => 'secure',
 			'ffc_ip_trusted_proxy_mode' => 'custom',
-			'ffc_ip_custom_proxies'     => "192.0.2.0/24\nnot-a-cidr\n10.0.0.0/8",
+			'ffc_ip_custom_proxies'     => "192.0.2.0/24\nnot-a-cidr\n10.0.0.0/8\n0.0.0.0/0\n2000::/3",
 			'ffc_ip_shadow_logging'     => '1',
 			'ffc_ip_private_peer_proxy' => '1',
 		);
@@ -231,7 +231,7 @@ class TabIpDiagnosticsTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertSame( 'secure', $captured['strategy'] );
 		$this->assertSame( 'custom', $captured['trusted_proxy_mode'] );
-		// The invalid entry is dropped; valid CIDRs survive.
+		// The invalid entry and the ranges wider than /8 or /16 are dropped (#2339).
 		$this->assertSame( "192.0.2.0/24\n10.0.0.0/8", $captured['custom_proxies'] );
 		$this->assertSame( 1, $captured['shadow_logging'] );
 		$this->assertSame( 1, $captured['private_peer_proxy'] );
