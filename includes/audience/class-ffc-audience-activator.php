@@ -58,6 +58,18 @@ class AudienceActivator {
 	 * @return void
 	 */
 	public static function create_tables(): void {
+		self::create_schema();
+		self::register_capabilities();
+	}
+
+	/**
+	 * Every table this module declares, and its composite indexes -- the
+	 * schema half of {@see self::create_tables()}, which is what an update
+	 * applied in place heals (#2343). The capability grant stays activation's.
+	 *
+	 * @return void
+	 */
+	private static function create_schema(): void {
 		self::create_schedules_table();
 		self::create_schedule_permissions_table();
 		self::create_environments_table();
@@ -70,7 +82,6 @@ class AudienceActivator {
 		self::create_attendance_table();
 		self::create_checkin_windows_table();
 		self::create_form_invites_table();
-		self::register_capabilities();
 		self::add_composite_indexes();
 	}
 
@@ -588,6 +599,11 @@ class AudienceActivator {
 		}
 
 		global $wpdb;
+
+		// Every table this module declares, on an install that was updated
+		// rather than activated (#2343). The column heal above already ran,
+		// and each create returns at once when its table is there.
+		self::create_schema();
 
 		$schedules_table = $wpdb->prefix . 'ffc_audience_schedules';
 

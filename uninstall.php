@@ -224,6 +224,8 @@ $ffcertificate_options = array(
 	// Written by MigrationForeignKeys since 6.18.0, i.e. after the audit that
 	// added its five siblings here — so it was the only one left behind.
 	'ffc_foreign_keys_db_version',
+	'ffc_foreign_keys_attempted_version',
+	'ffc_core_schema_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
 	// Version gates of the activator chains `Loader` runs on `plugins_loaded`,

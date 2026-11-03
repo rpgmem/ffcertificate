@@ -170,6 +170,10 @@ Um passo opcional de reforço. As exportações de CSV em lotes guardam um arqui
 
 O arquivo temporário já tem vida curta (nome aleatório, apagado logo depois do download, cron de limpeza diário), então isso é uma defesa adicional. Veja `docs/DEPLOYMENT.md` para os detalhes.
 
+= Funciona no WordPress Multisite? =
+
+Sim, site a site. Cada tabela, configuração e papel pertence a um site, assim como a desinstalação, então o plugin recusa a ativação em rede: ative-o pela tela de Plugins de cada site que o usa. Excluí-lo remove os dados do site em que foi excluído.
+
 = Como traduzo o plugin? =
 
 O plugin está pronto para tradução, com o text domain `ffcertificate`. Use o Loco Translate ou o Poedit com o modelo `languages/ffcertificate.pot`. Uma tradução para português do Brasil acompanha o plugin.

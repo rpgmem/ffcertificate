@@ -346,6 +346,11 @@ class SelfSchedulingActivator {
 
 		global $wpdb;
 
+		// Every table this module declares, on an install that was updated
+		// rather than activated (#2343); each create returns at once when its
+		// table is there.
+		self::create_tables();
+
 		// Migrate appointments table.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
 
@@ -674,7 +679,8 @@ class SelfSchedulingActivator {
 			$indexes = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, 'validation_code' ) );
 
 			// Check if Non_unique = 0 (already unique).
-			if ( (int) 0 === $indexes[0]->Non_unique ) {
+			// `$wpdb` returns the column as a string (#2343).
+			if ( isset( $indexes[0] ) && 0 === (int) $indexes[0]->Non_unique ) {
 				return; // Already unique.
 			}
 

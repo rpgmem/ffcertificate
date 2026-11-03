@@ -108,6 +108,11 @@ class Loader {
 	 * Initialize plugin.
 	 */
 	public function init_plugin(): void {
+		// Core schema an in-place update never received from activate(): the
+		// submissions table, its UNIQUE auth_code, composite indexes and the
+		// user foreign keys (#2343). Once per FFC_VERSION.
+		\FreeFormCertificate\Activator::maybe_upgrade_schema();
+
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 

@@ -132,6 +132,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 					• <?php esc_html_e( 'WP-Cron only runs when the site gets visits — install the server cron line that tab generates', 'ffcertificate' ); ?>
 				</td>
 			</tr>
+			<tr>
+				<td><?php esc_html_e( 'Multisite: "cannot be network activated"', 'ffcertificate' ); ?></td>
+				<td>
+					• <?php esc_html_e( 'Every table, setting and role belongs to one site, and so does the uninstall, so the plugin refuses to be network activated', 'ffcertificate' ); ?><br>
+					• <?php esc_html_e( 'Activate it from the Plugins screen of each site that uses it; deleting it removes the data of the site it is deleted from', 'ffcertificate' ); ?>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 
