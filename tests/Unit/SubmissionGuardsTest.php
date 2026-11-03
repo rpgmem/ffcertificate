@@ -616,6 +616,36 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertNull( $ctx->device_signals );
 	}
 
+	public function test_device_resolver_keeps_every_signal_the_client_sends(): void {
+		// Four were dropped, two of them strong, so a strong minimum above
+		// four could never match (#2339).
+		$this->settings['device']                     = array( 'enabled' => true );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$posted = array_fill_keys( RateLimitChecker::DEVICE_SIGNALS, str_repeat( 'b', 64 ) );
+		$_POST['ffc_device_signals'] = (string) json_encode( $posted );
+		$ctx                         = $this->ctx();
+
+		( new DeviceSignalsResolver() )->apply( $ctx );
+
+		$this->assertSame( RateLimitChecker::DEVICE_SIGNALS, array_keys( (array) $ctx->device_signals ) );
+	}
+
+	public function test_device_resolver_counts_a_submission_without_signals_as_the_shared_device(): void {
+		// No signals posted used to skip the device limit; every such
+		// submission is now one device per form (#2339).
+		$this->settings['device']                     = array( 'enabled' => true );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		unset( $_POST['ffc_device_signals'] );
+		$ctx = $this->ctx();
+
+		( new DeviceSignalsResolver() )->apply( $ctx );
+
+		$this->assertSame( array( 'cookie' => RateLimitChecker::NO_SIGNALS_DEVICE ), $ctx->device_signals );
+		$this->assertFalse( $ctx->skip_device );
+	}
+
 	// ===================== GeofenceGuard =====================
 
 	/**

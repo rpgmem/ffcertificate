@@ -580,6 +580,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-success"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'An address on this list skips every limit. An e-mail, a domain or a CPF/RF on it skips only the limits on that e-mail or CPF/RF, because the visitor types them: the address, device and global limits and the captcha still apply.', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(

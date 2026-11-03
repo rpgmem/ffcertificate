@@ -83,7 +83,7 @@ class DeviceLimiter {
 		$signals         = array_filter(
 			$signals,
 			static function ( $v, $k ) use ( $enabled_signals ) {
-				return '' !== $v && in_array( $k, $enabled_signals, true );
+				return '' !== $v && ( in_array( $k, $enabled_signals, true ) || ( 'cookie' === $k && RateLimitChecker::NO_SIGNALS_DEVICE === $v ) );
 			},
 			ARRAY_FILTER_USE_BOTH
 		);
@@ -242,8 +242,9 @@ class DeviceLimiter {
 			'form_id'       => $form_id,
 		);
 		$has_any = false;
-		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ) as $k ) {
-			if ( ! empty( $signals[ $k ] ) && in_array( $k, $enabled, true ) ) {
+		foreach ( RateLimitChecker::DEVICE_SIGNALS as $k ) {
+			$shared = 'cookie' === $k && RateLimitChecker::NO_SIGNALS_DEVICE === ( $signals[ $k ] ?? null );
+			if ( ! empty( $signals[ $k ] ) && ( $shared || in_array( $k, $enabled, true ) ) ) {
 				$row[ 'sig_' . $k ] = substr( (string) $signals[ $k ], 0, 64 );
 				$has_any            = true;
 			} else {

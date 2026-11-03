@@ -47,13 +47,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><strong><?php esc_html_e( 'Max per form', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'submissions allowed from one device per form (default 1).', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Match threshold', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many signals must match (default 7).', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Strong-signal minimum', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many of those must be strong signals (default 2); 0 disables the strong tier.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Strong-signal minimum', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many of those must be strong signals (default 2); 0 disables the strong tier. It cannot be saved above the number of strong signals enabled, since no device could then match.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'No signals', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a submission that sends no signals (JavaScript off, for example) is counted as one shared device per form, so it cannot step around the limit. With the default of 1 per form, only one such submission is accepted.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Manager bypass', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'administrators / settings-managers are skipped.', 'ffcertificate' ); ?></li>
 	</ul>
 	<p class="description"><?php esc_html_e( 'Forms can override these values in the form editor — empty per-form values inherit these globals.', 'ffcertificate' ); ?> <a href="#reference-security"><?php esc_html_e( 'See Security & Restrictions.', 'ffcertificate' ); ?></a></p>
 
 	<h4><?php esc_html_e( 'Allowlist & blocklist', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The allowlist wins immediately; the blocklist is checked first and denies outright.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'An IP line is an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48. Saving stores each line in a single standard spelling, so an address matches however the visitor\'s request writes it, and an IPv4 address written inside IPv6 matches its IPv4 line. A line that is neither an address nor a range is not saved, and the screen names it.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Log, interface & statistics', 'ffcertificate' ); ?></h4>

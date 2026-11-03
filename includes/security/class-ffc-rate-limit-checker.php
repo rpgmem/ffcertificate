@@ -44,6 +44,20 @@ final class RateLimitChecker {
 	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
 
 	/**
+	 * Every device signal the client sends and a submission stores, in the
+	 * order of the `sig_*` columns.
+	 */
+	/**
+	 * The device id every submission without signals shares (#2339), so they
+	 * count as one device per form. Shaped like a signal (64 hex) and kept
+	 * whatever signals are enabled, or turning the cookie signal off would
+	 * reopen the bypass.
+	 */
+	public const NO_SIGNALS_DEVICE = '0000000000000000000000000000000000000000000000000000000000000000';
+
+	public const DEVICE_SIGNALS = array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
+
+	/**
 	 * Cached settings for the current request
 	 *
 	 * @since 4.6.13
@@ -120,9 +134,14 @@ final class RateLimitChecker {
 			RateLimitLogger::log_attempt( 'blacklist', $ip, 'blocked', $bl['reason'] ?? '', $form_id );
 			return $bl; }
 
-		if ( self::is_whitelisted( $ip, $email, $cpf ) ) {
+		// An allowlisted ADDRESS skips every check: the address is what the
+		// server saw. An allowlisted e-mail or CPF/RF is only what the visitor
+		// typed, so it skips the limits on that identity and nothing else --
+		// never the address, device or global limits (#2339).
+		if ( self::is_ip_whitelisted( $ip ) ) {
 			RateLimitLogger::log_attempt( 'whitelist', $ip, 'whitelisted', 'In whitelist', $form_id );
 			return array( 'allowed' => true ); }
+		$identity_whitelisted = self::is_identity_whitelisted( $email, $cpf );
 
 		if ( ! $skip_device && ! empty( $s['device']['enabled'] ) && $form_id && is_array( $device_signals ) ) {
 			$d = self::check_device_limit( $form_id, $device_signals );
@@ -150,14 +169,14 @@ final class RateLimitChecker {
 				return $i; }
 		}
 
-		if ( $email && $s['email']['enabled'] && self::applies_to_form( $s['email']['apply_to'], $form_id ) ) {
+		if ( ! $identity_whitelisted && $email && $s['email']['enabled'] && self::applies_to_form( $s['email']['apply_to'], $form_id ) ) {
 			$e = self::check_email_limit( $email, $form_id );
 			if ( ! $e['allowed'] ) {
 				RateLimitLogger::log_attempt( 'email', $email, 'blocked', $e['reason'] ?? '', $form_id );
 				return $e; }
 		}
 
-		if ( $cpf && $s['cpf']['enabled'] && self::applies_to_form( $s['cpf']['apply_to'], $form_id ) ) {
+		if ( ! $identity_whitelisted && $cpf && $s['cpf']['enabled'] && self::applies_to_form( $s['cpf']['apply_to'], $form_id ) ) {
 			$c = self::check_cpf_limit( $cpf, $form_id );
 			if ( ! $c['allowed'] ) {
 				RateLimitLogger::log_attempt( 'cpf', $cpf, 'blocked', $c['reason'] ?? '', $form_id );
@@ -477,37 +496,29 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Check whether whitelisted.
+	 * Whether the e-mail or the CPF/RF the visitor typed is allowlisted.
 	 *
-	 * @param string      $ip Ip.
-	 * @param string|null $email Email address.
-	 * @param string|null $cpf Cpf.
+	 * Self-declared, so it lifts only the limits on that identity (#2339).
+	 *
+	 * @param string|null $email E-mail address.
+	 * @param string|null $cpf   CPF/RF.
 	 * @return bool
 	 */
-	private static function is_whitelisted( string $ip, ?string $email, ?string $cpf ): bool {
-		$s  = self::get_settings();
-		$wl = $s['whitelist'];
-
-		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $wl['ips'] ) ) {
-			return true;
-		}
+	private static function is_identity_whitelisted( ?string $email, ?string $cpf ): bool {
+		$wl = self::get_settings()['whitelist'];
 
 		if ( $email ) {
-			if ( in_array( $email, $wl['emails'], true ) ) {
+			if ( in_array( $email, (array) $wl['emails'], true ) ) {
 				return true;
 			}
 			$at_part = strrchr( $email, '@' );
 			$d       = substr( $at_part ? $at_part : '', 1 );
-			if ( in_array( '*@' . $d, $wl['email_domains'], true ) ) {
+			if ( in_array( '*@' . $d, (array) $wl['email_domains'], true ) ) {
 				return true;
 			}
 		}
 
-		if ( $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $wl['cpfs'], true ) ) {
-			return true;
-		}
-
-		return false;
+		return $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), (array) $wl['cpfs'], true );
 	}
 
 	/**
@@ -668,10 +679,9 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Public IP-only whitelist check. The internal `is_whitelisted()`
-	 * accepts email + CPF too; this thin wrapper exposes just the IP
-	 * branch for consumers that only have an IP to test (the read
-	 * trait, future webhook handlers, etc.). Issue #259.
+	 * Whether the address is allowlisted. An allowlisted address skips
+	 * every check; `check_all()` and the read trait both ask it (#259,
+	 * #2339).
 	 *
 	 * @since 6.6.2
 	 * @param string $ip Client IP.

@@ -36,6 +36,13 @@ class TabRateLimit extends SettingsTab {
 	private array $refused_ip_lines = array();
 
 	/**
+	 * Why the save lowered the strong-signal minimum, when it did.
+	 *
+	 * @var string|null
+	 */
+	private ?string $refused_strong_min = null;
+
+	/**
 	 * Init.
 	 */
 	protected function init(): void {
@@ -95,6 +102,9 @@ class TabRateLimit extends SettingsTab {
 
 		$settings = $this->get_settings();
 		$this->render_refused_ip_lines( $settings );
+		if ( null !== $this->refused_strong_min ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'warning', esc_html( $this->refused_strong_min . ' ' . __( 'It was saved as the number of strong signals enabled.', 'ffcertificate' ) ) );
+		}
 		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
@@ -187,7 +197,7 @@ class TabRateLimit extends SettingsTab {
 				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
 					? array_values(
 						array_intersect(
-							array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+							\FreeFormCertificate\Security\RateLimitChecker::DEVICE_SIGNALS,
 							array_map( 'sanitize_key', wp_unslash( $_POST['device_signals_enabled'] ) )
 						)
 					)
@@ -234,6 +244,15 @@ class TabRateLimit extends SettingsTab {
 			),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		// A strong-signal minimum above the strong signals enabled never
+		// matches (#2339). The save keeps the minimum the signals allow and
+		// says so, rather than storing a limit that silently does nothing.
+		$strong = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_signals_in( $settings['device']['signals_enabled'] );
+		if ( $settings['device']['match_strong_min'] > $strong ) {
+			$this->refused_strong_min                = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_min_conflict( $settings['device']['match_strong_min'], $settings['device']['signals_enabled'] );
+			$settings['device']['match_strong_min'] = $strong;
+		}
 
 		update_option( 'ffc_rate_limit_settings', $settings );
 	}

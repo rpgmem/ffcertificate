@@ -420,6 +420,31 @@ class TabRateLimitTest extends TestCase {
 	// save_settings()
 	// ------------------------------------------------------------------
 
+	public function test_a_strong_minimum_the_signals_cannot_reach_is_lowered_and_said(): void {
+		// Two strong signals enabled and a minimum of 5: no device could ever
+		// match, and the limit fell back to the cookie alone (#2339).
+		$this->stub_save_funcs();
+		$_POST['device_match_strong_min'] = '5';
+		$_POST['device_signals_enabled']  = array( 'cookie', 'canvas', 'webgl' );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( 2, $saved['device']['match_strong_min'] );
+		$reason = new \ReflectionProperty( $this->tab, 'refused_strong_min' );
+		$reason->setAccessible( true );
+		$this->assertStringContainsString( '(5)', (string) $reason->getValue( $this->tab ) );
+	}
+
 	public function test_save_settings_persists_normalized_settings(): void {
 		$this->stub_save_funcs();
 
@@ -455,7 +480,9 @@ class TabRateLimitTest extends TestCase {
 		// device clamps.
 		$this->assertSame( 1, $saved['device']['max_per_form'] );
 		$this->assertSame( 12, $saved['device']['match_threshold'] );
-		$this->assertSame( 6, $saved['device']['match_strong_min'] );
+		// 99 clamps to 6, and then to the strong signals enabled -- none of
+		// cookie and ua is strong, so a minimum above 0 could never match (#2339).
+		$this->assertSame( 0, $saved['device']['match_strong_min'] );
 		// Only known signals survive the intersect; 'bogus' dropped.
 		$this->assertSame( array( 'cookie', 'ua' ), $saved['device']['signals_enabled'] );
 		// Whitelist split + trimmed, empty trailing line filtered out.

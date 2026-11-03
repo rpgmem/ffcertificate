@@ -524,8 +524,9 @@ class SettingsAjaxEndpoint {
 				array( 'device', 'match_strong_min' ),
 				'int',
 				array(
-					'min' => 0,
-					'max' => 6,
+					'min'   => 0,
+					'max'   => 6,
+					'check' => array( \FreeFormCertificate\Settings\RateLimitSettingsReader::class, 'strong_min_error' ),
 				),
 			),
 			'device_retention_days'          => array(
@@ -575,8 +576,9 @@ class SettingsAjaxEndpoint {
 			'option'  => 'ffc_rate_limit_settings',
 			'path'    => array( 'device', 'signals_enabled' ),
 			'type'    => 'string[]',
-			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+			'options' => \FreeFormCertificate\Security\RateLimitChecker::DEVICE_SIGNALS,
 			'cap'     => 'ffc_manage_settings',
+			'check'   => array( \FreeFormCertificate\Settings\RateLimitSettingsReader::class, 'signals_error' ),
 		);
 
 		return $allowlist;
@@ -638,6 +640,16 @@ class SettingsAjaxEndpoint {
 				? __( 'The table could not be read. Reload the page and try again.', 'ffcertificate' )
 				: __( 'That value is not one of the choices.', 'ffcertificate' );
 			wp_send_json_error( array( 'message' => $message ), 400 );
+		}
+
+		// A value valid on its own may still contradict another setting: a
+		// strong-signal minimum above the strong signals enabled can never
+		// match (#2339). The entry's check answers with the reason, or null.
+		if ( isset( $entry['check'] ) && is_callable( $entry['check'] ) ) {
+			$refusal = call_user_func( $entry['check'], $value );
+			if ( is_string( $refusal ) && '' !== $refusal ) {
+				wp_send_json_error( array( 'message' => $refusal ), 400 );
+			}
 		}
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is

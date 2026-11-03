@@ -229,6 +229,61 @@ final class RateLimitSettingsReader {
 	}
 
 	/**
+	 * How many of the given signals are strong.
+	 *
+	 * @param array<mixed> $signals Signal names.
+	 * @return int
+	 */
+	public static function strong_signals_in( array $signals ): int {
+		return count( array_intersect( \FreeFormCertificate\Security\RateLimitChecker::STRONG_SIGNALS, array_map( 'strval', $signals ) ) );
+	}
+
+	/**
+	 * Why a strong-signal minimum cannot be stored with the signals enabled
+	 * now, or null when it can. A minimum above the strong signals enabled
+	 * never matches, and the device limit silently fell back to the cookie
+	 * alone (#2339).
+	 *
+	 * @param mixed $min Minimum to store.
+	 * @return string|null
+	 */
+	public static function strong_min_error( $min ): ?string {
+		$signals = self::effective()['device']['signals_enabled'] ?? array();
+		return self::strong_min_conflict( (int) $min, is_array( $signals ) ? $signals : array() );
+	}
+
+	/**
+	 * Why a set of enabled signals cannot be stored with the strong-signal
+	 * minimum stored now, or null when it can.
+	 *
+	 * @param mixed $signals Signal names to store.
+	 * @return string|null
+	 */
+	public static function signals_error( $signals ): ?string {
+		return self::strong_min_conflict( (int) ( self::effective()['device']['match_strong_min'] ?? 0 ), is_array( $signals ) ? $signals : array() );
+	}
+
+	/**
+	 * The refusal for a minimum and a signal set that cannot match together.
+	 *
+	 * @param int          $min     Strong-signal minimum.
+	 * @param array<mixed> $signals Enabled signals.
+	 * @return string|null
+	 */
+	public static function strong_min_conflict( int $min, array $signals ): ?string {
+		$strong = self::strong_signals_in( $signals );
+		if ( $min <= $strong ) {
+			return null;
+		}
+		return sprintf(
+			/* translators: 1: strong-signal minimum, 2: strong signals enabled */
+			__( 'The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals.', 'ffcertificate' ),
+			$min,
+			$strong
+		);
+	}
+
+	/**
 	 * Merge stored values over defaults: maps recurse, lists replace.
 	 *
 	 * @param array<mixed> $defaults Defaults.
