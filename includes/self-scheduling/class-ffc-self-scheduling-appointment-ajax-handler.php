@@ -106,11 +106,12 @@ class AppointmentAjaxHandler {
 				);
 			}
 
-			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 			if ( true !== $security_check ) {
 				wp_send_json_error(
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-						array( 'message' => $security_check )
+						array( 'message' => $security_check ),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -123,7 +124,8 @@ class AppointmentAjaxHandler {
 			if ( ! $rate_check['allowed'] ) {
 				wp_send_json_error(
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-						array( 'message' => $rate_check['message'] )
+						array( 'message' => $rate_check['message'] ),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					),
 					429
 				);
@@ -139,7 +141,8 @@ class AppointmentAjaxHandler {
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
 						array(
 							'message' => __( 'Missing required fields.', 'ffcertificate' ),
-						)
+						),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -181,7 +184,8 @@ class AppointmentAjaxHandler {
 							'message' => $result->get_error_message(),
 							// Every rule a bypass holder must confirm (#1859).
 							'reasons' => self::error_reasons( $result ),
-						)
+						),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -295,7 +299,8 @@ class AppointmentAjaxHandler {
 					array(
 						'code'    => 'ffc_internal_error',
 						'message' => __( 'An unexpected error occurred. Please try again.', 'ffcertificate' ),
-					)
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 				)
 			);
 		}

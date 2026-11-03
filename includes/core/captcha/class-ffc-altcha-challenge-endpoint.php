@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core\Captcha;
 
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\WindowThrottle;
 use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
@@ -85,7 +86,9 @@ class AltchaChallengeEndpoint {
 			);
 		}
 
-		\wp_send_json( AltchaCaptcha::create_challenge() );
+		// The context names the form the widget sits in. Read from the client,
+		// which is safe for issuing: the verifier names the context it expects.
+		\wp_send_json( AltchaCaptcha::create_challenge( CaptchaContext::sanitize( RequestInput::get_get_string( 'context' ) ) ) );
 	}
 
 	/**

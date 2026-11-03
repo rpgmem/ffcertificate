@@ -71,11 +71,15 @@
 			payload += '&form_ids%5B%5D=' + encodeURIComponent(formIds[fi]);
 		}
 
-		// How many challenges to ask for. The server cannot work this out:
-		// it only ever sees form ids, and the security blocks rendered by
-		// [ffc_self_scheduling] and [ffc_csv_download] belong to no form.
-		// Counting forms there is what let two blocks share one token (#1063).
-		payload += '&blocks=' + securityBlocks().length;
+		// One challenge per security block, each bound to what its block names
+		// (#2339). The server cannot work this out: it only ever sees form ids,
+		// and the security blocks rendered by [ffc_self_scheduling] and
+		// [ffc_csv_download] belong to no form. Counting forms there is what
+		// let two blocks share one token (#1063).
+		var blocks = securityBlocks();
+		for (var bi = 0; bi < blocks.length; bi++) {
+			payload += '&contexts%5B%5D=' + encodeURIComponent(blocks[bi].getAttribute('data-ffc-captcha-context') || '');
+		}
 
 		var xhr = new XMLHttpRequest();
 		xhr.open('POST', ajaxUrl, true);

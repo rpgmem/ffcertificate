@@ -45,9 +45,12 @@ class Shortcodes {
 	 * `templates/security-fields.php`, and the challenge inside it comes from
 	 * whichever provider is configured. Kept as a method because the public
 	 * CSV download shortcode renders through it.
+	 *
+	 * @param string $context What the challenge is issued for ({@see \FreeFormCertificate\Core\Captcha\CaptchaContext}).
+	 * @return string Escaped HTML.
 	 */
-	public function generate_security_fields(): string {
-		return SecurityService::render_security_fields();
+	public function generate_security_fields( string $context ): string {
+		return SecurityService::render_security_fields( $context );
 	}
 
 	/**
@@ -115,7 +118,7 @@ class Shortcodes {
 		);
 
 		// Render verification page using template.
-		$security_fields = $this->generate_security_fields();
+		$security_fields = $this->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/verification-page.php';
@@ -326,7 +329,7 @@ class Shortcodes {
 
 				<?php
                 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- generate_security_fields() escapes all output internally
-				echo $this->generate_security_fields();
+				echo $this->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::form( $form_id ) );
 				?>
 
 				<?php

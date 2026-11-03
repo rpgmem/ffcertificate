@@ -19073,10 +19073,6 @@ msgstr ""
 msgid "Which template each feature is using right now. Templates are edited here; the assignment is chosen in each feature's own settings."
 msgstr ""
 
-#: includes/settings/views/documentation/config-captcha.php:53
-msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once — a captured answer cannot be replayed."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-modulos.php:27
 msgid "While disabled, the daily expired-ticket cleanup is paused — unredeemed ticket codes of ended forms are no longer purged until the module is re-enabled."
 msgstr ""
@@ -31612,4 +31608,8 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:43
 msgid "the IP limit and both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" does not count them; \"Count together\" puts all of them under one shared cap. The IP limit counts them together by default, as it always has; the two cards let them through by default. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:54
+msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed."
 msgstr ""

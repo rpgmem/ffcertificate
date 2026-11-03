@@ -84,13 +84,14 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 * cannot express "scripting is disabled", so the rule rides in the one
 	 * element that can.
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return string Escaped HTML.
 	 */
-	public function render_fields(): string {
-		return $this->altcha->render_widget( false )
+	public function render_fields( string $context = '' ): string {
+		return $this->altcha->render_widget( false, $context )
 			. '<noscript>'
 			. '<style>.ffc-altcha-row{display:none;}</style>'
-			. $this->math->render_fields()
+			. $this->math->render_fields( $context )
 			. '</noscript>';
 	}
 
@@ -102,26 +103,28 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 * wrong one is how a visitor gets told to redo arithmetic they never saw.
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function verify( array $request ) {
+	public function verify( array $request, string $context = '' ) {
 		$half = $this->half_for( $request );
 
 		if ( $half instanceof MathCaptcha ) {
 			self::log_fallback();
 		}
 
-		return $half->verify( $request );
+		return $half->verify( $request, $context );
 	}
 
 	/**
 	 * {@inheritDoc}
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function peek( array $request ) {
-		return $this->half_for( $request )->peek( $request );
+	public function peek( array $request, string $context = '' ) {
+		return $this->half_for( $request )->peek( $request, $context );
 	}
 
 	/**
@@ -131,10 +134,11 @@ class CompositeCaptcha implements CaptchaProviderInterface {
 	 * page whose visitor is using the widget — and the math half inside
 	 * `<noscript>` is unreachable to the script that would apply a refresh.
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return array<string, mixed>
 	 */
-	public function challenge_payload(): array {
-		return $this->altcha->challenge_payload();
+	public function challenge_payload( string $context = '' ): array {
+		return $this->altcha->challenge_payload( $context );
 	}
 
 	/**

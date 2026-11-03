@@ -42,13 +42,17 @@ class SecurityFieldsGuard {
 			)
 		);
 
-		// Validate security fields (CAPTCHA + honeypot).
+		// Validate security fields (CAPTCHA + honeypot). The challenge must
+		// have been issued for the form this request submits to (#2339): the
+		// context comes from the target form id, never from the proof.
+		$context = \FreeFormCertificate\Core\Captcha\CaptchaContext::form( SubmissionInput::int( $ctx, 'form_id' ) );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce verified by NonceGuard; SecurityService sanitizes internally.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, $context );
 		if ( true !== $security_check ) {
 			throw new SubmissionRejected(
 				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-					array( 'message' => $security_check )
+					array( 'message' => $security_check ),
+					$context
 				)
 			);
 		}

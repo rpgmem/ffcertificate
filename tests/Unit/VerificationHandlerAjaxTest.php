@@ -297,7 +297,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function answered_post( array $fields ): array {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
 		return array(
 			'nonce'            => 'ok',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
@@ -370,7 +370,7 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 	public function test_verification_ajax_security_fields_fail_refreshes_captcha(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
 
 		$_POST = array(
 			'nonce'            => 'ok',

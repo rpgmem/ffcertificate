@@ -111,27 +111,27 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		}
 
 		// 3. Honeypot + CAPTCHA.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 		if ( true !== $security_check ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 4. Form id + access hash present.
 		$form_id     = $this->request_form_id();
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 5. Form-access + CPF-gate business rules.
 		$validator = new PublicCsvDownload();
 		$error     = $validator->validate_form_access( $form_id, $posted_hash );
 		if ( null !== $error ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 		$cpf_error = $validator->validate_cpf_requirement( $form_id, RequestInput::get_post_string( 'cpf' ) );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 6. Increment the download quota BEFORE generating (race-safe).

@@ -111,7 +111,7 @@ class AltchaCaptchaTest extends TestCase {
 		$method = new \ReflectionMethod( AltchaCaptcha::class, 'signed_payload' );
 		$method->setAccessible( true );
 
-		return ChallengeSigner::sign( (string) $method->invoke( null, $parameters ) );
+		return ChallengeSigner::sign( (string) $method->invoke( null, $parameters, '' ) );
 	}
 
 	// ==================================================================
@@ -233,6 +233,21 @@ class AltchaCaptchaTest extends TestCase {
 			$provider->verify( array( AltchaCaptcha::FIELD => $solution ) ),
 			'Replaying a solved challenge must be refused — this is the #1054 property.'
 		);
+	}
+
+	/**
+	 * #2339: a challenge is bound to the form it was issued for. The context
+	 * is signed but not sent, so the same solution fails the signature under
+	 * any other context, and a failed check does not spend it.
+	 */
+	public function test_a_solution_is_refused_on_another_form(): void {
+		$provider = new AltchaCaptcha();
+		$solution = $this->solve( AltchaCaptcha::create_challenge( 'form:1' ) );
+
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $solution ), 'form:2' ) );
+		$this->assertIsString( $provider->peek( array( AltchaCaptcha::FIELD => $solution ), 'public_csv' ) );
+		$this->assertIsString( $provider->verify( array( AltchaCaptcha::FIELD => $solution ) ), 'Unbound is a context too: a bound proof does not pass it.' );
+		$this->assertTrue( $provider->verify( array( AltchaCaptcha::FIELD => $solution ), 'form:1' ) );
 	}
 
 	// ==================================================================
@@ -441,10 +456,11 @@ class AltchaCaptchaTest extends TestCase {
 		Functions\when( 'add_query_arg' )->alias( static fn( array $a, string $u ): string => $u . '?' . http_build_query( $a ) );
 		Functions\when( 'wp_json_encode' )->alias( static fn( $d ) => json_encode( $d ) );
 
-		$html = ( new AltchaCaptcha() )->render_fields();
+		$html = ( new AltchaCaptcha() )->render_fields( 'form:7' );
 
 		$this->assertContains( 'ffc-captcha', $enqueued );
 		$this->assertStringContainsString( '<altcha-widget', $html );
+		$this->assertStringContainsString( 'context=form%3A7', $html, 'The widget fetches a challenge bound to the form it sits in.' );
 	}
 
 	public function test_the_rendered_language_matches_the_one_the_glue_registers(): void {

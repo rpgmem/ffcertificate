@@ -153,7 +153,7 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 
 		$this->post_backup = $_POST ?? array();
 
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'form:1' );
 
 		$_POST = array(
 			'action'           => 'ffc_submit_form',

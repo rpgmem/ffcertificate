@@ -40,17 +40,21 @@ interface CaptchaProviderInterface {
 	 * The honeypot and its container are rendered by the caller, so this
 	 * returns only the challenge itself.
 	 *
+	 * @param string $context What the challenge is issued for ({@see CaptchaContext}).
 	 * @return string Escaped HTML.
 	 */
-	public function render_fields(): string;
+	public function render_fields( string $context = '' ): string;
 
 	/**
 	 * Verify the challenge in a request payload.
 	 *
+	 * A proof issued for another context is refused (#2339).
+	 *
 	 * @param array<string, mixed> $request Request data (typically `$_POST`).
+	 * @param string               $context Context the caller expects, never read from the request.
 	 * @return true|string True when valid, else a translated error message.
 	 */
-	public function verify( array $request );
+	public function verify( array $request, string $context = '' );
 
 	/**
 	 * Check the challenge in a request payload without spending it.
@@ -66,9 +70,10 @@ interface CaptchaProviderInterface {
 	 *
 	 * @since 6.23.0
 	 * @param array<string, mixed> $request Request data (typically `$_POST`).
+	 * @param string               $context Context the caller expects, never read from the request.
 	 * @return true|string True when valid, else a translated error message.
 	 */
-	public function peek( array $request );
+	public function peek( array $request, string $context = '' );
 
 	/**
 	 * A freshly issued challenge, shaped for a JSON response.
@@ -77,7 +82,8 @@ interface CaptchaProviderInterface {
 	 * rejection has to hand the client a new one) and by the cached-page
 	 * fragment refresh.
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return array<string, mixed>
 	 */
-	public function challenge_payload(): array;
+	public function challenge_payload( string $context = '' ): array;
 }

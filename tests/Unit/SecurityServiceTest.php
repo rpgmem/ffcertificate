@@ -220,6 +220,38 @@ class SecurityServiceTest extends TestCase {
 		$this->assertTrue($result);
 	}
 
+	/**
+	 * #2339: the token is bound to the form it was issued for, and a check
+	 * under another context neither passes nor spends it.
+	 */
+	public function test_a_math_token_is_refused_on_another_form(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'form:1' );
+		$answer    = (string) $challenge['answer'];
+
+		$this->assertFalse( SecurityService::peek_simple_captcha( $answer, $challenge['hash'], 'form:2' ) );
+		$this->assertFalse( SecurityService::peek_simple_captcha( $answer, $challenge['hash'] ) );
+		$this->assertTrue( SecurityService::peek_simple_captcha( $answer, $challenge['hash'], 'form:1' ) );
+		$this->assertTrue( SecurityService::verify_simple_captcha( $answer, $challenge['hash'], 'form:1' ) );
+	}
+
+	public function test_the_security_gate_checks_the_context_it_is_given(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
+		$data      = array(
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+		);
+
+		$this->assertIsString( SecurityService::peek_security_fields( $data, 'public_csv' ) );
+		$this->assertTrue( SecurityService::validate_security_fields( $data, 'verify' ) );
+	}
+
+	public function test_with_fresh_challenge_issues_for_the_rejecting_surface(): void {
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'x' ), 'booking' );
+
+		$this->assertSame( 'math', $payload['provider'] );
+		$this->assertNotEmpty( $payload['new_hash'] );
+	}
+
 	public function test_verify_simple_captcha_wrong_answer_returns_false(): void {
 		$captcha = SecurityService::generate_simple_captcha();
 
@@ -271,7 +303,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_captcha_hash'  => $captcha['hash'],
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertTrue($result);
 	}
@@ -285,7 +317,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_captcha_hash'  => $captcha['hash'],
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('Honeypot', $result);
@@ -299,7 +331,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_captcha_hash'  => $captcha['hash'],
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('security question', $result);
@@ -313,7 +345,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('security question', $result);
@@ -328,7 +360,7 @@ class SecurityServiceTest extends TestCase {
 			'ffc_captcha_hash'  => $captcha['hash'],
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('math answer is incorrect', $result);
@@ -387,7 +419,7 @@ class SecurityServiceTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
 				'ffc_captcha_hash' => $captcha['hash'],
-			)
+			), ''
 		);
 
 		$this->assertIsString( $result );
@@ -419,7 +451,7 @@ class SecurityServiceTest extends TestCase {
 	public function test_with_fresh_challenge_attaches_a_usable_token(): void {
 		$this->issueCaptcha();
 
-		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ) );
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ), '' );
 
 		$this->assertSame( 'rate limited', $payload['message'] );
 		$this->assertTrue( $payload['refresh_captcha'] );
@@ -430,7 +462,7 @@ class SecurityServiceTest extends TestCase {
 		$this->issueCaptcha();
 
 		$payload = SecurityService::with_fresh_challenge(
-			array( 'message' => 'bad captcha', 'refresh_captcha' => true, 'new_hash' => 'already-there' )
+			array( 'message' => 'bad captcha', 'refresh_captcha' => true, 'new_hash' => 'already-there' ), ''
 		);
 
 		$this->assertSame( 'already-there', $payload['new_hash'] );

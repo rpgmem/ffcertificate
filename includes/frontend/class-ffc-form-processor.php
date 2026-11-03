@@ -83,8 +83,9 @@ class FormProcessor {
 			// redeems (and thereby spends) the one the client submitted, so a
 			// later guard's rejection would otherwise leave the visitor unable
 			// to retry. See SecurityService::with_fresh_challenge().
+			// The replacement is bound to the form the visitor submitted to.
 			wp_send_json_error(
-				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge( $rejected->get_payload() )
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge( $rejected->get_payload(), \FreeFormCertificate\Core\Captcha\CaptchaContext::form( Submission\SubmissionInput::int( $ctx, 'form_id' ) ) )
 			);
 		}
 

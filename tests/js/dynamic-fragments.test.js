@@ -87,23 +87,25 @@ describe('ffc-dynamic-fragments — early returns', () => {
 		expect(MockXHR.lastInstance.url).toBe('/fallback');
 	});
 
-	it('posts the security-block count, which is not the form count', () => {
+	it('posts one context per security block, which is not one per form', () => {
 		// #1063. The server cannot derive this: the block rendered by
 		// [ffc_self_scheduling] belongs to no form, so the page below is one
-		// form id and two blocks.
+		// form id and two blocks. Each block names its own context (#2339),
+		// in DOM order, so each challenge is bound to the form it sits in.
 		installXHRMock();
 		document.body.innerHTML = `
 			<div class="ffc-form-wrapper" id="ffc-form-42">
-				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+				<div class="ffc-security-container" data-ffc-captcha-context="form:42"><div class="ffc-captcha-row"></div></div>
 			</div>
 			<div class="ffc-booking-form">
-				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+				<div class="ffc-security-container" data-ffc-captcha-context="booking"><div class="ffc-captcha-row"></div></div>
 			</div>
 		`;
 		window.ffcDynamic = { ajaxUrl: '/x' };
 		loadScript('assets/js/ffc-dynamic-fragments.js');
 		expect(MockXHR.lastInstance.payload).toContain('form_ids%5B%5D=42');
-		expect(MockXHR.lastInstance.payload).toContain('blocks=2');
+		expect(MockXHR.lastInstance.payload).toContain('contexts%5B%5D=form%3A42&contexts%5B%5D=booking');
+		expect(MockXHR.lastInstance.payload).not.toContain('blocks=');
 	});
 
 	it('collects form_ids from ffc-form-* wrappers into the payload', () => {

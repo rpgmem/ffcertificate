@@ -41,7 +41,6 @@ return array(
 	'audience/class-ffc-audience-admin-environment.php::POST[environment_schedule]#1',
 	'audience/class-ffc-audience-admin-import.php::POST[export_audience_id]#1',
 	'audience/class-ffc-audience-admin-import.php::POST[import_audience_id]#1',
-	'frontend/class-ffc-dynamic-fragments.php::POST[blocks]#1',
 	'frontend/submission/class-ffc-schedule-exception-guard.php::POST[form_id]#1',
 	'reregistration/class-ffc-reregistration-admin.php::GET[id]#1',
 	'reregistration/class-ffc-reregistration-admin.php::POST[reregistration_id]#1',
