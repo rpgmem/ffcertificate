@@ -28760,9 +28760,6 @@ msgstr "Log do Rate Limit: Criptografar Endereços"
 msgid "Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own."
 msgstr "Criptografa o endereço da requisição nas linhas do log do rate limit gravadas antes de os endereços serem guardados criptografados, apaga a cópia em texto puro e identifica os endereços bloqueados por uma impressão digital com chave em vez do endereço. Um endereço que não puder ser criptografado é apagado do mesmo jeito. O log guarda 30 dias por padrão, então o texto puro também sairia sozinho."
 
-msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; every other identifier is hashed. Rows written before this change keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs."
-msgstr "eventos bloqueados (e, opcionalmente, permitidos), com uma janela de retenção e um limite de linhas. Nada é guardado em texto puro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e o próprio endereço só é guardado criptografado; todo outro identificador vira hash. Linhas gravadas antes desta mudança mantêm o endereço em texto puro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar."
-
 msgid "blocked today, blocked in the last 30 days, a breakdown by type, and the top blocked IPs, shown masked."
 msgstr "bloqueados hoje, bloqueados nos últimos 30 dias, a divisão por tipo e os IPs mais bloqueados, mostrados mascarados."
 
@@ -31584,3 +31581,20 @@ msgstr "Multisite: \"não pode ser ativado em rede\""
 #: includes/class-ffc-activator.php:41
 msgid "Plugin activation refused"
 msgstr "Ativação do plugin recusada"
+
+#: includes/migrations/class-ffc-migration-registry.php:227
+msgid "Delete the rate limit counters and log lines that identify an e-mail address or a CPF/RF by an unkeyed hash, which can be reversed by trying every CPF. New rows use a keyed hash. A hash cannot be re-keyed, so the old rows are deleted; they are short-lived anyway, and the counters they hold start again from zero once."
+msgstr "Exclui os contadores e as linhas do log de limite de requisições que identificam um endereço de e-mail ou um CPF/RF por um hash sem chave, que pode ser revertido testando todos os CPFs. As linhas novas usam um hash com chave. Um hash não pode receber uma chave depois, então as linhas antigas são excluídas; elas duram pouco de qualquer forma, e os contadores que guardam recomeçam do zero uma vez."
+
+#: includes/migrations/strategies/class-ffc-rate-limit-keyed-identifiers-migration-strategy.php:169
+#, php-format
+msgid "Deleted %d rate limit rows identified by an unkeyed e-mail or CPF/RF hash."
+msgstr "%d linhas de limite de requisições identificadas por um hash sem chave de e-mail ou CPF/RF excluídas."
+
+#: includes/migrations/class-ffc-migration-registry.php:226
+msgid "Rate Limit: Keyed Identifiers"
+msgstr "Rate Limit: Identificadores com Chave"
+
+#: includes/settings/views/documentation/config-rate-limit.php:61
+msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
+msgstr "eventos bloqueados (e, opcionalmente, permitidos), com um prazo de retenção e um limite de linhas. Nada é guardado em texto claro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e ele próprio é guardado só criptografado; um endereço de e-mail ou CPF/RF é identificado por um hash com chave, então não pode ser recuperado testando todos os CPFs; qualquer outro identificador é transformado em hash. As linhas gravadas antes dessas mudanças mantêm o endereço em texto claro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar, e um e-mail ou CPF/RF sob um hash sem chave até a migração \"Rate Limit: Identificadores com Chave\" excluí-las."

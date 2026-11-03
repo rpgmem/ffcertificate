@@ -275,7 +275,7 @@ class RateLimitStrategiesTest extends TestCase {
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'cpf_blocked', $res['reason'] );
 		$this->assertSame(
-			array( array( 'blocked', 'cpf', hash( 'sha256', Identifiers::CPF_A ), 7 ) ),
+			array( array( 'blocked', 'cpf', \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'rate_limit_cpf' ), 7 ) ),
 			$this->reads,
 			'The block is looked up by the hashed CPF, and nothing else is counted.'
 		);
@@ -291,7 +291,7 @@ class RateLimitStrategiesTest extends TestCase {
 		$this->assertCount( 1, $this->inserts, 'The abuse threshold writes exactly one temporary block.' );
 		$block = $this->inserts[0][1];
 		$this->assertSame( 'cpf', $block['type'] );
-		$this->assertSame( hash( 'sha256', Identifiers::CPF_A ), $block['identifier'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'rate_limit_cpf' ), $block['identifier'] );
 		$this->assertSame( 7, $block['form_id'] );
 		$this->assertSame( 1, $block['is_blocked'] );
 		$this->assertSame( 'abuse', $block['blocked_reason'] );

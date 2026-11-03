@@ -1264,6 +1264,12 @@ class Loader {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
+		// #2343: import staging holds cleartext identifiers until its TTL; the
+		// sweeps ran only at the next import. Same TTLs, so nothing is deleted
+		// that the next import would not; outside the module gates, because a
+		// module turned off must not keep its abandoned rows.
+		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Reregistration\ReregistrationImportStagingService::class, 'sweep_stale_jobs' ) );
+		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Recruitment\CsvStagingService::class, 'sweep_stale_jobs' ) );
 		// Module-specific cron callbacks are bound to their module toggle, so a
 		// disabled module stops its scheduled work (expiring registrations,
 		// emailing reminders) rather than running silently. The cron events stay

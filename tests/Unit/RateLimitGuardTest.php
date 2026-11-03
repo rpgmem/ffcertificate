@@ -280,8 +280,8 @@ class RateLimitGuardTest extends TestCase {
 		$this->assertSame(
 			array(
 				array( 'ip/day', IpAddress::fingerprint( self::IP ) ),
-				array( 'email/day', hash( 'sha256', 'a@b.co' ) ),
-				array( 'email/month', hash( 'sha256', 'a@b.co' ) ),
+				array( 'email/day', \FreeFormCertificate\Core\Encryption::keyed_hash( 'a@b.co', 'rate_limit_email' ) ),
+				array( 'email/month', \FreeFormCertificate\Core\Encryption::keyed_hash( 'a@b.co', 'rate_limit_email' ) ),
 			),
 			$this->counter_rows(),
 			'IP and email are recorded; with no CPF, no CPF counter is written.'
@@ -297,12 +297,12 @@ class RateLimitGuardTest extends TestCase {
 		// device_signals null → no deferred hook.
 		( new RateLimitGuard() )->apply( $ctx );
 
-		$cpf = hash( 'sha256', Identifiers::CPF_A );
+		$cpf = \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'rate_limit_cpf' );
 		$this->assertSame(
 			array(
 				array( 'ip/day', IpAddress::fingerprint( self::IP ) ),
-				array( 'email/day', hash( 'sha256', 'c@d.co' ) ),
-				array( 'email/month', hash( 'sha256', 'c@d.co' ) ),
+				array( 'email/day', \FreeFormCertificate\Core\Encryption::keyed_hash( 'c@d.co', 'rate_limit_email' ) ),
+				array( 'email/month', \FreeFormCertificate\Core\Encryption::keyed_hash( 'c@d.co', 'rate_limit_email' ) ),
 				array( 'cpf/day', $cpf ),
 				array( 'cpf/month', $cpf ),
 				array( 'cpf/hour', $cpf ),

@@ -31,6 +31,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Updater: a release is offered only with a SHA-256 digest, a github.com download and a version tag, and an unreachable GitHub is retried after 10 min, 30 min, 1 h and 2 h, then 12 h after the first failure** (#2342). No admin page waits on it in between; the details modal falls back to the installed readme.
 - ⚠ **SMTP password: encrypted at rest and never sent back to the browser** (#2342). The SMTP tab shows "Password saved" and a Change password button; saving with the field closed or empty keeps it; it is stored as typed. Settings viewers see only that one is saved. A plaintext one is encrypted on the next admin visit.
 - **Privacy tools: erasure reports kept certificate answers as retained and reaches signals, limits and log data; exports read decrypted, labelled and dated** (#2343). The eraser no longer says "anonymized", logs the address masked and stops leaving device signals, rate-limit rows, date-message links and activity-log addresses behind.
+- **Rate limits, export files and imports keep less personal data** (#2343). E-mail and CPF/RF identifiers in the rate-limit tables are keyed hashes, with a migration card that deletes the older unkeyed rows; export temp files older than a day are swept daily and the folder goes on a full uninstall; import staging is swept daily.
 
 ### Fixed
 

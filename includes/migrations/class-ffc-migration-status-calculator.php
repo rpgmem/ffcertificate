@@ -184,6 +184,24 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['rate_limit_logs_encrypt_ip'] );
 					break;
 
+				case 'rate_limit_keyed_identifiers':
+					$strategy_dir = __DIR__ . '/strategies/';
+					$core_dir     = dirname( __DIR__ ) . '/core/';
+
+					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
+						include $core_dir . 'class-ffc-database-helper-trait.php';
+					}
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RateLimitKeyedIdentifiersMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-rate-limit-keyed-identifiers-migration-strategy.php';
+					}
+
+					$this->strategies['rate_limit_keyed_identifiers'] = new \FreeFormCertificate\Migrations\Strategies\RateLimitKeyedIdentifiersMigrationStrategy();
+					unset( $this->strategy_errors['rate_limit_keyed_identifiers'] );
+					break;
+
 				case 'activity_log_location_cleanup':
 					$strategy_dir = __DIR__ . '/strategies/';
 					$core_dir     = dirname( __DIR__ ) . '/core/';

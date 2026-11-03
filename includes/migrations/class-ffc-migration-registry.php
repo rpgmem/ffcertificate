@@ -220,6 +220,16 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
+		// #2343: e-mail and CPF identifiers of the rate-limit tables were an
+		// unkeyed sha256, which a list of every CPF reverses; delete them.
+		$this->migrations['rate_limit_keyed_identifiers'] = array(
+			'name'        => __( 'Rate Limit: Keyed Identifiers', 'ffcertificate' ),
+			'description' => __( 'Delete the rate limit counters and log lines that identify an e-mail address or a CPF/RF by an unkeyed hash, which can be reversed by trying every CPF. New rows use a keyed hash. A hash cannot be re-keyed, so the old rows are deleted; they are short-lived anyway, and the counters they hold start again from zero once.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-encryption',
+			'batch_size'  => 500,
+			'order'       => 4,
+		);
+
 		// #2040: area checks logged the visitor's coordinates as debug rows;
 		// delete them now that the check logs its decision only.
 		$this->migrations['activity_log_location_cleanup'] = array(

@@ -39,23 +39,40 @@ final class RateLimitRepository {
 	);
 
 	/**
-	 * Storage key for a rate-limit identifier on the `ffc_rate_limits` counter
-	 * table. A counter row only needs a stable equality key, so nothing is
-	 * stored in the clear: an address becomes its fingerprint, which counts
-	 * an IPv6 caller by its /64 and is keyed with the plugin's hash secret
-	 * (#2109), and any other identifier (email, CPF) its sha256 hash (#839).
-	 * Mirrors {@see RateLimitLogger::log_attempt()} on `ffc_rate_limit_logs`.
+	 * Identifier types whose value is a person's e-mail or document, stored
+	 * as a keyed hash (#2343).
+	 */
+	public const KEYED_TYPES = array( 'email', 'cpf' );
+
+	/**
+	 * Storage key for a rate-limit identifier, on the `ffc_rate_limits`
+	 * counter table and the `ffc_rate_limit_logs` log alike. A row only needs
+	 * a stable equality key, so nothing is stored in the clear:
 	 *
-	 * Applied on both the read (get_count / is_blocked) and write (increment /
-	 * block) sides so lookups stay consistent; a row written under an older
-	 * key simply misses and lapses after its window (a one-time reset at most).
+	 * - an address becomes its fingerprint, which counts an IPv6 caller by
+	 *   its /64 and is keyed with the plugin's hash secret (#2109);
+	 * - an e-mail or a CPF/RF its keyed hash (#2343). An unkeyed sha256 of a
+	 *   CPF is reversed by trying every CPF, about a billion of them; the key
+	 *   lives in `wp-config.php` and never in the database;
+	 * - anything else its sha256 hash (#839).
+	 *
+	 * Applied on the read and write sides alike so lookups stay consistent; a
+	 * row written under an older key simply misses and lapses after its
+	 * window (a one-time reset at most), and the "Rate Limit: Keyed
+	 * Identifiers" migration deletes the older e-mail and CPF rows.
 	 *
 	 * @param string $type       Identifier type ('ip' | 'email' | 'cpf' | …).
 	 * @param string $identifier Raw identifier.
-	 * @return string Address fingerprint, or a sha256 hash for any other identifier.
+	 * @return string
 	 */
-	private static function storage_identifier( string $type, string $identifier ): string {
-		return ( 'ip' === $type ) ? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) : hash( 'sha256', $identifier );
+	public static function storage_identifier( string $type, string $identifier ): string {
+		if ( in_array( $type, array( 'ip', 'blacklist', 'whitelist' ), true ) ) {
+			return \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier );
+		}
+		if ( in_array( $type, self::KEYED_TYPES, true ) ) {
+			return \FreeFormCertificate\Core\Encryption::keyed_hash( $identifier, 'rate_limit_' . $type );
+		}
+		return hash( 'sha256', $identifier );
 	}
 
 	/**

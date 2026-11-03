@@ -1247,8 +1247,8 @@ class FormRestControllerTest extends TestCase {
 		}
 		$this->assertSame(
 			array(
-				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'day' ),
-				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'month' ),
+				array( 'email', \FreeFormCertificate\Core\Encryption::keyed_hash( 'jane@example.com', 'rate_limit_email' ), 1, 'day' ),
+				array( 'email', \FreeFormCertificate\Core\Encryption::keyed_hash( 'jane@example.com', 'rate_limit_email' ), 1, 'month' ),
 			),
 			$recorded,
 			'The e-mail is counted against the form; the server address of an authenticated caller is not (#2342).'

@@ -250,12 +250,30 @@ final class CsvStagingService {
 	}
 
 	/**
+	 * The daily-cleanup entry to the stale-job sweep (#2343): the same TTL as
+	 * the ingest path, after checking the tables exist, since the cron runs
+	 * whether or not the module ever created them.
+	 *
+	 * @return void
+	 */
+	public static function sweep_stale_jobs(): void {
+		global $wpdb;
+		$jobs_table = $wpdb->prefix . 'ffc_recruitment_import_jobs';
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $jobs_table ) ) !== $jobs_table ) {
+			return;
+		}
+		self::cleanup_stale_staging_jobs();
+	}
+
+	/**
 	 * Sweep stale jobs (and their staging rows) older than the TTL.
 	 *
 	 * Called at the top of `ingest_job` so each new import starts from
-	 * a clean tail of forgotten jobs. The DELETE pair is guarded by
-	 * `created_at` older than the TTL so it's bounded and safe to call
-	 * on every import.
+	 * a clean tail of forgotten jobs, and from the daily cleanup since #2343
+	 * ({@see self::sweep_stale_jobs()}), so cleartext identifiers do not wait
+	 * for the next import. The DELETE pair is guarded by `created_at` older
+	 * than the TTL on both paths, so the cron deletes nothing the next import
+	 * would not.
 	 *
 	 * @return int Number of staging rows deleted (best-effort count).
 	 */
