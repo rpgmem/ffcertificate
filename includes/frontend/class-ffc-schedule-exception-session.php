@@ -109,7 +109,7 @@ class ScheduleExceptionSession {
 	 *                                          to leave start at baseline.
 	 * @param string|null $end_override         TIME string (HH:MM[:SS]) or null
 	 *                                          to leave end at baseline.
-	 * @param string      $operator_cpf_hash    SHA-256 hex of the operator
+	 * @param string      $operator_cpf_hash    Keyed hash of the operator's
 	 *                                          CPF (already hashed by caller).
 	 * @param string      $operator_cpf_masked  Pre-masked operator CPF in
 	 *                                          `***.***.123-45` shape, for

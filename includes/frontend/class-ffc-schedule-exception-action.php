@@ -184,10 +184,10 @@ final class ScheduleExceptionAction {
 		$end_value   = '' === $end_override ? null : $end_override;
 
 		// Twin representations of the operator CPF for the Sprint 6 audit
-		// trail: hash for cryptographic identity, masked for human-readable
+		// trail: keyed hash for identity (#2339), masked for human-readable
 		// rendering. Both are derived from the same plaintext; neither
 		// reveals the full document number to readers of the audit log.
-		$operator_cpf_hash   = '' === $cpf_digits ? '' : hash( 'sha256', $cpf_digits );
+		$operator_cpf_hash   = '' === $cpf_digits ? '' : \FreeFormCertificate\Core\Encryption::keyed_hash( $cpf_digits, 'schedule_exception_cpf' );
 		$operator_cpf_masked = '' === $cpf_digits ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf_digits );
 
 		$token = ScheduleExceptionSession::create(

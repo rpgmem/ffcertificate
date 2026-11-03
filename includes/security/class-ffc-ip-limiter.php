@@ -60,6 +60,12 @@ class IpLimiter implements RateLimitStrategy {
 			return array( 'allowed' => true );
 		}
 
+		// A caller whose address could not be read is let through or counted
+		// with every other such caller, as the administrator chose (#2339).
+		if ( \FreeFormCertificate\Core\ClientIpResolver::UNKNOWN === $ip && ! \FreeFormCertificate\Settings\RateLimitSettingsReader::submission_counts_unresolved() ) {
+			return array( 'allowed' => true );
+		}
+
 		// Persistent with or without an object cache (#1861).
 		$hc = RateCounter::get( RateCounter::windowed( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour', HOUR_IN_SECONDS ) );
 		if ( $hc >= $s['max_per_hour'] ) {

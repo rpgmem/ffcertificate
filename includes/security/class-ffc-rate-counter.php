@@ -43,6 +43,13 @@ final class RateCounter {
 	/**
 	 * Add one to a counter and (re)arm its expiry.
 	 *
+	 * Not atomic, and written down because it cannot be made so here
+	 * (#2339): WordPress has no atomic increment for a transient, and without
+	 * a persistent object cache a transient is an option row read and then
+	 * written. Two hits landing together can count once. A cap is therefore a
+	 * bound that can be exceeded by the few requests that race at its edge,
+	 * never one that can be stepped around by repeating them.
+	 *
 	 * @param string $key Counter key (`ffc_` prefixed).
 	 * @param int    $ttl Lifetime in seconds.
 	 * @return int The new value.

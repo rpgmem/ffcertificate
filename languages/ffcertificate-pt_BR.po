@@ -8919,10 +8919,6 @@ msgstr "Define quantas reservas um único espaço aceita (padrão: 1). Um limite
 msgid "How many non-cookie signals (strong + weak) must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
 msgstr "Quantos sinais que não sejam cookies (fortes + fracos) precisam coincidir para que o dispositivo seja considerado o mesmo? Um valor mais baixo é mais agressivo (gera mais falsos positivos). Um valor mais alto torna a detecção mais difícil de burlar, porém mais fácil de evitar. O padrão é 7 de 13."
 
-#: includes/settings/views/documentation/config-rate-limit.php:46
-msgid "how many of those must be strong signals (default 2); 0 disables the strong tier."
-msgstr "quantos deles devem ser sinais fortes (padrão: 2); 0 desativa o nível de sinal forte."
-
 #: includes/settings/views/documentation/config-rate-limit.php:45
 msgid "how many signals must match (default 7)."
 msgstr "quantos sinais devem corresponder (padrão: 7)."
@@ -15789,10 +15785,6 @@ msgstr "Iniciando..."
 #: includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:312 includes/frontend/class-ffc-verification-response-renderer.php:470 includes/settings/views/documentation/feature-record.php:92
 msgid "State"
 msgstr "Estado"
-
-#: includes/settings/views/documentation/config-rate-limit.php:52
-msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The allowlist wins immediately; the blocklist is checked first and denies outright."
-msgstr "Listas estáticas que permitem a passagem ou bloqueiam diretamente as solicitações, com correspondência baseada em IP, e-mail, domínio de e-mail (formato *@dominio.com) ou CPF/RF. A lista de permissões tem prioridade imediata; a lista de bloqueio é verificada primeiro e resulta em negação direta."
 
 #: includes/settings/views/ffc-tab-rate-limit.php:593 includes/settings/views/ffc-tab-cache.php:244 includes/settings/views/documentation/config-activity-log.php:27 includes/settings/views/documentation/config-rate-limit.php:58
 msgid "Statistics"
@@ -28715,9 +28707,6 @@ msgstr "Endereços IPv4 são contados um a um; endereços IPv6, pelo bloco /64, 
 msgid "Unidentified address:"
 msgstr "Endereço não identificado:"
 
-msgid "both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" (the default) does not count them; \"Count together\" puts all of them under one shared cap. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
-msgstr "os dois cartões definem o que acontece com um visitante cujo endereço não pode ser lido — por exemplo, todos os visitantes de uma rede interna de endereços privados. \"Liberar\" (o padrão) não os conta; \"Contar juntos\" coloca todos sob um único limite compartilhado. Endereços IPv4 são contados um a um; endereços IPv6, pelo bloco /64, que pertence a um único assinante."
-
 msgid "One per line: an IPv4 or IPv6 address, or a range in CIDR notation, such as 203.0.113.0/24 or 2804:14c::/48."
 msgstr "Um por linha: um endereço IPv4 ou IPv6, ou uma faixa em notação CIDR, como 203.0.113.0/24 ou 2804:14c::/48."
 
@@ -31665,3 +31654,44 @@ msgstr "Janelas e limpeza"
 #: includes/settings/views/documentation/config-rate-limit.php:62
 msgid "the e-mail and CPF/RF limits count the submissions made in the last 1, 7, 30 and 365 days. The per-hour and per-minute counters start again at each new hour or minute, so a visitor who keeps trying is let through once the window rolls. The daily cleanup deletes expired counters and the device signals older than their retention."
 msgstr "os limites por e-mail e por CPF/RF contam os envios feitos nos últimos 1, 7, 30 e 365 dias. Os contadores por hora e por minuto recomeçam a cada nova hora ou minuto, então um visitante que continua tentando é liberado quando a janela vira. A limpeza diária apaga os contadores expirados e os sinais do dispositivo mais antigos que a retenção."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:57
+msgid "A visitor whose address cannot be read is not held to the per-address limit; the other limits still apply. Recommended when visitors reach the site from private addresses."
+msgstr "Um visitante cujo endereço não pode ser lido não fica sujeito ao limite por endereço; os outros limites continuam valendo. Recomendado quando os visitantes acessam o site por endereços privados."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:608
+msgid "An address on this list skips every limit. An e-mail, a domain or a CPF/RF on it skips only the limits on that e-mail or CPF/RF, because the visitor types them: the address, device and global limits and the captcha still apply."
+msgstr "Um endereço nesta lista passa por todos os limites. Um e-mail, um domínio ou um CPF/RF nela passa apenas pelos limites desse e-mail ou CPF/RF, porque é o visitante quem os digita: os limites por endereço, por dispositivo e globais e o captcha continuam valendo."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:56
+msgid "Every visitor whose address cannot be read shares one count of submissions. Stricter, but on an internal network it puts everyone under a single cap."
+msgstr "Todos os visitantes cujo endereço não pode ser lido compartilham uma só contagem de envios. Mais rigoroso, mas numa rede interna coloca todos sob um único limite."
+
+#: includes/settings/tabs/class-ffc-tab-rate-limit.php:106
+msgid "It was saved as the number of strong signals enabled."
+msgstr "Ele foi salvo como o número de sinais fortes ativados."
+
+#: includes/settings/views/documentation/config-rate-limit.php:51
+msgid "No signals"
+msgstr "Sem sinais"
+
+#: includes/settings/views/documentation/config-rate-limit.php:57
+msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
+msgstr "Listas fixas que liberam ou bloqueiam requisições, cada uma por IP, e-mail, domínio de e-mail (formato *@dominio.com) ou CPF/RF. A lista de bloqueio é verificada primeiro e recusa de imediato. Um endereço liberado passa por todos os limites; um e-mail, domínio ou CPF/RF liberado passa apenas pelos limites desse e-mail ou CPF/RF, já que é o visitante quem os digita, e os limites por endereço, por dispositivo e globais e o captcha continuam valendo."
+
+#: includes/settings/class-ffc-rate-limit-settings-reader.php:281
+#, php-format
+msgid "The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals."
+msgstr "O mínimo de sinais fortes (%1$d) está acima dos sinais fortes ativados (%2$d), então nenhum dispositivo poderia coincidir. Diminua o mínimo ou ative mais sinais fortes."
+
+#: includes/settings/views/documentation/config-rate-limit.php:51
+msgid "a submission that sends no signals (JavaScript off, for example) is counted as one shared device per form, so it cannot step around the limit. With the default of 1 per form, only one such submission is accepted."
+msgstr "um envio que não manda sinais (com o JavaScript desligado, por exemplo) conta como um único dispositivo compartilhado por formulário, então não escapa do limite. Com o padrão de 1 por formulário, só um envio assim é aceito."
+
+#: includes/settings/views/documentation/config-rate-limit.php:50
+msgid "how many of those must be strong signals (default 2); 0 disables the strong tier. It cannot be saved above the number of strong signals enabled, since no device could then match."
+msgstr "quantos deles precisam ser sinais fortes (padrão 2); 0 desativa o nível forte. Não pode ser salvo acima do número de sinais fortes ativados, pois nenhum dispositivo poderia coincidir."
+
+#: includes/settings/views/documentation/config-rate-limit.php:43
+msgid "the IP limit and both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" does not count them; \"Count together\" puts all of them under one shared cap. The IP limit counts them together by default, as it always has; the two cards let them through by default. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
+msgstr "o limite por IP e os dois cartões dizem o que acontece com um visitante cujo endereço não pode ser lido — todos os visitantes de uma rede interna de endereços privados, por exemplo. \"Liberar\" não os conta; \"Contar juntos\" coloca todos sob um limite compartilhado. O limite por IP os conta juntos por padrão, como sempre fez; os dois cartões os liberam por padrão. Endereços IPv4 são contados um a um, e IPv6 pelo bloco /64, que pertence a um assinante."

@@ -708,6 +708,48 @@ class SettingsAjaxEndpointTest extends TestCase {
 	// An empty numeric field is refused, never clamped (#1111 follow-up)
 	// ==================================================================
 
+	public function test_a_strong_minimum_above_the_strong_signals_enabled_is_refused(): void {
+		// Two strong signals enabled; a minimum of 3 could never match (#2339).
+		Functions\when( '__' )->returnArg();
+		$wrote = false;
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_rate_limit_settings' === $key
+				? array( 'device' => array( 'signals_enabled' => array( 'cookie', 'canvas', 'audio' ) ) )
+				: $default
+		);
+		Functions\when( 'update_option' )->alias(
+			function () use ( &$wrote ) {
+				$wrote = true;
+				return true;
+			}
+		);
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, null );
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'device_match_strong_min',
+			'value' => '3',
+		);
+
+		try {
+			SettingsAjaxEndpoint::handle();
+			$this->fail( 'expected a refusal' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_error: The strong-signal minimum (3)', $e->getMessage() );
+		}
+		$this->assertFalse( $wrote );
+
+		$_POST['value'] = '2';
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_success', $e->getMessage(), 'A minimum the signals reach is saved.' );
+		}
+		$this->assertTrue( $wrote );
+	}
+
 	public function test_an_empty_int_value_is_refused_instead_of_writing_the_floor(): void {
 		// `(int) ''` is 0, so before this guard a cleared field silently wrote
 		// the key's own floor. The autosave widget saves on `input`, so a

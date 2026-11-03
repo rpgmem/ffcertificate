@@ -348,6 +348,52 @@ class SecurityServiceTest extends TestCase {
 		$this->assertFalse( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ) );
 	}
 
+	public function test_a_wrong_answer_spends_the_token(): void {
+		// One token could be tried against every answer while a wrong one
+		// left it live (#2339).
+		$captcha = $this->issueCaptcha();
+		$answer  = (string) $captcha['answer'];
+
+		$this->assertFalse( SecurityService::verify_simple_captcha( (string) ( (int) $answer + 1 ), $captcha['hash'] ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ), 'The right answer on a spent token is refused.' );
+	}
+
+	public function test_a_forged_token_writes_nothing_to_the_ledger(): void {
+		$this->stubChallengeInfrastructure();
+		$writes = 0;
+		Functions\when( 'set_transient' )->alias(
+			function () use ( &$writes ): bool {
+				++$writes;
+				return true;
+			}
+		);
+
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', 'not-a-token' ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', ( time() - 1 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 ) ) );
+		$this->assertSame( 0, $writes );
+	}
+
+	public function test_a_failed_gate_announces_the_failure(): void {
+		$captcha = $this->issueCaptcha();
+		$fired   = array();
+		Functions\when( 'do_action' )->alias(
+			function ( $hook, ...$args ) use ( &$fired ) {
+				$fired[] = $hook;
+			}
+		);
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$result = SecurityService::validate_security_fields(
+			array(
+				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
+				'ffc_captcha_hash' => $captcha['hash'],
+			)
+		);
+
+		$this->assertIsString( $result );
+		$this->assertContains( 'ffcertificate_captcha_failed', $fired );
+	}
+
 	public function test_verify_captcha_rejects_a_legacy_answer_only_digest(): void {
 		Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
 		$this->stubChallengeInfrastructure();

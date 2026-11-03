@@ -37,6 +37,31 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		<tr><th><?php esc_html_e( 'Max per hour', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_hour" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_hour'] ); ?>" min="1" max="1000" data-ffc-autosave-key="ip_max_per_hour" required></td></tr>
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="ip_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['ip']['max_per_day'] ); ?>" min="1" max="10000" data-ffc-autosave-key="ip_max_per_day" required></td></tr>
 		<tr><th><?php esc_html_e( 'Cooldown (sec)', 'ffcertificate' ); ?></th><td><input type="number" name="ip_cooldown_seconds" value="<?php echo esc_attr( $ffcertificate_s['ip']['cooldown_seconds'] ); ?>" min="1" max="3600" data-ffc-autosave-key="ip_cooldown_seconds" required></td></tr>
+		<tr>
+			<th><?php esc_html_e( 'Unidentified address', 'ffcertificate' ); ?></th>
+			<td>
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_segmented(
+					array(
+						'name'         => 'ip_submission_unresolved',
+						'id'           => 'ip_submission_unresolved',
+						'value'        => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( $ffcertificate_s['ip']['submission_unresolved'] ?? null, \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE ),
+						'default'      => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE,
+						'legend'       => __( 'Unidentified address', 'ffcertificate' ),
+						'options'      => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Count together', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'Let through', 'ffcertificate' ),
+						),
+						'descriptions' => array(
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE => __( 'Every visitor whose address cannot be read shares one count of submissions. Stricter, but on an internal network it puts everyone under a single cap.', 'ffcertificate' ),
+							\FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW => __( 'A visitor whose address cannot be read is not held to the per-address limit; the other limits still apply. Recommended when visitors reach the site from private addresses.', 'ffcertificate' ),
+						),
+						'data'         => array( 'ffc-autosave-key' => 'ip_submission_unresolved' ),
+					)
+				);
+				?>
+			</td>
+		</tr>
 		<tr><th><?php esc_html_e( 'Apply to', 'ffcertificate' ); ?></th><td><select name="ip_apply_to" data-ffc-autosave-key="ip_apply_to"><option value="all"><?php esc_html_e( 'All forms', 'ffcertificate' ); ?></option></select></td></tr>
 		<tr><th><?php esc_html_e( 'Message', 'ffcertificate' ); ?></th><td><textarea name="ip_message" rows="3" class="large-text" data-ffc-autosave-key="ip_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( $ffcertificate_s['ip']['message'] ); ?></textarea></td></tr>
 	</tbody></table>
@@ -580,6 +605,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-success"><?php esc_html_e( 'Whitelist', 'ffcertificate' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'An address on this list skips every limit. An e-mail, a domain or a CPF/RF on it skips only the limits on that e-mail or CPF/RF, because the visitor types them: the address, device and global limits and the captcha still apply.', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(

@@ -587,7 +587,10 @@ class SubmissionPersister {
 			return;
 		}
 
-		$participant_cpf_hash = '' !== $participant_cpf_plain ? hash( 'sha256', $participant_cpf_plain ) : '';
+		// Keyed, as every stored identifier hash is (#2339): a bare SHA-256 of
+		// a CPF reverses by trying every CPF. Same context as the operator's,
+		// so the two can still be compared in the audit line.
+		$participant_cpf_hash = '' !== $participant_cpf_plain ? \FreeFormCertificate\Core\Encryption::keyed_hash( $participant_cpf_plain, 'schedule_exception_cpf' ) : '';
 
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'schedule_override_created',

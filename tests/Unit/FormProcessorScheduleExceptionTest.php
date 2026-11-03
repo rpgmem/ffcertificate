@@ -174,7 +174,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 		$this->assertSame( 'info', $override_row['level'] );
 		$this->assertSame( 42, $override_row['context']['form_id'] );
 		$this->assertSame( 555, $override_row['context']['submission_id'] );
-		$this->assertSame( hash( 'sha256', Identifiers::CPF_A ), $override_row['context']['participant_cpf_hash'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'schedule_exception_cpf' ), $override_row['context']['participant_cpf_hash'] );
 		$this->assertSame( str_repeat( 'a', 64 ), $override_row['context']['operator_cpf_hash'] );
 		$this->assertSame( '123.***.***-45', $override_row['context']['operator_cpf_masked'] );
 		$this->assertSame( '08:00', $override_row['context']['schedule_start_after'] );
