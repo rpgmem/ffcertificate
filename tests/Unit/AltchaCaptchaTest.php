@@ -626,5 +626,6 @@ class AltchaCaptchaTest extends TestCase {
 		);
 		$this->assertArrayHasKey( 'errorMessage', $localized );
 		$this->assertArrayHasKey( 'insecureMessage', $localized );
+		$this->assertStringContainsString( '%s', $localized['limitedMessage'] ?? '', 'The glue puts the wait where %s is.' );
 	}
 }

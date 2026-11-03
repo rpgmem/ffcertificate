@@ -252,6 +252,10 @@ class AltchaCaptcha implements CaptchaProviderInterface {
 			// advice that can never work.
 			'errorMessage'    => \__( 'Could not verify that you are human. Reload the page and try again.', 'ffcertificate' ),
 			'insecureMessage' => \__( 'Verification is unavailable because this page is not served over a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
+			// Shown when the challenge endpoint refused this network over its
+			// cap; the verification comes back by itself when the wait ends.
+			/* translators: %s: how long to wait, such as "40 s" or "2 min". */
+			'limitedMessage'  => \__( 'Too many verification requests from this network. Try again in %s.', 'ffcertificate' ),
 		);
 	}
 

@@ -17662,10 +17662,6 @@ msgstr "Muitas solicitações. Tente novamente mais tarde."
 msgid "Too many requests. Please wait {time}."
 msgstr "Muitas solicitações. Aguarde {time}."
 
-#: includes/api/class-ffc-submission-rest-controller.php:307 includes/frontend/class-ffc-public-forms-export-source.php:101 includes/frontend/class-ffc-public-csv-download.php:313 includes/frontend/class-ffc-public-csv-download.php:423 includes/core/captcha/class-ffc-altcha-challenge-endpoint.php:102 includes/frontend/submission/class-ffc-ip-rate-limit-guard.php:43
-msgid "Too many requests. Please wait."
-msgstr "Muitas solicitações. Aguarde, por favor."
-
 #: includes/frontend/class-ffc-verification-handler.php:692 includes/frontend/class-ffc-verification-handler.php:801
 msgid "Too many verification attempts. Please try again later."
 msgstr "Muitas tentativas de verificação. Por favor, tente novamente mais tarde."
@@ -22162,9 +22158,6 @@ msgstr "Definir uma constante é, na prática, um caminho sem volta: novas grava
 
 msgid "ALTCHA challenges per IP:"
 msgstr "Desafios ALTCHA por IP:"
-
-msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building."
-msgstr "o grupo IP também limita quantos desafios de captcha um endereço pode solicitar por janela (padrão 60 a cada 600 segundos). 0 remove o limite — a escolha honesta quando muitas pessoas compartilham um mesmo endereço, já que qualquer número por endereço limitaria o prédio inteiro."
 
 msgid "See Captcha."
 msgstr "Veja Captcha."
@@ -31801,3 +31794,16 @@ msgstr "Um campo honeypot invisível e um horário assinado de quando o formulá
 #: includes/core/class-ffc-honeypot.php:133
 msgid "Your submission could not be accepted. Please wait a moment and try again."
 msgstr "Não foi possível aceitar o seu envio. Aguarde um instante e tente de novo."
+
+#: includes/core/captcha/class-ffc-altcha-challenge-endpoint.php:111
+msgid "Too many verification requests from this network. Please wait before trying again."
+msgstr "Muitos pedidos de verificação a partir desta rede. Aguarde antes de tentar novamente."
+
+#: includes/core/captcha/class-ffc-altcha-captcha.php:258
+#, php-format
+msgid "Too many verification requests from this network. Try again in %s."
+msgstr "Muitos pedidos de verificação a partir desta rede. Tente novamente em %s."
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building. A visitor over the cap is told how long to wait, and the verification comes back on its own when the window ends, with no need to reload the page."
+msgstr "o grupo IP também limita quantos desafios de captcha um endereço pode solicitar por janela (padrão 60 a cada 600 segundos). 0 remove o limite — a escolha honesta quando muitas pessoas compartilham um mesmo endereço, já que qualquer número por endereço limitaria o prédio inteiro. Um visitante acima do limite é informado de quanto tempo esperar, e a verificação volta sozinha quando a janela termina, sem precisar recarregar a página."

@@ -17608,10 +17608,6 @@ msgstr ""
 msgid "Too many requests. Please wait {time}."
 msgstr ""
 
-#: includes/api/class-ffc-submission-rest-controller.php:307 includes/frontend/class-ffc-public-forms-export-source.php:101 includes/frontend/class-ffc-public-csv-download.php:313 includes/frontend/class-ffc-public-csv-download.php:423 includes/core/captcha/class-ffc-altcha-challenge-endpoint.php:102 includes/frontend/submission/class-ffc-ip-rate-limit-guard.php:43
-msgid "Too many requests. Please wait."
-msgstr ""
-
 #: includes/frontend/class-ffc-verification-handler.php:692 includes/frontend/class-ffc-verification-handler.php:801
 msgid "Too many verification attempts. Please try again later."
 msgstr ""
@@ -22079,9 +22075,6 @@ msgid "Defining a constant is effectively one-way: new writes use the new key th
 msgstr ""
 
 msgid "ALTCHA challenges per IP:"
-msgstr ""
-
-msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building."
 msgstr ""
 
 msgid "See Captcha."
@@ -31718,4 +31711,17 @@ msgstr ""
 
 #: includes/core/class-ffc-honeypot.php:133
 msgid "Your submission could not be accepted. Please wait a moment and try again."
+msgstr ""
+
+#: includes/core/captcha/class-ffc-altcha-challenge-endpoint.php:111
+msgid "Too many verification requests from this network. Please wait before trying again."
+msgstr ""
+
+#: includes/core/captcha/class-ffc-altcha-captcha.php:258
+#, php-format
+msgid "Too many verification requests from this network. Try again in %s."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building. A visitor over the cap is told how long to wait, and the verification comes back on its own when the window ends, with no need to reload the page."
 msgstr ""

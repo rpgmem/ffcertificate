@@ -203,3 +203,87 @@ describe('ffc-captcha — legible failures', () => {
 		expect(document.querySelector('.ffc-altcha-error')).toBeNull();
 	});
 });
+
+describe('ffc-captcha — a refused challenge says how long to wait (#2339)', () => {
+	function response(status, headers = {}, body = null) {
+		return {
+			status,
+			headers: { get: (name) => headers[name] ?? null },
+			clone: () => ({ json: () => (null === body ? Promise.reject(new Error('no body')) : Promise.resolve(body)) }),
+		};
+	}
+
+	function installedFetch(el) {
+		window.FFCCaptcha.installFetch();
+		const call = el.configure.mock.calls.find((args) => args[0] && args[0].fetch);
+		return call ? call[0].fetch : null;
+	}
+
+	it('gives each widget its own fetch, once', () => {
+		const el = makeWidget();
+		document.body.append(el);
+		window.fetch = vi.fn();
+
+		window.FFCCaptcha.installFetch();
+		window.FFCCaptcha.installFetch();
+
+		expect(el.configure.mock.calls.filter((args) => args[0] && args[0].fetch)).toHaveLength(1);
+	});
+
+	it('shows the wait from Retry-After instead of asking for a reload', async () => {
+		const el = makeWidget();
+		document.body.append(el);
+		window.ffcCaptcha = { errorMessage: 'Recarregue a página.', limitedMessage: 'Aguarde %s.' };
+		window.fetch = vi.fn(() => Promise.resolve(response(429, { 'Retry-After': '90' })));
+
+		await installedFetch(el)('/challenge');
+		emitState(el, 'error');
+
+		expect(document.querySelector('.ffc-altcha-error').textContent).toBe('Aguarde 2 min.');
+	});
+
+	it('falls back to the body when the header is missing', async () => {
+		const el = makeWidget();
+		document.body.append(el);
+		window.ffcCaptcha = { limitedMessage: 'Aguarde %s.' };
+		window.fetch = vi.fn(() => Promise.resolve(response(429, {}, { error: 'x', retryAfter: 40 })));
+
+		await installedFetch(el)('/challenge');
+		emitState(el, 'error');
+
+		expect(document.querySelector('.ffc-altcha-error').textContent).toBe('Aguarde 40 s.');
+	});
+
+	it('clears the message and resets the widget when the wait is over', async () => {
+		vi.useFakeTimers();
+		try {
+			const el = makeWidget();
+			document.body.append(el);
+			window.ffcCaptcha = { limitedMessage: 'Aguarde %s.' };
+			window.fetch = vi.fn(() => Promise.resolve(response(429, { 'Retry-After': '5' })));
+
+			await installedFetch(el)('/challenge');
+			emitState(el, 'error');
+			expect(document.querySelector('.ffc-altcha-error')).not.toBeNull();
+
+			vi.advanceTimersByTime(5000);
+
+			expect(document.querySelector('.ffc-altcha-error')).toBeNull();
+			expect(el.reset).toHaveBeenCalled();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('keeps the generic message for a failure that was not a refusal', async () => {
+		const el = makeWidget();
+		document.body.append(el);
+		window.ffcCaptcha = { errorMessage: 'falhou', limitedMessage: 'Aguarde %s.' };
+		window.fetch = vi.fn(() => Promise.resolve(response(500)));
+
+		await installedFetch(el)('/challenge');
+		emitState(el, 'error');
+
+		expect(document.querySelector('.ffc-altcha-error').textContent).toBe('falhou');
+	});
+});
