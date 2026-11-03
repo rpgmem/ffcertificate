@@ -186,15 +186,31 @@
 		// --- Captchas ---
 		// One challenge per security block, taken from the list the server
 		// minted for the count sent above — position i for block i, in the
-		// order `securityBlocks()` returns. The payloads are interchangeable
-		// (a challenge is not bound to a form), so the only property that
-		// matters is that no two blocks read the same entry: since #1054 the
+		// order `securityBlocks()` returns, each issued for the context its
+		// block named (#2339), so no two blocks read the same entry: since #1054 the
 		// token is single-use, and a shared one means whoever submits first
 		// spends the other's (#1056, #1063).
 		//
 		// `data.captcha` remains the fallback — for the single-block page,
 		// where the server sends no list, and for any block past the end of
 		// one, which a page that grew a block after the request would hit.
+		// The honeypot's render-time stamp (#2339): every block takes the
+		// fresh one, and a block cached before the stamp existed gets the
+		// field, so its submission is not refused for lacking it.
+		if (typeof data.honeypot === 'string' && data.honeypot) {
+			var stampBlocks = document.querySelectorAll('.ffc-security-container');
+			for (i = 0; i < stampBlocks.length; i++) {
+				var stamp = stampBlocks[i].querySelector('input[name="ffc_hp_ts"]');
+				if (!stamp) {
+					stamp = document.createElement('input');
+					stamp.type = 'hidden';
+					stamp.name = 'ffc_hp_ts';
+					stampBlocks[i].appendChild(stamp);
+				}
+				stamp.value = data.honeypot;
+			}
+		}
+
 		if (data.captcha || data.captchas) {
 			var blocks = securityBlocks();
 			var minted = Array.isArray(data.captchas) ? data.captchas : null;

@@ -53,6 +53,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **IP Diagnostics: a private connection address is trusted as a proxy only on your word** (#2339). The Secure strategy reads Cloudflare's header through a private address only with the new Load balancer in front toggle or the Cloudflare mode. The tab now counts forged headers on real traffic under Legacy, and explains Direct behind a proxy.
 - **IP geolocation and Cloudflare ranges** (#2339). Visitor addresses go out over HTTPS only: ipinfo.io by default, ip-api.com only on its HTTPS plan. A failed lookup waits 5 minutes, the cache keeps no address under a keyed key, and the tab says addresses leave the site. A failed Cloudflare list keeps its half; no proxy range wider than /8 or /16 is trusted.
 - ⚠ **Geofence: a form with no valid area refuses, and a location in use cannot be deleted** (#2339). A form whose location restriction names no valid area used to pass everyone. Deleting a location a form reads from is refused, naming the forms. The Geolocation tab flags areas under 100 m and says a GPS reading is the browser's word.
+- **Honeypot: a neutral field name and a minimum time** (#2339). The trap field no longer names itself, and a signed render time refuses a form posted less than 3 seconds after it appeared; cached pages get a fresh one with the captcha. Every honeypot refusal reads the same, and the reregistration form now sends its trap.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

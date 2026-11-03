@@ -339,9 +339,11 @@ class SecurityService {
 	 * @return bool|string True if valid, error message string if invalid.
 	 */
 	private static function run_security_gate( array $data, string $context, bool $consume ) {
-		// Check honeypot.
-		if ( ! empty( $data['ffc_honeypot_trap'] ) ) {
-			return \__( 'Security Error: Request blocked (Honeypot).', 'ffcertificate' );
+		// Honeypot: the trap field and the render-time stamp (#2339). Its
+		// refusal never says which of the two fired.
+		$honeypot = Honeypot::check( $data );
+		if ( true !== $honeypot ) {
+			return $honeypot;
 		}
 
 		// The captcha half belongs to whichever strategy is configured; the

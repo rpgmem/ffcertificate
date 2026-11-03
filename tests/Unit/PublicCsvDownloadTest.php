@@ -229,6 +229,7 @@ class PublicCsvDownloadTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => '6',
 			'ffc_captcha_hash'  => self::issueCaptchaToken( '6' ),
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 	}
 
@@ -548,7 +549,7 @@ class PublicCsvDownloadTest extends TestCase {
 		$this->assertStringContainsString( 'name="hash"', $html );
 		$this->assertStringContainsString( '_ffc_pcd_nonce', $html );
 		// Honeypot rendered by Shortcodes::generate_security_fields()
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 
 		// The submit is a family button (#1880): primary with the check icon,

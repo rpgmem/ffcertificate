@@ -33,6 +33,8 @@ class DynamicFragmentsTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		// The honeypot stamp the response carries is signed (#2339).
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
@@ -160,6 +162,8 @@ class DynamicFragmentsTest extends TestCase {
 	 * Stub the WP functions every `handle()` path touches.
 	 */
 	private function stubWordPress(): void {
+		// The honeypot stamp the response carries is signed (#2339).
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );

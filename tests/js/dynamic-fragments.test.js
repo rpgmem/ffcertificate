@@ -171,6 +171,23 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
 	});
 
+	it('refreshes the honeypot stamp, adding it to a block cached without one', () => {
+		// #2339: a cached page carries the render time of whenever it was
+		// cached; every block takes the fresh stamp, and a block cached
+		// before the stamp existed gets the field.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">
+				<div class="ffc-security-container"><input type="hidden" name="ffc_hp_ts" value="old" /></div>
+				${securityBlock('l', 'h', '1')}
+			</div>`,
+			{ success: true, data: { honeypot: '123.abc' } }
+		);
+		const stamps = document.querySelectorAll('.ffc-security-container input[name="ffc_hp_ts"]');
+		expect(stamps.length).toBe(2);
+		expect(stamps[0].value).toBe('123.abc');
+		expect(stamps[1].value).toBe('123.abc');
+	});
+
 	it('updates the default captcha when no per-form captchas matched', () => {
 		setupAndDeliver(
 			`<div class="ffc-form-container">${securityBlock('stale', 'stale-hash', '9')}</div>`,

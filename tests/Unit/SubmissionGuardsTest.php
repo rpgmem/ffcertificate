@@ -355,7 +355,7 @@ class SubmissionGuardsTest extends TestCase {
 	// ===================== SecurityFieldsGuard =====================
 
 	public function test_security_guard_throws_with_new_captcha_on_failure(): void {
-		$_POST = array();
+		$_POST = \FreeFormCertificate\Tests\Support\HoneypotStamp::fields();
 
 		try {
 			( new SecurityFieldsGuard() )->apply( $this->ctx() );
@@ -378,6 +378,7 @@ class SubmissionGuardsTest extends TestCase {
 			'form_id'          => '7',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		$this->assertNull( ( new SecurityFieldsGuard() )->apply( $this->ctx() ) );
@@ -391,6 +392,7 @@ class SubmissionGuardsTest extends TestCase {
 			'form_id'          => '8',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		try {

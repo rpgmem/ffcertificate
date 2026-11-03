@@ -76,8 +76,12 @@ class DynamicFragments {
 			// does not name the fields: a proof-of-work challenge has no label
 			// and no answer hash, so any mapping here would only hold for the
 			// math one. The client dispatches on the payload's own `provider`.
-			'captcha' => array(),
-			'nonces'  => array(
+			'captcha'  => array(),
+			// A cached page carries the render time of whenever it was
+			// cached, which is never too fast; the honeypot stamp is reissued
+			// here like the captcha (#2339).
+			'honeypot' => \FreeFormCertificate\Core\Honeypot::stamp(),
+			'nonces'   => array(
 				'ffc_frontend_nonce'        => wp_create_nonce( 'ffc_frontend_nonce' ),
 				'ffc_self_scheduling_nonce' => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
 				// Public CSV download: refresh the per-visitor nonce baked
