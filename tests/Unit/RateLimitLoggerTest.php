@@ -198,17 +198,17 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 'cpf_threshold', $captured['reason'] );
 		$this->assertArrayNotHasKey( 'ip_address', $captured, 'the plaintext column is no longer written (#2109)' );
 		$this->assertSame( '198.51.100.7', \FreeFormCertificate\Core\Encryption::decrypt( (string) $captured['ip_address_encrypted'] ) );
-		$this->assertSame( 'TestAgent/1.0', $captured['user_agent'] );
+		$this->assertArrayNotHasKey( 'user_agent', $captured, 'The browser is no longer recorded (#2339).' );
 		$this->assertSame( 0, $captured['current_count'] );
 		$this->assertSame( 0, $captured['max_allowed'] );
 		$this->assertSame(
-			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' ),
+			array( '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d' ),
 			$captured_format
 		);
 	}
 
-	public function test_log_attempt_falls_back_to_empty_user_agent_when_unset(): void {
-		unset( $_SERVER['HTTP_USER_AGENT'] );
+	public function test_log_attempt_never_records_the_user_agent(): void {
+		// #2339: it identified the visitor's browser and nothing read it.
 		$this->stub_settings();
 
 		global $wpdb;
@@ -220,7 +220,8 @@ class RateLimitLoggerTest extends TestCase {
 
 		RateLimitLogger::log_attempt( 'ip', '203.0.113.1', 'blocked', 'r', 1 );
 
-		$this->assertSame( '', $captured['user_agent'] );
+		$this->assertNotContains( 'TestAgent/1.0', $captured );
+		$this->assertArrayNotHasKey( 'user_agent', $captured );
 	}
 
 	// ------------------------------------------------------------------

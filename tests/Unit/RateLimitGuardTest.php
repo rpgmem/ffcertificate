@@ -384,7 +384,8 @@ class RateLimitGuardTest extends TestCase {
 		$this->assertCount( 1, $rows );
 		$this->assertSame( 99, $rows[0][1]['submission_id'] );
 		$this->assertSame( 7, $rows[0][1]['form_id'] );
-		$this->assertSame( 'abc', $rows[0][1]['sig_cookie'] );
+		// Stored keyed, never as the browser sent it (#2339).
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( 'abc', 'device_signal_cookie' ), $rows[0][1]['sig_cookie'] );
 	}
 
 	public function test_deferred_hook_skipped_when_skip_device(): void {

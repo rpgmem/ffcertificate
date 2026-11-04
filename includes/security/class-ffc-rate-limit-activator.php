@@ -29,7 +29,7 @@ class RateLimitActivator {
 	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.5.0';
+	public const DB_VERSION = '1.6.0';
 
 	/**
 	 * The last row of each table written before e-mail and CPF identifiers
@@ -164,9 +164,29 @@ class RateLimitActivator {
 		if ( '' !== $previous && version_compare( $previous, '1.5.0', '<' ) ) {
 			self::reset_unenforced_wait_hours();
 		}
+		if ( '' !== $previous && version_compare( $previous, '1.6.0', '<' ) ) {
+			self::drop_unkeyed_device_data();
+		}
 
 		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
 		return true;
+	}
+
+	/**
+	 * Remove what was stored before device signals were keyed, once (#2339).
+	 *
+	 * The signal rows hold bare browser hashes, which no keyed reading will
+	 * match again, so they are deleted rather than left to count nothing:
+	 * every device starts afresh, as the e-mail and CPF/RF counters did when
+	 * their identifiers were keyed (#2343). The log's user-agent column is
+	 * emptied, since nothing writes or reads it any more.
+	 *
+	 * @return void
+	 */
+	private static function drop_unkeyed_device_data(): void {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->prefix . 'ffc_device_signals' ) );
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET user_agent = NULL WHERE user_agent IS NOT NULL', $wpdb->prefix . 'ffc_rate_limit_logs' ) );
 	}
 
 	/**

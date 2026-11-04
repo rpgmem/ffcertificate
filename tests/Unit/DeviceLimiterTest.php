@@ -60,6 +60,43 @@ class DeviceLimiterTest extends TestCase {
 		$this->assertTrue( $res['allowed'] );
 	}
 
+	public function test_the_cookie_is_matched_by_its_keyed_hash_never_the_raw_one(): void {
+		// #2339: a stored row says nothing without the salt, so the lookup
+		// has to send the keyed value the row was written with.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		$bound = array();
+		$wpdb  = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$bound ) {
+				$bound = $args;
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturn( '1' );
+		$previous        = $GLOBALS['wpdb'] ?? null;
+		$GLOBALS['wpdb'] = $wpdb;
+
+		try {
+			$device = array(
+				'enabled'                  => true,
+				'signals_enabled'          => array( 'cookie' ),
+				'bypass_whitelist_signals' => array(),
+				'max_per_form'             => 1,
+				'match_threshold'          => 7,
+				'match_strong_min'         => 2,
+				'message'                  => 'Already sent from this device.',
+			);
+			$res = $this->limiter( $device )->check( 7, array( 'cookie' => 'browser-cookie-hash' ) );
+		} finally {
+			$GLOBALS['wpdb'] = $previous;
+		}
+
+		$this->assertFalse( $res['allowed'] );
+		$this->assertContains( \FreeFormCertificate\Core\Encryption::keyed_hash( 'browser-cookie-hash', 'device_signal_cookie' ), $bound );
+		$this->assertNotContains( 'browser-cookie-hash', $bound );
+	}
+
 	public function test_effective_settings_use_globals_without_overrides(): void {
 		Functions\when( 'get_post_meta' )->justReturn( '' ); // no per-form overrides.
 		$device = array(

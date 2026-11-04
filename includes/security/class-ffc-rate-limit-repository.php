@@ -42,7 +42,7 @@ final class RateLimitRepository {
 	 * Identifier types whose value is a person's e-mail or document, stored
 	 * as a keyed hash (#2343).
 	 */
-	public const KEYED_TYPES = array( 'email', 'cpf' );
+	public const KEYED_TYPES = array( 'email', 'cpf', 'device' );
 
 	/**
 	 * Storage key for a rate-limit identifier, on the `ffc_rate_limits`

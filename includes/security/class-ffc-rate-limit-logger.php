@@ -62,11 +62,12 @@ final class RateLimitLogger {
 				// Encrypted, or not kept at all when encryption is unavailable;
 				// the plaintext `ip_address` column is no longer written.
 				'ip_address_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( \FreeFormCertificate\Core\RequestInput::get_user_ip() ),
-				'user_agent'           => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
 				'current_count'        => 0,
 				'max_allowed'          => 0,
 			),
-			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
+			// No user agent (#2339): it identified the visitor's browser and
+			// nothing on the log screen reads it.
+			array( '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		self::cleanup_old_logs();
