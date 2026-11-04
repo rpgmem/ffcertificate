@@ -19,7 +19,7 @@ return array(
 	'CsvDownloadValidatorTest.php' => 1,
 	'DashboardShortcodeTest.php' => 1,
 	'EncryptionKeyHealthNoticeTest.php' => 1,
-	'EncryptionTest.php' => 7,
+	'EncryptionTest.php' => 8,
 	'FormCacheThirdPartyPurgeTest.php' => 8,
 	'IdentityAuditExportSourceTest.php' => 1,
 	'IdentityIndexBackfillMigrationStrategyTest.php' => 1,

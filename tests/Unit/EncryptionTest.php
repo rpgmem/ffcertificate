@@ -31,6 +31,7 @@ class EncryptionTest extends TestCase {
 		// which reads `ffc_settings` to gate per-area. Stub get_option so the
 		// gate is reached without exploding.
 		Functions\when( 'get_option' )->justReturn( array() );
+		Encryption::reset_v1_counter();
 	}
 
 	protected function tearDown(): void {
@@ -420,6 +421,61 @@ class EncryptionTest extends TestCase {
 
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
 		$this->assertSame( 'legacy-value', Encryption::decrypt( base64_encode( $iv . $cipher ) ) );
+	}
+
+	public function test_a_legacy_v1_read_is_counted_once_per_request(): void {
+		// #2339: the evidence that decides when the unauthenticated format can
+		// be refused. A v2 read counts nothing.
+		$stored = array();
+		Functions\when( 'get_option' )->alias( static fn ( $key, $fallback = false ) => Encryption::LEGACY_V1_OPTION === $key ? $stored : $fallback );
+		$writes = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$writes ) {
+				$writes[] = array( $key, $value );
+				return true;
+			}
+		);
+		$iv     = str_repeat( "\x02", 16 );
+		$cipher = openssl_encrypt( 'legacy-value', 'AES-256-CBC', $this->active_key(), OPENSSL_RAW_DATA, $iv );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- building a legacy fixture.
+		$v1 = base64_encode( $iv . $cipher );
+
+		Encryption::decrypt( (string) Encryption::encrypt( 'modern' ) );
+		$this->assertSame( array(), $writes, 'A v2 read counts nothing.' );
+
+		Encryption::decrypt( $v1 );
+		Encryption::decrypt( $v1 );
+
+		$this->assertCount( 1, $writes, 'One request, one count.' );
+		$this->assertSame( Encryption::LEGACY_V1_OPTION, $writes[0][0] );
+		$this->assertSame( 1, $writes[0][1]['count'] );
+		$this->assertEqualsWithDelta( time(), $writes[0][1]['last'], 5 );
+	}
+
+	public function test_legacy_v1_reads_tolerates_a_missing_or_malformed_option(): void {
+		$this->assertSame( array( 'count' => 0, 'last' => 0 ), Encryption::legacy_v1_reads() );
+		Functions\when( 'get_option' )->justReturn( 'garbage' );
+		$this->assertSame( array( 'count' => 0, 'last' => 0 ), Encryption::legacy_v1_reads() );
+	}
+
+	/**
+	 * A process of its own because it defines FFC_HASH_SALT, which would
+	 * leak into every later test.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
+	public function test_an_empty_hash_salt_is_reported_as_a_missing_secret(): void {
+		// #2339: an empty FFC_HASH_SALT is what get_hash_salt() uses, so the
+		// panel must not report the WordPress keys it does not fall back to.
+		define( 'FFC_HASH_SALT', '' );
+
+		$report = Encryption::key_health_report();
+
+		$this->assertSame( 'empty', $report['status'] );
+		$this->assertTrue( $report['salt_empty'] );
+		$this->assertFalse( $report['salt_decoupled'] );
+		$this->assertSame( 'FFC_HASH_SALT (empty)', $report['salt_source'] );
 	}
 
 	public function test_a_legacy_v1_value_too_short_for_an_iv_is_refused(): void {

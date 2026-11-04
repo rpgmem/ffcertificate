@@ -205,6 +205,7 @@ $ffcertificate_options = array(
 	'ffc_created_pages_notice_dismissed',
 	'ffc_rate_limit_db_version',
 	'ffc_rate_limit_keyed_cutover',
+	'ffc_encryption_v1_reads',
 	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',

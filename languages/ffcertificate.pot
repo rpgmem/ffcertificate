@@ -16878,10 +16878,6 @@ msgstr ""
 msgid "The widget is served from this site — nothing is loaded from a content delivery network. The challenge is issued by this WordPress installation, the computation happens in the visitor's browser, and the answer is checked here. No request reaches any third party, and no behavioural signal is collected: the widget can record pointer and keyboard timings, and that is switched off."
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:45
-msgid "the WordPress keys, or the FFC constants once decoupled."
-msgstr ""
-
 #: templates/admin/recruitment/candidate-edit/sensitive-section.php:66
 msgid "The WordPress user account itself is preserved untouched."
 msgstr ""
@@ -31740,4 +31736,36 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:64
 msgid "how a refusal reads. Show wait time puts the real time left in {time}, from the counter's window or the block's expiry, and \"a while\" when off. Show remaining attempts ends a message that names neither {count} nor {max} with how many of the limit were used. Countdown timer counts the wait down on the form and holds its button until then; it needs Show wait time, since it tells the wait. {count}, {max} and {remaining} (never below 0) resolve the same way in every message."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php:695
+#, php-format
+msgid "%1$s request read a value in the old format without authentication; the last on %2$s."
+msgid_plural "%1$s requests read a value in the old format without authentication; the last on %2$s."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/settings/views/ffc-tab-advanced.php:589
+#, php-format
+msgid "%s is defined but empty, so every search hash is computed with no salt. Changing it re-hashes nothing on its own: plan it like a key rotation."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php:689
+msgid "None recorded."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php:702
+msgid "The oldest encrypted values carry no integrity check. They are still read, and each request that reads one is counted here; once nothing has been counted for a long while, the old format can be refused."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php:50
+msgid "Unauthenticated (legacy) reads"
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php:50
+msgid "how many requests read a value stored in the oldest format, which carries no integrity check, and when the last did. Once nothing has been counted for a long while, that format can be refused."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php:48
+msgid "the WordPress keys, or the FFC constants once decoupled. An FFC_HASH_SALT defined as empty is used as it is, so it reads as a missing secret."
 msgstr ""
