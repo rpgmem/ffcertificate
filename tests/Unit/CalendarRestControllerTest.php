@@ -108,6 +108,7 @@ class CalendarRestControllerTest extends TestCase {
 		});
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
@@ -478,10 +479,12 @@ class CalendarRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
-		$this->assertSame( 'Slow down, wait 1 hour.', $result->get_error_message() );
+		// What is left of the hour (#2339), and how much of the limit was used.
+		$this->assertMatchesRegularExpression( '/^Slow down, wait \d+ (minute|minutes|second|seconds)\. You have used 1 of 1\.$/', $result->get_error_message() );
 		$data = $result->get_error_data();
 		$this->assertSame( 429, $data['status'] );
-		$this->assertSame( 3600, $data['headers']['Retry-After'] );
+		$this->assertGreaterThanOrEqual( 1, $data['headers']['Retry-After'] );
+		$this->assertLessThanOrEqual( 3600, $data['headers']['Retry-After'] );
 		$this->assert_blocked_read_logged( 'calendar_list', 'read_hour_limit' );
 		$this->assertSame( array(), $this->calendar_queries(), 'A blocked read never reaches the repository.' );
 	}

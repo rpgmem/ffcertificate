@@ -55,6 +55,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Geofence: a form with no valid area refuses, and a location in use cannot be deleted** (#2339). A form whose location restriction names no valid area used to pass everyone. Deleting a location a form reads from is refused, naming the forms. The Geolocation tab flags areas under 100 m and says a GPS reading is the browser's word.
 - **Honeypot: a neutral field name and a minimum time** (#2339). The trap field no longer names itself, and a signed render time refuses a form posted less than 3 seconds after it appeared; cached pages get a fresh one with the captcha. Every honeypot refusal reads the same, and the reregistration form now sends its trap.
 - **Captcha: a network over the challenge cap is told how long to wait** (#2339). The refusal carries `Retry-After`, and the widget shows the wait instead of asking for a reload, which only asked for another challenge; it comes back on its own when the window ends.
+- **Rate limits: every setting works, and a refusal says the real wait** (#2339). {time} is the time left, not a fixed "1 hour"; Show remaining attempts adds "You have used N of M"; the countdown follows its switch; the CPF/RF block counts over its hours; Log blocked works; an e-mail interval joins the tab, off. Refusals say what to do next.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

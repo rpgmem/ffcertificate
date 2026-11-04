@@ -134,7 +134,9 @@ final class RateLimitSettingsReader {
 				'max_per_day'    => 3,
 				'max_per_week'   => 10,
 				'max_per_month'  => 30,
-				'wait_hours'     => 24,
+				// Least hours between two submissions with one e-mail (#2339).
+				// 0 is off: it was stored as 24 for years and never enforced.
+				'wait_hours'     => 0,
 				'apply_to'       => 'all',
 				'message'        => __( 'You already have {count} certificates.', 'ffcertificate' ),
 				'check_database' => true,

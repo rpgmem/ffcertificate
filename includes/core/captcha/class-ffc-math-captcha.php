@@ -135,6 +135,9 @@ class MathCaptcha implements CaptchaProviderInterface {
 			: SecurityService::peek_simple_captcha( $answer, $token, $context );
 
 		if ( ! $ok ) {
+			if ( SecurityService::simple_captcha_expired( $token ) ) {
+				return \__( 'The security question expired. Please answer the new one.', 'ffcertificate' );
+			}
 			return \__( 'Error: The math answer is incorrect.', 'ffcertificate' );
 		}
 

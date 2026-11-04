@@ -771,25 +771,9 @@ msgstr "0 desativa esse limite — a saída mais limpa quando muitos visitantes 
 msgid "04 of January, 2026"
 msgstr "04 de janeiro de 2026"
 
-#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:683
-msgid "1 hour"
-msgstr "1 hora"
-
 #: includes/security/class-ffc-rate-limit-checker.php:669
 msgid "1 minute"
 msgstr "1 minuto"
-
-#: includes/security/class-ffc-email-limiter.php:96
-msgid "1 month"
-msgstr "1 mês"
-
-#: includes/security/class-ffc-email-limiter.php:80
-msgid "1 week"
-msgstr "1 semana"
-
-#: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
-msgid "24 hours"
-msgstr "24 horas"
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
 msgid "3/day, 10/week, 30/month"
@@ -3789,14 +3773,6 @@ msgstr "Os certificados não são armazenados como arquivos — o PDF é gerado 
 msgid "Certificates Dashboard"
 msgstr "Painel de Certificados"
 
-#: includes/settings/views/documentation/config-rate-limit.php:33
-msgid "Certificates per email address over time."
-msgstr "Certificados por endereço de e-mail ao longo do tempo."
-
-#: includes/settings/views/documentation/config-rate-limit.php:34
-msgid "Certificates per identifier, plus an abuse block after too many attempts in an hour."
-msgstr "Certificados por identificador, além de um bloqueio por abuso após um número excessivo de tentativas em uma hora."
-
 #: includes/settings/views/ffc-tab-captcha.php:156 includes/settings/views/documentation/config-captcha.php:58
 msgid "Challenge lifetime"
 msgstr "Tempo de vida do desafio"
@@ -4710,10 +4686,6 @@ msgstr "Validação por CPF + CAPTCHA."
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:603
 msgid "CPF / RF"
 msgstr "CPF / RF"
-
-#: includes/security/class-ffc-cpf-limiter.php:56 includes/security/class-ffc-cpf-limiter.php:89 includes/security/class-ffc-rate-limit-checker.php:532
-msgid "CPF blocked."
-msgstr "CPF bloqueado."
 
 #: includes/frontend/class-ffc-csv-download-validator.php:248
 msgid "CPF does not match the form author."
@@ -6008,10 +5980,6 @@ msgstr "Documentação"
 msgid "Documentation view file not found."
 msgstr "Arquivo de visualização da documentação não encontrado."
 
-#: includes/security/class-ffc-rate-limit-checker.php:523
-msgid "Domain blocked."
-msgstr "Domínio bloqueado."
-
 #: includes/settings/views/ffc-tab-rate-limit.php:477 includes/settings/views/ffc-tab-rate-limit.php:503
 msgid "Domains"
 msgstr "Domínios"
@@ -6481,10 +6449,6 @@ msgstr "Endereço de e-mail para envio"
 #: includes/settings/views/documentation/forms-dynamic-fields.php:37
 msgid "Email address — validated as an email on submit."
 msgstr "Endereço de e-mail — validado como e-mail no envio."
-
-#: includes/security/class-ffc-rate-limit-checker.php:514
-msgid "Email blocked."
-msgstr "E-mail bloqueado."
 
 #: includes/settings/views/documentation/reference-emails.php:25
 msgid "email body  ->  configurable chrome (\"Email Model\")  ->  send (wp_mail / SMTP)"
@@ -9515,10 +9479,6 @@ msgstr "Endereço IP"
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:418
 msgid "IP Address (backend validation)"
 msgstr "Endereço IP (validação de backend)"
-
-#: includes/security/class-ffc-rate-limit-checker.php:505
-msgid "IP blocked."
-msgstr "IP bloqueado."
 
 #: includes/settings/views/ffc-tab-geolocation.php:288
 msgid "IP Cache"
@@ -12579,11 +12539,6 @@ msgstr "Por favor, selecione pelo menos uma submissão."
 msgid "Please select at least one user."
 msgstr "Por favor, selecione pelo menos um usuário."
 
-#. %d: number of seconds to wait
-#: includes/security/class-ffc-ip-limiter.php:91
-msgid "Please wait %d seconds."
-msgstr "Aguarde %d segundos."
-
 #: includes/admin/class-ffc-admin-assets-manager.php:573 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:226 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:510 includes/frontend/class-ffc-frontend.php:324
 msgid "Please wait, this may take a few seconds..."
 msgstr "Aguarde, isso pode levar alguns segundos..."
@@ -15460,10 +15415,6 @@ msgstr "Exibindo os primeiros %1$d de %2$d formulários. Todos são processados 
 msgid "Showing first %1$d of %2$d matches. All matches are processed on delete."
 msgstr "Exibindo os primeiros %1$d de %2$d resultados. Todos os resultados são processados ​​ao serem excluídos."
 
-#: includes/settings/views/ffc-tab-rate-limit.php:228
-msgid "Shown to blocked callers in the 429 response. {time} is replaced with the wait window."
-msgstr "Exibido para chamadas bloqueadas na resposta 429. {time} é substituído pelo período de espera."
-
 #. %hours% is a placeholder token the admin can use in the message
 #: templates/admin/audience/self-scheduling-tab.php:143
 msgid "Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today's working hours."
@@ -16280,10 +16231,6 @@ msgstr "Edital alvo"
 #: includes/url-shortener/class-ffc-url-shortener-export-source.php:191
 msgid "Target URL"
 msgstr "URL de Destino"
-
-#: includes/settings/views/ffc-tab-rate-limit.php:85
-msgid "Tax ID (CPF) Rate Limit"
-msgstr "Taxa Limite de ID (CPF/RF)"
 
 #: includes/settings/views/ffc-tab-rate-limit.php:478 includes/settings/views/ffc-tab-rate-limit.php:504
 msgid "Tax IDs (CPFs)"
@@ -17190,10 +17137,6 @@ msgstr "Este formulário não possui data de término configurada. O administrad
 msgid "This form has no end date configured. The CSV download will only be available after the administrator sets an end date."
 msgstr "Este formulário não possui data de término configurada. O download do arquivo CSV só estará disponível após o administrador definir uma data de término."
 
-#: includes/security/class-ffc-geofence.php:278 includes/security/class-ffc-geofence.php:313 includes/frontend/class-ffc-frontend.php:697
-msgid "This form is no longer available."
-msgstr "Este formulário não está mais disponível."
-
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:371 includes/security/class-ffc-geofence.php:404
 msgid "This form is not available in your location."
 msgstr "Este formulário não está disponível na sua região."
@@ -17201,14 +17144,6 @@ msgstr "Este formulário não está disponível na sua região."
 #: includes/frontend/submission/class-ffc-form-config-resolver.php:47
 msgid "This form is not available right now. Please contact the organizer."
 msgstr "Este formulário não está disponível no momento. Entre em contato com o organizador."
-
-#: includes/security/class-ffc-geofence.php:265 includes/security/class-ffc-geofence.php:301 includes/frontend/class-ffc-frontend.php:696
-msgid "This form is not yet available."
-msgstr "Este formulário ainda não está disponível."
-
-#: includes/security/class-ffc-geofence.php:331 includes/frontend/class-ffc-frontend.php:698
-msgid "This form is only available during specific hours."
-msgstr "Este formulário está disponível apenas em horários específicos."
 
 #. %s is the formatted end date
 #: includes/frontend/class-ffc-frontend.php:499
@@ -17627,10 +17562,6 @@ msgstr "ative ou desative o e-mail do participante."
 #: templates/admin/recruitment/notice-edit/general-section.php:50
 msgid "Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off."
 msgstr "Alternar quais colunas o shortcode público renderiza. Classificação e Nome são obrigatórios e não podem ser desativados."
-
-#: includes/settings/views/documentation/config-rate-limit.php:57
-msgid "toggles for showing remaining attempts, the wait time, and a countdown timer to the visitor."
-msgstr "opções para exibir ao visitante as tentativas restantes, o tempo de espera e um cronômetro de contagem regressiva."
 
 #: includes/admin/class-ffc-submissions-export-source.php:366
 msgid "Token"
@@ -31503,10 +31434,6 @@ msgstr "%d linhas de limite de requisições identificadas por um hash sem chave
 msgid "Rate Limit: Keyed Identifiers"
 msgstr "Rate Limit: Identificadores com Chave"
 
-#: includes/settings/views/documentation/config-rate-limit.php:61
-msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
-msgstr "eventos bloqueados (e, opcionalmente, permitidos), com um prazo de retenção e um limite de linhas. Nada é guardado em texto claro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e ele próprio é guardado só criptografado; um endereço de e-mail ou CPF/RF é identificado por um hash com chave, então não pode ser recuperado testando todos os CPFs; qualquer outro identificador é transformado em hash. As linhas gravadas antes dessas mudanças mantêm o endereço em texto claro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar, e um e-mail ou CPF/RF sob um hash sem chave até a migração \"Rate Limit: Identificadores com Chave\" excluí-las."
-
 #: includes/settings/views/documentation/config-advanced.php:83
 msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
 msgstr "Duas ferramentas destrutivas ficam aqui, ambas irreversíveis e ambas reservadas a contas com ffc_manage_settings_dangerzone. \"Excluir todos os dados do plugin ao desinstalar\" vem desligada; quando ligada, excluir o plugin remove suas tabelas, opções, transients, formulários, calendários, templates de certificado, papéis e capacidades, a pasta temporária de exportação e as páginas de verificação e de painel que ele criou, a menos que alguém as tenha editado. Uma conta cujo único papel era o do plugin recebe o papel padrão do site. A ação \"Excluir envios\" exclui todos os envios, ou os de um formulário, com a opção de reiniciar o contador de IDs."
@@ -31807,3 +31734,92 @@ msgstr "Muitos pedidos de verificação a partir desta rede. Tente novamente em 
 #: includes/settings/views/documentation/config-rate-limit.php:40
 msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building. A visitor over the cap is told how long to wait, and the verification comes back on its own when the window ends, with no need to reload the page."
 msgstr "o grupo IP também limita quantos desafios de captcha um endereço pode solicitar por janela (padrão 60 a cada 600 segundos). 0 remove o limite — a escolha honesta quando muitas pessoas compartilham um mesmo endereço, já que qualquer número por endereço limitaria o prédio inteiro. Um visitante acima do limite é informado de quanto tempo esperar, e a verificação volta sozinha quando a janela termina, sem precisar recarregar a página."
+
+#: includes/security/class-ffc-email-limiter.php:68
+msgid "A certificate was issued to this e-mail a moment ago. You can submit again in {time}."
+msgstr "Um certificado foi emitido para este e-mail há pouco. Você pode enviar de novo em {time}."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:245
+msgid "CPF/RF Rate Limit"
+msgstr "Limite por CPF/RF"
+
+#: includes/settings/views/documentation/config-rate-limit.php:33
+msgid "Certificates per email address over time, and optionally the least hours between two of them (off by default)."
+msgstr "Certificados por endereço de e-mail ao longo do tempo e, opcionalmente, o mínimo de horas entre dois deles (desligado por padrão)."
+
+#: includes/settings/views/documentation/config-rate-limit.php:34
+msgid "Certificates per identifier, plus an abuse block after a number of attempts within a number of hours."
+msgstr "Certificados por identificador, mais um bloqueio por abuso após um número de tentativas dentro de um número de horas."
+
+#: includes/security/class-ffc-rate-limit-checker.php:484
+msgid "E-mail addresses from this domain are not accepted. Use another address, or contact the site administrator."
+msgstr "Endereços de e-mail deste domínio não são aceitos. Use outro endereço ou fale com o administrador do site."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:712
+msgid "Every message on this tab can use these tokens: {time} is the time left until the visitor can try again (\"a while\" when Show wait time is off), {count} what was counted, {max} the limit, and {remaining} what is left of it. With Show remaining attempts on, a message that names neither {count} nor {max} ends with \"You have used N of M.\""
+msgstr "Toda mensagem desta aba pode usar estes marcadores: {time} é o tempo que falta até o visitante poder tentar de novo (\"um tempo\" quando Mostrar tempo de espera está desligado), {count} o que foi contado, {max} o limite e {remaining} o que resta dele. Com Mostrar tentativas restantes ligado, uma mensagem que não cita {count} nem {max} termina com \"Você usou N de M.\""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:234
+msgid "Hours between submissions"
+msgstr "Horas entre envios"
+
+#: includes/settings/views/ffc-tab-rate-limit.php:388
+msgid "Shown to blocked callers in the 429 response. The tokens are listed under Interface."
+msgstr "Mostrada a quem for bloqueado, na resposta 429. Os marcadores estão listados em Interface."
+
+#: includes/security/class-ffc-rate-limit-checker.php:466
+msgid "Submissions from this network are not accepted. If you think this is a mistake, contact the site administrator."
+msgstr "Envios a partir desta rede não são aceitos. Se você acha que é um engano, fale com o administrador do site."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:237
+msgid "The least time between two submissions with the same e-mail. 0 turns it off."
+msgstr "O tempo mínimo entre dois envios com o mesmo e-mail. 0 desliga."
+
+#: includes/core/captcha/class-ffc-math-captcha.php:139
+msgid "The security question expired. Please answer the new one."
+msgstr "A pergunta de segurança expirou. Responda a nova."
+
+#: includes/security/class-ffc-rate-limit-checker.php:493
+msgid "This CPF/RF is not accepted. If you think this is a mistake, contact the site administrator."
+msgstr "Este CPF/RF não é aceito. Se você acha que é um engano, fale com o administrador do site."
+
+#: includes/security/class-ffc-rate-limit-checker.php:475
+msgid "This e-mail address is not accepted. Use another address, or contact the site administrator."
+msgstr "Este endereço de e-mail não é aceito. Use outro endereço ou fale com o administrador do site."
+
+#: includes/security/class-ffc-geofence-window-messages.php:89
+msgid "This form is no longer available. If you still need to submit it, contact the organizer."
+msgstr "Este formulário não está mais disponível. Se ainda precisar enviá-lo, fale com o organizador."
+
+#: includes/security/class-ffc-geofence-window-messages.php:94
+msgid "This form is not yet available. Come back when it opens."
+msgstr "Este formulário ainda não está disponível. Volte quando ele abrir."
+
+#: includes/security/class-ffc-geofence-window-messages.php:92
+msgid "This form is only available during specific hours. Come back during those hours to submit it."
+msgstr "Este formulário só está disponível em horários específicos. Volte nesses horários para enviá-lo."
+
+#: includes/security/class-ffc-cpf-limiter.php:118
+msgid "Too many attempts with this CPF/RF. It is blocked for {time}; try again after that."
+msgstr "Tentativas demais com este CPF/RF. Ele está bloqueado por {time}; tente de novo depois disso."
+
+#: includes/security/class-ffc-rate-limit-support.php:90
+#, php-format
+msgid "You have used %1$d of %2$d."
+msgstr "Você usou %1$d de %2$d."
+
+#: includes/security/class-ffc-ip-limiter.php:114
+msgid "You submitted a moment ago. Please wait {time} before submitting again."
+msgstr "Você enviou há pouco. Aguarde {time} antes de enviar de novo."
+
+#: includes/security/class-ffc-rate-limit-support.php:130
+msgid "a while"
+msgstr "um tempo"
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
+msgstr "eventos bloqueados e permitidos, cada um com sua própria chave, com um prazo de retenção e um limite de linhas. Nada é guardado em texto claro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e ele próprio é guardado só criptografado; um endereço de e-mail ou CPF/RF é identificado por um hash com chave, então não pode ser recuperado testando todos os CPFs; qualquer outro identificador é transformado em hash. As linhas gravadas antes dessas mudanças mantêm o endereço em texto claro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar, e um e-mail ou CPF/RF sob um hash sem chave até a migração \"Rate Limit: Identificadores com Chave\" excluí-las."
+
+#: includes/settings/views/documentation/config-rate-limit.php:64
+msgid "how a refusal reads. Show wait time puts the real time left in {time}, from the counter's window or the block's expiry, and \"a while\" when off. Show remaining attempts ends a message that names neither {count} nor {max} with how many of the limit were used. Countdown timer counts the wait down on the form and holds its button until then; it needs Show wait time, since it tells the wait. {count}, {max} and {remaining} (never below 0) resolve the same way in every message."
+msgstr "como uma recusa se apresenta. Mostrar tempo de espera coloca em {time} o tempo real que falta, pela janela do contador ou pelo fim do bloqueio, e \"um tempo\" quando desligado. Mostrar tentativas restantes termina uma mensagem que não cita {count} nem {max} com quanto do limite foi usado. Contagem regressiva conta a espera no formulário e segura o botão até lá; ela depende de Mostrar tempo de espera, já que revela a espera. {count}, {max} e {remaining} (nunca abaixo de 0) se resolvem do mesmo jeito em toda mensagem."

@@ -68,6 +68,7 @@ class ReadRateLimitTest extends TestCase {
 			return $default_value;
 		} );
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_parse_args' )->alias( function ( $args, $defaults ) {
 			return array_merge( $defaults, is_array( $args ) ? $args : array() );
 		} );
@@ -129,7 +130,8 @@ class ReadRateLimitTest extends TestCase {
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertSame( 'read_minute_limit', $result['reason'] );
-		$this->assertSame( 60, $result['wait_seconds'] );
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 60, $result['wait_seconds'] );
 	}
 
 	public function test_check_read_limit_isolates_per_endpoint_key(): void {

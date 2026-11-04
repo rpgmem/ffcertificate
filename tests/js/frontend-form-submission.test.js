@@ -381,6 +381,25 @@ describe('frontend.handleFormSubmission', () => {
 		expect(label).toBe('Send');
 	});
 
+	it('on a rate_limit payload with the countdown off: shows the message without counting down', async () => {
+		// #2339: Countdown timer (or Show wait time) off.
+		const $form = setupForm();
+		const showSpy = vi.spyOn(window.FFC.Frontend.RateLimit, 'show').mockImplementation(() => {});
+		mockAjax((opts) => {
+			opts.error({
+				responseJSON: {
+					data: { rate_limit: true, countdown: false, message: 'Slow down', wait_seconds: 30 },
+				},
+			});
+			return {};
+		});
+		$form.trigger('submit');
+		await flush();
+		expect(showSpy).not.toHaveBeenCalled();
+		expect($form.closest('body').text()).toContain('Slow down');
+		expect($form.find('button[type="submit"]').prop('disabled')).toBe(false);
+	});
+
 	it('on generic error: shows the connection-error alert', async () => {
 		const $form = setupForm();
 		mockAjax((opts) => {

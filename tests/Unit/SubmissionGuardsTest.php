@@ -110,6 +110,7 @@ class SubmissionGuardsTest extends TestCase {
 		$this->queries         = array();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -301,8 +302,10 @@ class SubmissionGuardsTest extends TestCase {
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['rate_limit'] );
-			$this->assertSame( 'slow down', $payload['message'] );
-			$this->assertSame( 3600, $payload['wait_seconds'] );
+			$this->assertStringStartsWith( 'slow down', $payload['message'] );
+			// What is left of the hour (#2339).
+			$this->assertGreaterThanOrEqual( 1, $payload['wait_seconds'] );
+			$this->assertLessThanOrEqual( 3600, $payload['wait_seconds'] );
 		}
 	}
 
@@ -722,7 +725,7 @@ class SubmissionGuardsTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$this->assertTrue( $e->get_payload()['rate_limit'] );
-			$this->assertSame( 'limited', $e->get_payload()['message'] );
+			$this->assertStringStartsWith( 'limited', $e->get_payload()['message'] );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
 		$this->assertSame( $before, $this->transients, 'Nor does it move a counter.' );

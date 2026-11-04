@@ -99,6 +99,7 @@ class RateLimitGuardTest extends TestCase {
 		$this->inserts        = array();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'current_time' )->justReturn( '2027-01-15 08:00:00' );
@@ -250,8 +251,10 @@ class RateLimitGuardTest extends TestCase {
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['rate_limit'] );
-			$this->assertSame( 'too many', $payload['message'] );
-			$this->assertSame( 3600, $payload['wait_seconds'] );
+			$this->assertStringStartsWith( 'too many', $payload['message'] );
+			$this->assertGreaterThanOrEqual( 1, $payload['wait_seconds'] );
+			$this->assertLessThanOrEqual( 3600, $payload['wait_seconds'] );
+			$this->assertArrayHasKey( 'countdown', $payload, 'The form is told whether to count the wait down (#2339).' );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
 	}
@@ -269,7 +272,7 @@ class RateLimitGuardTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
-			$this->assertSame( 'IP blocked.', $payload['message'] );
+			$this->assertStringStartsWith( 'Submissions from this network are not accepted.', $payload['message'] );
 			$this->assertSame( 0, $payload['wait_seconds'] );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );

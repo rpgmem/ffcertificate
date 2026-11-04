@@ -179,7 +179,15 @@ class DeviceLimiter {
 			return array(
 				'allowed'      => false,
 				'reason'       => 'device_limit',
-				'message'      => $effective['message'],
+				// The same tokens as every other limiter (#2339). There is no
+				// wait: the limit is per form, not per period.
+				'message'      => $this->support->format_message(
+					$effective['message'],
+					array(
+						'count' => $count,
+						'max'   => $max,
+					)
+				),
 				'wait_seconds' => 0,
 			);
 		}

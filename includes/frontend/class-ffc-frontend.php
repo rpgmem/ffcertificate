@@ -760,9 +760,9 @@ class Frontend {
 				'safariTimeout'             => __( 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
 
 				// DateTime messages.
-				'formNotYetAvailable'       => __( 'This form is not yet available.', 'ffcertificate' ),
-				'formNoLongerAvailable'     => __( 'This form is no longer available.', 'ffcertificate' ),
-				'formOnlyDuringHours'       => __( 'This form is only available during specific hours.', 'ffcertificate' ),
+				'formNotYetAvailable'       => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'before' ),
+				'formNoLongerAvailable'     => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'after' ),
+				'formOnlyDuringHours'       => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'during' ),
 
 				// 6.6.4 Sprint 2 — cookie pre-flight banner.
 				'cookieBlockedTitle'        => __( 'Cookies blocked', 'ffcertificate' ),

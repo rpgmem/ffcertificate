@@ -49,6 +49,18 @@ class RateLimitStrategiesTest extends TestCase {
 	/** @var bool Whether `ffc_rate_limits` holds an active temporary block. */
 	private bool $blocked = false;
 
+	/** @var array<string, int> Oldest counted submission, by "hash column:days in the window". */
+	private array $oldest = array();
+
+	/** @var int|null Latest submission with the identifier, at any age. */
+	private ?int $latest = null;
+
+	/** @var string Blocked-until datetime the double answers with. */
+	private string $blocked_until = '2099-01-01 00:00:00';
+
+	/** @var list<string> The window starts each hourly sum was asked from. */
+	private array $hour_sums = array();
+
 	/** @var list<array<int, mixed>> Every read the double answered, as [kind, ...bound values]. */
 	private array $reads = array();
 
@@ -69,10 +81,14 @@ class RateLimitStrategiesTest extends TestCase {
 		$this->counters    = array();
 		$this->submissions = array();
 		$this->blocked     = false;
+		$this->oldest      = array();
+		$this->latest      = null;
+		$this->hour_sums   = array();
 		$this->reads       = array();
 		$this->inserts     = array();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'get_transient' )->alias( fn ( $key ) => $this->transients[ $key ] ?? false );
 		Functions\when( 'current_time' )->justReturn( '2026-04-01 12:00:00' );
 
@@ -135,7 +151,20 @@ class RateLimitStrategiesTest extends TestCase {
 				}
 				if ( preg_match( "/^SELECT blocked_until FROM `wp_ffc_rate_limits` WHERE type='(\\w+)' AND identifier='([^']*)' AND form_id = (\\d+) AND is_blocked=1 /", $sql, $m ) ) {
 					$this->reads[] = array( 'blocked', $m[1], $m[2], (int) $m[3] );
-					return $this->blocked ? '2099-01-01 00:00:00' : null;
+					return $this->blocked ? $this->blocked_until : null;
+				}
+				if ( preg_match( "/^SELECT MIN\\(submission_date\\) FROM `wp_ffc_submissions` WHERE (\\w+)='[^']*' AND submission_date >= (\\d+) AND form_id=\\d+$/", $sql, $m ) ) {
+					$days = (int) round( ( time() - (int) $m[2] ) / DAY_IN_SECONDS );
+					$at   = $this->oldest[ $m[1] . ':' . $days ] ?? null;
+					return null === $at ? null : (string) $at;
+				}
+				if ( preg_match( "/^SELECT MAX\\(submission_date\\) FROM `wp_ffc_submissions` WHERE \\w+='[^']*'  AND form_id=\\d+$/", $sql ) ) {
+					return null === $this->latest ? null : (string) $this->latest;
+				}
+				if ( preg_match( "/^SELECT SUM\\(count\\) FROM `wp_ffc_rate_limits` WHERE type='(\\w+)' AND identifier='[^']*' AND window_type='hour' AND is_blocked=0 AND form_id = \\d+ AND window_start>='([^']*)'$/", $sql, $m ) ) {
+					$this->hour_sums[] = $m[2];
+					$count             = $this->counters[ $m[1] . ':hour' ] ?? null;
+					return null === $count ? null : (string) $count;
 				}
 				$this->fail( 'Unexpected get_var(): ' . $sql );
 			}
@@ -183,7 +212,9 @@ class RateLimitStrategiesTest extends TestCase {
 		$res     = $limiter->check( '1.2.3.4', 7 );
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'ip_hour_limit', $res['reason'] );
-		$this->assertSame( 3600, $res['wait_seconds'] );
+		// The wait is what is left of the hour, not a whole hour (#2339).
+		$this->assertGreaterThanOrEqual( 1, $res['wait_seconds'] );
+		$this->assertLessThanOrEqual( HOUR_IN_SECONDS, $res['wait_seconds'] );
 		$this->assertSame( array(), $this->reads, 'The hour limit refuses before the day counter is read.' );
 	}
 
@@ -288,7 +319,7 @@ class RateLimitStrategiesTest extends TestCase {
 
 	public function test_cpf_blocks_and_records_on_abuse_threshold(): void {
 		$this->counters['cpf:hour'] = 99;
-		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'x' ) );
+		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_hours' => 1, 'block_duration' => 24, 'message' => 'x' ) );
 		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
 		$this->assertFalse( $res['allowed'] );
 		$this->assertSame( 'cpf_abuse', $res['reason'] );
@@ -308,7 +339,7 @@ class RateLimitStrategiesTest extends TestCase {
 		// count used to read the same 30 days as the monthly one, so this CPF
 		// was allowed (#2156).
 		$this->submissions['cpf_hash:365'] = 50;
-		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'Yearly limit reached.' ) );
+		$s   = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_hours' => 1, 'block_duration' => 24, 'message' => 'Yearly limit reached.' ) );
 		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
 
 		$this->assertFalse( $res['allowed'] );
@@ -322,20 +353,115 @@ class RateLimitStrategiesTest extends TestCase {
 	}
 
 	public function test_cpf_allows_when_under_limits(): void {
-		$s = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_duration' => 24, 'message' => 'x' ) );
+		$s = array( 'cpf' => array( 'check_database' => true, 'max_per_month' => 5, 'max_per_year' => 50, 'block_threshold' => 10, 'block_hours' => 1, 'block_duration' => 24, 'message' => 'x' ) );
 		$this->assertTrue( ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 )['allowed'] );
 		$this->assertSame( array(), $this->inserts, 'A CPF under every limit is not blocked.' );
 	}
 
+	public function test_email_wait_is_when_the_oldest_counted_submission_leaves_the_window(): void {
+		// #2339: never a fixed "24 hours" when the next slot frees sooner.
+		$this->submissions['email_hash:1'] = 3;
+		$this->oldest['email_hash:1']      = time() - 20 * HOUR_IN_SECONDS;
+		$s   = array( 'email' => array( 'check_database' => true, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'Try again in {time}.' ) );
+		$res = ( new EmailLimiter( $this->support( $s + array( 'ui' => array( 'show_wait_time' => true ) ) ) ) )->check( 'a@b.co', 7 );
+
+		$this->assertEqualsWithDelta( 4 * HOUR_IN_SECONDS, $res['wait_seconds'], 5 );
+		$this->assertSame( 'Try again in 4 hours.', $res['message'] );
+	}
+
+	public function test_the_email_interval_refuses_until_it_has_passed(): void {
+		$this->latest = time() - 2 * HOUR_IN_SECONDS;
+		$s   = array( 'email' => array( 'check_database' => true, 'wait_hours' => 6, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'x' ) );
+		$res = ( new EmailLimiter( $this->support( $s ) ) )->check( 'a@b.co', 7 );
+
+		$this->assertFalse( $res['allowed'] );
+		$this->assertSame( 'email_interval', $res['reason'] );
+		$this->assertEqualsWithDelta( 4 * HOUR_IN_SECONDS, $res['wait_seconds'], 5 );
+	}
+
+	public function test_the_email_interval_lets_through_once_passed_and_is_off_at_zero(): void {
+		$this->latest = time() - 7 * HOUR_IN_SECONDS;
+		$limits       = array( 'check_database' => true, 'max_per_day' => 3, 'max_per_week' => 9, 'max_per_month' => 20, 'message' => 'x' );
+
+		$this->assertTrue( ( new EmailLimiter( $this->support( array( 'email' => $limits + array( 'wait_hours' => 6 ) ) ) ) )->check( 'a@b.co', 7 )['allowed'] );
+
+		$this->latest = time() - 60;
+		$this->assertTrue( ( new EmailLimiter( $this->support( array( 'email' => $limits + array( 'wait_hours' => 0 ) ) ) ) )->check( 'a@b.co', 7 )['allowed'], '0 is off.' );
+	}
+
+	public function test_cpf_block_counts_over_the_configured_hours(): void {
+		// #2339: "block after N attempts in X hours" sums X hour rows; reading
+		// only the current hour's row reset the count on every boundary.
+		$this->counters['cpf:hour'] = 3;
+		$s   = array( 'cpf' => array( 'check_database' => false, 'block_threshold' => 3, 'block_hours' => 6, 'block_duration' => 24 ) );
+		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
+
+		$this->assertSame( 'cpf_abuse', $res['reason'] );
+		$this->assertSame( array( gmdate( 'Y-m-d H:00:00', time() - 5 * HOUR_IN_SECONDS ) ), $this->hour_sums, 'Six clock hours, this one included.' );
+		$this->assertSame( 24 * HOUR_IN_SECONDS, $res['wait_seconds'] );
+		$this->assertStringContainsString( 'CPF/RF', $res['message'] );
+	}
+
+	public function test_an_already_blocked_cpf_waits_out_what_is_left_of_the_block(): void {
+		$this->blocked       = true;
+		$this->blocked_until = gmdate( 'Y-m-d H:i:s', time() + 90 * MINUTE_IN_SECONDS );
+		$s   = array( 'cpf' => array( 'check_database' => true, 'block_duration' => 24 ) );
+		$res = ( new CpfLimiter( $this->support( $s ) ) )->check( Identifiers::CPF_A, 7 );
+
+		$this->assertSame( 'cpf_blocked', $res['reason'] );
+		$this->assertEqualsWithDelta( 90 * MINUTE_IN_SECONDS, $res['wait_seconds'], 5 );
+	}
+
 	// ===================== RateLimitSupport =====================
 
-	public function test_support_format_message_interpolates_tokens(): void {
-		$out = $this->support( array() )->format_message( 'Wait {time}, count {count}', array( 'time' => '1h', 'count' => 3 ) );
-		$this->assertSame( 'Wait 1h, count 3', $out );
+	public function test_support_format_message_resolves_every_token(): void {
+		$out = $this->support( array( 'ui' => array( 'show_wait_time' => true ) ) )->format_message(
+			'Wait {time}: {count} of {max}, {remaining} left',
+			array(
+				'count' => 2,
+				'max'   => 5,
+				'wait'  => 90,
+			)
+		);
+		$this->assertSame( 'Wait 2 minutes: 2 of 5, 3 left', $out );
+	}
+
+	public function test_remaining_never_goes_below_zero(): void {
+		$out = $this->support( array() )->format_message( '{remaining}', array( 'count' => 9, 'max' => 5 ) );
+		$this->assertSame( '0', $out );
+	}
+
+	public function test_with_show_wait_time_off_the_time_is_not_told(): void {
+		$out = $this->support( array( 'ui' => array( 'show_wait_time' => false ) ) )->format_message( 'Wait {time}.', array( 'wait' => 600 ) );
+		$this->assertSame( 'Wait a while.', $out );
+	}
+
+	public function test_show_remaining_adds_how_much_was_used_unless_the_message_says_it(): void {
+		$on = $this->support( array( 'ui' => array( 'show_remaining' => true ) ) );
+		$this->assertSame( 'Limit reached. You have used 3 of 3.', $on->format_message( 'Limit reached.', array( 'count' => 3, 'max' => 3 ) ) );
+		$this->assertSame( 'You already have 3.', $on->format_message( 'You already have {count}.', array( 'count' => 3, 'max' => 3 ) ) );
+		$this->assertSame( 'Limit reached.', $on->format_message( 'Limit reached.', array( 'wait' => 10 ) ), 'Nothing to count, nothing added.' );
+
+		$off = $this->support( array( 'ui' => array( 'show_remaining' => false ) ) );
+		$this->assertSame( 'Limit reached.', $off->format_message( 'Limit reached.', array( 'count' => 3, 'max' => 3 ) ) );
 	}
 
 	public function test_support_format_message_falls_back_on_blank_template(): void {
-		$out = $this->support( array() )->format_message( '   ', array( 'time' => '5m' ) );
-		$this->assertStringContainsString( '5m', $out );
+		$out = $this->support( array( 'ui' => array( 'show_wait_time' => true ) ) )->format_message( '   ', array( 'wait' => 300 ) );
+		$this->assertStringContainsString( '5 minutes', $out );
+	}
+
+	public function test_wait_words_round_up_and_change_unit(): void {
+		$this->assertSame( '1 second', RateLimitSupport::wait_words( 1 ) );
+		$this->assertSame( '1 minute', RateLimitSupport::wait_words( 60 ) );
+		$this->assertSame( '2 minutes', RateLimitSupport::wait_words( 61 ) );
+		$this->assertSame( '47 hours', RateLimitSupport::wait_words( 47 * HOUR_IN_SECONDS ) );
+		$this->assertSame( '3 days', RateLimitSupport::wait_words( 50 * HOUR_IN_SECONDS ) );
+	}
+
+	public function test_the_countdown_needs_both_switches(): void {
+		$this->assertTrue( $this->support( array( 'ui' => array( 'countdown_timer' => true, 'show_wait_time' => true ) ) )->countdown_on() );
+		$this->assertFalse( $this->support( array( 'ui' => array( 'countdown_timer' => true, 'show_wait_time' => false ) ) )->countdown_on(), 'A countdown tells the wait.' );
+		$this->assertFalse( $this->support( array( 'ui' => array( 'countdown_timer' => false, 'show_wait_time' => true ) ) )->countdown_on() );
 	}
 }

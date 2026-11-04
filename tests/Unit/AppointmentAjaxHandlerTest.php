@@ -36,6 +36,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		// Translation stubs
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 

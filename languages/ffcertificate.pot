@@ -773,24 +773,8 @@ msgstr ""
 msgid "04 of January, 2026"
 msgstr ""
 
-#: includes/security/class-ffc-ip-limiter.php:68 includes/security/class-ffc-rate-limit-checker.php:683
-msgid "1 hour"
-msgstr ""
-
 #: includes/security/class-ffc-rate-limit-checker.php:669
 msgid "1 minute"
-msgstr ""
-
-#: includes/security/class-ffc-email-limiter.php:96
-msgid "1 month"
-msgstr ""
-
-#: includes/security/class-ffc-email-limiter.php:80
-msgid "1 week"
-msgstr ""
-
-#: includes/security/class-ffc-email-limiter.php:64 includes/security/class-ffc-ip-limiter.php:78 includes/settings/views/ffc-tab-cache.php:216
-msgid "24 hours"
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:33
@@ -3791,14 +3775,6 @@ msgstr ""
 msgid "Certificates Dashboard"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:33
-msgid "Certificates per email address over time."
-msgstr ""
-
-#: includes/settings/views/documentation/config-rate-limit.php:34
-msgid "Certificates per identifier, plus an abuse block after too many attempts in an hour."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-captcha.php:156 includes/settings/views/documentation/config-captcha.php:58
 msgid "Challenge lifetime"
 msgstr ""
@@ -4707,10 +4683,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:603
 msgid "CPF / RF"
-msgstr ""
-
-#: includes/security/class-ffc-cpf-limiter.php:56 includes/security/class-ffc-cpf-limiter.php:89 includes/security/class-ffc-rate-limit-checker.php:532
-msgid "CPF blocked."
 msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:248
@@ -6000,10 +5972,6 @@ msgstr ""
 msgid "Documentation view file not found."
 msgstr ""
 
-#: includes/security/class-ffc-rate-limit-checker.php:523
-msgid "Domain blocked."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:477 includes/settings/views/ffc-tab-rate-limit.php:503
 msgid "Domains"
 msgstr ""
@@ -6472,10 +6440,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:37
 msgid "Email address — validated as an email on submit."
-msgstr ""
-
-#: includes/security/class-ffc-rate-limit-checker.php:514
-msgid "Email blocked."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:25
@@ -9500,10 +9464,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:418
 msgid "IP Address (backend validation)"
-msgstr ""
-
-#: includes/security/class-ffc-rate-limit-checker.php:505
-msgid "IP blocked."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-geolocation.php:288
@@ -12555,11 +12515,6 @@ msgstr ""
 msgid "Please select at least one user."
 msgstr ""
 
-#. %d: number of seconds to wait
-#: includes/security/class-ffc-ip-limiter.php:91
-msgid "Please wait %d seconds."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-assets-manager.php:573 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:226 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:510 includes/frontend/class-ffc-frontend.php:324
 msgid "Please wait, this may take a few seconds..."
 msgstr ""
@@ -15411,10 +15366,6 @@ msgstr ""
 msgid "Showing first %1$d of %2$d matches. All matches are processed on delete."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:228
-msgid "Shown to blocked callers in the 429 response. {time} is replaced with the wait window."
-msgstr ""
-
 #. %hours% is a placeholder token the admin can use in the message
 #: templates/admin/audience/self-scheduling-tab.php:143
 msgid "Shown when booking is not allowed outside business hours (calendar is still visible). Use %hours% for today's working hours."
@@ -16228,10 +16179,6 @@ msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-export-source.php:191
 msgid "Target URL"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-rate-limit.php:85
-msgid "Tax ID (CPF) Rate Limit"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-rate-limit.php:478 includes/settings/views/ffc-tab-rate-limit.php:504
@@ -17138,24 +17085,12 @@ msgstr ""
 msgid "This form has no end date configured. The CSV download will only be available after the administrator sets an end date."
 msgstr ""
 
-#: includes/security/class-ffc-geofence.php:278 includes/security/class-ffc-geofence.php:313 includes/frontend/class-ffc-frontend.php:697
-msgid "This form is no longer available."
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:371 includes/security/class-ffc-geofence.php:404
 msgid "This form is not available in your location."
 msgstr ""
 
 #: includes/frontend/submission/class-ffc-form-config-resolver.php:47
 msgid "This form is not available right now. Please contact the organizer."
-msgstr ""
-
-#: includes/security/class-ffc-geofence.php:265 includes/security/class-ffc-geofence.php:301 includes/frontend/class-ffc-frontend.php:696
-msgid "This form is not yet available."
-msgstr ""
-
-#: includes/security/class-ffc-geofence.php:331 includes/frontend/class-ffc-frontend.php:698
-msgid "This form is only available during specific hours."
 msgstr ""
 
 #. %s is the formatted end date
@@ -17572,10 +17507,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/general-section.php:50
 msgid "Toggle which columns the public shortcode renders. Rank and Name are mandatory and cannot be turned off."
-msgstr ""
-
-#: includes/settings/views/documentation/config-rate-limit.php:57
-msgid "toggles for showing remaining attempts, the wait time, and a countdown timer to the visitor."
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:366
@@ -31421,10 +31352,6 @@ msgstr ""
 msgid "Rate Limit: Keyed Identifiers"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:61
-msgid "blocked (and optionally allowed) events, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
-msgstr ""
-
 #: includes/settings/views/documentation/config-advanced.php:83
 msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
 msgstr ""
@@ -31724,4 +31651,93 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:40
 msgid "the IP group also caps how many captcha challenges one address may request per window (default 60 per 600 seconds). 0 removes the cap — the honest choice where many people share one address, since any per-address number would cap the whole building. A visitor over the cap is told how long to wait, and the verification comes back on its own when the window ends, with no need to reload the page."
+msgstr ""
+
+#: includes/security/class-ffc-email-limiter.php:68
+msgid "A certificate was issued to this e-mail a moment ago. You can submit again in {time}."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:245
+msgid "CPF/RF Rate Limit"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:33
+msgid "Certificates per email address over time, and optionally the least hours between two of them (off by default)."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:34
+msgid "Certificates per identifier, plus an abuse block after a number of attempts within a number of hours."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:484
+msgid "E-mail addresses from this domain are not accepted. Use another address, or contact the site administrator."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:712
+msgid "Every message on this tab can use these tokens: {time} is the time left until the visitor can try again (\"a while\" when Show wait time is off), {count} what was counted, {max} the limit, and {remaining} what is left of it. With Show remaining attempts on, a message that names neither {count} nor {max} ends with \"You have used N of M.\""
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:234
+msgid "Hours between submissions"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:388
+msgid "Shown to blocked callers in the 429 response. The tokens are listed under Interface."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:466
+msgid "Submissions from this network are not accepted. If you think this is a mistake, contact the site administrator."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:237
+msgid "The least time between two submissions with the same e-mail. 0 turns it off."
+msgstr ""
+
+#: includes/core/captcha/class-ffc-math-captcha.php:139
+msgid "The security question expired. Please answer the new one."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:493
+msgid "This CPF/RF is not accepted. If you think this is a mistake, contact the site administrator."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-checker.php:475
+msgid "This e-mail address is not accepted. Use another address, or contact the site administrator."
+msgstr ""
+
+#: includes/security/class-ffc-geofence-window-messages.php:89
+msgid "This form is no longer available. If you still need to submit it, contact the organizer."
+msgstr ""
+
+#: includes/security/class-ffc-geofence-window-messages.php:94
+msgid "This form is not yet available. Come back when it opens."
+msgstr ""
+
+#: includes/security/class-ffc-geofence-window-messages.php:92
+msgid "This form is only available during specific hours. Come back during those hours to submit it."
+msgstr ""
+
+#: includes/security/class-ffc-cpf-limiter.php:118
+msgid "Too many attempts with this CPF/RF. It is blocked for {time}; try again after that."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-support.php:90
+#, php-format
+msgid "You have used %1$d of %2$d."
+msgstr ""
+
+#: includes/security/class-ffc-ip-limiter.php:114
+msgid "You submitted a moment ago. Please wait {time} before submitting again."
+msgstr ""
+
+#: includes/security/class-ffc-rate-limit-support.php:130
+msgid "a while"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:64
+msgid "how a refusal reads. Show wait time puts the real time left in {time}, from the counter's window or the block's expiry, and \"a while\" when off. Show remaining attempts ends a message that names neither {count} nor {max} with how many of the limit were used. Countdown timer counts the wait down on the form and holds its button until then; it needs Show wait time, since it tells the wait. {count}, {max} and {remaining} (never below 0) resolve the same way in every message."
 msgstr ""

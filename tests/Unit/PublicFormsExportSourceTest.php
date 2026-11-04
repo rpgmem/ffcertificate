@@ -139,6 +139,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		CaptchaProvider::reset();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -441,14 +442,10 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
 
-		$this->assertSame(
-			array(
-				'message'    => 'Limit reached. Please wait 1 hour.',
-				'rate_limit' => true,
-			),
-			$payload,
-			'A denial carries its own message (#2153).'
-		);
+		$this->assertSame( array( 'message', 'rate_limit' ), array_keys( $payload ), 'A denial carries its own message (#2153).' );
+		$this->assertTrue( $payload['rate_limit'] );
+		// The real time left of the hour (#2339).
+		$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (minute|minutes|second|seconds)\./', $payload['message'] );
 	}
 
 	public function test_authorize_start_rejects_on_bad_nonce(): void {

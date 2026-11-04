@@ -233,21 +233,23 @@ final class RateLimitChecker {
 		$mk = 'ffc_rate_global_minute_' . floor( time() / 60 );
 		$mc = RateCounter::get( $mk );
 		if ( $mc >= $s['max_per_minute'] ) {
+			$wait = RateLimitSupport::window_left( MINUTE_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'global_minute_limit',
-				'message'      => $s['message'],
-				'wait_seconds' => 60,
+				'message'      => ( new RateLimitSupport() )->format_message( $s['message'], array( 'wait' => $wait ) ),
+				'wait_seconds' => $wait,
 			);
 		}
 
 		$hc = RateLimitRepository::get_count_from_db( 'global', 'system', 'hour', null );
 		if ( $hc >= $s['max_per_hour'] ) {
+			$wait = RateLimitSupport::window_left( HOUR_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'global_hour_limit',
-				'message'      => $s['message'],
-				'wait_seconds' => 3600,
+				'message'      => ( new RateLimitSupport() )->format_message( $s['message'], array( 'wait' => $wait ) ),
+				'wait_seconds' => $wait,
 			);
 		}
 
@@ -366,7 +368,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed'      => false,
 				/* translators: %s: formatted wait time */
-				'message'      => sprintf( __( 'Too many verification attempts. Please wait %s.', 'ffcertificate' ), self::format_wait_time( $wait_seconds ) ),
+				'message'      => sprintf( __( 'Too many verification attempts. Please wait %s.', 'ffcertificate' ), RateLimitSupport::wait_words( $wait_seconds ) ),
 				'wait_seconds' => $wait_seconds,
 			);
 		}
@@ -417,28 +419,6 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Format wait time.
-	 *
-	 * @param int $seconds Seconds.
-	 * @return string
-	 */
-	private static function format_wait_time( int $seconds ): string {
-		if ( $seconds < 60 ) {
-			/* translators: %d: number of seconds */
-			return sprintf( _n( '%d second', '%d seconds', $seconds, 'ffcertificate' ), $seconds );
-		}
-
-		$minutes = (int) ceil( $seconds / 60 );
-		if ( $minutes < 60 ) {
-			/* translators: %d: number of minutes */
-			return sprintf( _n( '%d minute', '%d minutes', $minutes, 'ffcertificate' ), $minutes );
-		}
-
-		$hours = (int) ceil( $minutes / 60 );
-		/* translators: %d: number of hours */
-		return sprintf( _n( '%d hour', '%d hours', $hours, 'ffcertificate' ), $hours );
-	}
-	/**
 	 * Record attempt.
 	 *
 	 * @param string   $type Type.
@@ -483,7 +463,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed' => false,
 				'reason'  => 'ip_blacklisted',
-				'message' => __( 'IP blocked.', 'ffcertificate' ),
+				'message' => __( 'Submissions from this network are not accepted. If you think this is a mistake, contact the site administrator.', 'ffcertificate' ),
 			);
 		}
 
@@ -492,7 +472,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed' => false,
 					'reason'  => 'email_blacklisted',
-					'message' => __( 'Email blocked.', 'ffcertificate' ),
+					'message' => __( 'This e-mail address is not accepted. Use another address, or contact the site administrator.', 'ffcertificate' ),
 				);
 			}
 			$at_part = strrchr( $email, '@' );
@@ -501,7 +481,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed' => false,
 					'reason'  => 'domain_blacklisted',
-					'message' => __( 'Domain blocked.', 'ffcertificate' ),
+					'message' => __( 'E-mail addresses from this domain are not accepted. Use another address, or contact the site administrator.', 'ffcertificate' ),
 				);
 			}
 		}
@@ -510,7 +490,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed' => false,
 				'reason'  => 'cpf_blacklisted',
-				'message' => __( 'CPF blocked.', 'ffcertificate' ),
+				'message' => __( 'This CPF/RF is not accepted. If you think this is a mistake, contact the site administrator.', 'ffcertificate' ),
 			);
 		}
 
@@ -576,7 +556,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed'      => false,
 				/* translators: %s: formatted wait time */
-				'message'      => sprintf( __( 'Too many attempts. Please wait %s.', 'ffcertificate' ), self::format_wait_time( $wait ) ),
+				'message'      => sprintf( __( 'Too many attempts. Please wait %s.', 'ffcertificate' ), RateLimitSupport::wait_words( $wait ) ),
 				'wait_seconds' => $wait,
 			);
 		}
@@ -640,8 +620,15 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_minute_limit',
-					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
-					'wait_seconds' => 60,
+					'message'      => ( new RateLimitSupport() )->format_message(
+						$message,
+						array(
+							'count' => $mc,
+							'max'   => $max_min,
+							'wait'  => RateLimitSupport::window_left( MINUTE_IN_SECONDS ),
+						)
+					),
+					'wait_seconds' => RateLimitSupport::window_left( MINUTE_IN_SECONDS ),
 				);
 			}
 		}
@@ -652,8 +639,15 @@ final class RateLimitChecker {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_hour_limit',
-					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
-					'wait_seconds' => 3600,
+					'message'      => ( new RateLimitSupport() )->format_message(
+						$message,
+						array(
+							'count' => $hc,
+							'max'   => $max_hour,
+							'wait'  => RateLimitSupport::window_left( HOUR_IN_SECONDS ),
+						)
+					),
+					'wait_seconds' => RateLimitSupport::window_left( HOUR_IN_SECONDS ),
 				);
 			}
 		}
