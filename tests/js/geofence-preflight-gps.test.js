@@ -184,6 +184,47 @@ describe('GPS Permissions API pre-check', () => {
 		expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
 	});
 
+	it('prompt state: the explainer is a polite status, its button a neutral family button (#2339)', async () => {
+		stubPermissions('prompt');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await settle();
+
+		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
+		expect(banner.getAttribute('role')).toBe('status');
+		expect(banner.getAttribute('aria-live')).toBe('polite');
+		const button = banner.querySelector('.ffc-preflight-try-anyway');
+		expect(button.classList.contains('ffc-btn')).toBe(true);
+		expect(button.classList.contains('ffc-btn-neutral')).toBe(true);
+	});
+
+	it('denied state: the warning still interrupts as an alert', async () => {
+		stubPermissions('denied');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await settle();
+
+		const banner = document.querySelector('[data-ffc-notice="preflight-gps"]');
+		expect(banner.getAttribute('role')).toBe('alert');
+		expect(banner.getAttribute('aria-live')).toBe('assertive');
+	});
+
+	it('prompt → Continue: the focus does not fall to the page top, and the spinner is a status (#2339)', async () => {
+		stubPermissions('prompt');
+		setupForm(7);
+		window.FFCGeofence.init();
+		await settle();
+
+		document.querySelector('.ffc-preflight-try-anyway').focus();
+		window.$('.ffc-preflight-try-anyway').trigger('click');
+
+		expect(document.activeElement).not.toBe(document.body);
+		expect(document.querySelector('.ffc-form-wrapper').contains(document.activeElement)).toBe(true);
+		const loading = document.querySelector('.ffc-geofence-loading-msg');
+		expect(loading.getAttribute('role')).toBe('status');
+		expect(loading.querySelector('.ffc-spinner').getAttribute('aria-hidden')).toBe('true');
+	});
+
 	it('prompt → Continue button click triggers the native flow', async () => {
 		stubPermissions('prompt');
 		setupForm(7);

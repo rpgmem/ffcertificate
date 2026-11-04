@@ -159,6 +159,27 @@ describe('handleCookieBlocked banner', () => {
 		expect(window.$('.ffc-submission-form').css('display')).not.toBe('none');
 	});
 
+	it('focusAfter: the button of the next notice first, then the first shown field of the form, then the wrapper (#2339)', () => {
+		document.body.innerHTML =
+			'<div id="w" class="ffc-form-wrapper">' +
+			'<div data-ffc-notice="geofence-blocked"><button type="button" id="next">Next</button></div>' +
+			'<form class="ffc-submission-form"><input type="hidden" name="h"><input type="text" id="first"></form>' +
+			'</div>';
+		const $w = window.$('#w');
+
+		window.FFC.Preflight.focusAfter($w);
+		expect(document.activeElement.id).toBe('next');
+
+		document.querySelector('[data-ffc-notice]').remove();
+		window.FFC.Preflight.focusAfter($w);
+		expect(document.activeElement.id).toBe('first');
+
+		document.querySelector('.ffc-submission-form').style.display = 'none';
+		window.FFC.Preflight.focusAfter($w);
+		expect(document.activeElement.id).toBe('w');
+		expect(document.getElementById('w').getAttribute('tabindex')).toBe('-1');
+	});
+
 	it('"Try anyway" shows the form directly when the form config is gone', () => {
 		Object.defineProperty(navigator, 'cookieEnabled', { configurable: true, value: false });
 		setupGeofenceForm(42, {

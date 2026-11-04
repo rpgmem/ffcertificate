@@ -380,7 +380,9 @@
                 this.updateLoadingMessage(formWrapper, message);
                 return;
             }
-            const html = '<div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>' + this.escapeHtml(message) + '</p></div>';
+            // A status region, so each new message is announced without
+            // interrupting; the spinner itself says nothing (#2339).
+            const html = '<div class="ffc-geofence-loading-msg" role="status" aria-live="polite"><div class="ffc-spinner" aria-hidden="true"></div><p>' + this.escapeHtml(message) + '</p></div>';
             formWrapper.prepend(html);
         },
 
