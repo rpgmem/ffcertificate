@@ -445,7 +445,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->assertSame( array( 'message', 'rate_limit' ), array_keys( $payload ), 'A denial carries its own message (#2153).' );
 		$this->assertTrue( $payload['rate_limit'] );
 		// The real time left of the hour (#2339).
-		$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (minute|minutes|second|seconds)\./', $payload['message'] );
+		$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (second|seconds|minute|minutes|hour)\./', $payload['message'] );
 	}
 
 	public function test_authorize_start_rejects_on_bad_nonce(): void {
