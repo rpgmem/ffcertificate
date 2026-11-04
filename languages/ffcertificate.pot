@@ -1686,10 +1686,6 @@ msgstr ""
 msgid "All Forms"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-rate-limit.php:40
-msgid "All forms"
-msgstr ""
-
 #: includes/admin/views/ffc-admin-activity-log.php:33
 msgid "All Levels"
 msgstr ""
@@ -2014,10 +2010,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-submissions-list.php:632
 msgid "Apply Filter"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-rate-limit.php:40
-msgid "Apply to"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:253
@@ -8509,10 +8501,6 @@ msgstr ""
 msgid "GPS cache TTL"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-geolocation.php:577
-msgid "GPS coordinates are processed client-side only. IP geolocation results are cached temporarily."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-certificates.php:56
 msgid "GPS coordinates of the center point"
 msgstr ""
@@ -8832,10 +8820,6 @@ msgstr ""
 msgid "how long an issued challenge stays valid. Long enough to fill in the form without rushing, short enough that a solved challenge is not worth stockpiling."
 msgstr ""
 
-#: includes/settings/views/documentation/config-geolocation.php:38
-msgid "How long the browser remembers a GPS fix (60–3600s, default 600)."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-geolocation.php:353
 msgid "How long to cache GPS location in browser. Range: 60-3600 seconds (1 min - 1 hour). Default: 600 (10 min)."
 msgstr ""
@@ -8850,10 +8834,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:40
 msgid "How many bookings a single slot accepts (default 1). An optional daily cap limits bookings per day. Custom-mode blocks carry their own per-block capacity."
-msgstr ""
-
-#: includes/settings/views/ffc-tab-rate-limit.php:295
-msgid "How many non-cookie signals (strong + weak) must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
 msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:45
@@ -9097,10 +9077,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-form-editor.php:101 includes/security/class-ffc-geofence.php:125
 msgid "In span mode, the end datetime must be after the start datetime."
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:67
-msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a hashed, truncated IP — so you can tell whether anyone still needs the fallback before switching it off."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:614
@@ -14030,10 +14006,6 @@ msgstr ""
 msgid "returns JSON"
 msgstr ""
 
-#: includes/settings/views/documentation/forms-geolocation.php:37
-msgid "Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php:469 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:146 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:256 includes/self-scheduling/views/appointments-list.php:192
 msgid "Reveal"
 msgstr ""
@@ -17785,10 +17757,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-cache.php:44
 msgid "Unknown page cache (WPCACHEHOME defined)"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-rate-limit.php:292
-msgid "Unlike the limits above, 0 is a value here: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and this endpoint is unlimited even with the toggle on."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:489
@@ -22096,9 +22064,6 @@ msgstr ""
 msgid "Legacy"
 msgstr ""
 
-msgid "the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address."
-msgstr ""
-
 msgid "Secure (recommended)"
 msgstr ""
 
@@ -22115,12 +22080,6 @@ msgid "how your own request would be resolved, the headers received, and what ea
 msgstr ""
 
 msgid "Cloudflare ranges"
-msgstr ""
-
-msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now."
-msgstr ""
-
-msgid "off by default. When on, it logs (with a hashed IP) every request where the two strategies would disagree, so you can measure the impact before switching."
 msgstr ""
 
 msgid "Why Legacy is still the default:"
@@ -22531,9 +22490,6 @@ msgid "Set \"notice\" to the notice code. The list shows only the columns marked
 msgstr ""
 
 msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved."
-msgstr ""
-
-msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
 msgstr ""
 
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
@@ -28012,9 +27968,6 @@ msgstr ""
 msgid "This browser cannot give a location."
 msgstr ""
 
-msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
-msgstr ""
-
 msgid "To ask for help, send a screenshot of this page or paste the copied results."
 msgstr ""
 
@@ -28373,9 +28326,6 @@ msgid "precision not tested yet"
 msgstr ""
 
 msgid "Press \"Test my location\" under Device settings to finish the test."
-msgstr ""
-
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
 msgstr ""
 
 msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on."
@@ -31446,10 +31396,6 @@ msgstr ""
 msgid "No signals"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:57
-msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
-msgstr ""
-
 #: includes/settings/class-ffc-rate-limit-settings-reader.php:281
 #, php-format
 msgid "The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals."
@@ -31465,10 +31411,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:43
 msgid "the IP limit and both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" does not count them; \"Count together\" puts all of them under one shared cap. The IP limit counts them together by default, as it always has; the two cards let them through by default. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
-msgstr ""
-
-#: includes/settings/views/documentation/config-captcha.php:54
-msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:195
@@ -31624,10 +31566,6 @@ msgstr ""
 msgid "This location is used by these forms; choose another area for them first: %s"
 msgstr ""
 
-#: includes/settings/views/documentation/reference-security.php:73
-msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
-msgstr ""
-
 #: includes/core/class-ffc-honeypot.php:133
 msgid "Your submission could not be accepted. Please wait a moment and try again."
 msgstr ""
@@ -31768,4 +31706,133 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-rate-limit.php:62
 msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. The browser of the visitor (its user agent) is not recorded. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:42
+msgid "Above this many times the radius (0.1 to 1, default 0.5), an accepted reading opens the form with a notice of its error in metres. It changes no decision."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-security.php:73
+msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires, and can only be used once and on the form it was issued for. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:41
+msgid "Check database:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:20
+msgid "Counts submissions per address. Everyone behind one network address translation, such as a school, an office or a mobile carrier, shares that address and so shares these limits: raise them, or add the address to the whitelist, when a whole room submits at once."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:271
+msgid "Counts this CPF/RF's earlier submissions. Off, the monthly and yearly limits do not apply; the block after repeated attempts still does."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:224
+msgid "Counts this e-mail's earlier submissions. Off, nothing is counted, so the e-mail limit below, the hours between submissions included, does not apply."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-security.php:85
+msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a keyed hash backs lookups. Display is masked for every member of staff, and a holder of the module's PII capability reveals a value with an audited Reveal. Settings → Advanced → Encryption Key Health says whether the keys and the hash salt are set, and how often a value written in the old, unauthenticated format is still read."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:289
+msgid "Hours the attempts are counted over"
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:40
+msgid "How long a GPS reading may be reused before the browser is asked again (60–3600s, default 600). A form that caches the check keeps only a note that it passed, never the position."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:468
+msgid "How many of the 13 signals other than the cookie (strong and weak) must match for two visits to count as the same device. Lower blocks more readily, so different people on similar devices are more often taken for one; higher blocks less, so a device that changes a few signals gets through more easily. The default is 7."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:41
+msgid "How many times an area's radius a reading's margin of error may reach and still count as inside (1 to 3, default 1.5)."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:69
+msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a truncated keyed fingerprint of the IP, never the address — so you can tell whether anyone still needs the fallback before switching it off."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:164
+#, php-format
+msgid "New location: %s"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:142
+msgid "No default GPS location"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:149
+msgid "No default IP location"
+msgstr ""
+
+#: includes/settings/views/documentation/forms-geolocation.php:48
+msgid "Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it, and a location a form reads from cannot be deleted until those forms choose another area."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "Shared addresses:"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:632
+msgid "Show the lists"
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:59
+msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. On the screen, each list's \"Show the lists\" switch only folds it away: the lists apply whether they are shown or hidden. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:633
+msgid "The addresses, e-mails, domains and CPF/RF below are exempted whether the lists are shown or hidden; this switch only folds them away."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:660
+msgid "The addresses, e-mails, domains and CPF/RF below are refused whether the lists are shown or hidden; this switch only folds them away."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-geolocation.php:719
+msgid "The browser reads the GPS position and sends it with the submission, and the server checks it against the form's areas and then discards it: it is neither stored nor logged. When a form caches the check, the browser keeps only a note that it passed, never the position. IP geolocation results are cached temporarily, under a keyed hash of the address."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-certificates.php:56
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Apart from that one test request nothing is sent, nothing is stored, and the position itself is never sent or shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr ""
+
+#: includes/frontend/class-ffc-device-check.php:235
+msgid "This page runs the checks a form runs before it is used and shows each result. It sends one request to the server, to see whether a request gets through, and stores nothing; your position is never sent or shown: only how precise it is."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-rate-limit.php:401
+msgid "Unlike the limits above, 0 is a value in the endpoints below: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and an endpoint is unlimited even with its toggle on."
+msgstr ""
+
+#: includes/settings/views/documentation/config-captcha.php:54
+msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed. A wrong answer to the arithmetic question spends its token, so one question cannot be tried against every answer, and, while the IP limit of the Rate Limit tab is on, each failed attempt counts against the visitor's address there."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "everyone behind one network address translation, such as a school, an office or a mobile carrier, reaches the site from one address and so shares the IP limit. Raise it, or allowlist the address, when a whole room submits at once."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:37
+msgid "off by default. When on, it logs (with a keyed hash of the IP, never the address) every request where the two strategies would disagree, so you can measure the impact before switching."
+msgstr ""
+
+#: includes/settings/views/documentation/config-geolocation.php:46
+msgid "the browser reads the GPS position and sends it with the submission; the server checks it against the form's areas and discards it, without storing or logging it. The position is what the browser reports, and a browser can report any values, so pair the GPS check with the IP check where a forged reading matters."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:41
+msgid "the e-mail and CPF/RF cards count earlier submissions only while it is on. Off on the e-mail card, nothing is counted, so the e-mail limit does not apply at all, the hours between submissions included. Off on the CPF/RF card, the monthly and yearly limits do not apply, and the block after repeated attempts still does."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:25
+msgid "the effective default. It takes the first public address in headers the client supplies, Client-IP first and then X-Forwarded-For, so a forged header can spoof the address."
+msgstr ""
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:35
+msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now. A refresh that fails for IPv4 or IPv6 keeps that half's last good list, and no range wider than /8 (IPv4) or /16 (IPv6) is trusted, whether it comes from the refresh or from the Custom field."
 msgstr ""

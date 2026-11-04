@@ -91,6 +91,17 @@ class TabGeolocation extends SettingsTab {
 					'error'         => __( 'Save failed', 'ffcertificate' ),
 					'confirmDelete' => __( 'Delete this location?', 'ffcertificate' ),
 					'deleteText'    => __( 'Delete', 'ffcertificate' ),
+					// The accessible name of each cell of a row the script adds,
+					// the same the server-rendered rows carry (#2339).
+					'fieldOf'       => /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ),
+					'fields'        => array(
+						'name'   => __( 'Name', 'ffcertificate' ),
+						'lat'    => __( 'Latitude', 'ffcertificate' ),
+						'lng'    => __( 'Longitude', 'ffcertificate' ),
+						'radius' => __( 'Radius (m)', 'ffcertificate' ),
+						'gps'    => __( 'Default GPS', 'ffcertificate' ),
+						'ip'     => __( 'Default IP', 'ffcertificate' ),
+					),
 				),
 			)
 		);

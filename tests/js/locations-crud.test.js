@@ -22,6 +22,8 @@ beforeAll(() => {
 			error: 'Failed',
 			confirmDelete: 'Delete?',
 			deleteText: 'Delete',
+			fieldOf: '%1$s of %2$s',
+			fields: { name: 'Name', lat: 'Latitude', gps: 'Default GPS' },
 		},
 	};
 	loadScript('assets/js/ffc-core.js');
@@ -424,6 +426,9 @@ describe('locations-crud — addRow', () => {
 		// the raw value is preserved in the input.value).
 		expect($newRow.find('.ffc-location-field[data-field="name"]').val()).toBe('A&B<>"');
 		expect($newRow.find('.ffc-location-field[data-field="lat"]').val()).toBe('10');
+		// Each cell is named for its field and its location, as the server rows are (#2339).
+		expect($newRow.find('.ffc-location-field[data-field="lat"]').attr('aria-label')).toBe('Latitude of A&B<>"');
+		expect($newRow.find('.ffc-location-default-gps').attr('aria-label')).toBe('Default GPS of A&B<>"');
 
 		// New-row inputs cleared.
 		expect(window.$('#ffc-location-new-row .ffc-location-new-field[data-field="name"]').val()).toBe('');

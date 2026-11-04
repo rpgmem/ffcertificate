@@ -125,7 +125,7 @@ class TabRateLimit extends SettingsTab {
 				'max_per_hour'                => $this->post_int_or_current( 'ip_max_per_hour', $this->stored_int( $stored, 'ip', 'max_per_hour', 5 ), 1 ),
 				'max_per_day'                 => $this->post_int_or_current( 'ip_max_per_day', $this->stored_int( $stored, 'ip', 'max_per_day', 20 ), 1 ),
 				'cooldown_seconds'            => $this->post_int_or_current( 'ip_cooldown_seconds', $this->stored_int( $stored, 'ip', 'cooldown_seconds', 60 ), 1 ),
-				'apply_to'                    => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
+				'apply_to'                    => $this->stored_apply_to( $stored, 'ip' ),
 				'message'                     => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
 				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
 					$this->post_int_or_current(
@@ -163,7 +163,7 @@ class TabRateLimit extends SettingsTab {
 				// No field renders this one, so the POST key is always absent
 				// and the old read reset it to 24 on every Save (#1114).
 				'wait_hours'     => min( 8760, $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 0 ), 0 ) ),
-				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
+				'apply_to'       => $this->stored_apply_to( $stored, 'email' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
 			),
@@ -174,7 +174,7 @@ class TabRateLimit extends SettingsTab {
 				'block_threshold' => $this->post_int_or_current( 'cpf_block_threshold', $this->stored_int( $stored, 'cpf', 'block_threshold', 3 ), 1 ),
 				'block_hours'     => $this->post_int_or_current( 'cpf_block_hours', $this->stored_int( $stored, 'cpf', 'block_hours', 1 ), 1 ),
 				'block_duration'  => $this->post_int_or_current( 'cpf_block_duration', $this->stored_int( $stored, 'cpf', 'block_duration', 24 ), 1 ),
-				'apply_to'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'cpf_apply_to', 'all' ),
+				'apply_to'        => $this->stored_apply_to( $stored, 'cpf' ),
 				'message'         => sanitize_textarea_field( wp_unslash( $_POST['cpf_message'] ?? '' ) ),
 				'check_database'  => isset( $_POST['cpf_check_database'] ),
 			),
@@ -376,6 +376,24 @@ class TabRateLimit extends SettingsTab {
 		}
 
 		return max( $min, \FreeFormCertificate\Core\RequestInput::get_post_int( $key, $current ) );
+	}
+
+	/**
+	 * The stored scope of a limit, kept as it is (#2339).
+	 *
+	 * The tab has no field for it: "all forms" was its only choice. A scope
+	 * stored by other means, such as a list of form ids, survives the save.
+	 *
+	 * @param array<string, mixed> $stored Stored settings.
+	 * @param string               $group  Settings group.
+	 * @return string|array<int, int>
+	 */
+	private function stored_apply_to( array $stored, string $group ) {
+		$scope = $stored[ $group ]['apply_to'] ?? 'all';
+		if ( is_array( $scope ) ) {
+			return array_values( array_map( 'intval', $scope ) );
+		}
+		return is_string( $scope ) && '' !== $scope ? $scope : 'all';
 	}
 
 	/**

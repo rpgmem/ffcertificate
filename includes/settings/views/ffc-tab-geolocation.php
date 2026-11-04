@@ -54,6 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											value="<?php echo esc_attr( $ffc_loc['name'] ); ?>"
 											class="regular-text ffc-location-field"
 											data-field="name"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Name', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											required>
 									<?php if ( $ffc_loc['id'] === $ffc_default_gps_id ) : ?>
 										<span class="description">(GPS)</span>
@@ -69,6 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											step="any" min="-90" max="90"
 											class="ffc-location-field ffc-set-w-120"
 											data-field="lat"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Latitude', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											required>
 								</td>
 								<td>
@@ -78,6 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											step="any" min="-180" max="180"
 											class="ffc-location-field ffc-set-w-120"
 											data-field="lng"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Longitude', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											required>
 								</td>
 								<td>
@@ -87,12 +90,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 											step="any" min="1"
 											class="ffc-location-field ffc-set-w-100"
 											data-field="radius"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Radius (m)', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											required>
 								</td>
 								<td>
 									<input type="radio"
 											name="ffc_location_default_gps"
 											class="ffc-location-default-gps"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Default GPS', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_gps_id ); ?>>
 								</td>
@@ -100,6 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<input type="radio"
 											name="ffc_location_default_ip"
 											class="ffc-location-default-ip"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: 1: field name, 2: location name */ __( '%1$s of %2$s', 'ffcertificate' ), __( 'Default IP', 'ffcertificate' ), $ffc_loc['name'] ) ); ?>"
 											value="<?php echo esc_attr( $ffc_loc['id'] ); ?>"
 											<?php checked( $ffc_loc['id'], $ffc_default_ip_id ); ?>>
 								</td>
@@ -133,12 +139,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<input type="radio"
 									name="ffc_location_default_gps"
 									value=""
+									aria-label="<?php esc_attr_e( 'No default GPS location', 'ffcertificate' ); ?>"
 									<?php checked( '', $ffc_default_gps_id ); ?>>
 						</td>
 						<td>
 							<input type="radio"
 									name="ffc_location_default_ip"
 									value=""
+									aria-label="<?php esc_attr_e( 'No default IP location', 'ffcertificate' ); ?>"
 									<?php checked( '', $ffc_default_ip_id ); ?>>
 						</td>
 						<td></td>
@@ -153,6 +161,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<input type="text" name="ffc_location_new[name]" value=""
 									class="regular-text ffc-location-new-field"
 									data-field="name"
+									aria-label="<?php echo esc_attr( sprintf( /* translators: %s: field name */ __( 'New location: %s', 'ffcertificate' ), __( 'Name', 'ffcertificate' ) ) ); ?>"
 									placeholder="<?php esc_attr_e( 'Location name', 'ffcertificate' ); ?>">
 						</td>
 						<td>
@@ -160,6 +169,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									step="any" min="-90" max="90"
 									class="ffc-location-new-field ffc-set-w-120"
 									data-field="lat"
+									aria-label="<?php echo esc_attr( sprintf( /* translators: %s: field name */ __( 'New location: %s', 'ffcertificate' ), __( 'Latitude', 'ffcertificate' ) ) ); ?>"
 									placeholder="<?php esc_attr_e( 'Latitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
@@ -167,6 +177,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									step="any" min="-180" max="180"
 									class="ffc-location-new-field ffc-set-w-120"
 									data-field="lng"
+									aria-label="<?php echo esc_attr( sprintf( /* translators: %s: field name */ __( 'New location: %s', 'ffcertificate' ), __( 'Longitude', 'ffcertificate' ) ) ); ?>"
 									placeholder="<?php esc_attr_e( 'Longitude', 'ffcertificate' ); ?>">
 						</td>
 						<td>
@@ -174,6 +185,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									step="any" min="1"
 									class="ffc-location-new-field ffc-set-w-100"
 									data-field="radius"
+									aria-label="<?php echo esc_attr( sprintf( /* translators: %s: field name */ __( 'New location: %s', 'ffcertificate' ), __( 'Radius (m)', 'ffcertificate' ) ) ); ?>"
 									placeholder="1000">
 						</td>
 						<td colspan="2">
@@ -239,7 +251,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- Enable IP API -->
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'IP Geolocation', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'IP Geolocation', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
@@ -289,7 +301,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- Cascade/Fallback Between Services -->
 				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
-						<label><?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Service Cascade', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
@@ -330,7 +342,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- IP Cache Settings -->
 				<tr data-ffc-section="ip_api_full">
 					<th scope="row">
-						<label><?php esc_html_e( 'IP Cache', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'IP Cache', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
@@ -637,7 +649,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- Bypass Date/Time -->
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'Bypass Date/Time', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Bypass Date/Time', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
@@ -660,7 +672,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<!-- Bypass Geolocation -->
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'Bypass Geolocation', 'ffcertificate' ); ?></label>
+						<?php esc_html_e( 'Bypass Geolocation', 'ffcertificate' ); ?>
 					</th>
 					<td>
 						<?php
@@ -704,7 +716,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</li>
 			<li>
 				<strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong>
-				<?php esc_html_e( 'GPS coordinates are processed client-side only. IP geolocation results are cached temporarily.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'The browser reads the GPS position and sends it with the submission, and the server checks it against the form\'s areas and then discards it: it is neither stored nor logged. When a form caches the check, the browser keeps only a note that it passed, never the position. IP geolocation results are cached temporarily, under a keyed hash of the address.', 'ffcertificate' ); ?>
 			</li>
 		</ul>
 	</div>
