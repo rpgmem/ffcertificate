@@ -136,9 +136,11 @@
             );
             const cta = this.getString('gpsPromptContinue', 'Continue');
 
+            // An explanation before the browser asks, not a warning: it is
+            // announced politely (#2339).
             window.FFC.Preflight.banner(formWrapper, 'preflight-gps', title, body, '', cta, function () {
                 self.validateGeolocation(formWrapper, config, true);
-            });
+            }, { polite: true });
         }
 
     });

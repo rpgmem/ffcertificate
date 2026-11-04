@@ -1260,26 +1260,10 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xs) 0;
 }
 
-/* 6.6.4 — the "try anyway" CTA of the pre-flight banners (cookies / GPS),
-   so permissive users can proceed. The banner itself is a warning
-   `.ffc-notice` (#1842). */
+/* The "try anyway" CTA of the pre-flight banners (cookies / GPS) is a
+   neutral `.ffc-btn` (#2339); only its place in the banner is set here. */
 .ffc-preflight-try-anyway {
-    display: inline-block;
     margin-top: var(--ffc-spacing-md);
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
-    background: transparent;
-    color: var(--ffc-warning-text);
-    border: 1px solid var(--ffc-warning-border);
-    border-radius: var(--ffc-radius-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s ease;
-}
-
-.ffc-preflight-try-anyway:hover,
-.ffc-preflight-try-anyway:focus {
-    background: var(--ffc-warning);
-    color: var(--ffc-text-on-warning);
 }
 
 /* "Continue anyway" of the browser step's in-app block (#2030): discreet on

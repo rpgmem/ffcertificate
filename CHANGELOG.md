@@ -56,6 +56,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Honeypot: a neutral field name and a minimum time** (#2339). The trap field no longer names itself, and a signed render time refuses a form posted less than 3 seconds after it appeared; cached pages get a fresh one with the captcha. Every honeypot refusal reads the same, and the reregistration form now sends its trap.
 - **Captcha: a network over the challenge cap is told how long to wait** (#2339). The refusal carries `Retry-After`, and the widget shows the wait instead of asking for a reload, which only asked for another challenge; it comes back on its own when the window ends.
 - **Rate limits: every setting works, and a refusal says the real wait** (#2339). {time} is the time left, not a fixed "1 hour"; Show remaining attempts adds "You have used N of M"; the countdown follows its switch; the CPF/RF block counts over its hours; Log blocked works; an e-mail interval joins the tab, off. Refusals say what to do next.
+- **Pre-flight and GPS: accessible** (#2339). "Try anyway" and "Continue" are neutral family buttons; after one, the focus moves to the next notice or the form instead of the page top. The location explainer is announced politely, and the GPS waiting message is a status with a silent spinner.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
