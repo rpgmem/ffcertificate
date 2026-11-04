@@ -90,6 +90,23 @@ class Encryption {
 	private static ?string $wp_derived_mac_key = null;
 
 	/**
+	 * Option holding how many requests read a legacy v1 ciphertext, and when
+	 * the last one did (#2339). The v1 format carries no MAC, so a v1 value
+	 * is accepted without authentication; this count is the evidence that
+	 * decides when the format can be refused, the shim's exit condition.
+	 *
+	 * @var string
+	 */
+	public const LEGACY_V1_OPTION = 'ffc_encryption_v1_reads';
+
+	/**
+	 * Whether this request already counted a v1 read: one request, one count.
+	 *
+	 * @var bool
+	 */
+	private static bool $v1_counted = false;
+
+	/**
 	 * Encrypt a value
 	 *
 	 * Produces an authenticated (encrypt-then-MAC) ciphertext in the format
@@ -244,6 +261,8 @@ class Encryption {
 
 		if ( null === $result ) {
 			self::log_decrypt_failure( $encrypted );
+		} elseif ( 0 !== strpos( $encrypted, self::V2_PREFIX ) ) {
+			self::record_v1_read();
 		}
 
 		return $result;
@@ -356,6 +375,61 @@ class Encryption {
 			unset( $e );
 			return null;
 		}
+	}
+
+	/**
+	 * Count a request that read a legacy v1 ciphertext (#2339).
+	 *
+	 * Once per request, and never in the way of the read: a failure to
+	 * write is swallowed, like the failure log below.
+	 *
+	 * @return void
+	 */
+	private static function record_v1_read(): void {
+		if ( self::$v1_counted || ! function_exists( 'get_option' ) || ! function_exists( 'update_option' ) ) {
+			return;
+		}
+		self::$v1_counted = true;
+
+		try {
+			$reads = self::legacy_v1_reads();
+			\update_option(
+				self::LEGACY_V1_OPTION,
+				array(
+					'count' => $reads['count'] + 1,
+					'last'  => time(),
+				),
+				false
+			);
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+	}
+
+	/**
+	 * How many requests read a legacy v1 ciphertext, and when the last did.
+	 *
+	 * @return array{count: int, last: int}
+	 */
+	public static function legacy_v1_reads(): array {
+		$stored = function_exists( 'get_option' ) ? \get_option( self::LEGACY_V1_OPTION, array() ) : array();
+		$stored = is_array( $stored ) ? $stored : array();
+
+		return array(
+			'count' => max( 0, (int) ( $stored['count'] ?? 0 ) ),
+			'last'  => max( 0, (int) ( $stored['last'] ?? 0 ) ),
+		);
+	}
+
+	/**
+	 * Forget that this request counted a v1 read.
+	 *
+	 * Test seam: the flag is static and outlives a test method.
+	 *
+	 * @return void
+	 */
+	public static function reset_v1_counter(): void {
+		self::$v1_counted = false;
 	}
 
 	/**
@@ -871,8 +945,11 @@ class Encryption {
 			$secrets[] = defined( 'NONCE_KEY' ) ? (string) NONCE_KEY : '';
 		}
 
-		// Search-hash salt material.
-		if ( defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT ) {
+		// Search-hash salt material. A defined FFC_HASH_SALT is what
+		// get_hash_salt() uses even when it is empty, so an empty one is
+		// reported as the empty secret it is (#2339), not hidden behind the
+		// WordPress keys it does not fall back to.
+		if ( defined( 'FFC_HASH_SALT' ) ) {
 			$secrets[] = (string) FFC_HASH_SALT;
 		} else {
 			$secrets[] = defined( 'AUTH_KEY' ) ? (string) AUTH_KEY : '';
@@ -907,23 +984,27 @@ class Encryption {
 	 * key/salt sources, and a non-reversible fingerprint of the active
 	 * encryption key so an operator can confirm a rotation without seeing it.
 	 *
-	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, key_source: string, salt_source: string, fingerprint: string, rekey_in_progress: bool, previous_fingerprint: string}
+	 * @return array{status: string, encryption_decoupled: bool, salt_decoupled: bool, salt_empty: bool, key_source: string, salt_source: string, fingerprint: string, rekey_in_progress: bool, previous_fingerprint: string, legacy_v1_reads: array{count: int, last: int}}
 	 */
 	public static function key_health_report(): array {
 		$enc_decoupled  = self::is_decoupled();
 		$salt_decoupled = defined( 'FFC_HASH_SALT' ) && '' !== (string) FFC_HASH_SALT;
+		$salt_empty     = defined( 'FFC_HASH_SALT' ) && '' === (string) FFC_HASH_SALT;
 		$rekeying       = self::has_previous_key();
 
 		return array(
 			'status'               => self::key_health(),
 			'encryption_decoupled' => $enc_decoupled,
 			'salt_decoupled'       => $salt_decoupled,
+			// Defined but empty: every search hash runs on an empty salt.
+			'salt_empty'           => $salt_empty,
 			'key_source'           => $enc_decoupled ? 'FFC_ENCRYPTION_KEY' : 'WordPress keys (SECURE_AUTH_KEY + LOGGED_IN_KEY + NONCE_KEY)',
-			'salt_source'          => $salt_decoupled ? 'FFC_HASH_SALT' : 'WordPress keys (AUTH_KEY + SECURE_AUTH_KEY)',
+			'salt_source'          => $salt_decoupled ? 'FFC_HASH_SALT' : ( $salt_empty ? 'FFC_HASH_SALT (empty)' : 'WordPress keys (AUTH_KEY + SECURE_AUTH_KEY)' ),
 			'fingerprint'          => self::key_fingerprint(),
 			// #863 re-key state: a previous FFC key is temporarily in play.
 			'rekey_in_progress'    => $rekeying,
 			'previous_fingerprint' => $rekeying ? self::fingerprint_of( self::previous_encryption_key() ) : '',
+			'legacy_v1_reads'      => self::legacy_v1_reads(),
 		);
 	}
 

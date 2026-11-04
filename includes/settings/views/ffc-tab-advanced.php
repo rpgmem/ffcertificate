@@ -580,6 +580,20 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
 			</p>
+			<?php if ( ! empty( $ffc_kh['salt_empty'] ) ) : ?>
+				<p>
+					<?php
+					echo wp_kses(
+						sprintf(
+							/* translators: %s: the FFC_HASH_SALT constant name. */
+							__( '%s is defined but empty, so every search hash is computed with no salt. Changing it re-hashes nothing on its own: plan it like a key rotation.', 'ffcertificate' ),
+							'<code>FFC_HASH_SALT</code>'
+						),
+						array( 'code' => array() )
+					);
+					?>
+				</p>
+			<?php endif; ?>
 			<ul class="ffc-list-disc">
 				<li><?php esc_html_e( 'New install (no data yet): generate fresh secret keys and paste them into wp-config.php.', 'ffcertificate' ); ?></li>
 				<li>
@@ -662,6 +676,30 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<td>
 					<code><?php echo esc_html( isset( $ffc_kh['fingerprint'] ) ? (string) $ffc_kh['fingerprint'] : '' ); ?></code>
 					<p class="description"><?php esc_html_e( 'A non-reversible fingerprint of the active encryption key. It changes if the underlying secret changes — use it to confirm a rotation without exposing the key.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<?php
+			$ffc_kh_v1       = isset( $ffc_kh['legacy_v1_reads'] ) && is_array( $ffc_kh['legacy_v1_reads'] ) ? $ffc_kh['legacy_v1_reads'] : array();
+			$ffc_kh_v1_count = (int) ( $ffc_kh_v1['count'] ?? 0 );
+			?>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></th>
+				<td>
+					<?php if ( 0 === $ffc_kh_v1_count ) : ?>
+						<?php esc_html_e( 'None recorded.', 'ffcertificate' ); ?>
+					<?php else : ?>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: number of requests, 2: date and time of the last one. */
+								_n( '%1$s request read a value in the old format without authentication; the last on %2$s.', '%1$s requests read a value in the old format without authentication; the last on %2$s.', $ffc_kh_v1_count, 'ffcertificate' ),
+								number_format_i18n( $ffc_kh_v1_count ),
+								\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $ffc_kh_v1['last'] ?? 0 ) )
+							)
+						);
+						?>
+					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'The oldest encrypted values carry no integrity check. They are still read, and each request that reads one is counted here; once nothing has been counted for a long while, the old format can be refused.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<?php if ( ! empty( $ffc_kh['rekey_in_progress'] ) ) : ?>

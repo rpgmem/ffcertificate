@@ -45,8 +45,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest. By default FFC derives its encryption key and search-hash salt from your WordPress secret keys (SECURE_AUTH_KEY, LOGGED_IN_KEY, NONCE_KEY). This panel reports whether that secret material is strong, and lets you optionally decouple FFC from the WordPress salts.', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><strong><?php esc_html_e( 'Status', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'ok / weak / placeholder / missing, taken across the secrets that actually feed the key + salt.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Key / salt source', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the WordPress keys, or the FFC constants once decoupled.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Key / salt source', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the WordPress keys, or the FFC constants once decoupled. An FFC_HASH_SALT defined as empty is used as it is, so it reads as a missing secret.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Active key fingerprint', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a non-reversible fingerprint (the key itself is never displayed) so you can confirm which key is live and detect a rotation.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many requests read a value stored in the oldest format, which carries no integrity check, and when the last did. Once nothing has been counted for a long while, that format can be refused.', 'ffcertificate' ); ?></li>
 	</ul>
 
 	<p>
