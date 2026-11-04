@@ -597,7 +597,6 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$list = SettingsAjaxEndpoint::allowlist();
 		$expected = array(
 			'ip_max_per_hour'        => array( array( 'ip',     'max_per_hour' ),     'int' ),
-			'ip_apply_to'            => array( array( 'ip',     'apply_to' ),         'string' ),
 			'ip_message'             => array( array( 'ip',     'message' ),          'string' ),
 			'cpf_block_duration'     => array( array( 'cpf',    'block_duration' ),   'int' ),
 			'device_message'         => array( array( 'device', 'message' ),          'string' ),

@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul class="ffc-doc-list">
 		<li>
 			<strong><?php esc_html_e( 'Honeypot & CAPTCHA:', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires, and can only be used once and on the form it was issued for. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha.', 'ffcertificate' ); ?>
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Rate limiting:', 'ffcertificate' ); ?></strong><br>
@@ -82,7 +82,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Encryption at rest (LGPD):', 'ffcertificate' ); ?></strong><br>
-			<?php esc_html_e( 'E-mail, CPF, RF, the client IP and the submission\'s extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'E-mail, CPF, RF, the client IP and the submission\'s extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a keyed hash backs lookups. Display is masked for every member of staff, and a holder of the module\'s PII capability reveals a value with an audited Reveal. Settings → Advanced → Encryption Key Health says whether the keys and the hash salt are set, and how often a value written in the old, unauthenticated format is still read.', 'ffcertificate' ); ?>
 		</li>
 	</ul>
 </div>

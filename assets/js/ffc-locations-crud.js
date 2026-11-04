@@ -139,17 +139,24 @@
         var lng = String(loc.lng == null ? '' : loc.lng);
         var radius = String(loc.radius == null ? '' : loc.radius);
         var deleteText = strings.deleteText || 'Delete';
+        // Each cell's accessible name, as the server-rendered rows carry it.
+        var fields = strings.fields || {};
+        function aria(key) {
+            var field = fields[key] || key;
+            var text = strings.fieldOf ? String(strings.fieldOf).replace('%1$s', field).replace('%2$s', nm) : field + ' ' + nm;
+            return ' aria-label="' + escAttr(text) + '"';
+        }
 
         var $row = $(
             '<tr class="ffc-location-row" data-location-id="' + escAttr(id) + '">' +
                 '<td>' +
-                    '<input type="text" name="ffc_locations[' + escAttr(id) + '][name]" value="' + escAttr(nm) + '" class="regular-text ffc-location-field" data-field="name" required>' +
+                    '<input type="text" name="ffc_locations[' + escAttr(id) + '][name]" value="' + escAttr(nm) + '" class="regular-text ffc-location-field" data-field="name"' + aria('name') + ' required>' +
                 '</td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lat]" value="' + escAttr(lat) + '" step="any" min="-90" max="90" class="ffc-location-field ffc-set-w-120" data-field="lat" required></td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lng]" value="' + escAttr(lng) + '" step="any" min="-180" max="180" class="ffc-location-field ffc-set-w-120" data-field="lng" required></td>' +
-                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][radius]" value="' + escAttr(radius) + '" step="any" min="1" class="ffc-location-field ffc-set-w-100" data-field="radius" required></td>' +
-                '<td><input type="radio" name="ffc_location_default_gps" class="ffc-location-default-gps" value="' + escAttr(id) + '"></td>' +
-                '<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="' + escAttr(id) + '"></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lat]" value="' + escAttr(lat) + '" step="any" min="-90" max="90" class="ffc-location-field ffc-set-w-120" data-field="lat"' + aria('lat') + ' required></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][lng]" value="' + escAttr(lng) + '" step="any" min="-180" max="180" class="ffc-location-field ffc-set-w-120" data-field="lng"' + aria('lng') + ' required></td>' +
+                '<td><input type="number" name="ffc_locations[' + escAttr(id) + '][radius]" value="' + escAttr(radius) + '" step="any" min="1" class="ffc-location-field ffc-set-w-100" data-field="radius"' + aria('radius') + ' required></td>' +
+                '<td><input type="radio" name="ffc_location_default_gps" class="ffc-location-default-gps" value="' + escAttr(id) + '"' + aria('gps') + '></td>' +
+                '<td><input type="radio" name="ffc_location_default_ip" class="ffc-location-default-ip" value="' + escAttr(id) + '"' + aria('ip') + '></td>' +
                 '<td>' +
                     FFC.buttonHtml({ label: deleteText, category: 'danger', icon: 'delete', className: 'ffc-location-delete' }) +
                     '<span class="ffc-autosave-badge ffc-status" role="status" aria-live="polite" hidden></span>' +

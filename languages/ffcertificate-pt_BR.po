@@ -1682,10 +1682,6 @@ msgstr "Todos os Ambientes"
 msgid "All Forms"
 msgstr "Todos os Formulários"
 
-#: includes/settings/views/ffc-tab-rate-limit.php:40
-msgid "All forms"
-msgstr "Todos os formulários"
-
 #: includes/admin/views/ffc-admin-activity-log.php:33
 msgid "All Levels"
 msgstr "Todos os Níveis"
@@ -2012,10 +2008,6 @@ msgstr "Aplicar"
 #: includes/admin/class-ffc-submissions-list.php:632
 msgid "Apply Filter"
 msgstr "Aplicar Filtro"
-
-#: includes/settings/views/ffc-tab-rate-limit.php:40
-msgid "Apply to"
-msgstr "Aplicar para"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointment-cancellation-handler.php:253
 msgid "Appointment"
@@ -8507,10 +8499,6 @@ msgstr "Duração do cache GPS (TTL)"
 msgid "GPS cache TTL"
 msgstr "Cache GPS TTL"
 
-#: includes/settings/views/ffc-tab-geolocation.php:577
-msgid "GPS coordinates are processed client-side only. IP geolocation results are cached temporarily."
-msgstr "As coordenadas GPS são processadas apenas no lado do cliente. Os resultados da geolocalização por IP são armazenados em cache temporariamente."
-
 #: includes/settings/views/documentation/feature-certificates.php:56
 msgid "GPS coordinates of the center point"
 msgstr "Coordenadas GPS do ponto central"
@@ -8842,10 +8830,6 @@ msgstr "Por quanto tempo um desafio permanece válido após ser emitido. Tempo s
 msgid "how long an issued challenge stays valid. Long enough to fill in the form without rushing, short enough that a solved challenge is not worth stockpiling."
 msgstr "por quanto tempo um desafio emitido permanece válido. Tempo suficiente para preencher o formulário sem pressa, mas curto o bastante para que não valha a pena acumular desafios resolvidos."
 
-#: includes/settings/views/documentation/config-geolocation.php:38
-msgid "How long the browser remembers a GPS fix (60–3600s, default 600)."
-msgstr "Por quanto tempo o navegador retém uma localização GPS (60–3600 s; padrão: 600)."
-
 #: includes/settings/views/ffc-tab-geolocation.php:353
 msgid "How long to cache GPS location in browser. Range: 60-3600 seconds (1 min - 1 hour). Default: 600 (10 min)."
 msgstr "Tempo de armazenamento em cache da localização GPS no navegador. Intervalo: 60 a 3600 segundos (1 minuto a 1 hora). Padrão: 600 segundos (10 minutos)."
@@ -8861,11 +8845,6 @@ msgstr "Por quanto tempo mantemos seus dados"
 #: includes/settings/views/documentation/feature-self-scheduling.php:40
 msgid "How many bookings a single slot accepts (default 1). An optional daily cap limits bookings per day. Custom-mode blocks carry their own per-block capacity."
 msgstr "Define quantas reservas um único espaço aceita (padrão: 1). Um limite diário opcional restringe o número de reservas por dia. Blocos em modo personalizado possuem sua própria capacidade individual."
-
-#: includes/settings/views/ffc-tab-rate-limit.php:295
-#| msgid "How many non-cookie signals must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
-msgid "How many non-cookie signals (strong + weak) must match to consider it the same device. Lower = more aggressive (more false positives). Higher = harder to bypass but easier to evade. The default is 7 of 13."
-msgstr "Quantos sinais que não sejam cookies (fortes + fracos) precisam coincidir para que o dispositivo seja considerado o mesmo? Um valor mais baixo é mais agressivo (gera mais falsos positivos). Um valor mais alto torna a detecção mais difícil de burlar, porém mais fácil de evitar. O padrão é 7 de 13."
 
 #: includes/settings/views/documentation/config-rate-limit.php:45
 msgid "how many signals must match (default 7)."
@@ -9111,10 +9090,6 @@ msgstr "Em Andamento"
 #: includes/admin/class-ffc-form-editor.php:101 includes/security/class-ffc-geofence.php:125
 msgid "In span mode, the end datetime must be after the start datetime."
 msgstr "No modo de intervalo (span), a data e hora de término devem ser posteriores à data e hora de início."
-
-#: includes/settings/views/documentation/config-captcha.php:67
-msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a hashed, truncated IP — so you can tell whether anyone still needs the fallback before switching it off."
-msgstr "No modo de contingência (*fallback*), uma submissão que chega sem prova de trabalho é registrada no Log de Atividades com um IP truncado e convertido em hash — permitindo identificar se alguém ainda precisa desse recurso antes de desativá-lo."
 
 #: includes/settings/views/ffc-tab-migrations.php:614
 msgid "In the trash (status = trashed)"
@@ -14066,10 +14041,6 @@ msgstr "Devoluções"
 msgid "returns JSON"
 msgstr "retorna JSON"
 
-#: includes/settings/views/documentation/forms-geolocation.php:37
-msgid "Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it."
-msgstr "Locais reutilizáveis ​​são gerenciados em Configurações → Geolocalização e compartilhados por todos os formulários. Cada um possui nome, latitude/longitude, raio (em metros) e sinalizadores opcionais de \"padrão para GPS\" ou \"padrão para IP\" — um novo formulário seleciona automaticamente as opções padrão. A edição de um local atualiza todos os formulários que o utilizam como referência."
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php:469 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:146 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:256 includes/self-scheduling/views/appointments-list.php:192
 msgid "Reveal"
 msgstr "Revelar"
@@ -17841,10 +17812,6 @@ msgstr "Migração desconhecida."
 #: includes/settings/views/ffc-tab-cache.php:44
 msgid "Unknown page cache (WPCACHEHOME defined)"
 msgstr "Cache de página desconhecido (WPCACHEHOME definido)"
-
-#: includes/settings/views/ffc-tab-rate-limit.php:292
-msgid "Unlike the limits above, 0 is a value here: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and this endpoint is unlimited even with the toggle on."
-msgstr "Ao contrário dos limites acima, aqui 0 é um valor: ele remove por completo o teto daquele eixo, deixando o trabalho para o outro. Defina os dois como 0 e este endpoint fica ilimitado mesmo com a chave ligada."
 
 #: includes/frontend/class-ffc-frontend.php:489
 msgid "Unlimited"
@@ -22178,9 +22145,6 @@ msgstr "Configurações → Diagnóstico de IP define como o plugin descobre o e
 msgid "Legacy"
 msgstr "Legado"
 
-msgid "the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address."
-msgstr "o padrão em vigor. Confia em cabeçalhos enviados pelo cliente, como X-Forwarded-For, então um cabeçalho forjado pode falsificar o endereço."
-
 msgid "Secure (recommended)"
 msgstr "Segura (recomendada)"
 
@@ -22198,12 +22162,6 @@ msgstr "como a sua própria requisição seria resolvida, os cabeçalhos recebid
 
 msgid "Cloudflare ranges"
 msgstr "Intervalos da Cloudflare"
-
-msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now."
-msgstr "as listas oficiais de IPs da Cloudflare, atualizadas diariamente (uma lista embutida é usada até a primeira atualização), com um botão para atualizá-las agora."
-
-msgid "off by default. When on, it logs (with a hashed IP) every request where the two strategies would disagree, so you can measure the impact before switching."
-msgstr "desativado por padrão. Quando ativado, registra (com IP em hash) cada requisição em que as duas estratégias divergiriam, para que você meça o impacto antes de trocar."
 
 msgid "Why Legacy is still the default:"
 msgstr "Por que Legado ainda é o padrão:"
@@ -22614,9 +22572,6 @@ msgstr "Defina \"notice\" com o código do edital. A lista mostra apenas as colu
 
 msgid "Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved."
 msgstr "Cada participante deve apresentar um código de uso único de um conjunto gerado. O código é resgatado de forma atômica (apenas uma utilização) e removido do conjunto assim que a verificação de restrições é aprovada, antes de o envio ser salvo."
-
-msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a salted hash backs lookups. Display is masked unless the viewer holds a PII capability."
-msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário do envio são armazenados criptografados com AES-256-CBC usando encrypt-then-HMAC; um hash com salt sustenta as buscas. A exibição é mascarada, a menos que o usuário tenha uma capacidade de dados pessoais (PII)."
 
 msgid "Sensitive identifiers — e-mail, CPF and RF — are encrypted (AES-256-CBC with a per-record random IV and an encrypt-then-HMAC integrity check), never stored in the clear. Certificate submissions also encrypt the client IP and the extra form data."
 msgstr "Identificadores sensíveis — e-mail, CPF e RF — são criptografados (AES-256-CBC com um IV aleatório por registro e uma verificação de integridade encrypt-then-HMAC), nunca armazenados em texto puro. Os envios de certificado também criptografam o IP do cliente e os dados extras do formulário."
@@ -28094,9 +28049,6 @@ msgstr "O navegador só informa quando perguntar."
 msgid "This browser cannot give a location."
 msgstr "Este navegador não consegue fornecer a localização."
 
-msgid "This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is."
-msgstr "Esta página executa as verificações que um formulário faz antes de ser usado e mostra cada resultado. Nada é enviado nem guardado, e a sua posição nunca é exibida: apenas a precisão dela."
-
 msgid "To ask for help, send a screenshot of this page or paste the copied results."
 msgstr "Para pedir ajuda, envie uma captura desta página ou cole os resultados copiados."
 
@@ -28456,9 +28408,6 @@ msgstr "precisão ainda não testada"
 
 msgid "Press \"Test my location\" under Device settings to finish the test."
 msgstr "Toque em \"Testar minha localização\" em Ajustes do aparelho para concluir o teste."
-
-msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Nothing is sent or stored, and the position itself is never shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
-msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado em seções (rede, navegador, proteções dos formulários, ajustes do aparelho, exibição e download do PDF) que ficam fechadas enquanto tudo passa e abrem sozinhas quando uma verificação avisa ou falha: conexão segura, conexão, se uma requisição chega ao servidor (e quanto tempo levou), o navegador com nome e versão, cookies, armazenamento local, o captcha (o que o ALTCHA precisa e se o widget carregou), o ID do dispositivo lido pelo limite por dispositivo (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, a localização do dispositivo (a permissão e, quando o visitante pede, a precisão), tela, o tema em uso e, por último, o download do PDF. Um resumo acima das seções diz se o dispositivo está pronto, pronto com avisos ou se pode falhar; o teste só é concluído quando o visitante toca em \"Testar minha localização\", que lê a precisão da localização. Uma linha com falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Um bloqueador de conteúdo ou de scripts é apontado onde impede a requisição ao servidor, o ID do dispositivo ou o captcha; quando impede os próprios scripts do teste, a página avisa depois de alguns segundos sem eles. Uma página servida de um cache antigo, cujos scripts são de uma versão anterior, também é apontada, e quantas vezes um mesmo endereço pode executar o teste é definido em Configurações → Taxa Limite (padrão: 60 execuções a cada 10 minutos). Nada é enviado nem armazenado, e a posição em si nunca é mostrada. O botão \"Copiar os resultados\" coloca no clipboard os resultados, a versão do plugin, o modo do captcha, se o limite por dispositivo está ativado, a identificação do navegador e a hora, para uma mensagem a quem dá suporte ao visitante."
 
 msgid "Your location is not precise enough to confirm you are at the event. Move to an open area or turn on precise location, then try again. On a computer, open this page on your phone with location turned on."
 msgstr "Sua localização não é precisa o bastante para confirmar que você está no evento. Vá para um local aberto ou ative a localização precisa e tente novamente. Em um computador, abra esta página no celular com a localização ligada."
@@ -31528,10 +31477,6 @@ msgstr "Ele foi salvo como o número de sinais fortes ativados."
 msgid "No signals"
 msgstr "Sem sinais"
 
-#: includes/settings/views/documentation/config-rate-limit.php:57
-msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
-msgstr "Listas fixas que liberam ou bloqueiam requisições, cada uma por IP, e-mail, domínio de e-mail (formato *@dominio.com) ou CPF/RF. A lista de bloqueio é verificada primeiro e recusa de imediato. Um endereço liberado passa por todos os limites; um e-mail, domínio ou CPF/RF liberado passa apenas pelos limites desse e-mail ou CPF/RF, já que é o visitante quem os digita, e os limites por endereço, por dispositivo e globais e o captcha continuam valendo."
-
 #: includes/settings/class-ffc-rate-limit-settings-reader.php:281
 #, php-format
 msgid "The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals."
@@ -31548,10 +31493,6 @@ msgstr "quantos deles precisam ser sinais fortes (padrão 2); 0 desativa o níve
 #: includes/settings/views/documentation/config-rate-limit.php:43
 msgid "the IP limit and both cards say what happens to a visitor whose address cannot be read — every visitor on an internal network of private addresses, for example. \"Let through\" does not count them; \"Count together\" puts all of them under one shared cap. The IP limit counts them together by default, as it always has; the two cards let them through by default. IPv4 addresses are counted one by one, IPv6 addresses by their /64 block, which belongs to one subscriber."
 msgstr "o limite por IP e os dois cartões dizem o que acontece com um visitante cujo endereço não pode ser lido — todos os visitantes de uma rede interna de endereços privados, por exemplo. \"Liberar\" não os conta; \"Contar juntos\" coloca todos sob um limite compartilhado. O limite por IP os conta juntos por padrão, como sempre fez; os dois cartões os liberam por padrão. Endereços IPv4 são contados um a um, e IPv6 pelo bloco /64, que pertence a um assinante."
-
-#: includes/settings/views/documentation/config-captcha.php:54
-msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed."
-msgstr "Independentemente do modo em vigor, o token é assinado com uma chave derivada deste site, expira e é aceito uma única vez e só onde foi emitido: um desafio resolvido em um formulário é recusado em outro, então uma resposta capturada não pode ser reutilizada."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:195
 #, php-format
@@ -31706,10 +31647,6 @@ msgstr "Este formulário não pode ser usado agora: a restrição de localizaç�
 msgid "This location is used by these forms; choose another area for them first: %s"
 msgstr "Este local é usado por estes formulários; escolha outra área para eles antes: %s"
 
-#: includes/settings/views/documentation/reference-security.php:73
-msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires and can only be used once. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
-msgstr "Um campo honeypot invisível e um horário assinado de quando o formulário foi exibido: um envio feito menos de 3 segundos depois de o formulário aparecer é recusado, com a mesma mensagem de um honeypot preenchido. Depois, um desafio que o visitante precisa resolver. Há dois disponíveis: uma pergunta de aritmética que funciona sem JavaScript, e o ALTCHA, uma prova de trabalho resolvida no navegador e servida inteiramente por este site. Em ambos os casos o token é assinado, expira e só pode ser usado uma vez. Os dois também podem funcionar lado a lado, para que um visitante sem JavaScript ainda tenha como passar — esse modo amplia o alcance, não a força, já que o servidor aceita qualquer uma das provas. Escolha o modo em Configurações → Captcha."
-
 #: includes/core/class-ffc-honeypot.php:133
 msgid "Your submission could not be accepted. Please wait a moment and try again."
 msgstr "Não foi possível aceitar o seu envio. Aguarde um instante e tente de novo."
@@ -31851,3 +31788,132 @@ msgstr "Um mecanismo de *fingerprinting* de navegador/dispositivo que respeita a
 #: includes/settings/views/documentation/config-rate-limit.php:62
 msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. The browser of the visitor (its user agent) is not recorded. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
 msgstr "eventos bloqueados e permitidos, cada um com sua própria chave, com um prazo de retenção e um limite de linhas. O navegador do visitante (o user agent) não é registrado. Nada é guardado em texto claro: um endereço é identificado por uma impressão digital com chave, que conta um visitante IPv6 pelo seu bloco /64, e ele próprio é guardado só criptografado; um endereço de e-mail ou CPF/RF é identificado por um hash com chave, então não pode ser recuperado testando todos os CPFs; qualquer outro identificador é transformado em hash. As linhas gravadas antes dessas mudanças mantêm o endereço em texto claro até a migração \"Log do Rate Limit: Criptografar Endereços\" rodar, e um e-mail ou CPF/RF sob um hash sem chave até a migração \"Rate Limit: Identificadores com Chave\" excluí-las."
+
+#: includes/settings/views/documentation/config-geolocation.php:42
+msgid "Above this many times the radius (0.1 to 1, default 0.5), an accepted reading opens the form with a notice of its error in metres. It changes no decision."
+msgstr "Acima de tantas vezes o raio (0,1 a 1, padrão 0,5), uma leitura aceita abre o formulário com um aviso do seu erro em metros. Não muda nenhuma decisão."
+
+#: includes/settings/views/documentation/reference-security.php:73
+msgid "An invisible honeypot field, and a signed time the form was shown: a submission sent less than 3 seconds after the form appeared is refused, with the same message as a filled honeypot. Then a challenge the visitor has to pass. Two are available: an arithmetic question that works without JavaScript, and ALTCHA, a proof of work solved in the browser and served entirely from this site. Either way the token is signed, expires, and can only be used once and on the form it was issued for. The two can also run side by side, so a visitor without JavaScript still has a way through — that mode is reach, not extra strength, since the server accepts either proof. Choose the mode in Settings → Captcha."
+msgstr "Um campo honeypot invisível e um horário assinado de quando o formulário foi exibido: um envio feito menos de 3 segundos depois de o formulário aparecer é recusado, com a mesma mensagem de um honeypot preenchido. Depois, um desafio que o visitante precisa resolver. Há dois disponíveis: uma pergunta de aritmética que funciona sem JavaScript, e o ALTCHA, uma prova de trabalho resolvida no navegador e servida inteiramente por este site. Em ambos os casos o token é assinado, expira e só pode ser usado uma vez e no formulário para o qual foi emitido. Os dois também podem funcionar lado a lado, para que um visitante sem JavaScript ainda tenha como passar — esse modo amplia o alcance, não a força, já que o servidor aceita qualquer uma das provas. Escolha o modo em Configurações → Captcha."
+
+#: includes/settings/views/documentation/config-rate-limit.php:41
+msgid "Check database:"
+msgstr "Verificar banco de dados:"
+
+#: includes/settings/views/ffc-tab-rate-limit.php:20
+msgid "Counts submissions per address. Everyone behind one network address translation, such as a school, an office or a mobile carrier, shares that address and so shares these limits: raise them, or add the address to the whitelist, when a whole room submits at once."
+msgstr "Conta os envios por endereço. Todos que estão atrás de uma mesma tradução de endereços de rede (NAT), como uma escola, um escritório ou uma operadora de celular, compartilham esse endereço e, portanto, esses limites: aumente-os, ou adicione o endereço à lista de permissões, quando uma sala inteira enviar ao mesmo tempo."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:271
+msgid "Counts this CPF/RF's earlier submissions. Off, the monthly and yearly limits do not apply; the block after repeated attempts still does."
+msgstr "Conta os envios anteriores deste CPF/RF. Desligado, os limites mensal e anual não se aplicam; o bloqueio após tentativas repetidas continua valendo."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:224
+msgid "Counts this e-mail's earlier submissions. Off, nothing is counted, so the e-mail limit below, the hours between submissions included, does not apply."
+msgstr "Conta os envios anteriores deste e-mail. Desligado, nada é contado, então o limite de e-mail abaixo, incluindo as horas entre envios, não se aplica."
+
+#: includes/settings/views/documentation/reference-security.php:85
+msgid "E-mail, CPF, RF, the client IP and the submission's extra form data are stored encrypted with AES-256-CBC using encrypt-then-HMAC; a keyed hash backs lookups. Display is masked for every member of staff, and a holder of the module's PII capability reveals a value with an audited Reveal. Settings → Advanced → Encryption Key Health says whether the keys and the hash salt are set, and how often a value written in the old, unauthenticated format is still read."
+msgstr "E-mail, CPF, RF, o IP do cliente e os dados extras do formulário são armazenados criptografados com AES-256-CBC usando encrypt-then-HMAC; um hash com chave sustenta as buscas. A exibição é mascarada para toda a equipe, e quem tem a capacidade de dados pessoais do módulo revela um valor com um Revelar auditado. Configurações → Avançado → Integridade da Chave de Criptografia diz se as chaves e o sal do hash estão definidos, e com que frequência um valor gravado no formato antigo, não autenticado, ainda é lido."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:289
+msgid "Hours the attempts are counted over"
+msgstr "Horas em que as tentativas são contadas"
+
+#: includes/settings/views/documentation/config-geolocation.php:40
+msgid "How long a GPS reading may be reused before the browser is asked again (60–3600s, default 600). A form that caches the check keeps only a note that it passed, never the position."
+msgstr "Por quanto tempo uma leitura de GPS pode ser reaproveitada antes de o navegador ser consultado de novo (60–3600 s, padrão 600). Um formulário que guarda a verificação em cache mantém apenas um registro de que ela passou, nunca a posição."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:468
+msgid "How many of the 13 signals other than the cookie (strong and weak) must match for two visits to count as the same device. Lower blocks more readily, so different people on similar devices are more often taken for one; higher blocks less, so a device that changes a few signals gets through more easily. The default is 7."
+msgstr "Quantos dos 13 sinais além do cookie (fortes e fracos) precisam coincidir para que duas visitas contem como o mesmo dispositivo. Mais baixo bloqueia com mais facilidade, então pessoas diferentes em dispositivos parecidos são tomadas por uma só com mais frequência; mais alto bloqueia menos, então um dispositivo que muda alguns sinais passa com mais facilidade. O padrão é 7."
+
+#: includes/settings/views/documentation/config-geolocation.php:41
+msgid "How many times an area's radius a reading's margin of error may reach and still count as inside (1 to 3, default 1.5)."
+msgstr "Quantas vezes o raio da área a margem de erro de uma leitura pode alcançar e ainda contar como dentro (1 a 3, padrão 1,5)."
+
+#: includes/settings/views/documentation/config-captcha.php:69
+msgid "In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a truncated keyed fingerprint of the IP, never the address — so you can tell whether anyone still needs the fallback before switching it off."
+msgstr "No modo alternativo, um envio que chega sem prova de trabalho é registrado no Log de Atividades com uma impressão digital com chave e truncada do IP, nunca o endereço — assim você sabe se alguém ainda precisa da alternativa antes de desligá-la."
+
+#: includes/settings/views/ffc-tab-geolocation.php:164
+#, php-format
+msgid "New location: %s"
+msgstr "Novo local: %s"
+
+#: includes/settings/views/ffc-tab-geolocation.php:142
+msgid "No default GPS location"
+msgstr "Nenhum local padrão de GPS"
+
+#: includes/settings/views/ffc-tab-geolocation.php:149
+msgid "No default IP location"
+msgstr "Nenhum local padrão de IP"
+
+#: includes/settings/views/documentation/forms-geolocation.php:48
+msgid "Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it, and a location a form reads from cannot be deleted until those forms choose another area."
+msgstr "Os locais reutilizáveis são gerenciados em Configurações → Geolocalização e compartilhados por todos os formulários. Cada um tem nome, latitude/longitude, raio (metros) e as marcações opcionais \"padrão para GPS\" / \"padrão para IP\" — um formulário novo seleciona os padrões automaticamente. Editar um local atualiza todos os formulários que o usam, e um local que um formulário usa não pode ser excluído até que esses formulários escolham outra área."
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "Shared addresses:"
+msgstr "Endereços compartilhados:"
+
+#: includes/settings/views/ffc-tab-rate-limit.php:632
+msgid "Show the lists"
+msgstr "Mostrar as listas"
+
+#: includes/settings/views/documentation/config-rate-limit.php:59
+msgid "Static lists that bypass or hard-block requests, each matching by IP, email, email domain (format *@domain.com) or CPF/RF. The blocklist is checked first and denies outright. On the screen, each list's \"Show the lists\" switch only folds it away: the lists apply whether they are shown or hidden. An allowlisted address skips every limit; an allowlisted e-mail, domain or CPF/RF skips only the limits on that e-mail or CPF/RF, since the visitor types them, and the address, device and global limits and the captcha still apply."
+msgstr "Listas fixas que liberam ou bloqueiam requisições, cada uma por IP, e-mail, domínio de e-mail (formato *@dominio.com) ou CPF/RF. A lista de bloqueio é verificada primeiro e recusa de imediato. Na tela, a chave \"Mostrar as listas\" de cada lista apenas a recolhe: as listas valem estejam visíveis ou ocultas. Um endereço liberado passa por todos os limites; um e-mail, domínio ou CPF/RF liberado passa apenas pelos limites desse e-mail ou CPF/RF, já que é o visitante quem os digita, e os limites por endereço, por dispositivo e globais e o captcha continuam valendo."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:633
+msgid "The addresses, e-mails, domains and CPF/RF below are exempted whether the lists are shown or hidden; this switch only folds them away."
+msgstr "Os endereços, e-mails, domínios e CPF/RF abaixo ficam isentos estejam as listas visíveis ou ocultas; esta chave apenas as recolhe."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:660
+msgid "The addresses, e-mails, domains and CPF/RF below are refused whether the lists are shown or hidden; this switch only folds them away."
+msgstr "Os endereços, e-mails, domínios e CPF/RF abaixo são recusados estejam as listas visíveis ou ocultas; esta chave apenas as recolhe."
+
+#: includes/settings/views/ffc-tab-geolocation.php:719
+msgid "The browser reads the GPS position and sends it with the submission, and the server checks it against the form's areas and then discards it: it is neither stored nor logged. When a form caches the check, the browser keeps only a note that it passed, never the position. IP geolocation results are cached temporarily, under a keyed hash of the address."
+msgstr "O navegador lê a posição do GPS e a envia com o formulário, e o servidor a confere com as áreas do formulário e depois a descarta: ela não é armazenada nem registrada. Quando um formulário guarda a verificação em cache, o navegador mantém apenas um registro de que ela passou, nunca a posição. Os resultados da geolocalização por IP ficam em cache temporariamente, sob um hash com chave do endereço."
+
+#: includes/settings/views/documentation/feature-certificates.php:56
+msgid "The verification page ([ffc_verification]) has a \"Test my device\" mode, linked from its footer and reached by adding ?ffc_device_check=1 to its address. It runs these checks on the visitor's own device and shows each result in sections (network, browser, form protections, device settings, display and PDF download) that stay closed while everything passes and open by themselves when a check warns or fails: secure connection, connection, whether a request reaches the server (and how long it took), the browser by name and version, cookies, local storage, the captcha (what ALTCHA needs, and whether its widget loaded), the device ID the device limit reads (a short code, how many signals were read and whether they hold between two reads), the device clock against the server's, time zone and language, the device's location (the permission and, when the visitor asks, how precise it is), screen, the theme in use and, last, PDF download. A summary above the sections says whether the device is ready, ready with warnings, or may fail; the test is finished only once the visitor presses \"Test my location\", which reads how precise the location is. A row that fails carries an information button with how to fix it, and a check still running counts down from 20 seconds. A content or script blocker is named where it stops the server request, the device ID or the captcha; when it stops the test's own scripts, the page says so after a few seconds without them. A page served from an old cache, whose scripts belong to an earlier release, is named too, and how often one address may run the test is set on Settings → Rate Limit (default 60 runs per 10 minutes). Apart from that one test request nothing is sent, nothing is stored, and the position itself is never sent or shown. A \"Copy the results\" button puts the results, the plugin's version, the captcha mode, whether the device limit is on, the browser's identification and the time in the clipboard, for a message to whoever supports the visitor."
+msgstr "A página de verificação ([ffc_verification]) tem um modo \"Testar meu dispositivo\", com link no rodapé, acessado ao acrescentar ?ffc_device_check=1 ao endereço. Ele executa essas verificações no próprio dispositivo do visitante e mostra cada resultado em seções (rede, navegador, proteções dos formulários, ajustes do aparelho, exibição e download do PDF) que ficam fechadas enquanto tudo passa e abrem sozinhas quando uma verificação avisa ou falha: conexão segura, conexão, se uma requisição chega ao servidor (e quanto tempo levou), o navegador com nome e versão, cookies, armazenamento local, o captcha (o que o ALTCHA precisa e se o widget carregou), o ID do dispositivo lido pelo limite por dispositivo (um código curto, quantos sinais foram lidos e se eles se mantêm entre duas leituras), o relógio do dispositivo comparado ao do servidor, fuso horário e idioma, a localização do dispositivo (a permissão e, quando o visitante pede, a precisão), tela, o tema em uso e, por último, o download do PDF. Um resumo acima das seções diz se o dispositivo está pronto, pronto com avisos ou se pode falhar; o teste só é concluído quando o visitante toca em \"Testar minha localização\", que lê a precisão da localização. Uma linha com falha traz um botão de informação com como corrigir, e uma verificação ainda em andamento faz uma contagem regressiva de 20 segundos. Um bloqueador de conteúdo ou de scripts é apontado onde impede a requisição ao servidor, o ID do dispositivo ou o captcha; quando impede os próprios scripts do teste, a página avisa depois de alguns segundos sem eles. Uma página servida de um cache antigo, cujos scripts são de uma versão anterior, também é apontada, e quantas vezes um mesmo endereço pode executar o teste é definido em Configurações → Taxa Limite (padrão: 60 execuções a cada 10 minutos). Além dessa única requisição de teste, nada é enviado, nada é armazenado, e a posição em si nunca é enviada nem mostrada. O botão \"Copiar os resultados\" coloca no clipboard os resultados, a versão do plugin, o modo do captcha, se o limite por dispositivo está ativado, a identificação do navegador e a hora, para uma mensagem a quem dá suporte ao visitante."
+
+#: includes/frontend/class-ffc-device-check.php:235
+msgid "This page runs the checks a form runs before it is used and shows each result. It sends one request to the server, to see whether a request gets through, and stores nothing; your position is never sent or shown: only how precise it is."
+msgstr "Esta página executa as verificações que um formulário faz antes de ser usado e mostra cada resultado. Ela envia uma requisição ao servidor, para ver se uma requisição chega, e não armazena nada; sua posição nunca é enviada nem mostrada: apenas o quão precisa ela é."
+
+#: includes/settings/views/ffc-tab-rate-limit.php:401
+msgid "Unlike the limits above, 0 is a value in the endpoints below: it lifts the cap on that axis entirely, leaving the other one to do the work. Set both to 0 and an endpoint is unlimited even with its toggle on."
+msgstr "Diferente dos limites acima, 0 é um valor nos endpoints abaixo: ele remove totalmente o limite naquele eixo, deixando o outro fazer o trabalho. Coloque ambos em 0 e um endpoint fica ilimitado mesmo com sua chave ligada."
+
+#: includes/settings/views/documentation/config-captcha.php:54
+msgid "Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed. A wrong answer to the arithmetic question spends its token, so one question cannot be tried against every answer, and, while the IP limit of the Rate Limit tab is on, each failed attempt counts against the visitor's address there."
+msgstr "Qualquer que seja o modo em vigor, o token é assinado com uma chave derivada deste site, expira e é aceito uma única vez e apenas onde foi emitido: um desafio resolvido em um formulário é recusado em outro, então uma resposta capturada não pode ser reutilizada. Uma resposta errada à pergunta aritmética gasta o seu token, então uma pergunta não pode ser testada contra todas as respostas, e, enquanto o limite de IP da aba Taxa Limite estiver ligado, cada tentativa falha conta contra o endereço do visitante ali."
+
+#: includes/settings/views/documentation/config-rate-limit.php:40
+msgid "everyone behind one network address translation, such as a school, an office or a mobile carrier, reaches the site from one address and so shares the IP limit. Raise it, or allowlist the address, when a whole room submits at once."
+msgstr "todos que estão atrás de uma mesma tradução de endereços de rede (NAT), como uma escola, um escritório ou uma operadora de celular, chegam ao site por um único endereço e, portanto, compartilham o limite de IP. Aumente-o, ou coloque o endereço na lista de permissões, quando uma sala inteira enviar ao mesmo tempo."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:37
+msgid "off by default. When on, it logs (with a keyed hash of the IP, never the address) every request where the two strategies would disagree, so you can measure the impact before switching."
+msgstr "desligado por padrão. Quando ligado, registra (com um hash com chave do IP, nunca o endereço) cada requisição em que as duas estratégias discordariam, para que você meça o impacto antes de trocar."
+
+#: includes/settings/views/documentation/config-geolocation.php:46
+msgid "the browser reads the GPS position and sends it with the submission; the server checks it against the form's areas and discards it, without storing or logging it. The position is what the browser reports, and a browser can report any values, so pair the GPS check with the IP check where a forged reading matters."
+msgstr "o navegador lê a posição do GPS e a envia com o formulário; o servidor a confere com as áreas do formulário e a descarta, sem armazená-la nem registrá-la. A posição é o que o navegador informa, e um navegador pode informar quaisquer valores, então combine a verificação por GPS com a verificação por IP onde uma leitura forjada importar."
+
+#: includes/settings/views/documentation/config-rate-limit.php:41
+msgid "the e-mail and CPF/RF cards count earlier submissions only while it is on. Off on the e-mail card, nothing is counted, so the e-mail limit does not apply at all, the hours between submissions included. Off on the CPF/RF card, the monthly and yearly limits do not apply, and the block after repeated attempts still does."
+msgstr "os cartões de e-mail e de CPF/RF contam os envios anteriores apenas enquanto ela está ligada. Desligada no cartão de e-mail, nada é contado, então o limite de e-mail não se aplica de forma alguma, incluindo as horas entre envios. Desligada no cartão de CPF/RF, os limites mensal e anual não se aplicam, e o bloqueio após tentativas repetidas continua valendo."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:25
+msgid "the effective default. It takes the first public address in headers the client supplies, Client-IP first and then X-Forwarded-For, so a forged header can spoof the address."
+msgstr "o padrão efetivo. Ela usa o primeiro endereço público nos cabeçalhos que o cliente envia, primeiro Client-IP e depois X-Forwarded-For, então um cabeçalho forjado pode falsificar o endereço."
+
+#: includes/settings/views/documentation/config-ip-diagnostics.php:35
+msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now. A refresh that fails for IPv4 or IPv6 keeps that half's last good list, and no range wider than /8 (IPv4) or /16 (IPv6) is trusted, whether it comes from the refresh or from the Custom field."
+msgstr "as listas oficiais de IP da Cloudflare, atualizadas diariamente (uma lista embutida é usada até a primeira atualização), com um botão para atualizá-las agora. Uma atualização que falha para IPv4 ou IPv6 mantém a última lista boa daquela metade, e nenhuma faixa mais ampla que /8 (IPv4) ou /16 (IPv6) é confiável, venha ela da atualização ou do campo Personalizado."

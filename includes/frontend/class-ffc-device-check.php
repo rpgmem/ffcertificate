@@ -232,7 +232,7 @@ final class DeviceCheck {
 
 		$html  = '<div class="ffc-shortcode ffc-device-check">';
 		$html .= '<h2 class="ffc-device-check-title">' . Icons::svg( 'monitor', 24 ) . esc_html__( 'Test my device', 'ffcertificate' ) . '</h2>';
-		$html .= '<p class="ffc-device-check-intro">' . esc_html__( 'This page runs the checks a form runs before it is used and shows each result. Nothing is sent or stored, and your position is never shown: only how precise it is.', 'ffcertificate' ) . '</p>';
+		$html .= '<p class="ffc-device-check-intro">' . esc_html__( 'This page runs the checks a form runs before it is used and shows each result. It sends one request to the server, to see whether a request gets through, and stores nothing; your position is never sent or shown: only how precise it is.', 'ffcertificate' ) . '</p>';
 		$html .= '<noscript>' . Notice::render( 'warning', 'warning', __( 'JavaScript is off in this browser. The forms need it: turn it on and reload this page.', 'ffcertificate' ), '', array( 'hook' => BrowserGate::NOSCRIPT_HOOK ) ) . '</noscript>';
 		// Shown by the stylesheet alone when the test's script has not
 		// started after a while: a blocker that stops the script cannot be

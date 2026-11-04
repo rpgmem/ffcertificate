@@ -450,7 +450,7 @@ class TabRateLimitTest extends TestCase {
 
 		$_POST['ip_enabled']         = '1';
 		$_POST['ip_max_per_hour']    = '15';
-		$_POST['ip_apply_to']        = 'guests';
+		$_POST['ip_apply_to']        = 'guests';            // no field on the tab: ignored
 		$_POST['email_check_database'] = '1';
 		$_POST['device_max_per_form']  = '0';            // clamped to >= 1
 		$_POST['device_match_threshold'] = '99';          // clamped to <= 12
@@ -475,7 +475,8 @@ class TabRateLimitTest extends TestCase {
 		$this->assertIsArray( $saved );
 		$this->assertTrue( $saved['ip']['enabled'] );
 		$this->assertSame( 15, $saved['ip']['max_per_hour'] );
-		$this->assertSame( 'guests', $saved['ip']['apply_to'] );
+		// The scope has no field, so the stored one survives and a posted one is ignored (#2339).
+		$this->assertSame( 'all', $saved['ip']['apply_to'] );
 		$this->assertTrue( $saved['email']['check_database'] );
 		// device clamps.
 		$this->assertSame( 1, $saved['device']['max_per_form'] );
@@ -506,6 +507,33 @@ class TabRateLimitTest extends TestCase {
 			$_POST['whitelist_ips'], $_POST['ip_captcha_max_per_window'],
 			$_POST['ip_captcha_window_seconds']
 		);
+	}
+
+	public function test_save_keeps_a_stored_scope_the_tab_has_no_field_for(): void {
+		$this->stub_save_funcs();
+		Functions\when( 'get_option' )->alias(
+			static fn ( $key, $default = false ) => 'ffc_rate_limit_settings' === $key
+				? array(
+					'ip'    => array( 'apply_to' => array( '3', 4 ) ),
+					'email' => array( 'apply_to' => '' ),
+				)
+				: $default
+		);
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$this->invoke_private( 'save_settings' );
+
+		$this->assertSame( array( 3, 4 ), $saved['ip']['apply_to'], 'A list of form ids stored by other means survives the save (#2339).' );
+		$this->assertSame( 'all', $saved['email']['apply_to'], 'An empty scope reads as every form.' );
+		$this->assertSame( 'all', $saved['cpf']['apply_to'] );
 	}
 
 	public function test_save_stores_each_ip_line_canonical_and_refuses_the_rest(): void {

@@ -45,7 +45,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</ul>
 
 	<h4><?php esc_html_e( 'The named-locations registry', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Reusable locations are managed under Settings → Geolocation and shared by every form. Each has a name, latitude/longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it, and a location a form reads from cannot be deleted until those forms choose another area.', 'ffcertificate' ); ?></p>
 
 	<?php ob_start(); ?>
 		<p>

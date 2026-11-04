@@ -59,6 +59,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Pre-flight and GPS: accessible** (#2339). "Try anyway" and "Continue" are neutral family buttons; after one, the focus moves to the next notice or the form instead of the page top. The location explainer is announced politely, and the GPS waiting message is a status with a silent spinner.
 - **Encryption Key Health: an empty salt and legacy reads are reported** (#2339). A defined but empty `FFC_HASH_SALT` now reads as a missing secret, with its own warning. Every request that reads an old unauthenticated value is counted on the panel, the evidence for retiring that format.
 - ⚠ **Rate limits: device signals stored keyed, no user agent in the log** (#2339). Each device signal is stored as a keyed hash of what the browser sends, so a copy of the table reads nothing back; the signals recorded before the update are deleted, so every device starts afresh. The rate-limit log no longer records the browser, and earlier rows are emptied.
+- **Rate Limit and Geolocation tabs: texts that match the code, and named fields** (#2339). The Geolocation privacy line and the device test say what is sent; the lists' "Show the lists" switch, "Check database" and the match threshold say what they do; the IP limit warns about shared addresses; the one-choice "Apply to" is gone. Every field has a linked label, and the six security topics match the code.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

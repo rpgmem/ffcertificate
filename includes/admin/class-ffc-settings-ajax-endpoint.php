@@ -494,7 +494,6 @@ class SettingsAjaxEndpoint {
 				'enum',
 				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
 			),
-			'ip_apply_to'                    => array( array( 'ip', 'apply_to' ), 'string', array() ),
 			'ip_message'                     => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'email_max_per_day'              => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
 			'email_max_per_week'             => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),

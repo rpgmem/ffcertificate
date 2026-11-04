@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 	<p><?php esc_html_e( 'The mode is a scale, from the one that reaches every visitor on the left to the strongest on the right. A new install starts on ALTCHA only when the site is served over HTTPS and on Math otherwise; an existing install keeps the mode it has, and one that never saved the tab stays on Math.', 'ffcertificate' ); ?></p>
-	<p class="description"><?php esc_html_e( 'Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'Whichever mode is in force, the token is signed with a key derived from this site, expires, and is accepted once and only where it was issued: a challenge solved on one form is refused on another, so a captured answer cannot be replayed. A wrong answer to the arithmetic question spends its token, so one question cannot be tried against every answer, and, while the IP limit of the Rate Limit tab is on, each failed attempt counts against the visitor\'s address there.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'ALTCHA widget options', 'ffcertificate' ); ?></h4>
 	<ul>
@@ -66,5 +66,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'What it does, and does not, send', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Nothing leaves this server. The widget file is served from this site rather than a content delivery network, the challenge is issued by this WordPress installation, the computation happens in the visitor\'s browser, and the answer is checked here. Two privacy-relevant widget features are switched off and deliberately not offered as settings: the behavioural signature (pointer and keyboard timings) and the widget\'s own cookie. The proof of work already carries the anti-automation load, and turning either back on would change what the site has to disclose.', 'ffcertificate' ); ?></p>
-	<p class="description"><?php esc_html_e( 'In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a hashed, truncated IP — so you can tell whether anyone still needs the fallback before switching it off.', 'ffcertificate' ); ?> <a href="#reference-security"><?php esc_html_e( 'See Security & Restrictions.', 'ffcertificate' ); ?></a></p>
+	<p class="description"><?php esc_html_e( 'In the fallback mode, a submission that arrives without a proof of work is recorded in the Activity Log with a truncated keyed fingerprint of the IP, never the address — so you can tell whether anyone still needs the fallback before switching it off.', 'ffcertificate' ); ?> <a href="#reference-security"><?php esc_html_e( 'See Security & Restrictions.', 'ffcertificate' ); ?></a></p>
 </div>
