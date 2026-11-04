@@ -281,7 +281,9 @@ class RateLimitCheckerTest extends TestCase {
 		$result = RateLimitChecker::check_all( '203.0.113.9' );
 
 		$this->assertSame( 'global_minute_limit', $result['reason'] );
-		$this->assertSame( 60, $result['wait_seconds'] );
+		// What is left of the minute (#2339).
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 60, $result['wait_seconds'] );
 		$this->assertSame( array( array( 'global', 'blocked', 'global_minute_limit' ) ), $this->logged );
 	}
 
@@ -301,7 +303,8 @@ class RateLimitCheckerTest extends TestCase {
 		$result = RateLimitChecker::check_all( '203.0.113.9' );
 
 		$this->assertSame( 'global_hour_limit', $result['reason'] );
-		$this->assertSame( 3600, $result['wait_seconds'] );
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 3600, $result['wait_seconds'] );
 	}
 
 	public function test_the_ip_limit_refusal_is_logged_against_the_ip(): void {
@@ -395,14 +398,11 @@ class RateLimitCheckerTest extends TestCase {
 		$this->assertSame( array( 'email:day', 'email:month', 'cpf:day', 'cpf:month', 'cpf:hour' ), $windows );
 	}
 
-	public function test_format_wait_time_picks_seconds_minutes_or_hours(): void {
-		$method = new \ReflectionMethod( RateLimitChecker::class, 'format_wait_time' );
-		$method->setAccessible( true );
-
-		$this->assertSame( '1 second', $method->invoke( null, 1 ) );
-		$this->assertSame( '45 seconds', $method->invoke( null, 45 ) );
-		$this->assertSame( '2 minutes', $method->invoke( null, 61 ) );
-		$this->assertSame( '2 hours', $method->invoke( null, 3601 ) );
+	public function test_wait_words_picks_seconds_minutes_or_hours(): void {
+		$this->assertSame( '1 second', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 1 ) );
+		$this->assertSame( '45 seconds', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 45 ) );
+		$this->assertSame( '2 minutes', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 61 ) );
+		$this->assertSame( '2 hours', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 3601 ) );
 	}
 
 	public function test_a_read_limit_needs_a_well_formed_endpoint_entry(): void {

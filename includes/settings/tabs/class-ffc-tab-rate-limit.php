@@ -162,7 +162,7 @@ class TabRateLimit extends SettingsTab {
 				'max_per_month'  => $this->post_int_or_current( 'email_max_per_month', $this->stored_int( $stored, 'email', 'max_per_month', 30 ), 1 ),
 				// No field renders this one, so the POST key is always absent
 				// and the old read reset it to 24 on every Save (#1114).
-				'wait_hours'     => $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 24 ), 1 ),
+				'wait_hours'     => min( 8760, $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 0 ), 0 ) ),
 				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
@@ -349,10 +349,10 @@ class TabRateLimit extends SettingsTab {
 	 * clearing the cap would have stored "no cap" (#1111 follow-up). An empty
 	 * field means the value was not supplied, so the stored one stands.
 	 *
-	 * An **absent** key is the same case and matters on its own: `wait_hours`
-	 * has no field on this tab, so the rebuild-save was overwriting whatever
-	 * an operator had configured with the hardcoded default on every Save
-	 * (#1114). Reading the stored value fixes that too.
+	 * An **absent** key is the same case and matters on its own: a setting
+	 * with no field on this tab (`wait_hours` until #2339) was overwritten
+	 * with the hardcoded default on every Save (#1114). Reading the stored
+	 * value fixes that too.
 	 *
 	 * `$min` is the floor for the fields where `0` is not a value anyone
 	 * means. It is not a second guess at the default: on this tab a zero

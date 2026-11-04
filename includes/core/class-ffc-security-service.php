@@ -228,6 +228,25 @@ class SecurityService {
 	}
 
 	/**
+	 * Whether a math token is of the right shape and past its expiry.
+	 *
+	 * Only chooses the refusal's wording (#2339): an expired challenge is
+	 * told it expired, not that the answer was wrong. The time is read from
+	 * the token unauthenticated, which is harmless — a forged one changes a
+	 * sentence, never the verdict.
+	 *
+	 * @param string $hash Token issued with the challenge.
+	 * @return bool
+	 */
+	public static function simple_captcha_expired( string $hash ): bool {
+		$parts = explode( '.', $hash );
+
+		return 3 === count( $parts )
+			&& 1 === preg_match( '/^\d+$/', $parts[0] )
+			&& (int) $parts[0] <= time();
+	}
+
+	/**
 	 * Check a captcha answer without spending the challenge.
 	 *
 	 * The read-only sibling of {@see verify_simple_captcha()}, for a flow that

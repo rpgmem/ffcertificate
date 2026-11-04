@@ -833,12 +833,36 @@ class TabRateLimitTest extends TestCase {
 		unset( $_POST['ip_max_per_hour'], $_POST['global_max_per_minute'], $_POST['logging_max_logs'] );
 	}
 
-	public function test_wait_hours_survives_a_save_although_no_field_renders_it(): void {
-		// The POST key is never present, so the old read reset the operator's
-		// value to the hardcoded default on every Save.
+	public function test_wait_hours_survives_a_save_that_does_not_post_it(): void {
+		// An absent POST key keeps the stored value: the old read reset the
+		// operator's value to the hardcoded default on every Save.
 		$saved = $this->save_over( array( 'email' => array( 'wait_hours' => 72 ) ) );
 
 		$this->assertSame( 72, $saved['email']['wait_hours'] );
+	}
+
+	public function test_wait_hours_saves_zero_as_off_and_caps_at_a_year(): void {
+		// #2339: the field is on the tab now, and 0 is off.
+		$this->stub_save_funcs();
+		$saved = null;
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$saved ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$saved = $value;
+				}
+				return true;
+			}
+		);
+
+		$_POST['email_wait_hours'] = '0';
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( 0, $saved['email']['wait_hours'] );
+
+		$_POST['email_wait_hours'] = '99999';
+		$this->invoke_private( 'save_settings' );
+		$this->assertSame( 8760, $saved['email']['wait_hours'] );
+
+		unset( $_POST['email_wait_hours'] );
 	}
 
 	public function test_a_read_endpoint_cap_tells_a_typed_zero_from_a_cleared_field(): void {

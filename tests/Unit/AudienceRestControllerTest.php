@@ -2681,7 +2681,10 @@ class AudienceRestControllerTest extends TestCase {
 
 		$this->assertSame( 429, $result->get_status() );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_data()['code'] );
-		$this->assertSame( '60', $result->get_headers()['Retry-After'] );
+		// What is left of the minute (#2339).
+		$retry = (int) $result->get_headers()['Retry-After'];
+		$this->assertGreaterThanOrEqual( 1, $retry );
+		$this->assertLessThanOrEqual( 60, $retry );
 		$this->assertSame( array(), $this->preparedWith( 'ffc_audience_bookings' ), 'A refused read reaches no booking.' );
 	}
 

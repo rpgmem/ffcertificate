@@ -86,12 +86,12 @@ final class GeofenceWindowMessages {
 	 */
 	public static function default_message( string $phase ): string {
 		if ( 'after' === $phase ) {
-			return __( 'This form is no longer available.', 'ffcertificate' );
+			return __( 'This form is no longer available. If you still need to submit it, contact the organizer.', 'ffcertificate' );
 		}
 		if ( 'during' === $phase ) {
-			return __( 'This form is only available during specific hours.', 'ffcertificate' );
+			return __( 'This form is only available during specific hours. Come back during those hours to submit it.', 'ffcertificate' );
 		}
-		return __( 'This form is not yet available.', 'ffcertificate' );
+		return __( 'This form is not yet available. Come back when it opens.', 'ffcertificate' );
 	}
 
 	/**

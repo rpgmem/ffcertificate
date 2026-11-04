@@ -447,6 +447,25 @@ class SecurityServiceTest extends TestCase {
 		$this->assertFalse( SecurityService::verify_simple_captcha( '5', $expired ) );
 	}
 
+	public function test_an_expired_math_token_is_told_it_expired(): void {
+		// #2339: "the answer is incorrect" sent people to re-check arithmetic
+		// that was right.
+		$this->stubChallengeInfrastructure();
+		$expired = ( time() - 1 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 );
+
+		$result = ( new \FreeFormCertificate\Core\Captcha\MathCaptcha() )->verify(
+			array(
+				'ffc_captcha_ans'  => '5',
+				'ffc_captcha_hash' => $expired,
+			)
+		);
+
+		$this->assertSame( 'The security question expired. Please answer the new one.', $result );
+		$this->assertTrue( SecurityService::simple_captcha_expired( $expired ) );
+		$this->assertFalse( SecurityService::simple_captcha_expired( ( time() + 600 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 ) ) );
+		$this->assertFalse( SecurityService::simple_captcha_expired( 'nodots' ) );
+	}
+
 	public function test_verify_captcha_rejects_a_malformed_token(): void {
 		$this->stubChallengeInfrastructure();
 

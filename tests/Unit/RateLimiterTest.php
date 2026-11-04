@@ -110,7 +110,9 @@ class RateLimiterTest extends TestCase {
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertSame( 'ip_hour_limit', $result['reason'] );
-		$this->assertSame( 3600, $result['wait_seconds'] );
+		// What is left of the hour (#2339).
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 3600, $result['wait_seconds'] );
 	}
 
 	public function test_ip_limit_allows_when_disabled_even_if_counter_exceeded(): void {
@@ -142,8 +144,10 @@ class RateLimiterTest extends TestCase {
 
 		$this->assertFalse( $result['allowed'] );
 		$this->assertNotSame( '', trim( $result['message'] ), 'block message must not be empty' );
-		// The {time} token is still interpolated against the default copy.
-		$this->assertStringContainsString( '1 hour', $result['message'] );
+		// The {time} token is still interpolated against the default copy,
+		// with what is left of the hour (#2339).
+		$this->assertStringNotContainsString( '{time}', $result['message'] );
+		$this->assertMatchesRegularExpression( '/\d+ (second|minute|hour)/', $result['message'] );
 	}
 
 	public function test_ip_limit_keeps_configured_message_when_present(): void {
@@ -923,7 +927,8 @@ class RateLimiterTest extends TestCase {
 
 		$this->assertFalse( $r['allowed'] );
 		$this->assertSame( 'cpf_blocked', $r['reason'] );
-		$this->assertSame( 86400, $r['wait_seconds'] );
+		// What is left of the block, read from blocked_until (#2339).
+		$this->assertEqualsWithDelta( strtotime( '2099-12-31 23:59:59 UTC' ) - time(), $r['wait_seconds'], 5 );
 	}
 
 	public function test_cpf_limit_blocks_when_monthly_db_count_exceeded(): void {
@@ -937,7 +942,10 @@ class RateLimiterTest extends TestCase {
 		$seq = 0;
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function () use ( &$seq ) {
-				return ( ++$seq === 1 ) ? null : '5';
+				++$seq;
+				// 1: not blocked; 2: the month count; 3: its oldest
+				// submission, unknown here, so the wait is the whole period.
+				return 2 === $seq ? '5' : null;
 			}
 		);
 
@@ -994,7 +1002,8 @@ class RateLimiterTest extends TestCase {
 
 		$this->assertFalse( $r['allowed'] );
 		$this->assertSame( 'global_minute_limit', $r['reason'] );
-		$this->assertSame( 60, $r['wait_seconds'] );
+		$this->assertGreaterThanOrEqual( 1, $r['wait_seconds'] );
+		$this->assertLessThanOrEqual( 60, $r['wait_seconds'] );
 	}
 
 	public function test_global_limit_blocks_on_hour_overflow(): void {
@@ -1012,7 +1021,8 @@ class RateLimiterTest extends TestCase {
 
 		$this->assertFalse( $r['allowed'] );
 		$this->assertSame( 'global_hour_limit', $r['reason'] );
-		$this->assertSame( 3600, $r['wait_seconds'] );
+		$this->assertGreaterThanOrEqual( 1, $r['wait_seconds'] );
+		$this->assertLessThanOrEqual( 3600, $r['wait_seconds'] );
 	}
 
 	public function test_global_limit_allows_when_under_both_thresholds(): void {

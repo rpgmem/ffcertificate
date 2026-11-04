@@ -353,7 +353,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'json_error', $e->getMessage() );
 			// The limiter's own message, as a denial always carries one (#2153).
-			$this->assertSame( 'Limit reached. Please wait 1 hour.', $this->captured['payload']['message'] );
+			$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (minute|minutes|second|seconds)\./', $this->captured['payload']['message'], 'The real time left of the hour (#2339).' );
 		}
 	}
 
@@ -558,7 +558,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->fail( 'expected json_error' );
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 429, $this->captured['code'] );
-			$this->assertSame( 'Limit reached. Please wait 1 hour.', $this->captured['payload']['message'] );
+			$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (minute|minutes|second|seconds)\./', $this->captured['payload']['message'], 'The real time left of the hour (#2339).' );
 		}
 	}
 

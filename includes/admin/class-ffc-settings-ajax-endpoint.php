@@ -499,6 +499,14 @@ class SettingsAjaxEndpoint {
 			'email_max_per_day'              => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
 			'email_max_per_week'             => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
 			'email_max_per_month'            => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'email_wait_hours'               => array(
+				array( 'email', 'wait_hours' ),
+				'int',
+				array(
+					'min' => 0,
+					'max' => 8760,
+				),
+			),
 			'email_message'                  => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'cpf_max_per_month'              => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
 			'cpf_max_per_year'               => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),

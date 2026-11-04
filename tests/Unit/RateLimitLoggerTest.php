@@ -117,6 +117,25 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 'allowed', $captured['action'] );
 	}
 
+	public function test_log_attempt_skips_blocked_action_when_log_blocked_disabled(): void {
+		// #2339: the switch was stored and never read.
+		$this->stub_settings( array( 'logging' => array( 'log_blocked' => false ) ) );
+
+		global $wpdb;
+		$rows = array();
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $row ) use ( &$rows ) {
+				$rows[] = $row['action'];
+				return 1;
+			}
+		);
+
+		RateLimitLogger::log_attempt( 'ip', '203.0.113.1', 'blocked', 'too_many', 42 );
+		RateLimitLogger::log_attempt( 'device', 'abc', 'suppressed', 'near_miss', 42 );
+
+		$this->assertSame( array( 'suppressed' ), $rows, 'Only the blocked attempt is silenced.' );
+	}
+
 	// ------------------------------------------------------------------
 	// log_attempt() — identifier hashing (LGPD/GDPR)
 	// ------------------------------------------------------------------

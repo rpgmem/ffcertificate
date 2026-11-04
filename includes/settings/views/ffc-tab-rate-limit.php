@@ -230,12 +230,19 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		<tr><th><?php esc_html_e( 'Max per day', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_day" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_day'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_day" required></td></tr>
 		<tr><th><?php esc_html_e( 'Max per week', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_week" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_week'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_week" required></td></tr>
 		<tr><th><?php esc_html_e( 'Max per month', 'ffcertificate' ); ?></th><td><input type="number" name="email_max_per_month" value="<?php echo esc_attr( $ffcertificate_s['email']['max_per_month'] ); ?>" min="1" data-ffc-autosave-key="email_max_per_month" required></td></tr>
+		<tr>
+			<th><label for="email_wait_hours"><?php esc_html_e( 'Hours between submissions', 'ffcertificate' ); ?></label></th>
+			<td>
+				<input type="number" name="email_wait_hours" id="email_wait_hours" value="<?php echo esc_attr( (string) (int) $ffcertificate_s['email']['wait_hours'] ); ?>" min="0" max="8760" data-ffc-autosave-key="email_wait_hours" aria-describedby="email_wait_hours_desc" required>
+				<p class="description" id="email_wait_hours_desc"><?php esc_html_e( 'The least time between two submissions with the same e-mail. 0 turns it off.', 'ffcertificate' ); ?></p>
+			</td>
+		</tr>
 		<tr><th><?php esc_html_e( 'Message', 'ffcertificate' ); ?></th><td><textarea name="email_message" rows="3" class="large-text" data-ffc-autosave-key="email_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( $ffcertificate_s['email']['message'] ); ?></textarea></td></tr>
 	</tbody></table>
 </div>
 
 <div class="card">
-	<h2 class="ffc-icon-id"><?php esc_html_e( 'Tax ID (CPF) Rate Limit', 'ffcertificate' ); ?></h2>
+	<h2 class="ffc-icon-id"><?php esc_html_e( 'CPF/RF Rate Limit', 'ffcertificate' ); ?></h2>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -378,7 +385,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 		</td></tr>
 		<tr><th><?php esc_html_e( 'Block message', 'ffcertificate' ); ?></th><td>
 			<textarea name="read_message" rows="2" class="large-text" data-ffc-autosave-key="read_message" data-ffc-autosave-debounce="800"><?php echo esc_textarea( (string) ( $ffcertificate_s['read']['message'] ?? '' ) ); ?></textarea>
-			<p class="description"><?php esc_html_e( 'Shown to blocked callers in the 429 response. {time} is replaced with the wait window.', 'ffcertificate' ); ?></p>
+			<p class="description"><?php esc_html_e( 'Shown to blocked callers in the 429 response. The tokens are listed under Interface.', 'ffcertificate' ); ?></p>
 		</td></tr>
 	</tbody></table>
 
@@ -702,6 +709,7 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 <div class="card">
 	<h2 class="ffc-icon-layout"><?php esc_html_e( 'Interface', 'ffcertificate' ); ?></h2>
+	<p class="description"><?php esc_html_e( 'Every message on this tab can use these tokens: {time} is the time left until the visitor can try again ("a while" when Show wait time is off), {count} what was counted, {max} the limit, and {remaining} what is left of it. With Show remaining attempts on, a message that names neither {count} nor {max} ends with "You have used N of M."', 'ffcertificate' ); ?></p>
 	<p>
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_toggle(

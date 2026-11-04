@@ -29,7 +29,7 @@ class RateLimitActivator {
 	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.4.0';
+	public const DB_VERSION = '1.5.0';
 
 	/**
 	 * The last row of each table written before e-mail and CPF identifiers
@@ -47,6 +47,7 @@ class RateLimitActivator {
 	public static function create_tables(): bool {
 		global $wpdb;
 
+		$previous        = (string) get_option( 'ffc_rate_limit_db_version', '' );
 		$charset_collate = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -160,8 +161,32 @@ class RateLimitActivator {
 
 		self::record_keyed_cutover();
 
+		if ( '' !== $previous && version_compare( $previous, '1.5.0', '<' ) ) {
+			self::reset_unenforced_wait_hours();
+		}
+
 		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
 		return true;
+	}
+
+	/**
+	 * Set the stored e-mail interval to off, once (#2339).
+	 *
+	 * `email.wait_hours` was saved as 24 by every Save of the Rate Limit tab
+	 * and never enforced. Enforcing it now would suddenly allow one
+	 * submission per e-mail per day on every such site, so the value nobody
+	 * chose becomes 0 and the limit starts only when an administrator sets it.
+	 *
+	 * @return void
+	 */
+	private static function reset_unenforced_wait_hours(): void {
+		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		if ( ! is_array( $stored ) || ! isset( $stored['email'] ) || ! is_array( $stored['email'] ) || ! array_key_exists( 'wait_hours', $stored['email'] ) ) {
+			return;
+		}
+
+		$stored['email']['wait_hours'] = 0;
+		update_option( 'ffc_rate_limit_settings', $stored );
 	}
 
 	/**

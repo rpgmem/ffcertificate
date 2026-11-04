@@ -85,7 +85,7 @@ class GeofenceWindowMessagesTest extends TestCase {
 			'msg_datetime'    => 'Leftover.',
 		);
 
-		$this->assertSame( 'This form is not yet available.', GeofenceWindowMessages::message( $config, 'before' ) );
+		$this->assertSame( 'This form is not yet available. Come back when it opens.', GeofenceWindowMessages::message( $config, 'before' ) );
 	}
 
 	public function test_a_config_without_the_keys_shows_the_single_message_everywhere(): void {
@@ -105,9 +105,9 @@ class GeofenceWindowMessagesTest extends TestCase {
 	public function test_no_message_at_all_shows_each_default(): void {
 		$this->assertSame(
 			array(
-				'before' => 'This form is not yet available.',
-				'after'  => 'This form is no longer available.',
-				'during' => 'This form is only available during specific hours.',
+				'before' => 'This form is not yet available. Come back when it opens.',
+				'after'  => 'This form is no longer available. If you still need to submit it, contact the organizer.',
+				'during' => 'This form is only available during specific hours. Come back during those hours to submit it.',
 			),
 			GeofenceWindowMessages::all( array() )
 		);

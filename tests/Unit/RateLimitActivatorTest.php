@@ -160,6 +160,62 @@ class RateLimitActivatorTest extends TestCase {
 		$this->assertSame( RateLimitActivator::DB_VERSION, $updated_options['ffc_rate_limit_db_version'] );
 	}
 
+	/**
+	 * @dataProvider wait_hours_upgrades
+	 *
+	 * @param string   $previous Stored schema version before the run.
+	 * @param int|null $expected wait_hours written, or null when the option is left alone.
+	 */
+	public function test_the_unenforced_email_interval_is_reset_once( string $previous, ?int $expected ): void {
+		// #2339: 24 was saved by every Save and never enforced; enforcing it
+		// would allow one submission per e-mail per day on every such site.
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		Functions\when( 'dbDelta' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $fallback = false ) use ( $previous ) {
+				if ( RateLimitActivator::KEYED_CUTOVER_OPTION === $key ) {
+					return array();
+				}
+				if ( 'ffc_rate_limit_db_version' === $key ) {
+					return $previous;
+				}
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					return array( 'email' => array( 'wait_hours' => 24, 'max_per_day' => 3 ) );
+				}
+				return $fallback;
+			}
+		);
+		$written = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				if ( 'ffc_rate_limit_settings' === $key ) {
+					$written = $value;
+				}
+				return true;
+			}
+		);
+
+		RateLimitActivator::create_tables();
+
+		$this->assertSame( $expected, null === $written ? null : $written['email']['wait_hours'] );
+		if ( null !== $written ) {
+			$this->assertSame( 3, $written['email']['max_per_day'], 'Nothing else in the option moves.' );
+		}
+	}
+
+	/**
+	 * @return array<string, array{string, int|null}>
+	 */
+	public static function wait_hours_upgrades(): array {
+		return array(
+			'upgrade from 1.4.0'        => array( '1.4.0', 0 ),
+			'fresh install'             => array( '', null ),
+			'already on 1.5.0 or later' => array( '1.5.0', null ),
+		);
+	}
+
 	public function test_create_tables_returns_true(): void {
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );

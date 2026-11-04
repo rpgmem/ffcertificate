@@ -34,7 +34,11 @@ final class RateLimitLogger {
 	 */
 	public static function log_attempt( string $type, string $identifier, string $action, string $reason, ?int $form_id ): void {
 		$s = RateLimitChecker::get_settings();
-		if ( ! $s['logging']['enabled'] || ( ! $s['logging']['log_allowed'] && 'allowed' === $action ) ) {
+		// Allowed and blocked attempts each have their own switch (#2339);
+		// a near miss ('suppressed') and a whitelisted pass follow logging alone.
+		if ( ! $s['logging']['enabled']
+			|| ( empty( $s['logging']['log_allowed'] ) && 'allowed' === $action )
+			|| ( empty( $s['logging']['log_blocked'] ) && 'blocked' === $action ) ) {
 			return;
 		}
 

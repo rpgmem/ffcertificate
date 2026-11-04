@@ -404,7 +404,7 @@ class GeofenceDatetimeValidationTest extends TestCase {
 			)
 		);
 
-		$this->assertSame( 'This form is no longer available.', $result['message'] );
+		$this->assertSame( 'This form is no longer available. If you still need to submit it, contact the organizer.', $result['message'] );
 	}
 
 	/**
