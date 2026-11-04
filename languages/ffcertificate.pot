@@ -972,10 +972,6 @@ msgstr ""
 msgid "A plugin update or deploy will delete these files and break the images. Use the \"Insert Image\" button to add them from the Media Library instead, or run"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:42
-msgid "A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of \"strong\" signals to corroborate."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:166 includes/recruitment/class-ffc-recruitment-classifications-rest-controller.php:814
 msgid "A reason is required for this preliminary status."
 msgstr ""
@@ -31730,10 +31726,6 @@ msgstr ""
 msgid "a while"
 msgstr ""
 
-#: includes/settings/views/documentation/config-rate-limit.php:62
-msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
-msgstr ""
-
 #: includes/settings/views/documentation/config-rate-limit.php:64
 msgid "how a refusal reads. Show wait time puts the real time left in {time}, from the counter's window or the block's expiry, and \"a while\" when off. Show remaining attempts ends a message that names neither {count} nor {max} with how many of the limit were used. Countdown timer counts the wait down on the form and holds its button until then; it needs Show wait time, since it tells the wait. {count}, {max} and {remaining} (never below 0) resolve the same way in every message."
 msgstr ""
@@ -31768,4 +31760,12 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:48
 msgid "the WordPress keys, or the FFC constants once decoupled. An FFC_HASH_SALT defined as empty is used as it is, so it reads as a missing secret."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:46
+msgid "A privacy-respecting browser/device fingerprint caps submissions from the same device (off by default). It combines a cookie with a set of non-cookie signals (screen, timezone, canvas, WebGL, audio, fonts, …). A device matches when the cookie matches, or when enough signals match — the match threshold — with a minimum number of \"strong\" signals to corroborate. The browser sends only a hash of each signal, and the site stores that hash keyed with its own secret salt, so a copy of the table cannot be read back without it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-rate-limit.php:62
+msgid "blocked and allowed events, each with its own switch, with a retention window and a row cap. The browser of the visitor (its user agent) is not recorded. Nothing is stored in the clear: an address is identified by a keyed fingerprint, which counts an IPv6 visitor by their /64 block, and kept itself only encrypted; an e-mail address or CPF/RF is identified by a keyed hash, so it cannot be recovered by trying every CPF; every other identifier is hashed. Rows written before these changes keep the address in clear until the \"Rate Limit Log: Encrypt Addresses\" migration runs, and an e-mail or CPF/RF under an unkeyed hash until the \"Rate Limit: Keyed Identifiers\" migration deletes them."
 msgstr ""

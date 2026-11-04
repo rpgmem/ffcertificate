@@ -213,6 +213,52 @@ class RateLimitActivatorTest extends TestCase {
 			'upgrade from 1.4.0'        => array( '1.4.0', 0 ),
 			'fresh install'             => array( '', null ),
 			'already on 1.5.0 or later' => array( '1.5.0', null ),
+			'already on 1.6.0'          => array( '1.6.0', null ),
+		);
+	}
+
+	/**
+	 * @dataProvider device_data_upgrades
+	 *
+	 * @param string $previous Stored schema version before the run.
+	 * @param bool   $expected Whether the unkeyed device data is dropped.
+	 */
+	public function test_unkeyed_device_data_is_dropped_once( string $previous, bool $expected ): void {
+		// #2339: bare browser hashes no keyed reading will match again.
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$prepared = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$prepared ) {
+				$prepared[] = $sql . ' ' . implode( ',', $args );
+				return 'QUERY';
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 0 );
+		Functions\when( 'dbDelta' )->justReturn( array() );
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $fallback = false ) use ( $previous ) {
+				if ( RateLimitActivator::KEYED_CUTOVER_OPTION === $key ) {
+					return array();
+				}
+				return 'ffc_rate_limit_db_version' === $key ? $previous : $fallback;
+			}
+		);
+
+		RateLimitActivator::create_tables();
+
+		$this->assertSame( $expected, in_array( 'DELETE FROM %i wp_ffc_device_signals', $prepared, true ) );
+		$this->assertSame( $expected, in_array( 'UPDATE %i SET user_agent = NULL WHERE user_agent IS NOT NULL wp_ffc_rate_limit_logs', $prepared, true ) );
+	}
+
+	/**
+	 * @return array<string, array{string, bool}>
+	 */
+	public static function device_data_upgrades(): array {
+		return array(
+			'upgrade from 1.5.0' => array( '1.5.0', true ),
+			'fresh install'      => array( '', false ),
+			'already on 1.6.0'   => array( '1.6.0', false ),
 		);
 	}
 

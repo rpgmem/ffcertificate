@@ -58,6 +58,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Rate limits: every setting works, and a refusal says the real wait** (#2339). {time} is the time left, not a fixed "1 hour"; Show remaining attempts adds "You have used N of M"; the countdown follows its switch; the CPF/RF block counts over its hours; Log blocked works; an e-mail interval joins the tab, off. Refusals say what to do next.
 - **Pre-flight and GPS: accessible** (#2339). "Try anyway" and "Continue" are neutral family buttons; after one, the focus moves to the next notice or the form instead of the page top. The location explainer is announced politely, and the GPS waiting message is a status with a silent spinner.
 - **Encryption Key Health: an empty salt and legacy reads are reported** (#2339). A defined but empty `FFC_HASH_SALT` now reads as a missing secret, with its own warning. Every request that reads an old unauthenticated value is counted on the panel, the evidence for retiring that format.
+- ⚠ **Rate limits: device signals stored keyed, no user agent in the log** (#2339). Each device signal is stored as a keyed hash of what the browser sends, so a copy of the table reads nothing back; the signals recorded before the update are deleted, so every device starts afresh. The rate-limit log no longer records the browser, and earlier rows are emptied.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

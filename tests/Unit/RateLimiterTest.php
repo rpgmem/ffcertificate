@@ -892,8 +892,10 @@ class RateLimiterTest extends TestCase {
 		$this->assertNotNull( $captured );
 		$this->assertSame( 7, $captured['submission_id'] );
 		$this->assertSame( 42, $captured['form_id'] );
-		$this->assertSame( str_repeat( 'a', 64 ), $captured['sig_cookie'] );
-		$this->assertSame( str_repeat( 'b', 64 ), $captured['sig_ua'] );
+		// Stored keyed, per signal (#2339).
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( str_repeat( 'a', 64 ), 'device_signal_cookie' ), $captured['sig_cookie'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( str_repeat( 'b', 64 ), 'device_signal_ua' ), $captured['sig_ua'] );
+		$this->assertNotSame( $captured['sig_cookie'], \FreeFormCertificate\Core\Encryption::keyed_hash( str_repeat( 'a', 64 ), 'device_signal_ua' ), 'Each signal has its own context.' );
 		$this->assertNull( $captured['sig_canvas'] );
 	}
 
