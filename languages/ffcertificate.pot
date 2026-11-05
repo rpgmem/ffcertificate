@@ -7234,11 +7234,11 @@ msgid "Event:"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
-msgid "Label (singular)"
+msgid "Session (singular)"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
-msgid "Label (plural)"
+msgid "Sessions (plural)"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
@@ -7246,11 +7246,11 @@ msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to 
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:54
-msgid "The tab's two label fields give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
+msgid "Two fields on the Names tab give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:119
-msgid "The calendar's word for a session, \"Session\" unless the Sessions tab sets its own"
+msgid "The calendar's word for a session, \"Session\" unless the Names tab sets its own"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75

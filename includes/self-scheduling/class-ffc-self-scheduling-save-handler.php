@@ -77,6 +77,7 @@ class SelfSchedulingSaveHandler {
 		$this->save_sessions( $post_id );
 		$this->save_email_config( $post_id );
 		$this->save_names( $post_id );
+		$this->save_session_labels( $post_id );
 
 		\FreeFormCertificate\Submissions\FormCache::purge_page_cache( $post_id, 'ffc_self_scheduling' );
 	}
@@ -116,8 +117,20 @@ class SelfSchedulingSaveHandler {
 		}
 
 		update_post_meta( $post_id, CalendarSessions::META, wp_slash( $sessions ) );
+	}
 
-		// The calendar's own word for a session (#2413); empty keeps the default.
+	/**
+	 * Save the calendar's own word for a session (#2413), set on the Names
+	 * tab. A form without the fields leaves the labels alone; an empty one
+	 * keeps the default.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	private function save_session_labels( int $post_id ): void {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_session_label' ) ) {
+			return;
+		}
 		update_post_meta( $post_id, CalendarSessions::LABEL_META, wp_slash( CalendarSessions::clean_label( RequestInput::get_post_string( 'ffc_self_scheduling_session_label', '' ) ) ) );
 		update_post_meta( $post_id, CalendarSessions::LABEL_PLURAL_META, wp_slash( CalendarSessions::clean_label( RequestInput::get_post_string( 'ffc_self_scheduling_session_label_plural', '' ) ) ) );
 	}

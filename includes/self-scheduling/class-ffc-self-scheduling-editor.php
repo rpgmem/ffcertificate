@@ -609,22 +609,6 @@ class SelfSchedulingEditor {
 		?>
 		<p class="description"><?php esc_html_e( 'Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted.', 'ffcertificate' ); ?></p>
 		<input type="hidden" name="ffc_self_scheduling_sessions_present" value="1">
-		<?php $labels = CalendarSessions::labels_of_post( $post_id ); ?>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="ffc_self_scheduling_session_label"><?php esc_html_e( 'Label (singular)', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label" id="ffc_self_scheduling_session_label" value="<?php echo esc_attr( $labels['session_label'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Session', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="ffc_self_scheduling_session_label_plural"><?php esc_html_e( 'Label (plural)', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label_plural" id="ffc_self_scheduling_session_label_plural" value="<?php echo esc_attr( $labels['session_label_plural'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Sessions', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
-					<p class="description" id="ffc-session-label-help"><?php esc_html_e( 'This calendar\'s word for a session (e.g. "Room" / "Rooms"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use "Session" / "Sessions".', 'ffcertificate' ); ?></p>
-				</td>
-			</tr>
-		</table>
 		<table class="widefat ffc-sessions-table">
 			<thead>
 				<tr>
@@ -1255,6 +1239,27 @@ class SelfSchedulingEditor {
 		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
 		$ffc_names_booking = true;
 		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
+
+		// The calendar's own word for a session (#2413), beside its other names.
+		?>
+		<?php $labels = CalendarSessions::labels_of_post( (int) $post->ID ); ?>
+		<h3><?php esc_html_e( 'Sessions', 'ffcertificate' ); ?></h3>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="ffc_self_scheduling_session_label"><?php esc_html_e( 'Session (singular)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label" id="ffc_self_scheduling_session_label" value="<?php echo esc_attr( $labels['session_label'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Session', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="ffc_self_scheduling_session_label_plural"><?php esc_html_e( 'Sessions (plural)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label_plural" id="ffc_self_scheduling_session_label_plural" value="<?php echo esc_attr( $labels['session_label_plural'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Sessions', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
+					<p class="description" id="ffc-session-label-help"><?php esc_html_e( 'This calendar\'s word for a session (e.g. "Room" / "Rooms"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use "Session" / "Sessions".', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+		</table>
+		<?php
 	}
 
 	/**
