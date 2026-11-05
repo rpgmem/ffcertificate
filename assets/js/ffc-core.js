@@ -1281,7 +1281,11 @@
                     if (e.key !== 'Tab') {
                         return;
                     }
-                    var focusable = choices.concat([field, cancel, agree]).filter(function(el) { return el && !el.disabled; });
+                    // A radio group is one tab stop, the checked radio (the
+                    // first when none is): listing every radio made the trap
+                    // miss a checked second one and let the focus out.
+                    var stop = choices.filter(function(radio) { return radio.checked; })[0] || choices[0];
+                    var focusable = [stop, field, cancel, agree].filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1319,8 +1323,17 @@
                 document.addEventListener('keydown', onKey, true);
 
                 label();
+                // The region is in the document before it is filled, or a
+                // screen reader may not announce the first sentence.
+                function say(text) {
+                    setTimeout(function() {
+                        if (!done) {
+                            live.textContent = text;
+                        }
+                    }, 100);
+                }
                 if (left > 0) {
-                    live.textContent = words.countdownStart.replace('%d', left);
+                    say(words.countdownStart.replace('%d', left));
                     timer = setInterval(function() {
                         left -= 1;
                         label();
@@ -1331,10 +1344,12 @@
                         }
                     }, 1000);
                 } else {
-                    live.textContent = words.countdownEnd;
+                    say(words.countdownEnd);
                 }
 
-                (field || cancel).focus();
+                // Cancel first, as the description says: the safe answer
+                // is the one a stray Enter gives.
+                cancel.focus();
             });
         },
 
@@ -1581,6 +1596,37 @@
                 }
             }
         });
+    }
+
+    /**
+     * Honour "reduce motion" (#2344): the slides, fades and scrolls the
+     * plugin's scripts run through jQuery jump to their end state instead,
+     * with their callbacks run as before. `jQuery.fx.off` is page-wide, so
+     * it follows the reader's own setting both ways, and is only ever
+     * switched back on if this script switched it off.
+     */
+    function applyReducedMotion($, query) {
+        if (query.matches) {
+            if (!$.fx.off) {
+                $.fx.off = true;
+                window.FFC._motionOff = true;
+            }
+        } else if (window.FFC._motionOff) {
+            $.fx.off = false;
+            window.FFC._motionOff = false;
+        }
+    }
+    if (typeof jQuery !== 'undefined' && jQuery.fx && typeof window.matchMedia === 'function') {
+        var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (motionQuery) {
+            applyReducedMotion(jQuery, motionQuery);
+            var onMotionChange = function() { applyReducedMotion(jQuery, motionQuery); };
+            if (typeof motionQuery.addEventListener === 'function') {
+                motionQuery.addEventListener('change', onMotionChange);
+            } else if (typeof motionQuery.addListener === 'function') {
+                motionQuery.addListener(onMotionChange);
+            }
+        }
     }
 
     /**

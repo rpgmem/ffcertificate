@@ -518,7 +518,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertLessThan( strpos( $output, 'class="column-visibility"' ), strpos( $output, 'class="column-shortcode"' ), 'the shortcode follows the name' );
 		$this->assertMatchesRegularExpression(
 			'#<td class="column-shortcode">\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id=&quot;7&quot;\]</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;7&quot;\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			. '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode" aria-label="Copy shortcode" title="Copy shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;7&quot;\]"#',
 			$output
 		);
 	}
@@ -665,7 +665,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		// The card draws the list column's cell, copy button included (#1814).
 		$this->assertMatchesRegularExpression(
 			'#<h2 class="ffc-icon-code">Shortcode</h2>\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id="5"\]</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			. '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode" aria-label="Copy shortcode" title="Copy shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]"#',
 			$output
 		);
 

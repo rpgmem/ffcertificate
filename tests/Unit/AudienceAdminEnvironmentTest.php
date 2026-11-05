@@ -426,7 +426,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringContainsString( '<th scope="col" class="column-shortcode">Shortcode</th>', $output );
 		$this->assertMatchesRegularExpression(
 			'#<td class="column-shortcode">\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id=&quot;3&quot; environment_id=&quot;9&quot;\]</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;3&quot; environment_id=&quot;9&quot;\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			. '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode" aria-label="Copy shortcode" title="Copy shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;3&quot; environment_id=&quot;9&quot;\]"#',
 			$output
 		);
 	}
