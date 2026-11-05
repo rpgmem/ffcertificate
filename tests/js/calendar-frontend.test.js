@@ -1744,6 +1744,21 @@ describe('ffc-calendar-frontend.js — the session step (#2405)', () => {
 		expect(window.ffcCalendarFrontend.selectedSession).toBeNull();
 	});
 
+	it('names the step with the calendar\'s own word for a session (#2413)', async () => {
+		window.ffcCalendarFrontend.config = { labels: { chooseSession: 'Rooms', changeSession: 'Rooms', session: 'Room' } };
+		window.FFC.request.mockResolvedValueOnce({ sessions: [{ id: 4, name: 'Room A', free: 1, slots: 1 }] });
+		window.ffcCalendarFrontend.loadTimeSlots(7, '2032-03-08');
+		await settle();
+		expect(document.querySelector('#ffc-session-step .ffc-session-step-title').textContent).toBe('Rooms');
+
+		window.FFC.request.mockResolvedValueOnce({ slots: [{ time: '09:00', display: '09:00', available: 1, total: 1 }] });
+		document.querySelector('.ffc-session-choice').click();
+		await settle();
+		expect(document.querySelector('#ffc-session-step').textContent).toContain('Room: Room A');
+		expect(document.querySelector('#ffc-session-step .ffc-session-back').textContent).toContain('Rooms');
+		window.ffcCalendarFrontend.config = undefined;
+	});
+
 	it('leaves a calendar without sessions as it was', async () => {
 		window.FFC.request.mockResolvedValue({ slots: [{ time: '09:00', display: '09:00', available: 1, total: 1 }] });
 

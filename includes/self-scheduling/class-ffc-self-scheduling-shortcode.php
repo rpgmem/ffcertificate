@@ -863,10 +863,15 @@ class SelfSchedulingShortcode {
 			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
 			// The state names with this calendar's own applied (#2223); the
 			// shared `ffcCalendar.strings` carries only the general ones.
-			'labels'        => \FreeFormCertificate\Scheduling\CalendarAppearance::strings(
-				\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
-					isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
-				)
+			// The session step's strings take this calendar's own word for a
+			// session (#2413).
+			'labels'        => array_merge(
+				\FreeFormCertificate\Scheduling\CalendarAppearance::strings(
+					\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
+						isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
+					)
+				),
+				CalendarSessions::step_strings( $calendar )
 			),
 		);
 		?>

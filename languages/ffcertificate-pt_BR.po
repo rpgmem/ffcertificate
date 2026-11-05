@@ -7236,13 +7236,29 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:271 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php
-msgid "Session:"
-msgstr "Sessão:"
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
+msgid "Label (singular)"
+msgstr "Rótulo (singular)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
+msgid "Label (plural)"
+msgstr "Rótulo (plural)"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
+msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use \"Session\" / \"Sessions\"."
+msgstr "A palavra deste calendário para uma sessão (ex.: \"Sala\" / \"Salas\"), mostrada aos visitantes ao agendar, no comprovante, nos e-mails e na página de verificação. Deixe vazio para usar \"Sessão\" / \"Sessões\"."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:54
+msgid "The tab's two label fields give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
+msgstr "Os dois campos de rótulo da aba dão ao calendário a sua própria palavra para uma sessão, no singular e no plural (por exemplo \"Sala\" / \"Salas\"), que os visitantes veem ao agendar e no comprovante, nos e-mails e na página de verificação; campos vazios mantêm \"Sessão\" / \"Sessões\"."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:119
+msgid "The calendar's word for a session, \"Session\" unless the Sessions tab sets its own"
+msgstr "A palavra do calendário para uma sessão, \"Sessão\" a menos que a aba Sessões defina a sua"
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75
-msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
-msgstr "A sessão de um agendamento aparece onde o agendamento aparece: na lista de Agendamentos, abaixo do calendário, em todos os e-mails de agendamento, no comprovante e no seu PDF, na página de verificação, na exportação CSV (última coluna) e no painel do usuário. Uma sessão excluída mantém o nome nos agendamentos que tem. Os textos de e-mail aceitam {{session_name}} e {{session_block}}, uma linha \"Sessão:\" que fica vazia em um calendário sem sessões."
+msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}}, {{session_label}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
+msgstr "A sessão de um agendamento aparece onde o agendamento aparece: na lista de Agendamentos, abaixo do calendário, em todos os e-mails de agendamento, no comprovante e no seu PDF, na página de verificação, na exportação CSV (última coluna) e no painel do usuário. Uma sessão excluída mantém o nome nos agendamentos que tem. Os textos de e-mail aceitam {{session_name}}, {{session_label}} e {{session_block}}, uma linha \"Sessão:\" que fica vazia em um calendário sem sessões."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:118
 msgid "The session the appointment was booked in, or empty on a calendar without sessions"

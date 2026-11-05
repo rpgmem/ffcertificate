@@ -302,13 +302,15 @@ class VerificationSplitParityTest extends TestCase {
 		if ( 'reregistration' === ( $result['type'] ?? '' ) ) {
 			$result['data'] = array();
 		}
-		// The second (#2405): an appointment names its session, after its calendar.
+		// The second (#2405, #2413): an appointment names its session and the
+		// calendar's word for one, after its calendar.
 		if ( 'appointment' === ( $result['type'] ?? '' ) && is_array( $result['data'] ?? null ) && array_key_exists( 'calendar_title', $result['data'] ) ) {
 			$data = array();
 			foreach ( $result['data'] as $key => $value ) {
 				$data[ $key ] = $value;
 				if ( 'calendar_title' === $key ) {
-					$data['session_name'] = '';
+					$data['session_name']  = '';
+					$data['session_label'] = '';
 				}
 			}
 			$result['data'] = $data;

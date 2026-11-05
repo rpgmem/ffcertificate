@@ -116,6 +116,10 @@ class SelfSchedulingSaveHandler {
 		}
 
 		update_post_meta( $post_id, CalendarSessions::META, wp_slash( $sessions ) );
+
+		// The calendar's own word for a session (#2413); empty keeps the default.
+		update_post_meta( $post_id, CalendarSessions::LABEL_META, wp_slash( CalendarSessions::clean_label( RequestInput::get_post_string( 'ffc_self_scheduling_session_label', '' ) ) ) );
+		update_post_meta( $post_id, CalendarSessions::LABEL_PLURAL_META, wp_slash( CalendarSessions::clean_label( RequestInput::get_post_string( 'ffc_self_scheduling_session_label_plural', '' ) ) ) );
 	}
 
 	/**

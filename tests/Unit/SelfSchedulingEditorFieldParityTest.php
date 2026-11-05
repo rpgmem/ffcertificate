@@ -302,10 +302,14 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$sessions = array_filter(
 			$after,
 			static fn( array $control ): bool => str_starts_with( (string) ( $control['attrs']['name'] ?? '' ), 'ffc_self_scheduling_sessions' )
+				|| str_starts_with( (string) ( $control['attrs']['name'] ?? '' ), 'ffc_self_scheduling_session_label' )
 				|| 'ffc-add-session' === ( $control['attrs']['id'] ?? '' )
 				|| str_contains( (string) ( $control['attrs']['class'] ?? '' ), 'ffc-remove-session' )
 		);
 		$this->assertContains( 'ffc_self_scheduling_sessions_present', array_map( static fn( array $control ): string => (string) ( $control['attrs']['name'] ?? '' ), $sessions ), 'The tab posts its marker, so an emptied list is saved.' );
+		// And the calendar's own word for a session (#2413), singular and plural.
+		$this->assertContains( 'ffc_self_scheduling_session_label', array_map( static fn( array $control ): string => (string) ( $control['attrs']['name'] ?? '' ), $sessions ) );
+		$this->assertContains( 'ffc_self_scheduling_session_label_plural', array_map( static fn( array $control ): string => (string) ( $control['attrs']['name'] ?? '' ), $sessions ) );
 		$this->assertContains( 'ffc-add-session', array_map( static fn( array $control ): string => (string) ( $control['attrs']['id'] ?? '' ), $sessions ) );
 
 		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names, $panel, $sessions ) ) );

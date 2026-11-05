@@ -422,7 +422,7 @@ class AppointmentReceiptHandler {
 					<?php $ffc_session = CalendarSessions::name_of_appointment( $calendar, $appointment ); ?>
 					<?php if ( '' !== $ffc_session ) : ?>
 					<div class="info-row">
-						<span class="info-label"><?php echo esc_html__( 'Session:', 'ffcertificate' ); ?></span>
+						<span class="info-label"><?php echo esc_html( CalendarSessions::label( $calendar ) ); ?>:</span>
 						<span class="info-value"><?php echo esc_html( $ffc_session ); ?></span>
 					</div>
 					<?php endif; ?>

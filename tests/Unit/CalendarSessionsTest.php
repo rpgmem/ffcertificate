@@ -182,4 +182,31 @@ class CalendarSessionsTest extends TestCase {
 		$this->assertSame( '', CalendarSessions::name_of_appointment( $calendar, array( 'session_id' => null ) ) );
 		$this->assertSame( '', CalendarSessions::name_of_appointment( array(), array( 'session_id' => 2 ) ) );
 	}
+
+	public function test_a_calendar_names_a_session_with_its_own_label_or_the_default(): void {
+		Functions\when( '__' )->returnArg();
+		$own = array( 'session_label' => ' Room ', 'session_label_plural' => 'Rooms' );
+
+		$this->assertSame( 'Room', CalendarSessions::label( $own ) );
+		$this->assertSame( 'Rooms', CalendarSessions::label( $own, true ) );
+		$this->assertSame( 'Session', CalendarSessions::label( array( 'session_label' => '' ) ) );
+		$this->assertSame( 'Sessions', CalendarSessions::label( array(), true ) );
+	}
+
+	public function test_the_step_strings_replace_only_what_a_label_was_given_for(): void {
+		$this->assertSame(
+			array( 'chooseSession' => 'Rooms', 'changeSession' => 'Rooms', 'session' => 'Room' ),
+			CalendarSessions::step_strings( array( 'session_label' => 'Room', 'session_label_plural' => 'Rooms' ) )
+		);
+		$this->assertSame( array( 'session' => 'Room' ), CalendarSessions::step_strings( array( 'session_label' => 'Room', 'session_label_plural' => ' ' ) ) );
+		$this->assertSame( array(), CalendarSessions::step_strings( array() ), 'Without labels the general strings stand.' );
+	}
+
+	public function test_a_post_reads_its_labels_as_the_row_carries_them(): void {
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => CalendarSessions::LABEL_META === $key ? 'Room' : false
+		);
+
+		$this->assertSame( array( 'session_label' => 'Room', 'session_label_plural' => '' ), CalendarSessions::labels_of_post( 9 ) );
+	}
 }

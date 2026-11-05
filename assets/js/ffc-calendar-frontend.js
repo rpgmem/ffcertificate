@@ -233,6 +233,16 @@
         },
 
         /**
+         * The strings of the session step, with this calendar's own word for
+         * a session over the general one (#2413).
+         *
+         * @return {Object}
+         */
+        sessionStrings: function() {
+            return $.extend({}, ffcCalendar.strings || {}, (this.config && this.config.labels) || {});
+        },
+
+        /**
          * The session step (#2405): one button per session, naming its free
          * places; a full session cannot be chosen. Choosing one loads its
          * times.
@@ -241,7 +251,7 @@
          */
         renderSessions: function(sessions) {
             var self = this;
-            var s = ffcCalendar.strings || {};
+            var s = this.sessionStrings();
             var $step = $('#ffc-session-step').empty().prop('hidden', false);
             $step.append($('<p class="ffc-session-step-title">').text(s.chooseSession || 'Choose a session'));
             sessions.forEach(function (session) {
@@ -273,7 +283,7 @@
             if (!this.selectedSession) {
                 return;
             }
-            var s = ffcCalendar.strings || {};
+            var s = this.sessionStrings();
             var $step = $('#ffc-session-step').empty().prop('hidden', false);
             var back = FFC.button({ label: s.changeSession || 'Change session', category: 'neutral', icon: 'chevron-left', className: 'ffc-session-back' });
             if (back) {
@@ -672,7 +682,7 @@
             detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.formatDate(self.selectedDate) + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + (self.selectedTime || '') + '</p>';
             if (self.selectedSession) {
-                detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.session || 'Session') + ':</strong> ' + esc(self.selectedSession.name) + '</p>';
+                detailsHtml += '<p><strong>' + esc(self.sessionStrings().session || 'Session') + ':</strong> ' + esc(self.selectedSession.name) + '</p>';
             }
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.name) + ':</strong> ' + esc($('#ffc-booking-name').val()) + '</p>';
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.email) + ':</strong> ' + esc($('#ffc-booking-email').val()) + '</p>';
