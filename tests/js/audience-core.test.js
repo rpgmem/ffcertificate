@@ -296,6 +296,12 @@ describe('FFCAudience bindEvents — handler bodies', () => {
 		expect(window.$('#booking-range-options').prop('hidden')).toBe(true);
 	});
 
+	it('re-fits the form to the calendar of a newly chosen space (#2404)', () => {
+		api.applyBookingShape = vi.fn();
+		window.$('#booking-environment-id').trigger('change');
+		expect(api.applyBookingShape).toHaveBeenCalledTimes(1);
+	});
+
 	function checkedAudiences() {
 		return window.$('#booking-audiences input:checked').map((_, el) => el.value).get();
 	}

@@ -33,18 +33,28 @@ describe('booking modal range fields', () => {
 		rangeFixture();
 	});
 
-	it('shows the range fields and hides the all-day switch for several days', () => {
-		api.setAllDay(true);
-
+	it('shows the range fields and keeps the all-day switch for several days (#2404)', () => {
 		api.setRangeOptions(true);
 
 		expect(document.getElementById('booking-range-options').hidden).toBe(false);
 		expect(document.getElementById('booking-end-date-group').hidden).toBe(false);
 		expect(document.getElementById('booking-end-date').required).toBe(true);
-		expect(document.getElementById('booking-all-day-group').hidden).toBe(true);
-		expect(document.getElementById('booking-all-day').checked).toBe(false);
-		// Turning all day off gives the hours back.
+		expect(document.getElementById('booking-all-day-group').hidden).toBe(false);
+		expect(document.querySelector('#booking-range-options .ffc-booking-choices').hidden).toBe(false);
+	});
+
+	it('books whole days over a range: no hours and no time mode, the switch kept (#2404)', () => {
+		api.setRangeOptions(true);
+
+		api.setAllDay(true);
+
+		expect(document.getElementById('booking-all-day').checked).toBe(true);
+		expect(document.getElementById('booking-time-row').hidden).toBe(true);
+		expect(document.querySelector('#booking-range-options .ffc-booking-choices').hidden).toBe(true);
+
+		api.setAllDay(false);
 		expect(document.getElementById('booking-time-row').hidden).toBe(false);
+		expect(document.querySelector('#booking-range-options .ffc-booking-choices').hidden).toBe(false);
 	});
 
 	it('shows the first and last date in the heading once the last day is set', () => {

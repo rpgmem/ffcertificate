@@ -454,6 +454,9 @@ class AudienceShortcode {
 								?>
 							</div>
 
+							<?php // A calendar that books whole days says so where the hours would be (#2404). ?>
+							<p class="ffc-booking-choice-hint" id="booking-whole-day-note" hidden></p>
+
 							<div class="ffc-form-row" id="booking-time-row">
 								<div class="ffc-form-group">
 									<label for="booking-start-time"><?php esc_html_e( 'Start Time', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label>
@@ -1142,6 +1145,8 @@ class AudienceShortcode {
 						// A weekly series (#2243).
 						/* translators: 1: the first date, 2: the last day the series may reach. */
 						'weeklyUntil'            => __( '%1$s, every week until %2$s', 'ffcertificate' ),
+						'wholeDayNote'           => __( 'This calendar books the whole day, from the space\'s opening to its closing.', 'ffcertificate' ),
+						'wholeDaysNote'          => __( 'This calendar books whole days: each day takes the space\'s opening hours.', 'ffcertificate' ),
 						/* translators: 1: dates that can be booked, 2: dates in the series. */
 						'seriesBookable'         => __( '%1$d of %2$d dates can be booked.', 'ffcertificate' ),
 						'seriesSkipped'          => __( 'These dates will be left out:', 'ffcertificate' ),

@@ -31903,3 +31903,11 @@ msgstr ""
 #: includes/audience/class-ffc-audience-rest-controller.php:902
 msgid "This calendar takes bookings of one day only."
 msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php:1148
+msgid "This calendar books the whole day, from the space's opening to its closing."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-shortcode.php:1148
+msgid "This calendar books whole days: each day takes the space's opening hours."
+msgstr ""

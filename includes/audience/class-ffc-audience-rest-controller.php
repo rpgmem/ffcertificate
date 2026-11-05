@@ -843,6 +843,37 @@ class AudienceRestController {
 	}
 
 	/**
+	 * The hours a whole-day booking takes (#2404): the space's opening window
+	 * for one day, and for a range a span from the opening of the first day
+	 * it books to the closing of the last, so each day it covers takes its
+	 * own window. A skipped first or last day lends nothing to the ends.
+	 * Shared by the booking and its conflict check, so both read the same.
+	 *
+	 * @param int    $environment_id Environment ID.
+	 * @param string $booking_date   First date (Y-m-d).
+	 * @param string $end_date       Last date (Y-m-d), the first for one day.
+	 * @param bool   $skip_blocked   Whether a range leaves blocked days out.
+	 * @return array{start_time: string, end_time: string}
+	 */
+	private static function whole_day_hours( int $environment_id, string $booking_date, string $end_date, bool $skip_blocked ): array {
+		$window = AudienceBookingRules::all_day_window( $environment_id, $booking_date );
+		$hours  = array(
+			'start_time' => $window['start'],
+			'end_time'   => $window['end'],
+		);
+		if ( $end_date === $booking_date || '' === $end_date ) {
+			return $hours;
+		}
+
+		$booked = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $hours['start_time'], $hours['end_time'], 'span', $skip_blocked )['days'];
+		if ( ! empty( $booked ) ) {
+			$hours['start_time'] = AudienceBookingRules::all_day_window( $environment_id, $booked[0]['date'] )['start'];
+			$hours['end_time']   = AudienceBookingRules::all_day_window( $environment_id, $booked[ count( $booked ) - 1 ]['date'] )['end'];
+		}
+		return $hours;
+	}
+
+	/**
 	 * Read and check the when, where and text of a booking request: the space
 	 * and its calendar, the caller's permission to book there, the dates, the
 	 * hours and the description (#2243). Shared by creating and editing a
@@ -925,19 +956,10 @@ class AudienceRestController {
 		// range is a span from the first day's opening to the last day's
 		// closing, so each day it covers takes its own window (#2404).
 		if ( $is_all_day ) {
-			$window     = AudienceBookingRules::all_day_window( $environment_id, $booking_date );
-			$start_time = $window['start'];
-			$end_time   = $window['end'];
-			if ( $is_range ) {
-				// The days actually booked, so a skipped first or last day
-				// does not lend its window to the span's ends.
-				$booked = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $start_time, $end_time, 'span', $skip_blocked )['days'];
-				if ( ! empty( $booked ) ) {
-					$start_time = AudienceBookingRules::all_day_window( $environment_id, $booked[0]['date'] )['start'];
-					$end_time   = AudienceBookingRules::all_day_window( $environment_id, $booked[ count( $booked ) - 1 ]['date'] )['end'];
-				}
-				$time_mode = 'span';
-			}
+			$whole      = self::whole_day_hours( $environment_id, $booking_date, $end_date, $skip_blocked );
+			$start_time = $whole['start_time'];
+			$end_time   = $whole['end_time'];
+			$time_mode  = $is_range ? 'span' : $time_mode;
 		}
 
 		// Validate time range. A span runs from one day to another, so its start may come after its end.
@@ -1824,19 +1846,40 @@ class AudienceRestController {
 				$scope_schedule_id = (int) $schedule->id;
 			}
 
+			$conflict_end = $this->conflict_end_date( $request, $booking_date );
+
+			// The check refuses what the create endpoint would (#2404).
+			if ( $schedule && 0 === (int) ( $schedule->allow_multi_day ?? 1 ) && $conflict_end !== $booking_date ) {
+				return self::refusal( 400, __( 'This calendar takes bookings of one day only.', 'ffcertificate' ), 'single_day_only' );
+			}
+
 			$is_hard_conflict = false;
 
 			// The days the booking would take: one for a single day, every
 			// booked day of a range with the hours each one takes. The checks
 			// below run on each of them, as the create endpoint does.
+			$skip_blocked = ! empty( $request->get_param( 'skip_blocked' ) );
+			$time_mode    = 'span' === $request->get_param( 'time_mode' ) ? 'span' : 'daily';
+
+			// A whole-day booking is checked with the hours it will take, as
+			// the create endpoint stores them, not the 00:00-23:59 the form
+			// sends (#2404). A calendar that books whole days makes every
+			// booking one.
+			if ( ! empty( $request->get_param( 'is_all_day' ) ) || ( $schedule && 0 === (int) ( $schedule->allow_time_selection ?? 1 ) ) ) {
+				$whole      = self::whole_day_hours( $environment_id, $booking_date, $conflict_end, $skip_blocked );
+				$start_time = $whole['start_time'];
+				$end_time   = $whole['end_time'];
+				$time_mode  = $conflict_end !== $booking_date ? 'span' : $time_mode;
+			}
+
 			$plan = AudienceBookingRules::occurrences(
 				$environment_id,
 				$booking_date,
-				$this->conflict_end_date( $request, $booking_date ),
+				$conflict_end,
 				$start_time,
 				$end_time,
-				'span' === $request->get_param( 'time_mode' ) ? 'span' : 'daily',
-				! empty( $request->get_param( 'skip_blocked' ) )
+				$time_mode,
+				$skip_blocked
 			);
 
 			// 1. Check environment time slot conflicts (hard conflict)
