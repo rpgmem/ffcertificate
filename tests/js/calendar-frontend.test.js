@@ -723,3 +723,846 @@ describe('ffc-calendar-frontend.js — a closed day names itself (#2218)', () =>
 		expect(window.ffcCalendar.strings.closedCell).toBe('Fechado');
 	});
 });
+
+// The whole booking modal, for the delegated handlers bindEvents() wires.
+const MODAL_FIXTURE = `
+	<button id="trigger">Open</button>
+	<div class="ffc-audience-calendar"></div>
+	<div class="ffc-calendar-container"></div>
+	<div id="ffc-self-scheduling-modal" style="display:none;">
+		<div class="ffc-modal-backdrop">
+			<div class="ffc-modal-content">
+				<button class="ffc-modal-close">x</button>
+				<div class="ffc-modal-title"></div>
+				<div class="ffc-timeslots-wrapper">
+					<div id="ffc-timeslots-container">
+						<div class="ffc-timeslot ffc-timeslot-full" data-time="08:30"></div>
+						<div class="ffc-timeslot" tabindex="0" data-time="09:00"></div>
+						<div class="ffc-timeslot" tabindex="0" data-time="09:30" data-waitlist="1"></div>
+					</div>
+				</div>
+				<div class="ffc-booking-form-wrapper" style="display:none;">
+					<form id="ffc-self-scheduling-form">
+						<input type="hidden" name="nonce" value="stale" />
+						<input type="hidden" name="action" value="ffc_book_appointment" />
+						<input type="hidden" name="calendar_id" value="7" />
+						<input type="hidden" id="ffc-form-date" name="date" />
+						<input type="hidden" id="ffc-form-time" name="time" />
+						<input id="ffc-booking-name" name="name" required value="Jane" />
+						<input id="ffc-booking-email" name="email" value="jane@example.test" />
+						<input id="ffc-booking-cpf-rf" name="cpf_rf" />
+						<input type="checkbox" id="ffc-booking-consent" checked />
+						<button type="submit">Book</button>
+						<button type="button" class="ffc-btn-back">Back</button>
+					</form>
+					<div class="ffc-form-messages"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="ffc-confirmation-wrapper" style="display:none;">
+		<div class="ffc-confirmation-success"><h3>Booked</h3></div>
+		<div class="ffc-appointment-details"></div>
+		<div class="ffc-confirmation-email" style="display:none;"></div>
+		<button class="ffc-btn-new-booking">New booking</button>
+	</div>
+`;
+
+function tick() {
+	return new Promise((r) => setTimeout(r, 0));
+}
+
+function flushPromises() {
+	return Promise.resolve().then(() => Promise.resolve()).then(() => Promise.resolve()).then(() => Promise.resolve());
+}
+
+// jsdom has no layout, so jQuery's `:visible` is false for everything;
+// this gives one element a client rect so it counts as visible.
+function makeVisible(el) {
+	el.getClientRects = () => [{ width: 1, height: 1 }];
+}
+
+function display(selector) {
+	return document.querySelector(selector).style.display;
+}
+
+// Load the script, let its document-ready init run, then drop every
+// delegated handler earlier loads left on `document` and bind once, so
+// each event below reaches exactly one controller.
+async function loadWithEvents() {
+	loadScript('assets/js/ffc-calendar-frontend.js');
+	await tick();
+	window.$(document).off();
+	const masks = window.FFC.Frontend && window.FFC.Frontend.Masks;
+	if (masks) {
+		// Earlier loads' document-ready inits reach the same global mock.
+		masks.applyCpfRf.mockClear();
+	}
+	window.ffcCalendarFrontend.bindEvents();
+	return window.ffcCalendarFrontend;
+}
+
+describe('ffc-calendar-frontend.js — delegated events', () => {
+	let applyCpfRf;
+	let animateCalls;
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		window.$.fx.off = true;
+		animateCalls = [];
+		window.$.fn.animate = function (props, _duration, done) {
+			animateCalls.push(props);
+			if (done) {
+				this.each(function () { done.call(this); });
+			}
+			return this;
+		};
+		applyCpfRf = vi.fn();
+		window.FFC.Frontend = { Masks: { applyCpfRf }, UI: { refreshCaptcha: vi.fn() } };
+		document.body.innerHTML = MODAL_FIXTURE;
+	});
+
+	it('applies the CPF/RF mask at bind time and again when the field takes focus', async () => {
+		await loadWithEvents();
+		expect(applyCpfRf).toHaveBeenCalledTimes(1);
+		expect(applyCpfRf.mock.calls[0][0][0]).toBe(document.getElementById('ffc-booking-cpf-rf'));
+
+		window.$(document.getElementById('ffc-booking-cpf-rf')).trigger('focus');
+		expect(applyCpfRf.mock.calls.length).toBeGreaterThanOrEqual(2);
+		expect(applyCpfRf.mock.calls.at(-1)[0][0]).toBe(document.getElementById('ffc-booking-cpf-rf'));
+	});
+
+	it('selects a slot on click, ignores a full slot, and flags a waitlist slot', async () => {
+		const ctl = await loadWithEvents();
+		ctl.selectedDate = '2026-05-20';
+
+		window.$('.ffc-timeslot[data-time="08:30"]').trigger('click');
+		expect(ctl.selectedTime).toBeNull();
+
+		window.$('.ffc-timeslot[data-time="09:30"]').trigger('click');
+		expect(ctl.selectedTime).toBe('09:30');
+		expect(ctl.selectedWaitlist).toBe(true);
+		expect(document.getElementById('ffc-form-time').value).toBe('09:30');
+		expect(display('.ffc-booking-form-wrapper')).not.toBe('none');
+		expect(document.querySelector('.ffc-modal-title').textContent).toBe('Your Information');
+	});
+
+	it('selects a slot with Enter or Space and ignores other keys', async () => {
+		const ctl = await loadWithEvents();
+		const $slot = window.$('.ffc-timeslot[data-time="09:00"]');
+
+		const other = window.$.Event('keydown', { key: 'a' });
+		$slot.trigger(other);
+		expect(ctl.selectedTime).toBeNull();
+		expect(other.isDefaultPrevented()).toBe(false);
+
+		const space = window.$.Event('keydown', { key: ' ' });
+		$slot.trigger(space);
+		expect(ctl.selectedTime).toBe('09:00');
+		expect(space.isDefaultPrevented()).toBe(true);
+
+		ctl.selectedTime = null;
+		$slot.trigger(window.$.Event('keydown', { key: 'Enter' }));
+		expect(ctl.selectedTime).toBe('09:00');
+	});
+
+	it('moves focus to the first visible editable input when the form shows', async () => {
+		const ctl = await loadWithEvents();
+		makeVisible(document.getElementById('ffc-booking-name'));
+		ctl.openModal();
+		applyCpfRf.mockClear();
+
+		ctl.showBookingForm();
+
+		expect(document.activeElement).toBe(document.getElementById('ffc-booking-name'));
+		expect(applyCpfRf).toHaveBeenCalledTimes(1);
+	});
+
+	it('submits the booking form through submitBooking instead of the browser', async () => {
+		await loadWithEvents();
+		window.FFC.request.mockReturnValue(new Promise(() => {}));
+		const ev = window.$.Event('submit');
+
+		window.$('#ffc-self-scheduling-form').trigger(ev);
+
+		expect(ev.isDefaultPrevented()).toBe(true);
+		expect(window.FFC.request).toHaveBeenCalledTimes(1);
+		expect(window.FFC.request.mock.calls[0][0]).toBe('ffc_book_appointment');
+		expect(window.$('#ffc-self-scheduling-form button[type="submit"]').prop('disabled')).toBe(true);
+		expect(window.$('#ffc-self-scheduling-form button[type="submit"]').text()).toBe('Loading…');
+	});
+
+	it('goes back from the form to the slots, restoring the title and focusing the first free slot', async () => {
+		const ctl = await loadWithEvents();
+		ctl.openModal();
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+		window.$('.ffc-booking-form-wrapper').show();
+		window.$('.ffc-timeslots-wrapper').hide();
+		window.$('.ffc-timeslot[data-time="09:00"]').addClass('is-selected');
+
+		window.$('.ffc-btn-back').trigger('click');
+
+		expect(display('.ffc-booking-form-wrapper')).toBe('none');
+		expect(display('.ffc-timeslots-wrapper')).not.toBe('none');
+		expect(document.querySelector('.ffc-timeslot.is-selected')).toBeNull();
+		expect(ctl.selectedTime).toBeNull();
+		expect(document.querySelector('.ffc-modal-title').textContent).toBe('Available Times — 20 May 2026');
+		expect(document.activeElement).toBe(document.querySelector('.ffc-timeslot[data-time="09:00"]'));
+	});
+
+	it('resets the whole flow on "new booking"', async () => {
+		const ctl = await loadWithEvents();
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+		document.getElementById('ffc-booking-name').value = 'Changed';
+		document.querySelector('.ffc-form-messages').innerHTML = '<p>old</p>';
+		const $btn = window.$('#ffc-self-scheduling-form button[type="submit"]');
+		$btn.prop('disabled', true).text('Loading…').data('submitting', true);
+		window.$('.ffc-confirmation-wrapper').show();
+		window.$('.ffc-calendar-container').hide();
+
+		window.$('.ffc-btn-new-booking').trigger('click');
+
+		expect(display('.ffc-confirmation-wrapper')).toBe('none');
+		expect(display('.ffc-calendar-container')).not.toBe('none');
+		expect(document.getElementById('ffc-booking-name').value).toBe('Jane');
+		expect(document.querySelector('.ffc-form-messages').innerHTML).toBe('');
+		expect($btn.prop('disabled')).toBe(false);
+		expect($btn.text()).toBe('Book Appointment');
+		expect($btn.data('submitting')).toBe(false);
+		expect(ctl.selectedDate).toBeNull();
+		expect(ctl.selectedTime).toBeNull();
+		expect(animateCalls.at(-1)).toEqual({ scrollTop: -50 });
+	});
+
+	it('closes on the backdrop and the close button, but not on a click inside the content', async () => {
+		const ctl = await loadWithEvents();
+		ctl.openModal();
+		ctl.selectedTime = '09:00';
+
+		window.$('.ffc-modal-title').trigger('click');
+		expect(display('#ffc-self-scheduling-modal')).not.toBe('none');
+		expect(ctl.selectedTime).toBe('09:00');
+
+		window.$('.ffc-modal-backdrop').trigger('click');
+		expect(display('#ffc-self-scheduling-modal')).toBe('none');
+		expect(ctl.selectedTime).toBeNull();
+
+		ctl.openModal();
+		window.$('.ffc-modal-close').trigger('click');
+		expect(display('#ffc-self-scheduling-modal')).toBe('none');
+	});
+
+	it('closes on Escape only while the modal is visible, returning focus to the trigger', async () => {
+		const ctl = await loadWithEvents();
+		document.getElementById('trigger').focus();
+		ctl.openModal();
+		expect(document.activeElement).toBe(document.querySelector('.ffc-modal-close'));
+
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		// Not visible to jQuery (no layout), so nothing closes.
+		expect(display('#ffc-self-scheduling-modal')).not.toBe('none');
+
+		makeVisible(document.getElementById('ffc-self-scheduling-modal'));
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		expect(display('#ffc-self-scheduling-modal')).toBe('none');
+		expect(document.activeElement).toBe(document.getElementById('trigger'));
+	});
+
+	it('traps Tab and Shift+Tab inside the modal', async () => {
+		const ctl = await loadWithEvents();
+		const close = document.querySelector('.ffc-modal-close');
+		const back = document.querySelector('.ffc-btn-back');
+		makeVisible(close);
+		makeVisible(back);
+		ctl.openModal();
+		window.$('.ffc-booking-form-wrapper').show();
+		const $modal = window.$('#ffc-self-scheduling-modal');
+
+		const other = window.$.Event('keydown', { key: 'a' });
+		$modal.trigger(other);
+		expect(other.isDefaultPrevented()).toBe(false);
+
+		back.focus();
+		const tab = window.$.Event('keydown', { key: 'Tab', shiftKey: false });
+		$modal.trigger(tab);
+		expect(tab.isDefaultPrevented()).toBe(true);
+		expect(document.activeElement).toBe(close);
+
+		const shiftTab = window.$.Event('keydown', { key: 'Tab', shiftKey: true });
+		$modal.trigger(shiftTab);
+		expect(shiftTab.isDefaultPrevented()).toBe(true);
+		expect(document.activeElement).toBe(back);
+
+		// Tab from the middle of the cycle is left to the browser.
+		const mid = window.$.Event('keydown', { key: 'Tab', shiftKey: true });
+		$modal.trigger(mid);
+		expect(mid.isDefaultPrevented()).toBe(false);
+	});
+
+	it('downloads the receipt from the manual button, straight away without a pre-flight', async () => {
+		await loadWithEvents();
+		window.ffcGeneratePDF = vi.fn();
+		document.querySelector('.ffc-appointment-details').innerHTML =
+			'<div class="ffc-receipt-actions"><button class="ffc-download-receipt-btn">Get</button></div>';
+		const $btn = window.$('.ffc-download-receipt-btn');
+
+		$btn.trigger('click');
+		expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+
+		$btn.data('pdfData', { html: '<p>r</p>' }).data('appointmentId', 9);
+		$btn.trigger('click');
+		expect(window.ffcGeneratePDF).toHaveBeenCalledWith({ html: '<p>r</p>' }, 'appointment_receipt.pdf');
+		delete window.ffcGeneratePDF;
+	});
+});
+
+describe('ffc-calendar-frontend.js — downloadReceipt and the pre-flight (#2040)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = '<div class="ffc-receipt-actions"></div>';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+		window.ffcGeneratePDF = vi.fn();
+	});
+
+	it('hands the download to the pre-flight, which runs it with the receipt filename', () => {
+		const beforeDownload = vi.fn();
+		window.FFC.Preflight = { beforeDownload };
+		window.ffcCalendar.preflight = { browserCheck: true, strings: { title: 'Switch browser' } };
+		const $actions = window.$('.ffc-receipt-actions');
+
+		window.ffcCalendarFrontend.downloadReceipt($actions, { filename: 'r-9.pdf' }, 9);
+
+		expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+		expect(beforeDownload).toHaveBeenCalledTimes(1);
+		const args = beforeDownload.mock.calls[0][0];
+		expect(args.wrapper).toBe($actions);
+		expect(args.trigger).toBe('.ffc-download-receipt-btn');
+		expect(args.telemetry).toEqual({ type: 'receipt', id: 9 });
+		expect(args.browserCheck).toBe(true);
+		expect(args.strings).toEqual({ title: 'Switch browser' });
+
+		args.go();
+		expect(window.ffcGeneratePDF).toHaveBeenCalledWith({ filename: 'r-9.pdf' }, 'r-9.pdf');
+	});
+
+	it('passes an empty pre-flight config when the page localised none', () => {
+		const beforeDownload = vi.fn();
+		window.FFC.Preflight = { beforeDownload };
+
+		window.ffcCalendarFrontend.downloadReceipt(window.$('.ffc-receipt-actions'), {}, 3);
+
+		expect(beforeDownload.mock.calls[0][0].browserCheck).toBeUndefined();
+		expect(beforeDownload.mock.calls[0][0].strings).toBeUndefined();
+	});
+});
+
+describe('ffc-calendar-frontend.js — showConfirmation details', () => {
+	let animateCalls;
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		Object.assign(window.ffcCalendar.strings, {
+			date: 'Date',
+			time: 'Time',
+			name: 'Name',
+			email: 'Email',
+			status: 'Status',
+			confirmed: 'Confirmed',
+			pendingApproval: 'Pending approval',
+			confirmationCodeHelp: 'Keep this code.',
+			downloadReceipt: 'Download receipt',
+		});
+		animateCalls = [];
+		window.$.fn.animate = function (props, _duration, done) {
+			animateCalls.push(props);
+			if (done) {
+				this.each(function () { done.call(this); });
+			}
+			return this;
+		};
+		document.body.innerHTML = MODAL_FIXTURE;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+		const ctl = window.ffcCalendarFrontend;
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectedTime = '09:00';
+	});
+
+	function details() {
+		return document.querySelector('.ffc-appointment-details');
+	}
+
+	it('escapes the visitor name and the validation code, and prints the code block', () => {
+		document.getElementById('ffc-booking-name').value = '<img src=x onerror="1">&\'';
+		window.ffcCalendarFrontend.showConfirmation({ validation_code: '<b>AB-12</b>' });
+
+		expect(details().querySelector('img')).toBeNull();
+		expect(details().textContent).toContain('Name: <img src=x onerror="1">&\'');
+		expect(details().textContent).toContain('Date: 20 May 2026');
+		expect(details().textContent).toContain('Time: 09:00');
+		expect(details().textContent).toContain('Status: Confirmed');
+		const code = details().querySelector('.ffc-confirmation-code .ffc-code-value');
+		expect(code.textContent).toBe('<b>AB-12</b>');
+		expect(code.querySelector('b')).toBeNull();
+		expect(details().querySelector('.ffc-code-help').textContent).toBe('Keep this code.');
+		expect(details().querySelector('.ffc-confirmation-code').textContent).toContain('Validation Code:');
+	});
+
+	it('names the status: waitlisted wins over approval, approval over confirmed', () => {
+		const ctl = window.ffcCalendarFrontend;
+		ctl.showConfirmation({ waitlisted: true, requires_approval: true });
+		expect(details().textContent).toContain('Status: On waitlist');
+
+		ctl.showConfirmation({ requires_approval: true });
+		expect(details().textContent).toContain('Status: Pending approval');
+		expect(details().querySelector('.ffc-confirmation-code')).toBeNull();
+	});
+
+	it('hides the modal and calendar, shows the confirmation and focuses its heading', () => {
+		window.$('#ffc-self-scheduling-modal').show();
+		document.body.style.overflow = 'hidden';
+
+		window.ffcCalendarFrontend.showConfirmation({});
+
+		expect(display('#ffc-self-scheduling-modal')).toBe('none');
+		expect(document.body.style.overflow).toBe('');
+		expect(display('.ffc-calendar-container')).toBe('none');
+		expect(display('.ffc-confirmation-wrapper')).not.toBe('none');
+		expect(animateCalls[0]).toEqual({ scrollTop: -100 });
+		const h3 = document.querySelector('.ffc-confirmation-success h3');
+		expect(h3.getAttribute('tabindex')).toBe('-1');
+		expect(document.activeElement).toBe(h3);
+	});
+
+	it('downloads the receipt by itself half a second after confirming', () => {
+		vi.useFakeTimers();
+		try {
+			window.ffcGeneratePDF = vi.fn();
+			window.ffcCalendarFrontend.showConfirmation({ pdf_data: { filename: 'rcpt.pdf' }, appointment_id: 5 });
+			expect(window.ffcGeneratePDF).not.toHaveBeenCalled();
+			vi.advanceTimersByTime(500);
+			expect(window.ffcGeneratePDF).toHaveBeenCalledWith({ filename: 'rcpt.pdf' }, 'rcpt.pdf');
+			expect(window.$('.ffc-download-receipt-btn').data('appointmentId')).toBe(5);
+		} finally {
+			vi.useRealTimers();
+			delete window.ffcGeneratePDF;
+		}
+	});
+});
+
+describe('ffc-calendar-frontend.js — submitBooking and sendBooking outcomes', () => {
+	let refreshCaptcha;
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		refreshCaptcha = vi.fn();
+		window.FFC.Frontend = { UI: { refreshCaptcha } };
+		window.FFC.fieldMessage = vi.fn();
+		window.FFC.clearFieldMessage = vi.fn();
+		window.FFC.requiredMessage = () => 'Required.';
+		document.body.innerHTML = MODAL_FIXTURE;
+		document.getElementById('ffc-form-date').value = '2026-05-20';
+		document.getElementById('ffc-form-time').value = '09:00';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	const $form = () => window.$('#ffc-self-scheduling-form');
+	const $btn = () => window.$('#ffc-self-scheduling-form button[type="submit"]');
+	const message = () => document.querySelector('.ffc-form-messages').textContent;
+
+	function serverError(data, msg) {
+		const err = new Error(msg || '');
+		err.message = msg || '';
+		err.fromServer = true;
+		err.data = data;
+		return err;
+	}
+
+	it('does nothing while a submission is already in flight', () => {
+		document.querySelector('.ffc-form-messages').innerHTML = '<p>keep</p>';
+		$btn().data('submitting', true);
+
+		window.ffcCalendarFrontend.submitBooking($form());
+
+		expect(window.FFC.request).not.toHaveBeenCalled();
+		expect(message()).toBe('keep');
+	});
+
+	it('does not send an invalid form', () => {
+		document.getElementById('ffc-booking-name').value = '';
+
+		window.ffcCalendarFrontend.submitBooking($form());
+
+		expect(window.FFC.request).not.toHaveBeenCalled();
+		expect(window.FFC.fieldMessage).toHaveBeenCalledWith(document.getElementById('ffc-booking-name'), 'error', 'Required.');
+		expect(message()).toBe('Please fill all required fields');
+		expect($btn().prop('disabled')).toBe(false);
+	});
+
+	it('still submits, unconfirmed, when the override check itself fails', async () => {
+		window.ffcCalendarFrontend.config = { canBypass: true };
+		window.FFC.request
+			.mockRejectedValueOnce(new Error('network'))
+			.mockReturnValueOnce(new Promise(() => {}));
+
+		window.ffcCalendarFrontend.submitBooking($form());
+		await flushPromises();
+
+		expect(window.FFC.request).toHaveBeenCalledTimes(2);
+		expect(window.FFC.request.mock.calls[1][0]).toBe('ffc_book_appointment');
+		expect(window.FFC.request.mock.calls[1][1]).not.toContain('confirm_override');
+	});
+
+	it('shows the confirmation on success and clears the in-flight flag', async () => {
+		const ctl = window.ffcCalendarFrontend;
+		const show = vi.spyOn(ctl, 'showConfirmation').mockImplementation(() => {});
+		window.FFC.request.mockResolvedValueOnce({ appointment_id: 3 });
+		$btn().data('submitting', true);
+
+		ctl.sendBooking($form(), false);
+		await flushPromises();
+
+		expect(window.FFC.request.mock.calls[0][2]).toEqual({ nonce: 'test-nonce', ajaxUrl: '/wp-admin/admin-ajax.php', timeout: 30000 });
+		expect(show).toHaveBeenCalledWith({ appointment_id: 3 });
+		expect($btn().data('submitting')).toBe(false);
+	});
+
+	it('refreshes the captcha and asks again when the server wants the override confirmed', async () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.FFC.overrideConfirm = vi.fn().mockResolvedValue(false);
+		const data = { code: 'override_confirmation_required', refresh_captcha: true, new_hash: 'h2', reasons: [{ code: 'closed' }] };
+		window.FFC.request.mockRejectedValueOnce(serverError(data));
+
+		ctl.sendBooking($form(), false);
+		await flushPromises();
+
+		expect(refreshCaptcha).toHaveBeenCalledTimes(1);
+		expect(refreshCaptcha.mock.calls[0][0][0]).toBe($form()[0]);
+		expect(refreshCaptcha.mock.calls[0][1]).toBe(data);
+		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons).toEqual([{ code: 'closed' }]);
+		// Declined: the button comes back.
+		expect($btn().data('submitting')).toBe(false);
+		expect($btn().prop('disabled')).toBe(false);
+		expect(message()).toBe('');
+	});
+
+	it('asks with no reasons when the server listed none', async () => {
+		window.FFC.overrideConfirm = vi.fn().mockReturnValue(new Promise(() => {}));
+		window.FFC.request.mockRejectedValueOnce(serverError({ code: 'override_confirmation_required' }));
+
+		window.ffcCalendarFrontend.sendBooking($form(), false);
+		await flushPromises();
+
+		expect(refreshCaptcha).not.toHaveBeenCalled();
+		expect(window.FFC.overrideConfirm.mock.calls[0][0].reasons).toEqual([]);
+		expect($btn().data('submitting')).toBe(true);
+	});
+
+	it('shows the server message and refreshes the captcha on a server error, even once confirmed', async () => {
+		$btn().prop('disabled', true).text('Loading…');
+		window.FFC.request.mockRejectedValueOnce(
+			serverError({ code: 'override_confirmation_required', refresh_captcha: true }, 'Slot taken.')
+		);
+
+		window.ffcCalendarFrontend.sendBooking($form(), true);
+		await flushPromises();
+
+		expect(window.FFC.request.mock.calls[0][1]).toContain('confirm_override=1');
+		expect(refreshCaptcha).toHaveBeenCalledTimes(1);
+		expect(message()).toBe('Slot taken.');
+		expect(document.querySelector('.ffc-form-messages .ffc-notice-danger').getAttribute('role')).toBe('note');
+		expect($btn().prop('disabled')).toBe(false);
+		expect($btn().text()).toBe('Book Appointment');
+	});
+
+	it('falls back to the generic error for a server error without a message', async () => {
+		window.FFC.request.mockRejectedValueOnce(serverError({ code: 'x' }));
+
+		window.ffcCalendarFrontend.sendBooking($form(), false);
+		await flushPromises();
+
+		expect(refreshCaptcha).not.toHaveBeenCalled();
+		expect(message()).toBe('An error occurred');
+	});
+
+	it.each([
+		['a timeout', { xhr: { statusText: 'timeout', status: 0 } }, 'Connection timeout. Please try again.'],
+		['no connection', { xhr: { statusText: 'error', status: 0 } }, 'Network error. Please check your connection.'],
+		['a transport failure', { xhr: { statusText: 'error', status: 500 } }, 'An error occurred'],
+		['an error with no request', {}, 'An error occurred'],
+	])('names %s', async (_label, err, expected) => {
+		window.FFC.request.mockRejectedValueOnce(err);
+
+		window.ffcCalendarFrontend.sendBooking($form(), false);
+		await flushPromises();
+
+		expect(message()).toBe(expected);
+		expect($btn().prop('disabled')).toBe(false);
+	});
+
+	it('uses the built-in timeout and network texts when none is localised', async () => {
+		delete window.ffcCalendar.strings.timeout;
+		delete window.ffcCalendar.strings.networkError;
+		delete window.ffcCalendar.strings.submit;
+		window.FFC.request
+			.mockRejectedValueOnce({ xhr: { statusText: 'timeout' } })
+			.mockRejectedValueOnce({ xhr: { status: 0 } });
+
+		window.ffcCalendarFrontend.sendBooking($form(), false);
+		await flushPromises();
+		expect(message()).toBe('Connection timeout. Please try again.');
+		expect($btn().text()).toBe('Book Appointment');
+
+		window.ffcCalendarFrontend.sendBooking($form(), false);
+		await flushPromises();
+		expect(message()).toBe('Network error. Please check your connection and try again.');
+	});
+});
+
+describe('ffc-calendar-frontend.js — loadTimeSlots without a slot list', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = MODAL_FIXTURE;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it('says there are no slots when the payload carries none', async () => {
+		window.FFC.request.mockResolvedValue({});
+
+		window.ffcCalendarFrontend.loadTimeSlots(7, '2026-05-21');
+		expect(document.querySelector('.ffc-modal-title').textContent).toBe('Available Times — 21 May 2026');
+		await flushPromises();
+
+		expect(document.querySelector('#ffc-timeslots-container .ffc-no-slots').textContent).toBe('No slots available');
+		expect(document.querySelectorAll('#ffc-timeslots-container .ffc-timeslot')).toHaveLength(0);
+	});
+});
+
+describe('ffc-calendar-frontend.js — initCalendarCore wiring', () => {
+	let options;
+	let instances;
+	beforeEach(async () => {
+		reset();
+		installGlobals();
+		window.FFC.request.mockReturnValue(new Promise(() => {}));
+		instances = [];
+		window.FFCCalendarCore = function ($container, opts) {
+			options = opts;
+			this.$container = $container;
+			this.options = opts;
+			this.refresh = vi.fn();
+			instances.push(this);
+		};
+		document.body.innerHTML =
+			'<input id="ffc-selected-date" />' +
+			'<div id="ffc-calendar-container-7"><div class="ffc-calendar-filters"></div></div>' +
+			'<script type="application/json" id="ffc-calendar-config-7">{"calendarId":7,"workingDays":[1,2,3,4,5]}</script>';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+		// Let document-ready's own initCalendarCore() run before the test does.
+		await tick();
+		options = null;
+		instances = [];
+	});
+
+	function setConfig(config) {
+		document.getElementById('ffc-calendar-config-7').textContent = JSON.stringify(config);
+	}
+
+	function ymd(d) {
+		return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+	}
+
+	// A weekday a few days ahead, inside the default 30-day window.
+	function nextWeekday() {
+		const d = new Date();
+		d.setHours(12, 0, 0, 0);
+		do {
+			d.setDate(d.getDate() + 1);
+		} while (d.getDay() === 0 || d.getDay() === 6);
+		return d;
+	}
+
+	function deferred() {
+		let resolve;
+		let reject;
+		const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+		return { promise, resolve, reject };
+	}
+
+	it('builds nothing without a config tag, or with a config that is not JSON', () => {
+		document.getElementById('ffc-calendar-config-7').textContent = '{not json';
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(instances).toHaveLength(0);
+
+		document.getElementById('ffc-calendar-config-7').remove();
+		window.ffcCalendarFrontend.initCalendarCore();
+		expect(instances).toHaveLength(0);
+	});
+
+	it('disables the non-working weekdays, defaults the window to 30 days and stores the instance', () => {
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(instances).toHaveLength(1);
+		expect(options.disabledDays).toEqual([0, 6]);
+		expect(options.showFilters).toBe(false);
+		const expectedMax = new Date();
+		expectedMax.setDate(expectedMax.getDate() + 30);
+		expect(ymd(options.maxDate)).toBe(ymd(expectedMax));
+		expect(options.maxDate.getHours()).toBe(23);
+		expect(window.$('#ffc-calendar-container-7').data('calendar')).toBe(instances[0]);
+		expect(window.ffcCalendarFrontend.config.calendarId).toBe(7);
+	});
+
+	it('pushes the first bookable day out by the minimum notice', () => {
+		setConfig({ calendarId: 7, workingDays: [1, 2, 3, 4, 5], minDateHours: 48 });
+		const expected = new Date();
+		expected.setHours(expected.getHours() + 48);
+		expected.setHours(0, 0, 0, 0);
+
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(options.minDate.getTime()).toBe(expected.getTime());
+	});
+
+	it('in custom mode disables no weekday and extends the range to the last configured date (#941)', () => {
+		setConfig({ calendarId: 7, workingDays: [1], scheduleType: 'custom', enabledDates: ['2026-12-01', '2027-03-15'] });
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(options.disabledDays).toEqual([]);
+		expect(options.enabledDates).toEqual(['2026-12-01', '2027-03-15']);
+		expect(options.maxDate.getTime()).toBe(new Date('2027-03-15T23:59:59').getTime());
+	});
+
+	it('keeps the default range when the last custom date cannot be read', () => {
+		setConfig({ calendarId: 7, workingDays: [1], scheduleType: 'custom', enabledDates: ['not-a-date'] });
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		const expectedMax = new Date();
+		expectedMax.setDate(expectedMax.getDate() + 30);
+		expect(ymd(options.maxDate)).toBe(ymd(expectedMax));
+	});
+
+	it('prints the calendar title, escaped, in the filters area', () => {
+		setConfig({ calendarId: 7, workingDays: [1], calendarTitle: 'Room <b>A</b>' });
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		expect(options.showFilters).toBe(true);
+		const title = document.querySelector('#ffc-calendar-container-7 .ffc-calendar-filters .ffc-calendar-title');
+		expect(title.textContent).toBe('Room <b>A</b>');
+		expect(title.querySelector('b')).toBeNull();
+	});
+
+	it('opens the slots for a clicked day', () => {
+		window.ffcCalendarFrontend.initCalendarCore();
+		const load = vi.spyOn(window.ffcCalendarFrontend, 'loadTimeSlots').mockImplementation(() => {});
+
+		options.onDayClick('2026-06-10', null);
+
+		expect(document.getElementById('ffc-selected-date').value).toBe('2026-06-10');
+		expect(load).toHaveBeenCalledWith(7, '2026-06-10');
+	});
+
+	it('marks a working day in the window as available, and not a weekend or a past day', () => {
+		window.ffcCalendarFrontend.initCalendarCore();
+		const day = nextWeekday();
+		const sunday = new Date(day);
+		while (sunday.getDay() !== 0) {
+			sunday.setDate(sunday.getDate() + 1);
+		}
+		const past = new Date(2020, 0, 6);
+
+		expect(options.getDayClasses(ymd(day), day)).toEqual(['ffc-available']);
+		expect(options.getDayClasses(ymd(sunday), sunday)).toEqual([]);
+		expect(options.getDayClasses(ymd(past), past)).toEqual([]);
+	});
+
+	it('fetches the month, then draws booking counts and holidays and refreshes', async () => {
+		window.ffcCalendar.strings.closedDateKinds = { optional: { label: 'Optional holiday', short: 'Opt.' } };
+		window.ffcCalendarFrontend.initCalendarCore();
+		const day = nextWeekday();
+		const holiday = new Date(day);
+		holiday.setDate(holiday.getDate() + 7);
+		const other = new Date(day);
+		other.setDate(other.getDate() + 14);
+		const d = deferred();
+		window.FFC.request.mockReturnValueOnce(d.promise);
+
+		options.onMonthChange(2026, 6);
+		expect(window.FFC.request).toHaveBeenCalledWith(
+			'ffc_get_month_bookings',
+			{ calendar_id: 7, year: 2026, month: 6 },
+			{ nonce: 'test-nonce', ajaxUrl: '/wp-admin/admin-ajax.php' }
+		);
+
+		const holidays = { [ymd(holiday)]: 'Founders', [ymd(other)]: 'Feast' };
+		d.resolve({
+			counts: { [ymd(day)]: 2, '2026-06-11': 1 },
+			holidays,
+			holiday_kinds: { [ymd(holiday)]: 'optional' },
+		});
+		await flushPromises();
+
+		expect(instances[0].refresh).toHaveBeenCalledTimes(1);
+		expect(instances[0].options.holidays).toBe(holidays);
+		expect(options.getDayContent(ymd(day), day, false, false)).toBe('<span class="ffc-day-badge ffc-badge-bookings">2 bookings</span>');
+		expect(options.getDayContent('2026-06-11', new Date(2026, 5, 11), false, false)).toContain('1 booking<');
+		// A fetched holiday is no longer available, even on a working day.
+		expect(options.getDayClasses(ymd(holiday), holiday)).toEqual([]);
+
+		const $optional = window.$('<div>').html(options.getDayContent(ymd(holiday), holiday, true, false)).find('.ffc-day-badge');
+		expect($optional.hasClass('ffc-badge-optional-holiday')).toBe(true);
+		expect($optional.attr('aria-label')).toBe('Optional holiday');
+		expect($optional.text()).toBe('Opt.');
+
+		const $plain = window.$('<div>').html(options.getDayContent(ymd(other), other, true, false)).find('.ffc-day-badge');
+		expect($plain.hasClass('ffc-badge-optional-holiday')).toBe(false);
+		expect($plain.attr('title')).toBe('Holiday');
+		expect($plain.text()).toBe('Holiday');
+	});
+
+	it('uses the calendar labels for the counts', async () => {
+		setConfig({ calendarId: 7, workingDays: [1], labels: { booking: 'sessão', bookings: 'sessões' } });
+		window.ffcCalendarFrontend.initCalendarCore();
+		window.FFC.request.mockResolvedValueOnce({ counts: { '2026-06-10': 1, '2026-06-11': 3 } });
+
+		options.onMonthChange(2026, 6);
+		await flushPromises();
+
+		expect(options.getDayContent('2026-06-10', new Date(2026, 5, 10), false, false)).toContain('1 sessão');
+		expect(options.getDayContent('2026-06-11', new Date(2026, 5, 11), false, false)).toContain('3 sessões');
+	});
+
+	it('drops a stale month answer and still refreshes when the fetch fails', async () => {
+		window.ffcCalendarFrontend.initCalendarCore();
+		const first = deferred();
+		const second = deferred();
+		window.FFC.request.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+
+		options.onMonthChange(2026, 6);
+		options.onMonthChange(2026, 7);
+		second.resolve({ counts: { '2026-07-01': 4 } });
+		await flushPromises();
+		first.resolve({ counts: { '2026-07-01': 9 } });
+		await flushPromises();
+
+		expect(instances[0].refresh).toHaveBeenCalledTimes(1);
+		expect(options.getDayContent('2026-07-01', new Date(2026, 6, 1), false, false)).toContain('4 bookings');
+
+		const third = deferred();
+		const fourth = deferred();
+		window.FFC.request.mockReturnValueOnce(third.promise).mockReturnValueOnce(fourth.promise);
+		options.onMonthChange(2026, 8);
+		options.onMonthChange(2026, 9);
+		third.reject(new Error('stale'));
+		await flushPromises();
+		expect(instances[0].refresh).toHaveBeenCalledTimes(1);
+		fourth.reject(new Error('down'));
+		await flushPromises();
+		expect(instances[0].refresh).toHaveBeenCalledTimes(2);
+		// The stale counts were cleared at fetch time.
+		expect(options.getDayContent('2026-07-01', new Date(2026, 6, 1), false, false)).toBe('');
+	});
+});
