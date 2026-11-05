@@ -26,66 +26,36 @@ export default [
 				// WordPress core globals.
 				wp: 'readonly',
 				ajaxurl: 'readonly',
-				wpApiSettings: 'readonly',
 
-				// Plugin-specific globals provided via wp_localize_script.
-				ffcAdmin: 'readonly',
-				ffc_admin: 'readonly',
+				// Plugin globals read bare, provided via wp_localize_script.
+				// The list is what the code reads, and nothing else (#2344):
+				// a name declared here that no script reads hides a typo in
+				// one that does. Re-measure by linting without this block and
+				// keeping the names \`no-undef\` reports.
 				ffc_ajax: 'readonly',
 				ffc_csv_download: 'readonly',
 				ffc_geofence_admin: 'readonly',
 				ffc_submission_edit: 'readonly',
-				ffcGeofenceConfig: 'readonly',
-				ffcFrontend: 'readonly',
-				ffc_frontend: 'readonly',
-				ffcDashboard: 'readonly',
-				ffcDashboardConfig: 'readonly',
-				ffcRecruitment: 'readonly',
-				ffcRecruitmentConfig: 'readonly',
-				ffcRecruitmentCandidateEdit: 'readonly',
 				ffcAudience: 'readonly',
 				ffcAudienceAdmin: 'readonly',
-				ffcAudienceConfig: 'readonly',
-				ffcAppointments: 'readonly',
-				ffcAppointmentsConfig: 'readonly',
-				ffcCalendarFrontend: 'readonly',
-				ffcCertificates: 'readonly',
-				ffcCertificatesConfig: 'readonly',
 				ffcCalendar: 'readonly',
-				ffcCalendarConfig: 'readonly',
-				ffcCsvDownload: 'readonly',
-				ffcCsvDownloadConfig: 'readonly',
+				ffcCalendarFrontend: 'readonly',
+				ffcDarkMode: 'readonly',
+				ffcDashboard: 'readonly',
 				ffcDynamic: 'readonly',
-				ffcMigrations: 'readonly',
+				ffcGeofenceConfig: 'readonly',
 				ffcReceiptData: 'readonly',
-				ffcRegistration: 'readonly',
 				ffcReregistration: 'readonly',
 				ffcReregistrationAdmin: 'readonly',
-				ffcReregistrationConfig: 'readonly',
 				ffcSelfSchedulingEditor: 'readonly',
-				ffcPdfGenerator: 'readonly',
-				ffcSmtpSettings: 'readonly',
-				ffcDarkMode: 'readonly',
-				ffcDeviceSignals: 'readonly',
-				ffcDynamicFragments: 'readonly',
-				ffcAlreadySubmittedNotice: 'readonly',
-				ffcUserCapabilities: 'readonly',
-				ffcFrontendHelpers: 'readonly',
 
-				// Globals the IIFEs assign back to `window`.
-				FFCGeofence: 'writable',
+				// Globals the IIFEs assign back to \`window\`.
 				FFCDashboard: 'writable',
-				FFCAudience: 'writable',
-				FFCCalendar: 'writable',
 				FFCCalendarCore: 'writable',
-				FFCCsv: 'writable',
 				FFC: 'writable',
 
 				// Third-party.
 				html2canvas: 'readonly',
-				jsPDF: 'readonly',
-				QRCode: 'readonly',
-				moment: 'readonly',
 			},
 		},
 		rules: {
@@ -113,6 +83,9 @@ export default [
 			'no-unsafe-finally': 'error',
 			'no-unused-expressions': ['error', { allowShortCircuit: true, allowTernary: true }],
 			'eqeqeq': ['error', 'smart'],
+			// A top-level declaration in a classic script becomes a property
+			// of \`window\`, shared with every other script on the page (#2344).
+			'no-implicit-globals': 'error',
 
 			// Style rules: deliberately off — too noisy on legacy code.
 			'no-var': 'off',

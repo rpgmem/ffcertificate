@@ -26,6 +26,14 @@ async function run() {
 	page();
 	loadScript('assets/js/ffc-device-check.js');
 	await flush();
+	// The device row reads the signals twice and hashes them with
+	// SubtleCrypto, which can outlast a fixed pause under a loaded run: wait
+	// for its answer instead of guessing how long it takes (#2344).
+	await vi.waitFor(() => {
+		if (!row('device').state) {
+			throw new Error('the device row has no answer yet');
+		}
+	}, { timeout: 2000, interval: 10 });
 }
 
 function matchMedia(scheme) {

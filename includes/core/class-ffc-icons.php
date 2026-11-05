@@ -515,16 +515,28 @@ final class Icons {
 	 * keeps it out of the accessibility tree the way the emoji it replaced
 	 * were not. Sizes are in `em` so the icon scales with the text beside it.
 	 *
+	 * Each drawing is written once (#2344): the classes that share an icon
+	 * share one rule setting `--ffc-icon-image`, which both mask properties
+	 * read, and an icon already on `:root` as a {@see self::MASKS} property
+	 * reads that one instead of repeating its data URI.
+	 *
 	 * @return string
 	 */
 	public static function stylesheet(): string {
 		$selectors = array();
-		$rules     = array();
+		$by_icon   = array();
 		foreach ( self::CLASSES as $class => $icon ) {
-			$selector    = '.ffc-icon-' . $class . '::before';
-			$selectors[] = $selector;
-			$url         = 'url("data:image/svg+xml,' . self::data_uri_body( $icon ) . '")';
-			$rules[]     = $selector . " {\n    -webkit-mask-image: " . $url . ";\n    mask-image: " . $url . ";\n}";
+			$selector           = '.ffc-icon-' . $class . '::before';
+			$selectors[]        = $selector;
+			$by_icon[ $icon ][] = $selector;
+		}
+
+		$rules = array();
+		foreach ( $by_icon as $icon => $icon_selectors ) {
+			$image   = in_array( $icon, self::MASKS, true )
+				? 'var(--ffc-icon-mask-' . $icon . ')'
+				: 'url("data:image/svg+xml,' . self::data_uri_body( $icon ) . '")';
+			$rules[] = implode( ",\n", $icon_selectors ) . " {\n    --ffc-icon-image: " . $image . ";\n}";
 		}
 
 		$base = implode( ",\n", $selectors ) . " {\n"
@@ -536,6 +548,8 @@ final class Icons {
 			. "    margin-right: 0.4em;\n"
 			. "    vertical-align: -0.2em;\n"
 			. "    background-color: var(--ffc-icon-tone, currentColor);\n"
+			. "    -webkit-mask-image: var(--ffc-icon-image);\n"
+			. "    mask-image: var(--ffc-icon-image);\n"
 			. "    -webkit-mask-repeat: no-repeat;\n"
 			. "    mask-repeat: no-repeat;\n"
 			. "    -webkit-mask-position: center;\n"

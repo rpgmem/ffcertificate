@@ -121,9 +121,15 @@ class IconsTest extends TestCase {
 		$css = Icons::stylesheet();
 		$this->assertStringStartsWith( Icons::CSS_BEGIN, $css );
 		$this->assertStringEndsWith( Icons::CSS_END, $css );
-		foreach ( array_keys( Icons::classes() ) as $class ) {
-			$this->assertMatchesRegularExpression( '/\.ffc-icon-' . preg_quote( $class, '/' ) . '::before \{\n    -webkit-mask-image: url\("data:image\/svg\+xml,/', $css, $class );
+		$this->assertStringContainsString( "    -webkit-mask-image: var(--ffc-icon-image);\n    mask-image: var(--ffc-icon-image);\n", $css, 'both mask properties read the one image property' );
+		foreach ( Icons::classes() as $class => $icon ) {
+			// The class sits in the selector list of the one rule that names its
+			// drawing (#2344), which is either a data URI or a :root mask property.
+			$image = in_array( $icon, Icons::MASKS, true ) ? 'var\(--ffc-icon-mask-' . $icon . '\)' : 'url\("data:image\/svg\+xml,';
+			$this->assertMatchesRegularExpression( '/\.ffc-icon-' . preg_quote( $class, '/' ) . '::before(?:,\n[^{]+)? \{\n    --ffc-icon-image: ' . $image . '/', $css, $class );
 		}
+		$drawings = array_unique( array_values( Icons::classes() ) );
+		$this->assertSame( count( $drawings ), substr_count( $css, '--ffc-icon-image: ' ), 'each drawing is written once, whatever number of classes name it' );
 		$this->assertStringNotContainsString( 'http://' . 'example', $css );
 		$this->assertDoesNotMatchRegularExpression( '/url\("(?!data:)/', $css, 'every url() is an inline data URI' );
 		$this->assertDoesNotMatchRegularExpression( '/[<>#]/', preg_replace( '/^\/\*.*\*\/$/m', '', $css ), 'the data URIs are percent-encoded' );

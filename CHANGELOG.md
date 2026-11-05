@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **QR Code Generator: vCard department, number and neighbourhood** (#2372). The department joins ORG, the number and the neighbourhood (filled by the CEP lookup) join the street line, and the type says it is vCard 3.0 with a link to RFC 2426.
 - **QR Code Generator: download the vCard as a .vcf, and a Role field** (#2374). A Download .vcf button under the code saves the same card the code carries, and the card takes a Role (vCard `ROLE`) apart from the job title.
 - **CI: every tested script counts toward JS coverage, and a missing `.min` fails the build** (#2344). The PDF generator, the certificate preview, the personal calendar, the code editor and the migrations screen leave the coverage exclusions, with tests that keep the floor; the asset check also catches a new minified file that was never committed.
+- **Assets: lighter icons, the core config only where it is used, no source maps** (#2344). The icon stylesheet writes each drawing once (86 KB to 49 KB); `ffcCoreConfig`, with its nonce, is built only on a page that prints `ffc-core`; the minified files no longer point at source maps that never shipped; PDF blob URLs are released after use; vertical tabs and calendars bind once.
 
 ### Security
 

@@ -28,6 +28,9 @@ class AssetRegistryTest extends TestCase {
 	/** @var list<array{handle: string, object_name: string, l10n: mixed}> */
 	private array $localized = array();
 
+	/** @var list<callable> Callbacks added to `print_scripts_array`. */
+	private array $print_filters = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -37,8 +40,19 @@ class AssetRegistryTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 
-		$registered = &$this->registered;
-		$localized  = &$this->localized;
+		AssetRegistry::reset();
+
+		$registered    = &$this->registered;
+		$localized     = &$this->localized;
+		$print_filters = &$this->print_filters;
+		Functions\when( 'add_filter' )->alias(
+			function ( $hook, $callback ) use ( &$print_filters ) {
+				if ( 'print_scripts_array' === $hook ) {
+					$print_filters[] = $callback;
+				}
+				return true;
+			}
+		);
 
 		// WordPress refuses a handle that is already registered and says so by
 		// returning false; the double does the same, so a registration that
@@ -99,6 +113,19 @@ class AssetRegistryTest extends TestCase {
 	}
 
 	/**
+	 * Run what WordPress runs on `print_scripts_array` for a list of handles.
+	 *
+	 * @param array<int, string> $handles Handles about to print.
+	 * @return mixed The filtered list.
+	 */
+	private function print_scripts( array $handles ) {
+		foreach ( $this->print_filters as $callback ) {
+			$handles = $callback( $handles );
+		}
+		return $handles;
+	}
+
+	/**
 	 * Localizations attached to a handle.
 	 *
 	 * @param string $handle Handle.
@@ -141,7 +168,9 @@ class AssetRegistryTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-core.min.js', $core['src'] );
 		$this->assertSame( array( 'jquery' ), $core['deps'] );
 		$this->assertTrue( $core['in_footer'] );
+		$this->assertSame( array(), $this->localizations( 'ffc-core' ), 'Nothing is built before ffc-core prints (#2344).' );
 
+		$this->assertSame( array( 'jquery', 'ffc-core' ), $this->print_scripts( array( 'jquery', 'ffc-core' ) ), 'The list WordPress prints is left as it was.' );
 		$config = $this->localizations( 'ffc-core' );
 		$this->assertCount( 1, $config );
 		$this->assertSame( 'ffcCoreConfig', $config[0]['object_name'] );
@@ -220,7 +249,21 @@ class AssetRegistryTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-core.min.js', $core['src'] );
 		$this->assertSame( array( 'jquery' ), $core['deps'] );
 		$this->assertTrue( $core['in_footer'] );
+		$this->print_scripts( array( 'ffc-core' ) );
 		$this->assertCount( 1, $this->localizations( 'ffc-core' ) );
+	}
+
+	public function test_the_core_config_is_built_only_when_ffc_core_prints_and_only_once(): void {
+		AssetRegistry::register_admin();
+
+		$this->print_scripts( array( 'jquery', 'common' ) );
+		$this->assertSame( array(), $this->localizations( 'ffc-core' ), 'A page that prints no ffc-core builds no config, nonce included (#2344).' );
+
+		$this->print_scripts( array( 'jquery', 'ffc-core', 'ffc-admin-js' ) );
+		$this->print_scripts( array( 'ffc-core', 'ffc-pii-reveal' ) );
+		$this->assertCount( 1, $this->localizations( 'ffc-core' ), 'Head, footer and a standalone document print in turn; the config is attached once.' );
+
+		$this->assertSame( 'not a list', AssetRegistry::attach_core_config( 'not a list' ), 'A value that is not a list passes through.' );
 	}
 
 	public function test_ffc_core_is_not_localized_again_when_something_registered_it_first(): void {
@@ -237,6 +280,7 @@ class AssetRegistryTest extends TestCase {
 		AssetRegistry::register_admin();
 
 		$this->assertSame( 'elsewhere', $this->registration( 'ffc-core' )['src'] );
+		$this->print_scripts( array( 'ffc-core' ) );
 		$this->assertSame( array(), $this->localizations( 'ffc-core' ) );
 	}
 
@@ -355,6 +399,7 @@ class AssetRegistryTest extends TestCase {
 		$handles = array_column( $this->registered, 'handle' );
 		$this->assertSame( array( 'ffc-core', 'ffc-batched-export', 'ffc-admin-js', 'ffc-admin-autosave' ), $handles, 'Nothing it depends on may be unknown when it is enqueued, or WordPress drops it in silence.' );
 		$this->assertSame( array( 'enqueue:ffc-admin-autosave' ), $order, 'Only the handle asked for is enqueued; its dependencies follow through WordPress.' );
+		$this->print_scripts( array( 'ffc-core' ) );
 		$this->assertCount( 1, $this->localizations( 'ffc-core' ) );
 	}
 
@@ -363,6 +408,7 @@ class AssetRegistryTest extends TestCase {
 
 		AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-field-behaviours' );
 		AssetRegistry::enqueue_scripts( 'ffc-rate-limit', 'ffc-pdf-generator' );
+		$this->print_scripts( array( 'ffc-core' ) );
 
 		$handles = array_column( $this->registered, 'handle' );
 		$this->assertSame( $handles, array_values( array_unique( $handles ) ) );
