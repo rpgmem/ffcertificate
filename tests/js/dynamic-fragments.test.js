@@ -9,7 +9,7 @@
 //      the DOM with fresh captcha, nonces, user data, and geofence config.
 //
 // Sprint F of #170.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 // Stash the original XMLHttpRequest so tests can restore it.
@@ -373,6 +373,65 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		xhr.responseText = 'not-json{';
 		// Should not throw.
 		expect(() => { if (typeof xhr.onload === 'function') xhr.onload(); }).not.toThrow();
+	});
+
+	describe('a request that fails (#2344)', () => {
+		function boot() {
+			window.FFC = window.FFC || {};
+			window.FFC.Preflight = { ready: vi.fn() };
+			document.body.innerHTML = '<div class="ffc-form-wrapper" id="ffc-form-1"><div class="ffc-captcha-row"><span class="ffc-captcha-label-text">server</span></div></div>';
+			window.ffcDynamic = { ajaxUrl: '/x' };
+			vi.useFakeTimers();
+			installXHRMock();
+			loadScript('assets/js/ffc-dynamic-fragments.js');
+			return window.FFC.Preflight.ready;
+		}
+		afterEach(() => {
+			vi.useRealTimers();
+			delete window.FFC.Preflight;
+		});
+
+		it('sets a 5 s timeout on the request', () => {
+			boot();
+			expect(MockXHR.lastInstance.timeout).toBe(5000);
+		});
+
+		it('is retried once after 2 s, and a retry that works applies the values', () => {
+			const ready = boot();
+			MockXHR.lastInstance.deliver({}, 500);
+			expect(MockXHR.sendCount).toBe(1);
+			vi.advanceTimersByTime(1999);
+			expect(MockXHR.sendCount).toBe(1);
+			vi.advanceTimersByTime(1);
+			expect(MockXHR.sendCount).toBe(2);
+			expect(ready).not.toHaveBeenCalled();
+			MockXHR.lastInstance.deliver({ success: true, data: { captcha: { provider: 'math', new_label: 'fresh', new_hash: 'h' } } });
+			expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('fresh');
+			expect(ready).toHaveBeenCalledWith('fragments');
+		});
+
+		it('after a second failure keeps the server-rendered values and lets the form go on', () => {
+			const ready = boot();
+			MockXHR.lastInstance.ontimeout();
+			vi.advanceTimersByTime(2000);
+			MockXHR.lastInstance.onerror();
+			vi.advanceTimersByTime(10000);
+			// Never a third request, and the watchdog is told to stand down.
+			expect(MockXHR.sendCount).toBe(2);
+			expect(ready).toHaveBeenCalledTimes(1);
+			expect(ready).toHaveBeenCalledWith('fragments');
+			expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('server');
+		});
+
+		it('counts an unsuccessful answer and a broken body as failures too', () => {
+			boot();
+			MockXHR.lastInstance.deliver({ success: false });
+			vi.advanceTimersByTime(2000);
+			expect(MockXHR.sendCount).toBe(2);
+			MockXHR.lastInstance.responseText = 'not-json{';
+			MockXHR.lastInstance.onload();
+			expect(window.FFC.Preflight.ready).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	it('refreshes the ffc_ajax / ffcCalendar / ffcAudience nonces and hidden nonce fields', () => {

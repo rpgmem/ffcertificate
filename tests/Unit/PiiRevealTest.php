@@ -71,8 +71,11 @@ class PiiRevealTest extends TestCase {
 		$enqueued  = array();
 		$localized = array();
 		Functions\when( '__' )->returnArg();
+		// ffc-core goes through AssetRegistry, which registers it first (#2344);
+		// false is WordPress's answer for a handle already registered.
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'wp_enqueue_script' )->alias(
-			static function ( $handle, $src, $deps ) use ( &$enqueued ) {
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
 				$enqueued[ $handle ] = array( $src, $deps );
 			}
 		);
@@ -85,6 +88,7 @@ class PiiRevealTest extends TestCase {
 		PiiReveal::enqueue_assets();
 
 		$this->assertArrayHasKey( 'ffc-pii-reveal', $enqueued );
+		$this->assertArrayHasKey( 'ffc-core', $enqueued, 'Its dependency is enqueued through the registry.' );
 		$this->assertSame( array( 'jquery', 'ffc-core' ), $enqueued['ffc-pii-reveal'][1] );
 		$this->assertMatchesRegularExpression( '#assets/js/ffc-pii-reveal(\.min)?\.js$#', $enqueued['ffc-pii-reveal'][0] );
 		$this->assertSame( 'ffcPiiReveal', $localized['ffc-pii-reveal'][0] );

@@ -86,6 +86,13 @@ class Frontend {
 	 */
 	private function register_hooks(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
+		// The fallback for a shortcode the post body does not carry (#2344):
+		// a widget, a block template part, a reusable block, a theme's
+		// do_shortcode(), or an archive whose first post is not the one with
+		// the form. Priority 10, two args: the tag is all it reads, and it
+		// returns the short-circuit value untouched; the attributes name
+		// the form whose geofence config the page needs.
+		add_filter( 'pre_do_shortcode_tag', array( $this, 'enqueue_on_render' ), 10, 3 );
 
 		// #836 (P2) — keep the certificate-verification page out of search indexes.
 		add_filter( 'wp_robots', array( $this, 'verification_page_robots' ) );
@@ -138,7 +145,15 @@ class Frontend {
 	}
 
 	/**
-	 * Enqueue frontend CSS and JavaScript assets.
+	 * The shortcodes whose assets this request already enqueued, by tag.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $assets_done = array();
+
+	/**
+	 * Enqueue frontend CSS and JavaScript assets for the shortcodes the
+	 * post body carries.
 	 */
 	public function frontend_assets(): void {
 		global $post;
@@ -147,10 +162,56 @@ class Frontend {
 			return;
 		}
 
-		$has_form         = has_shortcode( $post->post_content, 'ffc_form' );
-		$has_verification = has_shortcode( $post->post_content, 'ffc_verification' );
-		$has_csv_download = has_shortcode( $post->post_content, 'ffc_csv_download' );
-		$has_geofence     = has_shortcode( $post->post_content, GeofenceContent::SHORTCODE );
+		$flags = array();
+		foreach ( array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE ) as $tag ) {
+			$flags[ $tag ] = ! isset( $this->assets_done[ $tag ] ) && has_shortcode( $post->post_content, $tag );
+		}
+		$this->enqueue_for( $flags );
+	}
+
+	/**
+	 * Enqueue a shortcode's assets as it renders, when the post body did not
+	 * carry it (#2344). A script enqueued here prints in the footer and a
+	 * stylesheet with the late styles, which WordPress does on its own.
+	 *
+	 * @param false|string                $short_circuit The value `pre_do_shortcode_tag` passes on; returned unchanged.
+	 * @param string                      $tag           The shortcode about to render.
+	 * @param array<string, mixed>|string $attr          Its attributes.
+	 * @return false|string
+	 */
+	public function enqueue_on_render( $short_circuit, $tag, $attr = array() ) {
+		$tags = array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE );
+		if ( false === $short_circuit && in_array( $tag, $tags, true ) && ! isset( $this->assets_done[ $tag ] ) ) {
+			$flags         = array_fill_keys( $tags, false );
+			$flags[ $tag ] = true;
+			// The form a shortcode outside the body names, for its geofence config.
+			$form_id = 'ffc_form' === $tag && is_array( $attr ) && isset( $attr['id'] ) ? absint( $attr['id'] ) : 0;
+			$this->enqueue_for( $flags, $form_id > 0 ? array( $form_id ) : array() );
+		}
+		return $short_circuit;
+	}
+
+	/**
+	 * Enqueue the assets of the shortcodes flagged true.
+	 *
+	 * @param array<string, bool> $flags    Shortcode tag => whether to enqueue it.
+	 * @param array<int, int>     $form_ids Forms rendered outside the post body.
+	 * @return void
+	 */
+	private function enqueue_for( array $flags, array $form_ids = array() ): void {
+		global $post;
+		$page_id = is_a( $post, 'WP_Post' ) ? (int) $post->ID : 0;
+
+		foreach ( $flags as $tag => $on ) {
+			if ( $on ) {
+				$this->assets_done[ $tag ] = true;
+			}
+		}
+
+		$has_form         = ! empty( $flags['ffc_form'] );
+		$has_verification = ! empty( $flags['ffc_verification'] );
+		$has_csv_download = ! empty( $flags['ffc_csv_download'] );
+		$has_geofence     = ! empty( $flags[ GeofenceContent::SHORTCODE ] );
 		$has_base_assets  = $has_form || $has_verification || $has_csv_download;
 
 		if ( $has_geofence ) {
@@ -176,7 +237,7 @@ class Frontend {
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
 			// CSV download shortcode also renders a WP nonce + captcha, so it
 			// needs this refresh too.
-			wp_enqueue_script( 'ffc-dynamic-fragments' );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-dynamic-fragments' );
 
 			// 6.3.10: friendly "already submitted" notice. Pure client-side
 			// hint backed by localStorage; reads `ffc_submitted_forms` and,
@@ -241,7 +302,7 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
 
 			// Pass geofence configurations to frontend.
-			$this->localize_geofence_config();
+			$this->localize_geofence_config( $form_ids );
 
 			// Device fingerprint signals collector (only when globally enabled).
 			//
@@ -440,7 +501,7 @@ class Frontend {
 						// pre-flight telemetry (#2040).
 						'telemetry'    => array(
 							'type' => 'csv_download',
-							'id'   => (int) $post->ID,
+							'id'   => $page_id,
 						),
 					),
 					'strings'        => array(
@@ -645,7 +706,7 @@ class Frontend {
 		);
 
 		if ( ! $has_base_assets ) {
-			$this->localize_geofence_config();
+			$this->localize_geofence_config( array(), true );
 		}
 	}
 
@@ -653,13 +714,14 @@ class Frontend {
 	 * Localize geofence configuration for frontend
 	 *
 	 * @since 3.0.0
+	 *
+	 * @param array<int, int> $extra_ids        Forms rendered outside the post body (#2344).
+	 * @param bool            $geofence_content Whether an [ffc_geofence] is on the page.
 	 */
-	private function localize_geofence_config(): void {
+	private function localize_geofence_config( array $extra_ids = array(), bool $geofence_content = false ): void {
 		global $post;
 
-		if ( ! is_a( $post, 'WP_Post' ) ) {
-			return;
-		}
+		$content = is_a( $post, 'WP_Post' ) ? (string) $post->post_content : '';
 
 		// Find all form IDs in post content.
 		//
@@ -679,9 +741,9 @@ class Frontend {
 		// Fix: use `get_shortcode_regex(['ffc_form'])`, the canonical
 		// WP helper, then parse atts via `shortcode_parse_atts()` which
 		// handles all the quoting variants WP's own parser accepts.
-		$form_ids = array();
+		$form_ids = $extra_ids;
 		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
-		if ( preg_match_all( '/' . $pattern . '/', $post->post_content, $matches, PREG_SET_ORDER ) ) {
+		if ( '' !== $content && preg_match_all( '/' . $pattern . '/', $content, $matches, PREG_SET_ORDER ) ) {
 			foreach ( $matches as $match ) {
 				// $match[3] holds the raw attribute string in WP's
 				// get_shortcode_regex layout (group 3).
@@ -696,7 +758,7 @@ class Frontend {
 
 		// A page with only [ffc_geofence] still needs the shared strings
 		// below: the content script reads them through the same object.
-		if ( empty( $form_ids ) && ! has_shortcode( $post->post_content, GeofenceContent::SHORTCODE ) ) {
+		if ( empty( $form_ids ) && ! $geofence_content && ! has_shortcode( $content, GeofenceContent::SHORTCODE ) ) {
 			return;
 		}
 

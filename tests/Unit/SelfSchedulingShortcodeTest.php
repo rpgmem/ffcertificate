@@ -210,6 +210,30 @@ class SelfSchedulingShortcodeTest extends TestCase {
 	// enqueue_assets() — full enqueue path
 	// ==================================================================
 
+	public function test_a_calendar_rendered_outside_the_post_body_enqueues_once(): void {
+		// An archive, a widget area, a block template part (#2344).
+		Functions\when( 'is_singular' )->justReturn( false );
+		Functions\when( 'is_page' )->justReturn( false );
+		global $post;
+		$post = null;
+
+		$scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function ( $handle ) use ( &$scripts ) {
+			$scripts[] = $handle;
+		} );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+
+		$shortcode = new SelfSchedulingShortcode();
+		$this->assertFalse( $shortcode->enqueue_on_render( false, 'ffc_self_scheduling' ) );
+		$this->assertContains( 'ffc-calendar-frontend', $scripts );
+
+		$scripts = array();
+		$shortcode->enqueue_on_render( false, 'ffc_self_scheduling' );
+		$shortcode->enqueue_on_render( false, 'gallery' );
+		$shortcode->enqueue_assets();
+		$this->assertSame( array(), $scripts, 'Enqueued once per request, whatever asks again.' );
+	}
+
 	public function test_enqueue_assets_enqueues_when_shortcode_present(): void {
 		Functions\when( 'is_singular' )->justReturn( true );
 		Functions\when( 'has_shortcode' )->justReturn( true );

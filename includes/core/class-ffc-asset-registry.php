@@ -67,7 +67,9 @@ final class AssetRegistry {
 		'ffc-admin-pdf'             => array( 'assets/js/ffc-admin-pdf', array( 'jquery', 'ffc-core' ) ),
 		'ffc-admin-autosave'        => array( 'assets/js/ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
 		'ffc-admin-sections'        => array( 'assets/js/ffc-admin-sections', array() ),
-		'ffc-section-collapse'      => array( 'assets/js/ffc-section-collapse', array( 'jquery' ) ),
+		// ffc-core dep: a section it hides takes its required fields with it,
+		// through FFC.setRequiredWithin() (#2344).
+		'ffc-section-collapse'      => array( 'assets/js/ffc-section-collapse', array( 'jquery', 'ffc-core' ) ),
 		'ffc-email-restore-default' => array( 'assets/js/ffc-email-restore-default', array( 'jquery' ) ),
 		'ffc-branding-media'        => array( 'assets/js/ffc-branding-media', array( 'jquery' ) ),
 		'ffc-calendar-core'         => array( 'assets/js/ffc-calendar-core', array( 'jquery' ) ),
@@ -98,6 +100,12 @@ final class AssetRegistry {
 		// The boot watchdog of the certificate form (#2030). No dependencies:
 		// it has to run when the scripts it watches did not load.
 		'ffc-preflight'             => array( 'assets/js/ffc-preflight', array() ),
+		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
+		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
+		// which therefore has to be on the page first. In the map, so a
+		// shortcode that renders before `wp_enqueue_scripts` (a block theme's
+		// template) still finds it registered (#2344).
+		'ffc-dynamic-fragments'     => array( 'assets/js/ffc-dynamic-fragments', array( 'ffc-preflight' ) ),
 	);
 
 	/**
@@ -128,8 +136,6 @@ final class AssetRegistry {
 	 * @return void
 	 */
 	public static function register_frontend(): void {
-		$s = AssetHelper::asset_suffix();
-
 		self::register_shared();
 
 		// Captcha widget + glue (#1053). Registered on every front-end request
@@ -139,18 +145,6 @@ final class AssetRegistry {
 		// self-scheduling booking form, the last of which is enqueued by a
 		// different class entirely.
 		Captcha\AltchaCaptcha::register_assets();
-
-		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
-		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
-		// which therefore has to be on the page first.
-		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array( 'ffc-preflight' ), FFC_VERSION, true );
-		\wp_localize_script(
-			'ffc-dynamic-fragments',
-			'ffcDynamic',
-			array(
-				'ajaxUrl' => \admin_url( 'admin-ajax.php' ),
-			)
-		);
 	}
 
 	/**
@@ -319,6 +313,9 @@ final class AssetRegistry {
 		}
 		if ( 'ffc-pdf-generator' === $handle ) {
 			\wp_localize_script( 'ffc-pdf-generator', 'ffcPdfLibraries', self::pdf_library_urls() );
+		}
+		if ( 'ffc-dynamic-fragments' === $handle ) {
+			\wp_localize_script( 'ffc-dynamic-fragments', 'ffcDynamic', array( 'ajaxUrl' => \admin_url( 'admin-ajax.php' ) ) );
 		}
 		if ( 'ffc-batched-export' === $handle ) {
 			\wp_localize_script( 'ffc-batched-export', 'ffcBatchedExportStrings', self::batched_export_strings() );

@@ -157,6 +157,10 @@ class AudienceLoader {
 
 		// Enqueue frontend assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
+		// The fallback for a calendar the post body does not carry: a widget,
+		// a block template part, a theme's do_shortcode() (#2344). Priority
+		// 10, two args; it returns the short-circuit value untouched.
+		add_filter( 'pre_do_shortcode_tag', array( $this, 'enqueue_frontend_on_render' ), 10, 2 );
 
 		// The URL a check-in QR opens (#1947).
 		AudienceCheckinEndpoint::init();
@@ -334,16 +338,43 @@ class AudienceLoader {
 	}
 
 	/**
+	 * Whether this request already enqueued the public calendar's assets.
+	 *
+	 * @var bool
+	 */
+	private bool $frontend_assets_done = false;
+
+	/**
+	 * Enqueue the calendar's assets as it renders, when the post body did not
+	 * carry the shortcode (#2344).
+	 *
+	 * @param false|string $short_circuit The value `pre_do_shortcode_tag` passes on; returned unchanged.
+	 * @param string       $tag           The shortcode about to render.
+	 * @return false|string
+	 */
+	public function enqueue_frontend_on_render( $short_circuit, $tag ) {
+		if ( false === $short_circuit && 'ffc_audience' === $tag ) {
+			$this->enqueue_frontend_assets( true );
+		}
+		return $short_circuit;
+	}
+
+	/**
 	 * Enqueue frontend assets
 	 *
+	 * @param bool $force Enqueue without reading the post body (a render-time call).
 	 * @return void
 	 */
-	public function enqueue_frontend_assets(): void {
-		// Only load when shortcode is present.
-		global $post;
-		if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_audience' ) ) {
+	public function enqueue_frontend_assets( bool $force = false ): void {
+		if ( $this->frontend_assets_done ) {
 			return;
 		}
+		// Only load when shortcode is present.
+		global $post;
+		if ( ! $force && ( ! $post || ! has_shortcode( $post->post_content, 'ffc_audience' ) ) ) {
+			return;
+		}
+		$this->frontend_assets_done = true;
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
