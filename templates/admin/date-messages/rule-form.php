@@ -107,7 +107,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<td><input type="text" id="ffc-dm-name" name="rule[name]" class="regular-text" required value="<?php echo esc_attr( (string) $ffc_dm_values['name'] ); ?>"></td>
 		</tr>
 <tr>
-			<th scope="row"><label for="ffc-dm-is-active"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label></th>
+			<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 			<td>
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_toggle(
@@ -194,12 +194,13 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 					<?php
 					\FreeFormCertificate\Admin\AdminUI::render_button(
 						array(
-							'label'    => __( 'Restore default text', 'ffcertificate' ),
+							'label'    => __( 'Restore Default Text', 'ffcertificate' ),
 							'category' => 'caution',
 							'icon'     => 'restore',
 							'class'    => 'ffc-email-restore-default',
 							'attrs'    => array(
 								'data-editor'      => 'ffc_dm_body',
+								'data-subject'     => 'ffc-dm-subject',
 								// The kind being edited; the script follows the kind selector.
 								'data-default-key' => Rule::KIND_ANNOUNCEMENT === (string) $ffc_dm_values['kind'] ? 'date_message_announcement_body' : 'date_message_body',
 							),
@@ -361,7 +362,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		if ( $ffc_dm_hidden( 'dated' ) ) :
 			?>
 			hidden<?php endif; ?>>
-			<th scope="row"><label for="ffc-dm-send-to-user"><?php esc_html_e( 'Recipients', 'ffcertificate' ); ?></label></th>
+			<th scope="row"><?php esc_html_e( 'Recipients', 'ffcertificate' ); ?></th>
 			<td>
 				<?php
 				// The toggle switch every other FFC setting uses; still a
@@ -439,7 +440,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 	?>
 	<table class="form-table" role="presentation">
 		<tr>
-			<th scope="row"><label for="ffc-dm-digest-enabled"><?php esc_html_e( 'Summary', 'ffcertificate' ); ?></label></th>
+			<th scope="row"><?php esc_html_e( 'Summary', 'ffcertificate' ); ?></th>
 			<td>
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_toggle(

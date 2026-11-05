@@ -45,8 +45,8 @@ $ffc_dm_reveal_nonce = $ffc_dm_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_non
 		?>
 		<?php if ( array() !== $ffc_dm_active ) : ?>
 			<label for="ffc-dm-upcoming-rule"><?php esc_html_e( 'Rule', 'ffcertificate' ); ?></label>
-			<?php // A new rule changes which audiences the next filter offers, so it reloads the form. ?>
-			<select id="ffc-dm-upcoming-rule" name="rule_filter" onchange="this.form.submit()">
+			<?php // A new rule changes which audiences are offered; Filter reloads them, and an audience the rule does not offer reads as all. ?>
+			<select id="ffc-dm-upcoming-rule" name="rule_filter">
 				<option value="0"><?php esc_html_e( 'All active rules', 'ffcertificate' ); ?></option>
 				<?php foreach ( $ffc_dm_active as $ffc_dm_rule ) : ?>
 					<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" <?php selected( $upcoming_rule, $ffc_dm_rule->id ); ?>><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
@@ -147,6 +147,6 @@ $ffc_dm_reveal_nonce = $ffc_dm_can_reveal ? wp_create_nonce( 'ffc_reveal_pii_non
 		</tbody>
 	</table>
 	<?php if ( ! empty( $upcoming['truncated'] ) ) : ?>
-		<p class="description"><?php esc_html_e( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ); ?></p>
+		<p class="description"><?php echo esc_html( sprintf( /* translators: %d: how many people are listed */ __( 'Only the first %d people are listed. Choose a shorter period or an audience to see the rest.', 'ffcertificate' ), \FreeFormCertificate\DateMessages\RecipientPreview::ROW_LIMIT ) ); ?></p>
 	<?php endif; ?>
 <?php endif; ?>

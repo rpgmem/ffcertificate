@@ -915,8 +915,8 @@ msgstr "Um módulo desativado mantém todas as linhas que já armazenou; apenas 
 
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
-msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
-msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\". Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
+msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button, which restores its subject and body. One \"Save email texts\" button persists them all — you do not save per email."
+msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
 msgid "A field whose Variable Name (Tag) is"
@@ -7235,6 +7235,26 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: templates/admin/date-messages/upcoming.php
+msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
+msgstr "Só as primeiras %d pessoas são listadas. Escolha um período menor ou um público para ver as demais."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody in the rule's audiences is left to reach: everyone has received it or opted out."
+msgstr "Não resta ninguém nos públicos da regra para alcançar: todos já receberam ou desativaram o recebimento."
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Account: %s"
+msgstr "Conta: %s"
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Manage your e-mail preferences in your dashboard profile"
+msgstr "Gerencie suas preferências de e-mail no perfil do seu painel"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
+msgstr "O link de cancelamento no fim desses e-mails desliga esta mesma preferência."
 
 #: includes/date-messages/class-ffc-unsubscribe.php
 msgid "Unsubscribed."
@@ -16609,8 +16629,8 @@ msgid "The Email texts hub is gated by the dedicated ffc_manage_email_templates 
 msgstr "A central de textos de e-mail é protegida pela permissão dedicada `ffc_manage_email_templates`; assim, a edição do conteúdo dos e-mails pode ser delegada a — ou restringida de — uma função, independentemente da permissão geral de Configurações. Sem essa permissão específica, a aba fica totalmente oculta."
 
 #: includes/settings/views/documentation/reference-emails.php:57
-msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
-msgstr "A aba \"Textos de e-mail\" é o local centralizado para editar o assunto e o corpo padrão de todos os e-mails do plugin. Não se trata mais de apenas três e-mails editáveis; todos os e-mails do plugin que utilizam *tokens* podem ser editados aqui, organizados por funcionalidade. Ao selecionar um e-mail, abre-se o editor específico para ele; cada um conta com sua própria ajuda sobre os *tokens* (`{{token}}`) e um botão \"Restaurar texto padrão\". Se o assunto e o corpo forem deixados exatamente como o padrão original, a personalização é removida, fazendo com que o e-mail volte a acompanhar automaticamente o padrão nativo do plugin."
+msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
+msgstr "A aba \"Textos de e-mail\" é o local centralizado para editar o assunto e o corpo padrão de todos os e-mails do plugin. Não se trata mais de apenas três e-mails editáveis; todos os e-mails do plugin que utilizam *tokens* podem ser editados aqui, organizados por funcionalidade. Ao selecionar um e-mail, abre-se o editor específico para ele; cada um conta com sua própria ajuda sobre os *tokens* (`{{token}}`) e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Se o assunto e o corpo forem deixados exatamente como o padrão original, a personalização é removida, fazendo com que o e-mail volte a acompanhar automaticamente o padrão nativo do plugin."
 
 #: includes/settings/views/documentation/reference-emails.php:99
 msgid "the email's own placeholders — e.g."
@@ -21502,9 +21522,6 @@ msgstr "Prévia dos destinatários"
 msgid "Replace the current message with the default text? Your changes will be lost."
 msgstr "Substituir a mensagem atual pelo texto padrão? Suas alterações serão perdidas."
 
-msgid "Restore default text"
-msgstr "Restaurar texto padrão"
-
 msgid "Rule"
 msgstr "Regra"
 
@@ -22592,8 +22609,8 @@ msgstr "0 envia na própria data; um número negativo envia essa quantidade de d
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
-msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o assunto e a mensagem do tipo escolhido."
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
 msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (a execução diária a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados: então não envia e-mail a ninguém e roda, pela execução diária ou por Enviar agora, apenas para mandar aos seus gestores o resumo de quem faz aniversário na data."

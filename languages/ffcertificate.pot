@@ -917,7 +917,7 @@ msgstr ""
 
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
-msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
+msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button, which restores its subject and body. One \"Save email texts\" button persists them all — you do not save per email."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
@@ -7231,6 +7231,26 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: templates/admin/date-messages/upcoming.php
+msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody in the rule's audiences is left to reach: everyone has received it or opted out."
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Account: %s"
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Manage your e-mail preferences in your dashboard profile"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
 msgstr ""
 
 #: includes/date-messages/class-ffc-unsubscribe.php
@@ -16558,7 +16578,7 @@ msgid "The Email texts hub is gated by the dedicated ffc_manage_email_templates 
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:57
-msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
+msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:99
@@ -21421,9 +21441,6 @@ msgstr ""
 msgid "Replace the current message with the default text? Your changes will be lost."
 msgstr ""
 
-msgid "Restore default text"
-msgstr ""
-
 msgid "Rule"
 msgstr ""
 
@@ -22511,7 +22528,7 @@ msgstr ""
 msgid "Subject and message"
 msgstr ""
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
 msgstr ""
 
 msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."

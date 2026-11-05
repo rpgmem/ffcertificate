@@ -73,6 +73,7 @@ class TabEmailTexts extends SettingsTab {
 		$ffc_restore_defaults = array();
 		foreach ( array_keys( self::email_body_hub_catalog() ) as $ffc_key ) {
 			$ffc_restore_defaults[ $ffc_key ] = array(
+				'subject' => \FreeFormCertificate\Core\EmailTemplates::body( $ffc_key, 'subject' ),
 				'body'    => \FreeFormCertificate\Core\EmailTemplates::body( $ffc_key, 'body' ),
 				'confirm' => __( 'Replace this email with its shipped default text? Your changes to it will be lost when you save.', 'ffcertificate' ),
 			);

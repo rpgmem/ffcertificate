@@ -159,7 +159,7 @@ final class Unsubscribe {
 			: __( 'Done. You will no longer receive date messages. You can turn them back on in your dashboard profile.', 'ffcertificate' );
 
 		wp_die(
-			esc_html( $done ),
+			'<p>' . esc_html( $done ) . '</p>' . self::profile_link(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the text is escaped here and profile_link() escapes its own.
 			esc_html( $title ),
 			array( 'response' => 200 )
 		);
@@ -199,7 +199,13 @@ final class Unsubscribe {
 			? __( 'Stop receiving announcements from this site at this account?', 'ffcertificate' )
 			: __( 'Stop receiving date messages, such as birthday greetings, at this account?', 'ffcertificate' );
 
+		// The page is reached without signing in, so it names the account
+		// masked, enough to recognise it and no more.
+		$user    = get_userdata( $user_id );
+		$account = false === $user ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $user->user_email );
+
 		return '<p>' . esc_html( $question ) . '</p>'
+			. ( '' === $account ? '' : '<p>' . esc_html( sprintf( /* translators: %s: masked e-mail address */ __( 'Account: %s', 'ffcertificate' ), $account ) ) . '</p>' )
 			. '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
 			. '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">'
 			. '<input type="hidden" name="u" value="' . esc_attr( (string) $user_id ) . '">'
@@ -207,7 +213,19 @@ final class Unsubscribe {
 			. '<input type="hidden" name="c" value="' . esc_attr( $category ) . '">'
 			. wp_nonce_field( self::nonce_action( $user_id, $category ), '_wpnonce', true, false )
 			. '<p><button type="submit" class="button button-primary">' . esc_html__( 'Unsubscribe', 'ffcertificate' ) . '</button></p>'
-			. '</form>';
+			. '</form>'
+			. self::profile_link();
+	}
+
+	/**
+	 * A link to the dashboard profile, where the same preference is shown
+	 * and can be turned back on.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	private static function profile_link(): string {
+		$url = \FreeFormCertificate\Core\PasswordInvite::dashboard_url();
+		return '<p><a href="' . esc_url( $url ) . '">' . esc_html__( 'Manage your e-mail preferences in your dashboard profile', 'ffcertificate' ) . '</a></p>';
 	}
 
 	/**
