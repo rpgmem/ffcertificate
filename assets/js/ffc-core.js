@@ -378,8 +378,14 @@
             // resolves `window.ffc_ajax.nonce` every read (6.6.2 fix),
             // so the inner send() below picks up a mid-flight refresh.
             var self = this;
+            // The stale-nonce retry sends the nonce the server handed back,
+            // and keeps its own flag, so the caller's options are never
+            // written to (#2344).
+            var refreshedNonce = '';
+            var nonceRetried = false;
             function resolveNonce() {
-                return options.nonce
+                return refreshedNonce
+                    || options.nonce
                     || (data && typeof data === 'object' && data.nonce)
                     || self.config.nonce
                     || '';
@@ -443,7 +449,7 @@
                                 // and ffc-dynamic-fragments silently
                                 // failing on restrictive networks.
                                 if (
-                                    !options._ffcNonceRetried
+                                    !nonceRetried
                                     && err.data
                                     && err.data.refresh_nonce
                                     && err.data.new_nonce
@@ -454,7 +460,8 @@
                                     if (typeof console !== 'undefined' && console.warn) {
                                         console.warn('[FFC] Stale nonce auto-recovered; retrying ' + action);
                                     }
-                                    options._ffcNonceRetried = true;
+                                    nonceRetried = true;
+                                    refreshedNonce = String(err.data.new_nonce);
                                     send();
                                     return;
                                 }
@@ -1435,8 +1442,13 @@
         jQuery(document).on('click', '.ffc-copy-link[data-ffc-copy-target]', function(e) {
             e.preventDefault();
             var $btn    = jQuery(this);
-            var $source = jQuery($btn.data('ffc-copy-target'));
-            if (!$source.length) { return; }
+            // Only an element id: jQuery() builds markup from a string that
+            // starts with "<", and the attribute can come from post content (#2344).
+            var target = String($btn.attr('data-ffc-copy-target') || '');
+            if (!/^#[A-Za-z][\w-]*$/.test(target)) { return; }
+            var node = document.getElementById(target.slice(1));
+            if (!node) { return; }
+            var $source = jQuery(node);
             var text = $source.val();
             var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
             var copiedText = strings.copied || 'Copied!';

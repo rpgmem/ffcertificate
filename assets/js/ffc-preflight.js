@@ -693,7 +693,10 @@
 	 * they are, with the menu instructions still on screen.
 	 */
 	function openInChrome() {
-		var url = window.location.href.replace(/^https?:\/{2}/, '');
+		// Host, path and query only: the fragment is the visitor's to edit,
+		// and a crafted one could carry its own intent parameters (#2344).
+		var loc = window.location;
+		var url = loc.host + loc.pathname + loc.search;
 		try {
 			window.location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
 		} catch (e) {

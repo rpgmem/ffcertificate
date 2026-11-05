@@ -40,6 +40,8 @@ class FormRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The form background and the receipt background are cleaned on read (#2344).
+		Functions\when( 'esc_url_raw' )->returnArg();
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.

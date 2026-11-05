@@ -76,10 +76,11 @@ final class FormBackground {
 			$url = ArrayValue::string( $config, 'bg_image' );
 
 			if ( '' !== $url ) {
-				return $url;
+				return esc_url_raw( $url );
 			}
 		}
 
-		return (string) get_post_meta( $form_id, '_ffc_form_bg', true );
+		// The legacy meta was never sanitised on write, so it is on read (#2344).
+		return esc_url_raw( (string) get_post_meta( $form_id, '_ffc_form_bg', true ) );
 	}
 }

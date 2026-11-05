@@ -199,6 +199,33 @@ describe('ffc-pdf-generator.js — desktop fallback link (Sprint 2)', () => {
 		expect(link.textContent).toContain('Não baixou');
 	});
 
+	it('sets the background as an attribute, so a quote in the URL opens no new attribute', async () => {
+		Object.defineProperty(navigator, 'userAgent', { configurable: true, value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' });
+		Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 0 });
+		window.ffc_ajax = { strings: {} };
+		installLibraries();
+		const real = window.html2canvas;
+		let seen = null;
+		window.html2canvas = function (el) {
+			if (!seen) {
+				seen = el.querySelector('img.ffc-pdf-bg');
+				seen = seen && { src: seen.getAttribute('src'), onerror: seen.getAttribute('onerror'), first: seen.parentNode.classList.contains('ffc-pdf-wrapper') && seen === seen.parentNode.firstElementChild };
+			}
+			return real.apply(this, arguments);
+		};
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>cert</p>', bg_image: 'https://x.test/a.png" onerror="window.__ffcPdfXss=1' }, 'cert.pdf');
+		// jsdom never loads the image, so the 10 s image wait has to run out.
+		await vi.advanceTimersByTimeAsync(12000);
+		vi.useRealTimers();
+
+		// #2344: the whole value is the src; nothing becomes a handler.
+		expect(seen).toEqual({ src: 'https://x.test/a.png" onerror="window.__ffcPdfXss=1', onerror: null, first: true });
+		expect(window.__ffcPdfXss).toBeUndefined();
+	});
+
 	it('does NOT inject the desktop fallback link on iOS UA (uses placeholder-tab path)', async () => {
 		Object.defineProperty(navigator, 'userAgent', {
 			configurable: true,

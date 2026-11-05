@@ -76,6 +76,8 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The form background and the receipt background are cleaned on read (#2344).
+		Functions\when( 'esc_url_raw' )->returnArg();
 
 		$this->registered_routes = array();
 		$this->caps              = array( 'ffc_manage_certificates' );

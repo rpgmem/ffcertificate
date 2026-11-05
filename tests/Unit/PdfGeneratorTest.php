@@ -54,6 +54,10 @@ class PdfGeneratorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A realistic esc_url_raw(): what it refuses comes back empty (#2344).
+		Functions\when( 'esc_url_raw' )->alias(
+			static fn ( $url ) => preg_match( '#^https?://[^"\'<>\s]+$#i', (string) $url ) ? (string) $url : ''
+		);
 		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
@@ -540,6 +544,17 @@ class PdfGeneratorTest extends TestCase {
 		$this->assertSame( 'appointment_receipt', $result['type'] );
 		$this->assertSame( 'Consulta', $result['form_title'] );
 		$this->assertNotEmpty( $result['html'] );
+	}
+
+	public function test_the_receipt_background_from_the_filter_is_cleaned(): void {
+		$this->stub_html_funcs();
+		Functions\when( 'esc_url' )->returnArg();
+		// Any value a filter returns is cleaned before it reaches the page (#2344).
+		\Brain\Monkey\Filters\expectApplied( 'ffcertificate_appointment_receipt_bg_image' )->andReturn( 'https://x.test/a.png" onerror="y' );
+
+		$result = $this->invoke( 'generate_appointment_pdf_data', array( array(), array() ) );
+
+		$this->assertSame( '', $result['bg_image'] );
 	}
 
 	public function test_generate_appointment_pdf_data_handles_missing_optional_fields(): void {
