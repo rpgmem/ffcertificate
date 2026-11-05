@@ -848,6 +848,8 @@ class DateMessagesAdminPageTest extends TestCase {
 			'from'    => '2026-10-01',
 			'to'      => '2026-10-07',
 		);
+		// The first batch primes the page's accounts (#2336).
+		Functions\when( 'cache_users' )->justReturn( null );
 
 		$this->call( 'handle_send_now' );
 

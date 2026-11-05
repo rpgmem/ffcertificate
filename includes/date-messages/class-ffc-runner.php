@@ -296,9 +296,7 @@ final class Runner {
 			wp_schedule_single_event( time() + self::RETRY_DELAY, self::BATCH_HOOK, $retry );
 		}
 
-		if ( function_exists( 'cache_users' ) ) {
-			cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
-		}
+		cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
 
 		$occurrence = $day->format( 'Y-m-d' );
 		foreach ( $page['rows'] as $row ) {
