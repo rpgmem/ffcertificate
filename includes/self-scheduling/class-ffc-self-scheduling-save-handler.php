@@ -136,7 +136,7 @@ class SelfSchedulingSaveHandler {
 				wp_date( 'Y-m-d' )
 			)
 		);
-		return array_values( array_map( 'intval', is_array( $ids ) ? $ids : array() ) );
+		return array_values( array_map( static fn( $id ): int => is_numeric( $id ) ? (int) $id : 0, is_array( $ids ) ? $ids : array() ) );
 	}
 
 	/**
