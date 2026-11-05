@@ -425,6 +425,8 @@ class PdfGenerator {
 			'email'                  => $email,
 			'cpf_rf'                 => $cpf_rf,
 			'calendar_title'         => $calendar['title'] ?? __( 'N/A', 'ffcertificate' ),
+			// The appointment's session (#2405); '' when it has none.
+			'session_name'           => \FreeFormCertificate\SelfScheduling\CalendarSessions::name_of_appointment( $calendar, $appointment ),
 			'appointment_date'       => $formatted_date,
 			'appointment_time'       => $formatted_time,
 			'appointment_end'        => $formatted_end,

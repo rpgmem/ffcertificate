@@ -131,6 +131,7 @@ class CertificatePreviewSamples {
 
 			// Appointment receipt.
 			'calendar_title'           => 'Atendimento de Exemplo',
+			'session_name'             => 'Sala 1',
 			'appointment_date'         => $today,
 			'appointment_time'         => '09:00',
 			// Custom-mode session window (#945): end + a start–end range token.

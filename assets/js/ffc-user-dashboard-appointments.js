@@ -16,6 +16,17 @@
     var MODAL_ID = 'ffc-cancel-appointment-modal';
 
     /**
+     * The calendar's name, with the session the appointment was booked in
+     * when it has one (#2405).
+     *
+     * @param {Object} apt Appointment row.
+     * @return {string}
+     */
+    function serviceName(apt) {
+        return apt.session_name ? apt.calendar_title + ' · ' + apt.session_name : apt.calendar_title;
+    }
+
+    /**
      * Build the confirmation dialog for one appointment.
      *
      * It shows what the browser's `confirm()` could not — which appointment is
@@ -65,7 +76,7 @@
                         (reschedule && apt.reschedule_note ? window.FFC.notice('warning', 'warning', apt.reschedule_note, '', { role: 'note' }).outerHTML : '') +
                         '<dl class="ffc-cancel-summary">' +
                             '<dt>' + helpers.esc(s.cancelService) + '</dt>' +
-                            '<dd>' + helpers.esc(apt.calendar_title) + '</dd>' +
+                            '<dd>' + helpers.esc(serviceName(apt)) + '</dd>' +
                             (when ? '<dt>' + helpers.esc(s.cancelWhen) + '</dt><dd>' + helpers.esc(when) + '</dd>' : '') +
                         '</dl>' +
                         reason +
@@ -177,7 +188,7 @@
         else if (section === 'past') rowClass = 'ffc-row-past';
 
         var html = '<tr' + (rowClass ? ' class="' + rowClass + '"' : '') + '>';
-        html += '<td>' + helpers.esc(apt.calendar_title) + '</td>';
+        html += '<td>' + helpers.esc(serviceName(apt)) + '</td>';
         // Every value is text, and the status names a class only once it is
         // reduced to the characters a class may hold (#2246).
         var statusSlug = helpers.classSlug(apt.status);
@@ -224,10 +235,10 @@
         if (section === 'upcoming' && apt.status === 'confirmed') {
             var aptEvent = {
                 uid: 'ffc-apt-' + apt.id,
-                summary: apt.calendar_title,
+                summary: serviceName(apt),
                 // No e-mail (#2246): the row carries it masked, and a calendar
                 // entry the person keeps does not need it.
-                description: apt.calendar_title + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : ''),
+                description: serviceName(apt) + (apt.name ? '\n' + (ffcDashboard.strings.name || 'Name:') + ' ' + apt.name : ''),
                 location: ffcDashboard.mainAddress || '',
                 date: apt.appointment_date_raw,
                 startTime: apt.start_time_raw,

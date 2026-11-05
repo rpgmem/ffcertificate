@@ -34,6 +34,7 @@ return array(
 		. '<p style="margin: 0 0 15px 0;">{{status_message}}</p>'
 		. '<div style="background: #e6f4ec; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #1a7f4b;">'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+		. '{{session_block}}'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Status:', 'ffcertificate' ) . '</strong> {{status_label}}</p>'

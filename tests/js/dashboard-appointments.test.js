@@ -148,6 +148,14 @@ describe('FFCDashboard.panels.appointments.render', () => {
 		expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
 	});
 
+	it('names the session beside the calendar when the appointment has one (#2405)', () => {
+		panel().render([makeAppt({ calendar_title: 'Clinic', session_name: 'Room B' }), makeAppt({ calendar_title: 'Lab' })], 1);
+		const text = document.getElementById('ffc-tabpanel-appointments').textContent;
+		expect(text).toContain('Clinic · Room B');
+		expect(text).toContain('Lab');
+		expect(text).not.toContain('Lab ·');
+	});
+
 	it('keeps a quote-breakout receipt_url inside the href and sets rel=noopener', () => {
 		panel().render([makeAppt({ receipt_url: 'https://x.test/"><img src=x onerror=alert(1)>' })], 1);
 		const buttons = document.querySelectorAll('#ffc-tabpanel-appointments .ffc-btn-receipt');

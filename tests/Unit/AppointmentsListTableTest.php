@@ -328,6 +328,23 @@ class AppointmentsListTableTest extends TestCase {
 		$this->assertSame( array( 'SELECT * FROM ' . self::CALENDARS . ' WHERE id = 9' ), $this->ran );
 	}
 
+	public function test_column_calendar_names_the_appointment_session(): void {
+		$this->calendars[9] = array(
+			'id'       => 9,
+			'post_id'  => 100,
+			'title'    => 'Clinic',
+			'status'   => 'active',
+			'sessions' => '[{"id":1,"name":"Room A"},{"id":2,"name":"Room B"}]',
+		);
+
+		$table = new AppointmentsListTable();
+		$out   = $table->column_calendar( array( 'calendar_id' => 9, 'session_id' => 2 ) );
+
+		$this->assertStringContainsString( 'Room B', $out );
+		$this->assertStringNotContainsString( 'Room A', $out );
+		$this->assertStringNotContainsString( 'Room', $table->column_calendar( array( 'calendar_id' => 9 ) ) );
+	}
+
 	public function test_column_calendar_deleted_when_missing(): void {
 		$table = new AppointmentsListTable();
 		$this->assertSame( '(Deleted)', $table->column_calendar( array( 'calendar_id' => 9 ) ) );

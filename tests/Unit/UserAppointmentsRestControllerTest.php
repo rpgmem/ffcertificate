@@ -352,6 +352,7 @@ class UserAppointmentsRestControllerTest extends TestCase {
 				'user_notes'         => 'Test note',
 				'created_at'         => '2025-06-01 10:00:00',
 				'confirmation_token' => 'conf_token_123',
+				'session_id'         => '2',
 			),
 		);
 
@@ -361,6 +362,7 @@ class UserAppointmentsRestControllerTest extends TestCase {
 				'title'                  => 'Main Calendar',
 				'allow_cancellation'     => '1',
 				'cancellation_min_hours' => '24',
+				'sessions'               => '[{"id":1,"name":"Room A"},{"id":2,"name":"Room B"}]',
 			),
 		);
 
@@ -378,6 +380,7 @@ class UserAppointmentsRestControllerTest extends TestCase {
 		$this->assertSame( 10, $apt['id'] );
 		$this->assertSame( 2, $apt['calendar_id'] );
 		$this->assertSame( 'Main Calendar', $apt['calendar_title'] );
+		$this->assertSame( 'Room B', $apt['session_name'], 'The session the appointment was booked in (#2405).' );
 		$this->assertSame( 'confirmed', $apt['status'] );
 		$this->assertSame( 'Confirmed', $apt['status_label'] );
 		$this->assertSame( 'John Doe', $apt['name'] );

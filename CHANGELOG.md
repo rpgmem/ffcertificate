@@ -15,6 +15,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: a free slots panel** (#2405). Off by default, set on the Calendar tab beside or below the month: each day of the month shown with free places and how many, the holidays, and a signed-in visitor's own bookings. It never shows who booked, and shares the audience panel's markup and CSS.
 - **Personal Calendars: sessions in the editor** (#2405). A Sessions tab names parallel services on the same days and hours; each will count its own places. Sessions are added, renamed, reordered and deleted, and one with open appointments from today on is kept. The booking flow follows in a later PR.
 - **Personal Calendars: booking by session** (#2405). On a calendar with two or more sessions a day lists the sessions and their free places, then the chosen session's times. Places, waitlist and daily limit count per session; the free slots panel and a visitor's bookings name the session.
+- **Personal Calendars: the session wherever an appointment shows** (#2405). The Appointments list, every appointment e-mail (`{{session_name}}`, `{{session_block}}`), the receipt and PDF, verification, the CSV export (a last column) and the user dashboard name the session; a deleted session keeps its name.
 
 ### Changed
 

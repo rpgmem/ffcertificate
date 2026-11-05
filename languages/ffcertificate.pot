@@ -7233,6 +7233,18 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/frontend/class-ffc-verification-response-renderer.php:271 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php
+msgid "Session:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:75
+msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:118
+msgid "The session the appointment was booked in, or empty on a calendar without sessions"
+msgstr ""
+
 #: includes/settings/views/documentation/email-texts-hub.php:47
 msgid "Event: {{reference}}"
 msgstr ""

@@ -808,7 +808,7 @@ class CertTemplateAdminScreen {
 		</div>
 		<p class="description">
 			<?php if ( $is_receipt ) : ?>
-				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{calendar_title}}</code>, <code>{{appointment_date}}</code>, <code>{{appointment_time}}</code>, <code>{{appointment_time_range}}</code>, <code>{{validation_code}}</code>, <code>{{qr_code:size=140}}</code>, <code>{{validation_url}}</code>.
+				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{calendar_title}}</code>, <code>{{session_name}}</code>, <code>{{appointment_date}}</code>, <code>{{appointment_time}}</code>, <code>{{appointment_time_range}}</code>, <code>{{validation_code}}</code>, <code>{{qr_code:size=140}}</code>, <code>{{validation_url}}</code>.
 			<?php elseif ( $is_record ) : ?>
 				<?php esc_html_e( 'Common tags:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{cpf_rf}}</code>, <code>{{custom_fields_section}}</code>, <code>{{termo_ciencia}}</code>, <code>{{submitted_at}}</code>.
 			<?php else : ?>

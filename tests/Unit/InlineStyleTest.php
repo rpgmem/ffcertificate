@@ -288,6 +288,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 20px 0;'                                    => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0 0 5px 0; font-weight: bold; color: #666;' => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0; color: #333;'                            => array( 2, self::EMAIL_BODY ),
+			'style=: style="margin: 0 0 10px 0;'                                => array( 1, self::EMAIL_BODY ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => array(
 			'<style>: <style' => array( 1, self::RECEIPT_PAGE ),

@@ -22,6 +22,7 @@ return array(
 		. '<p style="margin: 0 0 15px 0;">' . __( 'This is a reminder about your upcoming appointment.', 'ffcertificate' ) . '</p>'
 		. '<div style="background: #fbf3d8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8a6d00;">'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+		. '{{session_block}}'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 		. '</div>'

@@ -266,6 +266,13 @@ class VerificationResponseRenderer {
 			$html .= '</div>';
 		}
 
+		if ( ! empty( $data['session_name'] ) ) {
+			$html .= '<div class="ffc-detail-row">';
+			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Session:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( (string) $data['session_name'] ) . '</span>';
+			$html .= '</div>';
+		}
+
 		$html .= '<div class="ffc-detail-row">';
 		$html .= '<span class="ffc-detail-label">' . esc_html__( 'Date:', 'ffcertificate' ) . '</span>';
 		$html .= '<span class="ffc-detail-value">' . esc_html( $formatted_date ) . '</span>';

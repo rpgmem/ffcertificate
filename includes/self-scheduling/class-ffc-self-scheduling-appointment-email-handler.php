@@ -146,7 +146,8 @@ class AppointmentEmailHandler {
 	 *
 	 * Supports {@see self::default_confirmation_body()}'s placeholder set:
 	 * {{user_name}}, {{user_email}}, {{calendar_title}}, {{appointment_date}},
-	 * {{appointment_time}}.
+	 * {{appointment_time}}, and the session (#2405): {{session_name}}, and
+	 * {{session_block}}, a "Session:" line that is empty without one.
 	 *
 	 * Scalar text tokens are `esc_html`-escaped here (they carry user- and
 	 * admin-supplied values — name, calendar title — so an editable body never
@@ -166,8 +167,24 @@ class AppointmentEmailHandler {
 			'{{calendar_title}}'   => esc_html( (string) $calendar['title'] ),
 			'{{appointment_date}}' => esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_date( $appointment['appointment_date'] ) ),
 			'{{appointment_time}}' => esc_html( \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( $appointment['start_time'] ) ),
+			'{{session_name}}'     => esc_html( CalendarSessions::name_of_appointment( $calendar, $appointment ) ),
+			'{{session_block}}'    => self::session_block( CalendarSessions::name_of_appointment( $calendar, $appointment ) ),
 		);
 		return \FreeFormCertificate\Core\TokenResolver::resolve( $template, array_merge( $tokens, $extra ) );
+	}
+
+	/**
+	 * Pre-rendered `{{session_block}}` value (#2405): the "Session:" line of
+	 * the details box, or '' for an appointment without a session.
+	 *
+	 * @param string $name Session name.
+	 * @return string
+	 */
+	private static function session_block( string $name ): string {
+		if ( '' === $name ) {
+			return '';
+		}
+		return '<p style="margin: 0 0 10px 0;"><strong>' . esc_html__( 'Session:', 'ffcertificate' ) . '</strong> ' . esc_html( $name ) . '</p>';
 	}
 
 	/**
