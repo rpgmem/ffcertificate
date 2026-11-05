@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Database repository for audience schedule records.
  *
- * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, admin_bypass?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, appearance_names?: string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string}
+ * @phpstan-type ScheduleRow \stdClass&object{id: numeric-string, name: string, description: string|null, environment_label: string|null, visibility: string, future_days_limit: numeric-string|null, notify_on_booking: numeric-string, notify_on_cancellation: numeric-string, notify_admin_on_booking: numeric-string, notify_admin_on_cancellation: numeric-string, admin_notification_emails: string|null, email_template_booking: string|null, email_template_cancellation: string|null, include_ics: numeric-string, is_isolated?: numeric-string, admin_bypass?: numeric-string|null, post_event_form_id?: numeric-string|null, post_event_window_days?: numeric-string|null, post_event_attendees_only?: numeric-string|null, appearance_names?: string|null, allow_multi_day?: numeric-string|null, allow_time_selection?: numeric-string|null, status: string, created_by: numeric-string, created_at: string, updated_at: string}
  * @phpstan-type SchedulePermissionRow \stdClass&object{id: numeric-string, schedule_id: numeric-string, user_id: numeric-string, can_book: numeric-string, can_cancel_others: numeric-string, can_override_conflicts: numeric-string, created_at: string}
  */
 class AudienceScheduleRepository {
@@ -229,6 +229,8 @@ class AudienceScheduleRepository {
 			'post_event_window_days'       => null,
 			'post_event_attendees_only'    => 0,
 			'appearance_names'             => null,
+			'allow_multi_day'              => 1,
+			'allow_time_selection'         => 1,
 			'status'                       => 'active',
 			'created_by'                   => get_current_user_id(),
 		);
@@ -261,10 +263,12 @@ class AudienceScheduleRepository {
 				'post_event_window_days'       => $data['post_event_window_days'],
 				'post_event_attendees_only'    => $data['post_event_attendees_only'],
 				'appearance_names'             => $data['appearance_names'],
+				'allow_multi_day'              => $data['allow_multi_day'],
+				'allow_time_selection'         => $data['allow_time_selection'],
 				'status'                       => $data['status'],
 				'created_by'                   => $data['created_by'],
 			),
-			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%d' )
+			array( '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%d', '%d', '%s', '%d' )
 		);
 
 		return $result ? $wpdb->insert_id : false;
@@ -317,6 +321,8 @@ class AudienceScheduleRepository {
 			'post_event_window_days'       => '%d',
 			'post_event_attendees_only'    => '%d',
 			'appearance_names'             => '%s',
+			'allow_multi_day'              => '%d',
+			'allow_time_selection'         => '%d',
 			'status'                       => '%s',
 		);
 

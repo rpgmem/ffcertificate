@@ -9285,10 +9285,6 @@ msgstr "Formato de data inválido."
 msgid "The end date must be a valid date on or after the start date."
 msgstr "A data final precisa ser uma data válida, igual ou posterior à data inicial."
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "An all-day booking covers one day."
-msgstr "Uma reserva de dia inteiro cobre apenas um dia."
-
 
 #: includes/audience/class-ffc-audience-rest-controller.php
 msgid "Invalid time mode."
@@ -29488,9 +29484,6 @@ msgstr "Importar exige ffc_import_audiences, que a função Operador de Calendá
 msgid "reveal the account email of the people on the Members and User access tabs and in a booking's details, and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
 msgstr "revelar o e-mail da conta das pessoas nas abas Membros e Acesso de usuários e nos detalhes de um agendamento, e os campos personalizados sensíveis no perfil de outro usuário, com um Revelar auditado; uma exportação de membros traz o e-mail em claro somente com ela. Quem já tinha ffc_manage_audiences a recebeu na atualização."
 
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days unless the limit is changed under Scheduling → Settings → Audience Calendars → Bookings over several days, \"Longest range\" (1 to 365). A longer range is refused with a message naming the limit, already by the conflict check; an all-day booking covers one day."
-msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 30 dias consecutivos, a menos que o limite seja alterado em Agendamento → Configurações → Calendários de Público-alvo → Agendamentos de vários dias, \"Intervalo mais longo\" (1 a 365). Um intervalo maior é recusado com uma mensagem que informa o limite, já na verificação de conflitos; um agendamento de dia inteiro cobre apenas um dia."
-
 msgid "Bookings over several days"
 msgstr "Agendamentos de vários dias"
 
@@ -31959,3 +31952,35 @@ msgstr "Valor revelado."
 #, php-format
 msgid "Values revealed: %d."
 msgstr "Valores revelados: %d."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:62
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days unless the limit is changed under Scheduling → Settings → Audience Calendars → Bookings over several days, \"Longest range\" (1 to 365). A longer range is refused with a message naming the limit, already by the conflict check. An all-day booking may cover several days: each day it covers takes that day's whole opening window."
+msgstr "Um agendamento pode cobrir um intervalo de dias: informe uma data final no formulário de agendamento e ele ocupa todos os dias da data inicial até essa. Os horários de cada dia são iguais todos os dias, ou vão do horário inicial no primeiro dia ao horário final no último, com a janela de funcionamento inteira entre eles. Cada dia é verificado contra as regras e quanto a conflitos; um conflito em qualquer dia recusa o agendamento inteiro, e o formulário lista os dias já ocupados. Um feriado ou um dia da semana em que o espaço fecha dentro do intervalo recusa o agendamento, a menos que \"Pular dias bloqueados\" esteja marcado; nesse caso esses dias ficam de fora sem aviso e são registrados como pulados. Um intervalo cobre no máximo 30 dias consecutivos, a menos que o limite seja alterado em Agendamento → Configurações → Calendários de Público-alvo → Agendamentos de vários dias, \"Intervalo mais longo\" (1 a 365). Um intervalo maior é recusado com uma mensagem que informa o limite, já na verificação de conflitos. Um agendamento de dia inteiro pode cobrir vários dias: cada dia coberto ocupa a janela de funcionamento inteira daquele dia."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:639
+msgid "Allow bookings of several days"
+msgstr "Permitir agendamentos de vários dias"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:648
+msgid "Allow choosing the time"
+msgstr "Permitir escolher o horário"
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:629
+msgid "Booking Form"
+msgstr "Formulário de agendamento"
+
+#: includes/settings/views/documentation/scheduling-audiences.php:61
+msgid "Each calendar decides the shape of its bookings, under Booking form on the Event list & badges tab, and the server holds every booking to it, a bypass included. With \"Allow bookings of several days\" off, a booking covers one day; a weekly series still repeats, since each of its dates is one day. With \"Allow choosing the time\" off, the times are not asked and every booking takes the whole day. Both are on for a calendar until they are turned off."
+msgstr "Cada calendário decide o formato dos seus agendamentos, em Formulário de agendamento na aba Lista de eventos e selos, e o servidor aplica esse formato a todo agendamento, inclusive com bypass. Com \"Permitir agendamentos de vários dias\" desligado, um agendamento cobre um dia; uma série semanal continua se repetindo, pois cada uma das suas datas é um dia. Com \"Permitir escolher o horário\" desligado, os horários não são pedidos e todo agendamento ocupa o dia inteiro. Os dois ficam ligados em um calendário até serem desligados."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:640
+msgid "Off: each booking covers one day. Weekly series stay available, since each of their dates is one day."
+msgstr "Desligado: cada agendamento cobre um dia. As séries semanais continuam disponíveis, pois cada uma das suas datas é um dia."
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:649
+msgid "Off: every booking covers the whole day, from the space's opening to its closing."
+msgstr "Desligado: todo agendamento ocupa o dia inteiro, da abertura ao fechamento do espaço."
+
+#: includes/audience/class-ffc-audience-rest-controller.php:902
+msgid "This calendar takes bookings of one day only."
+msgstr "Este calendário aceita apenas agendamentos de um dia."

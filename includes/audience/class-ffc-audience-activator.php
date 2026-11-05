@@ -41,7 +41,7 @@ class AudienceActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '11';
+	public const SCHEMA_REVISION = '12';
 
 	/**
 	 * Option holding the revision last applied.
@@ -157,6 +157,8 @@ class AudienceActivator {
             post_event_window_days smallint(5) unsigned DEFAULT NULL,
             post_event_attendees_only tinyint(1) DEFAULT 0,
             appearance_names longtext DEFAULT NULL,
+            allow_multi_day tinyint(1) DEFAULT 1,
+            allow_time_selection tinyint(1) DEFAULT 1,
             PRIMARY KEY (id),
             KEY idx_status (status),
             KEY idx_created_by (created_by)
@@ -940,6 +942,7 @@ class AudienceActivator {
 		$healed = self::migrate_post_event_form_columns() && $healed;
 		$healed = self::migrate_holiday_kind_column() && $healed;
 		$healed = self::migrate_schedule_appearance_names_column() && $healed;
+		$healed = self::migrate_schedule_booking_shape_columns() && $healed;
 
 		// The attendance tables of #1947 and the invitations of #1948 reach
 		// upgraded installs here: the version-gated chain below never creates
@@ -1198,6 +1201,28 @@ class AudienceActivator {
 		self::add_column_if_missing( $table_name, 'appearance_names', 'longtext DEFAULT NULL', 'post_event_attendees_only' );
 
 		return self::has_columns( $table_name, array( 'appearance_names' ) );
+	}
+
+	/**
+	 * Add the two booking-shape switches to calendars (#2404): whether a
+	 * booking may cover several days, and whether it may choose its hours.
+	 * Both default to on, so every calendar stored before keeps the form it
+	 * had.
+	 *
+	 * @return bool Whether the table now has both columns, or does not exist yet.
+	 */
+	private static function migrate_schedule_booking_shape_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_audience_schedules';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing( $table_name, 'allow_multi_day', 'tinyint(1) DEFAULT 1', 'appearance_names' );
+		self::add_column_if_missing( $table_name, 'allow_time_selection', 'tinyint(1) DEFAULT 1', 'allow_multi_day' );
+
+		return self::has_columns( $table_name, array( 'allow_multi_day', 'allow_time_selection' ) );
 	}
 
 	/**

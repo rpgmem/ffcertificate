@@ -2515,6 +2515,119 @@ class AudienceRestControllerTest extends TestCase {
 	}
 
 	// ------------------------------------------------------------------
+	// Booking shape per calendar (#2404)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Space 10 opens at different hours on Wednesday, Thursday and Friday, so
+	 * a whole day is visibly each day's own window.
+	 */
+	private function given_a_space_with_hours_by_day(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		$closed = array( 'start' => '08:00', 'end' => '18:00', 'closed' => true );
+		$open   = array( 'start' => '08:00', 'end' => '18:00', 'closed' => false );
+		$this->environment(
+			10,
+			20,
+			array(
+				'sun' => $closed,
+				'mon' => $open,
+				'tue' => $open,
+				'wed' => array( 'start' => '07:00', 'end' => '19:00', 'closed' => false ),
+				'thu' => $open,
+				'fri' => array( 'start' => '09:00', 'end' => '17:00', 'closed' => false ),
+				'sat' => $closed,
+			)
+		);
+	}
+
+	public function test_a_calendar_without_multi_day_refuses_a_range_and_writes_nothing(): void {
+		$this->given_an_open_space();
+		$this->schedules[20]->allow_multi_day = '0';
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'end_date' => '2026-04-03' ) )
+		);
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'single_day_only', $result->get_data()['code'] ?? null );
+		$this->assertSame( array(), $this->bookings, 'nothing is written' );
+	}
+
+	public function test_a_calendar_without_multi_day_still_takes_a_single_day(): void {
+		$this->given_an_open_space();
+		$this->schedules[20]->allow_multi_day = '0';
+
+		$result = ( new AudienceRestController() )->create_booking( $this->booking_request() );
+
+		$this->assertSame( 201, $result->get_status() );
+	}
+
+	public function test_a_calendar_without_time_selection_books_the_whole_day_whatever_hours_are_sent(): void {
+		$this->given_a_space_with_hours_by_day();
+		$this->schedules[20]->allow_time_selection = '0';
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'start_time' => '09:00', 'end_time' => '10:00' ) )
+		);
+
+		$this->assertSame( 201, $result->get_status() );
+		$row = end( $this->bookings );
+		$this->assertSame( 1, (int) $row->is_all_day );
+		$this->assertSame( array( '07:00', '19:00' ), array( substr( $row->start_time, 0, 5 ), substr( $row->end_time, 0, 5 ) ), 'Wednesday\'s opening window' );
+	}
+
+	public function test_a_whole_day_range_is_a_span_giving_each_day_its_own_window(): void {
+		$this->given_a_space_with_hours_by_day();
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'is_all_day' => true, 'end_date' => '2026-04-03' ) )
+		);
+
+		$this->assertSame( 201, $result->get_status(), 'an all-day booking may cover several days now' );
+		$row = end( $this->bookings );
+		$this->assertSame( 'span', $row->time_mode );
+		$this->assertSame( '2026-04-03', $row->end_date );
+		$this->assertSame( 1, (int) $row->is_all_day );
+		$this->assertSame(
+			array(
+				'2026-04-01' => array( 'start_time' => '07:00', 'end_time' => '19:00' ),
+				'2026-04-02' => array( 'start_time' => '08:00', 'end_time' => '18:00' ),
+				'2026-04-03' => array( 'start_time' => '09:00', 'end_time' => '17:00' ),
+			),
+			\FreeFormCertificate\Audience\AudienceBookingRules::day_times_map( $row )
+		);
+	}
+
+	public function test_a_whole_day_range_ending_on_a_skipped_day_ends_with_the_last_day_it_books(): void {
+		$this->given_a_space_with_hours_by_day();
+
+		// Wed 1 to Sat 4 April, skipping Saturday, which the space closes.
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'is_all_day' => true, 'end_date' => '2026-04-04', 'skip_blocked' => true ) )
+		);
+
+		$this->assertSame( 201, $result->get_status() );
+		$row = end( $this->bookings );
+		$this->assertSame( '17:00', substr( $row->end_time, 0, 5 ), 'Friday\'s closing, not the closed Saturday\'s 23:59' );
+		$this->assertSame( array( 'start_time' => '09:00', 'end_time' => '17:00' ), \FreeFormCertificate\Audience\AudienceBookingRules::day_times_map( $row )['2026-04-03'] );
+	}
+
+	public function test_without_time_selection_a_range_is_whole_days_too(): void {
+		$this->given_a_space_with_hours_by_day();
+		$this->schedules[20]->allow_time_selection = '0';
+
+		$result = ( new AudienceRestController() )->create_booking(
+			$this->booking_request( array( 'end_date' => '2026-04-02', 'time_mode' => 'daily' ) )
+		);
+
+		$this->assertSame( 201, $result->get_status() );
+		$row = end( $this->bookings );
+		$this->assertSame( 'span', $row->time_mode );
+		$this->assertSame( array( 'start_time' => '08:00', 'end_time' => '18:00' ), \FreeFormCertificate\Audience\AudienceBookingRules::day_times_map( $row )['2026-04-02'] );
+	}
+
+	// ------------------------------------------------------------------
 	// Ranges (#1946 AC5): a clash on any day, and the end date's order
 	// ------------------------------------------------------------------
 

@@ -446,6 +446,9 @@ class AudienceActivatorTest extends TestCase {
 		$alters = implode( "\n", array_filter( $queries, static fn( $q ) => false !== stripos( (string) $q, 'ALTER TABLE' ) ) );
 		$this->assertStringContainsString( 'members_only', $alters );
 		$this->assertStringContainsString( 'require_membership', $alters );
+		// The calendar's booking-shape switches, on by default (#2404).
+		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_multi_day' tinyint\\(1\\) DEFAULT 1/", $alters );
+		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_time_selection' tinyint\\(1\\) DEFAULT 1/", $alters );
 		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
 		// The bookings lock and invitation scan read their new indexes (#2243),

@@ -121,6 +121,10 @@ class AudienceShortcode {
 							'futureDaysLimit'        => isset( $s->future_days_limit ) ? (int) $s->future_days_limit : null,
 							'bookingLabelSingular'   => $s->booking_label_singular ?? null,
 							'bookingLabelPlural'     => $s->booking_label_plural ?? null,
+							// The booking shape the calendar accepts (#2404); the server
+							// enforces it on every booking.
+							'allowMultiDay'          => 1 === (int) ( $s->allow_multi_day ?? 1 ),
+							'allowTimeSelection'     => 1 === (int) ( $s->allow_time_selection ?? 1 ),
 						);
 					},
 					$schedules
@@ -203,6 +207,10 @@ class AudienceShortcode {
 						'futureDaysLimit'        => isset( $s->future_days_limit ) ? (int) $s->future_days_limit : null,
 						'bookingLabelSingular'   => $s->booking_label_singular ?? null,
 						'bookingLabelPlural'     => $s->booking_label_plural ?? null,
+						// The booking shape the calendar accepts (#2404); the server
+						// enforces it on every booking.
+						'allowMultiDay'          => 1 === (int) ( $s->allow_multi_day ?? 1 ),
+						'allowTimeSelection'     => 1 === (int) ( $s->allow_time_selection ?? 1 ),
 					);
 				},
 				$schedules

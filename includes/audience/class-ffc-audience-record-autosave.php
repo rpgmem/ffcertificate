@@ -39,6 +39,8 @@ class AudienceRecordAutosave {
 		'is_isolated',
 		'admin_bypass',
 		'post_event_attendees_only',
+		'allow_multi_day',
+		'allow_time_selection',
 	);
 
 	/**
