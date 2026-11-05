@@ -427,6 +427,86 @@ class AudienceReader {
 	}
 
 	/**
+	 * The audiences given plus every descendant of each, each once.
+	 *
+	 * @param array<int> $audience_ids Audiences.
+	 * @return list<int>
+	 */
+	public static function with_descendants( array $audience_ids ): array {
+		$ids = array();
+		foreach ( $audience_ids as $audience_id ) {
+			$audience_id = (int) $audience_id;
+			if ( $audience_id <= 0 ) {
+				continue;
+			}
+			$ids[ $audience_id ] = true;
+			foreach ( self::get_descendant_ids( $audience_id ) as $descendant ) {
+				$ids[ (int) $descendant ] = true;
+			}
+		}
+		return array_keys( $ids );
+	}
+
+	/**
+	 * One page of the members of any of the audiences, after a user id,
+	 * ascending (#2336): a keyset cursor, so a run over a large audience reads
+	 * one page per batch instead of the whole member list.
+	 *
+	 * @param array<int> $audience_ids Audiences, descendants already included ({@see self::with_descendants()}).
+	 * @param int        $after        Keyset cursor (user id).
+	 * @param int        $limit        Page size.
+	 * @return list<int>
+	 */
+	public static function member_page( array $audience_ids, int $after, int $limit ): array {
+		$audience_ids = array_values( array_filter( array_map( 'intval', $audience_ids ), static fn( int $id ): bool => $id > 0 ) );
+		if ( array() === $audience_ids ) {
+			return array();
+		}
+		$wpdb         = self::db();
+		$placeholders = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill above; the arguments arrive as one array.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT user_id FROM %i WHERE audience_id IN ({$placeholders}) AND user_id > %d ORDER BY user_id ASC LIMIT %d",
+				array_merge( array( self::get_members_table_name() ), $audience_ids, array( max( 0, $after ), max( 1, $limit ) ) )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		return array_map( 'intval', (array) $ids );
+	}
+
+	/**
+	 * The users, among those given, who belong to any of the audiences (#2336).
+	 *
+	 * @param array<int> $audience_ids Audiences, descendants already included.
+	 * @param array<int> $user_ids     Candidates.
+	 * @return array<int, true>
+	 */
+	public static function members_among( array $audience_ids, array $user_ids ): array {
+		$audience_ids = array_values( array_filter( array_map( 'intval', $audience_ids ), static fn( int $id ): bool => $id > 0 ) );
+		$user_ids     = array_values( array_filter( array_map( 'intval', $user_ids ), static fn( int $id ): bool => $id > 0 ) );
+		if ( array() === $audience_ids || array() === $user_ids ) {
+			return array();
+		}
+		$wpdb        = self::db();
+		$audience_in = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
+		$user_in     = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill above; the arguments arrive as one array.
+		$found = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT user_id FROM %i WHERE audience_id IN ({$audience_in}) AND user_id IN ({$user_in})",
+				array_merge( array( self::get_members_table_name() ), $audience_ids, $user_ids )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		$out = array();
+		foreach ( (array) $found as $id ) {
+			$out[ (int) $id ] = true;
+		}
+		return $out;
+	}
+
+	/**
 	 * Cache key for {@see self::get_user_audiences()}.
 	 *
 	 * Lives on the Reader because the Reader owns the shape of what is

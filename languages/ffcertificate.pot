@@ -7233,6 +7233,14 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/feature-date-messages.php:71
+msgid "A batch that is cut off part-way, for example by a slow mail server, is run again ten minutes later, up to three times; nobody it already reached is sent the message twice or counted twice. A message that cannot be built or sent counts as failed and the batch goes on. The daily run starts each rule as its own scheduled task, so one rule that fails does not stop the others."
+msgstr ""
+
+#: includes/core/class-ffc-scheduled-tasks.php:249
+msgid "Date messages: start of one rule's daily run (one per rule)"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
 msgid "Session (singular)"
 msgstr ""
@@ -22437,7 +22445,7 @@ msgstr ""
 msgid "Who receives a message"
 msgstr ""
 
-msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are reached on 28 February in a common year. The year of birth is never shown; {{age}} is computed from it."
+msgid "For each person whose date falls on the day, the first matching decision wins: outside the audience, opted out, no valid e-mail, already sent, otherwise will receive. Each person gets a rule's message once per occurrence of their date, however often the run repeats. People born on 29 February are treated as born on 28 February in every year, leap years included: that is the day they are reached and the day {{age}} goes up. The year of birth is never shown; {{age}} is computed from it."
 msgstr ""
 
 msgid "Preview recipients and test send"
@@ -25945,7 +25953,7 @@ msgid "View Submissions"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:77
-msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to Date Messages; everyone else gets the counts. A run that reached nobody sends no summary. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked."
+msgid "When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to the run in History; everyone else gets the counts. A run that reached nobody sends no summary. A run still in progress after 24 hours is reported once it closes, checked every hour for up to 12 hours, and a summary every send refused is tried again on the same schedule. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-ajax.php:434

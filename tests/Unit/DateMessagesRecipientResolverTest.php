@@ -52,6 +52,9 @@ class DateMessagesRecipientResolverTest extends TestCase {
 	/** @var list<int> Audience each members query was asked for, in order. */
 	private array $member_queries = array();
 
+	/** @var list<list<int>> Every value each members query bound, in order. */
+	private array $member_args = array();
+
 	/** @var list<list<int>> User ids each opt-out query bound, in order. */
 	private array $opt_out_queries = array();
 
@@ -145,15 +148,28 @@ class DateMessagesRecipientResolverTest extends TestCase {
 	 */
 	private function answer_col( string $sql ): array {
 		if ( str_contains( $sql, 'DISTINCT user_id' ) ) {
-			$audiences              = array_map( 'intval', array_slice( $this->bound, 1 ) );
+			// The audiences fill the first IN(); what follows is either the
+			// page cursor and size (member_page) or the candidates (members_among).
+			preg_match( '/audience_id IN \(([^)]*)\)/', $sql, $in );
+			$count                  = substr_count( $in[1] ?? '', '%d' );
+			$audiences              = array_map( 'intval', array_slice( $this->bound, 1, $count ) );
+			$rest                   = array_map( 'intval', array_slice( $this->bound, 1 + $count ) );
 			$this->member_queries[] = $audiences[0];
+			$this->member_args[]    = array_merge( $audiences, $rest );
 			$users                  = array();
 			foreach ( $audiences as $audience ) {
 				foreach ( $this->memberships[ $audience ] ?? array() as $user ) {
-					$users[ $user ] = (string) $user;
+					$users[ $user ] = $user;
 				}
 			}
-			return array_values( $users );
+			ksort( $users );
+			if ( str_contains( $sql, 'user_id > %d' ) ) {
+				list( $after, $limit ) = $rest;
+				$users                 = array_slice( array_filter( $users, static fn( int $u ): bool => $u > $after ), 0, $limit );
+			} else {
+				$users = array_intersect( $users, $rest );
+			}
+			return array_map( 'strval', array_values( $users ) );
 		}
 		if ( str_contains( $sql, 'occurrence_key' ) ) {
 			list( , $rule, $occurrence, $channel ) = $this->bound;
@@ -327,8 +343,10 @@ class DateMessagesRecipientResolverTest extends TestCase {
 			array( RecipientResolver::WILL_SEND, RecipientResolver::WILL_SEND, RecipientResolver::OUT_OF_AUDIENCE ),
 			array_column( $page['rows'], 'decision' )
 		);
-		$this->assertSame( 1, $this->member_reads( 7 ), 'Each audience is read once.' );
-		$this->assertSame( 1, $this->member_reads( 9 ), 'Each audience is read once.' );
+		// One query over both audiences, for this page's candidates only, never
+		// the whole member list (#2336).
+		$this->assertSame( array( 7 ), $this->member_queries, 'The audiences are read together, once.' );
+		$this->assertSame( array( array( 7, 9, 1, 2, 3 ) ), $this->member_args, 'Only this page\'s candidates are looked up.' );
 	}
 
 	/**
@@ -348,7 +366,7 @@ class DateMessagesRecipientResolverTest extends TestCase {
 	}
 
 	public function test_a_member_of_a_sub_audience_counts(): void {
-		// Sub-audiences count: get_members() is asked to include the children.
+		// Sub-audiences count: the descendants join the query.
 		$this->parents     = array( 10 => 9 );
 		$this->memberships = array( 10 => array( 1 ) );
 		$this->assertTrue( ( new RecipientResolver( $this->source ) )->audience_has_members( array( 9 ) ) );

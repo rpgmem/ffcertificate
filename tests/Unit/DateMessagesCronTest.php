@@ -134,7 +134,7 @@ class DateMessagesCronTest extends TestCase {
 		$this->assertSame( array( DateMessagesCron::CRON_HOOK ), $cleared );
 		// The single events carry arguments; only wp_unschedule_hook() removes
 		// them whatever the arguments are.
-		$this->assertSame( array( Runner::BATCH_HOOK, \FreeFormCertificate\DateMessages\Digest::HOOK, Runner::ANNOUNCE_HOOK ), $unscheduled );
+		$this->assertSame( array( Runner::BATCH_HOOK, \FreeFormCertificate\DateMessages\Digest::HOOK, Runner::ANNOUNCE_HOOK, Runner::START_HOOK ), $unscheduled );
 	}
 
 	public function test_init_attaches_the_daily_job_and_the_batch_continuation(): void {
@@ -151,9 +151,10 @@ class DateMessagesCronTest extends TestCase {
 		$this->assertSame(
 			array(
 				DateMessagesCron::CRON_HOOK                         => 1,
-				\FreeFormCertificate\DateMessages\Digest::HOOK => 1,
-				Runner::BATCH_HOOK                                  => 3,
+				\FreeFormCertificate\DateMessages\Digest::HOOK => 2,
+				Runner::BATCH_HOOK                                  => 4,
 				Runner::ANNOUNCE_HOOK                               => 1,
+				Runner::START_HOOK                                  => 2,
 			),
 			$added
 		);

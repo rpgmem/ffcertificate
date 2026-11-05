@@ -26,9 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * mirror is what exists to be matched by SQL. The full date is decrypted only
  * for `{{age}}`, one person at a time, when a message is actually built.
  *
- * 29 FEBRUARY. Outside a leap year the day does not exist, so on 28 February
- * of a common year the source also returns the people born on the 29th.
- * Every year each of them is due exactly once.
+ * 29 FEBRUARY. A person born on the 29th is treated as born on the 28th,
+ * in leap years too (#2336): on 28 February the source returns both days, and
+ * on a leap year's 29th it returns nobody. Every year each of them is due
+ * exactly once, on the same day, and `{{age}}` agrees with it
+ * ({@see BirthDate::age_on()}).
  */
 final class BirthdaySource implements DateSourceInterface {
 
@@ -62,11 +64,12 @@ final class BirthdaySource implements DateSourceInterface {
 	 * @return array<int, string>
 	 */
 	public static function month_days_for( \DateTimeImmutable $target ): array {
-		$days = array( $target->format( 'm-d' ) );
-		if ( '02-28' === $days[0] && '0' === $target->format( 'L' ) ) {
-			$days[] = '02-29';
+		$day = $target->format( 'm-d' );
+		if ( '02-29' === $day ) {
+			// Their day is the 28th, already gone this year.
+			return array();
 		}
-		return $days;
+		return '02-28' === $day ? array( '02-28', '02-29' ) : array( $day );
 	}
 
 	/**
@@ -80,7 +83,10 @@ final class BirthdaySource implements DateSourceInterface {
 	public function due( \DateTimeImmutable $target, int $after_user_id, int $limit ): array {
 		global $wpdb;
 
-		$days         = self::month_days_for( $target );
+		$days = self::month_days_for( $target );
+		if ( array() === $days ) {
+			return array();
+		}
 		$placeholders = implode( ', ', array_fill( 0, count( $days ), '%s' ) );
 		$args         = array_merge( array( UserProfileFieldMap::BIRTH_MONTH_DAY_META_KEY ), $days, array( max( 0, $after_user_id ), max( 1, $limit ) ) );
 

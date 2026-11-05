@@ -143,6 +143,10 @@ final class ScheduledTasks {
 			'recurrence' => 'daily',
 			'module'     => 'date_messages',
 		),
+		'ffc_date_messages_start'             => array(
+			'recurrence' => self::SINGLE,
+			'module'     => 'date_messages',
+		),
 		'ffc_date_messages_batch'             => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'date_messages',
@@ -241,6 +245,8 @@ final class ScheduledTasks {
 				return __( 'Audience booking e-mails (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_daily':
 				return __( 'Date messages (birthdays and other dates)', 'ffcertificate' );
+			case 'ffc_date_messages_start':
+				return __( 'Date messages: start of one rule\'s daily run (one per rule)', 'ffcertificate' );
 			case 'ffc_date_messages_batch':
 				return __( 'Date messages batch (one per batch)', 'ffcertificate' );
 			case 'ffc_date_messages_digest':

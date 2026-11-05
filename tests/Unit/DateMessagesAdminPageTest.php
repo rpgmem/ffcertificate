@@ -752,7 +752,8 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertSame( 'opted_out', $out['rows'][1]['decision'], 'An opt-out stays listed, flagged.' );
 		$this->assertTrue( $out['truncated'] );
 		$audience_queries = array_filter( $this->prepared, static fn( array $p ): bool => self::MEMBERS === ( $p[1] ?? null ) );
-		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2 ), 'The preview reads the members of the audience asked for.' );
+		// The audience asked for, then only that page's candidates (#2336).
+		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2, 1 ), 'The preview reads the members of the audience asked for.' );
 	}
 
 	public function test_a_manager_who_cannot_send_may_not_arm_an_announcement(): void {
@@ -847,6 +848,8 @@ class DateMessagesAdminPageTest extends TestCase {
 			'from'    => '2026-10-01',
 			'to'      => '2026-10-07',
 		);
+		// The first batch primes the page's accounts (#2336).
+		Functions\when( 'cache_users' )->justReturn( null );
 
 		$this->call( 'handle_send_now' );
 

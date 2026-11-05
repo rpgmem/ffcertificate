@@ -36,7 +36,7 @@ class DateMessagesBirthdaySourceTest extends TestCase {
 	 * @param string             $target   Target day.
 	 * @param array<int, string> $expected Month-days due.
 	 */
-	public function test_29_february_is_due_on_28_february_of_a_common_year_only( string $target, array $expected ): void {
+	public function test_29_february_is_always_due_on_28_february( string $target, array $expected ): void {
 		$this->assertSame( $expected, BirthdaySource::month_days_for( new \DateTimeImmutable( $target ) ) );
 	}
 
@@ -47,8 +47,9 @@ class DateMessagesBirthdaySourceTest extends TestCase {
 		return array(
 			'ordinary day'          => array( '2026-10-10', array( '10-10' ) ),
 			'28 Feb, common year'   => array( '2027-02-28', array( '02-28', '02-29' ) ),
-			'28 Feb, leap year'     => array( '2028-02-28', array( '02-28' ) ),
-			'29 Feb, leap year'     => array( '2028-02-29', array( '02-29' ) ),
+			// Treated as the 28th in leap years too (#2336).
+			'28 Feb, leap year'     => array( '2028-02-28', array( '02-28', '02-29' ) ),
+			'29 Feb, leap year'     => array( '2028-02-29', array() ),
 			'1 Mar, common year'    => array( '2027-03-01', array( '03-01' ) ),
 		);
 	}

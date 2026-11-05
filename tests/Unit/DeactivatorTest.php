@@ -100,6 +100,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_date_messages_batch', $cleared );
 		$this->assertContains( 'ffc_date_messages_announce', $cleared );
 		$this->assertContains( 'ffc_date_messages_digest', $cleared );
+		// One rule's daily start (#2336).
+		$this->assertContains( 'ffc_date_messages_start', $cleared );
 		// The form-cache warming (#1541).
 		$this->assertContains( 'ffcertificate_warm_cache_hook', $cleared );
 		// The bulk-issue purge of unfinished imports (#1945).
@@ -116,7 +118,7 @@ class DeactivatorTest extends TestCase {
 		// The one-shot submission pipeline, under its name and its pre-#1248 one (#2343).
 		$this->assertContains( 'ffc_process_submission_async', $cleared );
 		$this->assertContains( 'ffcertificate_process_submission_hook', $cleared );
-		$this->assertCount( 24, $cleared );
+		$this->assertCount( 25, $cleared );
 	}
 
 	public function test_deactivate_flushes_rewrite_rules(): void {

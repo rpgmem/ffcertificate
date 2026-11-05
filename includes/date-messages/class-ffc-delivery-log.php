@@ -313,6 +313,40 @@ class DeliveryLog {
 	}
 
 	/**
+	 * Count one decision about one person in one run, once (#2336).
+	 *
+	 * A batch that fires twice -- a retry after a request died, or a duplicated
+	 * event -- meets the same people again. A send is already deduplicated by
+	 * its claim; the other decisions are too, by a row in the log whose channel
+	 * names the decision and the run, so the second pass inserts nothing and
+	 * bumps nothing. Those rows are never read as deliveries: every reader of
+	 * the log asks for the `user` channel.
+	 *
+	 * @param int    $run_id     Run.
+	 * @param int    $rule_id    Rule.
+	 * @param int    $user_id    Person.
+	 * @param string $occurrence Target day, `Y-m-d`.
+	 * @param string $counter    One of COUNTERS.
+	 * @return void
+	 */
+	public static function count_once( int $run_id, int $rule_id, int $user_id, string $occurrence, string $counter ): void {
+		$codes = array(
+			'opted_out'       => 'o',
+			'no_email'        => 'n',
+			'out_of_audience' => 'a',
+			'failed'          => 'f',
+		);
+		if ( ! isset( $codes[ $counter ] ) ) {
+			self::bump( $run_id, $counter );
+			return;
+		}
+		// `x`, the decision and the run: at most 20 characters, the column's width.
+		if ( self::claim( $run_id, $rule_id, $user_id, $occurrence, 'x' . $codes[ $counter ] . $run_id ) ) {
+			self::bump( $run_id, $counter );
+		}
+	}
+
+	/**
 	 * Release a claim whose send was refused before it left the plugin, so a
 	 * later run may try again.
 	 *
