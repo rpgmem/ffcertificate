@@ -458,7 +458,13 @@ describe('ffc-pdf-generator.js — actionable error panel (Sprint 3)', () => {
 // #2241 — the bundles are fetched when a page is about to need them.
 describe('ffc-pdf-generator.js — load()', () => {
 	beforeEach(reset);
-	afterEach(() => vi.restoreAllMocks());
+	// A generation started here runs on fake timers, and dropping them here
+	// drops its pending steps, which would otherwise fire after the file's
+	// window is gone (`view.getComputedStyle is not a function`).
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+	});
 
 	// Stand in for the network: answer each injected <script> by defining
 	// the global its bundle would define, or by failing.
@@ -531,11 +537,12 @@ describe('ffc-pdf-generator.js — load()', () => {
 		loadScript('assets/js/ffc-pdf-generator.js');
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
+		vi.useFakeTimers();
 		window.ffcGeneratePDF({ html: '<p>hi</p>' }, 'x.pdf');
 
 		// The overlay opens at once; no "libraries failed" error.
 		expect(document.querySelector('#ffc-pdf-overlay')).not.toBeNull();
-		await new Promise((r) => setTimeout(r, 5));
+		await vi.advanceTimersByTimeAsync(5);
 		expect(typeof window.html2canvas).toBe('function');
 		expect(document.querySelector('#ffc-pdf-overlay').textContent).not.toMatch(/PDF libraries/i);
 	});
@@ -546,8 +553,9 @@ describe('ffc-pdf-generator.js — load()', () => {
 		loadScript('assets/js/ffc-pdf-generator.js');
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
+		vi.useFakeTimers();
 		window.ffcGeneratePDF({ html: '<p>hi</p>' }, 'x.pdf');
-		await new Promise((r) => setTimeout(r, 5));
+		await vi.advanceTimersByTimeAsync(5);
 
 		expect(document.querySelector('#ffc-pdf-overlay').textContent).toMatch(/PDF libraries/i);
 	});
@@ -780,9 +788,12 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		vi.spyOn(window, 'open').mockReturnValue(tab);
 		loadScript('assets/js/ffc-pdf-generator.js');
 
+		vi.useFakeTimers();
 		window.ffcGeneratePDF({ html: '<p>c</p>' }, 'a.pdf');
 		expect(tab.document.title).toBe('Gerando…');
 		expect(tab.document.body.innerHTML).toBe('<h2 style="font-weight:600;margin:0 0 12px">Gerando…</h2><p>Aguarde.</p>');
+		// This first generation is not followed; its pending steps go with the fake clock.
+		vi.useRealTimers();
 
 		reset();
 		install('content');
