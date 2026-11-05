@@ -90,6 +90,18 @@ describe('FFC.VerticalTabs.init', () => {
 		expect(window.$('.ffc-vtabs').hasClass('is-ready')).toBe(true);
 	});
 
+	it('binds a container once, so a second init answers a click once (#2344)', () => {
+		buildTabs();
+		window.FFC.VerticalTabs.init();
+		window.FFC.VerticalTabs.init();
+		const replace = vi.spyOn(window.history, 'replaceState');
+
+		tab('email').trigger('click');
+
+		expect(replace).toHaveBeenCalledTimes(1);
+		expect(tab('email').attr('aria-selected')).toBe('true');
+	});
+
 	it('keeps the first tab active on load when there is no hash', () => {
 		buildTabs();
 		window.FFC.VerticalTabs.init();

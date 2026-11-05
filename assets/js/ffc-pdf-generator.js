@@ -233,8 +233,66 @@
         });
     }
 
+    /**
+     * Blob URLs made for the open-in-tab path and the "didn't download?"
+     * links (#2344). Each holds the whole PDF in memory until revoked, so
+     * they are released once nothing on the page can follow them.
+     */
+    var pendingBlobUrls = [];
+
+    /**
+     * Keep a blob URL until the overlay that offers it goes.
+     *
+     * @param {string} url A URL from `pdf.output('bloburl')`.
+     * @return {string} The same URL.
+     */
+    function trackBlobUrl(url) {
+        if (url) {
+            pendingBlobUrls.push(url);
+        }
+        return url;
+    }
+
+    /**
+     * Revoke the tracked blob URLs.
+     *
+     * A tab the PDF was sent to, or one a fallback link has just opened,
+     * may still be reading the URL when the overlay closes, and revoking it
+     * then would leave that tab empty. So the revoke waits a minute, except
+     * when the page itself is going away.
+     *
+     * @param {number} delay Milliseconds to wait; 0 revokes at once.
+     */
+    function releaseBlobUrls(delay) {
+        var urls = pendingBlobUrls.splice(0);
+        if (!urls.length || !window.URL || typeof window.URL.revokeObjectURL !== 'function') {
+            return;
+        }
+        var revoke = function() {
+            urls.forEach(function(url) {
+                try {
+                    window.URL.revokeObjectURL(url);
+                } catch (e) {
+                    // An already revoked URL is not an error worth reporting.
+                }
+            });
+        };
+        if (delay > 0) {
+            setTimeout(revoke, delay);
+        } else {
+            revoke();
+        }
+    }
+
+    if (typeof window.addEventListener === 'function') {
+        window.addEventListener('pagehide', function() {
+            releaseBlobUrls(0);
+        });
+    }
+
     function hideOverlay() {
         var $overlay = $('#ffc-pdf-overlay');
+        releaseBlobUrls(60000);
         if (!$overlay.length) {
             return;
         }
@@ -602,7 +660,7 @@
                             //     don't download" with no notification UI.
                             var blobUrlForFallback = null;
                             if (needsPreOpen) {
-                                var blobUrl = pdf.output('bloburl');
+                                var blobUrl = trackBlobUrl(pdf.output('bloburl'));
                                 blobUrlForFallback = blobUrl;
                                 if (pdfWindow && !pdfWindow.closed) {
                                     try {
@@ -614,7 +672,7 @@
                                     }
                                 }
                             } else {
-                                blobUrlForFallback = pdf.output('bloburl');
+                                blobUrlForFallback = trackBlobUrl(pdf.output('bloburl'));
                                 pdf.save(filename || 'certificate.pdf');
                             }
 

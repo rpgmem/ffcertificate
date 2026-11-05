@@ -80,6 +80,14 @@
 			return;
 		}
 
+		// One set of handlers per container (#2344): `FFC.VerticalTabs.init()`
+		// runs on DOM ready and again when a screen calls it, and a second
+		// binding would answer every click, key and hash change twice.
+		if ( $container.data( 'ffcVtabsBound' ) ) {
+			return;
+		}
+		$container.data( 'ffcVtabsBound', true );
+
 		$container.addClass( 'is-ready' );
 
 		/**

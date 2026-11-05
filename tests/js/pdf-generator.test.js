@@ -670,6 +670,42 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		expect(overlay()).toBeNull();
 	});
 
+	it('revokes the blob URL a minute after the overlay goes, not before (#2344)', async () => {
+		install('content');
+		const revoke = vi.fn();
+		window.URL.revokeObjectURL = revoke;
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>c</p>' }, 'a.pdf');
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(document.querySelector('a.ffc-pdf-desktop-fallback').getAttribute('href')).toBe('blob:fake-url');
+
+		// The panel goes after six seconds; the link it offered may have just
+		// opened a tab still reading the URL, so the revoke waits a minute.
+		await vi.advanceTimersByTimeAsync(6500);
+		expect(overlay()).toBeNull();
+		expect(revoke).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(revoke).toHaveBeenCalledTimes(1);
+		expect(revoke).toHaveBeenCalledWith('blob:fake-url');
+	});
+
+	it('revokes a pending blob URL at once when the page goes away (#2344)', async () => {
+		install('content');
+		const revoke = vi.fn();
+		window.URL.revokeObjectURL = revoke;
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>c</p>' }, 'a.pdf');
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(revoke).not.toHaveBeenCalled();
+
+		window.dispatchEvent(new Event('pagehide'));
+		expect(revoke).toHaveBeenCalledWith('blob:fake-url');
+	});
+
 	it('lets Escape dismiss the success panel early once the fallback link is offered', async () => {
 		install('content');
 		loadScript('assets/js/ffc-pdf-generator.js');

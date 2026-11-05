@@ -43,6 +43,13 @@
             return;
         }
 
+        // A second calendar on the same container replaces the first
+        // (#2344): without this, both instances' handlers answer every click.
+        var previous = $container.data('ffcCalendarCore');
+        if (previous && typeof previous.destroy === 'function') {
+            previous.destroy();
+        }
+
         this.$container = $container;
 
         // Default options
@@ -113,6 +120,7 @@
         init: function() {
             this.render();
             this.bindEvents();
+            this.$container.data('ffcCalendarCore', this);
         },
 
         /**
@@ -182,19 +190,19 @@
         bindEvents: function() {
             var self = this;
 
-            this.$container.on('click', '.ffc-prev-month', function() {
+            this.$container.on('click.ffcCalendarCore', '.ffc-prev-month', function() {
                 self.prevMonth();
             });
 
-            this.$container.on('click', '.ffc-next-month', function() {
+            this.$container.on('click.ffcCalendarCore', '.ffc-next-month', function() {
                 self.nextMonth();
             });
 
-            this.$container.on('click', '.ffc-today-btn', function() {
+            this.$container.on('click.ffcCalendarCore', '.ffc-today-btn', function() {
                 self.goToToday();
             });
 
-            this.$container.on('click', '.ffc-day:not(.ffc-disabled):not(.ffc-other-month)', function() {
+            this.$container.on('click.ffcCalendarCore', '.ffc-day:not(.ffc-disabled):not(.ffc-other-month)', function() {
                 var date = $(this).data('date');
                 self.selectDate(date);
 
@@ -206,7 +214,7 @@
             // Keyboard (#2244): Enter or Space picks the focused day, the
             // arrows move a day or a week, Home and End go to the month's
             // first and last day. One day holds the tab stop at a time.
-            this.$container.on('keydown', '.ffc-day[data-ffc-focusable]', function(e) {
+            this.$container.on('keydown.ffcCalendarCore', '.ffc-day[data-ffc-focusable]', function(e) {
                 var $day = $(this);
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -558,7 +566,10 @@
          * Destroy the calendar
          */
         destroy: function() {
-            this.$container.off();
+            // Only this calendar's handlers: a page script bound on the same
+            // container (the booking form's own listeners) stays (#2344).
+            this.$container.off('.ffcCalendarCore');
+            this.$container.removeData('ffcCalendarCore');
             this.$container.empty();
         }
     };
