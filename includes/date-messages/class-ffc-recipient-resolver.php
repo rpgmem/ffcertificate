@@ -107,7 +107,7 @@ final class RecipientResolver {
 			// A dated source: only this page's candidates are looked up.
 			$members = $this->members_among( $audiences, $ids );
 		}
-		$occurrence = $target->format( 'Y-m-d' );
+		$occurrence = $rule->occurrence_key( $target );
 
 		$opted_out = OptOut::among( $ids, $rule->opt_out_category() );
 		$delivered = DeliveryLog::delivered_among( $rule->id, $occurrence, $ids );

@@ -35,7 +35,7 @@ class DeliveryLog {
 	/**
 	 * Counter columns a run carries.
 	 */
-	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced' );
+	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed' );
 
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).
@@ -335,6 +335,7 @@ class DeliveryLog {
 			'no_email'        => 'n',
 			'out_of_audience' => 'a',
 			'failed'          => 'f',
+			'listed'          => 'l',
 		);
 		if ( ! isset( $codes[ $counter ] ) ) {
 			self::bump( $run_id, $counter );
@@ -344,6 +345,19 @@ class DeliveryLog {
 		if ( self::claim( $run_id, $rule_id, $user_id, $occurrence, 'x' . $codes[ $counter ] . $run_id ) ) {
 			self::bump( $run_id, $counter );
 		}
+	}
+
+	/**
+	 * The channel {@see self::count_once()} records a counted decision under,
+	 * for the run's own readers: the summary-only digest lists the people its
+	 * `listed` rows name (#2336).
+	 *
+	 * @param int    $run_id  Run.
+	 * @param string $counter `listed`.
+	 * @return string
+	 */
+	public static function counted_channel( int $run_id, string $counter ): string {
+		return 'listed' === $counter ? 'xl' . $run_id : '';
 	}
 
 	/**

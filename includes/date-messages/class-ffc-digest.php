@@ -108,7 +108,7 @@ final class Digest {
 		}
 
 		$counts = array();
-		foreach ( array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed' ) as $counter ) {
+		foreach ( array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'listed' ) as $counter ) {
 			$counts[ $counter ] = self::int( $run[ $counter ] ?? 0 );
 		}
 		if ( 0 === array_sum( $counts ) ) {
@@ -120,10 +120,12 @@ final class Digest {
 		$counts['forced'] = self::int( $run['forced'] ?? 0 );
 
 		$detailed = 'detailed' === $rule->digest_mode;
-		$names    = $detailed ? self::recipient_names( $run_id ) : array();
-		$from     = is_string( $run['target_from'] ?? null ) ? $run['target_from'] : '';
-		$to       = is_string( $run['target_to'] ?? null ) ? $run['target_to'] : '';
-		$subject  = sprintf(
+		// A rule with personal e-mails off reports whose date it was (#2336).
+		$summary_only = ! $rule->send_to_user;
+		$names        = $detailed ? self::recipient_names( $run_id, $summary_only ? DeliveryLog::counted_channel( $run_id, 'listed' ) : 'user' ) : array();
+		$from         = is_string( $run['target_from'] ?? null ) ? $run['target_from'] : '';
+		$to           = is_string( $run['target_to'] ?? null ) ? $run['target_to'] : '';
+		$subject      = sprintf(
 			/* translators: 1: site name, 2: rule name */
 			__( '[%1$s] Date Messages summary: %2$s', 'ffcertificate' ),
 			(string) get_bloginfo( 'name' ),
@@ -140,15 +142,16 @@ final class Digest {
 			$may_see_names = $detailed && ( user_can( $user, 'manage_options' ) || user_can( $user, DateMessagesAdminPage::PII_CAP ) );
 			$body          = self::body(
 				array(
-					'rule_name'   => $rule->name,
-					'trigger'     => is_string( $run['trigger_kind'] ?? null ) ? $run['trigger_kind'] : 'cron',
-					'target_from' => $from,
-					'target_to'   => $to,
-					'counts'      => $counts,
-					'names'       => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
-					'names_limit' => self::NAMES_LIMIT,
+					'rule_name'    => $rule->name,
+					'trigger'      => is_string( $run['trigger_kind'] ?? null ) ? $run['trigger_kind'] : 'cron',
+					'target_from'  => $from,
+					'target_to'    => $to,
+					'counts'       => $counts,
+					'names'        => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
+					'names_limit'  => self::NAMES_LIMIT,
+					'summary_only' => $summary_only,
 					// The run's own record, where its numbers are (#2336).
-					'screen_url'  => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=history' ),
+					'screen_url'   => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=history' ),
 				)
 			);
 
@@ -215,12 +218,13 @@ final class Digest {
 	}
 
 	/**
-	 * Display names of the people a run delivered to.
+	 * Display names of the people a run delivered to, or listed.
 	 *
-	 * @param int $run_id Run.
+	 * @param int    $run_id  Run.
+	 * @param string $channel `user` for deliveries; a run's listed channel for a summary-only rule.
 	 * @return array<int, string>
 	 */
-	private static function recipient_names( int $run_id ): array {
+	private static function recipient_names( int $run_id, string $channel = 'user' ): array {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's log to core wp_users for display names; annotated per line because wp_users is a core table. A digest reads the live log, never a cache.
@@ -230,7 +234,7 @@ final class Digest {
 				DateMessagesActivator::log_table(),
 				$wpdb->users,
 				$run_id,
-				'user',
+				$channel,
 				self::NAMES_LIMIT
 			)
 		);

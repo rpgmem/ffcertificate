@@ -359,11 +359,13 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				// checkbox named as before, so the save handler is unchanged.
 				\FreeFormCertificate\Admin\AdminUI::render_toggle(
 					array(
-						'name'    => 'rule[send_to_user]',
-						'id'      => 'ffc-dm-send-to-user',
-						'checked' => $ffc_dm_flag( $ffc_dm_values['send_to_user'] ),
-						'label'   => __( 'E-mail each person on their date', 'ffcertificate' ),
-						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'send_to_user' ),
+						'name'        => 'rule[send_to_user]',
+						'id'          => 'ffc-dm-send-to-user',
+						'checked'     => $ffc_dm_flag( $ffc_dm_values['send_to_user'] ),
+						'label'       => __( 'E-mail each person on their date', 'ffcertificate' ),
+						// Off, the rule still runs, for its managers' summary only (#2336).
+						'description' => __( 'Off: nobody is e-mailed; the rule runs only to send its managers the summary of whose date it is.', 'ffcertificate' ),
+						'data'        => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'send_to_user' ),
 					)
 				);
 				?>

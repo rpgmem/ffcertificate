@@ -54,6 +54,16 @@ final class DateMessagesAjaxEndpoint {
 	public const MESSAGE_ACTION = 'ffc_date_messages_message_preview';
 
 	/**
+	 * Seconds an operator waits between two test sends (#2336).
+	 */
+	public const TEST_INTERVAL = 60;
+
+	/**
+	 * Transient prefix of an operator's last test send, by user id.
+	 */
+	private const TEST_TRANSIENT = 'ffc_dm_test_';
+
+	/**
 	 * Register the handlers. Admin-only: each needs a logged-in operator.
 	 *
 	 * @return void
@@ -152,16 +162,38 @@ final class DateMessagesAjaxEndpoint {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to do this.', 'ffcertificate' ) ), 403 );
 		}
 
-		$rule = self::posted_rule();
+		// One test a minute per operator (#2336): each one is an e-mail and a
+		// line in the history.
+		$throttle = self::TEST_TRANSIENT . get_current_user_id();
+		if ( false !== get_transient( $throttle ) ) {
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						/* translators: %d: seconds */
+						__( 'Wait %d seconds between two test sends.', 'ffcertificate' ),
+						self::TEST_INTERVAL
+					),
+				),
+				429
+			);
+		}
+
+		// An operator who may only test sends the rule as saved, never text
+		// typed into the editor (#2336): testing is not editing.
+		$rule = DateMessagesAdminPage::can_manage() ? self::posted_rule() : self::saved_rule();
 		if ( is_wp_error( $rule ) ) {
 			wp_send_json_error( array( 'message' => $rule->get_error_message() ), 400 );
 		}
 
 		$source = DateSources::for_rule( $rule );
-		$user   = wp_get_current_user();
-		if ( null === $source || ! is_email( $user->user_email ) ) {
-			wp_send_json_error( array( 'message' => __( 'Your account has no valid e-mail address.', 'ffcertificate' ) ), 400 );
+		if ( null === $source ) {
+			wp_send_json_error( array( 'message' => __( 'This rule\'s date is not available any more, so no sample can be built. Choose another date in the rule.', 'ffcertificate' ) ), 400 );
 		}
+		$user = wp_get_current_user();
+		if ( ! is_email( $user->user_email ) ) {
+			wp_send_json_error( array( 'message' => __( 'Your account has no valid e-mail address. Add one to your profile to receive the test.', 'ffcertificate' ) ), 400 );
+		}
+		set_transient( $throttle, 1, self::TEST_INTERVAL );
 
 		$today   = Runner::today();
 		$target  = $today->modify( sprintf( '%+d days', -$rule->offset_days ) );
@@ -194,6 +226,17 @@ final class DateMessagesAjaxEndpoint {
 				),
 			)
 		);
+	}
+
+	/**
+	 * The saved rule a request names, for an operator who may only test it.
+	 *
+	 * @return Rule|\WP_Error
+	 */
+	private static function saved_rule() {
+		$id   = RequestInput::get_post_int( 'rule_id' );
+		$rule = $id > 0 ? RuleReader::get_by_id( $id ) : null;
+		return null === $rule ? new \WP_Error( 'ffc_rule_missing', __( 'Save the rule before sending a test.', 'ffcertificate' ) ) : $rule;
 	}
 
 	/**

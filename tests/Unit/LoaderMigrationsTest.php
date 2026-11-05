@@ -209,6 +209,7 @@ class LoaderMigrationsTest extends TestCase {
 			'activity log' => array( 'ensure_activity_log_export_cap_granted', 'ffc_activity_log_export_cap_v1', 'ffc_view_activity_log', 'ffc_export_activity_log', true ),
 			'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'ffc_manage_url_shortener', 'ffc_export_url_shortener', true ),
 			'date messages send' => array( 'ensure_date_messages_send_cap_granted', 'ffc_date_messages_send_cap_v1', 'ffc_manage_date_messages', 'ffc_send_date_messages', true ),
+			'date messages delete' => array( 'ensure_date_messages_delete_cap_granted', 'ffc_date_messages_delete_cap_v1', 'ffc_manage_date_messages', 'ffc_delete_date_messages', true ),
 			'reregistration pii'   => array( 'ensure_reregistration_pii_cap_granted', 'ffc_reregistration_pii_cap_v1', 'ffc_manage_reregistration', 'ffc_view_reregistration_pii', true ),
 			'audiences pii'        => array( 'ensure_audiences_pii_cap_granted', 'ffc_audiences_pii_cap_v1', 'ffc_manage_audiences', 'ffc_view_audiences_pii', true ),
 			'ip pii'               => array( 'ensure_ip_pii_caps_granted', 'ffc_ip_pii_caps_v1', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', true ),

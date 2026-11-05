@@ -24,18 +24,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$ffc_dm_counts = is_array( $args['counts'] ?? null ) ? $args['counts'] : array();
-$ffc_dm_from   = (string) ( $args['target_from'] ?? '' );
-$ffc_dm_to     = (string) ( $args['target_to'] ?? '' );
-$ffc_dm_rows   = array(
+$ffc_dm_counts       = is_array( $args['counts'] ?? null ) ? $args['counts'] : array();
+$ffc_dm_from         = (string) ( $args['target_from'] ?? '' );
+$ffc_dm_to           = (string) ( $args['target_to'] ?? '' );
+$ffc_dm_rows         = array(
 	'sent'            => __( 'Sent', 'ffcertificate' ),
 	'forced'          => __( 'Sent despite an opt-out (included in Sent)', 'ffcertificate' ),
 	'opted_out'       => __( 'Opted out', 'ffcertificate' ),
 	'no_email'        => __( 'No valid e-mail', 'ffcertificate' ),
 	'out_of_audience' => __( 'Outside the audience', 'ffcertificate' ),
 	'failed'          => __( 'Failed', 'ffcertificate' ),
+	'listed'          => __( 'Whose date it is (personal e-mails off)', 'ffcertificate' ),
 );
-$ffc_dm_names  = $args['names'] ?? null;
+$ffc_dm_summary_only = ! empty( $args['summary_only'] );
+$ffc_dm_names        = $args['names'] ?? null;
 ?>
 <h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;"><?php echo esc_html( (string) ( $args['rule_name'] ?? '' ) ); ?></h2>
 <p style="margin: 0 0 16px 0;">
@@ -56,8 +58,9 @@ $ffc_dm_names  = $args['names'] ?? null;
 <table role="presentation" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin: 0 0 16px 0;">
 	<?php foreach ( $ffc_dm_rows as $ffc_dm_key => $ffc_dm_label ) : ?>
 		<?php
-		// Only an announcement set to ignore opt-outs can force a send.
-		if ( 'forced' === $ffc_dm_key && 0 === (int) ( $ffc_dm_counts['forced'] ?? 0 ) ) {
+		// Only an announcement set to ignore opt-outs can force a send, and
+		// only a rule with personal e-mails off lists without sending (#2336).
+		if ( in_array( $ffc_dm_key, array( 'forced', 'listed' ), true ) && 0 === (int) ( $ffc_dm_counts[ $ffc_dm_key ] ?? 0 ) ) {
 			continue;
 		}
 		?>
@@ -69,7 +72,7 @@ $ffc_dm_names  = $args['names'] ?? null;
 </table>
 <p style="margin: 0 0 16px 0; font-size: 12px; color: #646970;"><?php esc_html_e( '"Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue.', 'ffcertificate' ); ?></p>
 <?php if ( is_array( $ffc_dm_names ) && array() !== $ffc_dm_names ) : ?>
-	<h3 style="margin: 0 0 8px 0; font-size: 16px;"><?php esc_html_e( 'Received the message', 'ffcertificate' ); ?></h3>
+	<h3 style="margin: 0 0 8px 0; font-size: 16px;"><?php echo esc_html( $ffc_dm_summary_only ? __( 'Whose date it is', 'ffcertificate' ) : __( 'Received the message', 'ffcertificate' ) ); ?></h3>
 	<ul style="margin: 0 0 16px 20px; padding: 0;">
 		<?php foreach ( $ffc_dm_names as $ffc_dm_name ) : ?>
 			<li><?php echo esc_html( (string) $ffc_dm_name ); ?></li>

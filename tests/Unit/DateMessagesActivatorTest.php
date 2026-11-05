@@ -90,7 +90,7 @@ class DateMessagesActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION ), true ) ? '1' : FFC_VERSION
+			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION, DateMessagesActivator::SEND_SCOPE_OPTION ), true ) ? '1' : FFC_VERSION
 		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();
@@ -108,6 +108,41 @@ class DateMessagesActivatorTest extends TestCase {
 		DateMessagesActivator::maybe_migrate();
 
 		$this->assertCount( 3, $this->deltas );
+	}
+
+	// ------------------------------------------------------------------
+	// An announcement deduplicated once per rule (#2336)
+	// ------------------------------------------------------------------
+
+	public function test_announcement_deliveries_take_the_fixed_key_and_mark_it_done(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => substr( (string) $q, (int) strrpos( (string) $q, '|' ) + 1 ) );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'kind' ) ) );
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$queries ) {
+				$queries[] = (string) $q;
+				return 4;
+			}
+		);
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SEND_SCOPE_OPTION, '1' );
+
+		DateMessagesActivator::migrate_send_scope();
+
+		$this->assertSame(
+			array( 'UPDATE IGNORE %i l INNER JOIN %i r ON r.id = l.rule_id SET l.occurrence_key = %s WHERE r.kind = %s AND l.channel = %s|wp_ffc_date_message_log,wp_ffc_date_message_rules,once,announcement,user' ),
+			$queries
+		);
+	}
+
+	public function test_a_failed_key_move_is_tried_again(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => substr( (string) $q, (int) strrpos( (string) $q, '|' ) + 1 ) );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'kind' ) ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( false );
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::migrate_send_scope();
 	}
 
 	// ------------------------------------------------------------------

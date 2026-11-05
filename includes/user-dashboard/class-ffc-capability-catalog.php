@@ -401,7 +401,11 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_date_messages'   => array(
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
-						'description' => __( 'Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+						'description' => __( 'Create, edit and duplicate rules. Deleting one takes Delete date messages, and sending one, activating it or forcing it past opt-outs takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+					),
+					'ffc_delete_date_messages'   => array(
+						'label'       => __( 'Delete date messages', 'ffcertificate' ),
+						'description' => __( 'Delete a rule. Its history stays. The current managers receive it on upgrade (#2336).', 'ffcertificate' ),
 					),
 					'ffc_send_date_messages'     => array(
 						'label'       => __( 'Send date messages', 'ffcertificate' ),

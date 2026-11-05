@@ -524,6 +524,76 @@ class CapabilityMigrator {
 	}
 
 	/**
+	 * Map of the manage cap => the delete cap it seeds (#2336).
+	 *
+	 * Deleting a rule is split out of managing rules, like every delete cap.
+	 * The migration seeds `ffc_delete_date_messages` onto every current
+	 * `ffc_manage_date_messages` holder, so nobody loses the ability to delete.
+	 *
+	 * @return array<string, string> Manage cap => the delete cap it seeds.
+	 */
+	public static function date_messages_delete_cap_grant_map(): array {
+		return array(
+			'ffc_manage_date_messages' => 'ffc_delete_date_messages',
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_delete_date_messages` onto every user
+	 * and role that already holds `ffc_manage_date_messages` (#2336). Never
+	 * removes the source cap. Runs once per install via the Loader, flagged by
+	 * `ffc_date_messages_delete_cap_v1`.
+	 *
+	 * @return array<string, int> Delete-cap count of users seeded.
+	 */
+	public static function migrate_date_messages_delete_cap_grant(): array {
+		return self::seed_from_map( self::date_messages_delete_cap_grant_map() );
+	}
+
+	/**
+	 * Seed each target cap onto every user and role holding its source cap,
+	 * never removing the source.
+	 *
+	 * @param array<string, string> $map Source cap => cap it seeds.
+	 * @return array<string, int> Users seeded per target cap.
+	 */
+	private static function seed_from_map( array $map ): array {
+		$counts = array();
+
+		$users = self::users_with_ffc_grants();
+		foreach ( $map as $source => $target ) {
+			$counts[ $target ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $target ] ) ) {
+					$user->add_cap( $target, true );
+					++$counts[ $target ];
+				}
+			}
+		}
+
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $target ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $target ] ) ) {
+					$role->add_cap( $target, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
 	 * Map of the source cap => the URL-shortener export cap it seeds on upgrade.
 	 * Like every other export cap it splits out of `manage`, so the migration
 	 * seeds `ffc_export_url_shortener` onto every current `ffc_manage_url_shortener`

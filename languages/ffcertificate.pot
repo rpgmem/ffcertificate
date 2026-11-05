@@ -7233,6 +7233,58 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/feature-date-messages.php:58
+msgid "An announcement reaches each person once per rule: sending it again on another day reaches only whoever it missed."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:408
+msgid "Delete a rule. Its history stays. The current managers receive it on upgrade (#2336)."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:407
+msgid "Delete date messages"
+msgstr ""
+
+#: templates/admin/date-messages/history.php:95
+msgid "Listed for the summary only"
+msgstr ""
+
+#: templates/admin/date-messages/send.php:64
+msgid "No rule is active. Only an active rule can be sent: activate one on the Rules tab."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php:367
+msgid "Off: nobody is e-mailed; the rule runs only to send its managers the summary of whose date it is."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:239
+msgid "Save the rule before sending a test."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:190
+msgid "This rule's date is not available any more, so no sample can be built. Choose another date in the rule."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:173
+msgid "Wait %d seconds between two test sends."
+msgstr ""
+
+#: templates/emails/date-message-digest.php:75
+msgid "Whose date it is"
+msgstr ""
+
+#: templates/emails/date-message-digest.php:37
+msgid "Whose date it is (personal e-mails off)"
+msgstr ""
+
+#: templates/admin/date-messages/send.php:56
+msgid "Your account can preview who a rule would reach, but not send it: sending takes the \"Send date messages\" capability. Ask an administrator for it, or ask someone who holds it to send."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "delete a rule; its history stays. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-date-messages.php:71
 msgid "A batch that is cut off part-way, for example by a slow mail server, is run again ten minutes later, up to three times; nobody it already reached is sent the message twice or counted twice. A message that cannot be built or sent counts as failed and the batch goes on. The daily run starts each rule as its own scheduled task, so one rule that fails does not stop the others."
 msgstr ""
@@ -21427,7 +21479,7 @@ msgstr ""
 msgid "You do not have permission to view this page."
 msgstr ""
 
-msgid "Your account has no valid e-mail address."
+msgid "Your account has no valid e-mail address. Add one to your profile to receive the test."
 msgstr ""
 
 msgid "[TEST] %s"
@@ -22433,7 +22485,7 @@ msgstr ""
 msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
 msgstr ""
 
-msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
+msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
 msgstr ""
 
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
@@ -23154,7 +23206,7 @@ msgstr ""
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr ""
 
-msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
+msgid "Create, edit and duplicate rules. Deleting one takes Delete date messages, and sending one, activating it or forcing it past opt-outs takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
 msgstr ""
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
@@ -23208,7 +23260,7 @@ msgstr ""
 msgid "Where they are assigned"
 msgstr ""
 
-msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgid "create, edit and duplicate rules. Activating a rule, sending an announcement past opt-outs, sending a rule and scheduling an announcement take ffc_send_date_messages, and deleting a rule takes ffc_delete_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
 msgstr ""
 
 msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
@@ -25674,7 +25726,7 @@ msgid "sees the module's screens, with personal data masked."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:114
-msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability."
+msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. One test a minute per account; an account that may only test sends the rule as saved, not what is typed in the editor. Previewing the recipients and the message needs only the view capability."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
@@ -26877,7 +26929,7 @@ msgid "Nobody is in the chosen audiences, so nothing was sent."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:115
-msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgid "send a rule now, schedule an announcement, activate a rule or send an announcement past opt-outs, in the editor, on the list's toggle and on a copy alike. Managing rules does not include it; the current managers receive it when the plugin is updated."
 msgstr ""
 
 #: templates/admin/date-messages/rule-form.php
@@ -26972,7 +27024,7 @@ msgid "Done. You will no longer receive announcements from this site. You can tu
 msgstr ""
 
 #: includes/date-messages/class-ffc-date-messages-admin-page.php
-msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
+msgid "Activating a rule, sending it past opt-outs or scheduling an announcement decides who receives messages, and your account cannot send them. Save it inactive and respecting opt-outs, or ask someone who can send."
 msgstr ""
 
 #: templates/admin/date-messages/history.php
