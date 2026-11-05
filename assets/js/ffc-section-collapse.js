@@ -39,8 +39,35 @@
 		}
 	}
 
+	/**
+	 * Name the sections a master shows and hides in its `aria-controls`
+	 * (#2344), giving each one an id when it has none. The master is a
+	 * checkbox, whose checked state already says on or off, so it takes no
+	 * `aria-expanded`: that attribute is not valid on the checkbox role.
+	 *
+	 * @param {jQuery} $master The toggle.
+	 */
+	function link($master) {
+		// A chip that only mirrors the state (AdminUI's section chip) controls nothing.
+		if (!$master.is('input')) {
+			return;
+		}
+		var key = String($master.attr('data-ffc-section-master') || '');
+		var ids = [];
+		$('[data-ffc-section="' + key + '"]').each(function (i) {
+			if (!this.id) {
+				this.id = 'ffc-section-' + key.replace(/[^A-Za-z0-9_-]/g, '-') + '-' + (i + 1);
+			}
+			ids.push(this.id);
+		});
+		if (ids.length) {
+			$master.attr('aria-controls', ids.join(' '));
+		}
+	}
+
 	function applyAll() {
 		$('[data-ffc-section-master]').each(function () {
+			link($(this));
 			apply($(this));
 		});
 	}

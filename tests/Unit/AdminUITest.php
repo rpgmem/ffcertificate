@@ -732,7 +732,7 @@ class AdminUITest extends TestCase {
 		$escape = static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES );
 		Functions\when( 'esc_html' )->alias( $escape );
 		Functions\when( 'esc_attr' )->alias( $escape );
-		Functions\when( '__' )->justReturn( 'Copy shortcode' );
+		Functions\when( '__' )->returnArg();
 
 		ob_start();
 		AdminUI::render_shortcode_copy( '[ffc_audience schedule_id="7"]' );
@@ -741,10 +741,10 @@ class AdminUITest extends TestCase {
 		$this->assertStringContainsString( '<span class="ffc-shortcode-cell">', $html );
 		$this->assertStringContainsString( '<code class="ffc-shortcode-code">[ffc_audience schedule_id=&quot;7&quot;]</code>', $html );
 		$this->assertStringContainsString( 'data-shortcode="[ffc_audience schedule_id=&quot;7&quot;]"', $html );
-		$this->assertStringContainsString( '<button type="button" class="ffc-copy-shortcode"', $html );
+		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode"', $html, 'The family\'s icon-only button (#2344).' );
 		$this->assertStringContainsString( 'aria-label="Copy shortcode"', $html, 'An icon-only button needs an accessible name.' );
 		$this->assertStringContainsString( 'title="Copy shortcode"', $html );
-		$this->assertStringContainsString( '<span class="ffc-icon-copy" aria-hidden="true"></span>', $html );
+		$this->assertStringContainsString( 'data-copied="Copied!"', $html, 'What the polite region says after a copy.' );
 		$this->assertStringNotContainsString( 'schedule_id="7"', $html, 'The raw quotes must never reach the markup.' );
 	}
 

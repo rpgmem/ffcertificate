@@ -31869,3 +31869,12 @@ msgstr ""
 #: includes/core/class-ffc-asset-registry.php:336
 msgid "Exporting CSV"
 msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:108
+msgid "Value revealed."
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php:110
+#, php-format
+msgid "Values revealed: %d."
+msgstr ""

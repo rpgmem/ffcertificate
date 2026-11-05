@@ -22,6 +22,21 @@ async function mountAndLoad(html) {
 	await new Promise((r) => setTimeout(r, 0));
 }
 
+describe('ffc-section-collapse — aria-controls (#2344)', () => {
+	it('names every section of a checkbox master, giving an id to one that has none', async () => {
+		await mountAndLoad(`
+			<input type="checkbox" id="m" data-ffc-section-master="ip_api" checked />
+			<table><tr data-ffc-section="ip_api" id="kept"><td>a</td></tr><tr data-ffc-section="ip_api"><td>b</td></tr></table>
+			<span id="chip" data-ffc-section-master="ip_api"></span>
+		`);
+		const rows = document.querySelectorAll('[data-ffc-section="ip_api"]');
+		expect(rows[1].id).toBe('ffc-section-ip_api-2');
+		expect(document.getElementById('m').getAttribute('aria-controls')).toBe('kept ffc-section-ip_api-2');
+		expect(document.getElementById('m').hasAttribute('aria-expanded')).toBe(false);
+		expect(document.getElementById('chip').hasAttribute('aria-controls')).toBe(false);
+	});
+});
+
 describe('ffc-section-collapse — initial state', () => {
 	it('shows sections whose master is checked on load', async () => {
 		await mountAndLoad(`

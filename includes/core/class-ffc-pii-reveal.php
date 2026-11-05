@@ -104,7 +104,10 @@ final class PiiReveal {
 			'ffc-pii-reveal',
 			'ffcPiiReveal',
 			array(
-				'reveal_error' => __( 'Unable to reveal this value.', 'ffcertificate' ),
+				'reveal_error'  => __( 'Unable to reveal this value.', 'ffcertificate' ),
+				'revealed'      => __( 'Value revealed.', 'ffcertificate' ),
+				/* translators: %d: number of values revealed. */
+				'page_revealed' => __( 'Values revealed: %d.', 'ffcertificate' ),
 			)
 		);
 	}

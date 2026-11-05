@@ -31950,3 +31950,12 @@ msgstr "A exportação falhou."
 #: includes/core/class-ffc-asset-registry.php:336
 msgid "Exporting CSV"
 msgstr "Exportando CSV"
+
+#: includes/core/class-ffc-pii-reveal.php:108
+msgid "Value revealed."
+msgstr "Valor revelado."
+
+#: includes/core/class-ffc-pii-reveal.php:110
+#, php-format
+msgid "Values revealed: %d."
+msgstr "Valores revelados: %d."

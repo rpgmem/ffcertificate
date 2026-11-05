@@ -273,10 +273,13 @@ describe('FFC.overrideConfirm — the warning', () => {
 		expect(live.getAttribute('aria-live')).toBe('polite');
 		expect(agree.disabled).toBe(true);
 		expect(agree.textContent).toBe('I agree (15)');
+		// Filled once the region is in the document, not in the same tick (#2344).
+		expect(live.textContent).toBe('');
+		vi.advanceTimersByTime(100);
 		expect(live.textContent).toBe('Wait 15');
 		expect(document.activeElement).toBe(dialog.querySelector('[data-ffc-override="cancel"]'));
 
-		vi.advanceTimersByTime(14000);
+		vi.advanceTimersByTime(13900);
 		expect(agree.disabled).toBe(true);
 		expect(agree.textContent).toBe('I agree (1)');
 		expect(live.textContent).toBe('Wait 15');
@@ -314,7 +317,8 @@ describe('FFC.overrideConfirm — the warning', () => {
 
 		expect(field.required).toBe(true);
 		expect(field.maxLength).toBe(300);
-		expect(document.activeElement).toBe(field);
+		// The safe answer holds the focus, the reason field included (#2344).
+		expect(document.activeElement).toBe(dialog.querySelector('[data-ffc-override="cancel"]'));
 		expect(dialog.querySelector('label').getAttribute('for')).toBe(field.id);
 		expect(document.getElementById(field.getAttribute('aria-describedby')).textContent).toBe('Between 10 and 300 characters.');
 		expect(agree.disabled).toBe(true);
@@ -329,6 +333,32 @@ describe('FFC.overrideConfirm — the warning', () => {
 
 		agree.click();
 		await expect(promise).resolves.toBe('The visiting committee needs the room.');
+	});
+
+	it('keeps the focus inside when the checked radio is not the first (#2344)', async () => {
+		vi.useFakeTimers();
+		const promise = window.FFC.overrideConfirm({
+			reasons: ['R'],
+			strings: { seconds: 0 },
+			choiceField: { legend: 'Days', value: 'b', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
+		});
+		const dialog = document.querySelector('.ffc-override-dialog');
+		const radios = dialog.querySelectorAll('input[type="radio"]');
+		const agree = dialog.querySelector('[data-ffc-override="agree"]');
+		const tab = (shiftKey) => {
+			const e = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
+			document.activeElement.dispatchEvent(e);
+			return e.defaultPrevented;
+		};
+
+		radios[1].focus();
+		expect(tab(true)).toBe(true);
+		expect(document.activeElement).toBe(agree);
+		expect(tab(false)).toBe(true);
+		expect(document.activeElement).toBe(radios[1]);
+
+		dialog.querySelector('[data-ffc-override="cancel"]').click();
+		await expect(promise).resolves.toBe(false);
 	});
 
 	it('cancels at once, with Cancel or Escape, and gives the focus back', async () => {

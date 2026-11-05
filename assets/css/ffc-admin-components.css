@@ -323,7 +323,8 @@
     color: var(--ffc-primary);
 }
 
-/* Validation-error signalling — wired on in a later sprint. */
+/* A tab whose panel holds a save error, set by `ffc-vertical-tabs.js`; the
+   colour is for sight, and the tab's hidden error text says it (#2344). */
 .ffc-vtabs__tab.has-error {
     color: var(--ffc-danger);
 }
@@ -439,6 +440,32 @@
     .ffc-vtabs__tab.is-active {
         border-left: none;
         border-bottom-color: var(--ffc-primary);
+    }
+}
+
+/* High contrast (#2344): forced colours drop the active tab's ground and
+   tint, which were all that set it apart, and paint even a transparent
+   border. The resting tabs keep an edge in the page colour, so the active
+   one's edge, in the selection colour, is the difference, on the side the
+   layout draws it: left beside the panel, below on a narrow screen. */
+@media (forced-colors: active) {
+    .ffc-vtabs__tab {
+        border-left-color: Canvas;
+    }
+
+    .ffc-vtabs__tab.is-active {
+        border-left-color: Highlight;
+        font-weight: 700;
+    }
+}
+
+@media (forced-colors: active) and (max-width: 782px) {
+    .ffc-vtabs__tab {
+        border-bottom-color: Canvas;
+    }
+
+    .ffc-vtabs__tab.is-active {
+        border-bottom-color: Highlight;
     }
 }
 

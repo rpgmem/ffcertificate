@@ -3367,8 +3367,18 @@ body.wp-admin .ffc-btn-icon::before {
     vertical-align: middle;
 }
 
+/* An empty line stays in the accessibility tree, clipped to nothing, so a
+   live region is already there when it is first filled: one that appears
+   and fills in the same tick is not announced by every screen reader
+   (#2344). `FFC.status()` empties the line before it hides it. */
 .ffc-status[hidden] {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .ffc-status .ffc-status-icon::before {

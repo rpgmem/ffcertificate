@@ -132,7 +132,6 @@ describe('ffc-pii-reveal', () => {
 			<button class="ffc-reveal-pii" data-field="email" data-submission-id="12" data-nonce="n">Reveal</button>
 		</p>`;
 		window.FFC.request = vi.fn(() => Promise.reject(new Error('nope')));
-		vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		await load();
 		window.$('.ffc-reveal-pii').trigger('click');
@@ -262,7 +261,7 @@ describe('ffc-pii-reveal', () => {
 		);
 	});
 
-	it('re-enables the button and alerts on failure', async () => {
+	it('re-enables the button and shows the failure beside it, without an alert (#2344)', async () => {
 		document.body.innerHTML = `<table><tr><td>
 			<span class="ffc-pii-value" data-field="cpf">***</span>
 			<button class="ffc-reveal-pii" data-field="cpf" data-type="submission" data-submission-id="5" data-nonce="n">Reveal</button>
@@ -271,12 +270,63 @@ describe('ffc-pii-reveal', () => {
 		window.alert = vi.fn();
 
 		await load();
+		window.$('.ffc-reveal-pii').trigger('focus').trigger('click');
+		await flush();
+
+		expect(window.alert).not.toHaveBeenCalled();
+		const $line = window.$('.ffc-reveal-pii + .ffc-pii-reveal-error');
+		expect($line.attr('role')).toBe('alert');
+		expect($line.hasClass('is-error')).toBe(true);
+		expect($line.text()).toBe('boom');
+		expect(window.$('.ffc-reveal-pii').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-reveal-pii').length).toBe(1);
+		expect(document.activeElement).toBe(window.$('.ffc-reveal-pii')[0]);
+
+		// A second failure reuses the line, and a success removes it with the button.
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+		expect(window.$('.ffc-pii-reveal-error').length).toBe(1);
+		window.FFC.request = vi.fn(() => Promise.resolve({ value: '123' }));
+		window.$('.ffc-reveal-pii').trigger('click');
+		await flush();
+		expect(window.$('.ffc-pii-reveal-error').length).toBe(0);
+	});
+
+	it('moves the focus from the removed button to the revealed value and announces it (#2344)', async () => {
+		document.body.innerHTML = `<table><tr><td>
+			<span class="ffc-pii-value" data-field="cpf">***</span>
+			<button class="ffc-reveal-pii" data-field="cpf" data-submission-id="5" data-nonce="n">Reveal</button>
+		</td></tr></table>`;
+		window.ffcPiiReveal.revealed = 'Value revealed.';
+		window.FFC.request = vi.fn(() => Promise.resolve({ value: '123.456.789-01' }));
+
+		await load();
+		const live = document.querySelector('.ffc-pii-reveal-live');
+		expect(live.getAttribute('aria-live')).toBe('polite');
+		expect(live.textContent).toBe('');
+		window.$('.ffc-reveal-pii').trigger('focus').trigger('click');
+		await flush();
+
+		const value = document.querySelector('.ffc-pii-value');
+		expect(document.activeElement).toBe(value);
+		expect(value.getAttribute('tabindex')).toBe('-1');
+		await new Promise((r) => setTimeout(r, 60));
+		expect(live.textContent).toBe('Value revealed.');
+	});
+
+	it('leaves the focus alone when the button did not hold it', async () => {
+		document.body.innerHTML = `<input id="other" /><table><tr><td>
+			<span class="ffc-pii-value" data-field="cpf">***</span>
+			<button class="ffc-reveal-pii" data-field="cpf" data-submission-id="5" data-nonce="n">Reveal</button>
+		</td></tr></table>`;
+		window.FFC.request = vi.fn(() => Promise.resolve({ value: '1' }));
+
+		await load();
+		document.getElementById('other').focus();
 		window.$('.ffc-reveal-pii').trigger('click');
 		await flush();
 
-		expect(window.alert).toHaveBeenCalledWith('boom');
-		expect(window.$('.ffc-reveal-pii').prop('disabled')).toBe(false);
-		expect(window.$('.ffc-reveal-pii').length).toBe(1);
+		expect(document.activeElement.id).toBe('other');
 	});
 
 	// ── "Reveal this page" (#1863) ──────────────────────────────────────
@@ -366,7 +416,26 @@ describe('ffc-pii-reveal', () => {
 		expect(window.$('.ffc-reveal-pii-page').length).toBe(0);
 	});
 
-	it('re-enables the page button and alerts when the request fails', async () => {
+	it('focuses the first value and announces the count once the page button is gone (#2344)', async () => {
+		listPage();
+		window.ffcPiiReveal.page_revealed = 'Values revealed: %d.';
+		window.FFC.request = vi.fn(() => Promise.resolve({ values: [
+			{ type: 'submission', id: 1, field: 'email', value: 'a@x.com' },
+			{ type: 'submission', id: 2, field: 'email', value: 'b@x.com' },
+			{ type: 'date_messages_person', id: 3, field: 'name', value: 'Maria Silva' }
+		] }));
+
+		await load();
+		window.$('.ffc-reveal-pii-page').trigger('focus').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-reveal-pii-page').length).toBe(0);
+		expect(document.activeElement).toBe(window.$('#r1 .ffc-pii-value')[0]);
+		await new Promise((r) => setTimeout(r, 60));
+		expect(document.querySelector('.ffc-pii-reveal-live').textContent).toBe('Values revealed: 3.');
+	});
+
+	it('re-enables the page button and shows the failure beside it when the request fails', async () => {
 		listPage();
 		window.FFC.request = vi.fn(() => Promise.reject(new Error('denied')));
 		window.alert = vi.fn();
@@ -375,7 +444,8 @@ describe('ffc-pii-reveal', () => {
 		window.$('.ffc-reveal-pii-page').trigger('click');
 		await flush();
 
-		expect(window.alert).toHaveBeenCalledWith('denied');
+		expect(window.alert).not.toHaveBeenCalled();
+		expect(window.$('.ffc-reveal-pii-page + .ffc-pii-reveal-error').text()).toBe('denied');
 		expect(window.$('.ffc-reveal-pii-page').prop('disabled')).toBe(false);
 		expect(window.$('.ffc-reveal-pii').length).toBe(3);
 	});
