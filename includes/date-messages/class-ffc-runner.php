@@ -130,8 +130,10 @@ final class Runner {
 
 		$today = self::today();
 		foreach ( RuleReader::active() as $rule ) {
-			// Announcements are sent by their own event or by hand, never by the day.
-			if ( ! $rule->send_to_user || $rule->is_announcement() ) {
+			// Announcements are sent by their own event or by hand, never by
+			// the day. A rule with personal e-mails off still runs, for its
+			// managers' summary (#2336).
+			if ( $rule->is_announcement() ) {
 				continue;
 			}
 			// A rule sent N days BEFORE the date has a negative offset, so
@@ -155,7 +157,7 @@ final class Runner {
 	public static function process_start( int $rule_id, string $target ): void {
 		$rule = RuleReader::get_by_id( $rule_id );
 		$day  = \DateTimeImmutable::createFromFormat( '!Y-m-d', $target, wp_timezone() );
-		if ( null === $rule || false === $day || ! $rule->is_active || ! $rule->send_to_user || $rule->is_announcement() || SettingsReader::emails_disabled() ) {
+		if ( null === $rule || false === $day || ! $rule->is_active || $rule->is_announcement() || SettingsReader::emails_disabled() ) {
 			return;
 		}
 		self::start( $rule, $day, $day, 'cron', 0 );
@@ -298,10 +300,16 @@ final class Runner {
 
 		cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
 
-		$occurrence = $day->format( 'Y-m-d' );
+		$occurrence = $rule->occurrence_key( $day );
 		foreach ( $page['rows'] as $row ) {
 			switch ( $row['decision'] ) {
 				case RecipientResolver::WILL_SEND:
+					if ( ! $rule->send_to_user ) {
+						// Personal e-mails off: the rule runs for its managers'
+						// summary only, which lists whose date it is (#2336).
+						DeliveryLog::count_once( $run_id, $rule->id, $row['user_id'], $occurrence, 'listed' );
+						break;
+					}
 					self::deliver( $run_id, $rule, $source, $row, $day, $today );
 					break;
 				case RecipientResolver::OPTED_OUT:
@@ -339,7 +347,8 @@ final class Runner {
 			return;
 		}
 
-		$occurrence = $day->format( 'Y-m-d' );
+		// A dated rule once per date, an announcement once per rule (#2336).
+		$occurrence = $rule->occurrence_key( $day );
 
 		// Claim first: a concurrent run that loses the insert does not send.
 		if ( ! DeliveryLog::claim( $run_id, $rule->id, $row['user_id'], $occurrence ) ) {

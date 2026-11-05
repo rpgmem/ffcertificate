@@ -263,7 +263,7 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $q ) {
-				if ( false !== strpos( $q['sql'], 'FROM wp_users u INNER JOIN wp_usermeta m' ) ) {
+				if ( false !== strpos( $q['sql'], 'FROM wp_users u INNER JOIN wp_usermeta m' ) || false !== strpos( $q['sql'], 'FROM wp_users WHERE ID > %d' ) ) {
 					++$this->source_reads;
 					return $this->candidates;
 				}
@@ -583,6 +583,41 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->assertSame( array( 7 ), $this->finished );
 	}
 
+	/**
+	 * An announcement reaches a person once per rule, whatever day it is sent
+	 * again (#2336): its claim carries the rule's one fixed key, not the day.
+	 */
+	public function test_an_announcement_claims_its_one_fixed_occurrence(): void {
+		$this->store_rule(
+			array(
+				'kind'   => 'announcement',
+				'source' => 'announcement',
+			)
+		);
+		$this->candidates = array( $this->candidate( 1 ) );
+
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$this->assertSame( array( array( 'wp_ffc_date_message_log', 7, 3, 1, 'once', 'user' ) ), $this->claims );
+	}
+
+	/**
+	 * With personal e-mails off a rule sends nobody anything and lists, once
+	 * per person and run, whose date it is, for its summary (#2336).
+	 */
+	public function test_a_rule_with_personal_emails_off_lists_without_sending(): void {
+		$this->store_rule( array( 'send_to_user' => '0' ) );
+		$this->candidates = array( $this->candidate( 1 ) );
+
+		Runner::process( 7, '2026-10-10', 0 );
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( array(), $this->claims, 'Nothing is claimed as a delivery.' );
+		$this->assertSame( array( 'listed' => 1 ), $this->bumps );
+		$this->assertSame( array( 7, 3, 1, '2026-10-10', 'xl7' ), $this->notes[0] );
+	}
+
 	public function test_an_unfinished_day_continues_from_the_cursor(): void {
 		$this->store_rule();
 		// A full page (BATCH_SIZE people, ids 213 to 412), every one already
@@ -695,7 +730,9 @@ class DateMessagesRunnerTest extends TestCase {
 		// (#2336): one rule that fails cannot stop the next.
 		$week = gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) );
 		$this->assertContains( $today, array( $before, $after ) );
-		$this->assertSame( array( array( 3, $week ), array( 4, $today ) ), $this->starts );
+		// Rule 5 has personal e-mails off and still starts: it runs for its
+		// managers' summary only (#2336).
+		$this->assertSame( array( array( 3, $week ), array( 4, $today ), array( 5, $today ) ), $this->starts );
 		$this->assertSame( array(), $this->inserts, 'Nothing is opened before its own event fires.' );
 		foreach ( $this->rules_by_start() as $rule_id => $target ) {
 			Runner::process_start( $rule_id, $target );
@@ -711,9 +748,10 @@ class DateMessagesRunnerTest extends TestCase {
 				// people a day late (#1598).
 				3 => array( 'cron', gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ), gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ) ),
 				4 => array( 'cron', $today, $today ),
+				5 => array( 'cron', $today, $today ),
 			),
 			$runs,
-			'A rule that does not e-mail the person opens no run.'
+			'A rule that does not e-mail the person still opens a run, for its summary.'
 		);
 		$this->assertSame( 1, count( array_keys( $this->events, 'purge', true ) ), 'The history is pruned once.' );
 	}
@@ -740,8 +778,8 @@ class DateMessagesRunnerTest extends TestCase {
 		Runner::process_start( 3, '2026-10-10' );
 		$this->rules[4] = $this->rule_row(
 			array(
-				'id'           => '4',
-				'send_to_user' => '0',
+				'id'   => '4',
+				'kind' => 'announcement',
 			)
 		);
 		Runner::process_start( 4, '2026-10-10' );

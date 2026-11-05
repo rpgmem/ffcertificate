@@ -762,6 +762,18 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		$this->assertSame( array(), $this->scheduled );
 	}
 
+	public function test_switching_a_dated_rule_on_needs_the_right_to_send(): void {
+		// Activating any rule decides who is sent to (#2336).
+		$this->store_rule();
+		$this->rows['wp_ffc_date_message_rules:6']['is_active'] = '0';
+
+		$result = DateMessagesRecordAutosave::save( 6, 'is_active', 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $result->get_error_message() );
+		$this->assertSame( array(), $this->updates );
+	}
+
 	public function test_switching_an_announcement_off_clears_its_send(): void {
 		$this->store_announcement( true );
 

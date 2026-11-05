@@ -384,6 +384,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_activity_log_export_cap_v1',
 				'ffc_url_shortener_export_cap_v1',
 				'ffc_date_messages_send_cap_v1',
+				'ffc_date_messages_delete_cap_v1',
 				'ffc_module_role_labels_v1',
 				'ffc_export_caps_granted_v1',
 				'ffc_import_caps_granted_v1',

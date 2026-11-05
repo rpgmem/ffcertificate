@@ -184,7 +184,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->post_backup = $_POST ?? array();
 		$_POST             = array();
 		$_GET              = array();
-		$this->caps        = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
+		$this->caps        = array( 'ffc_manage_date_messages', 'ffc_send_date_messages', 'ffc_delete_date_messages' );
 		$this->outcome     = null;
 
 		Functions\when( '__' )->returnArg();
@@ -775,11 +775,62 @@ class DateMessagesAdminPageTest extends TestCase {
 		$_POST['rule']            = $this->posted();
 		$_POST['rule']['kind']    = Rule::KIND_ANNOUNCEMENT;
 		$_POST['rule']['send_at'] = '';
+		// Saved inactive: activating it would take the right to send (#2336).
+		unset( $_POST['rule']['is_active'] );
 
 		$this->call( 'handle_save' );
 
 		$this->assertCount( 1, $this->writes_to( self::RULES ) );
 		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	/**
+	 * Activating a rule of any kind, and forcing it past opt-outs, take the
+	 * right to send (#2336); editing a rule already active does not.
+	 */
+	public function test_activating_or_forcing_a_rule_takes_the_right_to_send(): void {
+		$this->caps    = array( 'ffc_manage_date_messages' );
+		$_POST['rule'] = $this->posted();
+		$this->call( 'handle_save' );
+		$this->assertSame( array(), $this->writes, 'A new active dated rule is refused.' );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
+
+		$_POST['rule'] = $this->posted();
+		unset( $_POST['rule']['is_active'] );
+		// Only an announcement can be forced; a dated rule always respects.
+		$_POST['rule']['kind']          = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['force_opt_out'] = '1';
+		$this->call( 'handle_save' );
+		$this->assertSame( array(), $this->writes, 'Forcing past opt-outs is refused.' );
+	}
+
+	public function test_a_manager_who_cannot_send_may_edit_a_rule_already_active(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->store_rule( $this->rule( array( 'is_active' => '1' ) ) );
+		$_POST['rule']       = $this->posted();
+		$_POST['rule']['id'] = '3';
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_a_manager_who_cannot_send_may_not_copy_a_forced_rule(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->store_rule(
+			$this->rule(
+				array(
+					'kind'            => Rule::KIND_ANNOUNCEMENT,
+					'respect_opt_out' => '0',
+				)
+			)
+		);
+		$_POST['rule_id'] = '3';
+
+		$this->call( 'handle_duplicate' );
+
+		$this->assertSame( array(), $this->writes_to( self::RULES ) );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
 	}
 
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
@@ -790,6 +841,20 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
+	}
+
+	public function test_delete_takes_its_own_capability(): void {
+		// Managing rules no longer includes deleting them (#2336).
+		$this->caps       = array( 'ffc_manage_date_messages' );
+		$_POST['rule_id'] = '3';
+
+		try {
+			$this->call( 'handle_delete' );
+			$this->fail( 'A manager without the delete capability reached the writer.' );
+		} catch ( \DomainException $e ) {
+			$this->assertSame( 'You do not have permission to do this.', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_delete_checks_a_nonce_keyed_to_the_rule(): void {

@@ -114,6 +114,15 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
 		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( (string) $format, (int) $ts ) );
 		Functions\when( 'current_user_can' )->alias( fn( $cap ) => in_array( $cap, $this->caps, true ) );
+		// The test-send throttle (#2336).
+		$this->transients = array();
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
 		Functions\when( 'check_ajax_referer' )->justReturn( 1 );
 		Functions\when( 'is_email' )->alias( static fn( $v ) => false !== filter_var( $v, FILTER_VALIDATE_EMAIL ) );
 		Functions\when( 'get_bloginfo' )->justReturn( 'Test Site' );
@@ -503,6 +512,52 @@ class DateMessagesAjaxEndpointTest extends TestCase {
 
 		$this->assertSame( 403, $r->status );
 		$this->assertSame( array(), $this->mailed, 'Nothing is sent.' );
+	}
+
+	/** @var array<string, mixed> Transients set during the test. */
+	private array $transients = array();
+
+	public function test_a_second_test_within_a_minute_is_refused(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->storeRule();
+		$_POST = array( 'rule_id' => '3' );
+
+		$this->assertTrue( $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) )->success );
+		$again = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
+
+		$this->assertSame( 429, $again->status );
+		$this->assertCount( 1, $this->mailed, 'Only the first test is sent.' );
+		$this->assertCount( 1, $this->inserts, 'Only the first test is in the history.' );
+	}
+
+	public function test_an_operator_who_may_only_test_sends_the_saved_text(): void {
+		// Testing is not editing (#2336): the posted subject and body are ignored.
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_test_date_messages' );
+		$this->storeRule();
+		$_POST = array(
+			'rule_id' => '3',
+			'rule'    => array(
+				'name'    => 'Hijacked',
+				'subject' => 'Something else',
+				'body'    => '<p>Typed in the editor</p>',
+			),
+		);
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
+
+		$this->assertTrue( $r->success );
+		$this->assertSame( '[TEST] Hi Maria', $this->mailed[0]['subject'] );
+		$this->assertStringNotContainsString( 'Typed in the editor', $this->mailed[0]['body'] );
+	}
+
+	public function test_an_operator_who_may_only_test_needs_a_saved_rule(): void {
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_test_date_messages' );
+		$_POST      = array( 'rule' => array( 'subject' => 'x', 'body' => 'y' ) );
+
+		$r = $this->respond( array( DateMessagesAjaxEndpoint::class, 'test_send' ) );
+
+		$this->assertSame( 400, $r->status );
+		$this->assertSame( array(), $this->mailed );
 	}
 
 	public function test_the_test_capability_alone_sends_the_test(): void {

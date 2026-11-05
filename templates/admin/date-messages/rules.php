@@ -120,8 +120,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 							);
 							$ffc_dm_actions = array(
 								DateMessagesAdminPage::DUPLICATE_ACTION => array( __( 'Duplicate', 'ffcertificate' ), 'create', 'copy' ),
-								DateMessagesAdminPage::DELETE_ACTION    => array( __( 'Delete', 'ffcertificate' ), 'danger', 'delete' ),
 							);
+							// Deleting takes its own capability (#2336).
+							if ( DateMessagesAdminPage::can_delete() ) {
+								$ffc_dm_actions[ DateMessagesAdminPage::DELETE_ACTION ] = array( __( 'Delete', 'ffcertificate' ), 'danger', 'delete' );
+							}
 							foreach ( $ffc_dm_actions as $ffc_dm_action => $ffc_dm_button ) :
 								?>
 								<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ffc-dm-rule-action"<?php echo DateMessagesAdminPage::DELETE_ACTION === $ffc_dm_action ? ' data-ffc-confirm="' . esc_attr__( 'Delete this rule? What it already sent stays in the history.', 'ffcertificate' ) . '"' : ''; ?>>

@@ -53,6 +53,11 @@ final class Rule {
 	public const ANNOUNCEMENT_SOURCE = 'announcement';
 
 	/**
+	 * The one occurrence key every delivery of an announcement carries (#2336).
+	 */
+	public const ANNOUNCEMENT_OCCURRENCE = 'once';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int                 $id              Rule id (0 before it is stored).
@@ -182,6 +187,18 @@ final class Rule {
 	 */
 	public function is_announcement(): bool {
 		return self::KIND_ANNOUNCEMENT === $this->kind;
+	}
+
+	/**
+	 * The occurrence a delivery of this rule is deduplicated by (#2336): the
+	 * target day for a dated rule, and one fixed key for an announcement, so
+	 * it reaches each person once whatever day it is sent again.
+	 *
+	 * @param \DateTimeImmutable $day The target day.
+	 * @return string At most 10 characters, the log column's width.
+	 */
+	public function occurrence_key( \DateTimeImmutable $day ): string {
+		return $this->is_announcement() ? self::ANNOUNCEMENT_OCCURRENCE : $day->format( 'Y-m-d' );
 	}
 
 	/**

@@ -193,6 +193,10 @@ class DateMessagesDigestTest extends TestCase {
 				if ( str_contains( (string) $sql, 'FROM wp_ffc_date_message_log l INNER JOIN wp_users u' ) && str_contains( (string) $sql, 'l.run_id = 7 AND l.channel = user' ) ) {
 					return array( 'Ana', 'Bruno' );
 				}
+				if ( str_contains( (string) $sql, 'FROM wp_ffc_date_message_log l INNER JOIN wp_users u' ) && str_contains( (string) $sql, 'l.run_id = 7 AND l.channel = xl7' ) ) {
+					// Whom a summary-only rule listed (#2336).
+					return array( 'Carla' );
+				}
 				$this->fail( 'Unexpected get_col: ' . $sql );
 			}
 		);
@@ -387,6 +391,35 @@ class DateMessagesDigestTest extends TestCase {
 
 		$this->assertSame( array(), $this->marked() );
 		$this->assertSame( array( array( 7, 1 ) ), array_column( $this->waits, 2 ) );
+	}
+
+	/**
+	 * A rule with personal e-mails off runs for its summary only, which
+	 * names whose date it is (#2336).
+	 */
+	public function test_a_summary_only_rule_reports_whose_date_it_is(): void {
+		$this->store(
+			$this->run_row(
+				array(
+					'sent'            => '0',
+					'opted_out'       => '0',
+					'out_of_audience' => '0',
+					'listed'          => '1',
+				)
+			),
+			array(
+				'digest_mode'  => 'detailed',
+				'send_to_user' => '0',
+			)
+		);
+
+		Digest::send( 7 );
+
+		$body = $this->sent['admin@example.org'];
+		$this->assertMatchesRegularExpression( '#Whose date it is \\(personal e-mails off\\)</td>\\s*<td[^>]*><strong>1</strong>#', $body );
+		$this->assertStringContainsString( '>Whose date it is</h3>', $body );
+		$this->assertStringContainsString( '<li>C***</li>', $body );
+		$this->assertSame( array( 7 ), $this->marked() );
 	}
 
 	public function test_a_run_already_reported_sends_nothing(): void {

@@ -74,6 +74,12 @@ final class DateMessagesAdminPage {
 	public const SEND_CAP = 'ffc_send_date_messages';
 
 	/**
+	 * Capability to delete a rule (#2336), split out of managing rules like
+	 * every delete cap.
+	 */
+	public const DELETE_CAP = 'ffc_delete_date_messages';
+
+	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
 	 * action, keyed per rule where the action names one.
 	 */
@@ -157,6 +163,15 @@ final class DateMessagesAdminPage {
 	 */
 	public static function can_send(): bool {
 		return Capabilities::current_user_can_admin_or( self::SEND_CAP );
+	}
+
+	/**
+	 * Whether the current user may delete a rule (#2336).
+	 *
+	 * @return bool
+	 */
+	public static function can_delete(): bool {
+		return Capabilities::current_user_can_admin_or( self::DELETE_CAP );
 	}
 
 	/**
@@ -464,9 +479,10 @@ final class DateMessagesAdminPage {
 
 		$previous = $id > 0 ? RuleReader::get_by_id( $id ) : null;
 
-		// Scheduling an announcement is sending it later, so it takes the
-		// right to send: a manager without it may edit the rule, not arm it.
-		if ( self::schedules_a_send( $rule, $previous ) && ! self::can_send() ) {
+		// Activating a rule, forcing it past opt-outs and scheduling an
+		// announcement all decide who is sent to, so they take the right to
+		// send (#1949, #2336): a manager without it may edit the rule, not arm it.
+		if ( self::needs_send_cap( $rule, $previous ) && ! self::can_send() ) {
 			$this->finish( 'error', self::send_refusal(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
@@ -540,13 +556,30 @@ final class DateMessagesAdminPage {
 	}
 
 	/**
-	 * Why a save that would schedule a send is refused to a manager who may
-	 * not send.
+	 * Whether storing the rule decides who is sent to, which takes the right
+	 * to send (#2336): it activates the rule, forces it past opt-outs, or
+	 * schedules an announcement. Each is judged against the rule before the
+	 * save, so editing a rule already active, or already forcing, needs no
+	 * more than managing it.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	public static function needs_send_cap( Rule $rule, ?Rule $previous ): bool {
+		$activates = $rule->is_active && ( null === $previous || ! $previous->is_active );
+		$forces    = ! $rule->respect_opt_out && ( null === $previous || $previous->respect_opt_out );
+		return $activates || $forces || self::schedules_a_send( $rule, $previous );
+	}
+
+	/**
+	 * Why a save that would decide who is sent to is refused to a manager who
+	 * may not send.
 	 *
 	 * @return string
 	 */
 	public static function send_refusal(): string {
-		return __( 'Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send.', 'ffcertificate' );
+		return __( 'Activating a rule, sending it past opt-outs or scheduling an announcement decides who receives messages, and your account cannot send them. Save it inactive and respecting opt-outs, or ask someone who can send.', 'ffcertificate' );
 	}
 
 	/**
@@ -556,7 +589,10 @@ final class DateMessagesAdminPage {
 	 */
 	public function handle_delete(): void {
 		$id = RequestInput::get_post_int( 'rule_id' );
-		$this->guard( self::DELETE_ACTION . '_' . $id );
+		if ( ! self::can_delete() ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( self::DELETE_ACTION . '_' . $id );
 
 		if ( $id <= 0 || ! RuleWriter::delete( $id ) ) {
 			$this->finish( 'error', __( 'The rule could not be deleted.', 'ffcertificate' ) );
@@ -578,6 +614,12 @@ final class DateMessagesAdminPage {
 		$rule = $id > 0 ? RuleReader::get_by_id( $id ) : null;
 		if ( null === $rule ) {
 			$this->finish( 'error', __( 'That rule no longer exists.', 'ffcertificate' ) );
+		}
+
+		// A copy of a rule sent past opt-outs would carry that choice, which
+		// takes the right to send (#2336); the copy itself starts inactive.
+		if ( ! $rule->respect_opt_out && ! self::can_send() ) {
+			$this->finish( 'error', self::send_refusal() );
 		}
 
 		$data         = $rule->to_columns();
@@ -672,8 +714,9 @@ final class DateMessagesAdminPage {
 	/**
 	 * Why a manual send's range is refused for this rule, or '' when it is fine.
 	 *
-	 * An announcement is delivered once per day it is sent, so a range that
-	 * spans more than one day would send it to everyone once for each day.
+	 * An announcement has no date: it goes out on the one day it is sent,
+	 * and reaches each person once per rule (#2336), so a range of days
+	 * means nothing for it.
 	 *
 	 * @param Rule               $rule The rule.
 	 * @param \DateTimeImmutable $from First day.

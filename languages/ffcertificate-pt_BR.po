@@ -7236,6 +7236,58 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/feature-date-messages.php:58
+msgid "An announcement reaches each person once per rule: sending it again on another day reaches only whoever it missed."
+msgstr "Um comunicado chega a cada pessoa uma vez por regra: enviá-lo de novo em outro dia alcança apenas quem ficou de fora."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:408
+msgid "Delete a rule. Its history stays. The current managers receive it on upgrade (#2336)."
+msgstr "Excluir uma regra. O histórico dela permanece. Os gestores atuais recebem a permissão na atualização (#2336)."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php:407
+msgid "Delete date messages"
+msgstr "Excluir mensagens de datas"
+
+#: templates/admin/date-messages/history.php:95
+msgid "Listed for the summary only"
+msgstr "Listados só para o resumo"
+
+#: templates/admin/date-messages/send.php:64
+msgid "No rule is active. Only an active rule can be sent: activate one on the Rules tab."
+msgstr "Nenhuma regra está ativa. Só uma regra ativa pode ser enviada: ative uma na aba Regras."
+
+#: templates/admin/date-messages/rule-form.php:367
+msgid "Off: nobody is e-mailed; the rule runs only to send its managers the summary of whose date it is."
+msgstr "Desligado: ninguém recebe e-mail; a regra roda apenas para enviar aos seus gestores o resumo de quem faz aniversário na data."
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:239
+msgid "Save the rule before sending a test."
+msgstr "Salve a regra antes de enviar um teste."
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:190
+msgid "This rule's date is not available any more, so no sample can be built. Choose another date in the rule."
+msgstr "A data desta regra não está mais disponível, então não é possível montar um exemplo. Escolha outra data na regra."
+
+#: includes/date-messages/class-ffc-date-messages-ajax-endpoint.php:173
+msgid "Wait %d seconds between two test sends."
+msgstr "Aguarde %d segundos entre dois envios de teste."
+
+#: templates/emails/date-message-digest.php:75
+msgid "Whose date it is"
+msgstr "Quem faz aniversário na data"
+
+#: templates/emails/date-message-digest.php:37
+msgid "Whose date it is (personal e-mails off)"
+msgstr "Quem faz aniversário na data (e-mails pessoais desligados)"
+
+#: templates/admin/date-messages/send.php:56
+msgid "Your account can preview who a rule would reach, but not send it: sending takes the \"Send date messages\" capability. Ask an administrator for it, or ask someone who holds it to send."
+msgstr "Sua conta pode pré-visualizar quem uma regra alcançaria, mas não enviá-la: enviar exige a permissão \"Enviar mensagens de datas\". Peça-a a um administrador, ou peça a quem a tem que faça o envio."
+
+#: includes/settings/views/documentation/feature-date-messages.php:115
+msgid "delete a rule; its history stays. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr "excluir uma regra; o histórico dela permanece. Gerenciar regras não inclui isso; os gestores atuais recebem a permissão quando o plugin é atualizado."
+
 #: includes/settings/views/documentation/feature-date-messages.php:71
 msgid "A batch that is cut off part-way, for example by a slow mail server, is run again ten minutes later, up to three times; nobody it already reached is sent the message twice or counted twice. A message that cannot be built or sent counts as failed and the batch goes on. The daily run starts each rule as its own scheduled task, so one rule that fails does not stop the others."
 msgstr "Um lote interrompido no meio, por exemplo por um servidor de e-mail lento, é executado de novo dez minutos depois, até três vezes; ninguém que ele já alcançou recebe a mensagem duas vezes nem é contado duas vezes. Uma mensagem que não pode ser montada ou enviada conta como falha e o lote continua. A execução diária inicia cada regra como uma tarefa agendada própria, então uma regra que falha não impede as outras."
@@ -21508,8 +21560,8 @@ msgstr "Você não tem permissão para fazer isto."
 msgid "You do not have permission to view this page."
 msgstr "Você não tem permissão para ver esta página."
 
-msgid "Your account has no valid e-mail address."
-msgstr "Sua conta não tem um endereço de e-mail válido."
+msgid "Your account has no valid e-mail address. Add one to your profile to receive the test."
+msgstr "Sua conta não tem um endereço de e-mail válido. Adicione um ao seu perfil para receber o teste."
 
 msgid "[TEST] %s"
 msgstr "[TESTE] %s"
@@ -22514,8 +22566,8 @@ msgstr "Assunto e mensagem"
 msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
 msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
 
-msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off and send only the manager summary."
-msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (o envio diário a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados e enviar apenas o resumo para gestores."
+msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
+msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (a execução diária a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados: então não envia e-mail a ninguém e roda, pela execução diária ou por Enviar agora, apenas para mandar aos seus gestores o resumo de quem faz aniversário na data."
 
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr "Opcionalmente, envia a gestores escolhidos um resumo 24 horas após cada execução, apenas com os totais ou com os totais e os nomes de quem recebeu. Veja abaixo."
@@ -23235,8 +23287,8 @@ msgstr "Abaixo dele, a aba SMTP tem um interruptor para cada e-mail opcional: o 
 msgid "Controls the dark mode appearance of the plugin's admin screens and of its public pages (forms, user dashboard, shortcodes)."
 msgstr "Controla o modo escuro das telas de administração do plugin e das suas páginas públicas (formulários, painel do usuário, shortcodes)."
 
-msgid "Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
-msgstr "Criar, editar, duplicar e excluir regras. Enviar uma regra exige Enviar mensagens por data; o horário do envio diário fica em Configurações → Tarefas Agendadas."
+msgid "Create, edit and duplicate rules. Deleting one takes Delete date messages, and sending one, activating it or forcing it past opt-outs takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks."
+msgstr "Criar, editar e duplicar regras. Excluir uma exige Excluir mensagens de datas, e enviar, ativar ou forçar uma regra além das recusas de recebimento exige Enviar mensagens de datas; o horário do envio diário fica em Configurações → Tarefas agendadas."
 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
@@ -23289,8 +23341,8 @@ msgstr "Marque um ou mais locais cadastrados na lista. As coordenadas são obtid
 msgid "Where they are assigned"
 msgstr "Onde são atribuídas"
 
-msgid "create, edit, duplicate and delete rules. Sending a rule, or saving an active announcement with a send time, takes ffc_send_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
-msgstr "criar, editar, duplicar e excluir regras. Enviar uma regra, ou salvar um anúncio ativo com horário de envio, exige ffc_send_date_messages. O horário do envio diário é definido em Configurações → Tarefas Agendadas, com ffc_manage_settings."
+msgid "create, edit and duplicate rules. Activating a rule, sending an announcement past opt-outs, sending a rule and scheduling an announcement take ffc_send_date_messages, and deleting a rule takes ffc_delete_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
+msgstr "criar, editar e duplicar regras. Ativar uma regra, enviar um comunicado além das recusas de recebimento, enviar uma regra e agendar um comunicado exigem ffc_send_date_messages, e excluir uma regra exige ffc_delete_date_messages. O horário do envio diário é definido em Configurações → Tarefas agendadas, com ffc_manage_settings."
 
 msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
 msgstr "a seção \"Permissões FFC\" da tela de edição do usuário adiciona ou remove funções FFC e concede capacidades individuais além delas. As funções são alternadas uma de cada vez e mantidas junto com as demais funções do usuário no WordPress."
@@ -25755,8 +25807,8 @@ msgid "sees the module's screens, with personal data masked."
 msgstr "vê as telas do módulo, com os dados pessoais mascarados."
 
 #: includes/settings/views/documentation/feature-date-messages.php:114
-msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. Previewing the recipients and the message needs only the view capability."
-msgstr "enviar o teste de uma regra, com valores de exemplo, para o seu próprio endereço. Gerenciar mensagens por data também permite. Visualizar os destinatários e a mensagem exige apenas a capacidade de visualização."
+msgid "send a rule's test, with sample values, to your own address. Managing date messages allows it too. One test a minute per account; an account that may only test sends the rule as saved, not what is typed in the editor. Previewing the recipients and the message needs only the view capability."
+msgstr "enviar o teste de uma regra, com valores de exemplo, ao seu próprio endereço. Gerenciar mensagens de datas também permite. Um teste por minuto por conta; uma conta que só pode testar envia a regra como está salva, não o que foi digitado no editor. Pré-visualizar os destinatários e a mensagem exige apenas a permissão de visualização."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "A booking that breaks one of those rules first opens a warning listing every rule it breaks; its \"I agree\" button unlocks after 15 seconds, the server saves nothing without that confirmation, and each confirmed booking is written to the Activity Log. Capacity is never bypassed."
@@ -26958,8 +27010,8 @@ msgid "Nobody is in the chosen audiences, so nothing was sent."
 msgstr "Ninguém está nos públicos escolhidos, por isso nada foi enviado."
 
 #: includes/settings/views/documentation/feature-date-messages.php:115
-msgid "send a rule now or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it when the plugin is updated."
-msgstr "envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem ao atualizar o plugin."
+msgid "send a rule now, schedule an announcement, activate a rule or send an announcement past opt-outs, in the editor, on the list's toggle and on a copy alike. Managing rules does not include it; the current managers receive it when the plugin is updated."
+msgstr "enviar uma regra agora, agendar um comunicado, ativar uma regra ou enviar um comunicado além das recusas de recebimento, no editor, no botão da lista e numa cópia. Gerenciar regras não inclui isso; os gestores atuais recebem a permissão quando o plugin é atualizado."
 
 #: templates/admin/date-messages/rule-form.php
 msgid "What the message is, who receives it and when."
@@ -27053,8 +27105,8 @@ msgid "Done. You will no longer receive announcements from this site. You can tu
 msgstr "Pronto. Você não receberá mais anúncios deste site. É possível reativá-los no perfil do seu painel."
 
 #: includes/date-messages/class-ffc-date-messages-admin-page.php
-msgid "Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send."
-msgstr "Salvar agendaria o envio do anúncio, e sua conta não pode enviar mensagens. Deixe-o inativo ou sem horário de envio, ou peça a alguém que possa enviar."
+msgid "Activating a rule, sending it past opt-outs or scheduling an announcement decides who receives messages, and your account cannot send them. Save it inactive and respecting opt-outs, or ask someone who can send."
+msgstr "Ativar uma regra, enviá-la além das recusas de recebimento ou agendar um comunicado decide quem recebe mensagens, e sua conta não pode enviá-las. Salve-a inativa e respeitando as recusas, ou peça a alguém que possa enviar."
 
 #: templates/admin/date-messages/history.php
 msgid "Sent despite an opt-out"
