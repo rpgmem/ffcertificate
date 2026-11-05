@@ -1013,6 +1013,32 @@ class AppointmentRepositoryTest extends TestCase {
 		$this->assertStringContainsString('FOR UPDATE', $captured_sql);
 	}
 
+	public function test_slot_counts_read_one_session_only_when_asked(): void {
+		$calls = array();
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(function() use (&$calls) {
+			$calls[] = func_get_args();
+			return 'Q';
+		});
+		$this->wpdb->shouldReceive('get_var')->andReturn('0');
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+
+		$this->repo->isSlotAvailable(5, '2026-03-10', '09:00:00', 1, true, 2);
+		$this->repo->countWaitlisted(5, '2026-03-10', '09:00:00', false, 2);
+		$this->repo->findOldestWaitlisted(5, '2026-03-10', '09:00:00', true, 2);
+		$this->repo->isSlotAvailable(5, '2026-03-10', '09:00:00', 1, true);
+
+		// Each session counts its own places (#2405); a calendar without sessions counts them all.
+		foreach ($calls as $call) {
+			$this->assertStringContainsString('AND ( %d = 0 OR session_id = %d )', $call[0]);
+		}
+		foreach (array_slice($calls, 0, 3) as $call) {
+			$this->assertSame(array(2, 2), array_slice($call, -2));
+		}
+		$this->assertSame(array(0, 0), array_slice($calls[3], -2), 'No session: the whole calendar.');
+		$this->assertStringContainsString('FOR UPDATE', $calls[0][0]);
+		$this->assertStringContainsString('ORDER BY id ASC', $calls[2][0]);
+	}
+
 	// ==================================================================
 	// cancel
 	// ==================================================================

@@ -32088,3 +32088,27 @@ msgstr "Sessões"
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "The Sessions tab names parallel services that run on the same days and hours, such as two rooms. A session owns its name only: hours, slot length, capacity per slot and blocked dates come from the calendar. Sessions can be added, renamed, reordered and deleted; a session with open appointments from today on is kept when deleted, and the editor says so. With fewer than two sessions the calendar works as it does without them."
 msgstr "A aba Sessões nomeia serviços paralelos que acontecem nos mesmos dias e horários, como duas salas. Uma sessão tem apenas o nome: horários, duração do horário, capacidade por horário e datas bloqueadas vêm do calendário. As sessões podem ser adicionadas, renomeadas, reordenadas e excluídas; uma sessão com agendamentos abertos de hoje em diante é mantida ao ser excluída, e o editor avisa. Com menos de duas sessões o calendário funciona como sem elas."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Change session"
+msgstr "Trocar sessão"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Choose a session"
+msgstr "Escolha uma sessão"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php
+msgid "Choose one of this calendar's sessions."
+msgstr "Escolha uma das sessões deste calendário."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Full"
+msgstr "Lotada"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On a calendar with two or more sessions, a click on a day first lists the sessions with their free places; the visitor chooses one and then a time, and can go back to change the session. Each session counts its own places, its own waitlist and its own daily limit, so a time booked in one session stays free in another; blocked dates and holidays close every session. The free slots panel lists each session's places, and a visitor's own bookings name their session."
+msgstr "Em um calendário com duas ou mais sessões, o clique em um dia mostra primeiro as sessões com as vagas livres de cada uma; o visitante escolhe uma e depois um horário, e pode voltar para trocar a sessão. Cada sessão conta as próprias vagas, a própria lista de espera e o próprio limite diário, então um horário reservado em uma sessão continua livre na outra; datas bloqueadas e feriados fecham todas as sessões. O painel de vagas livres lista as vagas de cada sessão, e os agendamentos do visitante mostram a sessão."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Session"
+msgstr "Sessão"

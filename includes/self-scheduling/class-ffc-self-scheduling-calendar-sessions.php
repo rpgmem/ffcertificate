@@ -67,8 +67,9 @@ final class CalendarSessions {
 			if ( ! is_array( $entry ) ) {
 				continue;
 			}
-			$id   = isset( $entry['id'] ) && is_numeric( $entry['id'] ) ? (int) $entry['id'] : 0;
-			$name = isset( $entry['name'] ) && is_scalar( $entry['name'] ) ? self::clean_name( (string) $entry['name'] ) : '';
+			$id = isset( $entry['id'] ) && is_numeric( $entry['id'] ) ? (int) $entry['id'] : 0;
+			// Names were cleaned when saved; reading only trims.
+			$name = isset( $entry['name'] ) && is_scalar( $entry['name'] ) ? trim( (string) $entry['name'] ) : '';
 			if ( $id < 1 || '' === $name || isset( $seen[ $id ] ) ) {
 				continue;
 			}
@@ -90,6 +91,59 @@ final class CalendarSessions {
 	 */
 	public static function active( array $sessions ): array {
 		return array_values( array_filter( $sessions, static fn( array $session ): bool => ! $session['deleted'] ) );
+	}
+
+	/**
+	 * Every session of a calendar row, read from its `sessions` column.
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return list<array{id: int, name: string, deleted: bool}>
+	 */
+	public static function of_calendar( array $calendar ): array {
+		return self::decode( $calendar['sessions'] ?? null );
+	}
+
+	/**
+	 * The session a booking or a count on this calendar is scoped to (#2405).
+	 *
+	 * Null for a calendar that does not use sessions: its counts read the
+	 * whole calendar, as before sessions existed. Otherwise the id when it
+	 * names one of the calendar's active sessions, and 0 when it names none,
+	 * which a booking refuses.
+	 *
+	 * @param array<string, mixed> $calendar   Calendar row.
+	 * @param mixed                $session_id Requested session id.
+	 * @return int|null
+	 */
+	public static function scope( array $calendar, $session_id ): ?int {
+		$sessions = self::of_calendar( $calendar );
+		if ( ! self::in_use( $sessions ) ) {
+			return null;
+		}
+		$id = is_numeric( $session_id ) ? (int) $session_id : 0;
+		foreach ( self::active( $sessions ) as $session ) {
+			if ( $session['id'] === $id ) {
+				return $id;
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * The session an existing appointment counts in: its own, on a calendar
+	 * that uses sessions, even one deleted since; null otherwise. A booking
+	 * made before the calendar had sessions answers 0, which the counts read
+	 * as the whole calendar.
+	 *
+	 * @param array<string, mixed> $calendar    Calendar row.
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @return int|null
+	 */
+	public static function scope_of_appointment( array $calendar, array $appointment ): ?int {
+		if ( ! self::in_use( self::of_calendar( $calendar ) ) ) {
+			return null;
+		}
+		return is_numeric( $appointment['session_id'] ?? null ) ? (int) $appointment['session_id'] : 0;
 	}
 
 	/**

@@ -467,6 +467,139 @@ class AppointmentHandlerTest extends TestCase {
 		);
 	}
 
+	// ==================================================================
+	// Sessions (#2405)
+	// ==================================================================
+
+	/**
+	 * The panel calendar with two sessions and a deleted one.
+	 *
+	 * @param int $max_days The advance booking window, in days.
+	 * @return array<string, mixed>
+	 */
+	private function sessionCalendar( int $max_days = 10000 ): array {
+		return array_merge(
+			$this->panelCalendar( $max_days ),
+			array(
+				'sessions' => (string) json_encode(
+					array(
+						array( 'id' => 1, 'name' => 'Room A' ),
+						array( 'id' => 2, 'name' => 'Room B' ),
+						array( 'id' => 3, 'name' => 'Gone', 'deleted' => true ),
+					)
+				),
+			)
+		);
+	}
+
+	public function test_a_session_counts_only_its_own_appointments(): void {
+		$calendar = $this->sessionCalendar();
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		// Two places at 09:00 taken in Room A, none in Room B.
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn(
+			array(
+				array( 'start_time' => '09:00:00', 'session_id' => '1' ),
+				array( 'start_time' => '09:00:00', 'session_id' => '1' ),
+			)
+		);
+
+		$room_a = $this->handler->get_available_slots( 1, '2032-03-08', 1 );
+		$room_b = $this->handler->get_available_slots( 1, '2032-03-08', '2' );
+
+		$this->assertSame( array( '09:30:00' ), array_column( $room_a, 'time' ), 'Room A\'s 09:00 is full.' );
+		$this->assertSame( array( 2, 2 ), array_column( $room_b, 'available' ), 'The same time stays free in Room B.' );
+	}
+
+	public function test_a_calendar_with_sessions_refuses_slots_without_one(): void {
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $this->sessionCalendar() );
+
+		foreach ( array( null, 3, 99 ) as $session ) {
+			$result = $this->handler->get_available_slots( 1, '2032-03-08', $session );
+			$this->assertInstanceOf( \WP_Error::class, $result );
+			$this->assertSame( 'invalid_session', $result->get_error_code() );
+		}
+	}
+
+	public function test_day_sessions_lists_each_active_session_with_its_free_places(): void {
+		$calendar = $this->sessionCalendar();
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $calendar );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn(
+			array( array( 'start_time' => '09:00:00', 'session_id' => '2' ) )
+		);
+
+		$this->assertSame(
+			array(
+				array( 'id' => 1, 'name' => 'Room A', 'free' => 4, 'slots' => 2 ),
+				array( 'id' => 2, 'name' => 'Room B', 'free' => 3, 'slots' => 2 ),
+			),
+			$this->handler->day_sessions( 1, '2032-03-08' )
+		);
+	}
+
+	public function test_day_sessions_is_empty_for_a_calendar_without_sessions(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->panelCalendar() );
+
+		$this->assertSame( array(), $this->handler->day_sessions( 1, '2032-03-08' ) );
+	}
+
+	public function test_the_panel_lists_each_sessions_places_and_names_the_visitors_session(): void {
+		$calendar = $this->sessionCalendar();
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $calendar );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn(
+			array( array( 'calendar_id' => 1, 'appointment_date' => '2032-03-08', 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'status' => 'confirmed', 'session_id' => '3' ) )
+		);
+
+		$panel = $this->handler->month_panel( $calendar, 1, '2032-03-01', '2032-03-31' );
+
+		$this->assertSame( 8, $panel['days']['2032-03-08']['free'] );
+		$this->assertSame( array( 'Room A', 'Room B' ), array_column( $panel['days']['2032-03-08']['sessions'], 'name' ) );
+		$this->assertSame( 'Gone', $panel['mine'][0]['session'], 'A booking keeps the name of a session deleted since.' );
+	}
+
+	public function test_a_booking_on_a_calendar_with_sessions_needs_one_and_stores_it(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( array_merge( $this->makeCalendar(), array( 'sessions' => (string) json_encode( array( array( 'id' => 1, 'name' => 'A' ), array( 'id' => 2, 'name' => 'B' ) ) ) ) ) );
+
+		$refused = $this->handler->process_appointment( array( 'calendar_id' => 1, 'appointment_date' => '2026-03-01', 'start_time' => '10:00', 'consent_given' => '1' ) );
+		$this->assertInstanceOf( \WP_Error::class, $refused );
+		$this->assertSame( 'invalid_session', $refused->get_error_code() );
+
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->andReturn( true );
+		$stored = null;
+		$this->validator->shouldReceive( 'validate' )->andReturnUsing(
+			static function ( array $data ) use ( &$stored ) {
+				$stored = $data;
+				return new \WP_Error( 'stop', 'stop' );
+			}
+		);
+		$this->appointmentRepo->shouldReceive( 'rollback' );
+
+		$this->handler->process_appointment( array( 'calendar_id' => 1, 'appointment_date' => '2026-03-01', 'start_time' => '10:00', 'consent_given' => '1', 'session_id' => '2' ) );
+		$this->assertSame( 2, $stored['session_id'] );
+	}
+
+	public function test_a_booking_on_a_calendar_without_sessions_stores_none(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->andReturn( true );
+		$stored = null;
+		$this->validator->shouldReceive( 'validate' )->andReturnUsing(
+			static function ( array $data ) use ( &$stored ) {
+				$stored = $data;
+				return new \WP_Error( 'stop', 'stop' );
+			}
+		);
+		$this->appointmentRepo->shouldReceive( 'rollback' );
+
+		$this->handler->process_appointment( array( 'calendar_id' => 1, 'appointment_date' => '2026-03-01', 'start_time' => '10:00', 'consent_given' => '1', 'session_id' => '7' ) );
+
+		$this->assertArrayNotHasKey( 'session_id', $stored, 'The column stays NULL on a calendar without sessions.' );
+	}
+
 	public function test_month_panel_lists_each_bookable_day_with_its_free_places(): void {
 		$calendar = $this->panelCalendar();
 		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
@@ -516,7 +649,8 @@ class AppointmentHandlerTest extends TestCase {
 
 		$this->assertSame( array( '2032-03-08', '2032-03-15' ), array_column( $mine, 'date' ), 'Own bookings in this calendar and month, in date order.' );
 		$this->assertSame( array( 'confirmed', 'pending' ), array_column( $mine, 'status' ) );
-		$this->assertSame( array( 'date', 'start', 'end', 'status' ), array_keys( $mine[0] ), 'Nothing beyond the date, the times and the status leaves the server.' );
+		$this->assertSame( array( 'date', 'start', 'end', 'status', 'session' ), array_keys( $mine[0] ), 'Nothing beyond the date, the times, the status and the session leaves the server.' );
+		$this->assertSame( '', $mine[0]['session'], 'A calendar without sessions names none.' );
 	}
 
 	public function test_month_panel_lists_no_bookings_for_an_anonymous_visitor(): void {

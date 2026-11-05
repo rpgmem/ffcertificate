@@ -95,19 +95,21 @@ class WaitlistPromoter {
 		$this->promote(
 			(int) $appointment['calendar_id'],
 			(string) $appointment['appointment_date'],
-			(string) $appointment['start_time']
+			(string) $appointment['start_time'],
+			is_numeric( $appointment['session_id'] ?? null ) ? (int) $appointment['session_id'] : null
 		);
 	}
 
 	/**
 	 * Promote the oldest waitlisted entry for a slot, if there is now room.
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date        Date (Y-m-d).
-	 * @param string $start_time  Slot start time (H:i:s).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date        Date (Y-m-d).
+	 * @param string   $start_time  Slot start time (H:i:s).
+	 * @param int|null $session_id  The session the freed place belongs to (#2405), if any.
 	 * @return int|null Promoted appointment ID, or null when nothing was promoted.
 	 */
-	public function promote( int $calendar_id, string $date, string $start_time ): ?int {
+	public function promote( int $calendar_id, string $date, string $start_time, ?int $session_id = null ): ?int {
 		// A slot that has already started takes nobody from the queue (#2244):
 		// promoting would book a person into the past. The time is wall-clock,
 		// so it is read in the site timezone.
@@ -125,6 +127,10 @@ class WaitlistPromoter {
 			return null;
 		}
 
+		// The freed place belongs to its session: the queue of that session
+		// takes it (#2405). A calendar without sessions counts as one.
+		$session = CalendarSessions::scope_of_appointment( $calendar, array( 'session_id' => $session_id ) );
+
 		$promoted_id = null;
 
 		// Without a transaction the recount below locks nothing, so a refused
@@ -134,8 +140,8 @@ class WaitlistPromoter {
 		}
 		try {
 			// Recount under lock; only promote if the freed spot is genuinely open.
-			if ( $this->appointment_repository->isSlotAvailable( $calendar_id, $date, $start_time, $capacity, true ) ) {
-				$next = $this->appointment_repository->findOldestWaitlisted( $calendar_id, $date, $start_time, true );
+			if ( $this->appointment_repository->isSlotAvailable( $calendar_id, $date, $start_time, $capacity, true, $session ) ) {
+				$next = $this->appointment_repository->findOldestWaitlisted( $calendar_id, $date, $start_time, true, $session );
 				if ( is_array( $next ) && ! empty( $next['id'] ) ) {
 					$requires_approval = ! empty( $calendar['requires_approval'] );
 					$this->appointment_repository->promoteFromWaitlist( (int) $next['id'], $requires_approval );

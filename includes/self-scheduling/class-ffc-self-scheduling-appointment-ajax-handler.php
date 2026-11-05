@@ -80,7 +80,7 @@ class AppointmentAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Invalid parameters.', 'ffcertificate' ) ) );
 		}
 
-		$reasons = $this->handler->get_override_reasons( $calendar_id, $date, $time );
+		$reasons = $this->handler->get_override_reasons( $calendar_id, $date, $time, $this->get_post_int( 'session_id' ) );
 		if ( is_wp_error( $reasons ) ) {
 			wp_send_json_error( array( 'message' => $reasons->get_error_message() ) );
 		}
@@ -151,6 +151,8 @@ class AppointmentAjaxHandler {
 				'calendar_id'      => $calendar_id,
 				'appointment_date' => $date,
 				'start_time'       => $time,
+				// The session chosen on a calendar that has them (#2405).
+				'session_id'       => $this->get_post_int( 'session_id' ),
 				'name'             => $this->get_post_param( 'name' ),
 				'email'            => isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['email'] ) ) ) : '',
 				'cpf_rf'           => $this->get_post_param( 'cpf_rf' ),
@@ -336,7 +338,25 @@ class AppointmentAjaxHandler {
 			);
 		}
 
-		$slots = $this->handler->get_available_slots( $calendar_id, $date );
+		// On a calendar with sessions the visitor chooses one first (#2405):
+		// a read without a session lists the sessions, with their free places.
+		$session_id = $this->get_post_int( 'session_id' );
+		if ( 0 === $session_id ) {
+			$sessions = $this->handler->day_sessions( $calendar_id, $date );
+			if ( is_wp_error( $sessions ) ) {
+				wp_send_json_error( array( 'message' => $sessions->get_error_message() ) );
+			}
+			if ( array() !== $sessions ) {
+				wp_send_json_success(
+					array(
+						'sessions' => $sessions,
+						'date'     => $date,
+					)
+				);
+			}
+		}
+
+		$slots = $this->handler->get_available_slots( $calendar_id, $date, $session_id );
 
 		if ( is_wp_error( $slots ) ) {
 			wp_send_json_error(

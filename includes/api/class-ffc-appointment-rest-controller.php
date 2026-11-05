@@ -213,6 +213,8 @@ class AppointmentRestController {
 				'calendar_id'      => $calendar_id,
 				'appointment_date' => sanitize_text_field( $params['date'] ),
 				'start_time'       => sanitize_text_field( $params['time'] ),
+				// The session, on a calendar that has them (#2405).
+				'session_id'       => isset( $params['session_id'] ) && is_numeric( $params['session_id'] ) ? (int) $params['session_id'] : 0,
 				'name'             => sanitize_text_field( $params['name'] ),
 				'email'            => \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( $params['email'] ) ),
 				// Sanitised as the booking form's AJAX handler does; the handler

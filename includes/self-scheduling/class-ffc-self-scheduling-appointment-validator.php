@@ -226,6 +226,13 @@ class AppointmentValidator {
 			$slot_capacity = (int) $calendar['max_appointments_per_slot'];
 		}
 
+		// 8a. The session (#2405): on a calendar with sessions a booking names
+		// one of them, and every count below reads that session alone.
+		$session = CalendarSessions::scope( $calendar, $data['session_id'] ?? null );
+		if ( 0 === $session ) {
+			return new \WP_Error( 'invalid_session', __( 'Choose one of this calendar\'s sessions.', 'ffcertificate' ) );
+		}
+
 		// 8b. Per-user block cap (#941 phase 3) — custom mode only. Counts the
 		// user's active + waitlisted bookings in this calendar; bypass confirms.
 		if ( $is_custom ) {
@@ -264,13 +271,14 @@ class AppointmentValidator {
 				$data['appointment_date'],
 				$data['start_time'],
 				$slot_capacity,
-				$use_lock
+				$use_lock,
+				$session
 			);
 
 			if ( ! $is_available ) {
 				// Slot full. If the calendar offers a waitlist with room, divert
 				// this booking to the queue instead of rejecting it (#941 phase 2).
-				if ( $this->can_join_waitlist( $calendar, $data, $use_lock ) ) {
+				if ( $this->can_join_waitlist( $calendar, $data, $use_lock, $session ) ) {
 					$this->waitlist_requested = true;
 				} else {
 					return new \WP_Error( 'slot_full', __( 'This time slot is fully booked.', 'ffcertificate' ) );
@@ -281,7 +289,7 @@ class AppointmentValidator {
 		// 10. Check daily limit — bypass confirms. Not applied in custom mode (#941):
 		// per-block capacity is the control, not a per-date total.
 		if ( ! $is_custom && $calendar['slots_per_day'] > 0 ) {
-			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock );
+			$daily_count = $this->get_daily_appointment_count( $data['calendar_id'], $data['appointment_date'], $use_lock, $session );
 			if ( $daily_count >= $calendar['slots_per_day'] ) {
 				$refused = $rule( new \WP_Error( 'daily_limit', __( 'Daily booking limit reached for this date.', 'ffcertificate' ) ) );
 				if ( $refused ) {
@@ -479,9 +487,10 @@ class AppointmentValidator {
 	 * @param array<string, mixed> $calendar Calendar configuration.
 	 * @param array<string, mixed> $data Appointment data.
 	 * @param bool                 $use_lock Use FOR UPDATE on the queue count.
+	 * @param int|null             $session  The session counted alone (#2405), or null.
 	 * @return bool
 	 */
-	private function can_join_waitlist( array $calendar, array $data, bool $use_lock ): bool {
+	private function can_join_waitlist( array $calendar, array $data, bool $use_lock, ?int $session = null ): bool {
 		if ( empty( $calendar['waitlist_enabled'] ) ) {
 			return false;
 		}
@@ -495,7 +504,8 @@ class AppointmentValidator {
 			(int) $data['calendar_id'],
 			(string) $data['appointment_date'],
 			(string) $data['start_time'],
-			$use_lock
+			$use_lock,
+			$session
 		);
 
 		return $waiting < $capacity;
@@ -630,13 +640,18 @@ class AppointmentValidator {
 	/**
 	 * Get daily appointment count
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session The session counted alone (#2405), or null.
 	 * @return int
 	 */
-	public function get_daily_appointment_count( int $calendar_id, string $date, bool $use_lock = false ): int {
+	public function get_daily_appointment_count( int $calendar_id, string $date, bool $use_lock = false, ?int $session = null ): int {
 		$appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date, array( 'confirmed', 'pending' ), $use_lock );
+		if ( null !== $session ) {
+			// A session's daily cap counts its own bookings (#2405).
+			$appointments = array_filter( $appointments, static fn( array $row ): bool => (int) ( $row['session_id'] ?? 0 ) === $session );
+		}
 		return count( $appointments );
 	}
 

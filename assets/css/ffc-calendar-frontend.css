@@ -64,6 +64,23 @@
     100% { transform: rotate(360deg); }
 }
 
+/* The session step (#2405): one button per session, then the chosen
+   session's name and the way back above its times. */
+.ffc-shortcode .ffc-session-step {
+    display: grid;
+    gap: var(--ffc-spacing-xs);
+    margin-bottom: var(--ffc-spacing-md);
+}
+
+.ffc-shortcode .ffc-session-step[hidden] {
+    display: none;
+}
+
+.ffc-shortcode .ffc-session-step-title {
+    margin: 0;
+    font-weight: 600;
+}
+
 .ffc-shortcode .ffc-timeslots-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

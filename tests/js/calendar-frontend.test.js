@@ -1662,3 +1662,117 @@ describe('ffc-calendar-frontend.js — the free-slots panel (#2405)', () => {
 		expect(spy).not.toHaveBeenCalled();
 	});
 });
+
+// The session step (#2405): on a calendar with sessions a day lists them
+// first; choosing one loads its times, and the booking carries it.
+describe('ffc-calendar-frontend.js — the session step (#2405)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		Object.assign(window.ffcCalendar.strings, {
+			chooseSession: 'Choose a session',
+			changeSession: 'Change session',
+			session: 'Session',
+			sessionFull: 'Full',
+			panelFreeOne: '1 free place',
+			panelFreeMany: '%d free places',
+		});
+		document.body.innerHTML = `
+			<div id="ffc-self-scheduling-modal" style="display:none;">
+				<div class="ffc-modal-content"><div class="ffc-modal-title"></div></div>
+				<div class="ffc-timeslots-wrapper">
+					<div class="ffc-timeslots-loading" style="display:none;">Loading</div>
+					<div id="ffc-session-step" hidden></div>
+					<div id="ffc-timeslots-container"></div>
+				</div>
+				<div class="ffc-booking-form-wrapper" style="display:none;">
+					<input id="ffc-form-date"><input id="ffc-form-time"><input id="ffc-form-session">
+				</div>
+			</div>
+		`;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	const settle = async () => {
+		await Promise.resolve();
+		await Promise.resolve();
+	};
+
+	it('lists the sessions with their free places, a full one disabled, before any time', async () => {
+		window.FFC.request.mockResolvedValue({
+			sessions: [
+				{ id: 1, name: 'Room <A>', free: 3, slots: 2 },
+				{ id: 2, name: 'Room B', free: 0, slots: 0 },
+			],
+		});
+
+		window.ffcCalendarFrontend.loadTimeSlots(7, '2032-03-08');
+		await settle();
+
+		const choices = document.querySelectorAll('#ffc-session-step .ffc-session-choice');
+		expect(document.getElementById('ffc-session-step').hidden).toBe(false);
+		expect(choices).toHaveLength(2);
+		expect(choices[0].textContent).toContain('Room <A> — 3 free places');
+		expect(choices[0].querySelector('b')).toBeNull();
+		expect(choices[1].textContent).toContain('Full');
+		expect(choices[1].disabled).toBe(true);
+		expect(document.querySelectorAll('#ffc-timeslots-container .ffc-timeslot')).toHaveLength(0);
+	});
+
+	it('loads the chosen session times, with a way back, and books in it', async () => {
+		window.FFC.request.mockResolvedValueOnce({ sessions: [{ id: 4, name: 'Room A', free: 1, slots: 1 }] });
+		window.ffcCalendarFrontend.loadTimeSlots(7, '2032-03-08');
+		await settle();
+
+		window.FFC.request.mockResolvedValueOnce({ slots: [{ time: '09:00', display: '09:00', available: 1, total: 1 }] });
+		document.querySelector('.ffc-session-choice').click();
+		await settle();
+
+		expect(window.FFC.request.mock.calls[1][1]).toEqual({ calendar_id: 7, date: '2032-03-08', session_id: 4 });
+		expect(document.querySelectorAll('#ffc-timeslots-container .ffc-timeslot')).toHaveLength(1);
+		expect(document.querySelector('#ffc-session-step').textContent).toContain('Session: Room A');
+		expect(document.querySelector('#ffc-session-step .ffc-session-back')).not.toBeNull();
+
+		window.ffcCalendarFrontend.selectedTime = '09:00';
+		window.ffcCalendarFrontend.showBookingForm();
+		expect(document.getElementById('ffc-form-session').value).toBe('4');
+
+		window.FFC.request.mockResolvedValueOnce({ sessions: [{ id: 4, name: 'Room A', free: 1, slots: 1 }] });
+		document.querySelector('.ffc-session-back').click();
+		await settle();
+		expect(window.FFC.request.mock.calls[2][1]).toEqual({ calendar_id: 7, date: '2032-03-08' });
+		expect(window.ffcCalendarFrontend.selectedSession).toBeNull();
+	});
+
+	it('leaves a calendar without sessions as it was', async () => {
+		window.FFC.request.mockResolvedValue({ slots: [{ time: '09:00', display: '09:00', available: 1, total: 1 }] });
+
+		window.ffcCalendarFrontend.loadTimeSlots(7, '2032-03-08');
+		await settle();
+		window.ffcCalendarFrontend.selectedTime = '09:00';
+		window.ffcCalendarFrontend.showBookingForm();
+
+		expect(document.getElementById('ffc-session-step').hidden).toBe(true);
+		expect(document.getElementById('ffc-form-session').value).toBe('');
+	});
+});
+
+describe('ffc-calendar-frontend.js — the panel with sessions (#2405)', () => {
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = '<div id="ffc-event-list-panel"><div class="ffc-event-list-header"><h3></h3></div><div id="ffc-event-list-content"></div></div>';
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it("lists each session's places and names the visitor's session", () => {
+		const strings = Object.assign({}, window.ffcCalendar.strings, { panelFreeMany: '%d free', panelFreeOne: '1 free', panelTimesMany: '%d times', panelTimesOne: '1 time', sessionFull: 'Full', confirmed: 'Confirmed' });
+		window.ffcCalendarFrontend.renderPanel(2032, 3, {
+			days: { '2032-03-08': { free: 3, slots: 2, sessions: [{ name: 'Room A', free: 3, slots: 2 }, { name: 'Room B', free: 0, slots: 0 }] } },
+			mine: [{ date: '2032-03-08', start: '09:00', end: '09:30', status: 'confirmed', session: 'Room A' }],
+		}, {}, strings);
+
+		const items = Array.from(document.querySelectorAll('#ffc-event-list-content .ffc-event-list-item')).map((el) => el.textContent);
+		expect(items).toEqual(['8 March 2032 · 09:00–09:30Room A · Confirmed', 'Room A · 3 free2 times', 'Room B · Full']);
+	});
+});
