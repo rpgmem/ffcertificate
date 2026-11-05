@@ -63,7 +63,16 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
-		Functions\when( 'get_userdata' )->alias( static fn( $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => 42 === (int) $id ? (object) array(
+				'ID'         => 42,
+				'user_email' => 'maria@example.org',
+			) : false
+		);
+		Functions\when( 'is_email' )->returnArg();
+		// The dashboard link: no page chosen, so the default path.
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'wp_nonce_field' )->justReturn( '<input name="_wpnonce" value="n">' );
 		Functions\when( 'wp_die' )->alias(
 			function ( $message, $title = '', $args = array() ) {
@@ -170,6 +179,9 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		$this->assertStringContainsString( '<form method="post"', $this->died[0] );
 		$this->assertStringContainsString( 'name="t" value="' . Unsubscribe::token( 42 ) . '"', $this->died[0] );
 		$this->assertStringContainsString( '_wpnonce', $this->died[0] );
+		$this->assertStringContainsString( 'Account: m***@example.org', $this->died[0], 'The page names the account, masked.' );
+		$this->assertStringNotContainsString( 'maria@', $this->died[0] );
+		$this->assertStringContainsString( 'href="https://example.org/dashboard"', $this->died[0], 'It links to the dashboard profile.' );
 	}
 
 	public function test_a_post_without_a_valid_nonce_changes_nothing(): void {

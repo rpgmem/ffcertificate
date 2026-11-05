@@ -174,6 +174,18 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.activeElement).toBe(toggle);
 	});
 
+	it('says the e-mail link sets the same date-message preferences (#2336)', () => {
+		window.ffcDashboard.dateMessagesEnabled = true;
+		try {
+			panel().render(makeProfile());
+			const hint = document.querySelector('#ffc-tabpanel-profile .ffc-notif-list .ffc-notif-hint');
+			expect(hint).not.toBeNull();
+			expect(hint.textContent).toContain('unsubscribe link');
+		} finally {
+			delete window.ffcDashboard.dateMessagesEnabled;
+		}
+	});
+
 	it('stores the profile on the panel state', () => {
 		const profile = makeProfile({ display_name: 'João' });
 		panel().render(profile);

@@ -63,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The "Email texts" hub — edit every email\'s wording', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin\'s token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one\'s editor opens; each has its own {{token}} help and a "Restore Default Text" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin\'s token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one\'s editor opens; each has its own {{token}} help and a "Restore Default Text" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The emails you can edit here (grouped by feature):', 'ffcertificate' ); ?></p>
 		<table class="widefat striped">
 			<thead>
