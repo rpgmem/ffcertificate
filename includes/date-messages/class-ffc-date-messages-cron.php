@@ -49,8 +49,8 @@ final class DateMessagesCron {
 	 */
 	public static function init(): void {
 		add_action( self::CRON_HOOK, array( Runner::class, 'run_daily' ) );
-		// One accepted argument: the event carries the run id.
-		add_action( Digest::HOOK, array( Digest::class, 'send' ), 10, 1 );
+		// The run id, and how many hours the digest already waited (#2336).
+		add_action( Digest::HOOK, array( Digest::class, 'send' ), 10, 2 );
 		Runner::init();
 	}
 
@@ -88,6 +88,7 @@ final class DateMessagesCron {
 		wp_unschedule_hook( Runner::BATCH_HOOK );
 		wp_unschedule_hook( Digest::HOOK );
 		wp_unschedule_hook( Runner::ANNOUNCE_HOOK );
+		wp_unschedule_hook( Runner::START_HOOK );
 	}
 
 	/**

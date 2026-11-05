@@ -13,7 +13,7 @@
  *     @type array<string, int>    $counts      Counter => value.
  *     @type array<int,string>|null $names      Recipients by masked name, or null when this manager may not see them.
  *     @type int                   $names_limit Most names listed.
- *     @type string                $screen_url  The Date Messages screen, where a name is revealed.
+ *     @type string                $screen_url  The run's History on the Date Messages screen (#2336).
  * }
  * @package FreeFormCertificate\DateMessages
  */

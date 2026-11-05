@@ -129,6 +129,7 @@ class ScheduledTasksTest extends TestCase {
 			'ffc_date_messages_batch'           => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_digest'          => 'DateMessagesCron::unschedule()',
 			'ffc_date_messages_announce'        => 'DateMessagesCron::unschedule()',
+			'ffc_date_messages_start'           => 'DateMessagesCron::unschedule()',
 		);
 
 		foreach ( array_keys( ScheduledTasks::all() ) as $hook ) {
@@ -328,6 +329,7 @@ class ScheduledTasksTest extends TestCase {
 				'ffc_reregistration_invitation_batch' => 0,
 				'ffc_recruitment_account_link_batch'  => 0,
 				'ffc_audience_notification_batch'     => 0,
+				'ffc_date_messages_start'             => 0,
 				'ffc_date_messages_batch'             => 0,
 				'ffc_date_messages_digest'            => 0,
 				'ffc_date_messages_announce'          => 0,

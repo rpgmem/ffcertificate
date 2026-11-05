@@ -40,6 +40,12 @@ class DateMessagesDigestTest extends TestCase {
 	 */
 	private array $sent = array();
 
+	/** @var bool What `wp_mail()` reports. */
+	private bool $mail_result = true;
+
+	/** @var list<array{0: int, 1: string, 2: array<int, int>}> Digests queued again: delay, hook, args (#2336). */
+	private array $waits = array();
+
 	/** @var int How many times `wp_mail()` was called. */
 	private int $mail_calls = 0;
 
@@ -121,6 +127,15 @@ class DateMessagesDigestTest extends TestCase {
 			function ( $to, $subject, $body ) {
 				++$this->mail_calls;
 				$this->sent[ $to ] = $body;
+				return $this->mail_result;
+			}
+		);
+		$this->mail_result = true;
+		$this->waits       = array();
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_schedule_single_event' )->alias(
+			function ( $ts, $hook, $args ) {
+				$this->waits[] = array( $ts - time(), $hook, $args );
 				return true;
 			}
 		);
@@ -271,6 +286,7 @@ class DateMessagesDigestTest extends TestCase {
 				'out_of_audience' => '2',
 				'failed'          => '0',
 				'digest_sent_at'  => null,
+				'finished_at'     => '1790000000',
 			),
 			$over
 		);
@@ -337,9 +353,40 @@ class DateMessagesDigestTest extends TestCase {
 		// to the screen where a name is revealed.
 		$this->assertStringContainsString( '<li>A**</li>', $this->sent['admin@example.org'] );
 		$this->assertStringNotContainsString( '<li>Ana</li>', $this->sent['admin@example.org'] );
-		$this->assertStringContainsString( 'https://example.com/wp-admin/admin.php?page=ffc-date-messages&tab=upcoming', $this->sent['admin@example.org'] );
+		$this->assertStringContainsString( 'https://example.com/wp-admin/admin.php?page=ffc-date-messages&tab=history', $this->sent['admin@example.org'] );
 		$this->assertStringNotContainsString( 'A**', $this->sent['viewer@example.org'], 'A viewer without the PII capability gets the counts only.' );
 		$this->assertSame( array( 7 ), $this->marked() );
+	}
+
+	/**
+	 * A run still open a day later is not reported yet (#2336): the digest
+	 * waits an hour and tries again, up to MAX_WAITS times, then reports what
+	 * there is.
+	 */
+	public function test_an_open_run_waits_an_hour_within_a_bound(): void {
+		$this->store( $this->run_row( array( 'finished_at' => null ) ) );
+
+		Digest::send( 7 );
+
+		$this->assertSame( 0, $this->mail_calls );
+		$this->assertSame( array(), $this->marked() );
+		$this->assertCount( 1, $this->waits );
+		$this->assertEqualsWithDelta( HOUR_IN_SECONDS, $this->waits[0][0], 2 );
+		$this->assertSame( array( Digest::HOOK, array( 7, 1 ) ), array( $this->waits[0][1], $this->waits[0][2] ) );
+
+		Digest::send( 7, Digest::MAX_WAITS );
+		$this->assertSame( 2, $this->mail_calls, 'After the last wait it reports what there is.' );
+		$this->assertSame( array( 7 ), $this->marked() );
+	}
+
+	public function test_a_digest_every_send_refused_is_not_marked_and_tries_again(): void {
+		$this->store( $this->run_row() );
+		$this->mail_result = false;
+
+		Digest::send( 7 );
+
+		$this->assertSame( array(), $this->marked() );
+		$this->assertSame( array( array( 7, 1 ) ), array_column( $this->waits, 2 ) );
 	}
 
 	public function test_a_run_already_reported_sends_nothing(): void {

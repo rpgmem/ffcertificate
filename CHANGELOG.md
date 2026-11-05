@@ -75,6 +75,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public forms: robust on cached and template-built pages** (#2344). A failed refresh of the captcha and nonces is retried once, then the form goes on with the values the page carried, instead of being removed. A form or calendar rendered outside the post body, such as a widget or a block template, loads its scripts and styles.
 - **Settings: a section turned off no longer blocks the save** (#2344). Hiding a section with its switch, on the Rate Limit and Geolocation tabs among others, takes its required fields with it, so a cleared number inside it no longer stops the form; turning it back on restores them.
 - **Admin: focus and announcements follow what changed** (#2344). Revealing personal data moves the focus to the value, announces it and shows a failure beside the button instead of a browser alert; the override warning keeps the focus inside and starts on Cancel; status lines and the shortcode copy button, now the family's icon button, are announced; "reduce motion" stops the slides and fades.
+- **Date Messages: a run survives a request that dies** (#2336). The next batch and a retry are queued before a batch sends, a message that throws counts as failed, each rule starts on its own event, a decision is counted once, and the summary waits for the run to close and links to History. 29 February is treated as the 28th every year.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

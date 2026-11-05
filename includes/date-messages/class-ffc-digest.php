@@ -28,6 +28,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * manager, and a run that already carries it sends nothing, so a duplicated
  * event cannot repeat the e-mail. A run that reached nobody sends no digest.
  *
+ * FINAL NUMBERS, OR NONE YET (#2336). A run still open a day later -- a batch
+ * that is being retried -- waits another hour, up to MAX_WAITS, rather than
+ * reporting a run in flight. And `digest_sent_at` is written only when at
+ * least one manager's copy went out: a digest every send refused is tried
+ * again on the same bounded schedule.
+ *
  * NAMES ARE PII, SO THEY FOLLOW THE CAPABILITY, NOT THE RULE. The detailed
  * mode lists who received the message -- by display name only, never the
  * address or the date -- and only to a manager who may see that on screen
@@ -56,6 +62,12 @@ final class Digest {
 	public const NAMES_LIMIT = 200;
 
 	/**
+	 * Times a digest waits an hour for its run to close, or for a send that
+	 * failed, before it gives up (#2336).
+	 */
+	public const MAX_WAITS = 12;
+
+	/**
 	 * Schedule the digest of a run that just started, when its rule asks for one.
 	 *
 	 * @param int  $run_id Run.
@@ -76,11 +88,17 @@ final class Digest {
 	 * Send a run's digest to its rule's managers.
 	 *
 	 * @param int $run_id Run.
+	 * @param int $waits  Hours this digest already waited (#2336).
 	 * @return void
 	 */
-	public static function send( int $run_id ): void {
+	public static function send( int $run_id, int $waits = 0 ): void {
 		$run = DeliveryLog::get_run( $run_id );
 		if ( null === $run || self::int( $run['digest_sent_at'] ?? 0 ) > 0 ) {
+			return;
+		}
+
+		// A run still open is not reported yet, within a bound (#2336).
+		if ( self::int( $run['finished_at'] ?? 0 ) <= 0 && self::wait( $run_id, $waits ) ) {
 			return;
 		}
 
@@ -112,6 +130,7 @@ final class Digest {
 			$rule->name
 		);
 
+		$delivered = false;
 		foreach ( $rule->digest_user_ids as $user_id ) {
 			$user = get_userdata( $user_id );
 			if ( false === $user || ! is_email( $user->user_email ) || ! self::may_receive( $user ) ) {
@@ -128,14 +147,38 @@ final class Digest {
 					'counts'      => $counts,
 					'names'       => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
 					'names_limit' => self::NAMES_LIMIT,
-					'screen_url'  => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=upcoming' ),
+					// The run's own record, where its numbers are (#2336).
+					'screen_url'  => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=history' ),
 				)
 			);
 
-			SchedulingMailer::send( $user->user_email, $subject, $body, array(), true, EmailSource::DATE_MESSAGES );
+			$delivered = SchedulingMailer::send( $user->user_email, $subject, $body, array(), true, EmailSource::DATE_MESSAGES ) || $delivered;
 		}
 
-		DeliveryLog::mark_digest_sent( $run_id );
+		// Only a digest that reached someone is done; one every send refused
+		// is tried again later (#2336).
+		if ( $delivered || ! self::wait( $run_id, $waits ) ) {
+			DeliveryLog::mark_digest_sent( $run_id );
+		}
+	}
+
+	/**
+	 * Queue this digest again in an hour, unless it already waited MAX_WAITS
+	 * times.
+	 *
+	 * @param int $run_id Run.
+	 * @param int $waits  Hours already waited.
+	 * @return bool Whether it was queued.
+	 */
+	private static function wait( int $run_id, int $waits ): bool {
+		if ( $waits >= self::MAX_WAITS ) {
+			return false;
+		}
+		$args = array( $run_id, $waits + 1 );
+		if ( false === wp_next_scheduled( self::HOOK, $args ) ) {
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::HOOK, $args );
+		}
+		return true;
 	}
 
 	/**

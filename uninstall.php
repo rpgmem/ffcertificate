@@ -73,6 +73,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_unschedule_hook( 'ffc_date_messages_batch' );
 	wp_unschedule_hook( 'ffc_date_messages_digest' );
 	wp_unschedule_hook( 'ffc_date_messages_announce' );
+	wp_unschedule_hook( 'ffc_date_messages_start' );
 	return;
 }
 
@@ -448,6 +449,7 @@ wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_unschedule_hook( 'ffc_date_messages_batch' );
 wp_unschedule_hook( 'ffc_date_messages_digest' );
 wp_unschedule_hook( 'ffc_date_messages_announce' );
+wp_unschedule_hook( 'ffc_date_messages_start' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );

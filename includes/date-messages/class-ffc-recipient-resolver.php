@@ -46,11 +46,11 @@ final class RecipientResolver {
 	public const ALREADY_SENT    = 'already_sent';
 
 	/**
-	 * Member ids per audience, memoised for this resolver's lifetime.
+	 * The rule's audiences with their descendants, memoised per audience list.
 	 *
-	 * @var array<int, array<int, true>>
+	 * @var array<string, list<int>>
 	 */
-	private array $members = array();
+	private array $expanded = array();
 
 	/**
 	 * Constructor.
@@ -81,24 +81,32 @@ final class RecipientResolver {
 			);
 		}
 
-		$limit   = max( 1, $limit );
-		$members = array() === $rule->audience_ids ? null : $this->members_of_any( $rule->audience_ids );
+		$limit     = max( 1, $limit );
+		$audiences = array() === $rule->audience_ids ? null : $this->audiences( $rule->audience_ids );
+		$members   = null;
 
-		if ( null !== $members && $source instanceof MemberScopedSourceInterface ) {
-			// Page over the audience members, not over the site (#1996). The
-			// page is the ids, so an id whose account is gone neither stops
-			// the run early nor holds the cursor back.
-			$page       = $this->member_page( $members, $after, $limit );
+		if ( null !== $audiences && $source instanceof MemberScopedSourceInterface ) {
+			// Page over the audience members, not over the site (#1996), with
+			// a cursor in the database, so a batch reads one page of members
+			// and never the whole list (#2336). The page is the ids, so an id
+			// whose account is gone neither stops the run early nor holds the
+			// cursor back.
+			$page       = $this->member_page( $audiences, $after, $limit );
 			$candidates = array() === $page ? array() : $source->due_among( $target, $page );
 			$cursor     = array() === $page ? $after : (int) end( $page );
 			$complete   = count( $page ) < $limit;
+			$members    = array_fill_keys( $page, true );
 		} else {
 			$candidates = $source->due( $target, $after, $limit );
 			$cursor     = $after;
 			$complete   = count( $candidates ) < $limit;
 		}
 
-		$ids        = array_map( static fn( array $c ): int => $c['user_id'], $candidates );
+		$ids = array_map( static fn( array $c ): int => $c['user_id'], $candidates );
+		if ( null !== $audiences && null === $members ) {
+			// A dated source: only this page's candidates are looked up.
+			$members = $this->members_among( $audiences, $ids );
+		}
 		$occurrence = $target->format( 'Y-m-d' );
 
 		$opted_out = OptOut::among( $ids, $rule->opt_out_category() );
@@ -141,15 +149,24 @@ final class RecipientResolver {
 	/**
 	 * One page of member ids after the cursor, ascending.
 	 *
-	 * @param array<int, true> $members Member ids as a set.
-	 * @param int              $after   Keyset cursor.
-	 * @param int              $limit   Page size.
-	 * @return array<int, int>
+	 * @param array<int> $audiences Audiences with their descendants.
+	 * @param int        $after     Keyset cursor.
+	 * @param int        $limit     Page size.
+	 * @return list<int>
 	 */
-	private function member_page( array $members, int $after, int $limit ): array {
-		$ids = array_filter( array_keys( $members ), static fn( int $id ): bool => $id > $after );
-		sort( $ids, SORT_NUMERIC );
-		return array_slice( $ids, 0, $limit );
+	private function member_page( array $audiences, int $after, int $limit ): array {
+		return class_exists( AudienceReader::class ) ? AudienceReader::member_page( $audiences, $after, $limit ) : array();
+	}
+
+	/**
+	 * The candidates who belong to any of the audiences.
+	 *
+	 * @param array<int> $audiences Audiences with their descendants.
+	 * @param array<int> $user_ids  Candidates.
+	 * @return array<int, true>
+	 */
+	private function members_among( array $audiences, array $user_ids ): array {
+		return class_exists( AudienceReader::class ) ? AudienceReader::members_among( $audiences, $user_ids ) : array();
 	}
 
 	/**
@@ -160,39 +177,20 @@ final class RecipientResolver {
 	 * @return bool
 	 */
 	public function audience_has_members( array $audience_ids ): bool {
-		return array() !== $this->members_of_any( $audience_ids );
+		return array() !== $this->member_page( $this->audiences( $audience_ids ), 0, 1 );
 	}
 
 	/**
-	 * Members of any of the audiences, sub-audiences included, as a set.
+	 * The audiences with their sub-audiences, each once.
 	 *
 	 * @param array<int> $audience_ids Audiences.
-	 * @return array<int, true>
+	 * @return list<int>
 	 */
-	private function members_of_any( array $audience_ids ): array {
-		$set = array();
-		foreach ( $audience_ids as $audience_id ) {
-			$set += $this->members_of( (int) $audience_id );
+	private function audiences( array $audience_ids ): array {
+		$key = implode( ',', array_map( 'intval', $audience_ids ) );
+		if ( ! isset( $this->expanded[ $key ] ) ) {
+			$this->expanded[ $key ] = class_exists( AudienceReader::class ) ? AudienceReader::with_descendants( $audience_ids ) : array();
 		}
-		return $set;
-	}
-
-	/**
-	 * Members of an audience and its sub-audiences, as a set.
-	 *
-	 * @param int $audience_id Audience.
-	 * @return array<int, true>
-	 */
-	private function members_of( int $audience_id ): array {
-		if ( ! isset( $this->members[ $audience_id ] ) ) {
-			$set = array();
-			if ( class_exists( AudienceReader::class ) ) {
-				foreach ( AudienceReader::get_members( $audience_id, true ) as $id ) {
-					$set[ (int) $id ] = true;
-				}
-			}
-			$this->members[ $audience_id ] = $set;
-		}
-		return $this->members[ $audience_id ];
+		return $this->expanded[ $key ];
 	}
 }

@@ -38,6 +38,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * AN INACTIVE RULE SENDS NOTHING. The daily job selects active rules, `start()`
  * refuses an inactive one, and every batch re-reads the rule, so deactivating
  * it stops a run already in progress (#1598).
+ *
+ * A REQUEST THAT DIES DOES NOT END THE RUN (#2336). What follows a batch -- the
+ * next page or the next day -- is queued before the batch sends anything, and
+ * so is a retry of the batch itself, removed once the batch completes. A
+ * request killed mid-batch (a timeout on a synchronous SMTP send) therefore
+ * leaves both events behind: the retry finishes the page, the claim keeps it
+ * from sending twice, and `DeliveryLog::count_once()` keeps it from counting
+ * twice. A message that throws is counted as failed and the batch goes on.
+ * The daily job queues one start per rule, so one rule cannot stop the next.
  */
 final class Runner {
 
@@ -51,6 +60,12 @@ final class Runner {
 	 * argument is the rule id; the event runs once, so it is not a recurring task.
 	 */
 	public const ANNOUNCE_HOOK = 'ffc_date_messages_announce';
+
+	/**
+	 * Single event that opens one rule's daily run (#2336). Its arguments are
+	 * the rule id and the target day.
+	 */
+	public const START_HOOK = 'ffc_date_messages_start';
 
 	/**
 	 * People handled per request.
@@ -68,13 +83,25 @@ final class Runner {
 	private const BATCH_DELAY = 30;
 
 	/**
+	 * Seconds before a batch that did not complete is run again (#2336): longer
+	 * than any request may live, so a batch still running is not doubled.
+	 */
+	private const RETRY_DELAY = 600;
+
+	/**
+	 * Times a batch is run again before the run gives up on it.
+	 */
+	private const MAX_RETRIES = 3;
+
+	/**
 	 * Register the continuation callback.
 	 *
 	 * @return void
 	 */
 	public static function init(): void {
-		add_action( self::BATCH_HOOK, array( self::class, 'process' ), 10, 3 );
+		add_action( self::BATCH_HOOK, array( self::class, 'process' ), 10, 4 );
 		add_action( self::ANNOUNCE_HOOK, array( self::class, 'process_announcement' ), 10, 1 );
+		add_action( self::START_HOOK, array( self::class, 'process_start' ), 10, 2 );
 	}
 
 	/**
@@ -87,7 +114,8 @@ final class Runner {
 	}
 
 	/**
-	 * The daily job: one run per active rule over today's target.
+	 * The daily job: one start event per active rule over today's target
+	 * (#2336), so a rule whose run fails cannot keep the next from starting.
 	 *
 	 * @return void
 	 */
@@ -109,8 +137,28 @@ final class Runner {
 			// A rule sent N days BEFORE the date has a negative offset, so
 			// the date it is about today is today minus the offset.
 			$target = $today->modify( sprintf( '%+d days', -$rule->offset_days ) );
-			self::start( $rule, $target, $target, 'cron', 0 );
+			$args   = array( $rule->id, $target->format( 'Y-m-d' ) );
+			if ( false === wp_next_scheduled( self::START_HOOK, $args ) ) {
+				wp_schedule_single_event( time(), self::START_HOOK, $args );
+			}
 		}
+	}
+
+	/**
+	 * One rule's daily start (#2336). The rule is read again, so one changed
+	 * since the daily job queued it is judged as it is now.
+	 *
+	 * @param int    $rule_id Rule.
+	 * @param string $target  Target day, `Y-m-d`.
+	 * @return void
+	 */
+	public static function process_start( int $rule_id, string $target ): void {
+		$rule = RuleReader::get_by_id( $rule_id );
+		$day  = \DateTimeImmutable::createFromFormat( '!Y-m-d', $target, wp_timezone() );
+		if ( null === $rule || false === $day || ! $rule->is_active || ! $rule->send_to_user || $rule->is_announcement() || SettingsReader::emails_disabled() ) {
+			return;
+		}
+		self::start( $rule, $day, $day, 'cron', 0 );
 	}
 
 	/**
@@ -204,12 +252,13 @@ final class Runner {
 	/**
 	 * Handle one batch of one target day, then hand off what is left.
 	 *
-	 * @param int    $run_id Run.
-	 * @param string $target Target day, `Y-m-d`.
-	 * @param int    $after  Keyset cursor.
+	 * @param int    $run_id  Run.
+	 * @param string $target  Target day, `Y-m-d`.
+	 * @param int    $after   Keyset cursor.
+	 * @param int    $attempt Times this batch already ran and did not complete.
 	 * @return void
 	 */
-	public static function process( int $run_id, string $target, int $after ): void {
+	public static function process( int $run_id, string $target, int $after, int $attempt = 0 ): void {
 		$run  = DeliveryLog::get_run( $run_id );
 		$rule = null === $run ? null : RuleReader::get_by_id( (int) $run['rule_id'] );
 		$day  = \DateTimeImmutable::createFromFormat( '!Y-m-d', $target, wp_timezone() );
@@ -228,6 +277,30 @@ final class Runner {
 		$page   = ( new RecipientResolver() )->resolve( $rule, $day, $after, self::BATCH_SIZE );
 		$today  = self::today();
 
+		// What follows, queued before anything is sent (#2336): the next page,
+		// or the next day, and a retry of this batch that only a completed
+		// batch removes.
+		$last = false;
+		if ( ! $page['complete'] ) {
+			self::schedule( $run_id, $target, $page['cursor'] );
+		} else {
+			$next = $day->modify( '+1 day' )->format( 'Y-m-d' );
+			if ( $next <= (string) $run['target_to'] ) {
+				self::schedule( $run_id, $next, 0 );
+			} else {
+				$last = true;
+			}
+		}
+		$retry = array( $run_id, $target, $after, $attempt + 1 );
+		if ( $attempt < self::MAX_RETRIES ) {
+			wp_schedule_single_event( time() + self::RETRY_DELAY, self::BATCH_HOOK, $retry );
+		}
+
+		if ( function_exists( 'cache_users' ) ) {
+			cache_users( array_map( static fn( array $row ): int => $row['user_id'], $page['rows'] ) );
+		}
+
+		$occurrence = $day->format( 'Y-m-d' );
 		foreach ( $page['rows'] as $row ) {
 			switch ( $row['decision'] ) {
 				case RecipientResolver::WILL_SEND:
@@ -236,23 +309,20 @@ final class Runner {
 				case RecipientResolver::OPTED_OUT:
 				case RecipientResolver::NO_EMAIL:
 				case RecipientResolver::OUT_OF_AUDIENCE:
-					DeliveryLog::bump( $run_id, $row['decision'] );
+					DeliveryLog::count_once( $run_id, $rule->id, $row['user_id'], $occurrence, $row['decision'] );
 					break;
 			}
 		}
 
-		if ( ! $page['complete'] ) {
-			self::schedule( $run_id, $target, $page['cursor'] );
-			return;
+		// The batch completed: its retry is not needed.
+		$pending = wp_next_scheduled( self::BATCH_HOOK, $retry );
+		if ( false !== $pending ) {
+			wp_unschedule_event( $pending, self::BATCH_HOOK, $retry );
 		}
 
-		$next = $day->modify( '+1 day' )->format( 'Y-m-d' );
-		if ( $next <= (string) $run['target_to'] ) {
-			self::schedule( $run_id, $next, 0 );
-			return;
+		if ( $last ) {
+			DeliveryLog::finish_run( $run_id );
 		}
-
-		DeliveryLog::finish_run( $run_id );
 	}
 
 	/**
@@ -278,8 +348,15 @@ final class Runner {
 			return;
 		}
 
-		$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
-		$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args() );
+		try {
+			$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
+			$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args() );
+		} catch ( \Throwable $e ) {
+			// One message that cannot be built or sent (a value that will not
+			// decrypt, a mailer that throws) is one failure, not the end of
+			// the batch (#2336).
+			$sent = false;
+		}
 
 		if ( $sent ) {
 			DeliveryLog::bump( $run_id, 'sent' );
@@ -293,7 +370,7 @@ final class Runner {
 		// claim, so a "Send now" over that day may try again. The daily job
 		// never does: it only ever looks at today's target.
 		DeliveryLog::release( $rule->id, $row['user_id'], $occurrence );
-		DeliveryLog::bump( $run_id, 'failed' );
+		DeliveryLog::count_once( $run_id, $rule->id, $row['user_id'], $occurrence, 'failed' );
 	}
 
 	/**
