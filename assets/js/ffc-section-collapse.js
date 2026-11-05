@@ -19,20 +19,34 @@
 (function ($) {
 	'use strict';
 
+	/**
+	 * Show or hide a master's sections. A hidden section takes its required
+	 * fields with it (#2344): constraint validation ignores visibility, so a
+	 * cleared required number inside a section the master turned off would
+	 * block the save against a field nobody can see.
+	 *
+	 * @param {jQuery} $master The toggle.
+	 */
+	function apply($master) {
+		var key = $master.attr('data-ffc-section-master');
+		var on  = $master.is(':checked');
+		var $sections = $('[data-ffc-section="' + key + '"]');
+		$sections.toggle(on);
+		if (window.FFC && typeof window.FFC.setRequiredWithin === 'function') {
+			$sections.each(function () {
+				window.FFC.setRequiredWithin($(this), on);
+			});
+		}
+	}
+
 	function applyAll() {
 		$('[data-ffc-section-master]').each(function () {
-			var $master = $(this);
-			var key     = $master.attr('data-ffc-section-master');
-			var on      = $master.is(':checked');
-			$('[data-ffc-section="' + key + '"]').toggle(on);
+			apply($(this));
 		});
 	}
 
 	$(document).on('change', '[data-ffc-section-master]', function () {
-		var $master = $(this);
-		var key     = $master.attr('data-ffc-section-master');
-		var on      = $master.is(':checked');
-		$('[data-ffc-section="' + key + '"]').toggle(on);
+		apply($(this));
 	});
 
 	// Initial state.

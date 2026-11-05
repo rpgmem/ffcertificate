@@ -64,6 +64,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin: tab menus and drag-only lists work by keyboard** (#2344). The Settings, Scheduling settings, Recruitment and Date Messages menus are a navigation of links marking the page shown; custom fields, form fields and choice options gain Move up / Move down beside the drag handle; a form tab with a save error says so to a screen reader.
 - **CSV export dialog: accessible, and its error stays** (#2344). The progress dialog is a named modal that takes the focus and gives it back; the bar is a progressbar, a polite status announces every quarter, and an error stays with a Close button. Every export speaks one set of localised strings.
 - **Public forms: robust on cached and template-built pages** (#2344). A failed refresh of the captcha and nonces is retried once, then the form goes on with the values the page carried, instead of being removed. A form or calendar rendered outside the post body, such as a widget or a block template, loads its scripts and styles.
+- **Settings: a section turned off no longer blocks the save** (#2344). Hiding a section with its switch, on the Rate Limit and Geolocation tabs among others, takes its required fields with it, so a cleared number inside it no longer stops the form; turning it back on restores them.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
