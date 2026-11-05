@@ -217,7 +217,8 @@
                 preparing: strings.exportPreparing,
                 exporting: strings.exportProgress,
                 downloading: strings.exportDone,
-                error: strings.error,
+                // Not `strings.error`, which reads "Error: " for inline use:
+                // the export's own localised default says what failed (#2344).
                 connectionError: strings.connectionError
             },
             startData: startData

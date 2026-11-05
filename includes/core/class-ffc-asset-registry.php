@@ -320,6 +320,32 @@ final class AssetRegistry {
 		if ( 'ffc-pdf-generator' === $handle ) {
 			\wp_localize_script( 'ffc-pdf-generator', 'ffcPdfLibraries', self::pdf_library_urls() );
 		}
+		if ( 'ffc-batched-export' === $handle ) {
+			\wp_localize_script( 'ffc-batched-export', 'ffcBatchedExportStrings', self::batched_export_strings() );
+		}
+	}
+
+	/**
+	 * The CSV export dialog's words, localised once for every export (#2344).
+	 * A caller passing its own string still wins.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function batched_export_strings(): array {
+		return array(
+			'title'           => __( 'Exporting CSV', 'ffcertificate' ),
+			'preparing'       => __( 'Preparing…', 'ffcertificate' ),
+			/* translators: %d: number of records */
+			'generating'      => __( 'Generating CSV — %d records…', 'ffcertificate' ),
+			/* translators: 1: records exported so far, 2: total records */
+			'exporting'       => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
+			'downloading'     => __( 'Starting download…', 'ffcertificate' ),
+			'error'           => __( 'Export failed.', 'ffcertificate' ),
+			'connectionError' => __( 'Connection error. Check your connection and try again.', 'ffcertificate' ),
+			'close'           => __( 'Close', 'ffcertificate' ),
+			/* translators: %d: percentage of the export done (25, 50, 75 or 100) */
+			'percent'         => __( '%d percent done', 'ffcertificate' ),
+		);
 	}
 
 	/**

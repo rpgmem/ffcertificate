@@ -31933,3 +31933,20 @@ msgstr "Seções"
 #: includes/admin/class-ffc-form-editor.php:140
 msgid "has an error"
 msgstr "tem um erro"
+
+#: includes/core/class-ffc-asset-registry.php:347
+#, php-format
+msgid "%d percent done"
+msgstr "%d por cento concluído"
+
+#: includes/core/class-ffc-asset-registry.php:344
+msgid "Connection error. Check your connection and try again."
+msgstr "Erro de conexão. Verifique sua conexão e tente novamente."
+
+#: includes/core/class-ffc-asset-registry.php:343
+msgid "Export failed."
+msgstr "A exportação falhou."
+
+#: includes/core/class-ffc-asset-registry.php:336
+msgid "Exporting CSV"
+msgstr "Exportando CSV"

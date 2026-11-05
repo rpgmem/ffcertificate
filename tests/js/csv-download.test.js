@@ -1205,19 +1205,29 @@ describe('csv-download — overlay helpers', () => {
 		csv.hideOverlay();
 	});
 
-	it('showError injects the error node and tears the overlay down after the 4s timer', async () => {
+	it('showError keeps the error on screen until it is closed, and gives the focus back', async () => {
 		const csv = await api();
+		const trigger = document.createElement('button');
+		document.body.appendChild(trigger);
+		trigger.focus();
 		csv.showOverlay('Working');
 		vi.useFakeTimers();
 		try {
 			csv.showError('Boom');
 			expect(window.$('.ffc-csv-progress-error').text()).toBe('Boom');
+			expect(window.$('.ffc-csv-progress-error').attr('role')).toBe('alert');
 			expect(window.$('.ffc-csv-progress-bar-fill').hasClass('ffc-csv-error')).toBe(true);
-			// The showError setTimeout(hideOverlay, 4000) fires the teardown.
-			vi.advanceTimersByTime(4001);
+			// A message that vanished after 4 s could go unread (#2344).
+			vi.advanceTimersByTime(10000);
+			expect(window.$('.ffc-csv-progress-overlay').length).toBe(1);
+			expect(document.activeElement).toBe(window.$('.ffc-csv-progress-close')[0]);
+			window.$('.ffc-csv-progress-close').trigger('click');
+			vi.advanceTimersByTime(400);
 			expect(window.$('.ffc-csv-progress-overlay').length).toBe(0);
+			expect(document.activeElement).toBe(trigger);
 		} finally {
 			vi.useRealTimers();
+			trigger.remove();
 		}
 	});
 

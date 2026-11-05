@@ -149,6 +149,20 @@ class AssetRegistryTest extends TestCase {
 		$this->assertSame( FFC_VERSION, $config[0]['l10n']['version'] );
 	}
 
+	public function test_the_export_dialog_strings_are_localised_once_with_the_driver(): void {
+		AssetRegistry::register_frontend();
+
+		// Every export speaks the same words, whatever its caller passes (#2344).
+		$config = $this->localizations( 'ffc-batched-export' );
+		$this->assertCount( 1, $config );
+		$this->assertSame( 'ffcBatchedExportStrings', $config[0]['object_name'] );
+		$this->assertSame( AssetRegistry::batched_export_strings(), $config[0]['l10n'] );
+		$this->assertSame(
+			array( 'title', 'preparing', 'generating', 'exporting', 'downloading', 'error', 'connectionError', 'close', 'percent' ),
+			array_keys( $config[0]['l10n'] )
+		);
+	}
+
 	public function test_frontend_registers_the_field_behaviours_and_the_helpers_on_them(): void {
 		AssetRegistry::register_frontend();
 
