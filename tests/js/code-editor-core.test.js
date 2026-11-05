@@ -269,3 +269,74 @@ describe('ffc-code-editor-core.js — DOM helpers (flush/setContent/insertAtCurs
 		expect($ta.val()).toBe('start-end');
 	});
 });
+
+describe('ffc-code-editor-core.js — placeholder overlay tokenizer', () => {
+	beforeEach(reset);
+
+	// Minimal stand-in for CodeMirror's StringStream: `match()` only succeeds
+	// at the current position, as CodeMirror's does for a RegExp.
+	function stream(text) {
+		return {
+			pos: 0,
+			match(re) {
+				const m = text.slice(this.pos).match(re);
+				if (!m || m.index > 0) {
+					return null;
+				}
+				this.pos += m[0].length;
+				return m;
+			},
+			next() {
+				return this.pos < text.length ? text[this.pos++] : undefined;
+			},
+			eol() {
+				return this.pos >= text.length;
+			},
+			peek() {
+				return this.pos < text.length ? text[this.pos] : undefined;
+			},
+		};
+	}
+
+	// Run the overlay over a whole line, collecting [text, style] spans.
+	function tokenize(overlay, text) {
+		const s = stream(text);
+		const spans = [];
+		while (!s.eol()) {
+			const start = s.pos;
+			const style = overlay.token(s);
+			spans.push([text.slice(start, s.pos), style]);
+		}
+		return spans;
+	}
+
+	function mountedOverlay() {
+		document.body.innerHTML = '<form><textarea id="ta">x</textarea></form>';
+		const cm = fakeEditor();
+		window.wp = { codeEditor: { initialize: () => ({ codemirror: cm }) } };
+		loadCore();
+		window.FFCCodeEditor.init('ta', { codemirror: {} }, {});
+		return cm.addOverlay.mock.calls[0][0];
+	}
+
+	it('styles a {{placeholder}} and stops plain text right before the next brace', () => {
+		const overlay = mountedOverlay();
+
+		expect(tokenize(overlay, 'Hi {{name}}, ok')).toEqual([
+			['Hi ', null],
+			['{{name}}', 'ffc-placeholder-token'],
+			[', ok', null],
+		]);
+	});
+
+	it('leaves a lone brace that opens no placeholder unstyled', () => {
+		const overlay = mountedOverlay();
+
+		expect(tokenize(overlay, 'a {b} {{}}')).toEqual([
+			['a ', null],
+			['{b} ', null],
+			['{', null],
+			['{}}', null],
+		]);
+	});
+});

@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment notice editor in vertical tabs** (#2370). Classifications (open first), Calls, General with the status, Adjutancies and Import candidates become tabs, beside the site shortcode and a summary of the status, adjutancies, list rows and calls.
 - **QR Code Generator: vCard department, number and neighbourhood** (#2372). The department joins ORG, the number and the neighbourhood (filled by the CEP lookup) join the street line, and the type says it is vCard 3.0 with a link to RFC 2426.
 - **QR Code Generator: download the vCard as a .vcf, and a Role field** (#2374). A Download .vcf button under the code saves the same card the code carries, and the card takes a Role (vCard `ROLE`) apart from the job title.
+- **CI: every tested script counts toward JS coverage, and a missing `.min` fails the build** (#2344). The PDF generator, the certificate preview, the personal calendar, the code editor and the migrations screen leave the coverage exclusions, with tests that keep the floor; the asset check also catches a new minified file that was never committed.
 
 ### Security
 
