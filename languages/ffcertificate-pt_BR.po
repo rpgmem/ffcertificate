@@ -7236,6 +7236,10 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Unsubscribed."
+msgstr "Inscrição cancelada."
+
 #: templates/admin/date-messages/rules.php:74
 msgid "At %s"
 msgstr "Às %s"
@@ -7377,8 +7381,8 @@ msgid "Every field is a token"
 msgstr "Cada campo é um token."
 
 #: includes/settings/views/documentation/reference-emails.php:113
-msgid "every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. No configuration needed."
-msgstr "todo e-mail em HTML é enviado no formato `multipart/alternative` — contendo o HTML e uma versão em texto simples gerada automaticamente —, o que melhora a pontuação de spam e a renderização em clientes de e-mail que exibem apenas texto. Nenhuma configuração é necessária."
+msgid "every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. The inbox preview line shows the start of the message instead of the site name. No configuration needed."
+msgstr "todo e-mail em HTML é enviado no formato `multipart/alternative` — contendo o HTML e uma versão em texto simples gerada automaticamente —, o que melhora a pontuação de spam e a renderização em clientes de e-mail que exibem apenas texto. A linha de prévia da caixa de entrada mostra o início da mensagem em vez do nome do site. Nenhuma configuração é necessária."
 
 #: includes/settings/views/ffc-tab-advanced.php:764
 msgid "Every record is now encrypted under the new key. Remove FFC_ENCRYPTION_KEY_PREVIOUS from wp-config.php to finish."
@@ -22625,8 +22629,8 @@ msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar
 msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
 msgstr "Um anúncio enviado a todos ainda chega a quem desligou os anúncios quando a regra está configurada para enviar mesmo assim. O histórico conta esses envios como forçados, então a escolha nunca fica oculta."
 
-msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
-msgstr "Toda mensagem traz um link de cancelamento de inscrição com um clique; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada."
+msgid "Every message carries an unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing. Each message also carries the List-Unsubscribe headers, so the Unsubscribe button a mail client shows beside the sender turns them off in one step, checked by the same token."
+msgstr "Toda mensagem traz um link de cancelamento de inscrição; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada. Cada mensagem também traz os cabeçalhos List-Unsubscribe, então o botão Cancelar inscrição que o programa de e-mail mostra ao lado do remetente as desliga em um passo, conferido pelo mesmo token."
 
 msgid "E-mail tokens"
 msgstr "Tokens de e-mail"
@@ -22643,8 +22647,8 @@ msgstr "Dias entre o envio e a data"
 msgid "Site name and the link to the user dashboard"
 msgstr "Nome do site e o link para o painel do usuário"
 
-msgid "The one-click unsubscribe link"
-msgstr "O link de cancelamento de inscrição com um clique"
+msgid "The unsubscribe link (opens a confirmation page)"
+msgstr "O link de cancelamento de inscrição (abre uma página de confirmação)"
 
 msgid "Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global \"Disable all emails\" switch."
 msgstr "As mensagens passam pelo fluxo de e-mail compartilhado e pelo layout do Modelo de e-mail, e respeitam a chave global \"Desativar todos os e-mails\"."

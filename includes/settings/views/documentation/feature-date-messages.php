@@ -87,7 +87,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<ul>
 		<li><?php esc_html_e( 'On their dashboard, under Notification Preferences, a person can turn off "Date messages (such as birthday greetings)" and "Announcements from this site". The two are separate: turning one off does not stop the other.', 'ffcertificate' ); ?></li>
 		<li><?php esc_html_e( 'An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent.', 'ffcertificate' ); ?></li>
-		<li><?php esc_html_e( 'Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'Every message carries an unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing. Each message also carries the List-Unsubscribe headers, so the Unsubscribe button a mail client shows beside the sender turns them off in one step, checked by the same token.', 'ffcertificate' ); ?></li>
 	</ul>
 
 	<h4><?php esc_html_e( 'E-mail tokens', 'ffcertificate' ); ?></h4>
@@ -104,7 +104,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>{{date}}</code>, <code>{{age}}</code></td><td><?php esc_html_e( 'The date of this occurrence and the age reached on it', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{days_until}}</code></td><td><?php esc_html_e( 'Days between the send and the date', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{site_name}}</code>, <code>{{dashboard_url}}</code></td><td><?php esc_html_e( 'Site name and the link to the user dashboard', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>{{unsubscribe_url}}</code></td><td><?php esc_html_e( 'The one-click unsubscribe link', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{unsubscribe_url}}</code></td><td><?php esc_html_e( 'The unsubscribe link (opens a confirmation page)', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
 	<p class="description"><?php esc_html_e( 'Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global "Disable all emails" switch.', 'ffcertificate' ); ?> <a href="#reference-emails"><?php esc_html_e( 'See Emails & Delivery', 'ffcertificate' ); ?></a>.</p>

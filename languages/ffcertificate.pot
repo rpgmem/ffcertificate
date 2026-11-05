@@ -7233,6 +7233,10 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Unsubscribed."
+msgstr ""
+
 #: templates/admin/date-messages/rules.php:74
 msgid "At %s"
 msgstr ""
@@ -7374,7 +7378,7 @@ msgid "Every field is a token"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:113
-msgid "every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. No configuration needed."
+msgid "every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. The inbox preview line shows the start of the message instead of the site name. No configuration needed."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:764
@@ -22544,7 +22548,7 @@ msgstr ""
 msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
 msgstr ""
 
-msgid "Every message carries a one-click unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing."
+msgid "Every message carries an unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing. Each message also carries the List-Unsubscribe headers, so the Unsubscribe button a mail client shows beside the sender turns them off in one step, checked by the same token."
 msgstr ""
 
 msgid "E-mail tokens"
@@ -22562,7 +22566,7 @@ msgstr ""
 msgid "Site name and the link to the user dashboard"
 msgstr ""
 
-msgid "The one-click unsubscribe link"
+msgid "The unsubscribe link (opens a confirmation page)"
 msgstr ""
 
 msgid "Messages go through the shared e-mail pipeline and Email Model chrome, and respect the global \"Disable all emails\" switch."
