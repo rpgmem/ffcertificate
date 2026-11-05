@@ -357,7 +357,8 @@ final class Runner {
 
 		try {
 			$message = MessageBuilder::build( $rule, $source, $row, $day, $today );
-			$sent    = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args() );
+			// A bulk message carries the one-click unsubscribe headers (#2336).
+			$sent = SchedulingMailer::send( $row['email'], $message['subject'], $message['body'], array(), true, $rule->email_source(), $rule->appearance->document_args(), Unsubscribe::headers( $row['user_id'], $rule->opt_out_category() ) );
 		} catch ( \Throwable $e ) {
 			// One message that cannot be built or sent (a value that will not
 			// decrypt, a mailer that throws) is one failure, not the end of

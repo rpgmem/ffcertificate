@@ -77,6 +77,7 @@ class EmailServiceTest extends TestCase {
 
 	public function test_send_returns_false_when_wp_mail_fails(): void {
 		Functions\when( 'wp_mail' )->justReturn( false );
+		Functions\when( 'is_email' )->returnArg();
 
 		$this->assertFalse( EmailService::send( 'a@b.c', 'S', 'B' ) );
 	}
@@ -138,6 +139,26 @@ class EmailServiceTest extends TestCase {
 
 		EmailService::send( 'a@b.c', 'Subj', $body, $headers );
 		return $alt;
+	}
+
+	public function test_a_failed_send_logs_a_masked_address_and_no_subject(): void {
+		Functions\when( 'wp_mail' )->justReturn( false );
+		Functions\when( 'is_email' )->returnArg();
+		Functions\when( 'get_option' )->justReturn( array( 'debug_email_handler' => 1 ) );
+		$log      = tempnam( sys_get_temp_dir(), 'ffc-log' );
+		$previous = ini_set( 'error_log', (string) $log );
+		try {
+			EmailService::send( 'maria@example.org', 'Happy birthday, Maria Silva', 'B' );
+		} finally {
+			ini_set( 'error_log', (string) $previous );
+		}
+		$line = (string) file_get_contents( (string) $log );
+		unlink( (string) $log );
+
+		$this->assertStringContainsString( 'Email send failed', $line );
+		$this->assertStringNotContainsString( 'maria@', $line );
+		$this->assertStringNotContainsString( 'Maria', $line );
+		$this->assertMatchesRegularExpression( '/\[subject\] => [0-9a-f]{16}/', $line );
 	}
 
 	public function test_html_to_plain_text_strips_tags_keeps_links_and_collapses_blanks(): void {

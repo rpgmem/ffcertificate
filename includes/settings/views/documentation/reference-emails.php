@@ -127,7 +127,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Deliverability', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Multipart:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. No configuration needed.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Multipart:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. The inbox preview line shows the start of the message instead of the site name. No configuration needed.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Bulk sends:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'install the sibling total-mail-queue plugin for queueing, retries and backoff. Because every plugin email goes through wp_mail(), it is captured automatically once activated.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Developer hooks:', 'ffcertificate' ); ?></strong> <code>ffcertificate_email</code> <?php esc_html_e( '(inspect/rewrite the composed message before send) and', 'ffcertificate' ); ?> <code>ffcertificate_email_plain_text</code> <?php esc_html_e( '(customize or suppress the plain-text part). See the Developer page.', 'ffcertificate' ); ?></li>
 		</ul>

@@ -35,6 +35,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Date Messages: who may send, and what a send does** (#2336). Activating a rule or forcing it past opt-outs takes Send date messages, on save, toggle and copy alike. Personal e-mails off now runs the rule for its summary only, an announcement reaches each person once per rule, Send now lists only active rules, and tests are limited to one a minute, as saved for test-only accounts.
 - ⚠ **Date Messages: deleting a rule takes `ffc_delete_date_messages`** (#2336). Managing rules no longer includes it; every current holder of `ffc_manage_date_messages` receives it on upgrade. An integration that deletes rules on the strength of the manage capability must check the new one.
 - **Date Messages: the editor and Send now say what will happen** (#2336). Send now confirms with the rule, the dates and the number of people the preview counts. Restore default follows the kind being edited, changing the kind asks before replacing an edited text, an announcement is offered only its own placeholders, and the list shows its send time instead of a date.
+- **E-mail: one-click unsubscribe and a cleaner document** (#2336). Date messages carry `List-Unsubscribe` and `List-Unsubscribe-Post` (RFC 8058). Every e-mail declares its language and light scheme, shows its first line in the inbox preview, and leaves the site name out of its plain text. A failed send logs a masked address and no subject.
 
 ### Security
 

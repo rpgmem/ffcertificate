@@ -138,15 +138,15 @@ class EmailHandlerTest extends TestCase {
 	public function test_configure_custom_smtp_leaves_phpmailer_alone_while_total_mail_queue_is_active(): void {
 		// Total Mail Queue manages delivery (#1758): WP default is used, and the
 		// stored custom SMTP applies again once it is deactivated.
-		Functions\when( 'get_option' )->alias(
-			static function ( $key ) {
-				if ( 'active_plugins' === $key ) {
-					return array( 'total-mail-queue/total-mail-queue.php' );
-				}
-				return array(
-					'smtp_mode' => 'custom',
-					'smtp_host' => 'smtp.example.com',
-				);
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'smtp_mode' => 'custom',
+				'smtp_host' => 'smtp.example.com',
+			)
+		);
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $tag, $value ) {
+				return 'ffcertificate_mail_queue_active' === $tag ? true : $value;
 			}
 		);
 

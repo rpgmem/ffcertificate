@@ -132,11 +132,14 @@ final class EmailService {
 		}
 
 		if ( ! $sent && class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+			// A subject can carry a name, and the address is personal data:
+			// the log keeps a masked address and a keyed digest of the
+			// subject, which still tells two failures apart.
 			Debug::log_email(
 				'Email send failed',
 				array(
-					'to'      => $to,
-					'subject' => $subject,
+					'to'      => DocumentFormatter::mask( DocumentFormatter::MASK_EMAIL, $to ),
+					'subject' => substr( Encryption::keyed_hash( $subject, 'debug_email_subject' ), 0, 16 ),
 				)
 			);
 		}
@@ -177,7 +180,7 @@ final class EmailService {
 		 */
 		$emit = (bool) apply_filters(
 			'ffcertificate_emit_source_headers',
-			class_exists( '\\TotalMailQueue\\Sources\\Detector' ),
+			self::mail_queue_active(),
 			$source_key
 		);
 
@@ -189,6 +192,31 @@ final class EmailService {
 		$headers[] = 'X-TMQ-Source-Label: ' . EmailSource::label( $source_key );
 
 		return $headers;
+	}
+
+	/**
+	 * Whether the sibling mail-queue plugin (`rpgmem/total-mail-queue`) is active.
+	 *
+	 * The one detection, read by the source headers above and by
+	 * {@see \FreeFormCertificate\Integrations\MailQueue::is_active()}. It
+	 * asks for the queue's own class, which its autoloader serves only while
+	 * the plugin is active, per site or network-wide, and which survives a
+	 * rename of the plugin's folder or main file. Overridable via the
+	 * `ffcertificate_mail_queue_active` filter.
+	 *
+	 * @return bool
+	 */
+	public static function mail_queue_active(): bool {
+		/**
+		 * Filter whether a mail-queue plugin is considered active.
+		 *
+		 * Lets an integration force the answer — e.g. a queue plugin that ships
+		 * under another namespace can hook this to advertise itself.
+		 *
+		 * @since 6.14.0
+		 * @param bool $active Whether total-mail-queue was detected.
+		 */
+		return (bool) apply_filters( 'ffcertificate_mail_queue_active', class_exists( '\\TotalMailQueue\\Sources\\Detector' ) );
 	}
 
 	/**
@@ -272,6 +300,11 @@ final class EmailService {
 	 * @return string Plain-text body.
 	 */
 	public static function html_to_plain_text( string $html ): string {
+		// The <head> (its <title> is the site name) and the hidden inbox
+		// preheader are not part of what the message says.
+		$html = (string) preg_replace( '#<head\b.*?</head>#is', '', $html );
+		$html = (string) preg_replace( '#<div\b[^>]*class="ffc-email-preheader"[^>]*>.*?</div>#is', '', $html );
+
 		// Preserve links as "label (url)".
 		$text = (string) preg_replace_callback(
 			'/<a\b[^>]*href=(["\'])(.*?)\1[^>]*>(.*?)<\/a>/is',
