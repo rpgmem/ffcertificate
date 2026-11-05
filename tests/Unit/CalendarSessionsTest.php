@@ -183,8 +183,22 @@ class CalendarSessionsTest extends TestCase {
 		$this->assertSame( '', CalendarSessions::name_of_appointment( array(), array( 'session_id' => 2 ) ) );
 	}
 
-	public function test_a_calendar_names_a_session_with_its_own_label_or_the_default(): void {
+	/**
+	 * The general names Calendar Colors and Labels stores (#2420).
+	 *
+	 * @param array<string, string> $cell Stored cell names.
+	 * @return void
+	 */
+	private function general_names( array $cell = array() ): void {
 		Functions\when( '__' )->returnArg();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => \FreeFormCertificate\Scheduling\CalendarAppearance::OPTION === $key ? array( 'cell' => $cell ) : $default
+		);
+		Functions\when( 'sanitize_hex_color' )->returnArg();
+	}
+
+	public function test_a_calendar_names_a_session_with_its_own_label_or_the_default(): void {
+		$this->general_names();
 		$own = array( 'session_label' => ' Room ', 'session_label_plural' => 'Rooms' );
 
 		$this->assertSame( 'Room', CalendarSessions::label( $own ) );
@@ -193,7 +207,26 @@ class CalendarSessionsTest extends TestCase {
 		$this->assertSame( 'Sessions', CalendarSessions::label( array(), true ) );
 	}
 
+	public function test_an_empty_label_inherits_the_general_name_before_the_default(): void {
+		$this->general_names(
+			array(
+				'session_singular' => 'Lab',
+				'session_plural'   => 'Labs',
+			)
+		);
+
+		$this->assertSame( 'Lab', CalendarSessions::label( array( 'session_label' => '' ) ), 'The general name, not "Session".' );
+		$this->assertSame( 'Labs', CalendarSessions::label( array(), true ) );
+		$this->assertSame( 'Room', CalendarSessions::label( array( 'session_label' => 'Room' ) ), 'The calendar\'s own name wins.' );
+		$this->assertSame(
+			array( 'chooseSession' => 'Labs', 'changeSession' => 'Labs', 'session' => 'Lab' ),
+			CalendarSessions::step_strings( array() ),
+			'The booking step follows the general name too.'
+		);
+	}
+
 	public function test_the_step_strings_replace_only_what_a_label_was_given_for(): void {
+		$this->general_names();
 		$this->assertSame(
 			array( 'chooseSession' => 'Rooms', 'changeSession' => 'Rooms', 'session' => 'Room' ),
 			CalendarSessions::step_strings( array( 'session_label' => 'Room', 'session_label_plural' => 'Rooms' ) )

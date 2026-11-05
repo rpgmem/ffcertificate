@@ -22,6 +22,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\SelfScheduling;
 
+use FreeFormCertificate\Scheduling\CalendarAppearance;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -61,9 +63,10 @@ final class CalendarSessions {
 	public const LABEL_PLURAL_META = '_ffc_self_scheduling_session_label_plural';
 
 	/**
-	 * The calendar's word for a session (#2413): its own label when set, the
-	 * default otherwise. Read from the calendar row, or from the post meta
-	 * when the row is not at hand ({@see self::labels_of_post()}).
+	 * The calendar's word for a session (#2413): its own label when set, else
+	 * the general one from Calendar Colors and Labels, else the default
+	 * (#2420). Read from the calendar row, or from the post meta when the row
+	 * is not at hand ({@see self::labels_of_post()}).
 	 *
 	 * @param array<string, mixed> $calendar Calendar row.
 	 * @param bool                 $plural   Whether to return the plural.
@@ -75,7 +78,7 @@ final class CalendarSessions {
 		if ( '' !== $custom ) {
 			return $custom;
 		}
-		return $plural ? __( 'Sessions', 'ffcertificate' ) : __( 'Session', 'ffcertificate' );
+		return CalendarAppearance::cell( $plural ? CalendarAppearance::SESSION_PLURAL : CalendarAppearance::SESSION_SINGULAR );
 	}
 
 	/**
@@ -94,23 +97,24 @@ final class CalendarSessions {
 	}
 
 	/**
-	 * The booking step's strings for a calendar with its own labels (#2413).
-	 * Only the strings a custom label replaces are returned, so the general
-	 * ones stand otherwise: the step heading and its back button name the
-	 * plural, the line above the times the singular.
+	 * The booking step's strings for a calendar whose word for a session is
+	 * not the default (#2413) -- its own, or the general one (#2420). Only the
+	 * strings a label replaces are returned, so the step's own wording stands
+	 * otherwise: the step heading and its back button name the plural, the
+	 * line above the times the singular.
 	 *
 	 * @param array<string, mixed> $calendar Calendar row.
 	 * @return array<string, string>
 	 */
 	public static function step_strings( array $calendar ): array {
 		$strings  = array();
-		$singular = is_scalar( $calendar['session_label'] ?? null ) ? trim( (string) $calendar['session_label'] ) : '';
-		$plural   = is_scalar( $calendar['session_label_plural'] ?? null ) ? trim( (string) $calendar['session_label_plural'] ) : '';
-		if ( '' !== $plural ) {
+		$singular = self::label( $calendar );
+		$plural   = self::label( $calendar, true );
+		if ( CalendarAppearance::default_cell( CalendarAppearance::SESSION_PLURAL ) !== $plural ) {
 			$strings['chooseSession'] = $plural;
 			$strings['changeSession'] = $plural;
 		}
-		if ( '' !== $singular ) {
+		if ( CalendarAppearance::default_cell( CalendarAppearance::SESSION_SINGULAR ) !== $singular ) {
 			$strings['session'] = $singular;
 		}
 		return $strings;

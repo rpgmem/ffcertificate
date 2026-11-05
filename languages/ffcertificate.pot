@@ -7233,6 +7233,18 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: templates/admin/scheduling/calendar-names.php
+msgid "Word for a session (%s)"
+msgstr ""
+
+#: templates/admin/scheduling/calendar-names.php
+msgid "The word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page."
+msgstr ""
+
+#: templates/admin/audience/general-tab.php
+msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+msgstr ""
+
 #: includes/date-messages/class-ffc-unsubscribe.php
 msgid "Unsubscribed."
 msgstr ""
@@ -7325,24 +7337,12 @@ msgstr ""
 msgid "Date messages: start of one rule's daily run (one per rule)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
-msgid "Session (singular)"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
-msgid "Sessions (plural)"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
-msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use \"Session\" / \"Sessions\"."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:54
-msgid "Two fields on the Names tab give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
+msgid "The word for a session, singular and plural (for example \"Room\" / \"Rooms\"), is what visitors see when they book and on the receipt, the e-mails and the verification page. Its general form is set in Calendar Colors and Labels on the General tab of the Scheduling settings; the Session row of a calendar's Names tab sets its own, and an empty field there keeps the general one."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:119
-msgid "The calendar's word for a session, \"Session\" unless the Names tab sets its own"
+msgid "The calendar's word for a session: its own from the Names tab, else the general one from Calendar Colors and Labels, else \"Session\""
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75
@@ -28761,7 +28761,7 @@ msgstr ""
 msgid "These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar's name, and its choice to show or hide the closed day's name, win over these; an empty field there keeps the general one."
 msgstr ""
 
-msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
+msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) its word for a session in the singular and the plural, and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
 msgstr ""
 
 msgid "This calendar's own names. An empty field uses the general name, shown in it, set in Calendar Colors and Labels on the General tab of the Scheduling settings. Colors are general only."
