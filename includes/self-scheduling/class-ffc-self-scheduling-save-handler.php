@@ -74,10 +74,79 @@ class SelfSchedulingSaveHandler {
 		$this->save_config( $post_id );
 		$this->save_working_hours( $post_id );
 		$this->save_custom_slots( $post_id );
+		$this->save_sessions( $post_id );
 		$this->save_email_config( $post_id );
 		$this->save_names( $post_id );
 
 		\FreeFormCertificate\Submissions\FormCache::purge_page_cache( $post_id, 'ffc_self_scheduling' );
+	}
+
+	/**
+	 * Save the calendar's sessions (#2405). The Sessions tab posts a marker,
+	 * so a list emptied on purpose is saved and a form without the tab
+	 * leaves the sessions alone. A session with an open appointment from
+	 * today on is not deleted: it is kept, and the editor says so.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return void
+	 */
+	private function save_sessions( int $post_id ): void {
+		if ( ! RequestInput::has_post( 'ffc_self_scheduling_sessions_present' ) ) {
+			return;
+		}
+
+		$stored   = CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) );
+		$sessions = CalendarSessions::from_rows( RequestInput::get_post_raw_array( 'ffc_self_scheduling_sessions' ), $stored );
+
+		$removed = array();
+		foreach ( CalendarSessions::active( $stored ) as $session ) {
+			if ( '' === CalendarSessions::name( CalendarSessions::active( $sessions ), $session['id'] ) ) {
+				$removed[] = $session['id'];
+			}
+		}
+
+		$kept = array() === $removed ? array() : array_values( array_intersect( $removed, $this->sessions_with_open_appointments( $post_id ) ) );
+		if ( array() !== $kept ) {
+			$sessions = CalendarSessions::restore( $sessions, $kept );
+			set_transient(
+				self::sessions_notice_key( $post_id ),
+				array_map( static fn( int $id ): string => CalendarSessions::name( $stored, $id ), $kept ),
+				MINUTE_IN_SECONDS * 5
+			);
+		}
+
+		update_post_meta( $post_id, CalendarSessions::META, wp_slash( $sessions ) );
+	}
+
+	/**
+	 * The sessions of a calendar that hold an open appointment from today on.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return list<int>
+	 */
+	private function sessions_with_open_appointments( int $post_id ): array {
+		global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the live appointments of the plugin's own tables while the post is saved, so the save can refuse to delete a session that holds one.
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT DISTINCT a.session_id FROM %i a INNER JOIN %i c ON c.id = a.calendar_id WHERE c.post_id = %d AND a.session_id IS NOT NULL AND a.appointment_date >= %s AND a.status IN ('pending','confirmed','waitlist')",
+				$wpdb->prefix . 'ffc_self_scheduling_appointments',
+				$wpdb->prefix . 'ffc_self_scheduling_calendars',
+				$post_id,
+				wp_date( 'Y-m-d' )
+			)
+		);
+		return array_values( array_map( 'intval', is_array( $ids ) ? $ids : array() ) );
+	}
+
+	/**
+	 * The transient that names the sessions a save kept, per user and calendar.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return string
+	 */
+	public static function sessions_notice_key( int $post_id ): string {
+		return 'ffc_ss_sessions_kept_' . get_current_user_id() . '_' . $post_id;
 	}
 
 	/**

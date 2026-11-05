@@ -120,6 +120,7 @@ class SelfSchedulingEditor {
 					'addWorkingHour'   => __( 'Add Working Hours', 'ffcertificate' ),
 					'lastWorkingHour'  => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
 					'remove'           => __( 'Remove', 'ffcertificate' ),
+					'sessionName'      => __( 'Session name', 'ffcertificate' ),
 					'daysOfWeek'       => array(
 						__( 'Sunday', 'ffcertificate' ),
 						__( 'Monday', 'ffcertificate' ),
@@ -296,6 +297,13 @@ class SelfSchedulingEditor {
 				'masters' => array(),
 			),
 			array(
+				'key'     => 'sessions',
+				'icon'    => 'ffc-icon-users',
+				'label'   => __( 'Sessions', 'ffcertificate' ),
+				'title'   => __( 'Sessions', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
 				'key'     => 'window',
 				'icon'    => 'ffc-icon-history',
 				'label'   => __( 'Booking window', 'ffcertificate' ),
@@ -350,7 +358,7 @@ class SelfSchedulingEditor {
 			// once the calendar does.
 			array_splice(
 				$tabs,
-				3,
+				4,
 				0,
 				array(
 					array(
@@ -415,6 +423,9 @@ class SelfSchedulingEditor {
 					case 'slots':
 						$this->render_tab_slots( $config, $mode_locked );
 						$this->render_working_hours( $post, $mode_locked );
+						break;
+					case 'sessions':
+						$this->render_tab_sessions( (int) $post->ID );
 						break;
 					case 'window':
 						$this->render_tab_window( $config );
@@ -562,6 +573,84 @@ class SelfSchedulingEditor {
 				?>
 			</tbody>
 		</table>
+		<?php
+	}
+
+	/**
+	 * Sessions tab (#2405): parallel services inside the calendar, each with
+	 * its own places. The marker field tells the save the tab was posted, so
+	 * a list emptied on purpose is saved as empty.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return void
+	 */
+	private function render_tab_sessions( int $post_id ): void {
+		self::render_tab_hint( __( 'Parallel services on the same days and hours, each with its own places.', 'ffcertificate' ) );
+
+		$kept = get_transient( SelfSchedulingSaveHandler::sessions_notice_key( $post_id ) );
+		if ( is_array( $kept ) && array() !== $kept ) {
+			delete_transient( SelfSchedulingSaveHandler::sessions_notice_key( $post_id ) );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html(
+					sprintf(
+						/* translators: %s: session names, comma-separated */
+						__( 'Not deleted, because they have open appointments from today on: %s. Cancel or move those appointments first.', 'ffcertificate' ),
+						implode( ', ', array_map( 'strval', $kept ) )
+					)
+				),
+				array( 'additional_classes' => array( 'inline' ) )
+			);
+		}
+
+		$sessions = CalendarSessions::active( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		?>
+		<p class="description"><?php esc_html_e( 'Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted.', 'ffcertificate' ); ?></p>
+		<input type="hidden" name="ffc_self_scheduling_sessions_present" value="1">
+		<table class="widefat ffc-sessions-table">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Session name', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Order', 'ffcertificate' ); ?></th>
+					<th scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></span></th>
+				</tr>
+			</thead>
+			<tbody id="ffc-sessions-list">
+				<?php foreach ( $sessions as $index => $session ) : ?>
+					<tr class="ffc-session-row">
+						<td>
+							<input type="hidden" name="ffc_self_scheduling_sessions[<?php echo esc_attr( (string) $index ); ?>][id]" value="<?php echo esc_attr( (string) $session['id'] ); ?>">
+							<input type="text" class="regular-text" name="ffc_self_scheduling_sessions[<?php echo esc_attr( (string) $index ); ?>][name]" value="<?php echo esc_attr( $session['name'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" aria-label="<?php esc_attr_e( 'Session name', 'ffcertificate' ); ?>" required>
+						</td>
+						<td><span class="ffc-session-order"></span></td>
+						<td>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Remove', 'ffcertificate' ),
+									'category' => 'danger',
+									'icon'     => 'delete',
+									'class'    => 'ffc-remove-session',
+								)
+							);
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Add Session', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'id'       => 'ffc-add-session',
+				)
+			);
+			?>
+		</p>
 		<?php
 	}
 

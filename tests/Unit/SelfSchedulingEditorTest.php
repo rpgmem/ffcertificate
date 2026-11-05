@@ -289,10 +289,11 @@ class SelfSchedulingEditorTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="ffc-vtabs" data-ffc-vtabs>', $output );
 		preg_match_all( '/<span class="ffc-vtabs__icon ([^"]+)"/', $output, $m );
-		// Each icon twice: in the nav and in the panel title. Ten tabs on a
-		// saved calendar, the Blocked dates one included (#2244).
-		$this->assertCount( 20, $m[1] );
+		// Each icon twice: in the nav and in the panel title. Eleven tabs on a
+		// saved calendar, the Blocked dates (#2244) and Sessions (#2405) ones included.
+		$this->assertCount( 22, $m[1] );
 		$this->assertContains( 'ffc-icon-lock', $m[1] );
+		$this->assertContains( 'ffc-icon-users', $m[1] );
 		$this->assertStringContainsString( 'Save the calendar first; its blocked dates can be added once it exists.', $output );
 		foreach ( $m[1] as $class ) {
 			$this->assertMatchesRegularExpression( '/^ffc-icon-[a-z-]+$/', $class, 'A tab icon the registry does not know falls back to a dashicon' );
@@ -300,7 +301,62 @@ class SelfSchedulingEditorTest extends TestCase {
 		$this->assertStringNotContainsString( 'dashicons', $output );
 		// The first tab starts active; the others are reachable by the arrow keys.
 		$this->assertSame( 1, substr_count( $output, 'aria-selected="true"' ) );
-		$this->assertSame( 9, substr_count( $output, 'aria-selected="false"' ) );
+		$this->assertSame( 10, substr_count( $output, 'aria-selected="false"' ) );
+	}
+
+	public function test_the_sessions_tab_lists_the_active_sessions_in_order(): void {
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => '_ffc_self_scheduling_sessions' === $key
+				? array(
+					array( 'id' => 4, 'name' => 'Room <B>' ),
+					array( 'id' => 1, 'name' => 'Gone', 'deleted' => true ),
+					array( 'id' => 2, 'name' => 'Room A' ),
+				)
+				: ''
+		);
+
+		$output = $this->render_config();
+
+		$this->assertStringContainsString( 'name="ffc_self_scheduling_sessions_present" value="1"', $output );
+		preg_match_all( '/name="ffc_self_scheduling_sessions\[(\d+)\]\[id\]" value="(\d+)"/', $output, $ids );
+		$this->assertSame( array( '4', '2' ), $ids[2], 'Active sessions only, in their order.' );
+		$this->assertStringContainsString( 'name="ffc_self_scheduling_sessions[1][name]" value="Room A"', $output );
+		$this->assertStringNotContainsString( 'Gone', $output );
+		$this->assertStringContainsString( 'id="ffc-add-session"', $output );
+	}
+
+	public function test_the_sessions_tab_names_the_sessions_a_save_kept_once(): void {
+		$notices = array();
+		Functions\when( 'wp_admin_notice' )->alias(
+			static function ( $message ) use ( &$notices ): void {
+				$notices[] = $message;
+			}
+		);
+		$deleted = array();
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ): bool {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$post     = Mockery::mock( 'WP_Post' );
+		$post->ID = 10;
+		Functions\when( 'get_option' )->alias( static fn( $key ) => 'admin_email' === $key ? 'site@example.com' : array() );
+		Functions\when( 'wp_editor' )->justReturn( null );
+		$GLOBALS['wpdb']->shouldReceive( 'get_row' )->andReturn( null );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->alias( static fn( $key ) => 'ffc_ss_sessions_kept_1_10' === $key ? array( 'Room A' ) : false );
+
+		ob_start();
+		( new SelfSchedulingEditor() )->render_box_config( $post );
+		ob_get_clean();
+
+		$this->assertCount( 1, array_filter( $notices, static fn( string $m ): bool => str_contains( $m, 'Room A' ) && str_contains( $m, 'Not deleted' ) ) );
+		$this->assertContains( 'ffc_ss_sessions_kept_1_10', $deleted, 'The notice shows once.' );
 	}
 
 	public function test_the_occupancy_tab_exists_only_for_a_saved_custom_calendar(): void {

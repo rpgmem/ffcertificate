@@ -32054,3 +32054,37 @@ msgstr "Mostrar um painel com as vagas livres do mês"
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
 msgid "Your bookings"
 msgstr "Seus agendamentos"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Add Session"
+msgstr "Adicionar sessão"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted."
+msgstr "Horários, duração do horário, capacidade por horário e datas bloqueadas vêm do calendário; cada sessão conta as próprias vagas, então um horário reservado em uma sessão continua livre na outra. Com menos de duas sessões o calendário funciona como sem elas. Uma sessão com agendamentos abertos de hoje em diante não pode ser excluída."
+
+#. translators: %s: session names, comma-separated
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+#, php-format
+msgid "Not deleted, because they have open appointments from today on: %s. Cancel or move those appointments first."
+msgstr "Não excluídas, porque têm agendamentos abertos de hoje em diante: %s. Cancele ou mova esses agendamentos primeiro."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Order"
+msgstr "Ordem"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Parallel services on the same days and hours, each with its own places."
+msgstr "Serviços paralelos nos mesmos dias e horários, cada um com as próprias vagas."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Session name"
+msgstr "Nome da sessão"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Sessions"
+msgstr "Sessões"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The Sessions tab names parallel services that run on the same days and hours, such as two rooms. A session owns its name only: hours, slot length, capacity per slot and blocked dates come from the calendar. Sessions can be added, renamed, reordered and deleted; a session with open appointments from today on is kept when deleted, and the editor says so. With fewer than two sessions the calendar works as it does without them."
+msgstr "A aba Sessões nomeia serviços paralelos que acontecem nos mesmos dias e horários, como duas salas. Uma sessão tem apenas o nome: horários, duração do horário, capacidade por horário e datas bloqueadas vêm do calendário. As sessões podem ser adicionadas, renomeadas, reordenadas e excluídas; uma sessão com agendamentos abertos de hoje em diante é mantida ao ser excluída, e o editor avisa. Com menos de duas sessões o calendário funciona como sem elas."

@@ -485,6 +485,10 @@ class SelfSchedulingCPTTest extends TestCase {
 			'_ffc_self_scheduling_working_hours' => array( 'mon' => '9-5' ),
 			'_ffc_self_scheduling_email_config'  => array( 'enabled' => 1 ),
 			'_ffc_self_scheduling_names'         => array( 'cell' => array( 'closed' => 'Fechado\\' ) ),
+			'_ffc_self_scheduling_sessions'      => array(
+				array( 'id' => 1, 'name' => 'Room A' ),
+				array( 'id' => 2, 'name' => 'Gone', 'deleted' => true ),
+			),
 		);
 		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) use ( $meta ) {
 			return $meta[ $key ] ?? '';
@@ -515,10 +519,11 @@ class SelfSchedulingCPTTest extends TestCase {
 		}
 
 		$this->assertSame(
-			array( '_ffc_self_scheduling_config', '_ffc_self_scheduling_working_hours', '_ffc_self_scheduling_email_config', '_ffc_self_scheduling_names' ),
+			array( '_ffc_self_scheduling_config', '_ffc_self_scheduling_working_hours', '_ffc_self_scheduling_email_config', '_ffc_self_scheduling_names', '_ffc_self_scheduling_sessions' ),
 			$updated,
-			'The copy must carry the original calendar\'s metadata, its own names included (#2223).'
+			'The copy must carry the original calendar\'s metadata, its own names and sessions included (#2223, #2405).'
 		);
+		$this->assertSame( array( 'Room A' ), array_column( $values['_ffc_self_scheduling_sessions'], 'name' ), 'A deleted session stays behind: the copy has no appointment to name it.' );
 		$this->assertSame( 'Fechado\\\\', $values['_ffc_self_scheduling_names']['cell']['closed'], 'The names are slashed once, for the unslash update_post_meta() applies.' );
 	}
 
@@ -668,6 +673,9 @@ class SelfSchedulingCPTTest extends TestCase {
 			if ( '_ffc_self_scheduling_working_hours' === $key ) {
 				return array( 'mon' => '9-5' );
 			}
+			if ( '_ffc_self_scheduling_sessions' === $key ) {
+				return array( array( 'id' => 1, 'name' => 'Room A' ), array( 'id' => 2, 'name' => 'Old', 'deleted' => true ) );
+			}
 			return array( 'enabled' => 1 );
 		} );
 
@@ -691,6 +699,8 @@ class SelfSchedulingCPTTest extends TestCase {
 		// The free-slots panel reaches the row the shortcode reads (#2405).
 		$this->assertSame( 1, $data['show_event_list'] );
 		$this->assertSame( 'below', $data['event_list_position'] );
+		// The sessions reach the row too, the deleted one included (#2405).
+		$this->assertSame( '[{"id":1,"name":"Room A","deleted":false},{"id":2,"name":"Old","deleted":true}]', $data['sessions'] );
 		$this->assertSame( 'New Cal', $data['title'] );
 		$this->assertSame( '2026-01-01 00:00:00', $data['created_at'] );
 		$this->assertSame( 3, $data['created_by'] );

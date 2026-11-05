@@ -336,6 +336,14 @@ class SelfSchedulingCPT {
 			$metadata_copied[] = 'custom_slots';
 		}
 
+		// The sessions travel without the deleted ones (#2405): the copy has
+		// no appointment that could still name one.
+		$sessions = CalendarSessions::active( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		if ( array() !== $sessions ) {
+			update_post_meta( $new_post_id, CalendarSessions::META, wp_slash( $sessions ) );
+			$metadata_copied[] = 'sessions';
+		}
+
 		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Calendar duplicated successfully',
 			array(
@@ -401,9 +409,11 @@ class SelfSchedulingCPT {
 		$data['post_id']       = $post_id;
 		$data['working_hours'] = is_array( $working_hours ) ? wp_json_encode( $working_hours ) : $working_hours;
 		$data['custom_slots']  = is_array( $custom_slots ) ? wp_json_encode( $custom_slots ) : $custom_slots;
-		$data['email_config']  = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
-		$data['updated_at']    = current_time( 'mysql' );
-		$data['updated_by']    = get_current_user_id();
+		// The sessions (#2405), deleted ones included: appointments keep their names.
+		$data['sessions']     = wp_json_encode( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		$data['email_config'] = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
+		$data['updated_at']   = current_time( 'mysql' );
+		$data['updated_by']   = get_current_user_id();
 
 		if ( $existing ) {
 			// Update existing record.
