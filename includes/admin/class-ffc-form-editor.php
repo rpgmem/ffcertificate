@@ -136,6 +136,8 @@ class FormEditor {
 			 * @phpstan-ignore argument.type
 			 */
 			wp_localize_script( AdminUI::VERTICAL_TABS_HANDLE, 'ffcFormTabsErrors', $error_tabs );
+			// The tab's error dot is colour only; these words reach a screen reader (#2344).
+			wp_localize_script( AdminUI::VERTICAL_TABS_HANDLE, 'ffcFormTabsErrorText', array( 'text' => __( 'has an error', 'ffcertificate' ) ) );
 		}
 
 		// Required-tag list for the client-side save guard: block the submit

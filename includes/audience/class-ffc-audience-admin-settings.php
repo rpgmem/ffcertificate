@@ -174,25 +174,22 @@ class AudienceAdminSettings {
 			?>
 
 			<div class="ffc-settings-tabs">
-				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+				<nav class="ffc-settings-tabs__nav" aria-label="<?php echo esc_attr( __( 'Sections', 'ffcertificate' ) ); ?>"><ul class="ffc-settings-tabs__list">
 					<?php foreach ( $tabs as $tab_id => $tab ) : ?>
 						<?php $is_active = ( $active_tab === $tab_id ); ?>
-						<li class="ffc-settings-tabs__nav-item" role="presentation">
+						<li class="ffc-settings-tabs__nav-item">
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->menu_slug . '-settings&tab=' . $tab_id ) ); ?>"
 								id="ffc-scheduling-tabnav-<?php echo esc_attr( $tab_id ); ?>"
 								class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
-								role="tab"
-								aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
-								aria-controls="ffc-scheduling-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
-								tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+								<?php echo $is_active ? 'aria-current="page"' : ''; ?>>
 								<span class="ffc-settings-tabs__icon <?php echo esc_attr( \FreeFormCertificate\Core\Icons::tab_class( (string) $tab['icon'] ) ); ?>" aria-hidden="true"></span>
 								<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab['label'] ); ?></span>
 							</a>
 						</li>
 					<?php endforeach; ?>
-				</ul>
+				</ul></nav>
 
-				<div id="ffc-scheduling-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-scheduling-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+				<div id="ffc-scheduling-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel">
 					<?php
 					switch ( $active_tab ) {
 						case 'self-scheduling':

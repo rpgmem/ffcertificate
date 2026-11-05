@@ -830,6 +830,112 @@
         },
 
         /**
+         * Move up / Move down buttons beside each drag handle of a list
+         * (#2344), so a list that reorders by drag reorders by keyboard too.
+         *
+         * `ensure()` adds the pair after every handle in `root` that has
+         * none, and is safe to call again; rows added or removed later are
+         * picked up on their own, by a mutation observer. A click
+         * swaps the row with its neighbour, keeps the focus on the button
+         * the visitor pressed, and fires `ffc:reordered` on the list, so a
+         * caller that tracks the order can refresh it. The first row's Up
+         * and the last row's Down are disabled.
+         *
+         * @param {Object} cfg
+         * @param {string} cfg.list    Selector of the element whose children are the rows.
+         * @param {string} cfg.item    Selector of a row.
+         * @param {string} cfg.handle  Selector of a row's drag handle.
+         * @return {{ensure: function(Element|jQuery=): void}}
+         */
+        reorder: function(cfg) {
+            var self = this;
+            // One binding per list: a screen that initialises twice reuses it.
+            self._reorders = self._reorders || {};
+            if (self._reorders[cfg.list]) {
+                self._reorders[cfg.list].ensure(document);
+                return self._reorders[cfg.list];
+            }
+            var strings = (window.ffcCoreConfig && window.ffcCoreConfig.strings) || {};
+            var $ = window.jQuery;
+            function rowsOf($list) {
+                return $list.children(cfg.item);
+            }
+            function refresh($list) {
+                var $rows = rowsOf($list);
+                $rows.each(function(i) {
+                    var $pair = $(this).find('.ffc-reorder').first();
+                    $pair.find('.ffc-reorder-up').prop('disabled', i === 0);
+                    $pair.find('.ffc-reorder-down').prop('disabled', i === $rows.length - 1);
+                });
+            }
+            function ensure(root) {
+                $(root || document).find(cfg.list).addBack(cfg.list).each(function() {
+                    var $list = $(this);
+                    rowsOf($list).each(function() {
+                        var $handle = $(this).find(cfg.handle).first();
+                        if (!$handle.length || $handle.next('.ffc-reorder').length) {
+                            return;
+                        }
+                        var pair = document.createElement('span');
+                        pair.className = 'ffc-reorder';
+                        pair.appendChild(self.button({ label: strings.moveUp || 'Move up', category: 'neutral', icon: 'chevron-up', iconOnly: true, className: 'ffc-reorder-up' }));
+                        pair.appendChild(self.button({ label: strings.moveDown || 'Move down', category: 'neutral', icon: 'chevron-down', iconOnly: true, className: 'ffc-reorder-down' }));
+                        $handle.after(pair);
+                    });
+                    refresh($list);
+                });
+            }
+            $(document).off('click.ffcReorder' + cfg.list).on('click.ffcReorder' + cfg.list, cfg.list + ' .ffc-reorder-up, ' + cfg.list + ' .ffc-reorder-down', function(e) {
+                e.preventDefault();
+                var $btn = $(this);
+                var $row = $btn.closest(cfg.item);
+                var $list = $row.parent();
+                if (!$list.is(cfg.list)) {
+                    return;
+                }
+                var up = $btn.hasClass('ffc-reorder-up');
+                var $other = up ? $row.prevAll(cfg.item).first() : $row.nextAll(cfg.item).first();
+                if (!$other.length) {
+                    return;
+                }
+                if (up) {
+                    $row.insertBefore($other);
+                } else {
+                    $row.insertAfter($other);
+                }
+                refresh($list);
+                // The pressed button may now be disabled (row at an end): keep
+                // the focus on the row's other button then, never on the body.
+                var target = $btn.prop('disabled') ? $row.find(up ? '.ffc-reorder-down' : '.ffc-reorder-up').first() : $btn;
+                target.trigger('focus');
+                $list.trigger('ffc:reordered');
+            });
+            $(document).on('sortupdate', cfg.list, function(e) {
+                if (e.target === this) {
+                    refresh($(this));
+                }
+            });
+            // Rows the screen adds (a new field, a cloned option) and rows it
+            // removes keep their buttons and their end states right.
+            if (typeof window.MutationObserver === 'function' && document.body) {
+                var pending = false;
+                new window.MutationObserver(function() {
+                    if (pending) {
+                        return;
+                    }
+                    pending = true;
+                    setTimeout(function() {
+                        pending = false;
+                        ensure(document);
+                    }, 0);
+                }).observe(document.body, { childList: true, subtree: true });
+            }
+            ensure(document);
+            self._reorders[cfg.list] = { ensure: ensure };
+            return self._reorders[cfg.list];
+        },
+
+        /**
          * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
          * printing the same markup, so no script hand-writes it.
          *

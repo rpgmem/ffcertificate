@@ -390,3 +390,19 @@ describe('Add the required fields (#1741)', () => {
 		expect(typeof FB().addRequiredFields).toBe('function');
 	});
 });
+
+describe('FieldBuilder: reorder by keyboard (#2344)', () => {
+	it('puts Move up / Move down beside each field handle, and moving a field moves its inputs', () => {
+		initOn([0, 1]);
+		const header = (i) => document.querySelector(`#ffc-fields-container .ffc-field-row[data-index="${i}"] .ffc-field-row-header`);
+		expect(header(0).querySelector('.ffc-sort-handle + .ffc-reorder')).not.toBeNull();
+		header(1).querySelector('.ffc-reorder-up').click();
+		const names = $$('#ffc-fields-container .ffc-label-input').map((el) => el.name);
+		expect(names).toEqual(['ffc_fields[1][label]', 'ffc_fields[0][label]']);
+	});
+
+	it('puts the pair beside each option handle of a choice field', () => {
+		initOn([0]);
+		expect($('#ffc-fields-container .ffc-choice-row .ffc-choice-handle + .ffc-reorder')).not.toBeNull();
+	});
+});

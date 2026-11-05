@@ -1281,7 +1281,7 @@ class DateMessagesAdminPageTest extends TestCase {
 	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_rules(): void {
 		$html = $this->render_screen( array( 'tab' => 'upcoming' ), 'not an array' );
 
-		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
+		$this->assertMatchesRegularExpression( '#id="ffc-date-messages-tabnav-rules"[^>]*aria-current="page"#', $html, 'The rules page is the one shown (#2344).' );
 		$this->assertStringContainsString( 'Add rule', $html );
 		$this->assertStringNotContainsString( 'class="notice', $html, 'a non-array outcome is no outcome' );
 	}
@@ -1295,7 +1295,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( '<div class="notice notice-error"><span class="ffc-admin-notice-icon ffc-icon-error ffc-icon-tone-danger" aria-hidden="true"></span>That rule no longer exists.</div>', $html );
-		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
+		$this->assertMatchesRegularExpression( '#id="ffc-date-messages-tabnav-rules"[^>]*aria-current="page"#', $html, 'The rules page is the one shown (#2344).' );
 	}
 
 	public function test_the_history_tab_reads_a_page_of_runs(): void {

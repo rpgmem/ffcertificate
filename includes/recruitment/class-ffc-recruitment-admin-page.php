@@ -376,7 +376,7 @@ final class RecruitmentAdminPage {
 		RecruitmentAdminPageRenderer::render_tabs( $tab );
 
 		printf(
-			'<div id="ffc-recruitment-tabpanel-%1$s" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-recruitment-tabnav-%1$s" tabindex="0">',
+			'<div id="ffc-recruitment-tabpanel-%1$s" class="ffc-settings-tabs__panel">',
 			esc_attr( $tab )
 		);
 

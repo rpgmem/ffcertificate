@@ -267,6 +267,12 @@
             });
         }
         makeChoicesSortable($container);
+        // The keyboard twin of each drag handle (#2344): the fields, and the
+        // options of a choice field.
+        if (typeof FFC.reorder === 'function') {
+            FFC.reorder({ list: '#ffc-fields-container', item: '.ffc-field-row', handle: '.ffc-sort-handle' });
+            FFC.reorder({ list: '.ffc-choice-list', item: '.ffc-choice-row', handle: '.ffc-choice-handle' });
+        }
     }
 
     function showFieldTypeMenu($button) {
