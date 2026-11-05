@@ -1227,39 +1227,20 @@ class SelfSchedulingEditor {
 	}
 
 	/**
-	 * Render the Names tab (#2223): this calendar's own state names and
-	 * closed-label choice, each inheriting the general one when empty.
+	 * Render the Names tab (#2223): this calendar's own state names, its
+	 * closed-label choice and its word for a session (#2420), each inheriting
+	 * the general one when empty.
 	 *
 	 * @param object $post Post object.
 	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	private function render_tab_names( object $post ): void {
-		$ffc_names_base    = 'ffc_calendar_names';
-		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
-		$ffc_names_booking = true;
+		$ffc_names_base     = 'ffc_calendar_names';
+		$ffc_names          = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
+		$ffc_names_booking  = true;
+		$ffc_names_sessions = CalendarSessions::labels_of_post( (int) $post->ID );
 		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
-
-		// The calendar's own word for a session (#2413), beside its other names.
-		?>
-		<?php $labels = CalendarSessions::labels_of_post( (int) $post->ID ); ?>
-		<h3><?php esc_html_e( 'Sessions', 'ffcertificate' ); ?></h3>
-		<table class="form-table" role="presentation">
-			<tr>
-				<th scope="row"><label for="ffc_self_scheduling_session_label"><?php esc_html_e( 'Session (singular)', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label" id="ffc_self_scheduling_session_label" value="<?php echo esc_attr( $labels['session_label'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Session', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
-				</td>
-			</tr>
-			<tr>
-				<th scope="row"><label for="ffc_self_scheduling_session_label_plural"><?php esc_html_e( 'Sessions (plural)', 'ffcertificate' ); ?></label></th>
-				<td>
-					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label_plural" id="ffc_self_scheduling_session_label_plural" value="<?php echo esc_attr( $labels['session_label_plural'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Sessions', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
-					<p class="description" id="ffc-session-label-help"><?php esc_html_e( 'This calendar\'s word for a session (e.g. "Room" / "Rooms"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use "Session" / "Sessions".', 'ffcertificate' ); ?></p>
-				</td>
-			</tr>
-		</table>
-		<?php
 	}
 
 	/**

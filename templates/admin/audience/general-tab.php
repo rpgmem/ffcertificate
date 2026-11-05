@@ -306,6 +306,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 								</td>
 							</tr>
 						<?php endforeach; ?>
+						<?php // The personal calendars' word for a session (#2420): no colour and no legend, two forms like the booking badge. ?>
+						<tr class="ffc-calendar-appearance-session">
+							<th scope="row">
+								<?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::default_cell( \FreeFormCertificate\Scheduling\CalendarAppearance::SESSION_SINGULAR ) ); ?>
+								<p class="description"><?php esc_html_e( 'The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab.', 'ffcertificate' ); ?></p>
+							</th>
+							<td colspan="3">
+								<?php
+								foreach ( array(
+									\FreeFormCertificate\Scheduling\CalendarAppearance::SESSION_SINGULAR => __( 'Singular', 'ffcertificate' ),
+									\FreeFormCertificate\Scheduling\CalendarAppearance::SESSION_PLURAL   => __( 'Plural', 'ffcertificate' ),
+								) as $ffc_form => $ffc_form_label ) :
+									?>
+									<input type="text" name="calendar_cell[<?php echo esc_attr( $ffc_form ); ?>]" maxlength="40" class="ffc-calendar-booking-name"
+											aria-label="<?php echo esc_attr( sprintf( /* translators: %s: Singular or Plural */ __( 'Word for a session (%s)', 'ffcertificate' ), $ffc_form_label ) ); ?>"
+											value="<?php echo esc_attr( $ffc_appearance['cell'][ $ffc_form ] ); ?>"
+											placeholder="<?php echo esc_attr( \FreeFormCertificate\Scheduling\CalendarAppearance::default_cell( $ffc_form ) ); ?>">
+								<?php endforeach; ?>
+							</td>
+							<td><?php echo esc_html( \FreeFormCertificate\Scheduling\CalendarAppearance::cell( \FreeFormCertificate\Scheduling\CalendarAppearance::SESSION_PLURAL ) ); ?></td>
+						</tr>
 					</tbody>
 				</table>
 				<?php
