@@ -84,6 +84,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The form background and the receipt background are cleaned on read (#2344).
+		Functions\when( 'esc_url_raw' )->returnArg();
 
 		// Static state the real classes keep: the limiter's settings memo,
 		// the captcha provider instances and the activity-log buffer.
