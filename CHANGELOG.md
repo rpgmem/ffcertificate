@@ -16,7 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: sessions in the editor** (#2405). A Sessions tab names parallel services on the same days and hours; each will count its own places. Sessions are added, renamed, reordered and deleted, and one with open appointments from today on is kept. The booking flow follows in a later PR.
 - **Personal Calendars: booking by session** (#2405). On a calendar with two or more sessions a day lists the sessions and their free places, then the chosen session's times. Places, waitlist and daily limit count per session; the free slots panel and a visitor's bookings name the session.
 - **Personal Calendars: the session wherever an appointment shows** (#2405). The Appointments list, every appointment e-mail (`{{session_name}}`, `{{session_block}}`), the receipt and PDF, verification, the CSV export (a last column) and the user dashboard name the session; a deleted session keeps its name.
-- **Personal Calendars: a calendar's own word for a session** (#2413). The Sessions tab takes a singular and a plural label (e.g. "Room" / "Rooms"), used by the booking step, the receipt and PDF, e-mails, verification and the tab itself, plus a `{{session_label}}` token; empty keeps "Session" / "Sessions".
+- **Personal Calendars: a calendar's own word for a session** (#2413). The Names tab takes a singular and a plural label for sessions (e.g. "Room" / "Rooms"), used by the booking step, the receipt and PDF, e-mails, verification and the Sessions tab title, plus a `{{session_label}}` token; empty keeps "Session" / "Sessions".
 
 ### Changed
 

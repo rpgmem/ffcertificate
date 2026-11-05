@@ -275,19 +275,19 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->assertArrayNotHasKey( '_ffc_self_scheduling_sessions', $this->saved_meta );
 	}
 
-	public function test_the_session_labels_are_saved_with_the_tab_and_cleaned(): void {
-		$_POST['ffc_self_scheduling_sessions_present']     = '1';
+	public function test_the_session_labels_are_saved_from_the_names_tab_and_cleaned(): void {
 		$_POST['ffc_self_scheduling_session_label']        = ' Room ';
 		$_POST['ffc_self_scheduling_session_label_plural'] = '';
-		$this->sessions_save( array(), array() );
+		Functions\when( 'wp_slash' )->returnArg();
+		$this->invoke( 'save_session_labels', array( 100 ) );
 
 		$this->assertSame( 'Room', $this->saved_meta['_ffc_self_scheduling_session_label'] );
 		$this->assertSame( '', $this->saved_meta['_ffc_self_scheduling_session_label_plural'], 'An empty label keeps the default.' );
 	}
 
-	public function test_the_session_labels_are_left_alone_when_the_tab_was_not_posted(): void {
-		$_POST['ffc_self_scheduling_session_label'] = 'Room';
-		$this->sessions_save( array(), array() );
+	public function test_the_session_labels_are_left_alone_when_the_fields_were_not_posted(): void {
+		Functions\when( 'wp_slash' )->returnArg();
+		$this->invoke( 'save_session_labels', array( 100 ) );
 
 		$this->assertArrayNotHasKey( '_ffc_self_scheduling_session_label', $this->saved_meta );
 	}
