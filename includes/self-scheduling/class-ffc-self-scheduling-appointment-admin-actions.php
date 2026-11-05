@@ -105,7 +105,9 @@ class AppointmentAdminActions {
 			// The pending row is one of the active rows the count reads, so
 			// the slot holds it while the active rows number at most
 			// $capacity, which is what a limit of $capacity + 1 asks.
-			if ( $capacity <= 0 || ! $this->appointments->isSlotAvailable( (int) $appointment['calendar_id'], $date, $start, $capacity + 1, true ) ) {
+			// A session counts its own places (#2405).
+			$session = \FreeFormCertificate\SelfScheduling\CalendarSessions::scope_of_appointment( $calendar, $appointment );
+			if ( $capacity <= 0 || ! $this->appointments->isSlotAvailable( (int) $appointment['calendar_id'], $date, $start, $capacity + 1, true, $session ) ) {
 				$this->appointments->rollback();
 				return new \WP_Error( 'slot_full', __( 'The slot is already full, so the appointment cannot be confirmed.', 'ffcertificate' ) );
 			}

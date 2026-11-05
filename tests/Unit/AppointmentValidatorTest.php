@@ -168,7 +168,7 @@ class AppointmentValidatorTest extends TestCase {
 		// against the normalised start (#2244).
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
 			->once()
-			->with( 1, '2030-01-15', '10:00:00', 40, false )
+			->with( 1, '2030-01-15', '10:00:00', 40, false, null )
 			->andReturn( true );
 
 		$result = $this->validator->validate( $this->valid_data(), $this->custom_calendar( 40 ) );
@@ -310,10 +310,50 @@ class AppointmentValidatorTest extends TestCase {
 		$this->assertSame( 'invalid_slot', $this->validator->validate( $data, $calendar )->get_error_code() );
 	}
 
+	/**
+	 * The permissive calendar with two sessions (#2405).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function session_calendar(): array {
+		return array_merge(
+			$this->permissive_calendar(),
+			array( 'sessions' => (string) json_encode( array( array( 'id' => 1, 'name' => 'A' ), array( 'id' => 2, 'name' => 'B' ) ) ) )
+		);
+	}
+
+	public function test_validate_counts_capacity_in_the_chosen_session(): void {
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
+			->once()
+			->with( 1, '2030-01-15', '10:00:00', 10, false, 2 )
+			->andReturn( true );
+
+		$this->assertTrue( $this->validator->validate( array_merge( $this->valid_data(), array( 'session_id' => 2 ) ), $this->session_calendar() ) );
+	}
+
+	public function test_validate_refuses_a_booking_without_a_session_on_a_calendar_with_them(): void {
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->never();
+
+		$result = $this->validator->validate( $this->valid_data(), $this->session_calendar() );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'invalid_session', $result->get_error_code() );
+	}
+
+	public function test_the_daily_limit_counts_the_chosen_sessions_bookings(): void {
+		$calendar                  = $this->session_calendar();
+		$calendar['slots_per_day'] = 1;
+		// One booking today, in the other session.
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturn( array( array( 'session_id' => '1', 'start_time' => '09:00:00' ) ) );
+
+		$this->assertTrue( $this->validator->validate( array_merge( $this->valid_data(), array( 'session_id' => 2 ) ), $calendar ) );
+		$this->assertSame( 'daily_limit', $this->validator->validate( array_merge( $this->valid_data(), array( 'session_id' => 1 ) ), $calendar )->get_error_code() );
+	}
+
 	public function test_validate_counts_capacity_on_the_normalised_start(): void {
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )
 			->once()
-			->with( 1, '2030-01-15', '10:00:00', 10, false )
+			->with( 1, '2030-01-15', '10:00:00', 10, false, null )
 			->andReturn( true );
 		$data               = $this->valid_data();
 		$data['start_time'] = '10:00:42';

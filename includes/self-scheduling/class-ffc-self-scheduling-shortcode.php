@@ -230,6 +230,11 @@ class SelfSchedulingShortcode {
 						// PDF overlay.
 						'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
 						'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+						// The session step (#2405).
+						'chooseSession'        => __( 'Choose a session', 'ffcertificate' ),
+						'changeSession'        => __( 'Change session', 'ffcertificate' ),
+						'session'              => __( 'Session', 'ffcertificate' ),
+						'sessionFull'          => __( 'Full', 'ffcertificate' ),
 						// The free-slots panel (#2405).
 						/* translators: %s: month and year, e.g. "March 2027". */
 						'panelHeading'         => __( 'Free Slots — %s', 'ffcertificate' ),
@@ -639,6 +644,8 @@ class SelfSchedulingShortcode {
 								<div class="ffc-spinner" aria-hidden="true"></div>
 								<p><?php esc_html_e( 'Loading available slots...', 'ffcertificate' ); ?></p>
 							</div>
+							<?php // The session step (#2405), filled by the script on a calendar with sessions. ?>
+							<div id="ffc-session-step" class="ffc-session-step" hidden></div>
 							<div id="ffc-timeslots-container" class="ffc-timeslots-grid" role="listbox" aria-label="<?php esc_attr_e( 'Available time slots', 'ffcertificate' ); ?>"></div>
 						</div>
 
@@ -650,6 +657,7 @@ class SelfSchedulingShortcode {
 								<input type="hidden" name="calendar_id" value="<?php echo esc_attr( $calendar['id'] ); ?>">
 								<input type="hidden" name="date" id="ffc-form-date" value="">
 								<input type="hidden" name="time" id="ffc-form-time" value="">
+								<input type="hidden" name="session_id" id="ffc-form-session" value="">
 
 								<div class="ffc-form-row">
 									<label for="ffc-booking-name">

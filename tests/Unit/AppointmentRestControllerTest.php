@@ -372,7 +372,7 @@ class AppointmentRestControllerTest extends TestCase {
 					return null;
 				}
 				// The validator's capacity check: the active bookings of one slot.
-				if ( preg_match( "/^SELECT COUNT\(\*\) FROM `" . self::APPOINTMENTS . "`\s+WHERE calendar_id = (\d+)\s+AND appointment_date = '([^']*)'\s+AND start_time = '([^']*)'\s+AND status IN \('confirmed', 'pending'\) FOR UPDATE$/", $sql, $m ) ) {
+				if ( preg_match( "/^SELECT COUNT\(\*\) FROM `" . self::APPOINTMENTS . "`\s+WHERE calendar_id = (\d+)\s+AND appointment_date = '([^']*)'\s+AND start_time = '([^']*)'\s+AND status IN \('confirmed', 'pending'\)\s+AND \( 0 = 0 OR session_id = 0 \) FOR UPDATE$/", $sql, $m ) ) {
 					$taken = 0;
 					foreach ( $this->appointments as $row ) {
 						if ( (int) $row['calendar_id'] === (int) $m[1] && $row['appointment_date'] === $m[2] && $row['start_time'] === $m[3] && in_array( $row['status'], array( 'confirmed', 'pending' ), true ) ) {

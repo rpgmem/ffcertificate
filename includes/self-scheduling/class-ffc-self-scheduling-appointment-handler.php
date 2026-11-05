@@ -117,6 +117,18 @@ class AppointmentHandler {
 			return new \WP_Error( 'calendar_inactive', __( 'This calendar is not accepting bookings.', 'ffcertificate' ) );
 		}
 
+		// The session (#2405): one of the calendar's on a calendar that uses
+		// sessions, and none otherwise, so the column stays NULL there.
+		$session = CalendarSessions::scope( $calendar, $data['session_id'] ?? null );
+		if ( 0 === $session ) {
+			return new \WP_Error( 'invalid_session', __( 'Choose one of this calendar\'s sessions.', 'ffcertificate' ) );
+		}
+		if ( null === $session ) {
+			unset( $data['session_id'] );
+		} else {
+			$data['session_id'] = $session;
+		}
+
 		// One spelling per slot (#2244): seconds never make a slot of their own,
 		// since capacity is counted per exact start_time.
 		$start = SlotGrid::normalize( (string) ( $data['start_time'] ?? '' ) );
@@ -370,9 +382,10 @@ class AppointmentHandler {
 	 * @param int    $calendar_id Calendar ID.
 	 * @param string $date        Date (Y-m-d).
 	 * @param string $time        Start time (H:i).
+	 * @param mixed  $session_id  The session chosen (#2405), on a calendar that has them.
 	 * @return list<array{code: string, message: string}>|\WP_Error
 	 */
-	public function get_override_reasons( int $calendar_id, string $date, string $time ) {
+	public function get_override_reasons( int $calendar_id, string $date, string $time, $session_id = null ) {
 		$calendar = $this->calendar_repository->findById( $calendar_id );
 		if ( ! $calendar ) {
 			return new \WP_Error( 'invalid_calendar', __( 'Calendar not found.', 'ffcertificate' ) );
@@ -382,6 +395,7 @@ class AppointmentHandler {
 			'calendar_id'      => $calendar_id,
 			'appointment_date' => $date,
 			'start_time'       => $time,
+			'session_id'       => $session_id,
 		);
 		if ( is_user_logged_in() ) {
 			$data['user_id'] = get_current_user_id();
@@ -493,7 +507,10 @@ class AppointmentHandler {
 	 * @param int                  $calendar_id Calendar ID.
 	 * @param string               $start_date  First day of the month (Y-m-d).
 	 * @param string               $end_date    Last day of the month (Y-m-d).
-	 * @return array{days: array<string, array{free: int, slots: int}>, mine: list<array{date: string, start: string, end: string, status: string}>}
+	 * On a calendar with sessions (#2405) each day also lists its sessions,
+	 * each with its own free places, and each booking names its session.
+	 *
+	 * @return array{days: array<string, array{free: int, slots: int, sessions?: list<array{id: int, name: string, free: int, slots: int}>}>, mine: list<array{date: string, start: string, end: string, status: string, session: string}>}
 	 */
 	public function month_panel( array $calendar, int $calendar_id, string $start_date, string $end_date ): array {
 		$today = wp_date( 'Y-m-d' );
@@ -501,33 +518,39 @@ class AppointmentHandler {
 		$from  = max( $start_date, (string) $today );
 		$until = min( $end_date, (string) $last );
 
-		$days    = array();
-		$current = $from;
+		$sessions = CalendarSessions::in_use( CalendarSessions::of_calendar( $calendar ) );
+		$days     = array();
+		$current  = $from;
 		while ( $current <= $until ) {
-			$slots = $this->get_available_slots( $calendar_id, $current );
-			if ( is_array( $slots ) ) {
-				$free  = 0;
-				$count = 0;
-				foreach ( $slots as $slot ) {
-					$available = (int) ( $slot['available'] ?? 0 );
-					if ( $available > 0 ) {
-						$free += $available;
-						++$count;
+			if ( $sessions ) {
+				// Each session's own count, and the day's total (#2405).
+				$per = $this->day_sessions( $calendar_id, $current );
+				if ( is_array( $per ) && array() !== $per ) {
+					$day = array(
+						'free'     => (int) array_sum( array_column( $per, 'free' ) ),
+						'slots'    => (int) array_sum( array_column( $per, 'slots' ) ),
+						'sessions' => $per,
+					);
+					if ( $day['free'] > 0 ) {
+						$days[ $current ] = $day;
 					}
 				}
-				if ( $free > 0 ) {
-					$days[ $current ] = array(
-						'free'  => $free,
-						'slots' => $count,
-					);
+			} else {
+				$slots = $this->get_available_slots( $calendar_id, $current );
+				if ( is_array( $slots ) ) {
+					$day = self::free_of( $slots );
+					if ( $day['free'] > 0 ) {
+						$days[ $current ] = $day;
+					}
 				}
 			}
 			$next    = strtotime( $current . ' +1 day' );
 			$current = gmdate( 'Y-m-d', false === $next ? PHP_INT_MAX : $next );
 		}
 
-		$mine    = array();
-		$user_id = get_current_user_id();
+		$mine         = array();
+		$user_id      = get_current_user_id();
+		$all_sessions = CalendarSessions::of_calendar( $calendar );
 		if ( $user_id > 0 ) {
 			foreach ( $this->appointment_repository->findByUserId( $user_id, array( 'pending', 'confirmed' ) ) as $row ) {
 				$date = (string) ( $row['appointment_date'] ?? '' );
@@ -535,10 +558,11 @@ class AppointmentHandler {
 					continue;
 				}
 				$mine[] = array(
-					'date'   => $date,
-					'start'  => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['start_time'] ?? '' ) ),
-					'end'    => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['end_time'] ?? '' ) ),
-					'status' => (string) ( $row['status'] ?? '' ),
+					'date'    => $date,
+					'start'   => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['start_time'] ?? '' ) ),
+					'end'     => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['end_time'] ?? '' ) ),
+					'status'  => (string) ( $row['status'] ?? '' ),
+					'session' => $sessions ? CalendarSessions::name( $all_sessions, (int) ( $row['session_id'] ?? 0 ) ) : '',
 				);
 			}
 			usort(
@@ -570,9 +594,10 @@ class AppointmentHandler {
 	 *
 	 * @param int    $calendar_id Calendar ID.
 	 * @param string $date Date.
+	 * @param mixed  $session_id The session whose places are counted (#2405); ignored by a calendar without sessions.
 	 * @return array<int, array<string, mixed>>|\WP_Error
 	 */
-	public function get_available_slots( int $calendar_id, string $date ) {
+	public function get_available_slots( int $calendar_id, string $date, $session_id = null ) {
 		// Get calendar.
 		$calendar = $this->calendar_repository->getWithWorkingHours( $calendar_id );
 
@@ -586,6 +611,12 @@ class AppointmentHandler {
 
 		if ( $this->is_hidden_from_visitor( $calendar ) ) {
 			return self::hidden_calendar_error();
+		}
+
+		// Each session counts its own places (#2405).
+		$session = CalendarSessions::scope( $calendar, $session_id );
+		if ( 0 === $session ) {
+			return new \WP_Error( 'invalid_session', __( 'Choose one of this calendar\'s sessions.', 'ffcertificate' ) );
 		}
 
 		$calendar_post_id = isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null;
@@ -611,7 +642,7 @@ class AppointmentHandler {
 		// working-hours pattern. Holiday / blocked-date subtraction above still
 		// applies (holiday wins over a block).
 		if ( 'custom' === ( $calendar['schedule_type'] ?? 'regular' ) ) {
-			return $this->get_custom_slots_for_date( $calendar, $calendar_id, $date, $has_bypass, $blocks, $earliest );
+			return $this->get_custom_slots_for_date( $calendar, $calendar_id, $date, $has_bypass, $blocks, $earliest, $session );
 		}
 
 		// The grid the validator accepts (#2244): working ranges stepped by
@@ -623,7 +654,7 @@ class AppointmentHandler {
 		}
 
 		// Get existing appointments for this date.
-		$existing_appointments = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date );
+		$existing_appointments = self::in_session( $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date ), $session );
 
 		// Build slot list.
 		$slots        = array();
@@ -649,7 +680,7 @@ class AppointmentHandler {
 			// calendar's waitlist has room, so the frontend can offer to
 			// join the queue instead of hiding it (#941 phase 2).
 			$is_full            = $count >= $max_per_slot;
-			$waitlist_available = $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time );
+			$waitlist_available = $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time, $session );
 			if ( ! $is_full || $waitlist_available ) {
 				$slots[] = array(
 					'time'               => $slot_time,
@@ -690,15 +721,16 @@ class AppointmentHandler {
 	 * @param bool                             $has_bypass  Whether the current user bypasses blocked-date checks.
 	 * @param array<int, array<string, mixed>> $closed   Blocked dates reaching the date.
 	 * @param int|null                         $earliest    First bookable instant, or null for a bypass holder.
+	 * @param int|null                         $session     The session counted alone (#2405), or null.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function get_custom_slots_for_date( array $calendar, int $calendar_id, string $date, bool $has_bypass, array $closed, ?int $earliest ): array {
+	private function get_custom_slots_for_date( array $calendar, int $calendar_id, string $date, bool $has_bypass, array $closed, ?int $earliest, ?int $session = null ): array {
 		$blocks = \FreeFormCertificate\SelfScheduling\CustomSlots::for_date( $calendar['custom_slots'] ?? '', $date );
 		if ( empty( $blocks ) ) {
 			return array();
 		}
 
-		$existing = $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date );
+		$existing = self::in_session( $this->appointment_repository->getAppointmentsByDate( $calendar_id, $date ), $session );
 		$slots    = array();
 
 		foreach ( $blocks as $block ) {
@@ -730,7 +762,7 @@ class AppointmentHandler {
 				'display'            => '' !== $block['label'] ? $block['label'] . ' · ' . $range : $range,
 				'available'          => max( 0, $capacity - $count ),
 				'total'              => $capacity,
-				'waitlist_available' => $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time ),
+				'waitlist_available' => $is_full && $this->slot_waitlist_available( $calendar, $calendar_id, $date, $slot_time, $session ),
 			);
 		}
 
@@ -762,9 +794,10 @@ class AppointmentHandler {
 	 * @param int                  $calendar_id Calendar id.
 	 * @param string               $date        Date (Y-m-d).
 	 * @param string               $slot_time   Slot start time (H:i:s).
+	 * @param int|null             $session     The session counted alone (#2405), or null.
 	 * @return bool
 	 */
-	private function slot_waitlist_available( array $calendar, int $calendar_id, string $date, string $slot_time ): bool {
+	private function slot_waitlist_available( array $calendar, int $calendar_id, string $date, string $slot_time, ?int $session = null ): bool {
 		if ( empty( $calendar['waitlist_enabled'] ) ) {
 			return false;
 		}
@@ -774,7 +807,77 @@ class AppointmentHandler {
 			return true; // Unlimited queue.
 		}
 
-		return $this->appointment_repository->countWaitlisted( $calendar_id, $date, $slot_time ) < $capacity;
+		return $this->appointment_repository->countWaitlisted( $calendar_id, $date, $slot_time, false, $session ) < $capacity;
+	}
+
+	/**
+	 * The appointments of one session (#2405), or all of them for a calendar
+	 * without sessions.
+	 *
+	 * @param array<int, array<string, mixed>> $appointments Appointment rows.
+	 * @param int|null                         $session      Session id, or null.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function in_session( array $appointments, ?int $session ): array {
+		if ( null === $session ) {
+			return $appointments;
+		}
+		return array_values( array_filter( $appointments, static fn( array $row ): bool => (int) ( $row['session_id'] ?? 0 ) === $session ) );
+	}
+
+	/**
+	 * The sessions a visitor chooses from on a date (#2405), each with its
+	 * free places and the times that still have one. Empty for a calendar
+	 * without sessions.
+	 *
+	 * @param int    $calendar_id Calendar ID.
+	 * @param string $date        Date (Y-m-d).
+	 * @return list<array{id: int, name: string, free: int, slots: int}>|\WP_Error
+	 */
+	public function day_sessions( int $calendar_id, string $date ) {
+		$calendar = $this->calendar_repository->findById( $calendar_id );
+		$sessions = is_array( $calendar ) ? CalendarSessions::of_calendar( $calendar ) : array();
+		if ( ! CalendarSessions::in_use( $sessions ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( CalendarSessions::active( $sessions ) as $session ) {
+			$slots = $this->get_available_slots( $calendar_id, $date, $session['id'] );
+			if ( is_wp_error( $slots ) ) {
+				return $slots;
+			}
+			$out[] = array_merge(
+				array(
+					'id'   => $session['id'],
+					'name' => $session['name'],
+				),
+				self::free_of( $slots )
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * The free places of a slot list and how many of its times still have one.
+	 *
+	 * @param array<int, array<string, mixed>> $slots Slots from get_available_slots().
+	 * @return array{free: int, slots: int}
+	 */
+	private static function free_of( array $slots ): array {
+		$free  = 0;
+		$count = 0;
+		foreach ( $slots as $slot ) {
+			$available = (int) ( $slot['available'] ?? 0 );
+			if ( $available > 0 ) {
+				$free += $available;
+				++$count;
+			}
+		}
+		return array(
+			'free'  => $free,
+			'slots' => $count,
+		);
 	}
 
 	/**

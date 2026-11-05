@@ -78,7 +78,7 @@ class AppointmentAdminActionsTest extends TestCase {
 		$this->appointments->shouldReceive( 'findById' )->andReturn( self::pending() );
 		$this->calendars->shouldReceive( 'findById' )->andReturn( array( 'max_appointments_per_slot' => 2 ) );
 		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
-		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 3, true )->andThrow( new \Exception( 'lock wait' ) );
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 3, true, null )->andThrow( new \Exception( 'lock wait' ) );
 		$this->appointments->shouldReceive( 'rollback' )->once();
 		$this->notifier->shouldReceive( 'schedule_email_notifications' )->never();
 
@@ -111,7 +111,7 @@ class AppointmentAdminActionsTest extends TestCase {
 		$this->calendars->shouldReceive( 'findById' )->andReturn( $calendar );
 		$this->appointments->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointments->shouldReceive( 'commit' )->once();
-		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 2, true )->andReturn( true );
+		$this->appointments->shouldReceive( 'isSlotAvailable' )->with( 7, '2032-05-10', '09:00:00', 2, true, null )->andReturn( true );
 		$this->appointments->shouldReceive( 'confirmPending' )->with( 5, 9 )->andReturn( 1 );
 		$this->notifier->shouldReceive( 'schedule_email_notifications' )->once()->with(
 			Mockery::on( static fn( $row ) => 'confirmed' === $row['status'] && 9 === $row['approved_by'] ),

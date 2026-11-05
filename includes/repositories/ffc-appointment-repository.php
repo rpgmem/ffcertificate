@@ -212,41 +212,44 @@ class AppointmentRepository extends AbstractRepository {
 	/**
 	 * Check if slot is available
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date.
-	 * @param string $start_time Start time.
-	 * @param int    $max_per_slot Max per slot.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date.
+	 * @param string   $start_time Start time.
+	 * @param int      $max_per_slot Max per slot.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session counted alone (#2405); null or 0 counts the whole calendar.
 	 * @return bool
 	 */
-	public function isSlotAvailable( int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false ): bool {
-		return $this->reader->isSlotAvailable( $calendar_id, $date, $start_time, $max_per_slot, $use_lock );
+	public function isSlotAvailable( int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false, ?int $session_id = null ): bool {
+		return $this->reader->isSlotAvailable( $calendar_id, $date, $start_time, $max_per_slot, $use_lock, $session_id );
 	}
 
 	/**
 	 * Count waitlisted entries for a slot (#941 phase 2).
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date.
-	 * @param string $start_time Start time.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date.
+	 * @param string   $start_time Start time.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session counted alone (#2405); null or 0 counts the whole calendar.
 	 * @return int
 	 */
-	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): int {
-		return $this->reader->countWaitlisted( $calendar_id, $date, $start_time, $use_lock );
+	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false, ?int $session_id = null ): int {
+		return $this->reader->countWaitlisted( $calendar_id, $date, $start_time, $use_lock, $session_id );
 	}
 
 	/**
 	 * Find the oldest waitlisted entry for a slot (#941 phase 2).
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date.
-	 * @param string $start_time Start time.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date.
+	 * @param string   $start_time Start time.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session read alone (#2405); null or 0 reads the whole calendar.
 	 * @return array<string, mixed>|null
 	 */
-	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): ?array {
-		return $this->reader->findOldestWaitlisted( $calendar_id, $date, $start_time, $use_lock );
+	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false, ?int $session_id = null ): ?array {
+		return $this->reader->findOldestWaitlisted( $calendar_id, $date, $start_time, $use_lock, $session_id );
 	}
 
 	/**

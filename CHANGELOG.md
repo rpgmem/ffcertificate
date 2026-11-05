@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the booking form follows the calendar's booking shape** (#2404). "Several days" leaves the form when the calendar books one day; without a choice of time the hours and the All day switch leave, with a note. A range may be booked as whole days, and the conflict check reads a whole day with the space's opening window, as the booking stores it.
 - **Personal Calendars: a free slots panel** (#2405). Off by default, set on the Calendar tab beside or below the month: each day of the month shown with free places and how many, the holidays, and a signed-in visitor's own bookings. It never shows who booked, and shares the audience panel's markup and CSS.
 - **Personal Calendars: sessions in the editor** (#2405). A Sessions tab names parallel services on the same days and hours; each will count its own places. Sessions are added, renamed, reordered and deleted, and one with open appointments from today on is kept. The booking flow follows in a later PR.
+- **Personal Calendars: booking by session** (#2405). On a calendar with two or more sessions a day lists the sessions and their free places, then the chosen session's times. Places, waitlist and daily limit count per session; the free slots panel and a visitor's bookings name the session.
 
 ### Changed
 

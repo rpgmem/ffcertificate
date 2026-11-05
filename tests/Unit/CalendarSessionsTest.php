@@ -151,4 +151,26 @@ class CalendarSessionsTest extends TestCase {
 
 		$this->assertSame( str_repeat( 'x', CalendarSessions::MAX_NAME ), $sessions[0]['name'] );
 	}
+
+	public function test_scope_is_null_for_a_calendar_without_sessions(): void {
+		$this->assertNull( CalendarSessions::scope( array(), 3 ) );
+		$this->assertNull( CalendarSessions::scope( array( 'sessions' => '[{"id":1,"name":"Only"}]' ), 3 ), 'One session is no session.' );
+		$this->assertNull( CalendarSessions::scope_of_appointment( array(), array( 'session_id' => 4 ) ) );
+	}
+
+	public function test_scope_names_an_active_session_and_refuses_any_other(): void {
+		$calendar = array( 'sessions' => (string) json_encode( self::stored() ) );
+
+		$this->assertSame( 2, CalendarSessions::scope( $calendar, '2' ) );
+		$this->assertSame( 0, CalendarSessions::scope( $calendar, 5 ), 'A deleted session takes no new booking.' );
+		$this->assertSame( 0, CalendarSessions::scope( $calendar, 99 ) );
+		$this->assertSame( 0, CalendarSessions::scope( $calendar, null ) );
+	}
+
+	public function test_an_appointment_counts_in_its_own_session_even_a_deleted_one(): void {
+		$calendar = array( 'sessions' => (string) json_encode( self::stored() ) );
+
+		$this->assertSame( 5, CalendarSessions::scope_of_appointment( $calendar, array( 'session_id' => '5' ) ) );
+		$this->assertSame( 0, CalendarSessions::scope_of_appointment( $calendar, array( 'session_id' => null ) ), 'A booking from before sessions counts against the whole calendar.' );
+	}
 }

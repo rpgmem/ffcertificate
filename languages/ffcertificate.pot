@@ -32007,3 +32007,27 @@ msgstr ""
 #: includes/settings/views/documentation/feature-self-scheduling.php
 msgid "The Sessions tab names parallel services that run on the same days and hours, such as two rooms. A session owns its name only: hours, slot length, capacity per slot and blocked dates come from the calendar. Sessions can be added, renamed, reordered and deleted; a session with open appointments from today on is kept when deleted, and the editor says so. With fewer than two sessions the calendar works as it does without them."
 msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Change session"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Choose a session"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointment-handler.php
+msgid "Choose one of this calendar's sessions."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Full"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On a calendar with two or more sessions, a click on a day first lists the sessions with their free places; the visitor chooses one and then a time, and can go back to change the session. Each session counts its own places, its own waitlist and its own daily limit, so a time booked in one session stays free in another; blocked dates and holidays close every session. The free slots panel lists each session's places, and a visitor's own bookings name their session."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Session"
+msgstr ""
