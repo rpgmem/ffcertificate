@@ -63,6 +63,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Rate Limit and Geolocation tabs: texts that match the code, and named fields** (#2339). The Geolocation privacy line and the device test say what is sent; the lists' "Show the lists" switch, "Check database" and the match threshold say what they do; the IP limit warns about shared addresses; the one-choice "Apply to" is gone. Every field has a linked label, and the six security topics match the code.
 - **Admin: tab menus and drag-only lists work by keyboard** (#2344). The Settings, Scheduling settings, Recruitment and Date Messages menus are a navigation of links marking the page shown; custom fields, form fields and choice options gain Move up / Move down beside the drag handle; a form tab with a save error says so to a screen reader.
 - **CSV export dialog: accessible, and its error stays** (#2344). The progress dialog is a named modal that takes the focus and gives it back; the bar is a progressbar, a polite status announces every quarter, and an error stays with a Close button. Every export speaks one set of localised strings.
+- **Public forms: robust on cached and template-built pages** (#2344). A failed refresh of the captcha and nonces is retried once, then the form goes on with the values the page carried, instead of being removed. A form or calendar rendered outside the post body, such as a widget or a block template, loads its scripts and styles.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

@@ -16,7 +16,9 @@
 
 (function($) {
     'use strict';
-    window.ffcUtils = window.FFC.Frontend.Masks;
+    // window.ffcUtils is published once, by ffc-frontend-helpers.js, with
+    // both the legacy and the Masks names (#2344); overwriting it here with
+    // the namespace dropped the validators and the UI helpers.
 
     /**
      * 6.6.4 follow-up (#361 Sprint 1) — browser-environment diagnostic

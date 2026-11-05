@@ -327,6 +327,55 @@ class FrontendTest extends TestCase {
 	}
 
 	// ==================================================================
+	// enqueue_on_render() — a shortcode outside the post body (#2344)
+	// ==================================================================
+
+	public function test_a_form_rendered_outside_the_post_body_enqueues_its_assets(): void {
+		global $post;
+		$post = null; // An archive, a widget area, a block template part.
+
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
+			$enqueued[] = func_get_arg( 0 );
+		} );
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $name ] = $data;
+		} );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+
+		$this->assertFalse( $frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '7' ) ), 'The short-circuit value passes through.' );
+		$this->assertContains( 'ffc-frontend-js', $enqueued );
+		$this->assertArrayHasKey( 7, $localized['ffcGeofenceConfig'], 'The form the shortcode names gets its config.' );
+
+		// A second form on the same page does not enqueue again.
+		$enqueued = array();
+		$frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '8' ) );
+		$this->assertSame( array(), $enqueued );
+	}
+
+	public function test_render_time_fallback_skips_what_the_post_body_already_enqueued_and_other_tags(): void {
+		global $post;
+		$post = Mockery::mock( 'WP_Post' );
+		$post->post_content = '[ffc_form id="42"]';
+		Functions\when( 'has_shortcode' )->alias( static fn ( $content, $tag ) => 'ffc_form' === $tag && false !== strpos( (string) $content, '[ffc_form' ) );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+		$frontend->frontend_assets();
+
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
+			$enqueued[] = func_get_arg( 0 );
+		} );
+		$frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '42' ) );
+		$frontend->enqueue_on_render( false, 'gallery', array() );
+		// Another filter already replaced the output: nothing renders, nothing loads.
+		$this->assertSame( 'x', $frontend->enqueue_on_render( 'x', 'ffc_verification', array() ) );
+		$this->assertSame( array(), $enqueued );
+	}
+
+	// ==================================================================
 	// frontend_assets() — geofence config localized
 	// ==================================================================
 

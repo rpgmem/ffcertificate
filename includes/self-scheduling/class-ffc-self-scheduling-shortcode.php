@@ -33,6 +33,13 @@ class SelfSchedulingShortcode {
 	private $calendar_repository;
 
 	/**
+	 * Whether this request already enqueued the calendar's assets.
+	 *
+	 * @var bool
+	 */
+	private bool $assets_done = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -43,23 +50,49 @@ class SelfSchedulingShortcode {
 
 		// Enqueue assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		// The fallback for a calendar the post body does not carry: a widget,
+		// a block template part, a theme's do_shortcode() (#2344). Priority
+		// 10, two args; it returns the short-circuit value untouched.
+		add_filter( 'pre_do_shortcode_tag', array( $this, 'enqueue_on_render' ), 10, 2 );
+	}
+
+	/**
+	 * Enqueue the calendar's assets as it renders, when the post body did not
+	 * carry the shortcode (#2344).
+	 *
+	 * @param false|string $short_circuit The value `pre_do_shortcode_tag` passes on; returned unchanged.
+	 * @param string       $tag           The shortcode about to render.
+	 * @return false|string
+	 */
+	public function enqueue_on_render( $short_circuit, $tag ) {
+		if ( false === $short_circuit && 'ffc_self_scheduling' === $tag ) {
+			$this->enqueue_assets( true );
+		}
+		return $short_circuit;
 	}
 
 	/**
 	 * Enqueue frontend assets
 	 *
+	 * @param bool $force Enqueue without reading the post body (a render-time call).
 	 * @return void
 	 */
-	public function enqueue_assets(): void {
-		// Only enqueue if shortcode is present in content.
-		if ( ! is_singular() && ! is_page() ) {
+	public function enqueue_assets( bool $force = false ): void {
+		if ( $this->assets_done ) {
 			return;
 		}
+		if ( ! $force ) {
+			// Only enqueue if shortcode is present in content.
+			if ( ! is_singular() && ! is_page() ) {
+				return;
+			}
 
-		global $post;
-		if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_self_scheduling' ) ) {
-			return;
+			global $post;
+			if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_self_scheduling' ) ) {
+				return;
+			}
 		}
+		$this->assets_done = true;
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -122,7 +155,7 @@ class SelfSchedulingShortcode {
 		wp_localize_script( 'ffc-core', 'ffc_ajax', \FreeFormCertificate\Frontend\BrowserGate::request_config() );
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages.
-		wp_enqueue_script( 'ffc-dynamic-fragments' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-dynamic-fragments' );
 
 		// Localize script.
 		wp_localize_script(

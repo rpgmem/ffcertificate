@@ -1011,7 +1011,7 @@ class AudienceShortcode {
 		// Dynamic fragments: refresh the wp_rest + ffc_search_users nonces
 		// localised on `ffcAudience` so cached (per-user) pages don't keep
 		// serving the nonce of whoever the cache entry was generated for.
-		wp_enqueue_script( 'ffc-dynamic-fragments' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-dynamic-fragments' );
 
 		// Resolve custom booking labels from schedule config (first non-empty
 		// wins), else the name set in Calendar Colors and Labels (#2221).

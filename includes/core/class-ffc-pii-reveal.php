@@ -90,6 +90,9 @@ final class PiiReveal {
 	 */
 	public static function enqueue_assets(): void {
 		$s = AssetHelper::asset_suffix();
+		// Registered first, so the dependency is never dropped for being
+		// unknown on a screen that enqueues before the registration hook (#2344).
+		AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-pii-reveal',
 			FFC_PLUGIN_URL . "assets/js/ffc-pii-reveal{$s}.js",

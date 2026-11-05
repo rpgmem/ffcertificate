@@ -12,11 +12,19 @@
 (function () {
 	'use strict';
 
+	/** How long one request may take, and the wait before the one retry. */
+	var TIMEOUT_MS = 5000;
+	var RETRY_MS = 2000;
+
 	/**
-	 * Tell the boot watchdog the refresh is done (#2030). Only a refresh that
-	 * applied, or one with nothing to do, reports: a failed one leaves the
-	 * form on a nonce that may already be stale, which is what the watchdog
-	 * is there to say.
+	 * Tell the boot watchdog the refresh is done (#2030).
+	 *
+	 * A refresh that failed twice reports too (#2344): the form then keeps
+	 * the values the server rendered, which are valid unless the page came
+	 * from a cache. Nothing is bypassed by that, because the server still
+	 * checks the nonce, the captcha and every guard on submit, and refuses a
+	 * stale nonce with a "page expired" message. Not reporting removed the
+	 * form for good on one lost request, even when its values were fine.
 	 */
 	function reportReady() {
 		if (window.FFC && window.FFC.Preflight) {
@@ -81,26 +89,64 @@
 			payload += '&contexts%5B%5D=' + encodeURIComponent(blocks[bi].getAttribute('data-ffc-captcha-context') || '');
 		}
 
+		send(ajaxUrl, payload, 0);
+	}
+
+	/**
+	 * One request, with a timeout, retried once after a pause.
+	 *
+	 * @param {string} ajaxUrl
+	 * @param {string} payload
+	 * @param {number} attempt 0 for the first request, 1 for the retry.
+	 */
+	function send(ajaxUrl, payload, attempt) {
+		var settled = false;
+		function failed() {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			if (attempt === 0) {
+				setTimeout(function () {
+					send(ajaxUrl, payload, 1);
+				}, RETRY_MS);
+				return;
+			}
+			// Twice: keep the server-rendered values and let the form go on.
+			reportReady();
+		}
+
 		var xhr = new XMLHttpRequest();
 		xhr.open('POST', ajaxUrl, true);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xhr.timeout = TIMEOUT_MS;
 
 		xhr.onload = function () {
-			if (xhr.status !== 200) {
+			if (settled) {
 				return;
 			}
-
-			try {
-				var response = JSON.parse(xhr.responseText);
-				if (!response.success || !response.data) {
-					return;
-				}
-				applyFragments(response.data);
-				reportReady();
-			} catch (e) {
-				// Silent fail — the page still works with the server-rendered values
+			if (xhr.status !== 200) {
+				failed();
+				return;
 			}
+			var response;
+			try {
+				response = JSON.parse(xhr.responseText);
+			} catch (e) {
+				failed();
+				return;
+			}
+			if (!response || !response.success || !response.data) {
+				failed();
+				return;
+			}
+			settled = true;
+			applyFragments(response.data);
+			reportReady();
 		};
+		xhr.onerror = failed;
+		xhr.ontimeout = failed;
+		xhr.onabort = failed;
 
 		xhr.send(payload);
 	}

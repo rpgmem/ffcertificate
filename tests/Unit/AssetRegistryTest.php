@@ -317,6 +317,7 @@ class AssetRegistryTest extends TestCase {
 		return array(
 			'autosave reaches FFC.request and the FFC.Admin namespace' => array( 'ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
 			'the admin script carries the export button driver'       => array( 'ffc-admin-js', array( 'jquery', 'ffc-core', 'ffc-batched-export' ) ),
+			'a hidden section takes its required fields with it'      => array( 'ffc-section-collapse', array( 'jquery', 'ffc-core' ) ),
 			'the field behaviours build on FFC'                       => array( 'ffc-field-behaviours', array( 'jquery', 'ffc-core' ) ),
 			'the PDF generator needs jQuery and FFC.Platform, and fetches the bundles itself' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core' ) ),
 			'the calendar core needs nothing of FFC'                  => array( 'ffc-calendar-core', array( 'jquery' ) ),
