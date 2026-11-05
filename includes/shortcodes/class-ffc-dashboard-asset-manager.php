@@ -418,6 +418,7 @@ class DashboardAssetManager {
 					'notifAppointmentReminder' => __( 'Appointment reminder', 'ffcertificate' ),
 					'notifDateMessages'        => __( 'Date messages (such as birthday greetings)', 'ffcertificate' ),
 					'notifDateAnnouncements'   => __( 'Announcements from this site', 'ffcertificate' ),
+					'notifDateMessagesHint'    => __( 'The unsubscribe link at the end of these e-mails turns off the same preference.', 'ffcertificate' ),
 					'notifSaved'               => __( 'Preferences saved', 'ffcertificate' ),
 					// Pagination.
 					'previous'                 => __( 'Previous', 'ffcertificate' ),

@@ -142,6 +142,15 @@ jQuery(function ($) {
 		);
 	}
 
+	// The kind of the rule the preview is about: the editor's selector, or
+	// the chosen rule on Send now.
+	function kindOf($box) {
+		if ('form' === String($box.data('ffc-dm-preview'))) {
+			return String($('#ffc-dm-kind').val() || 'dated');
+		}
+		return String($box.find('.ffc-dm-rule option:selected').attr('data-ffc-dm-kind') || 'dated');
+	}
+
 	function render($out, data) {
 		var totals = data.totals || {};
 		var $list = $('<ul></ul>');
@@ -160,9 +169,16 @@ jQuery(function ($) {
 			return;
 		}
 		if (!rows.length) {
-			$out.append($('<p></p>').text(strings.none || ''));
+			// An announcement has no dates to fall on: nobody listed means
+			// everyone in its audiences was reached or opted out.
+			var announcement = 'announcement' === kindOf($out.closest('.ffc-dm-preview'));
+			$out.append($('<p></p>').text((announcement ? strings.noneAnnounce : strings.none) || ''));
 			return;
 		}
+		var $head = $('<tr></tr>');
+		(Array.isArray(strings.columns) ? strings.columns : []).forEach(function (label) {
+			$head.append($('<th scope="col"></th>').text(String(label)));
+		});
 		var $tbody = $('<tbody></tbody>');
 		rows.forEach(function (row) {
 			$tbody.append(
@@ -173,7 +189,7 @@ jQuery(function ($) {
 					.append($('<td></td>').text(labels[row.decision] || row.decision || ''))
 			);
 		});
-		$out.append($('<table class="widefat striped"></table>').append($tbody));
+		$out.append($('<table class="widefat striped"></table>').append($('<thead></thead>').append($head), $tbody));
 		if (data.truncated) {
 			$out.append($('<p class="description"></p>').text(strings.truncated || ''));
 		}
@@ -182,7 +198,7 @@ jQuery(function ($) {
 	function run($button, action, nonce, onSuccess) {
 		var $box = $button.closest('.ffc-dm-preview');
 		var $out = $box.find('.ffc-dm-preview-result');
-		$button.prop('disabled', true);
+		$button.prop('disabled', true).addClass('ffc-btn-loading');
 		$out.empty().append($('<p></p>').text(strings.loading || ''));
 
 		window.FFC.request(action, payload($box), { nonce: nonce, ajaxUrl: cfg.ajaxUrl })
@@ -193,7 +209,7 @@ jQuery(function ($) {
 				message($out, (err && err.message) || strings.failed || '', true);
 			})
 			.then(function () {
-				$button.prop('disabled', false);
+				$button.prop('disabled', false).removeClass('ffc-btn-loading');
 			});
 	}
 

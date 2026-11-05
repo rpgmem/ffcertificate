@@ -38,9 +38,12 @@ final class RecipientPreview {
 	 * @param \DateTimeImmutable $from      First target day.
 	 * @param \DateTimeImmutable $to        Last target day.
 	 * @param bool               $with_rows Whether to list people.
+	 * @param bool               $in_audience_only Whether to leave people outside the
+	 *                                             rule's audiences out of the list, before
+	 *                                             the row limit, so they cannot fill it.
 	 * @return array{totals: array<string, int>, rows: array<int, array{user_id: int, name: string, email: string, date: string, decision: string}>, truncated: bool, pii: bool}
 	 */
-	public static function collect( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $with_rows ): array {
+	public static function collect( Rule $rule, \DateTimeImmutable $from, \DateTimeImmutable $to, bool $with_rows, bool $in_audience_only = false ): array {
 		$totals = array_fill_keys( array_keys( DateMessagesAdminPage::decision_labels() ), 0 );
 		// People who opted out and receive it anyway: a subset of will_send (#1949).
 		$totals['forced'] = 0;
@@ -57,7 +60,7 @@ final class RecipientPreview {
 					if ( ! empty( $row['forced'] ) ) {
 						++$totals['forced'];
 					}
-					if ( ! $with_rows ) {
+					if ( ! $with_rows || ( $in_audience_only && RecipientResolver::OUT_OF_AUDIENCE === $row['decision'] ) ) {
 						continue;
 					}
 					if ( count( $rows ) >= self::ROW_LIMIT ) {

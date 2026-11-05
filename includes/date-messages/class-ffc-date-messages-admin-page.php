@@ -23,8 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The screen an operator configures date messages on (#1538).
  *
- * Four tabs on one page: the rules (list and editor), a manual send over a
- * range, the history of runs, and the daily send time. Every write is an
+ * Five tabs on one page: the rules (list and editor), a manual send over a
+ * range, the history of runs, the upcoming dates (only with the personal-data
+ * capability), and the schedule. Every write is an
  * `admin_post` action carrying a nonce and checked against the manage
  * capability; the page itself only needs the view capability, and renders
  * read-only for an operator who holds nothing more.
@@ -256,6 +257,13 @@ final class DateMessagesAdminPage {
 					'failed'         => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
 					'truncated'      => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
 					'none'           => __( 'Nobody falls on these dates.', 'ffcertificate' ),
+					'noneAnnounce'   => __( 'Nobody in the rule\'s audiences is left to reach: everyone has received it or opted out.', 'ffcertificate' ),
+					'columns'        => array(
+						__( 'Name', 'ffcertificate' ),
+						__( 'E-mail', 'ffcertificate' ),
+						__( 'Date', 'ffcertificate' ),
+						__( 'Status', 'ffcertificate' ),
+					),
 					'forced'         => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
 					'kindReplace'    => __( 'Replace the subject and the message with the default text of this kind? Your changes will be lost.', 'ffcertificate' ),
 					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
@@ -289,10 +297,12 @@ final class DateMessagesAdminPage {
 			'ffcEmailRestoreDefaults',
 			array(
 				'date_message_body'              => array(
+					'subject' => $defaults['subject'],
 					'body'    => $defaults['body'],
 					'confirm' => $confirm,
 				),
 				'date_message_announcement_body' => array(
+					'subject' => $announcement['subject'],
 					'body'    => $announcement['body'],
 					'confirm' => $confirm,
 				),
@@ -908,11 +918,23 @@ final class DateMessagesAdminPage {
 		if ( array() === $offered || ! class_exists( \FreeFormCertificate\Audience\AudienceReader::class ) ) {
 			return $rows;
 		}
+		// One query for every row, sub-audiences included: the offered list
+		// is the tree, so a membership of a sub-audience names that one.
+		$memberships = \FreeFormCertificate\Audience\AudienceReader::memberships_among(
+			array_keys( $offered ),
+			array_map( static fn( array $row ): int => (int) ( $row['user_id'] ?? 0 ), $rows )
+		);
+		// The offered labels carry an indent and a member count; the row
+		// names the audience plainly, so the names come from one more read.
+		$plain = array();
+		foreach ( \FreeFormCertificate\Audience\AudienceReader::get_all() as $audience ) {
+			$plain[ (int) $audience->id ] = (string) $audience->name;
+		}
 		foreach ( $rows as $i => $row ) {
 			$names = array();
-			foreach ( \FreeFormCertificate\Audience\AudienceReader::get_user_audiences( (int) ( $row['user_id'] ?? 0 ) ) as $audience ) {
-				if ( isset( $offered[ (int) $audience->id ] ) ) {
-					$names[] = (string) $audience->name;
+			foreach ( array_keys( $offered ) as $audience_id ) {
+				if ( isset( $plain[ (int) $audience_id ] ) && in_array( (int) $audience_id, $memberships[ (int) ( $row['user_id'] ?? 0 ) ] ?? array(), true ) ) {
+					$names[] = $plain[ (int) $audience_id ];
 				}
 			}
 			$rows[ $i ]['audiences'] = implode( ', ', $names );
@@ -971,13 +993,11 @@ final class DateMessagesAdminPage {
 		$rows      = array();
 		$truncated = false;
 		if ( $rule instanceof Rule ) {
-			$found     = RecipientPreview::collect( $rule, $from, $to, true );
+			// Outside the audiences is left out before the row limit, so a
+			// narrow filter over a large site still lists everyone in it.
+			$found     = RecipientPreview::collect( $rule, $from, $to, true, true );
 			$truncated = $found['truncated'];
-			foreach ( $found['rows'] as $row ) {
-				if ( RecipientResolver::OUT_OF_AUDIENCE !== $row['decision'] ) {
-					$rows[] = $row;
-				}
-			}
+			$rows      = $found['rows'];
 		}
 
 		return array(

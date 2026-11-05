@@ -109,6 +109,13 @@ class DateMessagesAdminPageTest extends TestCase {
 	private array $user_audiences = array();
 
 	/**
+	 * Membership reads made in one test (#2336: one for the whole list).
+	 *
+	 * @var int
+	 */
+	private int $membership_reads = 0;
+
+	/**
 	 * Stored preferences JSON by user id.
 	 *
 	 * @var array<int, string>
@@ -248,6 +255,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->audiences      = array();
 		$this->members        = array();
 		$this->user_audiences = array();
+		$this->membership_reads = 0;
 		$this->preferences    = array();
 		$this->due            = null;
 		$this->queried_days   = array();
@@ -428,6 +436,26 @@ class DateMessagesAdminPageTest extends TestCase {
 					continue;
 				}
 				$rows[] = clone $audience;
+			}
+			return $rows;
+		}
+		if ( self::MEMBERS === ( $bound[0] ?? null ) && false !== strpos( $sql, 'SELECT user_id, audience_id FROM %i' ) ) {
+			// AudienceReader::memberships_among(): the audiences, then the users.
+			++$this->membership_reads;
+			preg_match( '/audience_id IN \(([^)]*)\)/', $sql, $m );
+			$audience_count = substr_count( $m[1], '%d' );
+			$audience_ids   = array_slice( $bound, 1, $audience_count );
+			$user_ids       = array_map( 'intval', array_slice( $bound, 1 + $audience_count ) );
+			$rows           = array();
+			foreach ( $audience_ids as $audience_id ) {
+				foreach ( $this->members[ (int) $audience_id ] ?? array() as $user_id ) {
+					if ( in_array( (int) $user_id, $user_ids, true ) ) {
+						$rows[] = array(
+							'user_id'     => (string) $user_id,
+							'audience_id' => (string) $audience_id,
+						);
+					}
+				}
 			}
 			return $rows;
 		}
@@ -750,7 +778,7 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->assertSame( array( 1, 3 ), array_column( $out['rows'], 'user_id' ) );
 		$this->assertSame( 'opted_out', $out['rows'][1]['decision'], 'An opt-out stays listed, flagged.' );
-		$this->assertTrue( $out['truncated'] );
+		$this->assertFalse( $out['truncated'], 'People outside the audience no longer fill the row limit (#2336).' );
 		$audience_queries = array_filter( $this->prepared, static fn( array $p ): bool => self::MEMBERS === ( $p[1] ?? null ) );
 		// The audience asked for, then only that page's candidates (#2336).
 		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2, 1 ), 'The preview reads the members of the audience asked for.' );
@@ -1261,14 +1289,22 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_upcoming_rows_name_the_offered_audiences_a_person_belongs_to(): void {
-		$this->user_audiences[7] = array( self::audience( 1, 'Schools' ), self::audience( 9, 'Hidden' ), self::audience( 2, 'Teachers' ) );
-		$method = new \ReflectionMethod( DateMessagesAdminPage::class, 'with_audience_names' );
+		// Person 7 is in Schools, its sub-audience Teachers, and an audience
+		// the filter does not offer; person 8 in none.
+		$this->audiences = array( self::audience( 1, 'Schools' ), self::audience( 2, 'Teachers', 1 ), self::audience( 9, 'Hidden' ) );
+		$this->members   = array(
+			1 => array( 7 ),
+			2 => array( 7 ),
+			9 => array( 7 ),
+		);
+		$method          = new \ReflectionMethod( DateMessagesAdminPage::class, 'with_audience_names' );
 		$method->setAccessible( true );
 
-		$rows = $method->invoke( null, array( array( 'user_id' => 7 ), array( 'user_id' => 8 ) ), array( 1 => 'Schools', 2 => '— Teachers' ) );
+		$rows = $method->invoke( null, array( array( 'user_id' => 7 ), array( 'user_id' => 8 ) ), array( 1 => 'Schools (1)', 2 => '— Teachers (1)' ) );
 
-		$this->assertSame( 'Schools, Teachers', $rows[0]['audiences'] );
+		$this->assertSame( 'Schools, Teachers', $rows[0]['audiences'], 'Plain names, sub-audiences included, nothing the filter does not offer.' );
 		$this->assertSame( '', $rows[1]['audiences'] );
+		$this->assertSame( 1, $this->membership_reads, 'One membership read for the whole list, not one per row.' );
 		$this->assertSame( array( array( 'user_id' => 7 ) ), $method->invoke( null, array( array( 'user_id' => 7 ) ), array() ), 'nothing offered: the rows are untouched' );
 	}
 
@@ -1344,6 +1380,11 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'The daily run is not scheduled.', $html );
 		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
 		$this->assertStringNotContainsString( 'tab=upcoming', $html, 'the upcoming tab needs the PII capability' );
+		$this->assertStringNotContainsString( 'tab=scheduled_tasks', $html, 'the Scheduled Tasks button is only for who can open that screen (#2336)' );
+
+		$this->caps[] = 'ffc_view_settings';
+		$html         = $this->render_screen( array( 'tab' => 'settings' ) );
+		$this->assertStringContainsString( 'tab=scheduled_tasks', $html );
 	}
 
 	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_rules(): void {
@@ -1425,6 +1466,15 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-type="date_messages_person" data-field="name" data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
 		$this->assertCount( 7, $this->queried_days, 'Seven days were read.' );
+		$this->assertStringNotContainsString( 'onchange', $html, 'Choosing a rule changes nothing until Filter is pressed (#2336).' );
+	}
+
+	public function test_a_toggle_row_has_one_label_the_toggle_s_own(): void {
+		$form = (string) file_get_contents( dirname( __DIR__, 2 ) . '/templates/admin/date-messages/rule-form.php' );
+
+		foreach ( array( 'ffc-dm-is-active', 'ffc-dm-send-to-user', 'ffc-dm-digest-enabled' ) as $id ) {
+			$this->assertStringNotContainsString( '<label for="' . $id . '"', $form, $id . ': render_toggle() prints the label; a second one in the row header is a duplicate (#2336).' );
+		}
 	}
 
 	/**

@@ -47,6 +47,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				);
 				?>
 			</p>
+			<?php // The button leads to a screen that needs its own capability, so only who can open it sees it, as on History. ?>
+			<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_settings' ) ) : ?>
 			<p>
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -58,6 +60,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				);
 				?>
 			</p>
+			<?php endif; ?>
 			<p class="description"><?php esc_html_e( 'Every daily task of the plugin has its time chosen on that one screen, which also shows the server line that keeps scheduled tasks running.', 'ffcertificate' ); ?></p>
 		</td>
 	</tr>
