@@ -167,27 +167,27 @@ class TabEmailTexts extends SettingsTab {
 			),
 			'selfscheduling-confirmation'   => array(
 				'label'  => __( 'Appointment booking confirmation', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'status_message', 'status_label', 'user_notes_block', 'receipt_button', 'cancel_button' ),
 			),
 			'appointment-approval'          => array(
 				'label'  => __( 'Appointment approved', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'receipt_button', 'cancel_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'receipt_button', 'cancel_button' ),
 			),
 			'appointment-cancellation'      => array(
 				'label'  => __( 'Appointment cancelled', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'cancellation_reason_block' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'cancellation_reason_block' ),
 			),
 			'appointment-reminder'          => array(
 				'label'  => __( 'Appointment reminder', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'cancel_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'cancel_button' ),
 			),
 			'appointment-promoted'          => array(
 				'label'  => __( 'Waitlist spot opened (promotion)', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'status_message', 'receipt_button', 'cancel_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'status_message', 'receipt_button', 'cancel_button' ),
 			),
 			'appointment-waitlisted'        => array(
 				'label'  => __( 'Added to waitlist', 'ffcertificate' ),
-				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_block', 'appointment_date', 'appointment_time', 'waitlist_button' ),
+				'tokens' => array( 'user_name', 'user_email', 'calendar_title', 'session_name', 'session_label', 'session_block', 'appointment_date', 'appointment_time', 'waitlist_button' ),
 			),
 			'date-message-birthday'         => array(
 				'label'  => __( 'Birthday message (default for new rules)', 'ffcertificate' ),

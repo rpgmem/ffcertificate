@@ -37,7 +37,7 @@ class SelfSchedulingActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '2';
+	public const SCHEMA_REVISION = '3';
 
 	/**
 	 * Option holding the revision last applied.
@@ -109,6 +109,8 @@ class SelfSchedulingActivator {
             working_hours longtext DEFAULT NULL,
             custom_slots longtext DEFAULT NULL,
             sessions longtext DEFAULT NULL,
+            session_label varchar(100) DEFAULT NULL,
+            session_label_plural varchar(100) DEFAULT NULL,
             advance_booking_min int(10) unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
             advance_booking_max int(10) unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
             allow_cancellation tinyint(1) DEFAULT 1,
@@ -447,7 +449,12 @@ class SelfSchedulingActivator {
 
 		if ( self::table_exists( $calendars ) ) {
 			self::add_column_if_missing( $calendars, 'sessions', 'longtext DEFAULT NULL', 'custom_slots' );
-			$healed = self::column_exists( $calendars, 'sessions' );
+			// The calendar's own word for a session (#2413).
+			self::add_column_if_missing( $calendars, 'session_label', 'varchar(100) DEFAULT NULL', 'sessions' );
+			self::add_column_if_missing( $calendars, 'session_label_plural', 'varchar(100) DEFAULT NULL', 'session_label' );
+			$healed = self::column_exists( $calendars, 'sessions' )
+				&& self::column_exists( $calendars, 'session_label' )
+				&& self::column_exists( $calendars, 'session_label_plural' );
 		}
 
 		if ( self::table_exists( $appointments ) ) {

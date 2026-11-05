@@ -275,6 +275,9 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assertStringContainsString( 'Session:', $html );
 		$this->assertStringContainsString( 'Room B', $html );
 
+		$result['data']['session_label'] = 'Room';
+		$this->assertStringContainsString( 'Room:</span>', $this->renderer->format_appointment_verification_response( $result ), 'The calendar\'s word for a session (#2413).' );
+
 		$result['data']['session_name'] = '';
 		$this->assertStringNotContainsString( 'Session:', $this->renderer->format_appointment_verification_response( $result ) );
 	}

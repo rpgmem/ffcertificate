@@ -7233,12 +7233,28 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
-#: includes/frontend/class-ffc-verification-response-renderer.php:271 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php
-msgid "Session:"
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
+msgid "Label (singular)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
+msgid "Label (plural)"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
+msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use \"Session\" / \"Sessions\"."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:54
+msgid "The tab's two label fields give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:119
+msgid "The calendar's word for a session, \"Session\" unless the Sessions tab sets its own"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75
-msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
+msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}}, {{session_label}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:118

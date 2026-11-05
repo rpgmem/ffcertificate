@@ -276,11 +276,12 @@ class SelfSchedulingEditor {
 	 * follows it, as their section chips did; the others are settings every
 	 * calendar has.
 	 *
-	 * @param bool $occupancy Whether the occupancy tab exists.
-	 * @param bool $saved     Whether the calendar exists (the blocked-dates tab needs its row).
+	 * @param bool   $occupancy      Whether the occupancy tab exists.
+	 * @param bool   $saved          Whether the calendar exists (the blocked-dates tab needs its row).
+	 * @param string $sessions_label The calendar's plural for its sessions (#2413), or '' for the default.
 	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
 	 */
-	private static function tab_definitions( bool $occupancy, bool $saved = false ): array {
+	private static function tab_definitions( bool $occupancy, bool $saved = false, string $sessions_label = '' ): array {
 		$tabs = array(
 			array(
 				'key'     => 'calendar',
@@ -299,8 +300,9 @@ class SelfSchedulingEditor {
 			array(
 				'key'     => 'sessions',
 				'icon'    => 'ffc-icon-users',
-				'label'   => __( 'Sessions', 'ffcertificate' ),
-				'title'   => __( 'Sessions', 'ffcertificate' ),
+				// The calendar's own plural when it has one (#2413).
+				'label'   => '' !== $sessions_label ? $sessions_label : __( 'Sessions', 'ffcertificate' ),
+				'title'   => '' !== $sessions_label ? $sessions_label : __( 'Sessions', 'ffcertificate' ),
 				'masters' => array(),
 			),
 			array(
@@ -414,7 +416,7 @@ class SelfSchedulingEditor {
 		SlotGridLock::render_notice( (int) $post->ID );
 
 		AdminUI::render_vertical_tabs(
-			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status ),
+			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status, trim( CalendarSessions::labels_of_post( (int) $post->ID )['session_label_plural'] ) ),
 			function ( string $key ) use ( $post, $config, $mode_locked ): void {
 				switch ( $key ) {
 					case 'calendar':
@@ -607,6 +609,22 @@ class SelfSchedulingEditor {
 		?>
 		<p class="description"><?php esc_html_e( 'Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted.', 'ffcertificate' ); ?></p>
 		<input type="hidden" name="ffc_self_scheduling_sessions_present" value="1">
+		<?php $labels = CalendarSessions::labels_of_post( $post_id ); ?>
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="ffc_self_scheduling_session_label"><?php esc_html_e( 'Label (singular)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label" id="ffc_self_scheduling_session_label" value="<?php echo esc_attr( $labels['session_label'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Session', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="ffc_self_scheduling_session_label_plural"><?php esc_html_e( 'Label (plural)', 'ffcertificate' ); ?></label></th>
+				<td>
+					<input type="text" class="regular-text" name="ffc_self_scheduling_session_label_plural" id="ffc_self_scheduling_session_label_plural" value="<?php echo esc_attr( $labels['session_label_plural'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" placeholder="<?php esc_attr_e( 'Sessions', 'ffcertificate' ); ?>" aria-describedby="ffc-session-label-help">
+					<p class="description" id="ffc-session-label-help"><?php esc_html_e( 'This calendar\'s word for a session (e.g. "Room" / "Rooms"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use "Session" / "Sessions".', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+		</table>
 		<table class="widefat ffc-sessions-table">
 			<thead>
 				<tr>

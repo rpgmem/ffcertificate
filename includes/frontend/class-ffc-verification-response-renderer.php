@@ -268,7 +268,7 @@ class VerificationResponseRenderer {
 
 		if ( ! empty( $data['session_name'] ) ) {
 			$html .= '<div class="ffc-detail-row">';
-			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Session:', 'ffcertificate' ) . '</span>';
+			$html .= '<span class="ffc-detail-label">' . esc_html( ! empty( $data['session_label'] ) ? (string) $data['session_label'] : __( 'Session', 'ffcertificate' ) ) . ':</span>';
 			$html .= '<span class="ffc-detail-value">' . esc_html( (string) $data['session_name'] ) . '</span>';
 			$html .= '</div>';
 		}

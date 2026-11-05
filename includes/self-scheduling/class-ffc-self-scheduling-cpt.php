@@ -344,6 +344,15 @@ class SelfSchedulingCPT {
 			$metadata_copied[] = 'sessions';
 		}
 
+		// The calendar's own word for a session (#2413).
+		foreach ( array( CalendarSessions::LABEL_META, CalendarSessions::LABEL_PLURAL_META ) as $label_key ) {
+			$label = get_post_meta( $post_id, $label_key, true );
+			if ( is_string( $label ) && '' !== $label ) {
+				update_post_meta( $new_post_id, $label_key, wp_slash( $label ) );
+				$metadata_copied[] = $label_key;
+			}
+		}
+
 		\FreeFormCertificate\Core\Debug::log_self_scheduling(
 			'Calendar duplicated successfully',
 			array(
@@ -410,7 +419,9 @@ class SelfSchedulingCPT {
 		$data['working_hours'] = is_array( $working_hours ) ? wp_json_encode( $working_hours ) : $working_hours;
 		$data['custom_slots']  = is_array( $custom_slots ) ? wp_json_encode( $custom_slots ) : $custom_slots;
 		// The sessions (#2405), deleted ones included: appointments keep their names.
-		$data['sessions']     = wp_json_encode( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		$data['sessions'] = wp_json_encode( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		// The calendar's own word for a session (#2413); '' keeps the default.
+		$data                 = array_merge( $data, CalendarSessions::labels_of_post( $post_id ) );
 		$data['email_config'] = is_array( $email_config ) ? wp_json_encode( $email_config ) : $email_config;
 		$data['updated_at']   = current_time( 'mysql' );
 		$data['updated_by']   = get_current_user_id();

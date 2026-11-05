@@ -46,6 +46,87 @@ final class CalendarSessions {
 	public const MAX_NAME = 100;
 
 	/**
+	 * Post meta keys holding the calendar's own word for a session (#2413),
+	 * singular and plural. Empty means the default, "Session" / "Sessions".
+	 *
+	 * @var string
+	 */
+	public const LABEL_META = '_ffc_self_scheduling_session_label';
+
+	/**
+	 * Post meta key holding the plural label (#2413).
+	 *
+	 * @var string
+	 */
+	public const LABEL_PLURAL_META = '_ffc_self_scheduling_session_label_plural';
+
+	/**
+	 * The calendar's word for a session (#2413): its own label when set, the
+	 * default otherwise. Read from the calendar row, or from the post meta
+	 * when the row is not at hand ({@see self::labels_of_post()}).
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @param bool                 $plural   Whether to return the plural.
+	 * @return string
+	 */
+	public static function label( array $calendar, bool $plural = false ): string {
+		$custom = $calendar[ $plural ? 'session_label_plural' : 'session_label' ] ?? '';
+		$custom = is_scalar( $custom ) ? trim( (string) $custom ) : '';
+		if ( '' !== $custom ) {
+			return $custom;
+		}
+		return $plural ? __( 'Sessions', 'ffcertificate' ) : __( 'Session', 'ffcertificate' );
+	}
+
+	/**
+	 * A calendar post's labels as the two row columns carry them (#2413).
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return array{session_label: string, session_label_plural: string}
+	 */
+	public static function labels_of_post( int $post_id ): array {
+		$singular = get_post_meta( $post_id, self::LABEL_META, true );
+		$plural   = get_post_meta( $post_id, self::LABEL_PLURAL_META, true );
+		return array(
+			'session_label'        => is_string( $singular ) ? $singular : '',
+			'session_label_plural' => is_string( $plural ) ? $plural : '',
+		);
+	}
+
+	/**
+	 * The booking step's strings for a calendar with its own labels (#2413).
+	 * Only the strings a custom label replaces are returned, so the general
+	 * ones stand otherwise: the step heading and its back button name the
+	 * plural, the line above the times the singular.
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return array<string, string>
+	 */
+	public static function step_strings( array $calendar ): array {
+		$strings  = array();
+		$singular = is_scalar( $calendar['session_label'] ?? null ) ? trim( (string) $calendar['session_label'] ) : '';
+		$plural   = is_scalar( $calendar['session_label_plural'] ?? null ) ? trim( (string) $calendar['session_label_plural'] ) : '';
+		if ( '' !== $plural ) {
+			$strings['chooseSession'] = $plural;
+			$strings['changeSession'] = $plural;
+		}
+		if ( '' !== $singular ) {
+			$strings['session'] = $singular;
+		}
+		return $strings;
+	}
+
+	/**
+	 * Clean a label typed in the editor (#2413), like a session name.
+	 *
+	 * @param string $label Raw label.
+	 * @return string
+	 */
+	public static function clean_label( string $label ): string {
+		return self::clean_name( $label );
+	}
+
+	/**
 	 * Every session in a stored value, deleted ones included: the meta array,
 	 * or the table's JSON. Anything else, and any entry without a positive id
 	 * and a name, is dropped; a repeated id keeps its first entry.
