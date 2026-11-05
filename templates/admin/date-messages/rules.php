@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <p class="description">
-	<?php esc_html_e( 'Each rule sends its own message on a date in each person\'s profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose.', 'ffcertificate' ); ?>
+	<?php esc_html_e( 'A dated rule sends its message on a date in each person\'s profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose.', 'ffcertificate' ); ?>
 </p>
 
 <?php if ( array() === $rules ) : ?>
@@ -62,10 +62,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<strong><?php echo esc_html( $ffc_dm_rule->name ); ?></strong>
 						<?php endif; ?>
 					</td>
-					<td><?php echo esc_html( null === $ffc_dm_source ? $ffc_dm_rule->source : $ffc_dm_source->label() ); ?></td>
+					<td><?php echo esc_html( $ffc_dm_rule->is_announcement() ? __( 'None (announcement)', 'ffcertificate' ) : ( null === $ffc_dm_source ? $ffc_dm_rule->source : $ffc_dm_source->label() ) ); ?></td>
 					<td>
 						<?php
-						if ( 0 === $ffc_dm_rule->offset_days ) {
+						// An announcement has no date to count from: it goes at its
+						// send time, or by hand (#2336).
+						if ( $ffc_dm_rule->is_announcement() ) {
+							echo esc_html(
+								$ffc_dm_rule->send_at > 0
+									/* translators: %s: date and time */
+									? sprintf( __( 'At %s', 'ffcertificate' ), \FreeFormCertificate\Core\DateFormatter::format_datetime( $ffc_dm_rule->send_at ) )
+									: __( 'From Send now', 'ffcertificate' )
+							);
+						} elseif ( 0 === $ffc_dm_rule->offset_days ) {
 							esc_html_e( 'On the day', 'ffcertificate' );
 						} elseif ( $ffc_dm_rule->offset_days < 0 ) {
 							/* translators: %d: number of days */

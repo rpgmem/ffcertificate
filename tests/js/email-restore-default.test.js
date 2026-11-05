@@ -47,6 +47,17 @@ describe('ffc-email-restore-default', () => {
 		expect(window.$('#ffc_rs_body').val()).toBe('DEFAULT_TEMPLATE');
 	});
 
+	it('reads the key when clicked, so a key changed after load restores its own default (#2336)', async () => {
+		installDom();
+		window.ffcEmailRestoreDefaults.other_body = { body: 'OTHER_DEFAULT', confirm: '' };
+		await loadOnReady();
+		const $btn = window.$('.ffc-email-restore-default');
+		$btn.data('default-key'); // jQuery caches what .data() read first
+		$btn.attr('data-default-key', 'other_body');
+		$btn.trigger('click');
+		expect(window.$('#ffc_rs_body').val()).toBe('OTHER_DEFAULT');
+	});
+
 	it('does nothing when the confirm is cancelled', async () => {
 		installDom();
 		window.confirm = () => false;

@@ -7233,6 +7233,34 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: templates/admin/date-messages/rules.php:74
+msgid "At %s"
+msgstr ""
+
+#: templates/admin/date-messages/rules.php:75
+msgid "From Send now"
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php:125
+msgid "It goes out once, at its send time or from Send now; inactive, it is never sent. Activating it takes the right to send."
+msgstr ""
+
+#: templates/admin/date-messages/rules.php:65
+msgid "None (announcement)"
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:260
+msgid "Replace the subject and the message with the default text of this kind? Your changes will be lost."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:264
+msgid "Run \"%1$s\" for %2$s? Personal e-mails are off: nobody is e-mailed, and its managers receive the summary of the %3$s people whose date it is."
+msgstr ""
+
+#: templates/admin/date-messages/rule-form.php:124
+msgid "The daily run sends it each day to the people whose date it is. Activating it takes the right to send."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-date-messages.php:58
 msgid "An announcement reaches each person once per rule: sending it again on another day reaches only whoever it missed."
 msgstr ""
@@ -21293,9 +21321,6 @@ msgstr ""
 msgid "(deleted rule)"
 msgstr ""
 
-msgid "Active (the daily run sends it)"
-msgstr ""
-
 msgid "Active, not sending to people"
 msgstr ""
 
@@ -21329,7 +21354,7 @@ msgstr ""
 msgid "E-mail each person on their date"
 msgstr ""
 
-msgid "Each rule sends its own message on a date in each person's profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose."
+msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose."
 msgstr ""
 
 msgid "Edit rule"
@@ -21419,7 +21444,7 @@ msgstr ""
 msgid "Send test to me"
 msgstr ""
 
-msgid "Send these messages now?"
+msgid "Send \"%1$s\" for %2$s to %3$s people?"
 msgstr ""
 
 msgid "Sending"
@@ -26892,7 +26917,7 @@ msgstr ""
 
 #: templates/emails/date-message-announcement.php:22
 #, php-format
-msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
+msgid "Replace this paragraph with what you want to announce."
 msgstr ""
 
 #: templates/emails/date-message-announcement.php:23

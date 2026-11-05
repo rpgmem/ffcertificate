@@ -23,6 +23,8 @@ return array(
 	'body'    => '<h2 style="margin: 0 0 20px 0; font-size: 24px; color: #2271b1;">' . __( 'Announcement', 'ffcertificate' ) . '</h2>'
 		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %s: name */ __( 'Hello %s,', 'ffcertificate' ), '{{name}}' ) . '</p>'
 		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %s: site name */ __( 'There is a new announcement from %s.', 'ffcertificate' ), '{{site_name}}' ) . '</p>'
-		. '<p style="margin: 0 0 15px 0;">' . sprintf( /* translators: %s: dashboard link URL */ __( 'You can read the details on your dashboard: <a href="%s">open your dashboard</a>.', 'ffcertificate' ), '{{dashboard_url}}' ) . '</p>'
+		// The announcement itself is the operator's to write (#2336); no
+		// dashboard panel shows announcements, so none is pointed to.
+		. '<p style="margin: 0 0 15px 0;">' . __( 'Replace this paragraph with what you want to announce.', 'ffcertificate' ) . '</p>'
 		. '<p style="margin: 20px 0 0 0; font-size: 12px; color: #646970;">' . sprintf( /* translators: %s: unsubscribe link URL */ __( 'Prefer not to receive announcements? <a href="%s">Unsubscribe</a>.', 'ffcertificate' ), '{{unsubscribe_url}}' ) . '</p>',
 );

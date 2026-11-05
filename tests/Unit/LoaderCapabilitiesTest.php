@@ -764,6 +764,7 @@ class LoaderCapabilitiesTest extends TestCase {
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::AUDIENCE_IDS_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::APPEARANCE_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::ANNOUNCEMENTS_OPTION => '1',
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::SEND_SCOPE_OPTION => '1',
 			'ffc_self_scheduling_schema_version'                    => FFC_VERSION,
 			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION,

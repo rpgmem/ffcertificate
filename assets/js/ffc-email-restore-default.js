@@ -16,8 +16,11 @@ jQuery(function ($) {
 
 	$('.ffc-email-restore-default').on('click', function () {
 		var $btn = $(this);
-		var editorId = String($btn.data('editor') || '');
-		var key = String($btn.data('default-key') || '');
+		// Read at click time through attr(): .data() caches the first value,
+		// and a screen may change the key after load (the Date Messages kind
+		// selector does, #2336).
+		var editorId = String($btn.attr('data-editor') || '');
+		var key = String($btn.attr('data-default-key') || '');
 		var entry = cfg[key] || {};
 		var body = typeof entry.body === 'string' ? entry.body : '';
 		var confirmMsg = entry.confirm || '';

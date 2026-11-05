@@ -38,7 +38,9 @@ $ffc_dm_values   = null !== $editing ? array_merge( $editing->to_columns(), arra
 	'kind'            => Rule::KIND_DATED,
 	'send_at'         => 0,
 	'respect_opt_out' => 1,
-	'is_active'       => 1,
+	// Activating takes the right to send (#2336): a new rule starts active
+	// only for an account that may send.
+	'is_active'       => DateMessagesAdminPage::can_send() ? 1 : 0,
 	'digest_enabled'  => 0,
 	'digest_mode'     => 'summary',
 	'digest_user_ids' => '[]',
@@ -113,11 +115,14 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 						'name'    => 'rule[is_active]',
 						'id'      => 'ffc-dm-is-active',
 						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
-						'label'   => __( 'Active (the daily run sends it)', 'ffcertificate' ),
+						'label'   => __( 'Active', 'ffcertificate' ),
 						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
 					)
 				);
 				?>
+				<?php // What "active" means depends on the kind (#2336). ?>
+				<p class="description" data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'The daily run sends it each day to the people whose date it is. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
+				<p class="description" data-ffc-dm-kind-only="announcement"<?php echo $ffc_dm_hidden( 'announcement' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'It goes out once, at its send time or from Send now; inactive, it is never sent. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 		<tr>
@@ -195,7 +200,8 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 							'class'    => 'ffc-email-restore-default',
 							'attrs'    => array(
 								'data-editor'      => 'ffc_dm_body',
-								'data-default-key' => 'date_message_body',
+								// The kind being edited; the script follows the kind selector.
+								'data-default-key' => Rule::KIND_ANNOUNCEMENT === (string) $ffc_dm_values['kind'] ? 'date_message_announcement_body' : 'date_message_body',
 							),
 						)
 					);
@@ -203,7 +209,10 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 				</p>
 				<p class="description">
 					<?php esc_html_e( 'Placeholders:', 'ffcertificate' ); ?>
-					<code>{{name}}</code> <code>{{first_name}}</code> <code>{{last_name}}</code> <code>{{full_name}}</code> <code>{{email}}</code> <code>{{date}}</code> <code>{{age}}</code> <code>{{days_until}}</code> <code>{{site_name}}</code> <code>{{dashboard_url}}</code> <code>{{unsubscribe_url}}</code>
+					<code>{{name}}</code> <code>{{first_name}}</code> <code>{{last_name}}</code> <code>{{full_name}}</code> <code>{{email}}</code>
+					<?php // An announcement has no date, so these resolve to nothing there (#2336). ?>
+					<span data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><code>{{date}}</code> <code>{{age}}</code> <code>{{days_until}}</code></span>
+					<code>{{site_name}}</code> <code>{{dashboard_url}}</code> <code>{{unsubscribe_url}}</code>
 				</p>
 				<p class="description"><?php esc_html_e( 'The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end.', 'ffcertificate' ); ?></p>
 			</td>

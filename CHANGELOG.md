@@ -34,6 +34,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Assets: lighter icons, the core config only where it is used, no source maps** (#2344). The icon stylesheet writes each drawing once (86 KB to 49 KB); `ffcCoreConfig`, with its nonce, is built only on a page that prints `ffc-core`; the minified files no longer point at source maps that never shipped; PDF blob URLs are released after use; vertical tabs and calendars bind once.
 - **Date Messages: who may send, and what a send does** (#2336). Activating a rule or forcing it past opt-outs takes Send date messages, on save, toggle and copy alike. Personal e-mails off now runs the rule for its summary only, an announcement reaches each person once per rule, Send now lists only active rules, and tests are limited to one a minute, as saved for test-only accounts.
 - ⚠ **Date Messages: deleting a rule takes `ffc_delete_date_messages`** (#2336). Managing rules no longer includes it; every current holder of `ffc_manage_date_messages` receives it on upgrade. An integration that deletes rules on the strength of the manage capability must check the new one.
+- **Date Messages: the editor and Send now say what will happen** (#2336). Send now confirms with the rule, the dates and the number of people the preview counts. Restore default follows the kind being edited, changing the kind asks before replacing an edited text, an announcement is offered only its own placeholders, and the list shows its send time instead of a date.
 
 ### Security
 

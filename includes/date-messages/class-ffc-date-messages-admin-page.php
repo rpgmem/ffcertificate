@@ -252,11 +252,17 @@ final class DateMessagesAdminPage {
 				'decimal'       => self::decimal_point(),
 				'decisions'     => self::decision_labels(),
 				'strings'       => array(
-					'loading'   => __( 'Working…', 'ffcertificate' ),
-					'failed'    => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
-					'truncated' => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
-					'none'      => __( 'Nobody falls on these dates.', 'ffcertificate' ),
-					'forced'    => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
+					'loading'        => __( 'Working…', 'ffcertificate' ),
+					'failed'         => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
+					'truncated'      => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
+					'none'           => __( 'Nobody falls on these dates.', 'ffcertificate' ),
+					'forced'         => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
+					'kindReplace'    => __( 'Replace the subject and the message with the default text of this kind? Your changes will be lost.', 'ffcertificate' ),
+					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
+					'confirmSend'    => __( 'Send "%1$s" for %2$s to %3$s people?', 'ffcertificate' ),
+					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
+					'confirmSummary' => __( 'Run "%1$s" for %2$s? Personal e-mails are off: nobody is e-mailed, and its managers receive the summary of the %3$s people whose date it is.', 'ffcertificate' ),
+					'today'          => __( 'today', 'ffcertificate' ),
 				),
 			)
 		);

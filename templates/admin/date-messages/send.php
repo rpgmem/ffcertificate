@@ -63,7 +63,7 @@ $ffc_dm_first_ann = array() !== $ffc_dm_sendable && $ffc_dm_sendable[0]->is_anno
 <?php elseif ( array() === $ffc_dm_sendable ) : ?>
 	<p><?php esc_html_e( 'No rule is active. Only an active rule can be sent: activate one on the Rules tab.', 'ffcertificate' ); ?></p>
 <?php else : ?>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-send-form" data-ffc-confirm="<?php esc_attr_e( 'Send these messages now?', 'ffcertificate' ); ?>">
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-send-form">
 		<?php wp_nonce_field( DateMessagesAdminPage::SEND_ACTION ); ?>
 		<input type="hidden" name="action" value="<?php echo esc_attr( DateMessagesAdminPage::SEND_ACTION ); ?>">
 		<div class="ffc-dm-preview" data-ffc-dm-preview="saved">
@@ -73,7 +73,7 @@ $ffc_dm_first_ann = array() !== $ffc_dm_sendable && $ffc_dm_sendable[0]->is_anno
 					<td>
 						<select id="ffc-dm-send-rule" name="rule_id" class="ffc-dm-rule">
 							<?php foreach ( $ffc_dm_sendable as $ffc_dm_rule ) : ?>
-								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" data-ffc-dm-kind="<?php echo esc_attr( $ffc_dm_rule->kind ); ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
+								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" data-ffc-dm-kind="<?php echo esc_attr( $ffc_dm_rule->kind ); ?>" data-ffc-dm-summary-only="<?php echo $ffc_dm_rule->send_to_user ? '0' : '1'; ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</td>
