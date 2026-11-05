@@ -66,7 +66,7 @@ beforeEach(() => {
 		testAction: 'ffc_date_messages_test_send',
 		testNonce: 'tn',
 		decisions: { will_send: 'Will receive', opted_out: 'Opted out' },
-		strings: { loading: 'Working', failed: 'Failed', truncated: 'Truncated', none: 'Nobody' },
+		strings: { loading: 'Working', failed: 'Failed', truncated: 'Truncated', none: 'Nobody', noneAnnounce: 'Nobody left', columns: ['Name', 'E-mail', 'Date', 'Status'] },
 	};
 });
 
@@ -107,6 +107,55 @@ describe('ffc-date-messages-admin', () => {
 		expect(cell.textContent).toBe('<b>Ana</b>');
 		expect(cell.querySelector('b')).toBeNull();
 		expect(document.querySelector('.ffc-dm-preview-result').textContent).toContain('Truncated');
+	});
+
+	it('heads the list of people with its columns (#2336)', async () => {
+		installSendDom();
+		request.mockResolvedValue({
+			totals: { will_send: 1 },
+			rows: [{ name: 'A***', email: 'a***@x.org', date: '2026-10-01', decision: 'will_send' }],
+			pii: true,
+		});
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+
+		const heads = Array.from(document.querySelectorAll('.ffc-dm-preview-result thead th')).map((th) => th.textContent);
+		expect(heads).toEqual(['Name', 'E-mail', 'Date', 'Status']);
+		expect(document.querySelector('.ffc-dm-preview-result thead th').getAttribute('scope')).toBe('col');
+	});
+
+	it('says an announcement has nobody left to reach, not that nobody falls on the dates (#2336)', async () => {
+		installSendDom();
+		document.querySelector('.ffc-dm-rule option').setAttribute('data-ffc-dm-kind', 'announcement');
+		request.mockResolvedValue({ totals: { will_send: 0 }, rows: [], pii: true });
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+
+		const text = document.querySelector('.ffc-dm-preview-result').textContent;
+		expect(text).toContain('Nobody left');
+		expect(text).not.toContain('Nobody falls');
+	});
+
+	it('marks the button busy while it waits, and clears it after (#2336)', async () => {
+		installSendDom();
+		let resolve;
+		request.mockReturnValue(new Promise((r) => { resolve = r; }));
+		await loadOnReady();
+
+		const $button = window.$('.ffc-dm-preview-button');
+		$button.trigger('click');
+		expect($button.hasClass('ffc-btn-loading')).toBe(true);
+		expect($button.prop('disabled')).toBe(true);
+
+		resolve({ totals: {}, rows: [], pii: false });
+		await flush();
+		await flush();
+		expect($button.hasClass('ffc-btn-loading')).toBe(false);
+		expect($button.prop('disabled')).toBe(false);
 	});
 
 	it('posts the unsaved editor fields, and only them, for the preview', async () => {

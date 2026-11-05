@@ -142,6 +142,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'class'    => 'ffc-email-restore-default',
 								'attrs'    => array(
 									'data-editor'      => $ffc_editor_id,
+									'data-subject'     => $ffc_editor_id . '_subject',
 									'data-default-key' => $ffc_key,
 								),
 							)

@@ -1317,6 +1317,13 @@
     gap: var(--ffc-spacing-md);
 }
 
+.ffc-notif-list .ffc-notif-hint {
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
 /* ==========================================================================
    LGPD SECTION
    ========================================================================== */

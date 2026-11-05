@@ -507,6 +507,45 @@ class AudienceReader {
 	}
 
 	/**
+	 * Which of the given audiences each of the given users belongs to
+	 * directly, in one query, so a list of people can name their audiences
+	 * without a query per row.
+	 *
+	 * @param array<int> $audience_ids Audiences to look in.
+	 * @param array<int> $user_ids     Users to look up.
+	 * @return array<int, list<int>> User ID => audience IDs.
+	 */
+	public static function memberships_among( array $audience_ids, array $user_ids ): array {
+		$audience_ids = array_values( array_unique( array_filter( array_map( 'intval', $audience_ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		$user_ids     = array_values( array_unique( array_filter( array_map( 'intval', $user_ids ), static fn( int $id ): bool => $id > 0 ) ) );
+		if ( array() === $audience_ids || array() === $user_ids ) {
+			return array();
+		}
+		$wpdb        = self::db();
+		$audience_in = implode( ',', array_fill( 0, count( $audience_ids ), '%d' ) );
+		$user_in     = implode( ',', array_fill( 0, count( $user_ids ), '%d' ) );
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic IN() placeholders built from array_fill above; the arguments arrive as one array.
+		/**
+		 * Two integer columns, read as strings.
+		 *
+		 * @var array<int, array{user_id: string, audience_id: string}>|null $found
+		 */
+		$found = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT user_id, audience_id FROM %i WHERE audience_id IN ({$audience_in}) AND user_id IN ({$user_in})",
+				array_merge( array( self::get_members_table_name() ), $audience_ids, $user_ids )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		$out = array();
+		foreach ( (array) $found as $row ) {
+			$out[ (int) $row['user_id'] ][] = (int) $row['audience_id'];
+		}
+		return $out;
+	}
+
+	/**
 	 * Cache key for {@see self::get_user_audiences()}.
 	 *
 	 * Lives on the Reader because the Reader owns the shape of what is

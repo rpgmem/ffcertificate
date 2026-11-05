@@ -915,8 +915,8 @@ msgstr "Um módulo desativado mantém todas as linhas que já armazenou; apenas 
 
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
-msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
-msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\". Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
+msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button, which restores its subject and body. One \"Save email texts\" button persists them all — you do not save per email."
+msgstr "Um seletor organizado por funcionalidades lista todos os e-mails editáveis; ao selecionar um deles, abre-se apenas o editor correspondente (o editor de texto rico é criado sob demanda, mantendo a página leve, mesmo com um grande número de e-mails). Cada editor conta com sua própria ajuda para {{tokens}} e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Um único botão \"Salvar textos dos e-mails\" salva todas as alterações de uma só vez — não é necessário salvar e-mail por e-mail."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
 msgid "A field whose Variable Name (Tag) is"
@@ -7236,6 +7236,38 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: templates/admin/date-messages/upcoming.php
+msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
+msgstr "Só as primeiras %d pessoas são listadas. Escolha um período menor ou um público para ver as demais."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody in the rule's audiences is left to reach: everyone has received it or opted out."
+msgstr "Não resta ninguém nos públicos da regra para alcançar: todos já receberam ou desativaram o recebimento."
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Account: %s"
+msgstr "Conta: %s"
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Manage your e-mail preferences in your dashboard profile"
+msgstr "Gerencie suas preferências de e-mail no perfil do seu painel"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
+msgstr "O link de cancelamento no fim desses e-mails desliga esta mesma preferência."
+
+#: templates/admin/scheduling/calendar-names.php
+msgid "Word for a session (%s)"
+msgstr "Palavra para uma sessão (%s)"
+
+#: templates/admin/scheduling/calendar-names.php
+msgid "The word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page."
+msgstr "A palavra para uma sessão (ex.: \"Sala\" / \"Salas\"), mostrada aos visitantes ao agendar, no comprovante, nos e-mails e na página de verificação."
+
+#: templates/admin/audience/general-tab.php
+msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+msgstr "A palavra para uma sessão nos calendários pessoais, mostrada ao agendar, no comprovante, nos e-mails e na página de verificação. Um calendário pode definir a sua própria na aba Nomes."
+
 #: includes/settings/views/documentation/reference-emails.php
 msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
 msgstr "{{date}}, {{age}} e {{days_until}} precisam de uma data, por isso um comunicado não os oferece."
@@ -7360,25 +7392,13 @@ msgstr "Um lote interrompido no meio, por exemplo por um servidor de e-mail lent
 msgid "Date messages: start of one rule's daily run (one per rule)"
 msgstr "Mensagens de datas: início da execução diária de uma regra (uma por regra)"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
-msgid "Session (singular)"
-msgstr "Sessão (singular)"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
-msgid "Sessions (plural)"
-msgstr "Sessões (plural)"
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
-msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use \"Session\" / \"Sessions\"."
-msgstr "A palavra deste calendário para uma sessão (ex.: \"Sala\" / \"Salas\"), mostrada aos visitantes ao agendar, no comprovante, nos e-mails e na página de verificação. Deixe vazio para usar \"Sessão\" / \"Sessões\"."
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:54
-msgid "Two fields on the Names tab give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
-msgstr "Dois campos na aba Nomes dão ao calendário a sua própria palavra para uma sessão, no singular e no plural (por exemplo \"Sala\" / \"Salas\"), que os visitantes veem ao agendar e no comprovante, nos e-mails e na página de verificação; campos vazios mantêm \"Sessão\" / \"Sessões\"."
+msgid "The word for a session, singular and plural (for example \"Room\" / \"Rooms\"), is what visitors see when they book and on the receipt, the e-mails and the verification page. Its general form is set in Calendar Colors and Labels on the General tab of the Scheduling settings; the Session row of a calendar's Names tab sets its own, and an empty field there keeps the general one."
+msgstr "A palavra para uma sessão, no singular e no plural (por exemplo \"Sala\" / \"Salas\"), é o que os visitantes veem ao agendar e no comprovante, nos e-mails e na página de verificação. A forma geral é definida em Cores e Rótulos do Calendário, na aba Geral das configurações de Agendamento; a linha Sessão da aba Nomes de um calendário define a sua própria, e um campo vazio ali mantém a geral."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:119
-msgid "The calendar's word for a session, \"Session\" unless the Names tab sets its own"
-msgstr "A palavra do calendário para uma sessão, \"Sessão\" a menos que a aba Nomes defina a sua"
+msgid "The calendar's word for a session: its own from the Names tab, else the general one from Calendar Colors and Labels, else \"Session\""
+msgstr "A palavra do calendário para uma sessão: a própria, da aba Nomes; senão a geral, de Cores e Rótulos do Calendário; senão \"Sessão\""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75
 msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}}, {{session_label}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
@@ -16641,8 +16661,8 @@ msgid "The Email texts hub is gated by the dedicated ffc_manage_email_templates 
 msgstr "A central de textos de e-mail é protegida pela permissão dedicada `ffc_manage_email_templates`; assim, a edição do conteúdo dos e-mails pode ser delegada a — ou restringida de — uma função, independentemente da permissão geral de Configurações. Sem essa permissão específica, a aba fica totalmente oculta."
 
 #: includes/settings/views/documentation/reference-emails.php:57
-msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
-msgstr "A aba \"Textos de e-mail\" é o local centralizado para editar o assunto e o corpo padrão de todos os e-mails do plugin. Não se trata mais de apenas três e-mails editáveis; todos os e-mails do plugin que utilizam *tokens* podem ser editados aqui, organizados por funcionalidade. Ao selecionar um e-mail, abre-se o editor específico para ele; cada um conta com sua própria ajuda sobre os *tokens* (`{{token}}`) e um botão \"Restaurar texto padrão\". Se o assunto e o corpo forem deixados exatamente como o padrão original, a personalização é removida, fazendo com que o e-mail volte a acompanhar automaticamente o padrão nativo do plugin."
+msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
+msgstr "A aba \"Textos de e-mail\" é o local centralizado para editar o assunto e o corpo padrão de todos os e-mails do plugin. Não se trata mais de apenas três e-mails editáveis; todos os e-mails do plugin que utilizam *tokens* podem ser editados aqui, organizados por funcionalidade. Ao selecionar um e-mail, abre-se o editor específico para ele; cada um conta com sua própria ajuda sobre os *tokens* (`{{token}}`) e um botão \"Restaurar texto padrão\", que restaura o assunto e o corpo. Se o assunto e o corpo forem deixados exatamente como o padrão original, a personalização é removida, fazendo com que o e-mail volte a acompanhar automaticamente o padrão nativo do plugin."
 
 #: includes/settings/views/documentation/reference-emails.php:99
 msgid "the email's own placeholders — e.g."
@@ -21531,9 +21551,6 @@ msgstr "Prévia dos destinatários"
 msgid "Replace the current message with the default text? Your changes will be lost."
 msgstr "Substituir a mensagem atual pelo texto padrão? Suas alterações serão perdidas."
 
-msgid "Restore default text"
-msgstr "Restaurar texto padrão"
-
 msgid "Rule"
 msgstr "Regra"
 
@@ -22621,8 +22638,8 @@ msgstr "Só nas regras por data: 0 envia na própria data; um número negativo e
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
-msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o padrão do tipo escolhido."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
+msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o assunto e a mensagem do tipo escolhido."
 
 msgid "\"Active\" and \"E-mail each person on their date\". Active, a dated rule is sent by the daily run each day, and an announcement goes out once, at its send time or from Send now; inactive, neither is sent. Activating a rule takes the send capability. A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
 msgstr "\"Ativo\" e \"Enviar e-mail a cada pessoa na sua data\". Ativa, uma regra por data é enviada pela execução diária todo dia, e um comunicado sai uma única vez, no horário de envio ou pelo Enviar agora; inativa, nenhuma das duas é enviada. Ativar uma regra exige a capacidade de envio. Uma regra pode ficar ativa com os e-mails pessoais desligados: ela então não envia e-mail a ninguém e roda, pela execução diária ou pelo Enviar agora, só para enviar aos seus gestores o resumo de quem faz aniversário."
@@ -28871,8 +28888,8 @@ msgstr "Este calendário exibe o nome nos dias fechados."
 msgid "These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar's name, and its choice to show or hide the closed day's name, win over these; an empty field there keeps the general one."
 msgstr "Estes são os nomes gerais. Quando um calendário precisar dos seus próprios, defina-os no calendário: na aba Nomes de um calendário pessoal ou no campo Nomes do calendário de um calendário de público. O nome do calendário, e a escolha de exibir ou ocultar o nome do dia fechado, prevalecem sobre estes; um campo vazio lá mantém o geral."
 
-msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
-msgstr "Os nomes próprios deste calendário para seus estados (legenda e célula do dia, incluindo o selo de reservas no singular e no plural) e a escolha de exibir ou ocultar o nome do dia fechado. Um campo vazio mantém o nome geral de Cores e Rótulos do Calendário, na aba Geral das configurações de Agendamento; as cores continuam gerais. O nome do calendário prevalece sobre o geral, que prevalece sobre o padrão."
+msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) its word for a session in the singular and the plural, and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
+msgstr "Os nomes próprios deste calendário para seus estados (legenda e célula do dia, incluindo o selo de reservas no singular e no plural), sua palavra para uma sessão no singular e no plural, e a escolha de exibir ou ocultar o nome do dia fechado. Um campo vazio mantém o nome geral de Cores e Rótulos do Calendário, na aba Geral das configurações de Agendamento; as cores continuam gerais. O nome do calendário prevalece sobre o geral, que prevalece sobre o padrão."
 
 msgid "This calendar's own names. An empty field uses the general name, shown in it, set in Calendar Colors and Labels on the General tab of the Scheduling settings. Colors are general only."
 msgstr "Os nomes próprios deste calendário. Um campo vazio usa o nome geral, exibido nele, definido em Cores e Rótulos do Calendário na aba Geral das configurações de Agendamento. As cores são apenas gerais."

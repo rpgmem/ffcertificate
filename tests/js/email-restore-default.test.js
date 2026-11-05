@@ -58,6 +58,30 @@ describe('ffc-email-restore-default', () => {
 		expect(window.$('#ffc_rs_body').val()).toBe('OTHER_DEFAULT');
 	});
 
+	it('restores the subject too when the button names its field (#2336)', async () => {
+		installDom();
+		document.querySelector('.ffc-email-restore-default').setAttribute('data-subject', 'ffc_rs_subject');
+		document.body.insertAdjacentHTML('beforeend', '<input id="ffc_rs_subject" value="edited subject">');
+		window.ffcEmailRestoreDefaults.recruitment_body.subject = 'DEFAULT_SUBJECT';
+		await loadOnReady();
+
+		window.$('.ffc-email-restore-default').trigger('click');
+
+		expect(window.$('#ffc_rs_subject').val()).toBe('DEFAULT_SUBJECT');
+		expect(window.$('#ffc_rs_body').val()).toBe('DEFAULT_TEMPLATE');
+	});
+
+	it('leaves the subject alone when the button names no subject field', async () => {
+		installDom();
+		document.body.insertAdjacentHTML('beforeend', '<input id="ffc_rs_subject" value="edited subject">');
+		window.ffcEmailRestoreDefaults.recruitment_body.subject = 'DEFAULT_SUBJECT';
+		await loadOnReady();
+
+		window.$('.ffc-email-restore-default').trigger('click');
+
+		expect(window.$('#ffc_rs_subject').val()).toBe('edited subject');
+	});
+
 	it('does nothing when the confirm is cancelled', async () => {
 		installDom();
 		window.confirm = () => false;

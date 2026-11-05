@@ -201,6 +201,49 @@ final class CalendarAppearanceTest extends TestCase {
 		$this->assertSame( 'bookings', $strings['bookings'], 'An empty plural keeps the default (#2221).' );
 	}
 
+	public function test_the_word_for_a_session_takes_its_two_names_from_the_card(): void {
+		$this->assertSame( 'Session', CalendarAppearance::cell( CalendarAppearance::SESSION_SINGULAR ) );
+		$this->assertSame( 'Sessions', CalendarAppearance::cell( CalendarAppearance::SESSION_PLURAL ) );
+
+		CalendarAppearance::save( array(), array(), array( 'session_singular' => 'Sala', 'session_plural' => '' ), true );
+
+		$this->assertSame( 'Sala', CalendarAppearance::cell( CalendarAppearance::SESSION_SINGULAR ), 'Stored like the other names (#2420).' );
+		$this->assertSame( 'Sessions', CalendarAppearance::cell( CalendarAppearance::SESSION_PLURAL ), 'An empty plural keeps the default.' );
+	}
+
+	public function test_the_names_table_offers_the_session_row_only_when_given_and_shows_the_general_name(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $text ) => print( $text ) );
+		foreach ( array( 'esc_html', 'esc_attr', 'esc_html__', 'esc_attr__' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		CalendarAppearance::save( array(), array(), array( 'session_singular' => 'Sala', 'session_plural' => 'Salas' ), true );
+
+		$render = static function ( ?array $sessions ): string {
+			$ffc_names_base    = 'ffc_calendar_names';
+			$ffc_names         = array();
+			$ffc_names_booking = false;
+			if ( null !== $sessions ) {
+				$ffc_names_sessions = $sessions;
+			}
+			ob_start();
+			include dirname( __DIR__, 2 ) . '/templates/admin/scheduling/calendar-names.php';
+			return (string) ob_get_clean();
+		};
+
+		$audience = $render( null );
+		$this->assertStringNotContainsString( 'ffc_self_scheduling_session_label', $audience, 'The audience calendar has no sessions.' );
+
+		$personal = $render(
+			array(
+				'session_label'        => 'Room',
+				'session_label_plural' => '',
+			)
+		);
+		$this->assertMatchesRegularExpression( '#name="ffc_self_scheduling_session_label"[^>]*value="Room"[^>]*placeholder="Sala"#s', $personal, 'Its own name, the general one as the placeholder.' );
+		$this->assertMatchesRegularExpression( '#name="ffc_self_scheduling_session_label_plural"[^>]*value=""[^>]*placeholder="Salas"#s', $personal, 'Empty inherits the general plural.' );
+		$this->assertLessThan( strpos( $personal, '</table>' ), strpos( $personal, 'ffc_self_scheduling_session_label' ), 'The row sits inside the names table (#2420).' );
+	}
+
 	public function test_a_calendar_name_wins_over_the_general_one_which_wins_over_the_default(): void {
 		CalendarAppearance::save( array(), array( 'closed' => 'Sem expediente' ), array( 'closed' => 'Fechado' ), true );
 		$override = CalendarAppearance::clean_override(

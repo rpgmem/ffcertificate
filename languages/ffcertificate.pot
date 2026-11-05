@@ -917,7 +917,7 @@ msgstr ""
 
 
 #: includes/settings/views/documentation/email-texts-hub.php:24
-msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button. One \"Save email texts\" button persists them all — you do not save per email."
+msgid "A feature-grouped selector lists every editable email; pick one and only that email's editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a \"Restore Default Text\" button, which restores its subject and body. One \"Save email texts\" button persists them all — you do not save per email."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php:24
@@ -7233,6 +7233,36 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: templates/admin/date-messages/upcoming.php
+msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
+msgstr ""
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php
+msgid "Nobody in the rule's audiences is left to reach: everyone has received it or opted out."
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Account: %s"
+msgstr ""
+
+#: includes/date-messages/class-ffc-unsubscribe.php
+msgid "Manage your e-mail preferences in your dashboard profile"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "The unsubscribe link at the end of these e-mails turns off the same preference."
+
+#: templates/admin/scheduling/calendar-names.php
+msgid "Word for a session (%s)"
+msgstr ""
+
+#: templates/admin/scheduling/calendar-names.php
+msgid "The word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page."
+msgstr ""
+
+#: templates/admin/audience/general-tab.php
+msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+
 #: includes/settings/views/documentation/reference-emails.php
 msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
 msgstr ""
@@ -7357,24 +7387,12 @@ msgstr ""
 msgid "Date messages: start of one rule's daily run (one per rule)"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:615
-msgid "Session (singular)"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:621
-msgid "Sessions (plural)"
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-editor.php:624
-msgid "This calendar's word for a session (e.g. \"Room\" / \"Rooms\"), shown to visitors when they book, on the receipt, in e-mails and on the verification page. Leave empty to use \"Session\" / \"Sessions\"."
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:54
-msgid "Two fields on the Names tab give the calendar its own word for a session, singular and plural (for example \"Room\" / \"Rooms\"), which visitors see when they book and on the receipt, the e-mails and the verification page; empty fields keep \"Session\" / \"Sessions\"."
+msgid "The word for a session, singular and plural (for example \"Room\" / \"Rooms\"), is what visitors see when they book and on the receipt, the e-mails and the verification page. Its general form is set in Calendar Colors and Labels on the General tab of the Scheduling settings; the Session row of a calendar's Names tab sets its own, and an empty field there keeps the general one."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:119
-msgid "The calendar's word for a session, \"Session\" unless the Names tab sets its own"
+msgid "The calendar's word for a session: its own from the Names tab, else the general one from Calendar Colors and Labels, else \"Session\""
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:75
@@ -16590,7 +16608,7 @@ msgid "The Email texts hub is gated by the dedicated ffc_manage_email_templates 
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:57
-msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
+msgid "The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin's token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one's editor opens; each has its own {{token}} help and a \"Restore Default Text\" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:99
@@ -21450,9 +21468,6 @@ msgstr ""
 msgid "Replace the current message with the default text? Your changes will be lost."
 msgstr ""
 
-msgid "Restore default text"
-msgstr ""
-
 msgid "Rule"
 msgstr ""
 
@@ -22540,7 +22555,7 @@ msgstr ""
 msgid "Subject and message"
 msgstr ""
 
-msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore default text\" brings back the default of the kind chosen."
+msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
 msgstr ""
 
 msgid "\"Active\" and \"E-mail each person on their date\". Active, a dated rule is sent by the daily run each day, and an announcement goes out once, at its send time or from Send now; inactive, neither is sent. Activating a rule takes the send capability. A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
@@ -28790,7 +28805,7 @@ msgstr ""
 msgid "These are the general names. When a calendar needs its own, set them on the calendar: the Names tab of a personal calendar, or the Calendar names field of an audience calendar. A calendar's name, and its choice to show or hide the closed day's name, win over these; an empty field there keeps the general one."
 msgstr ""
 
-msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
+msgid "This calendar's own names for its states (legend and day cell, the bookings badge in the singular and the plural included) its word for a session in the singular and the plural, and its choice to show or hide the closed day's name. An empty field keeps the general name from Calendar Colors and Labels, on the General tab of the Scheduling settings; colors stay general. The calendar's name wins over the general one, which wins over the default."
 msgstr ""
 
 msgid "This calendar's own names. An empty field uses the general name, shown in it, set in Calendar Colors and Labels on the General tab of the Scheduling settings. Colors are general only."
