@@ -1071,7 +1071,9 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		b.setAttribute('src', 'https://x.test/other.png');
 		await vi.advanceTimersByTimeAsync(12000);
 
-		expect(seen[0]).toEqual(['https://x.test/a-real.png', 'https://x.test/b.png']);
+		// A capture left over from an earlier test (its own real timer) can
+		// land in this array first, so look for this document's capture.
+		expect(seen).toContainEqual(['https://x.test/a-real.png', 'https://x.test/b.png']);
 	});
 
 	it('falls back to the original src when a lazy loader emptied it and left no data attribute', async () => {
@@ -1083,7 +1085,7 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		document.querySelector('.ffc-pdf-temp-container #a').setAttribute('src', 'about:blank');
 		await vi.advanceTimersByTimeAsync(12000);
 
-		expect(seen[0]).toEqual(['https://x.test/a.png']);
+		expect(seen).toContainEqual(['https://x.test/a.png']);
 	});
 
 	it('traps Tab inside the error panel and closes it on Escape, restoring focus', async () => {
