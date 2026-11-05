@@ -45,6 +45,7 @@ class SchedulingMailer {
 	 * @param bool                 $wrap        Whether to wrap body in the standard chrome (default true).
 	 * @param string               $source_key  Optional {@see \FreeFormCertificate\Core\EmailSource} key tagging the sending function.
 	 * @param array<string, mixed> $document Extra layout arguments, such as a message's `body_appearance` (#1660).
+	 * @param array<int, string>   $extra_headers Extra mail headers, such as a bulk message's List-Unsubscribe pair (#2336).
 	 * @return bool
 	 */
 	public static function send(
@@ -54,10 +55,14 @@ class SchedulingMailer {
 		array $attachments = array(),
 		bool $wrap = true,
 		string $source_key = '',
-		array $document = array()
+		array $document = array(),
+		array $extra_headers = array()
 	): bool {
-		$headers = array(
-			'Content-Type: text/html; charset=UTF-8',
+		$headers = array_merge(
+			array(
+				'Content-Type: text/html; charset=UTF-8',
+			),
+			$extra_headers
 		);
 
 		$html = $wrap ? self::document( $body, array_merge( $document, array( 'recipient' => $to ) ) ) : $body;

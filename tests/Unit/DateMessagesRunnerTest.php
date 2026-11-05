@@ -476,6 +476,9 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->assertStringContainsString( '<p>Hi User 1</p>', $this->mailed[0][2] );
 		$this->assertContains( 'Content-Type: text/html; charset=UTF-8', $this->mailed[0][3] );
 		$this->assertContains( 'X-TMQ-Source-Key: plugin:ffcertificate_date_messages', $this->mailed[0][3] );
+		// One-click unsubscribe, RFC 8058 (#2336).
+		$this->assertContains( 'List-Unsubscribe-Post: List-Unsubscribe=One-Click', $this->mailed[0][3] );
+		$this->assertCount( 1, preg_grep( '/^List-Unsubscribe: <https:\/\/example\.org\/wp-admin\/admin-post\.php\?/', $this->mailed[0][3] ) );
 		$this->assertSame( array( 7 ), $this->finished );
 		$this->assertSame(
 			array(

@@ -29,6 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * A GET NEVER CHANGES ANYTHING. Mail scanners and link previewers fetch every
  * URL in a message, so the link opens a confirmation page and only its POST,
  * carrying the same token plus a nonce, records the choice.
+ *
+ * ONE-CLICK, PER RFC 8058 (#2336). Every message also carries the link in a
+ * `List-Unsubscribe` header with `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
+ * so a mail client can offer its own unsubscribe button. The client POSTs
+ * `List-Unsubscribe=One-Click` to the link and sends no nonce, so that POST is
+ * accepted on the token alone -- which is what the token is for, and a link
+ * scanner, which only GETs, still changes nothing.
  */
 final class Unsubscribe {
 
@@ -88,6 +95,21 @@ final class Unsubscribe {
 	}
 
 	/**
+	 * The two headers that make a bulk message one-click unsubscribable
+	 * (RFC 8058, #2336).
+	 *
+	 * @param int    $user_id  Account.
+	 * @param string $category One of OptOutCategory::all().
+	 * @return array<int, string>
+	 */
+	public static function headers( int $user_id, string $category = OptOutCategory::PERSONAL ): array {
+		return array(
+			'List-Unsubscribe: <' . self::url( $user_id, $category ) . '>',
+			'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+		);
+	}
+
+	/**
 	 * Whether a token belongs to an account.
 	 *
 	 * @param int    $user_id Account.
@@ -105,6 +127,11 @@ final class Unsubscribe {
 	 * @return void
 	 */
 	public static function handle(): void {
+		if ( 'One-Click' === RequestInput::get_post_string( 'List-Unsubscribe' ) ) {
+			self::handle_one_click();
+			return;
+		}
+
 		$is_post  = RequestInput::has_post( 't' );
 		$user_id  = $is_post ? RequestInput::get_post_int( 'u' ) : RequestInput::get_get_int( 'u' );
 		$token    = $is_post ? RequestInput::get_post_string( 't' ) : RequestInput::get_get_string( 't' );
@@ -136,6 +163,27 @@ final class Unsubscribe {
 			esc_html( $title ),
 			array( 'response' => 200 )
 		);
+	}
+
+	/**
+	 * A mail client's one-click POST (RFC 8058): the account, token and
+	 * category ride in the link's query, the body says only
+	 * `List-Unsubscribe=One-Click`, and there is no page to show.
+	 *
+	 * @return void
+	 */
+	private static function handle_one_click(): void {
+		$user_id  = RequestInput::get_get_int( 'u' );
+		$token    = RequestInput::get_get_string( 't' );
+		$raw      = RequestInput::get_get_string( 'c' );
+		$category = '' === $raw ? OptOutCategory::PERSONAL : $raw;
+
+		if ( ! OptOutCategory::has( $category ) || ! self::verify( $user_id, $token, $category ) || false === get_userdata( $user_id ) ) {
+			wp_die( esc_html__( 'This unsubscribe link is not valid.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		OptOut::set( $user_id, false, $category );
+		wp_die( esc_html__( 'Unsubscribed.', 'ffcertificate' ), '', array( 'response' => 200 ) );
 	}
 
 	/**
