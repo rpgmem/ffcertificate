@@ -84,8 +84,8 @@
 
 		showError: function (msg) {
 			clearTimeout(api.safetyTimer);
+			// The error stays, with a Close button, until the visitor reads it (#2344).
 			if (window.FFCProgressOverlay) { window.FFCProgressOverlay.error(msg, strings.error || 'Error'); }
-			setTimeout(function () { api.hideOverlay(); }, 4000);
 		},
 
 		// ── Flash message ───────────────────────────────────────────

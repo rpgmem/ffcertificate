@@ -27,46 +27,126 @@
 	'use strict';
 
 	/**
-	 * Shared progress-overlay component: a fixed modal card with a status line,
-	 * an animated bar + percentage, and an error state. One singleton overlay is
-	 * kept at a time. Markup/classes match the public download so a single
-	 * stylesheet (ffc-progress-overlay.css) styles both surfaces.
+	 * The strings the export speaks in, localised once for every caller
+	 * (#2344). A caller's own value wins only when it is a non-empty string.
+	 *
+	 * @param {Object} [own] The caller's strings.
+	 * @return {Object}
+	 */
+	function stringsFor(own) {
+		var out = $.extend({
+			title: 'Exporting CSV',
+			preparing: 'Preparing…',
+			generating: 'Generating CSV — %d records…',
+			exporting: 'Exporting %1$d / %2$d…',
+			downloading: 'Starting download…',
+			error: 'Export failed.',
+			connectionError: 'Connection error. Check your connection and try again.',
+			close: 'Close',
+			percent: '%d percent done'
+		}, window.ffcBatchedExportStrings || {});
+		Object.keys(own || {}).forEach(function (key) {
+			if (typeof own[key] === 'string' && own[key] !== '') {
+				out[key] = own[key];
+			}
+		});
+		return out;
+	}
+
+	/**
+	 * Shared progress-overlay component (#786): a modal dialog with a title,
+	 * a status line, a progress bar and an error state. One overlay is kept
+	 * at a time, and the public download and the admin exports share it.
+	 *
+	 * It is a named modal (#2344): the focus moves into it and comes back
+	 * to where it was when it closes. The bar is a `progressbar`, and a
+	 * polite status announces every quarter of the way rather than every
+	 * batch. An error stays on screen with a Close button.
 	 */
 	var overlay = (function () {
 		var $overlay = null;
+		var returnFocus = null;
+		var announced = -1;
+		var seq = 0;
 
-		function esc(str) {
-			var div = document.createElement('div');
-			div.appendChild(document.createTextNode(str == null ? '' : str));
-			return div.innerHTML;
+		function strings() {
+			return stringsFor();
+		}
+
+		function onKeydown(e) {
+			if (!$overlay) { return; }
+			var $close = $overlay.find('.ffc-csv-progress-close');
+			if (e.key === 'Escape' && $close.length) {
+				e.preventDefault();
+				hide();
+				return;
+			}
+			if (e.key === 'Tab') {
+				// Nothing outside the dialog takes the focus while it is open.
+				e.preventDefault();
+				($close.length ? $close : $overlay.find('.ffc-csv-progress-card')).trigger('focus');
+			}
+		}
+
+		function hide() {
+			if (!$overlay) { return; }
+			var $old = $overlay;
+			$overlay = null;
+			$(document).off('keydown.ffcProgressOverlay');
+			$old.fadeOut(300, function () { $(this).remove(); });
+			var back = returnFocus;
+			returnFocus = null;
+			if (back && document.body.contains(back) && typeof back.focus === 'function') {
+				back.focus();
+			}
 		}
 
 		return {
 			/**
-			 * Build (or rebuild) the overlay and append it to <body>.
+			 * Build (or rebuild) the overlay, append it to <body> and move
+			 * the focus into it.
+			 *
 			 * @param {string} text Initial status text.
 			 * @return {jQuery} The overlay element.
 			 */
 			show: function (text) {
-				if ($overlay) { $overlay.remove(); }
+				var s = strings();
+				if ($overlay) {
+					$overlay.remove();
+				} else {
+					returnFocus = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+				}
+				seq++;
+				announced = -1;
+				var titleId = 'ffc-csv-progress-title-' + seq;
+				var statusId = 'ffc-csv-progress-status-' + seq;
 				$overlay = $(
-					'<div class="ffc-csv-progress-overlay" role="alertdialog" aria-live="assertive">' +
-						'<div class="ffc-csv-progress-card">' +
-							'<div class="ffc-csv-progress-status">' + esc(text) + '</div>' +
-							'<div class="ffc-csv-progress-bar-container">' +
+					'<div class="ffc-csv-progress-overlay">' +
+						'<div class="ffc-csv-progress-card" role="dialog" aria-modal="true" tabindex="-1">' +
+							'<h2 class="ffc-csv-progress-title"></h2>' +
+							'<p class="ffc-csv-progress-status"></p>' +
+							'<div class="ffc-csv-progress-bar-container" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
 								'<div class="ffc-csv-progress-bar-fill" style="width:0%"></div>' +
 							'</div>' +
-							'<div class="ffc-csv-progress-percent">0 %</div>' +
+							'<div class="ffc-csv-progress-percent" aria-hidden="true">0 %</div>' +
+							'<p class="ffc-csv-progress-live" role="status"></p>' +
 						'</div>' +
 					'</div>'
-				).appendTo('body');
+				);
+				$overlay.find('.ffc-csv-progress-title').attr('id', titleId).text(s.title);
+				$overlay.find('.ffc-csv-progress-status').attr('id', statusId).text(text == null ? '' : text);
+				$overlay.find('.ffc-csv-progress-card').attr({ 'aria-labelledby': titleId, 'aria-describedby': statusId });
+				$overlay.find('.ffc-csv-progress-bar-container').attr('aria-labelledby', titleId);
+				$overlay.appendTo('body');
+				$overlay.find('.ffc-csv-progress-card').trigger('focus');
+				$(document).off('keydown.ffcProgressOverlay').on('keydown.ffcProgressOverlay', onKeydown);
 				return $overlay;
 			},
 
 			/** @return {jQuery|null} The current overlay element (or null). */
 			el: function () { return $overlay; },
 
-			/** Update the status line. */
+			/** Update the status line. It is not announced: the quarters are. */
 			status: function (text) {
 				if ($overlay) { $overlay.find('.ffc-csv-progress-status').text(text); }
 			},
@@ -76,7 +156,13 @@
 				if (!$overlay) { return; }
 				var pct = max > 0 ? Math.min(100, Math.round((current / max) * 100)) : 0;
 				$overlay.find('.ffc-csv-progress-bar-fill').css('width', pct + '%');
+				$overlay.find('.ffc-csv-progress-bar-container').attr('aria-valuenow', pct);
 				$overlay.find('.ffc-csv-progress-percent').text(pct + ' %');
+				var quarter = Math.floor(pct / 25) * 25;
+				if (quarter > 0 && quarter > announced) {
+					announced = quarter;
+					$overlay.find('.ffc-csv-progress-live').text(strings().percent.replace('%d', quarter));
+				}
 			},
 
 			/** Mark the bar as complete (green). */
@@ -84,26 +170,35 @@
 				if ($overlay) { $overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-complete'); }
 			},
 
-			/** Switch the overlay to its error state and show a message. */
+			/**
+			 * Switch the overlay to its error state. The message stays until
+			 * the visitor closes it.
+			 */
 			error: function (msg, statusLabel) {
 				if (!$overlay) { return; }
-				$overlay.find('.ffc-csv-progress-status').text(statusLabel || 'Error');
+				var s = strings();
+				$overlay.find('.ffc-csv-progress-status').text(statusLabel || s.error);
 				$overlay.find('.ffc-csv-progress-bar-fill').addClass('ffc-csv-error');
+				var $card = $overlay.find('.ffc-csv-progress-card');
+				$card.attr('role', 'alertdialog');
 				var $err = $overlay.find('.ffc-csv-progress-error');
 				if (!$err.length) {
-					$err = $('<div class="ffc-csv-progress-error"></div>')
-						.appendTo($overlay.find('.ffc-csv-progress-card'));
+					$err = $('<p class="ffc-csv-progress-error" role="alert"></p>').appendTo($card);
 				}
 				$err.text(msg == null ? '' : msg);
+				var $close = $overlay.find('.ffc-csv-progress-close');
+				if (!$close.length) {
+					var close = window.FFC && typeof window.FFC.button === 'function'
+						? window.FFC.button({ label: s.close, category: 'neutral', icon: 'cross', className: 'ffc-csv-progress-close' })
+						: $('<button type="button" class="ffc-csv-progress-close"></button>').text(s.close)[0];
+					$close = $(close).appendTo($card);
+					$close.on('click', hide);
+				}
+				$close.trigger('focus');
 			},
 
-			/** Fade out and remove the overlay. */
-			hide: function () {
-				if ($overlay) {
-					$overlay.fadeOut(300, function () { $(this).remove(); });
-					$overlay = null;
-				}
-			}
+			/** Close the overlay and give the focus back. */
+			hide: hide
 		};
 	})();
 
@@ -135,7 +230,7 @@
 		var cb        = config.callbacks || {};
 		var useOverlay = !!config.overlay && !!window.FFCProgressOverlay;
 		var $button   = config.button ? $(config.button) : null;
-		var s         = config.strings || {};
+		var s         = stringsFor(config.strings);
 		// startData may be an object (admin export) or a pre-serialised
 		// URL-encoded string from $form.serialize() (public export). Merge the
 		// routing `type` into either shape WITHOUT corrupting it: $.extend on a
@@ -149,8 +244,10 @@
 		var startOpts = config.nonce ? { nonce: config.nonce } : {};
 
 		if (useOverlay) {
+			// The focus moves into the dialog first, so disabling the
+			// trigger does not drop it to the page (#2344).
+			overlay.show(s.preparing);
 			if ($button) { $button.prop('disabled', true); }
-			overlay.show(s.preparing || 'Preparing…');
 		}
 
 		FFC.request('ffc_export_start', startData, startOpts)
@@ -158,7 +255,7 @@
 				var jobId = data.job_id;
 				var total = data.total;
 				if (useOverlay) {
-					overlay.status((s.generating || 'Generating CSV — %d records…').replace('%d', total));
+					overlay.status(s.generating.replace('%d', total));
 					overlay.progress(0, total);
 				}
 				if (cb.onStart) { cb.onStart(total, data); }
@@ -183,7 +280,7 @@
 								// between batches).
 								overlay.progress(bd.processed, total);
 								overlay.status(
-									(s.exporting || 'Exporting %1$d / %2$d…')
+									s.exporting
 										.replace('%1$d', bd.processed)
 										.replace('%2$d', total)
 								);
@@ -211,12 +308,13 @@
 
 					if (useOverlay) {
 						overlay.progress(total, total);
-						overlay.status(s.downloading || 'Starting download…');
+						overlay.status(s.downloading);
 						overlay.complete();
 						var $iframe = $('<iframe>', { src: url }).css('display', 'none').appendTo('body');
 						setTimeout(function () {
-							overlay.hide();
+							// Re-enabled first, so the focus can return to it.
 							if ($button) { $button.prop('disabled', false); }
+							overlay.hide();
 							$iframe.remove();
 						}, 2000);
 					}
@@ -233,17 +331,17 @@
 				// A server-sent message wins; otherwise fall back to the
 				// connection-error string, then the generic error string —
 				// mirroring the public download's onError.
+				// The error stays until it is closed (#2344).
+				if ($button) { $button.prop('disabled', false); }
 				overlay.error(
-					(err && err.fromServer && err.message) || s.connectionError || s.error || 'Export failed.',
+					(err && err.fromServer && err.message) || s.connectionError,
 					s.error
 				);
-				if ($button) { $button.prop('disabled', false); }
-				setTimeout(function () { overlay.hide(); }, 4000);
 			}
 			if (cb.onError) { cb.onError(err); }
 		}
 	}
 
-	window.FFCBatchedExport = { run: run };
+	window.FFCBatchedExport = { run: run, strings: stringsFor };
 
 })(jQuery);
