@@ -76,6 +76,19 @@ jQuery(function ($) {
 			});
 		}
 
+		function getBody() {
+			var editor = window.tinymce && window.tinymce.get('ffc_dm_body');
+			if (editor && !editor.isHidden()) {
+				return String(editor.getContent());
+			}
+			return String($('#ffc_dm_body').val() || '');
+		}
+
+		// Whitespace aside, the editor may reformat the stored HTML.
+		function same(a, b) {
+			return String(a || '').replace(/\s+/g, '') === String(b || '').replace(/\s+/g, '');
+		}
+
 		$kind.on('change', function () {
 			var kind = String($kind.val());
 			var other = 'announcement' === kind ? 'dated' : 'announcement';
@@ -83,10 +96,18 @@ jQuery(function ($) {
 			var to = defaults[kind];
 			applyRows(kind);
 			$restore.attr('data-default-key', keys[kind] || keys.dated);
-			if (from && to && $subject.val() === from.subject) {
-				$subject.val(to.subject);
-				setBody(to.body);
+			if (!from || !to) {
+				return;
 			}
+			// The other kind's default text, untouched: swap it silently. An
+			// edited text is the operator's work, replaced only when they say
+			// so (#2336).
+			var untouched = $subject.val() === from.subject && same(getBody(), from.body);
+			if (!untouched && !window.confirm(String(strings.kindReplace || 'Replace the subject and the message with the default text of this kind? Your changes will be lost.'))) {
+				return;
+			}
+			$subject.val(to.subject);
+			setBody(to.body);
 		});
 	}
 
@@ -175,6 +196,46 @@ jQuery(function ($) {
 				$button.prop('disabled', false);
 			});
 	}
+
+	// Send now asks with the facts (#2336): the rule, the dates and how many
+	// people it will reach, counted by the same selection the send uses (the
+	// recipient preview). Confirmed, the form submits itself, once.
+	$(document).on('submit', '#ffc-dm-send-form', function (e) {
+		var form = this;
+		if (form.getAttribute('data-ffc-dm-confirmed') === '1') {
+			return;
+		}
+		e.preventDefault();
+		var $box = $(form).find('.ffc-dm-preview');
+		var $option = $box.find('.ffc-dm-rule option:selected');
+		var name = String($option.text() || '');
+		var announcement = 'announcement' === String($option.attr('data-ffc-dm-kind') || '');
+		var summaryOnly = '1' === String($option.attr('data-ffc-dm-summary-only') || '');
+		var from = String($box.find('.ffc-dm-from').val() || '');
+		var to = String($box.find('.ffc-dm-to').val() || '');
+		var range = announcement ? String(strings.today || 'today') : (from === to ? from : from + ' – ' + to);
+
+		function ask(count) {
+			var template = summaryOnly ? strings.confirmSummary : strings.confirmSend;
+			var text = String(template || 'Send "%1$s" for %2$s to %3$s people?')
+				.replace('%1$s', name)
+				.replace('%2$s', range)
+				.replace('%3$s', null === count ? '?' : String(count));
+			if (window.confirm(text)) {
+				form.setAttribute('data-ffc-dm-confirmed', '1');
+				form.submit();
+			}
+		}
+
+		window.FFC.request(cfg.previewAction, savedPayload($box), { nonce: cfg.previewNonce, ajaxUrl: cfg.ajaxUrl })
+			.then(function (data) {
+				var totals = (data && data.totals) || {};
+				ask(Number(totals.will_send || 0));
+			})
+			.catch(function () {
+				ask(null);
+			});
+	});
 
 	$(document).on('click', '.ffc-dm-preview-button', function () {
 		run($(this), cfg.previewAction, cfg.previewNonce, render);

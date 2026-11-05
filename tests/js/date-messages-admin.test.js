@@ -20,9 +20,9 @@ const notice = window.FFC.notice;
 
 function installSendDom() {
 	document.body.innerHTML = `
-		<form id="ffc-dm-send-form" data-ffc-confirm="Send?">
+		<form id="ffc-dm-send-form">
 			<div class="ffc-dm-preview" data-ffc-dm-preview="saved">
-				<select class="ffc-dm-rule"><option value="7" selected>R</option></select>
+				<select class="ffc-dm-rule"><option value="7" data-ffc-dm-kind="dated" data-ffc-dm-summary-only="0" selected>R</option></select>
 				<input class="ffc-dm-from" value="2026-10-01">
 				<input class="ffc-dm-to" value="2026-10-02">
 				<button type="button" class="ffc-dm-preview-button">Preview</button>
@@ -145,15 +145,56 @@ describe('ffc-date-messages-admin', () => {
 	});
 
 	it('asks before submitting a form that carries a confirmation', async () => {
-		installSendDom();
+		document.body.innerHTML = '<form id="other" data-ffc-confirm="Delete?"></form>';
 		await loadOnReady();
 		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
 		const event = window.$.Event('submit');
-		window.$('#ffc-dm-send-form').trigger(event);
+		window.$('#other').trigger(event);
 
-		expect(confirm).toHaveBeenCalledWith('Send?');
+		expect(confirm).toHaveBeenCalledWith('Delete?');
 		expect(event.isDefaultPrevented()).toBe(true);
+		confirm.mockRestore();
+	});
+
+	it('asks to send now with the rule, the dates and the count the preview gives (#2336)', async () => {
+		installSendDom();
+		window.ffcDateMessages.strings.confirmSend = 'Send "%1$s" for %2$s to %3$s people?';
+		request.mockResolvedValue({ totals: { will_send: 12 } });
+		await loadOnReady();
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const form = document.getElementById('ffc-dm-send-form');
+		const submit = vi.spyOn(form, 'submit').mockImplementation(() => {});
+
+		const event = window.$.Event('submit');
+		window.$(form).trigger(event);
+		await flush();
+
+		expect(event.isDefaultPrevented()).toBe(true);
+		expect(request.mock.calls[0][0]).toBe('ffc_date_messages_preview');
+		expect(request.mock.calls[0][1]).toEqual({ rule_id: '7', from: '2026-10-01', to: '2026-10-02' });
+		expect(confirm).toHaveBeenCalledWith('Send "R" for 2026-10-01 – 2026-10-02 to 12 people?');
+		expect(submit).not.toHaveBeenCalled();
+
+		confirm.mockReturnValue(true);
+		window.$(form).trigger(window.$.Event('submit'));
+		await flush();
+		expect(submit).toHaveBeenCalledTimes(1);
+		confirm.mockRestore();
+	});
+
+	it('says a summary-only rule e-mails nobody', async () => {
+		installSendDom();
+		window.$('.ffc-dm-rule option').attr('data-ffc-dm-summary-only', '1');
+		window.ffcDateMessages.strings.confirmSummary = 'Run "%1$s" for %2$s; summary of %3$s.';
+		request.mockResolvedValue({ totals: { will_send: 4 } });
+		await loadOnReady();
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+		window.$('#ffc-dm-send-form').trigger(window.$.Event('submit'));
+		await flush();
+
+		expect(confirm).toHaveBeenCalledWith('Run "R" for 2026-10-01 – 2026-10-02; summary of 4.');
 		confirm.mockRestore();
 	});
 
@@ -276,12 +317,20 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_announcement_body');
 
-		// A subject the operator typed is left alone.
+		// An edited text is replaced only when the operator says so (#2336).
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		window.$('#ffc-dm-subject').val('Mine');
 		window.$('#ffc_dm_body').val('mine');
 		window.$('#ffc-dm-kind').val('dated').trigger('change');
+		expect(confirm).toHaveBeenCalledTimes(1);
 		expect(window.$('#ffc-dm-subject').val()).toBe('Mine');
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
+
+		confirm.mockReturnValue(true);
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Site: announcement');
+		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
+		confirm.mockRestore();
 		delete window.ffcDateMessageDefaults;
 	});
 

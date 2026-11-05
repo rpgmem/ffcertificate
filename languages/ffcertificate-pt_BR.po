@@ -7236,6 +7236,34 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: templates/admin/date-messages/rules.php:74
+msgid "At %s"
+msgstr "Às %s"
+
+#: templates/admin/date-messages/rules.php:75
+msgid "From Send now"
+msgstr "Pelo Enviar agora"
+
+#: templates/admin/date-messages/rule-form.php:125
+msgid "It goes out once, at its send time or from Send now; inactive, it is never sent. Activating it takes the right to send."
+msgstr "Sai uma vez, no horário de envio ou pelo Enviar agora; inativo, nunca é enviado. Ativá-lo exige a permissão de envio."
+
+#: templates/admin/date-messages/rules.php:65
+msgid "None (announcement)"
+msgstr "Nenhuma (comunicado)"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:260
+msgid "Replace the subject and the message with the default text of this kind? Your changes will be lost."
+msgstr "Substituir o assunto e a mensagem pelo texto padrão deste tipo? Suas alterações serão perdidas."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:264
+msgid "Run \"%1$s\" for %2$s? Personal e-mails are off: nobody is e-mailed, and its managers receive the summary of the %3$s people whose date it is."
+msgstr "Executar \"%1$s\" para %2$s? Os e-mails pessoais estão desligados: ninguém recebe e-mail, e os gestores recebem o resumo das %3$s pessoas que fazem aniversário na data."
+
+#: templates/admin/date-messages/rule-form.php:124
+msgid "The daily run sends it each day to the people whose date it is. Activating it takes the right to send."
+msgstr "A execução diária a envia a cada dia para as pessoas cuja data é aquele dia. Ativá-la exige a permissão de envio."
+
 #: includes/settings/views/documentation/feature-date-messages.php:58
 msgid "An announcement reaches each person once per rule: sending it again on another day reaches only whoever it missed."
 msgstr "Um comunicado chega a cada pessoa uma vez por regra: enviá-lo de novo em outro dia alcança apenas quem ficou de fora."
@@ -21374,9 +21402,6 @@ msgstr "\"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de 
 msgid "(deleted rule)"
 msgstr "(regra excluída)"
 
-msgid "Active (the daily run sends it)"
-msgstr "Ativa (o envio diário a envia)"
-
 msgid "Active, not sending to people"
 msgstr "Ativa, sem envio às pessoas"
 
@@ -21410,8 +21435,8 @@ msgstr "Excluir esta regra? O que ela já enviou continua no histórico."
 msgid "E-mail each person on their date"
 msgstr "Enviar e-mail a cada pessoa na sua data"
 
-msgid "Each rule sends its own message on a date in each person's profile, or a number of days before it. The daily run sends every active rule; the Send now tab sends one rule over dates you choose."
-msgstr "Cada regra envia sua própria mensagem em uma data do perfil de cada pessoa, ou alguns dias antes dela. O envio diário envia todas as regras ativas; a aba Enviar agora envia uma regra para as datas que você escolher."
+msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose."
+msgstr "Uma regra com data envia a mensagem numa data do perfil de cada pessoa, ou alguns dias antes ou depois dela; a execução diária envia todas as ativas. Um comunicado não tem data: vai uma vez para todos do seu público, no horário de envio ou pela aba Enviar agora, que também envia uma regra com data nas datas que você escolher."
 
 msgid "Edit rule"
 msgstr "Editar regra"
@@ -21500,8 +21525,8 @@ msgstr "Enviar agora"
 msgid "Send test to me"
 msgstr "Enviar teste para mim"
 
-msgid "Send these messages now?"
-msgstr "Enviar estas mensagens agora?"
+msgid "Send \"%1$s\" for %2$s to %3$s people?"
+msgstr "Enviar \"%1$s\" para %2$s a %3$s pessoas?"
 
 msgid "Sending"
 msgstr "Envio"
@@ -26973,8 +26998,8 @@ msgstr "Há um novo comunicado de %s."
 
 #: templates/emails/date-message-announcement.php:22
 #, php-format
-msgid "You can read the details on your dashboard: <a href=\"%s\">open your dashboard</a>."
-msgstr "Você pode ler os detalhes no seu painel: <a href=\"%s\">abrir o painel</a>."
+msgid "Replace this paragraph with what you want to announce."
+msgstr "Substitua este parágrafo pelo que você quer comunicar."
 
 #: templates/emails/date-message-announcement.php:23
 #, php-format
