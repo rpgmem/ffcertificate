@@ -214,7 +214,7 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 					<span data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><code>{{date}}</code> <code>{{age}}</code> <code>{{days_until}}</code></span>
 					<code>{{site_name}}</code> <code>{{dashboard_url}}</code> <code>{{unsubscribe_url}}</code>
 				</p>
-				<p class="description"><?php esc_html_e( 'The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end.', 'ffcertificate' ); ?></p>
+				<p class="description"><?php esc_html_e( 'The header and footer come from Settings → Email Model. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end.', 'ffcertificate' ); ?></p>
 			</td>
 		</tr>
 	</table>

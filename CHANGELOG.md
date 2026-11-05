@@ -36,6 +36,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Date Messages: deleting a rule takes `ffc_delete_date_messages`** (#2336). Managing rules no longer includes it; every current holder of `ffc_manage_date_messages` receives it on upgrade. An integration that deletes rules on the strength of the manage capability must check the new one.
 - **Date Messages: the editor and Send now say what will happen** (#2336). Send now confirms with the rule, the dates and the number of people the preview counts. Restore default follows the kind being edited, changing the kind asks before replacing an edited text, an announcement is offered only its own placeholders, and the list shows its send time instead of a date.
 - **E-mail: one-click unsubscribe and a cleaner document** (#2336). Date messages carry `List-Unsubscribe` and `List-Unsubscribe-Post` (RFC 8058). Every e-mail declares its language and light scheme, shows its first line in the inbox preview, and leaves the site name out of its plain text. A failed send logs a masked address and no subject.
+- **Date Messages: the documentation covers both kinds, and "comunicado" in pt_BR** (#2336). The docs gain an Announcements section, describe Send now, History, the daily schedule and opt-outs for dated rules and announcements alike, and list the announcement message. The rule editor names the Email Model tab. pt_BR says "comunicado" for every announcement.
 
 ### Security
 
