@@ -471,13 +471,22 @@ class AppointmentAjaxHandler {
 				}
 			}
 
-			wp_send_json_success(
-				array(
-					'counts'        => $counts,
-					'holidays'      => $holidays,
-					'holiday_kinds' => (object) $holiday_kinds,
-				)
+			$response = array(
+				'counts'        => $counts,
+				'holidays'      => $holidays,
+				'holiday_kinds' => (object) $holiday_kinds,
 			);
+
+			// The free-slots panel, only for a calendar that shows it (#2405).
+			if ( is_array( $calendar ) && ! empty( $calendar['show_event_list'] ) ) {
+				$panel             = $this->handler->month_panel( $calendar, $calendar_id, $start_date, $end_date );
+				$response['panel'] = array(
+					'days' => (object) $panel['days'],
+					'mine' => $panel['mine'],
+				);
+			}
+
+			wp_send_json_success( $response );
 
 		} catch ( \Throwable $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

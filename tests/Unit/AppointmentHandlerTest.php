@@ -444,6 +444,90 @@ class AppointmentHandlerTest extends TestCase {
 		$this->assertFalse( $this->handler->is_hidden_from_visitor( $this->makeCalendar( array( 'visibility' => 'public' ) ) ) );
 	}
 
+	// ==================================================================
+	// month_panel() — the free-slots panel (#2405)
+	// ==================================================================
+
+	/**
+	 * Mondays 09:00-10:00, two places per 30-minute slot, bookable as far
+	 * ahead as the test month needs.
+	 *
+	 * @param int $max_days The advance booking window, in days.
+	 * @return array<string, mixed>
+	 */
+	private function panelCalendar( int $max_days = 10000 ): array {
+		return $this->makeCalendar(
+			array(
+				'max_appointments_per_slot' => 2,
+				'advance_booking_max'       => $max_days,
+				'working_hours'             => array(
+					array( 'day' => 1, 'start' => '09:00', 'end' => '10:00' ),
+				),
+			)
+		);
+	}
+
+	public function test_month_panel_lists_each_bookable_day_with_its_free_places(): void {
+		$calendar = $this->panelCalendar();
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->andReturn( $calendar );
+		$this->blockedDateRepo->shouldReceive( 'getBlocksForDate' )->andReturn( array() );
+		$this->appointmentRepo->shouldReceive( 'getAppointmentsByDate' )->andReturnUsing(
+			static fn( int $id, string $date ): array => '2032-03-08' === $date ? array( array( 'start_time' => '09:00:00' ) ) : array()
+		);
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
+
+		$panel = $this->handler->month_panel( $calendar, 1, '2032-03-01', '2032-03-31' );
+
+		// March 2032's Mondays; one place taken on the 8th.
+		$this->assertSame(
+			array(
+				'2032-03-01' => array( 'free' => 4, 'slots' => 2 ),
+				'2032-03-08' => array( 'free' => 3, 'slots' => 2 ),
+				'2032-03-15' => array( 'free' => 4, 'slots' => 2 ),
+				'2032-03-22' => array( 'free' => 4, 'slots' => 2 ),
+				'2032-03-29' => array( 'free' => 4, 'slots' => 2 ),
+			),
+			$panel['days']
+		);
+	}
+
+	public function test_month_panel_lists_no_day_beyond_the_booking_window(): void {
+		$calendar = $this->panelCalendar( 0 );
+		$this->calendarRepo->shouldReceive( 'getWithWorkingHours' )->never();
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->andReturn( array() );
+
+		$panel = $this->handler->month_panel( $calendar, 1, '2032-03-01', '2032-03-31' );
+
+		$this->assertSame( array(), $panel['days'] );
+	}
+
+	public function test_month_panel_lists_only_the_visitors_own_bookings_in_this_calendar_and_month(): void {
+		$calendar = $this->panelCalendar( 0 );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->once()->with( 1, array( 'pending', 'confirmed' ) )->andReturn(
+			array(
+				array( 'calendar_id' => 1, 'appointment_date' => '2032-03-15', 'start_time' => '09:30:00', 'end_time' => '10:00:00', 'status' => 'pending', 'email_encrypted' => 'x' ),
+				array( 'calendar_id' => 2, 'appointment_date' => '2032-03-15', 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'status' => 'confirmed' ),
+				array( 'calendar_id' => 1, 'appointment_date' => '2032-04-05', 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'status' => 'confirmed' ),
+				array( 'calendar_id' => 1, 'appointment_date' => '2032-03-08', 'start_time' => '09:00:00', 'end_time' => '09:30:00', 'status' => 'confirmed' ),
+			)
+		);
+
+		$mine = $this->handler->month_panel( $calendar, 1, '2032-03-01', '2032-03-31' )['mine'];
+
+		$this->assertSame( array( '2032-03-08', '2032-03-15' ), array_column( $mine, 'date' ), 'Own bookings in this calendar and month, in date order.' );
+		$this->assertSame( array( 'confirmed', 'pending' ), array_column( $mine, 'status' ) );
+		$this->assertSame( array( 'date', 'start', 'end', 'status' ), array_keys( $mine[0] ), 'Nothing beyond the date, the times and the status leaves the server.' );
+	}
+
+	public function test_month_panel_lists_no_bookings_for_an_anonymous_visitor(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$this->appointmentRepo->shouldReceive( 'findByUserId' )->never();
+
+		$panel = $this->handler->month_panel( $this->panelCalendar( 0 ), 1, '2032-03-01', '2032-03-31' );
+
+		$this->assertSame( array(), $panel['mine'] );
+	}
+
 	public function test_available_slots_generates_from_working_hours(): void {
 		// Monday 2032-03-08 (day_of_week=1)
 		$calendar = $this->makeCalendar( array(

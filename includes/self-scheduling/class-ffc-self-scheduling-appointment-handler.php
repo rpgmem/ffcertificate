@@ -480,6 +480,82 @@ class AppointmentHandler {
 	}
 
 	/**
+	 * What the free-slots panel shows for a month (#2405): each bookable day
+	 * that still has room, with its free places and slots, and the caller's
+	 * own open bookings in the calendar. Nothing names another person.
+	 *
+	 * The days are those of the month inside the calendar's booking window,
+	 * read through {@see self::get_available_slots()} so the panel offers
+	 * exactly what a click on the day would. A full slot with waitlist room
+	 * adds no free place.
+	 *
+	 * @param array<string, mixed> $calendar    Calendar row.
+	 * @param int                  $calendar_id Calendar ID.
+	 * @param string               $start_date  First day of the month (Y-m-d).
+	 * @param string               $end_date    Last day of the month (Y-m-d).
+	 * @return array{days: array<string, array{free: int, slots: int}>, mine: list<array{date: string, start: string, end: string, status: string}>}
+	 */
+	public function month_panel( array $calendar, int $calendar_id, string $start_date, string $end_date ): array {
+		$today = wp_date( 'Y-m-d' );
+		$last  = wp_date( 'Y-m-d', time() + max( 0, (int) ( $calendar['advance_booking_max'] ?? 30 ) ) * DAY_IN_SECONDS );
+		$from  = max( $start_date, (string) $today );
+		$until = min( $end_date, (string) $last );
+
+		$days    = array();
+		$current = $from;
+		while ( $current <= $until ) {
+			$slots = $this->get_available_slots( $calendar_id, $current );
+			if ( is_array( $slots ) ) {
+				$free  = 0;
+				$count = 0;
+				foreach ( $slots as $slot ) {
+					$available = (int) ( $slot['available'] ?? 0 );
+					if ( $available > 0 ) {
+						$free += $available;
+						++$count;
+					}
+				}
+				if ( $free > 0 ) {
+					$days[ $current ] = array(
+						'free'  => $free,
+						'slots' => $count,
+					);
+				}
+			}
+			$next    = strtotime( $current . ' +1 day' );
+			$current = gmdate( 'Y-m-d', false === $next ? PHP_INT_MAX : $next );
+		}
+
+		$mine    = array();
+		$user_id = get_current_user_id();
+		if ( $user_id > 0 ) {
+			foreach ( $this->appointment_repository->findByUserId( $user_id, array( 'pending', 'confirmed' ) ) as $row ) {
+				$date = (string) ( $row['appointment_date'] ?? '' );
+				if ( (int) ( $row['calendar_id'] ?? 0 ) !== $calendar_id || $date < $start_date || $date > $end_date ) {
+					continue;
+				}
+				$mine[] = array(
+					'date'   => $date,
+					'start'  => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['start_time'] ?? '' ) ),
+					'end'    => \FreeFormCertificate\Core\DateFormatter::format_wallclock_time( (string) ( $row['end_time'] ?? '' ) ),
+					'status' => (string) ( $row['status'] ?? '' ),
+				);
+			}
+			usort(
+				$mine,
+				static function ( array $a, array $b ): int {
+					return strcmp( $a['date'] . $a['start'], $b['date'] . $b['start'] );
+				}
+			);
+		}
+
+		return array(
+			'days' => $days,
+			'mine' => $mine,
+		);
+	}
+
+	/**
 	 * The error a read of a calendar hidden from the visitor answers with.
 	 *
 	 * @since 6.40.0

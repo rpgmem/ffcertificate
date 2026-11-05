@@ -220,6 +220,69 @@
         /**
          * Format date string (YYYY-MM-DD) to localized display
          */
+        /**
+         * Fill the free-slots panel for a month (#2405): the visitor's own
+         * bookings first, then each day with free places or a holiday, in
+         * date order. The data names nobody but the visitor.
+         *
+         * @param {number} year     Full year.
+         * @param {number} month    Month, 1-12.
+         * @param {?Object} panel   `{days: {date: {free, slots}}, mine: []}`.
+         * @param {Object} holidays Date => holiday name.
+         * @param {Object} strings  The calendar's strings.
+         */
+        renderPanel: function(year, month, panel, holidays, strings) {
+            var self = this;
+            var months = strings.months || [];
+            var heading = (strings.panelHeading || 'Free Slots — %s').replace('%s', (months[month - 1] || month) + ' ' + year);
+            $('#ffc-event-list-panel .ffc-event-list-header h3').text(heading);
+
+            var $content = $('#ffc-event-list-content').empty();
+            var days = (panel && panel.days) || {};
+            var mine = (panel && panel.mine) || [];
+            var prefix = year + '-' + (month < 10 ? '0' : '') + month + '-';
+
+            if (mine.length) {
+                $content.append($('<div class="ffc-event-list-date">').text(strings.panelMine || 'Your bookings'));
+                mine.forEach(function (b) {
+                    var status = b.status === 'pending' ? strings.pendingApproval : strings.confirmed;
+                    $content.append(
+                        $('<div class="ffc-event-list-item ffc-event-list-mine">')
+                            .append($('<span class="ffc-event-list-time">').text(self.formatDate(b.date) + ' · ' + b.start + (b.end ? '–' + b.end : '')))
+                            .append($('<span class="ffc-event-list-desc">').text(status || ''))
+                    );
+                });
+            }
+
+            var dates = Object.keys(days);
+            Object.keys(holidays || {}).forEach(function (d) {
+                if (d.indexOf(prefix) === 0 && dates.indexOf(d) === -1) {
+                    dates.push(d);
+                }
+            });
+            dates.sort();
+
+            dates.forEach(function (d) {
+                $content.append($('<div class="ffc-event-list-date">').text(self.formatDate(d)));
+                if (holidays && holidays[d]) {
+                    $content.append($('<div class="ffc-event-list-item ffc-event-list-holiday">').append($('<span class="ffc-event-list-desc">').text(holidays[d])));
+                    return;
+                }
+                var free = days[d].free;
+                var label = free === 1 ? (strings.panelFreeOne || '1 free place') : (strings.panelFreeMany || '%d free places').replace('%d', free);
+                var times = days[d].slots === 1 ? (strings.panelTimesOne || '1 time') : (strings.panelTimesMany || '%d times').replace('%d', days[d].slots);
+                $content.append(
+                    $('<div class="ffc-event-list-item ffc-event-list-free">')
+                        .append($('<span class="ffc-event-list-time">').text(label))
+                        .append($('<span class="ffc-event-list-desc">').text(times))
+                );
+            });
+
+            if (!mine.length && !dates.length) {
+                $content.append($('<p class="ffc-no-events">').text(strings.panelNone || 'No free slots this month.'));
+            }
+        },
+
         formatDate: function(dateStr) {
             var parts = dateStr.split('-');
             if (parts.length !== 3) return dateStr;
@@ -782,6 +845,7 @@
         var bookingCounts = {};
         var calendarHolidays = {};
         var calendarHolidayKinds = {};
+        var panelData = null;
         var fetchId = 0;
 
         // Function to fetch booking counts and holidays for a month
@@ -802,6 +866,7 @@
                         bookingCounts = data.counts;
                     }
                     calendarHolidayKinds = (data && data.holiday_kinds) || {};
+                    panelData = (data && data.panel) || null;
                     if (data && data.holidays) {
                         calendarHolidays = data.holidays;
                         if (calendar) {
@@ -874,6 +939,9 @@
             onMonthChange: function(year, month) {
                 fetchBookingCounts(year, month, function() {
                     calendar.refresh();
+                    if (config.showPanel) {
+                        self.renderPanel(year, month, panelData, calendarHolidays, strings);
+                    }
                 });
             },
             onDayClick: function(dateStr, _$day) {

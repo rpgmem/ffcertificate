@@ -280,7 +280,25 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$after = FormControls::inventory( $this->render_normal_column() );
 		$names = array_filter( $after, static fn( array $control ): bool => str_starts_with( (string) ( $control['attrs']['name'] ?? '' ), 'ffc_calendar_names[' ) );
 		$this->assertNotEmpty( $names, 'The Names tab posts the calendar\'s own names.' );
-		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names ) ) );
+
+		// The free-slots panel's two settings (#2405) came after the tabs too.
+		$panel = array_filter(
+			$after,
+			static fn( array $control ): bool => in_array( (string) ( $control['attrs']['name'] ?? '' ), array( 'ffc_self_scheduling_config[show_event_list]', 'ffc_self_scheduling_config[event_list_position]' ), true )
+		);
+		$ids = array_values( array_map( static fn( array $control ): string => (string) $control['attrs']['id'], $panel ) );
+		sort( $ids );
+		$this->assertSame(
+			array( 'event_list_position-1', 'event_list_position-2', 'show_event_list' ),
+			$ids,
+			'The Calendar tab carries the panel switch and its two positions.'
+		);
+		$this->assertSame(
+			array( 'side', 'below' ),
+			array_values( array_filter( array_map( static fn( array $control ): ?string => 'radio' === ( $control['attrs']['type'] ?? '' ) ? (string) $control['attrs']['value'] : null, $panel ) ) )
+		);
+
+		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names, $panel ) ) );
 	}
 
 	/**

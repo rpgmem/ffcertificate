@@ -231,6 +231,71 @@ class SelfSchedulingActivatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// maybe_heal_columns() — the panel columns between releases (#2405)
+	// ==================================================================
+
+	/**
+	 * Run the migration with the version gate already passed, so only the
+	 * revision-gated heal can act, and return the ALTERs it issued.
+	 *
+	 * @param string $revision  The revision option's stored value.
+	 * @param bool   $has_cols  Whether `SHOW COLUMNS` finds the columns.
+	 * @param array  $written   Receives the options written.
+	 * @return list<string>
+	 */
+	private function heal( string $revision, bool $has_cols, array &$written ): array {
+		Functions\when( 'get_option' )->alias(
+			static fn( string $name, $default = '' ) => SelfSchedulingActivator::SCHEMA_REVISION_OPTION === $name ? $revision : FFC_VERSION
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $name, $value ) use ( &$written ): bool {
+				$written[ $name ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $has_cols ? array( (object) array( 'Field' => 'x' ) ) : array() );
+
+		$alters = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $query ) use ( &$alters ) {
+				$alters[] = (string) $query;
+				return 1;
+			}
+		);
+
+		SelfSchedulingActivator::maybe_migrate();
+
+		return array_values( array_filter( $alters, static fn( string $q ): bool => false !== stripos( $q, 'ALTER TABLE' ) ) );
+	}
+
+	public function test_the_heal_adds_the_panel_columns_on_an_install_with_the_same_version(): void {
+		$written = array();
+		$alters  = $this->heal( '', false, $written );
+
+		$this->assertCount( 2, $alters );
+		$this->assertStringContainsString( 'show_event_list', $alters[0] );
+		$this->assertStringContainsString( 'event_list_position', $alters[1] );
+		$this->assertArrayNotHasKey( SelfSchedulingActivator::SCHEMA_REVISION_OPTION, $written, 'An ALTER that did not take is tried again on the next request.' );
+	}
+
+	public function test_the_heal_records_its_revision_once_the_columns_are_there(): void {
+		$written = array();
+		$alters  = $this->heal( '', true, $written );
+
+		$this->assertSame( array(), $alters, 'Columns already there are not added again.' );
+		$this->assertSame( SelfSchedulingActivator::SCHEMA_REVISION, $written[ SelfSchedulingActivator::SCHEMA_REVISION_OPTION ] ?? null );
+	}
+
+	public function test_the_heal_does_nothing_at_the_current_revision(): void {
+		$written = array();
+		$alters  = $this->heal( SelfSchedulingActivator::SCHEMA_REVISION, false, $written );
+
+		$this->assertSame( array(), $alters );
+		$this->assertSame( array(), $written );
+	}
+
+	// ==================================================================
 	// maybe_migrate() — runs when tables exist
 	// ==================================================================
 

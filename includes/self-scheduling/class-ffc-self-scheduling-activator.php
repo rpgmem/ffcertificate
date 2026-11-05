@@ -32,6 +32,21 @@ class SelfSchedulingActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the columns {@see self::maybe_heal_columns()} adds. Bump it in
+	 * the PR that adds one, so installs on the same `FFC_VERSION` heal too.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_self_scheduling_schema_revision';
+
+	/**
 	 * Create all self-scheduling-related tables
 	 *
 	 * Called during plugin activation.
@@ -107,6 +122,8 @@ class SelfSchedulingActivator {
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
             restrict_viewing_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only',
             restrict_booking_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only',
+            show_event_list tinyint(1) DEFAULT 0 COMMENT 'Show the free-slots panel beside or below the month',
+            event_list_position enum('side','below') DEFAULT 'side' COMMENT 'Position of the free-slots panel',
             email_config longtext DEFAULT NULL,
             status varchar(20) DEFAULT 'active' COMMENT 'active, inactive, archived',
             created_at datetime NOT NULL,
@@ -338,6 +355,9 @@ class SelfSchedulingActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
+		// Columns added between releases heal on their own revision (#2405).
+		self::maybe_heal_columns();
+
 		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_self_scheduling_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
@@ -380,6 +400,62 @@ class SelfSchedulingActivator {
 		}
 
 		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
+	 * Heal the columns this module gained without a version bump (#2405).
+	 *
+	 * The `FFC_VERSION` gate of {@see self::maybe_migrate()} runs once per
+	 * release, so a column added mid-batch would reach the testes site only at
+	 * the next release and every write naming it would fail until then. This
+	 * gate is the module's own schema revision, as the audience module's
+	 * (#1918): bump {@see self::SCHEMA_REVISION} in the PR that adds a column
+	 * here. Columns only; the option is not written when an `ALTER` failed,
+	 * so the next request tries again.
+	 *
+	 * @return void
+	 */
+	private static function maybe_heal_columns(): void {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
+			return;
+		}
+
+		if ( self::migrate_event_list_columns() ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
+	}
+
+	/**
+	 * Add the events panel columns to calendars (#2405).
+	 *
+	 * `show_event_list` shows a panel listing the month's free slots beside
+	 * or below the calendar; `event_list_position` places it. Off by default,
+	 * so existing calendars are unchanged on upgrade.
+	 *
+	 * @return bool Whether the table now has both columns, or does not exist yet.
+	 */
+	private static function migrate_event_list_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing(
+			$table_name,
+			'show_event_list',
+			"tinyint(1) DEFAULT 0 COMMENT 'Show the free-slots panel beside or below the month'",
+			'restrict_booking_to_hours'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'event_list_position',
+			"enum('side','below') DEFAULT 'side' COMMENT 'Position of the free-slots panel'",
+			'show_event_list'
+		);
+
+		return self::column_exists( $table_name, 'show_event_list' ) && self::column_exists( $table_name, 'event_list_position' );
 	}
 
 	/**

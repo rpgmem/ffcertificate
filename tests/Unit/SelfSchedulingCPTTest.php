@@ -660,7 +660,7 @@ class SelfSchedulingCPTTest extends TestCase {
 		// must override it with the title being saved.
 		Functions\when( 'get_the_title' )->justReturn( 'Stale title' );
 
-		$config = wp_json_encode( array( 'description' => 'desc', 'slot_duration' => 45 ) );
+		$config = wp_json_encode( array( 'description' => 'desc', 'slot_duration' => 45, 'show_event_list' => 1, 'event_list_position' => 'below' ) );
 		Functions\when( 'get_post_meta' )->alias( function ( $id, $key ) use ( $config ) {
 			if ( '_ffc_self_scheduling_config' === $key ) {
 				return $config;
@@ -688,6 +688,9 @@ class SelfSchedulingCPTTest extends TestCase {
 		$this->assertSame( 12, $data['post_id'] );
 		$this->assertSame( 'desc', $data['description'] );
 		$this->assertSame( 45, $data['slot_duration'] );
+		// The free-slots panel reaches the row the shortcode reads (#2405).
+		$this->assertSame( 1, $data['show_event_list'] );
+		$this->assertSame( 'below', $data['event_list_position'] );
 		$this->assertSame( 'New Cal', $data['title'] );
 		$this->assertSame( '2026-01-01 00:00:00', $data['created_at'] );
 		$this->assertSame( 3, $data['created_by'] );

@@ -230,6 +230,17 @@ class SelfSchedulingShortcode {
 						// PDF overlay.
 						'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
 						'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+						// The free-slots panel (#2405).
+						/* translators: %s: month and year, e.g. "March 2027". */
+						'panelHeading'         => __( 'Free Slots — %s', 'ffcertificate' ),
+						'panelMine'            => __( 'Your bookings', 'ffcertificate' ),
+						'panelNone'            => __( 'No free slots this month.', 'ffcertificate' ),
+						'panelFreeOne'         => __( '1 free place', 'ffcertificate' ),
+						/* translators: %d: number of free places, two or more. */
+						'panelFreeMany'        => __( '%d free places', 'ffcertificate' ),
+						'panelTimesOne'        => __( '1 time', 'ffcertificate' ),
+						/* translators: %d: number of times with free places, two or more. */
+						'panelTimesMany'       => __( '%d times', 'ffcertificate' ),
 						// The override warning (#1859).
 						'override'             => \FreeFormCertificate\Core\OverrideWarning::strings(),
 					)
@@ -365,7 +376,7 @@ class SelfSchedulingShortcode {
 					'role'    => 'note',
 					'html'    => true,
 					'hook'    => 'admin-bypass',
-					'classes' => array( 'ffc-calendar-notice' ),
+					'classes' => self::show_panel_beside( $calendar ) ? array( 'ffc-calendar-notice', 'ffc-calendar-notice-wide' ) : array( 'ffc-calendar-notice' ),
 				)
 			);
 			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
@@ -373,6 +384,16 @@ class SelfSchedulingShortcode {
 		$this->render_calendar_interface( $calendar, $can_book, $scheduling_message );
 		$output = ob_get_clean();
 		return $output ? $output : '';
+	}
+
+	/**
+	 * Whether the calendar shows its free-slots panel beside the month (#2405).
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return bool
+	 */
+	private static function show_panel_beside( array $calendar ): bool {
+		return ! empty( $calendar['show_event_list'] ) && 'below' !== ( $calendar['event_list_position'] ?? 'side' );
 	}
 
 	/**
@@ -563,6 +584,12 @@ class SelfSchedulingShortcode {
 			: array();
 		$disabled_days = array_diff( array( 0, 1, 2, 3, 4, 5, 6 ), $working_days );
 
+		$show_panel = ! empty( $calendar['show_event_list'] );
+		if ( $show_panel ) :
+			?>
+		<div class="ffc-shortcode ffc-calendar-wrapper ffc-has-event-list <?php echo esc_attr( 'ffc-event-list-' . ( self::show_panel_beside( $calendar ) ? 'side' : 'below' ) ); ?>">
+			<?php
+		endif;
 		?>
 		<div class="ffc-shortcode ffc-audience-calendar" data-calendar-id="<?php echo esc_attr( $calendar['id'] ); ?>">
 
@@ -786,6 +813,15 @@ class SelfSchedulingShortcode {
 		</div>
 
 		<?php
+		if ( $show_panel ) {
+			// The month's free slots (#2405), filled by the calendar's script.
+			$ffc_panel_heading = __( 'Free Slots', 'ffcertificate' );
+			include FFC_PLUGIN_DIR . 'templates/public/scheduling/event-list-panel.php';
+			echo '</div><!-- .ffc-calendar-wrapper -->';
+		}
+		?>
+
+		<?php
 		// Build calendar config as data attribute (avoids wp_localize_script timing issues.
 		// and WordPress content filter mangling of inline JS).
 		$working_days_js = array();
@@ -812,6 +848,8 @@ class SelfSchedulingShortcode {
 			'minDateHours'  => isset( $calendar['advance_booking_min'] ) ? (int) $calendar['advance_booking_min'] : 0,
 			'maxDateDays'   => isset( $calendar['advance_booking_max'] ) ? (int) $calendar['advance_booking_max'] : 30,
 			'canBook'       => $can_book,
+			// The free-slots panel beside or below the month (#2405).
+			'showPanel'     => $show_panel,
 			// The booking form asks for the override warning first (#1859);
 			// the server decides again on the submission.
 			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
