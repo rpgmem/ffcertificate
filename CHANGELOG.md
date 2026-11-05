@@ -38,6 +38,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **E-mail: one-click unsubscribe and a cleaner document** (#2336). Date messages carry `List-Unsubscribe` and `List-Unsubscribe-Post` (RFC 8058). Every e-mail declares its language and light scheme, shows its first line in the inbox preview, and leaves the site name out of its plain text. A failed send logs a masked address and no subject.
 - **Date Messages: Upcoming and the screens around it** (#2336). An audience filter is applied before the row limit, audience names come from one query, an announcement with nobody left says so, and the preview table has headers. The unsubscribe page names the account, masked, and links to the dashboard, and Restore Default Text restores the subject too.
 - **Scheduling: the word for a session inherits a general one** (#2420). Calendar Colors and Labels sets a general singular and plural for a session, and a personal calendar's Names table carries a Session row that keeps it unless it sets its own, as every other name there does.
+- **Date Messages: the documentation covers both kinds, and "comunicado" in pt_BR** (#2336). The docs gain an Announcements section, describe Send now, History, the daily schedule and opt-outs for dated rules and announcements alike, and list the announcement message. The rule editor names the Email Model tab. pt_BR says "comunicado" for every announcement.
 
 ### Security
 

@@ -7268,6 +7268,38 @@ msgstr "A palavra para uma sessão (ex.: \"Sala\" / \"Salas\"), mostrada aos vis
 msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
 msgstr "A palavra para uma sessão nos calendários pessoais, mostrada ao agendar, no comprovante, nos e-mails e na página de verificação. Um calendário pode definir a sua própria na aba Nomes."
 
+#: includes/settings/views/documentation/reference-emails.php
+msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
+msgstr "{{date}}, {{age}} e {{days_until}} precisam de uma data, por isso um comunicado não os oferece."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "A dated rule follows a date in each person's profile; an announcement has no date and is sent once to the members of its audiences, or to every account. The kind decides which fields and placeholders the editor offers."
+msgstr "Uma regra por data segue uma data no perfil de cada pessoa; um comunicado não tem data e é enviado uma única vez aos membros dos seus públicos, ou a todas as contas. O tipo decide quais campos e marcadores o editor oferece."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement is a rule of the kind \"Announcement\". It reaches each person in its audiences once per rule: sending it again, on any day, reaches only whoever it missed. Its placeholders leave out {{date}}, {{age}} and {{days_until}}, which need a date."
+msgstr "Um comunicado é uma regra do tipo \"Comunicado\". Ele chega a cada pessoa dos seus públicos uma única vez por regra: enviá-lo de novo, em qualquer dia, alcança só quem ficou de fora. Os seus marcadores deixam de fora {{date}}, {{age}} e {{days_until}}, que precisam de uma data."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "\"Send at\" schedules it once, in the site timezone, and the history lists that run with the Announcement trigger. Left empty, the announcement is sent by hand from Send now, for today only."
+msgstr "\"Enviar em\" o agenda uma única vez, no fuso do site, e o histórico lista essa execução com o disparo Comunicado. Vazio, o comunicado é enviado manualmente pelo Enviar agora, só para hoje."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "People who turned announcements off on their dashboard are skipped, unless \"Send it also to people who turned announcements off\" is on; the history then counts them as sent despite an opt-out."
+msgstr "Quem desligou os comunicados no painel é pulado, a menos que \"Enviar também a quem desligou os comunicados\" esteja ligado; o histórico então os conta como enviados apesar do descadastro."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Activating, scheduling and sending an announcement, and sending it past opt-outs, take ffc_send_date_messages, as activating any rule does."
+msgstr "Ativar, agendar e enviar um comunicado, e enviá-lo apesar dos descadastros, exigem ffc_send_date_messages, como ativar qualquer regra."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Announcements are not part of it: each goes out at its own send time, or from Send now."
+msgstr "Os comunicados não fazem parte dela: cada um sai no seu próprio horário de envio, ou pelo Enviar agora."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "The link in a dated message turns date messages off; the one in an announcement turns announcements off."
+msgstr "O link de uma mensagem por data desliga as mensagens por data; o de um comunicado desliga os comunicados."
+
 #: includes/date-messages/class-ffc-unsubscribe.php
 msgid "Unsubscribed."
 msgstr "Inscrição cancelada."
@@ -21290,9 +21322,6 @@ msgstr "Não foi possível registrar a execução."
 msgid "Date Messages"
 msgstr "Mensagens por Data"
 
-msgid "Date messages"
-msgstr "Mensagens por data"
-
 msgid "Date messages (birthdays and other dates)"
 msgstr "Mensagens por data (aniversários e outras datas)"
 
@@ -21361,7 +21390,7 @@ msgstr "Fonte de data desconhecida."
 
 #: includes/date-messages/class-ffc-announcement-source.php
 msgid "Announcement"
-msgstr "Anúncio"
+msgstr "Comunicado"
 
 #: includes/date-messages/class-ffc-rule.php
 msgid "Unknown kind of message."
@@ -21369,7 +21398,7 @@ msgstr "Tipo de mensagem desconhecido."
 
 #: templates/admin/date-messages/send.php
 msgid "An announcement is sent on one day. Give the same first and last day."
-msgstr "Um anúncio é enviado em um dia. Informe o mesmo primeiro e último dia."
+msgstr "Um comunicado é enviado em um dia. Informe o mesmo primeiro e último dia."
 
 #: templates/admin/date-messages/send.php
 msgid "Enter the send time as a date and time, or leave it empty."
@@ -21381,7 +21410,7 @@ msgstr "Tipo de mensagem"
 
 #: templates/admin/date-messages/rule-form.php
 msgid "A dated message is sent on a date relative to each person. An announcement is one message to everyone in its audience, sent by hand or once at a chosen time."
-msgstr "Uma mensagem com data é enviada numa data relativa a cada pessoa. Um anúncio é uma única mensagem para todos da sua audiência, enviada manualmente ou uma vez num horário escolhido."
+msgstr "Uma mensagem com data é enviada numa data relativa a cada pessoa. Um comunicado é uma única mensagem para todos da sua audiência, enviada manualmente ou uma vez num horário escolhido."
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Send at"
@@ -21389,27 +21418,27 @@ msgstr "Enviar em"
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Announcements only, in the site timezone. The announcement is sent once at this time, if it is active. Leave it empty to send it by hand with Send now. A time already past queues nothing when the rule is saved."
-msgstr "Somente para anúncios, no fuso do site. O anúncio é enviado uma vez nesse horário, se estiver ativo. Deixe vazio para enviar manualmente com Enviar agora. Um horário já passado não agenda nada ao salvar a regra."
+msgstr "Somente para comunicados, no fuso do site. O comunicado é enviado uma vez nesse horário, se estiver ativo. Deixe vazio para enviar manualmente com Enviar agora. Um horário já passado não agenda nada ao salvar a regra."
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Announcements"
-msgstr "Anúncios"
+msgstr "Comunicados"
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Send it also to people who turned announcements off"
-msgstr "Enviar também a quem desligou os anúncios"
+msgstr "Enviar também a quem desligou os comunicados"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
 msgid "Announcements from this site"
-msgstr "Anúncios deste site"
+msgstr "Comunicados deste site"
 
 #: includes/date-messages/class-ffc-runner.php
 msgid "Only an announcement can be scheduled."
-msgstr "Só um anúncio pode ser agendado."
+msgstr "Só um comunicado pode ser agendado."
 
 #: includes/date-messages/class-ffc-unsubscribe.php
 msgid "Stop receiving announcements from this site at this account?"
-msgstr "Deixar de receber anúncios deste site nesta conta?"
+msgstr "Deixar de receber comunicados deste site nesta conta?"
 
 msgid "Unknown digest mode."
 msgstr "Modo de resumo desconhecido."
@@ -21556,7 +21585,7 @@ msgid "Sending started. The first batch went out now; the rest continues in the 
 msgstr "Envio iniciado. O primeiro lote saiu agora; o restante continua em segundo plano. Acompanhe em Histórico."
 
 msgid "Sends one rule to everyone whose date falls in a range of up to %d days. People already sent this rule for that date are skipped, so running a range twice sends nothing new. An announcement has no date: it goes to everyone in its audience, on the one day it is sent."
-msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo. Um anúncio não tem data: vai para todos da audiência, no único dia em que é enviado."
+msgstr "Envia uma regra a todos cuja data cai em um intervalo de até %d dias. Quem já recebeu esta regra para aquela data é pulado, então repetir um intervalo não envia nada novo. Um comunicado não tem data: vai para todos da audiência, no único dia em que é enviado."
 
 msgid "Sent"
 msgstr "Enviados"
@@ -21573,8 +21602,8 @@ msgstr "Essa regra não existe mais."
 msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
 msgstr "As datas são as do perfil (como aniversários), não o dia em que a mensagem sai."
 
-msgid "The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
-msgstr "O cabeçalho e o rodapé vêm do Modelo de E-mail em Configurações → SMTP. Uma mensagem sem {{unsubscribe_url}} recebe uma linha de descadastro no final."
+msgid "The header and footer come from Settings → Email Model. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
+msgstr "O cabeçalho e o rodapé vêm de Configurações → Modelo de e-mail. Uma mensagem sem {{unsubscribe_url}} recebe uma linha de descadastro no final."
 
 msgid "The request failed. Reload the page and try again."
 msgstr "A requisição falhou. Recarregue a página e tente novamente."
@@ -22559,7 +22588,7 @@ msgid "A Profile tab, read from the plugin's own user profile, where they edit t
 msgstr "Uma aba Perfil, lida do perfil de usuário do próprio plugin, onde edita nome de exibição, telefone, departamento, organização, observações e data de nascimento (armazenada criptografada e usada pelas Mensagens por Data)"
 
 msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
-msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" e outra \"Anúncios deste site\", cada uma para deixar de receber aquele tipo; todas ficam ativas até serem desligadas"
+msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" e outra \"Comunicados deste site\", cada uma para deixar de receber aquele tipo; todas ficam ativas até serem desligadas"
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
 msgstr "Alterar a Senha e os botões de Privacidade e Dados (LGPD) para solicitar a exportação ou a exclusão dos seus dados pessoais"
@@ -22576,20 +22605,20 @@ msgstr "Um índice somente leitura no fim da aba lista os e-mails do plugin, agr
 msgid "See Date Messages"
 msgstr "Ver Mensagens por Data"
 
-msgid "Birthday message — the default text a new rule starts from"
-msgstr "Mensagem de aniversário — o texto padrão com que uma nova regra começa"
+msgid "Birthday message and Announcement message — the default texts a new dated rule and a new announcement start from"
+msgstr "Mensagem de aniversário e Mensagem de comunicado — os textos padrão com que começam uma nova regra por data e um novo comunicado"
 
 msgid "Date-message e-mails"
 msgstr "E-mails das mensagens por data"
 
-msgid "Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
-msgstr "Cada regra de Mensagens por Data envia o seu próprio assunto e corpo a cada pessoa na sua data, pelo mesmo fluxo e com o mesmo layout. Um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento de inscrição ao final. Uma regra também pode enviar a gestores escolhidos um resumo 24 horas após cada execução; esse resumo tem corpo fixo."
+msgid "Each Date Messages rule sends its own subject and body, through the same pipeline and chrome: a dated rule to each person on their date, an announcement once to the members of its audiences. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
+msgstr "Cada regra de Mensagens por Data envia o seu próprio assunto e corpo, pelo mesmo fluxo e com o mesmo layout: uma regra por data a cada pessoa na sua data, um comunicado uma única vez aos membros dos seus públicos. Um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento de inscrição ao final. Uma regra também pode enviar a gestores escolhidos um resumo 24 horas após cada execução; esse resumo tem corpo fixo."
 
 msgid "Date-message tokens:"
 msgstr "Tokens das mensagens por data:"
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
-msgstr "Mensagens por Data envia um e-mail em uma data armazenada no perfil de cada pessoa — hoje, o aniversário. O módulo tem o seu próprio menu principal \"Mensagens por Data\", com as abas Regras, Enviar agora, Histórico, Próximas datas e Agendar."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
+msgstr "O Mensagens por Data envia um e-mail em uma data guardada no perfil de cada pessoa — hoje, o aniversário — ou, como comunicado, uma única vez a um público. Ele tem o seu próprio menu \"Mensagens por Data\", com as abas Regras, Enviar agora, Histórico, Próximas datas e Agendamento."
 
 msgid "On, but silent until you create a rule."
 msgstr "Ativo, mas sem enviar nada até que você crie uma regra."
@@ -22600,11 +22629,11 @@ msgstr "O módulo vem ativado por padrão (Configurações → Módulos), mas o 
 msgid "Operator-facing label for the rule."
 msgstr "Rótulo da regra exibido aos operadores."
 
-msgid "Which date in the profile the rule follows (the birth date)."
-msgstr "Qual data do perfil a regra acompanha (a data de nascimento)."
+msgid "Dated rules only: which date in the profile the rule follows (the birth date)."
+msgstr "Só nas regras por data: qual data do perfil a regra segue (a data de nascimento)."
 
-msgid "0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
-msgstr "0 envia na própria data; um número negativo envia essa quantidade de dias antes dela, e um positivo, depois, até dois meses em qualquer direção."
+msgid "Dated rules only: 0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
+msgstr "Só nas regras por data: 0 envia na própria data; um número negativo envia esse número de dias antes dela, um positivo depois, até dois meses em qualquer sentido."
 
 msgid "Subject and message"
 msgstr "Assunto e mensagem"
@@ -22612,8 +22641,8 @@ msgstr "Assunto e mensagem"
 msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
 msgstr "Apenas o corpo do e-mail; o cabeçalho e o rodapé vêm do Modelo de e-mail. Uma nova regra de data começa com o padrão \"Mensagem de aniversário\" de Configurações → Textos dos e-mails, um novo comunicado começa com o padrão \"Mensagem de comunicado\", e \"Restaurar texto padrão\" traz de volta o assunto e a mensagem do tipo escolhido."
 
-msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
-msgstr "\"Enviar e-mail a cada pessoa na sua data\" e \"Ativa (a execução diária a envia)\". Uma regra pode ficar ativa com os e-mails pessoais desligados: então não envia e-mail a ninguém e roda, pela execução diária ou por Enviar agora, apenas para mandar aos seus gestores o resumo de quem faz aniversário na data."
+msgid "\"Active\" and \"E-mail each person on their date\". Active, a dated rule is sent by the daily run each day, and an announcement goes out once, at its send time or from Send now; inactive, neither is sent. Activating a rule takes the send capability. A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
+msgstr "\"Ativo\" e \"Enviar e-mail a cada pessoa na sua data\". Ativa, uma regra por data é enviada pela execução diária todo dia, e um comunicado sai uma única vez, no horário de envio ou pelo Enviar agora; inativa, nenhuma das duas é enviada. Ativar uma regra exige a capacidade de envio. Uma regra pode ficar ativa com os e-mails pessoais desligados: ela então não envia e-mail a ninguém e roda, pela execução diária ou pelo Enviar agora, só para enviar aos seus gestores o resumo de quem faz aniversário."
 
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr "Opcionalmente, envia a gestores escolhidos um resumo 24 horas após cada execução, apenas com os totais ou com os totais e os nomes de quem recebeu. Veja abaixo."
@@ -22630,8 +22659,8 @@ msgstr "Para cada pessoa cuja data cai no dia, vale a primeira decisão aplicáv
 msgid "Preview recipients and test send"
 msgstr "Prévia dos destinatários e envio de teste"
 
-msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
-msgstr "Envia uma regra a todos cuja data cai em um intervalo escolhido de até 31 dias, em lotes entregues ao wp_mail(). Quem já recebeu essa regra para aquela data é ignorado, então executar o mesmo intervalo duas vezes não envia nada novo. Sem um plugin de fila de e-mails ativo, um intervalo grande é enviado tão rápido quanto o PHP executa."
+msgid "Sends one active rule now, in batches handed to wp_mail(): a dated rule to everyone whose date falls in a chosen range of up to 31 days, an announcement for today only. Before it starts, the page confirms the rule, the dates and how many people it will reach. People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
+msgstr "Envia agora uma regra ativa, em lotes entregues ao wp_mail(): uma regra por data a todos cuja data cai em um intervalo escolhido de até 31 dias, um comunicado só para hoje. Antes de começar, a página confirma a regra, as datas e quantas pessoas serão alcançadas. Quem já recebeu a regra naquela data é pulado, então rodar o mesmo intervalo duas vezes não envia nada novo. Sem um plugin de fila de e-mail ativo, um intervalo grande é enviado tão rápido quanto o PHP roda."
 
 msgid "Daily schedule"
 msgstr "Agendamento diário"
@@ -22640,11 +22669,11 @@ msgid "Opting out"
 msgstr "Cancelar o recebimento"
 
 msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
-msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\" e \"Anúncios deste site\". As duas são independentes: desligar uma não desliga a outra."
+msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\" e \"Comunicados deste site\". As duas são independentes: desligar uma não desliga a outra."
 
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
-msgstr "Um anúncio enviado a todos ainda chega a quem desligou os anúncios quando a regra está configurada para enviar mesmo assim. O histórico conta esses envios como forçados, então a escolha nunca fica oculta."
+msgstr "Um comunicado enviado a todos ainda chega a quem desligou os comunicados quando a regra está configurada para enviar mesmo assim. O histórico conta esses envios como forçados, então a escolha nunca fica oculta."
 
 msgid "Every message carries an unsubscribe link; a body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. The link is a signed token that stores nothing; opening it shows a confirmation page, and only confirming turns date messages off, so mail scanners that follow links change nothing. Each message also carries the List-Unsubscribe headers, so the Unsubscribe button a mail client shows beside the sender turns them off in one step, checked by the same token."
 msgstr "Toda mensagem traz um link de cancelamento de inscrição; um corpo que não inclui {{unsubscribe_url}} recebe uma linha de cancelamento ao final. O link é um token assinado que não armazena nada; abri-lo mostra uma página de confirmação, e só a confirmação desliga as mensagens por data, de modo que os verificadores de e-mail que seguem links não alteram nada. Cada mensagem também traz os cabeçalhos List-Unsubscribe, então o botão Cancelar inscrição que o programa de e-mail mostra ao lado do remetente as desliga em um passo, conferido pelo mesmo token."
@@ -23313,7 +23342,7 @@ msgid "Summary"
 msgstr "Resumo"
 
 msgid "0 sends on the date itself; -7 sends seven days before it, 7 seven days after it. Not used by an announcement."
-msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois. Não usado por um anúncio."
+msgstr "0 envia na própria data; -7 envia sete dias antes dela, 7, sete dias depois. Não usado por um comunicado."
 
 msgid "A birth date given before the profile field existed reaches the profile through a migration card in Settings → Data Migrations; while it has accounts left, the Date Messages screen shows a warning, because those people are not yet in previews, upcoming dates or sends."
 msgstr "Uma data de nascimento informada antes de o campo de perfil existir chega ao perfil por um cartão de migração em Configurações → Migrações de Dados; enquanto restarem contas, a tela Mensagens por Data exibe um aviso, porque essas pessoas ainda não aparecem nas prévias, nas próximas datas nem nos envios."
@@ -23339,8 +23368,8 @@ msgstr "Criar, editar e duplicar regras. Excluir uma exige Excluir mensagens de 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
 
-msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
-msgstr "Cada execução, diária ou manual, é listada com a sua regra, as datas e os contadores: enviados, cancelaram o recebimento, sem e-mail válido, fora do público-alvo e com falha. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mails ativa, a entrega acontece depois, a partir da fila. Acima da lista, a aba mostra quando será a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
+msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgstr "Cada execução é listada com a sua regra, o seu disparo — Diária, Manual, ou Comunicado para um comunicado agendado —, as suas datas e os seus contadores: enviados, enviados apesar do descadastro, descadastrados, sem e-mail válido, fora do público-alvo, falharam e listados só para o resumo. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mail ativa, a entrega acontece depois, pela fila. Os envios de teste aparecem marcados como \"Teste\", e \"Ocultar envios de teste\" os deixa de fora. Acima da lista, a aba mostra quando é a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
 
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
 msgstr "Desativado, Ativado (sempre escuro) ou Automático (segue o sistema operacional). Vale para as telas de administração do plugin e para o que ele mostra aos visitantes: os formulários públicos, o painel do usuário e os shortcodes de agendamento, público-alvo e convocação. Certificados e outros PDFs são sempre claros."
@@ -23357,8 +23386,8 @@ msgstr "Por usuário:"
 msgid "Register a migration card and its strategy on Settings → Data Migrations — args ( migrations ) / ( strategies )."
 msgstr "Registra um cartão de migração e sua estratégia em Configurações → Migrações de Dados — args ( migrations ) / ( strategies )."
 
-msgid "Send now is also how a missed day is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
-msgstr "\"Enviar agora\" também é como se recupera um dia perdido: a execução diária cobre só o dia corrente, então um dia em que o agendador não rodou não é recuperado no dia seguinte. Só uma regra ativa pode ser enviada; desativar uma regra interrompe uma execução ainda em andamento no lote seguinte."
+msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
+msgstr "O Enviar agora também é como se recupera um dia perdido de uma regra por data: a execução diária cobre só o dia corrente, então um dia em que o agendador não rodou não é recuperado no dia seguinte. Só uma regra ativa pode ser enviada; desativar uma regra para uma execução ainda em andamento no próximo lote."
 
 msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
 msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração e interrompe sua execução (suas tarefas agendadas continuam disparando no horário, mas não fazem nada), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."
@@ -27089,7 +27118,7 @@ msgstr "A referência é o dia e o mês da data de cada pessoa. O ano não é us
 
 #: templates/admin/date-messages/rule-form.php
 msgid "Off by default: people who turned announcements off do not receive it. When on, they receive it anyway, and the history counts them as forced."
-msgstr "Desligado por padrão: quem desligou os anúncios não recebe. Ligado, recebe mesmo assim, e o histórico conta esses envios como forçados."
+msgstr "Desligado por padrão: quem desligou os comunicados não recebe. Ligado, recebe mesmo assim, e o histórico conta esses envios como forçados."
 
 #: includes/audience/class-ffc-audience-booking-rules.php
 msgid "Cancel this booking?"
@@ -27144,11 +27173,11 @@ msgstr "Quando o horário vai do primeiro ao último dia, o calendário, os deta
 
 #: includes/core/class-ffc-scheduled-tasks.php
 msgid "Date messages announcement (one per scheduled announcement)"
-msgstr "Anúncio de mensagens por data (um por anúncio agendado)"
+msgstr "Comunicado de mensagens por data (um por comunicado agendado)"
 
 #: includes/date-messages/class-ffc-unsubscribe.php
 msgid "Done. You will no longer receive announcements from this site. You can turn them back on in your dashboard profile."
-msgstr "Pronto. Você não receberá mais anúncios deste site. É possível reativá-los no perfil do seu painel."
+msgstr "Pronto. Você não receberá mais comunicados deste site. É possível reativá-los no perfil do seu painel."
 
 #: includes/date-messages/class-ffc-date-messages-admin-page.php
 msgid "Activating a rule, sending it past opt-outs or scheduling an announcement decides who receives messages, and your account cannot send them. Save it inactive and respecting opt-outs, or ask someone who can send."
@@ -27164,7 +27193,7 @@ msgstr "Enviados apesar do descadastro (incluídos em Enviados)"
 
 #: templates/emails/date-message-digest.php
 msgid "announcement"
-msgstr "anúncio"
+msgstr "comunicado"
 
 #: includes/admin/class-ffc-form-editor-save-handler.php
 msgid "Add them to the layout, or uncheck them in Settings → Certificates, and save again."

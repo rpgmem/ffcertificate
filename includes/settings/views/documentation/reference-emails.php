@@ -78,7 +78,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder, confirmation, not approved and returned for revision', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices, the "booking cancelled by an administrator" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message and Announcement message — the default texts a new dated rule and a new announcement start from', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice, sent when a user gains plugin capabilities — only while "Access Granted Notification" is on in the SMTP tab, which it is not by default', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
@@ -88,8 +88,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Date-message e-mails', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body.', 'ffcertificate' ); ?></p>
-		<p><?php esc_html_e( 'Date-message tokens:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>, <code>{{age}}</code>, <code>{{days_until}}</code>, <code>{{site_name}}</code>, <code>{{dashboard_url}}</code>, <code>{{unsubscribe_url}}</code>. <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
+		<p><?php esc_html_e( 'Each Date Messages rule sends its own subject and body, through the same pipeline and chrome: a dated rule to each person on their date, an announcement once to the members of its audiences. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Date-message tokens:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>, <code>{{age}}</code>, <code>{{days_until}}</code>, <code>{{site_name}}</code>, <code>{{dashboard_url}}</code>, <code>{{unsubscribe_url}}</code>. <?php esc_html_e( '{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-example">

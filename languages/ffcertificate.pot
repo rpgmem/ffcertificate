@@ -7262,6 +7262,37 @@ msgstr ""
 
 #: templates/admin/audience/general-tab.php
 msgid "The word for a session on personal calendars, shown when booking, on the receipt, in e-mails and on the verification page. A calendar can set its own on its Names tab."
+
+#: includes/settings/views/documentation/reference-emails.php
+msgid "{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "A dated rule follows a date in each person's profile; an announcement has no date and is sent once to the members of its audiences, or to every account. The kind decides which fields and placeholders the editor offers."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "An announcement is a rule of the kind \"Announcement\". It reaches each person in its audiences once per rule: sending it again, on any day, reaches only whoever it missed. Its placeholders leave out {{date}}, {{age}} and {{days_until}}, which need a date."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "\"Send at\" schedules it once, in the site timezone, and the history lists that run with the Announcement trigger. Left empty, the announcement is sent by hand from Send now, for today only."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "People who turned announcements off on their dashboard are skipped, unless \"Send it also to people who turned announcements off\" is on; the history then counts them as sent despite an opt-out."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Activating, scheduling and sending an announcement, and sending it past opt-outs, take ffc_send_date_messages, as activating any rule does."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Announcements are not part of it: each goes out at its own send time, or from Send now."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "The link in a dated message turns date messages off; the one in an announcement turns announcements off."
 msgstr ""
 
 #: includes/date-messages/class-ffc-unsubscribe.php
@@ -21208,9 +21239,6 @@ msgstr ""
 msgid "Date Messages"
 msgstr ""
 
-msgid "Date messages"
-msgstr ""
-
 msgid "Date messages (birthdays and other dates)"
 msgstr ""
 
@@ -21491,7 +21519,7 @@ msgstr ""
 msgid "The dates are the dates in the profile (such as birthdays), not the day the message goes out."
 msgstr ""
 
-msgid "The header and footer come from the Email Model in Settings → SMTP. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
+msgid "The header and footer come from Settings → Email Model. A message that does not place {{unsubscribe_url}} gets an unsubscribe line added at the end."
 msgstr ""
 
 msgid "The request failed. Reload the page and try again."
@@ -22494,19 +22522,19 @@ msgstr ""
 msgid "See Date Messages"
 msgstr ""
 
-msgid "Birthday message — the default text a new rule starts from"
+msgid "Birthday message and Announcement message — the default texts a new dated rule and a new announcement start from"
 msgstr ""
 
 msgid "Date-message e-mails"
 msgstr ""
 
-msgid "Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
+msgid "Each Date Messages rule sends its own subject and body, through the same pipeline and chrome: a dated rule to each person on their date, an announcement once to the members of its audiences. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body."
 msgstr ""
 
 msgid "Date-message tokens:"
 msgstr ""
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
 msgstr ""
 
 msgid "On, but silent until you create a rule."
@@ -22518,10 +22546,10 @@ msgstr ""
 msgid "Operator-facing label for the rule."
 msgstr ""
 
-msgid "Which date in the profile the rule follows (the birth date)."
+msgid "Dated rules only: which date in the profile the rule follows (the birth date)."
 msgstr ""
 
-msgid "0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
+msgid "Dated rules only: 0 sends on the date itself; a negative number sends that many days before it, a positive one after it, up to two months either way."
 msgstr ""
 
 msgid "Subject and message"
@@ -22530,7 +22558,7 @@ msgstr ""
 msgid "The e-mail body only; the header and footer come from the Email Model. A new dated rule starts from the \"Birthday message\" default in Settings → Email texts, a new announcement from the \"Announcement message\" default, and \"Restore Default Text\" brings back the subject and message of the kind chosen."
 msgstr ""
 
-msgid "\"E-mail each person on their date\" and \"Active (the daily run sends it)\". A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
+msgid "\"Active\" and \"E-mail each person on their date\". Active, a dated rule is sent by the daily run each day, and an announcement goes out once, at its send time or from Send now; inactive, neither is sent. Activating a rule takes the send capability. A rule can stay active with personal e-mails off: it then e-mails nobody and runs, from the daily run or Send now alike, only to send its managers the summary of whose date it is."
 msgstr ""
 
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
@@ -22548,7 +22576,7 @@ msgstr ""
 msgid "Preview recipients and test send"
 msgstr ""
 
-msgid "Sends one rule to everyone whose date falls in a chosen range of up to 31 days, in batches handed to wp_mail(). People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
+msgid "Sends one active rule now, in batches handed to wp_mail(): a dated rule to everyone whose date falls in a chosen range of up to 31 days, an announcement for today only. Before it starts, the page confirms the rule, the dates and how many people it will reach. People already sent that rule for that date are skipped, so running the same range twice sends nothing new. With no mail-queue plugin active, a large range is sent as fast as PHP runs."
 msgstr ""
 
 msgid "Daily schedule"
@@ -23257,7 +23285,7 @@ msgstr ""
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr ""
 
-msgid "Every run, daily or manual, is listed with its rule, dates and counters: sent, opted out, no valid e-mail, outside the audience and failed. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
 msgstr ""
 
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
@@ -23275,7 +23303,7 @@ msgstr ""
 msgid "Register a migration card and its strategy on Settings → Data Migrations — args ( migrations ) / ( strategies )."
 msgstr ""
 
-msgid "Send now is also how a missed day is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
+msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
 msgstr ""
 
 msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
