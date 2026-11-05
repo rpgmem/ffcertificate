@@ -626,6 +626,35 @@ class AudienceAdminCalendar {
 			<?php AudienceEditorTabs::panel_open( $tabs[2], $active ); ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
+					<th scope="row"><?php esc_html_e( 'Booking Form', 'ffcertificate' ); ?></th>
+					<td>
+						<div class="ffc-control-toggle-stack">
+						<?php
+						// The shape of a booking this calendar accepts (#2404). Both
+						// default to on, which is the form every calendar had before.
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'        => 'schedule_allow_multi_day',
+								'checked'     => 1 === (int) ( $schedule->allow_multi_day ?? 1 ),
+								'label'       => __( 'Allow bookings of several days', 'ffcertificate' ),
+								'description' => __( 'Off: each booking covers one day. Weekly series stay available, since each of their dates is one day.', 'ffcertificate' ),
+								'data'        => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'allow_multi_day' ),
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_toggle(
+							array(
+								'name'        => 'schedule_allow_time_selection',
+								'checked'     => 1 === (int) ( $schedule->allow_time_selection ?? 1 ),
+								'label'       => __( 'Allow choosing the time', 'ffcertificate' ),
+								'description' => __( 'Off: every booking covers the whole day, from the space\'s opening to its closing.', 'ffcertificate' ),
+								'data'        => \FreeFormCertificate\Core\RecordAutosave::attrs( 'audience_schedule', $id, 'allow_time_selection' ),
+							)
+						);
+						?>
+						</div>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><?php esc_html_e( 'Event List', 'ffcertificate' ); ?></th>
 					<td>
 						<?php
@@ -1080,6 +1109,8 @@ class AudienceAdminCalendar {
 				'post_event_form_id'           => AudiencePostEventForm::is_form( RequestInput::get_post_int( 'schedule_post_event_form' ) ) ? RequestInput::get_post_int( 'schedule_post_event_form' ) : null,
 				'post_event_window_days'       => AudiencePostEventForm::normalize_window( RequestInput::get_post_int( 'schedule_post_event_window_days', AudiencePostEventForm::DEFAULT_WINDOW_DAYS ) ),
 				'post_event_attendees_only'    => isset( $_POST['schedule_post_event_attendees_only'] ) ? 1 : 0,
+				'allow_multi_day'              => isset( $_POST['schedule_allow_multi_day'] ) ? 1 : 0,
+				'allow_time_selection'         => isset( $_POST['schedule_allow_time_selection'] ) ? 1 : 0,
 				'appearance_names'             => \FreeFormCertificate\Scheduling\CalendarAppearance::encode_override( RequestInput::get_post_raw_array( 'schedule_names' ) ),
 				'status'                       => RequestInput::get_post_string( 'schedule_status', 'active' ),
 			);

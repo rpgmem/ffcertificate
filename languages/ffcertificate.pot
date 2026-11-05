@@ -9273,10 +9273,6 @@ msgstr ""
 msgid "The end date must be a valid date on or after the start date."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-rest-controller.php
-msgid "An all-day booking covers one day."
-msgstr ""
-
 
 #: includes/audience/class-ffc-audience-rest-controller.php
 msgid "Invalid time mode."
@@ -29407,9 +29403,6 @@ msgstr ""
 msgid "reveal the account email of the people on the Members and User access tabs and in a booking's details, and the sensitive custom fields on another user's profile, with an audited Reveal; a members export carries the email in clear only with it. Existing holders of ffc_manage_audiences received it on update."
 msgstr ""
 
-msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days unless the limit is changed under Scheduling → Settings → Audience Calendars → Bookings over several days, \"Longest range\" (1 to 365). A longer range is refused with a message naming the limit, already by the conflict check; an all-day booking covers one day."
-msgstr ""
-
 msgid "Bookings over several days"
 msgstr ""
 
@@ -31877,4 +31870,36 @@ msgstr ""
 #: includes/core/class-ffc-pii-reveal.php:110
 #, php-format
 msgid "Values revealed: %d."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:62
+msgid "A booking can cover a range of days: set an end date in the booking form and the booking takes every day from its date to that one. The hours on each day are either the same every day, or run from the start time on the first day to the end time on the last, with the whole opening window in between. Every day is checked against the rules and for conflicts; a clash on any day refuses the whole booking, and the form lists the days already taken. A holiday or a weekday the space is closed inside the range refuses the booking unless \"Skip blocked days\" is ticked, and then those days are left out without a warning and recorded as skipped. A range covers at most 30 consecutive days unless the limit is changed under Scheduling → Settings → Audience Calendars → Bookings over several days, \"Longest range\" (1 to 365). A longer range is refused with a message naming the limit, already by the conflict check. An all-day booking may cover several days: each day it covers takes that day's whole opening window."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:639
+msgid "Allow bookings of several days"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:648
+msgid "Allow choosing the time"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:629
+msgid "Booking Form"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:61
+msgid "Each calendar decides the shape of its bookings, under Booking form on the Event list & badges tab, and the server holds every booking to it, a bypass included. With \"Allow bookings of several days\" off, a booking covers one day; a weekly series still repeats, since each of its dates is one day. With \"Allow choosing the time\" off, the times are not asked and every booking takes the whole day. Both are on for a calendar until they are turned off."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:640
+msgid "Off: each booking covers one day. Weekly series stay available, since each of their dates is one day."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:649
+msgid "Off: every booking covers the whole day, from the space's opening to its closing."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-rest-controller.php:902
+msgid "This calendar takes bookings of one day only."
 msgstr ""

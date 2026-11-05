@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Forms API: ISO 8601 dates** (#2342). Each response date gains an `_iso` twin with the site's offset; the raw fields are deprecated, removal in 6.46.0. The certificates calendar reads its forms in two queries, not one per form.
+- **Audience Calendars: each calendar sets the shape of its bookings** (#2404). Two switches under Booking form on the Event list tab, both on by default: bookings of several days, and choosing the time (off: every booking takes the whole day). The server enforces both, a bypass included, and an all-day booking may now cover several days.
 
 ### Changed
 

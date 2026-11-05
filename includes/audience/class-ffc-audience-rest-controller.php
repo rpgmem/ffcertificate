@@ -889,15 +889,21 @@ class AudienceRestController {
 			return self::refusal( 400, __( 'Invalid date format.', 'ffcertificate' ) );
 		}
 
+		// The booking shape the calendar accepts (#2404). No bypass lifts it:
+		// it is what the calendar is for, not a rule a booking may break.
+		if ( 0 === (int) ( $schedule->allow_time_selection ?? 1 ) ) {
+			$is_all_day = true;
+		}
+
 		// A range covers every day from the start date to the end date, both included.
 		$is_range = '' !== $end_date && $end_date !== $booking_date;
 		if ( $is_range ) {
-			if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date ) || $end_date < $booking_date ) {
-				return self::refusal( 400, __( 'The end date must be a valid date on or after the start date.', 'ffcertificate' ) );
+			if ( 0 === (int) ( $schedule->allow_multi_day ?? 1 ) ) {
+				return self::refusal( 400, __( 'This calendar takes bookings of one day only.', 'ffcertificate' ), 'single_day_only' );
 			}
 
-			if ( $is_all_day ) {
-				return self::refusal( 400, __( 'An all-day booking covers one day.', 'ffcertificate' ) );
+			if ( ! \FreeFormCertificate\Core\DateFormatter::is_valid_date( $end_date ) || $end_date < $booking_date ) {
+				return self::refusal( 400, __( 'The end date must be a valid date on or after the start date.', 'ffcertificate' ) );
 			}
 
 			if ( AudienceBookingRules::range_length( $booking_date, $end_date ) > AudienceBookingRules::max_range_days() ) {
@@ -915,11 +921,23 @@ class AudienceRestController {
 		// Skipping blocked days only means something for a range.
 		$skip_blocked = $is_range && $skip_blocked;
 
-		// All day is the space's opening window for that day.
+		// All day is the space's opening window for that day. A whole-day
+		// range is a span from the first day's opening to the last day's
+		// closing, so each day it covers takes its own window (#2404).
 		if ( $is_all_day ) {
 			$window     = AudienceBookingRules::all_day_window( $environment_id, $booking_date );
 			$start_time = $window['start'];
 			$end_time   = $window['end'];
+			if ( $is_range ) {
+				// The days actually booked, so a skipped first or last day
+				// does not lend its window to the span's ends.
+				$booked = AudienceBookingRules::occurrences( $environment_id, $booking_date, $end_date, $start_time, $end_time, 'span', $skip_blocked )['days'];
+				if ( ! empty( $booked ) ) {
+					$start_time = AudienceBookingRules::all_day_window( $environment_id, $booked[0]['date'] )['start'];
+					$end_time   = AudienceBookingRules::all_day_window( $environment_id, $booked[ count( $booked ) - 1 ]['date'] )['end'];
+				}
+				$time_mode = 'span';
+			}
 		}
 
 		// Validate time range. A span runs from one day to another, so its start may come after its end.
