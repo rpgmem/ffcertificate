@@ -419,6 +419,13 @@ class AppointmentReceiptHandler {
 						<span class="info-label"><?php echo esc_html__( 'Event:', 'ffcertificate' ); ?></span>
 						<span class="info-value"><?php echo esc_html( $calendar['title'] ?? __( 'N/A', 'ffcertificate' ) ); ?></span>
 					</div>
+					<?php $ffc_session = CalendarSessions::name_of_appointment( $calendar, $appointment ); ?>
+					<?php if ( '' !== $ffc_session ) : ?>
+					<div class="info-row">
+						<span class="info-label"><?php echo esc_html__( 'Session:', 'ffcertificate' ); ?></span>
+						<span class="info-value"><?php echo esc_html( $ffc_session ); ?></span>
+					</div>
+					<?php endif; ?>
 					<?php if ( ! empty( $calendar['description'] ) ) : ?>
 					<div class="info-row">
 						<span class="info-label"><?php echo esc_html__( 'Description:', 'ffcertificate' ); ?></span>

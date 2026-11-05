@@ -173,4 +173,13 @@ class CalendarSessionsTest extends TestCase {
 		$this->assertSame( 5, CalendarSessions::scope_of_appointment( $calendar, array( 'session_id' => '5' ) ) );
 		$this->assertSame( 0, CalendarSessions::scope_of_appointment( $calendar, array( 'session_id' => null ) ), 'A booking from before sessions counts against the whole calendar.' );
 	}
+
+	public function test_an_appointment_names_its_session_even_a_deleted_one(): void {
+		$calendar = array( 'sessions' => (string) json_encode( self::stored() ) );
+
+		$this->assertSame( 'Room B', CalendarSessions::name_of_appointment( $calendar, array( 'session_id' => '2' ) ) );
+		$this->assertSame( 'Old room', CalendarSessions::name_of_appointment( $calendar, array( 'session_id' => 5 ) ) );
+		$this->assertSame( '', CalendarSessions::name_of_appointment( $calendar, array( 'session_id' => null ) ) );
+		$this->assertSame( '', CalendarSessions::name_of_appointment( array(), array( 'session_id' => 2 ) ) );
+	}
 }

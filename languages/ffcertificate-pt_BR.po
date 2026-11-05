@@ -7236,6 +7236,18 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/frontend/class-ffc-verification-response-renderer.php:271 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php
+msgid "Session:"
+msgstr "Sessão:"
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:75
+msgid "An appointment's session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}} and {{session_block}}, a \"Session:\" line that is empty on a calendar without sessions."
+msgstr "A sessão de um agendamento aparece onde o agendamento aparece: na lista de Agendamentos, abaixo do calendário, em todos os e-mails de agendamento, no comprovante e no seu PDF, na página de verificação, na exportação CSV (última coluna) e no painel do usuário. Uma sessão excluída mantém o nome nos agendamentos que tem. Os textos de e-mail aceitam {{session_name}} e {{session_block}}, uma linha \"Sessão:\" que fica vazia em um calendário sem sessões."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php:118
+msgid "The session the appointment was booked in, or empty on a calendar without sessions"
+msgstr "A sessão em que o agendamento foi feito, ou vazio em um calendário sem sessões"
+
 #: includes/settings/views/documentation/email-texts-hub.php:47
 msgid "Event: {{reference}}"
 msgstr "Evento: {{reference}}"

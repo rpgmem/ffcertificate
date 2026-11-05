@@ -261,6 +261,24 @@ class VerificationResponseRendererTest extends TestCase {
 		$this->assert_download_family_button( $html );
 	}
 
+	public function test_format_appointment_verification_names_the_session_only_when_set(): void {
+		$result = array(
+			'data'        => array( 'calendar_title' => 'Clinic', 'session_name' => 'Room B' ),
+			'appointment' => array(
+				'appointment_date' => '2025-06-15',
+				'start_time'       => '10:00',
+				'status'           => 'confirmed',
+			),
+		);
+
+		$html = $this->renderer->format_appointment_verification_response( $result );
+		$this->assertStringContainsString( 'Session:', $html );
+		$this->assertStringContainsString( 'Room B', $html );
+
+		$result['data']['session_name'] = '';
+		$this->assertStringNotContainsString( 'Session:', $this->renderer->format_appointment_verification_response( $result ) );
+	}
+
 	// ==================================================================
 	// format_appointment_verification_response() — pending status
 	// ==================================================================

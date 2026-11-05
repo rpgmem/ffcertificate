@@ -72,6 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Global holidays, on the General tab of Scheduling → Settings, close a date on every personal and audience calendar. Holders of ffc_manage_calendars may add, edit and remove them as well as audience managers; without the audience capability the Settings screen shows them the General tab only. Adding a holiday on a date that holds open appointments (pending, confirmed or on the waitlist) lists them first, by time and calendar; confirming saves the date and cancels each one with the reason "Closed day:" followed by the description, sending the cancellation e-mail where the calendar sends one.', 'ffcertificate' ); ?></p>
 
 	<p><?php esc_html_e( 'On a calendar with two or more sessions, a click on a day first lists the sessions with their free places; the visitor chooses one and then a time, and can go back to change the session. Each session counts its own places, its own waitlist and its own daily limit, so a time booked in one session stays free in another; blocked dates and holidays close every session. The free slots panel lists each session\'s places, and a visitor\'s own bookings name their session.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'An appointment\'s session is shown wherever the appointment is: the Appointments list under the calendar, every appointment e-mail, the receipt and its PDF, the verification page, the CSV export (last column) and the user dashboard. A deleted session keeps its name on the appointments it holds. E-mail texts take {{session_name}} and {{session_block}}, a "Session:" line that is empty on a calendar without sessions.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Waitlist & automatic promotion', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When a slot or block is full and the waitlist is enabled, a booking joins the queue with a waitlist status that is excluded from every capacity count. The front-end offers a "Join waitlist" action on full slots and reflects the queued state. When a spot later frees up — a cancellation or an admin rejection — the oldest queued booking is promoted automatically and transactionally to confirmed or pending (per the calendar\'s approval setting), and a promotion email is sent.', 'ffcertificate' ); ?></p>
@@ -114,6 +115,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</thead>
 		<tbody>
 			<tr><td><code>{{calendar_title}}</code></td><td><?php esc_html_e( 'Name of the scheduling calendar', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>{{session_name}}</code></td><td><?php esc_html_e( 'The session the appointment was booked in, or empty on a calendar without sessions', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{appointment_date}}</code></td><td><?php esc_html_e( 'Scheduled date of the appointment', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{appointment_time}}</code></td><td><?php esc_html_e( 'Scheduled start time of the appointment', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>{{appointment_end}}</code>, <code>{{appointment_time_range}}</code></td><td><?php esc_html_e( 'The end time, and the full "start – end" range', 'ffcertificate' ); ?></td></tr>

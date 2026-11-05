@@ -76,6 +76,7 @@ class AppointmentVerificationLookup {
 			'cpf_rf'           => $cpf_rf,
 			'auth_code'        => $appointment['validation_code'] ?? '',
 			'calendar_title'   => '',
+			'session_name'     => '',
 			'appointment_date' => $appointment['appointment_date'] ?? '',
 			'start_time'       => $appointment['start_time'] ?? '',
 			'end_time'         => $appointment['end_time'] ?? '',
@@ -87,6 +88,8 @@ class AppointmentVerificationLookup {
 			$calendar = ( new \FreeFormCertificate\Repositories\CalendarRepository() )->findById( (int) $appointment['calendar_id'] );
 			if ( $calendar ) {
 				$data['calendar_title'] = $calendar['title'] ?? '';
+				// The session the appointment was booked in (#2405).
+				$data['session_name'] = \FreeFormCertificate\SelfScheduling\CalendarSessions::name_of_appointment( $calendar, $appointment );
 			}
 		}
 

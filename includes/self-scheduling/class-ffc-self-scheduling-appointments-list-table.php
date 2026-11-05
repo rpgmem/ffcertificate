@@ -285,7 +285,13 @@ class AppointmentsListTable extends \WP_List_Table {
 		$calendar = $this->calendar_repository->findById( (int) $item['calendar_id'] );
 		if ( $calendar ) {
 			$edit_url = admin_url( 'post.php?post=' . $calendar['post_id'] . '&action=edit' );
-			return sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html( $calendar['title'] ) );
+			$html     = sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html( $calendar['title'] ) );
+			// The session, under its calendar (#2405).
+			$session = CalendarSessions::name_of_appointment( $calendar, $item );
+			if ( '' !== $session ) {
+				$html .= '<br><span class="description">' . esc_html( $session ) . '</span>';
+			}
+			return $html;
 		}
 		return __( '(Deleted)', 'ffcertificate' );
 	}

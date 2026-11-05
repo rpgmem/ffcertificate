@@ -147,6 +147,19 @@ final class CalendarSessions {
 	}
 
 	/**
+	 * The name of an appointment's session (#2405), deleted or not, or ''
+	 * when the appointment has none.
+	 *
+	 * @param array<string, mixed> $calendar    Calendar row.
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @return string
+	 */
+	public static function name_of_appointment( array $calendar, array $appointment ): string {
+		$id = is_numeric( $appointment['session_id'] ?? null ) ? (int) $appointment['session_id'] : 0;
+		return $id > 0 ? self::name( self::of_calendar( $calendar ), $id ) : '';
+	}
+
+	/**
 	 * Whether a calendar asks for a session: two or more not deleted.
 	 *
 	 * @param list<array{id: int, name: string, deleted: bool}> $sessions Every session.
