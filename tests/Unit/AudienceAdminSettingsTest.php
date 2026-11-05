@@ -467,7 +467,10 @@ class AudienceAdminSettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'id="ffc-scheduling-tabpanel-audience"', $html );
 		$this->assertStringContainsString( 'save_aud_visibility_settings', $html );
-		$this->assertStringContainsString( 'aria-selected="true"', $html );
+		// The menu is a nav of page links: the shown page carries aria-current (#2344).
+		$this->assertMatchesRegularExpression( '#<nav class="ffc-settings-tabs__nav" aria-label="Sections">#', $html );
+		$this->assertMatchesRegularExpression( '#id="ffc-scheduling-tabnav-audience"[^>]*aria-current="page"#', $html );
+		$this->assertStringNotContainsString( 'role="tab"', $html );
 		$this->assertStringContainsString( 'id="ffc_aud_private_display_mode-2" name="ffc_aud_private_display_mode" value="show_message" checked', $html, 'The default is the middle position.' );
 	}
 

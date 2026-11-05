@@ -133,7 +133,14 @@ final class AssetHelper {
 	public static function core_script_config(): array {
 		return array(
 			'version'      => FFC_VERSION,
-			'strings'      => FieldMessage::script_strings(),
+			'strings'      => array_merge(
+				FieldMessage::script_strings(),
+				array(
+					// The keyboard twin of a drag handle (#2344).
+					'moveUp'   => __( 'Move up', 'ffcertificate' ),
+					'moveDown' => __( 'Move down', 'ffcertificate' ),
+				)
+			),
 			'rfCheckDigit' => DocumentFormatter::rf_check_digit_enforced(),
 			'cepRanges'    => CepRule::RANGES,
 			/**

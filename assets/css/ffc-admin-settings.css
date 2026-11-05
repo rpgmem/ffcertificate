@@ -850,11 +850,16 @@
 
 .ffc-settings-tabs__nav {
     flex: 0 0 220px;
+    background: var(--ffc-bg-alt);
+    border-right: 1px solid var(--ffc-border);
+}
+
+/* The menu is a <nav> of page links, not a tablist: each entry loads
+   its own page, so it is a link with aria-current on the one shown (#2344). */
+.ffc-settings-tabs__list {
     margin: 0;
     padding: 0;
     list-style: none;
-    background: var(--ffc-bg-alt);
-    border-right: 1px solid var(--ffc-border);
 }
 
 .ffc-settings-tabs__nav-item {
@@ -936,7 +941,7 @@
 }
 
 /* The first group sits flush with the nav top — no extra lead space. */
-.ffc-settings-tabs__nav > .ffc-settings-tabs__group:first-child .ffc-settings-tabs__group-label {
+.ffc-settings-tabs__list > .ffc-settings-tabs__group:first-child .ffc-settings-tabs__group-label {
     padding-top: var(--ffc-spacing-xs);
 }
 
@@ -973,11 +978,14 @@
 
     .ffc-settings-tabs__nav {
         flex: 0 0 auto;
+        border-right: none;
+        border-bottom: 1px solid var(--ffc-border);
+    }
+
+    .ffc-settings-tabs__list {
         display: flex;
         flex-wrap: wrap;
         gap: 0;
-        border-right: none;
-        border-bottom: 1px solid var(--ffc-border);
     }
 
     .ffc-settings-tabs__tab {

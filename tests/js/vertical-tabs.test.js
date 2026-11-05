@@ -239,10 +239,21 @@ describe('FFC.VerticalTabs.init', () => {
 
 		expect(tab('geolocation').hasClass('has-error')).toBe(true);
 		expect(tab('geolocation').find('.ffc-vtabs__error-dot').length).toBe(1);
+		// The dot is colour only; the error is said in words too (#2344).
+		expect(tab('geolocation').find('.screen-reader-text').text()).toBe(', has an error');
 		// First errored tab is auto-opened over the default first tab.
 		expect(tab('geolocation').attr('aria-selected')).toBe('true');
 		expect(panel('geolocation').hasClass('is-active')).toBe(true);
 		expect(tab('layout').attr('aria-selected')).toBe('false');
+	});
+
+	it('says the error in the words the server localised', () => {
+		buildTabs();
+		window.ffcFormTabsErrorText = { text: 'tem um erro' };
+		window.ffcFormTabsErrors = ['geolocation'];
+		window.FFC.VerticalTabs.init();
+		expect(tab('geolocation').find('.ffc-vtabs__error-text').text()).toBe(', tem um erro');
+		delete window.ffcFormTabsErrorText;
 	});
 
 	it('does not add a duplicate error dot when one is already present', () => {

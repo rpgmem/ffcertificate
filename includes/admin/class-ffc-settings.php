@@ -661,7 +661,7 @@ class Settings {
 			?>
 			
 			<div class="ffc-settings-tabs">
-				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+				<nav class="ffc-settings-tabs__nav" aria-label="<?php echo esc_attr( __( 'Sections', 'ffcertificate' ) ); ?>"><ul class="ffc-settings-tabs__list">
 					<?php
 					// Grouped nav (#951): tabs render under domain subheadings,
 					// staying alphabetical within each group. Bucket the already
@@ -703,7 +703,7 @@ class Settings {
 								continue;
 							}
 							?>
-							<li class="ffc-settings-tabs__group" role="presentation">
+							<li class="ffc-settings-tabs__group">
 								<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
 							</li>
 							<?php
@@ -714,28 +714,25 @@ class Settings {
 							continue;
 						}
 						?>
-						<li class="ffc-settings-tabs__group" role="presentation">
+						<li class="ffc-settings-tabs__group">
 							<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
 						</li>
 						<?php foreach ( $ffc_buckets[ $ffc_gkey ] as $tab_id => $tab_obj ) : ?>
 							<?php $is_active = ( $active_tab === $tab_id ); ?>
-							<li class="ffc-settings-tabs__nav-item" role="presentation">
+							<li class="ffc-settings-tabs__nav-item">
 								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
 									id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
 									class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
-									role="tab"
-									aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
-									aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
-									tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+									<?php echo $is_active ? 'aria-current="page"' : ''; ?>>
 									<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
 									<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
 								</a>
 							</li>
 						<?php endforeach; ?>
 					<?php endforeach; ?>
-				</ul>
+				</ul></nav>
 
-				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel">
 					<?php
 					// A disabled <fieldset> natively disables every descendant form
 					// control (inputs, selects, textareas, submit + action buttons)
@@ -848,14 +845,14 @@ class Settings {
 	 * this page (rpgmem/ffcertificate#711 — discoverability). Each link is
 	 * gated by that module's own view cap so a user only sees links they can
 	 * actually open, and navigates away from this page — hence a plain link
-	 * (no `role="tab"`) with an external-link marker instead of a tab.
+	 * with an external-link marker beside it.
 	 *
 	 * @return void
 	 */
 	protected function render_module_settings_links(): void {
 		foreach ( $this->module_settings_links() as $link ) :
 			?>
-			<li class="ffc-settings-tabs__nav-item" role="presentation">
+			<li class="ffc-settings-tabs__nav-item">
 				<a href="<?php echo esc_url( $link['url'] ); ?>"
 					class="ffc-settings-tabs__tab ffc-settings-tabs__tab--module"
 					title="<?php echo esc_attr( $link['title'] ); ?>">

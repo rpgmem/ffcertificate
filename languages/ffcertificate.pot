@@ -31836,3 +31836,19 @@ msgstr ""
 #: includes/settings/views/documentation/config-ip-diagnostics.php:35
 msgid "the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now. A refresh that fails for IPv4 or IPv6 keeps that half's last good list, and no range wider than /8 (IPv4) or /16 (IPv6) is trusted, whether it comes from the refresh or from the Custom field."
 msgstr ""
+
+#: includes/core/class-ffc-asset-helper.php:141
+msgid "Move down"
+msgstr ""
+
+#: includes/core/class-ffc-asset-helper.php:140
+msgid "Move up"
+msgstr ""
+
+#: includes/admin/class-ffc-settings.php:664
+msgid "Sections"
+msgstr ""
+
+#: includes/admin/class-ffc-form-editor.php:140
+msgid "has an error"
+msgstr ""

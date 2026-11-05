@@ -93,10 +93,10 @@ $ffc_dm_icons = array(
 	<?php endif; ?>
 
 	<div class="ffc-settings-tabs">
-		<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+		<nav class="ffc-settings-tabs__nav" aria-label="<?php echo esc_attr( __( 'Sections', 'ffcertificate' ) ); ?>"><ul class="ffc-settings-tabs__list">
 			<?php foreach ( $ffc_dm_tabs as $ffc_dm_key => $ffc_dm_label ) : ?>
 				<?php $ffc_dm_is_active = $ffc_dm_key === $ffc_dm_active; ?>
-				<li class="ffc-settings-tabs__nav-item" role="presentation">
+				<li class="ffc-settings-tabs__nav-item">
 					<a href="
 					<?php
 					echo esc_url(
@@ -112,18 +112,15 @@ $ffc_dm_icons = array(
 								"
 						id="ffc-date-messages-tabnav-<?php echo esc_attr( $ffc_dm_key ); ?>"
 						class="ffc-settings-tabs__tab<?php echo $ffc_dm_is_active ? ' is-active' : ''; ?>"
-						role="tab"
-						aria-selected="<?php echo $ffc_dm_is_active ? 'true' : 'false'; ?>"
-						aria-controls="ffc-date-messages-tabpanel"
-						tabindex="<?php echo $ffc_dm_is_active ? '0' : '-1'; ?>">
+						<?php echo $ffc_dm_is_active ? 'aria-current="page"' : ''; ?>>
 						<span class="ffc-settings-tabs__icon <?php echo esc_attr( $ffc_dm_icons[ $ffc_dm_key ] ); ?>" aria-hidden="true"></span>
 						<span class="ffc-settings-tabs__label"><?php echo esc_html( $ffc_dm_label ); ?></span>
 					</a>
 				</li>
 			<?php endforeach; ?>
-		</ul>
+		</ul></nav>
 
-		<div id="ffc-date-messages-tabpanel" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-date-messages-tabnav-<?php echo esc_attr( $ffc_dm_active ); ?>" tabindex="0">
+		<div id="ffc-date-messages-tabpanel" class="ffc-settings-tabs__panel">
 			<?php
 			// Every tab is one card headed by its icon, except the rule editor,
 			// which draws a card per part of the rule itself (#1631).

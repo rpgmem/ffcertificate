@@ -14,6 +14,10 @@
      */
     $(function () {
         initSortable();
+        // The keyboard twin of the drag handle (#2344).
+        if (window.FFC && typeof window.FFC.reorder === 'function') {
+            window.FFC.reorder({ list: '#ffc-custom-fields-list', item: '.ffc-custom-field-row', handle: '.ffc-field-handle' });
+        }
         bindEvents();
     });
 

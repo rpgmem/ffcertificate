@@ -2573,6 +2573,16 @@ body.wp-admin .ffc-btn-icon {
     vertical-align: middle;
 }
 
+/* Move up / Move down beside a drag handle (#2344): the keyboard twin of
+   the drag, so a list that reorders by dragging reorders by keyboard too. */
+.ffc-reorder {
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: var(--ffc-spacing-2xs);
+    align-items: center;
+    vertical-align: middle;
+}
+
 body.wp-admin .ffc-btn-icon::before {
     width: 16px;
     height: 16px;

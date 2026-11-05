@@ -176,6 +176,8 @@ class FormEditorTest extends TestCase {
 		$this->assertArrayHasKey( 'ffcFormTabsErrors', $localized );
 		$this->assertSame( 'ffc-vertical-tabs', $localized['ffcFormTabsErrors']['handle'] );
 		$this->assertSame( array( 'geolocation' ), $localized['ffcFormTabsErrors']['data'] );
+		// The words a screen reader hears for the flagged tab (#2344).
+		$this->assertSame( array( 'text' => 'has an error' ), $localized['ffcFormTabsErrorText']['data'] );
 	}
 
 	/**
