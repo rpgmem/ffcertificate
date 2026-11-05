@@ -487,6 +487,8 @@ class SelfSchedulingEditor {
 			'scheduling_visibility'             => 'public',
 			'restrict_viewing_to_hours'         => 0,
 			'restrict_booking_to_hours'         => 0,
+			'show_event_list'                   => 0,
+			'event_list_position'               => 'side',
 			'admin_bypass'                      => $admin_bypass_default,
 		);
 
@@ -589,6 +591,39 @@ class SelfSchedulingEditor {
 						<option value="archived" <?php selected( $config['status'], 'archived' ); ?>><?php esc_html_e( 'Archived', 'ffcertificate' ); ?></option>
 					</select>
 					<p class="description"><?php esc_html_e( 'Calendar status (inactive = no new bookings allowed)', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="show_event_list"><?php esc_html_e( 'Free Slots Panel', 'ffcertificate' ); ?></label></th>
+				<td>
+					<div class="ffc-control-toggle-stack">
+						<?php
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'show_event_list',
+								'name'    => 'ffc_self_scheduling_config[show_event_list]',
+								'checked' => (bool) $config['show_event_list'],
+								'label'   => __( 'Show a panel with the free slots of the month', 'ffcertificate' ),
+							)
+						);
+						?>
+						<p class="description"><?php esc_html_e( 'Lists the days of the month shown that still have free slots, and how many, with the holidays. A signed-in visitor also sees their own bookings. It never shows who booked.', 'ffcertificate' ); ?></p>
+						<?php
+						AdminUI::render_segmented(
+							array(
+								'name'    => 'ffc_self_scheduling_config[event_list_position]',
+								'id'      => 'event_list_position',
+								'legend'  => __( 'Panel position', 'ffcertificate' ),
+								'value'   => (string) $config['event_list_position'],
+								'options' => array(
+									'side'  => __( 'Beside', 'ffcertificate' ),
+									'below' => __( 'Below', 'ffcertificate' ),
+								),
+								'size'    => 'sm',
+							)
+						);
+						?>
+					</div>
 				</td>
 			</tr>
 		</table>

@@ -242,6 +242,8 @@ $ffcertificate_options = array(
 	// The audience columns' own revision gate, which heals a column added
 	// between releases on installs that keep the same FFC_VERSION (#1918).
 	'ffc_audience_schema_revision',
+	// The same revision gate for the self-scheduling columns (#2405).
+	'ffc_self_scheduling_schema_revision',
 	'ffc_url_shortener_schema_version',
 	// The two chains #1311 added, which had no runtime caller at all until then.
 	'ffc_reregistration_schema_version',

@@ -1566,3 +1566,99 @@ describe('ffc-calendar-frontend.js — initCalendarCore wiring', () => {
 		expect(options.getDayContent('2026-07-01', new Date(2026, 6, 1), false, false)).toBe('');
 	});
 });
+
+// The free-slots panel (#2405): built from the month read, never naming
+// anyone but the visitor, and following the month navigation.
+describe('ffc-calendar-frontend.js — the free-slots panel (#2405)', () => {
+	const panelHtml =
+		'<div id="ffc-event-list-panel"><div class="ffc-event-list-header"><h3>Free Slots</h3></div>' +
+		'<div class="ffc-event-list-content" id="ffc-event-list-content"></div></div>';
+	const strings = () => Object.assign({}, window.ffcCalendar.strings, {
+		panelHeading: 'Vagas — %s',
+		panelMine: 'Seus agendamentos',
+		panelNone: 'Nenhuma vaga.',
+		panelFreeOne: '1 vaga',
+		panelFreeMany: '%d vagas',
+		panelTimesOne: '1 horário',
+		panelTimesMany: '%d horários',
+		confirmed: 'Confirmado',
+		pendingApproval: 'Pendente',
+	});
+	const items = () => Array.from(document.querySelectorAll('#ffc-event-list-content > *')).map((el) => el.textContent);
+
+	beforeEach(() => {
+		reset();
+		installGlobals();
+		document.body.innerHTML = panelHtml;
+		loadScript('assets/js/ffc-calendar-frontend.js');
+	});
+
+	it('names the month and lists the days with free places and the holidays, in date order', () => {
+		window.ffcCalendarFrontend.renderPanel(
+			2032,
+			3,
+			{ days: { '2032-03-15': { free: 1, slots: 1 }, '2032-03-08': { free: 3, slots: 2 } }, mine: [] },
+			{ '2032-03-10': 'Feriado <b>', '2032-04-01': 'Not this month' },
+			strings()
+		);
+
+		expect(document.querySelector('#ffc-event-list-panel h3').textContent).toBe('Vagas — March 2032');
+		expect(items()).toEqual([
+			'8 March 2032', '3 vagas2 horários',
+			'10 March 2032', 'Feriado <b>',
+			'15 March 2032', '1 vaga1 horário',
+		]);
+		expect(document.querySelector('#ffc-event-list-content b')).toBeNull();
+	});
+
+	it("shows the visitor's own bookings first, with their status", () => {
+		window.ffcCalendarFrontend.renderPanel(
+			2032,
+			3,
+			{ days: {}, mine: [{ date: '2032-03-08', start: '09:00', end: '09:30', status: 'pending' }] },
+			{},
+			strings()
+		);
+
+		expect(items()).toEqual(['Seus agendamentos', '8 March 2032 · 09:00–09:30Pendente']);
+	});
+
+	it('says so when the month has nothing to list', () => {
+		window.ffcCalendarFrontend.renderPanel(2032, 3, null, {}, strings());
+
+		expect(items()).toEqual(['Nenhuma vaga.']);
+	});
+
+	it('is filled on each month change when the calendar shows it, and only then', async () => {
+		let options = null;
+		window.FFCCalendarCore = function (_$container, opts) {
+			options = opts;
+			this.options = opts;
+			this.refresh = () => {};
+		};
+		window.FFC.request.mockResolvedValue({
+			counts: {},
+			holidays: {},
+			panel: { days: { '2032-03-08': { free: 2, slots: 1 } }, mine: [] },
+		});
+		document.body.innerHTML = panelHtml +
+			'<div id="ffc-calendar-container-7"></div>' +
+			'<script type="application/json" id="ffc-calendar-config-7">{"calendarId":7,"workingDays":[1],"showPanel":true}</script>';
+		window.ffcCalendarFrontend.initCalendarCore();
+
+		options.onMonthChange(2032, 3);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(document.querySelector('#ffc-event-list-panel h3').textContent).toContain('March 2032');
+		expect(document.querySelectorAll('#ffc-event-list-content .ffc-event-list-free').length).toBe(1);
+
+		const spy = vi.spyOn(window.ffcCalendarFrontend, 'renderPanel');
+		document.getElementById('ffc-calendar-config-7').textContent = '{"calendarId":7,"workingDays":[1]}';
+		window.ffcCalendarFrontend.initCalendarCore();
+		options.onMonthChange(2032, 4);
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(spy).not.toHaveBeenCalled();
+	});
+});

@@ -358,15 +358,10 @@ class AudienceShortcode {
 		</div>
 
 		<?php if ( $show_event_list ) : ?>
-		<!-- Event List Panel -->
-		<div class="ffc-event-list-panel" id="ffc-event-list-panel">
-			<div class="ffc-event-list-header">
-				<h3><?php esc_html_e( 'Events', 'ffcertificate' ); ?></h3>
-			</div>
-			<div class="ffc-event-list-content" id="ffc-event-list-content">
-				<div class="ffc-loading"><?php esc_html_e( 'Loading...', 'ffcertificate' ); ?></div>
-			</div>
-		</div>
+			<?php
+			$ffc_panel_heading = __( 'Events', 'ffcertificate' );
+			include FFC_PLUGIN_DIR . 'templates/public/scheduling/event-list-panel.php';
+			?>
 		<?php endif; ?>
 		</div><!-- .ffc-calendar-wrapper -->
 

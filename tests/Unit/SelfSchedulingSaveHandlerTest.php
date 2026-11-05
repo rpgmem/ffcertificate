@@ -217,6 +217,23 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->assertSame( 0, $this->saved_meta['_ffc_self_scheduling_config']['waitlist_capacity'] );
 	}
 
+	public function test_config_free_slots_panel_parsed(): void {
+		$_POST['ffc_self_scheduling_config'] = array(
+			'show_event_list'     => '1',
+			'event_list_position' => 'below',
+		);
+		$this->invoke( 'save_config', array( 100 ) );
+		$this->assertSame( 1, $this->saved_meta['_ffc_self_scheduling_config']['show_event_list'] );
+		$this->assertSame( 'below', $this->saved_meta['_ffc_self_scheduling_config']['event_list_position'] );
+	}
+
+	public function test_config_free_slots_panel_defaults_off_and_beside(): void {
+		$_POST['ffc_self_scheduling_config'] = array( 'event_list_position' => 'top' );
+		$this->invoke( 'save_config', array( 100 ) );
+		$this->assertSame( 0, $this->saved_meta['_ffc_self_scheduling_config']['show_event_list'] );
+		$this->assertSame( 'side', $this->saved_meta['_ffc_self_scheduling_config']['event_list_position'], 'An unknown position falls back to beside.' );
+	}
+
 	public function test_config_max_blocks_per_user_parsed(): void {
 		$_POST['ffc_self_scheduling_config'] = array( 'max_blocks_per_user' => '3' );
 		$this->invoke( 'save_config', array( 100 ) );

@@ -450,6 +450,8 @@ class SelfSchedulingCPT {
 			'scheduling_visibility'             => $config['scheduling_visibility'] ?? 'public',
 			'restrict_viewing_to_hours'         => $config['restrict_viewing_to_hours'] ?? 0,
 			'restrict_booking_to_hours'         => $config['restrict_booking_to_hours'] ?? 0,
+			'show_event_list'                   => empty( $config['show_event_list'] ) ? 0 : 1,
+			'event_list_position'               => 'below' === ( $config['event_list_position'] ?? 'side' ) ? 'below' : 'side',
 			'schedule_type'                     => ( 'custom' === ( $config['schedule_type'] ?? 'regular' ) ) ? 'custom' : 'regular',
 			'status'                            => $config['status'] ?? 'active',
 		);

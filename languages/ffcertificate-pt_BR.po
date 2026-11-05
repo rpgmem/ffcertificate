@@ -31992,3 +31992,65 @@ msgstr "Este calendário reserva o dia inteiro, da abertura ao fechamento do esp
 #: includes/audience/class-ffc-audience-shortcode.php:1148
 msgid "This calendar books whole days: each day takes the space's opening hours."
 msgstr "Este calendário reserva dias inteiros: cada dia ocupa o horário de funcionamento do espaço."
+
+#. translators: %d: number of free places, two or more.
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "%d free places"
+msgstr "%d vagas livres"
+
+#. translators: %d: number of times with free places, two or more.
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "%d times"
+msgstr "%d horários"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "1 free place"
+msgstr "1 vaga livre"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "1 time"
+msgstr "1 horário"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Beside"
+msgstr "Ao lado"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Free Slots"
+msgstr "Vagas livres"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Free Slots Panel"
+msgstr "Painel de vagas livres"
+
+#. translators: %s: month and year, e.g. "March 2027".
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "Free Slots — %s"
+msgstr "Vagas livres — %s"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Lists the days of the month shown that still have free slots, and how many, with the holidays. A signed-in visitor also sees their own bookings. It never shows who booked."
+msgstr "Lista os dias do mês exibido que ainda têm vagas livres, e quantas, junto com os feriados. Um visitante conectado também vê os próprios agendamentos. Nunca mostra quem agendou."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "No free slots this month."
+msgstr "Nenhuma vaga livre neste mês."
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the Calendar tab, off by default: a panel beside or below the month listing, for the month shown, each day that still has free places (how many, across how many times), the holidays, and for a signed-in visitor their own open bookings on this calendar. It follows the month navigation, sits below the month on a phone, and never shows who booked."
+msgstr "Na aba Calendário, desligado por padrão: um painel ao lado ou abaixo do mês que lista, para o mês exibido, cada dia que ainda tem vagas livres (quantas, em quantos horários), os feriados e, para um visitante conectado, os próprios agendamentos abertos neste calendário. Acompanha a navegação entre meses, fica abaixo do mês no celular e nunca mostra quem agendou."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Panel position"
+msgstr "Posição do painel"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Show a panel with the free slots of the month"
+msgstr "Mostrar um painel com as vagas livres do mês"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Your bookings"
+msgstr "Seus agendamentos"

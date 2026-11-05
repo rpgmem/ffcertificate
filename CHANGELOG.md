@@ -12,6 +12,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Forms API: ISO 8601 dates** (#2342). Each response date gains an `_iso` twin with the site's offset; the raw fields are deprecated, removal in 6.46.0. The certificates calendar reads its forms in two queries, not one per form.
 - **Audience Calendars: each calendar sets the shape of its bookings** (#2404). Two switches under Booking form on the Event list tab, both on by default: bookings of several days, and choosing the time (off: every booking takes the whole day). The server enforces both, a bypass included, and an all-day booking may now cover several days.
 - **Audience Calendars: the booking form follows the calendar's booking shape** (#2404). "Several days" leaves the form when the calendar books one day; without a choice of time the hours and the All day switch leave, with a note. A range may be booked as whole days, and the conflict check reads a whole day with the space's opening window, as the booking stores it.
+- **Personal Calendars: a free slots panel** (#2405). Off by default, set on the Calendar tab beside or below the month: each day of the month shown with free places and how many, the holidays, and a signed-in visitor's own bookings. It never shows who booked, and shares the audience panel's markup and CSS.
 
 ### Changed
 

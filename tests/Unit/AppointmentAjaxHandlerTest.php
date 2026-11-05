@@ -563,6 +563,40 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertNotNull( $success );
 		$this->assertArrayHasKey( 'counts', $success );
 		$this->assertArrayHasKey( 'holidays', $success );
+		$this->assertArrayNotHasKey( 'panel', $success, 'A calendar without the panel computes none.' );
+	}
+
+	public function test_get_month_bookings_adds_the_free_slots_panel_when_the_calendar_shows_it(): void {
+		$_POST['nonce']       = 'valid';
+		$_POST['calendar_id'] = '1';
+		$_POST['year']        = '2026';
+		$_POST['month']       = '3';
+
+		$calendar = array( 'id' => 1, 'visibility' => 'public', 'show_event_list' => '1' );
+		$calRepo  = Mockery::mock( 'FreeFormCertificate\\Repositories\\CalendarRepository' );
+		$calRepo->shouldReceive( 'findById' )->andReturn( $calendar );
+		$this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+		$this->handler->shouldReceive( 'is_hidden_from_visitor' )->andReturn( false );
+
+		$appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appointmentRepo->shouldReceive( 'getBookingCountsByDateRange' )->andReturn( array() );
+		$blockedRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
+		$blockedRepo->shouldReceive( 'getBlockedDatesInRange' )->andReturn( array() );
+		$this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $appointmentRepo );
+		$this->handler->shouldReceive( 'get_blocked_date_repository' )->andReturn( $blockedRepo );
+
+		$this->handler->shouldReceive( 'month_panel' )->once()->with( $calendar, 1, '2026-03-01', '2026-03-31' )->andReturn(
+			array(
+				'days' => array( '2026-03-16' => array( 'free' => 3, 'slots' => 2 ) ),
+				'mine' => array(),
+			)
+		);
+
+		$this->callAjax( 'ajax_get_month_bookings' );
+
+		$success = $this->firstResponse( 'success' );
+		$this->assertSame( array( 'free' => 3, 'slots' => 2 ), (array) $success['panel']['days']->{'2026-03-16'} );
+		$this->assertSame( array(), $success['panel']['mine'] );
 	}
 
 	/** The calendar the month read loads, visible to this visitor. */

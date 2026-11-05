@@ -155,6 +155,10 @@ class SelfSchedulingSaveHandler {
 			'restrict_viewing_to_hours'         => isset( $raw['restrict_viewing_to_hours'] ) ? 1 : 0,
 			'restrict_booking_to_hours'         => isset( $raw['restrict_booking_to_hours'] ) ? 1 : 0,
 
+			// The free-slots panel beside or below the month (#2405).
+			'show_event_list'                   => isset( $raw['show_event_list'] ) ? 1 : 0,
+			'event_list_position'               => self::one_of( ArrayValue::string( $raw, 'event_list_position' ), array( 'side', 'below' ), 'side' ),
+
 			// Per-calendar admin bypass toggle. Once the key is written the
 			// stored value is authoritative; defaulting-to-on for legacy
 			// calendars happens in the consumer

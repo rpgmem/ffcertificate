@@ -340,6 +340,32 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-calendar-config-42', $result );
 	}
 
+	public function test_render_calendar_without_the_panel_prints_no_wrapper(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar() )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringNotContainsString( 'ffc-event-list-panel', $result );
+		$this->assertStringNotContainsString( 'ffc-calendar-wrapper', $result );
+		$this->assertStringContainsString( '"showPanel":false', $result );
+	}
+
+	public function test_render_calendar_prints_the_free_slots_panel_beside_the_month(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar( array( 'show_event_list' => '1', 'event_list_position' => 'side' ) ) )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( 'class="ffc-shortcode ffc-calendar-wrapper ffc-has-event-list ffc-event-list-side"', $result );
+		$this->assertSame( 1, substr_count( $result, 'id="ffc-event-list-panel"' ) );
+		$this->assertStringContainsString( 'Free Slots', $result );
+		$this->assertStringContainsString( '"showPanel":true', $result );
+		// The panel is the calendar's sibling inside the wrapper, after it.
+		$this->assertGreaterThan( strpos( $result, 'data-calendar-id="42"' ), strpos( $result, 'id="ffc-event-list-panel"' ) );
+		$this->assertStringEndsWith( '<!-- .ffc-calendar-wrapper -->', trim( preg_replace( '#<script type="application/json".*?</script>#s', '', $result ) ) );
+	}
+
+	public function test_render_calendar_prints_the_free_slots_panel_below_the_month(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar( array( 'show_event_list' => '1', 'event_list_position' => 'below' ) ) )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( 'ffc-event-list-below', $result );
+	}
+
 	public function test_render_calendar_shows_approval_notice_when_required(): void {
 		$shortcode = $this->shortcode_with_calendar( $this->make_calendar( array( 'requires_approval' => 1 ) ) );
 		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );

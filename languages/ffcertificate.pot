@@ -31911,3 +31911,65 @@ msgstr ""
 #: includes/audience/class-ffc-audience-shortcode.php:1148
 msgid "This calendar books whole days: each day takes the space's opening hours."
 msgstr ""
+
+#. translators: %d: number of free places, two or more.
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "%d free places"
+msgstr ""
+
+#. translators: %d: number of times with free places, two or more.
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "%d times"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "1 free place"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "1 time"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Beside"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Free Slots"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Free Slots Panel"
+msgstr ""
+
+#. translators: %s: month and year, e.g. "March 2027".
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+#, php-format
+msgid "Free Slots — %s"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Lists the days of the month shown that still have free slots, and how many, with the holidays. A signed-in visitor also sees their own bookings. It never shows who booked."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "No free slots this month."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "On the Calendar tab, off by default: a panel beside or below the month listing, for the month shown, each day that still has free places (how many, across how many times), the holidays, and for a signed-in visitor their own open bookings on this calendar. It follows the month navigation, sits below the month on a phone, and never shows who booked."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Panel position"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Show a panel with the free slots of the month"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
+msgid "Your bookings"
+msgstr ""
