@@ -60,13 +60,16 @@ export function bookingModalHtml(opts = {}) {
 						<div class="ffc-booking-field" id="booking-all-day-group">
 							<label class="ffc-control-toggle" for="booking-all-day"><input type="checkbox" id="booking-all-day" name="is_all_day" value="1"></label>
 						</div>
+						<p class="ffc-booking-choice-hint" id="booking-whole-day-note" hidden></p>
 						<div class="ffc-form-row" id="booking-time-row">
 							<input type="time" name="start_time" id="booking-start-time" required>
 							<input type="time" name="end_time" id="booking-end-time" required>
 						</div>
 						<div class="ffc-booking-range" id="booking-range-options" hidden>
+							<fieldset class="ffc-booking-choices">
 							<label class="ffc-booking-choice"><input type="radio" name="time_mode" value="daily" checked><span class="ffc-booking-choice-hint" data-ffc-time-mode-hint="daily"></span></label>
 							<label class="ffc-booking-choice"><input type="radio" name="time_mode" value="span"><span class="ffc-booking-choice-hint" data-ffc-time-mode-hint="span"></span></label>
+							</fieldset>
 							<label class="ffc-control-toggle" for="booking-skip-blocked"><input type="checkbox" id="booking-skip-blocked" name="skip_blocked" value="1"></label>
 						</div>
 						<label for="booking-environment-id">Env *</label>

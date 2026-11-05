@@ -31984,3 +31984,11 @@ msgstr "Desligado: todo agendamento ocupa o dia inteiro, da abertura ao fechamen
 #: includes/audience/class-ffc-audience-rest-controller.php:902
 msgid "This calendar takes bookings of one day only."
 msgstr "Este calendário aceita apenas agendamentos de um dia."
+
+#: includes/audience/class-ffc-audience-shortcode.php:1148
+msgid "This calendar books the whole day, from the space's opening to its closing."
+msgstr "Este calendário reserva o dia inteiro, da abertura ao fechamento do espaço."
+
+#: includes/audience/class-ffc-audience-shortcode.php:1148
+msgid "This calendar books whole days: each day takes the space's opening hours."
+msgstr "Este calendário reserva dias inteiros: cada dia ocupa o horário de funcionamento do espaço."

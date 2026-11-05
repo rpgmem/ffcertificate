@@ -112,6 +112,7 @@
             $envSelect.val(selectedEnv);
         }
         updateEnvironmentStatus();
+        applyBookingShape();
 
         // Show audience select by default
         setBookingType('audience');
@@ -177,6 +178,7 @@
         $('#booking-end-time').val(String(booking.end_time || '').slice(0, 5));
         $('#booking-description').val(booking.description || '');
         $('#desc-char-count').text(String((booking.description || '').length));
+        applyBookingShape();
         updateTimeModeHints();
         setSubmitStep('create');
         // Re-apply the lock: the span and all-day setters above enable fields.
@@ -272,9 +274,8 @@
 
     /**
      * Show the range fields only for several days (#1946, #2008): the last
-     * day, the hours on each day and the blocked-day switch. A range takes
-     * its hours from the time mode, so the all-day switch is turned off and
-     * hidden for one. The heading names the first and the last day.
+     * day, the hours on each day and the blocked-day switch. A range may be
+     * whole days too (#2404). The heading names the first and the last day.
      *
      * @param {boolean|string} range True (or a last day, Y-m-d) for several days.
      */
@@ -288,10 +289,7 @@
         $('#booking-end-date').prop('required', on);
         $('#booking-repeat-group').prop('hidden', !weekly);
         $('#booking-repeat-until').prop('required', weekly);
-        if (on && $('#booking-all-day').is(':checked')) {
-            setAllDay(false);
-        }
-        $('#booking-all-day-group').prop('hidden', on);
+        updateWholeDayNote();
 
         if (date) {
             var until = weekly ? ($('#booking-repeat-until').val() || '') : '';
@@ -317,6 +315,72 @@
         $('#booking-time-row').prop('hidden', !!on);
         $('#booking-start-time').prop('required', !on).val(on ? '00:00' : '');
         $('#booking-end-time').prop('required', !on).val(on ? '23:59' : '');
+        // Whole days have no hours to read on each day (#2404).
+        $('#booking-range-options .ffc-booking-choices').prop('hidden', !!on);
+    }
+
+    /**
+     * The booking shape of the calendar the chosen space belongs to (#2404):
+     * whether a booking may cover several days, and whether it may choose
+     * its hours. Both default to allowed; the server enforces them anyway.
+     *
+     * @return {{multi: boolean, time: boolean}}
+     */
+    function bookingShape() {
+        var id = parseInt($('#booking-environment-id').val(), 10);
+        var schedules = (state.config && state.config.schedules) || [];
+        for (var s = 0; s < schedules.length; s++) {
+            var envs = schedules[s].environments || [];
+            for (var e = 0; e < envs.length; e++) {
+                if (parseInt(envs[e].id, 10) === id) {
+                    return {
+                        multi: schedules[s].allowMultiDay !== false,
+                        time: schedules[s].allowTimeSelection !== false
+                    };
+                }
+            }
+        }
+        return { multi: true, time: true };
+    }
+
+    /**
+     * Fit the form to the calendar's booking shape (#2404). Without several
+     * days, "Several days" leaves the duration and a new booking falls back
+     * to one day; weekly stays, each of its dates being one day. Without a
+     * choice of time, the hours and the all-day switch leave and the booking
+     * is whole-day, said in a note. A booking being edited keeps the span it
+     * has: the server decides whether the change is allowed.
+     */
+    function applyBookingShape() {
+        var shape = bookingShape();
+        var wasForced = !!(state.bookingShape && !state.bookingShape.time);
+        state.bookingShape = shape;
+
+        $('input[name="booking_span"][value="range"]').closest('label').prop('hidden', !shape.multi);
+        if (!shape.multi && isRange() && !state.editing) {
+            $('input[name="booking_span"][value="single"]').prop('checked', true);
+            setRangeOptions(false);
+        }
+
+        $('#booking-all-day-group').prop('hidden', !shape.time);
+        if (!shape.time) {
+            setAllDay(true);
+        } else if (wasForced && !state.editing) {
+            // A space whose calendar lets the hours be chosen gives them back.
+            setAllDay(false);
+        }
+        updateWholeDayNote();
+    }
+
+    /**
+     * Say why there are no hours when the calendar books whole days (#2404).
+     */
+    function updateWholeDayNote() {
+        var S = ffcAudience.strings || {};
+        var whole = !!(state.bookingShape && !state.bookingShape.time);
+        $('#booking-whole-day-note')
+            .text(whole ? (isRange() ? (S.wholeDaysNote || '') : (S.wholeDayNote || '')) : '')
+            .prop('hidden', !whole);
     }
 
     /**
@@ -1225,5 +1289,6 @@
     api.invalidateCheck    = invalidateCheck;
     api.openEditModal      = openEditModal;
     api.moveToDate         = moveToDate;
+    api.applyBookingShape  = applyBookingShape;
 
 })(jQuery);

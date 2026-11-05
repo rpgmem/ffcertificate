@@ -2541,6 +2541,92 @@ class AudienceRestControllerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A conflict check on space 10 as user 5, who may book there.
+	 *
+	 * @param array<string, mixed> $params Request parameters over the defaults.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	private function check_shape( array $params ) {
+		Functions\when( 'is_user_logged_in' )->justReturn( true );
+		$this->permit( 20, 5 );
+
+		return ( new AudienceRestController() )->check_conflicts(
+			$this->make_request(
+				array_merge(
+					array(
+						'environment_id' => 10,
+						'booking_date'   => '2026-04-01',
+						'start_time'     => '09:00',
+						'end_time'       => '10:00',
+						'audience_ids'   => array(),
+						'user_ids'       => array(),
+					),
+					$params
+				)
+			)
+		);
+	}
+
+	public function test_the_check_refuses_a_range_on_a_calendar_without_multi_day(): void {
+		$this->given_an_open_space();
+		$this->schedules[20]->allow_multi_day = '0';
+
+		$result = $this->check_shape( array( 'end_date' => '2026-04-03' ) );
+
+		$this->assertSame( 400, $result->get_status() );
+		$this->assertSame( 'single_day_only', $result->get_data()['code'] ?? null );
+	}
+
+	public function test_the_check_reads_a_calendar_without_time_selection_as_the_whole_day(): void {
+		// The form sends 09:00-10:00; the booking will take Wednesday's
+		// 07:00-19:00, so a booking at 07:00 clashes.
+		$this->given_a_space_with_hours_by_day();
+		$this->schedules[20]->allow_time_selection = '0';
+		$this->booking( 7, 10, '2026-04-01', '07:00', '08:00' );
+
+		$result = $this->check_shape( array() );
+
+		$this->assertSame( 'environment', $result->get_data()['conflicts']['type'] );
+		$this->assertSame( array( 7 ), array_column( $result->get_data()['conflicts']['bookings'], 'id' ) );
+	}
+
+	public function test_the_check_gives_an_all_day_booking_the_space_window_not_the_whole_clock(): void {
+		// The form sends 00:00-23:59 for all day; the booking stores the
+		// opening window, so a booking before the space opens does not clash.
+		$this->given_a_space_with_hours_by_day();
+		$this->booking( 7, 10, '2026-04-01', '06:00', '06:30' );
+
+		$result = $this->check_shape(
+			array(
+				'is_all_day' => true,
+				'start_time' => '00:00',
+				'end_time'   => '23:59',
+			)
+		);
+
+		$this->assertSame( 'none', $result->get_data()['conflicts']['type'] );
+	}
+
+	public function test_the_check_reads_a_whole_day_range_with_each_days_window(): void {
+		// Thursday opens 08:00-18:00: a booking at 18:30 on Thursday is clear,
+		// one at 18:30 on Wednesday (open until 19:00) clashes.
+		$this->given_a_space_with_hours_by_day();
+		$this->booking( 7, 10, '2026-04-01', '18:30', '18:45' );
+		$this->booking( 8, 10, '2026-04-02', '18:30', '18:45' );
+
+		$result = $this->check_shape(
+			array(
+				'is_all_day' => true,
+				'end_date'   => '2026-04-03',
+				'start_time' => '00:00',
+				'end_time'   => '23:59',
+			)
+		);
+
+		$this->assertSame( array( 7 ), array_column( $result->get_data()['conflicts']['bookings'], 'id' ) );
+	}
+
 	public function test_a_calendar_without_multi_day_refuses_a_range_and_writes_nothing(): void {
 		$this->given_an_open_space();
 		$this->schedules[20]->allow_multi_day = '0';
