@@ -230,7 +230,7 @@ class AppointmentsListViewTest extends TestCase {
 					return (string) count( $this->appointments );
 				}
 				// The slot recount Confirm takes under lock (#2244).
-				if ( str_starts_with( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) && str_contains( $sql, "status IN ('confirmed', 'pending') FOR UPDATE" ) ) {
+				if ( str_starts_with( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) && str_contains( $sql, "status IN ('confirmed', 'pending')" ) && str_ends_with( $sql, 'FOR UPDATE' ) ) {
 					return (string) $this->slot_count;
 				}
 				return $this->unexpected_query( $sql );
