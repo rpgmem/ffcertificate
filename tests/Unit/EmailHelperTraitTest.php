@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
+use FreeFormCertificate\Core\EmailService;
 use Brain\Monkey\Functions;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
@@ -30,8 +31,8 @@ class EmailHelperTraitStub {
 		return self::ffc_render_email_partial( $template, $args );
 	}
 
-	public static function pub_email_document( string $content ): string {
-		return self::ffc_email_document( $content );
+	public static function pub_email_document( string $content, array $context = array() ): string {
+		return self::ffc_email_document( $content, $context );
 	}
 
 	public static function pub_admin_notification_table( array $details ): string {
@@ -180,6 +181,34 @@ class EmailHelperTraitTest extends TestCase {
 		$this->assertStringContainsString( '<p>INNER</p>', $html );
 		// Footer chrome carries the site name.
 		$this->assertStringContainsString( 'Test Site', $html );
+	}
+
+	public function test_layout_declares_its_language_colour_scheme_and_a_preheader(): void {
+		$html = EmailHelperTraitStub::pub_email_document( '<p>Your  certificate is ready.</p>' );
+
+		$this->assertStringContainsString( '<html lang="Test Site">', $html, 'lang comes from get_bloginfo( language ), stubbed here.' );
+		$this->assertStringContainsString( '<meta name="color-scheme" content="light">', $html );
+		$this->assertStringContainsString( '<meta name="supported-color-schemes" content="light">', $html );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-email-preheader"[^>]*>Your certificate is ready\.</div>#', $html, 'Without a preheader the body text opens the inbox preview, not the site name.' );
+	}
+
+	public function test_a_given_preheader_wins_and_a_long_one_is_cut(): void {
+		$given = EmailHelperTraitStub::pub_email_document( '<p>Body</p>', array( 'preheader' => 'Read me first' ) );
+		$this->assertStringContainsString( '>Read me first</div>', $given );
+
+		$long = EmailHelperTraitStub::pub_email_document( '<p>' . str_repeat( 'a', 300 ) . '</p>' );
+		$this->assertMatchesRegularExpression( '#ffc-email-preheader[^>]*>a{139}…</div>#u', $long );
+	}
+
+	public function test_the_plain_text_of_a_document_is_only_what_the_message_says(): void {
+		$html  = EmailHelperTraitStub::pub_email_document( '<p>Hello there</p>' );
+		$plain = EmailService::html_to_plain_text( $html );
+
+		$this->assertSame( 1, substr_count( $plain, 'Hello there' ), 'The preheader does not repeat the body.' );
+		// The site name is in the <title>, the header band and the footer;
+		// only the two the reader sees reach the text.
+		$this->assertSame( 3, substr_count( (string) strstr( $html, '<head>' ), 'Test Site' ) );
+		$this->assertSame( 2, substr_count( $plain, 'Test Site' ), 'The <title> is not part of the text.' );
 	}
 
 	// ==================================================================

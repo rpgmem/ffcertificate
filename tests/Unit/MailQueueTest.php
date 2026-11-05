@@ -5,12 +5,17 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use FreeFormCertificate\Core\EmailService;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Integrations\MailQueue;
 
 /**
+ * One detection of the total-mail-queue plugin (#2336): the SMTP screen and
+ * the send path ask the same question, the queue's own class.
+ *
  * @covers \FreeFormCertificate\Integrations\MailQueue
+ * @covers \FreeFormCertificate\Core\EmailService::mail_queue_active
  */
 class MailQueueTest extends TestCase {
 
@@ -19,7 +24,6 @@ class MailQueueTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
-		\class_exists( '\FreeFormCertificate\Integrations\MailQueue' );
 		// The detector's answer passes through this filter unchanged by default.
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 	}
@@ -29,60 +33,31 @@ class MailQueueTest extends TestCase {
 		parent::tearDown();
 	}
 
+	public function test_inactive_while_the_queue_class_is_not_loaded(): void {
+		$this->assertFalse( MailQueue::is_active() );
+		$this->assertFalse( EmailService::mail_queue_active() );
+	}
+
 	/**
-	 * @param array<int, string>    $active  Per-site active_plugins.
-	 * @param array<string, mixed>  $network Network active_sitewide_plugins.
+	 * Runs in its own process because it declares the queue's class, which
+	 * would stay declared for every later test and stamp their messages.
+	 *
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
-	private function stub_plugin_lists( array $active, array $network = array() ): void {
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default = false ) use ( $active ) {
-				return 'active_plugins' === $key ? $active : $default;
-			}
-		);
-		Functions\when( 'get_site_option' )->alias(
-			static function ( $key, $default = false ) use ( $network ) {
-				return 'active_sitewide_plugins' === $key ? $network : $default;
-			}
-		);
-	}
+	public function test_active_once_the_queue_class_is_loaded_and_both_callers_agree(): void {
+		eval( 'namespace TotalMailQueue\Sources; class Detector {}' ); // phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares the sibling plugin's class for this one isolated test.
 
-	public function test_inactive_when_no_plugins(): void {
-		$this->stub_plugin_lists( array() );
-		$this->assertFalse( MailQueue::is_active() );
-	}
-
-	public function test_active_when_persite_plugin_present(): void {
-		$this->stub_plugin_lists( array( 'akismet/akismet.php', 'total-mail-queue/total-mail-queue.php' ) );
 		$this->assertTrue( MailQueue::is_active() );
-	}
-
-	public function test_active_matches_folder_regardless_of_main_file_name(): void {
-		// Detection keys on the folder, so a renamed bootstrap file still matches.
-		$this->stub_plugin_lists( array( 'total-mail-queue/tmq.php' ) );
-		$this->assertTrue( MailQueue::is_active() );
-	}
-
-	public function test_active_when_network_activated(): void {
-		$this->stub_plugin_lists(
-			array(),
-			array( 'total-mail-queue/total-mail-queue.php' => 1700000000 )
-		);
-		$this->assertTrue( MailQueue::is_active() );
-	}
-
-	public function test_unrelated_plugins_do_not_match(): void {
-		$this->stub_plugin_lists( array( 'woocommerce/woocommerce.php', 'total-mail-queue-lite/x.php' ) );
-		$this->assertFalse( MailQueue::is_active() );
+		$this->assertTrue( EmailService::mail_queue_active() );
 	}
 
 	public function test_filter_can_force_active(): void {
-		$this->stub_plugin_lists( array() );
 		Functions\when( 'apply_filters' )->justReturn( true );
 		$this->assertTrue( MailQueue::is_active() );
 	}
 
 	public function test_filter_can_force_inactive(): void {
-		$this->stub_plugin_lists( array( 'total-mail-queue/total-mail-queue.php' ) );
 		Functions\when( 'apply_filters' )->justReturn( false );
 		$this->assertFalse( MailQueue::is_active() );
 	}

@@ -29,61 +29,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class MailQueue {
 
 	/**
-	 * Plugin directory (folder) of the sibling queue plugin.
-	 */
-	private const PLUGIN_DIR = 'total-mail-queue';
-
-	/**
 	 * Whether a supported mail-queue plugin is active.
 	 *
-	 * Matches on the plugin *folder* (not a specific main-file name) across
-	 * both per-site and network activations, so a point-release rename of the
-	 * bootstrap file does not break detection. Overridable via the
-	 * `ffcertificate_mail_queue_active` filter.
+	 * The answer lives in {@see \FreeFormCertificate\Core\EmailService::mail_queue_active()},
+	 * which also decides whether a message carries the queue's source headers,
+	 * so the SMTP screen and the send path cannot disagree about the queue.
 	 *
 	 * @return bool
 	 */
 	public static function is_active(): bool {
-		$active = self::detect();
-
-		/**
-		 * Filter whether a mail-queue plugin is considered active.
-		 *
-		 * Lets an integration force the answer — e.g. a queue plugin that ships
-		 * under a different folder can hook this to advertise itself.
-		 *
-		 * @since 6.14.0
-		 * @param bool $active Whether total-mail-queue was detected.
-		 */
-		return (bool) apply_filters( 'ffcertificate_mail_queue_active', $active );
-	}
-
-	/**
-	 * Scan the per-site and network-active plugin lists for the queue plugin.
-	 *
-	 * @return bool
-	 */
-	private static function detect(): bool {
-		$prefix = self::PLUGIN_DIR . '/';
-
-		$active = get_option( 'active_plugins', array() );
-		if ( is_array( $active ) ) {
-			foreach ( $active as $plugin ) {
-				if ( is_string( $plugin ) && str_starts_with( $plugin, $prefix ) ) {
-					return true;
-				}
-			}
-		}
-
-		$network = get_site_option( 'active_sitewide_plugins', array() );
-		if ( is_array( $network ) ) {
-			foreach ( array_keys( $network ) as $plugin ) {
-				if ( is_string( $plugin ) && str_starts_with( $plugin, $prefix ) ) {
-					return true;
-				}
-			}
-		}
-
-		return false;
+		return \FreeFormCertificate\Core\EmailService::mail_queue_active();
 	}
 }

@@ -125,6 +125,16 @@ describe('ffc-email-model', () => {
 		expect(html).toContain('Sent by My Site'); // footer token resolved
 	});
 
+	it('mirrors the layout: logo alt, colour scheme and the mobile rule', async () => {
+		installDom();
+		await loadOnReady();
+		const html = document.querySelector('.ffc-email-model-preview-frame').srcdoc;
+		expect(html).toContain('alt="My Site"');
+		expect(html).toContain('<meta name="color-scheme" content="light">');
+		expect(html).toContain('@media only screen and (max-width:640px){.ffc-email-card{width:100% !important;}}');
+		expect(html).toContain('class="ffc-email-card"');
+	});
+
 	it('updates the preview when a field changes', async () => {
 		installDom();
 		await loadOnReady();

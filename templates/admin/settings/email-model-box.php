@@ -17,7 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 
-$ffc_model = \FreeFormCertificate\Core\EmailTemplateOptions::all();
+$ffc_model    = \FreeFormCertificate\Core\EmailTemplateOptions::all();
+$ffc_defaults = \FreeFormCertificate\Core\EmailTemplateOptions::defaults();
 
 /**
  * Field groups. Each field: array( key, type, label ).
@@ -91,7 +92,7 @@ $ffc_font_options  = array(
 						<div class="ffc-email-model-row">
 							<label for="<?php echo esc_attr( $ffc_id ); ?>"><?php echo esc_html( $ffc_label ); ?></label>
 							<?php if ( 'color' === $ffc_type ) : ?>
-								<input type="text" class="ffc-email-model-color" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" data-default-color="<?php echo esc_attr( $ffc_value ); ?>">
+								<input type="text" class="ffc-email-model-color" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>" data-default-color="<?php echo esc_attr( (string) ( $ffc_defaults[ $ffc_key ] ?? '' ) ); ?>">
 							<?php elseif ( 'number' === $ffc_type ) : ?>
 								<input type="number" min="0" required class="small-text" id="<?php echo esc_attr( $ffc_id ); ?>" name="<?php echo esc_attr( $ffc_name ); ?>" value="<?php echo esc_attr( $ffc_value ); ?>" data-ffc-model-field="<?php echo esc_attr( $ffc_key ); ?>">
 							<?php elseif ( 'align' === $ffc_type ) : ?>
@@ -170,7 +171,7 @@ $ffc_font_options  = array(
 
 		<div class="ffc-email-model-preview">
 			<h4><?php esc_html_e( 'Live Preview', 'ffcertificate' ); ?></h4>
-			<iframe class="ffc-email-model-preview-frame" title="<?php esc_attr_e( 'Email preview', 'ffcertificate' ); ?>"></iframe>
+			<iframe class="ffc-email-model-preview-frame" sandbox="" title="<?php esc_attr_e( 'Email preview', 'ffcertificate' ); ?>"></iframe>
 		</div>
 	</div>
 </div>

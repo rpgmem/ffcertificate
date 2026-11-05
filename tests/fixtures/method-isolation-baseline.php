@@ -26,6 +26,7 @@ return array(
 	'IdentitySearchAjaxEndpointTest.php' => 1,
 	'KeyRotationMigrationStrategyTest.php' => 1,
 	'KeyRotationRemainingMigrationStrategyTest.php' => 1,
+	'MailQueueTest.php' => 1,
 	'PrivacyHandlerTest.php' => 1,
 	'PublicCsvExporterTest.php' => 2,
 	'QRCodeGeneratorTempFileTest.php' => 1,
