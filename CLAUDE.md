@@ -568,10 +568,10 @@ A rule switched off in `phpcs.xml.dist`, `.stylelintrc.json`, `phpstan.neon.dist
 
 ### Build & assets
 
-When editing assets that ship to the browser, rebuild the minified bundles so the matching `*.min.*` and `.map` files stay in sync — the `Verify minified assets are up to date` CI job fails otherwise:
+When editing assets that ship to the browser, rebuild the minified bundles so the matching `*.min.*` files stay in sync — the `Verify minified assets are up to date` CI job fails otherwise, including for a new `.min` that was never committed. No source map is built: none ships (`.distignore`), and `SCRIPT_DEBUG` serves the readable source, so a `sourceMappingURL` comment only pointed browsers at a file that is never there (#2344):
 
-- **JS** → `npm run build:js` (regenerates `assets/js/*.min.js` + `.map`).
-- **CSS** → `npm run build:css` (regenerates `assets/css/*.min.css` + `.map`).
+- **JS** → `npm run build:js` (regenerates `assets/js/*.min.js`).
+- **CSS** → `npm run build:css` (regenerates `assets/css/*.min.css`).
 - Both at once → `npm run build`.
 
 ---

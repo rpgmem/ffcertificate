@@ -109,6 +109,13 @@ final class AssetRegistry {
 	);
 
 	/**
+	 * Whether `ffcCoreConfig` was localized on this request.
+	 *
+	 * @var bool
+	 */
+	private static bool $core_config_attached = false;
+
+	/**
 	 * Hook the two registrations.
 	 *
 	 * Front end at the default priority of `wp_enqueue_scripts`: shortcodes
@@ -309,7 +316,10 @@ final class AssetRegistry {
 			return;
 		}
 		if ( 'ffc-core' === $handle ) {
-			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );
+			// Built only when ffc-core is about to print (#2344): the config
+			// carries a nonce and runs a filter, which a request that never
+			// prints the script has no use for.
+			\add_filter( 'print_scripts_array', array( self::class, 'attach_core_config' ) );
 		}
 		if ( 'ffc-pdf-generator' === $handle ) {
 			\wp_localize_script( 'ffc-pdf-generator', 'ffcPdfLibraries', self::pdf_library_urls() );
@@ -320,6 +330,36 @@ final class AssetRegistry {
 		if ( 'ffc-batched-export' === $handle ) {
 			\wp_localize_script( 'ffc-batched-export', 'ffcBatchedExportStrings', self::batched_export_strings() );
 		}
+	}
+
+	/**
+	 * Localize `ffcCoreConfig` on the request that prints `ffc-core`.
+	 *
+	 * Hooked on `print_scripts_array` at the default priority: it is the one
+	 * point where WordPress has resolved every handle it is about to print,
+	 * dependencies included, and has not yet printed their localisation, so
+	 * a page that loads `ffc-core` only as a dependency gets the config too.
+	 * It runs for each group WordPress prints (head, footer, a standalone
+	 * document), and attaches the config once.
+	 *
+	 * @param mixed $handles The handles about to print.
+	 * @return mixed The handles, unchanged.
+	 */
+	public static function attach_core_config( $handles ) {
+		if ( ! self::$core_config_attached && is_array( $handles ) && in_array( 'ffc-core', $handles, true ) ) {
+			self::$core_config_attached = true;
+			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );
+		}
+		return $handles;
+	}
+
+	/**
+	 * Forget that the config was attached, for a test that starts a new request.
+	 *
+	 * @return void
+	 */
+	public static function reset(): void {
+		self::$core_config_attached = false;
 	}
 
 	/**
