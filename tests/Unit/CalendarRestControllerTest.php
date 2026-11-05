@@ -479,8 +479,9 @@ class CalendarRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
-		// What is left of the hour (#2339), and how much of the limit was used.
-		$this->assertMatchesRegularExpression( '/^Slow down, wait \d+ (minute|minutes|second|seconds)\. You have used 1 of 1\.$/', $result->get_error_message() );
+		// What is left of the hour (#2339), and how much of the limit was used. A run that
+		// lands on the hour boundary reads a full hour, so the unit includes "hour" (#2344).
+		$this->assertMatchesRegularExpression( '/^Slow down, wait \d+ (second|seconds|minute|minutes|hour)\. You have used 1 of 1\.$/', $result->get_error_message() );
 		$data = $result->get_error_data();
 		$this->assertSame( 429, $data['status'] );
 		$this->assertGreaterThanOrEqual( 1, $data['headers']['Retry-After'] );
