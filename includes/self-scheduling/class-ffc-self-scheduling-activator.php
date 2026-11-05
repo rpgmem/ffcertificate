@@ -37,7 +37,7 @@ class SelfSchedulingActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/**
 	 * Option holding the revision last applied.
@@ -108,6 +108,7 @@ class SelfSchedulingActivator {
             slots_per_day int(10) unsigned DEFAULT 0 COMMENT '0 = unlimited',
             working_hours longtext DEFAULT NULL,
             custom_slots longtext DEFAULT NULL,
+            sessions longtext DEFAULT NULL,
             advance_booking_min int(10) unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
             advance_booking_max int(10) unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
             allow_cancellation tinyint(1) DEFAULT 1,
@@ -176,6 +177,7 @@ class SelfSchedulingActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned NOT NULL,
+            session_id bigint(20) unsigned DEFAULT NULL,
             user_id bigint(20) unsigned DEFAULT NULL COMMENT 'WordPress user (if logged in)',
             appointment_date date NOT NULL,
             start_time time NOT NULL,
@@ -218,7 +220,8 @@ class SelfSchedulingActivator {
             KEY confirmation_token (confirmation_token),
             UNIQUE KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
-            KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
+            KEY idx_calendar_datetime (calendar_id, appointment_date, start_time),
+            KEY idx_calendar_session_datetime (calendar_id, session_id, appointment_date, start_time)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -420,9 +423,42 @@ class SelfSchedulingActivator {
 			return;
 		}
 
-		if ( self::migrate_event_list_columns() ) {
+		$healed = self::migrate_event_list_columns();
+		$healed = self::migrate_session_columns() && $healed;
+
+		if ( $healed ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
+	}
+
+	/**
+	 * Add the session columns (#2405): the calendar's sessions, as JSON, and
+	 * the session an appointment belongs to, with the index availability is
+	 * counted by. Both are NULL by default, so a calendar without sessions
+	 * and every stored appointment read exactly as before.
+	 *
+	 * @return bool Whether both tables now carry the columns and the index, or do not exist yet.
+	 */
+	private static function migrate_session_columns(): bool {
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		$healed       = true;
+
+		if ( self::table_exists( $calendars ) ) {
+			self::add_column_if_missing( $calendars, 'sessions', 'longtext DEFAULT NULL', 'custom_slots' );
+			$healed = self::column_exists( $calendars, 'sessions' );
+		}
+
+		if ( self::table_exists( $appointments ) ) {
+			self::add_column_if_missing( $appointments, 'session_id', 'bigint(20) unsigned DEFAULT NULL', 'calendar_id' );
+			self::add_index_if_missing( $appointments, 'idx_calendar_session_datetime', '(calendar_id, session_id, appointment_date, start_time)' );
+			$healed = $healed
+				&& self::column_exists( $appointments, 'session_id' )
+				&& self::index_exists( $appointments, 'idx_calendar_session_datetime' );
+		}
+
+		return $healed;
 	}
 
 	/**

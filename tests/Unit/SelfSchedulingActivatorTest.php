@@ -269,13 +269,18 @@ class SelfSchedulingActivatorTest extends TestCase {
 		return array_values( array_filter( $alters, static fn( string $q ): bool => false !== stripos( $q, 'ALTER TABLE' ) ) );
 	}
 
-	public function test_the_heal_adds_the_panel_columns_on_an_install_with_the_same_version(): void {
+	public function test_the_heal_adds_the_panel_and_session_columns_on_an_install_with_the_same_version(): void {
 		$written = array();
 		$alters  = $this->heal( '', false, $written );
 
-		$this->assertCount( 2, $alters );
+		$this->assertCount( 5, $alters );
 		$this->assertStringContainsString( 'show_event_list', $alters[0] );
 		$this->assertStringContainsString( 'event_list_position', $alters[1] );
+		// The sessions (#2405): the calendar's list, the appointment's session
+		// and the index availability is counted by.
+		$this->assertStringContainsString( "ADD COLUMN 'sessions' longtext DEFAULT NULL AFTER 'custom_slots'", $alters[2] );
+		$this->assertStringContainsString( "'wp_ffc_self_scheduling_appointments' ADD COLUMN 'session_id' bigint(20) unsigned DEFAULT NULL AFTER 'calendar_id'", $alters[3] );
+		$this->assertStringContainsString( "ADD INDEX 'idx_calendar_session_datetime' (calendar_id, session_id, appointment_date, start_time)", $alters[4] );
 		$this->assertArrayNotHasKey( SelfSchedulingActivator::SCHEMA_REVISION_OPTION, $written, 'An ALTER that did not take is tried again on the next request.' );
 	}
 

@@ -31973,3 +31973,37 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
 msgid "Your bookings"
 msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Add Session"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted."
+msgstr ""
+
+#. translators: %s: session names, comma-separated
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+#, php-format
+msgid "Not deleted, because they have open appointments from today on: %s. Cancel or move those appointments first."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Order"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Parallel services on the same days and hours, each with its own places."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Session name"
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-editor.php
+msgid "Sessions"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-self-scheduling.php
+msgid "The Sessions tab names parallel services that run on the same days and hours, such as two rooms. A session owns its name only: hours, slot length, capacity per slot and blocked dates come from the calendar. Sessions can be added, renamed, reordered and deleted; a session with open appointments from today on is kept when deleted, and the editor says so. With fewer than two sessions the calendar works as it does without them."
+msgstr ""

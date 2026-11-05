@@ -298,7 +298,17 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 			array_values( array_filter( array_map( static fn( array $control ): ?string => 'radio' === ( $control['attrs']['type'] ?? '' ) ? (string) $control['attrs']['value'] : null, $panel ) ) )
 		);
 
-		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names, $panel ) ) );
+		// The Sessions tab (#2405) too: its marker, its rows and its buttons.
+		$sessions = array_filter(
+			$after,
+			static fn( array $control ): bool => str_starts_with( (string) ( $control['attrs']['name'] ?? '' ), 'ffc_self_scheduling_sessions' )
+				|| 'ffc-add-session' === ( $control['attrs']['id'] ?? '' )
+				|| str_contains( (string) ( $control['attrs']['class'] ?? '' ), 'ffc-remove-session' )
+		);
+		$this->assertContains( 'ffc_self_scheduling_sessions_present', array_map( static fn( array $control ): string => (string) ( $control['attrs']['name'] ?? '' ), $sessions ), 'The tab posts its marker, so an emptied list is saved.' );
+		$this->assertContains( 'ffc-add-session', array_map( static fn( array $control ): string => (string) ( $control['attrs']['id'] ?? '' ), $sessions ) );
+
+		$this->assertSame( self::in_the_button_family( $before['controls'] ), array_values( array_diff_key( $after, $names, $panel, $sessions ) ) );
 	}
 
 	/**
@@ -346,7 +356,7 @@ class SelfSchedulingEditorFieldParityTest extends TestCase {
 		$this->assertSame( 1, substr_count( $html, 'data-ffc-vtabs' ) );
 
 		// The Blocked dates tab (#2244) sits after the booking window on a saved calendar.
-		$keys = array( 'calendar', 'slots', 'window', 'blocks', 'cancellation', 'approval', 'access', 'bypass', 'names', 'emails' );
+		$keys = array( 'calendar', 'slots', 'sessions', 'window', 'blocks', 'cancellation', 'approval', 'access', 'bypass', 'names', 'emails' );
 		if ( array() !== $meta ) {
 			$keys[] = 'occupancy'; // A saved custom-mode calendar, as the report box required.
 		}

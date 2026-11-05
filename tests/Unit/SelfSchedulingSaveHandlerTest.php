@@ -80,7 +80,9 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 			$_POST['ffc_self_scheduling_working_hours'],
 			$_POST['ffc_self_scheduling_custom_slots'],
 			$_POST['ffc_self_scheduling_email_config'],
-			$_POST['ffc_calendar_names']
+			$_POST['ffc_calendar_names'],
+			$_POST['ffc_self_scheduling_sessions'],
+			$_POST['ffc_self_scheduling_sessions_present']
 		);
 		$this->saved_meta = array();
 		if ( $this->had_wpdb ) {
@@ -232,6 +234,91 @@ class SelfSchedulingSaveHandlerTest extends TestCase {
 		$this->invoke( 'save_config', array( 100 ) );
 		$this->assertSame( 0, $this->saved_meta['_ffc_self_scheduling_config']['show_event_list'] );
 		$this->assertSame( 'side', $this->saved_meta['_ffc_self_scheduling_config']['event_list_position'], 'An unknown position falls back to beside.' );
+	}
+
+	// ==================================================================
+	// save_sessions() (#2405)
+	// ==================================================================
+
+	/**
+	 * Stored sessions, the sessions holding open appointments, and the
+	 * notice transients the save writes.
+	 *
+	 * @param list<array<string, mixed>> $stored Stored sessions.
+	 * @param list<int>                  $busy   Sessions with open appointments.
+	 * @return array<string, mixed> The transients written, by key.
+	 */
+	private function sessions_save( array $stored, array $busy ): array {
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_self_scheduling_sessions' === $key ? $stored : false );
+		Functions\when( 'wp_slash' )->returnArg();
+		Functions\when( 'wp_date' )->justReturn( '2026-11-05' );
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		$transients = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transients ): bool {
+				$transients[ $key ] = $value;
+				return true;
+			}
+		);
+		$GLOBALS['wpdb']->shouldReceive( 'get_col' )->andReturn( array_map( 'strval', $busy ) );
+
+		$this->invoke( 'save_sessions', array( 100 ) );
+		return $transients;
+	}
+
+	public function test_sessions_are_left_alone_when_the_tab_was_not_posted(): void {
+		$_POST['ffc_self_scheduling_sessions'] = array( array( 'name' => 'Room A' ) );
+		$this->sessions_save( array(), array() );
+
+		$this->assertArrayNotHasKey( '_ffc_self_scheduling_sessions', $this->saved_meta );
+	}
+
+	public function test_sessions_are_saved_in_the_order_posted(): void {
+		$_POST['ffc_self_scheduling_sessions_present'] = '1';
+		$_POST['ffc_self_scheduling_sessions']         = array(
+			array( 'id' => '', 'name' => 'Room B' ),
+			array( 'id' => '1', 'name' => 'Room A' ),
+		);
+		$this->sessions_save( array( array( 'id' => 1, 'name' => 'Room A' ) ), array() );
+
+		$this->assertSame(
+			array(
+				array( 'id' => 2, 'name' => 'Room B', 'deleted' => false ),
+				array( 'id' => 1, 'name' => 'Room A', 'deleted' => false ),
+			),
+			$this->saved_meta['_ffc_self_scheduling_sessions']
+		);
+	}
+
+	public function test_an_emptied_list_deletes_every_session_without_appointments(): void {
+		$_POST['ffc_self_scheduling_sessions_present'] = '1';
+		$transients = $this->sessions_save( array( array( 'id' => 1, 'name' => 'Room A' ) ), array() );
+
+		$this->assertSame( array( array( 'id' => 1, 'name' => 'Room A', 'deleted' => true ) ), $this->saved_meta['_ffc_self_scheduling_sessions'] );
+		$this->assertSame( array(), $transients );
+	}
+
+	public function test_a_session_with_open_appointments_is_kept_and_named_in_a_notice(): void {
+		$_POST['ffc_self_scheduling_sessions_present'] = '1';
+		$_POST['ffc_self_scheduling_sessions']         = array( array( 'id' => '2', 'name' => 'Room B' ) );
+		$transients = $this->sessions_save(
+			array(
+				array( 'id' => 1, 'name' => 'Room A' ),
+				array( 'id' => 2, 'name' => 'Room B' ),
+				array( 'id' => 3, 'name' => 'Room C' ),
+			),
+			array( 1 )
+		);
+
+		$this->assertSame(
+			array(
+				array( 'id' => 2, 'name' => 'Room B', 'deleted' => false ),
+				array( 'id' => 1, 'name' => 'Room A', 'deleted' => false ),
+				array( 'id' => 3, 'name' => 'Room C', 'deleted' => true ),
+			),
+			$this->saved_meta['_ffc_self_scheduling_sessions']
+		);
+		$this->assertSame( array( 'ffc_ss_sessions_kept_7_100' => array( 'Room A' ) ), $transients );
 	}
 
 	public function test_config_max_blocks_per_user_parsed(): void {
