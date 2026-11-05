@@ -364,14 +364,18 @@
             + (pdfData.bg_color ? 'background-color:' + pdfData.bg_color + ';' : '')
             + '">';
 
-        if (pdfData.bg_image) {
-            finalHTML += '<img src="' + pdfData.bg_image + '" class="ffc-pdf-bg skip-lazy no-lazyload" loading="eager" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">';
-        }
-
         finalHTML += '<div class="ffc-pdf-content" style="position:relative;z-index:1;">' + processedHTML + '</div>';
         finalHTML += '</div>';
 
         $tempContainer.html(finalHTML);
+
+        // The background is set as an attribute, never concatenated into
+        // markup, so a URL carrying a quote cannot open a new attribute (#2344).
+        if (pdfData.bg_image) {
+            $('<img class="ffc-pdf-bg skip-lazy no-lazyload" loading="eager" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;" crossorigin="anonymous">')
+                .attr('src', String(pdfData.bg_image))
+                .prependTo($tempContainer.find('.ffc-pdf-wrapper'));
+        }
 
         // Protect images from lazy-loading plugins (LiteSpeed Cache, WP Rocket, etc.)
         // These plugins use MutationObserver and may replace src with data-src immediately

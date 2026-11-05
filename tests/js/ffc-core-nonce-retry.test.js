@@ -62,6 +62,33 @@ describe('FFC.request — stale nonce auto-recovery', () => {
 		restore();
 	});
 
+	it('retries with the refreshed nonce even when the caller passed its own, and leaves its options alone', async () => {
+		setupAjax({ nonce: 'global', ajax_url: '/x', strings: {} });
+		const { calls, restore } = queuePostResponses([
+			{ success: false, data: { message: 'fail', refresh_nonce: true, new_nonce: 'fresh' } },
+			{ success: true, data: { ok: 1 } },
+		]);
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const options = { nonce: 'caller-stale' };
+
+		await window.FFC.request('ffc_x', { a: 1 }, options);
+
+		expect(calls[0].payload.nonce).toBe('caller-stale');
+		// The retry would fail again with the caller's own stale nonce (#2344).
+		expect(calls[1].payload.nonce).toBe('fresh');
+		expect(options).toEqual({ nonce: 'caller-stale' });
+
+		// A second call with the same options object still gets its one retry.
+		const second = queuePostResponses([
+			{ success: false, data: { message: 'fail', refresh_nonce: true, new_nonce: 'fresh2' } },
+			{ success: true, data: { ok: 2 } },
+		]);
+		await expect(window.FFC.request('ffc_x', { a: 1 }, options)).resolves.toEqual({ ok: 2 });
+		expect(second.calls).toHaveLength(2);
+		second.restore();
+		restore();
+	});
+
 	it('retries at most once even if the retry also fails with refresh_nonce', async () => {
 		setupAjax({ nonce: 'stale-nonce', ajax_url: '/x', strings: {} });
 		const { calls, restore } = queuePostResponses([

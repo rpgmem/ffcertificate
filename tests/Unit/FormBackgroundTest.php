@@ -21,6 +21,10 @@ class FormBackgroundTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// A realistic esc_url_raw(): what it refuses comes back empty (#2344).
+		Functions\when( 'esc_url_raw' )->alias(
+			static fn ( $url ) => preg_match( '#^https?://[^"\'<>\s]+$#i', (string) $url ) ? (string) $url : ''
+		);
 	}
 
 	protected function tearDown(): void {
@@ -154,5 +158,15 @@ class FormBackgroundTest extends TestCase {
 		$this->meta( array( '_ffc_form_config' => 'corrupt' ) );
 
 		$this->assertSame( '#ffffff', FormBackground::color( 7 ) );
+	}
+
+	public function test_the_legacy_meta_is_cleaned_on_read(): void {
+		// It was never sanitised on write, so a value carrying a quote or a
+		// script scheme must not reach the page (#2344).
+		$this->meta( array( '_ffc_form_bg' => 'javascript:alert(1)' ) );
+		$this->assertSame( '', FormBackground::url( 7 ) );
+
+		$this->meta( array( '_ffc_form_bg' => 'https://example.test/a.png" onerror="x' ) );
+		$this->assertSame( '', FormBackground::url( 7 ) );
 	}
 }

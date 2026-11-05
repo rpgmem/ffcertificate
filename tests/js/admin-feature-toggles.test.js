@@ -457,6 +457,20 @@ describe('admin copy-to-clipboard', () => {
 		expect(getBtn().textContent).toBe('Copy');
 	});
 
+	it('accepts only an element id, never markup or another selector', async () => {
+		const writeText = vi.fn().mockResolvedValue();
+		Object.defineProperty(window.navigator, 'clipboard', { value: { writeText }, configurable: true });
+		// jQuery() would build this markup and run its handler (#2344).
+		document.body.innerHTML = '<button class="ffc-copy-link" data-ffc-copy-target="<img src=x onerror=window.__ffcCopyXss=1>">Copy</button>'
+			+ '<input class="copy-src" value="by class">'
+			+ '<button class="ffc-copy-link" id="by-class" data-ffc-copy-target=".copy-src">Copy</button>';
+		document.querySelectorAll('.ffc-copy-link').forEach((b) => b.click());
+		await flush();
+		expect(window.__ffcCopyXss).toBeUndefined();
+		expect(document.querySelector('img')).toBeNull();
+		expect(writeText).not.toHaveBeenCalled();
+	});
+
 	it('uses navigator.clipboard.writeText and shows Copied! on success', async () => {
 		const writeText = vi.fn().mockResolvedValue();
 		Object.defineProperty(window.navigator, 'clipboard', {
