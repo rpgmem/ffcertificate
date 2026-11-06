@@ -27,6 +27,24 @@ class ReregistrationActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the schema steps this class runs on a request (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_reregistration_schema_version';
+
+	/**
 	 * Create all reregistration-related tables (and run their migrations).
 	 *
 	 * Called during plugin activation. Order matches the previous inline
@@ -74,33 +92,33 @@ class ReregistrationActivator {
 	 * moment the column it moves is gone. `UserDashboardActivator::maybe_migrate()`
 	 * deliberately does NOT do this -- see the reason written there.
 	 *
-	 * **The gate is `FFC_VERSION`, not a one-shot boolean** (#1231): the property
-	 * to preserve is "the schema heals itself after an update", not "it runs on
-	 * every request". A boolean marker would mean a column introduced in a future
-	 * release never reaches whoever already stored it. The option is written
-	 * AFTER the body, so a failure partway through does not lock the chain at a
-	 * version it never finished applying.
+	 * **The gate is {@see self::SCHEMA_REVISION}, not a one-shot boolean**
+	 * (#1231, #2430): the property to preserve is "the schema heals itself
+	 * after an update", not "it runs on every request". A boolean marker would
+	 * mean a column introduced later never reaches whoever already stored it,
+	 * and `FFC_VERSION` stood still on `develop` for a whole batch. The option
+	 * is written AFTER the body, so a failure partway through does not lock the
+	 * chain at a revision it never finished applying.
 	 *
 	 * @since 6.26.0
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		$ffc_schema_option = 'ffc_reregistration_schema_version';
-		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
 			return;
 		}
 
 		self::create_tables();
 		self::sync_standard_profile_keys();
 
-		update_option( $ffc_schema_option, FFC_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**
 	 * Fill the profile keys standard field definitions gained after their rows
 	 * were seeded (#1538).
 	 *
-	 * Rides the version gate above rather than a one-shot flag, for the same
+	 * Rides the revision gate above rather than a one-shot flag, for the same
 	 * reason the schema does: a definition that gains a key in a later release
 	 * must reach installs that already ran this once. The table belongs to the
 	 * user-dashboard activator and may not exist yet on the very first run,

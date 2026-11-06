@@ -430,7 +430,13 @@ class ActivityLog {
 	 * rows written before it still hold a plaintext address until the
 	 * "Activity Log: Encrypt Client IPs" migration clears it.
 	 */
-	private const DB_VERSION = '2.4.0';
+	public const SCHEMA_REVISION = '2.4.0';
+
+	/**
+	 * Option holding the revision last applied (#2430). Listed in
+	 * `uninstall.php`.
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_activity_log_db_version';
 
 	/**
 	 * Create activity log table
@@ -654,12 +660,12 @@ class ActivityLog {
 	 * — covers in-place plugin upgrades that don't fire register_activation_hook.
 	 */
 	public static function maybe_create_table(): void {
-		$stored = get_option( 'ffc_activity_log_db_version', '' );
-		if ( self::DB_VERSION === $stored ) {
+		$stored = get_option( self::SCHEMA_REVISION_OPTION, '' );
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
 		self::create_table();
-		update_option( 'ffc_activity_log_db_version', self::DB_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**

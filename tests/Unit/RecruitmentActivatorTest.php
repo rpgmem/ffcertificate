@@ -59,10 +59,10 @@ class RecruitmentActivatorTest extends TestCase {
 
 		Functions\when( 'dbDelta' )->justReturn( array() );
 
-		// This activator's chain became guarded by `FFC_VERSION` (#1231), so it
-		// reads and writes a version option. The value returned here is
-		// DIFFERENT from `FFC_VERSION` on purpose: these tests exercise the
-		// chain's body, which only runs when the guard does not match.
+		// This activator's chain is guarded by its schema revision (#1231,
+		// #2430), so it reads and writes a revision option. The value returned
+		// here is DIFFERENT from the revision on purpose: these tests exercise
+		// the chain's body, which only runs when the guard does not match.
 		Functions\when( 'get_option' )->justReturn( '' );
 		Functions\when( 'update_option' )->justReturn( true );
 	}
@@ -549,7 +549,7 @@ class RecruitmentActivatorTest extends TestCase {
 	}
 
 	public function test_create_tables_returns_early_when_the_version_gate_matches(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Recruitment\RecruitmentActivator::SCHEMA_REVISION );
 		$log = $this->stub_schema( false, array() );
 		Functions\when( 'update_option' )->alias(
 			function () {

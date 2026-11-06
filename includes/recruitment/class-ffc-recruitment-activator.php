@@ -57,6 +57,25 @@ class RecruitmentActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the tables {@see self::create_tables()} creates (#2430).
+	 * Bump it in the PR that adds or changes a table, so an install on the
+	 * same `FFC_VERSION` (the testes site, between releases) runs the chain
+	 * too. `SchemaRevisionRegisterTest` fails a schema change that does not.
+	 * The numbered steps of {@see self::maybe_migrate()} keep their own
+	 * counter.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_recruitment_tables_version';
+
+	/**
 	 * Create all Recruitment-related tables.
 	 *
 	 * Called from \FreeFormCertificate\Activator::activate() during plugin
@@ -67,8 +86,8 @@ class RecruitmentActivator {
 	 * @return void
 	 */
 	/**
-	 * Version gate: the chain below only needs to run once per `FFC_VERSION`
-	 * (#1231).
+	 * Revision gate: the chain below only needs to run once per
+	 * {@see self::SCHEMA_REVISION} (#1231, #2430).
 	 *
 	 * Without it, `RecruitmentActivator::create_tables()` probed the schema on
 	 * EVERY request -- anonymous frontend included -- because `table_exists()`
@@ -77,22 +96,22 @@ class RecruitmentActivator {
 	 * `Loader`'s four chains, that was 48 DDL queries per page on an install
 	 * with nothing to migrate.
 	 *
-	 * **The gate is `FFC_VERSION`, and NOT a one-shot marker, on purpose.**
+	 * **The gate is a revision, and NOT a one-shot marker, on purpose.**
 	 * These calls exist because an in-place plugin update (wp-admin's "Update"
 	 * button) does NOT fire `register_activation_hook` -- the property to
 	 * preserve is "the schema heals itself after an update", not "it runs on
-	 * every request". With `FFC_VERSION` the constant changes on the update and
-	 * the chain runs once on the first request after it, identical to what it
-	 * did before. With a one-shot boolean, a column introduced in a future
-	 * release would never reach whoever already had the marker stored.
+	 * every request". The PR that changes a table bumps the revision, and the
+	 * chain runs once on the first request after it, between releases too,
+	 * which `FFC_VERSION` never did on `develop`. With a one-shot boolean, a
+	 * column introduced later would never reach whoever already had the
+	 * marker stored.
 	 *
 	 * The option is written **after** the body, so a failure partway through
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function create_tables(): void {
-		// Version gate (#1231) -- see the note just above the signature.
-		$ffc_schema_option = 'ffc_recruitment_tables_version';
-		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+		// Revision gate (#1231, #2430) -- see the note just above the signature.
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
 			return;
 		}
 
@@ -106,7 +125,7 @@ class RecruitmentActivator {
 		self::create_import_jobs_table();
 		self::create_import_staging_table();
 
-		update_option( $ffc_schema_option, FFC_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**
