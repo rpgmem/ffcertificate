@@ -83,12 +83,7 @@ final class CsvDownloadValidator {
 		}
 
 		// 9. Quota.
-		$limit = (int) get_post_meta( $form_id, PublicCsvDownload::META_LIMIT, true );
-		if ( $limit <= 0 ) {
-			$settings_default = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
-			$limit            = $settings_default > 0 ? $settings_default : 1;
-		}
-
+		$limit = self::download_limit( $form_id );
 		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
 		if ( $count >= $limit ) {
 			return sprintf(
@@ -147,11 +142,11 @@ final class CsvDownloadValidator {
 	 *
 	 * @param int    $form_id      Form post ID.
 	 * @param string $cpf_input    Raw CPF as posted by the user.
-	 * @param bool   $silent_audit When true, the validator runs all the same
-	 *                             logic but does NOT write its own row to the
-	 *                             audit ring buffer. Caller takes responsibility
-	 *                             for writing a single row that captures the
-	 *                             actual outcome (typically an action_* tag).
+	 * @param bool   $silent_audit When true, a CPF that passes writes no row of
+	 *                             its own: the caller writes the one row that
+	 *                             captures the outcome (typically an action_*
+	 *                             tag). A CPF that fails is always recorded
+	 *                             (#2341), since no action row follows it.
 	 *                             Added in #243 Sprint 6 so the
 	 *                             `ajax_open_early` / `ajax_extend_end`
 	 *                             endpoints can re-validate CPF for security
@@ -186,15 +181,11 @@ final class CsvDownloadValidator {
 		// Format gate: we require a syntactically valid 11-digit CPF before
 		// touching the database.
 		if ( '' === $digits ) {
-			if ( ! $silent_audit ) {
-				$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
-			}
+			$this->record_download_log_entry( $form_id, $mode, '', 'fail_missing' );
 			return __( 'CPF is required to download this CSV.', 'ffcertificate' );
 		}
 		if ( ! \FreeFormCertificate\Core\DocumentFormatter::validate_cpf( $digits ) ) {
-			if ( ! $silent_audit ) {
-				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
-			}
+			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_format' );
 			return __( 'Invalid CPF.', 'ffcertificate' );
 		}
 
@@ -218,9 +209,7 @@ final class CsvDownloadValidator {
 				}
 			}
 			if ( ! $found ) {
-				if ( ! $silent_audit ) {
-					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				}
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				return __( 'This CPF is not authorized to download this CSV.', 'ffcertificate' );
 			}
 			if ( ! $silent_audit ) {
@@ -232,9 +221,7 @@ final class CsvDownloadValidator {
 		if ( 'owner' === $mode ) {
 			$author_id = (int) get_post_field( 'post_author', $form_id );
 			if ( $author_id <= 0 ) {
-				if ( ! $silent_audit ) {
-					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				}
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				return __( 'Form has no author to validate against.', 'ffcertificate' );
 			}
 			// COMPARE HASHES, NEVER THE STORED VALUE (#1443).
@@ -269,9 +256,7 @@ final class CsvDownloadValidator {
 			$typed_hash  = self::typed_cpf_hash( $digits );
 
 			if ( '' === $author_hash || '' === $typed_hash || ! hash_equals( $author_hash, $typed_hash ) ) {
-				if ( ! $silent_audit ) {
-					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				}
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				return __( 'CPF does not match the form author.', 'ffcertificate' );
 			}
 			if ( ! $silent_audit ) {
@@ -283,9 +268,7 @@ final class CsvDownloadValidator {
 		if ( 'participants' === $mode ) {
 			$count = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countByFormAndCpfHash( $form_id, self::typed_cpf_hash( $digits ) );
 			if ( $count <= 0 ) {
-				if ( ! $silent_audit ) {
-					$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				}
+				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
 				return __( 'No submission with this CPF was found for this form.', 'ffcertificate' );
 			}
 			if ( ! $silent_audit ) {
@@ -295,9 +278,7 @@ final class CsvDownloadValidator {
 		}
 
 		// Unknown mode -> fail closed.
-		if ( ! $silent_audit ) {
-			$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
-		}
+		$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_unknown_mode' );
 		return __( 'CPF gate misconfigured. Contact the administrator.', 'ffcertificate' );
 	}
 
@@ -351,6 +332,72 @@ final class CsvDownloadValidator {
 		}
 
 		return (string) ( $row['cpf_hash'] ?? '' );
+	}
+
+	/**
+	 * The form's download quota: its own limit, else the site default, and
+	 * never less than one.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int
+	 */
+	public static function download_limit( int $form_id ): int {
+		$limit = (int) get_post_meta( $form_id, PublicCsvDownload::META_LIMIT, true );
+		if ( $limit > 0 ) {
+			return $limit;
+		}
+		$settings_default = \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_csv_default_limit', 1 );
+		return $settings_default > 0 ? $settings_default : 1;
+	}
+
+	/**
+	 * Spend one download of the quota, atomically (#2341).
+	 *
+	 * Called when a file is about to be delivered, never before: a refused
+	 * request, a CSV over the row cap and an export with no records charge
+	 * nothing. The count only moves while it is below the limit, in one
+	 * statement, so two requests racing for the last download cannot both
+	 * get it; the meta API's read-then-write lost exactly that race.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return bool True when a download was claimed, false when the quota is spent.
+	 */
+	public function claim_download( int $form_id ): bool {
+		$limit   = self::download_limit( $form_id );
+		$claimed = $this->increment_below( $form_id, $limit );
+
+		// The first download of a form: no count row exists yet. Adding it
+		// as unique loses to a concurrent first download, which is then
+		// counted by the second attempt.
+		if ( ! $claimed && ! metadata_exists( 'post', $form_id, PublicCsvDownload::META_COUNT ) ) {
+			$claimed = false !== add_post_meta( $form_id, PublicCsvDownload::META_COUNT, 1, true )
+				|| $this->increment_below( $form_id, $limit );
+		}
+
+		wp_cache_delete( $form_id, 'post_meta' );
+		return $claimed;
+	}
+
+	/**
+	 * Add one to the stored count when it is below the limit.
+	 *
+	 * @param int $form_id Form ID.
+	 * @param int $limit   Downloads allowed.
+	 * @return bool Whether the count moved.
+	 */
+	private function increment_below( int $form_id, int $limit ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- one conditional UPDATE is what makes the claim atomic; the post meta cache is cleared by the caller.
+		$updated = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET meta_value = CAST(meta_value AS UNSIGNED) + 1 WHERE post_id = %d AND meta_key = %s AND CAST(meta_value AS UNSIGNED) < %d',
+				$wpdb->postmeta,
+				$form_id,
+				PublicCsvDownload::META_COUNT,
+				$limit
+			)
+		);
+		return is_int( $updated ) && $updated > 0;
 	}
 
 	/**

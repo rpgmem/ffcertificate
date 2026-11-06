@@ -490,6 +490,18 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->assertSame( array( array( 10, self::cpf_hash( Identifiers::CPF_A ) ) ), $this->submission_queries );
 	}
 
+	/**
+	 * #2341 — silent covers a CPF that passes, never one that fails: no
+	 * action row follows a refusal, so the gate writes its own.
+	 */
+	public function test_cpf_silent_audit_still_records_a_failure(): void {
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
+		$this->assertNotNull( $this->validator->validate_cpf_requirement( 10, '', true ) );
+
+		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
+		$this->assertSame( array( 'fail_missing' ), array_column( $log, 'result' ) );
+	}
+
 	public function test_cpf_silent_audit_suppresses_log_row(): void {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
 		$this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A, true );

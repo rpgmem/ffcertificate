@@ -168,8 +168,48 @@ class DynamicFragmentsTest extends TestCase {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
-		// `form_ids` also drives the geofence branch further down.
+		// `form_ids` also drives the geofence branch further down, which
+		// reads only a published form (#2341).
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
+	}
+
+	/**
+	 * #2341 — the geofence of a draft, a private, pending, future or
+	 * trashed form, or of a post that is not a form, is never read for an
+	 * anonymous caller: only a published form's.
+	 */
+	public function test_handle_reads_the_geofence_of_published_forms_only(): void {
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
+		$this->stubWordPress();
+
+		$posts = array(
+			1 => array( 'ffc_form', 'publish' ),
+			2 => array( 'ffc_form', 'draft' ),
+			3 => array( 'ffc_form', 'private' ),
+			4 => array( 'ffc_form', 'pending' ),
+			5 => array( 'ffc_form', 'future' ),
+			6 => array( 'ffc_form', 'trash' ),
+			7 => array( 'page', 'publish' ),
+		);
+		Functions\when( 'get_post_type' )->alias( fn( $id ) => $posts[ (int) $id ][0] ?? false );
+		Functions\when( 'get_post_status' )->alias( fn( $id ) => $posts[ (int) $id ][1] ?? false );
+		$read = array();
+		Functions\when( 'get_post_meta' )->alias(
+			function ( $id ) use ( &$read ) {
+				$read[ (int) $id ] = true;
+				return '';
+			}
+		);
+
+		$_POST['form_ids'] = array_map( 'strval', array_keys( $posts ) );
+
+		$this->callHandle( new DynamicFragments() );
+
+		unset( $_POST['form_ids'] );
+
+		$this->assertSame( array( 1 ), array_keys( $read ) );
 	}
 
 	public function test_handle_issues_one_challenge_per_security_block(): void {

@@ -145,9 +145,9 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
-		// 6. Increment the download quota BEFORE generating (race-safe).
-		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
-		update_post_meta( $form_id, PublicCsvDownload::META_COUNT, $count + 1 );
+		// The quota is checked above and spent at delivery (#2341), so an
+		// export with no records, or one that is never downloaded, costs
+		// nothing.
 	}
 
 	/**
@@ -355,6 +355,20 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			return;
 		}
 		$audit_validator = new CsvDownloadValidator();
+		// The download is spent here, when the file is delivered (#2341),
+		// and atomically: a second job racing for the last download of the
+		// quota is refused.
+		if ( ! $audit_validator->claim_download( $form_id ) ) {
+			wp_die(
+				esc_html(
+					sprintf(
+						/* translators: %d is the configured download limit */
+						__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
+						CsvDownloadValidator::download_limit( $form_id )
+					)
+				)
+			);
+		}
 		$audit_validator->record_download_log_entry(
 			$form_id,
 			(string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true ),

@@ -157,6 +157,16 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'metadata_exists' )->alias( fn( $type, $id, $key ) => isset( $this->post_meta[ (int) $id ][ $key ] ) );
+		Functions\when( 'add_post_meta' )->alias(
+			function ( $id, $key, $value ) {
+				if ( isset( $this->post_meta[ (int) $id ][ $key ] ) ) {
+					return false;
+				}
+				$this->post_meta[ (int) $id ][ $key ] = $value;
+				return 1;
+			}
+		);
 		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 3 === (int) $id || self::FORM === (int) $id ? 'My Form' : '' );
 
 		$this->post_meta   = array();
@@ -301,8 +311,22 @@ class PublicFormsExportSourceTest extends TestCase {
 			}
 		);
 		$wpdb->shouldReceive( 'insert' )->andReturn( 1 );
-		// A refusal's log line and its trim.
-		$wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		// A refusal's log line and its trim; and the quota's conditional
+		// UPDATE (#2341), played against the post meta store.
+		$wpdb->postmeta = 'wp_postmeta';
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 1 === preg_match( "/^UPDATE `wp_postmeta` SET meta_value .* WHERE post_id = (\\d+) AND meta_key = '([^']+)' AND CAST\\(meta_value AS UNSIGNED\\) < (\\d+)$/", (string) $sql, $m ) ) {
+					$current = $this->post_meta[ (int) $m[1] ][ $m[2] ] ?? null;
+					if ( null === $current || (int) $current >= (int) $m[3] ) {
+						return 0;
+					}
+					$this->post_meta[ (int) $m[1] ][ $m[2] ] = (int) $current + 1;
+					return 1;
+				}
+				return 1;
+			}
+		);
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
 				$sql = (string) $sql;
@@ -525,7 +549,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->assertSame( '', $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ] ?? '', 'No quota is spent.' );
 	}
 
-	public function test_authorize_start_bumps_quota_on_success(): void {
+	public function test_authorize_start_passes_without_spending_the_quota(): void {
 		$this->public_form( array( PublicCsvDownload::META_COUNT => 4 ) );
 		$this->post_start_gate();
 
@@ -533,7 +557,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->source->authorize_start();
 
 		$this->assertSame( array(), $this->json_errors );
-		$this->assertSame( 5, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'quota incremented from 4 → 5' );
+		$this->assertSame( 4, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The quota is spent at delivery, not at the start (#2341).' );
 	}
 
 	/**
@@ -554,7 +578,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
 		$this->assertMatchesRegularExpression( '/^Too many requests\./', is_array( $payload ) ? (string) $payload['message'] : (string) $payload );
-		$this->assertSame( 5, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The refused start charged nothing.' );
+		$this->assertSame( 4, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'Neither start charged anything.' );
 	}
 
 	// ==================================================================
@@ -794,7 +818,24 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->assertCount( 1, $log );
 		$this->assertSame( 'voluntary', $log[0]['mode'] );
 		$this->assertSame( 'download_delivered', $log[0]['result'] );
+		$this->assertSame( 1, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The first delivery spends the first download (#2341).' );
 		$this->assertSame( Identifiers::CPF_A, Encryption::decrypt( $log[0]['cpf_encrypted'] ) );
 		$this->assertSame( self::IP, Encryption::decrypt( $log[0]['ip_encrypted'] ) );
+	}
+
+	/**
+	 * #2341 — a job delivered after the quota was spent by another is
+	 * refused at delivery, and nothing is recorded as delivered.
+	 */
+	public function test_on_before_download_refuses_when_the_quota_is_spent(): void {
+		$this->post_types[ self::FORM ]                                    = 'ffc_form';
+		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_LIMIT ]    = 3;
+		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ]    = 3;
+
+		$message = $this->die_message_of( fn() => $this->source->on_before_download( array( 'form_id' => self::FORM, 'cpf_digits' => '' ) ) );
+
+		$this->assertStringContainsString( 'maximum number of downloads (3)', $message );
+		$this->assertSame( 3, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ] );
+		$this->assertSame( array(), $this->audit_log() );
 	}
 }

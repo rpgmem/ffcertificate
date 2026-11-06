@@ -107,6 +107,29 @@ class PublicCsvExporter {
 	}
 
 	/**
+	 * Refuse a synchronous export over the admin's row threshold: large
+	 * exports must use the AJAX batched flow, or they hit the execution-time
+	 * limit of shared hosting. Renders the 413 page when it refuses.
+	 *
+	 * The download handler asks this before it spends the quota (#2341), so
+	 * a refused export charges nothing.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $status  Submission status.
+	 * @return int|null The row count, or null when the export was refused
+	 *                  (the page is printed).
+	 */
+	public function rows_within_sync_limit( int $form_id, string $status = 'publish' ): ?int {
+		$row_count  = $this->repository->countForExport( array( $form_id ), $status );
+		$sync_limit = self::get_sync_max_rows();
+		if ( $row_count > $sync_limit ) {
+			$this->render_sync_limit_exceeded( $row_count, $sync_limit );
+			return null;
+		}
+		return $row_count;
+	}
+
+	/**
 	 * Stream the CSV file for a single form to the browser.
 	 *
 	 * Sends HTTP headers, writes BOM + column headers + data rows, then exits.
@@ -120,13 +143,8 @@ class PublicCsvExporter {
 	public function stream_form_csv( int $form_id, string $status = 'publish' ): void {
 		$form_ids = array( $form_id );
 
-		// Refuse synchronous export when the row count exceeds the admin
-		// threshold. Large exports must use the AJAX batched flow to avoid
-		// hitting the execution-time limit of shared hosting.
-		$row_count  = $this->repository->countForExport( $form_ids, $status );
-		$sync_limit = self::get_sync_max_rows();
-		if ( $row_count > $sync_limit ) {
-			$this->render_sync_limit_exceeded( $row_count, $sync_limit );
+		$row_count = $this->rows_within_sync_limit( $form_id, $status );
+		if ( null === $row_count ) {
 			return;
 		}
 
