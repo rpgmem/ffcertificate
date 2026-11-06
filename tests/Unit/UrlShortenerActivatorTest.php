@@ -260,6 +260,60 @@ class UrlShortenerActivatorTest extends TestCase {
 		$this->assertSame( 301, $options['ffc_settings']['url_shortener_redirect_type'] );
 	}
 
+	public function test_a_schema_step_reaches_an_install_already_at_this_version(): void {
+		// The testes site sits at the released FFC_VERSION for a whole batch:
+		// the version gate is current, and the retired table is still missing.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_url_shortener_schema_version' === $key ? FFC_VERSION : $default );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+		$created = false;
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static function ( $q ) use ( &$created ) {
+				if ( 'wp_ffc_short_url_retired' === $q ) {
+					return $created ? $q : null;
+				}
+				return 'wp_ffc_short_urls' === $q ? $q : 'utf8mb4_bin';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		Functions\when( 'dbDelta' )->alias(
+			static function () use ( &$created ) {
+				$created = true;
+			}
+		);
+
+		UrlShortenerActivator::maybe_migrate();
+
+		$this->assertTrue( $created, 'The retired codes table is created without a version bump.' );
+		$this->assertSame( UrlShortenerActivator::SCHEMA_REVISION, $written[ UrlShortenerActivator::SCHEMA_REVISION_OPTION ] ?? null );
+	}
+
+	public function test_the_revision_is_not_recorded_while_the_table_is_missing(): void {
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_url_shortener_schema_version' === $key ? FFC_VERSION : $default );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => 'wp_ffc_short_url_retired' === $q ? null : $q );
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		Functions\when( 'dbDelta' )->justReturn( array() ); // The CREATE fails.
+
+		UrlShortenerActivator::maybe_migrate();
+
+		$this->assertArrayNotHasKey( UrlShortenerActivator::SCHEMA_REVISION_OPTION, $written, 'The next request tries again.' );
+	}
+
 	/**
 	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
 	 */

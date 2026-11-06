@@ -90,6 +90,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Date Messages: a run survives a request that dies** (#2336). The next batch and a retry are queued before a batch sends, a message that throws counts as failed, each rule starts on its own event, a decision is counted once, and the summary waits for the run to close and links to History. 29 February is treated as the 28th every year.
 - **Short URLs: the cache and the address match** (#2337). A short URL is matched only at the site's home path, a post with a disabled link is no longer backfilled a second one, the stored QR is redrawn when its URL changes, and a disabled link gets no QR over REST. Rows are read without the stored QR, unknown codes are remembered briefly, and saving a QR no longer flushes the site cache.
 - **Short URLs: codes, toggles and the Trash** (#2337). Upper and lower case are two codes now: `short_code` takes a binary collation, so the generator's 62 characters are real; a code typed by hand in another case no longer matches. Codes never grow past ten characters and are drawn again when another request takes one first. A switch already in the state asked for no longer reports a failure, and Empty Trash removes every trashed link in batches and says how many went.
+- **Short URLs: schema steps reach an install between releases** (#2337). The retired codes table, the case-sensitive codes and the 301 → 302 move ran behind a gate keyed on the plugin version, which stays put on `develop`, so the testes site never got them and the post-deploy smoke found the table missing. They now run on the module's own schema revision, as the audience and self-scheduling modules do.
+
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

@@ -768,6 +768,7 @@ class LoaderCapabilitiesTest extends TestCase {
 			'ffc_self_scheduling_schema_version'                    => FFC_VERSION,
 			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
 			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION,
+			\FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION,
 			'ffc_audience_schema_version'                           => FFC_VERSION,
 			'ffc_url_shortener_schema_version'                      => FFC_VERSION,
 			// Every numbered recruitment step already applied.
