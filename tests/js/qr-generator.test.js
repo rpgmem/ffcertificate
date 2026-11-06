@@ -23,6 +23,7 @@ function mount() {
 				<input type="checkbox" id="ffc-qr-short" checked>
 				<p id="ffc-qr-short-circular" hidden></p>
 				<p id="ffc-qr-short-direct" hidden></p>
+				<p id="ffc-qr-short-download" hidden></p>
 				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value="" required></div>
 				<div data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden><ul id="ffc-qr-short-duplicate-list"></ul><input type="checkbox" id="ffc-qr-short-ack"></div>
 				<div id="ffc-qr-short-result-row" hidden><button type="button" id="ffc-qr-short-result"></button><span id="ffc-qr-short-copied"></span></div>
@@ -67,7 +68,7 @@ beforeAll(() => {
 		shortenNonce: 'short-nonce',
 		remember: 'ffc_qr_remember',
 		rememberNonce: 'remember-nonce',
-		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed', saved: 'Saved %s' },
+		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', download: 'Ends in %s.', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed', saved: 'Saved %s' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -474,6 +475,18 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('#ffc-qr-short-result').text()).toBe('https://site.test/go/old111');
 		expect(window.$('#ffc-qr-short-duplicates').prop('hidden')).toBe(true);
 		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
+	});
+
+	it('warns about a destination that downloads a file while the switch is on (#2337)', async () => {
+		server({ circular: false, direct: false, code: '', url: '', example: true, duplicates: [], download: 'pdf' });
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-short-download').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-download').text()).toBe('Ends in .pdf.');
+
+		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
+		expect(window.$('#ffc-qr-short-download').prop('hidden')).toBe(true, 'No short URL, no warning.');
 	});
 
 	it('a non-web address locks the switch off, says why, and the download creates nothing', async () => {

@@ -121,6 +121,8 @@ class QrGeneratorPage {
 					/* translators: 1: creation date, 2: number of clicks */
 					'duplicateMeta'   => __( 'created %1$s, %2$d clicks', 'ffcertificate' ),
 					'useThis'         => __( 'Use this', 'ffcertificate' ),
+					/* translators: %s: a file extension such as .pdf */
+					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'titleRequired'   => __( 'Enter a title for the short URL before downloading or printing.', 'ffcertificate' ),
 					'acknowledge'     => __( 'A short URL already sends to this address: click "Use this", or tick the box to create another one.', 'ffcertificate' ),
 					'copied'          => __( 'Copied.', 'ffcertificate' ),

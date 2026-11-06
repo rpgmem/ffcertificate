@@ -388,6 +388,31 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * File extensions whose address makes a browser download a file instead
+	 * of showing a page (#2337). Only the path is read: nothing is fetched.
+	 */
+	public const DOWNLOAD_EXTENSIONS = array( 'pdf', 'zip', 'rar', '7z', 'gz', 'tar', 'exe', 'msi', 'dmg', 'apk', 'iso', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'csv', 'rtf', 'epub' );
+
+	/**
+	 * The extension of an address that downloads a file, or '' (#2337).
+	 *
+	 * Read off the path alone, without a request, so a page that happens to
+	 * serve a file under a clean path is not noticed. The warning this feeds
+	 * never blocks a save.
+	 *
+	 * @param string $url Address.
+	 * @return string The extension, lowercase and without the dot.
+	 */
+	public static function download_extension( string $url ): string {
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '';
+		}
+		$extension = strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) );
+		return in_array( $extension, self::DOWNLOAD_EXTENSIONS, true ) ? $extension : '';
+	}
+
+	/**
 	 * Resolve the effective destination of a short URL record.
 	 *
 	 * For **post-linked** short URLs (`post_id` set) the destination is derived

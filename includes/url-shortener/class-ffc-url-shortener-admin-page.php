@@ -89,7 +89,11 @@ class UrlShortenerAdminPage {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'exportNonce' => wp_create_nonce( 'ffc_url_shortener_export' ),
+				// The extensions that download a file, owned by the service (#2337).
+				'downloads'   => UrlShortenerService::DOWNLOAD_EXTENSIONS,
 				'i18n'        => array(
+					/* translators: %s: a file extension such as .pdf */
+					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'copied'          => __( 'Copied!', 'ffcertificate' ),
 					'copyFailed'      => __( 'Copy failed', 'ffcertificate' ),
 					'error'           => __( 'An error occurred.', 'ffcertificate' ),

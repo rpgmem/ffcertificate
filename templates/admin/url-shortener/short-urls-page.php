@@ -495,7 +495,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<input type="hidden" name="id" value="" />
 						<div>
 							<label for="ffc-edit-target"><strong><?php esc_html_e( 'Destination URL', 'ffcertificate' ); ?></strong></label><br>
-							<input type="url" id="ffc-edit-target" name="target_url" class="widefat" required />
+							<input type="url" id="ffc-edit-target" name="target_url" class="widefat" required aria-describedby="ffc-edit-download" />
+							<p class="ffc-shorturl-download-warning" id="ffc-edit-download" role="status" hidden></p>
 						</div>
 						<div>
 							<label for="ffc-edit-title"><strong><?php esc_html_e( 'Title (optional)', 'ffcertificate' ); ?></strong></label><br>

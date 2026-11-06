@@ -630,6 +630,29 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertTrue( $this->service->set_active( 2, true ) );
 	}
 
+	/**
+	 * @dataProvider provide_download_paths
+	 */
+	public function test_download_extension_reads_the_path_only( string $url, string $expected ): void {
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+
+		$this->assertSame( $expected, UrlShortenerService::download_extension( $url ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provide_download_paths(): array {
+		return array(
+			'pdf'                 => array( 'https://example.org/edital.pdf', 'pdf' ),
+			'upper case, query'   => array( 'https://example.org/a/Plan.XLSX?dl=1#top', 'xlsx' ),
+			'a page'              => array( 'https://example.org/inscricoes/', '' ),
+			'html'                => array( 'https://example.org/page.html', '' ),
+			'extension in query'  => array( 'https://example.org/get?file=a.pdf', '' ),
+			'bare host'           => array( 'https://example.org', '' ),
+		);
+	}
+
 	// ==================================================================
 	// reactivate_short_url() / regenerate_code() (#2337)
 	// ==================================================================

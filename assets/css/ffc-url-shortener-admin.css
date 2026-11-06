@@ -230,6 +230,12 @@
     color: var(--ffc-warning-text);
 }
 
+/* Edit dialog: a destination that downloads a file (#2337) */
+.ffc-shorturl-download-warning {
+    margin: var(--ffc-spacing-xs) 0 0;
+    color: var(--ffc-warning-text);
+}
+
 /* Admin page: empty trash wrapper */
 .ffc-shorturl-empty-trash {
     margin-bottom: var(--ffc-spacing-md);

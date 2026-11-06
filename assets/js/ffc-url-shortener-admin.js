@@ -239,8 +239,27 @@
             $('#ffc-edit-target').val($btn.data('target') || '');
             $('#ffc-edit-title').val($btn.data('title') || '');
             $('#ffc-edit-short-url-result').empty().hide();
+            warnDownload();
             $modal.show();
         });
+
+        // A destination whose path ends in a file to download is warned
+        // about while it is typed, never refused (#2337). The extensions
+        // come from UrlShortenerService::DOWNLOAD_EXTENSIONS.
+        function downloadExtension(url) {
+            var path = String(url || '').split(/[?#]/)[0];
+            var match = /\.([a-z0-9]+)$/i.exec(path.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, ''));
+            var ext = match ? match[1].toLowerCase() : '';
+            return (settings.downloads || []).indexOf(ext) !== -1 ? ext : '';
+        }
+
+        function warnDownload() {
+            var ext = downloadExtension($('#ffc-edit-target').val());
+            var template = (settings.i18n && settings.i18n.download) || '';
+            $('#ffc-edit-download').text(ext ? template.replace('%s', '.' + ext) : '').prop('hidden', !ext);
+        }
+
+        $(document).on('input', '#ffc-edit-target', warnDownload);
 
         $('#ffc-edit-short-url').on('submit', function (e) {
             e.preventDefault();

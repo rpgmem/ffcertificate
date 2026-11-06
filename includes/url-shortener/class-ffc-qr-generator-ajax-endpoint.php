@@ -209,7 +209,7 @@ class QrGeneratorAjaxEndpoint {
 	 *
 	 * @param string $destination Address the short URL sends to.
 	 * @param string $code        Code the browser holds, or ''.
-	 * @return array{drawn: string, circular: bool, direct: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>}
+	 * @return array{drawn: string, circular: bool, direct: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>, download: string}
 	 */
 	private function short_state( string $destination, string $code ): array {
 		if ( ! self::redirectable( $destination ) ) {
@@ -221,6 +221,7 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => '',
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => '',
 			);
 		}
 
@@ -233,6 +234,7 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => '',
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => '',
 			);
 		}
 
@@ -248,6 +250,7 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => $url,
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => UrlShortenerService::download_extension( $destination ),
 			);
 		}
 
@@ -259,6 +262,8 @@ class QrGeneratorAjaxEndpoint {
 			'url'        => '',
 			'example'    => true,
 			'duplicates' => $this->duplicates( $destination ),
+			// A path that downloads a file gets a warning, never a refusal (#2337).
+			'download'   => UrlShortenerService::download_extension( $destination ),
 		);
 	}
 

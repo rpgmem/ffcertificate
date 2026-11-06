@@ -316,6 +316,22 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertArrayNotHasKey( 'drawn', $data['short'] );
 	}
 
+	public function test_a_destination_that_downloads_a_file_is_flagged_not_refused(): void {
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array() );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'example.com/files/Edital-2026.PDF?v=2' ) ) );
+		list( $kind, $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( 'success', $kind );
+		$this->assertSame( 'pdf', $data['short']['download'], 'Read off the path, case-insensitively, with the query ignored (#2337).' );
+
+		$this->short_post();
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( '', $data['short']['download'], 'A page is not flagged.' );
+	}
+
 	public function test_generate_draws_a_held_code_only_while_it_sends_to_this_destination(): void {
 		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
 		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
