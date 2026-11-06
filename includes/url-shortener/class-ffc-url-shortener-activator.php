@@ -168,6 +168,33 @@ class UrlShortenerActivator {
 	}
 
 	/**
+	 * One-shot: a stored 301 redirect type becomes 302 (#2337).
+	 *
+	 * A browser keeps a 301 for good, so switching a link off or changing its
+	 * destination never reached anyone who had visited it, and their clicks
+	 * went uncounted. 301 stays available; only the value stored before this
+	 * release moves, once, so a later deliberate choice of 301 is kept.
+	 */
+	public static function migrate_permanent_redirects(): void {
+		if ( get_option( self::REDIRECT_MIGRATION_OPTION, false ) ) {
+			return;
+		}
+
+		$settings = get_option( 'ffc_settings', array() );
+		if ( is_array( $settings ) && 301 === (int) ( $settings['url_shortener_redirect_type'] ?? 0 ) ) {
+			$settings['url_shortener_redirect_type'] = 302;
+			update_option( 'ffc_settings', $settings );
+		}
+
+		update_option( self::REDIRECT_MIGRATION_OPTION, 1, false );
+	}
+
+	/**
+	 * Marks the 301 to 302 migration as done.
+	 */
+	public const REDIRECT_MIGRATION_OPTION = 'ffc_url_shortener_redirect_302_v1';
+
+	/**
 	 * Run on plugins_loaded to handle schema updates.
 	 */
 	/**
@@ -211,6 +238,8 @@ class UrlShortenerActivator {
 		// Case counts in a code (#2337).
 		self::ensure_case_sensitive_codes( $table_name );
 		self::ensure_case_sensitive_codes( self::get_retired_table_name() );
+
+		self::migrate_permanent_redirects();
 
 		update_option( $ffc_schema_option, FFC_VERSION );
 	}

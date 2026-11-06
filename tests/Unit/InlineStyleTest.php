@@ -77,6 +77,8 @@ final class InlineStyleTest extends TestCase {
 
 	private const OPTION_FILTER = 'the initial hidden state of a reason <option> the script filters, and the very state it reads back (`style.display === "none"`)';
 
+	private const INACTIVE_PAGE = 'the page a dead short URL answers with (#2337) is a whole document of its own, outside the theme by decision so it renders the same on every site, with no plugin stylesheet';
+
 	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
 	/**
@@ -353,6 +355,9 @@ final class InlineStyleTest extends TestCase {
 		),
 		'templates/admin/url-shortener/short-urls-page.php' => array(
 			'style=: style="display:none;' => array( 3, self::INITIAL_STATE ),
+		),
+		'templates/url-shortener/inactive-link.php' => array(
+			'<style>: <style' => array( 1, self::INACTIVE_PAGE ),
 		),
 	);
 

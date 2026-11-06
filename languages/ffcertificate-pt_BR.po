@@ -784,8 +784,8 @@ msgid "302"
 msgstr "302"
 
 #: includes/settings/views/ffc-tab-url-shortener.php:96
-msgid "302 is recommended. Use 301 only if short URLs will never change target."
-msgstr "Recomenda-se o redirecionamento 302. Use o redirecionamento 301 somente se URLs curtas nunca forem alteradas para um destino específico."
+msgid "The browser asks again on every visit, so switching a link off or changing its destination works at once, and every visit is counted."
+msgstr "O navegador pergunta de novo a cada visita, então desativar um link ou trocar seu destino vale na hora, e toda visita é contada."
 
 #: includes/settings/views/ffc-tab-general.php:19
 msgid "4 of January, 2026"
@@ -7236,6 +7236,46 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/ffc-tab-url-shortener.php:119
+msgid "Like 302, and the browser also keeps the request method. Rarely needed."
+msgstr "Como o 302, e o navegador também mantém o método da requisição. Raramente necessário."
+
+#: includes/settings/views/ffc-tab-url-shortener.php:120
+msgid "The browser keeps the destination for good: switching the link off or changing it no longer reaches anyone who visited before, and their later clicks are not counted."
+msgstr "O navegador guarda o destino para sempre: desativar ou trocar o link deixa de valer para quem já visitou, e os cliques seguintes dessas pessoas não são contados."
+
+#: includes/settings/views/ffc-tab-url-shortener.php:74
+msgid "Previous prefixes keep working: %1$s. A link opened with one of them is sent on to \"%2$s\", and its click is counted once."
+msgstr "Prefixos anteriores continuam funcionando: %1$s. Um link aberto com um deles é levado para \"%2$s\", e o clique conta uma vez."
+
+#: templates/url-shortener/inactive-link.php:28
+msgid "This link is no longer active"
+msgstr "Este link não está mais ativo"
+
+#: templates/url-shortener/inactive-link.php:46
+msgid "The address you opened was switched off or does not exist."
+msgstr "O endereço que você abriu foi desativado ou não existe."
+
+#: templates/url-shortener/inactive-link.php:51
+msgid "You will be taken to the home page in %s seconds."
+msgstr "Você será levado à página inicial em %s segundos."
+
+#: templates/url-shortener/inactive-link.php:56
+msgid "Go to the home page now"
+msgstr "Ir para a página inicial agora"
+
+#: includes/admin/class-ffc-settings-save-handler.php:708
+msgid "The URL prefix cannot be empty. Choose a short word, such as \"go\"."
+msgstr "O prefixo da URL não pode ficar vazio. Escolha uma palavra curta, como \"go\"."
+
+#: includes/admin/class-ffc-settings-save-handler.php:728
+msgid "The previous prefix \"%1$s\" is now the address of \"%2$s\". Change that address or choose another prefix, so that links printed with \"%1$s\" keep working."
+msgstr "O prefixo anterior \"%1$s\" agora é o endereço de \"%2$s\". Mude esse endereço ou escolha outro prefixo, para que os links impressos com \"%1$s\" continuem funcionando."
+
+#: includes/admin/class-ffc-settings-save-handler.php:749
+msgid "Prefix changed to \"%1$s\". Links and QR codes printed with \"%2$s\" keep working."
+msgstr "Prefixo alterado para \"%1$s\". Os links e QR codes impressos com \"%2$s\" continuam funcionando."
+
 #: includes/url-shortener/class-ffc-url-shortener-service.php:526
 msgid "Could not generate a new short code. The short URL is unchanged."
 msgstr "Não foi possível gerar um novo código. O link curto não foi alterado."
@@ -12464,8 +12504,8 @@ msgid "Period:"
 msgstr "Período:"
 
 #: includes/settings/views/ffc-tab-url-shortener.php:92
-msgid "Permanent"
-msgstr "Permanente"
+msgid "301 permanent"
+msgstr "301 permanente"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:198
 msgid "Permanently delete appointments from this calendar. This action cannot be undone."
@@ -16510,12 +16550,12 @@ msgid "Templates come from a shared pool."
 msgstr "Os modelos provêm de um repositório compartilhado."
 
 #: includes/settings/views/ffc-tab-url-shortener.php:91
-msgid "Temporary (recommended)"
-msgstr "Temporário (recomendado)"
+msgid "302 temporary (recommended)"
+msgstr "302 temporário (recomendado)"
 
 #: includes/settings/views/ffc-tab-url-shortener.php:93
-msgid "Temporary (strict)"
-msgstr "Temporário (estrito)"
+msgid "307 temporary"
+msgstr "307 temporário"
 
 #: includes/settings/tabs/class-ffc-tab-email-model.php:113
 msgid "Test email sent to your account."

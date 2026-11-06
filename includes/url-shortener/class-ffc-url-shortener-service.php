@@ -264,6 +264,41 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Prefixes the site used before the current one (#2337).
+	 *
+	 * A request under one of them that names a known code is sent on to the
+	 * current prefix, so a link or QR printed before a prefix change keeps
+	 * working.
+	 *
+	 * @return array<int, string>
+	 */
+	public function get_previous_prefixes(): array {
+		return self::previous_prefixes_from( $this->get_settings() );
+	}
+
+	/**
+	 * The previous prefixes a settings array holds, cleaned, without the
+	 * current one.
+	 *
+	 * @param array<string, mixed> $settings `ffc_settings`.
+	 * @return array<int, string>
+	 */
+	public static function previous_prefixes_from( array $settings ): array {
+		$stored = $settings['url_shortener_previous_prefixes'] ?? array();
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+
+		$current = sanitize_title( (string) ( $settings['url_shortener_prefix'] ?? 'go' ) );
+		return array_values(
+			array_filter(
+				array_unique( array_map( 'sanitize_title', array_map( 'strval', $stored ) ) ),
+				static fn( string $prefix ): bool => '' !== $prefix && $prefix !== $current
+			)
+		);
+	}
+
+	/**
 	 * Get the configured code length.
 	 *
 	 * @return int
