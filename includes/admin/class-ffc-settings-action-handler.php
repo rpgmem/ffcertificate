@@ -76,6 +76,12 @@ class SettingsActionHandler {
 			return;
 		}
 
+		// A nonce proves the request came from the screen, not that this user
+		// may change settings (#2338).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to clear the QR Code cache.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
 		$cleared = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->clearQrCodeCache();
 
 		wp_safe_redirect(

@@ -750,7 +750,16 @@ class Settings {
 					// guaranteed non-empty by the early-return at the top), so it is
 					// always a key of $visible_tabs; the isset() is defensive.
 					if ( isset( $visible_tabs[ $active_tab ] ) ) {
-						$visible_tabs[ $active_tab ]->render();
+						if ( $ffc_settings_can_edit ) {
+							$visible_tabs[ $active_tab ]->render();
+						} else {
+							// A disabled fieldset leaves a link button live:
+							// the lock takes its href away too (#2338).
+							ob_start();
+							$visible_tabs[ $active_tab ]->render();
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The tab's own output, escaped by its template; lock_link_buttons() only removes an href and adds two attributes.
+							echo self::lock_link_buttons( (string) ob_get_clean() );
+						}
 					}
 					if ( ! $ffc_settings_can_edit ) {
 						echo '</fieldset>';
@@ -964,5 +973,29 @@ class Settings {
 	 */
 	public function handle_cache_actions(): void {
 		$this->action_handler->handle_cache_actions();
+	}
+
+	/**
+	 * Link buttons in read-only markup, made inert (#2338).
+	 *
+	 * A disabled `<fieldset>` disables every form control under it and no
+	 * link, so a view-only user could still follow Clear QR cache or Run
+	 * Migration. Each `ffc-btn` link loses its href and takes the family's
+	 * disabled state, which works without JavaScript.
+	 *
+	 * @param string $html Rendered tab.
+	 * @return string
+	 */
+	public static function lock_link_buttons( string $html ): string {
+		$locked = preg_replace_callback(
+			'/<a\b([^>]*\bclass="[^"]*\bffc-btn\b[^"]*"[^>]*)>/i',
+			static function ( array $m ): string {
+				$attrs = (string) preg_replace( '/\shref=("[^"]*"|\'[^\']*\')/i', '', $m[1] );
+				$attrs = (string) preg_replace( '/\s(aria-disabled|tabindex)=("[^"]*"|\'[^\']*\')/i', '', $attrs );
+				return '<a' . $attrs . ' aria-disabled="true" tabindex="-1">';
+			},
+			$html
+		);
+		return is_string( $locked ) ? $locked : $html;
 	}
 }

@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Activity log', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'An audit trail (useful for LGPD). When it is off, debug logging is also disabled.', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'Enable activity log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'master switch.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Enable activity log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'master switch.', 'ffcertificate' ); ?> <?php esc_html_e( 'The switch, the categories, the retention and the record limit need the Danger Zone capability, so the audit trail cannot be switched off or shortened without it.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Retention (days)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'auto-delete entries older than this (default 90, at most 3,650; 0 keeps them indefinitely).', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000).', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Minimum level', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'debug / info / warning / error.', 'ffcertificate' ); ?></li>

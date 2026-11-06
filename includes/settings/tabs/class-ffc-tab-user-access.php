@@ -80,31 +80,4 @@ class TabUserAccess extends SettingsTab {
 		$settings = get_option( 'ffc_user_access_settings', array() );
 		return isset( $settings[ $key ] ) ? $settings[ $key ] : $default;
 	}
-
-	/**
-	 * Save settings (called by parent class)
-	 */
-	public function save_settings(): void {
-		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_user_access_nonce' ), 'ffc_user_access_settings' ) ) {
-			return;
-		}
-
-		$settings = array(
-			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
-			'redirect_url'      => ! empty( $_POST['redirect_url'] ) ? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) ) : home_url( '/dashboard' ),
-			'redirect_message'  => isset( $_POST['redirect_message'] ) ? sanitize_textarea_field( wp_unslash( $_POST['redirect_message'] ) ) : '',
-			'allow_admin_bar'   => isset( $_POST['allow_admin_bar'] ),
-			'bypass_for_admins' => isset( $_POST['bypass_for_admins'] ),
-		);
-
-		update_option( 'ffc_user_access_settings', $settings );
-
-		add_settings_error(
-			'ffc_user_access_settings',
-			'ffc_user_access_updated',
-			__( 'User Access settings saved successfully.', 'ffcertificate' ),
-			'updated'
-		);
-	}
 }

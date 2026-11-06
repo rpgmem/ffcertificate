@@ -31,7 +31,12 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( 'When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate' ); ?></span>
 	</p>
 
-		<?php $ffcertificate_log_on = (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1; ?>
+		<?php
+		$ffcertificate_log_on = (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1;
+		// Switching the audit trail off, choosing what it records and how long
+		// it keeps it need the Danger Zone capability (#2338).
+		$ffcertificate_dangerzone = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
+		?>
 		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
@@ -42,15 +47,19 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[enable_activity_log]',
-								'id'      => 'enable_activity_log',
-								'checked' => $ffcertificate_log_on,
-								'label'   => __( 'Track activities for audit trail', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'enable_activity_log' ),
+								'name'     => 'ffc_settings[enable_activity_log]',
+								'id'       => 'enable_activity_log',
+								'checked'  => $ffcertificate_log_on,
+								'disabled' => ! $ffcertificate_dangerzone,
+								'label'    => __( 'Track activities for audit trail', 'ffcertificate' ),
+								'data'     => array( 'ffc-autosave-key' => 'enable_activity_log' ),
 							)
 						);
 						?>
 						<p class="description">
+							<?php if ( ! $ffcertificate_dangerzone ) : ?>
+								<span class="ffc-icon-lock"><?php esc_html_e( 'Changing the activity log, its categories and its retention needs the Danger Zone capability.', 'ffcertificate' ); ?></span><br>
+							<?php endif; ?>
 							<?php esc_html_e( 'Logs submission creation, data access, settings changes, and security events.', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
 							<?php if ( $ffcertificate_log_on ) : ?>
@@ -79,7 +88,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX ); ?>" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required>
+						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX ); ?>" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required<?php echo $ffcertificate_dangerzone ? '' : ' disabled'; ?>>
 						<p class="description">
 							<?php esc_html_e( 'Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely.', 'ffcertificate' ); ?><br>
 							<?php esc_html_e( 'Cleanup runs daily via scheduled cron task.', 'ffcertificate' ); ?>
@@ -91,7 +100,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="activity_log_max_records"><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[activity_log_max_records]" id="activity_log_max_records" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX ); ?>" class="regular-text" data-ffc-autosave-key="activity_log_max_records" required>
+						<input type="number" name="ffc_settings[activity_log_max_records]" id="activity_log_max_records" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX ); ?>" class="regular-text" data-ffc-autosave-key="activity_log_max_records" required<?php echo $ffcertificate_dangerzone ? '' : ' disabled'; ?>>
 						<p class="description">
 							<?php esc_html_e( 'The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB.', 'ffcertificate' ); ?>
 						</p>
@@ -147,11 +156,12 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 								<?php
 								\FreeFormCertificate\Admin\AdminUI::render_toggle(
 									array(
-										'name'    => 'ffc_settings[activity_log_cat_' . $ffcertificate_cat_key . ']',
-										'id'      => 'activity_log_cat_' . $ffcertificate_cat_key,
-										'checked' => \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( $ffcertificate_cat_key ),
-										'label'   => $ffcertificate_cat_label,
-										'data'    => array( 'ffc-autosave-key' => 'activity_log_cat_' . $ffcertificate_cat_key ),
+										'name'     => 'ffc_settings[activity_log_cat_' . $ffcertificate_cat_key . ']',
+										'id'       => 'activity_log_cat_' . $ffcertificate_cat_key,
+										'checked'  => \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( $ffcertificate_cat_key ),
+										'disabled' => ! $ffcertificate_dangerzone,
+										'label'    => $ffcertificate_cat_label,
+										'data'     => array( 'ffc-autosave-key' => 'activity_log_cat_' . $ffcertificate_cat_key ),
 									)
 								);
 								?>
@@ -984,6 +994,16 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 	<form method="post" id="ffc-danger-zone-form">
 		<?php wp_nonce_field( 'ffc_delete_all_data', 'ffc_critical_nonce' ); ?>
 		<input type="hidden" name="ffc_delete_all_data" value="1">
+		<?php
+		// Without the capability the controls render disabled with the
+		// reason, rather than as a button whose submit is silently ignored
+		// (#2338).
+		$ffcertificate_dz_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
+		if ( ! $ffcertificate_dz_delete ) :
+			?>
+			<p class="description ffc-icon-lock"><?php esc_html_e( 'Deleting data needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+		<?php endif; ?>
+		<fieldset class="ffc-readonly-lock"<?php echo $ffcertificate_dz_delete ? '' : ' disabled'; ?>>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -1044,6 +1064,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				</tr>
 			</tbody>
 		</table>
+		</fieldset>
 	</form>
 </div>
 

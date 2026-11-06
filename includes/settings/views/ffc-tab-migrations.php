@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffcertificate_migration_manager = null;
 $ffcertificate_migrations        = array();
 $ffcertificate_init_error        = '';
+// Running, re-checking and retrying need the Danger Zone capability (#2338).
+$ffcertificate_can_migrate = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
 
 try {
 	$ffcertificate_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
@@ -453,7 +455,7 @@ try {
 					// that is when it pays most, since a resolution is what
 					// creates the work -- so the sentence says what the walk
 					// does and never implies it settles them.
-					if ( ! empty( $ffcertificate_status['rearmable'] ) ) :
+					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['rearmable'] ) ) :
 						?>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -473,24 +475,40 @@ try {
 					?>
 				<?php else : ?>
 					<?php
-					// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label'    => __( 'Run Migration', 'ffcertificate' ),
-							'category' => 'caution',
-							'icon'     => 'sync',
-							'href'     => $ffcertificate_migrate_url,
-							'class'    => 'ffc-migration-run',
-							'attrs'    => array(
-								'data-confirm' => sprintf(
-									/* translators: %s: migration name */
-									__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
-									$ffcertificate_migration['name']
+					// Without the Danger Zone capability the button renders
+					// disabled with the reason, not as a link that ends in
+					// wp_die (#2338).
+					if ( ! $ffcertificate_can_migrate ) :
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'disabled' => true,
+							)
+						);
+						?>
+						<p class="description ffc-icon-lock"><?php esc_html_e( 'Running a migration needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+					<?php else : ?>
+						<?php
+						// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'href'     => $ffcertificate_migrate_url,
+								'class'    => 'ffc-migration-run',
+								'attrs'    => array(
+									'data-confirm' => sprintf(
+										/* translators: %s: migration name */
+										__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
+										$ffcertificate_migration['name']
+									),
 								),
-							),
-						)
-					);
-					?>
+							)
+						);
+						?>
 
 					<p class="description">
 						<?php
@@ -501,6 +519,7 @@ try {
 						);
 						?>
 					</p>
+					<?php endif; ?>
 					<?php
 					// A walk that ended with records behind it (a write that
 					// failed) does not revisit them on its own: Run would move
@@ -508,7 +527,7 @@ try {
 					// `retryable`, never `rearmable`: a strategy sets it only
 					// once its walk has ended, so there is no progress for the
 					// re-check to discard.
-					if ( ! empty( $ffcertificate_status['retryable'] ) ) :
+					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['retryable'] ) ) :
 						\FreeFormCertificate\Admin\AdminUI::render_button(
 							array(
 								'label'    => __( 'Try the remaining records again', 'ffcertificate' ),

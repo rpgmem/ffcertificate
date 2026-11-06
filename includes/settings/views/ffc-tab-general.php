@@ -252,20 +252,29 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					</th>
 					<td>
 						<?php
+						$ffcertificate_cleanup_dz = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[cleanup_enabled]',
-								'id'      => 'cleanup_enabled',
-								'checked' => (bool) $ffcertificate_get_option( 'cleanup_enabled', false ),
-								'label'   => __( 'Enable automatic deletion', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'cleanup_enabled' ),
+								'name'     => 'ffc_settings[cleanup_enabled]',
+								'id'       => 'cleanup_enabled',
+								'checked'  => (bool) $ffcertificate_get_option( 'cleanup_enabled', false ),
+								// Deleting data needs the Danger Zone capability (#2338).
+								'disabled' => ! $ffcertificate_cleanup_dz,
+								'label'    => __( 'Enable automatic deletion', 'ffcertificate' ),
+								'data'     => array(
+									'ffc-autosave-key' => 'cleanup_enabled',
+									'ffc-confirm-on'   => __( 'Turn on automatic deletion? On the next daily run, every published submission older than the window below is permanently deleted.', 'ffcertificate' ),
+								),
 							)
 						);
 						?>
 						<p class="ffc-cleanup-days-row">
 							<label for="cleanup_days"><?php esc_html_e( 'Delete after (days):', 'ffcertificate' ); ?></label>
-							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required>
+							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required<?php echo $ffcertificate_cleanup_dz ? '' : ' disabled'; ?>>
 						</p>
+						<?php if ( ! $ffcertificate_cleanup_dz ) : ?>
+							<p class="description ffc-icon-lock"><?php esc_html_e( 'Changing automatic deletion needs the Danger Zone capability.', 'ffcertificate' ); ?></p>
+						<?php endif; ?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run.', 'ffcertificate' ); ?>
 						</p>

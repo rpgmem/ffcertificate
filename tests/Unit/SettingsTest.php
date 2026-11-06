@@ -1285,4 +1285,23 @@ class SettingsTest extends TestCase {
 		$this->settings->handle_obsolete_shortcode_cleanup();
 		$this->assertTrue( true );
 	}
+
+	/**
+	 * A disabled fieldset leaves link buttons live; the read-only lock
+	 * takes their href away and marks them disabled (#2338).
+	 */
+	public function test_read_only_link_buttons_lose_their_href(): void {
+		$html = '<a href="?ffc_clear_qr_cache=1" class="ffc-btn ffc-btn-caution">Clear</a>'
+			. '<a href="https://example.test/doc">Docs</a>'
+			. "<a class='x' href='#'>Plain</a>"
+			. '<a tabindex="0" class="ffc-btn" href="/run" aria-disabled="false">Run</a>';
+
+		$locked = Settings::lock_link_buttons( $html );
+
+		$this->assertStringContainsString( '<a class="ffc-btn ffc-btn-caution" aria-disabled="true" tabindex="-1">Clear</a>', $locked );
+		$this->assertStringContainsString( '<a href="https://example.test/doc">Docs</a>', $locked, 'A plain link stays a link.' );
+		$this->assertStringContainsString( "<a class='x' href='#'>Plain</a>", $locked );
+		$this->assertStringContainsString( '<a class="ffc-btn" aria-disabled="true" tabindex="-1">Run</a>', $locked );
+		$this->assertStringNotContainsString( '/run', $locked );
+	}
 }

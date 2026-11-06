@@ -177,11 +177,12 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings',
 			),
+			// Whether administrators skip the block is theirs alone (#2338).
 			'user_access_bypass_for_admins' => array(
 				'option' => 'ffc_user_access_settings',
 				'path'   => array( 'bypass_for_admins' ),
 				'type'   => 'bool',
-				'cap'    => 'ffc_manage_settings',
+				'cap'    => 'manage_options',
 			),
 			'user_access_allow_admin_bar'   => array(
 				'option' => 'ffc_user_access_settings',
@@ -600,7 +601,42 @@ class SettingsAjaxEndpoint {
 			'check'   => array( \FreeFormCertificate\Settings\RateLimitSettingsReader::class, 'signals_error' ),
 		);
 
+		// Settings that delete data or switch the audit trail off carry the
+		// Danger Zone capability, on the autosave as on the form save (#2338).
+		foreach ( self::dangerzone_settings() as $key ) {
+			if ( isset( $allowlist[ $key ] ) ) {
+				$allowlist[ $key ]['cap'] = 'ffc_manage_settings_dangerzone';
+			}
+		}
+
 		return $allowlist;
+	}
+
+	/**
+	 * The `ffc_settings` keys that need `ffc_manage_settings_dangerzone`.
+	 *
+	 * Each one deletes data or stops recording who did what: auto-delete and
+	 * its window, the uninstall wipe, the activity log, its categories and its
+	 * retention. A Settings Manager without the Danger Zone capability could
+	 * otherwise set auto-delete to one day or switch the log off (#2338). Read
+	 * by the autosave allowlist and by `SettingsSaveHandler`, so the two
+	 * writers gate the same keys.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function dangerzone_settings(): array {
+		$keys = array(
+			'cleanup_enabled',
+			'cleanup_days',
+			'delete_data_on_uninstall',
+			'enable_activity_log',
+			'activity_log_retention_days',
+			'activity_log_max_records',
+		);
+		foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $category ) {
+			$keys[] = 'activity_log_cat_' . $category;
+		}
+		return $keys;
 	}
 
 	/**

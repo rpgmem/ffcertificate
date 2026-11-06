@@ -58,9 +58,10 @@ class AccessControl {
 			return;
 		}
 
-		// Check if user has blocked role.
+		// Check if user has blocked role. A role that administers the site is
+		// never blocked, whatever the stored list says (#2338).
 		$user          = wp_get_current_user();
-		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_end_user' );
+		$blocked_roles = self::blockable( isset( $settings['blocked_roles'] ) ? (array) $settings['blocked_roles'] : array( 'ffc_end_user' ) );
 
 		// Block only if ALL of the user's roles are in the blocked list.
 		// If the user has at least one non-blocked role (e.g. editor + ffc_end_user),.
@@ -108,7 +109,7 @@ class AccessControl {
 
 		// Check if user has blocked role.
 		$user          = wp_get_current_user();
-		$blocked_roles = isset( $settings['blocked_roles'] ) ? $settings['blocked_roles'] : array( 'ffc_end_user' );
+		$blocked_roles = self::blockable( isset( $settings['blocked_roles'] ) ? (array) $settings['blocked_roles'] : array( 'ffc_end_user' ) );
 
 		// Hide admin bar only if ALL of the user's roles are blocked.
 		if ( ! empty( $user->roles ) && ! array_diff( $user->roles, $blocked_roles ) ) {
@@ -116,6 +117,37 @@ class AccessControl {
 		}
 
 		return $show_admin_bar;
+	}
+
+	/**
+	 * Roles that can never be blocked from wp-admin (#2338): `administrator`
+	 * and any role granting `manage_options`. Blocking one would lock the
+	 * site's administrators out of the screen that unblocks them.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function protected_roles(): array {
+		$protected = array( 'administrator' );
+		$roles     = function_exists( 'wp_roles' ) ? wp_roles() : null;
+		$all       = is_object( $roles ) ? (array) $roles->roles : array();
+		foreach ( $all as $slug => $definition ) {
+			$caps = ( isset( $definition['capabilities'] ) && is_array( $definition['capabilities'] ) ) ? $definition['capabilities'] : array();
+			if ( ! empty( $caps['manage_options'] ) ) {
+				$protected[] = (string) $slug;
+			}
+		}
+		return array_values( array_unique( $protected ) );
+	}
+
+	/**
+	 * A role list with the protected roles removed.
+	 *
+	 * @param array<int|string, mixed> $roles Role slugs.
+	 * @return array<int, string>
+	 */
+	public static function blockable( array $roles ): array {
+		$roles = array_map( 'strval', array_filter( $roles, 'is_scalar' ) );
+		return array_values( array_diff( $roles, self::protected_roles() ) );
 	}
 
 	/**
