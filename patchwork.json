@@ -1,3 +1,8 @@
 {
-    "redefinable-internals": ["error_log", "setcookie", "is_uploaded_file"]
+    "redefinable-internals": [
+        "error_log",
+        "setcookie",
+        "is_uploaded_file",
+        "headers_sent"
+    ]
 }

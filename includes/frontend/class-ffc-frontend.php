@@ -111,6 +111,7 @@ class Frontend {
 
 		// The device test's one server request (#2064).
 		DeviceCheck::init();
+		PersonalPageCache::init();
 	}
 
 	/**

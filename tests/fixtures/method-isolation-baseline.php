@@ -27,6 +27,7 @@ return array(
 	'KeyRotationMigrationStrategyTest.php' => 1,
 	'KeyRotationRemainingMigrationStrategyTest.php' => 1,
 	'MailQueueTest.php' => 1,
+	'PersonalPageCacheTest.php' => 3,
 	'PrivacyHandlerTest.php' => 1,
 	'PublicCsvExporterTest.php' => 2,
 	'QRCodeGeneratorTempFileTest.php' => 1,

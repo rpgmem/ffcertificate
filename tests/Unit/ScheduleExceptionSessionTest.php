@@ -34,6 +34,9 @@ class ScheduleExceptionSessionTest extends TestCase {
 
 		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
 		Functions\when( 'is_ssl' )->justReturn( false );
+		Functions\when( 'headers_sent' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'http://example.test' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( $url, $part ) );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 
@@ -201,6 +204,39 @@ class ScheduleExceptionSessionTest extends TestCase {
 		$this->assertTrue( $this->cookie_calls[0]['options']['secure'] );
 	}
 
+	/**
+	 * #2341 — behind a TLS-terminating proxy `is_ssl()` reads the plain hop,
+	 * while the site is served over HTTPS: the cookie is still Secure.
+	 */
+	public function test_create_sets_secure_when_the_site_address_is_https_behind_a_proxy(): void {
+		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+
+		ScheduleExceptionSession::create( 7, null, null, str_repeat( 'd', 64 ) );
+
+		$this->assertTrue( $this->cookie_calls[0]['options']['secure'] );
+	}
+
+	public function test_create_is_not_secure_on_a_plain_http_site(): void {
+		ScheduleExceptionSession::create( 7, null, null, str_repeat( 'd', 64 ) );
+
+		$this->assertFalse( $this->cookie_calls[0]['options']['secure'] );
+	}
+
+	/**
+	 * #2341 — once output has begun a cookie cannot be set: clearing a spent
+	 * exception from a shortcode's render sends nothing, and still drops it
+	 * from this request.
+	 */
+	public function test_clear_sends_no_cookie_after_headers_are_sent(): void {
+		Functions\when( 'headers_sent' )->justReturn( true );
+		$_COOKIE['ffc_exception_7'] = 'token';
+
+		ScheduleExceptionSession::clear( 7 );
+
+		$this->assertSame( array(), $this->cookie_calls );
+		$this->assertArrayNotHasKey( 'ffc_exception_7', $_COOKIE );
+	}
+
 	// ==================================================================
 	// read_from_cookie() — full flow
 	// ==================================================================
@@ -298,15 +334,35 @@ class ScheduleExceptionSessionTest extends TestCase {
 		$this->assertFalse( ScheduleExceptionSession::try_consume_jti( '', time() + 1800 ) );
 	}
 
-	public function test_is_jti_consumed_true_when_marker_present(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_sched_exc_used_spent' === $key ? '123' : $default
+	/**
+	 * The ledger row is read from the options table (#2341): the INSERT that
+	 * writes it bypasses the options cache, so a cached "absent" must never
+	 * answer.
+	 *
+	 * @param string|null $answer What the row lookup returns.
+	 * @return void
+	 */
+	private function ledger_lookup( ?string $answer ): void {
+		global $wpdb;
+		$wpdb          = \Mockery::mock( 'wpdb' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return (string) $args[0];
+			}
 		);
+		$wpdb->shouldReceive( 'get_var' )->with( 'ffc_sched_exc_used_' . ( null === $answer ? 'fresh' : 'spent' ) )->andReturn( $answer );
+	}
+
+	public function test_is_jti_consumed_true_when_marker_present(): void {
+		// The options cache says absent; the table holds the row.
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		$this->ledger_lookup( '1' );
 		$this->assertTrue( ScheduleExceptionSession::is_jti_consumed( 'spent' ) );
 	}
 
 	public function test_is_jti_consumed_false_when_marker_absent(): void {
-		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		$this->ledger_lookup( null );
 		$this->assertFalse( ScheduleExceptionSession::is_jti_consumed( 'fresh' ) );
 	}
 
