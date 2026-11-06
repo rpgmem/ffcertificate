@@ -565,7 +565,12 @@ class Loader {
 		add_action( 'admin_init', array( \FreeFormCertificate\Integrations\SmtpPassword::class, 'maybe_encrypt_stored' ) );
 
 		$this->ensure_recruitment_email_migrated();
-		$this->run_capability_migrations();
+
+		// `init` priority 2, right after register_ffc_roles_safe() (init:1):
+		// several of these migrations register roles, whose labels call
+		// `__()`, and WordPress 6.7+ reports translations loaded before
+		// `init` (#2340). The roles they act on exist by then.
+		add_action( 'init', array( $this, 'run_capability_migrations' ), 2 );
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -730,7 +735,7 @@ class Loader {
 	 *
 	 * @return void
 	 */
-	private function run_capability_migrations(): void {
+	public function run_capability_migrations(): void {
 		if ( ! self::may_run_capability_migrations() ) {
 			return;
 		}

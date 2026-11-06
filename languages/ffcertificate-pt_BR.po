@@ -1119,16 +1119,16 @@ msgid "Access Restrictions"
 msgstr "Restrições de Acesso"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:178
-msgid "Access the certificate administration screens."
-msgstr "Acesse as telas de administração de certificados."
+msgid "Everything View certificates allows, plus trashing and restoring submissions, bulk actions, changing a submission's owner, correcting answers and issuing certificates through the operator API."
+msgstr "Tudo o que Ver certificados permite, mais mover submissões para a lixeira e restaurá-las, ações em massa, trocar o dono de uma submissão, corrigir respostas e emitir certificados pela API de operador."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:368
-msgid "Access the plugin Settings page."
-msgstr "Acesse a página de configurações do plugin."
+msgid "Everything View settings allows, plus saving settings, the scheduled task times, the cache actions and the locations. SMTP and the Danger Zone take their own capabilities."
+msgstr "Tudo o que Ver configurações permite, mais salvar as configurações, os horários das tarefas agendadas, as ações de cache e os locais. SMTP e a Zona de Perigo têm capacidades próprias."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:303
-msgid "Access the Reregistration admin page."
-msgstr "Acesse a página administrativa de recadastramento."
+msgid "Everything View reregistration campaigns allows, plus creating and editing campaigns and their submissions."
+msgstr "Tudo o que Ver campanhas de recadastramento permite, mais criar e editar campanhas e suas submissões."
 
 #: templates/emails/access-granted.php:27
 msgid "Access to:"
@@ -2870,8 +2870,8 @@ msgid "Bold text:"
 msgstr "Texto em negrito:"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:233
-msgid "Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity (#941)."
-msgstr "Reservar um horário ou bloco personalizado que já está cheio — a única exceção manual à capacidade por horário/por bloco, sempre aplicada (#941)."
+msgid "Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity."
+msgstr "Reservar um horário ou bloco personalizado que já está cheio — a única exceção manual à capacidade por horário/por bloco, sempre aplicada."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:687
 msgid "Book Another Appointment"
@@ -4788,8 +4788,8 @@ msgid "Create a one-use schedule exception for a single participant submission."
 msgstr "Criar uma exceção de horário de uso único para uma submissão de participante."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:209
-msgid "Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739)."
-msgstr "Crie e edite formulários de certificado — layout em PDF, campos e opções. Substitui a funcionalidade nativa de pós-edição da qual o CPT de formulário dependia anteriormente."
+msgid "Everything View forms allows, plus creating, editing, duplicating and deleting forms and certificate templates — PDF layout, fields and options."
+msgstr "Tudo o que Ver formulários permite, mais criar, editar, duplicar e excluir formulários e modelos de certificado — layout em PDF, campos e opções."
 
 #: includes/settings/views/documentation/feature-recruitment.php:32
 #| msgid "Create and edit notices (editais). Each notice has a code, a lifecycle status, and a configurable set of public columns."
@@ -4850,8 +4850,8 @@ msgid "Create, edit and duplicate the HTML templates for your certificates and a
 msgstr "Crie, edite e duplique os modelos HTML dos seus certificados e comprovantes de agendamento. Todos ficam em um único conjunto — use os botões abaixo para abrir a tela de gerenciamento completa."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:345
-msgid "Create, edit and toggle short URLs (delete is its own cap below)."
-msgstr "Crie, edite e ative URLs curtas (a opção de excluir está em um campo separado abaixo)."
+msgid "Everything View short URLs allows, plus creating, editing and toggling short URLs and using the QR generator. Deleting is Delete short URLs."
+msgstr "Tudo o que Ver URLs curtas permite, mais criar, editar, ativar e desativar URLs curtas e usar o gerador de QR. Excluir é Excluir URLs curtas."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
 msgid "Created"
@@ -5426,8 +5426,8 @@ msgid "Define custom data fields per audience group. These fields are shown duri
 msgstr "Defina campos de dados personalizados por grupo de público-alvo. Esses campos são exibidos durante o novo cadastro e no perfil do usuário no WordPress."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:326
-msgid "Define extra user/audience fields."
-msgstr "Defina campos adicionais para usuários/público-alvo."
+msgid "Everything View custom fields allows, plus defining, editing and replicating user and audience fields."
+msgstr "Tudo o que Ver campos personalizados permite, mais definir, editar e replicar campos de usuário e de público-alvo."
 
 #: includes/settings/views/documentation/config-advanced.php:51
 msgid "Define FFC_ENCRYPTION_KEY and FFC_HASH_SALT (32+ chars each) in wp-config.php so a future WordPress salt rotation cannot make your encrypted data unreadable. The panel generates ready-to-paste, self-documented snippets — each value is produced in your browser and is never saved or sent, and the plugin never writes wp-config.php for you."
@@ -6050,7 +6050,7 @@ msgid "Download the audit trail as CSV."
 msgstr "Baixe o registro de auditoria em formato CSV."
 
 #: includes/settings/views/documentation/config-activity-log.php:36
-msgid "download the audit trail as CSV. Split out from the view capability (rpgmem/ffcertificate#711) so a view-only operator cannot bulk-extract the trail."
+msgid "download the audit trail as CSV., kept apart from viewing so a view-only operator cannot bulk-extract the trail."
 msgstr "Baixe o registro de auditoria em formato CSV. Essa funcionalidade foi separada da capacidade de visualização para impedir que um operador com acesso apenas de leitura extraia o registro em massa."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:238
@@ -7199,6 +7199,46 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/reference-capabilities.php
+msgid "In the role editor and on a user's profile, every capability is marked with what it does: Read, Act, Personal data, Change, Override or Destructive. The coloured bar beside it says the same thing, more strongly the more the capability can change."
+msgstr "No editor de papéis e no perfil de um usuário, cada capacidade é marcada com o que faz: Leitura, Ação, Dados pessoais, Alterar, Exceção ou Destrutiva. A barra colorida ao lado diz o mesmo, mais forte quanto mais a capacidade pode alterar."
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Certificates - Submissions"
+msgstr "Certificados - Submissões"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Certificates - Forms"
+msgstr "Certificados - Formulários"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal Calendars - Bookings"
+msgstr "Calendários Pessoais - Agendamentos"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal Calendars - Setup"
+msgstr "Calendários Pessoais - Configuração"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Read"
+msgstr "Leitura"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Act"
+msgstr "Ação"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal data"
+msgstr "Dados pessoais"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Override"
+msgstr "Exceção"
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Destructive"
+msgstr "Destrutiva"
+
 #: includes/admin/class-ffc-admin-activity-log-page.php
 msgid "%s entry"
 msgid_plural "%s entries"
@@ -7926,8 +7966,8 @@ msgid "An announcement reaches each person once per rule: sending it again on an
 msgstr "Um comunicado chega a cada pessoa uma vez por regra: enviá-lo de novo em outro dia alcança apenas quem ficou de fora."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:408
-msgid "Delete a rule. Its history stays. The current managers receive it on upgrade (#2336)."
-msgstr "Excluir uma regra. O histórico dela permanece. Os gestores atuais recebem a permissão na atualização (#2336)."
+msgid "Delete a rule. Its history stays. The current managers receive it on upgrade."
+msgstr "Excluir uma regra. O histórico dela permanece. Os gestores atuais recebem a permissão na atualização."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:407
 msgid "Delete date messages"
@@ -9029,8 +9069,8 @@ msgid "frontend"
 msgstr "front-end"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:439
-msgid "Full access to the recruitment module."
-msgstr "Acesso total ao módulo de recrutamento."
+msgid "Create and edit notices, candidates and classifications. Importing, deleting and the reasons take their own capabilities."
+msgstr "Criar e editar editais, candidatos e classificações. Importar, excluir e os motivos têm capacidades próprias."
 
 #: includes/settings/views/ffc-tab-smtp.php:233
 msgid "Full email as username"
@@ -13925,7 +13965,7 @@ msgid "Read-only access to audiences and their members."
 msgstr "Acesso somente leitura para o público-alvo e seus membros."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:205
-msgid "Read-only access to certificate forms — structure, fields and options — without the ability to edit them (#739)."
+msgid "Read-only access to certificate forms — structure, fields and options — without the ability to edit them."
 msgstr "Acesso somente leitura aos formulários de certificado — estrutura, campos e opções — sem a possibilidade de editá-los."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:415
@@ -14775,11 +14815,11 @@ msgid "Reveal certificate PII"
 msgstr "Revelar PII do certificado"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:194
-msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked (#739)."
+msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked."
 msgstr "Exiba o CPF, o RF ou o e-mail descriptografados em uma submissão (auditada). Sem isso, os valores permanecem mascarados."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:246
-msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824)."
+msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked."
 msgstr "Exiba o CPF, RF ou e-mail descriptografado em um agendamento, e o e-mail da conta nas telas de público-alvo (auditado). Sem isso, os valores permanecem mascarados."
 
 #: includes/settings/views/documentation/feature-recruitment.php:82
@@ -23950,11 +23990,11 @@ msgstr "Aplique essas configurações diretamente apenas em uma instalação nov
 msgid "Before a personal-calendar appointment is stored, outside its transaction; status is the one requested — args ( data, calendar )."
 msgstr "Antes de um agendamento de calendário pessoal ser armazenado, fora da sua transação; o status é o solicitado — argumentos ( data, calendar )."
 
-msgid "Configure personal calendars and their booking windows."
-msgstr "Configure calendários pessoais e suas janelas de agendamento."
+msgid "Everything View appointments allows, plus confirming and cancelling appointments, marking no-shows, closing old ones and booking on someone's behalf. Setting up the calendars is Manage calendars."
+msgstr "Tudo o que Ver agendamentos permite, mais confirmar e cancelar agendamentos, marcar ausências, encerrar os antigos e agendar em nome de alguém. Configurar os calendários é Gerenciar calendários."
 
-msgid "Create and edit personal calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739)."
-msgstr "Crie e edite calendários pessoais — estrutura, horários de funcionamento e opções. Isso é diferente do gerenciamento das reservas feitas com base neles (#739)."
+msgid "Everything View calendars allows, plus creating, editing, duplicating and deleting personal calendars — working hours, blocked dates and options — and the global holidays. The bookings are Manage appointments."
+msgstr "Tudo o que Ver calendários permite, mais criar, editar, duplicar e excluir calendários pessoais — horários de trabalho, datas bloqueadas e opções — e os feriados globais. As reservas ficam com Gerenciar agendamentos."
 
 msgid "Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email texts → Account access."
 msgstr "Envia um e-mail ao usuário quando ele recebe acesso a certificados, agendamentos ou grupos de público-alvo. Edite o texto em Configurações → Textos dos e-mails → Acesso à conta."
@@ -23986,8 +24026,8 @@ msgstr "Configurações gerais de agendamento que se aplicam tanto aos Calendár
 msgid "Global holidays and Personal / Audience Calendars visibility."
 msgstr "Feriados globais e visibilidade dos Calendários Pessoais e de Público-alvo."
 
-msgid "Manage personal calendars"
-msgstr "Gerenciar calendários pessoais"
+msgid "Manage appointments"
+msgstr "Gerenciar agendamentos"
 
 msgid "Personal Calendars Settings"
 msgstr "Configurações dos Calendários Pessoais"
@@ -24004,8 +24044,8 @@ msgstr "Configurações de visibilidade dos Calendários Pessoais salvas."
 msgid "Personal Calendars:"
 msgstr "Calendários Pessoais:"
 
-msgid "Read-only access to personal calendars — structure, working hours and options — without the ability to edit them (#739)."
-msgstr "Acesso somente leitura a calendários pessoais — estrutura, horários de trabalho e opções — sem permissão para editá-los (#739)."
+msgid "Read-only access to personal calendars — structure, working hours and options — without the ability to edit them."
+msgstr "Acesso somente leitura a calendários pessoais — estrutura, horários de trabalho e opções — sem permissão para editá-los."
 
 msgid "Run it in Settings → Data Migrations."
 msgstr "Rode-a em Configurações → Migrações de Dados."
@@ -24115,8 +24155,8 @@ msgstr "Copiar as listas de opções deste público-alvo para todos os públicos
 msgid "Create a campaign and link it to one or more audiences."
 msgstr "Crie uma campanha e vincule-a a um ou mais públicos-alvo."
 
-msgid "Create audiences and manage their members."
-msgstr "Crie públicos-alvo e gerencie seus membros."
+msgid "Everything View audiences allows, plus saving audiences, their members and audience calendars, cancelling audience bookings and setting who may book a schedule."
+msgstr "Tudo o que Ver públicos-alvo permite, mais salvar públicos-alvo, seus membros e calendários de público-alvo, cancelar reservas de público-alvo e definir quem pode reservar uma agenda."
 
 msgid "create audiences, schedules, environments and members."
 msgstr "crie públicos-alvo, agendamentos, ambientes e membros."
@@ -25359,8 +25399,8 @@ msgid "Grade the open answers of a quiz attempt awaiting grading, from the submi
 msgstr "Corrigir as respostas abertas de uma tentativa de quiz aguardando correção, na tela de edição do envio."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:189
-msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732)."
-msgstr "Corrigir as respostas abertas de uma tentativa de quiz aguardando correção, o que emite o certificado ou registra a tentativa como não aprovada (#1732)."
+msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed."
+msgstr "Corrigir as respostas abertas de uma tentativa de quiz aguardando correção, o que emite o certificado ou registra a tentativa como não aprovada."
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:495
 msgid "Manual grading"
@@ -25963,7 +26003,7 @@ msgid "Reveal reregistration PII"
 msgstr "Revelar PII do recadastramento"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:326
-msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed."
 msgstr "Exiba o e-mail de quem enviou e abra os detalhes de uma submissão, com CPF, RF e RG descriptografados (auditado). Sem isso, o e-mail permanece mascarado e os detalhes permanecem fechados."
 
 #: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
@@ -26213,8 +26253,8 @@ msgid "Below it, \"Send a test email\" sends one message to your own address. It
 msgstr "Abaixo dele, \"Enviar um e-mail de teste\" envia uma mensagem para o seu próprio endereço. Exige ffc_test_settings_smtp ou ffc_manage_settings_smtp, de modo que a função FFC Configurações FFC - Operador pode verificar a entrega sem poder alterar o transporte nem o modelo."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859)."
-msgstr "Reservar um espaço compartilhado em dias fechados e feriados, fora do horário de funcionamento, no passado, além da janela de antecedência ou sobre uma reserva existente, após confirmar um aviso — nos calendários cuja opção Exceção para administradores está ativada (#1859)."
+msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on."
+msgstr "Reservar um espaço compartilhado em dias fechados e feriados, fora do horário de funcionamento, no passado, além da janela de antecedência ou sobre uma reserva existente, após confirmar um aviso — nos calendários cuja opção Exceção para administradores está ativada."
 
 #: includes/admin/class-ffc-role-capability-editor.php:168
 msgid "Each module ships four roles, \"FFC <module> - Viewer / Operator / Manager / Administrator\", each holding everything the tier below it holds; the activity log and identity resolution are given to FFC Administrator only. Adding a capability here widens one role, it does not change the tiers of the others."
@@ -26349,16 +26389,16 @@ msgid "Manager"
 msgstr "Gestor"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:392
-msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860)."
-msgstr "Enviar uma amostra de uma regra, com valores fictícios, para o seu próprio endereço. Gerenciar mensagens por data também permite (#1860)."
+msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too."
+msgstr "Enviar uma amostra de uma regra, com valores fictícios, para o seu próprio endereço. Gerenciar mensagens por data também permite."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:391
 msgid "Send date-message tests"
 msgstr "Enviar testes de mensagens por data"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:423
-msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860)."
-msgstr "Enviar a mensagem de teste do Modelo de E-mail para o seu próprio endereço, sem poder alterar o transporte. Gerenciar as configurações de SMTP também permite (#1860)."
+msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too."
+msgstr "Enviar a mensagem de teste do Modelo de E-mail para o seu próprio endereço, sem poder alterar o transporte. Gerenciar as configurações de SMTP também permite."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:422
 msgid "Send the SMTP test email"
@@ -26623,8 +26663,8 @@ msgid "Reveal audience PII"
 msgstr "Revelar dados pessoais de públicos-alvo"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked (#1863)."
-msgstr "Revelar o e-mail de uma pessoa listada nas telas de públicos-alvo e os campos personalizados sensíveis no perfil de um usuário, e exportá-los em claro (auditado). Sem ela, ficam mascarados (#1863)."
+msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked."
+msgstr "Revelar o e-mail de uma pessoa listada nas telas de públicos-alvo e os campos personalizados sensíveis no perfil de um usuário, e exportá-los em claro (auditado). Sem ela, ficam mascarados."
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:319 includes/shortcodes/class-ffc-dashboard-asset-manager.php:303
 msgid "Reveal the value to edit it."
@@ -26764,8 +26804,8 @@ msgid "Cancelling..."
 msgstr "Cancelando..."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:253
-msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872)."
-msgstr "Limpar um calendário pessoal em massa: excluir os agendamentos passados, os cancelados ou todos, e cancelar os futuros com aviso. Cada execução é gravada no registro de atividades (#1872)."
+msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log."
+msgstr "Limpar um calendário pessoal em massa: excluir os agendamentos passados, os cancelados ou todos, e cancelar os futuros com aviso. Cada execução é gravada no registro de atividades."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
 msgid "Cleaning up a calendar"
@@ -27576,8 +27616,8 @@ msgid "Send date messages"
 msgstr "Enviar mensagens por data"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php
-msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
-msgstr "Envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem na atualização (#1949)."
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade."
+msgstr "Envia uma regra agora ou agenda um comunicado para o seu público. Gerenciar regras não inclui esta permissão; os gestores atuais a recebem na atualização."
 
 #: includes/core/class-ffc-email-source.php
 msgid "FFCertificate — Announcements"
@@ -27828,8 +27868,8 @@ msgid "Run attendance check-in"
 msgstr "Conduzir o check-in de presença"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
-msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente (#1947)."
+msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand."
+msgstr "Abrir e fechar o check-in de um dia da reserva, projetar o QR rotativo e marcar presença manualmente."
 
 #: includes/audience/class-ffc-audience-checkin-endpoint.php:212
 msgid "Attendance recorded"
@@ -29221,11 +29261,11 @@ msgstr "Revelar PII das configurações"
 msgid "Reveal activity log PII"
 msgstr "Revelar PII do registro de atividades"
 
-msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109)."
-msgstr "Revelar um endereço bloqueado listado na aba Limite de Requisições (auditado). Sem ela o endereço permanece mascarado (#2109)."
+msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked."
+msgstr "Revelar um endereço bloqueado listado na aba Limite de Requisições (auditado). Sem ela o endereço permanece mascarado."
 
-msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109)."
-msgstr "Revelar o endereço do cliente de uma entrada do registro de atividades e exportá-lo às claras (auditado). Sem ela o endereço permanece mascarado (#2109)."
+msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked."
+msgstr "Revelar o endereço do cliente de uma entrada do registro de atividades e exportá-lo às claras (auditado). Sem ela o endereço permanece mascarado."
 
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
 msgstr "Uma conta com ffc_view_settings_pii (o Gerente e o Administrador das Configurações FFC) revela um endereço com o botão Revelar; cada revelação é registrada no registro de atividades."

@@ -601,7 +601,43 @@
 .ffc-cap-row[data-ffc-tier="edit"]     { --ffc-tier-strength: 0.70; }
 .ffc-cap-row[data-ffc-tier="manage"]   { --ffc-tier-strength: 0.85; }
 .ffc-cap-row[data-ffc-tier="bypass"]   { --ffc-tier-strength: 0.85; }
+.ffc-cap-row[data-ffc-tier="checkin"]  { --ffc-tier-strength: 0.46; }
+.ffc-cap-row[data-ffc-tier="grade"]    { --ffc-tier-strength: 0.50; }
+.ffc-cap-row[data-ffc-tier="send"]     { --ffc-tier-strength: 0.58; }
 .ffc-cap-row[data-ffc-tier="delete"]   { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="purge"]    { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="merge"]    { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="split"]    { --ffc-tier-strength: 1; }
+
+/* The tier in words beside the name, so it is not read from the accent's
+   strength alone (#2340). The destructive and override bands take a tone;
+   the rest stay neutral. */
+.ffc-cap-tier {
+	display: inline-block;
+	margin-left: var(--ffc-spacing-xs);
+	padding: 0 var(--ffc-spacing-xs);
+	border-radius: var(--ffc-radius-sm);
+	background: var(--ffc-gray-100);
+	color: var(--ffc-text-secondary);
+	font-size: var(--ffc-font-size-2xs);
+	font-weight: 600;
+	vertical-align: middle;
+}
+
+.ffc-cap-tier-data {
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-cap-tier-override {
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+}
+
+.ffc-cap-tier-destroy {
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+}
 
 /* ── Blocked-roles list (Settings → User Access) ─────────────────────────
    Groups the wp-admin block list so it reads as sections instead of one

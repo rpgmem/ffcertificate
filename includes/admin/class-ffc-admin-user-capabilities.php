@@ -470,7 +470,7 @@ class AdminUserCapabilities {
 			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s" data-ffc-tier="%11$s">'
 				. '<div class="ffc-cap-row-toggle">%3$s</div>'
 				. '<div class="ffc-cap-row-text">'
-				. '<span class="ffc-cap-row-name">%4$s%10$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
+				. '<span class="ffc-cap-row-name">%4$s%10$s</span>%12$s<span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
 				. '<span class="ffc-cap-row-desc">%5$s</span>'
 				. '<span class="ffc-cap-slug">%2$s<button type="button" class="ffc-cap-copy" data-ffc-copy="%2$s" aria-label="%6$s" title="%6$s">⧉</button></span>'
 				. '</div>'
@@ -486,7 +486,8 @@ class AdminUserCapabilities {
 			esc_html( self::origin_label( $origin ) ),
 			$checked ? '1' : '0',
 			$surface_badge,
-			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) )
+			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) ),
+			\FreeFormCertificate\UserDashboard\CapabilityCatalog::tier_chip( $slug )
 		);
 	}
 

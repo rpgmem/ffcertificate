@@ -1281,6 +1281,8 @@ class CapabilityMigrator {
 			self::activity_log_export_cap_grant_map(),
 			self::url_shortener_export_cap_grant_map(),
 			self::reasons_cap_grant_map(),
+			self::date_messages_delete_cap_grant_map(),
+			self::date_messages_send_cap_grant_map(),
 		);
 		foreach ( $single as $map ) {
 			foreach ( $map as $source => $target ) {
