@@ -83,6 +83,19 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	private const GATE_CAPABILITY = 'ffc_view_own_certificates';
 
 	/**
+	 * Accounts the walk found able to read their certificates already.
+	 *
+	 * The pending query reads the capability meta and the roles that grant
+	 * it, and `user_can()` answers more than that (a filter, a capability
+	 * mapped by another plugin). An account the query counts and the grant
+	 * finds able would stay pending forever, so the batch records it here and
+	 * both the count and the next batch leave it out: the pending set then
+	 * answers the grant's own question for every account it has looked at
+	 * (#2338). Declared in `uninstall.php`.
+	 */
+	public const RESOLVED_OPTION = 'ffc_certificate_capability_backfill_resolved';
+
+	/**
 	 * {@inheritDoc}
 	 *
 	 * @param string               $migration_key    Migration identifier.
@@ -109,9 +122,10 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	 * Grant the certificate capabilities to one batch of affected accounts.
 	 *
 	 * Cursor-free on purpose: every account it repairs leaves the pending set
-	 * by that repair, so the next batch reads the next hundred with no offset
-	 * to keep. A batch that grants nothing therefore means the work is done,
-	 * never that a cursor ran off the end.
+	 * by that repair, and every account it finds able already leaves it by the
+	 * resolved register, so the next batch reads the next hundred with no
+	 * offset to keep. A batch counts what it changed, so one that changes
+	 * nothing returns 0 and the runner stops there (#2338).
 	 *
 	 * @param string               $migration_key    Migration identifier.
 	 * @param array<string, mixed> $migration_config Migration configuration.
@@ -128,6 +142,8 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 
 		$user_ids  = $this->owners_without_capability( $batch_size );
 		$processed = 0;
+		$resolved  = self::resolved();
+		$errors    = array();
 
 		foreach ( $user_ids as $user_id ) {
 			// TERMINATION MUST NOT DEPEND ON THE MEASURE BEING RIGHT.
@@ -138,7 +154,8 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 			// already holds the capability is skipped here, which makes a
 			// batch that changes nothing return 0 -- the condition the
 			// docblock above always claimed and the code never produced.
-			if ( user_can( (int) $user_id, self::GATE_CAPABILITY ) ) {
+			if ( self::can_read( (int) $user_id ) ) {
+				$resolved[] = (int) $user_id;
 				continue;
 			}
 
@@ -163,12 +180,27 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 			 * @param int $user_id Account that owns a certificate it cannot read.
 			 */
 			do_action( 'ffc_grant_certificate_capabilities', (int) $user_id );
-			++$processed;
+
+			// Counted only when the grant took: a listener that never ran
+			// leaves the account pending and says so, rather than reporting
+			// progress that did not happen.
+			if ( self::can_read( (int) $user_id ) ) {
+				++$processed;
+			} else {
+				$errors[] = sprintf(
+					/* translators: %d: user ID. */
+					__( 'Account %d still cannot read its certificates after the grant.', 'ffcertificate' ),
+					(int) $user_id
+				);
+			}
 		}
 
+		update_option( self::RESOLVED_OPTION, array_values( array_unique( $resolved ) ), false );
+
 		return array(
-			'success'   => true,
+			'success'   => array() === $errors,
 			'processed' => $processed,
+			'errors'    => $errors,
 			'message'   => sprintf(
 				/* translators: %d: how many accounts were repaired in this batch. */
 				__( 'Accounts that can now read the certificates they own: %d', 'ffcertificate' ),
@@ -260,7 +292,39 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	 * @return int
 	 */
 	private function count_owners_without_capability(): int {
-		return count( $this->owners_without_capability( 0 ) );
+		global $wpdb;
+
+		// One COUNT, never the ids: the card renders this on every load
+		// (#2338).
+		list( $where, $values ) = $this->pending_where();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- The same query as owners_without_capability(), counted, with its placeholders in pending_where(): `$wpdb->usermeta` is a core property and every value is a placeholder.
+		$count = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(DISTINCT s.user_id) ' . $where, ...$values ) );
+
+		return is_numeric( $count ) ? (int) $count : 0;
+	}
+
+	/**
+	 * Whether an account can read its certificates now: the grant's own
+	 * question, asked again after the grant. Impure: the grant between two
+	 * calls changes the answer.
+	 *
+	 * @phpstan-impure
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	private static function can_read( int $user_id ): bool {
+		return user_can( $user_id, self::GATE_CAPABILITY );
+	}
+
+	/**
+	 * Accounts the walk found able already, as ids.
+	 *
+	 * @return array<int, int>
+	 */
+	private static function resolved(): array {
+		$stored = get_option( self::RESOLVED_OPTION, array() );
+		return is_array( $stored ) ? array_values( array_filter( array_map( 'intval', $stored ) ) ) : array();
 	}
 
 	/**
@@ -287,6 +351,29 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	private function owners_without_capability( int $limit ): array {
 		global $wpdb;
 
+		list( $where, $values ) = $this->pending_where();
+
+		$sql = 'SELECT s.user_id ' . $where . ' GROUP BY s.user_id ORDER BY s.user_id ASC';
+
+		if ( $limit > 0 ) {
+			$sql     .= ' LIMIT %d';
+			$values[] = $limit;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- `wp_usermeta` is named per line rather than under a file-level disable, which this file deliberately does not carry: the only interpolation is `$wpdb->usermeta`, a core property, and every value travels as a placeholder. A migration card must reflect the live rows, never a cache.
+		$rows = $wpdb->get_col( $wpdb->prepare( $sql, ...$values ) );
+
+		return array_map( 'intval', (array) $rows );
+	}
+
+	/**
+	 * The FROM and WHERE of the pending set, with its values.
+	 *
+	 * @return array{0: string, 1: array<int, mixed>}
+	 */
+	private function pending_where(): array {
+		global $wpdb;
+
 		$table    = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
 		$meta_key = $wpdb->get_blog_prefix() . 'capabilities';
 		$term     = '%' . $wpdb->esc_like( self::GATE_CAPABILITY ) . '%';
@@ -307,8 +394,7 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 		// Resolved from the roles rather than per user: one option read here
 		// against one `get_userdata()` per candidate, on a card that renders
 		// its count on every page load.
-		$sql = "SELECT s.user_id
-                  FROM %i s
+		$sql = "FROM %i s
                   JOIN {$wpdb->usermeta} um ON um.user_id = s.user_id AND um.meta_key = %s
                  WHERE s.user_id IS NOT NULL AND s.user_id <> 0 AND s.status <> 'trash'
                    AND um.meta_value NOT LIKE %s";
@@ -323,16 +409,12 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 			$values[] = '%' . $wpdb->esc_like( '"' . $role . '";b:1' ) . '%';
 		}
 
-		$sql .= ' GROUP BY s.user_id ORDER BY s.user_id ASC';
-
-		if ( $limit > 0 ) {
-			$sql     .= ' LIMIT %d';
-			$values[] = $limit;
+		$resolved = self::resolved();
+		if ( array() !== $resolved ) {
+			$sql   .= ' AND s.user_id NOT IN (' . implode( ', ', array_fill( 0, count( $resolved ), '%d' ) ) . ')';
+			$values = array_merge( $values, $resolved );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- `wp_usermeta` is named per line rather than under a file-level disable, which this file deliberately does not carry: the only interpolation is `$wpdb->usermeta`, a core property, and every value travels as a placeholder. A migration card must reflect the live rows, never a cache.
-		$rows = $wpdb->get_col( $wpdb->prepare( $sql, ...$values ) );
-
-		return array_map( 'intval', (array) $rows );
+		return array( $sql, $values );
 	}
 }

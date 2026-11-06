@@ -139,8 +139,8 @@ class SettingsActionHandler {
 				'migration_success',
 				rawurlencode(
 					sprintf(
-						/* translators: %d: number of accounts the re-armed walk will examine */
-						__( 'Walk re-armed: %d accounts will be examined again. Press "Run Migration" to start. Nothing already filled is overwritten.', 'ffcertificate' ),
+						/* translators: %d: number of records the re-armed walk will examine */
+						__( 'Walk re-armed: %d records will be examined again. Press "Run Migration" to start. Nothing already done is changed again.', 'ffcertificate' ),
 						(int) $result
 					)
 				),

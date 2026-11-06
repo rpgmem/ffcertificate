@@ -35,6 +35,11 @@ class MigrationActionsAjaxEndpoint {
 	public const AJAX_ACTION = 'ffc_migration_run_batch';
 
 	/**
+	 * Most errors a batch response carries; the rest are counted.
+	 */
+	private const MAX_ERRORS = 20;
+
+	/**
 	 * Register hooks.
 	 */
 	public static function init(): void {
@@ -102,16 +107,53 @@ class MigrationActionsAjaxEndpoint {
 			);
 		}
 
+		$is_complete = (bool) ( $status['is_complete'] ?? false );
+		$processed   = isset( $result['processed'] ) ? (int) $result['processed'] : 0;
+
 		wp_send_json_success(
 			array(
 				'migration_key' => $migration_key,
-				'processed'     => isset( $result['processed'] ) ? (int) $result['processed'] : 0,
+				'processed'     => $processed,
+				// The strategy's own answer when it gives one; otherwise a
+				// batch that changed nothing has nothing more to give. The
+				// runner stops on a batch that processed nothing short of
+				// completion, so a pending count that cannot reach zero no
+				// longer polls forever (#2338, the #1378 class one layer up).
+				'has_more'      => ! $is_complete && ( array_key_exists( 'has_more', $result ) ? (bool) $result['has_more'] : $processed > 0 ),
+				'success'       => ! array_key_exists( 'success', $result ) || (bool) $result['success'],
+				'errors'        => self::errors_of( $result ),
 				'total'         => (int) ( $status['total'] ?? 0 ),
 				'migrated'      => (int) ( $status['migrated'] ?? 0 ),
 				'pending'       => (int) ( $status['pending'] ?? 0 ),
 				'percent'       => (float) ( $status['percent'] ?? 0 ),
-				'is_complete'   => (bool) ( $status['is_complete'] ?? false ),
+				'is_complete'   => $is_complete,
 			)
 		);
+	}
+
+	/**
+	 * A batch's error messages as plain strings, at most MAX_ERRORS, the
+	 * last one saying how many more there were.
+	 *
+	 * @param array<string, mixed> $result Strategy result.
+	 * @return array<int, string>
+	 */
+	private static function errors_of( array $result ): array {
+		$errors = isset( $result['errors'] ) && is_array( $result['errors'] ) ? $result['errors'] : array();
+		$errors = array_values( array_filter( array_map( static fn( $e ): string => is_scalar( $e ) ? trim( (string) $e ) : '', $errors ), static fn( string $e ): bool => '' !== $e ) );
+
+		// A strategy that failed with no list says why in its message.
+		if ( array() === $errors && array_key_exists( 'success', $result ) && ! $result['success'] && isset( $result['message'] ) && is_scalar( $result['message'] ) ) {
+			$errors = array( (string) $result['message'] );
+		}
+
+		if ( count( $errors ) > self::MAX_ERRORS ) {
+			$more   = count( $errors ) - self::MAX_ERRORS;
+			$errors = array_slice( $errors, 0, self::MAX_ERRORS );
+			/* translators: %d: how many further errors the batch reported. */
+			$errors[] = sprintf( _n( '…and %d more.', '…and %d more.', $more, 'ffcertificate' ), $more );
+		}
+
+		return $errors;
 	}
 }

@@ -30,6 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<p><?php esc_html_e( 'A finished card is collapsed to one line with its name and a "Complete" chip; click it to see the numbers. A card with records pending, or whose status could not be read, stays open, so the work left is what the tab shows first.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'One migration runs at a time: while a card is running, the other cards\' buttons wait. If a batch changes nothing before the card reaches 100%, the run stops and lists the errors it collected, because running it again would not move those records. When a pass reaches the end and leaves records behind, usually because writing one of them failed, the card offers "Try the remaining records again", which sends the pass back to the start once the cause is fixed.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'A card marked "Deprecated" is a one-shot migration whose work is done and that a later release removes; the card names that release. If it still shows records pending on your site, run it before updating to that release.', 'ffcertificate' ); ?></p>
 
 	<?php ob_start(); ?>

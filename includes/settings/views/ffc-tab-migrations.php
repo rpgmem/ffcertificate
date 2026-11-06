@@ -39,16 +39,16 @@ try {
 <div class="ffc-migrations-settings-wrap">
 	
 	<div class="card">
-		<h2 class="ffc-icon-database"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-database"><?php esc_html_e( 'Data Migrations', 'ffcertificate' ); ?></h2>
 		
 		<p class="description">
-			<?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Bring stored data up to date after an update: move it into dedicated columns, encrypt or re-encrypt personal data, rebuild search hashes and remove copies that are no longer needed.', 'ffcertificate' ); ?>
 		</p>
 		
 		<?php
 		\FreeFormCertificate\Core\AdminNotice::callout(
 			'warning',
-			esc_html__( 'Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete.', 'ffcertificate' ),
+			esc_html__( 'Run Migration processes the records in batches until the card reaches 100%. If a batch changes nothing, the run stops and lists the errors; running it again will not move those records until the cause is fixed.', 'ffcertificate' ),
 			array( 'title' => __( 'Important:', 'ffcertificate' ) )
 		);
 		?>
@@ -112,11 +112,16 @@ try {
 				$ffcertificate_status_error = $ffcertificate_status->get_error_message();
 			} else {
 				$ffcertificate_status_error = '';
-				$ffcertificate_percent      = $ffcertificate_status['percent'];
+				$ffcertificate_percent      = (float) $ffcertificate_status['percent'];
 				$ffcertificate_is_complete  = $ffcertificate_status['is_complete'];
-				$ffcertificate_pending      = number_format( $ffcertificate_status['pending'] );
-				$ffcertificate_total        = number_format( $ffcertificate_status['total'] );
-				$ffcertificate_migrated     = number_format( $ffcertificate_status['migrated'] );
+				// One decimal rounds 99.96 up to 100.0; a card with records
+				// pending never reads 100% (#2338).
+				if ( (int) $ffcertificate_status['pending'] > 0 && $ffcertificate_percent >= 99.95 ) {
+					$ffcertificate_percent = 99.9;
+				}
+				$ffcertificate_pending  = number_format( $ffcertificate_status['pending'] );
+				$ffcertificate_total    = number_format( $ffcertificate_status['total'] );
+				$ffcertificate_migrated = number_format( $ffcertificate_status['migrated'] );
 			}
 
 			// OUTSTANDING WORK THIS BUTTON CANNOT DO (#1368).
@@ -324,6 +329,23 @@ try {
 				</div>
 			<?php endif; ?>
 
+			<?php
+			// Built once, for the two branches that offer it: the re-check
+			// after completion (`rearmable`) and the retry of a walk that
+			// ended with records behind it (`retryable`, #2338).
+			$ffcertificate_rearm_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'post_type'           => 'ffc_form',
+						'page'                => 'ffc-settings',
+						'tab'                 => 'migrations',
+						'ffc_rearm_migration' => $ffcertificate_key,
+					),
+					admin_url( 'edit.php' )
+				),
+				'ffc_rearm_' . $ffcertificate_key
+			);
+			?>
 			<!-- Actions -->
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_is_complete ) : ?>
@@ -382,18 +404,6 @@ try {
 					// creates the work -- so the sentence says what the walk
 					// does and never implies it settles them.
 					if ( ! empty( $ffcertificate_status['rearmable'] ) ) :
-						$ffcertificate_rearm_url = wp_nonce_url(
-							add_query_arg(
-								array(
-									'post_type'           => 'ffc_form',
-									'page'                => 'ffc-settings',
-									'tab'                 => 'migrations',
-									'ffc_rearm_migration' => $ffcertificate_key,
-								),
-								admin_url( 'edit.php' )
-							),
-							'ffc_rearm_' . $ffcertificate_key
-						);
 						?>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -441,6 +451,27 @@ try {
 						);
 						?>
 					</p>
+					<?php
+					// A walk that ended with records behind it (a write that
+					// failed) does not revisit them on its own: Run would move
+					// nothing. Re-check sends it back to the start (#2338).
+					// `retryable`, never `rearmable`: a strategy sets it only
+					// once its walk has ended, so there is no progress for the
+					// re-check to discard.
+					if ( ! empty( $ffcertificate_status['retryable'] ) ) :
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Try the remaining records again', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'href'     => $ffcertificate_rearm_url,
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'The last pass reached the end and left these records behind, usually because writing one of them failed. Fix the cause, then send the pass back to the start; records already done are not changed again.', 'ffcertificate' ); ?>
+						</p>
+					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -1452,16 +1483,16 @@ try {
 		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
 		
 		<p><strong><?php esc_html_e( 'What are migrations?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Migrations improve database performance by moving frequently queried data from JSON format to dedicated database columns. This makes searches and filtering much faster.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'One-off jobs that bring data stored by an earlier version up to date: dedicated columns for faster searches, encryption of personal data, re-encryption under a new key, and the removal of copies that are no longer needed.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'Is it safe?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Yes! Migrations only copy data to new columns - your original data remains intact. They are safe to run multiple times.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'They are safe to run more than once: each one only works on the records it has not finished. Most copy data into new columns and leave the original in place, but some rewrite or delete what they replace — the plaintext copies of encrypted data, retired log columns, old identifiers. Each card says what it changes; read it before running, and take a backup first.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'How many times should I run it?', 'ffcertificate' ); ?></strong></p>
 		<p><?php esc_html_e( 'Just click "Run Migration" once! The process will automatically continue processing batches of 100 records until complete. You can watch the progress bar update in real-time.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'Can I undo a migration?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Migrations cannot be undone, but they don\'t delete any data. If you experience issues, your original data remains in the JSON column and can be accessed.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'No. A migration that deletes what it replaces cannot be reversed from here, so keep a backup from before the run.', 'ffcertificate' ); ?></p>
 	</div>
 
 </div>
