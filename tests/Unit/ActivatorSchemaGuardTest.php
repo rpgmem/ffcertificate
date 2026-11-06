@@ -271,14 +271,9 @@ class ActivatorSchemaGuardTest extends TestCase {
 		// install -- the case this test measures -- they have already run.
 		// Without that, the audience chain enters a repository whose `db()` is
 		// typed `: wpdb`, and the anonymous double here does not satisfy it.
-		// The column revision gates (audience #1918, self-scheduling #2405,
-		// url-shortener #2337) are current on an established install: each
-		// answers its own constant, which is what "already run" means for it.
-		$revisions = array(
-			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
-			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION,
-			\FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION,
-		);
+		// Every schema revision gate (#2430) is current on an established
+		// install: each answers its own constant, read from the activators.
+		$revisions = \FreeFormCertificate\Tests\Support\SchemaRevisions::current_options();
 		Functions\when( 'get_option' )->alias(
 			static function ( string $key, $default_value = false ) use ( $option, $stored, $revisions ) {
 				if ( $key === $option ) {
