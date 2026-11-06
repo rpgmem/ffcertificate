@@ -35,6 +35,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * process: that WordPress class is not in the bootstrap, so each overloads it.
  *
  * @covers \FreeFormCertificate\Admin\AdminAjax
+ * @covers \FreeFormCertificate\Core\WindowThrottle
  */
 class AdminAjaxTest extends TestCase {
 
@@ -98,6 +99,9 @@ class AdminAjaxTest extends TestCase {
 	/** @var bool Whether `$wpdb` was set before this test. */
 	private bool $had_wpdb = false;
 
+	/** @var array<string, mixed> Transients, the reveal budget among them. */
+	private array $transients = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -116,6 +120,7 @@ class AdminAjaxTest extends TestCase {
 		$this->audience_members  = array();
 		$this->identifier_owners = array();
 		$this->queries           = array();
+		$this->transients        = array();
 
 		// The real ActivityLog, logging into its buffer (never flushed).
 		ActivityLogBuffer::reset();
@@ -124,6 +129,13 @@ class AdminAjaxTest extends TestCase {
 			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
@@ -1224,6 +1236,108 @@ class AdminAjaxTest extends TestCase {
 			);
 		}
 		$this->assertSame( array(), ActivityLogBuffer::entries(), 'Revealing a page of the log adds nothing to it.' );
+	}
+
+	/**
+	 * The reveal budget this test spent for an account, read off the stored
+	 * transient (#2340).
+	 */
+	private function spent_by( int $user_id ): int {
+		$key = 'ffc_pii_reveal_' . substr( hash( 'sha256', 'user:' . $user_id ), 0, 32 ) . '_' . (int) floor( time() / 900 );
+		return (int) ( $this->transients[ $key ] ?? 0 );
+	}
+
+	/**
+	 * Spend an account's budget down to `$left` values (#2340).
+	 */
+	private function leave_budget( int $user_id, int $left ): void {
+		$key                      = 'ffc_pii_reveal_' . substr( hash( 'sha256', 'user:' . $user_id ), 0, 32 ) . '_' . (int) floor( time() / 900 );
+		$this->transients[ $key ] = 2000 - $left;
+	}
+
+	public function test_a_reveal_spends_one_value_of_the_accounts_budget(): void {
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$this->reveal();
+
+		$this->assertSame( 1, $this->spent_by( self::VIEWER ) );
+	}
+
+	public function test_a_reveal_past_the_budget_is_refused_before_any_read(): void {
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		$this->leave_budget( self::VIEWER, 0 );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected a 429' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'revealed many values in a short time', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries, 'Nothing is read once the budget is spent.' );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A refused reveal is not audited as a reveal.' );
+	}
+
+	public function test_the_budget_belongs_to_the_account_not_the_address(): void {
+		$this->leave_budget( self::VIEWER, 0 );
+		$this->current_user = self::VIEWER + 1;
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		Functions\when( 'user_can' )->alias(
+			fn( $user_id, $cap ) => (int) $user_id === $this->current_user && in_array( $cap, $this->viewer_caps, true )
+		);
+
+		$this->assertSame( 'p5@x.com', $this->reveal()['value'] );
+		$this->assertSame( 1, $this->spent_by( self::VIEWER + 1 ) );
+	}
+
+	public function test_a_page_counts_every_value_it_names(): void {
+		$this->post_page(
+			array(
+				array( 'type' => 'submission', 'id' => 5, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 6, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 7, 'field' => 'email' ),
+			)
+		);
+		foreach ( array( 5, 6, 7 ) as $id ) {
+			$this->store( 'wp_ffc_submissions', $id, array( 'email_encrypted' => Encryption::encrypt( 'p' . $id . '@x.com' ) ) );
+		}
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertCount( 3, $e->getData()['values'] );
+		}
+		$this->assertSame( 3, $this->spent_by( self::VIEWER ) );
+	}
+
+	public function test_a_page_that_would_cross_the_budget_is_refused_whole_and_spends_nothing(): void {
+		$this->post_page(
+			array(
+				array( 'type' => 'submission', 'id' => 5, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 6, 'field' => 'email' ),
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		$this->leave_budget( self::VIEWER, 1 );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected a 429' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'revealed many values in a short time', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( 1999, $this->spent_by( self::VIEWER ), 'The refused page spent nothing; one value is still left.' );
 	}
 
 	public function test_reveal_pii_page_refuses_an_empty_request(): void {
