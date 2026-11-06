@@ -235,7 +235,7 @@ class ActivityLogQuery {
 	public static function distinct_users(): array {
 		$cached = \get_transient( self::USERS_CACHE_KEY );
 		if ( is_array( $cached ) ) {
-			return array_values( array_filter( array_map( 'absint', $cached ) ) );
+			return self::user_ids( $cached );
 		}
 
 		global $wpdb;
@@ -246,10 +246,27 @@ class ActivityLogQuery {
 			return array();
 		}
 
-		$list = array_values( array_filter( array_map( 'absint', $ids ) ) );
+		$list = self::user_ids( $ids );
 		\set_transient( self::USERS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
 
 		return $list;
+	}
+
+	/**
+	 * Positive account ids out of a stored or read list.
+	 *
+	 * @param array<mixed> $values Raw values.
+	 * @return list<int>
+	 */
+	private static function user_ids( array $values ): array {
+		$ids = array();
+		foreach ( $values as $value ) {
+			$id = is_numeric( $value ) ? (int) $value : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
 	}
 
 	/**
