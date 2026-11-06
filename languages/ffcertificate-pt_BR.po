@@ -7199,6 +7199,25 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/config-activity-log.php
+msgid "Details"
+msgstr "Detalhes"
+
+#: includes/settings/views/documentation/config-activity-log.php
+msgid "each entry lists its first values by name, with personal data masked; View Details opens the whole record. A very long record is cut on screen, and the CSV export keeps all of it."
+msgstr "cada registro lista seus primeiros valores pelo nome, com os dados pessoais mascarados; Ver Detalhes abre o registro inteiro. Um registro muito longo é cortado na tela, e a exportação CSV o mantém completo."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+#, php-format
+msgid "%s more value in the details."
+msgid_plural "%s more values in the details."
+msgstr[0] "Mais %s valor nos detalhes."
+msgstr[1] "Mais %s valores nos detalhes."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Cut here; the CSV export has the full details."
+msgstr "Cortado aqui; a exportação CSV traz os detalhes completos."
+
 #: includes/admin/class-ffc-admin-activity-log-page.php
 msgid "%s entry"
 msgid_plural "%s entries"

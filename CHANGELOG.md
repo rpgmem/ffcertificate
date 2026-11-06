@@ -65,6 +65,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Activity Log: entry times are instants, shown in the site's timezone** (#2340). `created_at` moves from the site's wall clock to UTC seconds; existing rows are converted from the site timezone, daylight saving included, in a few statements the first time wp-admin loads. The screen no longer shifts times by the offset, retention and the stats compare true ages, and the CSV prints the date in the site's format. A query reading the column directly must read seconds.
 - **Activity Log: retention runs in bounded steps, from the scheduled tasks only** (#2340). Old entries and those past the record cap are deleted 5,000 at a time, up to 100,000 a run, with a follow-up run a minute later when more remain. The cleanup no longer runs when wp-admin loads.
 - **Activity Log: user and date filters, a count, Reveal for the page, and two empty states** (#2340). Filter by user (or System / Anonymous) and a From / To range in the site's timezone; Export takes the filters on screen; view-only users get working filters and Reveal, and the Export button shows only with `ffc_export_activity_log`.
+- **Activity Log: an entry's details read as a few named values** (#2340). Actions without a summary of their own list their first values, masked, above View Details; a very long record is cut on screen, and the CSV keeps it whole.
 
 ### Security
 

@@ -88,6 +88,10 @@ class AdminActivityLogPageTest extends TestCase {
 		Functions\when('sanitize_key')->alias(static fn($v) => strtolower((string) $v));
 		Functions\when('wp_unslash')->returnArg();
 		Functions\when('admin_url')->returnArg();
+		// The count and the generic summary pluralise; every test chooses
+		// these rather than inheriting an earlier test's stub.
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => (string) $n);
 	}
 
 	protected function tearDown(): void {
@@ -450,6 +454,61 @@ class AdminActivityLogPageTest extends TestCase {
 		Functions\when('get_locale')->justReturn('en_US');
 		$sorted = AdminActivityLogPage::sorted_actions(array('submission_created', 'attendance_recorded'));
 		$this->assertSame(array('attendance_recorded', 'submission_created'), $sorted);
+	}
+
+	public function test_context_summary_lists_top_level_values_by_name(): void {
+		$html = AdminActivityLogPage::render_context_summary(array('booking_id' => 5, 'method' => 'manual', 'notify' => true));
+		$this->assertSame('<dl class="ffc-log-summary-dl"><dt>Booking id</dt><dd>5</dd><dt>Method</dt><dd>manual</dd><dt>Notify</dt><dd>Yes</dd></dl>', $html);
+	}
+
+	public function test_context_summary_leaves_nested_and_extra_values_to_the_details(): void {
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => (string) $n);
+		$context = array('changes' => array('a' => 1));
+		for ($i = 1; $i <= 8; $i++) {
+			$context['k' . $i] = 'v' . $i;
+		}
+
+		$html = (string) AdminActivityLogPage::render_context_summary($context);
+
+		$this->assertSame(AdminActivityLogPage::SUMMARY_ITEMS, substr_count($html, '<dt>'));
+		$this->assertStringNotContainsString('Changes', $html, 'A nested value is not summarised.');
+		$this->assertStringContainsString('3 more values in the details.', $html, 'The nested one and the two past the limit.');
+	}
+
+	public function test_context_summary_cuts_a_long_value(): void {
+		$html = (string) AdminActivityLogPage::render_context_summary(array('reason' => str_repeat('é', 200)));
+		$this->assertStringContainsString(str_repeat('é', AdminActivityLogPage::SUMMARY_VALUE_CHARS - 1) . '…</dd>', $html);
+	}
+
+	public function test_context_summary_is_null_when_nothing_is_scalar(): void {
+		$this->assertNull(AdminActivityLogPage::render_context_summary(array()));
+		$this->assertNull(AdminActivityLogPage::render_context_summary(array('ids' => array(1, 2), 'empty' => '')));
+	}
+
+	public function test_bounded_json_keeps_a_short_record_and_cuts_a_long_one(): void {
+		$this->assertSame('{"a":1}', AdminActivityLogPage::bounded_json('{"a":1}'));
+		$long = str_repeat('x', AdminActivityLogPage::DETAILS_MAX_BYTES + 100);
+		$cut  = AdminActivityLogPage::bounded_json($long);
+		$this->assertStringStartsWith(str_repeat('x', AdminActivityLogPage::DETAILS_MAX_BYTES) . "\n…", $cut);
+		$this->assertStringEndsWith('the CSV export has the full details.', $cut);
+	}
+
+	public function test_a_row_without_its_own_summary_gets_the_masked_generic_one(): void {
+		$this->stub_date_formatting();
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_create_nonce')->justReturn('n');
+		Functions\when('is_email')->alias(static fn($v) => false !== filter_var($v, FILTER_VALIDATE_EMAIL));
+
+		$html = AdminActivityLogPage::render_rows_html(array(array(
+			'id' => 1, 'created_at' => 1762430000, 'level' => 'info', 'action' => 'privacy_data_erased',
+			'user_id' => null, 'user_ip' => '', 'context' => array('email' => 'ana@example.org', 'rows' => 3),
+		)));
+
+		$this->assertStringContainsString('<dt>Rows</dt><dd>3</dd>', $html);
+		$this->assertStringNotContainsString('ana@example.org</dd>', $html, 'The summary shows the masked value.');
 	}
 
 	public function test_build_query_args_clamps_paged_to_minimum_one(): void {
