@@ -92,6 +92,10 @@ class RecruitmentPcdPerNoticeMigrationStrategyTest extends TestCase {
 				if ( false !== strpos( $prepared['sql'], 'WHERE pcd_hash IS NULL' ) ) {
 					return (string) count( $this->pending() );
 				}
+				if ( false !== strpos( $prepared['sql'], 'WHERE id > %d AND pcd_hash IS NULL' ) ) {
+					$after = (int) $prepared['args'][1];
+					return (string) count( array_filter( array_keys( $this->pending() ), static fn( $id ) => $id > $after ) );
+				}
 				return (string) count( $this->rows );
 			}
 		);
@@ -226,12 +230,23 @@ class RecruitmentPcdPerNoticeMigrationStrategyTest extends TestCase {
 
 		$next = $strategy->execute( 'recruitment_pcd_per_notice', $this->config() );
 		$this->assertFalse( $next['has_more'], 'The cursor passed the row, so the run ends instead of looping on it (#1378).' );
-		$this->assertSame( 0, $this->options[ RecruitmentPcdPerNoticeMigrationStrategy::STATE_OPTION ]['cursor'], 'The empty read rewinds the cursor for a retry.' );
+		$this->assertSame( 1, $this->options[ RecruitmentPcdPerNoticeMigrationStrategy::STATE_OPTION ]['cursor'], 'The cursor never rewinds by itself, or the run loops over the row that fails (#2338).' );
+
+		$again = $strategy->execute( 'recruitment_pcd_per_notice', $this->config() );
+		$this->assertSame( 0, $again['processed'], 'Running again moves nothing.' );
+
+		$status = $strategy->calculate_status( 'recruitment_pcd_per_notice', $this->config() );
+		$this->assertFalse( $status['is_complete'] );
+		$this->assertTrue( $status['retryable'], 'A walk that ended with rows behind it offers a retry.' );
+
+		$this->assertSame( 1, $strategy->rearm() );
+		$this->assertSame( 0, $this->options[ RecruitmentPcdPerNoticeMigrationStrategy::STATE_OPTION ]['cursor'] );
 
 		$this->refuse = false;
 		$retry        = $strategy->execute( 'recruitment_pcd_per_notice', $this->config() );
-		$this->assertSame( 1, $retry['processed'], 'A later run retries the row that failed.' );
+		$this->assertSame( 1, $retry['processed'], 'After Re-check the row that failed is tried again.' );
 		$this->assertTrue( $this->flag( 1 ) );
+		$this->assertFalse( $strategy->calculate_status( 'recruitment_pcd_per_notice', $this->config() )['retryable'] );
 	}
 
 	public function test_status_counts_rows_without_a_hash(): void {

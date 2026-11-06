@@ -493,7 +493,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url = $this->redirect_of( 'handle_migration_rearm' );
 
 		$this->assertSame( array( 'rearm' ), $strategy->calls );
-		$this->assertStringContainsString( 'Walk re-armed: 12 accounts', $url );
+		$this->assertStringContainsString( 'Walk re-armed: 12 records', $url );
 	}
 
 	public function test_rearm_wp_error_redirects(): void {

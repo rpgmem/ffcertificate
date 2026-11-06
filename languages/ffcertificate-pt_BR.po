@@ -144,12 +144,6 @@ msgstr "Reverificar contas resolvidas desde a última passagem"
 msgid "This migration cannot be re-armed."
 msgstr "Esta migração não pode ser rearmada."
 
-#. %d: number of accounts the re-armed walk will examine
-#: includes/admin/class-ffc-settings-action-handler.php:143
-#, php-format
-msgid "Walk re-armed: %d accounts will be examined again. Press \"Run Migration\" to start. Nothing already filled is overwritten."
-msgstr "Varredura rearmada: %d contas serão examinadas novamente. Clique em \"Executar Migração\" para começar. Nada que já esteja preenchido é sobrescrito."
-
 #: includes/admin/class-ffc-admin-submission-edit-page.php:347
 msgid "An unlinked submission has no account, which is the state the identity queue adopts."
 msgstr "Uma submissão desvinculada não tem conta, que é o estado adotado pela fila de identidade."
@@ -5196,10 +5190,6 @@ msgstr "Migrações de Dados"
 #: includes/settings/views/documentation/feature-audiences.php:70
 msgid "Data Storage:"
 msgstr "Armazenamento de Dados:"
-
-#: includes/settings/views/ffc-tab-migrations.php:42
-msgid "Database Migrations"
-msgstr "Migrações de Banco de Dados"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:213 includes/admin/class-ffc-submissions-list.php:83 includes/admin/class-ffc-form-editor-builder-metabox.php:79 includes/admin/class-ffc-admin-assets-manager.php:625 includes/privacy/class-ffc-privacy-exporters.php:293 includes/privacy/class-ffc-privacy-exporters.php:480 includes/self-scheduling/class-ffc-self-scheduling-appointment-email-handler.php:326 includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:77 includes/self-scheduling/class-ffc-self-scheduling-editor.php:257 includes/self-scheduling/class-ffc-self-scheduling-editor.php:520 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:205 includes/reregistration/class-ffc-custom-field-reader.php:78 includes/audience/class-ffc-audience-admin-bookings.php:166 includes/audience/class-ffc-audience-admin-calendar.php:557 includes/audience/class-ffc-audience-admin-calendar.php:577 includes/audience/class-ffc-audience-loader.php:416 includes/audience/class-ffc-audience-notification-handler.php:408 includes/audience/class-ffc-audience-notification-handler.php:444 includes/audience/class-ffc-audience-shortcode.php:335 includes/frontend/class-ffc-verification-response-renderer.php:465 templates/admin/audience/general-tab.php:69 templates/admin/audience/general-tab.php:101 includes/self-scheduling/views/appointments-list.php:256
 msgid "Date"
@@ -10709,10 +10699,6 @@ msgstr "Gerenciar modelos de certificado"
 msgid "Manage certificates"
 msgstr "Gerenciar certificados"
 
-#: includes/settings/views/ffc-tab-migrations.php:45
-msgid "Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability."
-msgstr "Gerencie migrações da estrutura do banco de dados para melhorar o desempenho e a organização dos dados. Essas migrações movem dados do armazenamento JSON para colunas dedicadas do banco de dados, proporcionando consultas mais rápidas e maior confiabilidade."
-
 #: includes/user-dashboard/class-ffc-capability-catalog.php:379
 msgid "Manage email templates"
 msgstr "Gerenciar modelos de e-mail"
@@ -11067,18 +11053,6 @@ msgstr "Erro no sistema de migração:"
 #: includes/settings/views/ffc-tab-advanced.php:122 includes/settings/views/ffc-tab-advanced.php:515
 msgid "Migrations"
 msgstr "Migrações"
-
-#: includes/settings/views/ffc-tab-migrations.php:51
-msgid "Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete."
-msgstr "É seguro executar migrações várias vezes. Cada migração processa até 100 registros por vez. Execute novamente, se necessário, até que esteja 100% concluída."
-
-#: includes/settings/views/ffc-tab-migrations.php:992
-msgid "Migrations cannot be undone, but they don't delete any data. If you experience issues, your original data remains in the JSON column and can be accessed."
-msgstr "As migrações não podem ser desfeitas, mas não excluem nenhum dado. Se você tiver algum problema, seus dados originais permanecem na coluna JSON e podem ser acessados."
-
-#: includes/settings/views/ffc-tab-migrations.php:983
-msgid "Migrations improve database performance by moving frequently queried data from JSON format to dedicated database columns. This makes searches and filtering much faster."
-msgstr "As migrações melhoram o desempenho do banco de dados, movendo os dados consultados com frequência do formato JSON para colunas dedicadas. Isso torna as buscas e filtragens muito mais rápidas."
 
 #: includes/settings/tabs/class-ffc-tab-migrations.php:63
 msgid "Migrations view file not found."
@@ -19578,10 +19552,6 @@ msgstr "CPF incorreto + CAPTCHA incorreto + outros erros."
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:208 includes/admin/class-ffc-submissions-export-source.php:423 includes/admin/class-ffc-submissions-export-source.php:436 includes/privacy/class-ffc-privacy-exporters.php:205 includes/self-scheduling/class-ffc-self-scheduling-appointment-export-source.php:419 includes/reregistration/class-ffc-reregistration-export-source.php:393 includes/reregistration/class-ffc-record-generator.php:433 includes/recruitment/class-ffc-recruitment-email-dispatcher.php:242 includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:154 includes/recruitment/class-ffc-recruitment-notices-list-table.php:135 includes/audience/class-ffc-audience-booking-export-source.php:283 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:121 templates/admin/recruitment/candidate-edit/classifications-section.php:88 includes/settings/views/documentation/feature-recruitment.php:52 includes/settings/views/documentation/feature-recruitment.php:53 includes/settings/views/documentation/feature-recruitment.php:54
 msgid "Yes"
 msgstr "Sim"
-
-#: includes/settings/views/ffc-tab-migrations.php:986
-msgid "Yes! Migrations only copy data to new columns - your original data remains intact. They are safe to run multiple times."
-msgstr "Sim! As migrações apenas copiam os dados para novas colunas; seus dados originais permanecem intactos. Elas podem ser executadas várias vezes sem problemas."
 
 #. 1: Admin name, 2: User name
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php:93
@@ -32548,3 +32518,65 @@ msgstr "a limpeza diária também exclui as entradas mais antigas além deste n�
 #: includes/settings/views/ffc-tab-advanced.php
 msgid "The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB."
 msgstr "A limpeza diária também exclui as entradas mais antigas além deste número. 100.000 entradas ocupam cerca de 60 MB."
+
+#: added
+msgid "Account %d still cannot read its certificates after the grant."
+msgstr "A conta %d ainda não consegue ler seus certificados depois da concessão."
+
+#: added
+msgid "Another migration is running. Wait for it to finish."
+msgstr "Outra migração está em execução. Aguarde até que termine."
+
+#: added
+msgid "Bring stored data up to date after an update: move it into dedicated columns, encrypt or re-encrypt personal data, rebuild search hashes and remove copies that are no longer needed."
+msgstr "Atualize os dados armazenados depois de uma atualização: mova-os para colunas próprias, criptografe ou recriptografe dados pessoais, reconstrua os hashes de busca e remova cópias que não são mais necessárias."
+
+#: added
+msgid "Entry %d: the address could not be found in its context, which is not valid JSON; it was left unchanged."
+msgstr "Registro %d: o endereço não foi encontrado no contexto, que não é um JSON válido; ele foi mantido sem alteração."
+
+#: added
+msgid "Finished, with %s problems reported along the way:"
+msgstr "Concluída, com %s problemas relatados no caminho:"
+
+#: added
+msgid "No. A migration that deletes what it replaces cannot be reversed from here, so keep a backup from before the run."
+msgstr "Não. Uma migração que exclui o que substitui não pode ser revertida por aqui, então guarde um backup de antes da execução."
+
+#: added
+msgid "One migration runs at a time: while a card is running, the other cards' buttons wait. If a batch changes nothing before the card reaches 100%, the run stops and lists the errors it collected, because running it again would not move those records. When a pass reaches the end and leaves records behind, usually because writing one of them failed, the card offers \"Try the remaining records again\", which sends the pass back to the start once the cause is fixed."
+msgstr "Uma migração roda por vez: enquanto um cartão está em execução, os botões dos outros cartões aguardam. Se um lote não altera nada antes de o cartão chegar a 100%, a execução para e lista os erros coletados, porque rodá-la de novo não moveria esses registros. Quando uma passagem chega ao fim e deixa registros para trás, geralmente porque a gravação de um deles falhou, o cartão oferece \"Tentar os registros restantes de novo\", que manda a passagem de volta ao início depois que a causa for corrigida."
+
+#: added
+msgid "One-off jobs that bring data stored by an earlier version up to date: dedicated columns for faster searches, encryption of personal data, re-encryption under a new key, and the removal of copies that are no longer needed."
+msgstr "Tarefas pontuais que atualizam dados gravados por uma versão anterior: colunas próprias para buscas mais rápidas, criptografia de dados pessoais, recriptografia com uma nova chave e remoção de cópias que não são mais necessárias."
+
+#: added
+msgid "Run Migration processes the records in batches until the card reaches 100%. If a batch changes nothing, the run stops and lists the errors; running it again will not move those records until the cause is fixed."
+msgstr "Executar Migração processa os registros em lotes até o cartão chegar a 100%. Se um lote não altera nada, a execução para e lista os erros; rodá-la de novo não moverá esses registros até que a causa seja corrigida."
+
+#: added
+msgid "Stopped: the last batch changed nothing and %s records are still pending. Running it again will not move them; see the errors below."
+msgstr "Parada: o último lote não alterou nada e %s registros continuam pendentes. Rodar de novo não os moverá; veja os erros abaixo."
+
+#: added
+msgid "The last pass reached the end and left these records behind, usually because writing one of them failed. Fix the cause, then send the pass back to the start; records already done are not changed again."
+msgstr "A última passagem chegou ao fim e deixou estes registros para trás, geralmente porque a gravação de um deles falhou. Corrija a causa e depois mande a passagem de volta ao início; registros já concluídos não são alterados de novo."
+
+#: added
+msgid "They are safe to run more than once: each one only works on the records it has not finished. Most copy data into new columns and leave the original in place, but some rewrite or delete what they replace — the plaintext copies of encrypted data, retired log columns, old identifiers. Each card says what it changes; read it before running, and take a backup first."
+msgstr "Podem ser executadas mais de uma vez com segurança: cada uma só trabalha nos registros que ainda não concluiu. A maioria copia dados para novas colunas e mantém o original, mas algumas reescrevem ou excluem o que substituem — cópias em texto claro de dados criptografados, colunas de log aposentadas, identificadores antigos. Cada cartão diz o que altera; leia antes de executar e faça um backup antes."
+
+#: added
+msgid "Try the remaining records again"
+msgstr "Tentar os registros restantes de novo"
+
+#: added
+msgid "Walk re-armed: %d records will be examined again. Press \"Run Migration\" to start. Nothing already done is changed again."
+msgstr "Passagem reiniciada: %d registros serão examinados de novo. Clique em \"Executar Migração\" para começar. Nada do que já foi feito é alterado de novo."
+
+#: added
+msgid "…and %d more."
+msgid_plural "…and %d more."
+msgstr[0] "…e mais %d."
+msgstr[1] "…e mais %d."

@@ -377,16 +377,18 @@ class TabMigrationsTest extends TestCase {
 	public function test_the_recheck_control_is_offered_only_on_the_complete_branch(): void {
 		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
 
-		$this->assertStringContainsString(
-			'ffc_rearm_migration',
-			$this->complete_branch( $view ),
-			'The re-check control belongs to the branch that had no verb.'
-		);
-		$this->assertSame(
-			1,
-			substr_count( $view, "'ffc_rearm_migration' =>" ),
-			'One control: a second site would mean the pending branch can discard its own progress.'
-		);
+		$complete = $this->complete_branch( $view );
+		$this->assertStringContainsString( "\$ffcertificate_status['rearmable']", $complete, 'The re-check control belongs to the branch that had no verb.' );
+		$this->assertStringContainsString( '$ffcertificate_rearm_url', $complete );
+		$this->assertSame( 1, substr_count( $view, "'ffc_rearm_migration' =>" ), 'The re-arm URL is built once.' );
+
+		// Below a hundred per cent the control appears only through
+		// `retryable`, which a strategy sets once its walk has ended, so it has
+		// no progress to discard (#2338). `rearmable` stays out of that branch.
+		$from    = (int) strpos( $view, '<?php else : ?>', (int) strpos( $view, '<?php if ( $ffcertificate_is_complete ) : ?>' ) );
+		$pending = substr( $view, $from, (int) strpos( $view, '<?php endif; ?>' . "\n\t\t\t</div>", $from ) - $from );
+		$this->assertStringContainsString( "\$ffcertificate_status['retryable']", $pending );
+		$this->assertStringNotContainsString( "\$ffcertificate_status['rearmable']", $pending );
 	}
 
 	/**
@@ -396,9 +398,12 @@ class TabMigrationsTest extends TestCase {
 	 * handler verifies exactly this string.
 	 */
 	public function test_the_recheck_control_carries_its_own_nonce_action(): void {
-		$block = $this->complete_branch(
-			(string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' )
-		);
+		$view = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
+
+		// The URL is built once, before the two branches that offer it.
+		$from  = strpos( $view, '$ffcertificate_rearm_url = wp_nonce_url(' );
+		$this->assertIsInt( $from );
+		$block = substr( $view, (int) $from, (int) strpos( $view, '?>', (int) $from ) - (int) $from );
 
 		$this->assertStringContainsString( "'ffc_rearm_' . \$ffcertificate_key", $block );
 		$this->assertStringNotContainsString( "'ffc_migration_' . \$ffcertificate_key", $block );
@@ -431,8 +436,8 @@ class TabMigrationsTest extends TestCase {
 		$view  = (string) file_get_contents( __DIR__ . '/../../includes/settings/views/ffc-tab-migrations.php' );
 		$block = $this->complete_branch( $view );
 
-		$start = strpos( $block, '$ffcertificate_rearm_url' );
-		$this->assertIsInt( $start, 'The control must build its own URL.' );
+		$start = strpos( $block, "'href'     => \$ffcertificate_rearm_url" );
+		$this->assertIsInt( $start, 'The control must use its own URL.' );
 
 		$anchor = substr( $block, (int) $start );
 

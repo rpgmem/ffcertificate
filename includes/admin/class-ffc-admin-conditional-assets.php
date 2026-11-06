@@ -64,6 +64,11 @@ class AdminConditionalAssets {
 						'migrationComplete'  => __( 'Migration Complete', 'ffcertificate' ),
 						'allRecordsMigrated' => __( 'All records have been successfully migrated.', 'ffcertificate' ),
 						'errorOccurred'      => __( 'Error occurred. Please try again.', 'ffcertificate' ),
+						/* translators: %s: how many records are still pending. */
+						'stuck'              => __( 'Stopped: the last batch changed nothing and %s records are still pending. Running it again will not move them; see the errors below.', 'ffcertificate' ),
+						/* translators: %s: how many problems the run reported. */
+						'completeWithErrors' => __( 'Finished, with %s problems reported along the way:', 'ffcertificate' ),
+						'otherRunning'       => __( 'Another migration is running. Wait for it to finish.', 'ffcertificate' ),
 					),
 				)
 			);

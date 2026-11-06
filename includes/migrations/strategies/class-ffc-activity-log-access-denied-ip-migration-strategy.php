@@ -132,9 +132,19 @@ class ActivityLogAccessDeniedIpMigrationStrategy implements MigrationStrategyInt
 				continue;
 			}
 
+			$context = $this->without_key( ArrayValue::string( $row, 'context' ) );
+			if ( null === $context ) {
+				$errors[] = sprintf(
+					/* translators: %d: activity log entry ID. */
+					__( 'Entry %d: the address could not be found in its context, which is not valid JSON; it was left unchanged.', 'ffcertificate' ),
+					ArrayValue::int( $row, 'id' )
+				);
+				continue;
+			}
+
 			$updated = $wpdb->update(
 				$this->table,
-				array( 'context' => $this->without_key( ArrayValue::string( $row, 'context' ) ) ),
+				array( 'context' => $context ),
 				array( 'id' => ArrayValue::int( $row, 'id' ) ),
 				array( '%s' ),
 				array( '%d' )
@@ -160,7 +170,11 @@ class ActivityLogAccessDeniedIpMigrationStrategy implements MigrationStrategyInt
 	}
 
 	/**
-	 * The context without the address key, or NULL when it does not decode.
+	 * The context without the address key.
+	 *
+	 * A context that does not decode keeps everything else (#2338): the key
+	 * and its value are cut from the text, rather than the whole context
+	 * being replaced by NULL. NULL only when the key cannot be found there.
 	 *
 	 * @param string $context Context JSON as stored.
 	 * @return string|null
@@ -168,12 +182,24 @@ class ActivityLogAccessDeniedIpMigrationStrategy implements MigrationStrategyInt
 	private function without_key( string $context ): ?string {
 		$decoded = json_decode( $context, true );
 		if ( ! is_array( $decoded ) ) {
-			return null;
+			return self::cut_key( $context );
 		}
 
 		unset( $decoded[ self::KEY ] );
 		$encoded = wp_json_encode( $decoded );
 		return false === $encoded ? null : $encoded;
+	}
+
+	/**
+	 * The key and its scalar value cut from text that is not valid JSON.
+	 *
+	 * @param string $context Stored context.
+	 * @return string|null The text without the pair, or null when absent.
+	 */
+	private static function cut_key( string $context ): ?string {
+		$pair   = '"' . preg_quote( self::KEY, '/' ) . '"\s*:\s*(?:"(?:[^"\\\\]|\\\\.)*"|null|true|false|-?\d+(?:\.\d+)?)';
+		$result = preg_replace( '/\s*,\s*' . $pair . '|' . $pair . '\s*,?/', '', $context, 1, $count );
+		return ( is_string( $result ) && 1 === $count ) ? $result : null;
 	}
 
 	/**

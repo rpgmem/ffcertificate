@@ -178,4 +178,78 @@ describe('FFC admin-migrations — batch loop', () => {
 
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
+
+	it('stops as stuck when a batch changes nothing short of completion, listing the errors (#2338)', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.ffcMigrations.strings.stuck = 'Stuck with %s pending.';
+		vi.useFakeTimers();
+		const requestSpy = vi.spyOn(window.FFC, 'request')
+			.mockResolvedValueOnce({ processed: 10, has_more: true, total: 20, migrated: 10, pending: 10, percent: 50, is_complete: false, errors: [] })
+			.mockResolvedValueOnce({ processed: 0, has_more: false, total: 20, migrated: 10, pending: 10, percent: 50, is_complete: false, errors: ['Row 7 failed', '<b>Row 9</b>'] });
+
+		const $btn = window.$('.ffc-migration-actions a.ffc-migration-run');
+		$btn.trigger('click');
+		await Promise.resolve(); await Promise.resolve();
+		await vi.advanceTimersByTimeAsync(400);
+		await Promise.resolve(); await Promise.resolve();
+		await vi.advanceTimersByTimeAsync(2000);
+
+		expect(requestSpy).toHaveBeenCalledTimes(2);
+		expect(window.$('.ffc-migration-actions .description').text()).toContain('Stuck with 10 pending.');
+		const items = window.$('.ffc-migration-errors li');
+		expect(items.length).toBe(2);
+		// Written as text, never as markup.
+		expect(items.eq(1).text()).toBe('<b>Row 9</b>');
+		expect(window.$('.ffc-migration-errors b').length).toBe(0);
+		expect($btn.hasClass('ffc-btn-loading')).toBe(false);
+		expect($btn.hasClass('disabled')).toBe(false);
+		vi.useRealTimers();
+	});
+
+	it('runs one migration at a time: the other cards wait, and a click on one says why', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.ffcMigrations.strings.otherRunning = 'Another one is running.';
+		document.body.insertAdjacentHTML('beforeend', `
+			<div class="ffc-migration-card" id="second">
+				<div class="ffc-migration-actions">
+					<a href="?ffc_run_migration=other&_wpnonce=x" class="ffc-btn ffc-migration-run">Run Migration</a>
+					<p class="description"></p>
+				</div>
+			</div>`);
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
+
+		window.$('.ffc-migration-actions a.ffc-migration-run').first().trigger('click');
+		const $second = window.$('#second a.ffc-migration-run');
+		expect($second.attr('aria-disabled')).toBe('true');
+
+		$second.trigger('click');
+
+		expect(requestSpy).toHaveBeenCalledTimes(1);
+		expect(window.$('#second .description').text()).toContain('Another one is running.');
+	});
+
+	it('never shows 100% while a record is pending', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ processed: 0, has_more: false, total: 100000, migrated: 99996, pending: 4, percent: 99.996, is_complete: false });
+
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
+		await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+		const stats = window.$('.ffc-migration-card .ffc-migration-stats .ffc-migration-stat-value');
+		expect(stats.eq(3).text()).toBe('99.9%');
+	});
+
+	it('a run that finished with errors says so instead of claiming every record', async () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.ffcMigrations.strings.completeWithErrors = 'Finished with %s problems:';
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ processed: 5, total: 5, migrated: 5, pending: 0, percent: 100, is_complete: true, errors: ['One conflict'] });
+
+		window.$('.ffc-migration-actions a.ffc-migration-run').trigger('click');
+		await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+		const text = window.$('.ffc-migration-actions .description').text();
+		expect(text).toContain('Finished with 1 problems:');
+		expect(text).not.toContain('All records');
+		expect(window.$('.ffc-migration-errors li').text()).toBe('One conflict');
+	});
 });

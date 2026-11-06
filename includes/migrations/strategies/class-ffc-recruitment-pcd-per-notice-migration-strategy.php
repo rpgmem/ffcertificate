@@ -111,7 +111,33 @@ class RecruitmentPcdPerNoticeMigrationStrategy implements MigrationStrategyInter
 			'pending'     => $pending,
 			'percent'     => $total > 0 ? round( ( $done / $total ) * 100, 2 ) : 100,
 			'is_complete' => 0 === $pending,
+			// The walk is over with rows left behind it: a write failed.
+			'retryable'   => $pending > 0 && 0 === $this->count_pending_after( $this->get_state()['cursor'] ),
 		);
+	}
+
+	/**
+	 * Send the walk back to the start, so rows whose write failed are tried
+	 * again.
+	 *
+	 * @return int Rows the next walk will examine.
+	 */
+	public function rearm(): int {
+		$state           = $this->get_state();
+		$state['cursor'] = 0;
+		update_option( self::STATE_OPTION, $state, false );
+		return self::table_exists( $this->table ) ? $this->count_pending() : 0;
+	}
+
+	/**
+	 * Classifications without a PCD hash past a cursor.
+	 *
+	 * @param int $cursor Last id walked.
+	 * @return int
+	 */
+	private function count_pending_after( int $cursor ): int {
+		global $wpdb;
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE id > %d AND pcd_hash IS NULL', $this->table, $cursor ) );
 	}
 
 	/**
@@ -176,9 +202,11 @@ class RecruitmentPcdPerNoticeMigrationStrategy implements MigrationStrategyInter
 			$changed += (int) $updated;
 		}
 
-		// A run ends on the read that finds nothing past the cursor; rewinding
-		// it there is what lets the next run retry a failed write.
-		$state['cursor']      = empty( $rows ) ? 0 : $cursor;
+		// The cursor never rewinds by itself (#2338). Rewinding at the end of
+		// a walk sent it back over a row whose write keeps failing, so the
+		// pending count never reached zero and the runner polled forever. A
+		// walk that ended with rows pending offers Re-check instead.
+		$state['cursor']      = $cursor;
 		$state['unreadable'] += $unreadable;
 		update_option( self::STATE_OPTION, $state, false );
 
