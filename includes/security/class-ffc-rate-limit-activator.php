@@ -26,10 +26,16 @@ class RateLimitActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
-	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
+	 * Schema revision stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.6.0';
+	public const SCHEMA_REVISION = '1.6.0';
+
+	/**
+	 * Option holding the revision last applied (#2430). Listed in
+	 * `uninstall.php`.
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_rate_limit_db_version';
 
 	/**
 	 * The last row of each table written before e-mail and CPF identifiers
@@ -47,7 +53,7 @@ class RateLimitActivator {
 	public static function create_tables(): bool {
 		global $wpdb;
 
-		$previous        = (string) get_option( 'ffc_rate_limit_db_version', '' );
+		$previous        = (string) get_option( self::SCHEMA_REVISION_OPTION, '' );
 		$charset_collate = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -168,7 +174,7 @@ class RateLimitActivator {
 			self::drop_unkeyed_device_data();
 		}
 
-		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		return true;
 	}
 
@@ -235,8 +241,8 @@ class RateLimitActivator {
 	 * upgrades that don't fire register_activation_hook.
 	 */
 	public static function maybe_create_tables(): void {
-		$stored = get_option( 'ffc_rate_limit_db_version', '' );
-		if ( self::DB_VERSION === $stored ) {
+		$stored = get_option( self::SCHEMA_REVISION_OPTION, '' );
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
 		self::create_tables();
@@ -281,7 +287,7 @@ class RateLimitActivator {
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_logs ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_signals ) );
 
-		delete_option( 'ffc_rate_limit_db_version' );
+		delete_option( self::SCHEMA_REVISION_OPTION );
 		return true;
 	}
 }

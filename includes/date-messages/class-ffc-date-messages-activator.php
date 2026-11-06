@@ -37,10 +37,22 @@ class DateMessagesActivator {
 	use DatabaseHelperTrait;
 
 	/**
-	 * Schema version option, written after the chain completes. Listed in
-	 * `uninstall.php`.
+	 * Revision of the schema steps this class runs on a request (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
 	 */
-	public const SCHEMA_OPTION = 'ffc_date_messages_schema_version';
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_date_messages_schema_version';
 
 	/**
 	 * Marker that the `audience_id` → `audience_ids` move is done (#1648).
@@ -115,15 +127,16 @@ class DateMessagesActivator {
 
 	/**
 	 * Heal the schema on an install that was never re-activated (#1311),
-	 * gated on `FFC_VERSION` (#1231) and recorded after the body; then run
+	 * gated on {@see self::SCHEMA_REVISION} (#1231, #2430) and recorded after
+	 * the body; then run
 	 * the audience move once, on its own marker, whatever the version.
 	 *
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		if ( get_option( self::SCHEMA_OPTION, '' ) !== FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) !== self::SCHEMA_REVISION ) {
 			self::create_tables();
-			update_option( self::SCHEMA_OPTION, FFC_VERSION );
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
 
 		if ( '1' !== (string) get_option( self::AUDIENCE_IDS_OPTION, '' ) ) {

@@ -90,7 +90,7 @@ class DateMessagesActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION, DateMessagesActivator::SEND_SCOPE_OPTION ), true ) ? '1' : FFC_VERSION
+			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION, DateMessagesActivator::SEND_SCOPE_OPTION ), true ) ? '1' : DateMessagesActivator::SCHEMA_REVISION
 		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();
@@ -103,7 +103,7 @@ class DateMessagesActivatorTest extends TestCase {
 	public function test_maybe_migrate_heals_and_then_records_the_version(): void {
 		Functions\when( 'get_option' )->justReturn( '6.0.0' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SCHEMA_OPTION, FFC_VERSION );
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SCHEMA_REVISION_OPTION, DateMessagesActivator::SCHEMA_REVISION );
 
 		DateMessagesActivator::maybe_migrate();
 
@@ -226,7 +226,7 @@ class DateMessagesActivatorTest extends TestCase {
 		// The testes case (#1648): `develop` keeps FFC_VERSION, so the schema
 		// option already matches and only the move's own marker is missing.
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => DateMessagesActivator::SCHEMA_OPTION === $name ? FFC_VERSION : ''
+			static fn( $name ) => DateMessagesActivator::SCHEMA_REVISION_OPTION === $name ? DateMessagesActivator::SCHEMA_REVISION : ''
 		);
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );

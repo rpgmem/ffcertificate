@@ -78,7 +78,7 @@ class ReregistrationActivatorTest extends TestCase {
 	}
 
 	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Reregistration\ReregistrationActivator::SCHEMA_REVISION );
 
 		// Neither the schema nor the option may be touched. `$wpdb` carries no
 		// expectations at all here, so any query would fail the mock outright.
@@ -130,7 +130,7 @@ class ReregistrationActivatorTest extends TestCase {
 		// Write-after-body: a failure partway through must not leave the gate
 		// claiming a version the chain never finished applying.
 		$this->assertSame(
-			'ffc_reregistration_schema_version=' . FFC_VERSION,
+			'ffc_reregistration_schema_version=' . \FreeFormCertificate\Reregistration\ReregistrationActivator::SCHEMA_REVISION,
 			end( $order ),
 			'The schema version must be stored last, after every DDL statement.'
 		);

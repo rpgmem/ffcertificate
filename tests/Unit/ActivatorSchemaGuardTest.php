@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Every activator chain `Loader` calls on `plugins_loaded` probes the schema at
- * most once per `FFC_VERSION` (#1231).
+ * most once per value of its gate (#1231): the module's schema revision where
+ * it has one (#2430), `FFC_VERSION` where it still has not.
  *
  * WHAT WAS WRONG
  *
@@ -20,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  * anonymous frontend included -- on an install where there was nothing to
  * migrate.
  *
- * WHY THE GUARD IS `FFC_VERSION` AND NOT A ONE-SHOT MARKER
+ * WHY THE GUARD IS A REVISION OR A VERSION AND NOT A ONE-SHOT MARKER
  *
  * These calls exist because an in-place plugin update does NOT fire
  * `register_activation_hook`. The property to preserve is "the schema heals
@@ -244,6 +245,23 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * @param string $stored   The value the option already holds.
 	 * @return int
 	 */
+	/**
+	 * The value an established install holds in a chain's option: the class's
+	 * own schema revision when that option is its revision option (#2430),
+	 * the plugin version for the gates that still follow it.
+	 *
+	 * @param string $class  The activator class.
+	 * @param string $option The option.
+	 * @return string
+	 */
+	private static function current( string $class, string $option ): string {
+		$revision_option = $class . '::SCHEMA_REVISION_OPTION';
+		if ( defined( $revision_option ) && constant( $revision_option ) === $option ) {
+			return (string) constant( $class . '::SCHEMA_REVISION' );
+		}
+		return FFC_VERSION;
+	}
+
 	private function run_chain( string $class, string $method, string $option, string $stored ): int {
 		$this->queries = 0;
 
@@ -293,11 +311,11 @@ class ActivatorSchemaGuardTest extends TestCase {
 			sprintf( '%s::%s() did not probe the schema even without the guard — the measurement is broken, not the chain.', $class, $method )
 		);
 
-		$guarded = $this->run_chain( $class, $method, $option, FFC_VERSION );
+		$guarded = $this->run_chain( $class, $method, $option, self::current( $class, $option ) );
 		$this->assertSame(
 			0,
 			$guarded,
-			sprintf( '%s::%s() probed the schema with the option already at FFC_VERSION (%d queries).', $class, $method, $guarded )
+			sprintf( '%s::%s() probed the schema with the option already current (%d queries).', $class, $method, $guarded )
 		);
 	}
 
@@ -315,7 +333,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * @param string $option The version option.
 	 */
 	public function test_a_version_bump_rearms_the_chain( string $class, string $method, string $option ): void {
-		$after_bump = $this->run_chain( $class, $method, $option, FFC_VERSION . '-previous' );
+		$after_bump = $this->run_chain( $class, $method, $option, self::current( $class, $option ) . '-previous' );
 
 		$this->assertGreaterThan(
 			0,

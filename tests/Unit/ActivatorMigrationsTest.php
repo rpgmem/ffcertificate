@@ -145,7 +145,7 @@ class ActivatorMigrationsTest extends TestCase {
 	// ───────────── maybe_add_perf_indexes ─────────────
 
 	public function test_perf_indexes_runs_when_version_differs(): void {
-		// get_option('ffc_perf_indexes_db_version') → '' (≠ FFC_VERSION) → run.
+		// get_option('ffc_perf_indexes_db_version') → '' (≠ the core revision) → run.
 		// The contract is a pair: index each table that exists, then pin the
 		// version so the next activation short-circuits. Pinning is what makes
 		// the sibling "skips when version matches" test mean anything, so it is
@@ -169,14 +169,14 @@ class ActivatorMigrationsTest extends TestCase {
 			'Every table that carries idx_created should have been indexed.'
 		);
 		$this->assertSame(
-			FFC_VERSION,
+			\FreeFormCertificate\Activator::SCHEMA_REVISION,
 			$written['ffc_perf_indexes_db_version'] ?? null,
 			'The version marker must be pinned, or this runs again on every activation.'
 		);
 	}
 
 	public function test_perf_indexes_skips_when_version_matches(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Activator::SCHEMA_REVISION );
 		$this->wpdb->shouldNotReceive( 'get_var' );
 		Activator::maybe_add_perf_indexes();
 		$this->assertTrue( true );
@@ -435,7 +435,7 @@ class ActivatorMigrationsTest extends TestCase {
 	}
 
 	public function test_foreign_keys_skips_when_version_matches(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Activator::SCHEMA_REVISION );
 		$this->wpdb->shouldNotReceive( 'get_var' );
 		$this->wpdb->shouldNotReceive( 'get_col' );
 		$this->wpdb->shouldNotReceive( 'query' );
@@ -446,7 +446,7 @@ class ActivatorMigrationsTest extends TestCase {
 	}
 
 	public function test_foreign_keys_pins_version_once_complete(): void {
-		// get_option default '' (≠ FFC_VERSION) → runs.
+		// get_option default '' (≠ the core revision) → runs.
 		$recorded   = array();
 		$statements = array();
 		$this->capture_option_writes( $recorded );
@@ -456,7 +456,7 @@ class ActivatorMigrationsTest extends TestCase {
 		Activator::maybe_add_foreign_keys();
 
 		$this->assertSame( array_values( self::FK_CONSTRAINTS ), $this->added_constraints( $statements ), 'The migration should have run and added every constraint.' );
-		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_db_version'] ?? null );
+		$this->assertSame( \FreeFormCertificate\Activator::SCHEMA_REVISION, $recorded['ffc_foreign_keys_db_version'] ?? null );
 	}
 
 	public function test_foreign_keys_does_not_pin_when_incomplete(): void {
@@ -486,12 +486,12 @@ class ActivatorMigrationsTest extends TestCase {
 		$this->capture_queries( $statements );
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( '' );
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_db_version' === $key ? FFC_VERSION : ''
+			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_db_version' === $key ? \FreeFormCertificate\Activator::SCHEMA_REVISION : ''
 		);
 
 		Activator::maybe_upgrade_schema();
 
-		$this->assertSame( FFC_VERSION, $recorded['ffc_core_schema_version'] ?? null );
+		$this->assertSame( \FreeFormCertificate\Activator::SCHEMA_REVISION, $recorded['ffc_core_schema_version'] ?? null );
 		$unique = array_filter( $statements, static fn( $sql ) => false !== strpos( $sql, 'ADD UNIQUE INDEX' ) );
 		$this->assertNotEmpty( $unique, 'The auth_code UNIQUE upgrade reached an install that was never re-activated.' );
 		$indexes = array_filter( $statements, static fn( $sql ) => false !== strpos( $sql, 'idx_form_status_date' ) );
@@ -499,7 +499,7 @@ class ActivatorMigrationsTest extends TestCase {
 	}
 
 	public function test_upgrade_schema_is_silent_on_the_current_version(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Activator::SCHEMA_REVISION );
 		$this->wpdb->shouldNotReceive( 'query' );
 		$this->wpdb->shouldNotReceive( 'get_var' );
 		$this->wpdb->shouldNotReceive( 'get_results' );
@@ -513,7 +513,7 @@ class ActivatorMigrationsTest extends TestCase {
 		// MyISAM never completes, so the done-flag never pins; from a request
 		// the attempt is recorded and not repeated until the next version.
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_attempted_version' === $key ? FFC_VERSION : ''
+			static fn( $key, $fallback = false ) => 'ffc_foreign_keys_attempted_version' === $key ? \FreeFormCertificate\Activator::SCHEMA_REVISION : ''
 		);
 		$this->wpdb->shouldNotReceive( 'get_var' );
 		$this->wpdb->shouldNotReceive( 'get_results' );
@@ -530,7 +530,7 @@ class ActivatorMigrationsTest extends TestCase {
 
 		Activator::maybe_add_foreign_keys( true );
 
-		$this->assertSame( FFC_VERSION, $recorded['ffc_foreign_keys_attempted_version'] ?? null );
+		$this->assertSame( \FreeFormCertificate\Activator::SCHEMA_REVISION, $recorded['ffc_foreign_keys_attempted_version'] ?? null );
 		$this->assertArrayNotHasKey( 'ffc_foreign_keys_db_version', $recorded, 'An incomplete set still does not pin the done-flag.' );
 	}
 

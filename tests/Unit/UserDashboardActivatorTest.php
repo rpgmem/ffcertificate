@@ -131,7 +131,7 @@ class UserDashboardActivatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\UserDashboard\UserDashboardActivator::SCHEMA_REVISION );
 
 		// Counted rather than expect()'d: setUp already stubs both (#1699).
 		$update_option = CallLog::record( 'update_option', true );
@@ -272,7 +272,7 @@ class UserDashboardActivatorTest extends TestCase {
 	 * a step that slipped outside it would be four statements per page load.
 	 */
 	public function test_maybe_migrate_runs_no_backfill_on_a_current_install(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\UserDashboard\UserDashboardActivator::SCHEMA_REVISION );
 
 		$this->wpdb->shouldReceive( 'query' )->never();
 

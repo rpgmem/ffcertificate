@@ -25,6 +25,24 @@ class Activator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the schema steps this class runs on a request -- the core schema, the `idx_created` indexes and the user foreign keys (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_core_schema_version';
+
+	/**
 	 * Activate.
 	 *
 	 * Network activation is refused (#2343): every table, option and role is
@@ -388,17 +406,18 @@ class Activator {
 	 * An update does not fire the activation hook, so everything only
 	 * `activate()` did -- creating the submissions table, the `auth_code`
 	 * UNIQUE upgrade, the composite indexes and the user foreign keys -- never
-	 * reached an upgraded install. Gated on `FFC_VERSION` like the module
-	 * chains, so it runs once per release, not per request.
+	 * reached an upgraded install. Gated on {@see self::SCHEMA_REVISION}
+	 * (#2430), so it runs once per revision, between releases too, and never
+	 * per request.
 	 *
 	 * @return void
 	 */
 	public static function maybe_upgrade_schema(): void {
-		if ( FFC_VERSION !== get_option( 'ffc_core_schema_version', '' ) ) {
+		if ( self::SCHEMA_REVISION !== get_option( self::SCHEMA_REVISION_OPTION, '' ) ) {
 			self::create_submissions_table();
 			self::upgrade_auth_code_unique_constraints();
 			self::add_composite_indexes();
-			update_option( 'ffc_core_schema_version', FFC_VERSION, true );
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION, true );
 		}
 
 		self::maybe_add_foreign_keys( true );
@@ -407,7 +426,7 @@ class Activator {
 	/**
 	 * Idempotently add `idx_created` indexes to FFC custom tables that
 	 * order/filter on `created_at` but did not declare the index in
-	 * their CREATE TABLE statement. Runs once per `FFC_VERSION`.
+	 * their CREATE TABLE statement. Runs once per {@see self::SCHEMA_REVISION}.
 	 *
 	 * Concrete benefit:
 	 *   - `ffc_recruitment_candidate.created_at`: every admin candidate
@@ -433,7 +452,7 @@ class Activator {
 	public static function maybe_add_perf_indexes(): void {
 		$stored = get_option( 'ffc_perf_indexes_db_version', '' );
 
-		if ( FFC_VERSION === $stored ) {
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
 
@@ -450,7 +469,7 @@ class Activator {
 			}
 		}
 
-		update_option( 'ffc_perf_indexes_db_version', FFC_VERSION, true );
+		update_option( 'ffc_perf_indexes_db_version', self::SCHEMA_REVISION, true );
 	}
 
 	/**
@@ -815,7 +834,7 @@ class Activator {
 	 * @param bool $from_request Whether the call comes from a request rather than activation.
 	 */
 	public static function maybe_add_foreign_keys( bool $from_request = false ): void {
-		if ( FFC_VERSION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
+		if ( self::SCHEMA_REVISION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
 			return;
 		}
 		if ( ! class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
@@ -823,14 +842,14 @@ class Activator {
 		}
 
 		// From a request (an update applied in place, #2343) one attempt per
-		// version is enough: an install that cannot take a key (MyISAM) would
+		// revision is enough: an install that cannot take a key (MyISAM) would
 		// otherwise query information_schema on every page. Activation keeps
 		// retrying regardless, as it always did.
 		if ( $from_request ) {
-			if ( FFC_VERSION === get_option( 'ffc_foreign_keys_attempted_version', '' ) ) {
+			if ( self::SCHEMA_REVISION === get_option( 'ffc_foreign_keys_attempted_version', '' ) ) {
 				return;
 			}
-			update_option( 'ffc_foreign_keys_attempted_version', FFC_VERSION, true );
+			update_option( 'ffc_foreign_keys_attempted_version', self::SCHEMA_REVISION, true );
 		}
 
 		\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
@@ -839,7 +858,7 @@ class Activator {
 		// table missing this pass) leave the flag unset so the next activation retries.
 		$status = \FreeFormCertificate\Migrations\MigrationForeignKeys::get_status();
 		if ( ! empty( $status['is_complete'] ) ) {
-			update_option( 'ffc_foreign_keys_db_version', FFC_VERSION, true );
+			update_option( 'ffc_foreign_keys_db_version', self::SCHEMA_REVISION, true );
 		}
 	}
 

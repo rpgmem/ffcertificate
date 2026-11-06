@@ -80,7 +80,7 @@ class ActivityLogSchemaTest extends TestCase {
 	 * The release whose schema lacked both columns.
 	 *
 	 * `maybe_create_table()` runs `dbDelta` only when the stored option differs
-	 * from `DB_VERSION`, and nothing else performs an activation on an in-place
+	 * from `SCHEMA_REVISION`, and nothing else performs an activation on an in-place
 	 * update (the #1311 lesson) — so a shape change that leaves this constant
 	 * alone reaches a fresh install and no upgraded one.
 	 */
@@ -173,7 +173,7 @@ class ActivityLogSchemaTest extends TestCase {
 			$this->written_columns(),
 			'The columns `flush_buffer()` can write are not the frozen set. Either a shape'
 			. ' this scan reads was lost, or a new column joined the insert — in which case'
-			. ' declare it in create_table(), bump DB_VERSION, and add it here.'
+			. ' declare it in create_table(), bump SCHEMA_REVISION, and add it here.'
 		);
 	}
 
@@ -209,17 +209,17 @@ class ActivityLogSchemaTest extends TestCase {
 	}
 
 	/**
-	 * Declaring a column reaches an existing install only through DB_VERSION.
+	 * Declaring a column reaches an existing install only through SCHEMA_REVISION.
 	 */
 	public function test_the_schema_version_moved_past_the_release_without_those_columns(): void {
 		$ref = new \ReflectionClass( ActivityLog::class );
-		$const = $ref->getConstant( 'DB_VERSION' );
+		$const = $ref->getConstant( 'SCHEMA_REVISION' );
 
-		$this->assertIsString( $const, 'DB_VERSION is gone or is no longer a string.' );
+		$this->assertIsString( $const, 'SCHEMA_REVISION is gone or is no longer a string.' );
 		$this->assertTrue(
 			version_compare( $const, self::VERSION_WITHOUT_THE_COLUMNS, '>' ),
 			sprintf(
-				'DB_VERSION is %s, which is not past %s — the release whose CREATE lacked'
+				'SCHEMA_REVISION is %s, which is not past %s — the release whose CREATE lacked'
 				. ' context_encrypted and submission_id. maybe_create_table() only runs dbDelta'
 				. ' when the stored option differs, so an install that will never be activated'
 				. ' again would never get the columns.',

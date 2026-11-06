@@ -157,7 +157,7 @@ class RateLimitActivatorTest extends TestCase {
 		RateLimitActivator::create_tables();
 
 		$this->assertArrayHasKey( 'ffc_rate_limit_db_version', $updated_options );
-		$this->assertSame( RateLimitActivator::DB_VERSION, $updated_options['ffc_rate_limit_db_version'] );
+		$this->assertSame( RateLimitActivator::SCHEMA_REVISION, $updated_options['ffc_rate_limit_db_version'] );
 	}
 
 	/**

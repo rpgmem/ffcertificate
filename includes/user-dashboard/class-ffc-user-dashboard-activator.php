@@ -29,6 +29,24 @@ class UserDashboardActivator {
 	use DatabaseHelperTrait;
 
 	/**
+	 * Revision of the schema steps this class runs on a request (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_user_dashboard_schema_version';
+
+	/**
 	 * Run all user-dashboard activation steps.
 	 *
 	 * Called during plugin activation. Order matches the previous inline
@@ -77,9 +95,9 @@ class UserDashboardActivator {
 	 * they return early on exactly the installs that need a new column, and
 	 * `backfill_identity_index()`. Both are idempotent, so the chain is still a
 	 * no-op on an install that is current -- it costs four indexed statements
-	 * once per release, not per request.
+	 * once per revision, not per request.
 	 *
-	 * The `FFC_VERSION` gate and the write-after-body ordering carry the same
+	 * The revision gate and the write-after-body ordering carry the same
 	 * reasoning as the sibling method; see it for why a one-shot boolean is the
 	 * wrong marker (#1231).
 	 *
@@ -87,8 +105,7 @@ class UserDashboardActivator {
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		$ffc_schema_option = 'ffc_user_dashboard_schema_version';
-		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
 			return;
 		}
 
@@ -97,7 +114,7 @@ class UserDashboardActivator {
 		self::backfill_identity_index();
 		self::create_custom_fields_table();
 
-		update_option( $ffc_schema_option, FFC_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**
