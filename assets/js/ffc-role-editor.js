@@ -8,7 +8,9 @@
  * role. Pure DOM (no jQuery); reuses the .ffc-cap-* card markup/styles.
  * A role that differs from its shipped definition shows a bar with
  * "Restore role default" and a tag on each changed row (#2340); the restore
- * asks first through the plugin's dialog (`FFC.overrideConfirm`).
+ * asks first through the plugin's dialog (`FFC.overrideConfirm`), and so
+ * does granting a capability that reaches personal data, destroys records
+ * or opens the activity log.
  *
  * @since 6.9.0
  * @package FreeFormCertificate\Admin
@@ -204,6 +206,34 @@
 			});
 	}
 
+	// Granting a capability that reaches personal data, destroys records or
+	// opens the activity log asks first, naming who it reaches (#2340).
+	// Everything else, and every removal, saves at once.
+	function needsConfirm(cb) {
+		var row = cb.closest('.ffc-cap-row');
+		return !!(cb.checked && row && row.getAttribute('data-ffc-confirm') === '1'
+			&& window.FFC && typeof window.FFC.overrideConfirm === 'function');
+	}
+
+	function confirmGrant(panel, cb) {
+		var row = cb.closest('.ffc-cap-row');
+		var slug = row.getAttribute('data-ffc-cap-slug');
+		var role = (CFG.roles || {})[current] || {};
+		var desc = row.querySelector('.ffc-cap-row-desc');
+		var strings = {};
+		var base = i18n.dialog || {};
+		Object.keys(base).forEach(function (k) { strings[k] = base[k]; });
+		strings.title = fill(i18n.grantTitle, [capName(panel, slug)]);
+		strings.intro = fill(i18n.grantIntro, [role.users || 0, role.label || current]);
+		strings.agree = i18n.grantAgree || strings.agree;
+		return window.FFC.overrideConfirm({
+			strings: strings,
+			reasons: desc ? [String(desc.textContent).trim()] : [],
+			agreeCategory: 'caution',
+			agreeIcon: 'checkmark'
+		}).then(function (agreed) { return !!agreed; }, function () { return false; });
+	}
+
 	function setCollapsed(group, collapsed) {
 		group.classList.toggle('is-collapsed', collapsed);
 		var header = group.querySelector('.ffc-cap-group-h');
@@ -247,7 +277,18 @@
 
 		panel.querySelectorAll('.ffc-role-cap').forEach(function (cb) {
 			cb.addEventListener('change', function () {
-				if (CFG.ajaxUrl) { persist(panel, cb); }
+				if (!CFG.ajaxUrl) { return; }
+				if (!needsConfirm(cb)) {
+					persist(panel, cb);
+					return;
+				}
+				confirmGrant(panel, cb).then(function (agreed) {
+					if (agreed) {
+						persist(panel, cb);
+					} else {
+						cb.checked = false;
+					}
+				});
 			});
 		});
 

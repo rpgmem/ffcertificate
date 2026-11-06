@@ -83,7 +83,6 @@ final class CoreButtonClasses {
 	 * added only for a file that does print one on purpose.
 	 */
 	public const EXCLUDED = array(
-		'includes/admin/class-ffc-admin-user-capabilities.php' => 'core screen: the capability grid on profile.php / user-edit.php, where the buttons around it are WordPress\'s own',
 		'includes/admin/class-ffc-admin-user-columns.php'      => 'core screen: the "View as user" link in the users.php list, beside core\'s row actions',
 		'includes/admin/class-ffc-admin-user-custom-fields.php' => 'core screen: the plugin\'s fields on profile.php / user-edit.php, beside core\'s own buttons',
 		'includes/date-messages/class-ffc-unsubscribe.php'     => 'a wp_die() page: no plugin stylesheet loads there, and wp_die\'s own CSS is what styles .button',

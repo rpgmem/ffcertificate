@@ -448,3 +448,63 @@ describe('difference from the default', () => {
 		expect(document.querySelector('.ffc-role-diff').hidden).toBe(false);
 	});
 });
+
+describe('granting a powerful capability (#2340)', () => {
+	function powerfulSetup(fetchMock, answer) {
+		setup(fetchMock);
+		window.ffcRoleEditor.roles = { ffc_end_user: { label: 'FFC End User', users: 7 } };
+		window.ffcRoleEditor.i18n.grantTitle = 'Grant "%s"?';
+		window.ffcRoleEditor.i18n.grantIntro = '%1$d people hold %2$s. Each of them will be able to:';
+		window.ffcRoleEditor.i18n.grantAgree = 'Grant';
+		const target = document.querySelector('[data-ffc-cap-slug="cap_b"]');
+		target.setAttribute('data-ffc-confirm', '1');
+		target.querySelector('div').insertAdjacentHTML('beforeend', '<span class="ffc-cap-row-desc">Reveal the CPF.</span>');
+		window.FFC = window.FFC || {};
+		const confirmSpy = vi.fn(() => Promise.resolve(answer));
+		window.FFC.overrideConfirm = confirmSpy;
+		return confirmSpy;
+	}
+
+	it('asks first, naming the capability, the role and how many people hold it, then saves', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		const confirmSpy = powerfulSetup(fetchMock, true);
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+
+		expect(fetchMock).not.toHaveBeenCalled();
+		const opts = confirmSpy.mock.calls[0][0];
+		expect(opts.strings.title).toBe('Grant "cap_b"?');
+		expect(opts.strings.intro).toBe('7 people hold FFC End User. Each of them will be able to:');
+		expect(opts.reasons).toEqual(['Reveal the CPF.']);
+		expect(opts.agreeCategory).toBe('caution');
+
+		await new Promise((r) => setTimeout(r, 0));
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0][1].body).toContain('grant=1');
+	});
+
+	it('puts the toggle back and saves nothing when the dialog is cancelled', async () => {
+		const fetchMock = vi.fn();
+		powerfulSetup(fetchMock, false);
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(cb.checked).toBe(false);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('removes a powerful capability without asking', () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		const confirmSpy = powerfulSetup(fetchMock, true);
+		document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap').checked = true;
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = false;
+		cb.dispatchEvent(new Event('change'));
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+});

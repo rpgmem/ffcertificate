@@ -4435,10 +4435,6 @@ msgstr ""
 msgid "Copy shortcode"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-capabilities.php:485
-msgid "Copy slug"
-msgstr ""
-
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:36
 msgid "Copy this Shortcode:"
 msgstr ""
@@ -7195,6 +7191,54 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "Roles and capabilities"
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "At the bottom of the tab, FFC Roles & Capabilities edits what each FFC role grants, for everyone holding it, as you toggle. Only administrators see it. Granting a capability that reaches personal data, deletes records or opens the activity log asks first, naming how many people hold the role; removing one saves at once. A role that differs from what the plugin ships shows what changed and offers Restore role default."
+msgstr ""
+
+#: includes/settings/views/documentation/config-user-access.php
+msgid "On a person's profile, FFC Permissions shows for anyone holding an FFC role or an FFC capability. The role buttons save as soon as you click them; the capability switches save with Update Profile. A switch a role grants is locked on, with the role that grants it named beside it. Grant all names the capabilities it would add that reach personal data or delete records, and asks first."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php
+msgid "Only administrators can edit roles, because a role change reaches everyone who holds it. Ask an administrator, or change a single person's capabilities on their profile."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php
+msgid "Grant \"%s\"?"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php
+msgid "%1$d people hold %2$s. Each of them will be able to:"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php
+msgid "Grant"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php
+msgid "The role buttons above save as soon as you click them. The capability switches below, like the rest of the profile, save with Update Profile."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php
+msgid "From the role %s. To remove it, change the role or edit the role itself."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php
+msgid "Grant all %1$d capabilities to %2$s?"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php
+msgid "Some of them reach personal data or delete records:"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php
+msgid "Grant all %d"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php

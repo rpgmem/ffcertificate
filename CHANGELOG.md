@@ -68,6 +68,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: an entry's details read as a few named values** (#2340). Actions without a summary of their own list their first values, masked, above View Details; a very long record is cut on screen, and the CSV keeps it whole.
 - **Capabilities read as what they do** (#2340). Groups take the module names (Certificates - Forms, Personal Calendars - Bookings / Setup, Audience Calendars, FFC Settings); every Manage description says what it adds over View; each capability carries its band (Read, Act, Personal data, Change, Override, Destructive) in words; no issue number is shown to an operator, and a guard keeps it so.
 - **Capability migrations wait for `init`** (#2340). They register roles, whose labels are translated, so they ran before WordPress loads translations; the date-messages send and delete seeds are now followed when a role tier is trimmed.
+- **Granting a powerful capability asks first** (#2340). In the role editor, granting a capability that reaches personal data, deletes records or opens the activity log names the role and how many people hold it; Grant all on a profile lists those it would add. Only administrators see the role editor; the profile says what saves when, names the role behind a locked switch, and shows for anyone with an FFC role.
 
 ### Security
 

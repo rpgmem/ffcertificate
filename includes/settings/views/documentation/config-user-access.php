@@ -42,4 +42,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<p><?php esc_html_e( 'Independently of the settings above, an account whose roles are all FFC operator roles (a module viewer, operator, manager or administrator, or FFC Read-only) sees a scoped wp-admin: the core menus it has no use for (Posts, Comments, Tools, Plugins and the like) are hidden, the admin bar is pruned, and opening an admin page outside its module redirects to the module\'s own screen. Its profile, the dashboard home and the AJAX endpoints stay reachable.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'An account that also holds a non-FFC role — an Editor who was given an FFC role, for example — keeps the whole of wp-admin, and administrators (manage_options) are never scoped. This is a convenience, not the security boundary: every FFC screen and action still checks its capability.', 'ffcertificate' ); ?></p>
 	</div>
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Roles and capabilities', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'At the bottom of the tab, FFC Roles & Capabilities edits what each FFC role grants, for everyone holding it, as you toggle. Only administrators see it. Granting a capability that reaches personal data, deletes records or opens the activity log asks first, naming how many people hold the role; removing one saves at once. A role that differs from what the plugin ships shows what changed and offers Restore role default.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'On a person\'s profile, FFC Permissions shows for anyone holding an FFC role or an FFC capability. The role buttons save as soon as you click them; the capability switches save with Update Profile. A switch a role grants is locked on, with the role that grants it named beside it. Grant all names the capabilities it would add that reach personal data or delete records, and asks first.', 'ffcertificate' ); ?></p>
+	</div>
 </div>

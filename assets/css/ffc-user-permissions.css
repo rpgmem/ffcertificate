@@ -295,20 +295,6 @@
 	border: 1px solid var(--ffc-border);
 }
 
-.ffc-cap-copy {
-	border: 0;
-	background: none;
-	padding: 0;
-	cursor: pointer;
-	font-size: var(--ffc-font-size-xs);
-	line-height: 1;
-	color: var(--ffc-text-muted);
-}
-
-.ffc-cap-copy:hover {
-	color: var(--ffc-text);
-}
-
 /* ---- origin badge ---------------------------------------------------- */
 .ffc-cap-origin {
 	align-self: center;
@@ -608,6 +594,14 @@
 .ffc-cap-row[data-ffc-tier="purge"]    { --ffc-tier-strength: 1; }
 .ffc-cap-row[data-ffc-tier="merge"]    { --ffc-tier-strength: 1; }
 .ffc-cap-row[data-ffc-tier="split"]    { --ffc-tier-strength: 1; }
+
+/* Why a role-granted switch is locked (#2340). */
+.ffc-cap-why {
+	display: block;
+	margin-top: var(--ffc-spacing-2xs);
+	color: var(--ffc-warning-text);
+	font-size: var(--ffc-font-size-xs);
+}
 
 /* The tier in words beside the name, so it is not read from the accent's
    strength alone (#2340). The destructive and override bands take a tone;

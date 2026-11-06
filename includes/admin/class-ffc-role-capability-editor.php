@@ -61,7 +61,7 @@ final class RoleCapabilityEditor {
 			return;
 		}
 		$tab = RequestInput::get_get_key( 'tab' );
-		if ( 'user_access' !== $tab ) {
+		if ( 'user_access' !== $tab || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
@@ -111,6 +111,11 @@ final class RoleCapabilityEditor {
 			'comesBack'    => __( '%s comes back', 'ffcertificate' ),
 			/* translators: %s: capability name */
 			'isRemoved'    => __( '%s is removed', 'ffcertificate' ),
+			/* translators: %s: capability name */
+			'grantTitle'   => __( 'Grant "%s"?', 'ffcertificate' ),
+			/* translators: 1: number of people holding the role, 2: role name */
+			'grantIntro'   => __( '%1$d people hold %2$s. Each of them will be able to:', 'ffcertificate' ),
+			'grantAgree'   => __( 'Grant', 'ffcertificate' ),
 			'dialog'       => array(
 				'seconds' => \FreeFormCertificate\Core\ConfirmCountdown::NONE,
 				'title'   => __( 'Restore the default capabilities?', 'ffcertificate' ),
@@ -203,12 +208,32 @@ final class RoleCapabilityEditor {
 	}
 
 	/**
+	 * Why someone without manage_options cannot edit a role (#2340): shown
+	 * in place of the editor, and as the message of a refused request.
+	 *
+	 * @return string Plain text.
+	 */
+	public static function admin_only_message(): string {
+		return __( 'Only administrators can edit roles, because a role change reaches everyone who holds it. Ask an administrator, or change a single person\'s capabilities on their profile.', 'ffcertificate' );
+	}
+
+	/**
 	 * Render the editor (included from the User Access tab view, after the
 	 * settings form so it is not part of that form's submit).
 	 *
 	 * @return void
 	 */
 	public static function render(): void {
+		// A role change reaches everyone holding the role, so only an
+		// administrator edits one; anyone else is told why (#2340).
+		if ( ! current_user_can( 'manage_options' ) ) {
+			echo '<div class="card">';
+			echo '<h2 class="ffc-icon-shield">' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
+			\FreeFormCertificate\Core\AdminNotice::callout( 'error', esc_html( self::admin_only_message() ) );
+			echo '</div>';
+			return;
+		}
+
 		$roles = self::editable_roles();
 
 		// Its own card, like every section of a Settings tab (#1631); it sits
@@ -313,6 +338,7 @@ final class RoleCapabilityEditor {
 						'id'          => 'ffc_role_cap_' . $slug,
 						'checked'     => $on,
 						'label'       => '',
+						'aria_label'  => (string) $meta['label'],
 						'input_class' => 'ffc-role-cap',
 						'data'        => array( 'ffc-cap-slug' => (string) $slug ),
 					)
@@ -321,7 +347,7 @@ final class RoleCapabilityEditor {
 				$desc          = (string) $meta['description'];
 				$surface_badge = CapabilityCatalog::surface_badge_html( $meta );
 				$rows         .= sprintf(
-					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s">'
+					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s" data-ffc-confirm="%9$s">'
 						. '<div class="ffc-cap-row-toggle">%3$s</div>'
 						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>%8$s'
 						. '<span class="ffc-cap-row-desc">%5$s</span>'
@@ -336,7 +362,8 @@ final class RoleCapabilityEditor {
 					esc_html( $desc ),
 					$surface_badge,
 					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) ),
-					CapabilityCatalog::tier_chip( (string) $slug )
+					CapabilityCatalog::tier_chip( (string) $slug ),
+					CapabilityCatalog::needs_grant_confirmation( (string) $slug ) ? '1' : '0'
 				);
 			}
 
@@ -371,7 +398,7 @@ final class RoleCapabilityEditor {
 		check_ajax_referer( 'ffc_set_role_cap', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+			wp_send_json_error( array( 'message' => self::admin_only_message() ), 403 );
 		}
 
 		$role_slug = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
@@ -442,7 +469,7 @@ final class RoleCapabilityEditor {
 		check_ajax_referer( 'ffc_set_role_cap', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+			wp_send_json_error( array( 'message' => self::admin_only_message() ), 403 );
 		}
 
 		$role_slug = sanitize_key( RequestInput::get_post_string( 'role' ) );

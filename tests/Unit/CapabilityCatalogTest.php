@@ -265,6 +265,16 @@ class CapabilityCatalogTest extends TestCase {
 		}
 	}
 
+	public function test_granting_asks_first_for_personal_data_destruction_and_the_activity_log(): void {
+		// An export sits in the Personal data band: it takes records out in bulk.
+		foreach ( array( 'ffc_view_certificates_pii', 'ffc_export_certificates', 'ffc_delete_certificates', 'ffc_purge_appointments', 'ffc_merge_identities', 'ffc_view_activity_log', 'ffc_export_activity_log' ) as $slug ) {
+			$this->assertTrue( CapabilityCatalog::needs_grant_confirmation( $slug ), $slug );
+		}
+		foreach ( array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_bypass_appointments', 'ffc_book_appointments' ) as $slug ) {
+			$this->assertFalse( CapabilityCatalog::needs_grant_confirmation( $slug ), $slug );
+		}
+	}
+
 	public function test_the_tier_is_written_out_beside_the_name(): void {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
