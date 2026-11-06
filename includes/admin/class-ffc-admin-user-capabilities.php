@@ -661,10 +661,19 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Process each capability.
+		// Process each capability, noting what really changes for the audit.
+		$granted = array();
+		$revoked = array();
 		foreach ( $all_capabilities as $cap ) {
 			$field_name = 'ffc_cap_' . $cap;
 			$grant      = isset( $_POST[ $field_name ] ) && '1' === $_POST[ $field_name ];
+			$held       = ! empty( $user->caps[ $cap ] );
+
+			if ( $grant && ! $held ) {
+				$granted[] = $cap;
+			} elseif ( ! $grant && isset( $user->caps[ $cap ] ) ) {
+				$revoked[] = $cap;
+			}
 
 			if ( $grant ) {
 				$user->add_cap( $cap, true );
@@ -689,6 +698,17 @@ class AdminUserCapabilities {
 			}
 		}
 		self::sync_audience_membership( $user_id, $submitted_audiences );
+
+		if ( array() !== $granted || array() !== $revoked ) {
+			self::log_permission_change(
+				'user_capabilities_changed',
+				array(
+					'target_user_id' => $user_id,
+					'granted'        => $granted,
+					'revoked'        => $revoked,
+				)
+			);
+		}
 
 		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -749,6 +769,17 @@ class AdminUserCapabilities {
 		}
 		foreach ( $to_remove as $audience_id ) {
 			\FreeFormCertificate\Audience\AudienceWriter::remove_member( (int) $audience_id, $user_id );
+		}
+
+		if ( ! empty( $to_add ) || ! empty( $to_remove ) ) {
+			self::log_permission_change(
+				'user_audiences_changed',
+				array(
+					'target_user_id' => $user_id,
+					'added'          => array_map( 'intval', array_values( $to_add ) ),
+					'removed'        => array_map( 'intval', array_values( $to_remove ) ),
+				)
+			);
 		}
 
 		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -816,10 +847,21 @@ class AdminUserCapabilities {
 			wp_send_json_error( array( 'message' => 'role_not_assignable' ), 400 );
 		}
 
+		$had = in_array( $role, (array) $user->roles, true );
 		if ( $assign ) {
 			$user->add_role( $role );
 		} else {
 			$user->remove_role( $role );
+		}
+		if ( $had !== $assign ) {
+			self::log_permission_change(
+				'user_role_changed',
+				array(
+					'target_user_id' => $user_id,
+					'role'           => $role,
+					'assigned'       => $assign ? 1 : 0,
+				)
+			);
 		}
 
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -1012,6 +1054,23 @@ class AdminUserCapabilities {
 	}
 
 	/**
+	 * Write a Permissions entry to the activity log (#2340): who changed
+	 * whose access, and what. Best effort: the access has already changed,
+	 * so a log that cannot be written must not fail the save.
+	 *
+	 * @param string               $action  Activity-log action.
+	 * @param array<string, mixed> $context Target and change.
+	 * @return void
+	 */
+	private static function log_permission_change( string $action, array $context ): void {
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log( $action, \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING, $context, get_current_user_id() );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+	}
+
+	/**
 	 * Take off the FFC roles the editor chose to remove with a role change
 	 * (#2340), whichever survived core's save, and record it.
 	 *
@@ -1030,20 +1089,13 @@ class AdminUserCapabilities {
 				$user->remove_role( $role );
 			}
 		}
-		try {
-			\FreeFormCertificate\Core\ActivityLog::log(
-				'user_ffc_roles_removed',
-				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
-				array(
-					'target_user_id' => $user_id,
-					'roles'          => $roles,
-				),
-				get_current_user_id()
-			);
-		} catch ( \Throwable $e ) {
-			// Best effort: the roles have already changed.
-			unset( $e );
-		}
+		self::log_permission_change(
+			'user_ffc_roles_removed',
+			array(
+				'target_user_id' => $user_id,
+				'roles'          => $roles,
+			)
+		);
 	}
 
 	/**

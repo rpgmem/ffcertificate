@@ -233,6 +233,9 @@ class AdminActivityLogPage {
 			'role_capability_changed'                      => __( 'Role Capability Changed', 'ffcertificate' ),
 			'role_default_restored'                        => __( 'Role Default Restored', 'ffcertificate' ),
 			'user_ffc_roles_removed'                       => __( 'FFC Roles Removed with a Role Change', 'ffcertificate' ),
+			'user_role_changed'                            => __( 'User FFC Role Changed', 'ffcertificate' ),
+			'user_capabilities_changed'                    => __( 'User Capabilities Changed', 'ffcertificate' ),
+			'user_audiences_changed'                       => __( 'User Audiences Changed', 'ffcertificate' ),
 			// Public Operator Access (#224) — early-open + ticket cleanup.
 			'early_open_executed'                          => __( 'Form Started Early', 'ffcertificate' ),
 			'tickets_purged_expired'                       => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),

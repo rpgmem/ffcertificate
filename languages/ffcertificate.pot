@@ -7197,6 +7197,18 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:236
+msgid "User FFC Role Changed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:237
+msgid "User Capabilities Changed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:238
+msgid "User Audiences Changed"
+msgstr ""
+
 #: includes/admin/class-ffc-admin-user-capabilities.php:959
 msgid "%s also holds FFC roles:"
 msgstr ""
