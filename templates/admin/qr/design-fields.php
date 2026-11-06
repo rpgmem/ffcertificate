@@ -183,19 +183,34 @@ $ffc_qr_tiles( 'qr_design_eye_ball', 'eye_ball', __( 'Corner centre', 'ffcertifi
 				$ffc_qr_color( 'qr_design_background', __( 'Background colour', 'ffcertificate' ), $ffc_qr_design->background );
 				?>
 				<div class="ffc-qr-field">
-					<span class="ffc-qr-field__label"><?php esc_html_e( 'Transparent background', 'ffcertificate' ); ?></span>
-					<label class="ffc-qr-field__check">
-						<input type="checkbox" name="<?php echo esc_attr( $ffc_qr_name( 'qr_design_transparent' ) ); ?>" id="qr_design_transparent" value="1" <?php checked( $ffc_qr_design->transparent ); ?> data-ffc-qr-design="qr_design_transparent">
-						<?php esc_html_e( 'Draw no background, for placing the code on a coloured surface', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => $ffc_qr_name( 'qr_design_transparent' ),
+							'id'          => 'qr_design_transparent',
+							'checked'     => $ffc_qr_design->transparent,
+							'label'       => __( 'Transparent background', 'ffcertificate' ),
+							'description' => __( 'Draw no background, for placing the code on a coloured surface.', 'ffcertificate' ),
+							'data'        => array( 'ffc-qr-design' => 'qr_design_transparent' ),
+						)
+					);
+					?>
 				</div>
 			</div>
 			<div class="ffc-qr-fields">
 				<div class="ffc-qr-field">
-					<label class="ffc-qr-field__check">
-						<input type="checkbox" name="<?php echo esc_attr( $ffc_qr_name( 'qr_design_gradient' ) ); ?>" id="qr_design_gradient" value="1" <?php checked( $ffc_qr_gradient ); ?> data-ffc-qr-design="qr_design_gradient">
-						<?php esc_html_e( 'Blend the modules diagonally into a second colour', 'ffcertificate' ); ?>
-					</label>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_toggle(
+						array(
+							'name'        => $ffc_qr_name( 'qr_design_gradient' ),
+							'id'          => 'qr_design_gradient',
+							'checked'     => $ffc_qr_gradient,
+							'label'       => __( 'Gradient', 'ffcertificate' ),
+							'description' => __( 'Blend the modules diagonally into a second colour.', 'ffcertificate' ),
+							'data'        => array( 'ffc-qr-design' => 'qr_design_gradient' ),
+						)
+					);
+					?>
 				</div>
 				<?php $ffc_qr_color( 'qr_design_color_end', __( 'Gradient end colour', 'ffcertificate' ), $ffc_qr_color_end ); ?>
 			</div>

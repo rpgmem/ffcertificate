@@ -252,7 +252,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 100, $data['usage']['percent'] );
 		$this->assertSame( 0, $data['usage']['remaining'] );
 		$this->assertSame( 1400 - 1268, $data['usage']['over'], 'H holds 1268 plain characters.' );
-		$this->assertSame( 'This content is about 132 characters too long for error correction H. Shorten it, or lower the level.', $data['message'] );
+		$this->assertSame( 'This content is about 132 bytes too long for error correction H (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', $data['message'] );
 	}
 
 	/**

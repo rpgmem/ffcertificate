@@ -55,8 +55,19 @@
 			this.hidden = $(this).attr('data-ffc-qr-type') !== type;
 		});
 		showWifiEnterprise($form);
+		showEventUntil($form);
 		showShort($form);
 		$('#ffc-qr-vcf').prop('hidden', type !== 'vcard');
+	}
+
+	/**
+	 * Show "Link valid until" only for the calendar file: the other event
+	 * modes carry no link that could expire.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function showEventUntil($form) {
+		$form.find('[data-ffc-qr-event-until]').prop('hidden', String($form.find('#ffc-qr-event-mode').val() || '') !== 'ics');
 	}
 
 	/**
@@ -425,27 +436,20 @@
 	}
 
 	/**
-	 * One status line: the most serious problem, or "readable".
+	 * Every scan problem at once, or "readable" (the shared list plus a dense
+	 * code).
 	 *
 	 * @param {jQuery} $out   Status element.
 	 * @param {Object} data   Response data.
+	 * @param {string} margin The margin field's value.
 	 */
-	function showStatus($out, data) {
-		var checks = data.checks || {};
+	function showStatus($out, data, margin) {
 		var usage = data.usage || {};
-		if (checks.inverted) {
-			window.FFC.status($out, 'error', i18n.inverted || '');
-		} else if (checks.transparent) {
-			window.FFC.status($out, 'warning', i18n.transparent || '');
-		} else if (checks.caption_contrast === false) {
-			window.FFC.status($out, 'warning', i18n.captionContrast || '');
-		} else if (checks.low_contrast) {
-			window.FFC.status($out, 'warning', fill(i18n.lowContrast, [checks.min_ratio]));
-		} else if (usage.dense) {
-			window.FFC.status($out, 'warning', fill(i18n.dense, [usage.version]));
-		} else {
-			window.FFC.status($out, 'success', i18n.ok || '');
+		var list = window.FFC.QrDesign.problems(data.checks || {}, margin, i18n);
+		if (usage.dense) {
+			list.push({ state: 'warning', text: fill(i18n.dense, [usage.version]) });
 		}
+		window.FFC.QrDesign.showProblems($out, list, i18n);
 	}
 
 	/**
@@ -473,7 +477,7 @@
 				$usage.text(usage.forced
 					? fill(i18n.usageForced, [usage.percent, usage.remaining])
 					: fill(i18n.usage, [usage.percent, usage.remaining, usage.level]));
-				showStatus($status, data);
+				showStatus($status, data, String($form.find('#qr_default_margin').val() || ''));
 				$buttons.prop('disabled', false);
 				$('#ffc-qr-vcf').prop('disabled', !data.payload);
 			})
@@ -624,6 +628,9 @@
 		});
 		$form.on('change', '[data-ffc-qr-field="wifi:security"]', function () {
 			showWifiEnterprise($form);
+		});
+		$form.on('change', '#ffc-qr-event-mode', function () {
+			showEventUntil($form);
 		});
 
 		// Size applies to the PNG only: an SVG has no pixels to choose.

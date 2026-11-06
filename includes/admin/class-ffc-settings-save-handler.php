@@ -738,9 +738,11 @@ class SettingsSaveHandler {
 		$clean['url_shortener_previous_prefixes'] = $previous;
 
 		if ( $prefix !== $old_prefix ) {
-			// Flush rewrite rules when prefix changes.
+			// Forgetting the flag makes the next request flush once, after
+			// `init` has registered the NEW prefix's rule. A flush here, at
+			// shutdown of this request, would write the old prefix's rule,
+			// which is the one registered now (#2337).
 			delete_option( 'ffc_url_shortener_rewrite_version' );
-			add_action( 'shutdown', 'flush_rewrite_rules' );
 			add_settings_error(
 				'ffc_settings',
 				'ffc_short_url_prefix_changed',

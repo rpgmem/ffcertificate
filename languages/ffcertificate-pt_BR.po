@@ -4851,8 +4851,8 @@ msgid "Create reusable locations shared by every form. Each has a name, latitude
 msgstr "Crie locais reutilizáveis ​​compartilhados por todos os formulários. Cada um possui nome, latitude, longitude, raio (em metros) e sinalizadores opcionais de \"padrão para GPS\" ou \"padrão para IP\" — um novo formulário seleciona automaticamente os padrões. A edição de um local atualiza todos os formulários que o referenciam."
 
 #: includes/settings/views/ffc-tab-url-shortener.php:176
-msgid "Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick \"Expose\" above to publish them as shortlinks."
-msgstr "Crie URLs curtas para posts já publicados (dos tipos de post configurados para encurtamento) que ainda não as possuem. O processo é executado em segundo plano, em lotes; é seguro deixá-lo em execução. Isso apenas cria as URLs curtas — marque a opção \"Expor\" acima para publicá-las como links curtos."
+msgid "Create short URLs for already-published posts of the saved shortened post types that do not have one yet. Runs in batches while this page stays open: leaving it stops the run, and running it again picks up the pages still missing one. This only creates the short URLs — turn on \"Expose\" above to publish them as shortlinks."
+msgstr "Cria URLs curtas para os posts já publicados dos tipos de post salvos para encurtamento que ainda não têm uma. É executado em lotes enquanto esta página fica aberta: sair dela interrompe o processo, e executá-lo de novo continua pelas páginas que ainda não têm uma. Isso apenas cria as URLs curtas — ative \"Expor\" acima para publicá-las como links curtos."
 
 #: includes/audience/class-ffc-audience-admin-import.php:126
 #| msgid "Create users if they do not exist (with ffc_user role)"
@@ -7238,6 +7238,42 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Done. Every page already had a short URL."
+msgstr "Concluído. Todas as páginas já tinham uma URL curta."
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Done. 1 short URL created."
+msgstr "Concluído. 1 URL curta criada."
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Save the settings first: the missing short URLs are created for the post types that are saved."
+msgstr "Salve as configurações primeiro: as URLs curtas que faltam são criadas para os tipos de post salvos."
+
+#: includes/settings/views/ffc-tab-url-shortener.php
+msgid "Shorten %s"
+msgstr "Encurtar %s"
+
+#: includes/settings/views/ffc-tab-url-shortener.php
+msgid "Expose %s"
+msgstr "Expor %s"
+
+#: templates/admin/qr/design-fields.php
+msgid "Gradient"
+msgstr "Gradiente"
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "The frame caption is hard to read on this dark background; pick a lighter frame colour."
+msgstr "A legenda da moldura fica difícil de ler neste fundo escuro; escolha uma cor de moldura mais clara."
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "Margin 0: many readers need a clear border around the code."
+msgstr "Margem 0: muitos leitores precisam de uma borda livre em volta do código."
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "May not scan well:"
+msgstr "Pode não ler bem:"
 
 #: templates/admin/url-shortener/short-urls-page.php:295
 msgid "Copy %s"
@@ -15567,8 +15603,8 @@ msgid "Short URLs"
 msgstr "URLs Curtas"
 
 #: includes/settings/tabs/class-ffc-tab-url-shortener.php:67
-msgid "short URLs created."
-msgstr "URLs curtas criadas."
+msgid "Done. %d short URLs created."
+msgstr "Concluído. %d URLs curtas criadas."
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:284
 msgid "Short URLs linked to a post or page are not editable — their destination follows the page."
@@ -21917,8 +21953,8 @@ msgstr "Aplicar o design em"
 msgid "Background colour"
 msgstr "Cor de fundo"
 
-msgid "Blend the modules diagonally into a second colour"
-msgstr "Mesclar os módulos na diagonal com uma segunda cor"
+msgid "Blend the modules diagonally into a second colour."
+msgstr "Mescla os módulos na diagonal com uma segunda cor."
 
 msgid "Circle"
 msgstr "Círculo"
@@ -22181,8 +22217,8 @@ msgstr "Este link de evento expirou."
 msgid "Link valid until"
 msgstr "Link válido até"
 
-msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
-msgstr "Somente para o arquivo de calendário. Deixe vazio para um link que nunca expira — um código impresso continua funcionando. Depois desta data, o link responde que expirou."
+msgid "Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgstr "Deixe vazio para um link que nunca expira — um código impresso continua funcionando. Depois desta data, o link responde que expirou."
 
 msgid "Reset to default"
 msgstr "Restaurar padrão"
@@ -22247,8 +22283,8 @@ msgstr "Cantos chanfrados"
 msgid "Dotted"
 msgstr "Pontilhado"
 
-msgid "Draw no background, for placing the code on a coloured surface"
-msgstr "Não desenhar fundo, para aplicar o código sobre uma superfície colorida"
+msgid "Draw no background, for placing the code on a coloured surface."
+msgstr "Não desenha fundo, para aplicar o código sobre uma superfície colorida."
 
 msgid "Flower"
 msgstr "Flor"
@@ -23131,17 +23167,17 @@ msgstr "Informe o usuário da rede Enterprise."
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr "O Android salva a rede pelo código, mas deixa o certificado de CA sem seleção, então ela ainda não conecta: abra a rede salva, em Certificado de CA escolha \"Confiar no primeiro uso\" (ou \"Não validar\") e conecte. A câmera do iPhone não lê códigos de rede Enterprise; no iPhone os dados são digitados."
 
-msgid "%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two)."
-msgstr "%1$d%% ocupado: cabem cerca de %2$d caracteres a mais na correção de erros %3$s (uma letra acentuada conta como duas)."
+msgid "%1$d%% full: about %2$d more bytes fit at error correction %3$s (a plain letter is one byte, an accented one two)."
+msgstr "%1$d%% ocupado: cabem cerca de %2$d bytes a mais na correção de erros %3$s (uma letra simples ocupa um byte; uma acentuada, dois)."
 
-msgid "%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two)."
-msgstr "%1$d%% ocupado: cabem cerca de %2$d caracteres a mais na correção de erros H, exigida pelo logotipo (uma letra acentuada conta como duas)."
+msgid "%1$d%% full: about %2$d more bytes fit at error correction H, which the logo requires (a plain letter is one byte, an accented one two)."
+msgstr "%1$d%% ocupado: cabem cerca de %2$d bytes a mais na correção de erros H, exigida pelo logotipo (uma letra simples ocupa um byte; uma acentuada, dois)."
 
-msgid "This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content."
-msgstr "Este conteúdo tem cerca de %d caracteres a mais. O logotipo exige a correção de erros H, a que comporta menos; remova o logotipo ou encurte o conteúdo."
+msgid "This content is about %d bytes too long (a plain letter is one byte, an accented one two). The logo requires error correction H, which holds the least; remove the logo or shorten the content."
+msgstr "Este conteúdo passa cerca de %d bytes do limite (uma letra simples ocupa um byte; uma acentuada, dois). O logotipo exige a correção de erros H, a que comporta menos; remova o logotipo ou encurte o conteúdo."
 
-msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
-msgstr "Este conteúdo tem cerca de %1$d caracteres a mais para a correção de erros %2$s. Encurte-o ou reduza o nível."
+msgid "This content is about %1$d bytes too long for error correction %2$s (a plain letter is one byte, an accented one two). Shorten it, or lower the level."
+msgstr "Este conteúdo passa cerca de %1$d bytes do limite da correção de erros %2$s (uma letra simples ocupa um byte; uma acentuada, dois). Encurte-o ou reduza o nível."
 
 msgid "(no title)"
 msgstr "(sem título)"

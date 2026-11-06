@@ -153,10 +153,16 @@ class QrDesignTest extends TestCase {
 				'low_contrast' => false,
 				'min_ratio'    => 21.0,
 				'caption_contrast' => true,
+				'caption_lighter'  => false,
 				'transparent'      => false,
 			),
 			QrDesign::plain()->scan_checks()
 		);
+	}
+
+	public function test_caption_advice_follows_the_ground(): void {
+		$this->assertFalse( ( new QrDesign( array( 'background' => '#ffffff' ) ) )->scan_checks()['caption_lighter'] );
+		$this->assertTrue( ( new QrDesign( array( 'background' => '#101010', 'color' => '#ffffff' ) ) )->scan_checks()['caption_lighter'] );
 	}
 
 	public function test_scan_checks_flag_an_inverted_code(): void {

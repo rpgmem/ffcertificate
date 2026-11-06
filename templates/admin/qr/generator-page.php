@@ -165,7 +165,18 @@ $ffc_qr_vcard_fields = array(
 						</tr>
 						<tr>
 							<th scope="row"><?php esc_html_e( 'Hidden network', 'ffcertificate' ); ?></th>
-							<td><label><input type="checkbox" value="1" data-ffc-qr-field="wifi:hidden"> <?php esc_html_e( 'The network does not broadcast its name', 'ffcertificate' ); ?></label></td>
+							<td>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'  => 'ffc_qr_wifi_hidden',
+										'id'    => 'ffc-qr-wifi-hidden',
+										'label' => __( 'The network does not broadcast its name', 'ffcertificate' ),
+										'data'  => array( 'ffc-qr-field' => 'wifi:hidden' ),
+									)
+								);
+								?>
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -342,11 +353,11 @@ $ffc_qr_vcard_fields = array(
 								</select>
 							</td>
 						</tr>
-						<tr>
+						<tr data-ffc-qr-event-until hidden>
 							<th scope="row"><label for="ffc-qr-event-until"><?php esc_html_e( 'Link valid until', 'ffcertificate' ); ?></label></th>
 							<td>
 								<input type="date" id="ffc-qr-event-until" data-ffc-qr-field="event:until">
-								<p class="description"><?php esc_html_e( 'Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired.', 'ffcertificate' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 					</tbody>
@@ -396,7 +407,7 @@ $ffc_qr_vcard_fields = array(
 				<h2 class="ffc-qr-generator__panel-title ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
-				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status ffc-status" role="status" aria-live="polite" hidden></p>
+				<div id="ffc-qr-generator-status" class="ffc-qr-generator__status ffc-status" role="status" aria-live="polite" hidden></div>
 				<div class="ffc-qr-generator__export">
 					<div class="ffc-qr-field">
 						<label class="ffc-qr-field__label" for="ffc-qr-format"><?php esc_html_e( 'Format', 'ffcertificate' ); ?></label>

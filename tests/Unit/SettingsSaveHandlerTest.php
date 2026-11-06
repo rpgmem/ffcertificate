@@ -986,7 +986,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertFalse( $deleted );
 	}
 
-	public function test_url_shortener_prefix_changed_triggers_flush(): void {
+	public function test_url_shortener_prefix_changed_triggers_one_flush_with_the_new_prefix(): void {
 		$this->stub_prefix_save();
 		$deleted = false;
 		Functions\when( 'delete_option' )->alias( function ( $key ) use ( &$deleted ) {
@@ -995,7 +995,10 @@ class SettingsSaveHandlerTest extends TestCase {
 			}
 			return true;
 		} );
-		Functions\expect( 'add_action' )->once()->with( 'shutdown', 'flush_rewrite_rules' );
+		// No flush in this request, where the old prefix's rule is the one
+		// registered: the next request's init flushes once with the new one.
+		Functions\expect( 'add_action' )->never();
+		Functions\expect( 'flush_rewrite_rules' )->never();
 		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'link' ) ) );
 		$this->assertSame( 'link', $result['url_shortener_prefix'] );
 		$this->assertTrue( $deleted );

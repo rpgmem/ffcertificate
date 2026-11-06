@@ -2,7 +2,7 @@
  * URL Shortener Settings tab JavaScript.
  *
  * Two concerns:
- *  1. Couple the "Expose" checkbox to its row's "Shorten" checkbox — Expose is
+ *  1. Couple the "Expose" switch to its row's "Shorten" switch — Expose is
  *     only meaningful when the type is shortened (mirrors the server-side
  *     Expose ⊆ Shorten intersection). Disabled + unchecked when Shorten is off.
  *  2. Drive the "Generate missing short URLs" backfill: a keyset AJAX loop that
@@ -48,6 +48,31 @@
     }
 
     /**
+     * The closing line, with the count's own wording: none, one or several.
+     *
+     * @param {number} created Short URLs created.
+     * @returns {string}
+     */
+    function doneMessage(created) {
+        if (created === 0) {
+            return t('createdNone', 'Done.');
+        }
+        if (created === 1) {
+            return t('createdOne', 'Done.');
+        }
+        return String(t('createdMany', 'Done. %d')).replace('%d', String(created));
+    }
+
+    /**
+     * The ticked Shorten post types, sorted, as one string.
+     *
+     * @returns {string}
+     */
+    function tickedTypes() {
+        return $('.ffc-shorten-type:checked').map(function () { return this.value; }).get().sort().join(',');
+    }
+
+    /**
      * Run one backfill batch, then recurse until done.
      *
      * @param {jQuery} $button  The trigger button.
@@ -75,10 +100,7 @@
             }
 
             if (data.done) {
-                window.FFC.status($status, 'success',
-                    t('done', 'Done.') + ' ' +
-                    created + ' ' + t('createdSuffix', 'short URLs created.')
-                );
+                window.FFC.status($status, 'success', doneMessage(created));
                 $button.prop('disabled', false);
                 return;
             }
@@ -96,10 +118,17 @@
     }
 
     function bindBackfill() {
+        // The server creates for the SAVED post types, so a changed tick
+        // asks for a save first rather than running for the old set.
+        var saved = tickedTypes();
         $(document).on('click', '#ffc-url-shortener-backfill', function (e) {
             e.preventDefault();
             var $button = $(this);
             var $status = $('#ffc-url-shortener-backfill-status');
+            if (tickedTypes() !== saved) {
+                window.FFC.status($status, 'warning', t('saveFirst', ''));
+                return;
+            }
             $button.prop('disabled', true);
             window.FFC.status($status, 'busy', t('working', 'Generating…'));
             runBatch($button, $status, 0, 0, 0);
@@ -114,6 +143,8 @@
     // Exposed for unit testing.
     window.ffcUrlShortenerSettingsInternal = {
         syncExposeRow: syncExposeRow,
-        runBatch: runBatch
+        runBatch: runBatch,
+        doneMessage: doneMessage,
+        tickedTypes: tickedTypes
     };
 })(jQuery);
