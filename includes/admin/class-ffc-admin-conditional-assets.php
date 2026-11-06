@@ -43,6 +43,15 @@ class AdminConditionalAssets {
 		if ( AdminAssetsManager::is_settings_page() ) {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
+			// Arrow keys, Home and End in the section list (#2338).
+			wp_enqueue_script(
+				'ffc-settings-nav',
+				FFC_PLUGIN_URL . "assets/js/ffc-settings-nav{$s}.js",
+				array(),
+				FFC_VERSION,
+				true
+			);
+
 			wp_enqueue_script(
 				'ffc-admin-migrations',
 				FFC_PLUGIN_URL . "assets/js/ffc-admin-migrations{$s}.js",

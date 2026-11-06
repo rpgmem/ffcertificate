@@ -427,7 +427,7 @@ class SettingsActionHandler {
 	 * Handle the Short URL Cleanup maintenance action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_url_cleanup_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the chosen criteria + grace window into
 	 *    `ffc_settings`, then run the {@see UrlShortenerCleaner} in dry-run and
 	 *    store the report + a "preview OK" flag so the apply button unlocks.
@@ -590,7 +590,7 @@ class SettingsActionHandler {
 	 * action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_pubaccess_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the grace window into `ffc_settings`, then
 	 *    run the {@see PublicOperatorAccessDisabler} in dry-run and store the
 	 *    report + a "preview OK" flag so the apply button unlocks.

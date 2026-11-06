@@ -5150,12 +5150,6 @@ msgstr "Exclusão do painel de controle"
 msgid "Dashboard exclusion:"
 msgstr "Exclusão do painel:"
 
-#. %s: Dashboard page slug
-#: includes/settings/views/ffc-tab-user-access.php:343
-#, php-format
-msgid "Dashboard page will be created at: %s (activate the plugin to create it)"
-msgstr "A página do painel de controle será criada em: %s (ative o plugin para criá-la)"
-
 #. %s: Dashboard page URL
 #: includes/settings/views/ffc-tab-user-access.php:337
 #, php-format
@@ -9404,10 +9398,6 @@ msgstr "Se o provedor principal falhar, tente o outro."
 msgid "If this option is disabled, debug logging will also be disabled."
 msgstr "Se esta opção estiver desativada, o registro de depuração também será desativado."
 
-#: includes/settings/views/ffc-tab-user-access.php:310
-msgid "If unchecked, the WordPress admin bar will be hidden for blocked roles."
-msgstr "Se desmarcado, a barra de administração do WordPress será ocultada para funções bloqueadas."
-
 #: includes/settings/views/ffc-tab-cache.php:154
 msgid "If you use APO or a Cache Rule"
 msgstr "Se você utilizar APO ou uma regra de cache"
@@ -12105,10 +12095,6 @@ msgstr "Um resumo hexadecimal SHA-256 por linha. Os envios cujo hash do cookie f
 msgid "One shared password everyone must type to submit."
 msgstr "Uma senha compartilhada que todos devem digitar para enviar."
 
-#: includes/settings/views/documentation/config-advanced.php:32
-msgid "one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable."
-msgstr "uma {{tag}} por linha; o editor de formulários não salva o layout do certificado se alguma delas estiver faltando. O {{auth_code}} é sempre obrigatório (e inserido automaticamente, caso ausente), garantindo que todo certificado permaneça verificável."
-
 #: includes/settings/views/documentation/config-advanced.php:56
 msgid "One-way — plan before you edit."
 msgstr "Via de mão única — planeje antes de editar."
@@ -14171,10 +14157,6 @@ msgstr "Exigir Aprovação Manual"
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:419 includes/audience/class-ffc-audience-admin-audience-renderer.php:555
 msgid "Required"
 msgstr "Obrigatório"
-
-#: includes/settings/views/documentation/config-advanced.php:32
-msgid "Required certificate tags"
-msgstr "Tags de certificado obrigatórias"
 
 #: includes/audience/class-ffc-audience-csv-importer.php:92
 msgid "Required column \"email\" not found in CSV."
@@ -29404,10 +29386,6 @@ msgstr "Configurações → Tarefas Agendadas lista as tarefas em segundo plano 
 msgid "The form-settings cache, with its Enable, Expiration and daily warming settings, was removed in 6.43.0: WordPress already caches form settings with the post, so the plugin's copy saved nothing."
 msgstr "O cache de configurações de formulário, com as opções Ativar, Expiração e aquecimento diário, foi removido na 6.43.0: o WordPress já guarda em cache as configurações do formulário junto com o post, então a cópia do plugin não economizava nada."
 
-#: includes/settings/views/ffc-tab-cache.php
-msgid "Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality."
-msgstr "Sem Redis/Memcached, os contadores horários do limitador de taxa são reiniciados a cada requisição. Instale um plugin de cache de objetos (por exemplo, LiteSpeed Cache com Redis) para obter a funcionalidade completa de limitação de taxa."
-
 #: includes/settings/views/documentation/config-cache.php
 msgid "asks the page-cache plugins, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of every page that shows a published form. Saving a form already does this for that form."
 msgstr "pede aos plugins de cache de página, e a qualquer integração que escute o hook ffc_form_cache_purged, que descartem as cópias de todas as páginas que exibem um formulário publicado. Salvar um formulário já faz isso para aquele formulário."
@@ -32719,3 +32697,19 @@ msgstr "— Escolha o que excluir —"
 msgctxt "word typed to confirm a Danger Zone deletion"
 msgid "DELETE"
 msgstr "EXCLUIR"
+
+#: added
+msgid "No dashboard page exists yet. Add a page with the shortcode above, or deactivate and reactivate the plugin to create one at %s."
+msgstr "Ainda não existe página de painel. Adicione uma página com o shortcode acima, ou desative e reative o plugin para criar uma em %s."
+
+#: added
+msgid "The tags and fields a certificate requires are set in Settings → Certificates → Required data."
+msgstr "As tags e os campos que um certificado exige ficam em Configurações → Certificados → Dados obrigatórios."
+
+#: added
+msgid "When off, the WordPress admin bar is hidden for blocked roles."
+msgstr "Quando desligado, a barra de administração do WordPress fica oculta para os papéis bloqueados."
+
+#: added
+msgid "Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory."
+msgstr "Sem Redis/Memcached, o limitador de taxa guarda seus contadores como transients no banco de dados: os limites continuam valendo, mas cada verificação lê e grava no banco. Um plugin de cache de objetos (ex.: LiteSpeed Cache com Redis) os mantém em memória."

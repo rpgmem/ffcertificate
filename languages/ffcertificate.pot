@@ -5145,12 +5145,6 @@ msgstr ""
 msgid "Dashboard exclusion:"
 msgstr ""
 
-#. %s: Dashboard page slug
-#: includes/settings/views/ffc-tab-user-access.php:343
-#, php-format
-msgid "Dashboard page will be created at: %s (activate the plugin to create it)"
-msgstr ""
-
 #. %s: Dashboard page URL
 #: includes/settings/views/ffc-tab-user-access.php:337
 #, php-format
@@ -9392,10 +9386,6 @@ msgstr ""
 msgid "If this option is disabled, debug logging will also be disabled."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-user-access.php:310
-msgid "If unchecked, the WordPress admin bar will be hidden for blocked roles."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-cache.php:154
 msgid "If you use APO or a Cache Rule"
 msgstr ""
@@ -12086,10 +12076,6 @@ msgstr ""
 msgid "One shared password everyone must type to submit."
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:32
-msgid "one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable."
-msgstr ""
-
 #: includes/settings/views/documentation/config-advanced.php:56
 msgid "One-way — plan before you edit."
 msgstr ""
@@ -14139,10 +14125,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:419 includes/audience/class-ffc-audience-admin-audience-renderer.php:555
 msgid "Required"
-msgstr ""
-
-#: includes/settings/views/documentation/config-advanced.php:32
-msgid "Required certificate tags"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-csv-importer.php:92
@@ -29322,10 +29304,6 @@ msgstr ""
 msgid "The form-settings cache, with its Enable, Expiration and daily warming settings, was removed in 6.43.0: WordPress already caches form settings with the post, so the plugin's copy saved nothing."
 msgstr ""
 
-#: includes/settings/views/ffc-tab-cache.php
-msgid "Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality."
-msgstr ""
-
 #: includes/settings/views/documentation/config-cache.php
 msgid "asks the page-cache plugins, and any integration listening on the ffc_form_cache_purged hook, to drop their copies of every page that shows a published form. Saving a form already does this for that form."
 msgstr ""
@@ -32636,4 +32614,20 @@ msgstr ""
 #: added
 msgctxt "word typed to confirm a Danger Zone deletion"
 msgid "DELETE"
+msgstr ""
+
+#: added
+msgid "No dashboard page exists yet. Add a page with the shortcode above, or deactivate and reactivate the plugin to create one at %s."
+msgstr ""
+
+#: added
+msgid "The tags and fields a certificate requires are set in Settings → Certificates → Required data."
+msgstr ""
+
+#: added
+msgid "When off, the WordPress admin bar is hidden for blocked roles."
+msgstr ""
+
+#: added
+msgid "Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory."
 msgstr ""

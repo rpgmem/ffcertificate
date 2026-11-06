@@ -248,7 +248,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
+						<label for="cleanup_enabled"><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
@@ -283,7 +283,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></label>
+						<label for="validate_rf_check_digit"><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
@@ -558,7 +558,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		<tbody>
 			<tr>
 				<th scope="row">
-					<label><?php esc_html_e( 'Fill the address from the CEP', 'ffcertificate' ); ?></label>
+					<label for="cep_lookup_enabled"><?php esc_html_e( 'Fill the address from the CEP', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
 					<?php

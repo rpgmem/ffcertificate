@@ -32,9 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Certificate editor', 'ffcertificate' ); ?></h4>
 	<p class="description"><?php esc_html_e( 'The colour theme of the certificate HTML editor is on the General tab, next to Dark Mode.', 'ffcertificate' ); ?> <a href="#config-general"><?php esc_html_e( 'See General.', 'ffcertificate' ); ?></a></p>
-	<ul>
-		<li><strong><?php esc_html_e( 'Required certificate tags', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable.', 'ffcertificate' ); ?></li>
-	</ul>
+	<p class="description"><?php esc_html_e( 'The tags and fields a certificate requires are set in Settings → Certificates → Required data.', 'ffcertificate' ); ?> <a href="#feature-certificates"><?php esc_html_e( 'See Certificates & Forms.', 'ffcertificate' ); ?></a></p>
 
 	<h4><?php esc_html_e( 'Debug toggles', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, personal calendars, audience calendars, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging.', 'ffcertificate' ); ?></p>
