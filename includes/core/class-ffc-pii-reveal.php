@@ -33,10 +33,12 @@ final class PiiReveal {
 	 * The button markup, or '' when the current user may not reveal the
 	 * module's personal data.
 	 *
-	 * @param string $pii_cap The module reveal cap.
+	 * @param string $pii_cap  The module reveal cap.
+	 * @param bool   $recorded Whether the reveal writes an activity-log entry;
+	 *                         false on the activity log itself (#2340).
 	 * @return string Escaped HTML.
 	 */
-	public static function page_button( string $pii_cap ): string {
+	public static function page_button( string $pii_cap, bool $recorded = true ): string {
 		if ( ! PiiAccessPolicy::can_reveal_any( $pii_cap ) ) {
 			return '';
 		}
@@ -48,7 +50,11 @@ final class PiiReveal {
 				'class' => 'ffc-reveal-pii-page',
 				'attrs' => array( 'data-nonce' => wp_create_nonce( 'ffc_reveal_pii_nonce' ) ),
 			)
-		) . ' <span class="description">' . esc_html__( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' ) . '</span></p>';
+		) . ' <span class="description">' . esc_html(
+			$recorded
+				? __( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' )
+				: __( 'Shows every masked value listed here.', 'ffcertificate' )
+		) . '</span></p>';
 	}
 
 	/**

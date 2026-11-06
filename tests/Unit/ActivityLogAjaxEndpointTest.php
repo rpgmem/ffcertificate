@@ -270,4 +270,61 @@ class ActivityLogAjaxEndpointTest extends TestCase {
 			$this->assertStringContainsString( '"pagination_html":""', $e->getMessage() );
 		}
 	}
+
+	/**
+	 * Run the handler and decode the success payload.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function payload(): array {
+		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.test/wp-admin/' . $path );
+		Functions\when( 'esc_url' )->returnArg();
+		try {
+			ActivityLogAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			$msg = $e->getMessage();
+			$this->assertStringStartsWith( 'json_success: ', $msg );
+			return (array) json_decode( substr( $msg, strlen( 'json_success: ' ) ), true );
+		}
+		$this->fail( 'Expected wp_send_json_success to short-circuit' );
+	}
+
+	public function test_user_and_system_filters_reach_the_queries(): void {
+		$this->caps     = array( 'ffc_view_activity_log' );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
+
+		$_POST = array( 'nonce' => 'x', 'log_user' => 'system' );
+		$payload = $this->payload();
+
+		$this->assertStringContainsString( 'WHERE 1=1 AND user_id IS NULL', $this->ran[0] );
+		$this->assertStringContainsString( 'WHERE 1=1 AND user_id IS NULL', $this->ran[1] );
+		$this->assertTrue( $payload['has_filters'] );
+	}
+
+	public function test_a_filtered_empty_answer_says_no_matches_and_offers_clear(): void {
+		$this->caps     = array( 'ffc_view_activity_log' );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
+
+		$_POST = array( 'nonce' => 'x', 'log_user' => '42', 'date_from' => '2026-11-01' );
+		$payload = $this->payload();
+
+		$this->assertStringContainsString( 'user_id = 42', $this->ran[0] );
+		$this->assertStringContainsString( 'created_at >= ', $this->ran[0] );
+		$this->assertTrue( $payload['is_empty'] );
+		$this->assertTrue( $payload['has_filters'] );
+		$this->assertStringContainsString( 'No entries match these filters.', $payload['empty_html'] );
+		$this->assertStringContainsString( 'ffc-log-clear', $payload['empty_html'] );
+	}
+
+	public function test_an_unfiltered_empty_answer_says_nothing_is_recorded_yet(): void {
+		$this->caps     = array( 'ffc_view_activity_log' );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
+
+		$_POST = array( 'nonce' => 'x', 'log_user' => 'not-a-user', 'date_to' => 'tomorrow' );
+		$payload = $this->payload();
+
+		$this->assertFalse( $payload['has_filters'], 'An invalid user or date is no filter.' );
+		$this->assertStringContainsString( 'Nothing has been recorded yet.', $payload['empty_html'] );
+		$this->assertArrayHasKey( 'count_text', $payload );
+	}
 }

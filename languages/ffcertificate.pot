@@ -6051,7 +6051,7 @@ msgid "Download the bulk appointments CSV."
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:28
-msgid "download the log as a CSV file, honouring the active filters. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting."
+msgid "download the log as a CSV file with the filters on screen when you click it. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting. The button shows only to holders of the export capability."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:284
@@ -7195,6 +7195,32 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/views/ffc-admin-activity-log.php
+msgid "Filter by user"
+msgstr ""
+
+#: includes/admin/views/ffc-admin-activity-log.php
+msgid "All Users"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "No entries match these filters."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Nothing has been recorded yet. Entries appear here as soon as an audited action happens."
+msgstr ""
+
+#: includes/core/class-ffc-pii-reveal.php
+msgid "Shows every masked value listed here."
 msgstr ""
 
 #: includes/core/class-ffc-scheduled-tasks.php:251
@@ -15771,7 +15797,7 @@ msgid "Settings specific to the personal appointment booking system. Calendar-sp
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:21
-msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
+msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — submissions, exports, deletions, settings changes, revealed personal data and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
 msgstr ""
 
 #: includes/admin/class-ffc-encryption-key-health-notice.php:102
@@ -22595,7 +22621,7 @@ msgstr ""
 msgid "when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare's default (static assets only) is safe; with \"Cache Everything\", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie."
 msgstr ""
 
-msgid "narrow the table by level and by action, or search the entries by text."
+msgid "narrow the table by level, action, user (or System / Anonymous, for what no account did) and a From / To date range in the site's timezone, where To covers the whole day; or search the entries by text. The line above the table counts the entries that match, and \"No entries match these filters\" means a filter is set, as opposed to a log with nothing recorded yet."
 msgstr ""
 
 msgid "an activity summary for the last 30 days: the total, the counts by level and the most frequent actions."
@@ -26273,7 +26299,7 @@ msgid "also performs the module's day-to-day actions: editing and grading submis
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:35
-msgid "reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access."
+msgid "reach the tab and inspect the audit trail, with the filters, the search and the Reveal buttons working. Independent of the settings view capability, so it can be granted to an account without any other settings access."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:34

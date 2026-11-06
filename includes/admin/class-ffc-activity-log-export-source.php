@@ -132,12 +132,20 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 	 * @return array<string, mixed>
 	 */
 	public function sanitize_filters(): array {
-		// The nonce is verified in authorize_start(); RequestInput wraps + sanitizes.
-		return array(
-			'level'  => sanitize_key( RequestInput::get_post_string( 'level' ) ),
-			'action' => RequestInput::get_post_string( 'log_action' ),
-			'search' => RequestInput::get_post_string( 's' ),
+		// The nonce is verified in authorize_start(). The same reading as the
+		// screen, so the CSV holds what the table shows (#2340).
+		$args = AdminActivityLogPage::build_query_args(
+			array(
+				'level'      => RequestInput::get_post_string( 'level' ),
+				'log_action' => RequestInput::get_post_string( 'log_action' ),
+				'search'     => RequestInput::get_post_string( 's' ),
+				'user'       => RequestInput::get_post_string( 'log_user' ),
+				'date_from'  => RequestInput::get_post_string( 'date_from' ),
+				'date_to'    => RequestInput::get_post_string( 'date_to' ),
+			)
 		);
+
+		return array_intersect_key( $args, array_flip( array( 'level', 'action', 'search', 'user_id', 'date_from', 'date_to' ) ) );
 	}
 
 	/**
