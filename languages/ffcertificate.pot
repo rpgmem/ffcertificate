@@ -7197,6 +7197,30 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-user-capabilities.php:959
+msgid "%s also holds FFC roles:"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:963
+msgid "Changing the WordPress role does not change them. What should happen to them?"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:947
+msgid "Keep FFC roles"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:948
+msgid "Remove FFC roles"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:970
+msgid "Applied when you click Update User, and recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:235
+msgid "FFC Roles Removed with a Role Change"
+msgstr ""
+
 #: includes/admin/class-ffc-role-capability-editor.php:104
 msgid "Added to default"
 msgstr ""
@@ -23584,7 +23608,7 @@ msgstr ""
 msgid "create, edit and duplicate rules. Activating a rule, sending an announcement past opt-outs, sending a rule and scheduling an announcement take ffc_send_date_messages, and deleting a rule takes ffc_delete_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
 msgstr ""
 
-msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
+msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles. Changing someone's WordPress role there asks whether their FFC roles stay: they stay unless Remove FFC roles is chosen, which takes them off on Update User (FFC End User excepted) and records it in the activity log."
 msgstr ""
 
 msgid "\"Shorten\" shows the \"Short URL & QR Code\" meta box on that post type. \"Expose\" publishes the page's short URL as the site's canonical shortlink — the rel=\"shortlink\" tag in the page head and the HTTP Link header (also used by the editor's \"Get Shortlink\" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page."

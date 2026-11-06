@@ -7,7 +7,9 @@
  *     click to assign/remove the role (applied immediately via AJAX), and the
  *     capability grid recomputes live (role-granted caps lock as "Role");
  *   - grant/revoke-all presets, live search across label + slug, collapsible
- *     group cards, copy-slug, and a live per-group "granted" counter.
+ *     group cards, copy-slug, and a live per-group "granted" counter;
+ *   - the prompt under the WordPress Role select asking whether a role
+ *     change keeps the account's FFC roles.
  *
  * Pure DOM (no jQuery). Markup is rendered server-side by AdminUserCapabilities
  * and carries the data-* hooks this script reads; role data + AJAX wiring come
@@ -200,7 +202,31 @@
 		}, 900);
 	}
 
+	// The demotion prompt (#2340): moved under the WordPress Role select and
+	// shown only while that select differs from the role the page loaded
+	// with. Hiding it puts the choice back on "Keep", so a role changed and
+	// then changed back never removes anything.
+	function initDemotionPrompt() {
+		var prompt = document.querySelector('.ffc-demote-prompt');
+		var select = document.getElementById('role');
+		if (!prompt || !select || prompt.getAttribute('data-ffc-bound') === '1') { return; }
+		prompt.setAttribute('data-ffc-bound', '1');
+		select.parentNode.insertBefore(prompt, select.nextSibling);
+		var initial = select.value;
+		function sync() {
+			var changed = select.value !== initial;
+			prompt.hidden = !changed;
+			if (!changed) {
+				var keep = prompt.querySelector('input[type="radio"][value="keep"]');
+				if (keep) { keep.checked = true; }
+			}
+		}
+		select.addEventListener('change', sync);
+		sync();
+	}
+
 	function init() {
+		initDemotionPrompt();
 		var panel = document.querySelector('.ffc-cap-panel');
 		if (!panel) {
 			return;

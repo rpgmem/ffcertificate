@@ -156,6 +156,10 @@ class AdminUserCapabilities {
 		// per-cap checkboxes are noise for them (and saving them could deny a
 		// role-level grant), but they still need to be granted or revoked that
 		// aggregator role. So render only the role presets for admins.
+		// Moved under the WordPress Role select by the script; it asks what a
+		// role change does to the FFC roles (#2340).
+		self::render_demotion_prompt( $user );
+
 		if ( user_can( $user->ID, 'manage_options' ) ) {
 			// No per-capability fields here, and no marker: the save then
 			// leaves this account's per-user grants as they are (#2340).
@@ -858,6 +862,113 @@ class AdminUserCapabilities {
 		}
 		$presets                             = array_keys( self::ffc_preset_roles() );
 		self::$ffc_role_snapshot[ $user_id ] = array_values( array_intersect( (array) $user->roles, $presets ) );
+
+		// "Remove FFC roles" chosen under a changed WordPress role (#2340):
+		// the FFC roles core's single-role save drops are then left dropped.
+		if ( self::removal_chosen( $user ) ) {
+			self::$ffc_role_removal[ $user_id ]  = array_values( array_intersect( self::$ffc_role_snapshot[ $user_id ], self::ffc_role_slugs() ) );
+			self::$ffc_role_snapshot[ $user_id ] = array_values( array_diff( self::$ffc_role_snapshot[ $user_id ], self::$ffc_role_removal[ $user_id ] ) );
+		}
+	}
+
+	/**
+	 * Name of the profile-form field that carries the choice.
+	 */
+	public const DEMOTION_FIELD = 'ffc_demote_ffc_roles';
+
+	/**
+	 * FFC roles to take off on this save, by user, set by the snapshot.
+	 *
+	 * @var array<int, list<string>>
+	 */
+	private static array $ffc_role_removal = array();
+
+	/**
+	 * The plugin's own role slugs, the ones "Remove FFC roles" takes off.
+	 * FFC End User is not one of them: it is what a person's own
+	 * certificates and bookings hang on, not a staff role.
+	 *
+	 * @return list<string>
+	 */
+	private static function ffc_role_slugs(): array {
+		$slugs = array_keys( \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels() );
+		return array_values( array_diff( array_map( 'strval', $slugs ), array( 'ffc_end_user' ) ) );
+	}
+
+	/**
+	 * Whether this save asks to take the FFC roles off: the choice is
+	 * "remove", the WordPress role really changes, and the editor may
+	 * promote this account. Core has already checked the profile form's
+	 * nonce (`update-user_{id}`) before these hooks fire.
+	 *
+	 * @param \WP_User $user Account being saved.
+	 * @return bool
+	 */
+	private static function removal_chosen( \WP_User $user ): bool {
+		if ( 'remove' !== RequestInput::get_post_string( self::DEMOTION_FIELD ) ) {
+			return false;
+		}
+		$role = sanitize_key( RequestInput::get_post_string( 'role' ) );
+		if ( '' === $role || in_array( $role, (array) $user->roles, true ) ) {
+			return false;
+		}
+		return current_user_can( 'promote_user', $user->ID );
+	}
+
+	/**
+	 * Print the prompt the script moves under the WordPress Role select: the
+	 * FFC roles the account holds and whether a role change keeps them.
+	 * Hidden until the select changes; "Keep" is chosen by default, so a
+	 * save without the script changes nothing.
+	 *
+	 * @param \WP_User $user Account on screen.
+	 * @return void
+	 */
+	private static function render_demotion_prompt( \WP_User $user ): void {
+		if ( ! current_user_can( 'promote_user', $user->ID ) ) {
+			return;
+		}
+		$labels = \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels();
+		$held   = array_values( array_intersect( (array) $user->roles, self::ffc_role_slugs() ) );
+		if ( array() === $held ) {
+			return;
+		}
+
+		$chips = '';
+		foreach ( $held as $slug ) {
+			$chips .= '<span class="ffc-cap-chip">' . esc_html( (string) ( $labels[ $slug ] ?? $slug ) ) . '</span> ';
+		}
+		ob_start();
+		AdminUI::render_segmented(
+			array(
+				'name'    => self::DEMOTION_FIELD,
+				'legend'  => __( 'FFC roles', 'ffcertificate' ),
+				'options' => array(
+					'keep'   => __( 'Keep FFC roles', 'ffcertificate' ),
+					'remove' => __( 'Remove FFC roles', 'ffcertificate' ),
+				),
+				'value'   => 'keep',
+				'size'    => 'sm',
+			)
+		);
+		$control = (string) ob_get_clean();
+
+		$message = '<p><strong>' . esc_html(
+			sprintf(
+				/* translators: %s: the user's display name */
+				__( '%s also holds FFC roles:', 'ffcertificate' ),
+				$user->display_name
+			)
+		) . '</strong> ' . $chips . '</p>'
+			. '<p>' . esc_html__( 'Changing the WordPress role does not change them. What should happen to them?', 'ffcertificate' ) . '</p>';
+
+		// The control sits under the notice, not in it: a notice's message
+		// goes through wp_kses_post(), which would strip the radios.
+		echo '<div class="ffc-demote-prompt" hidden>';
+		\FreeFormCertificate\Core\AdminNotice::callout( 'warning', $message, array( 'role' => 'status' ) );
+		echo $control; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::render_segmented() escapes its own markup.
+		echo '<p class="description">' . esc_html__( 'Applied when you click Update User, and recorded in the activity log.', 'ffcertificate' ) . '</p>';
+		echo '</div>';
 	}
 
 	/**
@@ -875,6 +986,9 @@ class AdminUserCapabilities {
 	 * @return void
 	 */
 	public static function restore_ffc_roles( int $user_id ): void {
+		if ( isset( self::$ffc_role_removal[ $user_id ] ) ) {
+			self::finish_role_removal( $user_id );
+		}
 		if ( ! isset( self::$ffc_role_snapshot[ $user_id ] ) ) {
 			return;
 		}
@@ -894,6 +1008,41 @@ class AdminUserCapabilities {
 			if ( in_array( $role, $presets, true ) && ! in_array( $role, (array) $user->roles, true ) ) {
 				$user->add_role( $role );
 			}
+		}
+	}
+
+	/**
+	 * Take off the FFC roles the editor chose to remove with a role change
+	 * (#2340), whichever survived core's save, and record it.
+	 *
+	 * @param int $user_id User that was saved.
+	 * @return void
+	 */
+	private static function finish_role_removal( int $user_id ): void {
+		$roles = self::$ffc_role_removal[ $user_id ];
+		unset( self::$ffc_role_removal[ $user_id ] );
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User || array() === $roles ) {
+			return;
+		}
+		foreach ( $roles as $role ) {
+			if ( in_array( $role, (array) $user->roles, true ) ) {
+				$user->remove_role( $role );
+			}
+		}
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'user_ffc_roles_removed',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'target_user_id' => $user_id,
+					'roles'          => $roles,
+				),
+				get_current_user_id()
+			);
+		} catch ( \Throwable $e ) {
+			// Best effort: the roles have already changed.
+			unset( $e );
 		}
 	}
 

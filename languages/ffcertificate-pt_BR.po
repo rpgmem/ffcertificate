@@ -7199,6 +7199,30 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/admin/class-ffc-admin-user-capabilities.php:959
+msgid "%s also holds FFC roles:"
+msgstr "%s também tem funções FFC:"
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:963
+msgid "Changing the WordPress role does not change them. What should happen to them?"
+msgstr "Mudar a função do WordPress não as altera. O que deve acontecer com elas?"
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:947
+msgid "Keep FFC roles"
+msgstr "Manter funções FFC"
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:948
+msgid "Remove FFC roles"
+msgstr "Remover funções FFC"
+
+#: includes/admin/class-ffc-admin-user-capabilities.php:970
+msgid "Applied when you click Update User, and recorded in the activity log."
+msgstr "Aplicado ao clicar em Atualizar usuário, e registrado no Registro de Atividades."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:235
+msgid "FFC Roles Removed with a Role Change"
+msgstr "Funções FFC Removidas com a Troca de Função"
+
 #: includes/admin/class-ffc-role-capability-editor.php:104
 msgid "Added to default"
 msgstr "Adicionada ao padrão"
@@ -23666,8 +23690,8 @@ msgstr "Onde são atribuídas"
 msgid "create, edit and duplicate rules. Activating a rule, sending an announcement past opt-outs, sending a rule and scheduling an announcement take ffc_send_date_messages, and deleting a rule takes ffc_delete_date_messages. The daily send time is set on Settings → Scheduled Tasks, under ffc_manage_settings."
 msgstr "criar, editar e duplicar regras. Ativar uma regra, enviar um comunicado além das recusas de recebimento, enviar uma regra e agendar um comunicado exigem ffc_send_date_messages, e excluir uma regra exige ffc_delete_date_messages. O horário do envio diário é definido em Configurações → Tarefas agendadas, com ffc_manage_settings."
 
-msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles."
-msgstr "a seção \"Permissões FFC\" da tela de edição do usuário adiciona ou remove funções FFC e concede capacidades individuais além delas. As funções são alternadas uma de cada vez e mantidas junto com as demais funções do usuário no WordPress."
+msgid "the \"FFC Permissions\" section of the user-edit screen adds or removes FFC roles and grants individual capabilities on top of them. Roles are toggled one at a time and kept alongside the user's other WordPress roles. Changing someone's WordPress role there asks whether their FFC roles stay: they stay unless Remove FFC roles is chosen, which takes them off on Update User (FFC End User excepted) and records it in the activity log."
+msgstr "a seção \"Permissões FFC\" da tela de edição do usuário adiciona ou remove funções FFC e concede capacidades individuais além delas. As funções são alternadas uma de cada vez e mantidas junto com as demais funções do usuário no WordPress. Mudar a função do WordPress de alguém ali pergunta se as funções FFC dessa pessoa continuam: elas continuam, a menos que se escolha Remover funções FFC, que as retira ao Atualizar usuário (exceto FFC Usuário Final) e registra isso no Registro de Atividades."
 
 msgid "\"Shorten\" shows the \"Short URL & QR Code\" meta box on that post type. \"Expose\" publishes the page's short URL as the site's canonical shortlink — the rel=\"shortlink\" tag in the page head and the HTTP Link header (also used by the editor's \"Get Shortlink\" button and REST). Expose depends on Shorten and only takes effect once a short URL exists for the page."
 msgstr "A opção \"Shorten\" exibe a meta-caixa \"URL curta e QR Code\" para esse tipo de post. A opção \"Expor\" publica a URL curta da página como o *shortlink* canônico do site — ou seja, a tag `rel=\"shortlink\"` no cabeçalho da página e o cabeçalho HTTP `Link` (recursos também utilizados pelo botão \"Obter Shortlink\" do editor e pela API REST). O \"Expor\" depende do \"Shorten\" e só entra em vigor quando já existe uma URL curta para a página."
