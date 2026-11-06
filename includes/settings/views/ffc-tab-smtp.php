@@ -193,7 +193,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<tr>
 							<th scope="row"><label for="smtp_user"><?php esc_html_e( 'Username', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="text" name="ffc_settings[smtp_user]" id="smtp_user" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_user' ) ); ?>" class="regular-text" autocomplete="username">
+								<input type="text" name="ffc_settings[smtp_user]" id="smtp_user" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_user' ) ); ?>" class="regular-text" autocomplete="off" data-1p-ignore data-lpignore="true">
 								<p class="description"><?php esc_html_e( 'Your SMTP username (usually your email)', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>

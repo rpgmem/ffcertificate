@@ -1179,7 +1179,26 @@ class SettingsSaveHandlerTest extends TestCase {
 	// save_user_access_settings()
 	// ==================================================================
 
+	/**
+	 * The User Access save reads the stored settings and the role table;
+	 * both are chosen here rather than inherited from an earlier test.
+	 *
+	 * @param array<string, mixed> $stored Stored user-access settings.
+	 */
+	private function stub_user_access( array $stored = array() ): void {
+		Functions\when( 'get_option' )->alias( static fn( $name, $fallback = false ) => 'ffc_user_access_settings' === $name ? $stored : $fallback );
+		$roles        = new \stdClass();
+		$roles->roles = array(
+			'administrator' => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'site_owner'    => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'subscriber'    => array( 'capabilities' => array( 'read' => true ) ),
+			'ffc_end_user'  => array( 'capabilities' => array( 'read' => true ) ),
+		);
+		Functions\when( 'wp_roles' )->justReturn( $roles );
+	}
+
 	public function test_user_access_settings_defaults(): void {
+		$this->stub_user_access();
 		Functions\when( 'home_url' )->alias( function ( $path = '' ) {
 			return 'https://site.test' . $path;
 		} );
@@ -1202,6 +1221,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_user_access_settings_with_post_values(): void {
+		$this->stub_user_access();
 		Functions\when( 'home_url' )->returnArg();
 		Functions\when( 'esc_url_raw' )->returnArg();
 		$_POST['block_wp_admin']    = '1';
@@ -1228,6 +1248,81 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertTrue( $saved['bypass_for_admins'] );
 
 		unset( $_POST['block_wp_admin'], $_POST['blocked_roles'], $_POST['redirect_url'], $_POST['redirect_message'], $_POST['allow_admin_bar'], $_POST['bypass_for_admins'] );
+	}
+
+	/**
+	 * A role that administers the site can never be blocked: the save drops
+	 * `administrator` and any role holding `manage_options` (#2338).
+	 */
+	public function test_user_access_drops_roles_that_administer_the_site(): void {
+		$this->stub_user_access();
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		$_POST['blocked_roles'] = array( 'administrator', 'site_owner', 'ffc_end_user' );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $val ) use ( &$saved ) {
+			$saved = $val;
+			return true;
+		} );
+
+		$this->invoke( 'save_user_access_settings', array() );
+		unset( $_POST['blocked_roles'] );
+
+		$this->assertSame( array( 'ffc_end_user' ), $saved['blocked_roles'] );
+	}
+
+	/**
+	 * Only an administrator decides whether administrators skip the block.
+	 */
+	public function test_bypass_for_admins_keeps_the_stored_value_without_manage_options(): void {
+		$this->stub_user_access( array( 'bypass_for_admins' => true ) );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' !== $cap );
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		unset( $_POST['bypass_for_admins'] );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $val ) use ( &$saved ) {
+			$saved = $val;
+			return true;
+		} );
+
+		$this->invoke( 'save_user_access_settings', array() );
+
+		$this->assertTrue( $saved['bypass_for_admins'], 'Unchecked by a non-administrator, it stays as stored.' );
+	}
+
+	/**
+	 * Auto-delete, its window, the activity log switch, its categories and
+	 * its retention need the Danger Zone capability; without it a save
+	 * keeps what is stored (#2338).
+	 */
+	public function test_destructive_settings_keep_their_value_without_the_dangerzone_capability(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings_dangerzone' !== $cap && 'manage_options' !== $cap );
+
+		$_POST['_ffc_tab'] = 'general';
+		$general           = $this->invoke(
+			'save_general_settings',
+			array(
+				array( 'cleanup_enabled' => false, 'cleanup_days' => 365 ),
+				array( 'cleanup_enabled' => '1', 'cleanup_days' => '1' ),
+			)
+		);
+		$this->assertFalse( $general['cleanup_enabled'] );
+		$this->assertSame( 365, $general['cleanup_days'] );
+
+		$_POST['_ffc_tab'] = 'advanced';
+		$advanced          = $this->invoke(
+			'save_general_settings',
+			array(
+				array( 'enable_activity_log' => 1, 'activity_log_retention_days' => 90, 'activity_log_cat_users' => 1 ),
+				array( 'activity_log_retention_days' => '1' ),
+			)
+		);
+		$this->assertSame( 1, $advanced['enable_activity_log'] );
+		$this->assertSame( 90, $advanced['activity_log_retention_days'] );
+		$this->assertSame( 1, $advanced['activity_log_cat_users'] );
 	}
 
 	// ==================================================================
@@ -1370,6 +1465,9 @@ class SettingsSaveHandlerTest extends TestCase {
 
 	public function test_handle_all_submissions_runs_all_branches(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// The User Access branch reads the role table; chosen here rather
+		// than inherited from whichever test ran first.
+		Functions\when( 'wp_roles' )->justReturn( null );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( array() );

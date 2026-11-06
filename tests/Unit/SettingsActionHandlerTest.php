@@ -370,6 +370,25 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertSame( array(), $this->queries );
 	}
 
+	/**
+	 * A nonce proves the request came from the screen, not that the user
+	 * may change settings (#2338).
+	 */
+	public function test_clear_qr_cache_needs_the_settings_capability(): void {
+		$_GET['ffc_clear_qr_cache'] = '1';
+		$_GET['_wpnonce']           = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		try {
+			$this->handler->handle_clear_qr_cache();
+			$this->fail( 'Expected wp_die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries );
+	}
+
 	public function test_clear_qr_cache_success_redirects(): void {
 		$_GET['ffc_clear_qr_cache'] = '1';
 		$_GET['_wpnonce']           = 'ok';

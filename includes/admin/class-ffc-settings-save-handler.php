@@ -154,6 +154,16 @@ class SettingsSaveHandler {
 	}
 
 	/**
+	 * Whether the current user may change the settings listed in
+	 * `SettingsAjaxEndpoint::dangerzone_settings()`.
+	 *
+	 * @return bool
+	 */
+	private static function can_change_dangerzone_settings(): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
+	}
+
+	/**
 	 * The tab whose form was posted (`_ffc_tab`), or '' when none was.
 	 *
 	 * @return string
@@ -221,8 +231,13 @@ class SettingsSaveHandler {
 		// Submission auto-delete (#936). The enable toggle is a checkbox, so an
 		// unchecked switch is simply absent from POST — rebuild it on a General
 		// save (no-clobber) from presence. The day window is clamped to >= 1;
-		// the toggle, not a 0-day value, is what disables the cleanup.
-		$clean['cleanup_enabled'] = ! empty( $new['cleanup_enabled'] );
+		// the toggle, not a 0-day value, is what disables the cleanup. Both
+		// need the Danger Zone capability (#2338); without it they keep the
+		// stored value.
+		$dangerzone = self::can_change_dangerzone_settings();
+		if ( $dangerzone ) {
+			$clean['cleanup_enabled'] = ! empty( $new['cleanup_enabled'] );
+		}
 
 		// RF check digit (#1345). A checkbox, so rebuild it from presence on
 		// a General save -- the no-clobber invariant: a key the rebuild
@@ -238,7 +253,7 @@ class SettingsSaveHandler {
 				? $new['cep_lookup_primary']
 				: 'viacep';
 		}
-		$days = $this->bounded_int( $new, 'cleanup_days' );
+		$days = $dangerzone ? $this->bounded_int( $new, 'cleanup_days' ) : null;
 		if ( null !== $days ) {
 			$clean['cleanup_days'] = $days;
 		}
@@ -313,17 +328,24 @@ class SettingsSaveHandler {
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_advanced_tab( array $clean, array $new ): array {
-		$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
+		// The activity log switch, its categories and its retention need the
+		// Danger Zone capability (#2338): without it they keep the stored
+		// value, so the audit trail cannot be switched off or shortened.
+		$dangerzone = self::can_change_dangerzone_settings();
 
-		// Retention in days and a record cap, bounded by one helper
-		// that the autosave reads too (#2338).
-		$days = $this->bounded_int( $new, 'activity_log_retention_days' );
-		if ( null !== $days ) {
-			$clean['activity_log_retention_days'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_days( $days );
-		}
-		$records = $this->bounded_int( $new, 'activity_log_max_records' );
-		if ( null !== $records ) {
-			$clean['activity_log_max_records'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_records( $records );
+		if ( $dangerzone ) {
+			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
+
+			// Retention in days and a record cap, bounded by one helper
+			// that the autosave reads too (#2338).
+			$days = $this->bounded_int( $new, 'activity_log_retention_days' );
+			if ( null !== $days ) {
+				$clean['activity_log_retention_days'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_days( $days );
+			}
+			$records = $this->bounded_int( $new, 'activity_log_max_records' );
+			if ( null !== $records ) {
+				$clean['activity_log_max_records'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_records( $records );
+			}
 		}
 
 		// Activity-log granular filter: minimum level + per-category enables.
@@ -331,8 +353,10 @@ class SettingsSaveHandler {
 			$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
 			$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
 		}
-		foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
-			$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
+		if ( $dangerzone ) {
+			foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
+				$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
+			}
 		}
 
 		$rows = $this->bounded_int(
@@ -865,10 +889,14 @@ class SettingsSaveHandler {
 	 * @return void
 	 */
 	private function save_user_access_settings(): void {
+		$stored = get_option( 'ffc_user_access_settings', array() );
+		$stored = is_array( $stored ) ? $stored : array();
+
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
 		$settings = array(
 			'block_wp_admin'    => isset( $_POST['block_wp_admin'] ),
-			'blocked_roles'     => \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ),
+			// A role that administers the site is dropped (#2338).
+			'blocked_roles'     => \FreeFormCertificate\UserDashboard\AccessControl::blockable( \FreeFormCertificate\Core\RequestInput::get_post_array( 'blocked_roles', array( 'ffc_end_user' ) ) ),
 			'redirect_url'      => ! empty( $_POST['redirect_url'] )
 				? esc_url_raw( wp_unslash( $_POST['redirect_url'] ) )
 				: home_url( '/dashboard' ),
@@ -876,7 +904,10 @@ class SettingsSaveHandler {
 				? sanitize_textarea_field( wp_unslash( $_POST['redirect_message'] ) )
 				: '',
 			'allow_admin_bar'   => isset( $_POST['allow_admin_bar'] ),
-			'bypass_for_admins' => isset( $_POST['bypass_for_admins'] ),
+			// Whether administrators skip the block is theirs to decide (#2338).
+			'bypass_for_admins' => current_user_can( 'manage_options' )
+				? isset( $_POST['bypass_for_admins'] )
+				: ! empty( $stored['bypass_for_admins'] ?? true ),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 

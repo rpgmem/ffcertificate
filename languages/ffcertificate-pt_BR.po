@@ -32606,3 +32606,51 @@ msgid "%s record could not be processed"
 msgid_plural "%s records could not be processed"
 msgstr[0] "%s registro não pôde ser processado"
 msgstr[1] "%s registros não puderam ser processados"
+
+#: added
+msgid "Administrator, and any role that can manage the site's options, is never listed and can never be blocked."
+msgstr "O Administrador, e qualquer papel que possa gerenciar as opções do site, nunca aparece na lista e nunca pode ser bloqueado."
+
+#: added
+msgid "Administrators, and any role that can manage the site's options, are not listed: they can never be blocked."
+msgstr "Administradores, e qualquer papel que possa gerenciar as opções do site, não aparecem na lista: nunca podem ser bloqueados."
+
+#: added
+msgid "Changing automatic deletion needs the Danger Zone capability."
+msgstr "Alterar a exclusão automática exige a permissão da Zona de Perigo."
+
+#: added
+msgid "Changing the activity log, its categories and its retention needs the Danger Zone capability."
+msgstr "Alterar o log de atividades, suas categorias e sua retenção exige a permissão da Zona de Perigo."
+
+#: added
+msgid "Deleting data needs the Danger Zone capability, which this account does not hold."
+msgstr "Excluir dados exige a permissão da Zona de Perigo, que esta conta não tem."
+
+#: added
+msgid "Only an administrator can change it."
+msgstr "Só um administrador pode alterá-lo."
+
+#: added
+msgid "Only an administrator can change this."
+msgstr "Só um administrador pode alterar isto."
+
+#: added
+msgid "Running a migration needs the Danger Zone capability, which this account does not hold."
+msgstr "Executar uma migração exige a permissão da Zona de Perigo, que esta conta não tem."
+
+#: added
+msgid "The switch, the categories, the retention and the record limit need the Danger Zone capability, so the audit trail cannot be switched off or shortened without it."
+msgstr "O interruptor, as categorias, a retenção e o limite de registros exigem a permissão da Zona de Perigo, para que a trilha de auditoria não possa ser desligada nem encurtada sem ela."
+
+#: added
+msgid "Turn on automatic deletion? On the next daily run, every published submission older than the window below is permanently deleted."
+msgstr "Ligar a exclusão automática? Na próxima execução diária, toda submissão publicada mais antiga que o prazo abaixo é excluída de forma permanente."
+
+#: added
+msgid "Turning it on asks for confirmation, and changing it or its window needs the Danger Zone capability."
+msgstr "Ligá-la pede confirmação, e alterá-la ou o seu prazo exige a permissão da Zona de Perigo."
+
+#: added
+msgid "You do not have permission to clear the QR Code cache."
+msgstr "Você não tem permissão para limpar o cache de QR Code."

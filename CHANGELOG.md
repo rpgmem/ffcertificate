@@ -61,6 +61,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Rate limits, export files and imports keep less personal data** (#2343). E-mail and CPF/RF identifiers in the rate-limit tables are keyed hashes, with a migration card that deletes the older unkeyed rows; export temp files older than a day are swept daily and the folder goes on a full uninstall; import staging is swept daily.
 - **Uninstall and Danger Zone: arming the purge needs the Danger Zone capability, and a full uninstall leaves less behind** (#2343). It now also removes every `ffc_` option and site transient, the certificate templates and the unedited pages the plugin created, and gives a former end user the site's default role.
 - **Front end: four script sinks closed** (#2344). A copy button reads only an element id; the PDF background is set as an attribute and its URL is cleaned on read; "Open in Chrome" carries no page fragment; a stale-nonce retry sends the refreshed nonce and no longer writes to the caller's options.
+- **⚠ Settings: destructive settings need the Danger Zone capability** (#2338). Auto-delete and its window, the uninstall wipe, the activity log switch, its categories and its retention now need `ffc_manage_settings_dangerzone` on the form save and the autosave, and render disabled with the reason without it; turning auto-delete on asks first. Administrators can no longer be blocked from wp-admin, only an administrator changes the bypass, and clearing the QR cache needs `ffc_manage_settings`.
 
 ### Fixed
 

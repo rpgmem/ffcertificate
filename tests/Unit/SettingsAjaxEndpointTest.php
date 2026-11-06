@@ -106,6 +106,24 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'ffc_settings', $list['delete_data_on_uninstall']['option'] );
 	}
 
+	/**
+	 * Settings that delete data or switch the audit trail off need the
+	 * Danger Zone capability on the autosave too (#2338).
+	 */
+	public function test_destructive_settings_require_dangerzone(): void {
+		$list = SettingsAjaxEndpoint::allowlist();
+		foreach ( SettingsAjaxEndpoint::dangerzone_settings() as $key ) {
+			$this->assertArrayHasKey( $key, $list, "{$key} is not autosaveable." );
+			$this->assertSame( 'ffc_manage_settings_dangerzone', $list[ $key ]['cap'], $key );
+		}
+		$this->assertContains( 'cleanup_days', SettingsAjaxEndpoint::dangerzone_settings() );
+		$this->assertContains( 'activity_log_cat_users', SettingsAjaxEndpoint::dangerzone_settings() );
+	}
+
+	public function test_bypass_for_admins_requires_manage_options(): void {
+		$this->assertSame( 'manage_options', SettingsAjaxEndpoint::allowlist()['user_access_bypass_for_admins']['cap'] );
+	}
+
 	// ==================================================================
 	// sanitize_value
 	// ==================================================================
