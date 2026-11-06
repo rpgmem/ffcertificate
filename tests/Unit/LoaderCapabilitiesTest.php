@@ -749,31 +749,23 @@ class LoaderCapabilitiesTest extends TestCase {
 			'ffc_admin_caps_version_v6'                             => FFC_VERSION,
 			'ffc_submissions_db_version'                            => ( new \ReflectionMethod( \FreeFormCertificate\Activator::class, 'submissions_schema_fingerprint' ) )->invoke( null ),
 			'ffc_perf_indexes_db_version'                           => \FreeFormCertificate\Activator::SCHEMA_REVISION,
-			'ffc_core_schema_version'                               => \FreeFormCertificate\Activator::SCHEMA_REVISION,
 			'ffc_foreign_keys_db_version'                           => \FreeFormCertificate\Activator::SCHEMA_REVISION,
 			'ffc_submission_date_unix_migrated'                     => '1',
 			'ffc_submitted_at_unix_migrated'                        => '1',
 			'ffc_sibling_instants_unix_migrated'                    => '1',
-			'ffc_rate_limit_db_version'                             => \FreeFormCertificate\Security\RateLimitActivator::SCHEMA_REVISION,
-			'ffc_activity_log_db_version'                           => \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION,
-			'ffc_bulk_issue_db_version'                             => \FreeFormCertificate\Submissions\BulkIssueActivator::SCHEMA_REVISION,
-			'ffc_reregistration_schema_version'                     => \FreeFormCertificate\Reregistration\ReregistrationActivator::SCHEMA_REVISION,
-			'ffc_user_dashboard_schema_version'                     => \FreeFormCertificate\UserDashboard\UserDashboardActivator::SCHEMA_REVISION,
-			'ffc_recruitment_tables_version'                        => \FreeFormCertificate\Recruitment\RecruitmentActivator::SCHEMA_REVISION,
-			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_REVISION,
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::AUDIENCE_IDS_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::APPEARANCE_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::ANNOUNCEMENTS_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::SEND_SCOPE_OPTION => '1',
 			'ffc_self_scheduling_schema_version'                    => FFC_VERSION,
-			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
-			\FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\SelfScheduling\SelfSchedulingActivator::SCHEMA_REVISION,
-			\FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\UrlShortener\UrlShortenerActivator::SCHEMA_REVISION,
 			'ffc_audience_schema_version'                           => FFC_VERSION,
 			'ffc_url_shortener_schema_version'                      => FFC_VERSION,
 			// Every numbered recruitment step already applied.
 			'ffc_recruitment_schema_version'                        => PHP_INT_MAX,
 		);
+		// Every schema revision gate is current (#2430), read from the
+		// activators rather than kept here by hand.
+		$options += \FreeFormCertificate\Tests\Support\SchemaRevisions::current_options();
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) use ( $options ) {
 				$this->option_reads[] = (string) $name;
