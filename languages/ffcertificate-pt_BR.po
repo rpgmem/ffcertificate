@@ -23587,8 +23587,8 @@ msgstr "Registra um cartão de migração e sua estratégia em Configurações �
 msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
 msgstr "O Enviar agora também é como se recupera um dia perdido de uma regra por data: a execução diária cobre só o dia corrente, então um dia em que o agendador não rodou não é recuperado no dia seguinte. Só uma regra ativa pode ser enviada; desativar uma regra para uma execução ainda em andamento no próximo lote."
 
-msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries."
-msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do FFC\" define quais capacidades cada função FFC tem."
+msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries. A capability added or removed there stays that way across requests and plugin updates."
+msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do FFC\" define quais capacidades cada função FFC tem. Uma capacidade adicionada ou removida ali continua assim entre requisições e atualizações do plugin."
 
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
 msgstr "A lista Todos os Formulários tem uma coluna Recursos com três interruptores por formulário — CSV (o download público do operador), Quiz e Limite do dispositivo. Cada um salva assim que é acionado, grava a mesma configuração que o editor do formulário e fica somente leitura para quem não pode editar aquele formulário."
@@ -29515,8 +29515,8 @@ msgstr "Não existe um shortcode separado para o recadastramento. Campanhas ativ
 msgid "A row that matches a staff account fails the file."
 msgstr "Uma linha que corresponde a uma conta da equipe reprova o arquivo."
 
-msgid "An import never changes the account of a WordPress administrator or of anyone who can see personal data (FFC Administrator and every module's Manager and Administrator tiers). Staff update their own profile in wp-admin. The check runs again while the rows are written, so an account that became staff in between is left untouched and its row is reported as failed."
-msgstr "Uma importação nunca altera a conta de um administrador do WordPress nem de quem pode ver dados pessoais (FFC Administrator e os níveis Gerente e Administrador de cada módulo). A equipe atualiza o próprio perfil no wp-admin. A verificação é repetida enquanto as linhas são gravadas, então uma conta que passou a ser da equipe nesse intervalo fica intacta e a sua linha é relatada como reprovada."
+msgid "An import never changes a staff account: a WordPress administrator, FFC Administrator, any module role from Operator up, or anyone who can see personal data or manage a module. Staff update their own profile in wp-admin. The check runs again while the rows are written, so an account that became staff in between is left untouched and its row is reported as failed."
+msgstr "Uma importação nunca altera uma conta da equipe: um administrador do WordPress, o FFC Administrator, qualquer função de módulo a partir de Operador, ou quem pode ver dados pessoais ou gerenciar um módulo. A equipe atualiza o próprio perfil no wp-admin. A verificação é repetida enquanto as linhas são gravadas, então uma conta que passou a ser da equipe nesse intervalo fica intacta e a sua linha é relatada como reprovada."
 
 msgid "A field cannot be mapped to the account e-mail, or to anything else WordPress keeps in its users table, nor to the plugin's own preferences: the editor refuses such a mapping, so a form can never change how someone signs in."
 msgstr "Um campo não pode ser vinculado ao e-mail da conta, a nada mais que o WordPress guarda na sua tabela de usuários nem às preferências do próprio plugin: o editor recusa esse vínculo, de modo que um formulário nunca muda a forma como alguém entra."
@@ -29524,8 +29524,8 @@ msgstr "Um campo não pode ser vinculado ao e-mail da conta, a nada mais que o W
 msgid "Field \"%1$s\" cannot write to the profile key \"%2$s\": the account e-mail and the plugin's own settings are not filled from forms."
 msgstr "O campo \"%1$s\" não pode gravar na chave de perfil \"%2$s\": o e-mail da conta e as configurações do próprio plugin não são preenchidos por formulários."
 
-msgid "Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin."
-msgstr "Corresponde a uma conta da equipe (um administrador ou alguém que pode ver dados pessoais). Uma importação nunca altera uma conta da equipe; a pessoa atualiza o próprio perfil no wp-admin."
+msgid "Matches a staff account (an administrator, a module role from Operator up, or someone who can see personal data or manage a module). An import never changes a staff account; they update their own profile in wp-admin."
+msgstr "Corresponde a uma conta da equipe (um administrador, uma função de módulo a partir de Operador, ou alguém que pode ver dados pessoais ou gerenciar um módulo). Uma importação nunca altera uma conta da equipe; a pessoa atualiza o próprio perfil no wp-admin."
 
 msgid "sent by the daily run to every member who has not received one yet, starting with the first run after the campaign is activated. The same run creates the submission of anyone who joined one of the campaign's audiences, or one of their child audiences, since the activation, so late joiners get their invitation, their reminders and their place in the totals. An invitation can go out before the start date; it then names the day the form opens. The Send invitations button sends them right away."
 msgstr "enviado pela execução diária a todo membro que ainda não recebeu um, a partir da primeira execução depois que a campanha é ativada. A mesma execução cria o envio de quem entrou em um dos públicos da campanha, ou em um dos públicos filhos, depois da ativação, então quem chega depois recebe o convite, os lembretes e entra nos totais. Um convite pode sair antes da data de início; nesse caso ele informa o dia em que o formulário abre. O botão Enviar convites os envia na hora."
@@ -31260,8 +31260,8 @@ msgid "Staff accounts:"
 msgstr "Contas da equipe:"
 
 #: includes/settings/views/documentation/feature-user-dashboard.php
-msgid "an account that is a WordPress administrator or holds any capability to reveal personal data never receives a password-set link, and a link issued before it became one stops working: such an account resets its password through WordPress. When an import or a form matches a staff account by e-mail, the record is linked to it but its name, profile data and roles are left as they are."
-msgstr "uma conta que é administradora do WordPress ou tem qualquer capacidade de revelar dados pessoais nunca recebe link para definir a senha, e um link emitido antes de ela passar a ter deixa de funcionar: essa conta redefine a senha pelo WordPress. Quando uma importação ou um formulário encontra uma conta da equipe pelo e-mail, o registro é vinculado a ela, mas o nome, os dados de perfil e os papéis dela ficam como estão."
+msgid "a staff account — a WordPress administrator, FFC Administrator, any module role from Operator up, or an account that can reveal personal data or manage a module — never receives a password-set link, and a link issued before it became one stops working: such an account resets its password through WordPress. When an import or a form matches a staff account by e-mail, the record is linked to it but its name, profile data and roles are left as they are."
+msgstr "uma conta da equipe — um administrador do WordPress, o FFC Administrator, qualquer função de módulo a partir de Operador, ou uma conta que pode revelar dados pessoais ou gerenciar um módulo — nunca recebe link para definir a senha, e um link emitido antes de ela passar a ser uma deixa de funcionar: essa conta redefine a senha pelo WordPress. Quando uma importação ou um formulário encontra uma conta da equipe pelo e-mail, o registro é vinculado a ela, mas o nome, os dados de perfil e os papéis dela ficam como estão."
 
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php
 msgid "This view-as link has expired or is not valid for your account. Open it again from the Users screen."

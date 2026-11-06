@@ -65,10 +65,11 @@ class Capabilities {
 	 * Whether an account is staff that an automated path must never rewrite
 	 * or hand a credential link to (#2242, #2246).
 	 *
-	 * A WordPress administrator, or anyone holding a `_pii` capability. The
-	 * second covers FFC Administrator and every module's Administrator and
-	 * Manager tier, because those are the tiers the PII caps sit on, so a new
-	 * module's roles are covered the day they ship.
+	 * A WordPress administrator; an account holding FFC Administrator or any
+	 * module role at Operator tier or above (#2340); or one holding a `_pii`
+	 * or an `ffc_manage_` capability however it was granted. The tiers are
+	 * read off the role slug, so a new module's roles are covered the day
+	 * they ship.
 	 *
 	 * It reads the account's own capability map rather than a list of the
 	 * plugin's capabilities, so Core needs no feature module to answer it;
@@ -88,11 +89,46 @@ class Capabilities {
 		if ( ! is_object( $user ) ) {
 			return false;
 		}
+		// Any FFC role at Operator tier or above is staff (#2340): an Operator
+		// works records and a Manager sets a module up, and an import must not
+		// rewrite either. Read off the slug, `ffc_<module>_<tier>`, so a new
+		// module's roles are covered the day they ship.
+		$vars = get_object_vars( $user );
+		foreach ( (array) ( $vars['roles'] ?? array() ) as $role ) {
+			if ( is_string( $role ) && self::is_staff_role( $role ) ) {
+				return true;
+			}
+		}
 		// Read through get_object_vars(): a user object that was never given
 		// its capability map (a partial double, a cached stub) reads as none.
-		$caps = (array) ( get_object_vars( $user )['allcaps'] ?? array() );
+		// A `_pii` cap or any `manage` cap, however it was granted, is staff too.
+		$caps = (array) ( $vars['allcaps'] ?? array() );
 		foreach ( $caps as $cap => $granted ) {
-			if ( $granted && is_string( $cap ) && str_ends_with( $cap, '_pii' ) && user_can( $user_id, $cap ) ) {
+			if ( ! $granted || ! is_string( $cap ) ) {
+				continue;
+			}
+			if ( ( str_ends_with( $cap, '_pii' ) || str_starts_with( $cap, 'ffc_manage_' ) ) && user_can( $user_id, $cap ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Whether an FFC role slug is at Operator tier or above.
+	 *
+	 * @param string $role Role slug.
+	 * @return bool
+	 */
+	private static function is_staff_role( string $role ): bool {
+		if ( 'ffc_administrator' === $role ) {
+			return true;
+		}
+		if ( ! str_starts_with( $role, 'ffc_' ) ) {
+			return false;
+		}
+		foreach ( array( '_operator', '_manager', '_admin' ) as $tier ) {
+			if ( str_ends_with( $role, $tier ) ) {
 				return true;
 			}
 		}

@@ -227,6 +227,8 @@ class RoleRegistrarTest extends TestCase {
 	}
 
 	public function test_an_existing_recruitment_manager_role_gains_missing_caps_and_keeps_custom_ones(): void {
+		// No role was edited, so nothing was removed.
+		Functions\when( 'get_option' )->justReturn( array() );
 		$role = $this->role_with( array( 'custom_cap' => true ) );
 		Functions\when( 'get_role' )->justReturn( $role );
 		Functions\expect( 'add_role' )->never();
@@ -241,6 +243,23 @@ class RoleRegistrarTest extends TestCase {
 			),
 			$role->capabilities
 		);
+	}
+
+	public function test_a_recruitment_manager_cap_removed_in_the_editor_is_not_put_back(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				\FreeFormCertificate\UserDashboard\CapabilityManager::RECRUITMENT_MANAGER_ROLE => array(
+					'added'   => array(),
+					'removed' => array( 'ffc_manage_recruitment' ),
+				),
+			)
+		);
+		$role = $this->role_with( array( 'read' => true ) );
+		Functions\when( 'get_role' )->justReturn( $role );
+
+		RoleRegistrar::register_recruitment_manager_role();
+
+		$this->assertSame( array( 'read' => true ), $role->capabilities );
 	}
 
 	public function test_a_complete_recruitment_manager_role_is_not_rewritten(): void {
@@ -278,6 +297,7 @@ class RoleRegistrarTest extends TestCase {
 	}
 
 	public function test_module_roles_are_created_with_read_and_their_declared_caps(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
 		$added = array();
 		Functions\when( 'get_role' )->justReturn( null );
 		Functions\when( 'add_role' )->alias(
@@ -301,6 +321,7 @@ class RoleRegistrarTest extends TestCase {
 	}
 
 	public function test_existing_module_roles_are_topped_up_and_the_manager_gains_its_tier(): void {
+		Functions\when( 'get_option' )->justReturn( array() );
 		$roles = array();
 		Functions\when( 'get_role' )->alias(
 			function ( $slug ) use ( &$roles ) {
@@ -326,6 +347,118 @@ class RoleRegistrarTest extends TestCase {
 		foreach ( array( 'ffc_view_recruitment', 'ffc_call_recruitment', 'ffc_import_recruitment', 'ffc_view_recruitment_pii', 'ffc_delete_recruitment', 'ffc_view_recruitment_reasons', 'ffc_manage_recruitment_reasons' ) as $cap ) {
 			$this->assertTrue( $manager->capabilities[ $cap ] ?? false, 'The 6.0.0 manager must be upgraded with ' . $cap );
 		}
+	}
+
+	/**
+	 * A module role and one capability its definition ships.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	private function shipped_pair(): array {
+		foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() as $slug => $def ) {
+			if ( array() !== $def['caps'] ) {
+				return array( $slug, $def['caps'][0] );
+			}
+		}
+		$this->fail( 'No module role ships a capability.' );
+	}
+
+	public function test_a_capability_removed_in_the_editor_is_not_put_back(): void {
+		list( $slug, $cap ) = $this->shipped_pair();
+		Functions\when( 'get_option' )->justReturn(
+			array( $slug => array( 'added' => array(), 'removed' => array( $cap ) ) )
+		);
+		$roles = array();
+		Functions\when( 'get_role' )->alias(
+			function ( $s ) use ( &$roles ) {
+				if ( ! isset( $roles[ $s ] ) ) {
+					$roles[ $s ] = $this->role_with( array( 'read' => true ) );
+				}
+				return $roles[ $s ];
+			}
+		);
+
+		RoleRegistrar::register_module_roles();
+
+		$this->assertArrayNotHasKey( $cap, $roles[ $slug ]->capabilities );
+		// Every other role is still topped up.
+		foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() as $other => $def ) {
+			if ( $other === $slug ) {
+				continue;
+			}
+			foreach ( $def['caps'] as $c ) {
+				$this->assertArrayHasKey( $c, $roles[ $other ]->capabilities );
+			}
+		}
+	}
+
+	public function test_a_recreated_role_keeps_the_operator_changes_both_ways(): void {
+		list( $slug, $cap ) = $this->shipped_pair();
+		Functions\when( 'get_option' )->justReturn(
+			array( $slug => array( 'added' => array( 'ffc_extra_cap' ), 'removed' => array( $cap ) ) )
+		);
+		Functions\when( 'get_role' )->justReturn( null );
+		$added = array();
+		Functions\when( 'add_role' )->alias(
+			static function ( $s, $label, $caps ) use ( &$added ) {
+				$added[ $s ] = $caps;
+			}
+		);
+
+		RoleRegistrar::register_module_roles();
+
+		$this->assertArrayNotHasKey( $cap, $added[ $slug ] );
+		$this->assertTrue( $added[ $slug ]['ffc_extra_cap'] );
+	}
+
+	public function test_record_override_tracks_changes_against_the_definition(): void {
+		list( $slug, $cap ) = $this->shipped_pair();
+		$stored = array();
+		Functions\when( 'get_option' )->alias(
+			static function () use ( &$stored ) {
+				return $stored;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+
+		RoleRegistrar::record_override( $slug, $cap, false );
+		RoleRegistrar::record_override( $slug, 'ffc_extra_cap', true );
+		$this->assertSame(
+			array( $slug => array( 'added' => array( 'ffc_extra_cap' ), 'removed' => array( $cap ) ) ),
+			RoleRegistrar::overrides()
+		);
+
+		// Putting a shipped cap back, or taking off one the definition never
+		// had, cancels the earlier change; an empty entry leaves the option.
+		RoleRegistrar::record_override( $slug, $cap, true );
+		RoleRegistrar::record_override( $slug, 'ffc_extra_cap', false );
+		$this->assertSame( array(), $stored );
+
+		// Granting a shipped cap that was never removed records nothing.
+		RoleRegistrar::record_override( $slug, $cap, true );
+		$this->assertSame( array(), $stored );
+	}
+
+	public function test_overrides_drop_a_malformed_option(): void {
+		Functions\when( 'get_option' )->justReturn( 'garbage' );
+		$this->assertSame( array(), RoleRegistrar::overrides() );
+
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'ffc_x' => array( 'added' => array( 'a', 'a', 7 ), 'removed' => 'b' ),
+				3       => array(),
+				'ffc_y' => 'nope',
+			)
+		);
+		$this->assertSame(
+			array( 'ffc_x' => array( 'added' => array( 'a' ), 'removed' => array() ) ),
+			RoleRegistrar::overrides()
+		);
 	}
 
 	public function test_relabel_rewrites_both_label_maps_for_ffc_roles_only(): void {

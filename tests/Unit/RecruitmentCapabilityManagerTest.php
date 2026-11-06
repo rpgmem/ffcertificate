@@ -110,6 +110,8 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 	}
 
 	public function test_register_recruitment_manager_role_upgrades_existing_role_idempotently(): void {
+		// No role was edited, so nothing was removed.
+		Functions\when( 'get_option' )->justReturn( array() );
 		$role = new \WP_Role();
 		// Simulate a partial role: only `read` set; missing the recruitment cap.
 		$role->capabilities = array( 'read' => true );
@@ -137,6 +139,8 @@ class RecruitmentCapabilityManagerTest extends TestCase {
 	}
 
 	public function test_register_recruitment_manager_role_does_not_overwrite_admin_customizations(): void {
+		// No role was edited, so nothing was removed.
+		Functions\when( 'get_option' )->justReturn( array() );
 		$role               = new \WP_Role();
 		$role->capabilities = array(
 			'read'                   => true,

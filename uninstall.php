@@ -294,6 +294,10 @@ $ffcertificate_options = array(
 	// -- that gate compares what ACTIVATION writes -- but it is declared here
 	// because this list is the enforced manifest of the whole footprint.
 	'ffc_identity_accepted',
+	// Operator changes to the FFC roles made in the role editor (#2340).
+	// Written only when a role is edited, so the fresh-install gate never
+	// sees it.
+	'ffc_role_cap_overrides',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.

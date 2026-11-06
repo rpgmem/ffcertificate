@@ -157,6 +157,8 @@ class AdminUserCapabilities {
 		// role-level grant), but they still need to be granted or revoked that
 		// aggregator role. So render only the role presets for admins.
 		if ( user_can( $user->ID, 'manage_options' ) ) {
+			// No per-capability fields here, and no marker: the save then
+			// leaves this account's per-user grants as they are (#2340).
 			wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
 			echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
 			echo '<p class="description">' . esc_html__( 'This user is a WordPress administrator. Assign the FFC Administrator role to grant full plugin access — administrators are no longer given FFC capabilities automatically.', 'ffcertificate' ) . '</p>';
@@ -171,8 +173,11 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Add nonce.
+		// Add nonce, and the marker that says the per-capability fields and
+		// the audience checklist were drawn, so the save may read their absence
+		// as "unchecked" (#2340).
 		wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
+		echo '<input type="hidden" name="ffc_cap_fields_rendered" value="1">';
 
 		echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Manage which FFC features this user can access. These are granted per user, on top of the role permissions.', 'ffcertificate' ) . '</p>';
@@ -632,6 +637,14 @@ class AdminUserCapabilities {
 			return;
 		}
 
+		// Only a form that drew the per-capability fields may clear them. A
+		// WordPress administrator's profile shows the role presets alone, and
+		// reading the missing boxes as "unchecked" stripped every per-user
+		// grant and audience membership the account held (#2340).
+		if ( '1' !== \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_cap_fields_rendered' ) ) {
+			return;
+		}
+
 		// Iterate exactly the capabilities the form rendered (the catalog),
 		// so a cap that has no checkbox is never silently stripped on save.
 		// The catalog is asserted to equal UserManager::get_all_capabilities()
@@ -773,6 +786,16 @@ class AdminUserCapabilities {
 		$user = $user_id > 0 ? get_userdata( $user_id ) : false;
 		if ( ! $user instanceof \WP_User ) {
 			wp_send_json_error( array( 'message' => 'user_not_found' ), 404 );
+		}
+
+		// Changing someone's roles needs the right over THAT account (#2340):
+		// `manage_options` alone does not say the editor may promote or edit
+		// this user, and on a network the account must belong to this site.
+		if ( ! current_user_can( 'promote_user', $user_id ) || ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_send_json_error( array( 'message' => 'cannot_edit_user' ), 403 );
+		}
+		if ( is_multisite() && ! is_user_member_of_blog( $user_id ) ) {
+			wp_send_json_error( array( 'message' => 'user_not_on_site' ), 403 );
 		}
 
 		// Administrators are managed only through the aggregator role: since

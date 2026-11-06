@@ -25,6 +25,98 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RoleRegistrar {
 
 	/**
+	 * Option holding the operator's changes to the FFC roles (#2340): per role,
+	 * the capabilities added to and removed from its shipped definition.
+	 */
+	public const OVERRIDES_OPTION = 'ffc_role_cap_overrides';
+
+	/**
+	 * The operator's changes to the FFC roles, per role slug.
+	 *
+	 * @return array<string, array{added: array<int, string>, removed: array<int, string>}>
+	 */
+	public static function overrides(): array {
+		$stored = get_option( self::OVERRIDES_OPTION, array() );
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $stored as $slug => $entry ) {
+			if ( ! is_string( $slug ) || ! is_array( $entry ) ) {
+				continue;
+			}
+			$out[ $slug ] = array(
+				'added'   => self::cap_list( $entry['added'] ?? array() ),
+				'removed' => self::cap_list( $entry['removed'] ?? array() ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Record one change made in the role editor against the role's shipped
+	 * definition, so `register_module_roles()` honours it on every later
+	 * request (#2340).
+	 *
+	 * A capability put back where the definition has it, or taken off where
+	 * the definition never had it, cancels the earlier change rather than
+	 * adding a second one.
+	 *
+	 * @param string $slug  Role slug.
+	 * @param string $cap   Capability.
+	 * @param bool   $grant True when granted, false when removed.
+	 * @return void
+	 */
+	public static function record_override( string $slug, string $cap, bool $grant ): void {
+		$definition = CapabilityManager::module_roles_definition()[ $slug ]['caps'] ?? array();
+		$shipped    = in_array( $cap, $definition, true );
+		$all        = self::overrides();
+		$entry      = $all[ $slug ] ?? array(
+			'added'   => array(),
+			'removed' => array(),
+		);
+
+		$entry['added']   = array_values( array_diff( $entry['added'], array( $cap ) ) );
+		$entry['removed'] = array_values( array_diff( $entry['removed'], array( $cap ) ) );
+		if ( $grant && ! $shipped ) {
+			$entry['added'][] = $cap;
+		} elseif ( ! $grant && $shipped ) {
+			$entry['removed'][] = $cap;
+		}
+
+		if ( array() === $entry['added'] && array() === $entry['removed'] ) {
+			unset( $all[ $slug ] );
+		} else {
+			$all[ $slug ] = $entry;
+		}
+		update_option( self::OVERRIDES_OPTION, $all );
+	}
+
+	/**
+	 * Whether the operator removed a capability from a role in the editor.
+	 *
+	 * @param string $slug Role slug.
+	 * @param string $cap  Capability.
+	 * @return bool
+	 */
+	private static function is_removed( string $slug, string $cap ): bool {
+		return in_array( $cap, self::overrides()[ $slug ]['removed'] ?? array(), true );
+	}
+
+	/**
+	 * A list of capability slugs, strings only, without repeats.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return array<int, string>
+	 */
+	private static function cap_list( $value ): array {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+		return array_values( array_unique( array_filter( $value, 'is_string' ) ) );
+	}
+
+	/**
 	 * Keep `ffc_administrator` on every WordPress administrator, continuously.
 	 *
 	 * #747 moved the admin tier off the native `administrator` role and onto
@@ -219,7 +311,8 @@ class RoleRegistrar {
 			if ( ! isset( $existing_role->capabilities['read'] ) ) {
 				$existing_role->add_cap( 'read', true );
 			}
-			if ( ! isset( $existing_role->capabilities['ffc_manage_recruitment'] ) ) {
+			// Unless the operator removed it in the role editor (#2340).
+			if ( ! isset( $existing_role->capabilities['ffc_manage_recruitment'] ) && ! self::is_removed( CapabilityManager::RECRUITMENT_MANAGER_ROLE, 'ffc_manage_recruitment' ) ) {
 				$existing_role->add_cap( 'ffc_manage_recruitment', true );
 			}
 			return;
@@ -272,23 +365,31 @@ class RoleRegistrar {
 	 * @return void
 	 */
 	public static function register_module_roles(): void {
+		$overrides = self::overrides();
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
+			// A capability the operator removed in the role editor stays
+			// removed (#2340); it used to be re-added on the next request.
+			$removed  = $overrides[ $slug ]['removed'] ?? array();
 			$existing = get_role( $slug );
 			if ( $existing ) {
 				if ( ! isset( $existing->capabilities['read'] ) ) {
 					$existing->add_cap( 'read', true );
 				}
 				foreach ( $def['caps'] as $cap ) {
-					if ( ! isset( $existing->capabilities[ $cap ] ) ) {
+					if ( ! isset( $existing->capabilities[ $cap ] ) && ! in_array( $cap, $removed, true ) ) {
 						$existing->add_cap( $cap, true );
 					}
 				}
 				continue;
 			}
 
+			// A role recreated after it was deleted keeps the operator's
+			// changes, both ways.
 			$caps_map = array( 'read' => true );
-			foreach ( $def['caps'] as $cap ) {
-				$caps_map[ $cap ] = true;
+			foreach ( array_merge( $def['caps'], $overrides[ $slug ]['added'] ?? array() ) as $cap ) {
+				if ( ! in_array( $cap, $removed, true ) ) {
+					$caps_map[ $cap ] = true;
+				}
 			}
 			add_role( $slug, $def['label'], $caps_map );
 		}

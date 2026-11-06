@@ -34,6 +34,13 @@ class RoleCapabilityEditorTest extends TestCase {
 	/** @var array<string, mixed> `$_GET` as an earlier test left it, restored afterwards. */
 	private array $get_backup = array();
 
+	/**
+	 * The stored role overrides, as the editor writes them.
+	 *
+	 * @var mixed
+	 */
+	private $overrides = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -182,6 +189,14 @@ class RoleCapabilityEditorTest extends TestCase {
 	private function run_ajax(): array {
 		$captured = array();
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		$this->overrides = array();
+		Functions\when( 'get_option' )->alias( fn() => $this->overrides );
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				$this->overrides = $value;
+				return true;
+			}
+		);
 		Functions\when( 'wp_send_json_success' )->alias(
 			static function ( $data = null ) use ( &$captured ) {
 				$captured = array( 'ok' => true, 'data' => $data );
@@ -233,6 +248,28 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$this->assertTrue( $res['ok'] );
 		$this->assertSame( array( 'ffc_view_own_certificates' ), $role->removed );
+		// The end-user role ships no FFC capability, so nothing is recorded.
+		$this->assertSame( array(), $this->overrides );
+
+		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
+	}
+
+	public function test_ajax_records_a_removal_from_a_shipped_role(): void {
+		$definition = \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition();
+		$slug       = 'ffc_readonly';
+		$cap        = $definition[ $slug ]['caps'][0];
+		$role       = $this->fake_role( array( $cap => true ) );
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+
+		$_POST['role']  = $slug;
+		$_POST['cap']   = $cap;
+		$_POST['grant'] = '0';
+
+		$res = $this->run_ajax();
+
+		$this->assertTrue( $res['ok'] );
+		// Kept, so the next request does not grant it back.
+		$this->assertSame( array( $cap ), $this->overrides[ $slug ]['removed'] );
 
 		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
 	}

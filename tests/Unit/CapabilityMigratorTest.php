@@ -199,6 +199,8 @@ class CapabilityMigratorTest extends TestCase {
 	}
 
 	public function test_admin_role_assignment_self_heals_missing_role(): void {
+		// No role was edited in the role editor, so nothing is held back.
+		Functions\when( 'get_option' )->justReturn( array() );
 		// ffc_administrator missing → the real role registry is re-run, and
 		// with no role stored it creates every module role.
 		$added = array();
@@ -268,6 +270,8 @@ class CapabilityMigratorTest extends TestCase {
 	}
 
 	public function test_role_renames_reassigns_users_and_drops_old_roles(): void {
+		// No role was edited in the role editor, so nothing is held back.
+		Functions\when( 'get_option' )->justReturn( array() );
 		// `register_role()` creates `ffc_end_user`; `register_module_roles()`
 		// creates the module-manager roles — both must run before reassigning.
 		// The real registrar runs; with no role stored it adds each one.
