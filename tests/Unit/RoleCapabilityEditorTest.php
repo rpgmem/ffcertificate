@@ -232,6 +232,32 @@ class RoleCapabilityEditorTest extends TestCase {
 		return $captured;
 	}
 
+	public function test_render_tells_someone_without_manage_options_why_and_draws_no_editor(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		ob_start();
+		RoleCapabilityEditor::render();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Only administrators can edit roles', $output );
+		$this->assertStringNotContainsString( 'ffc-role-select', $output );
+		$this->assertStringNotContainsString( 'ffc-role-cap', $output );
+	}
+
+	public function test_a_powerful_row_asks_before_it_is_granted_and_every_toggle_has_a_name(): void {
+		Functions\when( 'get_role' )->alias(
+			fn( $slug ) => $this->fake_role( array( 'ffc_view_own_certificates' => true ) )
+		);
+
+		ob_start();
+		RoleCapabilityEditor::render();
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_recruitment_pii"[^>]*data-ffc-confirm="1"/', $output );
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_own_certificates"[^>]*data-ffc-confirm="0"/', $output );
+		$this->assertMatchesRegularExpression( '/id="ffc_role_cap_ffc_view_own_certificates"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*id="ffc_role_cap_ffc_view_own_certificates"/', $output );
+	}
+
 	public function test_ajax_grants_a_cataloged_cap_on_an_ffc_role(): void {
 		$role = $this->fake_role();
 		Functions\when( 'get_role' )->alias( fn( $slug ) => $role );
@@ -461,7 +487,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		$res = $this->run_ajax();
 
 		$this->assertFalse( $res['ok'] );
-		$this->assertSame( 'forbidden', $res['data']['message'] );
+		// The refusal says why, so the screen can show it (#2340).
+		$this->assertStringStartsWith( 'Only administrators can edit roles', $res['data']['message'] );
+		$this->assertSame( 403, $res['code'] );
 
 		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
 	}

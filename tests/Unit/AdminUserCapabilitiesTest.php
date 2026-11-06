@@ -300,17 +300,23 @@ class AdminUserCapabilitiesTest extends TestCase {
 				array( 'ffc-common' ),
 				FFC_VERSION
 			);
-		Functions\expect( 'wp_enqueue_script' )
-			->once()
-			->with(
-				'ffc-user-capabilities',
-				Mockery::pattern( '/ffc-user-capabilities\.min\.js/' ),
-				array(),
-				FFC_VERSION,
-				true
-			);
+		// ffc-core goes through AssetRegistry, which registers it first;
+		// false is WordPress's answer for a handle already registered.
+		Functions\when( 'wp_register_script' )->justReturn( false );
+		$scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle, $src = '', $deps = array(), $ver = false, $footer = false ) use ( &$scripts ) {
+				$scripts[ $handle ] = array( $src, $deps, $ver, $footer );
+			}
+		);
 
 		AdminUserCapabilities::enqueue_scripts( 'user-edit.php' );
+
+		// Grant all asks through the plugin's dialog, so ffc-core comes first (#2340).
+		$this->assertArrayHasKey( 'ffc-core', $scripts );
+		$this->assertMatchesRegularExpression( '/ffc-user-capabilities\.min\.js/', $scripts['ffc-user-capabilities'][0] );
+		$this->assertSame( array( 'ffc-core' ), $scripts['ffc-user-capabilities'][1] );
+		$this->assertTrue( $scripts['ffc-user-capabilities'][3] );
 	}
 
 	public function test_enqueue_scripts_skips_other_pages(): void {
@@ -568,6 +574,45 @@ class AdminUserCapabilitiesTest extends TestCase {
 		// Caps the ffc_end_user role grants lock as "Role" (byrole toggle + badge).
 		$this->assertStringContainsString( 'ffc-cap-toggle--byrole', $output );
 		$this->assertStringContainsString( 'ffc-cap-origin--role', $output );
+
+		// A locked row names the role that locks it; an open row keeps the
+		// line hidden (#2340).
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_own_certificates".*?<span class="ffc-cap-why" data-ffc-why>From the role [^<]+\. To remove it/s', $output );
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_recruitment_pii".*?<span class="ffc-cap-why" data-ffc-why hidden><\/span>/s', $output );
+		// What saves when.
+		$this->assertStringContainsString( 'ffc-cap-save-note', $output );
+		$this->assertStringContainsString( 'save with Update Profile', $output );
+		// Every switch has a name, the copy control is an icon-only family
+		// button, and Grant all / Revoke all are family buttons.
+		$this->assertMatchesRegularExpression( '/name="ffc_cap_ffc_view_recruitment_pii"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*name="ffc_cap_ffc_view_recruitment_pii"/', $output );
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-btn-icon[^"]*ffc-icon-copy[^"]*ffc-cap-copy"[^>]*aria-label="Copy ffc_view_recruitment_pii"/', $output );
+		$this->assertMatchesRegularExpression( '/<button[^>]*class="[^"]*ffc-btn[^"]*"[^>]*data-ffc-preset="all"/', $output );
+		$this->assertStringNotContainsString( '⧉', $output );
+		// A personal-data capability asks before Grant all.
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_recruitment_pii"[^>]*data-ffc-confirm="1"/', $output );
+	}
+
+	public function test_the_panel_shows_for_a_module_role_without_per_user_grants(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( false );
+
+		$user        = new \WP_User( 6 );
+		$user->roles = array( 'ffc_recruitment_manager' );
+		$user->caps  = array( 'ffc_recruitment_manager' => true );
+
+		ob_start();
+		AdminUserCapabilities::render_capability_fields( $user );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc_cap_fields_rendered', $output, 'A module role used to hide the panel (#2340).' );
+	}
+
+	public function test_granted_by_text_names_every_role(): void {
+		$this->assertSame( '', AdminUserCapabilities::granted_by_text( array() ) );
+		$this->assertSame(
+			'From the role A, B. To remove it, change the role or edit the role itself.',
+			AdminUserCapabilities::granted_by_text( array( 'A', 'B' ) )
+		);
 	}
 
 	// ==================================================================

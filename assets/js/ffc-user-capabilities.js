@@ -62,6 +62,27 @@
 		return s;
 	}
 
+	// Fill `%s`, `%d` and `%1$s` / `%2$d` placeholders in order.
+	function fill(text, values) {
+		var i = 0;
+		return String(text || '').replace(/%(\d+)\$[sd]|%[sd]/g, function (whole, position) {
+			var index = position ? parseInt(position, 10) - 1 : i++;
+			return values[index] !== undefined ? String(values[index]) : whole;
+		});
+	}
+
+	// The roles held now that grant a capability, by name (#2340).
+	function grantingRoles(slug) {
+		var names = [];
+		var labels = CFG.roleLabels || {};
+		assigned.forEach(function (role) {
+			if ((roleCaps[role] || []).indexOf(slug) !== -1) {
+				names.push(labels[role] || role);
+			}
+		});
+		return names;
+	}
+
 	// Reflect current role + per-user state onto one capability row.
 	function refreshRow(row, roleSet) {
 		var slug = row.getAttribute('data-ffc-cap-slug');
@@ -69,16 +90,25 @@
 		var tg = row.querySelector('.ffc-control-toggle');
 		var origin = row.querySelector('[data-ffc-origin]');
 		if (!cb) { return; }
+		var why = row.querySelector('[data-ffc-why]');
 		if (roleSet.has(slug)) {
 			cb.checked = true;
 			cb.disabled = true; // disabled = not submitted = no redundant per-user grant
 			if (tg) { tg.classList.add('ffc-cap-toggle--byrole'); }
 			setOrigin(origin, 'role');
+			if (why) {
+				why.textContent = fill(i18n.grantedBy, [grantingRoles(slug).join(', ')]);
+				why.hidden = false;
+			}
 		} else {
 			cb.disabled = false;
 			cb.checked = userGranted.has(slug);
 			if (tg) { tg.classList.remove('ffc-cap-toggle--byrole'); }
 			setOrigin(origin, cb.checked ? 'user' : 'none');
+			if (why) {
+				why.textContent = '';
+				why.hidden = true;
+			}
 		}
 	}
 
@@ -160,6 +190,40 @@
 		refreshAllCounts(panel);
 	}
 
+	// Grant all names the capabilities it would add that reach personal data,
+	// destroy records or open the activity log, and asks first (#2340). It
+	// changes the switches only; the profile still saves with Update Profile.
+	// Null when there is nothing to ask, else a promise of the answer.
+	function confirmGrantAll(panel) {
+		var added = [];
+		var powerful = [];
+		panel.querySelectorAll('.ffc-cap-checkbox').forEach(function (cb) {
+			if (cb.disabled || cb.checked) { return; }
+			var row = cb.closest('.ffc-cap-row');
+			if (!row || row.hidden) { return; }
+			added.push(row);
+			if (row.getAttribute('data-ffc-confirm') === '1') {
+				var name = row.querySelector('.ffc-cap-row-name');
+				powerful.push(name && name.firstChild ? String(name.firstChild.textContent).trim() : row.getAttribute('data-ffc-cap-slug'));
+			}
+		});
+		if (powerful.length === 0 || !window.FFC || typeof window.FFC.overrideConfirm !== 'function') {
+			return null; // nothing to ask: Grant all applies at once
+		}
+		return window.FFC.overrideConfirm({
+			strings: {
+				seconds: 0,
+				title: fill(i18n.grantAllTitle, [added.length, CFG.userName || '']),
+				intro: i18n.grantAllIntro || '',
+				agree: fill(i18n.grantAllAgree, [added.length]),
+				cancel: i18n.cancel || 'Cancel'
+			},
+			reasons: powerful,
+			agreeCategory: 'caution',
+			agreeIcon: 'checkmark'
+		}).then(function (agreed) { return !!agreed; }, function () { return false; });
+	}
+
 	function setCollapsed(group, collapsed) {
 		group.classList.toggle('is-collapsed', collapsed);
 		var header = group.querySelector('.ffc-cap-group-h');
@@ -195,10 +259,13 @@
 		if (slug && navigator.clipboard && navigator.clipboard.writeText) {
 			navigator.clipboard.writeText(slug);
 		}
-		var prev = btn.textContent;
-		btn.textContent = '✓';
+		// An icon-only family button: the copy icon turns into a check mark
+		// for a moment, and the label it is read by stays the same.
+		btn.classList.remove('ffc-icon-copy');
+		btn.classList.add('ffc-icon-checkmark');
 		setTimeout(function () {
-			btn.textContent = prev;
+			btn.classList.remove('ffc-icon-checkmark');
+			btn.classList.add('ffc-icon-copy');
 		}, 900);
 	}
 
@@ -267,7 +334,19 @@
 
 		panel.querySelectorAll('[data-ffc-preset]').forEach(function (btn) {
 			btn.addEventListener('click', function () {
-				applyPreset(panel, btn.getAttribute('data-ffc-preset') === 'all');
+				var grant = btn.getAttribute('data-ffc-preset') === 'all';
+				if (!grant) {
+					applyPreset(panel, false);
+					return;
+				}
+				var asking = confirmGrantAll(panel);
+				if (!asking) {
+					applyPreset(panel, true);
+					return;
+				}
+				asking.then(function (agreed) {
+					if (agreed) { applyPreset(panel, true); }
+				});
 			});
 		});
 

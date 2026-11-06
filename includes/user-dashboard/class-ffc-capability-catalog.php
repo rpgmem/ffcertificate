@@ -783,6 +783,19 @@ final class CapabilityCatalog {
 	}
 
 	/**
+	 * Whether granting a capability asks first (#2340): it reaches personal
+	 * data or destroys records, or it opens the activity log, which records
+	 * what everybody else did.
+	 *
+	 * @param string $slug Capability slug.
+	 * @return bool
+	 */
+	public static function needs_grant_confirmation( string $slug ): bool {
+		$band = self::tier_band( self::cap_tier( $slug ) )['band'];
+		return in_array( $band, array( 'data', 'destroy' ), true ) || str_contains( $slug, '_activity_log' );
+	}
+
+	/**
 	 * The tier chip drawn beside a capability's name.
 	 *
 	 * @param string $slug Capability slug.
