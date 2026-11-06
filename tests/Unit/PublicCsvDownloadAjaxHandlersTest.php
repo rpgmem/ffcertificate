@@ -553,8 +553,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'CPF is required to download this CSV.', $this->captured['payload']['message'] );
 			$this->assertSame( 403, $this->captured['code'] );
 		}
-		// The gate runs silent here, and the form was not opened.
-		$this->assertSame( array(), $this->audit_results() );
+		// A refused CPF is recorded (#2341): no action row follows it. The
+		// form was not opened.
+		$this->assertSame( array( 'fail_missing' ), $this->audit_results() );
 		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
 	}
 
@@ -819,6 +820,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		} catch ( \RuntimeException $e ) {
 			$this->assertSame( 'CPF is required to download this CSV.', $this->captured['payload']['message'] );
 		}
+		$this->assertSame( array( 'fail_missing' ), $this->audit_results() );
 		$this->assertSame( '14:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_end'] );
 	}
 
@@ -888,6 +890,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'CPF is required to download this CSV.', $this->captured['payload']['message'] );
 		}
 		$this->assertSame( array(), $this->cookies, 'A refused exception stages no session.' );
+		$this->assertSame( array( 'fail_missing' ), $this->audit_results() );
 	}
 
 	public function test_ajax_schedule_exception_maps_reason_on_failure(): void {

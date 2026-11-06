@@ -767,8 +767,49 @@ class PublicCsvDownloadTest extends TestCase {
 	//  handle_request() — happy path observable effects
 	// ==================================================================
 
+	/**
+	 * The quota's conditional UPDATE, played against the meta store (#2341):
+	 * the count moves only while it is below the limit, as the SQL does.
+	 *
+	 * @param bool $race When true the UPDATE always matches no row, as when
+	 *                   a concurrent request took the last download.
+	 */
+	private function emulate_quota_claim( bool $race = false ): void {
+		global $wpdb;
+		$wpdb->postmeta = 'wp_postmeta';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				if ( 0 === strpos( (string) $sql, 'UPDATE %i SET meta_value' ) ) {
+					return 'CLAIM|' . $args[1] . '|' . $args[2] . '|' . $args[3];
+				}
+				if ( 0 === strpos( (string) $sql, 'SELECT COUNT(*) FROM %i' ) ) {
+					return 'EXPORT_COUNT';
+				}
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $q ) use ( $race ) {
+				if ( $race || 0 !== strpos( (string) $q, 'CLAIM|' ) ) {
+					return 0;
+				}
+				list( , $post, $key, $limit ) = explode( '|', (string) $q );
+				$store_key                     = $post . ':' . $key;
+				if ( ! isset( $this->meta_store[ $store_key ] ) || (int) $this->meta_store[ $store_key ] >= (int) $limit ) {
+					return 0;
+				}
+				$this->meta_store[ $store_key ] = (int) $this->meta_store[ $store_key ] + 1;
+				return 1;
+			}
+		);
+		Functions\when( 'metadata_exists' )->alias( fn( $type, $post, $key ) => isset( $this->meta_store[ (int) $post . ':' . $key ] ) );
+		Functions\when( 'add_post_meta' )->justReturn( false );
+		Functions\when( 'wp_cache_delete' )->justReturn( true );
+	}
+
 	public function test_handle_request_increments_counter_before_streaming(): void {
 		$this->seed_valid_request( 42, array( 'limit' => 5, 'count' => 2 ) );
+		$this->emulate_quota_claim();
 
 		// wp_raise_memory_limit is the first call inside PublicCsvExporter::stream_form_csv().
 		// Throwing here stops execution *after* update_post_meta was called, letting
@@ -785,7 +826,56 @@ class PublicCsvDownloadTest extends TestCase {
 		}
 
 		$this->assertSame( 3, $this->meta_store['42:_ffc_csv_public_count'] );
-		$this->assertSame( 1, $this->meta_updates['42:_ffc_csv_public_count'] );
+		$this->assertArrayNotHasKey( '42:_ffc_csv_public_count', $this->meta_updates, 'The count moves in one statement, never by read-then-write.' );
+	}
+
+	/**
+	 * #2341 — two requests racing for the last download: the one whose
+	 * claim matches no row is refused, and nothing is streamed.
+	 */
+	public function test_handle_request_refuses_when_the_last_download_was_taken_concurrently(): void {
+		$this->seed_valid_request( 42, array( 'limit' => 5, 'count' => 4 ) );
+		$this->emulate_quota_claim( true );
+		Functions\when( 'wp_raise_memory_limit' )->alias(
+			function () {
+				throw new \RuntimeException( 'stream_started' );
+			}
+		);
+
+		$this->captureRedirect(
+			function () {
+				$this->handler->handle_request();
+			}
+		);
+
+		$this->assertSame( 4, $this->meta_store['42:_ffc_csv_public_count'] );
+	}
+
+	/**
+	 * #2341 — a CSV refused for its size spends no download: the row cap is
+	 * checked before the quota.
+	 */
+	public function test_handle_request_over_the_row_cap_spends_nothing(): void {
+		$this->seed_valid_request( 42, array( 'limit' => 5, 'count' => 2 ) );
+		$this->emulate_quota_claim();
+		global $wpdb;
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => 'EXPORT_COUNT' === $q ? '999999' : '0' );
+		// The 413 page starts with its status; stopping there keeps the test
+		// clear of header(), which a test process cannot send.
+		Functions\when( 'status_header' )->alias(
+			static function ( $code ) {
+				throw new \RuntimeException( 'status_' . $code );
+			}
+		);
+
+		try {
+			$this->handler->handle_request();
+			$this->fail( 'Expected the 413 page' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'status_413', $e->getMessage() );
+		}
+
+		$this->assertSame( 2, $this->meta_store['42:_ffc_csv_public_count'] );
 	}
 
 	// ==================================================================

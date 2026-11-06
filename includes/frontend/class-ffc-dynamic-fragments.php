@@ -148,7 +148,10 @@ class DynamicFragments {
 		if ( ! empty( $form_ids ) ) {
 			$geofence = array();
 			foreach ( $form_ids as $fid ) {
-				if ( $fid > 0 ) {
+				// Only a published form (#2341): a page can embed nothing
+				// else, and a draft's, a private form's or a trashed one's
+				// geofence is not for anonymous callers.
+				if ( $fid > 0 && 'ffc_form' === get_post_type( $fid ) && 'publish' === get_post_status( $fid ) ) {
 					$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $fid );
 					if ( null !== $config ) {
 						$geofence[ $fid ] = $config;

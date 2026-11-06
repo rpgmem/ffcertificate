@@ -7196,6 +7196,10 @@ msgid "Event:"
 msgstr "Evento:"
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:47
+msgid "A download of the quota is spent only when the file is delivered: a refused request, a CSV too large for the download without JavaScript and an export with no records cost nothing."
+msgstr "Um download da cota só é gasto quando o arquivo é entregue: uma requisição recusada, um CSV grande demais para o download sem JavaScript e uma exportação sem registros não custam nada."
+
+#: includes/settings/views/documentation/forms-public-operator-access.php:47
 msgid "The log keeps the latest 100 failures and, apart from them, the latest 100 other entries, so a stream of bad requests never pushes a delivery out. A failure repeated from one address is one row with its count and its first and last time."
 msgstr "O registro guarda as 100 falhas mais recentes e, separadas delas, as 100 outras entradas mais recentes, então uma sequência de requisições inválidas nunca tira um download do registro. Uma falha repetida a partir de um mesmo endereço vira uma única linha, com a contagem e a primeira e a última vez."
 

@@ -153,7 +153,10 @@ class BatchedCsvExport {
 		$job_id = RequestInput::get_post_string( 'job_id' );
 		$job    = get_transient( $this->transient_prefix . $job_id );
 
-		if ( ! is_array( $job ) ) {
+		// A job is driven only by the source that started it (#2341): the
+		// type comes from the request, so a job of another type is one this
+		// source's checks were never written for.
+		if ( ! is_array( $job ) || ! self::job_is_of( $job, $source ) ) {
 			wp_send_json_error( __( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -218,7 +221,7 @@ class BatchedCsvExport {
 		$job_id = RequestInput::get_get_string( 'job_id' );
 		$job    = get_transient( $this->transient_prefix . $job_id );
 
-		if ( ! is_array( $job ) ) {
+		if ( ! is_array( $job ) || ! self::job_is_of( $job, $source ) ) {
 			wp_die( esc_html__( 'Export job not found or expired.', 'ffcertificate' ) );
 		}
 
@@ -282,5 +285,16 @@ class BatchedCsvExport {
 		}
 
 		return $tmp_dir;
+	}
+
+	/**
+	 * Whether a stored job was started by this source (#2341).
+	 *
+	 * @param array<mixed>                 $job    Stored job.
+	 * @param BatchedExportSourceInterface $source Source the request names.
+	 * @return bool
+	 */
+	private static function job_is_of( array $job, BatchedExportSourceInterface $source ): bool {
+		return isset( $job['type'] ) && is_string( $job['type'] ) && $job['type'] === $source->type();
 	}
 }

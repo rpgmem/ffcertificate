@@ -398,9 +398,24 @@ class PublicCsvDownload {
 			$this->fail_redirect( $cpf_error );
 		}
 
-		// 10. Increment BEFORE streaming to avoid race conditions under rapid retries.
-		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
-		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
+		// 10. The row cap first, then the quota (#2341): a CSV that is
+		// refused for its size must not spend a download, and the quota is
+		// claimed in one statement, so two requests racing for the last
+		// download cannot both get it.
+		$exporter = new PublicCsvExporter();
+		if ( null === $exporter->rows_within_sync_limit( $form_id, 'publish' ) ) {
+			return;
+		}
+		if ( ! $this->validator->claim_download( $form_id ) ) {
+			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
+			$this->fail_redirect(
+				sprintf(
+					/* translators: %d is the configured download limit */
+					__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
+					CsvDownloadValidator::download_limit( $form_id )
+				)
+			);
+		}
 
 		// 10b. Record an explicit delivery row in the audit ring buffer
 		// (post-#241). The pre-existing `success` / `audit_pass` /
@@ -429,7 +444,6 @@ class PublicCsvDownload {
 		);
 
 		// 11. Stream the CSV. This exits the request.
-		$exporter = new PublicCsvExporter();
 		$exporter->stream_form_csv( $form_id, 'publish' );
 	}
 
@@ -817,11 +831,13 @@ class PublicCsvDownload {
 	 * The checks every public CSV action runs before its own, in this order
 	 * (#2241): the address's rate limits, the action's challenge (#2341), the
 	 * form's access hash, then the CPF. The challenge is spent here, so every
-	 * refusal after it carries a fresh one for the dialog. The CPF answer says whether a CPF is authorised on the form, so a
-	 * caller without the hash must never reach it: the three actions used to
-	 * check the CPF first, which let anyone holding a page nonce probe CPFs
-	 * against a form, unthrottled. The CPF check stays silent because each
-	 * action writes its own audit row.
+	 * refusal after it carries a fresh one for the dialog.
+	 *
+	 * The CPF answer says whether a CPF is authorised on the form, so a caller
+	 * without the hash must never reach it: the three actions used to check
+	 * the CPF first, which let anyone holding a page nonce probe CPFs against
+	 * a form, unthrottled. A CPF that passes writes no row, because each
+	 * action writes its own; a CPF that fails is recorded (#2341).
 	 *
 	 * @param int    $form_id     Form ID.
 	 * @param string $posted_hash Access hash.
