@@ -296,21 +296,33 @@ trait DatabaseHelperTrait {
 				if ( 0 === $row_count ) {
 					break;
 				}
+				// A batch stops the loop when it changes nothing (#1378): a row
+				// whose value does not parse, or parses to no instant (a zero
+				// date), stays unmigrated, and a full batch of those would
+				// otherwise be selected again forever (#2337).
+				$changed = 0;
 				foreach ( $rows as $row ) {
 					try {
-						$dt = new \DateTimeImmutable( (string) $row->legacy_value, $tz );
-						$wpdb->update(
-							$table_name,
-							array( $staging_name => $dt->getTimestamp() ),
-							array( 'id' => (int) $row->id ),
-							array( '%d' ),
-							array( '%d' )
-						);
+						$ts = ( new \DateTimeImmutable( (string) $row->legacy_value, $tz ) )->getTimestamp();
 					} catch ( \Exception $e ) {
 						unset( $e );
+						continue;
+					}
+					if ( $ts <= 0 ) {
+						continue;
+					}
+					$updated = $wpdb->update(
+						$table_name,
+						array( $staging_name => $ts ),
+						array( 'id' => (int) $row->id ),
+						array( '%d' ),
+						array( '%d' )
+					);
+					if ( is_int( $updated ) && $updated > 0 ) {
+						++$changed;
 					}
 				}
-			} while ( $row_count === $batch_size );
+			} while ( $row_count === $batch_size && $changed > 0 );
 
 			foreach ( $drop_indexes as $idx ) {
 				if ( self::index_exists( $table_name, $idx ) ) {

@@ -337,7 +337,7 @@ class UrlShortenerRepository extends AbstractRepository {
 				array(
 					'short_code' => $new_code,
 					'qr_cache'   => null,
-					'updated_at' => current_time( 'mysql' ),
+					'updated_at' => time(),
 				)
 			);
 		if ( ! $changed ) {

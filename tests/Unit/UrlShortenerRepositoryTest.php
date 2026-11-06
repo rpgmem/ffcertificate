@@ -551,6 +551,30 @@ class UrlShortenerRepositoryTest extends TestCase {
 		$this->assertSame( $rows, $result );
 	}
 
+	public function test_never_clicked_compares_created_at_with_an_instant_cutoff(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$captured          = array();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( ...$args ) use ( &$captured ) {
+				$captured = $args;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$before = time() - 30 * DAY_IN_SECONDS;
+		$this->repo->find_cleanup_candidates( array( 'never_clicked' => true ), 30 );
+		$after = time() - 30 * DAY_IN_SECONDS;
+
+		// `created_at` is UTC seconds (#2337): no NOW() in the database's zone.
+		$this->assertStringContainsString( 's.created_at < %d', $captured[0] );
+		$this->assertStringNotContainsString( 'NOW()', $captured[0] );
+		foreach ( array( $captured[1], $captured[4] ) as $cutoff ) {
+			$this->assertGreaterThanOrEqual( $before, $cutoff );
+			$this->assertLessThanOrEqual( $after, $cutoff );
+		}
+	}
+
 	// ==================================================================
 	// countForExport() / findByCursor() — batched CSV export (#772)
 	// ==================================================================
@@ -745,14 +769,14 @@ class UrlShortenerRepositoryTest extends TestCase {
 
 	public function test_swap_code_retires_the_old_code_and_renames_the_row_in_one_transaction(): void {
 		$this->record_queries( array( 1 ) );
-		Functions\when( 'current_time' )->justReturn( '2026-11-06 01:00:00' );
 		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => '5', 'short_code' => 'old123', 'post_id' => '9' ) );
+		$before = time();
 		$this->wpdb->shouldReceive( 'update' )->once()->with(
 			'wp_ffc_short_urls',
-			array(
-				'short_code' => 'New456',
-				'qr_cache'   => null,
-				'updated_at' => '2026-11-06 01:00:00',
+			Mockery::on(
+				// `updated_at` is an instant (#2337), read on both sides of the call.
+				static fn( $data ) => 'New456' === $data['short_code'] && null === $data['qr_cache']
+					&& is_int( $data['updated_at'] ) && $data['updated_at'] >= $before && $data['updated_at'] <= time()
 			),
 			array( 'id' => 5 )
 		)->andReturn( 1 );

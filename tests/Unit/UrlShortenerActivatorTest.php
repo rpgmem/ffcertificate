@@ -137,8 +137,7 @@ class UrlShortenerActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_skips_if_table_exists(): void {
 		$this->every_table_exists();
-		// add_column_if_missing() runs even when table exists.
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
+		$this->established_columns();
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
 		$delta_called = false;
@@ -157,12 +156,12 @@ class UrlShortenerActivatorTest extends TestCase {
 
 	public function test_the_retired_table_is_created_on_an_install_that_has_the_links_table(): void {
 		// An upgraded install: the links table exists, the retired one does not.
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( self::prepared( ... ) );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			static fn( $table ) => 'wp_ffc_short_urls' === $table ? $table : null
 		);
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
-		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
+		$this->established_columns();
 
 		$statements = array();
 		Functions\when( 'dbDelta' )->alias(
@@ -317,8 +316,36 @@ class UrlShortenerActivatorTest extends TestCase {
 	/**
 	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
 	 */
+	/**
+	 * What prepare() answers: the table for a table check, and table|column
+	 * for a column lookup, so the column double can tell columns apart.
+	 *
+	 * @param string $q       Query.
+	 * @param mixed  ...$args Arguments.
+	 */
+	private static function prepared( $q, ...$args ): string {
+		return 0 === strpos( (string) $q, 'SHOW COLUMNS' ) ? implode( '|', $args ) : (string) ( $args[0] ?? $q );
+	}
+
+	/**
+	 * An established install at the current schema: the instants are
+	 * BIGINT already and no staging column exists (#2337).
+	 */
+	private function established_columns(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $s ) => $s );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $q ) {
+				$column = (string) substr( (string) strrchr( (string) $q, '|' ), 1 );
+				if ( in_array( $column, array( 'created_at', 'updated_at' ), true ) ) {
+					return array( (object) array( 'Field' => $column, 'Type' => 'bigint(20) unsigned' ) );
+				}
+				return 'qr_cache' === $column ? array( (object) array( 'Field' => 'qr_cache' ) ) : array();
+			}
+		);
+	}
+
 	private function every_table_exists(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( self::prepared( ... ) );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $table ) => $table );
 	}
 }

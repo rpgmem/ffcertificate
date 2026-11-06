@@ -68,8 +68,8 @@ class UrlShortenerActivator {
             title varchar(255) DEFAULT '',
             click_count bigint(20) unsigned DEFAULT 0,
             created_by bigint(20) unsigned DEFAULT 0,
-            created_at datetime NOT NULL,
-            updated_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
+            updated_at bigint(20) unsigned NOT NULL DEFAULT 0,
             status varchar(20) DEFAULT 'active',
             qr_cache longtext NULL COMMENT 'Cached QR code payload',
             PRIMARY KEY (id),
@@ -248,7 +248,7 @@ class UrlShortenerActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/**
 	 * Option holding the revision last applied.
@@ -256,6 +256,36 @@ class UrlShortenerActivator {
 	 * @var string
 	 */
 	public const SCHEMA_REVISION_OPTION = 'ffc_url_shortener_schema_revision';
+
+	/**
+	 * Store `created_at` and `updated_at` as UTC seconds (#2337, Category A).
+	 *
+	 * Both are shown (the duplicates alert, the CSV) and the cleaner compares
+	 * `created_at` with a cutoff, so they are instants, not housekeeping.
+	 * They were written with `current_time( 'mysql' )`, the site's wall
+	 * clock, so each value is read in `wp_timezone()` by the shared helper,
+	 * in batches that stop when a batch changes nothing.
+	 *
+	 * @return bool Whether both columns are now BIGINT, or the table does not exist yet.
+	 */
+	public static function migrate_instant_columns(): bool {
+		$table_name = self::get_table_name();
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		foreach ( array( 'created_at', 'updated_at' ) as $column ) {
+			self::migrate_datetime_column_to_unix( $table_name, $column, false );
+		}
+
+		foreach ( array( 'created_at', 'updated_at' ) as $column ) {
+			$type = strtolower( (string) self::column_type( $table_name, $column ) );
+			if ( '' !== $type && 0 !== strpos( $type, 'bigint' ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	/**
 	 * Apply the schema steps added between releases (#2337).
@@ -285,7 +315,10 @@ class UrlShortenerActivator {
 
 		self::migrate_permanent_redirects();
 
-		if ( self::table_exists( self::get_retired_table_name() ) ) {
+		// Revision 2: creation and change times are instants (#2337).
+		$instants = self::migrate_instant_columns();
+
+		if ( $instants && self::table_exists( self::get_retired_table_name() ) ) {
 			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
 	}

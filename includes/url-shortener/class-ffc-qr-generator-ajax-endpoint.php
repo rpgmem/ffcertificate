@@ -293,19 +293,16 @@ class QrGeneratorAjaxEndpoint {
 	 * @return array<int, array{code: string, url: string, title: string, created: string, clicks: int, active: bool}>
 	 */
 	private function duplicates( string $destination ): array {
-		$rows   = $this->service->get_repository()->findByTargetUrl( esc_url_raw( $destination ) );
-		$format = get_option( 'date_format' );
-		$format = is_string( $format ) && '' !== $format ? $format : 'Y-m-d';
-		$list   = array();
+		$rows = $this->service->get_repository()->findByTargetUrl( esc_url_raw( $destination ) );
+		$list = array();
 		foreach ( $rows as $row ) {
 			$code = (string) ( $row['short_code'] ?? '' );
-			// `created_at` is written with current_time( 'mysql' ): already the
-			// site's wall clock, so it is formatted without a timezone shift.
+			// `created_at` is an instant (#2337), shown in the site's zone.
 			$list[] = array(
 				'code'    => $code,
 				'url'     => $this->service->get_short_url( $code ),
 				'title'   => (string) ( $row['title'] ?? '' ),
-				'created' => (string) mysql2date( $format, (string) ( $row['created_at'] ?? '' ) ),
+				'created' => \FreeFormCertificate\Core\DateFormatter::format_date( (int) ( $row['created_at'] ?? 0 ) ),
 				'clicks'  => (int) ( $row['click_count'] ?? 0 ),
 				'active'  => 'active' === ( $row['status'] ?? '' ),
 			);
