@@ -133,7 +133,7 @@ class AccessRestrictionChecker {
 		// 4. TICKET CHECK (if active - CONSUMED)
 		// ========================================.
 		if ( ! empty( $restrictions['ticket'] ) && '1' === $restrictions['ticket'] ) {
-			$ticket = strtoupper( trim( $val_ticket ) );
+			$ticket = self::normalize_ticket( $val_ticket );
 
 			if ( empty( $ticket ) ) {
 				return array(
@@ -182,13 +182,13 @@ class AccessRestrictionChecker {
 				);
 			}
 
-			// Consume ticket (remove from list). Best-effort bookkeeping so the
-			// admin's remaining-tickets view stays accurate; the claim above,
-			// not this write, is what enforces single use.
-			$tickets                             = array_diff( $tickets, array( $ticket ) );
-			$form_config['generated_codes_list'] = implode( "\n", $tickets );
-			update_post_meta( $form_id, '_ffc_form_config', $form_config );
-
+			// The ticket stays on the list until a submission is saved:
+			// SubmissionPersister then removes it through consume_ticket(),
+			// which re-reads the form's config, or gives the claim back through
+			// release_ticket() when nothing was saved (#2341). Writing the
+			// config read at the start of the request here would undo an
+			// operator's edit made in between, and would burn the ticket of a
+			// submission that then failed.
 			return array(
 				'allowed'   => true,
 				'message'   => '',
@@ -280,7 +280,7 @@ class AccessRestrictionChecker {
 			return true;
 		}
 
-		$option_name = self::TICKET_CLAIM_OPTION_PREFIX . $form_id . '_' . hash( 'sha256', $ticket );
+		$option_name = self::claim_option_name( $form_id, $ticket );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic single-use claim; the UNIQUE option_name index IS the lock and a cached read would defeat it.
 		$wpdb->query(
@@ -295,26 +295,151 @@ class AccessRestrictionChecker {
 	}
 
 	/**
-	 * Remove used ticket from form configuration
+	 * Remove a used ticket from the form's list, once its submission is saved.
+	 *
+	 * Reads the config as it is now, not as the request first saw it, so an
+	 * operator's edit made in between survives (#2341). Lines are compared
+	 * the way {@see check()} compares them, trimmed and upper-cased, so a
+	 * ticket typed in another case still leaves the list.
 	 *
 	 * @param int    $form_id Form ID.
-	 * @param string $ticket Ticket code to consume.
+	 * @param string $ticket  Ticket code as the participant typed it.
 	 */
 	public static function consume_ticket( int $form_id, string $ticket ): void {
+		$ticket = self::normalize_ticket( $ticket );
+		if ( '' === $ticket ) {
+			return;
+		}
 		// `get_post_meta( …, true )` returns '' when the key does not exist,
-		// and in PHP 8 assigning an offset on a string is fatal, not a notice:
-		// `$s = ''; $s['k'] = 'v';` throws "Cannot access offset of type string
-		// on string". Unreachable today — the caller only gets here after
-		// `check()` read the same meta as an `array` — so this is the shape of
-		// #1058 made safe, not a live bug being fixed (#1087).
+		// and in PHP 8 assigning an offset on a string is fatal (#1087).
 		$current_config = get_post_meta( $form_id, '_ffc_form_config', true );
 		if ( ! is_array( $current_config ) ) {
 			$current_config = array();
 		}
-		$current_raw_codes                      = isset( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
-		$current_list                           = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
-		$updated_list                           = array_diff( $current_list, array( $ticket ) );
+		$current_raw_codes = isset( $current_config['generated_codes_list'] ) && is_string( $current_config['generated_codes_list'] ) ? $current_config['generated_codes_list'] : '';
+		$current_list      = array_filter( array_map( 'trim', explode( "\n", $current_raw_codes ) ) );
+		$updated_list      = array_filter(
+			$current_list,
+			static fn( string $line ): bool => self::normalize_ticket( $line ) !== $ticket
+		);
+		if ( count( $updated_list ) === count( $current_list ) ) {
+			return;
+		}
 		$current_config['generated_codes_list'] = implode( "\n", $updated_list );
 		update_post_meta( $form_id, '_ffc_form_config', $current_config );
+	}
+
+	/**
+	 * Give back a ticket claimed by a request that saved nothing (#2341).
+	 *
+	 * The claim is taken before the submission is written, so a save that
+	 * fails, or a quiz attempt refused before its row exists, would otherwise
+	 * leave the participant holding a ticket that answers "already used".
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $ticket  Ticket code as the participant typed it.
+	 */
+	public static function release_ticket( int $form_id, string $ticket ): void {
+		$ticket = self::normalize_ticket( $ticket );
+		if ( '' === $ticket ) {
+			return;
+		}
+		delete_option( self::claim_option_name( $form_id, $ticket ) );
+	}
+
+	/**
+	 * Delete claim rows that no longer guard anything (#2341).
+	 *
+	 * A claim serialises two requests racing for one ticket; once the ticket
+	 * has left the list, the list itself refuses it, so the row only grows
+	 * `wp_options`. A claim is kept while its ticket is still listed (the
+	 * removal failed, or an operator listed it again), because there it is
+	 * still the one-use gate. Rows younger than a day are left alone, so no
+	 * request still in flight loses its claim. Hooked on `ffc_daily_cleanup`.
+	 *
+	 * @param int $limit Most rows read in one run.
+	 * @return int Rows deleted.
+	 */
+	public static function reap_stale_claims( int $limit = 500 ): int {
+		global $wpdb;
+		if ( ! isset( $wpdb ) ) {
+			return 0;
+		}
+		$like = $wpdb->esc_like( self::TICKET_CLAIM_OPTION_PREFIX ) . '%';
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- maintenance sweep over non-autoloaded claim rows the options API never caches.
+		$names = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d ORDER BY option_id ASC LIMIT %d",
+				$like,
+				time() - DAY_IN_SECONDS,
+				max( 1, $limit )
+			)
+		);
+		if ( ! is_array( $names ) || array() === $names ) {
+			return 0;
+		}
+
+		$listed  = array();
+		$deleted = 0;
+		foreach ( $names as $name ) {
+			$name = (string) $name;
+			if ( 1 !== preg_match( '/^' . preg_quote( self::TICKET_CLAIM_OPTION_PREFIX, '/' ) . '(\d+)_([0-9a-f]{64})$/', $name, $m ) ) {
+				continue;
+			}
+			$form_id = (int) $m[1];
+			if ( ! isset( $listed[ $form_id ] ) ) {
+				$listed[ $form_id ] = self::listed_hashes( $form_id );
+			}
+			if ( isset( $listed[ $form_id ][ $m[2] ] ) ) {
+				continue;
+			}
+			// Raw delete: the claim was written raw and the options API
+			// never cached it, so there is no cache entry to clear.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- see above.
+			if ( $wpdb->delete( $wpdb->options, array( 'option_name' => $name ), array( '%s' ) ) ) {
+				++$deleted;
+			}
+		}
+		return $deleted;
+	}
+
+	/**
+	 * Hashes of the tickets a form still lists, keyed for lookup.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return array<string, true>
+	 */
+	private static function listed_hashes( int $form_id ): array {
+		$config = get_post_meta( $form_id, '_ffc_form_config', true );
+		$raw    = is_array( $config ) && isset( $config['generated_codes_list'] ) && is_string( $config['generated_codes_list'] ) ? $config['generated_codes_list'] : '';
+		$hashes = array();
+		foreach ( explode( "\n", $raw ) as $line ) {
+			$ticket = self::normalize_ticket( $line );
+			if ( '' !== $ticket ) {
+				$hashes[ hash( 'sha256', $ticket ) ] = true;
+			}
+		}
+		return $hashes;
+	}
+
+	/**
+	 * A ticket as the list and the claim compare it: trimmed, upper-cased.
+	 *
+	 * @param string $ticket Ticket code.
+	 * @return string
+	 */
+	private static function normalize_ticket( string $ticket ): string {
+		return strtoupper( trim( $ticket ) );
+	}
+
+	/**
+	 * The `wp_options` row that claims a ticket.
+	 *
+	 * @param int    $form_id Form ID.
+	 * @param string $ticket  Normalised ticket code.
+	 * @return string
+	 */
+	private static function claim_option_name( int $form_id, string $ticket ): string {
+		return self::TICKET_CLAIM_OPTION_PREFIX . $form_id . '_' . hash( 'sha256', $ticket );
 	}
 }

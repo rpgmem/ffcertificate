@@ -763,9 +763,8 @@ class SubmissionGuardsTest extends TestCase {
 		);
 		( new AccessRestrictionGuard() )->apply( $ctx );
 		$this->assertTrue( $ctx->restriction_result['is_ticket'] );
+		$this->assertTrue( $ctx->ticket_claim_open, 'The persister settles the claim.' );
 		$this->assertCount( 1, $this->queries, 'The ticket was claimed once.' );
-		$this->assertCount( 1, $this->meta_writes );
-		$this->assertSame( array( 7, '_ffc_form_config' ), array_slice( $this->meta_writes[0], 0, 2 ) );
-		$this->assertSame( 'XYZ', $this->meta_writes[0][2]['generated_codes_list'], 'The claimed ticket leaves the list.' );
+		$this->assertSame( array(), $this->meta_writes, 'The ticket stays listed until a submission is saved (#2341).' );
 	}
 }

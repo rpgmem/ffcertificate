@@ -137,6 +137,16 @@ class SubmissionContext {
 	public array $restriction_result = array();
 
 	/**
+	 * Whether this request claimed a one-use ticket that no saved row holds
+	 * yet (#2341). Set by AccessRestrictionGuard; SubmissionPersister settles
+	 * it, consuming the ticket once a row is written and releasing the claim
+	 * when the request ends without one.
+	 *
+	 * @var bool
+	 */
+	public bool $ticket_claim_open = false;
+
+	/**
 	 * The invitation this submission answers (#1948), or null.
 	 *
 	 * @var array{booking_id: int, user_id: int, name: string, email: string, event: string}|null
