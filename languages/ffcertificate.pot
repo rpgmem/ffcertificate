@@ -7193,6 +7193,10 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/forms-public-operator-access.php:47
+msgid "The log keeps the latest 100 failures and, apart from them, the latest 100 other entries, so a stream of bad requests never pushes a delivery out. A failure repeated from one address is one row with its count and its first and last time."
+msgstr ""
+
 #: includes/settings/views/documentation/forms-public-operator-access.php:69
 msgid "Each of the three actions (Start Form Early, Postpone Close, Schedule exception) shows its own verification in its dialog and spends it, so the one solved for the download never changes the form."
 msgstr ""

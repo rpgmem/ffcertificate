@@ -7195,6 +7195,10 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/forms-public-operator-access.php:47
+msgid "The log keeps the latest 100 failures and, apart from them, the latest 100 other entries, so a stream of bad requests never pushes a delivery out. A failure repeated from one address is one row with its count and its first and last time."
+msgstr "O registro guarda as 100 falhas mais recentes e, separadas delas, as 100 outras entradas mais recentes, então uma sequência de requisições inválidas nunca tira um download do registro. Uma falha repetida a partir de um mesmo endereço vira uma única linha, com a contagem e a primeira e a última vez."
+
 #: includes/settings/views/documentation/forms-public-operator-access.php:69
 msgid "Each of the three actions (Start Form Early, Postpone Close, Schedule exception) shows its own verification in its dialog and spends it, so the one solved for the download never changes the form."
 msgstr "Cada uma das três ações (Início Antecipado, Adiar Fechamento, Exceção de horário) mostra a sua própria verificação no diálogo e a consome, então a resolvida para o download nunca altera o formulário."
