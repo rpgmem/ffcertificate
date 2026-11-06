@@ -118,8 +118,8 @@ class UserDashboardActivator {
 	}
 
 	/**
-	 * Register the ffc_end_user role and grant admin-level FFC caps to the
-	 * administrator role.
+	 * Register the ffc_end_user role and give every administrator the
+	 * `ffc_administrator` role.
 	 */
 	private static function register_user_role(): void {
 		// Load User Manager if not already loaded.
@@ -133,13 +133,12 @@ class UserDashboardActivator {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
 
-			// Grant admin-level FFC capabilities to the administrator role.
-			$admin_role = get_role( 'administrator' );
-			if ( $admin_role ) {
-				foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
-					$admin_role->add_cap( $cap, true );
-				}
-			}
+			// Administrators reach the plugin through `ffc_administrator`, never
+			// through FFC capabilities on the core role (#747). This grant used
+			// to put them on the core role, and only the capability migrations'
+			// next run took them off again; since those run in wp-admin alone
+			// (#2340), activation itself leaves the core role clean.
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_admin_role_assignment();
 		}
 	}
 
