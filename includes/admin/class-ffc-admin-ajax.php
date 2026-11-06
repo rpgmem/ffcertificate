@@ -97,11 +97,14 @@ class AdminAjax {
 				'pii_cap'      => \FreeFormCertificate\DateMessages\DateMessagesAdminPage::PII_CAP,
 				'audit_action' => 'date_messages_pii_revealed',
 			),
-			// The client address of an activity log entry (#2109).
+			// The client address and the details of an activity log entry
+			// (#2109). Not logged (#2340): the reader is on the log itself,
+			// so each reveal would add a row to the screen being read, and
+			// what is revealed is already a logged event. The cap is the gate.
 			self::REVEAL_ACTIVITY_LOG   => array(
 				'surface_cap'  => 'ffc_view_activity_log',
 				'pii_cap'      => 'ffc_view_activity_log_pii',
-				'audit_action' => 'activity_log_ip_revealed',
+				'audit_action' => '',
 			),
 			// A blocked address on the Rate Limit tab (#2109).
 			self::REVEAL_RATE_LIMIT_LOG => array(
@@ -409,22 +412,25 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => $result['message'] ?? '' ), $result['status'] );
 		}
 
-		// Every served reveal is audited (#1655); ActivityLog honours the
+		// Every served reveal is audited (#1655), except a type with no
+		// audit action (the activity log's own); ActivityLog honours the
 		// Activity Log switch and its category, as every other entry does.
 		// The record is named in the context by type and id (#2340): the
 		// `submission_id` column holds a submission, so an appointment or a
 		// profile id there named the wrong record.
-		\FreeFormCertificate\Core\ActivityLog::log(
-			$config['audit_action'],
-			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-			array(
-				'field_key'   => $field,
-				'record_type' => $type,
-				'record_id'   => $id,
-			),
-			get_current_user_id(),
-			'submission' === $type ? $id : 0
-		);
+		if ( '' !== $config['audit_action'] ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				$config['audit_action'],
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'field_key'   => $field,
+					'record_type' => $type,
+					'record_id'   => $id,
+				),
+				get_current_user_id(),
+				'submission' === $type ? $id : 0
+			);
+		}
 
 		wp_send_json_success(
 			array(
@@ -493,6 +499,9 @@ class AdminAjax {
 		}
 
 		foreach ( $revealed as $type => $what ) {
+			if ( '' === $configs[ $type ]['audit_action'] ) {
+				continue;
+			}
 			\FreeFormCertificate\Core\ActivityLog::log(
 				$configs[ $type ]['audit_action'],
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,

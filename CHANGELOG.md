@@ -73,7 +73,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings: action results no longer travel in the URL** (#2338). Settings maintenance, Data Migrations and the Submissions migration notice printed whatever text the query carried, so a crafted link could put any message on them; the result now stays on the server for its user for five minutes and the URL names only the area (`?ffc_notice=url_cleanup`), shown once.
 - **Settings maintenance: apply runs only what was previewed, and every destructive run is logged** (#2338). Short-URL cleanup, obsolete-shortcode cleanup and the public-access disabler refuse to apply when the window or criteria changed after the preview; those three and Danger Zone deletions write an Activity Log line naming who ran them and what changed.
 - ⚠ **Roles: a capability removed in the role editor stays removed, and changing someone's roles needs the right over that account** (#2340). An administrator's profile save keeps their per-user grants; any role from Operator up, or an `ffc_manage_` cap, counts as staff.
-- **Activity Log: e-mail addresses, CPF, RF and other personal values in an entry's details are masked on the tab and in the CSV** (#2340). Only addresses were before; the clear details sit behind the entry's audited Reveal, and a clear export still needs `ffc_view_activity_log_pii`.
+- **Activity Log: e-mail addresses, CPF, RF and other personal values in an entry's details are masked on the tab and in the CSV** (#2340). Only addresses were before; the clear details sit behind the entry's Reveal, which, like the address, no longer writes a log entry; a clear export still needs `ffc_view_activity_log_pii` and is logged.
 
 ### Fixed
 

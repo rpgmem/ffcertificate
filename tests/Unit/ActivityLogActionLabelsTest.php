@@ -123,6 +123,15 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	/**
+	 * Reveal types that write no audit row, each with its reason (#2340).
+	 *
+	 * @var array<string, string>
+	 */
+	private const UNLOGGED_REVEAL_TYPES = array(
+		'activity_log' => 'The reader is on the activity log itself: each reveal would add a row to the screen being read.',
+	);
+
+	/**
 	 * Audit actions the PII reveal endpoint writes, one per reveal type (#1820).
 	 *
 	 * `AdminAjax::reveal_pii()` logs `$config['audit_action']`, a variable, so
@@ -181,7 +190,7 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	public function test_every_known_action_has_a_translated_label(): void {
-		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions(), array_values( self::reveal_audit_actions() ) ) );
+		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions(), array_values( array_filter( self::reveal_audit_actions() ) ) ) );
 		$labelled = self::labelled_actions();
 
 		sort( $known );
@@ -207,6 +216,10 @@ final class ActivityLogActionLabelsTest extends TestCase {
 
 		$missing = array();
 		foreach ( self::reveal_audit_actions() as $type => $action ) {
+			if ( isset( self::UNLOGGED_REVEAL_TYPES[ $type ] ) ) {
+				$this->assertSame( '', $action, $type . ' is listed as not logged, yet audits under ' . $action . '.' );
+				continue;
+			}
 			if ( '' === $action || ! in_array( $action, $labelled, true ) ) {
 				$missing[] = $type . ' => ' . ( '' === $action ? '(no audit_action)' : $action );
 			}
