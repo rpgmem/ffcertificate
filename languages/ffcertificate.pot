@@ -28906,7 +28906,7 @@ msgstr ""
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
 msgstr ""
 
-msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
+msgid "reveal the client address of an entry, or its details, with the Reveal button, and export them in clear. Without it every address, e-mail address and CPF, RF or other personal value on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
 msgstr ""
 
 msgid "Activity Log: Clear Refused Addresses"

@@ -441,6 +441,74 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringContainsString('42', $html);
 	}
 
+	public function test_personal_data_in_the_details_is_masked_behind_a_reveal(): void {
+		$this->stub_date_formatting();
+		Functions\when('is_email')->alias(static fn($e) => false !== filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : false);
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_create_nonce')->justReturn('nonce-123');
+		Functions\when('user_can')->alias(static fn($uid, $cap) => 'ffc_view_activity_log_pii' === $cap);
+
+		$html = AdminActivityLogPage::render_rows_html([
+			[
+				'id'         => 78,
+				'created_at' => '2026-01-01 00:00:00',
+				'level'      => 'info',
+				'action'     => 'privacy_data_erased',
+				'user_id'    => 0,
+				'user_ip'    => '',
+				'context'    => ['requester' => 'ana.souza@example.org', 'cpf' => '51817842080', 'records' => 3],
+			],
+		]);
+
+		$this->assertStringNotContainsString('ana.souza@example.org', $html, 'an e-mail is masked whatever its key');
+		$this->assertStringNotContainsString('51817842080', $html, 'a CPF is masked by its key');
+		$this->assertStringContainsString('data-field="context"', $html, 'the details carry a Reveal');
+		$this->assertStringContainsString('"records": 3', $html);
+	}
+
+	public function test_details_with_nothing_personal_get_no_reveal(): void {
+		$this->stub_date_formatting();
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_create_nonce')->justReturn('nonce-123');
+		Functions\when('user_can')->alias(static fn($uid, $cap) => 'ffc_view_activity_log_pii' === $cap);
+
+		$html = AdminActivityLogPage::render_rows_html([
+			[
+				'id'         => 79,
+				'created_at' => '2026-01-01 00:00:00',
+				'level'      => 'info',
+				'action'     => 'settings_changed',
+				'user_id'    => 0,
+				'user_ip'    => '',
+				'context'    => ['setting' => 'dark_mode'],
+			],
+		]);
+
+		$this->assertStringNotContainsString('ffc-reveal-pii', $html);
+	}
+
+	public function test_mask_personal_data_reads_values_and_keys(): void {
+		Functions\when('is_email')->alias(static fn($e) => false !== filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : false);
+		$masked = AdminActivityLogPage::mask_personal_data(
+			array(
+				'who'    => 'ana@example.org',
+				'nested' => array( 'rf' => '5181780', 'phone' => '11987654321' ),
+				'count'  => 4,
+				'note'   => 'plain text',
+			)
+		);
+
+		$this->assertNotSame( 'ana@example.org', $masked['who'] );
+		$this->assertNotSame( '5181780', $masked['nested']['rf'] );
+		$this->assertNotSame( '11987654321', $masked['nested']['phone'] );
+		$this->assertSame( 4, $masked['count'] );
+		$this->assertSame( 'plain text', $masked['note'] );
+	}
+
 	public function test_render_rows_html_renders_deleted_user_and_anonymous(): void {
 		$this->stub_date_formatting();
 

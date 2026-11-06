@@ -133,7 +133,12 @@ class AdminAjax {
 		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
 			return 'email' === $field;
 		}
-		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
+		if ( self::REVEAL_ACTIVITY_LOG === $type ) {
+			// The entry's address, or its details with the personal data the
+			// screen masks (#2340).
+			return 'ip' === $field || 'context' === $field;
+		}
+		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {
 			return 'ip' === $field;
 		}
 		if ( 'submission' === $type ) {
@@ -203,10 +208,12 @@ class AdminAjax {
 
 		// An address with no owner: a log line is not a person's record, so
 		// the policy's owner tier never applies and the reveal is audited.
-		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
-			$ip = self::REVEAL_ACTIVITY_LOG === $type
-				? \FreeFormCertificate\Core\ActivityLogQuery::ip_of( $id )
-				: \FreeFormCertificate\Security\RateLimitStats::address_of( $id );
+		if ( self::REVEAL_ACTIVITY_LOG === $type ) {
+			$entry = \FreeFormCertificate\Core\ActivityLogQuery::entry_of( $id );
+			return null === $entry || ( '' === $entry['user_ip'] && array() === $entry['context'] ) ? null : $entry;
+		}
+		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {
+			$ip = \FreeFormCertificate\Security\RateLimitStats::address_of( $id );
 			return '' === $ip ? null : array( 'user_ip' => $ip );
 		}
 
@@ -280,6 +287,11 @@ class AdminAjax {
 				return \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
 			case 'ip':
 				return (string) ( $record['user_ip'] ?? '' );
+			case 'context':
+				// An activity-log entry's details in clear, laid out as the
+				// screen shows them (#2340).
+				$context = isset( $record['context'] ) && is_array( $record['context'] ) ? $record['context'] : array();
+				return array() === $context ? '' : (string) wp_json_encode( $context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 			case 'phone':
 				return (string) ( $record['phone'] ?? '' );
 			case 'name':

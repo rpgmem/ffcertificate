@@ -311,6 +311,24 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertStringContainsString( '"form_id":42', $result[5] );
 	}
 
+	public function test_a_masked_export_masks_emails_and_documents_too(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) ? $e : false );
+		$row            = $this->sample_row();
+		$row['context'] = array(
+			'requester' => 'ana@example.org',
+			'cpf'       => '51817842080',
+		);
+
+		$masked = $this->source->format_row( $row, array( 'pii' => false ) );
+		$clear  = $this->source->format_row( $row, array( 'pii' => true ) );
+
+		$this->assertStringNotContainsString( 'ana@example.org', $masked[5] );
+		$this->assertStringNotContainsString( '51817842080', $masked[5] );
+		$this->assertStringContainsString( 'ana@example.org', $clear[5], 'an export with the reveal cap stays in clear' );
+	}
+
 	public function test_filename_is_dated(): void {
 		// gmdate() is an internal function Patchwork can't redefine, so assert
 		// the shape (ffc-activity-log-YYYY-MM-DD.csv) rather than a fixed date.

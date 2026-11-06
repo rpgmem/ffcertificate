@@ -28988,8 +28988,8 @@ msgstr "Revelar o endereço do cliente de uma entrada do registro de atividades 
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
 msgstr "Uma conta com ffc_view_settings_pii (o Gerente e o Administrador das Configurações FFC) revela um endereço com o botão Revelar; cada revelação é registrada no registro de atividades."
 
-msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
-msgstr "revelar o endereço do cliente de uma entrada com o botão Revelar e exportar os endereços às claras. Sem ela, todo endereço na aba, nos detalhes de uma entrada e no CSV fica mascarado. Cada revelação e cada exportação às claras é registrada no log."
+msgid "reveal the client address of an entry, or its details, with the Reveal button, and export them in clear. Without it every address, e-mail address and CPF, RF or other personal value on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
+msgstr "revelar o endereço do cliente de uma entrada, ou os seus detalhes, com o botão Revelar e exportá-los às claras. Sem ela, todo endereço, endereço de e-mail e CPF, RF ou outro dado pessoal na aba, nos detalhes de uma entrada e no CSV fica mascarado. Cada revelação e cada exportação às claras é registrada no log."
 
 msgid "Activity Log: Clear Refused Addresses"
 msgstr "Registro de Atividades: Limpar Endereços Recusados"

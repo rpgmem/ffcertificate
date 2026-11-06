@@ -595,9 +595,21 @@ class ActivityLogQuery {
 	 * @return string The address, or '' when the entry or its address is missing.
 	 */
 	public static function ip_of( int $id ): string {
+		$entry = self::entry_of( $id );
+		return null === $entry ? '' : $entry['user_ip'];
+	}
+
+	/**
+	 * One entry's decrypted address and details, read once, for the audited
+	 * Reveal (#2340).
+	 *
+	 * @param int $id Log row id.
+	 * @return array{user_ip: string, context: array<string, mixed>}|null Null when the row is missing.
+	 */
+	public static function entry_of( int $id ): ?array {
 		global $wpdb;
 		if ( $id <= 0 ) {
-			return '';
+			return null;
 		}
 
 		/**
@@ -613,8 +625,14 @@ class ActivityLogQuery {
 			),
 			ARRAY_A
 		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
 
-		return is_array( $row ) ? (string) self::resolve_ip( $row ) : '';
+		return array(
+			'user_ip' => (string) self::resolve_ip( $row ),
+			'context' => self::resolve_context( $row ),
+		);
 	}
 
 	/**

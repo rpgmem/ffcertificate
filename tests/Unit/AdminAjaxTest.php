@@ -1005,6 +1005,29 @@ class AdminAjaxTest extends TestCase {
 		$this->assertContains( $pii_cap, $this->policy_checks );
 	}
 
+	public function test_reveal_pii_an_activity_log_entrys_details_in_clear(): void {
+		$this->post_reveal( 'activity_log', 31, 'context' );
+		$this->store(
+			'wp_ffc_activity_log',
+			31,
+			array(
+				'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
+				'context'           => '{"requester":"ana@example.org"}',
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_activity_log_pii';
+
+		$this->assertSame(
+			array(
+				'field' => 'context',
+				'value' => json_encode( array( 'requester' => 'ana@example.org' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ),
+			),
+			$this->reveal()
+		);
+		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
+		$this->assertAuditedOnce( 'activity_log_ip_revealed', array( 'field_key' => 'context' ), self::VIEWER, 31, 'activity_log' );
+	}
+
 	/**
 	 * @dataProvider address_reveal_types
 	 */

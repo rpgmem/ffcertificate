@@ -627,7 +627,8 @@ class AdminActivityLogPage {
 				</td>
 				<td>
 					<?php
-					$ffcertificate_ip = (string) ( $ffcertificate_log['user_ip'] ?? '' );
+					$ffcertificate_log_id = is_numeric( $ffcertificate_log['id'] ?? null ) ? (int) $ffcertificate_log['id'] : 0;
+					$ffcertificate_ip     = (string) ( $ffcertificate_log['user_ip'] ?? '' );
 					if ( '' !== $ffcertificate_ip ) {
 						echo '<code class="ffc-pii-value" data-field="ip">' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ffcertificate_ip ) ) . '</code>';
 						if ( '' !== $ffcertificate_reveal_nonce ) {
@@ -635,7 +636,7 @@ class AdminActivityLogPage {
 								array(
 									'field'         => 'ip',
 									'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
-									'submission-id' => (int) ( $ffcertificate_log['id'] ?? 0 ),
+									'submission-id' => $ffcertificate_log_id,
 									'nonce'         => $ffcertificate_reveal_nonce,
 								)
 							);
@@ -650,10 +651,14 @@ class AdminActivityLogPage {
 						// wp_json_encode returns string|false. The false case (circular
 						// refs, malformed UTF-8) is treated as "no context" so the
 						// admin still sees a valid <details> block.
-						$ffcertificate_context_json = wp_json_encode( self::mask_addresses( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_json = wp_json_encode( self::mask_personal_data( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 						if ( false === $ffcertificate_context_json ) {
 							$ffcertificate_context_json = '';
 						}
+						// Something was masked: the clear details sit behind the
+						// same audited Reveal as the address (#2340).
+						$ffcertificate_context_clear  = (string) wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_masked = $ffcertificate_context_clear !== $ffcertificate_context_json;
 						// Schedule exception flow (#366 Sprint 9) gets a
 						// friendly summary above the raw JSON dump. Other
 						// action types render the raw block as before.
@@ -677,7 +682,20 @@ class AdminActivityLogPage {
 							<summary class="ffc-log-summary">
 								<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
 							</summary>
-							<pre class="ffc-log-pre"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
+							<pre class="ffc-log-pre ffc-pii-value" data-field="context"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
+							<?php
+							if ( $ffcertificate_context_masked && '' !== $ffcertificate_reveal_nonce ) {
+								$ffcertificate_context_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+									array(
+										'field'         => 'context',
+										'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
+										'submission-id' => $ffcertificate_log_id,
+										'nonce'         => $ffcertificate_reveal_nonce,
+									)
+								);
+								echo $ffcertificate_context_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+							}
+							?>
 						</details>
 					<?php else : ?>
 						<span class="description">—</span>
@@ -699,11 +717,40 @@ class AdminActivityLogPage {
 	 * @return mixed
 	 */
 	public static function mask_addresses( $context ) {
+		return self::mask_personal_data( $context );
+	}
+
+	/**
+	 * Every piece of personal data in an entry's details masked (#2109,
+	 * #2340): an address wherever it sits, an e-mail address wherever it
+	 * sits, and a value under a key the plugin knows as personal (`cpf`,
+	 * `rf`, `email`, `phone`…, {@see DocumentFormatter::kind_for_key()}).
+	 * The clear details stay behind the entry's audited Reveal.
+	 *
+	 * @param mixed  $context Decoded details, or a value inside them.
+	 * @param string $key     Key the value sits under; '' at the top.
+	 * @return mixed
+	 */
+	public static function mask_personal_data( $context, string $key = '' ) {
 		if ( is_array( $context ) ) {
-			return array_map( array( self::class, 'mask_addresses' ), $context );
+			$out = array();
+			foreach ( $context as $k => $v ) {
+				$out[ $k ] = self::mask_personal_data( $v, is_string( $k ) ? $k : $key );
+			}
+			return $out;
 		}
-		if ( is_string( $context ) && null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
+		if ( ! is_string( $context ) || '' === $context ) {
+			return $context;
+		}
+		if ( null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
 			return \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $context );
+		}
+		if ( false !== filter_var( $context, FILTER_VALIDATE_EMAIL ) ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask_email( $context );
+		}
+		$kind = '' !== $key ? \FreeFormCertificate\Core\DocumentFormatter::kind_for_key( strtolower( $key ) ) : null;
+		if ( null !== $kind ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask( $kind, $context );
 		}
 		return $context;
 	}
