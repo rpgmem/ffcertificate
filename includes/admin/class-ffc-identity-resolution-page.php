@@ -559,18 +559,9 @@ class IdentityResolutionPage {
 			return 0;
 		}
 
-		// `ffc_activity_log.created_at` is a WALL-CLOCK `DATETIME` written by
-		// `current_time( 'mysql' )`, so the bound has to be in the same frame
-		// or the comparison is off by the site's offset. This is the
-		// documented reason `CLAUDE.md` allows for reaching for `wp_date()`
-		// outside `DateFormatter`: it is not display, it is a query bound
-		// that must match how the column was written.
-		$since = wp_date( 'Y-m-d H:i:s', $taken_at );
-
-		if ( ! is_string( $since ) || '' === $since ) {
-			return 0;
-		}
-
+		// `ffc_activity_log.created_at` stores UTC seconds (#2340), so the
+		// moment the queue was read is the bound as it is.
+		$since    = $taken_at;
 		$operator = get_current_user_id();
 		$done     = 0;
 

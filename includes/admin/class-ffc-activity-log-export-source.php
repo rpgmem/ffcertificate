@@ -238,7 +238,7 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 		}
 
 		return array(
-			(string) ( $row['created_at'] ?? '' ),
+			\FreeFormCertificate\Core\DateFormatter::format_datetime( (string) ( $row['created_at'] ?? '' ) ),
 			strtoupper( (string) ( $row['level'] ?? '' ) ),
 			AdminActivityLogPage::get_action_label( (string) ( $row['action'] ?? '' ) ),
 			$this->user_display( (int) ( $row['user_id'] ?? 0 ) ),

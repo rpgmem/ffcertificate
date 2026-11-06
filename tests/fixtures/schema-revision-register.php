@@ -20,8 +20,8 @@ return array(
 	),
 	'includes/core/class-ffc-activity-log.php' => array(
 		'class'       => 'FreeFormCertificate\\Core\\ActivityLog',
-		'revision'    => '2.4.0',
-		'fingerprint' => 'ce671d953e97dea76a58a0e16f4b6b2ea6547255',
+		'revision'    => '2.5.0',
+		'fingerprint' => '12a904394fd0f7cc28b7973bd38fcb52d561e883',
 	),
 	'includes/date-messages/class-ffc-date-messages-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\DateMessages\\DateMessagesActivator',

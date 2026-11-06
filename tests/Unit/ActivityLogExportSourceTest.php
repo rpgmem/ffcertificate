@@ -57,6 +57,10 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		// The date column is an instant shown in the site's timezone (#2340).
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'get_option' )->justReturn( '' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format ) );
 
 		$this->source = new ActivityLogExportSource();
 	}
@@ -92,7 +96,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 	private function sample_row(): array {
 		return array(
 			'id'         => 7,
-			'created_at' => '2026-01-15 10:30:00',
+			'created_at' => '1768473000',
 			'level'      => 'error',
 			'action'     => 'submission_created',
 			'user_id'    => 3,
@@ -132,7 +136,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 
 		$result = $this->source->format_row( $this->sample_row(), array( 'pii' => true ) );
 
-		$this->assertSame( '2026-01-15 10:30:00', $result[0] );
+		$this->assertSame( '15/01/2026 07:30', $result[0], 'The instant is shown in the site\'s timezone, in the site\'s format.' );
 		$this->assertSame( 'ERROR', $result[1] );
 		$this->assertSame( 'Submission Created', $result[2] );
 		$this->assertSame( 'Jane Doe (jane)', $result[3] );

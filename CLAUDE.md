@@ -984,7 +984,7 @@ Current inventory (point-in-time snapshot — re-verify a column against the liv
 | `ffc_rate_limit_*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_custom_fields*` (3 tables) | P1 (MySQL auto) | — |
 | `ffc_self_scheduling_*` | P3 (hybrid: `created_at` auto, `updated_at` PHP) | — |
-| `ffc_activity_log` | P2 (PHP-managed, `NOT NULL`) | — |
+| `ffc_activity_log` | none: Category A since #2340 | `created_at` is an instant (the log screen, the CSV and the privacy export show it; retention and the stats compare it); existing rows were converted from the site timezone by `ActivityLogInstants`, one statement per offset stretch |
 
 If a future feature renders one of these columns to a user, that column must be migrated to Category A storage at that point — not left as a hidden TZ-drift trap.
 

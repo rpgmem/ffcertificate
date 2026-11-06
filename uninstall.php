@@ -301,6 +301,9 @@ $ffcertificate_options = array(
 	// Lock of the one-shot capability migrations (#2340): present only while
 	// a request runs them, or left behind by one that died.
 	'ffc_capability_migrations_lock',
+	// Lock of the activity log's creation-time conversion (#2340): present
+	// only while a request converts the column, or left behind by one that died.
+	'ffc_activity_log_instants_lock',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.

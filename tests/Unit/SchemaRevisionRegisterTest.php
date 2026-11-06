@@ -60,6 +60,9 @@ class SchemaRevisionRegisterTest extends TestCase {
 		// The user foreign keys run from Activator::maybe_add_foreign_keys(),
 		// behind the core revision; their set is the CONSTRAINTS map.
 		'includes/migrations/class-ffc-migration-foreign-keys.php' => 'includes/class-ffc-activator.php',
+		// The creation-time conversion runs from ActivityLog::create_table(),
+		// behind the activity log's revision (#2340).
+		'includes/core/class-ffc-activity-log-instants.php'        => 'includes/core/class-ffc-activity-log.php',
 	);
 
 	/**

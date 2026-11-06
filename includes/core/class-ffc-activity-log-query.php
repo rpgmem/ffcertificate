@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     context: string|null,
  *     user_id: numeric-string|null,
  *     user_ip: string|null,
- *     created_at: string,
+ *     created_at: numeric-string,
  *     context_encrypted?: string|null,
  *     user_ip_encrypted?: string|null
  * }
@@ -116,11 +116,13 @@ class ActivityLogQuery {
 		if ( $args['user_id'] ) {
 			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
 		}
-		if ( $args['date_from'] ) {
-			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
+		$date_from = self::instant( $args['date_from'] );
+		if ( null !== $date_from ) {
+			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
 		}
-		if ( $args['date_to'] ) {
-			$where[] = $wpdb->prepare( 'created_at <= %s', sanitize_text_field( $args['date_to'] ) );
+		$date_to = self::instant( $args['date_to'], true );
+		if ( null !== $date_to ) {
+			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
 		}
 		if ( $args['search'] ) {
 			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
@@ -439,11 +441,13 @@ class ActivityLogQuery {
 		if ( $args['user_id'] ) {
 			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
 		}
-		if ( $args['date_from'] ) {
-			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
+		$date_from = self::instant( $args['date_from'] );
+		if ( null !== $date_from ) {
+			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
 		}
-		if ( $args['date_to'] ) {
-			$where[] = $wpdb->prepare( 'created_at <= %s', sanitize_text_field( $args['date_to'] ) );
+		$date_to = self::instant( $args['date_to'], true );
+		if ( null !== $date_to ) {
+			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
 		}
 		if ( $args['search'] ) {
 			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
@@ -458,6 +462,41 @@ class ActivityLogQuery {
 				$table_name
 			)
 		);
+	}
+
+	/**
+	 * A date filter as UTC seconds (#2340), or null when there is none.
+	 *
+	 * `created_at` stores instants, so a bound is one too. Seconds are taken
+	 * as they are; a date or date-time string is read in the site's timezone,
+	 * which is what an operator typing a date means. A bare date that ends a
+	 * range takes in the whole of that day.
+	 *
+	 * @param mixed $value      Seconds, or a site-local `Y-m-d[ H:i:s]`.
+	 * @param bool  $end_of_day Whether a bare date stands for its last second.
+	 * @return int|null
+	 */
+	public static function instant( $value, bool $end_of_day = false ): ?int {
+		if ( is_int( $value ) ) {
+			return $value > 0 ? $value : null;
+		}
+		if ( ! is_string( $value ) || '' === trim( $value ) ) {
+			return null;
+		}
+		$value = trim( $value );
+		if ( ctype_digit( $value ) ) {
+			return (int) $value > 0 ? (int) $value : null;
+		}
+		try {
+			$moment = new \DateTimeImmutable( sanitize_text_field( $value ), wp_timezone() );
+			if ( $end_of_day && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+				$moment = $moment->setTime( 23, 59, 59 );
+			}
+			return $moment->getTimestamp();
+		} catch ( \Exception $e ) {
+			unset( $e );
+			return null;
+		}
 	}
 
 	/**
@@ -481,13 +520,12 @@ class ActivityLogQuery {
 		}
 
 		global $wpdb;
-		$table_name   = $wpdb->prefix . 'ffc_activity_log';
-		$date_from_ts = strtotime( "-{$days} days" );
-		$date_from    = gmdate( 'Y-m-d H:i:s', $date_from_ts ? $date_from_ts : time() );
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$date_from  = time() - max( 0, $days ) * DAY_IN_SECONDS;
 
 		$total = $wpdb->get_var(
 			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE created_at >= %s',
+				'SELECT COUNT(*) FROM %i WHERE created_at >= %d',
 				$table_name,
 				$date_from
 			)
@@ -495,7 +533,7 @@ class ActivityLogQuery {
 
 		$by_level = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT level, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY level',
+				'SELECT level, COUNT(*) as count FROM %i WHERE created_at >= %d GROUP BY level',
 				$table_name,
 				$date_from
 			),
@@ -504,7 +542,7 @@ class ActivityLogQuery {
 
 		$top_actions = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT action, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY action ORDER BY count DESC LIMIT 10',
+				'SELECT action, COUNT(*) as count FROM %i WHERE created_at >= %d GROUP BY action ORDER BY count DESC LIMIT 10',
 				$table_name,
 				$date_from
 			),
@@ -513,7 +551,7 @@ class ActivityLogQuery {
 
 		$top_users = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT user_id, COUNT(*) as count FROM %i WHERE created_at >= %s AND user_id > 0 GROUP BY user_id ORDER BY count DESC LIMIT 10',
+				'SELECT user_id, COUNT(*) as count FROM %i WHERE created_at >= %d AND user_id > 0 GROUP BY user_id ORDER BY count DESC LIMIT 10',
 				$table_name,
 				$date_from
 			),
@@ -643,13 +681,12 @@ class ActivityLogQuery {
 	 */
 	public static function cleanup( int $days = 90 ): int {
 		global $wpdb;
-		$table_name     = $wpdb->prefix . 'ffc_activity_log';
-		$cutoff_date_ts = strtotime( "-{$days} days" );
-		$cutoff_date    = gmdate( 'Y-m-d H:i:s', $cutoff_date_ts ? $cutoff_date_ts : time() );
+		$table_name  = $wpdb->prefix . 'ffc_activity_log';
+		$cutoff_date = time() - max( 0, $days ) * DAY_IN_SECONDS;
 
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
-				'DELETE FROM %i WHERE created_at < %s',
+				'DELETE FROM %i WHERE created_at < %d',
 				$table_name,
 				$cutoff_date
 			)

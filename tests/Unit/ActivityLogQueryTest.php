@@ -34,6 +34,7 @@ class ActivityLogQueryTest extends TestCase {
 			return array_merge( $defaults, $args );
 		} );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
 		Functions\when( 'delete_transient' )->justReturn( true );
@@ -301,7 +302,7 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertStringContainsString( 'level = %s', $all_sql );
 		$this->assertStringContainsString( 'action = %s', $all_sql );
 		$this->assertStringContainsString( 'user_id = %d', $all_sql );
-		$this->assertStringContainsString( 'created_at >= %s', $all_sql );
+		$this->assertStringContainsString( 'created_at >= %d', $all_sql );
 	}
 
 	// ==================================================================
@@ -590,8 +591,10 @@ class ActivityLogQueryTest extends TestCase {
 
 		$this->assertContains( 'action = %s | submission_created', (array) $prepared );
 		$this->assertContains( 'user_id = %d | 7', (array) $prepared );
-		$this->assertContains( 'created_at >= %s | 2026-01-01', (array) $prepared );
-		$this->assertContains( 'created_at <= %s | 2026-01-31', (array) $prepared );
+		// A date is read in the site's timezone (UTC-3): midnight there is 03:00 UTC,
+		// and the last day counts to its last second (#2340).
+		$this->assertContains( 'created_at >= %d | 1767236400', (array) $prepared );
+		$this->assertContains( 'created_at <= %d | 1769914799', (array) $prepared );
 	}
 
 	public function test_find_by_cursor_filters_and_pages_by_id(): void {
