@@ -7199,6 +7199,18 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:236
+msgid "User FFC Role Changed"
+msgstr "Função FFC do Usuário Alterada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:237
+msgid "User Capabilities Changed"
+msgstr "Capacidades do Usuário Alteradas"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:238
+msgid "User Audiences Changed"
+msgstr "Públicos do Usuário Alterados"
+
 #: includes/admin/class-ffc-admin-user-capabilities.php:959
 msgid "%s also holds FFC roles:"
 msgstr "%s também tem funções FFC:"

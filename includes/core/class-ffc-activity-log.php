@@ -140,6 +140,10 @@ class ActivityLog {
 			'role_default_restored'              => 'users',
 			// FFC roles taken off with a WordPress role change (#2340).
 			'user_ffc_roles_removed'             => 'users',
+			// A user's FFC roles, capabilities or audiences changed (#2340).
+			'user_role_changed'                  => 'users',
+			'user_capabilities_changed'          => 'users',
+			'user_audiences_changed'             => 'users',
 			'password_changed'                   => 'users',
 			'profile_updated'                    => 'users',
 			'user_profile_read_full'             => 'users',

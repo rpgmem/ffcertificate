@@ -22,6 +22,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Short URLs: one list of destinations, with soft warnings** (#2337). The generator's shorten action, the list's edit action, creation and the redirect accept the same schemes: https, http, ftp, ftps, sftp, ssh, mailto, tel and sms, never javascript:, data: or file:. A scheme beyond http(s), which some phones do not follow out of a redirect, and an address that downloads a file (.pdf, .zip, .xlsx…, read off the path alone) each get a yellow warning that never blocks the save.
 - **Roles: the role editor shows how a role differs from its default and can restore it** (#2340). A bar and a tag per capability name what was added or removed; Restore role default puts the plugin's definition back after a confirmation, and every role edit and restore is recorded in the Activity Log.
 - **Users: changing someone's WordPress role on their profile asks whether their FFC roles stay** (#2340). Keep is the default; Remove FFC roles takes them off on Update User, FFC End User excepted, and is recorded in the Activity Log.
+- **Activity Log: a user's FFC roles, capabilities and audiences changed on their profile are recorded** (#2340). Each entry names who made the change, the account and what was added or removed; a save that changes nothing writes nothing.
 
 ### Changed
 
