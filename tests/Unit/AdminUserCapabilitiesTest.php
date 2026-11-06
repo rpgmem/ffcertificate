@@ -92,6 +92,8 @@ class AdminUserCapabilitiesTest extends TestCase {
 		Functions\when( 'get_userdata' )->justReturn( false );
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'sanitize_key' )->returnArg();
+		// The demotion prompt's notice runs its message through wp_kses_post().
+		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->justReturn( 'role-nonce' );
 		Functions\when( 'wp_localize_script' )->justReturn( true );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
@@ -1051,5 +1053,101 @@ class AdminUserCapabilitiesTest extends TestCase {
 		$store = new \ReflectionProperty( AdminUserCapabilities::class, 'ffc_role_snapshot' );
 		$store->setAccessible( true );
 		$this->assertArrayNotHasKey( 999, (array) $store->getValue() );
+	}
+
+	// ==================================================================
+	// The demotion prompt (#2340): Keep / Remove FFC roles on a role change
+	// ==================================================================
+
+	/**
+	 * Run a profile save of user 5 through the snapshot, core's collapse and
+	 * the restore.
+	 *
+	 * @param string $choice     Posted choice ('' for none).
+	 * @param string $new_role   Role posted by the WordPress select.
+	 * @param bool   $may_promote Whether the editor may promote the user.
+	 * @return \WP_User
+	 */
+	private function save_with_choice( string $choice, string $new_role, bool $may_promote = true ): \WP_User {
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) use ( $may_promote ) {
+				return 'promote_user' === $cap ? $may_promote : true;
+			}
+		);
+		$user        = new \WP_User( 5 );
+		$user->roles = array( 'subscriber', 'ffc_recruitment_manager' );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		if ( '' !== $choice ) {
+			$_POST[ AdminUserCapabilities::DEMOTION_FIELD ] = $choice;
+		}
+		$_POST['role'] = $new_role;
+
+		AdminUserCapabilities::snapshot_ffc_roles( 5 );
+		$user->set_role( $new_role );
+		AdminUserCapabilities::restore_ffc_roles( 5 );
+
+		unset( $_POST[ AdminUserCapabilities::DEMOTION_FIELD ], $_POST['role'] );
+		return $user;
+	}
+
+	public function test_remove_with_a_role_change_leaves_the_ffc_roles_off(): void {
+		$user = $this->save_with_choice( 'remove', 'editor' );
+
+		$this->assertSame( array( 'editor' ), $user->roles );
+	}
+
+	public function test_keep_with_a_role_change_restores_the_ffc_roles(): void {
+		$user = $this->save_with_choice( 'keep', 'editor' );
+
+		$this->assertContains( 'ffc_recruitment_manager', $user->roles );
+		$this->assertContains( 'editor', $user->roles );
+	}
+
+	public function test_remove_without_a_role_change_removes_nothing(): void {
+		$user = $this->save_with_choice( 'remove', 'subscriber' );
+
+		$this->assertContains( 'ffc_recruitment_manager', $user->roles );
+	}
+
+	public function test_remove_needs_the_right_to_promote_the_account(): void {
+		$user = $this->save_with_choice( 'remove', 'editor', false );
+
+		$this->assertContains( 'ffc_recruitment_manager', $user->roles );
+	}
+
+	public function test_the_prompt_lists_the_ffc_roles_and_defaults_to_keep(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'user_can' )->justReturn( false );
+		$user               = new \WP_User( 5 );
+		$user->roles        = array( 'subscriber', 'ffc_recruitment_manager' );
+		$user->display_name = 'Ana Souza';
+
+		ob_start();
+		AdminUserCapabilities::render_capability_fields( $user );
+		$output = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="ffc-demote-prompt" hidden>', $output );
+		$this->assertStringContainsString( 'Ana Souza also holds FFC roles:', $output );
+		$this->assertStringContainsString( '<span class="ffc-cap-chip">FFC Recruitment - Manager</span>', $output );
+		$this->assertMatchesRegularExpression( '/name="ffc_demote_ffc_roles" value="keep" checked/', $output );
+		$this->assertStringContainsString( 'name="ffc_demote_ffc_roles" value="remove"', $output );
+	}
+
+	public function test_no_prompt_without_an_ffc_role_or_the_right_to_promote(): void {
+		Functions\when( 'user_can' )->justReturn( false );
+		$plain        = new \WP_User( 6 );
+		$plain->roles = array( 'subscriber', 'ffc_end_user' );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		ob_start();
+		AdminUserCapabilities::render_capability_fields( $plain );
+		$this->assertStringNotContainsString( 'ffc-demote-prompt', (string) ob_get_clean(), 'FFC End User is not a role the prompt removes.' );
+
+		$staff        = new \WP_User( 5 );
+		$staff->roles = array( 'subscriber', 'ffc_recruitment_manager' );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'promote_user' !== $cap );
+		ob_start();
+		AdminUserCapabilities::render_capability_fields( $staff );
+		$this->assertStringNotContainsString( 'ffc-demote-prompt', (string) ob_get_clean() );
 	}
 }

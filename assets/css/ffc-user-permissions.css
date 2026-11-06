@@ -470,6 +470,16 @@
 	max-width: 320px;
 }
 
+/* The prompt under the WordPress Role select (#2340). */
+.ffc-demote-prompt {
+	max-width: 640px;
+	margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-demote-prompt .ffc-cap-chip {
+	margin: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs) var(--ffc-spacing-3xs) 0;
+}
+
 /* A role that differs from its shipped definition (#2340). */
 .ffc-role-diff {
 	display: flex;

@@ -489,3 +489,51 @@ describe('init guard / refreshRow no-checkbox', () => {
 		}
 	});
 });
+
+// The prompt under the WordPress Role select (#2340).
+describe('demotion prompt', () => {
+	function mount() {
+		window.ffcUserPerms = {};
+		document.body.innerHTML = `
+			<table><tr><td>
+				<select id="role"><option value="subscriber" selected>Subscriber</option><option value="editor">Editor</option></select>
+			</td></tr></table>
+			<div class="ffc-demote-prompt" hidden>
+				<input type="radio" name="ffc_demote_ffc_roles" value="keep" checked>
+				<input type="radio" name="ffc_demote_ffc_roles" value="remove">
+			</div>`;
+		window.ffcUserPermissionsInit();
+		return {
+			prompt: document.querySelector('.ffc-demote-prompt'),
+			select: document.getElementById('role'),
+			radio: (v) => document.querySelector(`input[value="${v}"]`),
+		};
+	}
+
+	it('moves under the Role select and stays hidden until it changes', () => {
+		const { prompt, select } = mount();
+		expect(select.nextElementSibling).toBe(prompt);
+		expect(prompt.hidden).toBe(true);
+		select.value = 'editor';
+		select.dispatchEvent(new Event('change'));
+		expect(prompt.hidden).toBe(false);
+	});
+
+	it('puts the choice back on Keep when the role is changed back', () => {
+		const { prompt, select, radio } = mount();
+		select.value = 'editor';
+		select.dispatchEvent(new Event('change'));
+		radio('remove').checked = true;
+		select.value = 'subscriber';
+		select.dispatchEvent(new Event('change'));
+		expect(prompt.hidden).toBe(true);
+		expect(radio('keep').checked).toBe(true);
+	});
+
+	it('binds once', () => {
+		const { prompt, select } = mount();
+		window.ffcUserPermissionsInit();
+		expect(select.nextElementSibling).toBe(prompt);
+		expect(document.querySelectorAll('.ffc-demote-prompt').length).toBe(1);
+	});
+});
