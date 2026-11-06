@@ -118,13 +118,12 @@ class ActivityLog {
 	 * @return bool Success
 	 */
 	public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
-		// CRITICAL: Check admin settings FIRST (before temporary flag).
-		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
+		// Logging switched off for a bulk operation: nothing to read.
+		if ( self::$logging_disabled ) {
 			return false;
 		}
 
-		// Check if logging is temporarily disabled (bulk operations).
-		if ( self::$logging_disabled ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
 			return false;
 		}
 
