@@ -213,6 +213,7 @@ final class ActivityLogItems {
 		'bulk_delete'                             => 'data_deletion',
 		'submission_deleted'                      => 'data_deletion',
 		'appointment_bulk_purged'                 => 'data_deletion',
+		'appointment_deleted'                     => 'data_deletion',
 
 		'obsolete_shortcodes_removed'             => 'cleanups',
 		'short_urls_cleaned'                      => 'cleanups',

@@ -611,6 +611,83 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringStartsWith( '1 marked as no-show; 1 skipped', $this->transients[0][1]['message'] );
 	}
 
+	/**
+	 * Run Delete permanently with the given request and return the DELETEs it ran.
+	 *
+	 * @param array<string, mixed> $get Request.
+	 * @return array{0: list<string>, 1: list<string>} DELETE statements, nonce actions checked.
+	 */
+	private function run_delete( array $get ): array {
+		$_GET     = array_merge( $_GET, $get );
+		$referers = array();
+		$deletes  = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $nonce_action ) use ( &$referers ) {
+				$referers[] = $nonce_action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		$GLOBALS['wpdb']->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$deletes ) {
+				$deletes[] = $sql;
+				return substr_count( $sql, ',' ) + 1;
+			}
+		);
+
+		try {
+			$this->include_view_expecting_stop( 'redirected' );
+		} finally {
+			unset( $_GET['action'], $_GET['ffc_action'] );
+			\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		}
+		return array( $deletes, $referers );
+	}
+
+	public function test_bulk_delete_permanently_removes_only_the_rows_that_are_over(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'cancelled' );
+		$this->appointments[6] = array( 'id' => 6, 'calendar_id' => 7, 'status' => 'confirmed' );
+		$this->appointments[8] = array( 'id' => 8, 'calendar_id' => 7, 'status' => 'no_show' );
+
+		[ $deletes, $referers ] = $this->run_delete( array( 'action' => 'bulk_delete_permanently', 'appointment' => array( '5', '6', '8' ) ) );
+
+		$this->assertSame( array( 'bulk-appointments' ), $referers );
+		$this->assertCount( 1, $deletes );
+		$this->assertStringContainsString( 'DELETE FROM', $deletes[0] );
+		$this->assertMatchesRegularExpression( '/IN \(5,\s*8\)/', $deletes[0], 'The confirmed row stays.' );
+		$this->assertSame( 'success', $this->transients[0][1]['type'] );
+		$this->assertStringStartsWith( '2 deleted permanently; 1 skipped', $this->transients[0][1]['message'] );
+	}
+
+	public function test_one_row_delete_checks_its_own_nonce(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'completed' );
+
+		[ $deletes, $referers ] = $this->run_delete( array( 'ffc_action' => 'delete_permanently', 'appointment' => '5' ) );
+
+		$this->assertSame( array( 'ffc_delete_permanently_appointment_5' ), $referers );
+		$this->assertCount( 1, $deletes );
+		$this->assertStringStartsWith( '1 deleted permanently; 0 skipped', $this->transients[0][1]['message'] );
+	}
+
+	public function test_delete_permanently_needs_the_delete_capability(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'cancelled' );
+		$_GET['action']        = 'bulk_delete_permanently';
+		$_GET['appointment']   = array( '5' );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_appointments' === $cap );
+		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+
+		try {
+			$this->include_view_expecting_stop( 'do not have permission' );
+		} finally {
+			unset( $_GET['action'] );
+		}
+		$this->assertSame( array(), $this->transients );
+	}
+
 	public function test_undo_attendance_puts_the_row_back_to_confirmed(): void {
 		$this->appointments[5] = array( 'id' => 5, 'status' => 'no_show', 'appointment_date' => '2026-05-01' );
 

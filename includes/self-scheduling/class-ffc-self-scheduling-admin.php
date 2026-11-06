@@ -163,14 +163,26 @@ class SelfSchedulingAdmin {
 			'ffc-self-scheduling-admin-appointments',
 			'ffcAppointmentsExport',
 			array(
-				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'exportNonce' => wp_create_nonce( 'ffc_appointments_export' ),
-				'strings'     => array(
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'exportNonce'  => wp_create_nonce( 'ffc_appointments_export' ),
+				'strings'      => array(
 					'exportPreparing' => __( 'Preparing…', 'ffcertificate' ),
 					/* translators: %1$d processed, %2$d total */
 					'exportProgress'  => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
 					'exportDone'      => __( 'Done!', 'ffcertificate' ),
 					'error'           => __( 'An error occurred.', 'ffcertificate' ),
+				),
+				// Delete permanently asks through the plugin's dialog (#2340).
+				'deleteDialog' => array(
+					'seconds' => \FreeFormCertificate\Core\ConfirmCountdown::NONE,
+					/* translators: %d: number of appointments */
+					'title'   => __( 'Delete %d appointment(s) permanently?', 'ffcertificate' ),
+					'intro'   => __( 'They are removed from the list and from the person\'s dashboard, and cannot be restored. Only cancelled, completed or no-show appointments are deleted; any other in the selection is skipped: cancel it first.', 'ffcertificate' ),
+					'logged'  => __( 'Recorded in the activity log.', 'ffcertificate' ),
+					/* translators: %d: number of appointments */
+					'agree'   => __( 'Delete %d permanently', 'ffcertificate' ),
+					'cancel'  => __( 'Cancel', 'ffcertificate' ),
+					'none'    => __( 'Select at least one appointment.', 'ffcertificate' ),
 				),
 			)
 		);

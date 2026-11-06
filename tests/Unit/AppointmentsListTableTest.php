@@ -230,10 +230,44 @@ class AppointmentsListTableTest extends TestCase {
 	public function test_bulk_no_show_is_offered_to_the_manage_capability_only(): void {
 		$table = new AppointmentsListTable();
 		Functions\when( 'current_user_can' )->justReturn( true );
-		$this->assertSame( array( 'bulk_no_show' => 'Mark as no-show' ), $this->call_protected( $table, 'get_bulk_actions' ) );
+		$this->assertSame(
+			array(
+				'bulk_no_show'            => 'Mark as no-show',
+				'bulk_delete_permanently' => 'Delete permanently',
+			),
+			$this->call_protected( $table, 'get_bulk_actions' )
+		);
 
 		Functions\when( 'current_user_can' )->justReturn( false );
 		$this->assertSame( array(), $this->call_protected( $table, 'get_bulk_actions' ) );
+	}
+
+	public function test_delete_permanently_is_offered_to_the_delete_capability_alone(): void {
+		$table = new AppointmentsListTable();
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_delete_appointments' === $cap );
+
+		$this->assertSame( array( 'bulk_delete_permanently' => 'Delete permanently' ), $this->call_protected( $table, 'get_bulk_actions' ) );
+	}
+
+	public function test_the_row_offers_delete_permanently_only_once_the_appointment_is_over(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
+		$table = new AppointmentsListTable();
+
+		foreach ( array( 'cancelled', 'completed', 'no_show' ) as $status ) {
+			$html = $table->column_id( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
+			$this->assertStringContainsString( 'ffc-appointment-delete', $html, $status );
+			$this->assertStringContainsString( 'ffc_action=delete_permanently', $html, $status );
+			$this->assertStringContainsString( '_n=ffc_delete_permanently_appointment_12', $html, $status );
+		}
+		foreach ( array( 'pending', 'confirmed', 'waitlist' ) as $status ) {
+			$html = $table->column_id( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
+			$this->assertStringNotContainsString( 'ffc-appointment-delete', $html, $status );
+		}
+
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_appointments' === $cap );
+		$html = $table->column_id( array( 'id' => 12, 'status' => 'cancelled' ) );
+		$this->assertStringNotContainsString( 'ffc-appointment-delete', $html, 'Without the delete capability.' );
 	}
 
 	public function test_get_columns_declares_expected_keys(): void {

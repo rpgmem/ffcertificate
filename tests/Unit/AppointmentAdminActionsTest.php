@@ -44,6 +44,7 @@ class AppointmentAdminActionsTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -166,5 +167,58 @@ class AppointmentAdminActionsTest extends TestCase {
 
 		// 4 lost a race (0 rows), 9 is missing, 0 and the duplicate are dropped.
 		$this->assertSame( array( 'marked' => 1, 'skipped' => 4 ), $result );
+	}
+
+	/**
+	 * The real ActivityLog, on, writing to its buffer.
+	 */
+	private function log_on(): void {
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+	}
+
+	public function test_delete_permanently_takes_only_appointments_that_are_over_and_logs_once(): void {
+		$rows = array(
+			1 => array( 'id' => 1, 'calendar_id' => 7, 'status' => 'cancelled' ),
+			2 => array( 'id' => 2, 'calendar_id' => 7, 'status' => 'completed' ),
+			3 => array( 'id' => 3, 'calendar_id' => 8, 'status' => 'no_show' ),
+			4 => array( 'id' => 4, 'calendar_id' => 7, 'status' => 'confirmed' ),
+			5 => array( 'id' => 5, 'calendar_id' => 7, 'status' => 'pending' ),
+		);
+		$this->appointments->shouldReceive( 'findById' )->andReturnUsing( static fn( $id ) => $rows[ $id ] ?? null );
+		$this->appointments->shouldReceive( 'deleteByIds' )->once()->with( array( 1, 2, 3 ) )->andReturn( 3 );
+		$this->log_on();
+
+		$result = $this->actions->delete_permanently( array( 1, 2, 3, 4, 5, 9, 3, 0 ), 42 );
+
+		$this->assertSame( array( 'deleted' => 3, 'skipped' => 3 ), $result, 'Confirmed, pending and a missing row are skipped.' );
+		$entries = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::entries();
+		$logged  = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		$this->assertCount( 1, $logged );
+		$this->assertSame( 'appointment_deleted', $logged[0]['action'] );
+		$this->assertSame( 42, (int) $entries[0]['user_id'] );
+		$this->assertSame( array( 1, 2, 3 ), $logged[0]['context']['appointment_ids'] );
+		$this->assertSame( array( 7, 8 ), $logged[0]['context']['calendar_ids'] );
+	}
+
+	public function test_delete_permanently_deletes_and_logs_nothing_when_nothing_is_over(): void {
+		$this->appointments->shouldReceive( 'findById' )->andReturn( array( 'id' => 4, 'status' => 'confirmed' ) );
+		$this->appointments->shouldNotReceive( 'deleteByIds' );
+		$this->log_on();
+
+		$this->assertSame( array( 'deleted' => 0, 'skipped' => 1 ), $this->actions->delete_permanently( array( 4 ), 42 ) );
+		$this->assertSame( array(), \FreeFormCertificate\Tests\Support\ActivityLogBuffer::entries() );
+	}
+
+	public function test_a_row_the_database_did_not_delete_counts_as_skipped(): void {
+		$this->appointments->shouldReceive( 'findById' )->andReturn( array( 'id' => 1, 'status' => 'cancelled', 'calendar_id' => 7 ) );
+		$this->appointments->shouldReceive( 'deleteByIds' )->andReturn( 0 );
+		$this->log_on();
+
+		$this->assertSame( array( 'deleted' => 0, 'skipped' => 1 ), $this->actions->delete_permanently( array( 1 ), 42 ) );
+		$this->assertSame( array(), \FreeFormCertificate\Tests\Support\ActivityLogBuffer::entries() );
 	}
 }
