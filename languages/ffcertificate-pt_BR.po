@@ -24048,8 +24048,8 @@ msgstr "A execução diária envia todas as regras ativas uma vez por dia, só p
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
 
-msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
-msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Administradores do WordPress (manage_options) sempre têm todas as capacidades do FFC."
+msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. A WordPress administrator receives the FFC Administrator role once, when the plugin is activated or when the account becomes an administrator; taking the role off holds, and the plugin does not put it back."
+msgstr "O plugin traz capacidades granulares e funções próprias, e gerencia ambas por conta própria — nenhum plugin de gestão de capacidades é necessário. Um administrador do WordPress recebe a função FFC Administrador uma vez, quando o plugin é ativado ou quando a conta se torna administradora; retirar a função vale, e o plugin não a devolve."
 
 msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to reach api.github.com and raw.githubusercontent.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
 msgstr "O repositório de origem é público, portanto, as atualizações não exigem token de acesso, conta ou licença — basta que o site consiga acessar api.github.com e raw.githubusercontent.com via HTTPS. Em uma rede restrita que bloqueia conexões HTTPS de saída, a verificação de atualizações não conseguirá detectar novas versões; nesse caso, você deverá atualizar o plugin manualmente."
@@ -26508,8 +26508,8 @@ msgid "also manages, exports and deletes, and may reveal personal data."
 msgstr "também gerencia, exporta e exclui, e pode revelar dados pessoais."
 
 #: includes/settings/views/documentation/reference-capabilities.php:35
-msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, exporting, calling candidates, sending a test."
-msgstr "também executa as ações do dia a dia do módulo: editar e corrigir submissões, aprovar e cancelar agendamentos, importar membros, exportar, convocar candidatos, enviar um teste."
+msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, calling candidates, sending a test. Exporting is a Manager action, except in Reregistration and Short URLs, whose Operators export too."
+msgstr "também executa as ações do dia a dia do módulo: editar e corrigir submissões, aprovar e cancelar agendamentos, importar membros, convocar candidatos, enviar um teste. Exportar é uma ação do Gestor, exceto no Recadastramento e nas URLs Curtas, cujos Operadores também exportam."
 
 #: includes/settings/views/documentation/config-activity-log.php:35
 msgid "reach the tab and inspect the audit trail, with the filters, the search and the Reveal buttons working. Independent of the settings view capability, so it can be granted to an account without any other settings access."

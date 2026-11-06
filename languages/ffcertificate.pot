@@ -23965,7 +23965,7 @@ msgstr ""
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr ""
 
-msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability."
+msgid "The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. A WordPress administrator receives the FFC Administrator role once, when the plugin is activated or when the account becomes an administrator; taking the role off holds, and the plugin does not put it back."
 msgstr ""
 
 msgid "The source repository is public, so updates need no access token, account or licence — the site just needs to reach api.github.com and raw.githubusercontent.com over HTTPS. On a locked-down network that blocks outbound HTTPS, the update check cannot see new releases and you would update the plugin manually instead."
@@ -26425,7 +26425,7 @@ msgid "also manages, exports and deletes, and may reveal personal data."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:35
-msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, exporting, calling candidates, sending a test."
+msgid "also performs the module's day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, calling candidates, sending a test. Exporting is a Manager action, except in Reregistration and Short URLs, whose Operators export too."
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:35

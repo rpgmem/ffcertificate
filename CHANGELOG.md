@@ -71,6 +71,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Granting a powerful capability asks first** (#2340). In the role editor, granting a capability that reaches personal data, deletes records or opens the activity log names the role and how many people hold it; Grant all on a profile lists those it would add. Only administrators see the role editor; the profile says what saves when, names the role behind a locked switch, and shows for anyone with an FFC role.
 - **Users list: "View as user", and the column only for who may use it** (#2340). "Login as User" reads "View as user" and tells a screen reader it opens a new tab; the User Actions column is drawn only for holders of `ffc_view_as_user`; "Notices" reads "Recruitment notices".
 - **Appointments: Delete permanently, for those that are over** (#2340). `ffc_delete_appointments`, granted until now and checked nowhere, gates a row action and a bulk action on the appointments list. Only a cancelled, completed or no-show appointment is deleted, after the plugin's confirmation; any other is skipped and counted; each run writes a Danger Zone entry.
+- **Capabilities reference corrected** (#2340). It no longer says WordPress administrators always hold every FFC capability (they receive FFC Administrator once, and its removal holds), and it says which Operators export: those of Reregistration and Short URLs.
 
 ### Security
 
