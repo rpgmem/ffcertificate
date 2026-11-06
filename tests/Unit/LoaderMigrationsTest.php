@@ -300,6 +300,18 @@ class LoaderMigrationsTest extends TestCase {
 
 	// ==================================================================
 	// ensure_role_tiers_applied() / ensure_module_role_labels_applied()
+	public function test_capability_migrations_wait_for_init_after_the_roles(): void {
+		// They register roles, whose labels call __(); before `init`,
+		// WordPress 6.7+ reports the translation as loaded too early (#2340).
+		$method = new \ReflectionMethod( Loader::class, 'init_plugin' );
+		$lines  = file( (string) $method->getFileName() );
+		$body   = implode( '', array_slice( (array) $lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1 ) );
+
+		$this->assertStringContainsString( "add_action( 'init', array( \$this, 'run_capability_migrations' ), 2 );", $body );
+		$this->assertStringContainsString( "add_action( 'init', array( \$this, 'register_ffc_roles_safe' ), 1 );", $body );
+		$this->assertStringNotContainsString( '$this->run_capability_migrations()', $body, 'Not run on plugins_loaded.' );
+	}
+
 	// #1860: run from register_ffc_roles_safe() on init, after the seeds.
 	// ==================================================================
 

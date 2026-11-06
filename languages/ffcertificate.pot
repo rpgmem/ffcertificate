@@ -1120,15 +1120,15 @@ msgid "Access Restrictions"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:178
-msgid "Access the certificate administration screens."
+msgid "Everything View certificates allows, plus trashing and restoring submissions, bulk actions, changing a submission's owner, correcting answers and issuing certificates through the operator API."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:368
-msgid "Access the plugin Settings page."
+msgid "Everything View settings allows, plus saving settings, the scheduled task times, the cache actions and the locations. SMTP and the Danger Zone take their own capabilities."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:303
-msgid "Access the Reregistration admin page."
+msgid "Everything View reregistration campaigns allows, plus creating and editing campaigns and their submissions."
 msgstr ""
 
 #: templates/emails/access-granted.php:27
@@ -2876,7 +2876,7 @@ msgid "Bold text:"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:233
-msgid "Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity (#941)."
+msgid "Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:687
@@ -4786,7 +4786,7 @@ msgid "Create a one-use schedule exception for a single participant submission."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:209
-msgid "Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739)."
+msgid "Everything View forms allows, plus creating, editing, duplicating and deleting forms and certificate templates — PDF layout, fields and options."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:32
@@ -4846,7 +4846,7 @@ msgid "Create, edit and duplicate the HTML templates for your certificates and a
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:345
-msgid "Create, edit and toggle short URLs (delete is its own cap below)."
+msgid "Everything View short URLs allows, plus creating, editing and toggling short URLs and using the QR generator. Deleting is Delete short URLs."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
@@ -5421,7 +5421,7 @@ msgid "Define custom data fields per audience group. These fields are shown duri
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:326
-msgid "Define extra user/audience fields."
+msgid "Everything View custom fields allows, plus defining, editing and replicating user and audience fields."
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:51
@@ -6043,7 +6043,7 @@ msgid "Download the audit trail as CSV."
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:36
-msgid "download the audit trail as CSV. Split out from the view capability (rpgmem/ffcertificate#711) so a view-only operator cannot bulk-extract the trail."
+msgid "download the audit trail as CSV., kept apart from viewing so a view-only operator cannot bulk-extract the trail."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:238
@@ -7197,6 +7197,45 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/reference-capabilities.php
+msgid "In the role editor and on a user's profile, every capability is marked with what it does: Read, Act, Personal data, Change, Override or Destructive. The coloured bar beside it says the same thing, more strongly the more the capability can change."
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Certificates - Submissions"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Certificates - Forms"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal Calendars - Bookings"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal Calendars - Setup"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Read"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Act"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Personal data"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Override"
+msgstr ""
+
+#: includes/user-dashboard/class-ffc-capability-catalog.php
+msgid "Destructive"
+
 #: includes/settings/views/documentation/config-activity-log.php
 msgid "Details"
 msgstr ""
@@ -7941,7 +7980,7 @@ msgid "An announcement reaches each person once per rule: sending it again on an
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:408
-msgid "Delete a rule. Its history stays. The current managers receive it on upgrade (#2336)."
+msgid "Delete a rule. Its history stays. The current managers receive it on upgrade."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:407
@@ -9049,7 +9088,7 @@ msgid "frontend"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:439
-msgid "Full access to the recruitment module."
+msgid "Create and edit notices, candidates and classifications. Importing, deleting and the reasons take their own capabilities."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-smtp.php:233
@@ -13916,7 +13955,7 @@ msgid "Read-only access to audiences and their members."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:205
-msgid "Read-only access to certificate forms — structure, fields and options — without the ability to edit them (#739)."
+msgid "Read-only access to certificate forms — structure, fields and options — without the ability to edit them."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:415
@@ -14758,11 +14797,11 @@ msgid "Reveal certificate PII"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:194
-msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked (#739)."
+msgid "Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:246
-msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824)."
+msgid "Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:82
@@ -23887,10 +23926,10 @@ msgstr ""
 msgid "Before a personal-calendar appointment is stored, outside its transaction; status is the one requested — args ( data, calendar )."
 msgstr ""
 
-msgid "Configure personal calendars and their booking windows."
+msgid "Everything View appointments allows, plus confirming and cancelling appointments, marking no-shows, closing old ones and booking on someone's behalf. Setting up the calendars is Manage calendars."
 msgstr ""
 
-msgid "Create and edit personal calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739)."
+msgid "Everything View calendars allows, plus creating, editing, duplicating and deleting personal calendars — working hours, blocked dates and options — and the global holidays. The bookings are Manage appointments."
 msgstr ""
 
 msgid "Email the user when they are granted access to certificates, appointments or audience groups. Edit the text under Settings → Email texts → Account access."
@@ -23923,7 +23962,7 @@ msgstr ""
 msgid "Global holidays and Personal / Audience Calendars visibility."
 msgstr ""
 
-msgid "Manage personal calendars"
+msgid "Manage appointments"
 msgstr ""
 
 msgid "Personal Calendars Settings"
@@ -23941,7 +23980,7 @@ msgstr ""
 msgid "Personal Calendars:"
 msgstr ""
 
-msgid "Read-only access to personal calendars — structure, working hours and options — without the ability to edit them (#739)."
+msgid "Read-only access to personal calendars — structure, working hours and options — without the ability to edit them."
 msgstr ""
 
 msgid "Run it in Settings → Data Migrations."
@@ -24052,7 +24091,7 @@ msgstr ""
 msgid "Create a campaign and link it to one or more audiences."
 msgstr ""
 
-msgid "Create audiences and manage their members."
+msgid "Everything View audiences allows, plus saving audiences, their members and audience calendars, cancelling audience bookings and setting who may book a schedule."
 msgstr ""
 
 msgid "create audiences, schedules, environments and members."
@@ -25296,7 +25335,7 @@ msgid "Grade the open answers of a quiz attempt awaiting grading, from the submi
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:189
-msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732)."
+msgid "Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:495
@@ -25900,7 +25939,7 @@ msgid "Reveal reregistration PII"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:326
-msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815)."
+msgid "Reveal a submitter's email and open a submission's details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed."
 msgstr ""
 
 #: includes/reregistration/class-ffc-reregistration-ajax-handler.php:127
@@ -26150,7 +26189,7 @@ msgid "Below it, \"Send a test email\" sends one message to your own address. It
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859)."
+msgid "Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on."
 msgstr ""
 
 #: includes/admin/class-ffc-role-capability-editor.php:168
@@ -26286,7 +26325,7 @@ msgid "Manager"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:392
-msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860)."
+msgid "Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:391
@@ -26294,7 +26333,7 @@ msgid "Send date-message tests"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:423
-msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860)."
+msgid "Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:422
@@ -26560,7 +26599,7 @@ msgid "Reveal audience PII"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked (#1863)."
+msgid "Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user's profile, and export them in clear (audited). Without it they stay masked."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:319 includes/shortcodes/class-ffc-dashboard-asset-manager.php:303
@@ -26701,7 +26740,7 @@ msgid "Cancelling..."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:253
-msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872)."
+msgid "Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:66
@@ -27513,7 +27552,7 @@ msgid "Send date messages"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php
-msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949)."
+msgid "Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade."
 msgstr ""
 
 #: includes/core/class-ffc-email-source.php
@@ -27765,7 +27804,7 @@ msgid "Run attendance check-in"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:299
-msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947)."
+msgid "Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-checkin-endpoint.php:212
@@ -29158,10 +29197,10 @@ msgstr ""
 msgid "Reveal activity log PII"
 msgstr ""
 
-msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109)."
+msgid "Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked."
 msgstr ""
 
-msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109)."
+msgid "Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked."
 msgstr ""
 
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."

@@ -323,7 +323,7 @@ final class RoleCapabilityEditor {
 				$rows         .= sprintf(
 					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s">'
 						. '<div class="ffc-cap-row-toggle">%3$s</div>'
-						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>'
+						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>%8$s'
 						. '<span class="ffc-cap-row-desc">%5$s</span>'
 						. '<span class="ffc-cap-slug">%2$s</span></div>'
 						. '<span class="ffc-role-cap-side"><span class="ffc-role-diff-tag" hidden></span>'
@@ -335,7 +335,8 @@ final class RoleCapabilityEditor {
 					esc_html( $label ),
 					esc_html( $desc ),
 					$surface_badge,
-					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) )
+					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) ),
+					CapabilityCatalog::tier_chip( (string) $slug )
 				);
 			}
 

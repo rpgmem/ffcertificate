@@ -466,6 +466,28 @@ class CapabilityMigratorTest extends TestCase {
 		$this->assertContains( 'ffc_delete_appointments', $removals['ffc_appointments_operator'] );
 	}
 
+	public function test_the_seed_edges_follow_every_seeding_map(): void {
+		// Each *_grant_map() a seed walks the roles with is an edge the tier
+		// removals must follow; the date-messages send and delete maps were
+		// missing (#2340).
+		$edges = ( new \ReflectionMethod( CapabilityMigrator::class, 'seed_grant_edges' ) )->invoke( null );
+		$this->assertContains( 'ffc_send_date_messages', $edges['ffc_manage_date_messages'] );
+		$this->assertContains( 'ffc_delete_date_messages', $edges['ffc_manage_date_messages'] );
+
+		$maps = array_filter(
+			get_class_methods( CapabilityMigrator::class ),
+			static fn( string $method ): bool => str_ends_with( $method, '_grant_map' )
+		);
+		$this->assertNotEmpty( $maps );
+		foreach ( $maps as $method ) {
+			foreach ( CapabilityMigrator::$method() as $source => $targets ) {
+				foreach ( (array) $targets as $target ) {
+					$this->assertContains( $target, $edges[ $source ] ?? array(), "{$method}: {$source} => {$target} is not an edge." );
+				}
+			}
+		}
+	}
+
 	public function test_role_tiers_remove_add_and_rename_on_an_existing_install(): void {
 		Functions\when( '__' )->returnArg();
 
