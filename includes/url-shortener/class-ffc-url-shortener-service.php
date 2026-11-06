@@ -81,7 +81,7 @@ class UrlShortenerService {
 	 * @return array{success: bool, data?: array<string, mixed>, error?: string}
 	 */
 	public function create_short_url( string $target_url, string $title = '', ?int $post_id = null ): array {
-		$target_url = esc_url_raw( $target_url );
+		$target_url = esc_url_raw( $target_url, self::DESTINATION_SCHEMES );
 
 		if ( empty( $target_url ) ) {
 			return array(
@@ -388,6 +388,70 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Schemes a short URL may send to (#2337, decided in the session): the
+	 * QR generator's web schemes plus mailto, tel and sms. Never
+	 * `javascript:`, `data:` or `file:`. One list for the generator's shorten
+	 * action, the list's edit action, creation and the redirect itself.
+	 */
+	public const DESTINATION_SCHEMES = array( ...\FreeFormCertificate\Generators\QrPayload::URL_SCHEMES, 'mailto', 'tel', 'sms' );
+
+	/**
+	 * The schemes a phone follows reliably out of an HTTP redirect. Any other
+	 * accepted scheme gets a warning, never a refusal.
+	 */
+	public const RECOMMENDED_SCHEMES = array( 'https', 'http' );
+
+	/**
+	 * Whether a short URL may send to an address: one of DESTINATION_SCHEMES.
+	 *
+	 * @param string $url Address.
+	 * @return bool
+	 */
+	public static function is_allowed_destination( string $url ): bool {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		return is_string( $scheme ) && in_array( strtolower( $scheme ), self::DESTINATION_SCHEMES, true )
+			&& '' !== esc_url_raw( $url, self::DESTINATION_SCHEMES );
+	}
+
+	/**
+	 * The scheme of an accepted address that a phone may not follow out of a
+	 * redirect, or '' for http(s) (#2337).
+	 *
+	 * @param string $url Address.
+	 * @return string
+	 */
+	public static function scheme_warning( string $url ): string {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$scheme = is_string( $scheme ) ? strtolower( $scheme ) : '';
+		return in_array( $scheme, self::DESTINATION_SCHEMES, true ) && ! in_array( $scheme, self::RECOMMENDED_SCHEMES, true ) ? $scheme : '';
+	}
+
+	/**
+	 * File extensions whose address makes a browser download a file instead
+	 * of showing a page (#2337). Only the path is read: nothing is fetched.
+	 */
+	public const DOWNLOAD_EXTENSIONS = array( 'pdf', 'zip', 'rar', '7z', 'gz', 'tar', 'exe', 'msi', 'dmg', 'apk', 'iso', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'csv', 'rtf', 'epub' );
+
+	/**
+	 * The extension of an address that downloads a file, or '' (#2337).
+	 *
+	 * Read off the path alone, without a request, so a page that happens to
+	 * serve a file under a clean path is not noticed. The warning this feeds
+	 * never blocks a save.
+	 *
+	 * @param string $url Address.
+	 * @return string The extension, lowercase and without the dot.
+	 */
+	public static function download_extension( string $url ): string {
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '';
+		}
+		$extension = strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) );
+		return in_array( $extension, self::DOWNLOAD_EXTENSIONS, true ) ? $extension : '';
+	}
+
+	/**
 	 * Resolve the effective destination of a short URL record.
 	 *
 	 * For **post-linked** short URLs (`post_id` set) the destination is derived
@@ -430,7 +494,7 @@ class UrlShortenerService {
 		return false !== $this->repository->update(
 			$id,
 			array(
-				'target_url' => esc_url_raw( $target_url ),
+				'target_url' => esc_url_raw( $target_url, self::DESTINATION_SCHEMES ),
 				'title'      => sanitize_text_field( $title ),
 				'updated_at' => current_time( 'mysql' ),
 			)

@@ -630,6 +630,45 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertTrue( $this->service->set_active( 2, true ) );
 	}
 
+	/**
+	 * @dataProvider provide_download_paths
+	 */
+	public function test_download_extension_reads_the_path_only( string $url, string $expected ): void {
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+
+		$this->assertSame( $expected, UrlShortenerService::download_extension( $url ) );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provide_download_paths(): array {
+		return array(
+			'pdf'                 => array( 'https://example.org/edital.pdf', 'pdf' ),
+			'upper case, query'   => array( 'https://example.org/a/Plan.XLSX?dl=1#top', 'xlsx' ),
+			'a page'              => array( 'https://example.org/inscricoes/', '' ),
+			'html'                => array( 'https://example.org/page.html', '' ),
+			'extension in query'  => array( 'https://example.org/get?file=a.pdf', '' ),
+			'bare host'           => array( 'https://example.org', '' ),
+		);
+	}
+
+	public function test_the_shared_destination_list_and_its_warning(): void {
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+		Functions\when( 'esc_url_raw' )->alias( static fn( $u, $p = null ) => is_array( $p ) && ! in_array( strtolower( (string) parse_url( $u, PHP_URL_SCHEME ) ), $p, true ) ? '' : $u );
+
+		foreach ( array( 'https://a.test/', 'ftp://a.test/f', 'sftp://a.test/', 'ssh://u@a.test', 'mailto:a@a.test', 'tel:+5511999999999', 'sms:+5511999999999' ) as $url ) {
+			$this->assertTrue( UrlShortenerService::is_allowed_destination( $url ), $url );
+		}
+		foreach ( array( 'javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'irc://a.test/', 'a.test/no-scheme' ) as $url ) {
+			$this->assertFalse( UrlShortenerService::is_allowed_destination( $url ), $url );
+		}
+
+		$this->assertSame( '', UrlShortenerService::scheme_warning( 'https://a.test/' ) );
+		$this->assertSame( 'tel', UrlShortenerService::scheme_warning( 'TEL:+5511' ) );
+		$this->assertSame( '', UrlShortenerService::scheme_warning( 'javascript:x' ), 'A refused scheme is not a warning.' );
+	}
+
 	// ==================================================================
 	// reactivate_short_url() / regenerate_code() (#2337)
 	// ==================================================================

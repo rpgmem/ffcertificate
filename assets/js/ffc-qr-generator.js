@@ -87,6 +87,10 @@
 				this.hidden = false;
 			}
 		});
+		var $download = $form.find('#ffc-qr-short-download');
+		$download.prop('hidden', !on || !$download.attr('data-ffc-download'));
+		var $scheme = $form.find('#ffc-qr-short-scheme');
+		$scheme.prop('hidden', !on || !$scheme.attr('data-ffc-scheme'));
 		// A hidden title must not hold up constraint validation (#1850).
 		window.FFC.setRequiredWithin($form.find('[data-ffc-qr-short-on]'), on);
 	}
@@ -257,12 +261,22 @@
 	function showShortState($form, state) {
 		var $switch = $form.find('#ffc-qr-short');
 		var circular = !!(state && state.circular);
-		// A non-web address (ftp, ssh...) cannot sit behind an HTTP redirect.
+		// An address outside the destination list cannot sit behind a short URL.
 		var direct = !!(state && state.direct);
 		var locked = circular || direct;
 		$switch.prop('disabled', locked).prop('checked', locked ? false : wantShort);
 		$form.find('#ffc-qr-short-circular').prop('hidden', !circular);
 		$form.find('#ffc-qr-short-direct').prop('hidden', !direct);
+		// A destination that downloads a file is warned about, never refused (#2337).
+		var download = (state && state.download) || '';
+		$form.find('#ffc-qr-short-download')
+			.text(download ? fill(i18n.download || '', ['.' + download]) : '')
+			.attr('data-ffc-download', download);
+		// A scheme beyond http(s) is allowed, with a soft warning (#2337).
+		var scheme = (state && state.scheme) || '';
+		$form.find('#ffc-qr-short-scheme')
+			.text(scheme ? fill(i18n.scheme || '', [scheme + ':']) : '')
+			.attr('data-ffc-scheme', scheme);
 		showShort($form);
 
 		var duplicates = (state && state.example && state.duplicates) || [];

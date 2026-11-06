@@ -77,6 +77,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$_POST['nonce']      = 'valid';
 		$_POST['id']         = '7';
 		$_POST['target_url'] = 'https://example.com/new';
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		$_POST['title']      = 'Updated';
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -105,6 +106,30 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->assertSame( 'https://example.com/new', $sent['target_url'] );
 	}
 
+
+	public function test_ajax_edit_refuses_a_scheme_outside_the_shared_list(): void {
+		$_POST['nonce']      = 'valid';
+		$_POST['id']         = '7';
+		$_POST['target_url'] = 'irc://chat.example.com/room';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+		// esc_url_raw() with the shared list empties a scheme outside it.
+		Functions\when( 'esc_url_raw' )->alias( static fn( $u, $p = null ) => is_array( $p ) && ! in_array( strtolower( (string) parse_url( $u, PHP_URL_SCHEME ) ), $p, true ) ? '' : $u );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'post_id' => null ) );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'update_short_url' );
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data ) {
+				throw new \RuntimeException( (string) $data['message'] );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->page->ajax_edit_short_url();
+	}
 	public function test_ajax_edit_rejects_post_linked(): void {
 		$_POST['nonce']      = 'valid';
 		$_POST['id']         = '8';

@@ -89,7 +89,14 @@ class UrlShortenerAdminPage {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'exportNonce' => wp_create_nonce( 'ffc_url_shortener_export' ),
+				// The extensions that download a file, owned by the service (#2337).
+				'downloads'   => UrlShortenerService::DOWNLOAD_EXTENSIONS,
+				'recommended' => UrlShortenerService::RECOMMENDED_SCHEMES,
 				'i18n'        => array(
+					/* translators: %s: a URL scheme such as ftp: */
+					'scheme'          => __( 'A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway.', 'ffcertificate' ),
+					/* translators: %s: a file extension such as .pdf */
+					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'copied'          => __( 'Copied!', 'ffcertificate' ),
 					'copyFailed'      => __( 'Copy failed', 'ffcertificate' ),
 					'error'           => __( 'An error occurred.', 'ffcertificate' ),
@@ -225,11 +232,15 @@ class UrlShortenerAdminPage {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ), UrlShortenerService::DESTINATION_SCHEMES );
 		$title = \FreeFormCertificate\Core\RequestInput::get_post_string( 'title' );
 
 		if ( empty( $url ) ) {
 			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
+		}
+		// One list of destinations with the generator's shorten action (#2337).
+		if ( ! UrlShortenerService::is_allowed_destination( $url ) ) {
+			wp_send_json_error( array( 'message' => __( 'A short URL can send to https, http, ftp, ftps, sftp, ssh, mailto, tel or sms addresses only.', 'ffcertificate' ) ) );
 		}
 
 		if ( $this->service->update_short_url( $id, $url, $title ) ) {

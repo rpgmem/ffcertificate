@@ -159,7 +159,7 @@ class QrGeneratorAjaxEndpoint {
 		}
 
 		if ( ! self::redirectable( $destination ) ) {
-			wp_send_json_error( array( 'message' => __( 'Only http and https addresses can have a short URL.', 'ffcertificate' ) ), 400 );
+			wp_send_json_error( array( 'message' => __( 'A short URL can send to https, http, ftp, ftps, sftp, ssh, mailto, tel or sms addresses only.', 'ffcertificate' ) ), 400 );
 		}
 
 		if ( '' !== $this->service->code_from_short_url( $destination ) ) {
@@ -196,7 +196,7 @@ class QrGeneratorAjaxEndpoint {
 	/**
 	 * What the preview draws with the switch on, and what it reports.
 	 *
-	 * - An address that is not http(s) (ftp, sftp, ssh...) is drawn as is
+	 * - An address outside UrlShortenerService::DESTINATION_SCHEMES is drawn as is
 	 *   and flagged `direct`: a short URL is an HTTP redirect, which a
 	 *   browser does not reliably follow into another scheme (#1596).
 	 * - An address that is already one of this site's short URLs is drawn
@@ -209,7 +209,7 @@ class QrGeneratorAjaxEndpoint {
 	 *
 	 * @param string $destination Address the short URL sends to.
 	 * @param string $code        Code the browser holds, or ''.
-	 * @return array{drawn: string, circular: bool, direct: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>}
+	 * @return array{drawn: string, circular: bool, direct: bool, code: string, url: string, example: bool, duplicates: array<int, array<string, mixed>>, download: string, scheme: string}
 	 */
 	private function short_state( string $destination, string $code ): array {
 		if ( ! self::redirectable( $destination ) ) {
@@ -221,6 +221,8 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => '',
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => '',
+				'scheme'     => '',
 			);
 		}
 
@@ -233,6 +235,8 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => '',
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => '',
+				'scheme'     => '',
 			);
 		}
 
@@ -248,6 +252,8 @@ class QrGeneratorAjaxEndpoint {
 				'url'        => $url,
 				'example'    => false,
 				'duplicates' => array(),
+				'download'   => UrlShortenerService::download_extension( $destination ),
+				'scheme'     => UrlShortenerService::scheme_warning( $destination ),
 			);
 		}
 
@@ -259,18 +265,25 @@ class QrGeneratorAjaxEndpoint {
 			'url'        => '',
 			'example'    => true,
 			'duplicates' => $this->duplicates( $destination ),
+			// A path that downloads a file gets a warning, never a refusal (#2337).
+			'download'   => UrlShortenerService::download_extension( $destination ),
+			// A scheme a phone may not follow out of a redirect: warned, not refused.
+			'scheme'     => UrlShortenerService::scheme_warning( $destination ),
 		);
 	}
 
 	/**
-	 * Whether a short URL can redirect to the address: http(s) only.
+	 * Whether a short URL can send to the address: the shared destination
+	 * list (#2337). Schemes beyond http(s) are allowed with a warning
+	 * (`scheme` in the short state), decided in the session; until then
+	 * they were drawn directly, as #1596 measured that a phone may not follow
+	 * a redirect into them.
 	 *
 	 * @param string $destination Address.
 	 * @return bool
 	 */
 	private static function redirectable( string $destination ): bool {
-		$scheme = wp_parse_url( $destination, PHP_URL_SCHEME );
-		return is_string( $scheme ) && in_array( strtolower( $scheme ), array( 'http', 'https' ), true );
+		return UrlShortenerService::is_allowed_destination( $destination );
 	}
 
 	/**

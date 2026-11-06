@@ -28,7 +28,9 @@ beforeEach(() => {
 	window.ffcUrlShortener = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'url-nonce',
+		downloads: ['pdf', 'zip', 'xlsx'],
 		i18n: {
+			download: 'Ends in %s.',
 			copied: 'Copied!',
 			copyFailed: 'Copy failed',
 			error: 'Error',
@@ -428,6 +430,7 @@ describe('url-shortener — edit modal', () => {
 				<form id="ffc-edit-short-url">
 					<input type="hidden" name="id" value="" />
 					<input id="ffc-edit-target" name="target_url" value="" />
+					<p id="ffc-edit-destination-warning" hidden></p>
 					<input id="ffc-edit-title" name="title" value="" />
 					<input type="hidden" id="ffc_edit_short_url_nonce" value="edit-nonce" />
 					<button type="submit">Save</button>
@@ -448,6 +451,40 @@ describe('url-shortener — edit modal', () => {
 		expect(window.$('#ffc-edit-modal input[name="id"]').val()).toBe('7');
 		expect(window.$('#ffc-edit-target').val()).toBe('https://example.com/old');
 		expect(window.$('#ffc-edit-title').val()).toBe('Old title');
+	});
+
+	it('warns while a destination that downloads a file is typed, and never blocks it (#2337)', async () => {
+		mountEditModal();
+		await loadAdmin();
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+
+		window.$('#ffc-edit-target').val('https://example.com/Edital.PDF?v=1').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Ends in .pdf.');
+
+		window.$('#ffc-edit-target').val('https://example.com/get?file=a.pdf').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+
+		window.$('#ffc-edit-target').val('https://files.example.com').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+	});
+
+	it('warns, softly, about a scheme a phone may not follow out of a redirect (#2337)', async () => {
+		window.ffcUrlShortener.recommended = ['https', 'http'];
+		window.ffcUrlShortener.i18n.scheme = 'Scheme %s.';
+		mountEditModal();
+		await loadAdmin();
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+
+		window.$('#ffc-edit-target').val('mailto:contato@example.com').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Scheme mailto:.');
+
+		window.$('#ffc-edit-target').val('ftp://files.example.com/a.zip').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Scheme ftp:. Ends in .zip.');
 	});
 
 	it('POSTs ffc_edit_short_url with id+target+title and reloads on success', async () => {

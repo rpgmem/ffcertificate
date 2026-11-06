@@ -239,8 +239,43 @@
             $('#ffc-edit-target').val($btn.data('target') || '');
             $('#ffc-edit-title').val($btn.data('title') || '');
             $('#ffc-edit-short-url-result').empty().hide();
+            warnDestination();
             $modal.show();
         });
+
+        // A destination whose path ends in a file to download is warned
+        // about while it is typed, never refused (#2337). The extensions
+        // come from UrlShortenerService::DOWNLOAD_EXTENSIONS.
+        function downloadExtension(url) {
+            var path = String(url || '').split(/[?#]/)[0];
+            var match = /\.([a-z0-9]+)$/i.exec(path.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, ''));
+            var ext = match ? match[1].toLowerCase() : '';
+            return (settings.downloads || []).indexOf(ext) !== -1 ? ext : '';
+        }
+
+        // A scheme beyond http(s) is accepted with a soft warning (#2337).
+        function schemeWarning(url) {
+            var match = /^([a-z][a-z0-9+.-]*):/i.exec(String(url || '').trim());
+            var scheme = match ? match[1].toLowerCase() : '';
+            return scheme && (settings.recommended || ['https', 'http']).indexOf(scheme) === -1 ? scheme : '';
+        }
+
+        function warnDestination() {
+            var url = $('#ffc-edit-target').val();
+            var i18n = settings.i18n || {};
+            var ext = downloadExtension(url);
+            var scheme = schemeWarning(url);
+            var lines = [];
+            if (scheme) {
+                lines.push(String(i18n.scheme || '').replace('%s', scheme + ':'));
+            }
+            if (ext) {
+                lines.push(String(i18n.download || '').replace('%s', '.' + ext));
+            }
+            $('#ffc-edit-destination-warning').text(lines.join(' ')).prop('hidden', !lines.length);
+        }
+
+        $(document).on('input', '#ffc-edit-target', warnDestination);
 
         $('#ffc-edit-short-url').on('submit', function (e) {
             e.preventDefault();
