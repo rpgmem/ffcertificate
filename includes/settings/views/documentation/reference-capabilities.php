@@ -21,7 +21,7 @@ $ffc_cap_catalog = '\FreeFormCertificate\UserDashboard\CapabilityCatalog';
 <!-- Capabilities & Roles Section -->
 <div class="card">
 	<h3 id="reference-capabilities" class="ffc-icon-users"><?php esc_html_e( 'Capabilities & Roles', 'ffcertificate' ); ?></h3>
-	<p><?php esc_html_e( 'The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. WordPress administrators (manage_options) always hold every FFC capability.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The plugin ships fine-grained capabilities and its own roles, and manages both itself — no capability-management plugin is needed. A WordPress administrator receives the FFC Administrator role once, when the plugin is activated or when the account becomes an administrator; taking the role off holds, and the plugin does not put it back.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Where they are assigned', 'ffcertificate' ); ?></h4>
@@ -32,7 +32,7 @@ $ffc_cap_catalog = '\FreeFormCertificate\UserDashboard\CapabilityCatalog';
 		<p><?php esc_html_e( 'Every module has four roles, named "FFC <module> - <tier>" after the module\'s menu, each tier holding everything the one below it holds:', 'ffcertificate' ); ?></p>
 		<ul>
 			<li><strong><?php esc_html_e( 'Viewer', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'sees the module\'s screens, with personal data masked.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Operator', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'also performs the module\'s day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, exporting, calling candidates, sending a test.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Operator', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'also performs the module\'s day-to-day actions: editing and grading submissions, approving and cancelling bookings, importing members, calling candidates, sending a test. Exporting is a Manager action, except in Reregistration and Short URLs, whose Operators export too.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Manager', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'also manages, exports and deletes, and may reveal personal data.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Administrator', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'also holds the module\'s bypass and settings, where it has them; elsewhere it equals the Manager.', 'ffcertificate' ); ?></li>
 		</ul>
