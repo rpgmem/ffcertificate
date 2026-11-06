@@ -45,5 +45,6 @@ class AccessRestrictionGuard {
 		}
 
 		$ctx->restriction_result = $restriction_result;
+		$ctx->ticket_claim_open  = ! empty( $restriction_result['is_ticket'] );
 	}
 }

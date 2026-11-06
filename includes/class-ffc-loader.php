@@ -1366,6 +1366,15 @@ class Loader {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
 			}
 		);
+		// #2341: a ticket's claim row outlives the ticket once the list no
+		// longer holds it. Daily is enough: a row is only reaped a day after
+		// its claim, and the default priority keeps it beside the jti reap.
+		add_action(
+			'ffc_daily_cleanup',
+			static function (): void {
+				\FreeFormCertificate\Frontend\AccessRestrictionChecker::reap_stale_claims();
+			}
+		);
 		// #2343: import staging holds cleartext identifiers until its TTL; the
 		// sweeps ran only at the next import. Same TTLs, so nothing is deleted
 		// that the next import would not; outside the module gates, because a

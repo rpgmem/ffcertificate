@@ -56,12 +56,52 @@ class SubmissionPersister {
 	}
 
 	/**
+	 * Persist the submission, and settle the ticket it claimed (#2341).
+	 *
+	 * A ticket claimed by AccessRestrictionGuard leaves the form's list once
+	 * a row holds it; a request that ends without one, refused or failed,
+	 * gives the claim back, so the participant can use the ticket again.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 * @throws \Throwable A SubmissionRejected on exhausted/failed quiz attempts or a
+	 *                    save error, or whatever the save throws, after the
+	 *                    claim is given back.
+	 */
+	public function apply( SubmissionContext $ctx ): void {
+		try {
+			$this->persist( $ctx );
+		} catch ( \Throwable $e ) {
+			if ( $ctx->ticket_claim_open ) {
+				$ctx->ticket_claim_open = false;
+				\FreeFormCertificate\Frontend\AccessRestrictionChecker::release_ticket( $ctx->form_id, $ctx->val_ticket );
+			}
+			throw $e;
+		}
+		// A reprint writes no row, and keeps the old behaviour: the ticket
+		// that reached it leaves the list.
+		$this->settle_ticket( $ctx );
+	}
+
+	/**
+	 * Remove the claimed ticket from the form's list, once a row holds it.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 */
+	private function settle_ticket( SubmissionContext $ctx ): void {
+		if ( ! $ctx->ticket_claim_open ) {
+			return;
+		}
+		$ctx->ticket_claim_open = false;
+		\FreeFormCertificate\Frontend\AccessRestrictionChecker::consume_ticket( $ctx->form_id, $ctx->val_ticket );
+	}
+
+	/**
 	 * Persist the submission, populating the context for the response stages.
 	 *
 	 * @param SubmissionContext $ctx Submission context.
 	 * @throws SubmissionRejected On exhausted/failed quiz attempts or a save error.
 	 */
-	public function apply( SubmissionContext $ctx ): void {
+	private function persist( SubmissionContext $ctx ): void {
 		$form_id                    = $ctx->form_id;
 		$form_config                = $ctx->form_config;
 		$fields_config              = $ctx->fields_config;
@@ -70,7 +110,6 @@ class SubmissionPersister {
 		$val_ticket                 = $ctx->val_ticket;
 		$has_exception              = $ctx->has_exception;
 		$schedule_exception_payload = $ctx->schedule_exception_payload;
-		$restriction_result         = $ctx->restriction_result;
 
 		// Operate on a local copy (process_submission mutates it by reference);
 		// written back to the context at the end for the response stages.
@@ -211,6 +250,7 @@ class SubmissionPersister {
 						);
 					}
 					$real_submission_date = (string) $now;
+					$this->settle_ticket( $ctx );
 
 					// A retry that passes is the moment the certificate exists,
 					// so it is e-mailed now, as a first attempt's insert is.
@@ -242,6 +282,8 @@ class SubmissionPersister {
 							)
 						);
 					}
+
+					$this->settle_ticket( $ctx );
 
 					// Update status if not publish.
 					if ( 'publish' !== $quiz_status ) {
@@ -366,10 +408,8 @@ class SubmissionPersister {
 				// Get the submission date from the newly created submission.
 				$real_submission_date = current_time( 'mysql' );
 
-				// Remove used ticket if applicable — delegated to AccessRestrictionChecker.
-				if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
-					\FreeFormCertificate\Frontend\AccessRestrictionChecker::consume_ticket( $form_id, $val_ticket );
-				}
+				// The row holds the ticket now, so it leaves the list (#2341).
+				$this->settle_ticket( $ctx );
 
 				// #366 Sprint 6 — persist the override TIME columns on the
 				// freshly inserted row + emit the two audit log entries. Runs

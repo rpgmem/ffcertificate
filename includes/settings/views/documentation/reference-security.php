@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 			<tr>
 				<td><strong><?php esc_html_e( 'Ticket (unique codes)', 'ffcertificate' ); ?></strong></td>
-				<td><?php esc_html_e( 'Each submitter must present a single-use code from a generated pool. The code is claimed atomically (one use only) and removed from the pool as soon as the restriction check passes, before the submission is saved.', 'ffcertificate' ); ?></td>
+				<td><?php esc_html_e( 'Each submitter must present a single-use code from a generated pool, in any letter case. The code is claimed atomically (one use only) when the restriction check passes, and leaves the pool once the submission is saved; when the save fails, or a quiz attempt is refused before it is stored, the claim is released and the code still works.', 'ffcertificate' ); ?></td>
 			</tr>
 			<tr>
 				<td><strong><?php esc_html_e( 'Booking participants only', 'ffcertificate' ); ?></strong></td>

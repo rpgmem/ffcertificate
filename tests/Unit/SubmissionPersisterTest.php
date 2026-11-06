@@ -296,12 +296,15 @@ class SubmissionPersisterTest extends TestCase {
 		$persister = new SubmissionPersister( $handler );
 		$ctx       = $this->ctx(
 			array(
-				'val_ticket'         => 'TICKET1',
+				'val_ticket'         => 'ticket1',
 				'restriction_result' => array( 'is_ticket' => true ),
+				'ticket_claim_open'  => true,
 			)
 		);
+		Functions\expect( 'delete_option' )->never();
 		$persister->apply( $ctx );
 
+		$this->assertFalse( $ctx->ticket_claim_open );
 		$this->assertSame( 7, $ctx->submission_id );
 		$this->assertSame(
 			array( array( 10, '_ffc_form_config', array( 'generated_codes_list' => 'TICKET2' ) ) ),
@@ -436,6 +439,88 @@ class SubmissionPersisterTest extends TestCase {
 		}
 	}
 
+	/**
+	 * Record the claim rows release_ticket() deletes.
+	 *
+	 * @return \ArrayObject<int, string>
+	 */
+	private function recordReleases(): \ArrayObject {
+		$released = new \ArrayObject();
+		Functions\when( 'delete_option' )->alias(
+			static function ( $name ) use ( $released ) {
+				$released[] = $name;
+				return true;
+			}
+		);
+		return $released;
+	}
+
+	public function test_a_failed_save_gives_the_ticket_back(): void {
+		// #2341: the claim was taken before the insert; a save that fails
+		// must not leave the participant holding an "already used" ticket.
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+		Functions\expect( 'update_post_meta' )->never();
+		$released = $this->recordReleases();
+
+		$error = Mockery::mock();
+		$error->shouldReceive( 'get_error_code' )->andReturn( 'db_error' );
+		$error->shouldReceive( 'get_error_message' )->andReturn( 'Duplicate entry' );
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->andReturn( $error );
+
+		$ctx = $this->ctx(
+			array(
+				'val_ticket'        => ' tkt-1 ',
+				'ticket_claim_open' => true,
+			)
+		);
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertSame( 'db_error', $e->get_payload()['code'] );
+		}
+
+		$this->assertSame( array( 'ffc_ticket_used_10_' . hash( 'sha256', 'TKT-1' ) ), $released->getArrayCopy() );
+		$this->assertFalse( $ctx->ticket_claim_open );
+	}
+
+	public function test_an_exception_from_the_save_gives_the_ticket_back_and_propagates(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		$released = $this->recordReleases();
+		$handler  = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->andThrow( new \RuntimeException( 'gone' ) );
+
+		$this->expectException( \RuntimeException::class );
+		try {
+			( new SubmissionPersister( $handler ) )->apply(
+				$this->ctx(
+					array(
+						'val_ticket'        => 'TKT-1',
+						'ticket_claim_open' => true,
+					)
+				)
+			);
+		} finally {
+			$this->assertCount( 1, $released );
+		}
+	}
+
+	public function test_a_refusal_without_a_claim_releases_nothing(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'is_wp_error' )->justReturn( true );
+		Functions\expect( 'delete_option' )->never();
+		$error = Mockery::mock();
+		$error->shouldReceive( 'get_error_code' )->andReturn( 'db_error' );
+		$error->shouldReceive( 'get_error_message' )->andReturn( '' );
+		$handler = $this->handlerWithRepo();
+		$handler->shouldReceive( 'process_submission' )->andReturn( $error );
+
+		$this->expectException( SubmissionRejected::class );
+		( new SubmissionPersister( $handler ) )->apply( $this->ctx( array( 'val_ticket' => 'TKT-1' ) ) );
+	}
+
 	// =====================================================================
 	// Quiz flow
 	// =====================================================================
@@ -563,6 +648,72 @@ class SubmissionPersisterTest extends TestCase {
 			$this->assertSame( 1, $payload['quiz']['attempt'] );
 			$this->assertSame( 2, $payload['quiz']['remaining'] );
 		}
+	}
+
+	public function test_a_failed_quiz_attempt_spends_its_ticket(): void {
+		// #2341: the attempt is saved before the feedback is thrown, so the
+		// ticket bought it and leaves the list; its claim is not given back.
+		Functions\when( 'get_post' )->justReturn( null );
+		Functions\when( 'is_wp_error' )->justReturn( false );
+		Functions\when( 'get_post_meta' )->justReturn( array( 'generated_codes_list' => "Q-1\nQ-2" ) );
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $config ) use ( &$written ) {
+				$written[] = $config['generated_codes_list'];
+				return true;
+			}
+		);
+		Functions\expect( 'delete_option' )->never();
+
+		$handler = $this->handlerWithRepo( $repo );
+		$handler->shouldReceive( 'process_submission' )->once()->andReturn( 901 );
+		$repo->shouldReceive( 'updateStatus' )->once();
+		$ctx = $this->ctx(
+			array(
+				'form_config'       => array(
+					'quiz_enabled'       => '1',
+					'quiz_passing_score' => 70,
+					'quiz_max_attempts'  => 3,
+				),
+				'fields_config'     => $this->quizFieldsConfig(),
+				'submission_data'   => array( 'q1' => 'B' ),
+				'val_ticket'        => 'Q-1',
+				'ticket_claim_open' => true,
+			)
+		);
+
+		try {
+			( new SubmissionPersister( $handler ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertFalse( $e->get_payload()['quiz']['passed'] );
+		}
+		$this->assertSame( array( 'Q-2' ), $written );
+	}
+
+	public function test_a_quiz_refused_before_its_row_gives_the_ticket_back(): void {
+		Functions\when( 'get_post' )->justReturn( null );
+		$released = $this->recordReleases();
+		Functions\expect( 'update_post_meta' )->never();
+		// A ticket form looks the attempt up by CPF through find_quiz_submission().
+		$this->quiz_row = $this->storedRow( array( 'status' => \FreeFormCertificate\Core\SubmissionStatus::QUIZ_PENDING ) );
+
+		$ctx = $this->ctx(
+			array(
+				'form_config'       => array( 'quiz_enabled' => '1' ),
+				'fields_config'     => $this->quizFieldsConfig(),
+				'submission_data'   => array( 'q1' => 'A' ),
+				'val_ticket'        => 'Q-1',
+				'ticket_claim_open' => true,
+			)
+		);
+		try {
+			( new SubmissionPersister( $this->bareHandler() ) )->apply( $ctx );
+			$this->fail( 'Expected SubmissionRejected' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertTrue( $e->get_payload()['quiz']['awaiting_grading'] );
+		}
+		$this->assertCount( 1, $released );
 	}
 
 	/**
