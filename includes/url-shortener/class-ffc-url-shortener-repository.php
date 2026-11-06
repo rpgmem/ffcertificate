@@ -133,6 +133,48 @@ class UrlShortenerRepository extends AbstractRepository {
 	}
 
 	/**
+	 * Whether a code was retired (see UrlShortenerReader::codeRetired).
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	public function codeRetired( string $code ): bool {
+		return $this->reader->codeRetired( $code );
+	}
+
+	/**
+	 * Count retired codes (see UrlShortenerReader::countRetired).
+	 *
+	 * @param string $search Search term.
+	 * @return int
+	 */
+	public function countRetired( string $search = '' ): int {
+		return $this->reader->countRetired( $search );
+	}
+
+	/**
+	 * A page of retired codes (see UrlShortenerReader::findRetiredPaginated).
+	 *
+	 * @param string $search   Search term.
+	 * @param int    $page     Page, from 1.
+	 * @param int    $per_page Rows per page.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findRetiredPaginated( string $search, int $page, int $per_page ): array {
+		return $this->reader->findRetiredPaginated( $search, $page, $per_page );
+	}
+
+	/**
+	 * A batch of trashed links (see UrlShortenerReader::findTrashedBatch).
+	 *
+	 * @param int $limit Rows per batch.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findTrashedBatch( int $limit ): array {
+		return $this->reader->findTrashedBatch( $limit );
+	}
+
+	/**
 	 * Find paginated short URLs for admin listing.
 	 *
 	 * @param array<string, mixed> $args Query args (see UrlShortenerReader::findPaginated).
@@ -243,5 +285,31 @@ class UrlShortenerRepository extends AbstractRepository {
 	 */
 	public function setQrCacheForShortCode( string $short_code, string $base64 ): bool {
 		return $this->writer->setQrCacheForShortCode( $short_code, $base64 );
+	}
+
+	/**
+	 * Delete a link and retire its code, both or neither (#2337).
+	 *
+	 * The code is recorded first, inside one transaction, so a code can
+	 * never be free again between the two writes.
+	 *
+	 * @param array<string, mixed> $row    The link row; needs id and short_code.
+	 * @param string               $reason Why it is retired (`deleted`).
+	 * @return bool True when the row was deleted and its code retired.
+	 */
+	public function retireAndDelete( array $row, string $reason ): bool {
+		$id = (int) ( $row['id'] ?? 0 );
+		if ( $id <= 0 || '' === (string) ( $row['short_code'] ?? '' ) ) {
+			return false;
+		}
+
+		$this->begin_transaction();
+		if ( ! $this->writer->retireCode( $row, $reason, time() ) || 1 !== (int) $this->delete( $id ) ) {
+			$this->rollback();
+			return false;
+		}
+		$this->commit();
+
+		return true;
 	}
 }

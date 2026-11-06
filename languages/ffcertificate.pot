@@ -7233,6 +7233,34 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: templates/admin/url-shortener/retired-codes.php:19
+msgid "Replaced by Regenerate"
+msgstr ""
+
+#: templates/admin/url-shortener/retired-codes.php:20
+msgid "Link deleted"
+msgstr ""
+
+#: templates/admin/url-shortener/retired-codes.php:26
+msgid "These codes are never issued again, so a printed link or QR code carrying one of them can never start pointing somewhere else."
+msgstr ""
+
+#: templates/admin/url-shortener/retired-codes.php:33
+msgid "Pointed to"
+msgstr ""
+
+#: templates/admin/url-shortener/retired-codes.php:35
+msgid "Retired on"
+msgstr ""
+
+#: templates/admin/url-shortener/retired-codes.php:41
+msgid "No retired codes found."
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php:169
+msgid "Retired (%d)"
+msgstr ""
+
 #: includes/url-shortener/class-ffc-url-shortener-qr-rest-controller.php
 msgid "This short URL is not active, so it has no QR code."
 msgstr ""
@@ -17749,9 +17777,12 @@ msgstr ""
 msgid "Trash (%d)"
 msgstr ""
 
-#: templates/admin/url-shortener/short-urls-page.php:84
-msgid "Trash emptied."
-msgstr ""
+#: templates/admin/url-shortener/short-urls-page.php:108
+#, php-format
+msgid "Trash emptied: %s short URL deleted."
+msgid_plural "Trash emptied: %s short URLs deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:78
 msgid "trash, restore and permanently delete."

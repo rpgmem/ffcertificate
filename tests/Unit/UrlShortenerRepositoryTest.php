@@ -641,4 +641,105 @@ class UrlShortenerRepositoryTest extends TestCase {
 
 		$this->assertSame( array(), $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 ) );
 	}
+
+	// ==================================================================
+	// Retired codes (#2337)
+	// ==================================================================
+
+	/**
+	 * A `$wpdb` double whose prepare() records each query with its
+	 * arguments substituted, in order, and whose query() answers from a list.
+	 *
+	 * Recorded in $this->queries.
+	 *
+	 * @param array<int, int|false> $query_results What each query() returns.
+	 */
+	private function record_queries( array $query_results ): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return $sql . ' | ' . implode( ' | ', array_map( 'strval', $args ) );
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$query_results ) {
+				$this->queries[] = $sql;
+				return in_array( $sql, array( 'START TRANSACTION', 'COMMIT', 'ROLLBACK' ), true ) ? 1 : array_shift( $query_results );
+			}
+		);
+	}
+
+	/** @var array<int, string> */
+	private array $queries = array();
+
+	public function test_code_retired_reads_the_retired_table(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( 'SELECT COUNT(*) FROM %i WHERE short_code = %s', 'wp_ffc_short_url_retired', 'abc123' )->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->with( 'Q' )->andReturn( '1' );
+
+		$this->assertTrue( $this->repo->codeRetired( 'abc123' ) );
+	}
+
+	public function test_retired_list_searches_code_title_and_destination_newest_first(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d' ) ),
+			'wp_ffc_short_url_retired',
+			'%form%',
+			'%form%',
+			'%form%',
+			20,
+			20
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'Q', ARRAY_A )->andReturn( array( array( 'short_code' => 'abc' ) ) );
+
+		$this->assertSame( array( array( 'short_code' => 'abc' ) ), $this->repo->findRetiredPaginated( 'form', 2, 20 ) );
+	}
+
+	public function test_retire_and_delete_records_the_code_then_deletes_in_one_transaction(): void {
+		$this->record_queries( array( 1 ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => '5', 'short_code' => 'abc123', 'post_id' => '9' ) );
+		$this->wpdb->shouldReceive( 'delete' )->once()->with( 'wp_ffc_short_urls', array( 'id' => 5 ) )->andReturn( 1 );
+
+		$row = array( 'id' => '5', 'short_code' => 'abc123', 'post_id' => '9', 'title' => 'T', 'target_url' => 'https://x/' );
+		$this->assertTrue( $this->repo->retireAndDelete( $row, 'deleted' ) );
+
+		$this->assertSame( 'START TRANSACTION', $this->queries[0] );
+		$this->assertStringStartsWith( 'INSERT IGNORE INTO %i (short_code, short_url_id, post_id, title, target_url, reason, retired_at)', $this->queries[1] );
+		$this->assertStringContainsString( '| wp_ffc_short_url_retired | abc123 | 5 | 9 | T | https://x/ | deleted |', $this->queries[1] );
+		$this->assertSame( 'COMMIT', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_rolls_back_when_the_code_cannot_be_recorded(): void {
+		$this->record_queries( array( false ) );
+		$this->wpdb->shouldNotReceive( 'delete' );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5, 'short_code' => 'abc123' ), 'deleted' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_rolls_back_when_the_row_is_already_gone(): void {
+		$this->record_queries( array( 1 ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( 0 );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5, 'short_code' => 'abc123' ), 'deleted' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_refuses_a_row_without_a_code(): void {
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5 ), 'deleted' ) );
+	}
+
+	public function test_the_trash_is_read_oldest_first_a_batch_at_a_time(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE status = %s ORDER BY id ASC LIMIT %d' ) ),
+			'wp_ffc_short_urls',
+			'trashed',
+			200
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), $this->repo->findTrashedBatch( 200 ) );
+	}
 }

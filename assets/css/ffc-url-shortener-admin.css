@@ -211,6 +211,25 @@
 .ffc-shorturl-status-disabled { color: var(--ffc-danger); }
 .ffc-shorturl-status-trashed  { color: var(--ffc-danger-text); }
 
+/* Admin page: the retired codes view (#2337) */
+.ffc-shorturl-retired-code {
+    text-decoration: line-through;
+}
+
+.ffc-shorturl-reason {
+    display: inline-block;
+    padding: 0 var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-shorturl-reason-regenerated {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
 /* Admin page: empty trash wrapper */
 .ffc-shorturl-empty-trash {
     margin-bottom: var(--ffc-spacing-md);

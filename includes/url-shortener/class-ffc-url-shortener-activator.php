@@ -36,9 +36,21 @@ class UrlShortenerActivator {
 	}
 
 	/**
-	 * Create the short URLs table.
+	 * Get the retired codes table name (#2337).
+	 *
+	 * @return string
+	 */
+	public static function get_retired_table_name(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'ffc_short_url_retired';
+	}
+
+	/**
+	 * Create the short URL tables that are missing.
 	 */
 	public static function create_tables(): void {
+		self::create_retired_table();
+
 		global $wpdb;
 
 		$table_name      = self::get_table_name();
@@ -64,6 +76,44 @@ class UrlShortenerActivator {
             UNIQUE KEY idx_short_code (short_code),
             KEY idx_post_id (post_id),
             KEY idx_status (status)
+        ) {$charset_collate};";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Create the table of retired codes (#2337).
+	 *
+	 * A code leaves `ffc_short_urls` when its link is deleted or when
+	 * Regenerate gives the link a new code. Its row here is what stops the
+	 * generator from issuing it again, so a printed QR can never start
+	 * pointing somewhere else. Title and destination are copied, because the
+	 * link they came from may be gone. `retired_at` is an instant, shown to
+	 * the administrator, so it is unix seconds (Category A).
+	 */
+	public static function create_retired_table(): void {
+		global $wpdb;
+
+		$table_name = self::get_retired_table_name();
+		if ( self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE {$table_name} (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            short_code varchar(10) NOT NULL,
+            short_url_id bigint(20) unsigned DEFAULT NULL,
+            post_id bigint(20) unsigned DEFAULT NULL,
+            title varchar(255) DEFAULT '',
+            target_url text NOT NULL,
+            reason varchar(20) NOT NULL,
+            retired_at bigint(20) unsigned NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_short_code (short_code),
+            KEY idx_retired_at (retired_at)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -105,9 +155,8 @@ class UrlShortenerActivator {
 
 		$table_name = self::get_table_name();
 
-		if ( ! self::table_exists( $table_name ) ) {
-			self::create_tables();
-		}
+		// Creates whichever table is missing, the retired codes one included.
+		self::create_tables();
 
 		// Add qr_cache column for QR code caching (avoids regeneration on every admin load).
 		self::add_column_if_missing( $table_name, 'qr_cache', 'LONGTEXT NULL', 'status' );

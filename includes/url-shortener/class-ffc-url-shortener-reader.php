@@ -71,6 +71,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     is_trashed: numeric-string,
  * }
  * @phpstan-type BackfillCandidateRow array{ ID: numeric-string, post_title: string }
+ * @phpstan-type RetiredCodeRow array{
+ *     id: numeric-string,
+ *     short_code: string,
+ *     short_url_id: numeric-string|null,
+ *     post_id: numeric-string|null,
+ *     title: string|null,
+ *     target_url: string,
+ *     reason: string,
+ *     retired_at: numeric-string,
+ * }
  */
 class UrlShortenerReader extends AbstractRepository {
 
@@ -285,6 +295,130 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		return $count > 0;
+	}
+
+	/**
+	 * Whether a code was retired and may never be issued again (#2337).
+	 *
+	 * Compared under the column's collation, like {@see codeExists()}, so a
+	 * code retired in one case also blocks it in another wherever the key
+	 * would.
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	public function codeRetired( string $code ): bool {
+		$count = (int) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE short_code = %s',
+				$this->retired_table(),
+				$code
+			)
+		);
+
+		return $count > 0;
+	}
+
+	/**
+	 * Count the retired codes matching a search (#2337).
+	 *
+	 * @param string $search Search term (code, title or destination); '' for all.
+	 * @return int
+	 */
+	public function countRetired( string $search = '' ): int {
+		if ( '' === $search ) {
+			return (int) $this->wpdb->get_var(
+				$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->retired_table() )
+			);
+		}
+
+		$like = '%' . $this->wpdb->esc_like( $search ) . '%';
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s',
+				$this->retired_table(),
+				$like,
+				$like,
+				$like
+			)
+		);
+	}
+
+	/**
+	 * A page of retired codes, most recently retired first (#2337).
+	 *
+	 * @param string $search   Search term (code, title or destination); '' for all.
+	 * @param int    $page     Page, from 1.
+	 * @param int    $per_page Rows per page.
+	 * @return array<int, RetiredCodeRow>
+	 */
+	public function findRetiredPaginated( string $search, int $page, int $per_page ): array {
+		$per_page = max( 1, $per_page );
+		$offset   = ( max( 1, $page ) - 1 ) * $per_page;
+
+		if ( '' === $search ) {
+			$sql = $this->wpdb->prepare(
+				'SELECT id, short_code, short_url_id, post_id, title, target_url, reason, retired_at FROM %i ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d',
+				$this->retired_table(),
+				$per_page,
+				$offset
+			);
+		} else {
+			$like = '%' . $this->wpdb->esc_like( $search ) . '%';
+			$sql  = $this->wpdb->prepare(
+				'SELECT id, short_code, short_url_id, post_id, title, target_url, reason, retired_at FROM %i WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d',
+				$this->retired_table(),
+				$like,
+				$like,
+				$like,
+				$per_page,
+				$offset
+			);
+		}
+
+		/**
+		 * The shape is read off UrlShortenerActivator::create_retired_table().
+		 *
+		 * @var list<RetiredCodeRow>|null $rows
+		 */
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * The oldest trashed links, a batch at a time, for Empty Trash (#2337).
+	 *
+	 * @param int $limit Rows per batch.
+	 * @return array<int, ShortUrlRow>
+	 */
+	public function findTrashedBatch( int $limit ): array {
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $rows
+		 */
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE status = %s ORDER BY id ASC LIMIT %d',
+				$this->table,
+				'trashed',
+				max( 1, $limit )
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * The retired codes table.
+	 *
+	 * @return string
+	 */
+	private function retired_table(): string {
+		return $this->wpdb->prefix . 'ffc_short_url_retired';
 	}
 
 	/**

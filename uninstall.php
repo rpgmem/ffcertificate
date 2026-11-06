@@ -161,6 +161,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_device_signals',
 	// URL Shortener.
 	$wpdb->prefix . 'ffc_short_urls',
+	$wpdb->prefix . 'ffc_short_url_retired',
 	// Date messages (#1538).
 	$wpdb->prefix . 'ffc_date_message_rules',
 	$wpdb->prefix . 'ffc_date_message_runs',

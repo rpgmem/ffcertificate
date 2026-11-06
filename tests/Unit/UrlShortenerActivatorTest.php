@@ -74,8 +74,7 @@ class UrlShortenerActivatorTest extends TestCase {
 
 	public function test_create_tables_skips_if_table_exists(): void {
 		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SHOW TABLES LIKE "wp_ffc_short_urls"' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
+		$this->every_table_exists();
 
 		$delta_called = false;
 		Functions\when( 'dbDelta' )->alias( function () use ( &$delta_called ) {
@@ -103,6 +102,7 @@ class UrlShortenerActivatorTest extends TestCase {
 
 		$this->assertTrue( $delta_called );
 		$this->assertStringContainsString( 'ffc_short_urls', $delta_sql );
+		$this->assertStringNotContainsString( 'ffc_short_url_retired', $delta_sql, 'The last statement is the links table; the retired one runs first.' );
 		$this->assertStringContainsString( 'short_code', $delta_sql );
 		$this->assertStringContainsString( 'target_url', $delta_sql );
 		$this->assertStringContainsString( 'click_count', $delta_sql );
@@ -136,8 +136,7 @@ class UrlShortenerActivatorTest extends TestCase {
 	}
 
 	public function test_maybe_migrate_skips_if_table_exists(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_short_urls' );
+		$this->every_table_exists();
 		// add_column_if_missing() runs even when table exists.
 		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
 		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
@@ -150,5 +149,45 @@ class UrlShortenerActivatorTest extends TestCase {
 		UrlShortenerActivator::maybe_migrate();
 
 		$this->assertFalse( $delta_called );
+	}
+
+	// ==================================================================
+	// The retired codes table (#2337)
+	// ==================================================================
+
+	public function test_the_retired_table_is_created_on_an_install_that_has_the_links_table(): void {
+		// An upgraded install: the links table exists, the retired one does not.
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn( $table ) => 'wp_ffc_short_urls' === $table ? $table : null
+		);
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'qr_cache' ) ) );
+
+		$statements = array();
+		Functions\when( 'dbDelta' )->alias(
+			static function ( $sql ) use ( &$statements ) {
+				$statements[] = $sql;
+			}
+		);
+
+		UrlShortenerActivator::maybe_migrate();
+
+		$this->assertCount( 1, $statements );
+		$this->assertStringContainsString( 'CREATE TABLE wp_ffc_short_url_retired', $statements[0] );
+		$this->assertStringContainsString( 'UNIQUE KEY idx_short_code (short_code)', $statements[0] );
+		$this->assertStringContainsString( 'retired_at bigint(20) unsigned NOT NULL', $statements[0] );
+	}
+
+	public function test_get_retired_table_name_uses_prefix(): void {
+		$this->assertSame( 'wp_ffc_short_url_retired', UrlShortenerActivator::get_retired_table_name() );
+	}
+
+	/**
+	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
+	 */
+	private function every_table_exists(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => (string) ( $args[0] ?? $q ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $table ) => $table );
 	}
 }

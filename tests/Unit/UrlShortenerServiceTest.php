@@ -60,7 +60,9 @@ class UrlShortenerServiceTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( '__' )->returnArg();
 
-		$this->repo    = Mockery::mock( UrlShortenerRepository::class );
+		$this->repo = Mockery::mock( UrlShortenerRepository::class );
+		// No code is retired unless a test says so (#2337).
+		$this->repo->shouldReceive( 'codeRetired' )->andReturn( false )->byDefault();
 		$this->service = new UrlShortenerService( $this->repo );
 	}
 
@@ -123,6 +125,43 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertArrayHasKey( 'error', $result );
 	}
 
+	public function test_create_short_url_draws_again_when_the_key_refuses_the_code(): void {
+		// Another request took the drawn code between the check and the insert.
+		$in_table = array();
+		$this->repo->shouldReceive( 'codeExists' )->andReturnUsing(
+			static function ( $code ) use ( &$in_table ) {
+				return in_array( $code, $in_table, true );
+			}
+		);
+		$tried = array();
+		$this->repo->shouldReceive( 'insert' )->twice()->andReturnUsing(
+			static function ( $data ) use ( &$tried, &$in_table ) {
+				$tried[] = $data['short_code'];
+				if ( 1 === count( $tried ) ) {
+					$in_table[] = $data['short_code']; // The key refused it: it is taken now.
+					return false;
+				}
+				return 7;
+			}
+		);
+		$this->repo->shouldReceive( 'findById' )->with( 7 )->once()->andReturn( array( 'id' => 7 ) );
+
+		$result = $this->service->create_short_url( 'https://example.com/page' );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertCount( 2, $tried, 'A refused insert under a taken code draws a second code.' );
+		$this->assertNotSame( $tried[0], $tried[1] );
+	}
+
+	public function test_create_short_url_does_not_draw_again_for_another_failure(): void {
+		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
+		$this->repo->shouldReceive( 'insert' )->once()->andReturn( false );
+
+		$result = $this->service->create_short_url( 'https://example.com/page' );
+
+		$this->assertFalse( $result['success'], 'A refusal that is not about the code fails at once.' );
+	}
+
 	// ==================================================================
 	// generate_unique_code()
 	// ==================================================================
@@ -136,13 +175,47 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertSame( 8, strlen( $code ) );
 	}
 
-	public function test_generate_unique_code_uses_base62_charset(): void {
+	public function test_generate_unique_code_draws_lowercase_and_digits_only(): void {
 		Functions\when( 'get_option' )->justReturn( [] );
 		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
 
+		// The column compares without case, so an uppercase letter would only
+		// pretend to widen the space (#2337).
+		$drawn = '';
+		for ( $i = 0; $i < 50; $i++ ) {
+			$drawn .= $this->service->generate_unique_code( 10 );
+		}
+
+		$this->assertMatchesRegularExpression( '/^[a-z0-9]{500}$/', $drawn );
+	}
+
+	public function test_generate_unique_code_skips_a_retired_code(): void {
+		$seen = array();
+		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
+		$this->repo->shouldReceive( 'codeRetired' )->andReturnUsing(
+			static function ( $code ) use ( &$seen ) {
+				$seen[] = $code;
+				return 1 === count( $seen ); // The first draw was retired.
+			}
+		);
+
 		$code = $this->service->generate_unique_code( 6 );
 
-		$this->assertMatchesRegularExpression( '/^[a-zA-Z0-9]+$/', $code );
+		$this->assertCount( 2, $seen );
+		$this->assertSame( $seen[1], $code, 'The code returned is the one that was not retired.' );
+	}
+
+	public function test_generate_unique_code_never_exceeds_the_column(): void {
+		$lengths = array();
+		$this->repo->shouldReceive( 'codeExists' )->andReturnUsing(
+			static function ( $code ) use ( &$lengths ) {
+				$lengths[ strlen( $code ) ] = true;
+				return true; // Every code is taken.
+			}
+		);
+
+		$this->assertSame( '', $this->service->generate_unique_code( 9 ), 'No code found up to the column is an empty answer.' );
+		$this->assertSame( array( 9, 10 ), array_keys( $lengths ), 'It grows to the column width and stops there.' );
 	}
 
 	public function test_generate_unique_code_retries_on_collision(): void {
@@ -449,16 +522,49 @@ class UrlShortenerServiceTest extends TestCase {
 	// delete_short_url()
 	// ==================================================================
 
-	public function test_delete_short_url_success(): void {
-		$this->repo->shouldReceive( 'delete' )->with( 1 )->once()->andReturn( 1 );
+	public function test_delete_short_url_retires_the_code(): void {
+		$row = array( 'id' => 1, 'short_code' => 'abc123' );
+		$this->repo->shouldReceive( 'findById' )->with( 1 )->once()->andReturn( $row );
+		$this->repo->shouldReceive( 'retireAndDelete' )->with( $row, 'deleted' )->once()->andReturn( true );
 
 		$this->assertTrue( $this->service->delete_short_url( 1 ) );
 	}
 
 	public function test_delete_short_url_failure(): void {
-		$this->repo->shouldReceive( 'delete' )->with( 99 )->once()->andReturn( false );
+		$row = array( 'id' => 2, 'short_code' => 'abc124' );
+		$this->repo->shouldReceive( 'findById' )->with( 2 )->once()->andReturn( $row );
+		$this->repo->shouldReceive( 'retireAndDelete' )->once()->andReturn( false );
+
+		$this->assertFalse( $this->service->delete_short_url( 2 ) );
+	}
+
+	public function test_delete_short_url_of_a_missing_link_is_false(): void {
+		$this->repo->shouldReceive( 'findById' )->with( 99 )->once()->andReturn( null );
+		$this->repo->shouldNotReceive( 'retireAndDelete' );
 
 		$this->assertFalse( $this->service->delete_short_url( 99 ) );
+	}
+
+	// ==================================================================
+	// empty_trash() (#2337)
+	// ==================================================================
+
+	public function test_empty_trash_works_through_every_batch_and_counts_what_went(): void {
+		$full = array_map( static fn( $i ) => array( 'id' => $i, 'short_code' => 'c' . $i ), range( 1, 200 ) );
+		$tail = array( array( 'id' => 201, 'short_code' => 'c201' ) );
+		$this->repo->shouldReceive( 'findTrashedBatch' )->with( 200 )->twice()->andReturn( $full, $tail );
+		$this->repo->shouldReceive( 'retireAndDelete' )->times( 201 )->andReturn( true );
+
+		$this->assertSame( 201, $this->service->empty_trash() );
+	}
+
+	public function test_empty_trash_stops_when_a_batch_deletes_nothing(): void {
+		$full = array_map( static fn( $i ) => array( 'id' => $i, 'short_code' => 'c' . $i ), range( 1, 200 ) );
+		// The same undeletable rows come back each time; one pass, then stop.
+		$this->repo->shouldReceive( 'findTrashedBatch' )->once()->andReturn( $full );
+		$this->repo->shouldReceive( 'retireAndDelete' )->times( 200 )->andReturn( false );
+
+		$this->assertSame( 0, $this->service->empty_trash() );
 	}
 
 	// ==================================================================
@@ -523,6 +629,25 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertTrue( $this->service->set_active( 2, true ) );
 	}
 
+	public function test_set_active_to_the_state_it_already_has_is_success(): void {
+		$this->repo->shouldReceive( 'findById' )->with( 4 )->once()->andReturn( [
+			'id' => 4, 'status' => 'active',
+		] );
+		// $wpdb->update() answers 0 when no row changed (#2337).
+		$this->repo->shouldReceive( 'update' )->once()->andReturn( 0 );
+
+		$this->assertTrue( $this->service->set_active( 4, true ) );
+	}
+
+	public function test_set_active_reports_a_database_error(): void {
+		$this->repo->shouldReceive( 'findById' )->with( 5 )->once()->andReturn( [
+			'id' => 5, 'status' => 'active',
+		] );
+		$this->repo->shouldReceive( 'update' )->once()->andReturn( false );
+
+		$this->assertFalse( $this->service->set_active( 5, false ) );
+	}
+
 	public function test_set_active_leaves_a_trashed_link_in_the_trash(): void {
 		$this->repo->shouldReceive( 'findById' )->with( 3 )->once()->andReturn( [
 			'id' => 3, 'status' => 'trashed',
@@ -569,7 +694,7 @@ class UrlShortenerServiceTest extends TestCase {
 	public function test_the_example_short_url_is_fixed_and_has_the_configured_length(): void {
 		Functions\when( 'get_option' )->justReturn( array( 'url_shortener_prefix' => 'go', 'url_shortener_code_length' => 7 ) );
 
-		$this->assertSame( 'https://example.com/go/Ab3dEf9', $this->service->get_example_short_url() );
+		$this->assertSame( 'https://example.com/go/ab3def9', $this->service->get_example_short_url() );
 		$this->assertSame( $this->service->get_example_short_url(), $this->service->get_example_short_url(), 'Always the same.' );
 	}
 

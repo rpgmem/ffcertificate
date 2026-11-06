@@ -10,7 +10,8 @@
  *   - `trashed`:       the row's `status` is `'trashed'`.
  *
  * Honours `dry_run`: a dry run scans and reports without deleting anything.
- * Deletion is a hard delete via the repository (which clears its own cache).
+ * Deletion is a hard delete via the repository (which clears its own cache)
+ * and retires the code, so it is never issued again (#2337).
  *
  * @package FreeFormCertificate\Maintenance
  * @since 6.8.0
@@ -175,7 +176,8 @@ class UrlShortenerCleaner implements MaintenanceToolInterface {
 				++$report['by_reason'][ $reason ];
 			}
 
-			if ( ! $dry_run && $this->repository()->delete( (int) $row['id'] ) ) {
+			// A removed link's code is retired for good, like any deletion (#2337).
+			if ( ! $dry_run && $this->repository()->retireAndDelete( $row, 'deleted' ) ) {
 				++$report['deleted'];
 			}
 

@@ -56,7 +56,7 @@ class UrlShortenerCleanerTest extends TestCase {
 
 	public function test_no_criteria_selected_does_not_query_or_delete(): void {
 		$this->repo->shouldNotReceive( 'find_cleanup_candidates' );
-		$this->repo->shouldNotReceive( 'delete' );
+		$this->repo->shouldNotReceive( 'delete', 'retireAndDelete' );
 
 		$report = $this->cleaner()->run(
 			array(
@@ -107,7 +107,7 @@ class UrlShortenerCleanerTest extends TestCase {
 					),
 				)
 			);
-		$this->repo->shouldNotReceive( 'delete' );
+		$this->repo->shouldNotReceive( 'delete', 'retireAndDelete' );
 
 		$report = $this->cleaner()->run(
 			array(
@@ -154,8 +154,9 @@ class UrlShortenerCleanerTest extends TestCase {
 				),
 			)
 		);
-		$this->repo->shouldReceive( 'delete' )->once()->with( 7 )->andReturn( 1 );
-		$this->repo->shouldReceive( 'delete' )->once()->with( 8 )->andReturn( 1 );
+		// A removed link's code is retired with it (#2337).
+		$this->repo->shouldReceive( 'retireAndDelete' )->once()->with( Mockery::on( static fn( $row ) => 7 === (int) $row['id'] ), 'deleted' )->andReturn( true );
+		$this->repo->shouldReceive( 'retireAndDelete' )->once()->with( Mockery::on( static fn( $row ) => 8 === (int) $row['id'] ), 'deleted' )->andReturn( true );
 
 		$report = $this->cleaner()->run(
 			array(
@@ -183,7 +184,7 @@ class UrlShortenerCleanerTest extends TestCase {
 				),
 			)
 		);
-		$this->repo->shouldReceive( 'delete' )->once()->with( 9 )->andReturn( false );
+		$this->repo->shouldReceive( 'retireAndDelete' )->once()->andReturn( false );
 
 		$report = $this->cleaner()->run(
 			array(
