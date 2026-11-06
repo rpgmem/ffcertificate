@@ -175,18 +175,19 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertSame( 8, strlen( $code ) );
 	}
 
-	public function test_generate_unique_code_draws_lowercase_and_digits_only(): void {
+	public function test_generate_unique_code_draws_from_both_cases_and_digits(): void {
 		Functions\when( 'get_option' )->justReturn( [] );
 		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
 
-		// The column compares without case, so an uppercase letter would only
-		// pretend to widen the space (#2337).
+		// The column is binary, so case counts and both are drawn (#2337).
 		$drawn = '';
 		for ( $i = 0; $i < 50; $i++ ) {
 			$drawn .= $this->service->generate_unique_code( 10 );
 		}
 
-		$this->assertMatchesRegularExpression( '/^[a-z0-9]{500}$/', $drawn );
+		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9]{500}$/', $drawn );
+		$this->assertMatchesRegularExpression( '/[A-Z]/', $drawn );
+		$this->assertMatchesRegularExpression( '/[a-z]/', $drawn );
 	}
 
 	public function test_generate_unique_code_skips_a_retired_code(): void {
@@ -629,6 +630,66 @@ class UrlShortenerServiceTest extends TestCase {
 		$this->assertTrue( $this->service->set_active( 2, true ) );
 	}
 
+	// ==================================================================
+	// reactivate_short_url() / regenerate_code() (#2337)
+	// ==================================================================
+
+	public function test_reactivate_sets_the_link_active(): void {
+		$this->repo->shouldReceive( 'update' )
+			->with( 3, Mockery::on( static fn( $data ) => 'active' === $data['status'] ) )
+			->once()
+			->andReturn( 1 );
+
+		$this->assertTrue( $this->service->reactivate_short_url( 3 ) );
+	}
+
+	public function test_regenerate_swaps_the_code_on_the_same_row(): void {
+		$link = array( 'id' => 9, 'short_code' => 'old123' );
+		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
+		$this->repo->shouldReceive( 'swapCode' )->once()->with( $link, Mockery::type( 'string' ) )->andReturn( true );
+		$this->repo->shouldReceive( 'findById' )->with( 9 )->once()->andReturn( array( 'id' => 9, 'short_code' => 'new123' ) );
+
+		$result = $this->service->regenerate_code( $link );
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 9, $result['data']['id'] );
+	}
+
+	public function test_regenerate_draws_again_when_the_new_code_was_taken(): void {
+		$in_table = array();
+		$this->repo->shouldReceive( 'codeExists' )->andReturnUsing(
+			static function ( $c ) use ( &$in_table ) {
+				return in_array( $c, $in_table, true );
+			}
+		);
+		$tried = array();
+		$this->repo->shouldReceive( 'swapCode' )->twice()->andReturnUsing(
+			static function ( $row, $code ) use ( &$tried, &$in_table ) {
+				$tried[] = $code;
+				if ( 1 === count( $tried ) ) {
+					$in_table[] = $code;
+					return false;
+				}
+				return true;
+			}
+		);
+		$this->repo->shouldReceive( 'findById' )->andReturn( array( 'id' => 9 ) );
+
+		$this->assertTrue( $this->service->regenerate_code( array( 'id' => 9, 'short_code' => 'old123' ) )['success'] );
+		$this->assertCount( 2, $tried );
+	}
+
+	public function test_regenerate_failure_leaves_the_link_unchanged(): void {
+		$this->repo->shouldReceive( 'codeExists' )->andReturn( false );
+		$this->repo->shouldReceive( 'swapCode' )->once()->andReturn( false );
+		$this->repo->shouldNotReceive( 'findById' );
+
+		$result = $this->service->regenerate_code( array( 'id' => 9, 'short_code' => 'old123' ) );
+
+		$this->assertFalse( $result['success'] );
+		$this->assertStringContainsString( 'unchanged', $result['error'] );
+	}
+
 	public function test_set_active_to_the_state_it_already_has_is_success(): void {
 		$this->repo->shouldReceive( 'findById' )->with( 4 )->once()->andReturn( [
 			'id' => 4, 'status' => 'active',
@@ -694,7 +755,7 @@ class UrlShortenerServiceTest extends TestCase {
 	public function test_the_example_short_url_is_fixed_and_has_the_configured_length(): void {
 		Functions\when( 'get_option' )->justReturn( array( 'url_shortener_prefix' => 'go', 'url_shortener_code_length' => 7 ) );
 
-		$this->assertSame( 'https://example.com/go/ab3def9', $this->service->get_example_short_url() );
+		$this->assertSame( 'https://example.com/go/Ab3dEf9', $this->service->get_example_short_url() );
 		$this->assertSame( $this->service->get_example_short_url(), $this->service->get_example_short_url(), 'Always the same.' );
 	}
 

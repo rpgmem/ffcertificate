@@ -198,7 +198,12 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
-	 * Find a short URL record by post ID.
+	 * The post's short URL, in any state (#2337).
+	 *
+	 * A disabled or trashed link is still the post's link: answering only
+	 * active rows is what let a save, the editor or the backfill give the
+	 * post a second one. Where a post already has several (left by that
+	 * defect), the active one wins, then the newest.
 	 *
 	 * @param int $post_id WordPress post ID.
 	 * @return ShortUrlRow|null
@@ -229,7 +234,7 @@ class UrlShortenerReader extends AbstractRepository {
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
 				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
-				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE post_id = %d ORDER BY status = %s DESC, id DESC LIMIT 1',
 				$this->table,
 				$post_id,
 				'active'

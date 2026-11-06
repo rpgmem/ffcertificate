@@ -742,4 +742,49 @@ class UrlShortenerRepositoryTest extends TestCase {
 
 		$this->assertSame( array(), $this->repo->findTrashedBatch( 200 ) );
 	}
+
+	public function test_swap_code_retires_the_old_code_and_renames_the_row_in_one_transaction(): void {
+		$this->record_queries( array( 1 ) );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 01:00:00' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => '5', 'short_code' => 'old123', 'post_id' => '9' ) );
+		$this->wpdb->shouldReceive( 'update' )->once()->with(
+			'wp_ffc_short_urls',
+			array(
+				'short_code' => 'New456',
+				'qr_cache'   => null,
+				'updated_at' => '2026-11-06 01:00:00',
+			),
+			array( 'id' => 5 )
+		)->andReturn( 1 );
+
+		$this->assertTrue( $this->repo->swapCode( array( 'id' => '5', 'short_code' => 'old123' ), 'New456' ) );
+
+		$this->assertSame( 'START TRANSACTION', $this->queries[0] );
+		$this->assertStringContainsString( '| old123 | 5 |', $this->queries[1] );
+		$this->assertStringContainsString( '| regenerated |', $this->queries[1] );
+		$this->assertSame( 'COMMIT', end( $this->queries ) );
+	}
+
+	public function test_swap_code_rolls_back_when_the_new_code_is_refused(): void {
+		$this->record_queries( array( 1 ) );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 01:00:00' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		// The UNIQUE key refused it: wpdb answers false.
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+
+		$this->assertFalse( $this->repo->swapCode( array( 'id' => 5, 'short_code' => 'old123' ), 'Taken1' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_the_post_link_is_read_in_any_state_active_first(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE post_id = %d ORDER BY status = %s DESC, id DESC LIMIT 1' ) ),
+			'wp_ffc_short_urls',
+			7,
+			'active'
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( array( 'id' => '3', 'status' => 'disabled' ) );
+
+		$this->assertSame( 'disabled', $this->repo->findByPostId( 7 )['status'] );
+	}
 }

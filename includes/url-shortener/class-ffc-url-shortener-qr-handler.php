@@ -298,6 +298,10 @@ class UrlShortenerQrHandler {
 			if ( ! $record ) {
 				wp_send_json_error( array( 'message' => __( 'Short URL not found for this post.', 'ffcertificate' ) ) );
 			}
+			// The post's link is found in any state now (#2337); an off one has no QR.
+			if ( 'active' !== ( $record['status'] ?? '' ) ) {
+				wp_send_json_error( array( 'message' => __( 'This short URL is not active, so it has no QR code.', 'ffcertificate' ) ) );
+			}
 			$post = get_post( $post_id );
 			$slug = $post ? $post->post_name : (string) $post_id;
 			return array(
@@ -334,6 +338,14 @@ class UrlShortenerQrHandler {
 	 * @return void
 	 */
 	private function check_qr_view_permission(): void {
+		// From the meta box, editing the post is enough: the box is shown to
+		// everyone who can edit it, and the QR is that post's own (#2337).
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Nonce verified by the calling method. Cast to int, which sanitises.
+		$post_id = (int) ( $_POST['post_id'] ?? 0 );
+		if ( $post_id > 0 && current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
 		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_url_shortener' )
 			|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
 			return;

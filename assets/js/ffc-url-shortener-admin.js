@@ -139,13 +139,15 @@
                 });
         });
 
-        // --- Regenerate short URL ---
+        // --- The meta box's action: Generate, Reactivate or Regenerate ---
+        // The server decides from the link's state; only Regenerate asks first,
+        // because it retires the current code for good.
         $(document).on('click', '.ffc-regenerate-shorturl', function (e) {
             e.preventDefault();
-            var confirmMsg = settings.i18n ? settings.i18n.confirm : 'Generate a new short code?';
-            if (!confirm(confirmMsg)) return;
-
             var $btn = $(this);
+            var confirmMsg = $btn.attr('data-ffc-confirm');
+            if (confirmMsg && !confirm(confirmMsg)) return;
+
             var postId = $btn.data('post-id');
 
             $btn.prop('disabled', true);
@@ -155,9 +157,11 @@
                 { post_id: postId },
                 { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl }
             )
-                .then(function () {
+                .then(function (data) {
                     $btn.prop('disabled', false);
-                    showToast(settings.i18n ? settings.i18n.regenerated : 'Regenerated!');
+                    if (data && data.message) {
+                        showToast(data.message);
+                    }
                     window.location.reload();
                 })
                 .catch(function (err) {

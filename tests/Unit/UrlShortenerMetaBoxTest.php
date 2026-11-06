@@ -184,42 +184,113 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	// ajax_regenerate()
 	// ==================================================================
 
-	public function test_ajax_regenerate_success(): void {
-		$_POST['nonce']   = 'valid';
-		$_POST['post_id'] = '10';
-
-		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
-		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/page' );
-
-		$mock_post = $this->make_post( 10, 'publish', 'page' );
-		$mock_post->post_title = 'Page Title';
-		Functions\when( 'get_post' )->justReturn( $mock_post );
-
-		$repo = Mockery::mock( UrlShortenerRepository::class );
-		$repo->shouldReceive( 'findByPostId' )->with( 10 )->andReturn( [ 'id' => 20 ] );
-		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-		$this->service->shouldReceive( 'delete_short_url' )->with( 20 )->once();
-		$this->service->shouldReceive( 'create_short_url' )->once()->andReturn( [
-			'success' => true,
-			'data'    => [ 'id' => 21, 'short_code' => 'new123' ],
-		] );
-		$this->service->shouldReceive( 'get_short_url' )->with( 'new123' )->andReturn( 'https://example.com/go/new123' );
-
-		$sent_data = null;
-		Functions\when( 'wp_send_json_success' )->alias( function ( $data ) use ( &$sent_data ) {
-			$sent_data = $data;
-			throw new \RuntimeException( 'json_success' );
-		} );
-
+	/**
+	 * Runs ajax_regenerate() and returns what it sent.
+	 *
+	 * @return array{0: string, 1: array<string, mixed>} `success` or `error`, and the payload.
+	 */
+	private function run_ajax(): array {
+		$sent = array( '', array() );
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data ) use ( &$sent ) {
+				$sent = array( 'success', $data );
+				throw new \RuntimeException( 'json' );
+			}
+		);
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data ) use ( &$sent ) {
+				$sent = array( 'error', $data );
+				throw new \RuntimeException( 'json' );
+			}
+		);
 		try {
 			$this->meta_box->ajax_regenerate();
 		} catch ( \RuntimeException $e ) {
-			// Expected
+			unset( $e ); // Expected: the stubs stop the request like wp_die().
 		}
+		return $sent;
+	}
 
-		$this->assertSame( 'new123', $sent_data['short_code'] );
-		$this->assertSame( 'https://example.com/go/new123', $sent_data['short_url'] );
+	public function test_ajax_regenerate_swaps_the_code_of_an_active_link(): void {
+		$_POST['nonce']   = 'valid';
+		$_POST['post_id'] = '10';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 10, 'publish', 'page' ) );
+
+		$link = array( 'id' => 20, 'short_code' => 'old123', 'status' => 'active' );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByPostId' )->with( 10 )->andReturn( $link );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		// Same row, new code: nothing is deleted or created (#2337).
+		$this->service->shouldNotReceive( 'delete_short_url', 'create_short_url' );
+		$this->service->shouldReceive( 'regenerate_code' )->with( $link )->once()->andReturn(
+			array(
+				'success' => true,
+				'data'    => array( 'id' => 20, 'short_code' => 'new123' ),
+			)
+		);
+		$this->service->shouldReceive( 'get_short_url' )->with( 'new123' )->andReturn( 'https://example.com/go/new123' );
+
+		list( $kind, $data ) = $this->run_ajax();
+
+		$this->assertSame( 'success', $kind );
+		$this->assertSame( 20, $data['id'] );
+		$this->assertSame( 'https://example.com/go/new123', $data['short_url'] );
+		$this->assertStringContainsString( 'old code is retired', $data['message'] );
+	}
+
+	public function test_ajax_reactivates_a_disabled_or_trashed_link_with_its_code(): void {
+		$_POST['nonce']   = 'valid';
+		$_POST['post_id'] = '10';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 10, 'publish', 'page' ) );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByPostId' )->with( 10 )->andReturn( array( 'id' => 20, 'short_code' => 'keep12', 'status' => 'trashed' ) );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'regenerate_code' );
+		$this->service->shouldReceive( 'reactivate_short_url' )->with( 20 )->once()->andReturn( true );
+		$this->service->shouldReceive( 'get_short_url' )->with( 'keep12' )->andReturn( 'https://example.com/go/keep12' );
+
+		list( $kind, $data ) = $this->run_ajax();
+
+		$this->assertSame( 'success', $kind );
+		$this->assertSame( 'active', $data['status'] );
+		$this->assertSame( 'https://example.com/go/keep12', $data['short_url'], 'The same code comes back.' );
+	}
+
+	public function test_ajax_regenerate_needs_to_edit_the_post(): void {
+		$_POST['nonce']   = 'valid';
+		$_POST['post_id'] = '10';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		// Manages short URLs, cannot edit this post.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'edit_post' !== $cap );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 10, 'publish', 'page' ) );
+		$this->service->shouldNotReceive( 'get_repository' );
+
+		list( $kind, $data ) = $this->run_ajax();
+
+		$this->assertSame( 'error', $kind );
+		$this->assertSame( 'You cannot edit this post.', $data['message'] );
+	}
+
+	public function test_ajax_generate_refuses_an_unpublished_post(): void {
+		$_POST['nonce']   = 'valid';
+		$_POST['post_id'] = '10';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post' )->justReturn( $this->make_post( 10, 'draft', 'page' ) );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByPostId' )->with( 10 )->andReturn( null );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'create_short_url' );
+
+		list( $kind ) = $this->run_ajax();
+
+		$this->assertSame( 'error', $kind );
 	}
 
 	public function test_ajax_regenerate_invalid_post_id_sends_error(): void {
@@ -259,7 +330,6 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$repo = Mockery::mock( UrlShortenerRepository::class );
 		$repo->shouldReceive( 'findByPostId' )->with( 15 )->andReturn( null );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-		// delete_short_url should NOT be called since no existing
 		$this->service->shouldNotReceive( 'delete_short_url' );
 		$this->service->shouldReceive( 'create_short_url' )->once()->andReturn( [
 			'success' => true,
@@ -358,48 +428,89 @@ class UrlShortenerMetaBoxTest extends TestCase {
 	// render()
 	// ==================================================================
 
-	public function test_render_unpublished_no_record_shows_publish_hint(): void {
+	/**
+	 * Renders the box for a post with no link.
+	 *
+	 * @param string $status        Post status.
+	 * @param bool   $auto_create   Whether auto-create is on.
+	 * @param bool   $can_manage    Whether the user may act on the link.
+	 * @return string
+	 */
+	private function render_without_link( string $status, bool $auto_create, bool $can_manage ): string {
 		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-		Functions\when( 'wp_nonce_field' )->justReturn( '' );
-
-		$post = $this->make_post( 3, 'draft', 'post' );
+		Functions\when( 'current_user_can' )->justReturn( $can_manage );
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
 		$repo->shouldReceive( 'findByPostId' )->with( 3 )->andReturn( null );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-
-		// Auto-create must NOT run for a draft.
+		$this->service->shouldReceive( 'is_auto_create_enabled' )->andReturn( $auto_create );
+		// Viewing the editor never creates a link (#2337).
 		$this->service->shouldNotReceive( 'create_short_url' );
 
 		ob_start();
-		$this->meta_box->render( $post );
-		$html = ob_get_clean();
-
-		$this->assertStringContainsString( 'Publish the post', $html );
+		$this->meta_box->render( $this->make_post( 3, $status, 'post' ) );
+		return (string) ob_get_clean();
 	}
 
-	public function test_render_published_autocreate_fails_shows_error(): void {
-		Functions\when( 'esc_html__' )->returnArg();
-		Functions\when( 'esc_html__' )->returnArg();
+	public function test_render_unpublished_no_record_shows_publish_hint(): void {
+		$this->assertStringContainsString( 'Publish the post', $this->render_without_link( 'draft', false, true ) );
+	}
 
-		$post = $this->make_post( 4, 'publish', 'post' );
-		$post->post_title = 'Title';
+	public function test_render_published_without_a_link_waits_for_the_save_when_auto_create_is_on(): void {
+		$html = $this->render_without_link( 'publish', true, true );
+
+		$this->assertStringContainsString( 'created when the post is saved', $html );
+		$this->assertStringNotContainsString( 'ffc-regenerate-shorturl', $html, 'No button: the next save creates it.' );
+	}
+
+	public function test_render_published_without_a_link_offers_generate_when_auto_create_is_off(): void {
+		$html = $this->render_without_link( 'publish', false, true );
+
+		$this->assertStringContainsString( 'ffc-regenerate-shorturl', $html );
+		$this->assertStringContainsString( 'Generate', $html );
+		$this->assertStringContainsString( 'data-ffc-confirm=""', $html, 'Generating asks nothing first.' );
+	}
+
+	public function test_render_offers_no_action_without_the_manage_capability(): void {
+		$html = $this->render_without_link( 'publish', false, false );
+
+		$this->assertStringContainsString( 'no short URL yet', $html );
+		$this->assertStringNotContainsString( 'ffc-regenerate-shorturl', $html );
+	}
+
+	public function test_render_a_disabled_link_offers_reactivate_and_no_qr(): void {
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_attr_e' )->alias( static function ( $t ) { echo $t; } ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		Functions\when( 'number_format_i18n' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'current_user_can' )->justReturn( true );
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
-		$repo->shouldReceive( 'findByPostId' )->with( 4 )->andReturn( null );
+		$repo->shouldReceive( 'findByPostId' )->with( 6 )->andReturn(
+			array(
+				'id'          => 60,
+				'short_code'  => 'code60',
+				'click_count' => 12,
+				'status'      => 'disabled',
+			)
+		);
+		$repo->shouldNotReceive( 'findQrCacheByShortCode' );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-		// setUp stubs the namespaced get_permalink to '.../my-post'.
-		$this->service->shouldReceive( 'create_short_url' )
-			->with( 'https://example.com/my-post', 'Title', 4 )
-			->andReturn( array( 'success' => false ) );
+		$this->service->shouldReceive( 'get_short_url' )->with( 'code60' )->andReturn( 'https://example.com/go/code60' );
 
 		ob_start();
-		$this->meta_box->render( $post );
-		$html = ob_get_clean();
+		$this->meta_box->render( $this->make_post( 6, 'publish', 'post' ) );
+		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Could not generate', $html );
+		$this->assertStringContainsString( 'disabled and does not redirect', $html );
+		$this->assertStringContainsString( 'Reactivate', $html );
+		$this->assertStringNotContainsString( 'data-format="png"', $html, 'An off link has no QR to download.' );
 	}
 
 	/**
@@ -426,6 +537,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		);
 		Functions\when( 'number_format_i18n' )->returnArg();
 		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'current_user_can' )->justReturn( true );
 
 		// The QR design switch (#1563) is off, so the preview is the cached PNG.
 		Functions\when( 'get_option' )->justReturn( array() );
@@ -438,6 +550,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				'id'          => 60,
 				'short_code'  => 'code60',
 				'click_count' => 12,
+				'status'      => 'active',
 			)
 		);
 		// The cache stores an envelope that declares the size (#1233); raw base64
@@ -465,6 +578,8 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$this->assertStringContainsString( 'src="data:image/png;base64,CACHEDBASE64"', $html );
 		$this->assertStringContainsString( 'data-format="png"', $html );
 		$this->assertStringContainsString( 'data-format="svg"', $html );
+		$this->assertStringContainsString( 'Regenerate', $html );
+		$this->assertStringContainsString( 'never issued again', $html, 'Regenerate asks first.' );
 	}
 
 	// ==================================================================
