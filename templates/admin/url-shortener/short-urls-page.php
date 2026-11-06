@@ -290,7 +290,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											'icon'  => 'copy',
 											'class' => 'ffc-shorturl-code',
 											'attrs' => array(
-												'data-url'   => $short_url,
+												'data-url' => $short_url,
 												/* translators: %s: short URL */
 												'aria-label' => sprintf( __( 'Copy %s', 'ffcertificate' ), $short_url ),
 											),
@@ -353,26 +353,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 										// On/off is a state, not an action: the toggle saves the link's
 										// status the moment it flips (#1904).
 										if ( $can_manage ) {
-										\FreeFormCertificate\Admin\AdminUI::render_toggle(
-											array(
-												'name'    => 'ffc_short_url_active_' . $item['id'],
-												'id'      => 'ffc-short-url-active-' . $item['id'],
-												'checked' => 'active' === $item['status'],
-												'aria_label' => sprintf(
-												/* translators: %s: short URL */
-													__( 'Active: %s', 'ffcertificate' ),
-													$short_url
-												),
-												'data'    => array_merge(
-													\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
-													array(
-														'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
-														'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
-														'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
-													)
-												),
-											)
-										);
+											\FreeFormCertificate\Admin\AdminUI::render_toggle(
+												array(
+													'name' => 'ffc_short_url_active_' . $item['id'],
+													'id'   => 'ffc-short-url-active-' . $item['id'],
+													'checked' => 'active' === $item['status'],
+													'aria_label' => sprintf(
+													/* translators: %s: short URL */
+														__( 'Active: %s', 'ffcertificate' ),
+														$short_url
+													),
+													'data' => array_merge(
+														\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
+														array(
+															'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
+															'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
+															'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
+														)
+													),
+												)
+											);
 										}
 										if ( $is_manual && $can_manage ) {
 											\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -401,14 +401,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 											)
 										);
 										if ( $can_delete ) {
-										\FreeFormCertificate\Admin\AdminUI::render_button(
-											array(
-												'label'    => __( 'Trash', 'ffcertificate' ),
-												'category' => 'danger',
-												'icon'     => 'delete',
-												'href'     => $trash_url,
-											)
-										);
+											\FreeFormCertificate\Admin\AdminUI::render_button(
+												array(
+													'label' => __( 'Trash', 'ffcertificate' ),
+													'category' => 'danger',
+													'icon' => 'delete',
+													'href' => $trash_url,
+												)
+											);
 										}
 										?>
 									<?php endif; ?>

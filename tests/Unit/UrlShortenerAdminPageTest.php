@@ -233,8 +233,15 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	public function test_handle_actions_read_only_user_cannot_write(): void {
 		// GAP B 3-state: a user without ffc_manage_url_shortener (and not admin)
-		// reaches the page (view cap) but the GET-link write actions no-op.
+		// reaches the page (view cap) but cannot run a write action, and the
+		// refusal says why instead of reloading the list (#2337).
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_die' )->alias(
+			static function ( $message ) {
+				throw new \RuntimeException( (string) $message );
+			}
+		);
 		$_GET['page']       = 'ffc-short-urls';
 		$_GET['ffc_action'] = 'trash';
 		$_GET['id']         = '5';
@@ -242,7 +249,48 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 		$this->service->shouldNotReceive( 'trash_short_url' );
 
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'You do not have permission to change short URLs.' );
 		$this->page->handle_actions();
+	}
+
+	public function test_a_viewer_gets_no_write_controls_in_the_list(): void {
+		$_GET['status'] = 'all';
+		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( 'get_permalink' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
+		// The view capability only.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_url_shortener' === $cap );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findPaginated' )->andReturn(
+			array(
+				'items' => array(
+					array( 'id' => 3, 'short_code' => 'abc123', 'target_url' => 'https://example.com/', 'post_id' => null, 'title' => 'T', 'click_count' => 1, 'status' => 'active' ),
+				),
+				'total' => 1,
+			)
+		);
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_short_url' )->andReturn( 'https://example.com/go/abc123' );
+		$this->service->shouldReceive( 'get_stats' )->andReturn( array( 'total_links' => 1, 'active_links' => 1, 'total_clicks' => 1, 'trashed_links' => 0 ) );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-show-qr-modal', $html, 'A viewer still sees the QR.' );
+		$this->assertStringContainsString( 'ffc-shorturl-code', $html, 'And copies the link with a button.' );
+		$this->assertStringNotContainsString( 'ffc-control-toggle', $html );
+		$this->assertStringNotContainsString( 'ffc-edit-shorturl', $html );
+		$this->assertStringNotContainsString( 'ffc_action=trash', $html );
+		$this->assertStringContainsString( 'for="ffc-shorturl-search"', $html, 'The filters are labelled.' );
 	}
 
 	public function test_handle_actions_trash_calls_service(): void {
@@ -541,6 +589,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
 		// The header now renders a Settings shortcut gated on the settings
 		// view cap (Capabilities::current_user_can_admin_or); grant it so the
 		// link branch renders.

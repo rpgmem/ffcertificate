@@ -266,7 +266,11 @@
         // ever open, so closing both on any close/backdrop/Escape is harmless.
         $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', closeModals);
         $(document).on('keydown', function (e) {
-            if (e.key === 'Escape' && $('#ffc-qr-modal:visible, #ffc-edit-modal:visible').length) {
+            // Read display, not :visible, which needs layout to answer.
+            var open = $('#ffc-qr-modal, #ffc-edit-modal').filter(function () {
+                return $(this).css('display') !== 'none';
+            }).length;
+            if (e.key === 'Escape' && open) {
                 closeModals();
             }
         });

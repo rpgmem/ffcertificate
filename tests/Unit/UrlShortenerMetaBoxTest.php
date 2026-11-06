@@ -46,6 +46,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		Functions\when( 'wp_register_script' )->justReturn( false );
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
@@ -203,8 +204,11 @@ class UrlShortenerMetaBoxTest extends TestCase {
 				throw new \RuntimeException( 'json' );
 			}
 		);
+		// The redrawn box is drawn by box_html(), covered by the render tests.
+		$box = Mockery::mock( UrlShortenerMetaBox::class, array( $this->service ) )->makePartial();
+		$box->shouldReceive( 'box_html' )->andReturn( '<div class="ffc-shorturl-metabox">redrawn</div>' );
 		try {
-			$this->meta_box->ajax_regenerate();
+			$box->ajax_regenerate();
 		} catch ( \RuntimeException $e ) {
 			unset( $e ); // Expected: the stubs stop the request like wp_die().
 		}
@@ -238,6 +242,7 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$this->assertSame( 20, $data['id'] );
 		$this->assertSame( 'https://example.com/go/new123', $data['short_url'] );
 		$this->assertStringContainsString( 'old code is retired', $data['message'] );
+		$this->assertSame( '<div class="ffc-shorturl-metabox">redrawn</div>', $data['html'], 'The box is redrawn in place, no reload (#2337).' );
 	}
 
 	public function test_ajax_reactivates_a_disabled_or_trashed_link_with_its_code(): void {
@@ -337,12 +342,8 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		] );
 		$this->service->shouldReceive( 'get_short_url' )->with( 'fresh1' )->andReturn( 'https://example.com/go/fresh1' );
 
-		Functions\when( 'wp_send_json_success' )->alias( function () {
-			throw new \RuntimeException( 'json_success' );
-		} );
-
-		$this->expectException( \RuntimeException::class );
-		$this->meta_box->ajax_regenerate();
+		list( $kind ) = $this->run_ajax();
+		$this->assertSame( 'success', $kind );
 	}
 
 	public function test_ajax_regenerate_service_failure_sends_error(): void {
@@ -509,6 +510,8 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'disabled and does not redirect', $html );
+		$this->assertStringContainsString( 'ffc-shorturl-status-disabled', $html, 'The box shows the state (#2337).' );
+		$this->assertStringContainsString( '<strong>12</strong> clicks', $html );
 		$this->assertStringContainsString( 'Reactivate', $html );
 		$this->assertStringNotContainsString( 'data-format="png"', $html, 'An off link has no QR to download.' );
 	}
