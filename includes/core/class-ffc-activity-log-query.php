@@ -674,59 +674,99 @@ class ActivityLogQuery {
 	}
 
 	/**
-	 * Clean old logs
-	 *
-	 * @param int $days Keep logs from last N days (default: 90).
-	 * @return int Number of deleted rows
+	 * Rows one retention statement deletes at most (#2340).
 	 */
-	public static function cleanup( int $days = 90 ): int {
+	public const CLEANUP_BATCH = 5000;
+
+	/**
+	 * Statements one cleanup run may issue, across both limits (#2340).
+	 *
+	 * 20 x 5,000 rows a run. A log larger than that past its limits is
+	 * finished by a follow-up run a minute later, so no request deletes an
+	 * unbounded number of rows.
+	 */
+	public const CLEANUP_BATCHES_PER_RUN = 20;
+
+	/**
+	 * Single event that carries on a cleanup the budget cut short (#2340).
+	 */
+	public const CLEANUP_CONTINUE_HOOK = 'ffc_activity_log_cleanup_continue';
+
+	/**
+	 * Delete the entries older than a number of days, in bounded statements.
+	 *
+	 * @param int $days    Keep the entries of the last N days.
+	 * @param int $batches Statements this call may issue.
+	 * @return array{deleted: int, batches: int, more: bool} Rows deleted, statements issued, and whether rows past the limit remain.
+	 */
+	public static function cleanup( int $days = 90, int $batches = self::CLEANUP_BATCHES_PER_RUN ): array {
 		global $wpdb;
-		$table_name  = $wpdb->prefix . 'ffc_activity_log';
-		$cutoff_date = time() - max( 0, $days ) * DAY_IN_SECONDS;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$cutoff     = time() - max( 0, $days ) * DAY_IN_SECONDS;
 
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				'DELETE FROM %i WHERE created_at < %d',
-				$table_name,
-				$cutoff_date
-			)
+		return self::delete_in_batches(
+			(string) $wpdb->prepare( 'DELETE FROM %i WHERE created_at < %d ORDER BY id LIMIT %d', $table_name, $cutoff, self::CLEANUP_BATCH ),
+			$batches
 		);
-
-		delete_transient( 'ffc_activity_stats_7' );
-		delete_transient( 'ffc_activity_stats_30' );
-		delete_transient( 'ffc_activity_stats_90' );
-
-		return (int) $deleted;
 	}
 
 	/**
-	 * Run automatic log cleanup (called by daily cron)
+	 * Run the cleanup: the retention window, then the record cap.
+	 *
+	 * Called by the daily cron and by its follow-up event, never by a page
+	 * load. When the budget of one run is spent with rows still past a
+	 * limit, a follow-up run is scheduled.
 	 *
 	 * @since 4.6.9
 	 * @return int Number of deleted rows
 	 */
 	public static function run_cleanup(): int {
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
+		$budget         = self::CLEANUP_BATCHES_PER_RUN;
 
-		$deleted = $retention_days > 0 ? self::cleanup( $retention_days ) : 0;
+		$by_age = $retention_days > 0 ? self::cleanup( $retention_days, $budget ) : array(
+			'deleted' => 0,
+			'batches' => 0,
+			'more'    => false,
+		);
+		$by_cap = $by_age['more']
+			? array(
+				'deleted' => 0,
+				'batches' => 0,
+				'more'    => true,
+			)
+			: self::trim_to( \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records(), $budget - $by_age['batches'] );
 
-		return $deleted + self::trim_to( \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() );
+		$deleted = $by_age['deleted'] + $by_cap['deleted'];
+		if ( $deleted > 0 ) {
+			self::forget_stats();
+		}
+		if ( ( $by_age['more'] || $by_cap['more'] ) && function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::CLEANUP_CONTINUE_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CLEANUP_CONTINUE_HOOK );
+		}
+
+		return $deleted;
 	}
 
 	/**
-	 * Delete the oldest rows beyond a record cap (#2338), the way the
-	 * rate-limit logs are trimmed.
+	 * Delete the oldest rows beyond a record cap (#2338), in bounded statements.
 	 *
 	 * @param int $max_records Rows to keep.
-	 * @return int Number of deleted rows.
+	 * @param int $batches     Statements this call may issue.
+	 * @return array{deleted: int, batches: int, more: bool} Rows deleted, statements issued, and whether rows past the cap remain.
 	 */
-	public static function trim_to( int $max_records ): int {
+	public static function trim_to( int $max_records, int $batches = self::CLEANUP_BATCHES_PER_RUN ): array {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$none       = array(
+			'deleted' => 0,
+			'batches' => 0,
+			'more'    => false,
+		);
 
 		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
 		if ( $max_records < 1 || $count <= $max_records ) {
-			return 0;
+			return $none;
 		}
 
 		// The id of the newest row that falls outside the cap; it and every
@@ -739,15 +779,55 @@ class ActivityLogQuery {
 			)
 		);
 		if ( $cutoff_id < 1 ) {
-			return 0;
+			return $none;
 		}
 
-		$deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id <= %d', $table_name, $cutoff_id ) );
+		return self::delete_in_batches(
+			(string) $wpdb->prepare( 'DELETE FROM %i WHERE id <= %d ORDER BY id LIMIT %d', $table_name, $cutoff_id, self::CLEANUP_BATCH ),
+			$batches
+		);
+	}
 
+	/**
+	 * Run one DELETE statement until it deletes less than its limit or the
+	 * budget is spent.
+	 *
+	 * @param string $statement Prepared DELETE statement carrying its LIMIT.
+	 * @param int    $batches   Statements allowed.
+	 * @return array{deleted: int, batches: int, more: bool}
+	 */
+	private static function delete_in_batches( string $statement, int $batches ): array {
+		global $wpdb;
+		$deleted = 0;
+		$issued  = 0;
+		$more    = false;
+		while ( $issued < $batches ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $statement is the output of $wpdb->prepare() built by the two callers above.
+			$affected = $wpdb->query( $statement );
+			++$issued;
+			$affected = is_int( $affected ) ? $affected : 0;
+			$deleted += $affected;
+			$more     = self::CLEANUP_BATCH === $affected;
+			if ( ! $more ) {
+				break;
+			}
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'batches' => $issued,
+			'more'    => $more,
+		);
+	}
+
+	/**
+	 * Drop the cached stats after rows left.
+	 *
+	 * @return void
+	 */
+	private static function forget_stats(): void {
 		delete_transient( 'ffc_activity_stats_7' );
 		delete_transient( 'ffc_activity_stats_30' );
 		delete_transient( 'ffc_activity_stats_90' );
-
-		return (int) $deleted;
 	}
 }

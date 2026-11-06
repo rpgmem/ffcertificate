@@ -40,6 +40,7 @@ if ( ! $ffcertificate_purge ) {
 	// Cron-only cleanup: leave data + structure untouched but clear
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+	wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 	wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 	// #1248's internal hook, which replaced the one above in the scheduling.
@@ -443,6 +444,7 @@ wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 // #1248's internal hook, which replaced the one above in the scheduling.
 // The old one stays: an event scheduled the old way may still be pending.
 wp_unschedule_hook( 'ffc_process_submission_async' );
+wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );

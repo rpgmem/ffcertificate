@@ -325,6 +325,7 @@ class ScheduledTasksTest extends TestCase {
 		$this->assertSame(
 			array(
 				'ffc_process_submission_async'        => 3,
+				'ffc_activity_log_cleanup_continue'   => 0,
 				'ffc_reregistration_reminder_batch'   => 0,
 				'ffc_reregistration_invitation_batch' => 0,
 				'ffc_recruitment_account_link_batch'  => 0,
