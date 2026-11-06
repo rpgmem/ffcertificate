@@ -7195,6 +7195,20 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "recruitment notice"
+msgid_plural "recruitment notices"
+msgstr[0] "edital de recrutamento"
+msgstr[1] "editais de recrutamento"
+
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "Recruitment notices"
+msgstr "Editais de recrutamento"
+
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "(opens in a new tab)"
+msgstr "(abre em uma nova aba)"
+
 #: includes/settings/views/documentation/config-user-access.php
 msgid "Roles and capabilities"
 msgstr "Papéis e capacidades"
@@ -10929,10 +10943,6 @@ msgstr "Usuários logados poderão visualizar todos os certificados gerados para
 msgid "Login"
 msgstr "Login"
 
-#: includes/admin/class-ffc-admin-user-columns.php:259
-msgid "Login as User"
-msgstr "Entrar como Usuário"
-
 #: templates/admin/settings/email-model-box.php:32
 msgid "Logo image"
 msgstr "Imagem do Logotipo"
@@ -12266,12 +12276,6 @@ msgstr "Nada sai deste servidor. O arquivo do widget é servido a partir deste s
 #: templates/admin/recruitment/candidate-edit/classifications-section.php:39
 msgid "Notice"
 msgstr "Edital"
-
-#: includes/admin/class-ffc-admin-user-columns.php:226
-msgid "notice"
-msgid_plural "notices"
-msgstr[0] "edital"
-msgstr[1] "editais"
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:405
 msgid "Notice closed."
@@ -26779,8 +26783,8 @@ msgid "You do not have permission to reveal these values."
 msgstr "Você não tem permissão para revelar esses valores."
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
-msgstr "quem tem ffc_view_as_user pode abrir o painel como outro usuário, sob um aviso, a partir da lista de usuários ou da tela de edição de usuário (\"Entrar como Usuário\"). Os dados pessoais do outro usuário aparecem mascarados, como aparecem para o próprio dono, e cada Revelar ali registra uma entrada no log de atividades."
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"View as user\", which opens a new tab; the users list shows the column only to holders of ffc_view_as_user). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
+msgstr "quem tem ffc_view_as_user pode abrir o painel como outro usuário, sob um aviso, a partir da lista de usuários ou da tela de edição de usuário (\"Ver como usuário\", que abre uma nova aba; a lista de usuários mostra a coluna só para quem tem ffc_view_as_user). Os dados pessoais do outro usuário aparecem mascarados, como aparecem para o próprio dono, e cada Revelar ali registra uma entrada no log de atividades."
 
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:204
