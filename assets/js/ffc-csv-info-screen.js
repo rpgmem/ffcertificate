@@ -208,6 +208,7 @@
 		// Stash for the open-early modal copy (needs original start
 		// formatted for the warning text).
 		api.$container.data('ffc-last-info', info);
+		api.setActionSecurity(info.action_security);
 
 		// Bind events. Handlers are owned by the sibling flow modules and
 		// exposed on the namespace; they are defined by the time a click can

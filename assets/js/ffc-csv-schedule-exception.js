@@ -71,6 +71,7 @@
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Create is caution,
 			// because it moves one participant's window (#1881).
+			+     '<div class="ffc-csv-action-security"></div>'
 			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-schedule-exception-cancel', attrs: { autofocus: true } })
 			+       FFC.buttonHtml({ label: strings.scheduleExceptionConfirm || 'Create exception', category: 'caution', icon: 'user-clock', className: 'ffc-schedule-exception-confirm' })
@@ -79,6 +80,7 @@
 			+ '</div>';
 
 		var $modal = $(modalHtml).appendTo(document.body);
+		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		var $start = $modal.find('.ffc-schedule-exception-start');
 		var $end   = $modal.find('.ffc-schedule-exception-end');
 		var $err   = $modal.find('.ffc-schedule-exception-error');
@@ -162,12 +164,15 @@
 		var payloadStart = (startVal === opts.baselineStart) ? '' : startVal;
 		var payloadEnd   = (endVal   === opts.baselineEnd)   ? '' : endVal;
 
-		var payload = api.$form.serialize().replace(/(^|&)action=[^&]*/, '')
+		var payload = api.actionPayload($modal)
 			+ '&start_override=' + encodeURIComponent(payloadStart)
 			+ '&end_override='   + encodeURIComponent(payloadEnd);
 
 		FFC.request('ffc_public_schedule_exception', payload)
 			.then(function (data) {
+				// The challenge is spent; the next action needs the fresh
+				// one the answer carries (#2341).
+				api.refreshActionSecurity({ data: data });
 				// Swap modal body to the post-create CTA — preserves the
 				// click-driven user gesture for the window.open call below
 				// so popup blockers don't engage.
@@ -205,6 +210,13 @@
 				});
 			})
 			.catch(function (err) {
+				api.refreshActionSecurity(err);
+				// The dialog stays open, so its own block takes the fresh
+				// challenge too.
+				var UI = window.FFC && window.FFC.Frontend && window.FFC.Frontend.UI;
+				if (UI && err && err.data && err.data.refresh_captcha) {
+					UI.refreshCaptcha($modal, err.data);
+				}
 				$confirm.prop('disabled', false).text(strings.scheduleExceptionConfirm || 'Create exception');
 				$modal.find('.ffc-schedule-exception-error')
 					.text((err && err.fromServer && err.message) || strings.error || 'Action failed.')

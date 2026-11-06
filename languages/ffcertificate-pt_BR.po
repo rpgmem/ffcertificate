@@ -7195,6 +7195,10 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/forms-public-operator-access.php:69
+msgid "Each of the three actions (Start Form Early, Postpone Close, Schedule exception) shows its own verification in its dialog and spends it, so the one solved for the download never changes the form."
+msgstr "Cada uma das três ações (Início Antecipado, Adiar Fechamento, Exceção de horário) mostra a sua própria verificação no diálogo e a consome, então a resolvida para o download nunca altera o formulário."
+
 #: includes/settings/views/ffc-tab-rate-limit.php:410
 msgid "Public Operator Access — the form details, the certificate preview, the download and the export start"
 msgstr "Acesso Público de Operador — os detalhes do formulário, a prévia do certificado, o download e o início da exportação"

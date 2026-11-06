@@ -111,6 +111,10 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
+		// The info answer renders the actions' security block (#2341).
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->echoArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults = array() ) => array_merge( (array) $defaults, (array) $args ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt-public-csv' );
@@ -312,6 +316,23 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A valid action request: the page fields plus an answered challenge of
+	 * the actions' own context (#2341).
+	 */
+	private function action_post(): void {
+		$challenge = SecurityService::generate_simple_captcha( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION );
+		$_POST     = array(
+			'_ffc_pcd_nonce'   => 'n',
+			'form_id'          => (string) self::FORM_ID,
+			'hash'             => self::HASH,
+			'cpf'              => '',
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts'        => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+		);
+	}
+
 	private function valid_post(): void {
 		$_POST = array(
 			'_ffc_pcd_nonce' => 'n',
@@ -455,6 +476,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'json_success', $e->getMessage() );
 			$this->assertSame( 'Form X', $this->captured['payload']['form_title'] );
 			$this->assertSame( 3, $this->captured['payload']['submission_count'] );
+			// The operator actions' own block, bound to their context (#2341).
+			$this->assertStringContainsString( 'data-ffc-captcha-context="public_csv_action"', $this->captured['payload']['action_security'] );
+			$this->assertStringContainsString( 'name="ffc_captcha_hash"', $this->captured['payload']['action_security'] );
 		}
 	}
 
@@ -507,7 +531,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_open_early_rejects_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_open_early();
@@ -520,7 +544,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_open_early_rejects_when_cpf_gate_fails(): void {
 		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_open_early();
@@ -554,6 +578,59 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertStringNotContainsString( 'CPF', $this->captured['payload']['message'], 'The answer says nothing about the CPF.' );
 		}
 		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
+	}
+
+	/**
+	 * #2341 — an action needs its own challenge. One solved for the download
+	 * (the info screen's) is refused, before the hash is read, and the
+	 * refusal carries a fresh challenge for the dialog.
+	 *
+	 * @dataProvider provider_csv_actions
+	 */
+	public function test_an_action_refuses_the_downloads_challenge( string $method ): void {
+		$this->configure_form( array( 'time_start' => '13:00', 'schedule_exception_enabled' => '1' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		list( $_POST )           = $this->answered_post();
+		$_POST['hash']           = 'wrong';
+		$_POST['new_time_end']   = '15:00';
+		$_POST['start_override'] = '11:30';
+
+		try {
+			( new PublicCsvDownload() )->$method();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 403, $this->captured['code'] );
+			$this->assertNotSame( 'Invalid access hash.', $this->captured['payload']['message'], 'The challenge is checked before the hash.' );
+			$this->assertTrue( $this->captured['payload']['refresh_captcha'] );
+			$this->assertNotEmpty( $this->captured['payload']['new_hash'] );
+		}
+		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
+	}
+
+	/**
+	 * #2341 — the action spends its challenge: the same proof sent twice is
+	 * refused the second time.
+	 */
+	public function test_an_actions_challenge_is_spent(): void {
+		$this->configure_form( array( 'time_start' => '13:00' ) );
+		$this->action_post();
+		$first = $_POST;
+
+		try {
+			( new PublicCsvDownload() )->ajax_open_early();
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_success', $e->getMessage() );
+		}
+
+		$this->configure_form( array( 'time_start' => '13:00' ) );
+		$_POST = $first;
+		try {
+			( new PublicCsvDownload() )->ajax_open_early();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 403, $this->captured['code'] );
+			$this->assertTrue( $this->captured['payload']['refresh_captcha'] );
+		}
+		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'], 'The replay changed nothing.' );
 	}
 
 	/**
@@ -636,7 +713,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	public function test_an_action_is_refused_when_the_address_is_rate_limited( string $method ): void {
 		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
 		$this->exhaust_ip_hour_limit();
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->$method();
@@ -660,7 +737,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_open_early_maps_reason_to_message_on_failure(): void {
 		// The form opened at 11:00 and it is noon.
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_open_early();
@@ -669,6 +746,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'already_started', $this->captured['payload']['reason'] );
 			$this->assertStringContainsString( 'already started', $this->captured['payload']['message'] );
 			$this->assertSame( 409, $this->captured['code'] );
+			// The guard spent the challenge; the refusal hands out a fresh one.
+			$this->assertTrue( $this->captured['payload']['refresh_captcha'] );
+			$this->assertSame( 'math', $this->captured['payload']['provider'] );
 		}
 	}
 
@@ -676,7 +756,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		// The form was already opened early once; the refusal names that
 		// rather than a generic failure (#2169).
 		$this->configure_form( array( 'time_start' => '13:00' ), array( '_ffc_csv_public_start_opened_at' => time() - 60 ) );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_open_early();
@@ -690,7 +770,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	public function test_ajax_open_early_happy_path(): void {
 		// Scheduled to open at 13:00 today; it is noon.
 		$this->configure_form( array( 'time_start' => '13:00' ) );
-		$this->valid_post();
+		$this->action_post();
 		$now_time = (string) current_time( 'H:i' );
 
 		try {
@@ -711,7 +791,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_extend_end_rejects_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_extend_end();
@@ -730,7 +810,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				ExtendEndAction::META_ENABLED    => '1',
 			)
 		);
-		$this->valid_post();
+		$this->action_post();
 		$_POST['new_time_end'] = '15:00';
 
 		try {
@@ -750,7 +830,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				ExtendEndAction::META_POSTPONED_AT => time() - 60,
 			)
 		);
-		$this->valid_post();
+		$this->action_post();
 		$_POST['new_time_end'] = '15:00';
 
 		try {
@@ -764,7 +844,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_extend_end_happy_path(): void {
 		$this->configure_form( array(), array( ExtendEndAction::META_ENABLED => '1' ) );
-		$this->valid_post();
+		$this->action_post();
 		$_POST['new_time_end'] = '15:00';
 
 		try {
@@ -785,7 +865,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_schedule_exception_rejects_bad_nonce(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( false );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_schedule_exception();
@@ -798,7 +878,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_schedule_exception_rejects_when_cpf_gate_fails(): void {
 		$this->configure_form( array( 'schedule_exception_enabled' => '1' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
-		$this->valid_post();
+		$this->action_post();
 		$_POST['start_override'] = '11:30';
 
 		try {
@@ -813,7 +893,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	public function test_ajax_schedule_exception_maps_reason_on_failure(): void {
 		// No override on either end: identical to the baseline.
 		$this->configure_form( array( 'schedule_exception_enabled' => '1' ) );
-		$this->valid_post();
+		$this->action_post();
 
 		try {
 			( new PublicCsvDownload() )->ajax_schedule_exception();
@@ -826,7 +906,7 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 
 	public function test_ajax_schedule_exception_happy_path(): void {
 		$this->configure_form( array( 'schedule_exception_enabled' => '1' ) );
-		$this->valid_post();
+		$this->action_post();
 		$_POST['start_override'] = '11:30';
 
 		try {
@@ -836,6 +916,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( 'json_success', $e->getMessage() );
 			$this->assertNotEmpty( $this->captured['payload']['token'] );
 			$this->assertSame( 'https://example.com/form', $this->captured['payload']['form_url'] );
+			// The dialog stays open, so the answer carries the next challenge.
+			$this->assertTrue( $this->captured['payload']['refresh_captcha'] );
+			$this->assertNotEmpty( $this->captured['payload']['new_hash'] );
 		}
 		// The token is the session the participant form will read.
 		$this->assertSame(
