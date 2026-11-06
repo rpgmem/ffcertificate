@@ -621,7 +621,9 @@ class SettingsTest extends TestCase {
 		$_REQUEST['ffc_url_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']        = 'ok';
 		$this->arrange_url_cleanup_stubs();
-		Functions\when( 'get_transient' )->justReturn( 1 ); // Preview OK flag present.
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		// The preview ran with the window and criteria apply will use.
+		Functions\when( 'get_transient' )->justReturn( hash( 'sha256', (string) json_encode( array( 'criteria' => array( 'orphaned' => true, 'never_clicked' => false, 'trashed' => false ), 'days' => 30 ) ) ) );
 		Functions\when( 'get_option' )->justReturn(
 			array(
 				'url_cleanup_days'     => 30,
@@ -703,7 +705,8 @@ class SettingsTest extends TestCase {
 		$_REQUEST['ffc_pubaccess'] = 'apply';
 		$_REQUEST['_wpnonce']      = 'ok';
 		$this->arrange_pubaccess_stubs();
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'get_transient' )->justReturn( hash( 'sha256', (string) json_encode( array( 'days' => 30 ) ) ) );
 		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 30 ) );
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
