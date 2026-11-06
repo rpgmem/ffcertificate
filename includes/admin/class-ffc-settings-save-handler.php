@@ -94,7 +94,6 @@ class SettingsSaveHandler {
 		$clean = $this->save_general_settings( $clean, $new );
 		$clean = $this->save_smtp_settings( $clean, $new );
 		$clean = $this->save_qrcode_settings( $clean, $new );
-		$clean = $this->save_date_format_settings( $clean, $new );
 		$clean = $this->save_url_shortener_settings( $clean, $new );
 		$clean = $this->save_captcha_settings( $clean, $new );
 		$clean = $this->save_public_design_settings( $clean, $new );
@@ -134,6 +133,75 @@ class SettingsSaveHandler {
 	 */
 	private function save_general_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		$ffc_tab = $this->posted_tab();
+
+		// Every section is rebuilt from its own tab's form only (#2338): a
+		// switch absent from another tab's POST is not "off", and a key
+		// another tab never posts must keep its stored value.
+		if ( 'general' === $ffc_tab ) {
+			$clean = $this->save_general_tab( $clean, $new );
+		}
+
+		$clean = $this->save_certificates_tab( $clean, $ffc_tab, $new );
+
+		if ( 'advanced' === $ffc_tab ) {
+			$clean = $this->save_advanced_tab( $clean, $new );
+		}
+
+        // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		return $clean;
+	}
+
+	/**
+	 * The tab whose form was posted (`_ffc_tab`), or '' when none was.
+	 *
+	 * @return string
+	 */
+	private function posted_tab(): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
+		return isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
+	}
+
+	/**
+	 * A posted number inside its bounds, or null when the field was left
+	 * empty or holds no whole number (#2338). `absint( '' )` is 0, so a
+	 * cleared field used to store the floor; null keeps the stored value.
+	 *
+	 * The bounds default to the field's autosave entry, so the form save and
+	 * the autosave clamp alike.
+	 *
+	 * @param array<string, mixed> $new Posted settings.
+	 * @param string               $key Setting key.
+	 * @param int|null             $min Lower bound, or null for the autosave entry's.
+	 * @param int|null             $max Upper bound, or null for the autosave entry's.
+	 * @return int|null
+	 */
+	private function bounded_int( array $new, string $key, ?int $min = null, ?int $max = null ): ?int {
+		$value = \FreeFormCertificate\Core\RequestInput::optional_int( $new[ $key ] ?? null );
+		if ( null === $value ) {
+			return null;
+		}
+		$entry = SettingsAjaxEndpoint::allowlist()[ $key ] ?? array();
+		$min   = $min ?? ( isset( $entry['min'] ) ? (int) $entry['min'] : null );
+		$max   = $max ?? ( isset( $entry['max'] ) ? (int) $entry['max'] : null );
+		if ( null !== $min ) {
+			$value = max( $min, $value );
+		}
+		if ( null !== $max ) {
+			$value = min( $max, $value );
+		}
+		return $value;
+	}
+
+	/**
+	 * Save the General tab.
+	 *
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new   New settings from POST.
+	 * @return array<string, mixed> Updated settings
+	 */
+	private function save_general_tab( array $clean, array $new ): array {
 		// Dark Mode (v4.6.16).
 		if ( isset( $new['dark_mode'] ) ) {
 			$allowed_modes      = array( 'off', 'on', 'auto' );
@@ -142,8 +210,7 @@ class SettingsSaveHandler {
 
 		// Code Editor theme (Certificate HTML editor via CodeMirror). Lives next to
 		// Dark Mode on the General tab since #1148 item 2 — its 'auto' value reads
-		// dark_mode, so the two only make sense side by side. Ungated like dark_mode:
-		// the key is written when it is posted, which only the General tab does.
+		// dark_mode, so the two only make sense side by side.
 		if ( isset( $new['code_editor_theme'] ) ) {
 			$allowed_themes             = array( 'auto', 'light', 'dark' );
 			$clean['code_editor_theme'] = in_array( $new['code_editor_theme'], $allowed_themes, true )
@@ -152,13 +219,13 @@ class SettingsSaveHandler {
 		}
 
 		// Submission auto-delete (#936). The enable toggle is a checkbox, so an
-		// unchecked switch is simply absent from POST — rebuild it every general
+		// unchecked switch is simply absent from POST — rebuild it on a General
 		// save (no-clobber) from presence. The day window is clamped to >= 1;
 		// the toggle, not a 0-day value, is what disables the cleanup.
 		$clean['cleanup_enabled'] = ! empty( $new['cleanup_enabled'] );
 
 		// RF check digit (#1345). A checkbox, so rebuild it from presence on
-		// every general save -- the no-clobber invariant: a key the rebuild
+		// a General save -- the no-clobber invariant: a key the rebuild
 		// omits is silently reset on the next Save, however recently the
 		// autosave wrote it.
 		$clean['validate_rf_check_digit'] = ! empty( $new['validate_rf_check_digit'] );
@@ -171,8 +238,9 @@ class SettingsSaveHandler {
 				? $new['cep_lookup_primary']
 				: 'viacep';
 		}
-		if ( isset( $new['cleanup_days'] ) ) {
-			$clean['cleanup_days'] = max( 1, absint( $new['cleanup_days'] ) );
+		$days = $this->bounded_int( $new, 'cleanup_days' );
+		if ( null !== $days ) {
+			$clean['cleanup_days'] = $days;
 		}
 
 		// Main Address.
@@ -193,9 +261,18 @@ class SettingsSaveHandler {
 			$clean['logo_org'] = esc_url_raw( $new['logo_org'] );
 		}
 
-		// v4.6.16: Activity Log + Debug moved to Advanced tab.
-		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
+		return $this->save_date_format_settings( $clean, $new );
+	}
 
+	/**
+	 * Save the Certificates tab.
+	 *
+	 * @param array<string, mixed> $clean   Current settings.
+	 * @param string               $ffc_tab Posted tab.
+	 * @param array<string, mixed> $new     New settings from POST.
+	 * @return array<string, mixed> Updated settings
+	 */
+	private function save_certificates_tab( array $clean, string $ffc_tab, array $new ): array {
 		// The "Required data" table (#1759). It also autosaves as a whole;
 		// this keeps the tab's Save button writing what is shown. The rows
 		// are read raw, since `$new` went through sanitize_text_field(). The
@@ -225,64 +302,78 @@ class SettingsSaveHandler {
 			$clean['browser_check'] = ! empty( $new['browser_check'] );
 		}
 
-		if ( 'advanced' === $ffc_tab ) {
-			$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
+		return $clean;
+	}
 
-			if ( isset( $new['activity_log_retention_days'] ) ) {
-				$clean['activity_log_retention_days'] = min( 365, absint( $new['activity_log_retention_days'] ) );
-			}
+	/**
+	 * Save the Advanced tab.
+	 *
+	 * @param array<string, mixed> $clean Current settings.
+	 * @param array<string, mixed> $new   New settings from POST.
+	 * @return array<string, mixed> Updated settings
+	 */
+	private function save_advanced_tab( array $clean, array $new ): array {
+		$clean['enable_activity_log'] = isset( $new['enable_activity_log'] ) ? 1 : 0;
 
-			// Activity-log granular filter: minimum level + per-category enables.
-			if ( isset( $new['activity_log_min_level'] ) ) {
-				$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
-				$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
-			}
-			foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
-				$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
-			}
-
-			if ( isset( $new['public_csv_sync_max_rows'] ) ) {
-				$value = absint( $new['public_csv_sync_max_rows'] );
-				if ( $value < \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN ) {
-					$value = \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN;
-				}
-				if ( $value > \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX ) {
-					$value = \FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX;
-				}
-				$clean['public_csv_sync_max_rows'] = $value;
-			}
-
-			// Debug Settings.
-			$debug_flags = array(
-				'debug_pdf_generator',
-				'debug_email_handler',
-				'debug_form_processor',
-				'debug_encryption',
-				'debug_geofence',
-				'debug_user_manager',
-				'debug_rest_api',
-				'debug_migrations',
-				'debug_activity_log',
-				'debug_frontend',
-				'debug_admin',
-				'debug_self_scheduling',
-				'debug_audience',
-				'debug_qrcode',
-				// 6.6.4 follow-up (#361 Sprint 1).
-				'debug_browser_env',
-			);
-
-			foreach ( $debug_flags as $flag ) {
-				$clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
-			}
-
-			// Public CSV Download default limit.
-			if ( isset( $new['public_csv_default_limit'] ) ) {
-				$clean['public_csv_default_limit'] = max( 1, absint( $new['public_csv_default_limit'] ) );
-			}
+		// Retention in days and a record cap, bounded by one helper
+		// that the autosave reads too (#2338).
+		$days = $this->bounded_int( $new, 'activity_log_retention_days' );
+		if ( null !== $days ) {
+			$clean['activity_log_retention_days'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_days( $days );
+		}
+		$records = $this->bounded_int( $new, 'activity_log_max_records' );
+		if ( null !== $records ) {
+			$clean['activity_log_max_records'] = \FreeFormCertificate\Core\ActivityLogRetention::clamp_records( $records );
 		}
 
-        // phpcs:enable WordPress.Security.NonceVerification.Missing
+		// Activity-log granular filter: minimum level + per-category enables.
+		if ( isset( $new['activity_log_min_level'] ) ) {
+			$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
+			$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
+		}
+		foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
+			$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
+		}
+
+		$rows = $this->bounded_int(
+			$new,
+			'public_csv_sync_max_rows',
+			\FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MIN,
+			\FreeFormCertificate\Frontend\PublicCsvExporter::SYNC_MAX_ROWS_MAX
+		);
+		if ( null !== $rows ) {
+			$clean['public_csv_sync_max_rows'] = $rows;
+		}
+
+		// Debug Settings.
+		$debug_flags = array(
+			'debug_pdf_generator',
+			'debug_email_handler',
+			'debug_form_processor',
+			'debug_encryption',
+			'debug_geofence',
+			'debug_user_manager',
+			'debug_rest_api',
+			'debug_migrations',
+			'debug_activity_log',
+			'debug_frontend',
+			'debug_admin',
+			'debug_self_scheduling',
+			'debug_audience',
+			'debug_qrcode',
+			// 6.6.4 follow-up (#361 Sprint 1).
+			'debug_browser_env',
+		);
+
+		foreach ( $debug_flags as $flag ) {
+			$clean[ $flag ] = isset( $new[ $flag ] ) ? 1 : 0;
+		}
+
+		// Public CSV Download default limit.
+		$limit = $this->bounded_int( $new, 'public_csv_default_limit' );
+		if ( null !== $limit ) {
+			$clean['public_csv_default_limit'] = $limit;
+		}
 
 		return $clean;
 	}
@@ -305,18 +396,19 @@ class SettingsSaveHandler {
 			return $clean;
 		}
 
-		// Email Status checkbox (only when on SMTP tab to prevent unchecking from other tabs).
+		// Only the SMTP tab's form carries these fields (#2338).
+		if ( 'smtp' !== $this->posted_tab() ) {
+			return $clean;
+		}
+
 		// The global "disable all emails" kill-switch is a destructive toggle, so
 		// it also requires the dangerzone sub-cap (#739 §4.4): a _smtp-only
 		// operator saves the transport but keeps the current kill-switch value.
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		$ffc_on_smtp_tab = isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'smtp';
-		if ( $ffc_on_smtp_tab && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
-			// The SMTP view emits a hidden `ffc_settings[disable_all_emails]`
-			// mirror alongside the inverted "Enable email sending" toggle,
-			// so the field is ALWAYS present in $new — we check the value,
-			// not its existence: '0' means emails enabled, '1' means disabled.
-			$clean['disable_all_emails'] = ! empty( $new['disable_all_emails'] ) ? 1 : 0;
+		// It is read from the "Enable email sending" toggle itself, which is a
+		// field of this form: a hidden copy frozen at page load used to undo
+		// what the toggle had just autosaved (#2338).
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
+			$clean['disable_all_emails'] = \FreeFormCertificate\Core\RequestInput::get_post_bool( 'emails_enabled' ) ? 0 : 1;
 		}
 
 		// User creation email settings (radio buttons - always have a value).
@@ -351,8 +443,9 @@ class SettingsSaveHandler {
 			$clean['smtp_host'] = sanitize_text_field( $new['smtp_host'] );
 		}
 
-		if ( isset( $new['smtp_port'] ) ) {
-			$clean['smtp_port'] = absint( $new['smtp_port'] );
+		$port = $this->bounded_int( $new, 'smtp_port', 1, 65535 );
+		if ( null !== $port ) {
+			$clean['smtp_port'] = $port;
 		}
 
 		if ( isset( $new['smtp_user'] ) ) {
@@ -419,22 +512,32 @@ class SettingsSaveHandler {
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_qrcode_settings( array $clean, array $new ): array {
+		$ffc_tab = $this->posted_tab();
+
 		// QR Cache checkbox - v4.6.16: now on Cache tab (was qr_code tab).
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'cache' ) {
+		if ( 'cache' === $ffc_tab ) {
 			$clean['qr_cache_enabled'] = isset( $new['qr_cache_enabled'] ) ? 1 : 0;
 		}
 
-		if ( isset( $new['qr_default_size'] ) ) {
-			$clean['qr_default_size'] = absint( $new['qr_default_size'] );
+		if ( 'qr_code' !== $ffc_tab ) {
+			return $clean;
 		}
 
-		if ( isset( $new['qr_default_margin'] ) ) {
-			$clean['qr_default_margin'] = absint( $new['qr_default_margin'] );
+		// Clamped to the bounds the autosave uses; an emptied field keeps
+		// the stored value (#2338).
+		$size = $this->bounded_int( $new, 'qr_default_size' );
+		if ( null !== $size ) {
+			$clean['qr_default_size'] = $size;
+		}
+
+		$margin = $this->bounded_int( $new, 'qr_default_margin' );
+		if ( null !== $margin ) {
+			$clean['qr_default_margin'] = $margin;
 		}
 
 		if ( isset( $new['qr_default_error_level'] ) ) {
-			$clean['qr_default_error_level'] = sanitize_text_field( $new['qr_default_error_level'] );
+			$level                           = strtoupper( sanitize_text_field( $new['qr_default_error_level'] ) );
+			$clean['qr_default_error_level'] = in_array( $level, array( 'L', 'M', 'Q', 'H' ), true ) ? $level : 'M';
 		}
 
 		// The design and its two switches only exist on the QR Code tab, so
@@ -442,51 +545,48 @@ class SettingsSaveHandler {
 		// from the POST, and any other tab's save must not read that as "off".
 		// The values go through `QrDesign`, the same normaliser the renderer
 		// reads with, so nothing the renderer would refuse is ever stored.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions() via wp_verify_nonce.
-		if ( isset( $_POST['_ffc_tab'] ) && sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) === 'qr_code' ) {
-			$design = new \FreeFormCertificate\Generators\QrDesign(
-				array(
-					'dots'            => $new['qr_design_dots'] ?? null,
-					'eye_frame'       => $new['qr_design_eye_frame'] ?? null,
-					'eye_ball'        => $new['qr_design_eye_ball'] ?? null,
-					'color'           => $new['qr_design_color'] ?? null,
-					'gradient'        => true,
-					'color_end'       => $new['qr_design_color_end'] ?? null,
-					'background'      => $new['qr_design_background'] ?? null,
-					'eye_frame_color' => $new['qr_design_eye_frame_color'] ?? null,
-					'eye_ball_color'  => $new['qr_design_eye_ball_color'] ?? null,
-					'frame'           => $new['qr_design_frame'] ?? null,
-					'frame_text'      => $new['qr_design_frame_text'] ?? null,
-					'frame_color'     => $new['qr_design_frame_color'] ?? null,
-					'frame_icon'      => $new['qr_design_frame_icon'] ?? null,
-				)
-			);
+		$design = new \FreeFormCertificate\Generators\QrDesign(
+			array(
+				'dots'            => $new['qr_design_dots'] ?? null,
+				'eye_frame'       => $new['qr_design_eye_frame'] ?? null,
+				'eye_ball'        => $new['qr_design_eye_ball'] ?? null,
+				'color'           => $new['qr_design_color'] ?? null,
+				'gradient'        => true,
+				'color_end'       => $new['qr_design_color_end'] ?? null,
+				'background'      => $new['qr_design_background'] ?? null,
+				'eye_frame_color' => $new['qr_design_eye_frame_color'] ?? null,
+				'eye_ball_color'  => $new['qr_design_eye_ball_color'] ?? null,
+				'frame'           => $new['qr_design_frame'] ?? null,
+				'frame_text'      => $new['qr_design_frame_text'] ?? null,
+				'frame_color'     => $new['qr_design_frame_color'] ?? null,
+				'frame_icon'      => $new['qr_design_frame_icon'] ?? null,
+			)
+		);
 
-			// Only an image the renderer can embed is kept; anything else --
-			// another post type, an SVG, a deleted attachment -- clears the logo.
-			$logo_id = absint( $new['qr_design_logo_id'] ?? 0 );
-			if ( $logo_id > 0 && ! in_array( (string) get_post_mime_type( $logo_id ), \FreeFormCertificate\Generators\QrLogo::MIMES, true ) ) {
-				$logo_id = 0;
-			}
-
-			$clean['qr_design_dots']            = $design->dots;
-			$clean['qr_design_eye_frame']       = $design->eye_frame;
-			$clean['qr_design_eye_ball']        = $design->eye_ball;
-			$clean['qr_design_color']           = $design->color;
-			$clean['qr_design_gradient']        = isset( $new['qr_design_gradient'] ) ? 1 : 0;
-			$clean['qr_design_color_end']       = $design->color_end;
-			$clean['qr_design_background']      = $design->background;
-			$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
-			$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
-			$clean['qr_design_logo_id']         = $logo_id;
-			$clean['qr_design_frame']           = $design->frame;
-			$clean['qr_design_frame_text']      = $design->frame_text;
-			$clean['qr_design_frame_color']     = $design->frame_color;
-			$clean['qr_design_frame_icon']      = $design->frame_icon;
-			$clean['qr_design_transparent']     = isset( $new['qr_design_transparent'] ) ? 1 : 0;
-			$clean['qr_design_on_certificate']  = isset( $new['qr_design_on_certificate'] ) ? 1 : 0;
-			$clean['qr_design_on_short_urls']   = isset( $new['qr_design_on_short_urls'] ) ? 1 : 0;
+		// Only an image the renderer can embed is kept; anything else --
+		// another post type, an SVG, a deleted attachment -- clears the logo.
+		$logo_id = absint( $new['qr_design_logo_id'] ?? 0 );
+		if ( $logo_id > 0 && ! in_array( (string) get_post_mime_type( $logo_id ), \FreeFormCertificate\Generators\QrLogo::MIMES, true ) ) {
+			$logo_id = 0;
 		}
+
+		$clean['qr_design_dots']            = $design->dots;
+		$clean['qr_design_eye_frame']       = $design->eye_frame;
+		$clean['qr_design_eye_ball']        = $design->eye_ball;
+		$clean['qr_design_color']           = $design->color;
+		$clean['qr_design_gradient']        = isset( $new['qr_design_gradient'] ) ? 1 : 0;
+		$clean['qr_design_color_end']       = $design->color_end;
+		$clean['qr_design_background']      = $design->background;
+		$clean['qr_design_eye_frame_color'] = $design->eye_frame_color;
+		$clean['qr_design_eye_ball_color']  = $design->eye_ball_color;
+		$clean['qr_design_logo_id']         = $logo_id;
+		$clean['qr_design_frame']           = $design->frame;
+		$clean['qr_design_frame_text']      = $design->frame_text;
+		$clean['qr_design_frame_color']     = $design->frame_color;
+		$clean['qr_design_frame_icon']      = $design->frame_icon;
+		$clean['qr_design_transparent']     = isset( $new['qr_design_transparent'] ) ? 1 : 0;
+		$clean['qr_design_on_certificate']  = isset( $new['qr_design_on_certificate'] ) ? 1 : 0;
+		$clean['qr_design_on_short_urls']   = isset( $new['qr_design_on_short_urls'] ) ? 1 : 0;
 
 		return $clean;
 	}
@@ -637,23 +737,25 @@ class SettingsSaveHandler {
 	 */
 	private function save_url_shortener_settings( array $clean, array $new ): array {
         // phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified in handle_all_submissions().
-		$ffc_tab = isset( $_POST['_ffc_tab'] ) ? sanitize_key( wp_unslash( $_POST['_ffc_tab'] ) ) : '';
+		// Only the Short URLs tab's form carries these fields (#2338).
+		if ( 'url_shortener' !== $this->posted_tab() ) {
+			return $clean;
+		}
 
-		// Checkbox fields (unchecked = absent from POST) — only process on URL Shortener tab.
+		// Checkbox fields (unchecked = absent from POST).
 		// NOTE: `url_shortener_enabled` is intentionally NOT written here — the
 		// module on/off toggle lives solely on the Modules tab (autosaved), so this
 		// form must preserve the existing value rather than zero it out when the
 		// (now-removed) enable checkbox is absent from the POST.
-		if ( 'url_shortener' === $ffc_tab ) {
-			$clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
-		}
+		$clean['url_shortener_auto_create'] = isset( $new['url_shortener_auto_create'] ) ? 1 : 0;
 
 		if ( isset( $new['url_shortener_prefix'] ) ) {
 			$clean = $this->save_url_shortener_prefix( $clean, (string) $new['url_shortener_prefix'] );
 		}
 
-		if ( isset( $new['url_shortener_code_length'] ) ) {
-			$clean['url_shortener_code_length'] = max( 4, min( 10, (int) $new['url_shortener_code_length'] ) );
+		$length = $this->bounded_int( $new, 'url_shortener_code_length', 4, 10 );
+		if ( null !== $length ) {
+			$clean['url_shortener_code_length'] = $length;
 		}
 
 		if ( isset( $new['url_shortener_redirect_type'] ) ) {
@@ -661,27 +763,25 @@ class SettingsSaveHandler {
 			$clean['url_shortener_redirect_type'] = in_array( $type, array( 301, 302, 307 ), true ) ? $type : 302;
 		}
 
-		// Post types is an array of checkboxes - only process on URL Shortener tab.
-		if ( 'url_shortener' === $ffc_tab ) {
-			if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
-				$clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
-			} else {
-				$clean['url_shortener_post_types'] = array();
-			}
-
-			// "Expose as shortlink" is a strict subset of the shortened types:
-			// intersect the submitted expose list with the (already-sanitized)
-			// post-types list so the stored value can never expose a type that
-			// is not also shortened, even if the coupling JS was bypassed.
-			if ( isset( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) ) {
-				$expose = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) );
-			} else {
-				$expose = array();
-			}
-			$clean['url_shortener_expose_post_types'] = array_values(
-				array_intersect( $expose, $clean['url_shortener_post_types'] )
-			);
+		// Post types is an array of checkboxes.
+		if ( isset( $_POST['ffc_settings']['url_shortener_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_post_types'] ) ) {
+			$clean['url_shortener_post_types'] = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_post_types'] ) );
+		} else {
+			$clean['url_shortener_post_types'] = array();
 		}
+
+		// "Expose as shortlink" is a strict subset of the shortened types:
+		// intersect the submitted expose list with the (already-sanitized)
+		// post-types list so the stored value can never expose a type that
+		// is not also shortened, even if the coupling JS was bypassed.
+		if ( isset( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) && is_array( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) ) {
+			$expose = array_map( 'sanitize_key', wp_unslash( $_POST['ffc_settings']['url_shortener_expose_post_types'] ) );
+		} else {
+			$expose = array();
+		}
+		$clean['url_shortener_expose_post_types'] = array_values(
+			array_intersect( $expose, $clean['url_shortener_post_types'] )
+		);
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
 		return $clean;

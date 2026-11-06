@@ -12,7 +12,6 @@
 
 return array(
 	'activity_log_min_level',
-	'activity_log_retention_days',
 	'audience_csv_create_users_default',
 	'csv_download_page_url',
 	'dangerzone_reset_counter_default',

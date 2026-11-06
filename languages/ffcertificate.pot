@@ -2543,9 +2543,6 @@ msgstr ""
 msgid "Auto-create Short URLs"
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:24
-msgid "auto-delete entries older than this (default 90; 0 keeps them indefinitely)."
-msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:207
 msgid "Auto-delete old submissions"
@@ -32451,4 +32448,20 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
 msgid "Session"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "auto-delete entries older than this (default 90, at most 3,650; 0 keeps them indefinitely)."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "Max records"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000)."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB."
 msgstr ""

@@ -261,12 +261,8 @@ class SettingsActionHandler {
 
 		switch ( $mode ) {
 			case 'save_days':
-				$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'obsolete_shortcode_days', 0 );
-				if ( $posted_days < 1 ) {
-					$posted_days = 1;
-				} elseif ( $posted_days > 3650 ) {
-					$posted_days = 3650;
-				}
+				// An emptied field keeps the stored window: 0 is not a value here.
+				$posted_days = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'obsolete_shortcode_days' ) ?? $current_days ) );
 
 				if ( ! is_array( $settings ) ) {
 					$settings = array();
@@ -410,8 +406,9 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'url_cleanup_days', 90 );
-			$days        = min( 3650, max( 1, $posted_days ) );
+			// An emptied field keeps the stored window rather than becoming 1.
+			$stored_days = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
+			$days        = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'url_cleanup_days' ) ?? $stored_days ) );
 			$orphaned    = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
 			$never       = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
 			$trashed     = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
@@ -537,8 +534,9 @@ class SettingsActionHandler {
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days                            = \FreeFormCertificate\Core\RequestInput::get_post_int( 'public_access_disable_days', 90 );
-			$days                                   = min( 3650, max( 1, $posted_days ) );
+			// An emptied field keeps the stored window rather than becoming 1.
+			$stored_days                            = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$days                                   = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'public_access_disable_days' ) ?? $stored_days ) );
 			$settings['public_access_disable_days'] = $days;
 			update_option( 'ffc_settings', $settings );
 

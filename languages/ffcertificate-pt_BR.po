@@ -2538,9 +2538,6 @@ msgstr "Criar automaticamente ao publicar"
 msgid "Auto-create Short URLs"
 msgstr "Criar URLs curtas automaticamente"
 
-#: includes/settings/views/documentation/config-advanced.php:24
-msgid "auto-delete entries older than this (default 90; 0 keeps them indefinitely)."
-msgstr "excluir automaticamente entradas mais antigas que isto (padrão 90; 0 as mantém indefinidamente)."
 
 #: includes/settings/views/ffc-tab-general.php:207
 msgid "Auto-delete old submissions"
@@ -32535,3 +32532,19 @@ msgstr "Em um calendário com duas ou mais sessões, o clique em um dia mostra p
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php
 msgid "Session"
 msgstr "Sessão"
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "auto-delete entries older than this (default 90, at most 3,650; 0 keeps them indefinitely)."
+msgstr "excluir automaticamente entradas mais antigas que isto (padrão 90, no máximo 3.650; 0 as mantém indefinidamente)."
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "Max records"
+msgstr "Máximo de registros"
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000)."
+msgstr "a limpeza diária também exclui as entradas mais antigas além deste número (padrão 100.000, cerca de 60 MB; de 1.000 a 1.000.000)."
+
+#: includes/settings/views/ffc-tab-advanced.php
+msgid "The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB."
+msgstr "A limpeza diária também exclui as entradas mais antigas além deste número. 100.000 entradas ocupam cerca de 60 MB."

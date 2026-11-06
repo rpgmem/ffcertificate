@@ -783,6 +783,18 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertTrue( $this->transients['ffc_pubaccess_report_7']['dry_run'] );
 	}
 
+	public function test_pubaccess_preview_keeps_the_stored_window_when_emptied(): void {
+		$_REQUEST['ffc_pubaccess']           = 'preview';
+		$_REQUEST['_wpnonce']                = 'ok';
+		$_POST['public_access_disable_days'] = '';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 60 ) );
+
+		$this->redirect_of( 'handle_public_access_disabler' );
+
+		$this->assertSame( 60, $this->transients['ffc_pubaccess_report_7']['days'] );
+	}
+
 	public function test_pubaccess_apply_without_preview_redirects(): void {
 		$_REQUEST['ffc_pubaccess'] = 'apply';
 		$_REQUEST['_wpnonce']      = 'ok';
@@ -1120,6 +1132,23 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
 		$this->assertSame( 1, $written['ffc_settings']['obsolete_shortcode_days'] );
+	}
+
+	/**
+	 * A cleared field keeps the stored window instead of becoming one day,
+	 * which would mark nearly every shortcode obsolete (#2338).
+	 */
+	public function test_obsolete_save_days_keeps_the_stored_window_when_emptied(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'save_days';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$_POST['obsolete_shortcode_days'] = '';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array( 'obsolete_shortcode_days' => 200 ) );
+		$written = $this->capture_option_write();
+
+		$this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertSame( 200, $written['ffc_settings']['obsolete_shortcode_days'] );
 	}
 
 	public function test_obsolete_save_days_caps_at_ten_years_over_unreadable_settings(): void {

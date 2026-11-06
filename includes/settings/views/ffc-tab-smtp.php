@@ -53,8 +53,6 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<label for="emails_enabled"><?php esc_html_e( 'Enable Email Sending', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<?php // Mirror the inverted UI value to the legacy form field so a fallback non-autosave POST still writes the right slot. ?>
-						<input type="hidden" name="ffc_settings[disable_all_emails]" value="<?php echo $ffcertificate_emails_disabled ? '1' : '0'; ?>">
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
