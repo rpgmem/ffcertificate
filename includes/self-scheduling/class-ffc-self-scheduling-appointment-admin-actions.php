@@ -215,6 +215,73 @@ class AppointmentAdminActions {
 	}
 
 	/**
+	 * The statuses an appointment may be deleted permanently from (#2340):
+	 * the ones that are over. A pending, confirmed or waitlisted one is
+	 * cancelled first, which notifies the person.
+	 */
+	public const DELETABLE_STATUSES = array( 'cancelled', 'completed', 'no_show' );
+
+	/**
+	 * Whether an appointment row may be deleted permanently.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @return bool
+	 */
+	public static function is_deletable( array $appointment ): bool {
+		return in_array( (string) ( $appointment['status'] ?? '' ), self::DELETABLE_STATUSES, true );
+	}
+
+	/**
+	 * Delete appointments permanently (#2340), skipping any that is not over.
+	 *
+	 * Each run writes one Danger Zone entry naming what it deleted; nothing is
+	 * logged when nothing was deleted. The caller checks
+	 * `ffc_delete_appointments` and the nonce.
+	 *
+	 * @param array<int, int|string> $ids   Appointment IDs.
+	 * @param int                    $actor User deleting.
+	 * @return array{deleted: int, skipped: int}
+	 */
+	public function delete_permanently( array $ids, int $actor ): array {
+		$deletable = array();
+		$calendars = array();
+		$skipped   = 0;
+		foreach ( array_unique( array_filter( array_map( 'intval', $ids ) ) ) as $id ) {
+			$appointment = $this->appointments->findById( $id );
+			if ( ! is_array( $appointment ) || ! self::is_deletable( $appointment ) ) {
+				++$skipped;
+				continue;
+			}
+			$deletable[] = $id;
+			$calendar    = (int) ( $appointment['calendar_id'] ?? 0 );
+			if ( $calendar > 0 ) {
+				$calendars[ $calendar ] = true;
+			}
+		}
+
+		$deleted  = array() === $deletable ? 0 : $this->appointments->deleteByIds( $deletable );
+		$skipped += count( $deletable ) - $deleted;
+
+		if ( $deleted > 0 ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'appointment_deleted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'count'           => $deleted,
+					'appointment_ids' => $deletable,
+					'calendar_ids'    => array_keys( $calendars ),
+				),
+				$actor
+			);
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'skipped' => $skipped,
+		);
+	}
+
+	/**
 	 * The notifier, built on first use.
 	 *
 	 * @return AppointmentHandler

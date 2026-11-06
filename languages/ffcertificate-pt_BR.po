@@ -7195,6 +7195,30 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/self-scheduling/views/appointments-list.php
+msgid "%1$d deleted permanently; %2$d skipped (only cancelled, completed or no-show appointments can be deleted; cancel the others first)."
+msgstr "%1$d excluídos permanentemente; %2$d ignorados (só agendamentos cancelados, concluídos ou com ausência podem ser excluídos; cancele os outros antes)."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-admin.php
+msgid "Delete %d appointment(s) permanently?"
+msgstr "Excluir %d agendamento(s) permanentemente?"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-admin.php
+msgid "They are removed from the list and from the person's dashboard, and cannot be restored. Only cancelled, completed or no-show appointments are deleted; any other in the selection is skipped: cancel it first."
+msgstr "Eles saem da lista e do painel da pessoa, e não podem ser restaurados. Só agendamentos cancelados, concluídos ou com ausência são excluídos; qualquer outro na seleção é ignorado: cancele-o antes."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-admin.php
+msgid "Delete %d permanently"
+msgstr "Excluir %d permanentemente"
+
+#: includes/self-scheduling/class-ffc-self-scheduling-admin.php
+msgid "Select at least one appointment."
+msgstr "Selecione pelo menos um agendamento."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Appointments Deleted Permanently"
+msgstr "Agendamentos excluídos permanentemente"
+
 #: includes/admin/class-ffc-admin-user-columns.php
 msgid "recruitment notice"
 msgid_plural "recruitment notices"
@@ -26960,12 +26984,12 @@ msgid "deletes every appointment of the calendar."
 msgstr "exclui todos os agendamentos do calendário."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:79
-msgid "export, or delete one appointment from the list."
-msgstr "exportar, ou excluir um agendamento da lista."
+msgid "export, or delete appointments permanently from the list: one row's Delete permanently, or the bulk action. Only a cancelled, completed or no-show appointment is deleted, after a confirmation; a pending, confirmed or waitlisted one is skipped and has to be cancelled first, which notifies the person. Each deletion is recorded in the activity log under Danger Zone."
+msgstr "exportar, ou excluir agendamentos permanentemente da lista: o Excluir permanentemente de uma linha, ou a ação em massa. Só um agendamento cancelado, concluído ou com ausência é excluído, após uma confirmação; um pendente, confirmado ou em lista de espera é ignorado e precisa ser cancelado antes, o que avisa a pessoa. Cada exclusão é registrada no registro de atividades, em Zona de Perigo."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:80
-msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes one appointment at a time."
-msgstr "usar a caixa Limpar Agendamentos de um calendário. Pertence à função Calendários Pessoais - Agendamentos - Administrador e ao FFC Administrador; um Gestor de Agendamentos exclui um agendamento por vez."
+msgid "use the Clean Up Appointments box on a calendar. Held by the Personal Calendars - Bookings - Administrator role and by FFC Administrator; a Bookings Manager deletes the appointments that are over from the list instead."
+msgstr "usar a caixa Limpar Agendamentos de um calendário. Pertence à função Calendários Pessoais - Agendamentos - Administrador e ao FFC Administrador; um Gestor de Agendamentos exclui pela lista os agendamentos já encerrados."
 
 #: includes/core/class-ffc-public-design.php
 msgid "delete buttons and danger notices on their background"

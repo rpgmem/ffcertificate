@@ -1,6 +1,7 @@
 /**
- * Self-scheduling admin appointments list — row "Cancel" action + batched
- * CSV export.
+ * Self-scheduling admin appointments list — row "Cancel" action, "Delete
+ * permanently" (row and bulk, asked through the plugin's dialog) and the
+ * batched CSV export.
  *
  * The `.ffc-appointment-cancel` links were extracted from an inline onclick in
  * views/appointments-list.php: each prompts for a cancellation reason (min 5
@@ -33,6 +34,66 @@
 		}
 		window.location = url + '&reason=' + encodeURIComponent(reason);
 		return false;
+	}
+
+	// Fill `%d` in order.
+	function fill(text, n) {
+		return String(text || '').replace('%d', String(n));
+	}
+
+	// Delete permanently asks first through the plugin's dialog (#2340): one
+	// row's link, or the bulk select's Apply with that action chosen.
+	function confirmDelete(count) {
+		var d = (window.ffcAppointmentsExport || {}).deleteDialog || {};
+		if (!window.FFC || typeof window.FFC.overrideConfirm !== 'function') {
+			return Promise.resolve(false);
+		}
+		return window.FFC.overrideConfirm({
+			strings: {
+				seconds: 0,
+				title: fill(d.title, count),
+				intro: d.intro || '',
+				logged: d.logged || '',
+				agree: fill(d.agree, count),
+				cancel: d.cancel || 'Cancel'
+			},
+			reasons: [],
+			agreeCategory: 'danger',
+			agreeIcon: 'delete'
+		}).then(function (agreed) { return !!agreed; }, function () { return false; });
+	}
+
+	function onDeleteClick(e) {
+		e.preventDefault();
+		var url = this.getAttribute('href');
+		confirmDelete(1).then(function (agreed) {
+			if (agreed && url) { window.location = url; }
+		});
+		return false;
+	}
+
+	function bindBulkDelete() {
+		['doaction', 'doaction2'].forEach(function (id) {
+			var btn = document.getElementById(id);
+			if (!btn) { return; }
+			btn.addEventListener('click', function (e) {
+				var select = document.getElementById(id === 'doaction' ? 'bulk-action-selector-top' : 'bulk-action-selector-bottom');
+				if (!select || select.value !== 'bulk_delete_permanently') { return; }
+				e.preventDefault();
+				var form = btn.form;
+				var count = form ? form.querySelectorAll('input[name="appointment[]"]:checked').length : 0;
+				if (count === 0) {
+					var d = (window.ffcAppointmentsExport || {}).deleteDialog || {};
+					window.alert(d.none || '');
+					return;
+				}
+				confirmDelete(count).then(function (agreed) {
+					// The select already carries the action; submitting the
+					// form sends it, as Apply would have.
+					if (agreed && form) { form.submit(); }
+				});
+			});
+		});
 	}
 
 	function bindExport() {
@@ -80,6 +141,10 @@
 		Array.prototype.forEach.call(links, function (link) {
 			link.addEventListener('click', onCancelClick);
 		});
+		Array.prototype.forEach.call(document.querySelectorAll('.ffc-appointment-delete'), function (link) {
+			link.addEventListener('click', onDeleteClick);
+		});
+		bindBulkDelete();
 		bindExport();
 	}
 

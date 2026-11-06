@@ -147,10 +147,16 @@ class AppointmentsListTable extends \WP_List_Table {
 	 * @return array<string, string>
 	 */
 	protected function get_bulk_actions(): array {
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
-			return array();
+		$actions = array();
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_appointments' ) ) {
+			$actions['bulk_no_show'] = __( 'Mark as no-show', 'ffcertificate' );
 		}
-		return array( 'bulk_no_show' => __( 'Mark as no-show', 'ffcertificate' ) );
+		// Only for appointments that are over; the others in a selection are
+		// skipped and counted in the notice (#2340).
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
+			$actions['bulk_delete_permanently'] = __( 'Delete permanently', 'ffcertificate' );
+		}
+		return $actions;
 	}
 
 	/**
@@ -238,6 +244,28 @@ class AppointmentsListTable extends \WP_List_Table {
 				'<a href="%s">%s</a>',
 				esc_url( $attendance_url ),
 				esc_html( $attendance_label )
+			);
+		}
+
+		// Delete permanently (#2340): an appointment that is over, for the
+		// holders of the delete capability. The script asks first.
+		if ( \FreeFormCertificate\SelfScheduling\AppointmentAdminActions::is_deletable( $item )
+			&& \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
+			$delete_url        = wp_nonce_url(
+				add_query_arg(
+					array(
+						'page'        => $ffc_page_slug,
+						'ffc_action'  => 'delete_permanently',
+						'appointment' => $item['id'],
+					),
+					admin_url( 'admin.php' )
+				),
+				'ffc_delete_permanently_appointment_' . $item['id']
+			);
+			$actions['delete'] = sprintf(
+				'<a href="%s" class="ffc-appointment-delete ffc-delete-link">%s</a>',
+				esc_url( $delete_url ),
+				esc_html__( 'Delete permanently', 'ffcertificate' )
 			);
 		}
 
