@@ -76,10 +76,12 @@ class TabActivityLogTest extends TestCase {
 		$this->assertSame( 'ffc_view_activity_log', $this->tab->get_view_cap() );
 	}
 
-	public function test_manage_cap_is_activity_log_export(): void {
-		// Off the settings manage cap so the read-only fieldset lock never
-		// disables the log's export/filter controls for a legitimate viewer.
-		$this->assertSame( 'ffc_export_activity_log', $this->tab->get_manage_cap() );
+	public function test_manage_cap_is_activity_log_view(): void {
+		// The tab writes nothing, so the view cap is enough to "manage" it:
+		// a view-only holder keeps working filters, search and Reveal instead
+		// of the read-only fieldset lock (#2340). Export is gated on its own
+		// cap where the button is drawn.
+		$this->assertSame( 'ffc_view_activity_log', $this->tab->get_manage_cap() );
 	}
 
 	public function test_render_delegates_to_activity_log_page(): void {

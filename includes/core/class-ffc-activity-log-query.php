@@ -89,47 +89,7 @@ class ActivityLogQuery {
 
 		$args = wp_parse_args( $args, $defaults );
 
-		$where = array( '1=1' );
-
-		if ( $args['level'] ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $args, 'level' ) ) );
-		}
-		if ( $args['action'] ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $args, 'action' ) ) );
-		}
-		if ( is_array( $args['action_in'] ) && ! empty( $args['action_in'] ) ) {
-			// Sanitized + bounded — each value passes through
-			// sanitize_text_field and the SET is built from a fixed-count
-			// `%s` placeholder run that matches $sanitized one-for-one.
-			$sanitized    = array_values(
-				array_unique(
-					array_map(
-						static fn( $action ): string => sanitize_text_field( is_scalar( $action ) ? (string) $action : '' ),
-						$args['action_in']
-					)
-				)
-			);
-			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
-			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
-		}
-		if ( $args['user_id'] ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
-		}
-		$date_from = self::instant( $args['date_from'] );
-		if ( null !== $date_from ) {
-			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
-		}
-		$date_to = self::instant( $args['date_to'], true );
-		if ( null !== $date_to ) {
-			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
-		}
-		if ( $args['search'] ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $args );
 
 		$allowed_orderby = array( 'id', 'action', 'level', 'user_id', 'created_at' );
 		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
@@ -172,20 +132,7 @@ class ActivityLogQuery {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
-		$where = array( '1=1' );
-
-		if ( ! empty( $filters['level'] ) ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $filters, 'level' ) ) );
-		}
-		if ( ! empty( $filters['action'] ) ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $filters, 'action' ) ) );
-		}
-		if ( ! empty( $filters['search'] ) ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( ArrayValue::string( $filters, 'search' ) ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $filters );
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -271,6 +218,55 @@ class ActivityLogQuery {
 		\set_transient( self::ACTIONS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
 
 		return $list;
+	}
+
+	/**
+	 * Transient holding the accounts that appear in the log (#2340).
+	 */
+	private const USERS_CACHE_KEY = 'ffc_activity_log_distinct_users';
+
+	/**
+	 * Every account id that appears in the log, for the screen's user filter
+	 * (#2340). Cached like the action vocabulary: a new account appears in
+	 * the filter within the hour, which is what the filter needs.
+	 *
+	 * @return list<int>
+	 */
+	public static function distinct_users(): array {
+		$cached = \get_transient( self::USERS_CACHE_KEY );
+		if ( is_array( $cached ) ) {
+			return self::user_ids( $cached );
+		}
+
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT DISTINCT user_id FROM %i WHERE user_id IS NOT NULL AND user_id > 0 ORDER BY user_id ASC', $wpdb->prefix . 'ffc_activity_log' )
+		);
+		if ( ! is_array( $ids ) ) {
+			return array();
+		}
+
+		$list = self::user_ids( $ids );
+		\set_transient( self::USERS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
+
+		return $list;
+	}
+
+	/**
+	 * Positive account ids out of a stored or read list.
+	 *
+	 * @param array<mixed> $values Raw values.
+	 * @return list<int>
+	 */
+	private static function user_ids( array $values ): array {
+		$ids = array();
+		foreach ( $values as $value ) {
+			$id = is_numeric( $value ) ? (int) $value : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
 	}
 
 	/**
@@ -430,31 +426,7 @@ class ActivityLogQuery {
 
 		$args = wp_parse_args( $args, $defaults );
 
-		$where = array( '1=1' );
-
-		if ( $args['level'] ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( $args['level'] ) );
-		}
-		if ( $args['action'] ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $args['action'] ) );
-		}
-		if ( $args['user_id'] ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
-		}
-		$date_from = self::instant( $args['date_from'] );
-		if ( null !== $date_from ) {
-			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
-		}
-		$date_to = self::instant( $args['date_to'], true );
-		if ( null !== $date_to ) {
-			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
-		}
-		if ( $args['search'] ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $args );
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -462,6 +434,74 @@ class ActivityLogQuery {
 				$table_name
 			)
 		);
+	}
+
+	/**
+	 * Value of the user filter that selects the entries no account made:
+	 * the system, a cron run, an anonymous visitor (#2340).
+	 */
+	public const USER_SYSTEM = 'system';
+
+	/**
+	 * The WHERE clause of a filtered read, shared by the screen, its count
+	 * and the export, so the three cannot disagree about what a filter means.
+	 *
+	 * Filters: `level`, `action`, `action_in` (a list), `user_id` (an id, or
+	 * {@see self::USER_SYSTEM} for entries with no user), `date_from` /
+	 * `date_to` (see {@see self::instant()}) and `search`.
+	 *
+	 * @param array<string, mixed> $args Filters; missing or empty ones are ignored.
+	 * @return string Prepared conditions joined by AND, `1=1` when there are none.
+	 */
+	public static function where_clause( array $args ): string {
+		global $wpdb;
+		$where = array( '1=1' );
+
+		$level = ArrayValue::string( $args, 'level' );
+		if ( '' !== $level ) {
+			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( $level ) );
+		}
+		$action = ArrayValue::string( $args, 'action' );
+		if ( '' !== $action ) {
+			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $action ) );
+		}
+		if ( isset( $args['action_in'] ) && is_array( $args['action_in'] ) && array() !== $args['action_in'] ) {
+			// Sanitized + bounded — each value passes through
+			// sanitize_text_field and the SET is built from a fixed-count
+			// `%s` placeholder run that matches $sanitized one-for-one.
+			$sanitized    = array_values(
+				array_unique(
+					array_map(
+						static fn( $item ): string => sanitize_text_field( is_scalar( $item ) ? (string) $item : '' ),
+						$args['action_in']
+					)
+				)
+			);
+			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
+			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
+		}
+		$user = $args['user_id'] ?? null;
+		if ( self::USER_SYSTEM === $user ) {
+			$where[] = 'user_id IS NULL';
+		} elseif ( is_numeric( $user ) && absint( $user ) > 0 ) {
+			$where[] = $wpdb->prepare( 'user_id = %d', absint( $user ) );
+		}
+		$date_from = self::instant( $args['date_from'] ?? null );
+		if ( null !== $date_from ) {
+			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
+		}
+		$date_to = self::instant( $args['date_to'] ?? null, true );
+		if ( null !== $date_to ) {
+			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
+		}
+		$search = ArrayValue::string( $args, 'search' );
+		if ( '' !== $search ) {
+			$like    = '%' . $wpdb->esc_like( sanitize_text_field( $search ) ) . '%';
+			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $like, $like );
+		}
+
+		return implode( ' AND ', $where );
 	}
 
 	/**

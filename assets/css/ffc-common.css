@@ -3325,6 +3325,26 @@ body.wp-admin .ffc-btn-icon::before {
     transition: opacity 0.15s ease;
 }
 
+/* The filter form wraps its controls, so the date labels sit beside their
+   inputs instead of pushing the row wide (#2340). */
+.ffc-log-filters form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+/* Entry count on one side, the page reveal on the other (#2340). */
+.ffc-log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    margin: var(--ffc-spacing-sm) 0;
+    color: var(--ffc-text-secondary);
+}
+
 /* ==========================================================================
    ACCESSIBILITY — HIGH CONTRAST (forced-colors)
 

@@ -202,6 +202,18 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'needle', $filters['search'] );
 	}
 
+	public function test_sanitize_filters_reads_the_user_and_date_filters(): void {
+		$_POST['log_user']  = 'system';
+		$_POST['date_from'] = '2026-11-01';
+		$_POST['date_to']   = '2026-11-31';
+
+		$filters = $this->source->sanitize_filters();
+		$this->assertSame( 'system', $filters['user_id'] );
+		$this->assertSame( '2026-11-01', $filters['date_from'] );
+		$this->assertArrayNotHasKey( 'date_to', $filters, 'A date that does not exist is dropped.' );
+		$this->assertArrayNotHasKey( 'limit', $filters, 'Paging is the engine\'s, not a filter.' );
+	}
+
 	/**
 	 * Install a `$wpdb` double over the real ActivityLogQuery: every prepare()
 	 * is recorded and answered with its index, and `$answer` receives the

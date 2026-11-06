@@ -42,6 +42,16 @@ class PiiRevealTest extends TestCase {
 		$this->assertStringStartsWith( '<p class="ffc-pii-reveal-bar">', $html );
 	}
 
+	public function test_a_page_whose_reveal_is_not_recorded_does_not_say_it_is(): void {
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_activity_log_pii' === $cap );
+
+		$html = PiiReveal::page_button( 'ffc_view_activity_log_pii', false );
+
+		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
+		$this->assertStringContainsString( 'Shows every masked value listed here.', $html );
+		$this->assertStringNotContainsString( 'recorded in the activity log', $html );
+	}
+
 	public function test_the_field_button_carries_the_hook_and_its_data(): void {
 		$html = PiiReveal::field_button(
 			array(

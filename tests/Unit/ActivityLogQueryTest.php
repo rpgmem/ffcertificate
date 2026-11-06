@@ -305,6 +305,94 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertStringContainsString( 'created_at >= %d', $all_sql );
 	}
 
+	/**
+	 * Prepare that substitutes the values, so a clause can be read whole.
+	 * A `%` inside a value is escaped as wpdb does, so a prepared clause
+	 * survives being prepared again inside a statement.
+	 */
+	private function substituting_prepare(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( string $sql, ...$values ): string {
+				if ( 1 === count( $values ) && is_array( $values[0] ) ) {
+					$values = $values[0];
+				}
+				$values = array_map( static fn( $v ) => is_string( $v ) ? str_replace( '%', '{pct}', $v ) : $v, $values );
+				return vsprintf( str_replace( array( '%i', '%s' ), array( '%s', "'%s'" ), $sql ), $values );
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+	}
+
+	public function test_where_clause_without_filters_is_true(): void {
+		$this->assertSame( '1=1', ActivityLogQuery::where_clause( array( 'level' => '', 'user_id' => '' ) ) );
+	}
+
+	public function test_where_clause_system_user_reads_entries_without_an_account(): void {
+		$this->substituting_prepare();
+		$where = ActivityLogQuery::where_clause( array( 'user_id' => ActivityLogQuery::USER_SYSTEM ) );
+		$this->assertSame( '1=1 AND user_id IS NULL', $where );
+	}
+
+	public function test_where_clause_ignores_a_user_that_is_not_an_id(): void {
+		$this->substituting_prepare();
+		$this->assertSame( '1=1', ActivityLogQuery::where_clause( array( 'user_id' => 'admin' ) ) );
+		$this->assertSame( '1=1', ActivityLogQuery::where_clause( array( 'user_id' => '0' ) ) );
+	}
+
+	public function test_where_clause_date_range_is_site_local_and_the_end_takes_the_whole_day(): void {
+		$this->substituting_prepare();
+		// America/Sao_Paulo is UTC-3 with no daylight saving in 2026.
+		$where = ActivityLogQuery::where_clause( array( 'date_from' => '2026-11-01', 'date_to' => '2026-11-06' ) );
+		$from  = ( new \DateTimeImmutable( '2026-11-01 00:00:00', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
+		$to    = ( new \DateTimeImmutable( '2026-11-06 23:59:59', new \DateTimeZone( 'America/Sao_Paulo' ) ) )->getTimestamp();
+		$this->assertSame( "1=1 AND created_at >= {$from} AND created_at <= {$to}", $where );
+	}
+
+	public function test_where_clause_drops_a_date_that_does_not_parse(): void {
+		$this->substituting_prepare();
+		$this->assertSame( '1=1', ActivityLogQuery::where_clause( array( 'date_from' => 'yesterday-ish' ) ) );
+	}
+
+	public function test_screen_count_and_export_share_the_clause(): void {
+		$this->substituting_prepare();
+		$args = array( 'user_id' => 7, 'level' => 'info', 'search' => 'bob' );
+		$sql  = array();
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static function ( $q ) use ( &$sql ) { $sql[] = $q; return '1'; } );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing( static function ( $q ) use ( &$sql ) { $sql[] = $q; return array(); } );
+
+		ActivityLogQuery::count_activities( $args );
+		ActivityLogQuery::get_activities( $args );
+		ActivityLogQuery::find_by_cursor( $args, PHP_INT_MAX, 10 );
+
+		$where = ActivityLogQuery::where_clause( $args );
+		$this->assertCount( 3, $sql );
+		foreach ( $sql as $q ) {
+			$this->assertStringContainsString( $where, $q );
+		}
+	}
+
+	public function test_distinct_users_reads_the_table_once_and_caches(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( '3', '0', '12' ) );
+		$stored = null;
+		Functions\when( 'set_transient' )->alias( static function ( $key, $value ) use ( &$stored ) { $stored = array( $key, $value ); return true; } );
+
+		$this->assertSame( array( 3, 12 ), ActivityLogQuery::distinct_users() );
+		$this->assertSame( array( 'ffc_activity_log_distinct_users', array( 3, 12 ) ), $stored );
+	}
+
+	public function test_distinct_users_answers_from_the_cache(): void {
+		Functions\when( 'get_transient' )->justReturn( array( 5, '9' ) );
+		$this->wpdb->shouldNotReceive( 'get_col' );
+		$this->assertSame( array( 5, 9 ), ActivityLogQuery::distinct_users() );
+	}
+
+	public function test_distinct_users_survives_a_failed_read(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => $sql );
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( null );
+		$this->assertSame( array(), ActivityLogQuery::distinct_users() );
+	}
+
 	// ==================================================================
 	// get_stats() — transient caching
 	// ==================================================================

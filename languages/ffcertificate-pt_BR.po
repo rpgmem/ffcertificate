@@ -6058,8 +6058,8 @@ msgid "Download the bulk appointments CSV."
 msgstr "Baixe o arquivo CSV com os agendamentos em massa."
 
 #: includes/settings/views/documentation/config-activity-log.php:28
-msgid "download the log as a CSV file, honouring the active filters. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting."
-msgstr "baixe o log como um arquivo CSV, respeitando os filtros ativos. O processo é executado em segundo plano com proteção contra timeout, permitindo exportar históricos extensos sem problemas em ambientes de hospedagem compartilhada."
+msgid "download the log as a CSV file with the filters on screen when you click it. It runs as a timeout-safe background job, so a long history exports cleanly on shared hosting. The button shows only to holders of the export capability."
+msgstr "baixe o log como um arquivo CSV com os filtros que estão na tela no momento do clique. O processo é executado em segundo plano com proteção contra timeout, permitindo exportar históricos extensos sem problemas em ambientes de hospedagem compartilhada. O botão aparece apenas para quem tem a capacidade de exportação."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:284
 msgid "Download the members and audiences CSV exports."
@@ -7198,6 +7198,32 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "%s entry"
+msgid_plural "%s entries"
+msgstr[0] "%s registro"
+msgstr[1] "%s registros"
+
+#: includes/admin/views/ffc-admin-activity-log.php
+msgid "Filter by user"
+msgstr "Filtrar por usuário"
+
+#: includes/admin/views/ffc-admin-activity-log.php
+msgid "All Users"
+msgstr "Todos os usuários"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "No entries match these filters."
+msgstr "Nenhum registro corresponde a estes filtros."
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Nothing has been recorded yet. Entries appear here as soon as an audited action happens."
+msgstr "Nada foi registrado ainda. Os registros aparecem aqui assim que uma ação auditada acontece."
+
+#: includes/core/class-ffc-pii-reveal.php
+msgid "Shows every masked value listed here."
+msgstr "Mostra todos os valores mascarados listados aqui."
 
 #: includes/core/class-ffc-scheduled-tasks.php:251
 msgid "Activity log cleanup, continued (when one run was not enough)"
@@ -15819,8 +15845,8 @@ msgid "Settings specific to the personal appointment booking system. Calendar-sp
 msgstr "Configurações específicas para o sistema de agendamento pessoal. Configurações específicas do calendário (horários, horas de funcionamento, modelos de e-mail) são configuradas na página de edição de cada calendário."
 
 #: includes/settings/views/documentation/config-activity-log.php:21
-msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
-msgstr "A opção Configurações → Registro de Atividades representa a parte de visualização da trilha de auditoria. Ela mostra quem realizou qual ação e quando — logins em telas de operação, envios, exportações, exclusões, alterações de configurações e outros eventos registrados pelo plugin. Você define o que será registrado (o interruptor, o período de retenção, o nível e os itens de auditoria e secundários) na página Avançado; esta aba é onde você visualiza e exporta os dados registrados."
+msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — submissions, exports, deletions, settings changes, revealed personal data and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
+msgstr "A opção Configurações → Registro de Atividades representa a parte de visualização da trilha de auditoria. Ela mostra quem realizou qual ação e quando — envios, exportações, exclusões, alterações de configurações, dados pessoais revelados e outros eventos registrados pelo plugin. Você define o que será registrado (o interruptor, o período de retenção, o nível e os itens de auditoria e secundários) na página Avançado; esta aba é onde você visualiza e exporta os dados registrados."
 
 #: includes/admin/class-ffc-encryption-key-health-notice.php:102
 msgid "Settings → Advanced → Encryption Key Health"
@@ -22677,8 +22703,8 @@ msgstr "Cloudflare:"
 msgid "when Cloudflare is in front of the site, a Cloudflare Page Cache card reads the edge cache status of the front page. Cloudflare's default (static assets only) is safe; with \"Cache Everything\", APO or a Cache Rule that caches HTML, add a bypass for the form and dashboard URLs or for the wordpress_logged_in cookie."
 msgstr "quando a Cloudflare está na frente do site, um cartão Cache de páginas da Cloudflare lê o status do cache de borda da página inicial. O padrão da Cloudflare (apenas arquivos estáticos) é seguro; com \"Cache Everything\", APO ou uma Cache Rule que armazene HTML, adicione uma exceção para as URLs dos formulários e do painel ou para o cookie wordpress_logged_in."
 
-msgid "narrow the table by level and by action, or search the entries by text."
-msgstr "filtre a tabela por nível e por ação, ou pesquise os registros por texto."
+msgid "narrow the table by level, action, user (or System / Anonymous, for what no account did) and a From / To date range in the site's timezone, where To covers the whole day; or search the entries by text. The line above the table counts the entries that match, and \"No entries match these filters\" means a filter is set, as opposed to a log with nothing recorded yet."
+msgstr "filtre a tabela por nível, ação, usuário (ou Sistema / Anônimo, para o que nenhuma conta fez) e um intervalo De / Até no fuso horário do site, em que Até inclui o dia inteiro; ou pesquise os registros por texto. A linha acima da tabela conta os registros que correspondem, e \"Nenhum registro corresponde a estes filtros\" indica que há um filtro aplicado, ao contrário de um log em que nada foi registrado ainda."
 
 msgid "an activity summary for the last 30 days: the total, the counts by level and the most frequent actions."
 msgstr "um resumo das atividades dos últimos 30 dias: o total, as contagens por nível e as ações mais frequentes."
@@ -26355,8 +26381,8 @@ msgid "also performs the module's day-to-day actions: editing and grading submis
 msgstr "também executa as ações do dia a dia do módulo: editar e corrigir submissões, aprovar e cancelar agendamentos, importar membros, exportar, convocar candidatos, enviar um teste."
 
 #: includes/settings/views/documentation/config-activity-log.php:35
-msgid "reach the tab and inspect the audit trail. Independent of the settings view capability, so it can be granted to an account without any other settings access."
-msgstr "acesse a aba e examine o registro de auditoria. Independente da visualização de configurações, de modo que pode ser concedida a uma conta sem nenhum outro acesso às configurações."
+msgid "reach the tab and inspect the audit trail, with the filters, the search and the Reveal buttons working. Independent of the settings view capability, so it can be granted to an account without any other settings access."
+msgstr "acesse a aba e examine o registro de auditoria, com os filtros, a pesquisa e os botões Revelar funcionando. Independente da visualização de configurações, de modo que pode ser concedida a uma conta sem nenhum outro acesso às configurações."
 
 #: includes/settings/views/documentation/reference-capabilities.php:34
 msgid "sees the module's screens, with personal data masked."

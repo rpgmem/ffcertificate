@@ -169,6 +169,9 @@ class AdminActivityLogPageTest extends TestCase {
 				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT action FROM %i' ) ) {
 					return array( 'submission_created' );
 				}
+				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT user_id FROM %i' ) ) {
+					return array();
+				}
 				$this->fail( 'Unexpected get_col(): ' . $sql );
 			}
 		);
@@ -291,6 +294,9 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->install_empty_log();
 		// No filter in the request; nothing cached, so every read reaches the table.
 		$_GET = array();
+		Functions\when('sanitize_text_field')->returnArg();
+		Functions\when('current_user_can')->justReturn(false);
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
 		Functions\when('wp_parse_args')->alias(static fn($args, $defaults) => array_merge($defaults, $args));
 		Functions\when('get_transient')->justReturn(false);
 		$cached = array();
@@ -314,8 +320,14 @@ class AdminActivityLogPageTest extends TestCase {
 		$page->render_page();
 		$output = ob_get_clean();
 
-		// The view renders the empty-state message and the wrap heading.
-		$this->assertStringContainsString('No activity logs found.', $output);
+		// Nothing filtered and nothing recorded: the "nothing yet" state,
+		// never "no matches" (#2340).
+		$this->assertStringContainsString('Nothing has been recorded yet.', $output);
+		$this->assertStringNotContainsString('No entries match these filters.', $output);
+		// The system entry heads the user filter; without the export
+		// capability there is no Export button (#2340).
+		$this->assertStringContainsString('value="system"', $output);
+		$this->assertStringNotContainsString('ffc-activitylog-export-btn', $output);
 		$this->assertStringContainsString('Activity Log', $output);
 		// The distinct action reaches the filter, labelled.
 		$this->assertStringContainsString('value="submission_created"', $output);
@@ -365,6 +377,79 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertSame('error', $args['level']);
 		$this->assertSame('submission_created', $args['action']);
 		$this->assertSame('foo', $args['search']);
+	}
+
+	public function test_build_query_args_reads_the_user_filter(): void {
+		Functions\when('sanitize_text_field')->returnArg();
+		$this->assertSame('system', AdminActivityLogPage::build_query_args(['user' => 'system'])['user_id']);
+		$this->assertSame('42', AdminActivityLogPage::build_query_args(['user' => '42'])['user_id']);
+		// Neither an id nor the system: no filter at all.
+		$this->assertArrayNotHasKey('user_id', AdminActivityLogPage::build_query_args(['user' => 'admin']));
+		$this->assertArrayNotHasKey('user_id', AdminActivityLogPage::build_query_args(['user' => '0']));
+	}
+
+	public function test_build_query_args_keeps_only_valid_dates(): void {
+		Functions\when('sanitize_text_field')->returnArg();
+		$args = AdminActivityLogPage::build_query_args(['date_from' => '2026-11-01', 'date_to' => '2026-02-30']);
+		$this->assertSame('2026-11-01', $args['date_from']);
+		$this->assertArrayNotHasKey('date_to', $args, 'A date that does not exist is dropped, not passed on.');
+		$this->assertArrayNotHasKey('date_from', AdminActivityLogPage::build_query_args(['date_from' => "'; DROP"]));
+	}
+
+	public function test_has_filters_tells_a_narrowed_query_from_the_whole_log(): void {
+		$this->assertFalse(AdminActivityLogPage::has_filters(['limit' => 50, 'offset' => 0, 'orderby' => 'created_at', 'order' => 'DESC']));
+		foreach (['level' => 'info', 'action' => 'x', 'search' => 'bob', 'user_id' => 'system', 'date_from' => '2026-11-01', 'date_to' => '2026-11-06'] as $key => $value) {
+			$this->assertTrue(AdminActivityLogPage::has_filters([$key => $value]), $key);
+		}
+	}
+
+	public function test_empty_state_without_filters_says_nothing_is_recorded_yet(): void {
+		$html = AdminActivityLogPage::render_empty_html(false);
+		$this->assertStringContainsString('Nothing has been recorded yet.', $html);
+		$this->assertStringNotContainsString('ffc-log-clear', $html);
+	}
+
+	public function test_empty_state_with_filters_offers_clear_filters(): void {
+		$html = AdminActivityLogPage::render_empty_html(true);
+		$this->assertStringContainsString('No entries match these filters.', $html);
+		$this->assertStringContainsString('ffc-log-clear', $html);
+		$this->assertStringContainsString('admin.php?page=ffc-settings&tab=activity_log', $html);
+		// An in-content callout, not a core notice common.js would move.
+		$this->assertStringNotContainsString('class="notice', $html);
+	}
+
+	public function test_count_text_is_plural_aware(): void {
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => number_format((float) $n));
+		$this->assertSame('1 entry', AdminActivityLogPage::count_text(1));
+		$this->assertSame('1,280 entries', AdminActivityLogPage::count_text(1280));
+	}
+
+	public function test_user_options_put_the_system_first_and_sort_accounts_by_label(): void {
+		Functions\when('get_transient')->justReturn(array(3, 9));
+		Functions\when('get_locale')->justReturn('en_US');
+		Functions\when('get_userdata')->alias(static function ($id) {
+			if (9 !== $id) {
+				return false;
+			}
+			$u = new \stdClass();
+			$u->display_name = 'Ana Souza';
+			$u->user_login   = 'ana.souza';
+			return $u;
+		});
+
+		$options = AdminActivityLogPage::user_options();
+
+		$this->assertSame(array('system', 9, 3), array_keys($options));
+		$this->assertSame('System / Anonymous', $options['system']);
+		$this->assertSame('Ana Souza (ana.souza)', $options[9]);
+		$this->assertSame('User #3 (deleted)', $options[3], 'An account deleted since keeps a label.');
+	}
+
+	public function test_sorted_actions_follow_their_labels(): void {
+		Functions\when('get_locale')->justReturn('en_US');
+		$sorted = AdminActivityLogPage::sorted_actions(array('submission_created', 'attendance_recorded'));
+		$this->assertSame(array('attendance_recorded', 'submission_created'), $sorted);
 	}
 
 	public function test_build_query_args_clamps_paged_to_minimum_one(): void {

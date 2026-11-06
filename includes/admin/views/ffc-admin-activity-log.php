@@ -21,7 +21,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 	</p>
 
 	<!-- Filters -->
-	<div class="tablenav top">
+	<div class="tablenav top ffc-log-filters">
 		<div class="alignleft actions">
 			<form method="get">
 				<input type="hidden" name="page" value="ffc-settings">
@@ -37,7 +37,7 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 					<option value="debug" <?php selected( $level, 'debug' ); ?>><?php esc_html_e( 'Debug', 'ffcertificate' ); ?></option>
 				</select>
 
-				<!-- Action Filter -->
+				<!-- Action Filter, sorted by label (#2340) -->
 				<?php if ( ! empty( $unique_actions ) ) : ?>
 					<label for="filter-by-action" class="screen-reader-text"><?php esc_html_e( 'Filter by action', 'ffcertificate' ); ?></label>
 					<select name="log_action" id="filter-by-action">
@@ -50,6 +50,21 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 					</select>
 				<?php endif; ?>
 
+				<!-- User Filter (#2340) -->
+				<label for="filter-by-user" class="screen-reader-text"><?php esc_html_e( 'Filter by user', 'ffcertificate' ); ?></label>
+				<select name="log_user" id="filter-by-user">
+					<option value=""><?php esc_html_e( 'All Users', 'ffcertificate' ); ?></option>
+					<?php foreach ( $user_options as $ffcertificate_user_value => $ffcertificate_user_label ) : ?>
+						<option value="<?php echo esc_attr( (string) $ffcertificate_user_value ); ?>" <?php selected( $log_user, (string) $ffcertificate_user_value ); ?>><?php echo esc_html( $ffcertificate_user_label ); ?></option>
+					<?php endforeach; ?>
+				</select>
+
+				<!-- Date Range, in the site's timezone (#2340) -->
+				<label for="filter-date-from"><?php esc_html_e( 'From', 'ffcertificate' ); ?></label>
+				<input type="date" id="filter-date-from" name="date_from" value="<?php echo esc_attr( $date_from ); ?>">
+				<label for="filter-date-to"><?php esc_html_e( 'To', 'ffcertificate' ); ?></label>
+				<input type="date" id="filter-date-to" name="date_to" value="<?php echo esc_attr( $date_to ); ?>">
+
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_button(
 					array(
@@ -58,17 +73,18 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 						'type'  => 'submit',
 					)
 				);
-				if ( $level || $action || $search ) {
-					// `ffc-log-clear` is the hook ffc-admin-activity-log.js resets the filters on.
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Clear Filters', 'ffcertificate' ),
-							'icon'  => 'eraser',
-							'href'  => $ffcertificate_base_url,
-							'class' => 'ffc-log-clear',
-						)
-					);
-				}
+				// Always printed and shown while a filter is set, so it works
+				// after a filter applied in place (#2340). `ffc-log-clear` is
+				// the hook ffc-admin-activity-log.js resets the filters on.
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Clear Filters', 'ffcertificate' ),
+						'icon'  => 'eraser',
+						'href'  => $ffcertificate_base_url,
+						'class' => 'ffc-log-clear',
+						'attrs' => $has_filters ? array() : array( 'hidden' => 'hidden' ),
+					)
+				);
 				?>
 			</form>
 		</div>
@@ -78,12 +94,24 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 			<form method="get" class="ffc-inline">
 				<input type="hidden" name="page" value="ffc-settings">
 				<input type="hidden" name="tab" value="activity_log">
-				<?php if ( $level ) : ?>
-					<input type="hidden" name="level" value="<?php echo esc_attr( $level ); ?>">
-				<?php endif; ?>
-				<?php if ( $action ) : ?>
-					<input type="hidden" name="log_action" value="<?php echo esc_attr( $action ); ?>">
-				<?php endif; ?>
+				<?php
+				// Without JavaScript the search keeps the other filters.
+				foreach (
+					array(
+						'level'      => $level,
+						'log_action' => $action,
+						'log_user'   => $log_user,
+						'date_from'  => $date_from,
+						'date_to'    => $date_to,
+					) as $ffcertificate_hidden_name => $ffcertificate_hidden_value
+				) :
+					if ( '' !== $ffcertificate_hidden_value ) :
+						?>
+						<input type="hidden" name="<?php echo esc_attr( $ffcertificate_hidden_name ); ?>" value="<?php echo esc_attr( $ffcertificate_hidden_value ); ?>">
+						<?php
+					endif;
+				endforeach;
+				?>
 				<label for="ffc-log-search" class="screen-reader-text"><?php esc_html_e( 'Search activity logs', 'ffcertificate' ); ?></label>
 				<input type="search" id="ffc-log-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search logs...', 'ffcertificate' ); ?>">
 				<?php
@@ -98,40 +126,32 @@ $ffcertificate_base_url = admin_url( 'admin.php?page=ffc-settings&tab=activity_l
 			</form>
 
 			<?php
-			// Batched CSV export (#772): the button drives the shared
-			// window.FFCBatchedExport engine through the unified dispatcher —
-			// current filters ride along via data-* so the export matches the
-			// on-screen query. No nonce link; the job nonce is localized.
-			?>
-			<?php
-			\FreeFormCertificate\Admin\AdminUI::render_button(
-				array(
-					'label' => __( 'Export CSV', 'ffcertificate' ),
-					'icon'  => 'download',
-					'id'    => 'ffc-activitylog-export-btn',
-					'attrs' => array(
-						'data-level'      => (string) $level,
-						'data-log_action' => (string) $action,
-						'data-s'          => (string) $search,
-					),
-				)
-			);
+			// Batched CSV export (#772). It takes the filters on screen when it
+			// is clicked, and only a holder of the export capability sees it
+			// (#2340).
+			if ( $can_export ) :
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Export CSV', 'ffcertificate' ),
+						'icon'  => 'download',
+						'id'    => 'ffc-activitylog-export-btn',
+					)
+				);
+			endif;
 			?>
 		</div>
+	</div>
+
+	<!-- Count and page reveal (#2340) -->
+	<div class="ffc-log-meta" <?php echo empty( $logs ) ? 'hidden' : ''; ?>>
+		<span class="ffc-log-count" aria-live="polite"><?php echo esc_html( \FreeFormCertificate\Admin\AdminActivityLogPage::count_text( (int) $total_logs ) ); ?></span>
+		<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( \FreeFormCertificate\Admin\AdminActivityLogPage::PII_CAP, false ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 	</div>
 
 	<!-- Logs Table -->
 	<div id="ffc-activity-log-table">
 	<?php if ( empty( $logs ) ) : ?>
-		<?php
-		// The empty state of the table, not page feedback: a callout that stays
-		// where the table would be (a `.notice` here is lifted to the top of
-		// the screen by core's common.js, #1843).
-		\FreeFormCertificate\Core\AdminNotice::callout(
-			'info',
-			esc_html__( 'No activity logs found.', 'ffcertificate' )
-		);
-		?>
+		<?php echo \FreeFormCertificate\Admin\AdminActivityLogPage::render_empty_html( $has_filters ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- callout_markup() and Button::html() escape every value. ?>
 	<?php else : ?>
 		<table class="wp-list-table widefat fixed striped">
 			<thead>

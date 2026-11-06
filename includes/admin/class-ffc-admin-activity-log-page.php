@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -118,39 +119,36 @@ class AdminActivityLogPage {
 			return;
 		}
 
-		// Get filter parameters.
-		$current_page = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
+		// The same filters the in-place refresh reads (#2340).
 		$per_page     = 50;
-		$level        = RequestInput::get_get_key( 'level' );
-		$action       = \FreeFormCertificate\Core\RequestInput::get_get_string( 'log_action' );
-		$search       = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-
-		// Get logs.
-		$args = array(
-			'limit'   => $per_page,
-			'offset'  => ( $current_page - 1 ) * $per_page,
-			'orderby' => 'created_at',
-			'order'   => 'DESC',
+		$args         = self::build_query_args(
+			array(
+				'level'      => RequestInput::get_get_key( 'level' ),
+				'log_action' => RequestInput::get_get_string( 'log_action' ),
+				'search'     => RequestInput::get_get_string( 's' ),
+				'user'       => RequestInput::get_get_string( 'log_user' ),
+				'date_from'  => RequestInput::get_get_string( 'date_from' ),
+				'date_to'    => RequestInput::get_get_string( 'date_to' ),
+				'paged'      => RequestInput::get_get_int( 'paged', 1 ),
+			),
+			$per_page
 		);
+		$current_page = (int) ( ( $args['offset'] / $per_page ) + 1 );
+		$level        = ArrayValue::string( $args, 'level' );
+		$action       = ArrayValue::string( $args, 'action' );
+		$search       = ArrayValue::string( $args, 'search' );
+		$log_user     = ArrayValue::string( $args, 'user_id' );
+		$date_from    = ArrayValue::string( $args, 'date_from' );
+		$date_to      = ArrayValue::string( $args, 'date_to' );
+		$has_filters  = self::has_filters( $args );
 
-		if ( $level ) {
-			$args['level'] = $level;
-		}
+		$logs       = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
+		$total_logs = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
 
-		if ( $action ) {
-			$args['action'] = $action;
-		}
-
-		if ( $search ) {
-			$args['search'] = $search;
-		}
-
-		$logs        = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
-		$total_logs  = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
-		$total_pages = ceil( $total_logs / $per_page );
-
-		// Get unique actions for filter.
-		$unique_actions = $this->get_unique_actions();
+		// The filter lists, each sorted by what the reader sees (#2340).
+		$unique_actions = self::sorted_actions( $this->get_unique_actions() );
+		$user_options   = self::user_options();
+		$can_export     = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_activity_log' );
 
 		// Render view.
 		$view_file = FFC_PLUGIN_DIR . 'includes/admin/views/ffc-admin-activity-log.php';
@@ -582,7 +580,107 @@ class AdminActivityLogPage {
 			$args['search'] = $search;
 		}
 
+		// The account that made the entry, or the system (#2340).
+		$user = isset( $params['user'] ) ? sanitize_key( (string) $params['user'] ) : '';
+		if ( \FreeFormCertificate\Core\ActivityLogQuery::USER_SYSTEM === $user ) {
+			$args['user_id'] = $user;
+		} elseif ( ctype_digit( $user ) && (int) $user > 0 ) {
+			$args['user_id'] = $user;
+		}
+
+		// A date range in the site's timezone; the end date takes in the
+		// whole of that day (#2340).
+		foreach ( array( 'date_from', 'date_to' ) as $bound ) {
+			$date = isset( $params[ $bound ] ) ? sanitize_text_field( (string) $params[ $bound ] ) : '';
+			if ( '' !== $date && \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) ) {
+				$args[ $bound ] = $date;
+			}
+		}
+
 		return $args;
+	}
+
+	/**
+	 * Whether a query narrows the log, so an empty answer means "no
+	 * matches" rather than "nothing recorded yet" (#2340).
+	 *
+	 * @param array<string, mixed> $args Query arguments from build_query_args().
+	 * @return bool
+	 */
+	public static function has_filters( array $args ): bool {
+		foreach ( array( 'level', 'action', 'search', 'user_id', 'date_from', 'date_to' ) as $key ) {
+			if ( '' !== ArrayValue::string( $args, $key ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The action filter's values, sorted by the label they are shown with.
+	 *
+	 * @param array<int, string> $actions Stored action names.
+	 * @return array<int, string>
+	 */
+	public static function sorted_actions( array $actions ): array {
+		return array_values( \FreeFormCertificate\Core\LabelSorter::sort( $actions, static fn( string $action ): string => self::get_action_label( $action ) ) );
+	}
+
+	/**
+	 * The user filter's options: the system first, then every account that
+	 * appears in the log, sorted by its label (#2340).
+	 *
+	 * @return array<int|string, string> Value => label; an account id key is an int, as PHP stores it.
+	 */
+	public static function user_options(): array {
+		$users = array();
+		foreach ( \FreeFormCertificate\Core\ActivityLogQuery::distinct_users() as $user_id ) {
+			$user = get_userdata( $user_id );
+			/* translators: %d: user ID */
+			$users[ (string) $user_id ] = $user ? sprintf( '%1$s (%2$s)', $user->display_name, $user->user_login ) : sprintf( __( 'User #%d (deleted)', 'ffcertificate' ), $user_id );
+		}
+		$users = \FreeFormCertificate\Core\LabelSorter::sort( $users, static fn( string $label ): string => $label );
+
+		return array( \FreeFormCertificate\Core\ActivityLogQuery::USER_SYSTEM => __( 'System / Anonymous', 'ffcertificate' ) ) + $users;
+	}
+
+	/**
+	 * The table's empty state: no entry matches the filters, or nothing has
+	 * been recorded yet (#2340). An in-content callout, not a core notice,
+	 * which common.js would lift out of the table container (#1843).
+	 *
+	 * @param bool $has_filters Whether the query was filtered.
+	 * @return string Escaped HTML.
+	 */
+	public static function render_empty_html( bool $has_filters ): string {
+		if ( ! $has_filters ) {
+			return \FreeFormCertificate\Core\AdminNotice::callout_markup(
+				'info',
+				esc_html__( 'Nothing has been recorded yet. Entries appear here as soon as an audited action happens.', 'ffcertificate' )
+			);
+		}
+		return \FreeFormCertificate\Core\AdminNotice::callout_markup(
+			'info',
+			esc_html__( 'No entries match these filters.', 'ffcertificate' ) . ' ' . \FreeFormCertificate\Core\Button::html(
+				array(
+					'label' => __( 'Clear Filters', 'ffcertificate' ),
+					'icon'  => 'eraser',
+					'href'  => admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ),
+					'class' => 'ffc-log-clear',
+				)
+			)
+		);
+	}
+
+	/**
+	 * How many entries the filters match, for the line above the table.
+	 *
+	 * @param int $total Entries matched.
+	 * @return string Plain text.
+	 */
+	public static function count_text( int $total ): string {
+		/* translators: %s: number of entries */
+		return sprintf( _n( '%s entry', '%s entries', $total, 'ffcertificate' ), number_format_i18n( $total ) );
 	}
 
 	/**
