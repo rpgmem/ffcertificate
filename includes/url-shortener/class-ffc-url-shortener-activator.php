@@ -221,6 +221,9 @@ class UrlShortenerActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
+		// Schema steps added between releases heal on their own revision (#2337).
+		self::maybe_heal_schema();
+
 		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_url_shortener_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
@@ -229,18 +232,61 @@ class UrlShortenerActivator {
 
 		$table_name = self::get_table_name();
 
-		// Creates whichever table is missing, the retired codes one included.
-		self::create_tables();
+		if ( ! self::table_exists( $table_name ) ) {
+			self::create_tables();
+		}
 
 		// Add qr_cache column for QR code caching (avoids regeneration on every admin load).
 		self::add_column_if_missing( $table_name, 'qr_cache', 'LONGTEXT NULL', 'status' );
 
+		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
+	 * Revision of the steps {@see self::maybe_heal_schema()} applies. Bump it in
+	 * the PR that adds one.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_url_shortener_schema_revision';
+
+	/**
+	 * Apply the schema steps added between releases (#2337).
+	 *
+	 * The `FFC_VERSION` gate above moves only at a release, and `develop`
+	 * keeps the released version for a whole batch, so a step merged there
+	 * waited for the next release before reaching the testes site: the
+	 * post-deploy smoke reported `ffc_short_url_retired` missing. This gate
+	 * is the module's own revision, as the audience (#1918) and
+	 * self-scheduling (#2405) modules have. The option is written only once
+	 * the retired codes table exists, so a failed step is tried again on the
+	 * next request.
+	 *
+	 * @return void
+	 */
+	private static function maybe_heal_schema(): void {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
+			return;
+		}
+
+		// Creates whichever table is missing, the retired codes one included.
+		self::create_tables();
+
 		// Case counts in a code (#2337).
-		self::ensure_case_sensitive_codes( $table_name );
+		self::ensure_case_sensitive_codes( self::get_table_name() );
 		self::ensure_case_sensitive_codes( self::get_retired_table_name() );
 
 		self::migrate_permanent_redirects();
 
-		update_option( $ffc_schema_option, FFC_VERSION );
+		if ( self::table_exists( self::get_retired_table_name() ) ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
 	}
 }
