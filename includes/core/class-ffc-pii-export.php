@@ -80,17 +80,22 @@ final class PiiExport {
 	 * Record an export that carried personal data in clear. Nothing is
 	 * written for a masked one: it disclosed nothing.
 	 *
-	 * @param string $export Export type (the source's `type()`).
-	 * @param int    $rows   Rows written.
+	 * @param string               $export Export type (the source's `type()`).
+	 * @param int                  $rows   Rows written.
+	 * @param array<string, mixed> $extra  Further context, such as the form a
+	 *                                     public download came from (#2341).
 	 * @return void
 	 */
-	public static function log( string $export, int $rows ): void {
+	public static function log( string $export, int $rows, array $extra = array() ): void {
 		ActivityLog::log(
 			'pii_exported',
 			ActivityLog::LEVEL_INFO,
-			array(
-				'export' => $export,
-				'rows'   => $rows,
+			array_merge(
+				$extra,
+				array(
+					'export' => $export,
+					'rows'   => $rows,
+				)
 			),
 			get_current_user_id(),
 			0

@@ -24,6 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'When enabled, each form gets its own secret hash. The operator opens a page carrying the', 'ffcertificate' ); ?> <code>[ffc_csv_download]</code> <?php esc_html_e( 'shortcode with the form id and hash in the query string:', 'ffcertificate' ); ?></p>
 	<pre><code>https://example.com/operator-page/?form_id=123&amp;hash=&lt;secret&gt;</code></pre>
 	<p><?php esc_html_e( 'The hash is the only credential — treat the link as a password. Set the base page under Settings → General ("CSV Download Page URL") so the editor shows the full link instead of just the query string. The hash is generated the moment Public Operator Access is switched on, and is deliberately NOT copied when a form is duplicated. Two buttons act at once, without saving the form: "Regenerate hash" (the link already shared stops working) and "Reset counter" (the download counter goes back to zero).', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The page takes the hash out of the address bar once it has read it, so it does not stay in the browser history or show on a shared screen; a link that posts the form ID and the hash works too. The CSV carries CPF, e-mail and RF in clear, so every download is recorded in the activity log as an access to personal data, naming the form.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'What the operator can do', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Each capability is an independent per-form toggle:', 'ffcertificate' ); ?></p>

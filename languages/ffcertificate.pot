@@ -7193,6 +7193,10 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/forms-public-operator-access.php:27
+msgid "The page takes the hash out of the address bar once it has read it, so it does not stay in the browser history or show on a shared screen; a link that posts the form ID and the hash works too. The CSV carries CPF, e-mail and RF in clear, so every download is recorded in the activity log as an access to personal data, naming the form."
+msgstr ""
+
 #: includes/settings/views/documentation/forms-public-operator-access.php:47
 msgid "A download of the quota is spent only when the file is delivered: a refused request, a CSV too large for the download without JavaScript and an export with no records cost nothing."
 msgstr ""

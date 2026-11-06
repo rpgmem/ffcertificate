@@ -573,6 +573,22 @@ class PublicCsvDownloadTest extends TestCase {
 		$this->assertStringContainsString( 'prefilledhash', $html );
 	}
 
+	/**
+	 * #2341 — a link can post the form and the hash, so the hash never
+	 * enters the address bar or a server log.
+	 */
+	public function test_render_shortcode_prefills_form_id_and_hash_from_a_post(): void {
+		unset( $_GET['form_id'], $_GET['hash'] );
+		$_POST['form_id'] = '123';
+		$_POST['hash']    = 'postedhash';
+
+		$html = $this->handler->render_shortcode( array() );
+
+		unset( $_POST['form_id'], $_POST['hash'] );
+		$this->assertStringContainsString( 'value="123"', $html );
+		$this->assertStringContainsString( 'postedhash', $html );
+	}
+
 	public function test_render_shortcode_uses_custom_title(): void {
 		unset( $_GET['form_id'], $_GET['hash'] );
 
@@ -805,6 +821,10 @@ class PublicCsvDownloadTest extends TestCase {
 		Functions\when( 'metadata_exists' )->alias( fn( $type, $post, $key ) => isset( $this->meta_store[ (int) $post . ':' . $key ] ) );
 		Functions\when( 'add_post_meta' )->justReturn( false );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		// A delivery writes its PII-access entry as an anonymous caller.
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
 	}
 
 	public function test_handle_request_increments_counter_before_streaming(): void {
@@ -827,6 +847,14 @@ class PublicCsvDownloadTest extends TestCase {
 
 		$this->assertSame( 3, $this->meta_store['42:_ffc_csv_public_count'] );
 		$this->assertArrayNotHasKey( '42:_ffc_csv_public_count', $this->meta_updates, 'The count moves in one statement, never by read-then-write.' );
+
+		// The delivery carries personal data in clear: a PII-access entry
+		// naming the form (#2341), when the log is on.
+		$actions = array_column( \FreeFormCertificate\Tests\Support\ActivityLogBuffer::entries(), 'action' );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		if ( array() !== $actions ) {
+			$this->assertContains( 'pii_exported', $actions );
+		}
 	}
 
 	/**

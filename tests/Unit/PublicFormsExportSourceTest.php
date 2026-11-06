@@ -809,10 +809,29 @@ class PublicFormsExportSourceTest extends TestCase {
 	public function test_on_before_download_writes_delivery_audit_row(): void {
 		$this->post_types[ self::FORM ]                                    = 'ffc_form';
 		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_CPF_MODE ] = 'voluntary';
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $fallback
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
 		$this->source->on_before_download(
-			array( 'form_id' => self::FORM, 'cpf_digits' => Identifiers::CPF_A )
+			array(
+				'form_id'    => self::FORM,
+				'cpf_digits' => Identifiers::CPF_A,
+				'processed'  => 12,
+			)
 		);
+
+		// The file carries personal data in clear: a PII-access entry (#2341).
+		$contexts = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$exported = array_values( array_filter( $contexts, static fn( $row ) => 'pii_exported' === $row['action'] ) );
+		$this->assertCount( 1, $exported );
+		$this->assertSame( 'public_csv', $exported[0]['context']['export'] );
+		$this->assertSame( 12, $exported[0]['context']['rows'] );
+		$this->assertSame( self::FORM, $exported[0]['context']['form_id'] );
 
 		$log = $this->audit_log();
 		$this->assertCount( 1, $log );
