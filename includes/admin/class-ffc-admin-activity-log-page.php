@@ -229,6 +229,9 @@ class AdminActivityLogPage {
 			'data_accessed'                                => __( 'Data Accessed', 'ffcertificate' ),
 			'access_denied'                                => __( 'Access Denied', 'ffcertificate' ),
 			'settings_changed'                             => __( 'Settings Changed', 'ffcertificate' ),
+			// Role editor (#2340).
+			'role_capability_changed'                      => __( 'Role Capability Changed', 'ffcertificate' ),
+			'role_default_restored'                        => __( 'Role Default Restored', 'ffcertificate' ),
 			// Public Operator Access (#224) — early-open + ticket cleanup.
 			'early_open_executed'                          => __( 'Form Started Early', 'ffcertificate' ),
 			'tickets_purged_expired'                       => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),

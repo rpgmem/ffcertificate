@@ -444,6 +444,33 @@ class RoleRegistrarTest extends TestCase {
 		$this->assertSame( array(), $stored );
 	}
 
+	public function test_clear_overrides_forgets_one_role_only(): void {
+		$stored = array(
+			'ffc_a' => array( 'added' => array( 'x' ), 'removed' => array() ),
+			'ffc_b' => array( 'added' => array(), 'removed' => array( 'y' ) ),
+		);
+		$writes = 0;
+		Functions\when( 'get_option' )->alias(
+			static function () use ( &$stored ) {
+				return $stored;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$stored, &$writes ) {
+				$stored = $value;
+				++$writes;
+				return true;
+			}
+		);
+
+		RoleRegistrar::clear_overrides( 'ffc_a' );
+		$this->assertSame( array( 'ffc_b' ), array_keys( $stored ) );
+
+		// A role with nothing recorded writes nothing.
+		RoleRegistrar::clear_overrides( 'ffc_c' );
+		$this->assertSame( 1, $writes );
+	}
+
 	public function test_overrides_drop_a_malformed_option(): void {
 		Functions\when( 'get_option' )->justReturn( 'garbage' );
 		$this->assertSame( array(), RoleRegistrar::overrides() );

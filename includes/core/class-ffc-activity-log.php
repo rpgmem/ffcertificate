@@ -134,6 +134,10 @@ class ActivityLog {
 			'csv_downloaded'                     => 'public_access',
 
 			'capabilities_granted'               => 'users',
+			// A role's capabilities edited, or put back to the shipped
+			// definition, in the role editor (#2340).
+			'role_capability_changed'            => 'users',
+			'role_default_restored'              => 'users',
 			'password_changed'                   => 'users',
 			'profile_updated'                    => 'users',
 			'user_profile_read_full'             => 'users',

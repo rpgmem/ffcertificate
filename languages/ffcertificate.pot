@@ -7197,6 +7197,58 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/admin/class-ffc-role-capability-editor.php:104
+msgid "Added to default"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:105
+msgid "Removed from default"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:107
+msgid "%1$d added, %2$d removed."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:109
+msgid "%1$s goes back to the plugin's definition (users holding it: %2$d):"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:111
+msgid "%s comes back"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:113
+msgid "%s is removed"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:116
+msgid "Restore the default capabilities?"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:117
+msgid "Recorded in the activity log."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:265
+msgid "This role differs from its default:"
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:265
+msgid "These changes stay when the plugin updates."
+msgstr ""
+
+#: includes/admin/class-ffc-role-capability-editor.php:268
+msgid "Restore role default"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:233
+msgid "Role Capability Changed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:234
+msgid "Role Default Restored"
+msgstr ""
+
 #: includes/settings/views/documentation/feature-url-shortener.php
 msgid "when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink, and so does a later save while it has none. Opening the editor never creates one."
 msgstr ""
@@ -23505,7 +23557,7 @@ msgstr ""
 msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
 msgstr ""
 
-msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries. A capability added or removed there stays that way across requests and plugin updates."
+msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries. A capability added or removed there stays that way across requests and plugin updates. A role that differs from its default says so, tags each changed capability and offers Restore role default, which puts the plugin's definition back after asking; every change and every restore is recorded in the activity log."
 msgstr ""
 
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."

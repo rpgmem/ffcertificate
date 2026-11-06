@@ -93,6 +93,22 @@ class RoleRegistrar {
 	}
 
 	/**
+	 * Forget the operator's changes to one role, as "Restore role default"
+	 * does once it has put the shipped definition back.
+	 *
+	 * @param string $slug Role slug.
+	 * @return void
+	 */
+	public static function clear_overrides( string $slug ): void {
+		$all = self::overrides();
+		if ( ! isset( $all[ $slug ] ) ) {
+			return;
+		}
+		unset( $all[ $slug ] );
+		update_option( self::OVERRIDES_OPTION, $all );
+	}
+
+	/**
 	 * Whether the operator removed a capability from a role in the editor.
 	 *
 	 * @param string $slug Role slug.

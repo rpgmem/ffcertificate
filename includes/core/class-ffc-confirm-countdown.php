@@ -28,4 +28,10 @@ final class ConfirmCountdown {
 	 * Seconds a confirm button stays disabled.
 	 */
 	public const SECONDS = 15;
+
+	/**
+	 * No countdown, for a confirmation whose change can be redone by hand
+	 * and deletes nothing, such as restoring a role's default (#2340).
+	 */
+	public const NONE = 0;
 }

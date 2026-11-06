@@ -470,6 +470,49 @@
 	max-width: 320px;
 }
 
+/* A role that differs from its shipped definition (#2340). */
+.ffc-role-diff {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	align-items: center;
+	justify-content: space-between;
+	margin: var(--ffc-spacing-lg) var(--ffc-spacing-xl) 0;
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	border-left: 4px solid var(--ffc-warning-border);
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-text);
+}
+
+.ffc-role-diff p {
+	margin: 0;
+}
+
+.ffc-role-cap-side {
+	display: flex;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+	align-self: center;
+}
+
+.ffc-role-diff-tag {
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+	border-radius: var(--ffc-radius-pill);
+	font-size: var(--ffc-font-size-2xs);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.ffc-role-diff-tag--added {
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-role-diff-tag--removed {
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+}
+
 .ffc-cap-savestate {
 	align-self: center;
 	min-width: 48px;
@@ -607,7 +650,9 @@
     .ffc-cap-badge-surface--admin,
     .ffc-cap-badge-surface--api,
     .ffc-cap-badge-surface--frontend,
-    .ffc-cap-chip--muted {
+    .ffc-cap-chip--muted,
+    .ffc-role-diff-tag--added,
+    .ffc-role-diff-tag--removed {
         border: 1px solid CanvasText;
     }
 }
