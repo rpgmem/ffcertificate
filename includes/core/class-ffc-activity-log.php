@@ -857,8 +857,11 @@ class ActivityLog {
 			'capabilities_granted',
 			self::LEVEL_INFO,
 			array(
-				'context'      => $context,
-				'capabilities' => $capabilities,
+				'context'        => $context,
+				'capabilities'   => $capabilities,
+				// The account that received them; the row's user is who
+				// granted them, or 0 for a grant no one made by hand (#2340).
+				'target_user_id' => $user_id,
 			),
 			get_current_user_id() > 0 ? get_current_user_id() : 0,
 			0

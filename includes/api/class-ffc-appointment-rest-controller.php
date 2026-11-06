@@ -321,9 +321,14 @@ class AppointmentRestController {
 				\FreeFormCertificate\Core\ActivityLog::log(
 					'appointment_pii_revealed',
 					\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-					array( 'field_key' => 'rest_api' ),
+					array(
+						'field_key'   => 'rest_api',
+						'record_type' => 'appointment',
+						'record_id'   => (int) $appointment['id'],
+					),
 					get_current_user_id(),
-					(int) $appointment['id']
+					// `submission_id` names a submission (#2340).
+					0
 				);
 			} elseif ( \FreeFormCertificate\Core\PiiAccessPolicy::TIER_UNMASKED !== $tier ) {
 				$email_display = \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $email_display );

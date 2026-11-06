@@ -340,7 +340,17 @@ class AdminAjaxTest extends TestCase {
 	 * @param int                  $user_id   Expected actor.
 	 * @param int                  $object_id Expected record id.
 	 */
-	private function assertAuditedOnce( string $action, array $context, int $user_id, int $object_id ): void {
+	private function assertAuditedOnce( string $action, array $context, int $user_id, int $object_id, string $type = 'submission' ): void {
+		// The record is named by type and id in the context (#2340); the
+		// `submission_id` column carries it only when it is a submission.
+		if ( 'page' === ( $context['field_key'] ?? '' ) ) {
+			$context = array_merge( array( 'field_key' => 'page', 'record_type' => $type ), $context );
+		} else {
+			$context += array(
+				'record_type' => $type,
+				'record_id'   => $object_id,
+			);
+		}
 		$entries = ActivityLogBuffer::entries();
 		$this->assertCount( 1, $entries, 'Exactly one audit row.' );
 		$this->assertSame(
@@ -352,7 +362,7 @@ class AdminAjaxTest extends TestCase {
 			ActivityLogBuffer::contexts()[0]
 		);
 		$this->assertSame( $user_id, $entries[0]['user_id'] );
-		$this->assertSame( $object_id, $entries[0]['submission_id'] );
+		$this->assertSame( 'submission' === $type && 'page' !== $context['field_key'] ? $object_id : 0, $entries[0]['submission_id'] );
 	}
 
 	/**
@@ -689,7 +699,7 @@ class AdminAjaxTest extends TestCase {
 			),
 			$this->reveal()
 		);
-		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 7 );
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 7, 'appointment' );
 	}
 
 	public function test_reveal_pii_appointment_unmasked_tier_returns_value_and_audits(): void {
@@ -713,7 +723,7 @@ class AdminAjaxTest extends TestCase {
 			),
 			$this->reveal()
 		);
-		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'email' ), 3, 7 );
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'email' ), 3, 7, 'appointment' );
 	}
 
 	public function test_reveal_pii_appointment_masked_tier_denied(): void {
@@ -758,7 +768,7 @@ class AdminAjaxTest extends TestCase {
 			$this->reveal()
 		);
 		$this->assertSame( array( 'ffc_view_reregistration_pii' ), array_values( array_diff( $this->policy_checks, array( 'manage_options' ) ) ) );
-		$this->assertAuditedOnce( 'reregistration_pii_revealed', array( 'field_key' => 'email' ), self::VIEWER, 11 );
+		$this->assertAuditedOnce( 'reregistration_pii_revealed', array( 'field_key' => 'email' ), self::VIEWER, 11, 'reregistration' );
 		$this->assertOwnerTierFor( 3 );
 	}
 
@@ -909,7 +919,7 @@ class AdminAjaxTest extends TestCase {
 		);
 		$this->assertSame( 1, count( array_keys( $this->cap_checks, 'ffc_view_audiences', true ) ), 'The surface cap is checked once.' );
 		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'audience_account_email_revealed', array( 'field_key' => 'email' ), self::VIEWER, 7 );
+		$this->assertAuditedOnce( 'audience_account_email_revealed', array( 'field_key' => 'email' ), self::VIEWER, 7, 'audience_account' );
 		$this->assertOwnerTierFor( 7 );
 	}
 
@@ -978,7 +988,7 @@ class AdminAjaxTest extends TestCase {
 		$this->assertSame( 1, count( array_keys( $this->cap_checks, $surface, true ) ), 'The surface cap is checked once.' );
 		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
 		$this->assertStringContainsString( "FROM {$table} WHERE id = 31", $this->queries[0] );
-		$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31 );
+		$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31, $type );
 
 		// A log line has no owner, so the owner tier can never apply: even
 		// the account whose id equals the entry's goes through the capability.
@@ -1228,7 +1238,7 @@ class AdminAjaxTest extends TestCase {
 			$this->reveal()
 		);
 		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'user_profile_pii_revealed', array( 'field_key' => 'cf_3' ), self::VIEWER, 12 );
+		$this->assertAuditedOnce( 'user_profile_pii_revealed', array( 'field_key' => 'cf_3' ), self::VIEWER, 12, 'user_profile' );
 		$this->editable_users[] = 12;
 		$this->assertOwnerTierFor( 12 );
 	}
@@ -1261,7 +1271,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->assertSame( 'Maria da Silva', $this->reveal()['value'] );
 		$this->assertContains( 'ffc_view_date_messages_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'date_messages_pii_revealed', array( 'field_key' => 'name' ), self::VIEWER, 15 );
+		$this->assertAuditedOnce( 'date_messages_pii_revealed', array( 'field_key' => 'name' ), self::VIEWER, 15, 'date_messages_person' );
 		$this->assertOwnerTierFor( 15 );
 	}
 
