@@ -564,11 +564,7 @@ class SelfSchedulingShortcode {
 	 * @param string $reason Short description for debugging.
 	 */
 	private static function send_nocache_headers( string $reason ): void {
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		nocache_headers();
-		do_action( 'litespeed_control_set_nocache', 'FFC ' . $reason );
+		\FreeFormCertificate\Core\NoCache::send( $reason );
 	}
 
 	/**

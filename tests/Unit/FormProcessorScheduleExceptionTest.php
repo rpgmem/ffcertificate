@@ -291,6 +291,20 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 	// ==================================================================
 
 	/**
+	 * Point the consumed-exception ledger read at a wpdb that answers it
+	 * (#2341): the ledger is read from the options table, not the cache.
+	 *
+	 * @param bool $consumed Whether the ledger holds the token.
+	 */
+	private function ledger_wpdb( bool $consumed ): void {
+		global $wpdb;
+		$wpdb          = Mockery::mock( 'wpdb' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( $consumed ? '1' : null );
+	}
+
+	/**
 	 * @param array<string, mixed> $payload
 	 * @return array<string, mixed>|null
 	 */
@@ -304,6 +318,7 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 
 	public function test_live_payload_returns_payload_for_a_fresh_valid_token(): void {
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		$this->ledger_wpdb( false );
 		$token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::sign_token( $this->full_payload() );
 
 		$live = $this->invoke_live( $token, 42 );
@@ -313,9 +328,9 @@ class FormProcessorScheduleExceptionTest extends TestCase {
 	}
 
 	public function test_live_payload_null_when_jti_already_consumed(): void {
-		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ? '1' : $default
-		);
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+		// The cache would say "not spent"; the table says spent.
+		$this->ledger_wpdb( true );
 		$token = \FreeFormCertificate\Frontend\ScheduleExceptionSession::sign_token( $this->full_payload() );
 
 		$this->assertNull( $this->invoke_live( $token, 42 ) );

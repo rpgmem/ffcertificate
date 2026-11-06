@@ -62,6 +62,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class ScheduleExceptionSession {
 
 	/**
+	 * The start of every exception cookie's name; the form id follows.
+	 */
+	public const COOKIE_PREFIX = 'ffc_exception_';
+
+
+	/**
 	 * Token-format version. Bump if the payload shape changes so old
 	 * tokens fail verification cleanly instead of silently mis-parsing.
 	 */
@@ -98,7 +104,7 @@ class ScheduleExceptionSession {
 	 * @return string
 	 */
 	public static function cookie_name( int $form_id ): string {
-		return 'ffc_exception_' . $form_id;
+		return self::COOKIE_PREFIX . $form_id;
 	}
 
 	/**
@@ -153,17 +159,7 @@ class ScheduleExceptionSession {
 
 		$token = self::sign_token( $payload );
 
-		setcookie(
-			self::cookie_name( $form_id ),
-			$token,
-			array(
-				'expires'  => $payload['exp'],
-				'path'     => '/',
-				'secure'   => is_ssl(),
-				'httponly' => true,
-				'samesite' => 'Lax',
-			)
-		);
+		self::send_cookie( self::cookie_name( $form_id ), $token, $payload['exp'] );
 
 		return $token;
 	}
@@ -208,19 +204,52 @@ class ScheduleExceptionSession {
 	 * @return void
 	 */
 	public static function clear( int $form_id ): void {
+		self::send_cookie( self::cookie_name( $form_id ), '', time() - self::TTL_SECONDS );
+
+		unset( $_COOKIE[ self::cookie_name( $form_id ) ] );
+	}
+
+	/**
+	 * Send the cookie, once it can still be sent (#2341).
+	 *
+	 * After output has begun, `setcookie()` changes nothing and raises a
+	 * warning, which is what clearing a spent exception from a shortcode's
+	 * render did; the consumed ledger is what stops a spent token there.
+	 *
+	 * It is `Secure` when the request is HTTPS or the site's address is:
+	 * behind a TLS-terminating proxy `is_ssl()` reads the plain hop to the
+	 * proxy, while the visitor is on HTTPS.
+	 *
+	 * @param string $name    Cookie name.
+	 * @param string $value   Cookie value ('' to clear).
+	 * @param int    $expires Expiry, unix seconds.
+	 * @return void
+	 */
+	private static function send_cookie( string $name, string $value, int $expires ): void {
+		if ( headers_sent() ) {
+			return;
+		}
 		setcookie(
-			self::cookie_name( $form_id ),
-			'',
+			$name,
+			$value,
 			array(
-				'expires'  => time() - self::TTL_SECONDS,
+				'expires'  => $expires,
 				'path'     => '/',
-				'secure'   => is_ssl(),
+				'secure'   => self::cookie_secure(),
 				'httponly' => true,
 				'samesite' => 'Lax',
 			)
 		);
+	}
 
-		unset( $_COOKIE[ self::cookie_name( $form_id ) ] );
+	/**
+	 * Whether the cookie must be `Secure`: the request is HTTPS, or the
+	 * site's address is.
+	 *
+	 * @return bool
+	 */
+	private static function cookie_secure(): bool {
+		return is_ssl() || 'https' === wp_parse_url( home_url(), PHP_URL_SCHEME );
 	}
 
 	/**
@@ -270,7 +299,19 @@ class ScheduleExceptionSession {
 		if ( '' === $jti ) {
 			return false;
 		}
-		return false !== get_option( self::CONSUMED_OPTION_PREFIX . $jti, false );
+		// The ledger row is written with a raw INSERT (see try_consume_jti()),
+		// which the options cache never hears of: with an object cache, a
+		// `notoptions` entry from an earlier read would keep answering "not
+		// spent" (#2341). So the row is read, not the cache.
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the cache is exactly what must not answer here; see above.
+		$found = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT 1 FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+				self::CONSUMED_OPTION_PREFIX . $jti
+			)
+		);
+		return null !== $found;
 	}
 
 	/**

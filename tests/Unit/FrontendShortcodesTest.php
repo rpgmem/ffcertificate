@@ -21,6 +21,12 @@ class FrontendShortcodesTest extends TestCase {
 
 	private Shortcodes $shortcodes;
 
+	/** @var bool Whether the consumed-exception ledger holds every token (#2341). */
+	private bool $ledger_consumed = false;
+
+	/** @var mixed The `$wpdb` before the test, restored after it. */
+	private $previous_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -65,6 +71,18 @@ class FrontendShortcodesTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
 		Functions\when( 'is_ssl' )->justReturn( false );
 		Functions\when( 'setcookie' )->justReturn( true );
+		Functions\when( 'headers_sent' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'http://example.test' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( $url, $part ) );
+		// The consumed-exception ledger is read from the options table, not
+		// the options cache (#2341).
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		$this->ledger_consumed = false;
+		$wpdb                  = \Mockery::mock( 'wpdb' );
+		$wpdb->options         = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => vsprintf( str_replace( '%s', "'%s'", (string) $sql ), $args ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $sql ) => $this->ledger_consumed && false !== strpos( (string) $sql, 'ffc_sched_exc_used_' ) ? '1' : null );
+		$GLOBALS['wpdb'] = $wpdb;
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		// render_form() now reads RateLimiter::get_settings() unconditionally
 		// (to decide the LGPD device notice in the global-ON + form-OFF gap),
@@ -84,6 +102,7 @@ class FrontendShortcodesTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		unset( $_GET['token'], $_GET['ffc_invite'] );
 		$_COOKIE = array();
 		$this->reset_rate_limit_cache();
@@ -869,14 +888,7 @@ class FrontendShortcodesTest extends TestCase {
 		$_COOKIE['ffc_exception_42'] = $token;
 
 		// Force the ledger to report ANY consumed-marker lookup as present.
-		Functions\when( 'get_option' )->alias(
-			function ( $key, $default = false ) {
-				if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
-					return '1'; // marker present → consumed.
-				}
-				return array();
-			}
-		);
+		$this->ledger_consumed = true;
 
 		$html = $this->render_form_with();
 

@@ -252,12 +252,20 @@ class BatchedCsvExport {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streams the export temp file straight to the browser; WP_Filesystem reads the whole file into memory, which defeats the point of a batched export.
-		readfile( $file );
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the export temp file this class created, immediately after streaming it.
-		unlink( $file );
-		delete_transient( $this->transient_prefix . $job_id );
+		// The file holds decrypted personal data: it goes even when the client
+		// drops mid-stream (#2341). PHP stops a script whose client aborted
+		// at its next write, so the delete would never be reached; ignoring
+		// the abort lets the stream finish, and `finally` runs the delete
+		// whatever readfile() does.
+		ignore_user_abort( true );
+		try {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Streams the export temp file straight to the browser; WP_Filesystem reads the whole file into memory, which defeats the point of a batched export.
+			readfile( $file );
+		} finally {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Deletes the export temp file this class created, immediately after streaming it.
+			unlink( $file );
+			delete_transient( $this->transient_prefix . $job_id );
+		}
 
 		exit;
 	}

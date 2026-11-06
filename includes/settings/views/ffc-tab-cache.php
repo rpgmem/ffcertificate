@@ -68,7 +68,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				<td>
 					<span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
 					<p class="description">
-						<?php esc_html_e( 'Pages with [user_dashboard_personal] are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Pages with [user_dashboard_personal], and a form page opened with a schedule exception or an invitation link, are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>

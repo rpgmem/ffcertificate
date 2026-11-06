@@ -12877,8 +12877,8 @@ msgid "Page {current} of {total}"
 msgstr "Página {current} de {total}"
 
 #: includes/settings/views/ffc-tab-cache.php:71
-msgid "Pages with [user_dashboard_personal] are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks."
-msgstr "As páginas com [user_dashboard_personal] são automaticamente excluídas do cache de páginas por meio da constante DONOTCACHEPAGE, cabeçalhos no-cache e hooks específicos do LiteSpeed."
+msgid "Pages with [user_dashboard_personal], and a form page opened with a schedule exception or an invitation link, are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks."
+msgstr "As páginas com [user_dashboard_personal], e a página de um formulário aberta com uma exceção de horário ou um link de convite, são automaticamente excluídas do cache de páginas por meio da constante DONOTCACHEPAGE, cabeçalhos no-cache e hooks específicos do LiteSpeed."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:106
 msgid "paginated list (use"

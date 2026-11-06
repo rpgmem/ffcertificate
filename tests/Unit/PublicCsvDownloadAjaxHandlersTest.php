@@ -107,6 +107,9 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		// The exception cookie is sent while headers can still go out (#2341).
+		Functions\when( 'headers_sent' )->justReturn( false );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( $url, $part ) );
 		// The screen's read pool counts an anonymous caller (#2341).
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_kses_post' )->returnArg();
