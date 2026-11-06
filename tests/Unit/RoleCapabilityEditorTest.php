@@ -201,7 +201,7 @@ class RoleCapabilityEditorTest extends TestCase {
 		}
 		Functions\when( 'get_option' )->alias(
 			fn( $key, $default = false ) => 'ffc_settings' === $key
-				? ( $log ? array( 'enable_activity_log' => 1 ) : array() )
+				? ( $log ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : array() )
 				: ( \FreeFormCertificate\UserDashboard\RoleRegistrar::OVERRIDES_OPTION === $key ? $this->overrides : $default )
 		);
 		Functions\when( 'update_option' )->alias(

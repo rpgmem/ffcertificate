@@ -117,7 +117,8 @@ class SettingsAjaxEndpointTest extends TestCase {
 			$this->assertSame( 'ffc_manage_settings_dangerzone', $list[ $key ]['cap'], $key );
 		}
 		$this->assertContains( 'cleanup_days', SettingsAjaxEndpoint::dangerzone_settings() );
-		$this->assertContains( 'activity_log_cat_users', SettingsAjaxEndpoint::dangerzone_settings() );
+		$this->assertContains( 'activity_log_item_pii_reveal', SettingsAjaxEndpoint::dangerzone_settings(), 'An audit item needs the Danger Zone.' );
+		$this->assertNotContains( 'activity_log_item_cert_submissions', SettingsAjaxEndpoint::dangerzone_settings(), 'A secondary item does not.' );
 	}
 
 	public function test_bypass_for_admins_requires_manage_options(): void {

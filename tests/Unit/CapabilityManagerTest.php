@@ -22,6 +22,9 @@ class CapabilityManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -58,6 +61,7 @@ class CapabilityManagerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

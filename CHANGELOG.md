@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Roles: the role editor shows how a role differs from its default and can restore it** (#2340). A bar and a tag per capability name what was added or removed; Restore role default puts the plugin's definition back after a confirmation, and every role edit and restore is recorded in the Activity Log.
 - **Users: changing someone's WordPress role on their profile asks whether their FFC roles stay** (#2340). Keep is the default; Remove FFC roles takes them off on Update User, FFC End User excepted, and is recorded in the Activity Log.
 - **Activity Log: a user's FFC roles, capabilities and audiences changed on their profile are recorded** (#2340). Each entry names who made the change, the account and what was added or removed; a save that changes nothing writes nothing.
+- **Activity Log: a change to a setting that deletes or suppresses data is recorded** (#2340): auto-delete, the uninstall wipe, the log's switch, retention and audit items. Switching the log off is recorded before it takes effect. While the log is off its items are greyed out.
 
 ### Changed
 
@@ -59,6 +60,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings: the section list takes the arrow keys, Home and End, and several texts tell the truth** (#2338). The arrows skip the "Go to" links; switch rows name their control; the Cache tab no longer says rate-limit counters reset without Redis; Clear QR cache is a caution action; the Advanced topic points to Certificates → Required data.
 - **Settings: the Scheduled Tasks save redirects, identity findings you accepted no longer fill the page, and every read key has a declared default** (#2338). The times save on `admin_init` and the result shows once; each identity check fetches its cap plus its acceptances; table probes escape `_`; the bulk-issue purge is listed as always on, since it expires staged personal data.
 - ⚠ **Roles: `ffc_administrator` is given to an administrator once, and the capability migrations run only in wp-admin, cron or WP-CLI, one request at a time** (#2340). Taking the role off an administrator now holds; each migration reads only the accounts that hold the names it acts on, not every end user.
+- ⚠ **The Activity Log is on by default, with audit items that are always recorded** (#2340). The categories became items: access to personal data, the Danger Zone and permissions are on at any level and switch off only with the Danger Zone capability; the rest is off. On update the log turns on and each category passes its state on.
 
 ### Security
 

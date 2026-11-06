@@ -287,7 +287,7 @@ class AdminActivityLogPageTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_page_includes_view_when_enabled(): void {
-		$this->stub_settings(array('enable_activity_log' => 1));
+		$this->stub_settings(\FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS);
 		$this->install_empty_log();
 		// No filter in the request; nothing cached, so every read reaches the table.
 		$_GET = array();

@@ -425,7 +425,8 @@ class Settings {
 			'dark_mode'                         => 'off',
 			'delete_data_on_uninstall'          => 0,
 			'disable_all_emails'                => 0,
-			'enable_activity_log'               => 0,
+			// On by default, on fresh installs and on upgrade (#2340).
+			'enable_activity_log'               => 1,
 			'logo_gov'                          => '',
 			'logo_org'                          => '',
 			'main_address'                      => '',

@@ -111,6 +111,10 @@ class SettingsSaveHandler {
 		 */
 		$clean = apply_filters( 'ffcertificate_settings_before_save', $clean, $current );
 
+		// Settings that delete or suppress data are audited before they are
+		// written, so switching the log off is still recorded (#2340).
+		DangerzoneSettingsAudit::record( is_array( $current ) ? $current : array(), $clean );
+
 		update_option( 'ffc_settings', $clean );
 
 		/**
@@ -328,7 +332,7 @@ class SettingsSaveHandler {
 	 * @return array<string, mixed> Updated settings
 	 */
 	private function save_advanced_tab( array $clean, array $new ): array {
-		// The activity log switch, its categories and its retention need the
+		// The activity log switch, its audit items and its retention need the
 		// Danger Zone capability (#2338): without it they keep the stored
 		// value, so the audit trail cannot be switched off or shortened.
 		$dangerzone = self::can_change_dangerzone_settings();
@@ -348,14 +352,22 @@ class SettingsSaveHandler {
 			}
 		}
 
-		// Activity-log granular filter: minimum level + per-category enables.
-		if ( isset( $new['activity_log_min_level'] ) ) {
+		// Minimum level and the items (#2340). While the log is off the screen
+		// greys them out, and a disabled control posts nothing, so they keep
+		// their stored values instead of reading as switched off. Audit items
+		// also need the Danger Zone capability; secondary ones only the tab's.
+		$log_on = ! empty( $clean['enable_activity_log'] );
+		if ( $log_on && isset( $new['activity_log_min_level'] ) ) {
 			$lvl                             = sanitize_key( (string) $new['activity_log_min_level'] );
 			$clean['activity_log_min_level'] = in_array( $lvl, array( 'debug', 'info', 'warning', 'error' ), true ) ? $lvl : 'debug';
 		}
-		if ( $dangerzone ) {
-			foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $ffc_cat ) {
-				$clean[ 'activity_log_cat_' . $ffc_cat ] = empty( $new[ 'activity_log_cat_' . $ffc_cat ] ) ? 0 : 1;
+		if ( $log_on ) {
+			foreach ( \FreeFormCertificate\Core\ActivityLogItems::ITEMS as $ffc_item => $ffc_definition ) {
+				if ( \FreeFormCertificate\Core\ActivityLogItems::GROUP_AUDIT === $ffc_definition['group'] && ! $dangerzone ) {
+					continue;
+				}
+				$ffc_key           = \FreeFormCertificate\Core\ActivityLogItems::setting_key( $ffc_item );
+				$clean[ $ffc_key ] = empty( $new[ $ffc_key ] ) ? 0 : 1;
 			}
 		}
 

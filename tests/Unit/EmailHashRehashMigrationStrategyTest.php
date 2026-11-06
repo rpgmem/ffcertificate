@@ -40,6 +40,9 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		$this->wpdb_backup = array( array_key_exists( 'wpdb', $GLOBALS ), $GLOBALS['wpdb'] ?? null );
 
@@ -80,6 +83,7 @@ class EmailHashRehashMigrationStrategyTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

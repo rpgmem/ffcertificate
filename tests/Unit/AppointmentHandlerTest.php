@@ -270,7 +270,7 @@ class AppointmentHandlerTest extends TestCase {
 	public function test_process_logs_a_confirmed_override_and_strips_the_flag(): void {
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = false ) {
-				return 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : array();
+				return 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : array();
 			}
 		);
 		Functions\when( 'sanitize_key' )->returnArg();

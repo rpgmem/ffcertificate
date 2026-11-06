@@ -910,23 +910,65 @@ class SettingsSaveHandlerTest extends TestCase {
 
 	public function test_general_advanced_tab_min_level_valid(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_min_level' => 'warning' ) ) );
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'enable_activity_log' => '1', 'activity_log_min_level' => 'warning' ) ) );
 		$this->assertSame( 'warning', $result['activity_log_min_level'] );
 	}
 
 	public function test_general_advanced_tab_min_level_invalid_defaults_to_debug(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_min_level' => 'bogus' ) ) );
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'enable_activity_log' => '1', 'activity_log_min_level' => 'bogus' ) ) );
 		$this->assertSame( 'debug', $result['activity_log_min_level'] );
 	}
 
-	public function test_general_advanced_tab_category_flags_set_and_unset(): void {
+	public function test_general_advanced_tab_item_flags_set_and_unset(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$new = array( 'activity_log_cat_submissions' => '1' );
+		$new = array(
+			'enable_activity_log'                => '1',
+			'activity_log_item_cert_submissions' => '1',
+		);
 		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
-		$this->assertSame( 1, $result['activity_log_cat_submissions'] );
-		// A category not present in $new is set to 0.
-		$this->assertSame( 0, $result['activity_log_cat_system'] );
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+		// An item not present in $new is set to 0, audit ones included.
+		$this->assertSame( 0, $result['activity_log_item_system_errors'] );
+		$this->assertSame( 0, $result['activity_log_item_pii_reveal'] );
+	}
+
+	/**
+	 * While the log is off its items are greyed out and post nothing, so a
+	 * save keeps what is stored instead of switching them all off (#2340).
+	 */
+	public function test_the_items_and_the_level_keep_their_values_while_the_log_is_off(): void {
+		$_POST['_ffc_tab'] = 'advanced';
+		$stored            = array(
+			'enable_activity_log'                => 1,
+			'activity_log_min_level'             => 'warning',
+			'activity_log_item_pii_reveal'       => 1,
+			'activity_log_item_cert_submissions' => 1,
+		);
+		$result = $this->invoke( 'save_general_settings', array( $stored, array() ) );
+
+		$this->assertSame( 0, $result['enable_activity_log'] );
+		$this->assertSame( 'warning', $result['activity_log_min_level'] );
+		$this->assertSame( 1, $result['activity_log_item_pii_reveal'] );
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+	}
+
+	public function test_a_secondary_item_saves_without_the_dangerzone_capability_and_an_audit_item_does_not(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings_dangerzone' !== $cap && 'manage_options' !== $cap );
+		$_POST['_ffc_tab'] = 'advanced';
+		$result            = $this->invoke(
+			'save_general_settings',
+			array(
+				array(
+					'enable_activity_log'          => 1,
+					'activity_log_item_pii_reveal' => 1,
+				),
+				array( 'activity_log_item_cert_submissions' => '1' ),
+			)
+		);
+
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+		$this->assertSame( 1, $result['activity_log_item_pii_reveal'], 'The audit item keeps its value.' );
 	}
 
 	public function test_general_advanced_tab_public_csv_default_limit_floored_at_one(): void {
@@ -1318,13 +1360,13 @@ class SettingsSaveHandlerTest extends TestCase {
 		$advanced          = $this->invoke(
 			'save_general_settings',
 			array(
-				array( 'enable_activity_log' => 1, 'activity_log_retention_days' => 90, 'activity_log_cat_users' => 1 ),
+				array( 'enable_activity_log' => 1, 'activity_log_retention_days' => 90, 'activity_log_item_role_changes' => 1 ),
 				array( 'activity_log_retention_days' => '1' ),
 			)
 		);
 		$this->assertSame( 1, $advanced['enable_activity_log'] );
 		$this->assertSame( 90, $advanced['activity_log_retention_days'] );
-		$this->assertSame( 1, $advanced['activity_log_cat_users'] );
+		$this->assertSame( 1, $advanced['activity_log_item_role_changes'] );
 	}
 
 	// ==================================================================
@@ -1365,7 +1407,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
 		$buffer->setAccessible( true );

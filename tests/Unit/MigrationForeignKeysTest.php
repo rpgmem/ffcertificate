@@ -27,6 +27,9 @@ class MigrationForeignKeysTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'esc_html__' )->returnArg();
@@ -54,6 +57,7 @@ class MigrationForeignKeysTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

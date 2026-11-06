@@ -61,6 +61,7 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		unset( $_SERVER['REMOTE_ADDR'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -218,8 +219,9 @@ class SubmissionVerifyRestControllerTest extends TestCase {
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'get_user_by' )->justReturn( (object) array( 'roles' => array( 'subscriber' ) ) );
 		Functions\when( 'user_can' )->alias( fn ( $uid, $cap ) => 'ffc_view_certificates_pii' === $cap );
-		// Activity log stays disabled (get_option → array()), so the reveal-tier
-		// audit call no-ops without a DB write; we assert the reveal output.
+		// The reveal is audited by default since #2340; this test asserts the
+		// reveal output, so the log is switched off for it.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		$repo = Mockery::mock( SubmissionRepository::class );
 		$repo->shouldReceive( 'findById' )->once()->andReturn( $this->pii_submission_row() );

@@ -61,6 +61,9 @@ class IdentityMergePreviewTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		class_exists( '\FreeFormCertificate\Admin\IdentityMergePreviewAjaxEndpoint' );
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityMerge' );
@@ -181,6 +184,7 @@ class IdentityMergePreviewTest extends TestCase {
 		$_POST = array();
 
 		unset( $GLOBALS['wpdb'] );
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

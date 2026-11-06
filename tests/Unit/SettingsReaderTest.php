@@ -220,10 +220,11 @@ class SettingsReaderTest extends TestCase {
 	}
 
 	public function test_activity_log_enabled_reads_enable_activity_log_key(): void {
-		$this->stub_option( array( 'enable_activity_log' => 1 ) );
+		// On by default (#2340); only a stored 0 switches it off.
+		$this->stub_option( array() );
 		$this->assertTrue( SettingsReader::activity_log_enabled() );
 
-		$this->stub_option( array() );
+		$this->stub_option( array( 'enable_activity_log' => 0 ) );
 		$this->assertFalse( SettingsReader::activity_log_enabled() );
 	}
 
@@ -241,12 +242,19 @@ class SettingsReaderTest extends TestCase {
 		$this->assertSame( 'debug', SettingsReader::activity_log_min_level() );
 	}
 
-	public function test_activity_log_category_enabled_defaults_true(): void {
+	public function test_activity_log_item_enabled_reads_the_items_default(): void {
 		$this->stub_option( array() );
-		$this->assertTrue( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+		$this->assertTrue( SettingsReader::activity_log_item_enabled( 'pii_reveal' ), 'An audit item starts on.' );
+		$this->assertFalse( SettingsReader::activity_log_item_enabled( 'cert_submissions' ), 'A secondary item starts off.' );
 
-		$this->stub_option( array( 'activity_log_cat_submissions' => 0 ) );
-		$this->assertFalse( SettingsReader::activity_log_category_enabled( 'submissions' ) );
+		$this->stub_option(
+			array(
+				'activity_log_item_pii_reveal'       => 0,
+				'activity_log_item_cert_submissions' => 1,
+			)
+		);
+		$this->assertFalse( SettingsReader::activity_log_item_enabled( 'pii_reveal' ) );
+		$this->assertTrue( SettingsReader::activity_log_item_enabled( 'cert_submissions' ) );
 	}
 
 	public function test_url_shortener_enabled_defaults_to_true(): void {
@@ -302,7 +310,6 @@ class SettingsReaderTest extends TestCase {
 	public static function provider_bool_accessors_default_false(): array {
 		return array(
 			'emails_disabled'                 => array( 'emails_disabled', 'disable_all_emails' ),
-			'activity_log_enabled'            => array( 'activity_log_enabled', 'enable_activity_log' ),
 			'delete_data_on_uninstall'        => array( 'delete_data_on_uninstall', 'delete_data_on_uninstall' ),
 			'qr_cache_enabled'                => array( 'qr_cache_enabled', 'qr_cache_enabled' ),
 			'notify_capability_grant_enabled' => array( 'notify_capability_grant_enabled', 'notify_capability_grant' ),

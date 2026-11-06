@@ -77,6 +77,9 @@ class IdentityAdoptionTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityAdoption' );
 
@@ -100,6 +103,7 @@ class IdentityAdoptionTest extends TestCase {
 	 * Tear down Brain\Monkey.
 	 */
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

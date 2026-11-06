@@ -3601,7 +3601,7 @@ msgid "Caption (optional)"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "Categories"
+msgid "Secondary items"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:149 includes/admin/class-ffc-cert-template-admin-screen.php:156 includes/reregistration/class-ffc-reregistration-form-renderer.php:378
@@ -5295,7 +5295,7 @@ msgid "Debug"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:25
-msgid "debug / info / warning / error."
+msgid "debug / info / warning / error. It filters the secondary items only; the audit items are recorded whatever the level."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:209
@@ -7195,6 +7195,162 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "%1$d of %2$d on"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "A role's capabilities changed (role editor, Restore role default)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "A user's roles, capabilities or audiences changed (profile, \"Grant all\")"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Access to personal data"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Accounts linked, profiles and passwords changed"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Appointments booked, cancelled and closed"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Audience bookings confirmed over the calendar's rules"
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Audit — on by default"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Bulk issue and certificates issued by an operator"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "CSV exports with unmasked data"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Calls, promotions and candidate changes"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Candidate imports"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Cleanups (short URLs, shortcodes, public access, expired tickets, calendar cleanups)"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Danger Zone Setting Changed"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Danger Zone and maintenance"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Data deleted (one submission, by form or everything)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Errors and refusals (decryption failures, access denied, refused field changes)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Identity tools (merge, split, relink, repair)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Migrations run and key rotation"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Permissions"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Personal and audience calendars"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Preflight and browser blocks"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Privacy requests (export, erasure, anonymization)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Public access and security"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Quiz grading"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reregistration and recruitment"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reregistration submissions, reviews and invitations"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reveal of CPF, RF, e-mail or address (one value or a page)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Schedule exceptions, operator bypass and public downloads"
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Secondary items — off by default"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Settings that delete or suppress data (auto-delete, uninstall wipe, retention, switching the log or an audit item off)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Submissions edited, corrected, moved, trashed or restored"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Submissions received, PDFs generated and e-mailed"
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "The activity log is off, so these items have no effect. Switch it on to change them."
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "The day-to-day of each module. Switch on only what you will consult; each item adds to the log's volume."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "While the log is off the items and the minimum level are greyed out, because they have no effect then."
+msgstr ""
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Who saw personal data, who deleted or suppressed data and who changed permissions. Recorded whatever the minimum level; switching an item off needs the Danger Zone capability."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "on by default: access to personal data (reveals, unmasked exports, identity tools), the Danger Zone and maintenance (deletions, cleanups, migrations and key rotation, settings that delete or suppress data) and permissions (role and user changes)."
+msgstr ""
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "the log is switched on, and each former category passes its state to the items it split into: a category that was on, with the log on, leaves its items on."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:39
@@ -10546,7 +10702,7 @@ msgid "Log blocks"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:113
-msgid "Log categories"
+msgid "Audit items"
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:259
@@ -10888,7 +11044,7 @@ msgid "Mask (cpf, phone, cep…)"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:23
-msgid "master switch."
+msgid "master switch, on by default on fresh installs and after the update."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-schedule.php:32
@@ -12651,7 +12807,7 @@ msgid "per slot"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "per-area toggles (submissions, scheduling, public access, users, recruitment, migrations, system)."
+msgid "off by default, one toggle each: users, certificates, personal and audience calendars, reregistration and recruitment, public access and security, and system errors."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-security.php:56
@@ -13814,7 +13970,7 @@ msgid "Records that must survive (submissions, appointments, audit lines, reregi
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:109
-msgid "Records the selected level and every more-severe one below it (highlighted green); rows above are ignored. Default: Debug — log everything."
+msgid "Applies to the secondary items: records the selected level and every more-severe one below it (highlighted green). The audit items are recorded whatever the level. Default: Debug — log everything."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:68
@@ -15567,7 +15723,7 @@ msgid "Settings specific to the personal appointment booking system. Calendar-sp
 msgstr ""
 
 #: includes/settings/views/documentation/config-activity-log.php:21
-msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (turn logging on, the retention window, the level and which categories) on the Advanced page; this tab is where you read and export what was recorded."
+msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
 msgstr ""
 
 #: includes/admin/class-ffc-encryption-key-health-notice.php:102
@@ -16523,10 +16679,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings.php:737 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:461 templates/admin/settings/email-model-box.php:62
 msgid "System"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:123
-msgid "System & Security"
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:386
@@ -18171,7 +18323,7 @@ msgid "Unable to reveal this value."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:143
-msgid "Uncheck a category to stop logging its events. All on by default."
+msgid "After the update"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-html-styling.php:39
@@ -18608,10 +18760,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-loader.php:423
 msgid "Users"
-msgstr ""
-
-#: includes/settings/views/ffc-tab-advanced.php:120
-msgid "Users & Privacy"
 msgstr ""
 
 #. %s: Shortcode
@@ -32588,7 +32736,7 @@ msgid "Changing automatic deletion needs the Danger Zone capability."
 msgstr ""
 
 #: added
-msgid "Changing the activity log, its categories and its retention needs the Danger Zone capability."
+msgid "Switching the activity log or an audit item off, and changing its retention, needs the Danger Zone capability."
 msgstr ""
 
 #: added
@@ -32608,7 +32756,7 @@ msgid "Running a migration needs the Danger Zone capability, which this account 
 msgstr ""
 
 #: added
-msgid "The switch, the categories, the retention and the record limit need the Danger Zone capability, so the audit trail cannot be switched off or shortened without it."
+msgid "Switching it or an audit item off, and changing the retention or the record limit, needs the Danger Zone capability, so the audit trail cannot be switched off or shortened without it. Each such change is itself recorded, before it takes effect."
 msgstr ""
 
 #: added

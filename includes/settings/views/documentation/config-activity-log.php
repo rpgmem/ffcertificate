@@ -4,7 +4,7 @@
  *
  * Settings → Activity Log: the audit-trail viewer (filters, table, stats, CSV
  * export). Distinct from the *logging configuration* (enable / retention /
- * level / categories) documented on the Advanced page. Reviewed against
+ * level / items) documented on the Advanced page. Reviewed against
  * TabActivityLog / AdminActivityLogPage (rpgmem/ffcertificate#802).
  *
  * @package FreeFormCertificate\Settings
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="config-activity-log" class="ffc-icon-history"><?php esc_html_e( 'Activity Log', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (turn logging on, the retention window, the level and which categories) on the Advanced page; this tab is where you read and export what was recorded.', 'ffcertificate' ); ?> <a href="#config-advanced"><?php esc_html_e( 'See Advanced → Activity Log settings', 'ffcertificate' ); ?></a>.</p>
+	<p><?php esc_html_e( 'Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded.', 'ffcertificate' ); ?> <a href="#config-advanced"><?php esc_html_e( 'See Advanced → Activity Log settings', 'ffcertificate' ); ?></a>.</p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'What the viewer offers', 'ffcertificate' ); ?></h4>

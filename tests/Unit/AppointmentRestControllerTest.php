@@ -875,7 +875,7 @@ class AppointmentRestControllerTest extends TestCase {
 	public function test_get_appointment_reveals_to_a_pii_holder_only_on_request_and_audits(): void {
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
-		$this->settings = array( 'enable_activity_log' => 1 );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 		$this->store_appointment( $this->owned_appointment() );
 		$this->store_calendar( array( 'id' => 1, 'title' => 'Cal' ) );
 		$ctrl = new AppointmentRestController( 'ffc/v1' );
@@ -1193,7 +1193,7 @@ class AppointmentRestControllerTest extends TestCase {
 
 	public function test_create_appointment_files_the_booking_under_the_persons_existing_account(): void {
 		$this->sign_in_as_operator( 5 );
-		$this->settings['enable_activity_log'] = 1;
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS + $this->settings;
 		$this->store_calendar( array( 'id' => 3 ) );
 		// The identity index already knows the person behind this CPF.
 		$this->profiles[ self::PERSON_ID ] = array(
@@ -1236,7 +1236,7 @@ class AppointmentRestControllerTest extends TestCase {
 
 	public function test_create_appointment_creates_an_account_for_a_person_nobody_knows(): void {
 		$this->sign_in_as_operator( 5 );
-		$this->settings['enable_activity_log'] = 1;
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS + $this->settings;
 		$this->store_calendar( array( 'id' => 3 ) );
 
 		$result = ( new AppointmentRestController( 'ffc/v1' ) )->create_appointment(

@@ -33,7 +33,37 @@ final class ActivityLogBuffer {
 	private const DYNAMIC_CACHE_KEY = 'ffc_sensitive_field_keys_dynamic';
 
 	/** The `ffc_settings` keys that turn the activity log on. */
-	public const ENABLED_SETTINGS = array( 'enable_activity_log' => 1 );
+	/**
+	 * The log on and every item switched on, secondary ones included (#2340),
+	 * so a test of any action sees it written. `ActivityLogItemsTest` holds
+	 * this list to `ActivityLogItems::ITEMS`.
+	 */
+	public const ENABLED_SETTINGS = array(
+		'enable_activity_log'                    => 1,
+		'activity_log_item_pii_reveal'           => 1,
+		'activity_log_item_pii_export'           => 1,
+		'activity_log_item_identity_tools'       => 1,
+		'activity_log_item_data_deletion'        => 1,
+		'activity_log_item_cleanups'             => 1,
+		'activity_log_item_migrations'           => 1,
+		'activity_log_item_destructive_settings' => 1,
+		'activity_log_item_role_changes'         => 1,
+		'activity_log_item_user_permissions'     => 1,
+		'activity_log_item_users_accounts'       => 1,
+		'activity_log_item_users_privacy'        => 1,
+		'activity_log_item_cert_submissions'     => 1,
+		'activity_log_item_cert_changes'         => 1,
+		'activity_log_item_cert_grades'          => 1,
+		'activity_log_item_cert_bulk_issue'      => 1,
+		'activity_log_item_sched_appointments'   => 1,
+		'activity_log_item_sched_bookings'       => 1,
+		'activity_log_item_rereg_reviews'        => 1,
+		'activity_log_item_recruit_imports'      => 1,
+		'activity_log_item_recruit_calls'        => 1,
+		'activity_log_item_public_overrides'     => 1,
+		'activity_log_item_public_preflight'     => 1,
+		'activity_log_item_system_errors'        => 1,
+	);
 
 	/**
 	 * Clear the buffer and the flags, with the shutdown hook marked as registered.

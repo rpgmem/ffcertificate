@@ -32,9 +32,9 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 	</p>
 
 		<?php
-		$ffcertificate_log_on = (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1;
-		// Switching the audit trail off, choosing what it records and how long
-		// it keeps it need the Danger Zone capability (#2338).
+		$ffcertificate_log_on = \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled();
+		// Switching the audit trail off, its audit items and how long it keeps
+		// entries need the Danger Zone capability (#2338, #2340).
 		$ffcertificate_dangerzone = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
 		?>
 		<table class="form-table" role="presentation">
@@ -58,7 +58,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						?>
 						<p class="description">
 							<?php if ( ! $ffcertificate_dangerzone ) : ?>
-								<span class="ffc-icon-lock"><?php esc_html_e( 'Changing the activity log, its categories and its retention needs the Danger Zone capability.', 'ffcertificate' ); ?></span><br>
+								<span class="ffc-icon-lock"><?php esc_html_e( 'Switching the activity log or an audit item off, and changing its retention, needs the Danger Zone capability.', 'ffcertificate' ); ?></span><br>
 							<?php endif; ?>
 							<?php esc_html_e( 'Logs submission creation, data access, settings changes, and security events.', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
@@ -80,9 +80,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 			</tbody>
-			<tbody class="ffc-collapsed-target<?php echo $ffcertificate_log_on ? '' : ' ffc-collapsed'; ?>"
-				data-ffc-master="enable_activity_log"
-				aria-hidden="<?php echo $ffcertificate_log_on ? 'false' : 'true'; ?>">
+			<tbody>
 				<tr>
 					<th scope="row">
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
@@ -110,6 +108,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					<th scope="row"><?php esc_html_e( 'Minimum log level', 'ffcertificate' ); ?></th>
 					<td>
 						<?php $ffcertificate_log_min = \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level(); ?>
+						<div class="ffc-disabled-target" data-ffc-master="enable_activity_log">
 						<table class="ffc-loglevel-table" role="radiogroup" aria-label="<?php esc_attr_e( 'Minimum log level', 'ffcertificate' ); ?>">
 							<tbody>
 								<?php
@@ -124,7 +123,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 									<tr class="ffc-loglevel-row">
 										<td>
 											<label class="ffc-loglevel-label">
-												<input type="radio" name="ffc_settings[activity_log_min_level]" value="<?php echo esc_attr( $ffcertificate_lvl ); ?>" <?php checked( $ffcertificate_log_min, $ffcertificate_lvl ); ?> data-ffc-autosave-key="activity_log_min_level">
+												<input type="radio" name="ffc_settings[activity_log_min_level]" value="<?php echo esc_attr( $ffcertificate_lvl ); ?>" <?php checked( $ffcertificate_log_min, $ffcertificate_lvl ); ?> data-ffc-autosave-key="activity_log_min_level"<?php echo $ffcertificate_log_on ? '' : ' disabled'; ?>>
 												<span class="ffc-loglevel-name"><?php echo esc_html( $ffcertificate_lvl_label ); ?></span>
 											</label>
 										</td>
@@ -134,45 +133,16 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 								?>
 							</tbody>
 						</table>
-						<p class="description"><?php esc_html_e( 'Records the selected level and every more-severe one below it (highlighted green); rows above are ignored. Default: Debug — log everything.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Log categories', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						$ffcertificate_log_cats = array(
-							'submissions'   => __( 'Submissions', 'ffcertificate' ),
-							'scheduling'    => __( 'Scheduling', 'ffcertificate' ),
-							'public_access' => __( 'Public Operator Access', 'ffcertificate' ),
-							'users'         => __( 'Users & Privacy', 'ffcertificate' ),
-							'recruitment'   => __( 'Recruitment', 'ffcertificate' ),
-							'migrations'    => __( 'Migrations', 'ffcertificate' ),
-							'system'        => __( 'System & Security', 'ffcertificate' ),
-						);
-						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
-							?>
-							<div class="ffc-mb-2xs">
-								<?php
-								\FreeFormCertificate\Admin\AdminUI::render_toggle(
-									array(
-										'name'     => 'ffc_settings[activity_log_cat_' . $ffcertificate_cat_key . ']',
-										'id'       => 'activity_log_cat_' . $ffcertificate_cat_key,
-										'checked'  => \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( $ffcertificate_cat_key ),
-										'disabled' => ! $ffcertificate_dangerzone,
-										'label'    => $ffcertificate_cat_label,
-										'data'     => array( 'ffc-autosave-key' => 'activity_log_cat_' . $ffcertificate_cat_key ),
-									)
-								);
-								?>
-							</div>
-							<?php
-						endforeach;
-						?>
-						<p class="description"><?php esc_html_e( 'Uncheck a category to stop logging its events. All on by default.', 'ffcertificate' ); ?></p>
+						</div>
+						<p class="description"><?php esc_html_e( 'Applies to the secondary items: records the selected level and every more-severe one below it (highlighted green). The audit items are recorded whatever the level. Default: Debug — log everything.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
 			</tbody>
+		</table>
+
+		<?php require __DIR__ . '/ffc-activity-log-items.php'; ?>
+
+		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
 					<th scope="row">

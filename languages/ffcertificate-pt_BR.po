@@ -3597,8 +3597,8 @@ msgid "Caption (optional)"
 msgstr "Legenda (opcional)"
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "Categories"
-msgstr "Categorias"
+msgid "Secondary items"
+msgstr "Itens secundários"
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:149 includes/admin/class-ffc-cert-template-admin-screen.php:156 includes/reregistration/class-ffc-reregistration-form-renderer.php:378
 msgid "Category"
@@ -5300,8 +5300,8 @@ msgid "Debug"
 msgstr "Depurar"
 
 #: includes/settings/views/documentation/config-advanced.php:25
-msgid "debug / info / warning / error."
-msgstr "depuração / informações / aviso / erro."
+msgid "debug / info / warning / error. It filters the secondary items only; the audit items are recorded whatever the level."
+msgstr "depuração / informações / aviso / erro. Filtra apenas os itens secundários; os itens de auditoria são registrados qualquer que seja o nível."
 
 #: includes/settings/views/ffc-tab-advanced.php:209
 msgid "Debug Settings"
@@ -7198,6 +7198,162 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "%1$d of %2$d on"
+msgstr "%1$d de %2$d ligados"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "A role's capabilities changed (role editor, Restore role default)"
+msgstr "Capacidades de uma função alteradas (editor de funções, Restaurar padrão da função)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "A user's roles, capabilities or audiences changed (profile, \"Grant all\")"
+msgstr "Funções, capacidades ou públicos de um usuário alterados (perfil, \"Conceder tudo\")"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Access to personal data"
+msgstr "Acesso a dados pessoais"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Accounts linked, profiles and passwords changed"
+msgstr "Contas vinculadas, perfis e senhas alterados"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Appointments booked, cancelled and closed"
+msgstr "Agendamentos feitos, cancelados e encerrados"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Audience bookings confirmed over the calendar's rules"
+msgstr "Reservas de públicos confirmadas fora das regras do calendário"
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Audit — on by default"
+msgstr "Auditoria — ligada por padrão"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Bulk issue and certificates issued by an operator"
+msgstr "Emissão em lote e certificados emitidos por um operador"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "CSV exports with unmasked data"
+msgstr "Exportações CSV com dados sem máscara"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Calls, promotions and candidate changes"
+msgstr "Convocações, promoções e alterações de candidatos"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Candidate imports"
+msgstr "Importações de candidatos"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Cleanups (short URLs, shortcodes, public access, expired tickets, calendar cleanups)"
+msgstr "Limpezas (URLs curtas, shortcodes, acesso público, tickets expirados, limpezas de calendários)"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Danger Zone Setting Changed"
+msgstr "Configuração da Zona de Perigo Alterada"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Danger Zone and maintenance"
+msgstr "Zona de Perigo e manutenção"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Data deleted (one submission, by form or everything)"
+msgstr "Dados excluídos (uma submissão, por formulário ou tudo)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Errors and refusals (decryption failures, access denied, refused field changes)"
+msgstr "Erros e recusas (falhas de descriptografia, acesso negado, alterações de campo recusadas)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Identity tools (merge, split, relink, repair)"
+msgstr "Ferramentas de identidade (mesclar, separar, revincular, corrigir)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Migrations run and key rotation"
+msgstr "Migrações executadas e rotação de chave"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Permissions"
+msgstr "Permissões"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Personal and audience calendars"
+msgstr "Calendários pessoais e de públicos"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Preflight and browser blocks"
+msgstr "Bloqueios do preflight e do navegador"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Privacy requests (export, erasure, anonymization)"
+msgstr "Pedidos de privacidade (exportação, exclusão, anonimização)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Public access and security"
+msgstr "Acesso público e segurança"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Quiz grading"
+msgstr "Correção de quizzes"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reregistration and recruitment"
+msgstr "Recadastramento e recrutamento"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reregistration submissions, reviews and invitations"
+msgstr "Envios, revisões e convites do recadastramento"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Reveal of CPF, RF, e-mail or address (one value or a page)"
+msgstr "Revelação de CPF, RF, e-mail ou endereço (um valor ou uma página)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Schedule exceptions, operator bypass and public downloads"
+msgstr "Exceções de horário, bypass de operador e downloads públicos"
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Secondary items — off by default"
+msgstr "Itens secundários — desligados por padrão"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Settings that delete or suppress data (auto-delete, uninstall wipe, retention, switching the log or an audit item off)"
+msgstr "Configurações que apagam ou suprimem dados (exclusão automática, apagar ao desinstalar, retenção, desligar o registro ou um item de auditoria)"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Submissions edited, corrected, moved, trashed or restored"
+msgstr "Submissões editadas, corrigidas, movidas, enviadas à lixeira ou restauradas"
+
+#: includes/core/class-ffc-activity-log-items.php
+msgid "Submissions received, PDFs generated and e-mailed"
+msgstr "Submissões recebidas, PDFs gerados e enviados por e-mail"
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "The activity log is off, so these items have no effect. Switch it on to change them."
+msgstr "O registro de atividades está desligado, então estes itens não têm efeito. Ligue-o para alterá-los."
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "The day-to-day of each module. Switch on only what you will consult; each item adds to the log's volume."
+msgstr "O dia a dia de cada módulo. Ligue só o que você vai consultar; cada item aumenta o volume do registro."
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "While the log is off the items and the minimum level are greyed out, because they have no effect then."
+msgstr "Enquanto o registro está desligado, os itens e o nível mínimo ficam em cinza, porque não têm efeito."
+
+#: includes/settings/views/ffc-activity-log-items.php
+msgid "Who saw personal data, who deleted or suppressed data and who changed permissions. Recorded whatever the minimum level; switching an item off needs the Danger Zone capability."
+msgstr "Quem viu dados pessoais, quem apagou ou suprimiu dados e quem alterou permissões. Registrado qualquer que seja o nível mínimo; desligar um item exige a permissão da Zona de Perigo."
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "on by default: access to personal data (reveals, unmasked exports, identity tools), the Danger Zone and maintenance (deletions, cleanups, migrations and key rotation, settings that delete or suppress data) and permissions (role and user changes)."
+msgstr "ligados por padrão: acesso a dados pessoais (revelações, exportações sem máscara, ferramentas de identidade), Zona de Perigo e manutenção (exclusões, limpezas, migrações e rotação de chave, configurações que apagam ou suprimem dados) e permissões (alterações de funções e usuários)."
+
+#: includes/settings/views/documentation/config-advanced.php
+msgid "the log is switched on, and each former category passes its state to the items it split into: a category that was on, with the log on, leaves its items on."
+msgstr "o registro é ligado, e cada antiga categoria passa seu estado para os itens em que se dividiu: uma categoria que estava ligada, com o registro ligado, deixa seus itens ligados."
 
 #: includes/settings/views/documentation/reference-capabilities.php:39
 msgid "Each account may reveal up to 2,000 values every 15 minutes, a page counting every value it shows; past that, Reveal says how many minutes to wait."
@@ -10561,8 +10717,8 @@ msgid "Log blocks"
 msgstr "Blocos de registro"
 
 #: includes/settings/views/ffc-tab-advanced.php:113
-msgid "Log categories"
-msgstr "Categorias de registro"
+msgid "Audit items"
+msgstr "Itens de auditoria"
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:259
 msgid "Log Out"
@@ -10905,8 +11061,8 @@ msgid "Mask (cpf, phone, cep…)"
 msgstr "Máscara (CPF, telefone, CEP…)"
 
 #: includes/settings/views/documentation/config-advanced.php:23
-msgid "master switch."
-msgstr "interruptor geral."
+msgid "master switch, on by default on fresh installs and after the update."
+msgstr "interruptor geral, ligado por padrão em instalações novas e após a atualização."
 
 #: includes/settings/views/documentation/forms-schedule.php:32
 msgid "Master toggle. When off, the form is always open (subject to other restrictions)."
@@ -12671,8 +12827,8 @@ msgid "per slot"
 msgstr "por horário"
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "per-area toggles (submissions, scheduling, public access, users, recruitment, migrations, system)."
-msgstr "alternadores por área (submissões, agendamento, acesso público, usuários, recrutamento, migrações, sistema)."
+msgid "off by default, one toggle each: users, certificates, personal and audience calendars, reregistration and recruitment, public access and security, and system errors."
+msgstr "desligados por padrão, um alternador cada: usuários, certificados, calendários pessoais e de públicos, recadastramento e recrutamento, acesso público e segurança, e erros do sistema."
 
 #: includes/settings/views/documentation/reference-security.php:56
 msgid "Per-device limit (fingerprint)"
@@ -13842,8 +13998,8 @@ msgid "Records that must survive (submissions, appointments, audit lines, reregi
 msgstr "Registros que devem ser preservados (submissões, agendamentos, linhas de auditoria, renovações de cadastro) são mantidos, e a vinculação do usuário excluído a eles é anonimizada — os campos de referência da conta e de atribuição do autor são limpos."
 
 #: includes/settings/views/ffc-tab-advanced.php:109
-msgid "Records the selected level and every more-severe one below it (highlighted green); rows above are ignored. Default: Debug — log everything."
-msgstr "Registra o nível selecionado e todos os níveis abaixo dele (destacados em verde); as linhas acima são ignoradas. Padrão: Depuração — registra tudo."
+msgid "Applies to the secondary items: records the selected level and every more-severe one below it (highlighted green). The audit items are recorded whatever the level. Default: Debug — log everything."
+msgstr "Vale para os itens secundários: registra o nível selecionado e todos os níveis abaixo dele (destacados em verde). Os itens de auditoria são registrados qualquer que seja o nível. Padrão: Depuração — registra tudo."
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:68
 msgid "records..."
@@ -15615,8 +15771,8 @@ msgid "Settings specific to the personal appointment booking system. Calendar-sp
 msgstr "Configurações específicas para o sistema de agendamento pessoal. Configurações específicas do calendário (horários, horas de funcionamento, modelos de e-mail) são configuradas na página de edição de cada calendário."
 
 #: includes/settings/views/documentation/config-activity-log.php:21
-msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (turn logging on, the retention window, the level and which categories) on the Advanced page; this tab is where you read and export what was recorded."
-msgstr "A opção Configurações → Registro de Atividades representa a parte de visualização da trilha de auditoria. Ela mostra quem realizou qual ação e quando — logins em telas de operação, envios, exportações, exclusões, alterações de configurações e outros eventos registrados pelo plugin. Você define o que será registrado (ativando o registro, bem como definindo o período de retenção, o nível e as categorias) na página Avançado; esta aba é onde você visualiza e exporta os dados registrados."
+msgid "Settings → Activity Log is the read side of the audit trail. It shows who did what and when — logins to operator screens, submissions, exports, deletions, settings changes and the other events the plugin records. You configure what is recorded (the switch, the retention window, the level and the audit and secondary items) on the Advanced page; this tab is where you read and export what was recorded."
+msgstr "A opção Configurações → Registro de Atividades representa a parte de visualização da trilha de auditoria. Ela mostra quem realizou qual ação e quando — logins em telas de operação, envios, exportações, exclusões, alterações de configurações e outros eventos registrados pelo plugin. Você define o que será registrado (o interruptor, o período de retenção, o nível e os itens de auditoria e secundários) na página Avançado; esta aba é onde você visualiza e exporta os dados registrados."
 
 #: includes/admin/class-ffc-encryption-key-health-notice.php:102
 msgid "Settings → Advanced → Encryption Key Health"
@@ -16575,10 +16731,6 @@ msgstr "Desativa o Acesso Público de Operador (e seus sub-recursos) em formulá
 #: includes/admin/class-ffc-settings.php:737 includes/recruitment/class-ffc-recruitment-candidate-edit-page.php:461 templates/admin/settings/email-model-box.php:62
 msgid "System"
 msgstr "Sistema"
-
-#: includes/settings/views/ffc-tab-advanced.php:123
-msgid "System & Security"
-msgstr "Sistema e Segurança"
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:386
 msgid "System & tools"
@@ -18226,8 +18378,8 @@ msgid "Unable to reveal this value."
 msgstr "Não é possível revelar este valor."
 
 #: includes/settings/views/ffc-tab-advanced.php:143
-msgid "Uncheck a category to stop logging its events. All on by default."
-msgstr "Desmarque uma categoria para interromper o registro de seus eventos. Todas estão ativadas por padrão."
+msgid "After the update"
+msgstr "Após a atualização"
 
 #: includes/settings/views/documentation/reference-html-styling.php:39
 msgid "Underline text:"
@@ -18664,10 +18816,6 @@ msgstr "Nome de usuário"
 #: includes/audience/class-ffc-audience-loader.php:423
 msgid "Users"
 msgstr "Usuários"
-
-#: includes/settings/views/ffc-tab-advanced.php:120
-msgid "Users & Privacy"
-msgstr "Usuários e Privacidade"
 
 #. %s: Shortcode
 #: includes/settings/views/ffc-tab-user-access.php:327
@@ -32670,8 +32818,8 @@ msgid "Changing automatic deletion needs the Danger Zone capability."
 msgstr "Alterar a exclusão automática exige a permissão da Zona de Perigo."
 
 #: added
-msgid "Changing the activity log, its categories and its retention needs the Danger Zone capability."
-msgstr "Alterar o log de atividades, suas categorias e sua retenção exige a permissão da Zona de Perigo."
+msgid "Switching the activity log or an audit item off, and changing its retention, needs the Danger Zone capability."
+msgstr "Desligar o registro de atividades ou um item de auditoria, e alterar sua retenção, exige a permissão da Zona de Perigo."
 
 #: added
 msgid "Deleting data needs the Danger Zone capability, which this account does not hold."
@@ -32690,8 +32838,8 @@ msgid "Running a migration needs the Danger Zone capability, which this account 
 msgstr "Executar uma migração exige a permissão da Zona de Perigo, que esta conta não tem."
 
 #: added
-msgid "The switch, the categories, the retention and the record limit need the Danger Zone capability, so the audit trail cannot be switched off or shortened without it."
-msgstr "O interruptor, as categorias, a retenção e o limite de registros exigem a permissão da Zona de Perigo, para que a trilha de auditoria não possa ser desligada nem encurtada sem ela."
+msgid "Switching it or an audit item off, and changing the retention or the record limit, needs the Danger Zone capability, so the audit trail cannot be switched off or shortened without it. Each such change is itself recorded, before it takes effect."
+msgstr "Desligá-lo ou desligar um item de auditoria, e alterar a retenção ou o limite de registros, exige a permissão da Zona de Perigo, para que a trilha de auditoria não possa ser desligada nem encurtada sem ela. Cada uma dessas alterações também é registrada, antes de entrar em vigor."
 
 #: added
 msgid "Turn on automatic deletion? On the next daily run, every published submission older than the window below is permanently deleted."

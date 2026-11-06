@@ -68,6 +68,9 @@ class RewriteHtmlImageRefsMigrationStrategyTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RewriteHtmlImageRefsMigrationStrategy' );
 		class_exists( '\\FreeFormCertificate\\Admin\\CertTemplateCpt' );
 		Functions\when( '__' )->returnArg();
@@ -89,6 +92,7 @@ class RewriteHtmlImageRefsMigrationStrategyTest extends TestCase {
 		if ( is_dir( $this->dir ) ) {
 			rmdir( $this->dir );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

@@ -189,9 +189,12 @@ final class SettingsReader {
 		return self::get_bool( 'disable_all_emails' );
 	}
 
-	/** Whether the activity-log subsystem is enabled. */
+	/**
+	 * Whether the activity-log subsystem is enabled. On by default (#2340):
+	 * the audit trail is recorded unless the Danger Zone switches it off.
+	 */
 	public static function activity_log_enabled(): bool {
-		return self::get_bool( 'enable_activity_log' );
+		return self::get_bool( 'enable_activity_log', true );
 	}
 
 	/**
@@ -206,13 +209,17 @@ final class SettingsReader {
 	}
 
 	/**
-	 * Whether a given activity-log category is enabled. Defaults to true.
+	 * Whether an activity-log item is recorded (#2340). Audit items default
+	 * to on and secondary items to off ({@see ActivityLogItems::default_for()}).
 	 *
-	 * @param string $category Category key (see ActivityLog::CATEGORIES).
+	 * @param string $item Item key (see ActivityLogItems::ITEMS).
 	 * @return bool
 	 */
-	public static function activity_log_category_enabled( string $category ): bool {
-		return self::get_bool( 'activity_log_cat_' . $category, true );
+	public static function activity_log_item_enabled( string $item ): bool {
+		return self::get_bool(
+			\FreeFormCertificate\Core\ActivityLogItems::SETTING_PREFIX . $item,
+			\FreeFormCertificate\Core\ActivityLogItems::default_for( $item )
+		);
 	}
 
 	/**

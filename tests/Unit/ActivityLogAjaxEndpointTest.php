@@ -168,7 +168,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
 	// ==================================================================
 
 	public function test_rejects_when_user_lacks_capability(): void {
-		$this->settings = array( 'enable_activity_log' => 1 );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 
 		try {
 			ActivityLogAjaxEndpoint::handle();
@@ -181,7 +181,8 @@ class ActivityLogAjaxEndpointTest extends TestCase {
 
 	public function test_rejects_when_activity_log_disabled(): void {
 		$this->caps = array( 'ffc_view_activity_log' );
-		// The stored settings carry no enable_activity_log.
+		// On by default since #2340, so only a stored 0 switches it off.
+		$this->settings = array( 'enable_activity_log' => 0 );
 
 		try {
 			ActivityLogAjaxEndpoint::handle();
@@ -255,7 +256,7 @@ class ActivityLogAjaxEndpointTest extends TestCase {
 
 	public function test_empty_result_sets_is_empty_true(): void {
 		$this->caps     = array( 'manage_options' );
-		$this->settings = array( 'enable_activity_log' => 1 );
+		$this->settings = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 
 		$_POST = array( 'nonce' => 'x' );
 

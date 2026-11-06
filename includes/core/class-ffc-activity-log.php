@@ -53,23 +53,6 @@ class ActivityLog {
 	const LEVEL_DEBUG   = 'debug';
 
 	/**
-	 * Category keys used by the granular log filter (settings:
-	 * `activity_log_cat_<key>`). Each event maps to exactly one via
-	 * {@see self::category_for_action()}.
-	 *
-	 * @var array<int, string>
-	 */
-	const CATEGORIES = array(
-		'submissions',
-		'scheduling',
-		'public_access',
-		'users',
-		'recruitment',
-		'migrations',
-		'system',
-	);
-
-	/**
 	 * Numeric severity rank for a level (higher = more severe). Used by the
 	 * configurable minimum-level filter.
 	 *
@@ -88,101 +71,6 @@ class ActivityLog {
 			default:
 				return 1;
 		}
-	}
-
-	/**
-	 * Map an action key to its filter category (one of {@see self::CATEGORIES}).
-	 * Unknown / submission-adjacent actions fall back to `submissions`.
-	 *
-	 * @param string $action Action key.
-	 * @return string Category key.
-	 */
-	public static function category_for_action( string $action ): string {
-		if ( 0 === strpos( $action, 'recruitment_' ) ) {
-			return 'recruitment';
-		}
-		if ( 0 === strpos( $action, 'appointment_' ) ) {
-			return 'scheduling';
-		}
-
-		$by_action = array(
-			// Identity resolution (#1368) -- a write over stored PII, so it sits
-			// with the other data-access lines rather than with settings.
-			'identity_rf_repaired'               => 'data_access',
-			'identity_records_relinked'          => 'data_access',
-			'identity_records_split'             => 'data_access',
-			'identity_accounts_merged'           => 'data_access',
-			'identity_orphans_adopted'           => 'data_access',
-			// Accepting a finding as unresolvable writes nobody's data, but it
-			// is a decision ABOUT stored PII and belongs where its siblings are
-			// read; the fallback would file it under `submissions` (#1532).
-			'identity_accepted_unresolvable'     => 'data_access',
-			'identity_acceptance_withdrawn'      => 'data_access',
-			'migration_foreign_keys'             => 'migrations',
-			'auth_code_duplicates_removed'       => 'migrations',
-			'activity_log_clear_plaintext_batch' => 'migrations',
-			'cpf_rf_split_unknown_length'        => 'migrations',
-			'cpf_rf_split_migration_batch'       => 'migrations',
-			'legacy_columns_dropped'             => 'migrations',
-			'email_hash_rehash_migration_batch'  => 'migrations',
-
-			'schedule_override_created'          => 'public_access',
-			'operator_ip_bypass'                 => 'public_access',
-			'preflight_blocked'                  => 'public_access',
-			'early_open_executed'                => 'public_access',
-			'end_postponed'                      => 'public_access',
-			'csv_downloaded'                     => 'public_access',
-
-			'capabilities_granted'               => 'users',
-			// A role's capabilities edited, or put back to the shipped
-			// definition, in the role editor (#2340).
-			'role_capability_changed'            => 'users',
-			'role_default_restored'              => 'users',
-			// FFC roles taken off with a WordPress role change (#2340).
-			'user_ffc_roles_removed'             => 'users',
-			// A user's FFC roles, capabilities or audiences changed (#2340).
-			'user_role_changed'                  => 'users',
-			'user_capabilities_changed'          => 'users',
-			'user_audiences_changed'             => 'users',
-			'password_changed'                   => 'users',
-			'profile_updated'                    => 'users',
-			'user_profile_read_full'             => 'users',
-			'user_data_anonymized'               => 'users',
-			'user_email_changed'                 => 'users',
-			'privacy_data_erased'                => 'users',
-			'privacy_request_created'            => 'users',
-			// A sensitive profile field revealed on the user-edit screen (#1863).
-			'user_profile_pii_revealed'          => 'users',
-
-			// A CSV export with personal data in clear, and a person revealed
-			// on Date Messages' upcoming dates (#1863): disclosures with no
-			// prefix of their own, which would fall back to `submissions`.
-			'pii_exported'                       => 'data_access',
-			'date_messages_pii_revealed'         => 'data_access',
-			// A client address revealed on the activity log or the Rate
-			// Limit tab (#2109).
-			'activity_log_ip_revealed'           => 'data_access',
-			'rate_limit_ip_revealed'             => 'data_access',
-
-			// An audience screen's account-email reveal (#1824) sits with the
-			// appointment reveals; without a prefix of its own it would fall
-			// back to `submissions`.
-			'audience_account_email_revealed'    => 'scheduling',
-			// A booking confirmed over the calendar's rules (#1859).
-			'audience_booking_override'          => 'scheduling',
-
-			'settings_changed'                   => 'system',
-			'access_denied'                      => 'system',
-			'ip_geolocation_debug'               => 'system',
-			'tickets_purged_expired'             => 'system',
-			// Settings maintenance that changes data (#2338).
-			'danger_zone_data_deleted'           => 'system',
-			'obsolete_shortcodes_removed'        => 'system',
-			'short_urls_cleaned'                 => 'system',
-			'public_access_bulk_disabled'        => 'public_access',
-		);
-
-		return $by_action[ $action ] ?? 'submissions';
 	}
 
 	/**
@@ -246,12 +134,15 @@ class ActivityLog {
 			$level = self::LEVEL_INFO;
 		}
 
-		// Granular filters: minimum level + per-category enable. Both default
-		// to "log everything", so existing installs are unaffected until tuned.
-		if ( self::level_rank( $level ) < self::level_rank( \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level() ) ) {
+		// What is recorded is decided per item (#2340). An audit item is
+		// written whatever the minimum level, so raising the level never
+		// hides who saw or deleted data; a secondary item is filtered by it.
+		$item = ActivityLogItems::for_action( $action );
+		if ( ! ActivityLogItems::is_audit( $item )
+			&& self::level_rank( $level ) < self::level_rank( \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level() ) ) {
 			return false;
 		}
-		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( self::category_for_action( $action ) ) ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_item_enabled( $item ) ) {
 			return false;
 		}
 

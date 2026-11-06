@@ -85,7 +85,7 @@ class PreflightTelemetryTest extends TestCase {
 		// The activity log is enabled; every debug area stays off, so
 		// Debug::is_enabled() takes the same branch whatever ran before.
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $fallback
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $fallback
 		);
 
 		$this->reset_activity_log_state();

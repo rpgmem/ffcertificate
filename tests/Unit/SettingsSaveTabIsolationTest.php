@@ -23,8 +23,8 @@ use FreeFormCertificate\Admin\SettingsSaveHandler;
  * A key belongs to a tab when its view file names it. Two tabs render part
  * of their form through a shared class rather than literal names: the QR
  * Code tab (`qr_design_*`, drawn by the design form) and Public Design
- * (`PublicDesign::KEYS`); the Advanced tab builds its `activity_log_cat_*`
- * names from `ActivityLog::CATEGORIES`.
+ * (`PublicDesign::KEYS`); the Advanced tab builds its `activity_log_item_*`
+ * names from `ActivityLogItems::ITEMS`.
  *
  * @covers \FreeFormCertificate\Admin\SettingsSaveHandler
  */
@@ -71,9 +71,14 @@ class SettingsSaveTabIsolationTest extends TestCase {
 		Functions\when( 'add_settings_error' )->justReturn( null );
 		Functions\when( 'apply_filters' )->alias( static fn( $hook, $value ) => $value );
 		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		// A save audits its Danger Zone changes (#2340); this test is about
+		// which keys a tab writes, so nothing is logged here.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		unset( $_POST['_ffc_tab'], $_POST['ffc_settings'], $_POST['ffc_settings_nonce'] );
 		Monkey\tearDown();
 		parent::tearDown();
@@ -127,7 +132,7 @@ class SettingsSaveTabIsolationTest extends TestCase {
 			return true;
 		}
 		return ( 'qr_code' === $tab && 0 === strpos( $key, 'qr_design_' ) )
-			|| ( 'advanced' === $tab && 0 === strpos( $key, 'activity_log_cat_' ) );
+			|| ( 'advanced' === $tab && 0 === strpos( $key, \FreeFormCertificate\Core\ActivityLogItems::SETTING_PREFIX ) );
 	}
 
 	public function test_saving_a_tab_changes_only_that_tabs_keys(): void {
