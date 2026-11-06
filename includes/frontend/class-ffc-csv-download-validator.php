@@ -364,7 +364,9 @@ final class CsvDownloadValidator {
 	 * shows a placeholder — admins can configure encryption to retroactively
 	 * make new entries auditable.
 	 *
-	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }.
+	 * Schema (6.3.3): { ts, ip, mode, cpf_encrypted, result }; since #2341
+	 * also `ip_fp`, and on a folded failure `count` and `first_ts` (see
+	 * {@see \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::append()}).
 	 *
 	 * Made `public` in 6.5.13 so `PublicCsvDownload` can record audit
 	 * rows for non-CPF outcomes too (captcha rejection, hash mismatch,
@@ -384,6 +386,13 @@ final class CsvDownloadValidator {
 	 *                        fail_other.
 	 */
 	public function record_download_log_entry( int $form_id, string $mode, string $digits, string $result ): void {
+		// Only a form has a download log (#2341): a request naming any other
+		// post id, which a refusal can reach before the form is resolved,
+		// must not write meta onto it.
+		if ( $form_id <= 0 || 'ffc_form' !== get_post_type( $form_id ) ) {
+			return;
+		}
+
 		$cpf_encrypted = '';
 		if ( '' !== $digits
 			&& class_exists( '\FreeFormCertificate\Core\Encryption' )
@@ -394,18 +403,22 @@ final class CsvDownloadValidator {
 			}
 		}
 
-		$existing   = get_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, true );
-		$existing   = is_array( $existing ) ? \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_legacy_ips( $existing ) : array();
-		$existing[] = array(
-			'ts'            => time(),
-			'ip_encrypted'  => \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_ip( \FreeFormCertificate\Core\RequestInput::get_user_ip() ),
-			'mode'          => $mode,
-			'cpf_encrypted' => $cpf_encrypted,
-			'result'        => $result,
+		$ip       = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		$existing = get_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, true );
+		$existing = is_array( $existing ) ? \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_legacy_ips( $existing ) : array();
+		$existing = \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::append(
+			$existing,
+			array(
+				'ts'            => time(),
+				'ip_encrypted'  => \FreeFormCertificate\Frontend\Csv\CsvDownloadAuditLog::encrypt_ip( $ip ),
+				// The key a repeated failure folds on: keyed, so it names no address.
+				'ip_fp'         => '' === $ip ? '' : \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ),
+				'mode'          => $mode,
+				'cpf_encrypted' => $cpf_encrypted,
+				'result'        => $result,
+			),
+			PublicCsvDownload::DOWNLOAD_LOG_MAX
 		);
-		if ( count( $existing ) > PublicCsvDownload::DOWNLOAD_LOG_MAX ) {
-			$existing = array_slice( $existing, -PublicCsvDownload::DOWNLOAD_LOG_MAX );
-		}
 		update_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, $existing );
 	}
 }

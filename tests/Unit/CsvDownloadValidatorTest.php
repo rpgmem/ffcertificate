@@ -557,8 +557,8 @@ class CsvDownloadValidatorTest extends TestCase {
 	}
 
 	public function test_record_download_log_entry_prunes_to_max(): void {
-		// Pre-seed DOWNLOAD_LOG_MAX rows, then append one more.
-		$rows = array_fill( 0, PublicCsvDownload::DOWNLOAD_LOG_MAX, array( 'result' => 'old' ) );
+		// Pre-seed DOWNLOAD_LOG_MAX records, then append one more.
+		$rows = array_fill( 0, PublicCsvDownload::DOWNLOAD_LOG_MAX, array( 'result' => 'download_delivered' ) );
 		$this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ] = $rows;
 
 		$this->validator->record_download_log_entry( 10, 'access', '', 'success' );
@@ -567,5 +567,32 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->assertCount( PublicCsvDownload::DOWNLOAD_LOG_MAX, $log );
 		// The oldest row is dropped; the new row is last.
 		$this->assertSame( 'success', $log[ PublicCsvDownload::DOWNLOAD_LOG_MAX - 1 ]['result'] );
+	}
+
+	/**
+	 * #2341 — only a form has a download log: a refusal aimed at any other
+	 * post id writes nothing onto it.
+	 */
+	public function test_record_download_log_entry_writes_nothing_for_a_post_that_is_not_a_form(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+
+		$this->assertArrayNotHasKey( '10:' . PublicCsvDownload::META_DOWNLOAD_LOG, $this->meta_store );
+	}
+
+	/**
+	 * #2341 — a failure repeated from one address folds, and stores the
+	 * address's keyed fingerprint, never the address.
+	 */
+	public function test_record_download_log_entry_folds_a_repeated_failure(): void {
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+
+		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
+		$this->assertCount( 1, $log );
+		$this->assertSame( 2, $log[0]['count'] );
+		$this->assertNotSame( '', $log[0]['ip_fp'] );
+		$this->assertStringNotContainsString( (string) \FreeFormCertificate\Core\RequestInput::get_user_ip(), (string) $log[0]['ip_fp'] );
 	}
 }

@@ -92,6 +92,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: an address in an entry's details is never stored in clear** (#2340). When the details cannot be encrypted (no key, or a failed encryption), each address in them is replaced by a keyed fingerprint, as the entry's own address already was not stored.
 - ⚠ **Public CSV endpoints count every request** (#2341). The form details, the certificate preview, the download and the export start share a read pool (10/minute, 100/hour), and Open early, Postpone close and Schedule exception a tighter one (5/minute, 30/hour), both on the Rate Limit tab; until now nothing recorded these calls, so no limit could stop a hash being guessed. A refusal sent with an HTTP error status now shows the plugin's message instead of "Connection error".
 - ⚠ **Public CSV operator actions require their own captcha** (#2341). Open early, Postpone close and Schedule exception show the active challenge (ALTCHA or math) in their dialog, bound to the actions' own context, and spend it before the hash is checked; a refusal hands the dialog a fresh one. A proof solved for the download no longer authorises a change to the form.
+- **Public CSV download log: failures can no longer wipe it** (#2341). A failure repeated from one address folds into one row with a count and its first and last time; failures and other entries keep 100 rows each, so bad requests never push a delivery out; a request naming a post that is not a form writes nothing. The log CSV gains `attempts` and `first_seen`.
 
 ### Fixed
 

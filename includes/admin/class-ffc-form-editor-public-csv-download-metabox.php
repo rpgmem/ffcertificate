@@ -454,7 +454,7 @@ class FormEditorPublicCsvDownloadMetabox {
 								<span class="ffc-csv-audit-card-hint"><?php esc_html_e( 'Wrong CPF + wrong CAPTCHA + other errors.', 'ffcertificate' ); ?></span>
 							</div>
 						</div>
-						<?php if ( $ffc_audit_summary['count'] >= \FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX ) : ?>
+						<?php if ( ! empty( $ffc_audit_summary['full'] ) ) : ?>
 							<p class="description">
 								<?php
 								echo esc_html(

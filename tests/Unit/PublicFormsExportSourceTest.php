@@ -783,6 +783,7 @@ class PublicFormsExportSourceTest extends TestCase {
 	}
 
 	public function test_on_before_download_writes_delivery_audit_row(): void {
+		$this->post_types[ self::FORM ]                                    = 'ffc_form';
 		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_CPF_MODE ] = 'voluntary';
 
 		$this->source->on_before_download(
