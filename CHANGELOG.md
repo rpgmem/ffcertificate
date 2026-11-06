@@ -51,6 +51,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Schema: every module heals on its own revision** (#2430). The core schema (with its indexes and user foreign keys), recruitment, reregistration, user dashboard and date messages ran their table and column steps once per plugin version, which `develop` keeps for a whole batch, so the testes site missed them until the next release. Each now carries `SCHEMA_REVISION`, like audience, self-scheduling and short URLs; rate limit, activity log and bulk issue name theirs the same way. Each runs its steps once on update.
 - **Schema: a change without a revision bump fails CI** (#2430). A register of each class's `SCHEMA_REVISION` and a fingerprint of the schema it declares fails a schema change that keeps the revision, before the merge rather than at the post-deploy smoke; the established-install test maps read the revisions from the activators, and CLAUDE.md states the rule.
 - **Settings: a disabled module takes its tabs and links with it** (#2338). The Certificates, Document Templates, Reregistration and Short URLs tabs, the Scheduling and Recruitment links, and the receipt and record cards and assignments on Document Templates hide while their module is off.
+- **Settings: the Danger Zone, Run Migration and Clear QR cache confirmations show their line breaks** (#2338).
 
 ### Security
 
@@ -64,6 +65,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Front end: four script sinks closed** (#2344). A copy button reads only an element id; the PDF background is set as an attribute and its URL is cleaned on read; "Open in Chrome" carries no page fragment; a stale-nonce retry sends the refreshed nonce and no longer writes to the caller's options.
 - **⚠ Settings: destructive settings need the Danger Zone capability** (#2338). Auto-delete and its window, the uninstall wipe, the activity log switch, its categories and its retention now need `ffc_manage_settings_dangerzone` on the form save and the autosave, and render disabled with the reason without it; turning auto-delete on asks first. Administrators can no longer be blocked from wp-admin, only an administrator changes the bypass, and clearing the QR cache needs `ffc_manage_settings`.
 - **Settings: action results no longer travel in the URL** (#2338). Settings maintenance, Data Migrations and the Submissions migration notice printed whatever text the query carried, so a crafted link could put any message on them; the result now stays on the server for its user for five minutes and the URL names only the area (`?ffc_notice=url_cleanup`), shown once.
+- **Settings maintenance: apply runs only what was previewed, and every destructive run is logged** (#2338). Short-URL cleanup, obsolete-shortcode cleanup and the public-access disabler refuse to apply when the window or criteria changed after the preview; those three and Danger Zone deletions write an Activity Log line naming who ran them and what changed.
 
 ### Fixed
 

@@ -2244,7 +2244,7 @@ msgid "Archived"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:999
-msgid "Are you absolutely sure?\\n\\nThis action CANNOT be undone!\\n\\nAll selected data will be permanently deleted."
+msgid "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted."
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:230
@@ -14607,7 +14607,7 @@ msgstr ""
 #. %s: migration name
 #: includes/settings/views/ffc-tab-migrations.php:244
 #, php-format
-msgid "Run %s migration?\\n\\nThis will automatically process ALL records in batches of 100 until complete."
+msgid "Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:386 includes/settings/views/ffc-tab-migrations.php:635 includes/settings/views/ffc-tab-migrations.php:802
@@ -15506,10 +15506,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/config-captcha.php:20
 msgid "Settings → Captcha chooses the challenge that guards every public form at once: certificate submissions, certificate verification, appointment booking and the public CSV download. The invisible honeypot field is always on and is not part of this choice."
-msgstr ""
-
-#: includes/settings/views/documentation/operations-maintenance.php:20
-msgid "Settings → Data Migrations hosts a set of one-off maintenance tools for tidying up accumulated data. Every tool that changes data runs a preview (dry run) first: it reports exactly what would be affected, and the destructive button only unlocks for 5 minutes after a successful preview."
 msgstr ""
 
 #: includes/settings/views/documentation/document-templates-hub.php:21
@@ -23717,7 +23713,7 @@ msgstr ""
 msgid "Child audiences inherit fields from parent audiences"
 msgstr ""
 
-msgid "Clear all cached QR Codes?\\n\\nThey will be regenerated automatically when needed."
+msgid "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed."
 msgstr ""
 
 msgid "Clear All QR Code Cache"
@@ -32563,4 +32559,28 @@ msgstr ""
 
 #: added
 msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens, its Settings tabs and the Settings links to it, and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
+msgstr ""
+
+#: added
+msgid "Settings → Data Migrations hosts a set of one-off maintenance tools for tidying up accumulated data. Every tool that changes data runs a preview (dry run) first: it reports exactly what would be affected, and the destructive button only unlocks for 5 minutes after a successful preview. If the grace window or a criterion changes after the preview, applying is refused until a new preview runs. Every run that changes data writes an Activity Log line naming who ran it and what changed."
+msgstr ""
+
+#: added
+msgid "The settings changed after the preview. Run a new preview, check it, then apply."
+msgstr ""
+
+#: added
+msgid "Submissions Deleted (Danger Zone)"
+msgstr ""
+
+#: added
+msgid "Obsolete Shortcodes Removed"
+msgstr ""
+
+#: added
+msgid "Short URLs Cleaned Up"
+msgstr ""
+
+#: added
+msgid "Public Operator Access Disabled on Old Forms"
 msgstr ""

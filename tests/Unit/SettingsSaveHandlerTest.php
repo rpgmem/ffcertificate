@@ -45,6 +45,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		// SMTP / Email Model saves are gated on ffc_manage_settings_smtp (#711);
 		// default to granted so the existing save tests exercise the save path.
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
 
 		$mock_handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$this->handler = new SettingsSaveHandler( $mock_handler );
@@ -1343,6 +1344,48 @@ class SettingsSaveHandlerTest extends TestCase {
 		$ref->invoke( $handler );
 
 		unset( $_POST['delete_target'] );
+	}
+
+	public function test_danger_zone_logs_who_deleted_what(): void {
+		global $wpdb;
+		$saved_wpdb   = $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
+		);
+		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$buffer->setAccessible( true );
+		$buffer->setValue( null, array() );
+
+		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( 42, false )->andReturn( 17 );
+		$handler = new SettingsSaveHandler( $sub );
+
+		$_POST['delete_target'] = '42';
+		$ref                    = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
+		$ref->setAccessible( true );
+		$ref->invoke( $handler );
+		unset( $_POST['delete_target'] );
+
+		$rows = array_values( (array) $buffer->getValue() );
+		$buffer->setValue( null, array() );
+		$wpdb = $saved_wpdb;
+
+		$this->assertSame( 'danger_zone_data_deleted', $rows[0]['action'] ?? null );
+		$this->assertSame( 5, $rows[0]['user_id'] ?? null );
+		$this->assertSame( array( 'target' => 42, 'deleted' => 17, 'reset_counter' => false ), json_decode( (string) $rows[0]['context'], true ) );
 	}
 
 	public function test_danger_zone_specific_form_with_reset(): void {

@@ -232,6 +232,11 @@ class AdminActivityLogPage {
 			// Public Operator Access (#224) — early-open + ticket cleanup.
 			'early_open_executed'                          => __( 'Form Started Early', 'ffcertificate' ),
 			'tickets_purged_expired'                       => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
+			// Settings maintenance that changes data (#2338).
+			'danger_zone_data_deleted'                     => __( 'Submissions Deleted (Danger Zone)', 'ffcertificate' ),
+			'obsolete_shortcodes_removed'                  => __( 'Obsolete Shortcodes Removed', 'ffcertificate' ),
+			'short_urls_cleaned'                           => __( 'Short URLs Cleaned Up', 'ffcertificate' ),
+			'public_access_bulk_disabled'                  => __( 'Public Operator Access Disabled on Old Forms', 'ffcertificate' ),
 			// Postpone close (6.5.12).
 			'end_postponed'                                => __( 'Form Close Postponed', 'ffcertificate' ),
 			// Schedule exception per submission (#366 Sprint 9).

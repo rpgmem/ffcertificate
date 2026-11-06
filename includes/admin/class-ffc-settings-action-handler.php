@@ -208,6 +208,68 @@ class SettingsActionHandler {
 	}
 
 	/**
+	 * Fingerprint of the parameters a maintenance preview ran with (#2338).
+	 *
+	 * Apply recomputes it from the parameters it is about to use, so a
+	 * window or a criterion changed after the preview (by autosave, another
+	 * tab or another operator) cannot apply what nobody previewed.
+	 *
+	 * @param array<string, mixed> $params Parameters the tool runs with.
+	 * @return string
+	 */
+	private static function preview_fingerprint( array $params ): string {
+		return hash( 'sha256', (string) wp_json_encode( $params ) );
+	}
+
+	/**
+	 * Whether the stored preview covers the parameters apply would use.
+	 *
+	 * A preview that no longer matches is spent: the operator runs a new
+	 * one, which is what they then confirm.
+	 *
+	 * @param string               $key    Preview transient key.
+	 * @param array<string, mixed> $params Parameters apply would run with.
+	 * @return string 'ok', 'missing' or 'changed'.
+	 */
+	private static function preview_matches( string $key, array $params ): string {
+		$stored = get_transient( $key );
+		if ( ! is_string( $stored ) || '' === $stored ) {
+			return 'missing';
+		}
+		if ( ! hash_equals( $stored, self::preview_fingerprint( $params ) ) ) {
+			delete_transient( $key );
+			return 'changed';
+		}
+		return 'ok';
+	}
+
+	/**
+	 * Refusal shown when apply's parameters differ from the preview's.
+	 *
+	 * @return string
+	 */
+	private static function preview_changed_message(): string {
+		return __( 'The settings changed after the preview. Run a new preview, check it, then apply.', 'ffcertificate' );
+	}
+
+	/**
+	 * Write the activity-log line of a maintenance action that changed data.
+	 *
+	 * @param string               $action  Action key.
+	 * @param array<string, mixed> $context What was run and what it changed.
+	 * @return void
+	 */
+	private static function log_maintenance( string $action, array $context ): void {
+		// Best effort: the data has already changed, so a log that cannot be
+		// written must not turn the result into an error notice.
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log( $action, \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING, $context, get_current_user_id() );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+	}
+
+	/**
 	 * Handle obsolete shortcode cleanup actions (preview / apply / save_days).
 	 *
 	 * Wired into `admin_init`. Reacts to `ffc_obsolete_cleanup=<mode>` coming
@@ -301,7 +363,7 @@ class SettingsActionHandler {
 						)
 					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-					set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+					set_transient( $preview_ok_key, self::preview_fingerprint( array( 'days' => $current_days ) ), 5 * MINUTE_IN_SECONDS );
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 				} catch ( \Throwable $e ) {
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', $e->getMessage() );
@@ -309,8 +371,13 @@ class SettingsActionHandler {
 				break;
 
 			case 'apply':
-				if ( ! get_transient( $preview_ok_key ) ) {
+				$preview = self::preview_matches( $preview_ok_key, array( 'days' => $current_days ) );
+				if ( 'missing' === $preview ) {
 					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Please run a preview first before removing shortcodes.', 'ffcertificate' ) );
+					break;
+				}
+				if ( 'changed' === $preview ) {
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', self::preview_changed_message() );
 					break;
 				}
 				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
@@ -327,6 +394,14 @@ class SettingsActionHandler {
 					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					delete_transient( $preview_ok_key );
+					self::log_maintenance(
+						'obsolete_shortcodes_removed',
+						array(
+							'days'               => $current_days,
+							'shortcodes_removed' => (int) $report['shortcodes_removed'],
+							'posts_affected'     => (int) $report['posts_affected'],
+						)
+					);
 					$redirect_url = SettingsNotice::add(
 						$redirect_url,
 						'obsolete_cleanup',
@@ -431,13 +506,24 @@ class SettingsActionHandler {
 					)
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+				set_transient(
+					$preview_ok_key,
+					self::preview_fingerprint(
+						array(
+							'criteria' => array(
+								'orphaned'      => (bool) $orphaned,
+								'never_clicked' => (bool) $never,
+								'trashed'       => (bool) $trashed,
+							),
+							'days'     => $days,
+						)
+					),
+					5 * MINUTE_IN_SECONDS
+				);
 				$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 			} catch ( \Throwable $e ) {
 				$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', $e->getMessage() );
 			}
-		} elseif ( ! get_transient( $preview_ok_key ) ) {
-			$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) );
 		} else {
 			$days     = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
 			$criteria = array(
@@ -445,6 +531,23 @@ class SettingsActionHandler {
 				'never_clicked' => ! empty( $settings['url_cleanup_never_clicked'] ),
 				'trashed'       => ! empty( $settings['url_cleanup_trashed'] ),
 			);
+			$preview  = self::preview_matches(
+				$preview_ok_key,
+				array(
+					'criteria' => $criteria,
+					'days'     => $days,
+				)
+			);
+			if ( 'ok' !== $preview ) {
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'url_cleanup',
+					'error',
+					'missing' === $preview ? __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) : self::preview_changed_message()
+				);
+				wp_safe_redirect( $redirect_url );
+				exit;
+			}
 			try {
 				$report = $tool->run(
 					array(
@@ -455,6 +558,14 @@ class SettingsActionHandler {
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 				delete_transient( $preview_ok_key );
+				self::log_maintenance(
+					'short_urls_cleaned',
+					array(
+						'criteria' => array_keys( array_filter( $criteria ) ),
+						'days'     => $days,
+						'deleted'  => (int) $report['deleted'],
+					)
+				);
 				$redirect_url = SettingsNotice::add(
 					$redirect_url,
 					'url_cleanup',
@@ -546,15 +657,24 @@ class SettingsActionHandler {
 					)
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
+				set_transient( $preview_ok_key, self::preview_fingerprint( array( 'days' => $days ) ), 5 * MINUTE_IN_SECONDS );
 				$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 			} catch ( \Throwable $e ) {
 				$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', $e->getMessage() );
 			}
-		} elseif ( ! get_transient( $preview_ok_key ) ) {
-			$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', __( 'Please run a preview first before disabling access.', 'ffcertificate' ) );
 		} else {
-			$days = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$days    = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$preview = self::preview_matches( $preview_ok_key, array( 'days' => $days ) );
+			if ( 'ok' !== $preview ) {
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'pubaccess',
+					'error',
+					'missing' === $preview ? __( 'Please run a preview first before disabling access.', 'ffcertificate' ) : self::preview_changed_message()
+				);
+				wp_safe_redirect( $redirect_url );
+				exit;
+			}
 			try {
 				$report = $tool->run(
 					array(
@@ -564,6 +684,13 @@ class SettingsActionHandler {
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 				delete_transient( $preview_ok_key );
+				self::log_maintenance(
+					'public_access_bulk_disabled',
+					array(
+						'days'     => $days,
+						'disabled' => (int) $report['disabled'],
+					)
+				);
 				$redirect_url = SettingsNotice::add(
 					$redirect_url,
 					'pubaccess',

@@ -165,6 +165,11 @@ class ActivityLog {
 			'access_denied'                      => 'system',
 			'ip_geolocation_debug'               => 'system',
 			'tickets_purged_expired'             => 'system',
+			// Settings maintenance that changes data (#2338).
+			'danger_zone_data_deleted'           => 'system',
+			'obsolete_shortcodes_removed'        => 'system',
+			'short_urls_cleaned'                 => 'system',
+			'public_access_bulk_disabled'        => 'public_access',
 		);
 
 		return $by_action[ $action ] ?? 'submissions';
