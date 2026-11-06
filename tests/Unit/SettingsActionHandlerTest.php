@@ -1483,4 +1483,63 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$this->assertNotice( $url, 'pubaccess', 'success', 'Done. Disabled Public Operator Access on 0 form(s).' );
 	}
+
+	public function test_cron_times_save_returns_without_its_post(): void {
+		Functions\expect( 'check_admin_referer' )->never();
+
+		$this->handler->handle_cron_times_save();
+
+		$this->assertSame( array(), $this->cap_checks );
+	}
+
+	public function test_cron_times_save_needs_the_manage_capability(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array( 'ffc_daily_cleanup' => '03:30' ),
+		);
+		$this->grant();
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		$writes = CallLog::record( 'update_option', true ); // expect()->never() cannot see past setUp's stub (#1699).
+
+		try {
+			$this->handler->handle_cron_times_save();
+			$this->fail( 'Expected wp_die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		}
+		$_POST = array();
+
+		$this->assertSame( 0, $writes->count(), 'Nothing is saved without the capability.' );
+	}
+
+	public function test_cron_times_save_stores_them_and_redirects_with_the_result(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array(
+				'ffc_daily_cleanup'           => '03:30',
+				'ffc_cloudflare_cidr_refresh' => '25:00',
+			),
+		);
+		$this->grant( 'ffc_manage_settings' );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 1 );
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		$stored = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $name, $value ) use ( &$stored ) {
+				if ( 'ffc_cron_times' === $name || is_array( $value ) ) {
+					$stored = $value;
+				}
+				return true;
+			}
+		);
+
+		$url = $this->redirect_of( 'handle_cron_times_save' );
+		$_POST = array();
+
+		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $stored );
+		$this->assertStringContainsString( 'tab=scheduled_tasks', $url );
+		$this->assertNotice( $url, 'cron_times', 'error', 'Times saved, except the ones that were not a valid time of day.' );
+	}
 }

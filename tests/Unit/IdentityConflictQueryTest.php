@@ -137,7 +137,8 @@ class IdentityConflictQueryTest extends TestCase {
 		// exercised without a schema.
 		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $query ) {
-				$sql = (string) $query;
+				// The probe escapes LIKE wildcards (#2338); MySQL answers with the plain name.
+				$sql = stripslashes( (string) $query );
 
 				// `multiple_identities_count()` is the one `get_var` caller
 				// that is not a schema probe, so it is answered before them.

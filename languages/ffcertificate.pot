@@ -32631,3 +32631,7 @@ msgstr ""
 #: added
 msgid "Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory."
 msgstr ""
+
+#: added
+msgid "You do not have permission to change when tasks run."
+msgstr ""

@@ -115,9 +115,12 @@ final class ScheduledTasks {
 			'recurrence' => 'daily',
 			'module'     => null,
 		),
+		// Always on (#2338): it expires the staged rows of unfinished bulk
+		// issues, which hold personal data, so it keeps running while the
+		// certificate module is off rather than leave them behind.
 		'ffc_bulk_issue_purge'                => array(
 			'recurrence' => 'daily',
-			'module'     => 'certificates',
+			'module'     => null,
 		),
 		'ffc_process_submission_async'        => array(
 			'recurrence' => self::SINGLE,

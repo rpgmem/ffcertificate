@@ -126,7 +126,7 @@ class IdentityCorrectionPreviewAjaxEndpointTest extends TestCase {
 					return null;
 				}
 
-				return $prepared['args'][0] ?? null;
+				return ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 			}
 		);
 
@@ -138,7 +138,7 @@ class IdentityCorrectionPreviewAjaxEndpointTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
 				$sql   = (string) ( $prepared['sql'] ?? '' );
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 
 				if ( false !== strpos( $sql, 'user_id = %d' ) && false === strpos( $sql, '%i = %s' ) ) {
 					$owner = (int) ( $prepared['args'][1] ?? 0 );

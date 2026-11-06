@@ -129,7 +129,7 @@ class IdentityRepairTest extends TestCase {
 					return $this->ciphers[ $hash ] ?? null;
 				}
 
-				$table = $prepared['args'][0] ?? null;
+				$table = ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 
 				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
@@ -141,7 +141,7 @@ class IdentityRepairTest extends TestCase {
 		// lookup with nothing, which every refusal reads as "already repaired".
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$hash  = (string) ( $prepared['args'][2] ?? '' );
 
 				return $this->rows[ $table ][ $hash ] ?? array();

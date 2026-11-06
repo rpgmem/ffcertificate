@@ -87,7 +87,7 @@ class IdentityScopedRepairTest extends TestCase {
 			static function ( $prepared ) {
 				$sql = (string) ( $prepared['sql'] ?? '' );
 
-				return 0 === strpos( $sql, 'SELECT' ) ? null : ( $prepared['args'][0] ?? null );
+				return 0 === strpos( $sql, 'SELECT' ) ? null : ( ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null ) );
 			}
 		);
 
@@ -100,7 +100,7 @@ class IdentityScopedRepairTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
 				$sql   = (string) ( $prepared['sql'] ?? '' );
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$hash  = (string) ( $prepared['args'][2] ?? '' );
 				$rows  = array();
 

@@ -42,6 +42,7 @@ final class SettingsNotice {
 		'url_cleanup',
 		'pubaccess',
 		'submission_audit',
+		'cron_times',
 	);
 
 	/**

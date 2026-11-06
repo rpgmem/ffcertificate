@@ -368,7 +368,7 @@ class IdentityAgreementTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			static function ( $sql ) use ( $absent ) {
-				$table = substr( (string) $sql, strlen( 'SHOW TABLES LIKE ' ) );
+				$table = stripslashes( substr( (string) $sql, strlen( 'SHOW TABLES LIKE ' ) ) ); // The probe escapes LIKE wildcards (#2338); MySQL answers with the plain name.
 				return in_array( $table, $absent, true ) ? null : $table;
 			}
 		);

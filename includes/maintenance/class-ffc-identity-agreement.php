@@ -208,7 +208,7 @@ class IdentityAgreement {
 		foreach ( self::STORES as $suffix ) {
 			$table = $wpdb->prefix . $suffix;
 
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $table, '_%\\' ) ) ) !== $table ) {
 				continue;
 			}
 
@@ -224,7 +224,7 @@ class IdentityAgreement {
 
 		$profiles = $wpdb->prefix . 'ffc_user_profiles';
 
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $profiles ) ) === $profiles ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $profiles, '_%\\' ) ) ) === $profiles ) {
 			$indexed = $wpdb->get_row(
 				$wpdb->prepare( 'SELECT cpf_hash, rf_hash FROM %i WHERE user_id = %d', $profiles, $user_id ),
 				ARRAY_A

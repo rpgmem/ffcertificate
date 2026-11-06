@@ -350,7 +350,6 @@ class SettingsReaderTest extends TestCase {
 			'activity_log_retention_days' => array( 'activity_log_retention_days', 'activity_log_retention_days', 90 ),
 			'obsolete_shortcode_days'     => array( 'obsolete_shortcode_days', 'obsolete_shortcode_days', 90 ),
 			'public_csv_default_limit'    => array( 'public_csv_default_limit', 'public_csv_default_limit', 1 ),
-			'public_csv_sync_max_rows'    => array( 'public_csv_sync_max_rows', 'public_csv_sync_max_rows', 5000 ),
 			'qr_default_size'             => array( 'qr_default_size', 'qr_default_size', 200 ),
 			'url_shortener_code_length'   => array( 'url_shortener_code_length', 'url_shortener_code_length', 6 ),
 		);
