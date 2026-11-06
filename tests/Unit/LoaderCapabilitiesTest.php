@@ -501,9 +501,9 @@ class LoaderCapabilitiesTest extends TestCase {
 			'Without this the daily event fires with no callback, as it did since it was written.'
 		);
 
-		// Six daily-cleanup callbacks + two expiry callbacks registered.
+		// Seven daily-cleanup callbacks + two expiry callbacks registered.
 		$daily = array_filter( $added, static fn ( $h ) => 'ffc_daily_cleanup' === $h );
-		$this->assertCount( 6, $daily, 'submission cleanup + CSV reap + schedule-exception reap + the two import-staging sweeps (#2343) + the rate-limit cleanup (#2339).' );
+		$this->assertCount( 7, $daily, 'submission cleanup + CSV reap + schedule-exception reap + ticket-claim reap (#2341) + the two import-staging sweeps (#2343) + the rate-limit cleanup (#2339).' );
 	}
 
 	public function test_the_daily_reregistration_run_seeds_late_joiners_before_it_mails(): void {

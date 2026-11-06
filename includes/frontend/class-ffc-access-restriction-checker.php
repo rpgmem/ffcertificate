@@ -393,9 +393,7 @@ class AccessRestrictionChecker {
 			if ( isset( $listed[ $form_id ][ $m[2] ] ) ) {
 				continue;
 			}
-			// Raw delete: the claim was written raw and the options API
-			// never cached it, so there is no cache entry to clear.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- see above.
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the claim was written raw and never cached, so there is no cache entry to clear.
 			if ( $wpdb->delete( $wpdb->options, array( 'option_name' => $name ), array( '%s' ) ) ) {
 				++$deleted;
 			}
