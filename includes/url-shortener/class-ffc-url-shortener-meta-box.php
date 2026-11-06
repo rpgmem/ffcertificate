@@ -102,15 +102,38 @@ class UrlShortenerMetaBox {
 	 * @param \WP_Post $post Current post.
 	 */
 	public function render( \WP_Post $post ): void {
+		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
+		$this->render_box( $post );
+	}
+
+	/**
+	 * The box's markup as a string, for the AJAX actions that redraw it in
+	 * place instead of reloading the editor (#2337).
+	 *
+	 * @param \WP_Post $post Post.
+	 * @return string
+	 */
+	public function box_html( \WP_Post $post ): string {
+		ob_start();
+		$this->render_box( $post );
+		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Draw the box: the link, its state, its clicks and QR, and the one
+	 * action button.
+	 *
+	 * @param \WP_Post $post Post.
+	 */
+	private function render_box( \WP_Post $post ): void {
 		$repository = $this->service->get_repository();
 		$record     = $repository->findByPostId( $post->ID );
 		$can_manage = self::can_manage( $post->ID );
 
-		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
-
 		// Viewing the editor never creates a link (#2337): publishing does, and
 		// so does a later save while the post has none.
 		if ( ! $record ) {
+			echo '<div class="ffc-shorturl-metabox">';
 			if ( 'publish' !== $post->post_status ) {
 				echo '<p class="description">' . esc_html__( 'Publish the post to generate a short URL.', 'ffcertificate' ) . '</p>';
 			} elseif ( $this->service->is_auto_create_enabled() ) {
@@ -121,8 +144,16 @@ class UrlShortenerMetaBox {
 			} else {
 				echo '<p class="description">' . esc_html__( 'This post has no short URL yet.', 'ffcertificate' ) . '</p>';
 			}
+			echo '</div>';
 			return;
 		}
+
+		$status = (string) ( $record['status'] ?? '' );
+		$labels = array(
+			'active'   => __( 'Active', 'ffcertificate' ),
+			'disabled' => __( 'Disabled', 'ffcertificate' ),
+			'trashed'  => __( 'In the trash', 'ffcertificate' ),
+		);
 
 		$short_url = $this->service->get_short_url( $record['short_code'] );
 		$is_active = 'active' === ( $record['status'] ?? '' );
@@ -139,6 +170,10 @@ class UrlShortenerMetaBox {
 		$qr_src = $is_active ? $qr_handler->preview_src( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] ) : '';
 		?>
 		<div class="ffc-shorturl-metabox">
+			<?php // The link's state, which the box acts on (#2337). ?>
+			<p class="ffc-shorturl-state">
+				<span class="ffc-shorturl-status ffc-shorturl-status-<?php echo esc_attr( $status ); ?>"><?php echo esc_html( $labels[ $status ] ?? $status ); ?></span>
+			</p>
 			<!-- Short URL -->
 			<div class="ffc-mb-md">
 				<label class="ffc-shorturl-label"><?php esc_html_e( 'Short URL', 'ffcertificate' ); ?></label>
@@ -163,8 +198,14 @@ class UrlShortenerMetaBox {
 
 			<!-- Click count -->
 			<p class="ffc-shorturl-clicks">
-				<strong><?php echo esc_html( number_format_i18n( (int) $record['click_count'] ) ); ?></strong>
-				<?php esc_html_e( 'clicks', 'ffcertificate' ); ?>
+				<?php
+				$clicks = (int) $record['click_count'];
+				printf(
+					/* translators: %s: number of clicks, in bold */
+					esc_html( _n( '%s click', '%s clicks', $clicks, 'ffcertificate' ) ),
+					'<strong>' . esc_html( number_format_i18n( $clicks ) ) . '</strong>'
+				);
+				?>
 			</p>
 
 			<?php if ( ! $is_active ) : ?>
@@ -405,6 +446,8 @@ class UrlShortenerMetaBox {
 		$data              = $result['data'] ?? array();
 		$data['short_url'] = $this->service->get_short_url( (string) ( $data['short_code'] ?? '' ) );
 		$data['message']   = $message;
+		// The box redrawn as it now is, so the editor does not reload (#2337).
+		$data['html'] = $this->box_html( $post );
 		wp_send_json_success( $data );
 	}
 }

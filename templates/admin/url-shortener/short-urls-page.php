@@ -88,7 +88,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 				\FreeFormCertificate\Core\AdminNotice::render(
 					'success',
-					esc_html__( 'Short URL restored.', 'ffcertificate' )
+					esc_html__( 'Short URL restored as disabled. Switch it on in the list when it should redirect again.', 'ffcertificate' )
 				);
 				?>
 			<?php elseif ( 'deleted' === $msg ) : ?>
@@ -152,14 +152,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<form method="get" class="ffc-shorturl-filter">
 				<input type="hidden" name="page" value="ffc-short-urls" />
 				<div class="ffc-shorturl-filter-row">
-					<select name="status">
+					<?php // Each filter is named on screen, not only by its first option (#2337). ?>
+					<label class="ffc-shorturl-filter-field" for="ffc-shorturl-status-filter"><?php esc_html_e( 'Status', 'ffcertificate' ); ?>
+					<select name="status" id="ffc-shorturl-status-filter">
 						<option value="all" <?php selected( $status, 'all' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
 						<option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
 						<option value="disabled" <?php selected( $status, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></option>
 						<option value="trashed" <?php selected( $status, 'trashed' ); ?>>
 							<?php
 							/* translators: %d: number of trashed links */
-							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), (int) $stats['trashed_links'] );
+							$trashed = (int) $stats['trashed_links'];
+							/* translators: %s: number of trashed links */
+							printf( esc_html( _n( 'Trash (%s)', 'Trash (%s)', $trashed, 'ffcertificate' ) ), esc_html( number_format_i18n( $trashed ) ) );
 							?>
 						</option>
 						<?php if ( $can_see_retired ) : ?>
@@ -171,7 +175,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 							</option>
 						<?php endif; ?>
 					</select>
-					<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search...', 'ffcertificate' ); ?>" />
+					</label>
+					<label class="ffc-shorturl-filter-field" for="ffc-shorturl-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?>
+					<input type="search" id="ffc-shorturl-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Title, destination or code', 'ffcertificate' ); ?>" />
+					</label>
 					<?php
 					\FreeFormCertificate\Admin\AdminUI::render_button(
 						array(
@@ -184,7 +191,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			</form>
 
-			<?php if ( 'trashed' === $status && $total > 0 ) : ?>
+			<?php
+			// Write controls are drawn only for who may use them (#2337).
+			$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' );
+			$can_delete = $can_manage && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' );
+			?>
+			<?php if ( 'trashed' === $status && $total > 0 && $can_delete ) : ?>
 				<?php
 				$empty_trash_url = wp_nonce_url(
 					admin_url( 'admin.php?page=ffc-short-urls&ffc_action=empty_trash' ),
@@ -270,9 +282,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 									<?php endif; ?>
 								</td>
 								<td>
-									<code class="ffc-shorturl-code" title="<?php esc_attr_e( 'Click to copy', 'ffcertificate' ); ?>" data-url="<?php echo esc_attr( $short_url ); ?>">
-										<?php echo esc_html( $short_url ); ?>
-									</code>
+									<?php
+									// A button, so the keyboard reaches it (#2337).
+									\FreeFormCertificate\Admin\AdminUI::render_button(
+										array(
+											'label' => $short_url,
+											'icon'  => 'copy',
+											'class' => 'ffc-shorturl-code',
+											'attrs' => array(
+												'data-url'   => $short_url,
+												/* translators: %s: short URL */
+												'aria-label' => sprintf( __( 'Copy %s', 'ffcertificate' ), $short_url ),
+											),
+										)
+									);
+									?>
 								</td>
 								<td>
 									<a href="<?php echo esc_url( $dest_url ); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo esc_attr( $dest_url ); ?>">
@@ -286,7 +310,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<?php // The Status badge follows the row's toggle once its save is confirmed (#1904). ?>
 								<td><span id="ffc-short-url-status-<?php echo esc_attr( (string) $item['id'] ); ?>" class="<?php echo esc_attr( $status_css_class ); ?>" data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled"><?php echo esc_html( $status_label ); ?></span></td>
 								<td>
-									<?php if ( $is_trashed ) : ?>
+									<?php if ( $is_trashed && $can_delete ) : ?>
 										<?php
 										$restore_url = wp_nonce_url(
 											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=restore&id=' . $item['id'] ),
@@ -318,7 +342,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 											)
 										);
 										?>
-									<?php else : ?>
+									<?php elseif ( ! $is_trashed ) : ?>
 										<?php
 										$trash_url = wp_nonce_url(
 											admin_url( 'admin.php?page=ffc-short-urls&ffc_action=trash&id=' . $item['id'] ),
@@ -328,6 +352,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<?php
 										// On/off is a state, not an action: the toggle saves the link's
 										// status the moment it flips (#1904).
+										if ( $can_manage ) {
 										\FreeFormCertificate\Admin\AdminUI::render_toggle(
 											array(
 												'name'    => 'ffc_short_url_active_' . $item['id'],
@@ -348,7 +373,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 												),
 											)
 										);
-										if ( $is_manual ) {
+										}
+										if ( $is_manual && $can_manage ) {
 											\FreeFormCertificate\Admin\AdminUI::render_button(
 												array(
 													'label' => __( 'Edit', 'ffcertificate' ),
@@ -374,6 +400,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 												),
 											)
 										);
+										if ( $can_delete ) {
 										\FreeFormCertificate\Admin\AdminUI::render_button(
 											array(
 												'label'    => __( 'Trash', 'ffcertificate' ),
@@ -382,6 +409,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 												'href'     => $trash_url,
 											)
 										);
+										}
 										?>
 									<?php endif; ?>
 								</td>
@@ -434,6 +462,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<div class="ffc-qr-modal__preview">
 						<div class="ffc-qr-modal__spinner"><span class="spinner is-active"></span></div>
 						<img class="ffc-qr-modal__img" src="" alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" style="display:none;" />
+						<?php // Its own element, so an error never replaces the preview the next opening needs (#2337). ?>
+						<p class="ffc-qr-modal__error" role="alert" hidden></p>
 					</div>
 					<div class="ffc-qr-modal__actions">
 						<?php

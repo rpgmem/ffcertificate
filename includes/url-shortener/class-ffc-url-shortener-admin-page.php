@@ -50,6 +50,24 @@ class UrlShortenerAdminPage {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_edit_short_url', array( $this, 'ajax_edit_short_url' ) );
+		// Read by wp_admin_canonical_url() on admin_head, after the notice
+		// has read `msg` from the request: the address bar loses it, so the
+		// notice is not shown again on a reload or a later page (#2337).
+		add_filter( 'removable_query_args', array( $this, 'removable_query_args' ) );
+	}
+
+	/**
+	 * Drop the flash keys from this screen's address once shown (#2337).
+	 *
+	 * @param array<int, string> $args Query args WordPress removes.
+	 * @return array<int, string>
+	 */
+	public function removable_query_args( array $args ): array {
+		if ( 'ffc-short-urls' === \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) ) {
+			$args[] = 'msg';
+			$args[] = 'count';
+		}
+		return $args;
 	}
 
 	/**
@@ -144,14 +162,15 @@ class UrlShortenerAdminPage {
 			return;
 		}
 
-		// These GET-link actions are all writes (trash/restore/delete/
-		// empty_trash) — read-only viewers never run them.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+		if ( ! isset( $_GET['ffc_action'] ) ) {
 			return;
 		}
 
-		if ( ! isset( $_GET['ffc_action'] ) ) {
-			return;
+		// These GET-link actions are all writes (trash/restore/delete/
+		// empty_trash). A refusal says why instead of reloading the list as
+		// if nothing had been asked (#2337).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+			wp_die( esc_html__( 'You do not have permission to change short URLs.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
