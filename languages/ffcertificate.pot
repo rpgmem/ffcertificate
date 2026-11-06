@@ -7193,6 +7193,20 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "recruitment notice"
+msgid_plural "recruitment notices"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "Recruitment notices"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-user-columns.php
+msgid "(opens in a new tab)"
+msgstr ""
+
 #: includes/settings/views/documentation/config-user-access.php
 msgid "Roles and capabilities"
 msgstr ""
@@ -10913,10 +10927,6 @@ msgstr ""
 msgid "Login"
 msgstr ""
 
-#: includes/admin/class-ffc-admin-user-columns.php:259
-msgid "Login as User"
-msgstr ""
-
 #: templates/admin/settings/email-model-box.php:32
 msgid "Logo image"
 msgstr ""
@@ -12248,12 +12258,6 @@ msgstr ""
 #: templates/admin/recruitment/candidate-edit/classifications-section.php:39
 msgid "Notice"
 msgstr ""
-
-#: includes/admin/class-ffc-admin-user-columns.php:226
-msgid "notice"
-msgid_plural "notices"
-msgstr[0] ""
-msgstr[1] ""
 
 #: includes/recruitment/class-ffc-recruitment-public-shortcode-renderer.php:405
 msgid "Notice closed."
@@ -26696,7 +26700,7 @@ msgid "You do not have permission to reveal these values."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-user-dashboard.php:47
-msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"Login as User\"). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
+msgid "holders of ffc_view_as_user can open the dashboard as another user, under a banner, from the users list or the user-edit screen (\"View as user\", which opens a new tab; the users list shows the column only to holders of ffc_view_as_user). The other user's personal data appears masked, as it does to its owner, and each Reveal there writes an activity-log entry."
 msgstr ""
 
 
