@@ -52,6 +52,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Schema: a change without a revision bump fails CI** (#2430). A register of each class's `SCHEMA_REVISION` and a fingerprint of the schema it declares fails a schema change that keeps the revision, before the merge rather than at the post-deploy smoke; the established-install test maps read the revisions from the activators, and CLAUDE.md states the rule.
 - **Settings: a disabled module takes its tabs and links with it** (#2338). The Certificates, Document Templates, Reregistration and Short URLs tabs, the Scheduling and Recruitment links, and the receipt and record cards and assignments on Document Templates hide while their module is off.
 - **Settings: the Danger Zone, Run Migration and Clear QR cache confirmations show their line breaks** (#2338).
+- **Settings: the Danger Zone delete starts with no target, shows each target's count, and confirms in the plugin's dialog** (#2338). The dialog names the target and how many submissions go, asks for a typed word (`DELETE`, translated) and counts down 15 seconds; the server refuses an empty target or a missing word.
 
 ### Security
 

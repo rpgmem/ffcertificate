@@ -82,7 +82,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. "Delete all plugin data on uninstall" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin\'s receives the site\'s default role. The "Delete submissions" action deletes all submissions, or those of one form, with an option to reset the ID counter.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. "Delete all plugin data on uninstall" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin\'s receives the site\'s default role. The "Delete submissions" action deletes all submissions, or those of one form, with an option to reset the ID counter. It starts with no target chosen and shows how many submissions each target holds; the confirmation names the target and its count, asks for a typed word and counts down 15 seconds, and the deletion is recorded in the Activity Log.', 'ffcertificate' ); ?>
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(

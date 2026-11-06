@@ -921,13 +921,50 @@ class SettingsSaveHandler {
 	}
 
 	/**
+	 * How many submissions each Danger Zone target removes (#2338), shown in
+	 * the target list and in the confirmation. Empty for an account that
+	 * cannot delete, which sees the controls disabled.
+	 *
+	 * @return array<int, int> Row count by form ID.
+	 */
+	public static function danger_zone_counts(): array {
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ) ) {
+			return array();
+		}
+		return ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->countAllByForm();
+	}
+
+	/**
+	 * The word the operator types to confirm a Danger Zone delete (#2338).
+	 *
+	 * Translated, so an operator types a word of their own language; the
+	 * dialog shows it and the server compares against the same string.
+	 *
+	 * @return string
+	 */
+	public static function confirm_word(): string {
+		return _x( 'DELETE', 'word typed to confirm a Danger Zone deletion', 'ffcertificate' );
+	}
+
+	/**
 	 * Handle Danger Zone - Global Data Deletion
 	 *
 	 * @return void
 	 */
 	private function handle_danger_zone(): void {
-		$target        = \FreeFormCertificate\Core\RequestInput::get_post_string( 'delete_target', 'all' );
+		$target        = \FreeFormCertificate\Core\RequestInput::get_post_string( 'delete_target', '' );
 		$reset_counter = \FreeFormCertificate\Core\RequestInput::get_post_string( 'reset_counter' ) === '1';
+
+		// The target is chosen, never defaulted, and the word is typed (#2338):
+		// a stray submit, or one from a page without the dialog, deletes nothing.
+		if ( 'all' !== $target && ( ! ctype_digit( $target ) || absint( $target ) <= 0 ) ) {
+			add_settings_error( 'ffc_settings', 'ffc_data_not_deleted', __( 'Choose what to delete before confirming.', 'ffcertificate' ), 'error' );
+			return;
+		}
+		if ( trim( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_delete_confirm' ) ) !== self::confirm_word() ) {
+			add_settings_error( 'ffc_settings', 'ffc_data_not_deleted', __( 'Nothing was deleted: the confirmation word did not match.', 'ffcertificate' ), 'error' );
+			return;
+		}
 
 		/**
 		 * Fires before bulk data deletion from the danger zone.

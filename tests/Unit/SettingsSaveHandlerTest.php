@@ -46,6 +46,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		// default to granted so the existing save tests exercise the save path.
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( '_x' )->returnArg();
 
 		$mock_handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$this->handler = new SettingsSaveHandler( $mock_handler );
@@ -1338,12 +1339,13 @@ class SettingsSaveHandlerTest extends TestCase {
 		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( null, false );
 		$handler = new SettingsSaveHandler( $sub );
 
-		$_POST['delete_target'] = 'all';
+		$_POST['delete_target']      = 'all';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
 		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
 		$ref->setAccessible( true );
 		$ref->invoke( $handler );
 
-		unset( $_POST['delete_target'] );
+		unset( $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
 	}
 
 	public function test_danger_zone_logs_who_deleted_what(): void {
@@ -1373,11 +1375,12 @@ class SettingsSaveHandlerTest extends TestCase {
 		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( 42, false )->andReturn( 17 );
 		$handler = new SettingsSaveHandler( $sub );
 
-		$_POST['delete_target'] = '42';
-		$ref                    = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
+		$_POST['delete_target']      = '42';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
+		$ref                         = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
 		$ref->setAccessible( true );
 		$ref->invoke( $handler );
-		unset( $_POST['delete_target'] );
+		unset( $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
 
 		$rows = array_values( (array) $buffer->getValue() );
 		$buffer->setValue( null, array() );
@@ -1396,13 +1399,63 @@ class SettingsSaveHandlerTest extends TestCase {
 		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( 42, true );
 		$handler = new SettingsSaveHandler( $sub );
 
-		$_POST['delete_target'] = '42';
-		$_POST['reset_counter'] = '1';
+		$_POST['delete_target']      = '42';
+		$_POST['reset_counter']      = '1';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
 		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
 		$ref->setAccessible( true );
 		$ref->invoke( $handler );
 
-		unset( $_POST['delete_target'], $_POST['reset_counter'] );
+		unset( $_POST['delete_target'], $_POST['reset_counter'], $_POST['ffc_delete_confirm'] );
+	}
+
+	/**
+	 * @dataProvider unconfirmed_danger_zone_posts
+	 *
+	 * @param array<string, string> $post    Posted fields.
+	 * @param string                $message The refusal shown.
+	 */
+	public function test_danger_zone_deletes_nothing_without_a_target_and_the_word( array $post, string $message ): void {
+		Functions\when( 'do_action' )->justReturn( null );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $text, $type ) use ( &$notices ) {
+				$notices[] = array( $type, $text );
+			}
+		);
+
+		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$sub->shouldNotReceive( 'delete_all_submissions' );
+		$handler = new SettingsSaveHandler( $sub );
+
+		foreach ( $post as $key => $value ) {
+			$_POST[ $key ] = $value;
+		}
+		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
+		$ref->setAccessible( true );
+		$ref->invoke( $handler );
+		foreach ( array_keys( $post ) as $key ) {
+			unset( $_POST[ $key ] );
+		}
+
+		$this->assertSame( array( array( 'error', $message ) ), $notices );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>, 1: string}>
+	 */
+	public function unconfirmed_danger_zone_posts(): array {
+		$no_target = 'Choose what to delete before confirming.';
+		$no_word   = 'Nothing was deleted: the confirmation word did not match.';
+		return array(
+			'no target posted'      => array( array( 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'empty target'          => array( array( 'delete_target' => '', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'target that is no id'  => array( array( 'delete_target' => '12abc', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'zero target'           => array( array( 'delete_target' => '0', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'word missing'          => array( array( 'delete_target' => 'all' ), $no_word ),
+			'word of another case'  => array( array( 'delete_target' => 'all', 'ffc_delete_confirm' => 'delete' ), $no_word ),
+			'word misspelt'         => array( array( 'delete_target' => '42', 'ffc_delete_confirm' => 'DELET' ), $no_word ),
+		);
 	}
 
 	// ==================================================================
@@ -1525,6 +1578,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$_POST['ffc_settings']        = array( 'main_address' => 'x' );
 		$_POST['ffc_delete_all_data'] = '1';
 		$_POST['delete_target']       = 'all';
+		$_POST['ffc_delete_confirm']  = 'DELETE';
 
 		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$sub->shouldReceive( 'delete_all_submissions' )->once();
@@ -1533,7 +1587,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$handler->handle_all_submissions();
 		$this->assertTrue( true );
 
-		unset( $_POST['ffc_settings'], $_POST['ffc_delete_all_data'], $_POST['delete_target'] );
+		unset( $_POST['ffc_settings'], $_POST['ffc_delete_all_data'], $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
 	}
 
 }

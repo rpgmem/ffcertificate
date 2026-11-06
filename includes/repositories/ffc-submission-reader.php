@@ -553,6 +553,31 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * How many rows each form holds, every status included (#2338).
+	 *
+	 * What a Danger Zone delete of that form removes, which is every row,
+	 * trash and quiz attempts too.
+	 *
+	 * @return array<int, int> Row count by form ID.
+	 */
+	public function countAllByForm(): array {
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare( 'SELECT form_id, COUNT(*) AS total FROM %i GROUP BY form_id', $this->table ),
+			ARRAY_A
+		);
+
+		$counts = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$form_id = $row['form_id'] ?? null;
+			$total   = $row['total'] ?? null;
+			if ( is_numeric( $form_id ) && is_numeric( $total ) ) {
+				$counts[ (int) $form_id ] = (int) $total;
+			}
+		}
+		return $counts;
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0

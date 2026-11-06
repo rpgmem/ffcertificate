@@ -282,6 +282,15 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * How many rows each form holds, every status included (#2338).
+	 *
+	 * @return array<int, int> Row count by form ID.
+	 */
+	public function countAllByForm(): array {
+		return $this->reader->countAllByForm();
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0

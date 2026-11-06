@@ -61,6 +61,18 @@ class TabAdvanced extends SettingsTab {
 			FFC_VERSION,
 			true
 		);
+		// The Danger Zone delete confirmation (#2338): target, count, typed
+		// word and the shared countdown, on the plugin's dialog in ffc-core.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
+		wp_enqueue_script(
+			'ffc-danger-zone',
+			FFC_PLUGIN_URL . "assets/js/ffc-danger-zone{$s}.js",
+			array( 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script( 'ffc-danger-zone', 'ffcDangerZone', self::danger_zone_strings() );
+
 		$ffc_version = defined( 'FFC_VERSION' ) ? (string) FFC_VERSION : '';
 		wp_localize_script(
 			'ffc-encryption-key-suggest',
@@ -85,6 +97,38 @@ class TabAdvanced extends SettingsTab {
 					),
 				),
 			)
+		);
+	}
+
+	/**
+	 * The words of the Danger Zone delete confirmation (#2338).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function danger_zone_strings(): array {
+		return array(
+			'word'       => \FreeFormCertificate\Admin\SettingsSaveHandler::confirm_word(),
+			/* translators: %s: the word to type */
+			'matchLabel' => __( 'Type %s to confirm', 'ffcertificate' ),
+			/* translators: %s: number of submissions */
+			'targetAll'  => __( 'Every submission of every form — %s records', 'ffcertificate' ),
+			/* translators: 1: form title, 2: number of submissions */
+			'targetForm' => __( 'All submissions of %1$s — %2$s records', 'ffcertificate' ),
+			'reset'      => __( 'The submission ID counter is reset if the table ends up empty.', 'ffcertificate' ),
+			'final'      => __( 'This cannot be undone. The deletion is recorded in the Activity Log with your name.', 'ffcertificate' ),
+			'dialog'     => array(
+				'seconds'        => \FreeFormCertificate\Core\ConfirmCountdown::SECONDS,
+				'title'          => __( 'Delete submissions?', 'ffcertificate' ),
+				'intro'          => __( 'This permanently deletes:', 'ffcertificate' ),
+				'logged'         => '',
+				'agree'          => __( 'Delete', 'ffcertificate' ),
+				/* translators: %d: seconds left before the button can be pressed */
+				'agreeIn'        => __( 'Delete (%d)', 'ffcertificate' ),
+				'cancel'         => __( 'Cancel', 'ffcertificate' ),
+				/* translators: %d: seconds before the deletion can be confirmed */
+				'countdownStart' => __( 'Check the target and type the word. You can confirm in %d seconds.', 'ffcertificate' ),
+				'countdownEnd'   => __( 'You can confirm now.', 'ffcertificate' ),
+			),
 		);
 	}
 
