@@ -330,6 +330,56 @@ try {
 			<?php endif; ?>
 
 			<?php
+			// RECORDS THE WALK COULD NOT DO (#2338). A rotation passes a row it
+			// cannot re-encrypt and keeps it in a register, so the card stays
+			// incomplete and says which rows they are -- and, while any are
+			// listed, that the WordPress salts must not change.
+			$ffcertificate_failures = ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['failures'] ) && is_array( $ffcertificate_status['failures'] ) )
+				? $ffcertificate_status['failures']
+				: array();
+			if ( array() !== $ffcertificate_failures ) :
+				$ffcertificate_failed = (int) ( $ffcertificate_status['failed'] ?? count( $ffcertificate_failures ) );
+				?>
+				<div class="ffc-migration-failures">
+					<p>
+						<strong>
+							<?php
+							printf(
+								/* translators: %s: how many records the migration could not process. */
+								esc_html( _n( '%s record could not be processed', '%s records could not be processed', $ffcertificate_failed, 'ffcertificate' ) ),
+								esc_html( number_format_i18n( $ffcertificate_failed ) )
+							);
+							?>
+						</strong>
+					</p>
+					<ul>
+						<?php foreach ( $ffcertificate_failures as $ffcertificate_failure ) : ?>
+							<li><?php echo esc_html( (string) $ffcertificate_failure ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<?php if ( $ffcertificate_failed > count( $ffcertificate_failures ) ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: how many failures are not listed. */
+								esc_html__( 'Only the first ones are listed; %s more are counted.', 'ffcertificate' ),
+								esc_html( number_format_i18n( $ffcertificate_failed - count( $ffcertificate_failures ) ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+					<?php
+					if ( ! empty( $ffcertificate_status['salt_warning'] ) ) {
+						\FreeFormCertificate\Core\AdminNotice::callout(
+							'warning',
+							esc_html__( 'Do not change the WordPress salts or the encryption constants in wp-config.php until these records are resolved. They are still encrypted under the previous key, and changing the salts would make them unreadable. Find out why they failed, fix it, then try them again.', 'ffcertificate' ),
+							array( 'title' => __( 'Do not rotate the salts yet.', 'ffcertificate' ) )
+						);
+					}
+					?>
+				</div>
+			<?php endif; ?>
+			<?php
 			// Built once, for the two branches that offer it: the re-check
 			// after completion (`rearmable`) and the retry of a walk that
 			// ended with records behind it (`retryable`, #2338).
