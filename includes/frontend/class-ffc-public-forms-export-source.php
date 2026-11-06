@@ -27,6 +27,7 @@ use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\ReadRateGuard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -103,6 +104,16 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 					)
 				);
 			}
+		}
+		// The screen's read pool, which counts the call (#2341).
+		$rate_error = ReadRateGuard::check( PublicCsvDownload::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error(
+				array(
+					'message'    => $rate_error->get_error_message(),
+					'rate_limit' => true,
+				)
+			);
 		}
 
 		// 2. Page nonce.

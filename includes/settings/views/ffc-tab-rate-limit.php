@@ -403,10 +403,12 @@ $ffcertificate_stats = \FreeFormCertificate\Security\RateLimiter::get_stats();
 
 	<?php
 	$ffc_read_endpoints = array(
-		'calendar_slots'    => __( 'Calendar — Slots (GET /calendars/{id}/slots, and the booking form\'s slot and month reads)', 'ffcertificate' ),
-		'calendar_list'     => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
-		'calendar_detail'   => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
-		'audience_bookings' => __( 'Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too', 'ffcertificate' ),
+		'calendar_slots'     => __( 'Calendar — Slots (GET /calendars/{id}/slots, and the booking form\'s slot and month reads)', 'ffcertificate' ),
+		'calendar_list'      => __( 'Calendar — List (GET /calendars)', 'ffcertificate' ),
+		'calendar_detail'    => __( 'Calendar — Detail (GET /calendars/{id})', 'ffcertificate' ),
+		'audience_bookings'  => __( 'Audience calendar — Bookings (GET /audience/bookings), counted for logged-in users too', 'ffcertificate' ),
+		'public_csv'         => __( 'Public Operator Access — the form details, the certificate preview, the download and the export start', 'ffcertificate' ),
+		'public_csv_actions' => __( 'Public Operator Access — Open early, Postpone close and Schedule exception', 'ffcertificate' ),
 	);
 	foreach ( $ffc_read_endpoints as $ffc_ep_key => $ffc_ep_label ) :
 		$ffc_ep = $ffcertificate_s['read']['endpoints'][ $ffc_ep_key ] ?? array(

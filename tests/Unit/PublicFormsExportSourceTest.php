@@ -144,6 +144,8 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		// The screen's read pool counts an anonymous caller (#2341).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
 		// Also what Debug::is_enabled() would read; every option is unset here.
@@ -288,11 +290,27 @@ class PublicFormsExportSourceTest extends TestCase {
 				);
 			}
 		);
+		// The read pool's day counter (#2341): no row yet, so it inserts one.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SELECT id,count FROM `wp_ffc_rate_limits`' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturn( 1 );
+		// A refusal's log line and its trim.
+		$wpdb->shouldReceive( 'query' )->andReturn( 1 );
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
 				$sql = (string) $sql;
 				if ( 0 === strpos( $sql, 'SELECT count FROM `wp_ffc_rate_limits`' ) ) {
 					return null;
+				}
+				if ( 0 === strpos( $sql, 'SELECT COUNT(*) FROM `wp_ffc_rate_limit_logs`' ) ) {
+					return '1';
 				}
 				if ( false !== strpos( $sql, 'INFORMATION_SCHEMA.COLUMNS' ) ) {
 					return $this->edited ? '1' : '0';
@@ -516,6 +534,27 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$this->assertSame( array(), $this->json_errors );
 		$this->assertSame( 5, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'quota incremented from 4 → 5' );
+	}
+
+	/**
+	 * #2341 — the export start counts in the screen's read pool, and over it
+	 * refuses before it charges the quota.
+	 */
+	public function test_authorize_start_counts_in_the_read_pool_and_refuses_over_it(): void {
+		$base = 'ffc_rate_read_' . md5( IpAddress::fingerprint( self::IP ) . '|' . PublicCsvDownload::RATE_ENDPOINT ) . '_minute';
+		$this->public_form( array( PublicCsvDownload::META_COUNT => 4 ) );
+		$this->post_start_gate();
+
+		$this->source->authorize_start();
+		$this->assertSame( 1, \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, $base, MINUTE_IN_SECONDS ) );
+
+		$max = \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS[ PublicCsvDownload::RATE_ENDPOINT ]['max_per_minute'];
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, $base, MINUTE_IN_SECONDS, $max );
+		$this->post_start_gate();
+
+		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
+		$this->assertMatchesRegularExpression( '/^Too many requests\./', is_array( $payload ) ? (string) $payload['message'] : (string) $payload );
+		$this->assertSame( 5, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The refused start charged nothing.' );
 	}
 
 	// ==================================================================

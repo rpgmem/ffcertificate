@@ -497,6 +497,17 @@
                             err.xhr = xhr;
                             if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
                                 err.data = xhr.responseJSON.data;
+                                // An HTTP error that carries the plugin's
+                                // own message (a 429 from a rate limit, a
+                                // 403 from a refused hash) is the server
+                                // speaking, not the network failing (#2341).
+                                var bodyMsg = typeof err.data === 'string'
+                                    ? err.data
+                                    : err.data.message;
+                                if (typeof bodyMsg === 'string' && bodyMsg !== '') {
+                                    err.message = bodyMsg;
+                                    err.fromServer = true;
+                                }
                             }
                             reject(err);
                         });

@@ -74,17 +74,17 @@ final class RateLimitChecker {
 	 * @var array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
 	 */
 	public const READ_ENDPOINT_DEFAULTS = array(
-		'calendar_slots'    => array(
+		'calendar_slots'     => array(
 			'enabled'        => true,
 			'max_per_minute' => 60,
 			'max_per_hour'   => 1000,
 		),
-		'calendar_list'     => array(
+		'calendar_list'      => array(
 			'enabled'        => true,
 			'max_per_minute' => 30,
 			'max_per_hour'   => 500,
 		),
-		'calendar_detail'   => array(
+		'calendar_detail'    => array(
 			'enabled'        => true,
 			'max_per_minute' => 60,
 			'max_per_hour'   => 1000,
@@ -92,10 +92,26 @@ final class RateLimitChecker {
 		// The audience calendar's month read: one request per month
 		// navigated, so these leave a person untouched and stop a loop.
 		// Counted for logged-in callers too, by account.
-		'audience_bookings' => array(
+		'audience_bookings'  => array(
 			'enabled'        => true,
 			'max_per_minute' => 30,
 			'max_per_hour'   => 500,
+		),
+		// The public CSV screen (#2341): its info read, the certificate
+		// preview, the no-JS download and the batched export's start. An
+		// operator makes a handful per visit; a hash guessed by brute force
+		// makes thousands.
+		'public_csv'         => array(
+			'enabled'        => true,
+			'max_per_minute' => 10,
+			'max_per_hour'   => 100,
+		),
+		// Its three operator actions: open early, postpone the close and
+		// the schedule exception. Each changes the form, so tighter still.
+		'public_csv_actions' => array(
+			'enabled'        => true,
+			'max_per_minute' => 5,
+			'max_per_hour'   => 30,
 		),
 	);
 

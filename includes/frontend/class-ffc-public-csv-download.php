@@ -42,6 +42,7 @@ use FreeFormCertificate\Frontend\Csv\CsvDownloadFlash;
 
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\ReadRateGuard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -66,6 +67,18 @@ class PublicCsvDownload {
 	const META_DOWNLOAD_LOG   = '_ffc_csv_public_download_log';
 	const DOWNLOAD_LOG_MAX    = 100;
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
+
+	/**
+	 * Read pool of the screen's form details, preview, download and export
+	 * start (#2341): the IP limit above it is fed by submissions only, so on
+	 * its own it never stopped a caller of these endpoints.
+	 */
+	const RATE_ENDPOINT = 'public_csv';
+
+	/**
+	 * Read pool of the three operator actions.
+	 */
+	const RATE_ENDPOINT_ACTIONS = 'public_csv_actions';
 
 	const EXPORT_LOG_ACTION = 'ffc_export_csv_public_download_log';
 	const EXPORT_LOG_NONCE  = 'ffc_export_csv_public_download_log';
@@ -330,6 +343,10 @@ class PublicCsvDownload {
 				$this->fail_redirect( $rate_check['message'] );
 			}
 		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			$this->fail_redirect( $rate_error->get_error_message() );
+		}
 
 		// 2. Nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
@@ -440,6 +457,10 @@ class PublicCsvDownload {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ) );
 			}
 		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		}
 
 		// 2. Nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
@@ -504,6 +525,11 @@ class PublicCsvDownload {
 	 * Only available before the form start date (before collection begins).
 	 */
 	public function ajax_cert_preview(): void {
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		}
+
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
@@ -781,6 +807,10 @@ class PublicCsvDownload {
 			if ( empty( $rate_check['allowed'] ) ) {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ), 429 );
 			}
+		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT_ACTIONS );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
 		}
 
 		$hash_error = $this->validator->validate_hash_only( $form_id, $posted_hash );
