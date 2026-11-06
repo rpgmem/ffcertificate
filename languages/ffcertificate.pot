@@ -3991,9 +3991,12 @@ msgstr ""
 msgid "Clicks"
 msgstr ""
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:155
-msgid "clicks"
-msgstr ""
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:205
+#, php-format
+msgid "%s click"
+msgid_plural "%s clicks"
+msgstr[0] ""
+msgstr[1] ""
 
 #: includes/settings/views/documentation/feature-url-shortener.php:47
 msgid "Clicks are a counter only."
@@ -7231,6 +7234,22 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php:295
+msgid "Copy %s"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:155
+msgid "In the trash"
+msgstr ""
+
+#: templates/admin/url-shortener/short-urls-page.php:180
+msgid "Title, destination or code"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:173
+msgid "You do not have permission to change short URLs."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-qr-generator-page.php:125
@@ -15487,7 +15506,7 @@ msgid "Short URL regenerated. The old code is retired."
 msgstr ""
 
 #: templates/admin/url-shortener/short-urls-page.php:64
-msgid "Short URL restored."
+msgid "Short URL restored as disabled. Switch it on in the list when it should redirect again."
 msgstr ""
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:92
@@ -17860,10 +17879,12 @@ msgstr ""
 msgid "Trash"
 msgstr ""
 
-#. %d: number of trashed links
-#: templates/admin/url-shortener/short-urls-page.php:154
-msgid "Trash (%d)"
-msgstr ""
+#: templates/admin/url-shortener/short-urls-page.php:166
+#, php-format
+msgid "Trash (%s)"
+msgid_plural "Trash (%s)"
+msgstr[0] ""
+msgstr[1] ""
 
 #: templates/admin/url-shortener/short-urls-page.php:108
 #, php-format

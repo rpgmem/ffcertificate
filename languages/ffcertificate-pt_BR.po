@@ -3990,9 +3990,12 @@ msgstr "Clique para copiar"
 msgid "Clicks"
 msgstr "Cliques"
 
-#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:155
-msgid "clicks"
-msgstr "cliques"
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:205
+#, php-format
+msgid "%s click"
+msgid_plural "%s clicks"
+msgstr[0] "%s clique"
+msgstr[1] "%s cliques"
 
 #: includes/settings/views/documentation/feature-url-shortener.php:47
 msgid "Clicks are a counter only."
@@ -7235,6 +7238,22 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: templates/admin/url-shortener/short-urls-page.php:295
+msgid "Copy %s"
+msgstr "Copiar %s"
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:155
+msgid "In the trash"
+msgstr "Na lixeira"
+
+#: templates/admin/url-shortener/short-urls-page.php:180
+msgid "Title, destination or code"
+msgstr "Título, destino ou código"
+
+#: includes/url-shortener/class-ffc-url-shortener-admin-page.php:173
+msgid "You do not have permission to change short URLs."
+msgstr "Você não tem permissão para alterar links curtos."
 
 #: includes/url-shortener/class-ffc-qr-generator-page.php:125
 msgid "A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway."
@@ -15536,8 +15555,8 @@ msgid "Short URL regenerated. The old code is retired."
 msgstr "Link curto regenerado. O código antigo foi aposentado."
 
 #: templates/admin/url-shortener/short-urls-page.php:64
-msgid "Short URL restored."
-msgstr "URL curta restaurada."
+msgid "Short URL restored as disabled. Switch it on in the list when it should redirect again."
+msgstr "Link curto restaurado como desativado. Ative-o na lista quando ele deve voltar a redirecionar."
 
 #: includes/settings/views/documentation/operations-troubleshooting.php:92
 msgid "Short URL returns 404"
@@ -17915,10 +17934,12 @@ msgstr "Cache temporário para o shortcode público. 0 desativa."
 msgid "Trash"
 msgstr "Lixeira"
 
-#. %d: number of trashed links
-#: templates/admin/url-shortener/short-urls-page.php:154
-msgid "Trash (%d)"
-msgstr "Lixo (%d)"
+#: templates/admin/url-shortener/short-urls-page.php:166
+#, php-format
+msgid "Trash (%s)"
+msgid_plural "Trash (%s)"
+msgstr[0] "Lixo (%s)"
+msgstr[1] "Lixo (%s)"
 
 #: templates/admin/url-shortener/short-urls-page.php:108
 #, php-format

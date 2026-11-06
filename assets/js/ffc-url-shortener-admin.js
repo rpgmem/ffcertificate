@@ -94,6 +94,43 @@
             });
         });
 
+        // A dialog takes the focus in, keeps Tab inside, and gives it back to
+        // the control that opened it on close (#2337).
+        var opener = null;
+        var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+        function openModal($modal, trigger) {
+            opener = trigger || null;
+            $modal.show();
+            $modal.off('keydown.ffcTrap').on('keydown.ffcTrap', function (e) {
+                if (e.key !== 'Tab') {
+                    return;
+                }
+                var $items = $modal.find(FOCUSABLE).filter(':visible');
+                if (!$items.length) {
+                    return;
+                }
+                var first = $items.first()[0];
+                var last = $items.last()[0];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
+            $modal.find('.ffc-qr-modal__close').first().trigger('focus');
+        }
+
+        function closeModals() {
+            $('#ffc-qr-modal, #ffc-edit-modal').off('keydown.ffcTrap').hide();
+            if (opener && document.body.contains(opener)) {
+                opener.focus();
+            }
+            opener = null;
+        }
+
         // --- Copy short URL (meta box) ---
         $(document).on('click', '.ffc-copy-shorturl', function (e) {
             e.preventDefault();
@@ -162,7 +199,16 @@
                     if (data && data.message) {
                         showToast(data.message);
                     }
-                    window.location.reload();
+                    // Redraw the box in place: reloading the editor would drop
+                    // whatever was being written in it (#2337).
+                    var $box = $btn.closest('.ffc-shorturl-metabox');
+                    if (data && data.html && $box.length) {
+                        var $fresh = $(data.html);
+                        $box.replaceWith($fresh);
+                        $fresh.find('.ffc-regenerate-shorturl').trigger('focus');
+                    } else {
+                        window.location.reload();
+                    }
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
@@ -188,8 +234,9 @@
 
             // Reset state
             $modal.find('.ffc-qr-modal__img').hide();
+            $modal.find('.ffc-qr-modal__error').prop('hidden', true).text('');
             $modal.find('.ffc-qr-modal__spinner').show();
-            $modal.show();
+            openModal($modal, this);
 
             // Fetch QR Code via AJAX
             FFC.request(
@@ -207,26 +254,24 @@
                 .catch(function (err) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
                     var i18n = settings.i18n || {};
-                    if (err && err.fromServer) {
-                        $modal.find('.ffc-qr-modal__preview')
-                            .html('<p class="ffc-qr-modal__error"></p>')
-                            .find('p').text(err.message || i18n.error || 'Error');
-                    } else {
-                        $modal.find('.ffc-qr-modal__preview')
-                            .html('<p class="ffc-qr-modal__error"></p>')
-                            .find('p').text(i18n.qrLoadFailed || 'Failed to load QR Code');
-                    }
+                    // The preview keeps its markup: the next opening needs it (#2337).
+                    var text = (err && err.fromServer)
+                        ? (err.message || i18n.error || 'Error')
+                        : (i18n.qrLoadFailed || 'Failed to load QR Code');
+                    $modal.find('.ffc-qr-modal__error').text(text).prop('hidden', false);
                 });
         });
 
         // Close modal (QR + Edit share the .ffc-qr-modal chrome). Only one is
-        // ever open, so hiding both on any close/backdrop/Escape is harmless.
-        $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', function () {
-            $('#ffc-qr-modal, #ffc-edit-modal').hide();
-        });
+        // ever open, so closing both on any close/backdrop/Escape is harmless.
+        $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', closeModals);
         $(document).on('keydown', function (e) {
-            if (e.key === 'Escape') {
-                $('#ffc-qr-modal, #ffc-edit-modal').hide();
+            // Read display, not :visible, which needs layout to answer.
+            var open = $('#ffc-qr-modal, #ffc-edit-modal').filter(function () {
+                return $(this).css('display') !== 'none';
+            }).length;
+            if (e.key === 'Escape' && open) {
+                closeModals();
             }
         });
 
@@ -240,7 +285,8 @@
             $('#ffc-edit-title').val($btn.data('title') || '');
             $('#ffc-edit-short-url-result').empty().hide();
             warnDestination();
-            $modal.show();
+            openModal($modal, this);
+            $('#ffc-edit-target').trigger('focus');
         });
 
         // A destination whose path ends in a file to download is warned
