@@ -559,31 +559,8 @@ class Loader {
 		// option; no flag, because an encrypted value returns at once.
 		add_action( 'admin_init', array( \FreeFormCertificate\Integrations\SmtpPassword::class, 'maybe_encrypt_stored' ) );
 
-		$this->ensure_admin_capabilities();
-		$this->ensure_admin_role_assigned();
-		$this->ensure_taxonomy_renamed();
-		$this->ensure_delete_caps_granted();
-		$this->ensure_export_caps_granted();
-		$this->ensure_import_caps_granted();
-		$this->ensure_reasons_caps_wired();
-		$this->ensure_settings_split_caps_granted();
-		$this->ensure_email_templates_cap_granted();
-		$this->ensure_identities_cap_granted();
-		$this->ensure_identity_verbs_cap_granted();
-		$this->ensure_grade_cap_granted();
-		$this->ensure_reregistration_pii_cap_granted();
-		$this->ensure_audiences_pii_cap_granted();
-		$this->ensure_ip_pii_caps_granted();
-		$this->ensure_forms_api_submit_cap_granted();
 		$this->ensure_recruitment_email_migrated();
-		$this->ensure_activity_log_export_cap_granted();
-		$this->ensure_url_shortener_export_cap_granted();
-		$this->ensure_date_messages_send_cap_granted();
-		$this->ensure_date_messages_delete_cap_granted();
-		$this->ensure_rbac_caps_renamed();
-		$this->ensure_rbac_roles_renamed();
-		$this->ensure_false_ffc_caps_stripped();
-		$this->ensure_import_capability_granted();
+		$this->run_capability_migrations();
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -722,6 +699,102 @@ class Loader {
 		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
 		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Option holding the capability migrations' lock (#2340).
+	 */
+	public const CAPABILITY_MIGRATIONS_LOCK = 'ffc_capability_migrations_lock';
+
+	/**
+	 * Seconds after which a lock left by a request that died is taken over.
+	 */
+	private const CAPABILITY_MIGRATIONS_LOCK_TTL = 600;
+
+	/**
+	 * Run the one-shot capability and role migrations (#2340).
+	 *
+	 * Each keeps its own completion flag and returns at once when it is set,
+	 * so on an up-to-date install this costs one option read per migration.
+	 * The work itself runs only in wp-admin, in a cron run or under WP-CLI,
+	 * never in a front-end request, and one request at a time: the first
+	 * request after an update takes the lock, and a concurrent one skips the
+	 * whole set rather than repeating it. A request that dies mid-way leaves
+	 * the later flags unset and its lock expires, so the next one resumes
+	 * where it stopped.
+	 *
+	 * @return void
+	 */
+	private function run_capability_migrations(): void {
+		if ( ! self::may_run_capability_migrations() ) {
+			return;
+		}
+		if ( ! self::take_capability_migrations_lock() ) {
+			return;
+		}
+		try {
+			$this->ensure_admin_capabilities();
+			$this->ensure_admin_role_assigned();
+			$this->ensure_taxonomy_renamed();
+			$this->ensure_delete_caps_granted();
+			$this->ensure_export_caps_granted();
+			$this->ensure_import_caps_granted();
+			$this->ensure_reasons_caps_wired();
+			$this->ensure_settings_split_caps_granted();
+			$this->ensure_email_templates_cap_granted();
+			$this->ensure_identities_cap_granted();
+			$this->ensure_identity_verbs_cap_granted();
+			$this->ensure_grade_cap_granted();
+			$this->ensure_reregistration_pii_cap_granted();
+			$this->ensure_audiences_pii_cap_granted();
+			$this->ensure_ip_pii_caps_granted();
+			$this->ensure_forms_api_submit_cap_granted();
+			$this->ensure_activity_log_export_cap_granted();
+			$this->ensure_url_shortener_export_cap_granted();
+			$this->ensure_date_messages_send_cap_granted();
+			$this->ensure_date_messages_delete_cap_granted();
+			$this->ensure_rbac_caps_renamed();
+			$this->ensure_rbac_roles_renamed();
+			$this->ensure_false_ffc_caps_stripped();
+			$this->ensure_import_capability_granted();
+		} finally {
+			delete_option( self::CAPABILITY_MIGRATIONS_LOCK );
+		}
+	}
+
+	/**
+	 * Whether this request may run the capability migrations: wp-admin
+	 * (admin-ajax included), a cron run or WP-CLI, never the front end.
+	 *
+	 * @return bool
+	 */
+	private static function may_run_capability_migrations(): bool {
+		return is_admin()
+			|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() )
+			|| ( defined( 'WP_CLI' ) && WP_CLI );
+	}
+
+	/**
+	 * Take the capability migrations' lock, or say another request holds it.
+	 *
+	 * `add_option()` is atomic on its unique key, so of two requests that
+	 * arrive together only one creates the row. A lock older than its TTL
+	 * belongs to a request that died and is taken over.
+	 *
+	 * @return bool
+	 */
+	private static function take_capability_migrations_lock(): bool {
+		$now = time();
+		if ( add_option( self::CAPABILITY_MIGRATIONS_LOCK, (string) $now, '', false ) ) {
+			return true;
+		}
+		$stored = get_option( self::CAPABILITY_MIGRATIONS_LOCK, 0 );
+		$held   = is_numeric( $stored ) ? (int) $stored : 0;
+		if ( $held > 0 && $now - $held < self::CAPABILITY_MIGRATIONS_LOCK_TTL ) {
+			return false;
+		}
+		update_option( self::CAPABILITY_MIGRATIONS_LOCK, (string) $now, false );
+		return true;
 	}
 
 	/**

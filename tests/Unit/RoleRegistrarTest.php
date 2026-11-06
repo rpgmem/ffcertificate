@@ -147,30 +147,75 @@ class RoleRegistrarTest extends TestCase {
 	 */
 	private function user_with_roles( array $roles ) {
 		$user        = \Mockery::mock( '\WP_User' );
+		$user->ID    = 7;
 		$user->roles = $roles;
 		return $user;
 	}
 
+	/**
+	 * Stub the per-user sync flag, recording what is written.
+	 *
+	 * @param string $stored Flag value already on the user.
+	 * @return array<int, array{0: string, 1: string}> Writes, by reference.
+	 */
+	private function &flag_store( string $stored = '' ): array {
+		$writes = array();
+		Functions\when( 'is_multisite' )->justReturn( false );
+		Functions\when( 'get_user_meta' )->justReturn( $stored );
+		Functions\when( 'update_user_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$writes ) {
+				$writes[] = array( $key, $value );
+				return true;
+			}
+		);
+		return $writes;
+	}
+
 	public function test_an_administrator_without_the_ffc_role_receives_it(): void {
-		$user = $this->user_with_roles( array( 'administrator' ) );
+		$writes = &$this->flag_store();
+		$user   = $this->user_with_roles( array( 'administrator' ) );
 		$user->shouldReceive( 'add_role' )->once()->with( 'ffc_administrator' );
 
 		Functions\when( 'get_userdata' )->justReturn( $user );
 		Functions\when( 'get_role' )->justReturn( \Mockery::mock( '\WP_Role' ) );
 
 		RoleRegistrar::sync_admin_role( 7 );
+
+		$this->assertSame( array( array( 'ffc_admin_role_synced', '1' ) ), $writes );
 	}
 
 	public function test_an_administrator_who_already_has_it_is_left_alone(): void {
-		$user = $this->user_with_roles( array( 'administrator', 'ffc_administrator' ) );
+		$writes = &$this->flag_store();
+		$user   = $this->user_with_roles( array( 'administrator', 'ffc_administrator' ) );
 		$user->shouldNotReceive( 'add_role' );
 
 		Functions\when( 'get_userdata' )->justReturn( $user );
 		Functions\when( 'get_role' )->justReturn( \Mockery::mock( '\WP_Role' ) );
 
-		// The re-entry this proves terminates: `add_role()` fires
-		// `add_user_role`, which calls this method again.
 		RoleRegistrar::sync_admin_role( 7 );
+
+		// Recorded, so taking the role off later holds.
+		$this->assertSame( array( array( 'ffc_admin_role_synced', '1' ) ), $writes );
+	}
+
+	public function test_an_administrator_whose_ffc_role_was_taken_off_does_not_get_it_back(): void {
+		$writes = &$this->flag_store( '1' );
+		$user   = $this->user_with_roles( array( 'administrator' ) );
+		$user->shouldNotReceive( 'add_role' );
+
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'get_role' )->justReturn( \Mockery::mock( '\WP_Role' ) );
+
+		RoleRegistrar::sync_admin_role( 7 );
+
+		$this->assertSame( array(), $writes );
+	}
+
+	public function test_on_a_network_the_flag_is_per_site(): void {
+		Functions\when( 'is_multisite' )->justReturn( true );
+		Functions\when( 'get_current_blog_id' )->justReturn( 3 );
+
+		$this->assertSame( 'ffc_admin_role_synced_3', RoleRegistrar::admin_role_synced_key() );
 	}
 
 	public function test_a_non_administrator_never_receives_the_ffc_admin_role(): void {
@@ -189,13 +234,17 @@ class RoleRegistrarTest extends TestCase {
 	 * handled, and the role would never arrive.
 	 */
 	public function test_nothing_is_assigned_before_the_role_is_registered(): void {
-		$user = $this->user_with_roles( array( 'administrator' ) );
+		$writes = &$this->flag_store();
+		$user   = $this->user_with_roles( array( 'administrator' ) );
 		$user->shouldNotReceive( 'add_role' );
 
 		Functions\when( 'get_userdata' )->justReturn( $user );
 		Functions\when( 'get_role' )->justReturn( null );
 
 		RoleRegistrar::sync_admin_role( 7 );
+
+		// Not recorded either: the role must still arrive once it exists.
+		$this->assertSame( array(), $writes );
 	}
 
 	/**

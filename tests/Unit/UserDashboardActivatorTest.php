@@ -49,8 +49,8 @@ class UserDashboardActivatorTest extends TestCase {
 		Monkey\setUp();
 
 		// pcov attribution: preload the class under test (and the real
-		// CapabilityManager, whose ADMIN_CAPABILITIES const the role grant
-		// iterates) before any test method autoloads them.
+		// CapabilityManager, whose ADMIN_CAPABILITIES const the admin-role
+		// assignment strips) before any test method autoloads them.
 		class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );
 
@@ -104,6 +104,10 @@ class UserDashboardActivatorTest extends TestCase {
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'wp_insert_post' )->justReturn( 42 );
 		Functions\when( 'get_role' )->justReturn( null );
+		// The admin-role assignment activation runs (#2340): no administrator
+		// and no role edited in the role editor, unless a test says so.
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		// The real RoleRegistrar::register_role() creates `ffc_end_user` when
 		// get_role() finds none; record what it asks for.
@@ -279,21 +283,25 @@ class UserDashboardActivatorTest extends TestCase {
 		UserDashboardActivator::maybe_migrate();
 	}
 
-	public function test_full_activation_registers_role_grants_caps_and_creates_tables(): void {
-		// An administrator role that records each granted cap.
-		$granted     = array();
-		$admin_role  = Mockery::mock();
-		$admin_role->shouldReceive( 'add_cap' )
-			->andReturnUsing(
-				function ( $cap, $grant ) use ( &$granted ) {
-					$granted[] = $cap;
-				}
-			);
+	public function test_full_activation_registers_role_assigns_the_admin_role_and_creates_tables(): void {
+		// The core administrator role must gain no FFC capability (#747,
+		// #2340); one left by an older activation is taken off.
+		$stale      = \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES[0];
+		$admin_role = Mockery::mock();
+		$admin_role->capabilities = array( $stale => true );
+		$admin_role->shouldNotReceive( 'add_cap' );
+		$admin_role->shouldReceive( 'remove_cap' )->once()->with( $stale );
 		Functions\when( 'get_role' )->alias(
 			function ( $role ) use ( $admin_role ) {
 				return 'administrator' === $role ? $admin_role : null;
 			}
 		);
+		// Each administrator receives `ffc_administrator` instead.
+		$admin_user        = Mockery::mock( '\WP_User' );
+		$admin_user->roles = array( 'administrator' );
+		$admin_user->shouldReceive( 'add_role' )->once()->with( 'ffc_administrator' );
+		Functions\when( 'get_users' )->justReturn( array( 1 ) );
+		Functions\when( 'get_userdata' )->justReturn( $admin_user );
 
 		// Tables absent → dbDelta runs for each; capture the DDL.
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
@@ -330,12 +338,8 @@ class UserDashboardActivatorTest extends TestCase {
 		$this->assertSame( 7, $inserted['post_author'] ?? null, 'The page is authored by the account that activated the plugin.' );
 		$this->assertSame( array( 77 ), $written[ \FreeFormCertificate\Core\ManagedPages::OPTION ] ?? null, 'The created page is recorded for the notice.' );
 		$this->assertSame( 77, $written['ffc_dashboard_page_id'] ?? null );
-		$this->assertSame( array( 'ffc_end_user' ), $this->added_roles, 'The real RoleRegistrar::register_role() creates the end-user role.' );
-		$this->assertSame(
-			\FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES,
-			$granted,
-			'admin caps should be granted from ADMIN_CAPABILITIES'
-		);
+		$this->assertSame( 'ffc_end_user', $this->added_roles[0] ?? null, 'The real RoleRegistrar::register_role() creates the end-user role.' );
+		$this->assertContains( 'ffc_administrator', $this->added_roles, 'The module roles are registered so the admin role can be assigned.' );
 		$this->assertCount( 2, $ddl, 'dbDelta should run for the two tables' );
 		$this->assertStringContainsString( 'ffc_user_profiles', $ddl[0] );
 		$this->assertStringContainsString( 'ffc_custom_fields', $ddl[1] );

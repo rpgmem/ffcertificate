@@ -218,6 +218,87 @@ class LoaderMigrationsTest extends TestCase {
 	}
 
 	// ==================================================================
+	// run_capability_migrations() — where and how often they run (#2340)
+	// ==================================================================
+
+	/**
+	 * Stub the request context and the lock store.
+	 *
+	 * @param bool $admin Whether the request is in wp-admin.
+	 */
+	private function context( bool $admin ): void {
+		Functions\when( 'is_admin' )->justReturn( $admin );
+		Functions\when( 'wp_doing_cron' )->justReturn( false );
+		Functions\when( 'add_option' )->alias(
+			function ( $key, $value ) {
+				if ( array_key_exists( $key, $this->options ) ) {
+					return false;
+				}
+				$this->options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			function ( $key ) {
+				unset( $this->options[ $key ] );
+				return true;
+			}
+		);
+		// Everything else is already migrated, so only the probe migration runs.
+		foreach ( array_column( self::migration_method_provider(), 1 ) as $flag ) {
+			$this->options[ $flag ] = '1';
+		}
+		foreach ( array( 'ffc_admin_caps_version_v6', 'ffc_admin_role_assigned_v2', 'ffc_rbac_caps_renamed_v1', 'ffc_rbac_roles_renamed_v1', 'ffc_false_ffc_caps_stripped_v1', 'ffc_email_templates_cap_v1', 'ffc_identities_cap_v1', 'ffc_identity_verbs_cap_v1', 'ffc_grade_cap_v1' ) as $flag ) {
+			$this->options[ $flag ] = defined( 'FFC_VERSION' ) && 'ffc_admin_caps_version_v6' === $flag ? FFC_VERSION : '1';
+		}
+		unset( $this->options['ffc_delete_caps_granted_v1'] );
+	}
+
+	public function test_capability_migrations_never_run_in_a_front_end_request(): void {
+		$this->context( false );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertArrayNotHasKey( 'ffc_delete_certificates', $role->capabilities );
+		$this->assertArrayNotHasKey( 'ffc_delete_caps_granted_v1', $this->options );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options );
+	}
+
+	public function test_capability_migrations_run_in_wp_admin_and_release_the_lock(): void {
+		$this->context( true );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertTrue( $role->capabilities['ffc_delete_certificates'] ?? false );
+		$this->assertSame( '1', $this->options['ffc_delete_caps_granted_v1'] ?? null );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options, 'The lock is released after the run.' );
+	}
+
+	public function test_a_concurrent_request_skips_while_the_lock_is_held(): void {
+		$this->context( true );
+		$this->options[ Loader::CAPABILITY_MIGRATIONS_LOCK ] = (string) ( time() - 30 );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertArrayNotHasKey( 'ffc_delete_certificates', $role->capabilities );
+		$this->assertArrayHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options, 'Another request\'s lock is not released.' );
+	}
+
+	public function test_a_lock_left_by_a_request_that_died_is_taken_over(): void {
+		$this->context( true );
+		$this->options[ Loader::CAPABILITY_MIGRATIONS_LOCK ] = (string) ( time() - 3600 );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertTrue( $role->capabilities['ffc_delete_certificates'] ?? false );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options );
+	}
+
+	// ==================================================================
 	// ensure_role_tiers_applied() / ensure_module_role_labels_applied()
 	// #1860: run from register_ffc_roles_safe() on init, after the seeds.
 	// ==================================================================

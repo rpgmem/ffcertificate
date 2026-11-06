@@ -298,6 +298,9 @@ $ffcertificate_options = array(
 	// Written only when a role is edited, so the fresh-install gate never
 	// sees it.
 	'ffc_role_cap_overrides',
+	// Lock of the one-shot capability migrations (#2340): present only while
+	// a request runs them, or left behind by one that died.
+	'ffc_capability_migrations_lock',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.
