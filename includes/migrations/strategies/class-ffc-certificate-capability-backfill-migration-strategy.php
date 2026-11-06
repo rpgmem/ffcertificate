@@ -324,7 +324,7 @@ class CertificateCapabilityBackfillMigrationStrategy implements MigrationStrateg
 	 */
 	private static function resolved(): array {
 		$stored = get_option( self::RESOLVED_OPTION, array() );
-		return is_array( $stored ) ? array_values( array_filter( array_map( 'intval', $stored ) ) ) : array();
+		return is_array( $stored ) ? array_values( array_filter( array_map( static fn( $id ): int => is_numeric( $id ) ? (int) $id : 0, $stored ) ) ) : array();
 	}
 
 	/**
