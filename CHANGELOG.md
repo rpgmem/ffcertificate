@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: booking by session** (#2405). On a calendar with two or more sessions a day lists the sessions and their free places, then the chosen session's times. Places, waitlist and daily limit count per session; the free slots panel and a visitor's bookings name the session.
 - **Personal Calendars: the session wherever an appointment shows** (#2405). The Appointments list, every appointment e-mail (`{{session_name}}`, `{{session_block}}`), the receipt and PDF, verification, the CSV export (a last column) and the user dashboard name the session; a deleted session keeps its name.
 - **Personal Calendars: a calendar's own word for a session** (#2413). The Names tab takes a singular and a plural label for sessions (e.g. "Room" / "Rooms"), used by the booking step, the receipt and PDF, e-mails, verification and the Sessions tab title, plus a `{{session_label}}` token; empty keeps "Session" / "Sessions".
+- **Short URLs: a deleted code is retired for good** (#2337). Deleting a link, emptying the Trash and the cleanup tool record its code, and no code on that list is issued again, so a printed link or QR code can never start pointing somewhere else. Administrators see the list under "Retired" in the Short URLs status filter.
 
 ### Changed
 
@@ -84,6 +85,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin: focus and announcements follow what changed** (#2344). Revealing personal data moves the focus to the value, announces it and shows a failure beside the button instead of a browser alert; the override warning keeps the focus inside and starts on Cancel; status lines and the shortcode copy button, now the family's icon button, are announced; "reduce motion" stops the slides and fades.
 - **Date Messages: a run survives a request that dies** (#2336). The next batch and a retry are queued before a batch sends, a message that throws counts as failed, each rule starts on its own event, a decision is counted once, and the summary waits for the run to close and links to History. 29 February is treated as the 28th every year.
 - **Short URLs: the cache and the address match** (#2337). A short URL is matched only at the site's home path, a post with a disabled link is no longer backfilled a second one, the stored QR is redrawn when its URL changes, and a disabled link gets no QR over REST. Rows are read without the stored QR, unknown codes are remembered briefly, and saving a QR no longer flushes the site cache.
+- **Short URLs: codes, toggles and the Trash** (#2337). New codes use lowercase letters and digits, which the case-insensitive column could tell apart all along, never grow past ten characters, and are drawn again when another request takes one first. A switch already in the state asked for no longer reports a failure, and Empty Trash removes every trashed link in batches and says how many went.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

@@ -33,8 +33,9 @@ use FreeFormCertificate\UrlShortener\UrlShortenerService;
 
 global $wpdb;
 
-$ffc_us_table = $wpdb->prefix . 'ffc_short_urls';
-$ffc_us_post  = 0;
+$ffc_us_table   = $wpdb->prefix . 'ffc_short_urls';
+$ffc_us_retired = $wpdb->prefix . 'ffc_short_url_retired';
+$ffc_us_post    = 0;
 
 /**
  * Remove what the script planted.
@@ -42,8 +43,9 @@ $ffc_us_post  = 0;
  * @return void
  */
 function ffc_us_cleanup(): void {
-	global $wpdb, $ffc_us_table, $ffc_us_post;
+	global $wpdb, $ffc_us_table, $ffc_us_retired, $ffc_us_post;
 	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE short_code LIKE %s', $ffc_us_table, 'zq%' ) );
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE short_code LIKE %s', $ffc_us_retired, 'zq%' ) );
 	if ( $ffc_us_post > 0 ) {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE post_id = %d', $ffc_us_table, $ffc_us_post ) );
 		wp_delete_post( $ffc_us_post, true );
@@ -89,8 +91,10 @@ function ffc_us_plant( UrlShortenerRepository $repo, string $code, ?int $post = 
 	return is_int( $id ) ? $id : 0;
 }
 
-if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ffc_us_table ) ) ) {
-	ffc_us_fail( "{$ffc_us_table} does not exist." );
+foreach ( array( $ffc_us_table, $ffc_us_retired ) as $ffc_us_required ) {
+	if ( ! $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $ffc_us_required ) ) ) {
+		ffc_us_fail( "{$ffc_us_required} does not exist." );
+	}
 }
 ffc_us_cleanup();
 
@@ -168,6 +172,31 @@ if ( null === $ffc_us_repo->findByShortCode( 'zqLater1' ) ) {
 	ffc_us_fail( 'A code remembered as missing stayed missing after it was created.' );
 }
 echo "OK   disable, trash, re-target and delete reach the cache, and a remembered miss clears on insert\n";
+
+// 4b. Deleting retires the code, and a retired code is never issued (#2337).
+if ( ! $ffc_us_repo->codeRetired( 'zqCache1' ) ) {
+	ffc_us_fail( 'A deleted link left its code free to be issued again.' );
+}
+if ( $ffc_us_repo->codeRetired( 'ZQCACHE1' ) !== $ffc_us_exists ) {
+	ffc_us_fail( 'The retired codes compare case differently from the links table.' );
+}
+$ffc_us_drawn = $ffc_us_service->generate_unique_code();
+if ( 1 !== preg_match( '/^[a-z0-9]+$/', $ffc_us_drawn ) || $ffc_us_repo->codeExists( $ffc_us_drawn ) || $ffc_us_repo->codeRetired( $ffc_us_drawn ) ) {
+	ffc_us_fail( "The generator drew '{$ffc_us_drawn}', which is not a free lowercase code." );
+}
+echo "OK   deleting a link retires its code, and the generator draws a free lowercase code\n";
+
+// 4c. Empty Trash removes every trashed link, retires each code and counts them.
+$ffc_us_trashed_before = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status = %s', $ffc_us_table, 'trashed' ) );
+foreach ( array( 'zqTrash1', 'zqTrash2', 'zqTrash3' ) as $ffc_us_code ) {
+	ffc_us_plant( $ffc_us_repo, $ffc_us_code, null, 'trashed' );
+}
+$ffc_us_emptied = $ffc_us_service->empty_trash();
+$ffc_us_left    = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status = %s', $ffc_us_table, 'trashed' ) );
+if ( $ffc_us_emptied !== $ffc_us_trashed_before + 3 || 0 !== $ffc_us_left || ! $ffc_us_repo->codeRetired( 'zqTrash2' ) ) {
+	ffc_us_fail( "Empty Trash reported {$ffc_us_emptied} for " . ( $ffc_us_trashed_before + 3 ) . " trashed links and left {$ffc_us_left}." );
+}
+echo "OK   Empty Trash deletes every trashed link, retires their codes and counts them\n";
 
 // 5. The backfill leaves alone a post whose link is disabled.
 $ffc_us_post = (int) wp_insert_post(

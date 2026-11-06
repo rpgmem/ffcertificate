@@ -7236,6 +7236,34 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: templates/admin/url-shortener/retired-codes.php:19
+msgid "Replaced by Regenerate"
+msgstr "Trocado ao regenerar"
+
+#: templates/admin/url-shortener/retired-codes.php:20
+msgid "Link deleted"
+msgstr "Link excluído"
+
+#: templates/admin/url-shortener/retired-codes.php:26
+msgid "These codes are never issued again, so a printed link or QR code carrying one of them can never start pointing somewhere else."
+msgstr "Estes códigos nunca mais são emitidos, então um link ou QR code impresso com um deles nunca passa a apontar para outro lugar."
+
+#: templates/admin/url-shortener/retired-codes.php:33
+msgid "Pointed to"
+msgstr "Apontava para"
+
+#: templates/admin/url-shortener/retired-codes.php:35
+msgid "Retired on"
+msgstr "Aposentado em"
+
+#: templates/admin/url-shortener/retired-codes.php:41
+msgid "No retired codes found."
+msgstr "Nenhum código aposentado encontrado."
+
+#: templates/admin/url-shortener/short-urls-page.php:169
+msgid "Retired (%d)"
+msgstr "Aposentados (%d)"
+
 #: includes/url-shortener/class-ffc-url-shortener-qr-rest-controller.php
 msgid "This short URL is not active, so it has no QR code."
 msgstr "Esta URL curta não está ativa, por isso não tem QR code."
@@ -17804,9 +17832,12 @@ msgstr "Lixeira"
 msgid "Trash (%d)"
 msgstr "Lixo (%d)"
 
-#: templates/admin/url-shortener/short-urls-page.php:84
-msgid "Trash emptied."
-msgstr "Lixo esvaziado."
+#: templates/admin/url-shortener/short-urls-page.php:108
+#, php-format
+msgid "Trash emptied: %s short URL deleted."
+msgid_plural "Trash emptied: %s short URLs deleted."
+msgstr[0] "Lixo esvaziado: %s link curto excluído."
+msgstr[1] "Lixo esvaziado: %s links curtos excluídos."
 
 #: includes/settings/views/documentation/feature-url-shortener.php:78
 msgid "trash, restore and permanently delete."

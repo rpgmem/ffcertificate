@@ -29,9 +29,30 @@ class UrlShortenerService {
 	private UrlShortenerRepository $repository;
 
 	/**
-	 * Base62 character set for short code generation.
+	 * Characters a generated code is drawn from: lowercase and digits (#2337).
+	 *
+	 * The `short_code` column is compared case-insensitively on a default
+	 * install (measured `utf8mb4_unicode_520_ci`), so `AbC` and `abc` are one
+	 * code: drawing both cases only made the space look larger than it was.
+	 * Lowercase codes are distinct under any collation, so nothing depends
+	 * on how the table was created. Codes issued before keep working.
 	 */
-	private const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	public const CHARSET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+	/**
+	 * The longest code the `short_code` column holds.
+	 */
+	public const MAX_CODE_LENGTH = 10;
+
+	/**
+	 * Inserts tried when another request takes the drawn code first.
+	 */
+	private const INSERT_ATTEMPTS = 3;
+
+	/**
+	 * Trashed links deleted per query by Empty Trash.
+	 */
+	private const EMPTY_TRASH_BATCH = 200;
 
 	/**
 	 * Constructor.
@@ -82,11 +103,9 @@ class UrlShortenerService {
 			}
 		}
 
-		$code = $this->generate_unique_code();
 		$now  = current_time( 'mysql' );
-
 		$data = array(
-			'short_code'  => $code,
+			'short_code'  => '',
 			'target_url'  => $target_url,
 			'post_id'     => $post_id,
 			'title'       => sanitize_text_field( $title ),
@@ -97,7 +116,20 @@ class UrlShortenerService {
 			'status'      => 'active',
 		);
 
-		$id = $this->repository->insert( $data );
+		// The UNIQUE key is the real check: a code free when drawn can be
+		// taken by another request before the insert, so a refused insert
+		// draws again, a bounded number of times (#2337).
+		$id = false;
+		for ( $attempt = 0; $attempt < self::INSERT_ATTEMPTS && ! $id; $attempt++ ) {
+			$data['short_code'] = $this->generate_unique_code();
+			if ( '' === $data['short_code'] ) {
+				break;
+			}
+			$id = $this->repository->insert( $data );
+			if ( ! $id && ! $this->code_taken( $data['short_code'] ) ) {
+				break; // Refused for another reason; drawing again will not help.
+			}
+		}
 
 		if ( ! $id ) {
 			return array(
@@ -122,33 +154,44 @@ class UrlShortenerService {
 	}
 
 	/**
-	 * Generate a unique short code.
+	 * Generate a code that is neither in use nor retired.
+	 *
+	 * Ten draws at a length, then one character longer, never past the
+	 * column (#2337).
 	 *
 	 * @param int $length Code length (default from settings).
-	 * @return string
+	 * @return string The code, or '' when none was found up to the column's width.
 	 */
 	public function generate_unique_code( int $length = 0 ): string {
 		if ( $length <= 0 ) {
 			$length = $this->get_code_length();
 		}
 
-		$charset      = self::CHARSET;
-		$charset_len  = strlen( $charset );
-		$max_attempts = 10;
+		$last = strlen( self::CHARSET ) - 1;
+		for ( ; $length <= self::MAX_CODE_LENGTH; $length++ ) {
+			for ( $attempt = 0; $attempt < 10; $attempt++ ) {
+				$code = '';
+				for ( $i = 0; $i < $length; $i++ ) {
+					$code .= self::CHARSET[ random_int( 0, $last ) ];
+				}
 
-		for ( $attempt = 0; $attempt < $max_attempts; $attempt++ ) {
-			$code = '';
-			for ( $i = 0; $i < $length; $i++ ) {
-				$code .= $charset[ random_int( 0, $charset_len - 1 ) ];
-			}
-
-			if ( ! $this->repository->codeExists( $code ) ) {
-				return $code;
+				if ( ! $this->code_taken( $code ) ) {
+					return $code;
+				}
 			}
 		}
 
-		// Fallback: increase length by 1 on collision.
-		return $this->generate_unique_code( $length + 1 );
+		return '';
+	}
+
+	/**
+	 * Whether a code is in use or retired, so it cannot be issued.
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	private function code_taken( string $code ): bool {
+		return $this->repository->codeExists( $code ) || $this->repository->codeRetired( $code );
 	}
 
 	/**
@@ -172,7 +215,7 @@ class UrlShortenerService {
 	 * @return string
 	 */
 	public function get_example_short_url(): string {
-		return $this->get_short_url( substr( str_repeat( 'Ab3dEf9h', 8 ), 0, $this->get_code_length() ) );
+		return $this->get_short_url( substr( str_repeat( 'ab3def9h', 8 ), 0, $this->get_code_length() ) );
 	}
 
 	/**
@@ -230,7 +273,7 @@ class UrlShortenerService {
 	public function get_code_length(): int {
 		$settings = $this->get_settings();
 		$length   = (int) ( $settings['url_shortener_code_length'] ?? 6 );
-		return max( 4, min( 10, $length ) );
+		return max( 4, min( self::MAX_CODE_LENGTH, $length ) );
 	}
 
 	/**
@@ -351,7 +394,7 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function update_short_url( int $id, string $target_url, string $title ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'target_url' => esc_url_raw( $target_url ),
@@ -362,13 +405,40 @@ class UrlShortenerService {
 	}
 
 	/**
-	 * Delete a short URL by ID.
+	 * Delete a short URL by ID and retire its code for good (#2337).
 	 *
 	 * @param int $id Record ID.
 	 * @return bool
 	 */
 	public function delete_short_url( int $id ): bool {
-		return (bool) $this->repository->delete( $id );
+		$record = $this->repository->findById( $id );
+		return is_array( $record ) && $this->repository->retireAndDelete( $record, 'deleted' );
+	}
+
+	/**
+	 * Delete every trashed link, retiring each code (#2337).
+	 *
+	 * Batch by batch until the trash is empty, or until a batch deletes
+	 * nothing: the loop stops on what it changed, never on what it read,
+	 * so a row that cannot be deleted cannot keep it running.
+	 *
+	 * @return int Links actually deleted.
+	 */
+	public function empty_trash(): int {
+		$deleted = 0;
+		do {
+			$batch = $this->repository->findTrashedBatch( self::EMPTY_TRASH_BATCH );
+			$full  = count( $batch ) === self::EMPTY_TRASH_BATCH;
+			$done  = 0;
+			foreach ( $batch as $row ) {
+				if ( $this->repository->retireAndDelete( $row, 'deleted' ) ) {
+					++$done;
+				}
+			}
+			$deleted += $done;
+		} while ( $done > 0 && $full );
+
+		return $deleted;
 	}
 
 	/**
@@ -378,7 +448,7 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function trash_short_url( int $id ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => 'trashed',
@@ -394,7 +464,7 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function restore_short_url( int $id ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => 'disabled',
@@ -418,7 +488,9 @@ class UrlShortenerService {
 			return false;
 		}
 
-		return (bool) $this->repository->update(
+		// 0 rows changed means the link was already in that state, which is
+		// what was asked: only a database error is a failure (#2337).
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => $active ? 'active' : 'disabled',

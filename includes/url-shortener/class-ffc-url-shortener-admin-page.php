@@ -189,16 +189,9 @@ class UrlShortenerAdminPage {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_empty_trash' ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$trashed = $this->service->get_repository()->findPaginated(
-				array(
-					'status'   => 'trashed',
-					'per_page' => 1000,
-				)
-			);
-			foreach ( $trashed['items'] as $item ) {
-				$this->service->delete_short_url( (int) $item['id'] );
-			}
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied' ) );
+			// Every trashed link, in batches, and the count of what went (#2337).
+			$deleted = $this->service->empty_trash();
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied&count=' . $deleted ) );
 			exit;
 		}
 	}
@@ -262,24 +255,47 @@ class UrlShortenerAdminPage {
 		$order   = strtoupper( RequestInput::get_get_key( 'order', 'DESC' ) );
 		$status  = RequestInput::get_get_key( 'status', 'all' );
 
-		$per_page = 20;
-		$result   = $this->service->get_repository()->findPaginated(
-			array(
-				'per_page' => $per_page,
-				'page'     => $page,
-				'orderby'  => $orderby,
-				'order'    => $order,
-				'search'   => $search,
-				'status'   => $status,
-			)
-		);
+		// Retired codes are an administrator's view, read only when asked for (#2337).
+		$can_see_retired = self::can_see_retired();
+		if ( 'retired' === $status && ! $can_see_retired ) {
+			$status = 'all';
+		}
+		$retired_count = $can_see_retired ? $this->service->get_repository()->countRetired() : 0;
+		$count         = RequestInput::get_get_int( 'count', 0 );
 
-		$items       = $result['items'];
-		$total       = $result['total'];
+		$per_page = 20;
+		if ( 'retired' === $status ) {
+			$items = $this->service->get_repository()->findRetiredPaginated( $search, $page, $per_page );
+			$total = $this->service->get_repository()->countRetired( $search );
+		} else {
+			$result = $this->service->get_repository()->findPaginated(
+				array(
+					'per_page' => $per_page,
+					'page'     => $page,
+					'orderby'  => $orderby,
+					'order'    => $order,
+					'search'   => $search,
+					'status'   => $status,
+				)
+			);
+			$items  = $result['items'];
+			$total  = $result['total'];
+		}
+
 		$total_pages = (int) ceil( $total / $per_page );
 		$stats       = $this->service->get_stats();
 		$msg         = RequestInput::get_get_key( 'msg' );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/url-shortener/short-urls-page.php';
+	}
+
+	/**
+	 * Whether the current user may list retired codes: WordPress
+	 * administrators only (#2337).
+	 *
+	 * @return bool
+	 */
+	public static function can_see_retired(): bool {
+		return current_user_can( 'manage_options' );
 	}
 }

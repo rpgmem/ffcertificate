@@ -20,7 +20,10 @@
  * @var int                       $total       Total matching rows.
  * @var int                       $total_pages Total page count.
  * @var array<string,int>         $stats       Aggregate link stats.
- * @var array<int,array<string,mixed>> $items  Current page of rows.
+ * @var array<int,array<string,mixed>> $items  Current page of rows (retired codes on the retired view).
+ * @var bool                      $can_see_retired Whether the retired view is offered.
+ * @var int                       $retired_count   Retired codes, for the filter.
+ * @var int                       $count           Links deleted by Empty Trash.
  *
  * @package FreeFormCertificate\UrlShortener
  * @since   6.12.0
@@ -99,12 +102,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php
 				\FreeFormCertificate\Core\AdminNotice::render(
 					'success',
-					esc_html__( 'Trash emptied.', 'ffcertificate' )
+					esc_html(
+						sprintf(
+						/* translators: %s: number of short URLs deleted */
+							_n( 'Trash emptied: %s short URL deleted.', 'Trash emptied: %s short URLs deleted.', $count, 'ffcertificate' ),
+							number_format_i18n( $count )
+						)
+					)
 				);
 				?>
 			<?php endif; ?>
 
-			<?php if ( 'trashed' !== $status ) : ?>
+			<?php if ( 'trashed' !== $status && 'retired' !== $status ) : ?>
 				<?php
 				// The shared stat cards (#1631), the component the dashboards draw.
 				// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
@@ -153,6 +162,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 							printf( esc_html__( 'Trash (%d)', 'ffcertificate' ), (int) $stats['trashed_links'] );
 							?>
 						</option>
+						<?php if ( $can_see_retired ) : ?>
+							<option value="retired" <?php selected( $status, 'retired' ); ?>>
+								<?php
+								/* translators: %d: number of retired short codes */
+								printf( esc_html__( 'Retired (%d)', 'ffcertificate' ), (int) $retired_count );
+								?>
+							</option>
+						<?php endif; ?>
 					</select>
 					<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Search...', 'ffcertificate' ); ?>" />
 					<?php
@@ -191,6 +208,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			<?php endif; ?>
 
+			<?php if ( 'retired' === $status ) : ?>
+				<?php include __DIR__ . '/retired-codes.php'; ?>
+			<?php else : ?>
 			<!-- Table -->
 			<table class="wp-list-table widefat fixed striped ffc-shorturl-table">
 				<thead>
@@ -370,6 +390,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<?php endif; ?>
 				</tbody>
 			</table>
+			<?php endif; ?>
 
 			<!-- Pagination -->
 			<?php if ( $total_pages > 1 ) : ?>
