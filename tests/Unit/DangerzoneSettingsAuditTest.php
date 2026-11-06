@@ -34,8 +34,13 @@ class DangerzoneSettingsAuditTest extends TestCase {
 		ActivityLogBuffer::stub_functions();
 		$this->settings = array();
 		Functions\when( 'get_option' )->alias(
-			fn( $key, $default = false ) => 'ffc_settings' === $key ? $this->settings : $default
+			fn( $key, $default = false ) => 'ffc_settings' === $key
+				? $this->settings
+				: ( \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION_OPTION === $key ? \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION : $default )
 		);
+		// The flush reads whether the column stores instants (#2340); this test
+		// chooses it rather than inherit what an earlier test left behind.
+		\FreeFormCertificate\Core\ActivityLog::reset_instants_cache();
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 
 		// The entries are flushed at once, so they reach the table here.
@@ -78,6 +83,7 @@ class DangerzoneSettingsAuditTest extends TestCase {
 	protected function tearDown(): void {
 		// The flush memoised this double's columns; later tests must not see them.
 		\FreeFormCertificate\Core\ActivityLog::clear_column_cache();
+		\FreeFormCertificate\Core\ActivityLog::reset_instants_cache();
 		$GLOBALS['wpdb'] = $this->wpdb_backup;
 		ActivityLogBuffer::reset();
 		Monkey\tearDown();
