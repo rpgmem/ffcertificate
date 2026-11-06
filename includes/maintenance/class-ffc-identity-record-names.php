@@ -117,7 +117,7 @@ class IdentityRecordNames {
 		foreach ( self::STORES as $suffix ) {
 			$table = $wpdb->prefix . $suffix;
 
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $table, '_%\\' ) ) ) !== $table ) {
 				continue;
 			}
 
@@ -144,7 +144,7 @@ class IdentityRecordNames {
 
 		$submissions = $wpdb->prefix . 'ffc_submissions';
 
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $submissions ) ) === $submissions ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $submissions, '_%\\' ) ) ) === $submissions ) {
 			$readable = true;
 
 			$rows = $wpdb->get_results(

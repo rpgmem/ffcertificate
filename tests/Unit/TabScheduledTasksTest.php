@@ -197,48 +197,50 @@ class TabScheduledTasksTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_save_cron_times"', $html );
 	}
 
-	public function test_saving_times_needs_the_manage_capability(): void {
+	public function test_the_tab_saves_nothing_itself(): void {
+		// The save runs on admin_init and redirects (#2338); a POST that
+		// reaches the render is ignored.
 		$_POST = array(
 			'ffc_save_cron_times' => '1',
 			'ffc_cron_times'      => array( 'ffc_daily_cleanup' => '03:30' ),
 		);
-		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\expect( 'check_admin_referer' )->never();
 		Functions\expect( 'update_option' )->never();
 
 		$this->render();
+		$_POST = array();
 	}
 
-	public function test_saving_times_stores_them_and_reports_an_invalid_one(): void {
-		$_POST = array(
-			'ffc_save_cron_times' => '1',
-			'ffc_cron_times'      => array(
-				'ffc_daily_cleanup' => '03:30',
-				'ffc_cloudflare_cidr_refresh'      => '25:00',
-			),
-		);
-		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-		Functions\when( 'current_user_can' )->justReturn( true );
+	public function test_the_saved_result_shows_once(): void {
+		$_GET['ffc_notice'] = 'cron_times';
 		Functions\when( 'wp_unslash' )->returnArg();
-		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 1 );
-		Functions\when( 'wp_schedule_event' )->justReturn( true );
-		$stored = null;
-		Functions\when( 'update_option' )->alias(
-			static function ( $name, $value ) use ( &$stored ) {
-				$stored = $value;
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'get_transient' )->alias(
+			static fn( $key ) => 'ffc_notice_3_cron_times' === $key
+				? array( 'type' => 'error', 'message' => 'Times saved, except the ones that were not a valid time of day.' )
+				: false
+		);
+		$deleted = array();
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
 				return true;
 			}
 		);
-		$notice = '';
+		$notice = array();
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args ) use ( &$notice ) {
-				$notice = $args['type'];
+				$notice = array( $args['type'], $message );
 			}
 		);
 
 		$this->render();
+		unset( $_GET['ffc_notice'] );
 
-		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $stored );
-		$this->assertSame( 'warning', $notice );
+		$this->assertSame( 'warning', $notice[0] ?? null );
+		$this->assertStringEndsWith( 'Times saved, except the ones that were not a valid time of day.', (string) ( $notice[1] ?? '' ) );
+		$this->assertSame( array( 'ffc_notice_3_cron_times' ), $deleted );
 	}
 }

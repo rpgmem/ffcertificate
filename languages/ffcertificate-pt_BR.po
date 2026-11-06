@@ -32713,3 +32713,7 @@ msgstr "Quando desligado, a barra de administração do WordPress fica oculta pa
 #: added
 msgid "Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory."
 msgstr "Sem Redis/Memcached, o limitador de taxa guarda seus contadores como transients no banco de dados: os limites continuam valendo, mas cada verificação lê e grava no banco. Um plugin de cache de objetos (ex.: LiteSpeed Cache com Redis) os mantém em memória."
+
+#: added
+msgid "You do not have permission to change when tasks run."
+msgstr "Você não tem permissão para alterar quando as tarefas rodam."

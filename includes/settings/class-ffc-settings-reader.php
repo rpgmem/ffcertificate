@@ -620,11 +620,6 @@ final class SettingsReader {
 		return self::get_int( 'public_csv_default_limit', 1 );
 	}
 
-	/** Hard ceiling on rows the synchronous CSV export will emit. */
-	public static function public_csv_sync_max_rows(): int {
-		return self::get_int( 'public_csv_sync_max_rows', 5000 );
-	}
-
 	/**
 	 * How long a quiz window may lose the focus before the Strict level
 	 * counts it as leaving, in milliseconds (#1745). Clamped to

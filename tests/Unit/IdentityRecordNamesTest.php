@@ -74,7 +74,7 @@ class IdentityRecordNamesTest extends TestCase {
 
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 
 				return in_array( $table, $this->present, true ) ? $table : null;
 			}
@@ -82,7 +82,7 @@ class IdentityRecordNamesTest extends TestCase {
 
 		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$hash  = (string) ( $prepared['args'][2] ?? '' );
 
 				return $this->names[ $table ][ $hash ] ?? array();

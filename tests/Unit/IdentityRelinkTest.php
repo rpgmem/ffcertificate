@@ -113,7 +113,7 @@ class IdentityRelinkTest extends TestCase {
 		// Every `ffc_*` table this class knows exists.
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = $prepared['args'][0] ?? null;
+				$table = ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 
 				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
@@ -124,7 +124,7 @@ class IdentityRelinkTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
 				$sql   = (string) ( $prepared['sql'] ?? '' );
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$rows  = $this->rows[ $table ] ?? array();
 
 				if ( false !== strpos( $sql, 'user_id = %d' ) ) {

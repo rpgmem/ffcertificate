@@ -128,7 +128,7 @@ class IdentityOrphanQuery {
 		foreach ( self::STORES as $suffix ) {
 			$table = $wpdb->prefix . $suffix;
 
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $table, '_%\\' ) ) ) !== $table ) {
 				continue;
 			}
 

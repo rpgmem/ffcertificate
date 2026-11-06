@@ -65,6 +65,41 @@ class SettingsActionHandler {
 	}
 
 	/**
+	 * Save the Scheduled Tasks run times (#2338).
+	 *
+	 * Runs on `admin_init` and redirects, so the save happens before the tab
+	 * renders and a reload does not post the form again. The page opens on
+	 * `ffc_view_settings`; changing when a task runs takes
+	 * `ffc_manage_settings`, since the disabled fieldset a view-only account
+	 * sees is only a UI affordance.
+	 */
+	public function handle_cron_times_save(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
+		if ( ! isset( $_POST['ffc_save_cron_times'] ) ) {
+			return;
+		}
+		check_admin_referer( 'ffc_cron_times_nonce' );
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to change when tasks run.', 'ffcertificate' ) );
+		}
+
+		$invalid = \FreeFormCertificate\Core\ScheduledTasks::save_times( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_cron_times' ) );
+		$url     = add_query_arg(
+			array(
+				'page' => 'ffc-settings',
+				'tab'  => 'scheduled_tasks',
+			),
+			admin_url( 'admin.php' )
+		);
+		$url     = array() === $invalid
+			? SettingsNotice::add( $url, 'cron_times', 'success', __( 'Times saved. Changed tasks were moved to their new time.', 'ffcertificate' ) )
+			: SettingsNotice::add( $url, 'cron_times', 'error', __( 'Times saved, except the ones that were not a valid time of day.', 'ffcertificate' ) );
+
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/**
 	 * Handle QR Code cache clearing
 	 */
 	public function handle_clear_qr_cache(): void {

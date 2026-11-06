@@ -129,10 +129,10 @@ class IdentityMergePreviewTest extends TestCase {
 				$sql = (string) ( $prepared['sql'] ?? '' );
 
 				if ( 0 !== strpos( $sql, 'SELECT COUNT' ) ) {
-					return $prepared['args'][0] ?? null;
+					return ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 				}
 
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$owner = (int) ( $prepared['args'][1] ?? 0 );
 
 				return count( $this->under( $table, $owner ) );
@@ -142,7 +142,7 @@ class IdentityMergePreviewTest extends TestCase {
 		// `held_by()` reads the identifiers each account carries.
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$owner = (int) ( $prepared['args'][1] ?? 0 );
 
 				return $this->under( $table, $owner );
