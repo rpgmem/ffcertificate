@@ -938,10 +938,27 @@ class SettingsSaveHandler {
 		 */
 		do_action( 'ffcertificate_before_data_deletion', $target, $reset_counter );
 
-		$this->submission_handler->delete_all_submissions(
+		$deleted = $this->submission_handler->delete_all_submissions(
 			'all' === $target ? null : absint( $target ),
 			$reset_counter
 		);
+
+		// Who deleted what (#2338). Best effort: the rows are already gone, so
+		// a log that cannot be written must not hide the result.
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'danger_zone_data_deleted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'target'        => 'all' === $target ? 'all' : absint( $target ),
+					'deleted'       => $deleted,
+					'reset_counter' => $reset_counter,
+				),
+				get_current_user_id()
+			);
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
 
 		$message = $reset_counter
 			? __( 'Data deleted and counter reset successfully.', 'ffcertificate' )

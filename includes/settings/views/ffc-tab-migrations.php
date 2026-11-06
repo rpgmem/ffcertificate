@@ -502,7 +502,7 @@ try {
 								'attrs'    => array(
 									'data-confirm' => sprintf(
 										/* translators: %s: migration name */
-										__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
+										__( "Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.", 'ffcertificate' ),
 										$ffcertificate_migration['name']
 									),
 								),

@@ -2243,8 +2243,8 @@ msgstr "Arquivado"
 
 #: includes/settings/views/ffc-tab-advanced.php:999
 #| msgid "⚠️ Are you absolutely sure?\\n\\nThis action CANNOT be undone!\\n\\nAll selected data will be permanently deleted."
-msgid "Are you absolutely sure?\\n\\nThis action CANNOT be undone!\\n\\nAll selected data will be permanently deleted."
-msgstr "Tem certeza absoluta?\\nEsta ação NÃO PODE ser desfeita!\\n\\nTodos os dados selecionados serão excluídos permanentemente."
+msgid "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted."
+msgstr "Tem certeza absoluta?\n\nEsta ação NÃO PODE ser desfeita!\n\nTodos os dados selecionados serão excluídos permanentemente."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:230
 msgid "Are you sure you want to cancel this appointment?"
@@ -14649,8 +14649,8 @@ msgstr "linhas ≈ 8–15 — padrão recomendado"
 #. %s: migration name
 #: includes/settings/views/ffc-tab-migrations.php:244
 #, php-format
-msgid "Run %s migration?\\n\\nThis will automatically process ALL records in batches of 100 until complete."
-msgstr "Executar migração %s?\\n\\nIsso processará automaticamente TODOS os registros em lotes de 100 até a conclusão."
+msgid "Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete."
+msgstr "Executar migração %s?\n\nIsso processará automaticamente TODOS os registros em lotes de 100 até a conclusão."
 
 #: includes/settings/views/ffc-tab-migrations.php:386 includes/settings/views/ffc-tab-migrations.php:635 includes/settings/views/ffc-tab-migrations.php:802
 msgid "Run a preview first"
@@ -15556,10 +15556,6 @@ msgstr "Configurações → Captcha"
 #: includes/settings/views/documentation/config-captcha.php:20
 msgid "Settings → Captcha chooses the challenge that guards every public form at once: certificate submissions, certificate verification, appointment booking and the public CSV download. The invisible honeypot field is always on and is not part of this choice."
 msgstr "Em Configurações → Captcha, seleciona-se o desafio que protege todos os formulários públicos simultaneamente: envio de certificados, verificação de certificados, agendamento e download público de CSV. O campo *honeypot* invisível está sempre ativo e não faz parte dessa seleção."
-
-#: includes/settings/views/documentation/operations-maintenance.php:20
-msgid "Settings → Data Migrations hosts a set of one-off maintenance tools for tidying up accumulated data. Every tool that changes data runs a preview (dry run) first: it reports exactly what would be affected, and the destructive button only unlocks for 5 minutes after a successful preview."
-msgstr "Configurações → Migrações de Dados, você encontrará um conjunto de ferramentas de manutenção pontuais para organizar os dados acumulados. Cada ferramenta que altera dados executa uma pré-visualização (simulação) primeiro: ela informa exatamente o que seria afetado, e o botão de destruição só fica disponível por 5 minutos após uma pré-visualização bem-sucedida."
 
 #: includes/settings/views/documentation/document-templates-hub.php:21
 msgid "Settings → Document Templates is the single library of PDF layouts. Every document the plugin renders — a certificate, a reregistration record, an appointment receipt — draws from this shared pool instead of a hardcoded or bundled file, so a layout is built or duplicated once and reused wherever it fits."
@@ -23800,8 +23796,8 @@ msgstr "Altere a URL codificada no QR Code de um certificado."
 msgid "Child audiences inherit fields from parent audiences"
 msgstr "Os públicos-alvo filhos herdam os campos dos públicos-alvo pais."
 
-msgid "Clear all cached QR Codes?\\n\\nThey will be regenerated automatically when needed."
-msgstr "Limpar todos os QR Codes armazenados em cache?\\n\\nEles serão regenerados automaticamente quando necessário."
+msgid "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed."
+msgstr "Limpar todos os QR Codes armazenados em cache?\n\nEles serão regenerados automaticamente quando necessário."
 
 msgid "Clear All QR Code Cache"
 msgstr "Limpar Todo o Cache de QR Codes"
@@ -32647,3 +32643,27 @@ msgstr "Você não tem permissão para limpar o cache de QR Code."
 #: added
 msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens, its Settings tabs and the Settings links to it, and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
 msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração, suas abas de Configurações e os links das Configurações para ele, e interrompe sua execução (suas tarefas agendadas continuam disparando no horário, mas não fazem nada), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."
+
+#: added
+msgid "Settings → Data Migrations hosts a set of one-off maintenance tools for tidying up accumulated data. Every tool that changes data runs a preview (dry run) first: it reports exactly what would be affected, and the destructive button only unlocks for 5 minutes after a successful preview. If the grace window or a criterion changes after the preview, applying is refused until a new preview runs. Every run that changes data writes an Activity Log line naming who ran it and what changed."
+msgstr "Em Configurações → Migrações de Dados, você encontra um conjunto de ferramentas de manutenção pontuais para organizar os dados acumulados. Cada ferramenta que altera dados executa uma pré-visualização (simulação) primeiro: ela informa exatamente o que seria afetado, e o botão de destruição só fica disponível por 5 minutos após uma pré-visualização bem-sucedida. Se a janela de carência ou um critério mudar depois da pré-visualização, a aplicação é recusada até que uma nova pré-visualização seja executada. Cada execução que altera dados registra uma linha no Registro de Atividades com quem a executou e o que mudou."
+
+#: added
+msgid "The settings changed after the preview. Run a new preview, check it, then apply."
+msgstr "As configurações mudaram depois da pré-visualização. Execute uma nova pré-visualização, confira o resultado e então aplique."
+
+#: added
+msgid "Submissions Deleted (Danger Zone)"
+msgstr "Submissões Excluídas (Zona de Perigo)"
+
+#: added
+msgid "Obsolete Shortcodes Removed"
+msgstr "Shortcodes Obsoletos Removidos"
+
+#: added
+msgid "Short URLs Cleaned Up"
+msgstr "URLs Curtas Limpas"
+
+#: added
+msgid "Public Operator Access Disabled on Old Forms"
+msgstr "Acesso Público do Operador Desativado em Formulários Antigos"

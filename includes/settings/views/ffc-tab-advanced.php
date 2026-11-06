@@ -1056,7 +1056,7 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 
 						<div class="ffc-mt-2xl">
 							<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's last guard. ?>
-							<button type="submit" class="ffc-btn ffc-btn-danger ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( 'Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate' ) ); ?>');">
+							<button type="submit" class="ffc-btn ffc-btn-danger ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.", 'ffcertificate' ) ); ?>');">
 								<?php esc_html_e( 'Delete Data Permanently', 'ffcertificate' ); ?>
 							</button>
 						</div>

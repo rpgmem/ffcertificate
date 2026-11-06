@@ -284,7 +284,7 @@ if ( $ffcertificate_cf_behind ) :
 						<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's only guard. ?>
 						<a href="<?php echo esc_url( $ffcertificate_clear_qr_url ); ?>"
 							class="ffc-btn ffc-btn-danger ffc-icon-delete"
-							onclick="return confirm('<?php echo esc_js( __( 'Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate' ) ); ?>');">
+							onclick="return confirm('<?php echo esc_js( __( "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.", 'ffcertificate' ) ); ?>');">
 							<?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>
 						<p class="description ffc-mt-md">
