@@ -900,10 +900,81 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertArrayNotHasKey( 'url_shortener_enabled', $result );
 	}
 
+	/**
+	 * The prefix save asks which addresses are taken (#2337).
+	 *
+	 * Notices land in $this->prefix_notices as code, type.
+	 *
+	 * @param array<string, string> $taken Page slug => title.
+	 */
+	private function stub_prefix_save( array $taken = array() ): void {
+		$notices = array();
+		Functions\when( 'sanitize_title' )->alias( static fn( $v ) => strtolower( trim( (string) $v ) ) );
+		Functions\when( 'get_post_types' )->justReturn( array( 'post' => 'post', 'page' => 'page' ) );
+		Functions\when( 'get_page_by_path' )->alias(
+			function ( $slug ) use ( $taken ) {
+				if ( ! isset( $taken[ $slug ] ) ) {
+					return null;
+				}
+				$page             = Mockery::mock( \WP_Post::class );
+				$page->post_title = $taken[ $slug ];
+				return $page;
+			}
+		);
+		Functions\when( 'get_the_title' )->alias( static fn( $page ) => $page->post_title );
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $setting, $code, $message, $type = 'error' ) use ( &$notices ) {
+				$notices[] = array( $code, $type );
+			}
+		);
+		$this->prefix_notices = &$notices;
+	}
+
+	/** @var array<int, array{0: string, 1: string}> */
+	private array $prefix_notices = array();
+
+	public function test_an_empty_prefix_is_refused_and_the_old_one_kept(): void {
+		$this->stub_prefix_save();
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => '  ' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'] );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_empty', 'error' ) ), $this->prefix_notices );
+	}
+
+	public function test_a_changed_prefix_is_remembered_as_previous(): void {
+		$this->stub_prefix_save();
+		Functions\when( 'delete_option' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$result = $this->invoke(
+			'save_url_shortener_settings',
+			array(
+				array(
+					'url_shortener_prefix'            => 'go',
+					'url_shortener_previous_prefixes' => array( 'r', 'link' ),
+				),
+				array( 'url_shortener_prefix' => 'link' ),
+			)
+		);
+
+		$this->assertSame( 'link', $result['url_shortener_prefix'] );
+		$this->assertSame( array( 'r', 'go' ), $result['url_shortener_previous_prefixes'], 'The old one joins; the new one leaves the list.' );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_changed', 'success' ) ), $this->prefix_notices );
+	}
+
+	public function test_a_previous_prefix_that_became_a_page_address_is_refused(): void {
+		$this->stub_prefix_save( array( 'go' => 'Go' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'l' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'], 'The links printed with "go" would share addresses with the page.' );
+		$this->assertArrayNotHasKey( 'url_shortener_previous_prefixes', $result );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_taken', 'error' ) ), $this->prefix_notices );
+	}
+
 	public function test_url_shortener_prefix_unchanged_no_flush(): void {
-		Functions\when( 'sanitize_title' )->alias( function ( $v ) {
-			return strtolower( $v );
-		} );
+		$this->stub_prefix_save();
 		$deleted = false;
 		Functions\when( 'delete_option' )->alias( function () use ( &$deleted ) {
 			$deleted = true;
@@ -916,9 +987,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_url_shortener_prefix_changed_triggers_flush(): void {
-		Functions\when( 'sanitize_title' )->alias( function ( $v ) {
-			return strtolower( $v );
-		} );
+		$this->stub_prefix_save();
 		$deleted = false;
 		Functions\when( 'delete_option' )->alias( function ( $key ) use ( &$deleted ) {
 			if ( 'ffc_url_shortener_rewrite_version' === $key ) {

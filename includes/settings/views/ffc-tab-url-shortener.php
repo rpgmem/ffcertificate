@@ -16,6 +16,7 @@ $prefix        = $ffc_settings['url_shortener_prefix'] ?? 'go';
 $code_length   = (int) ( $ffc_settings['url_shortener_code_length'] ?? 6 );
 $auto_create   = isset( $ffc_settings['url_shortener_auto_create'] ) ? (int) $ffc_settings['url_shortener_auto_create'] : 1;
 $redirect_type = (int) ( $ffc_settings['url_shortener_redirect_type'] ?? 302 );
+$previous      = \FreeFormCertificate\UrlShortener\UrlShortenerService::previous_prefixes_from( $ffc_settings );
 $post_types    = $ffc_settings['url_shortener_post_types'] ?? array( 'post', 'page' );
 if ( is_string( $post_types ) ) {
 	$post_types = array_filter( array_map( 'trim', explode( ',', $post_types ) ) );
@@ -65,6 +66,18 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<p class="description">
 				<?php esc_html_e( 'The URL prefix for short links (e.g. "go", "r", "l"). Only letters, numbers, and hyphens.', 'ffcertificate' ); ?>
 			</p>
+			<?php if ( array() !== $previous ) : ?>
+				<p class="description">
+					<?php
+					printf(
+						/* translators: 1: comma-separated list of previous prefixes, 2: the current prefix */
+						esc_html__( 'Previous prefixes keep working: %1$s. A link opened with one of them is sent on to "%2$s", and its click is counted once.', 'ffcertificate' ),
+						'<code>' . implode( '</code>, <code>', array_map( 'esc_html', $previous ) ) . '</code>',
+						esc_html( $prefix )
+					);
+					?>
+				</p>
+			<?php endif; ?>
 		</td>
 	</tr>
 
@@ -84,17 +97,31 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 
 	<tr>
 		<th scope="row">
-			<label for="url_shortener_redirect_type"><?php esc_html_e( 'Redirect Type', 'ffcertificate' ); ?></label>
+			<?php esc_html_e( 'Redirect Type', 'ffcertificate' ); ?>
 		</th>
 		<td>
-			<select name="ffc_settings[url_shortener_redirect_type]" id="url_shortener_redirect_type">
-				<option value="302" <?php selected( $redirect_type, 302 ); ?>>302 - <?php esc_html_e( 'Temporary (recommended)', 'ffcertificate' ); ?></option>
-				<option value="301" <?php selected( $redirect_type, 301 ); ?>>301 - <?php esc_html_e( 'Permanent', 'ffcertificate' ); ?></option>
-				<option value="307" <?php selected( $redirect_type, 307 ); ?>>307 - <?php esc_html_e( 'Temporary (strict)', 'ffcertificate' ); ?></option>
-			</select>
-			<p class="description">
-				<?php esc_html_e( '302 is recommended. Use 301 only if short URLs will never change target.', 'ffcertificate' ); ?>
-			</p>
+			<?php
+			// Three kinds with no order between them: a segmented control (#2337).
+			\FreeFormCertificate\Admin\AdminUI::render_segmented(
+				array(
+					'name'         => 'ffc_settings[url_shortener_redirect_type]',
+					'id'           => 'url_shortener_redirect_type',
+					'legend'       => __( 'Redirect Type', 'ffcertificate' ),
+					'value'        => (string) $redirect_type,
+					'default'      => '302',
+					'options'      => array(
+						'302' => __( '302 temporary (recommended)', 'ffcertificate' ),
+						'307' => __( '307 temporary', 'ffcertificate' ),
+						'301' => __( '301 permanent', 'ffcertificate' ),
+					),
+					'descriptions' => array(
+						'302' => __( 'The browser asks again on every visit, so switching a link off or changing its destination works at once, and every visit is counted.', 'ffcertificate' ),
+						'307' => __( 'Like 302, and the browser also keeps the request method. Rarely needed.', 'ffcertificate' ),
+						'301' => __( 'The browser keeps the destination for good: switching the link off or changing it no longer reaches anyone who visited before, and their later clicks are not counted.', 'ffcertificate' ),
+					),
+				)
+			);
+			?>
 		</td>
 	</tr>
 

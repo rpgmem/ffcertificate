@@ -234,6 +234,32 @@ class UrlShortenerActivatorTest extends TestCase {
 		UrlShortenerActivator::ensure_case_sensitive_codes( 'wp_ffc_short_urls' );
 	}
 
+	public function test_a_stored_301_becomes_302_once(): void {
+		$options = array(
+			'ffc_settings' => array( 'url_shortener_redirect_type' => 301, 'url_shortener_prefix' => 'go' ),
+		);
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) use ( &$options ) {
+				return $options[ $key ] ?? $default;
+			}
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( $key, $value ) use ( &$options ) {
+				$options[ $key ] = $value;
+				return true;
+			}
+		);
+
+		UrlShortenerActivator::migrate_permanent_redirects();
+		$this->assertSame( 302, $options['ffc_settings']['url_shortener_redirect_type'] );
+		$this->assertSame( 'go', $options['ffc_settings']['url_shortener_prefix'], 'Nothing else moves.' );
+
+		// An administrator picks 301 afterwards: the migration has run and leaves it.
+		$options['ffc_settings']['url_shortener_redirect_type'] = 301;
+		UrlShortenerActivator::migrate_permanent_redirects();
+		$this->assertSame( 301, $options['ffc_settings']['url_shortener_redirect_type'] );
+	}
+
 	/**
 	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
 	 */

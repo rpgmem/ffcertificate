@@ -786,7 +786,7 @@ msgid "302"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:96
-msgid "302 is recommended. Use 301 only if short URLs will never change target."
+msgid "The browser asks again on every visit, so switching a link off or changing its destination works at once, and every visit is counted."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:19
@@ -7233,6 +7233,46 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/ffc-tab-url-shortener.php:119
+msgid "Like 302, and the browser also keeps the request method. Rarely needed."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-url-shortener.php:120
+msgid "The browser keeps the destination for good: switching the link off or changing it no longer reaches anyone who visited before, and their later clicks are not counted."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-url-shortener.php:74
+msgid "Previous prefixes keep working: %1$s. A link opened with one of them is sent on to \"%2$s\", and its click is counted once."
+msgstr ""
+
+#: templates/url-shortener/inactive-link.php:28
+msgid "This link is no longer active"
+msgstr ""
+
+#: templates/url-shortener/inactive-link.php:46
+msgid "The address you opened was switched off or does not exist."
+msgstr ""
+
+#: templates/url-shortener/inactive-link.php:51
+msgid "You will be taken to the home page in %s seconds."
+msgstr ""
+
+#: templates/url-shortener/inactive-link.php:56
+msgid "Go to the home page now"
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:708
+msgid "The URL prefix cannot be empty. Choose a short word, such as \"go\"."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:728
+msgid "The previous prefix \"%1$s\" is now the address of \"%2$s\". Change that address or choose another prefix, so that links printed with \"%1$s\" keep working."
+msgstr ""
+
+#: includes/admin/class-ffc-settings-save-handler.php:749
+msgid "Prefix changed to \"%1$s\". Links and QR codes printed with \"%2$s\" keep working."
+msgstr ""
+
 #: includes/url-shortener/class-ffc-url-shortener-service.php:526
 msgid "Could not generate a new short code. The short URL is unchanged."
 msgstr ""
@@ -12440,7 +12480,7 @@ msgid "Period:"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:92
-msgid "Permanent"
+msgid "301 permanent"
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cleanup-handler.php:198
@@ -16458,11 +16498,11 @@ msgid "Templates come from a shared pool."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:91
-msgid "Temporary (recommended)"
+msgid "302 temporary (recommended)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:93
-msgid "Temporary (strict)"
+msgid "307 temporary"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-email-model.php:113

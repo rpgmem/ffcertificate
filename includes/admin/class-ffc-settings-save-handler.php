@@ -649,13 +649,7 @@ class SettingsSaveHandler {
 		}
 
 		if ( isset( $new['url_shortener_prefix'] ) ) {
-			$old_prefix                    = $clean['url_shortener_prefix'] ?? 'go';
-			$clean['url_shortener_prefix'] = sanitize_title( $new['url_shortener_prefix'] );
-			// Flush rewrite rules when prefix changes.
-			if ( $clean['url_shortener_prefix'] !== $old_prefix ) {
-				delete_option( 'ffc_url_shortener_rewrite_version' );
-				add_action( 'shutdown', 'flush_rewrite_rules' );
-			}
+			$clean = $this->save_url_shortener_prefix( $clean, (string) $new['url_shortener_prefix'] );
 		}
 
 		if ( isset( $new['url_shortener_code_length'] ) ) {
@@ -690,6 +684,76 @@ class SettingsSaveHandler {
 		}
 
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+		return $clean;
+	}
+
+	/**
+	 * Save the short URL prefix and remember the ones it replaces (#2337).
+	 *
+	 * An empty prefix is refused: every short URL would sit at the site's
+	 * root. A changed prefix joins the list of previous prefixes, whose links
+	 * keep working by forwarding to the current one. A previous prefix that
+	 * is now the address of a page or post is refused, since the two would
+	 * share the same addresses.
+	 *
+	 * @param array<string, mixed> $clean     Current settings.
+	 * @param string               $requested The prefix as posted.
+	 * @return array<string, mixed>
+	 */
+	private function save_url_shortener_prefix( array $clean, string $requested ): array {
+		$old_prefix = (string) ( $clean['url_shortener_prefix'] ?? 'go' );
+		$prefix     = sanitize_title( $requested );
+
+		if ( '' === $prefix ) {
+			add_settings_error( 'ffc_settings', 'ffc_short_url_prefix_empty', __( 'The URL prefix cannot be empty. Choose a short word, such as "go".', 'ffcertificate' ) );
+			return $clean;
+		}
+
+		$stored   = is_array( $clean['url_shortener_previous_prefixes'] ?? null ) ? $clean['url_shortener_previous_prefixes'] : array();
+		$previous = array_map( 'sanitize_title', array_map( 'strval', $stored ) );
+		if ( $prefix !== $old_prefix && '' !== $old_prefix ) {
+			$previous[] = $old_prefix;
+		}
+		$previous = array_values( array_unique( array_diff( array_filter( $previous ), array( $prefix ) ) ) );
+
+		$public_types = array_values( get_post_types( array( 'public' => true ) ) );
+		foreach ( $previous as $earlier ) {
+			$page = get_page_by_path( $earlier, OBJECT, $public_types );
+			if ( $page instanceof \WP_Post ) {
+				add_settings_error(
+					'ffc_settings',
+					'ffc_short_url_prefix_taken',
+					sprintf(
+						/* translators: 1: a previous short URL prefix, 2: title of the page that now uses it as its address */
+						__( 'The previous prefix "%1$s" is now the address of "%2$s". Change that address or choose another prefix, so that links printed with "%1$s" keep working.', 'ffcertificate' ),
+						$earlier,
+						get_the_title( $page )
+					)
+				);
+				return $clean;
+			}
+		}
+
+		$clean['url_shortener_prefix']            = $prefix;
+		$clean['url_shortener_previous_prefixes'] = $previous;
+
+		if ( $prefix !== $old_prefix ) {
+			// Flush rewrite rules when prefix changes.
+			delete_option( 'ffc_url_shortener_rewrite_version' );
+			add_action( 'shutdown', 'flush_rewrite_rules' );
+			add_settings_error(
+				'ffc_settings',
+				'ffc_short_url_prefix_changed',
+				sprintf(
+					/* translators: 1: new short URL prefix, 2: previous prefix */
+					__( 'Prefix changed to "%1$s". Links and QR codes printed with "%2$s" keep working.', 'ffcertificate' ),
+					$prefix,
+					$old_prefix
+				),
+				'success'
+			);
+		}
+
 		return $clean;
 	}
 

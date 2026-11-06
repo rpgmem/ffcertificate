@@ -77,12 +77,34 @@ class UrlShortenerLoaderTest extends TestCase {
 		$prop = $ref->getProperty( 'service' );
 		$prop->setAccessible( true );
 		$prop->setValue( $this->loader, $this->service );
+
+		// No prefix change has happened unless a test says so (#2337).
+		$this->service->shouldReceive( 'get_previous_prefixes' )->andReturn( array() )->byDefault();
+		Functions\when( 'nocache_headers' )->justReturn( null );
 	}
 
 	protected function tearDown(): void {
+		unset( $_SERVER['REQUEST_METHOD'], $_SERVER['HTTP_USER_AGENT'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
+
+	/**
+	 * Stops the inactive-link page at its status, before it renders and exits.
+	 */
+	private function stop_at_status(): void {
+		Functions\when( 'status_header' )->alias(
+			static function ( $status ) {
+				throw new \RuntimeException( 'status:' . $status );
+			}
+		);
+		Functions\when( 'wp_redirect' )->alias(
+			static function () {
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+	}
+
 
 	/**
 	 * do_redirect() wraps the click counter in add_action('shutdown', ...).
@@ -378,21 +400,32 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->loader->handle_redirect();
 	}
 
-	public function test_handle_redirect_redirects_home_for_inactive_code(): void {
+	public function test_an_unknown_code_answers_404_with_the_inactive_page(): void {
 		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
-		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		$this->stop_at_status();
 
 		$repo = Mockery::mock( UrlShortenerRepository::class );
 		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( null );
+		$repo->shouldReceive( 'codeRetired' )->with( 'abc123' )->andReturn( false );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-		Functions\when( 'nocache_headers' )->justReturn( null );
-		Functions\when( 'wp_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirected_home' );
-		} );
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'status:404' );
+
+		$this->loader->handle_redirect();
+	}
+
+	public function test_a_retired_code_answers_410_with_the_inactive_page(): void {
+		Functions\when( 'get_query_var' )->justReturn( 'gone12' );
+		$this->stop_at_status();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->andReturn( null );
+		$repo->shouldReceive( 'codeRetired' )->with( 'gone12' )->andReturn( true );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
 		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected_home' );
+		$this->expectExceptionMessage( 'status:410' );
 
 		$this->loader->handle_redirect();
 	}
@@ -410,13 +443,11 @@ class UrlShortenerLoaderTest extends TestCase {
 		] );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 
-		Functions\when( 'nocache_headers' )->justReturn( null );
-		Functions\when( 'wp_redirect' )->alias( function () {
-			throw new \RuntimeException( 'redirected_home' );
-		} );
+		$this->stop_at_status();
 
+		// A disabled (or trashed) link existed: 410, never a trip home (#2337).
 		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'redirected_home' );
+		$this->expectExceptionMessage( 'status:410' );
 
 		$this->loader->handle_redirect();
 	}
@@ -447,6 +478,126 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->expectExceptionMessage( 'safe_redirect:https://target.com/page:302' );
 
 		$this->loader->handle_redirect();
+	}
+
+	/**
+	 * @dataProvider provide_uncounted_requests
+	 */
+	public function test_a_head_request_or_a_link_preview_is_not_a_click( string $method, string $agent ): void {
+		$_SERVER['REQUEST_METHOD']  = $method;
+		$_SERVER['HTTP_USER_AGENT'] = $agent;
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
+
+		$this->assertFalse( UrlShortenerLoader::is_counted_visit() );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function provide_uncounted_requests(): array {
+		return array(
+			'HEAD'      => array( 'HEAD', 'Mozilla/5.0' ),
+			'WhatsApp'  => array( 'GET', 'WhatsApp/2.23.20.0 A' ),
+			'Slack'     => array( 'GET', 'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)' ),
+			'Facebook'  => array( 'GET', 'facebookexternalhit/1.1' ),
+			'Telegram'  => array( 'GET', 'TelegramBot (like TwitterBot)' ),
+		);
+	}
+
+	public function test_a_browser_get_is_a_click(): void {
+		$_SERVER['REQUEST_METHOD']  = 'GET';
+		$_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (Linux; Android 14) Chrome/124.0 Mobile Safari/537.36';
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
+
+		$this->assertTrue( UrlShortenerLoader::is_counted_visit() );
+	}
+
+	public function test_a_preview_is_redirected_without_a_click(): void {
+		$_SERVER['HTTP_USER_AGENT'] = 'WhatsApp/2.23.20.0 A';
+		Functions\when( 'sanitize_key' )->alias( static fn( $k ) => strtolower( (string) $k ) );
+		Functions\when( 'get_query_var' )->justReturn( 'abc123' );
+		Functions\when( 'do_action' )->justReturn( null );
+		$this->run_shutdown_callbacks_immediately();
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->andReturn( array( 'id' => 1, 'short_code' => 'abc123', 'target_url' => 'https://target.com/', 'status' => 'active' ) );
+		$repo->shouldNotReceive( 'incrementClickCount' );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_redirect_type' )->andReturn( 302 );
+		Functions\when( 'wp_validate_redirect' )->justReturn( true );
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function () {
+				throw new \RuntimeException( 'redirected' );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->loader->handle_redirect();
+	}
+
+	public function test_a_known_code_under_a_previous_prefix_is_sent_to_the_current_one(): void {
+		$_SERVER['REQUEST_URI'] = '/go/abc123';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'l' );
+		$this->service->shouldReceive( 'get_previous_prefixes' )->andReturn( array( 'go' ) );
+		$this->service->shouldReceive( 'get_short_url' )->with( 'abc123' )->andReturn( 'https://example.com/l/abc123' );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn( array( 'id' => 1, 'status' => 'active' ) );
+		$repo->shouldNotReceive( 'incrementClickCount' );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		Functions\when( 'wp_redirect' )->alias(
+			static function ( $url, $status ) {
+				throw new \RuntimeException( "redirect:{$url}:{$status}" );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'redirect:https://example.com/l/abc123:302' );
+
+		$this->loader->intercept_short_url( null );
+	}
+
+	public function test_an_unknown_code_under_a_previous_prefix_is_left_to_wordpress(): void {
+		// /go/install may be a page that shares the old prefix's word.
+		$_SERVER['REQUEST_URI'] = '/go/install';
+		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'l' );
+		$this->service->shouldReceive( 'get_previous_prefixes' )->andReturn( array( 'go' ) );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByShortCode' )->with( 'install' )->andReturn( null );
+		$repo->shouldReceive( 'codeRetired' )->with( 'install' )->andReturn( false );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$redirected = false;
+		Functions\when( 'wp_redirect' )->alias(
+			static function () use ( &$redirected ) {
+				$redirected = true;
+			}
+		);
+
+		$this->loader->intercept_short_url( null );
+
+		$this->assertFalse( $redirected );
+		unset( $_SERVER['REQUEST_URI'] );
+	}
+
+	public function test_the_inactive_page_says_so_counts_down_and_is_not_indexed(): void {
+		foreach ( array( '__', 'esc_html', 'esc_attr', 'esc_url', 'esc_html__' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'esc_html_e' )->alias( static function ( $t ) { echo $t; } ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- test stub.
+		Functions\when( 'language_attributes' )->justReturn( null );
+		Functions\when( 'get_bloginfo' )->justReturn( 'UTF-8' );
+		$home_url  = 'https://example.com/';
+		$site_name = 'Portal';
+		$seconds   = UrlShortenerLoader::INACTIVE_COUNTDOWN;
+
+		ob_start();
+		include FFC_PLUGIN_DIR . 'templates/url-shortener/inactive-link.php';
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<meta name="robots" content="noindex, nofollow">', $html );
+		$this->assertStringContainsString( 'content="15;url=https://example.com/"', $html, 'It goes home without JavaScript.' );
+		$this->assertStringContainsString( 'This link is no longer active', $html );
+		$this->assertStringContainsString( 'href="https://example.com/"', $html );
+		$this->assertSame( 15, $seconds );
 	}
 
 	public function test_handle_redirect_post_linked_follows_current_permalink(): void {

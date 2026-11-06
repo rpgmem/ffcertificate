@@ -116,9 +116,11 @@ class TabUrlShortenerTest extends TestCase {
 					'url_shortener_auto_create'   => 1,
 					'url_shortener_redirect_type' => 302,
 					'url_shortener_post_types'    => array( 'post', 'page' ),
+					'url_shortener_previous_prefixes' => array( 'old' ),
 				);
 			}
 		);
+		Functions\when( 'sanitize_title' )->alias( static fn( $v ) => strtolower( (string) $v ) );
 
 		$pt       = new \stdClass();
 		$pt->name = 'post';
@@ -141,6 +143,8 @@ class TabUrlShortenerTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-settings-wrap', $output );
 		$this->assertStringContainsString( 'url_shortener_prefix', $output );
+		$this->assertStringContainsString( '<code>old</code>', $output, 'A previous prefix is listed as still working (#2337).' );
+		$this->assertStringContainsString( 'ffc-control-segmented', $output, 'The redirect type is a segmented control.' );
 	}
 
 	// ==================================================================

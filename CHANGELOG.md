@@ -18,6 +18,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Personal Calendars: the session wherever an appointment shows** (#2405). The Appointments list, every appointment e-mail (`{{session_name}}`, `{{session_block}}`), the receipt and PDF, verification, the CSV export (a last column) and the user dashboard name the session; a deleted session keeps its name.
 - **Personal Calendars: a calendar's own word for a session** (#2413). The Names tab takes a singular and a plural label for sessions (e.g. "Room" / "Rooms"), used by the booking step, the receipt and PDF, e-mails, verification and the Sessions tab title, plus a `{{session_label}}` token; empty keeps "Session" / "Sessions".
 - **Short URLs: a deleted code is retired for good** (#2337). Deleting a link, emptying the Trash and the cleanup tool record its code, and no code on that list is issued again, so a printed link or QR code can never start pointing somewhere else. Administrators see the list under "Retired" in the Short URLs status filter.
+- **Short URLs: a page for a dead link, and old prefixes keep working** (#2337). An unknown, disabled, trashed or retired code answers with a page of its own (410, or 404 when it never existed, not indexed) that goes home after 15 seconds, instead of a silent trip home. A link under a previous prefix is sent on to the current one; an empty prefix, or a previous one that became a page's address, is refused. HEAD requests and link previews no longer count as clicks, and redirects are never cached.
 
 ### Changed
 
@@ -41,6 +42,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Scheduling: the word for a session inherits a general one** (#2420). Calendar Colors and Labels sets a general singular and plural for a session, and a personal calendar's Names table carries a Session row that keeps it unless it sets its own, as every other name there does.
 - **Date Messages: the documentation covers both kinds, and "comunicado" in pt_BR** (#2336). The docs gain an Announcements section, describe Send now, History, the daily schedule and opt-outs for dated rules and announcements alike, and list the announcement message. The rule editor names the Email Model tab. pt_BR says "comunicado" for every announcement.
 - **Short URLs: the post's link through its life** (#2337). A disabled or trashed link stays the post's link, so no second one is made, and opening the editor no longer creates one. The editor box offers Generate when auto-create is off, Reactivate for an off link (same code and QR), and Regenerate, which gives the same link a new code, keeps its clicks and retires the old one. Trashing a post disables its link, publishing it again restores it, deleting it retires the code; the QR download needs only to edit the post.
+- ⚠ **Short URLs: 302 by default, and a stored 301 moves to 302 once** (#2337). A browser keeps a 301 for good, so switching a link off or changing it never reached earlier visitors and their clicks went uncounted. The setting is now a segmented control that explains each type; 301 can still be chosen afterwards.
 
 ### Security
 

@@ -380,6 +380,7 @@ $ffcertificate_options = array(
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',
+	'ffc_url_shortener_redirect_302_v1',
 	'ffc_url_shortener_rewrite_version',
 );
 
