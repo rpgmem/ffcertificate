@@ -7199,6 +7199,14 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "Each account may reveal up to 2,000 values every 15 minutes, a page counting every value it shows; past that, Reveal says how many minutes to wait."
+msgstr "Cada conta pode revelar até 2.000 valores a cada 15 minutos, contando cada valor que uma página mostra; além disso, o Revelar informa quantos minutos esperar."
+
+#: includes/admin/class-ffc-admin-ajax.php
+msgid "You have revealed many values in a short time. Try again in %d minutes."
+msgstr "Você revelou muitos valores em pouco tempo. Tente novamente em %d minutos."
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:236
 msgid "User FFC Role Changed"
 msgstr "Função FFC do Usuário Alterada"

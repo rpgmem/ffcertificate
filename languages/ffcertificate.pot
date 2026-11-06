@@ -7197,6 +7197,14 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/settings/views/documentation/reference-capabilities.php:39
+msgid "Each account may reveal up to 2,000 values every 15 minutes, a page counting every value it shows; past that, Reveal says how many minutes to wait."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-ajax.php
+msgid "You have revealed many values in a short time. Try again in %d minutes."
+msgstr ""
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:236
 msgid "User FFC Role Changed"
 msgstr ""

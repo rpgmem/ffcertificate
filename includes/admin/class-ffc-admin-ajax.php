@@ -30,6 +30,24 @@ class AdminAjax {
 	private const PAGE_REVEAL_LIMIT = 500;
 
 	/**
+	 * Values one account may reveal per window, single reveals and pages
+	 * together (#2340). Each value counts one, so a page counts what it names.
+	 * Far above what a person reads, and low enough to stop bulk extraction
+	 * through the reveal endpoints.
+	 */
+	private const REVEAL_CAP = 2000;
+
+	/**
+	 * Length of the reveal window, in seconds.
+	 */
+	private const REVEAL_WINDOW = 900;
+
+	/**
+	 * Transient prefix of the reveal budget.
+	 */
+	private const REVEAL_THROTTLE_PREFIX = 'ffc_pii_reveal_';
+
+	/**
 	 * Reveal type of an activity log entry's client address (#2109).
 	 */
 	public const REVEAL_ACTIVITY_LOG = 'activity_log';
@@ -405,6 +423,8 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission.', 'ffcertificate' ) ), 403 );
 		}
 
+		$this->take_reveal_budget( 1 );
+
 		$id     = $this->get_post_int( 'submission_id' );
 		$field  = $this->get_post_param( 'field' );
 		$result = $this->reveal_one( $type, $id, $field );
@@ -441,6 +461,37 @@ class AdminAjax {
 	}
 
 	/**
+	 * Spend `$values` of the current account's reveal budget, or refuse the
+	 * request with 429 and the seconds until the window ends (#2340).
+	 *
+	 * Counted per account, not per address: staff share office networks, and
+	 * the budget is the person's. It is spent before the records are read, so
+	 * a refused or failed attempt counts too, which also bounds probing.
+	 *
+	 * @param int $values Values the request asks for.
+	 * @return void
+	 */
+	private function take_reveal_budget( int $values ): void {
+		$caller = 'user:' . get_current_user_id();
+		if ( \FreeFormCertificate\Core\WindowThrottle::take_for( self::REVEAL_THROTTLE_PREFIX, $caller, self::REVEAL_CAP, self::REVEAL_WINDOW, $values ) ) {
+			return;
+		}
+
+		$wait = \FreeFormCertificate\Core\WindowThrottle::seconds_left( self::REVEAL_WINDOW );
+		wp_send_json_error(
+			array(
+				'message'    => sprintf(
+					/* translators: %d: minutes until more values can be revealed */
+					__( 'You have revealed many values in a short time. Try again in %d minutes.', 'ffcertificate' ),
+					(int) ceil( $wait / 60 )
+				),
+				'retryAfter' => $wait,
+			),
+			429
+		);
+	}
+
+	/**
 	 * Reveal every masked value of a list page at once (#1863).
 	 *
 	 * `items` is a JSON list of `{type, id, field}`, one per reveal button
@@ -463,6 +514,7 @@ class AdminAjax {
 		if ( count( $items ) > self::PAGE_REVEAL_LIMIT ) {
 			wp_send_json_error( array( 'message' => __( 'Too many values to reveal at once.', 'ffcertificate' ) ), 400 );
 		}
+		$this->take_reveal_budget( count( $items ) );
 
 		$configs  = $this->pii_reveal_configs();
 		$values   = array();
