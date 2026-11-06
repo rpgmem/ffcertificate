@@ -496,6 +496,78 @@ class AdminActivityLogPage {
 	}
 
 	/**
+	 * Most values the generic summary shows; the rest stay in the details.
+	 */
+	public const SUMMARY_ITEMS = 6;
+
+	/**
+	 * Longest value the generic summary shows, in characters.
+	 */
+	public const SUMMARY_VALUE_CHARS = 80;
+
+	/**
+	 * Largest details block drawn on the screen, in bytes. The CSV export
+	 * and the Reveal keep the whole value.
+	 */
+	public const DETAILS_MAX_BYTES = 8192;
+
+	/**
+	 * A readable summary of an entry's details, for an action with no
+	 * summary of its own (#2340): its top-level values, each on its own
+	 * line, in the order they were recorded. Nested values and the values
+	 * past the first few are left to the details below.
+	 *
+	 * @param array<int|string, mixed> $context Details, already masked.
+	 * @return string|null Escaped HTML, or null when nothing is shown.
+	 */
+	public static function render_context_summary( array $context ): ?string {
+		$rows    = array();
+		$skipped = 0;
+		foreach ( $context as $key => $value ) {
+			if ( is_bool( $value ) ) {
+				$value = $value ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
+			}
+			if ( ! is_scalar( $value ) || '' === (string) $value || count( $rows ) >= self::SUMMARY_ITEMS ) {
+				++$skipped;
+				continue;
+			}
+			$text = (string) $value;
+			if ( mb_strlen( $text ) > self::SUMMARY_VALUE_CHARS ) {
+				$text = mb_substr( $text, 0, self::SUMMARY_VALUE_CHARS - 1 ) . '…';
+			}
+			$label  = is_string( $key ) ? ucfirst( str_replace( '_', ' ', $key ) ) : (string) $key;
+			$rows[] = array( $label, $text );
+		}
+		if ( array() === $rows ) {
+			return null;
+		}
+		$html = self::render_summary_rows( $rows );
+		if ( $skipped > 0 ) {
+			$html .= '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: %s: number of further values */
+					_n( '%s more value in the details.', '%s more values in the details.', $skipped, 'ffcertificate' ),
+					number_format_i18n( $skipped )
+				)
+			) . '</p>';
+		}
+		return $html;
+	}
+
+	/**
+	 * The details block, cut at a size the screen can draw (#2340).
+	 *
+	 * @param string $json Encoded details.
+	 * @return string
+	 */
+	public static function bounded_json( string $json ): string {
+		if ( strlen( $json ) <= self::DETAILS_MAX_BYTES ) {
+			return $json;
+		}
+		return mb_strcut( $json, 0, self::DETAILS_MAX_BYTES ) . "\n… " . __( 'Cut here; the CSV export has the full details.', 'ffcertificate' );
+	}
+
+	/**
 	 * Truncate a sha256 hex digest to the first 12 chars so it stays
 	 * visible without crowding the row. Full hash remains in the
 	 * raw JSON dump below for forensic correlation.
@@ -783,6 +855,13 @@ class AdminActivityLogPage {
 								$ffcertificate_context_arr
 							);
 						}
+						// Every other action: its top-level values, masked, in
+						// a few readable lines (#2340).
+						if ( null === $ffcertificate_summary ) {
+							$ffcertificate_masked_arr = self::mask_personal_data( $ffcertificate_context_arr );
+							$ffcertificate_summary    = self::render_context_summary( is_array( $ffcertificate_masked_arr ) ? $ffcertificate_masked_arr : array() );
+						}
+						$ffcertificate_context_json = self::bounded_json( $ffcertificate_context_json );
 						?>
 						<?php if ( null !== $ffcertificate_summary ) : ?>
 							<?php echo wp_kses_post( $ffcertificate_summary ); ?>

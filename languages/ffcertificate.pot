@@ -7235,6 +7235,24 @@ msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php
 msgid "Destructive"
+
+#: includes/settings/views/documentation/config-activity-log.php
+msgid "Details"
+msgstr ""
+
+#: includes/settings/views/documentation/config-activity-log.php
+msgid "each entry lists its first values by name, with personal data masked; View Details opens the whole record. A very long record is cut on screen, and the CSV export keeps all of it."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+#, php-format
+msgid "%s more value in the details."
+msgid_plural "%s more values in the details."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php
+msgid "Cut here; the CSV export has the full details."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php
