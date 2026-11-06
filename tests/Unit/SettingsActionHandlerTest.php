@@ -1499,11 +1499,17 @@ class SettingsActionHandlerTest extends TestCase {
 		);
 		$this->grant();
 		Functions\when( 'check_admin_referer' )->justReturn( 1 );
-		Functions\expect( 'update_option' )->never();
+		$writes = CallLog::record( 'update_option', true ); // expect()->never() cannot see past setUp's stub (#1699).
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'die' );
-		$this->handler->handle_cron_times_save();
+		try {
+			$this->handler->handle_cron_times_save();
+			$this->fail( 'Expected wp_die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		}
+		$_POST = array();
+
+		$this->assertSame( 0, $writes->count(), 'Nothing is saved without the capability.' );
 	}
 
 	public function test_cron_times_save_stores_them_and_redirects_with_the_result(): void {
