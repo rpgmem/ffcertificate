@@ -9,6 +9,7 @@ use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\AdminUserCapabilities;
+use FreeFormCertificate\Tests\Support\ActivityLogBuffer;
 
 /**
  * Tests for AdminUserCapabilities: per-user FFC capability management
@@ -1149,5 +1150,126 @@ class AdminUserCapabilitiesTest extends TestCase {
 		ob_start();
 		AdminUserCapabilities::render_capability_fields( $staff );
 		$this->assertStringNotContainsString( 'ffc-demote-prompt', (string) ob_get_clean() );
+	}
+
+	// ==================================================================
+	// Permissions entries in the activity log (#2340)
+	// ==================================================================
+
+	/**
+	 * Turn the activity log on over the real buffer.
+	 */
+	private function log_on(): void {
+		ActivityLogBuffer::reset();
+		ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+	}
+
+	public function test_a_role_chip_writes_a_permissions_entry(): void {
+		$this->log_on();
+		$_POST['user_id'] = '5';
+		$_POST['role']    = 'ffc_recruitment_manager';
+		$_POST['assign']  = '1';
+		$user             = new \WP_User( 5 );
+		$user->roles      = array( 'ffc_end_user' );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$this->run_ajax_role();
+		unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+
+		$this->assertSame(
+			array(
+				array(
+					'action'  => 'user_role_changed',
+					'level'   => 'warning',
+					'context' => array(
+						'target_user_id' => 5,
+						'role'           => 'ffc_recruitment_manager',
+						'assigned'       => 1,
+					),
+				),
+			),
+			ActivityLogBuffer::contexts()
+		);
+		ActivityLogBuffer::reset();
+	}
+
+	public function test_a_profile_save_logs_only_what_changed(): void {
+		$this->log_on();
+		$_POST['ffc_capabilities_nonce']            = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered']           = '1';
+		$_POST['ffc_cap_ffc_view_own_certificates'] = '1';
+		$_POST['ffc_cap_ffc_book_own_appointments'] = '1';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$user = new \WP_User( 5 );
+		$user->add_cap( 'ffc_view_own_certificates', true );
+		$user->add_cap( 'ffc_view_own_appointments', true );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		AdminUserCapabilities::save_capability_fields( 5 );
+		unset( $_POST['ffc_cap_ffc_view_own_certificates'], $_POST['ffc_cap_ffc_book_own_appointments'] );
+
+		$entries = array_values(
+			array_filter( ActivityLogBuffer::contexts(), static fn( $e ) => 'user_capabilities_changed' === $e['action'] )
+		);
+		$this->assertCount( 1, $entries );
+		$this->assertSame(
+			array(
+				'target_user_id' => 5,
+				'granted'        => array( 'ffc_book_own_appointments' ),
+				'revoked'        => array( 'ffc_view_own_appointments' ),
+			),
+			$entries[0]['context']
+		);
+		ActivityLogBuffer::reset();
+	}
+
+	public function test_an_unchanged_role_writes_no_entry(): void {
+		$this->log_on();
+		$_POST['user_id'] = '5';
+		$_POST['role']    = 'ffc_recruitment_manager';
+		$_POST['assign']  = '1';
+		$user             = new \WP_User( 5 );
+		$user->roles      = array( 'ffc_recruitment_manager' );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+
+		$this->run_ajax_role();
+		unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+
+		$this->assertSame( array(), ActivityLogBuffer::contexts() );
+		ActivityLogBuffer::reset();
+	}
+
+	public function test_an_audience_change_writes_a_permissions_entry(): void {
+		$this->log_on();
+		$_POST['ffc_capabilities_nonce']  = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
+		$_POST['ffc_audience']            = array( '3', '7' );
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->audiences   = array(
+			(object) array( 'id' => 3, 'name' => 'Teachers' ),
+			(object) array( 'id' => 7, 'name' => 'Staff' ),
+		);
+		$this->memberships = array( 5 => array( 7 ) );
+		Functions\when( 'get_userdata' )->justReturn( new \WP_User( 5 ) );
+
+		AdminUserCapabilities::save_capability_fields( 5 );
+
+		$entries = array_values(
+			array_filter( ActivityLogBuffer::contexts(), static fn( $e ) => 'user_audiences_changed' === $e['action'] )
+		);
+		$this->assertSame(
+			array(
+				'target_user_id' => 5,
+				'added'          => array( 3 ),
+				'removed'        => array(),
+			),
+			$entries[0]['context'] ?? null
+		);
+		ActivityLogBuffer::reset();
 	}
 }
