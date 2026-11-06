@@ -61,6 +61,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
+	use RotationFailureRegisterTrait;
 
 	/**
 	 * Option holding the rotation state:
@@ -181,13 +182,35 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 		$pending  = $submissions['pending'] + $appointments['pending'];
 		$percent  = ( $total > 0 ) ? ( $migrated / $total ) * 100 : 100;
 
-		return array(
-			'total'       => $total,
-			'migrated'    => $migrated,
-			'pending'     => $pending,
-			'percent'     => round( $percent, 2 ),
-			'is_complete' => ( 0 === $pending ),
+		// A row the walk passed without re-encrypting is still pending, and
+		// the card lists it (#2338).
+		return self::status_with_failures(
+			array(
+				'total'       => $total,
+				'migrated'    => $migrated,
+				'pending'     => $pending,
+				'percent'     => round( $percent, 2 ),
+				'is_complete' => ( 0 === $pending ),
+			),
+			$this->get_state()
 		);
+	}
+
+	/**
+	 * Start the walk again, so the rows it could not re-encrypt are tried
+	 * once the cause is fixed. The key stays; rows already under it are
+	 * re-read and left as they are.
+	 *
+	 * @return int Rows the next walk will examine.
+	 */
+	public function rearm(): int {
+		$state              = self::without_failures( $this->get_state() );
+		$state['cursor']    = array();
+		$state['completed'] = false;
+		$this->save_state( $state );
+
+		return $this->count_table_status( $this->submissions_table )['total']
+			+ $this->count_table_status( $this->appointments_table )['total'];
 	}
 
 	/**
@@ -231,8 +254,16 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 			}
 		}
 
+		// Kept past this batch: the cursor has passed these rows, so the
+		// next batch would not see them and would latch completion (#2338).
+		if ( array() !== $all_errors ) {
+			$this->save_state( self::with_failures( $this->get_state(), $all_errors ) );
+		}
+
 		$status = $this->calculate_status( $migration_key, $migration_config );
 
+		// `pending` counts the register, so a walk with failures never
+		// latches complete.
 		if ( 0 === $status['pending'] && empty( $all_errors ) ) {
 			$this->mark_completed();
 			$status['is_complete'] = true;
@@ -254,7 +285,8 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 		return array(
 			'success'   => 0 === count( $all_errors ),
 			'processed' => $total_processed,
-			'has_more'  => $status['pending'] > 0,
+			// Rows left past the cursor; the register's are behind it.
+			'has_more'  => $status['pending'] > ( $status['failed'] ?? 0 ),
 			/* translators: %d: number of records re-encrypted */
 			'message'   => sprintf( __( 'Re-encrypted %d records under the active key', 'ffcertificate' ), $total_processed ),
 			'errors'    => $all_errors,
@@ -492,6 +524,13 @@ class KeyRotationMigrationStrategy implements MigrationStrategyInterface {
 
 					$new_ciphertext = \FreeFormCertificate\Core\Encryption::encrypt( $plain );
 					if ( null === $new_ciphertext ) {
+						$errors[] = sprintf(
+							/* translators: 1: column name, 2: record ID, 3: table name */
+							__( 'Could not encrypt %1$s for ID %2$d in %3$s under the active key — left unchanged.', 'ffcertificate' ),
+							$enc_col,
+							(int) $record['id'],
+							$table
+						);
 						continue;
 					}
 

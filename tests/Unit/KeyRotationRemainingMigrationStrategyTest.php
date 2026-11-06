@@ -670,6 +670,31 @@ class KeyRotationRemainingMigrationStrategyTest extends TestCase {
 		);
 	}
 
+	/**
+	 * A batch with errors reports failure, and the walk stays incomplete
+	 * after the cursor has passed the row (#2338).
+	 */
+	public function test_a_row_that_failed_keeps_the_walk_incomplete_and_the_batch_failed(): void {
+		$this->rows[ self::CLS ] = array( $this->classification( 3, str_repeat( 'a', 64 ) ) );
+
+		$first = $this->strategy->execute( 'key_rotation_remaining', array() );
+		$this->assertFalse( $first['success'] );
+		$this->assertCount( 1, $first['errors'] );
+
+		$second = $this->strategy->execute( 'key_rotation_remaining', array() );
+		$this->assertSame( 0, $second['processed'] );
+
+		$status = $this->strategy->calculate_status( 'key_rotation_remaining', array() );
+		$this->assertFalse( $status['is_complete'] );
+		$this->assertSame( 1, $status['failed'] );
+		$this->assertTrue( $status['salt_warning'] );
+		$this->assertTrue( $status['retryable'] );
+		$this->assertEmpty( $this->options[ self::STATE ]['completed'] ?? false, 'Never latched while a row failed.' );
+
+		$this->strategy->rearm();
+		$this->assertArrayNotHasKey( 'failure_count', $this->options[ self::STATE ] );
+	}
+
 	public function test_a_rotation_latched_before_the_pcd_target_existed_reports_the_pcd_rows_pending(): void {
 		$this->options[ self::STATE ] = array(
 			'fingerprint' => Encryption::key_fingerprint(),

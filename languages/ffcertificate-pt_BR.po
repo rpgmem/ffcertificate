@@ -32580,3 +32580,29 @@ msgid "…and %d more."
 msgid_plural "…and %d more."
 msgstr[0] "…e mais %d."
 msgstr[1] "…e mais %d."
+
+#: added
+msgid "A row the rotation cannot re-encrypt is left as it was, listed on the card and counted as pending, so the rotation never reports itself complete with rows still under the previous key; until they are resolved, do not change the WordPress salts."
+msgstr "Uma linha que a rotação não consegue recriptografar fica como estava, listada no cartão e contada como pendente, para que a rotação nunca se declare concluída com linhas ainda sob a chave anterior; até que sejam resolvidas, não altere os salts do WordPress."
+
+#: added
+msgid "Could not encrypt %1$s for ID %2$d in %3$s under the active key — left unchanged."
+msgstr "Não foi possível criptografar %1$s do ID %2$d em %3$s com a chave ativa — mantido sem alteração."
+
+#: added
+msgid "Do not change the WordPress salts or the encryption constants in wp-config.php until these records are resolved. They are still encrypted under the previous key, and changing the salts would make them unreadable. Find out why they failed, fix it, then try them again."
+msgstr "Não altere os salts do WordPress nem as constantes de criptografia no wp-config.php até que estes registros sejam resolvidos. Eles continuam criptografados com a chave anterior, e alterar os salts os tornaria ilegíveis. Descubra por que falharam, corrija e tente de novo."
+
+#: added
+msgid "Do not rotate the salts yet."
+msgstr "Ainda não troque os salts."
+
+#: added
+msgid "Only the first ones are listed; %s more are counted."
+msgstr "Só os primeiros estão listados; mais %s estão contados."
+
+#: added
+msgid "%s record could not be processed"
+msgid_plural "%s records could not be processed"
+msgstr[0] "%s registro não pôde ser processado"
+msgstr[1] "%s registros não puderam ser processados"

@@ -32497,3 +32497,29 @@ msgid "…and %d more."
 msgid_plural "…and %d more."
 msgstr[0] ""
 msgstr[1] ""
+
+#: added
+msgid "A row the rotation cannot re-encrypt is left as it was, listed on the card and counted as pending, so the rotation never reports itself complete with rows still under the previous key; until they are resolved, do not change the WordPress salts."
+msgstr ""
+
+#: added
+msgid "Could not encrypt %1$s for ID %2$d in %3$s under the active key — left unchanged."
+msgstr ""
+
+#: added
+msgid "Do not change the WordPress salts or the encryption constants in wp-config.php until these records are resolved. They are still encrypted under the previous key, and changing the salts would make them unreadable. Find out why they failed, fix it, then try them again."
+msgstr ""
+
+#: added
+msgid "Do not rotate the salts yet."
+msgstr ""
+
+#: added
+msgid "Only the first ones are listed; %s more are counted."
+msgstr ""
+
+#: added
+msgid "%s record could not be processed"
+msgid_plural "%s records could not be processed"
+msgstr[0] ""
+msgstr[1] ""

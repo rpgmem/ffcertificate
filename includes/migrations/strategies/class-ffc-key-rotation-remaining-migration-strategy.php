@@ -72,6 +72,8 @@ use WP_Error;
  */
 class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterface {
 
+	use RotationFailureRegisterTrait;
+
 	/**
 	 * Option holding cursor + fingerprint + completion for this strategy.
 	 */
@@ -269,13 +271,34 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 		$migrated = $this->count_migrated();
 		$pending  = max( 0, $total - $migrated );
 
-		return array(
-			'total'       => $total,
-			'migrated'    => $migrated,
-			'pending'     => $pending,
-			'percent'     => ( $total > 0 ) ? round( ( $migrated / $total ) * 100, 2 ) : 100.0,
-			'is_complete' => ( 0 === $pending ),
+		// A row the walk passed without re-encrypting is still pending, and
+		// the card lists it (#2338).
+		return self::status_with_failures(
+			array(
+				'total'       => $total,
+				'migrated'    => $migrated,
+				'pending'     => $pending,
+				'percent'     => ( $total > 0 ) ? round( ( $migrated / $total ) * 100, 2 ) : 100.0,
+				'is_complete' => ( 0 === $pending ),
+			),
+			$this->get_state()
 		);
+	}
+
+	/**
+	 * Start the walk again, so the rows it could not re-encrypt are tried
+	 * once the cause is fixed. The key stays.
+	 *
+	 * @return int Rows the next walk will examine.
+	 */
+	public function rearm(): int {
+		$state              = self::without_failures( $this->get_state() );
+		$state['cursors']   = array();
+		$state['completed'] = false;
+		unset( $state['completed_targets'] );
+		$this->put_state( $state );
+
+		return $this->count_total();
 	}
 
 	/**
@@ -432,16 +455,23 @@ class KeyRotationRemainingMigrationStrategy implements MigrationStrategyInterfac
 			break;
 		}
 
+		// Kept past this batch: the cursor has passed these rows, so the
+		// next batch would not see them and would latch completion (#2338).
+		if ( array() !== $result['errors'] ) {
+			$this->put_state( self::with_failures( $this->get_state(), $result['errors'] ) );
+		}
+
 		$status = $this->calculate_status( '', array() );
 		if ( 0 === $status['pending'] && empty( $result['errors'] ) ) {
 			$this->mark_completed();
 		}
 
 		return array(
-			'success'   => true,
+			'success'   => array() === $result['errors'],
 			'processed' => $result['processed'],
 			'pending'   => $status['pending'],
-			'has_more'  => $status['pending'] > 0,
+			// Rows left past the cursor; the register's are behind it.
+			'has_more'  => $status['pending'] > ( $status['failed'] ?? 0 ),
 			'errors'    => $result['errors'],
 		);
 	}
