@@ -107,10 +107,10 @@ class QrGeneratorAjaxEndpoint {
 			wp_send_json_error(
 				array(
 					'message' => $logo
-						/* translators: %d: approximate number of characters to remove. */
-						? sprintf( __( 'This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content.', 'ffcertificate' ), max( 1, $usage['over'] ) )
-						/* translators: 1: approximate number of characters to remove, 2: error correction level (L, M, Q or H). */
-						: sprintf( __( 'This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level.', 'ffcertificate' ), max( 1, $usage['over'] ), $usage['level'] ),
+						/* translators: %d: approximate number of bytes to remove. */
+						? sprintf( __( 'This content is about %d bytes too long (a plain letter is one byte, an accented one two). The logo requires error correction H, which holds the least; remove the logo or shorten the content.', 'ffcertificate' ), max( 1, $usage['over'] ) )
+						/* translators: 1: approximate number of bytes to remove, 2: error correction level (L, M, Q or H). */
+						: sprintf( __( 'This content is about %1$d bytes too long for error correction %2$s (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', 'ffcertificate' ), max( 1, $usage['over'] ), $usage['level'] ),
 					'usage'   => $usage,
 				),
 				400

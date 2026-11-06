@@ -4847,7 +4847,7 @@ msgid "Create reusable locations shared by every form. Each has a name, latitude
 msgstr ""
 
 #: includes/settings/views/ffc-tab-url-shortener.php:176
-msgid "Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick \"Expose\" above to publish them as shortlinks."
+msgid "Create short URLs for already-published posts of the saved shortened post types that do not have one yet. Runs in batches while this page stays open: leaving it stops the run, and running it again picks up the pages still missing one. This only creates the short URLs — turn on \"Expose\" above to publish them as shortlinks."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:126
@@ -7234,6 +7234,42 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Done. Every page already had a short URL."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Done. 1 short URL created."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-url-shortener.php
+msgid "Save the settings first: the missing short URLs are created for the post types that are saved."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-url-shortener.php
+msgid "Shorten %s"
+msgstr ""
+
+#: includes/settings/views/ffc-tab-url-shortener.php
+msgid "Expose %s"
+msgstr ""
+
+#: templates/admin/qr/design-fields.php
+msgid "Gradient"
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "The frame caption is hard to read on this dark background; pick a lighter frame colour."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "Margin 0: many readers need a clear border around the code."
+msgstr ""
+
+#: includes/settings/tabs/class-ffc-tab-qr-code.php
+msgid "May not scan well:"
 msgstr ""
 
 #: templates/admin/url-shortener/short-urls-page.php:295
@@ -15518,7 +15554,7 @@ msgid "Short URLs"
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-url-shortener.php:67
-msgid "short URLs created."
+msgid "Done. %d short URLs created."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:284
@@ -21834,7 +21870,7 @@ msgstr ""
 msgid "Background colour"
 msgstr ""
 
-msgid "Blend the modules diagonally into a second colour"
+msgid "Blend the modules diagonally into a second colour."
 msgstr ""
 
 msgid "Circle"
@@ -22098,7 +22134,7 @@ msgstr ""
 msgid "Link valid until"
 msgstr ""
 
-msgid "Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
+msgid "Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired."
 msgstr ""
 
 msgid "Reset to default"
@@ -22164,7 +22200,7 @@ msgstr ""
 msgid "Dotted"
 msgstr ""
 
-msgid "Draw no background, for placing the code on a coloured surface"
+msgid "Draw no background, for placing the code on a coloured surface."
 msgstr ""
 
 msgid "Flower"
@@ -23048,16 +23084,16 @@ msgstr ""
 msgid "Android saves the network from the code but leaves the CA certificate unset, so it will not connect yet: open the saved network, set CA certificate to \"Trust on first use\" (or \"Do not validate\"), then connect. The iPhone camera does not read Enterprise codes; iPhone users type the details in."
 msgstr ""
 
-msgid "%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two)."
+msgid "%1$d%% full: about %2$d more bytes fit at error correction %3$s (a plain letter is one byte, an accented one two)."
 msgstr ""
 
-msgid "%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two)."
+msgid "%1$d%% full: about %2$d more bytes fit at error correction H, which the logo requires (a plain letter is one byte, an accented one two)."
 msgstr ""
 
-msgid "This content is about %d characters too long. The logo requires error correction H, which holds the least; remove the logo or shorten the content."
+msgid "This content is about %d bytes too long (a plain letter is one byte, an accented one two). The logo requires error correction H, which holds the least; remove the logo or shorten the content."
 msgstr ""
 
-msgid "This content is about %1$d characters too long for error correction %2$s. Shorten it, or lower the level."
+msgid "This content is about %1$d bytes too long for error correction %2$s (a plain letter is one byte, an accented one two). Shorten it, or lower the level."
 msgstr ""
 
 msgid "(no title)"

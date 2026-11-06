@@ -167,19 +167,36 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 					<tr>
 						<td><?php echo esc_html( $pt->labels->singular_name ); ?> <code>(<?php echo esc_html( $pt->name ); ?>)</code></td>
 						<td class="ffc-col-center">
-							<input type="checkbox"
-									class="ffc-shorten-type"
-									name="ffc_settings[url_shortener_post_types][]"
-									value="<?php echo esc_attr( $pt->name ); ?>"
-									<?php checked( $ffc_is_shortened ); ?> />
+							<?php
+							// Named per row: a switch in a table cell has no visible label (#2337).
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'        => 'ffc_settings[url_shortener_post_types][]',
+									'id'          => 'ffc-shorten-' . $pt->name,
+									'value'       => $pt->name,
+									'checked'     => $ffc_is_shortened,
+									'input_class' => 'ffc-shorten-type',
+									/* translators: %s: post type label */
+									'aria_label'  => sprintf( __( 'Shorten %s', 'ffcertificate' ), $pt->labels->singular_name ),
+								)
+							);
+							?>
 						</td>
 						<td class="ffc-col-center">
-							<input type="checkbox"
-									class="ffc-expose-type"
-									name="ffc_settings[url_shortener_expose_post_types][]"
-									value="<?php echo esc_attr( $pt->name ); ?>"
-									<?php checked( $ffc_is_exposed ); ?>
-									<?php disabled( ! $ffc_is_shortened ); ?> />
+							<?php
+							\FreeFormCertificate\Admin\AdminUI::render_toggle(
+								array(
+									'name'        => 'ffc_settings[url_shortener_expose_post_types][]',
+									'id'          => 'ffc-expose-' . $pt->name,
+									'value'       => $pt->name,
+									'checked'     => $ffc_is_exposed,
+									'disabled'    => ! $ffc_is_shortened,
+									'input_class' => 'ffc-expose-type',
+									/* translators: %s: post type label */
+									'aria_label'  => sprintf( __( 'Expose %s', 'ffcertificate' ), $pt->labels->singular_name ),
+								)
+							);
+							?>
 						</td>
 					</tr>
 				<?php endforeach; ?>
@@ -207,7 +224,7 @@ $all_post_types = get_post_types( array( 'public' => true ), 'objects' );
 			<span id="ffc-url-shortener-backfill-status" class="ffc-status" role="status" aria-live="polite" hidden></span>
 			<?php wp_nonce_field( \FreeFormCertificate\UrlShortener\UrlShortenerBackfillHandler::NONCE_ACTION, 'ffc_url_shortener_backfill_nonce' ); ?>
 			<p class="description">
-				<?php esc_html_e( 'Create short URLs for already-published posts of the shortened post types that do not have one yet. Runs in the background in batches; safe to leave running. This only creates the short URLs — tick "Expose" above to publish them as shortlinks.', 'ffcertificate' ); ?>
+				<?php esc_html_e( 'Create short URLs for already-published posts of the saved shortened post types that do not have one yet. Runs in batches while this page stays open: leaving it stops the run, and running it again picks up the pages still missing one. This only creates the short URLs — turn on "Expose" above to publish them as shortlinks.', 'ffcertificate' ); ?>
 			</p>
 		</td>
 	</tr>

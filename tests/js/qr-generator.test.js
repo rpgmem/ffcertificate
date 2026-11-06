@@ -42,7 +42,7 @@ function mount() {
 			<select id="qr_default_error_level"><option value="M" selected>M</option><option value="Q">Q</option></select>
 			<div id="ffc-qr-generator-preview"></div>
 			<p id="ffc-qr-generator-usage"></p>
-			<p id="ffc-qr-generator-status"></p>
+			<div id="ffc-qr-generator-status"></div>
 			<select id="ffc-qr-format"><option value="png" selected>PNG</option><option value="svg">SVG</option></select>
 			<select id="ffc-qr-png-width"><option value="2000" selected>2000</option></select>
 			<button type="button" id="ffc-qr-download" disabled>Download</button>
@@ -158,6 +158,33 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('[data-ffc-qr-type="wifi"]').prop('hidden')).toBe(false);
 		expect(window.$('[data-ffc-qr-type="url"]').prop('hidden')).toBe(true);
 		expect(spy.mock.calls[0][1].type).toBe('wifi');
+	});
+
+	it('lists a dense code together with the design problems', async () => {
+		const both = Object.assign({}, OK, { checks: Object.assign({}, OK.checks, { low_contrast: true, min_ratio: 2 }), usage: Object.assign({}, OK.usage, { version: 14, dense: true }) });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: both } }));
+
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		const items = window.$('#ffc-qr-generator-status li').map(function () { return window.$(this).text(); }).get();
+		expect(items).toHaveLength(2);
+		expect(items[1]).toBe('Dense (version 14)');
+	});
+
+	it('shows "Link valid until" only for the calendar-file mode', () => {
+		window.$('#ffc-qr-generator').append(
+			'<select id="ffc-qr-event-mode" data-ffc-qr-field="event:mode"><option value="vevent" selected>e</option><option value="ics">ics</option></select>'
+			+ '<table><tr data-ffc-qr-event-until hidden><td><input data-ffc-qr-field="event:until"></td></tr></table>'
+		);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+		const $row = window.$('[data-ffc-qr-event-until]');
+
+		expect($row.prop('hidden')).toBe(true);
+		window.$('#ffc-qr-event-mode').val('ics').trigger('change');
+		expect($row.prop('hidden')).toBe(false);
+		window.$('#ffc-qr-event-mode').val('vevent').trigger('change');
+		expect($row.prop('hidden')).toBe(true);
 	});
 
 	it('shows the Enterprise sign-in rows only for an Enterprise network', () => {

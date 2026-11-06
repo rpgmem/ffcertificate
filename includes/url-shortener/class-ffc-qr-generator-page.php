@@ -104,16 +104,19 @@ class QrGeneratorPage {
 				'rememberNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_REMEMBER ),
 				'examples'      => self::examples(),
 				'i18n'          => array(
-					/* translators: 1: percentage of the code in use, 2: characters that still fit, 3: error correction level (L, M, Q or H) */
-					'usage'           => __( '%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two).', 'ffcertificate' ),
-					/* translators: 1: percentage of the code in use, 2: characters that still fit */
-					'usageForced'     => __( '%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two).', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: bytes that still fit, 3: error correction level (L, M, Q or H) */
+					'usage'           => __( '%1$d%% full: about %2$d more bytes fit at error correction %3$s (a plain letter is one byte, an accented one two).', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: bytes that still fit */
+					'usageForced'     => __( '%1$d%% full: about %2$d more bytes fit at error correction H, which the logo requires (a plain letter is one byte, an accented one two).', 'ffcertificate' ),
 					/* translators: %d: QR code version (1-40) */
 					'dense'           => __( 'Dense code (version %d): print it at least 3 cm wide, or shorten the content.', 'ffcertificate' ),
 					/* translators: %s: contrast ratio, e.g. 3.2 */
 					'lowContrast'     => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
 					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
 					'captionContrast' => __( 'The frame caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'captionLighter'  => __( 'The frame caption is hard to read on this dark background; pick a lighter frame colour.', 'ffcertificate' ),
+					'quietZone'       => __( 'Margin 0: many readers need a clear border around the code.', 'ffcertificate' ),
+					'several'         => __( 'May not scan well:', 'ffcertificate' ),
 					'transparent'     => __( 'Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable.', 'ffcertificate' ),
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),

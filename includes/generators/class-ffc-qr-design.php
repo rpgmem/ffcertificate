@@ -323,7 +323,7 @@ final class QrDesign {
 	 * foreground colour is checked, because one faint eye is enough to lose
 	 * the finder pattern.
 	 *
-	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float, caption_contrast: bool, transparent: bool}
+	 * @return array{inverted: bool, low_contrast: bool, min_ratio: float, caption_contrast: bool, caption_lighter: bool, transparent: bool}
 	 */
 	public function scan_checks(): array {
 		$foregrounds = array_filter( array( $this->color, $this->color_end, $this->eye_frame_color, $this->eye_ball_color ) );
@@ -345,11 +345,14 @@ final class QrDesign {
 		// On a transparent ground the real background is wherever the code is
 		// printed, so no ratio can be measured: the check becomes a standing
 		// warning instead of a number that would mean nothing.
+		// The advice depends on the ground: on a dark one the caption needs a
+		// lighter frame colour, not a darker one.
 		return array(
 			'inverted'         => ! $this->transparent && $inverted,
 			'low_contrast'     => ! $this->transparent && $min_ratio < self::MIN_CONTRAST,
 			'min_ratio'        => round( $min_ratio, 2 ),
 			'caption_contrast' => $caption_ratio >= 4.5,
+			'caption_lighter'  => '#ffffff' === ContrastColor::on( $this->background ),
 			'transparent'      => $this->transparent,
 		);
 	}
