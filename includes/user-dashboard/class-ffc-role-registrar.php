@@ -133,7 +133,7 @@ class RoleRegistrar {
 	}
 
 	/**
-	 * Keep `ffc_administrator` on every WordPress administrator, continuously.
+	 * Give `ffc_administrator` to every WordPress administrator, once each.
 	 *
 	 * #747 moved the admin tier off the native `administrator` role and onto
 	 * `ffc_administrator`: it back-filled the role onto every administrator and
@@ -172,8 +172,13 @@ class RoleRegistrar {
 	 * because the method is idempotent.
 	 *
 	 * **The re-entry is intentional and terminates.** `add_role()` fires
-	 * `add_user_role`, which calls this method again; the second pass sees the
-	 * role already present and returns.
+	 * `add_user_role`, which calls this method again; the second pass finds
+	 * the per-user flag already written and returns.
+	 *
+	 * **Once per user and site** (#2340). The flag is written when the role is
+	 * given, or when the administrator is found already holding it, so taking
+	 * `ffc_administrator` off an administrator holds through every later role
+	 * change.
 	 *
 	 * @since 6.26.0
 	 * @param int $user_id WordPress user ID.
@@ -191,7 +196,16 @@ class RoleRegistrar {
 		if ( ! in_array( 'administrator', $roles, true ) ) {
 			return;
 		}
+		// Once per user and site (#2340): an operator who took
+		// `ffc_administrator` off an administrator meant it, and the next
+		// role change must not put it back.
+		$flag   = self::admin_role_synced_key();
+		$synced = get_user_meta( $user->ID, $flag, true );
+		if ( is_scalar( $synced ) && '' !== (string) $synced ) {
+			return;
+		}
 		if ( in_array( 'ffc_administrator', $roles, true ) ) {
+			update_user_meta( $user->ID, $flag, '1' );
 			return;
 		}
 		// A role that was never registered cannot be assigned: `add_role()`
@@ -202,7 +216,24 @@ class RoleRegistrar {
 			return;
 		}
 
+		update_user_meta( $user->ID, $flag, '1' );
 		$user->add_role( 'ffc_administrator' );
+	}
+
+	/**
+	 * User-meta key recording that an administrator was given
+	 * `ffc_administrator` on this site. Roles are per site, so on a network
+	 * the key carries the site id; it keeps the `ffc_` prefix the uninstall
+	 * sweep removes.
+	 *
+	 * @return string
+	 */
+	public static function admin_role_synced_key(): string {
+		$key = 'ffc_admin_role_synced';
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			$key .= '_' . get_current_blog_id();
+		}
+		return $key;
 	}
 
 	/**

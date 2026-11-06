@@ -362,9 +362,33 @@ class CapabilityMigratorTest extends TestCase {
 		CapabilityMigrator::migrate_taxonomy_renames();
 
 		$this->assertSame( 'ID', $captured['fields'] ?? null );
-		$this->assertSame( 'wp_capabilities', $captured['meta_key'] ?? null, 'The capabilities meta is per blog; the wrong prefix would return empty in silence.' );
-		$this->assertSame( 'ffc_', $captured['meta_value'] ?? null );
-		$this->assertSame( 'LIKE', $captured['meta_compare'] ?? null );
+		// Narrowed to the names the migration renames (#2340): a bare `ffc_`
+		// matched every end user, whose meta carries `ffc_end_user`.
+		$query = $captured['meta_query'] ?? array();
+		$this->assertSame( 'OR', $query['relation'] ?? null );
+		unset( $query['relation'] );
+		$this->assertSame(
+			array_map( static fn( $old ) => '"' . $old . '"', array_keys( CapabilityMigrator::taxonomy_cap_renames() ) ),
+			array_column( $query, 'value' ),
+			'Each name is quoted the way the serialized meta stores a key, so a name never matches a longer one.'
+		);
+		foreach ( $query as $clause ) {
+			$this->assertSame( 'wp_capabilities', $clause['key'], 'The capabilities meta is per blog; the wrong prefix would return empty in silence.' );
+			$this->assertSame( 'LIKE', $clause['compare'] );
+		}
+		$this->assertArrayNotHasKey( 'meta_value', $captured );
+	}
+
+	public function test_every_user_walking_migration_names_its_sources(): void {
+		// Read off the source: a call without names falls back to every
+		// `ffc_*` holder, the end users included.
+		$code = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/user-dashboard/class-ffc-capability-migrator.php' );
+		$all  = preg_match_all( '/self::users_with_ffc_grants\(([^;]*)\);/', $code, $m );
+		$this->assertGreaterThan( 0, $all, 'No call was found to check.' );
+		$this->assertSame( substr_count( $code, 'self::users_with_ffc_grants(' ), $all, 'A call is written in a shape the scan does not read.' );
+		foreach ( $m[1] as $argument ) {
+			$this->assertNotSame( '', trim( $argument ), 'A migration walks every ffc_* holder instead of the names it acts on.' );
+		}
 	}
 
 	/**
