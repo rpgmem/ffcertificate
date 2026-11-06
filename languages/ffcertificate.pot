@@ -781,10 +781,6 @@ msgstr ""
 msgid "3/day, 10/week, 30/month"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:67
-msgid "302"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-url-shortener.php:96
 msgid "The browser asks again on every visit, so switching a link off or changing its destination works at once, and every visit is counted."
 msgstr ""
@@ -4866,10 +4862,6 @@ msgstr ""
 msgid "Create, edit and toggle short URLs (delete is its own cap below)."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:77
-msgid "create, edit, enable/disable and regenerate links."
-msgstr ""
-
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:80 includes/self-scheduling/views/appointments-list.php:276
 msgid "Created"
 msgstr ""
@@ -5407,10 +5399,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/developer-hooks-api.php:131
 msgid "default png"
-msgstr ""
-
-#: includes/settings/views/documentation/config-general.php:42
-msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-general.php:460
@@ -6231,10 +6219,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/document-templates-hub.php:25
 msgid "Each template carries a kind that marks what it is for. A Category column and filter in the hub let you find templates of one kind quickly:"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:48
-msgid "Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Disabled and trashed links redirect home and are not counted."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:487
@@ -7234,6 +7218,134 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink, and so does a later save while it has none. Opening the editor never creates one."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "From the editor"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "when auto-create is off, the \"Short URL & QR Code\" box offers a Generate button; with auto-create on it says the short URL is created when the post is saved."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Codes are case-sensitive: aBc123 and abc123 are two different codes, which is what lets the generator draw from upper and lower case. A post never has more than one short URL, whatever its state."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The editor box"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Everyone who can edit the post sees the box: its status (active, disabled or in the trash), the link with a copy button, its clicks and, while it is active, its QR code to download. Copying the link and downloading the QR code need only permission to edit the post."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "shown when the link is disabled or in the trash. It brings back the same code, so its clicks and every QR code already printed keep working."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "shown when the link is active. The same link receives a new code: its clicks, title and destination carry over, the old code stops working at once and is retired for good. Use it when a code must stop working, for example after it was shared by mistake."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Both need ffc_manage_url_shortener and permission to edit that post, and both update the box in place, without reloading the editor."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The link follows its post"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Trashing a post disables its short URL; restoring and publishing it again reactivates it; deleting the post for good deletes the short URL and retires its code."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Retired codes"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "A code leaves use when its link is deleted (one at a time, by Empty Trash or by the cleanup tool) or regenerated. It is then recorded as retired and is never issued again, so a printed link or QR code can never start pointing somewhere else. Administrators see them under \"Retired\" in the list's status filter."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "When a link is not active"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "An unknown, disabled, trashed or retired code shows a short page of its own, without the site's theme, saying the link is no longer active. It takes the visitor to the home page after 15 seconds, with a link to go now. It answers 410 (Gone) for a disabled, trashed or retired code and 404 for a code that never existed, and asks search engines not to index it."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Changing the prefix"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Previous prefixes are remembered: a visit to an old prefix with a known code is sent on to the current prefix, so links and QR codes already printed keep working, and the click counts once. The prefix cannot be left empty, and a previous prefix that has since become the address of a page is refused until the page or the prefix changes."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Redirect type"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "302 (temporary) is the default and the recommended choice: the browser asks again on every visit, so switching a link off or changing its destination works at once and every visit is counted. 307 behaves the same way. 301 (permanent) is still available, but a browser keeps it for good: switching the link off or changing it no longer reaches earlier visitors, and their clicks are not counted. A 301 saved before this recommendation was moved to 302 once on update."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Destinations"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "A short URL may send to https, http, ftp, ftps, sftp, ssh, mailto, tel and sms addresses, never to javascript:, data: or file:. The same list applies to the generator and to the list's edit dialog. Two soft warnings appear before saving, and neither blocks it: a scheme other than http or https, which some phones and QR readers do not follow out of a redirect, and an address ending in a file extension that downloads a file (.pdf, .zip, .docx, .xlsx…), read from the address alone."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The \"Generate missing short URLs\" button creates short URLs for already-published posts of the saved shortened types that have none, in any state. It runs in batches while the page stays open; leaving the page stops it, and running it again picks up where it stopped. If the Shorten column was changed and not saved, it asks to save first. This only creates the short URLs — turn on \"Expose\" to publish them as shortlinks."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, switch it on or off, edit, or trash (trashed links can be restored, as disabled, or permanently deleted). The short URL is a button that copies it. Users who may only view the list see no switch, Edit or Trash. Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Each visit increments a click count; the plugin does not store per-click timestamps, referrers or IPs. Inactive links show the page above and are not counted, and neither are HEAD requests or link previews (WhatsApp, Slack, social networks…). Redirects are sent with no-cache headers; a click that a page cache answers anyway never reaches the counter."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "The \"Export CSV\" button downloads the list — code, title, destination, click count, status, creator and dates — as a CSV file, honouring the current search box and status filter. Rows come newest first by creation, not in the on-screen sort order. The export runs as a timeout-safe background job (the same batched engine every other list export uses), so it is safe on shared hosting with large link tables. Gated by the"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "Redirect type (302 / 307 / 301)"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "302"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-url-shortener.php
+msgid "create, edit, enable/disable and regenerate links; in the editor box, Reactivate and Regenerate also need permission to edit the post."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php
+msgid "A capacity meter (in bytes: a plain letter takes one, an accented letter two) and readability warnings help keep the code readable, and the preview panel can also print it. Every warning shows at once: low contrast, inverted colours, a transparent background, a caption hard to read on its ground, a margin of 0 with no quiet zone around the code, and a dense code. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; only that link can carry a \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-qr-generator.php
+msgid "The design sections are the same as on Settings → QR Code, and start from the global design (or from the user's last downloaded one) whether or not it is applied to certificates or short URLs there. The margin and the error-correction level start from the QR Code defaults too; the default size does not apply, since the download sets its own width. A change made in the generator applies to this code only and never alters the global settings."
+msgstr ""
+
+#: includes/settings/views/documentation/config-qr-code.php
+msgid "Default size (px), margin (modules) and error-correction level (L / M / Q / H) applied to the {{qr_code}} placeholder when it does not specify its own. Per-placeholder options always win. The QR Code Generator starts from the margin and the error-correction level. A margin of 0 leaves no quiet zone, which many readers need, and the previews warn about it."
+msgstr ""
+
+#: includes/settings/views/documentation/config-qr-code.php
+msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that lists every readability problem at once: low contrast, inverted colours, a transparent background, a caption hard to read on its ground and a margin of 0. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-url-shortener.php
@@ -13739,10 +13851,6 @@ msgstr ""
 msgid "Redirect Type"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:67
-msgid "Redirect type (301 / 302 / 307)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-user-access.php:246
 msgid "Redirect URL"
 msgstr ""
@@ -13767,10 +13875,6 @@ msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:180
 msgid "Regenerate"
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:28
-msgid "Regenerating a link issues a new code and retires the old one."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:460 includes/audience/class-ffc-audience-admin-audience-renderer.php:645
@@ -16604,16 +16708,8 @@ msgstr ""
 msgid "The \"Email texts\" hub — edit every email's wording"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-url-shortener.php:53
-msgid "The \"Export CSV\" button downloads the list — code, title, destination, click count and status — as a CSV file, honouring the current search box, status filter and sort order. The export runs as a timeout-safe background job (the same batched engine every other list export uses), so it is safe on shared hosting with large link tables. Gated by the"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-user-access.php:321
 msgid "The \"FFC End User\" role is automatically assigned to users who submit forms with CPF/RF."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:32
-msgid "The \"Generate missing short URLs\" button creates short URLs for already-published posts of the shortened types that do not have one yet (it runs in timeout-safe batches). This only creates the short URLs — tick \"Expose\" to publish them as shortlinks."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:25
@@ -19082,10 +19178,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:57
 msgid "When a slot or block is full and the waitlist is enabled, a booking joins the queue with a waitlist status that is excluded from every capacity count. The front-end offers a \"Join waitlist\" action on full slots and reflects the queued state. When a spot later frees up — a cancellation or an admin rejection — the oldest queued booking is promoted automatically and transactionally to confirmed or pending (per the calendar's approval setting), and a promotion email is sent."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-url-shortener.php:26
-msgid "when auto-create is on, publishing a post/page (of the enabled post types) creates a short URL for its permalink."
 msgstr ""
 
 #: includes/settings/views/documentation/config-geolocation.php:47
@@ -21939,9 +22031,6 @@ msgstr ""
 msgid "The preview could not be drawn."
 msgstr ""
 
-msgid "Settings → QR Code also sets the shape of the modules and of the three corner markers, their colours and an optional gradient, with a live preview that warns about low contrast and inverted colours. The design is applied only where it is switched on: the {{qr_code}} placeholder of certificates, and the QR codes of short URLs. Elsewhere the plain black-and-white code is kept."
-msgstr ""
-
 msgid "Badge with caption above"
 msgstr ""
 
@@ -22670,9 +22759,6 @@ msgid "The Scheduling → Settings → Import & Export tab imports and exports a
 msgstr ""
 
 msgid "A campaign shows the union of the custom fields of its linked audiences (standard identity/contact fields plus any custom ones). Each submission can be exported as a Record PDF. The standard birth-date field reads and writes the single encrypted birth date on the user profile, which Date Messages uses."
-msgstr ""
-
-msgid "A capacity meter and density and contrast warnings help keep the code readable, and the preview panel can also print it. An event code can open the event itself, a pre-filled Google Calendar link, or a signed link to an .ics file; that link may carry an optional \"valid until\" date, after which it answers that it has expired, while a link without one never expires. The generator reopens with each user's last downloaded design (design only, never content), and \"Reset to default\" restores the global one."
 msgstr ""
 
 msgid "Enable the shortener (Settings → Modules)"
@@ -23871,9 +23957,6 @@ msgstr ""
 msgid "The list & QR codes"
 msgstr ""
 
-msgid "The list shows each link's title, short URL, destination, click count and status, with actions to show a QR code, enable/disable, or trash (trashed links can be restored or permanently deleted). Each link has a QR code (PNG or SVG download) that encodes the short URL itself, so scanning it is also counted."
-msgstr ""
-
 msgid "The member form itself is gated by login + audience membership, not a capability."
 msgstr ""
 
@@ -24008,9 +24091,6 @@ msgid "This is where manual short URLs are made: the Short URLs list has no form
 msgstr ""
 
 msgid "See Short URLs"
-msgstr ""
-
-msgid "The design sections are the same as on Settings → QR Code, and start from the global design (or from the user's last downloaded one) whether or not it is applied to certificates or short URLs there. A change made in the generator applies to this code only and never alters the global settings; the QR Code defaults for size, margin and error correction do not apply here either, since each code sets its own."
 msgstr ""
 
 msgid "Global QR Code settings"
