@@ -273,7 +273,8 @@ $ffc_qr_vcard_fields = array(
 									);
 									?>
 									<p class="description"><?php esc_html_e( 'On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down.', 'ffcertificate' ); ?></p>
-									<p class="ffc-qr-short__notice" id="ffc-qr-short-direct" hidden><?php esc_html_e( 'A short URL redirects web addresses only (http or https), so this address is used as is.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-direct" hidden><?php esc_html_e( 'A short URL cannot send to this kind of address, so it is used as is.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-scheme" role="status" hidden></p>
 									<p class="ffc-qr-short__notice" id="ffc-qr-short-download" role="status" hidden></p>
 									<p class="ffc-qr-short__notice" id="ffc-qr-short-circular" hidden><?php esc_html_e( 'This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects.', 'ffcertificate' ); ?></p>
 								</td>

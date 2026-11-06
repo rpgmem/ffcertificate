@@ -239,7 +239,7 @@
             $('#ffc-edit-target').val($btn.data('target') || '');
             $('#ffc-edit-title').val($btn.data('title') || '');
             $('#ffc-edit-short-url-result').empty().hide();
-            warnDownload();
+            warnDestination();
             $modal.show();
         });
 
@@ -253,13 +253,29 @@
             return (settings.downloads || []).indexOf(ext) !== -1 ? ext : '';
         }
 
-        function warnDownload() {
-            var ext = downloadExtension($('#ffc-edit-target').val());
-            var template = (settings.i18n && settings.i18n.download) || '';
-            $('#ffc-edit-download').text(ext ? template.replace('%s', '.' + ext) : '').prop('hidden', !ext);
+        // A scheme beyond http(s) is accepted with a soft warning (#2337).
+        function schemeWarning(url) {
+            var match = /^([a-z][a-z0-9+.-]*):/i.exec(String(url || '').trim());
+            var scheme = match ? match[1].toLowerCase() : '';
+            return scheme && (settings.recommended || ['https', 'http']).indexOf(scheme) === -1 ? scheme : '';
         }
 
-        $(document).on('input', '#ffc-edit-target', warnDownload);
+        function warnDestination() {
+            var url = $('#ffc-edit-target').val();
+            var i18n = settings.i18n || {};
+            var ext = downloadExtension(url);
+            var scheme = schemeWarning(url);
+            var lines = [];
+            if (scheme) {
+                lines.push(String(i18n.scheme || '').replace('%s', scheme + ':'));
+            }
+            if (ext) {
+                lines.push(String(i18n.download || '').replace('%s', '.' + ext));
+            }
+            $('#ffc-edit-destination-warning').text(lines.join(' ')).prop('hidden', !lines.length);
+        }
+
+        $(document).on('input', '#ffc-edit-target', warnDestination);
 
         $('#ffc-edit-short-url').on('submit', function (e) {
             e.preventDefault();

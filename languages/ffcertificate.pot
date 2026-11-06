@@ -7234,6 +7234,10 @@ msgid "Event:"
 msgstr ""
 
 #: includes/url-shortener/class-ffc-qr-generator-page.php:125
+msgid "A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-qr-generator-page.php:125
 msgid "This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway."
 msgstr ""
 
@@ -23116,10 +23120,10 @@ msgstr ""
 msgid "Without a scheme, https:// is used (example.com becomes https://example.com). For http, ftp, ftps, sftp or ssh, type the full address."
 msgstr ""
 
-msgid "Only http and https addresses can have a short URL."
+msgid "A short URL can send to https, http, ftp, ftps, sftp, ssh, mailto, tel or sms addresses only."
 msgstr ""
 
-msgid "A short URL redirects web addresses only (http or https), so this address is used as is."
+msgid "A short URL cannot send to this kind of address, so it is used as is."
 msgstr ""
 
 msgid "This rule is inactive. Activate it before sending, or use \"Send test to me\" to check it."

@@ -653,6 +653,22 @@ class UrlShortenerServiceTest extends TestCase {
 		);
 	}
 
+	public function test_the_shared_destination_list_and_its_warning(): void {
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+		Functions\when( 'esc_url_raw' )->alias( static fn( $u, $p = null ) => is_array( $p ) && ! in_array( strtolower( (string) parse_url( $u, PHP_URL_SCHEME ) ), $p, true ) ? '' : $u );
+
+		foreach ( array( 'https://a.test/', 'ftp://a.test/f', 'sftp://a.test/', 'ssh://u@a.test', 'mailto:a@a.test', 'tel:+5511999999999', 'sms:+5511999999999' ) as $url ) {
+			$this->assertTrue( UrlShortenerService::is_allowed_destination( $url ), $url );
+		}
+		foreach ( array( 'javascript:alert(1)', 'data:text/html,x', 'file:///etc/passwd', 'irc://a.test/', 'a.test/no-scheme' ) as $url ) {
+			$this->assertFalse( UrlShortenerService::is_allowed_destination( $url ), $url );
+		}
+
+		$this->assertSame( '', UrlShortenerService::scheme_warning( 'https://a.test/' ) );
+		$this->assertSame( 'tel', UrlShortenerService::scheme_warning( 'TEL:+5511' ) );
+		$this->assertSame( '', UrlShortenerService::scheme_warning( 'javascript:x' ), 'A refused scheme is not a warning.' );
+	}
+
 	// ==================================================================
 	// reactivate_short_url() / regenerate_code() (#2337)
 	// ==================================================================

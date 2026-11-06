@@ -421,23 +421,33 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertStringContainsString( 'cannot be shortened again', $data['message'] );
 	}
 
-	public function test_a_non_web_address_is_drawn_as_is_and_cannot_be_shortened(): void {
-		// A short URL is an HTTP redirect; a browser does not reliably follow
-		// it into ssh:// or ftp:// (#1596).
-		$this->service->shouldNotReceive( 'code_from_short_url' );
-		$this->service->shouldNotReceive( 'get_repository' );
-		$this->service->shouldNotReceive( 'create_short_url' );
+	public function test_a_scheme_beyond_http_is_shortened_with_a_warning(): void {
+		// Decided in the session (#2337): ftp, ssh and the rest of the shared
+		// list may sit behind a short URL; a phone may not follow the redirect
+		// into them (#1596), so the state carries a warning, never a lock.
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array() );
 
 		$this->short_post( array( 'fields' => array( 'url' => 'ssh://user@server.example.com' ) ) );
 		list( , $data ) = $this->run_handler( 'handle_generate' );
-		$this->assertSame( 'ssh://user@server.example.com', $data['payload'] );
-		$this->assertTrue( $data['short']['direct'] );
-		$this->assertFalse( $data['short']['example'] );
+		$this->assertSame( 'https://site.test/go/Ab3dEf', $data['payload'] );
+		$this->assertFalse( $data['short']['direct'] );
+		$this->assertSame( 'ssh', $data['short']['scheme'] );
+
+		$this->short_post();
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( '', $data['short']['scheme'], 'https carries no warning.' );
 
 		$this->short_post( array( 'fields' => array( 'url' => 'ftp://files.example.com/a.pdf' ), 'title' => 'File' ) );
-		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
-		$this->assertSame( 'error:400', $kind );
-		$this->assertStringContainsString( 'Only http and https', $data['message'] );
+		$this->service->shouldReceive( 'create_short_url' )->once()->with( 'ftp://files.example.com/a.pdf', 'File' )->andReturn(
+			array(
+				'success' => true,
+				'data'    => array( 'short_code' => 'Ftp123' ),
+			)
+		);
+		list( $kind ) = $this->run_handler( 'handle_shorten' );
+		$this->assertSame( 'success', $kind );
 	}
 
 	public function test_a_duplicate_needs_the_acknowledgement(): void {

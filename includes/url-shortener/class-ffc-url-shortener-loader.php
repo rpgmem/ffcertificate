@@ -329,7 +329,9 @@ class UrlShortenerLoader {
 		// Resolve the destination dynamically: post-linked short URLs follow the
 		// post's current permalink (self-heals on slug / permalink-structure
 		// change), manual ones use the stored target (#888).
-		$target_url    = esc_url_raw( UrlShortenerService::resolve_target( $record ) );
+		// The same schemes the destination was accepted under (#2337): the
+		// default list would turn an sftp:// or ssh:// destination into ''.
+		$target_url    = esc_url_raw( UrlShortenerService::resolve_target( $record ), UrlShortenerService::DESTINATION_SCHEMES );
 		$redirect_type = $this->service->get_redirect_type();
 
 		// Prevent redirect loops.

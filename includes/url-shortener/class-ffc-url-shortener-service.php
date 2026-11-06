@@ -81,7 +81,7 @@ class UrlShortenerService {
 	 * @return array{success: bool, data?: array<string, mixed>, error?: string}
 	 */
 	public function create_short_url( string $target_url, string $title = '', ?int $post_id = null ): array {
-		$target_url = esc_url_raw( $target_url );
+		$target_url = esc_url_raw( $target_url, self::DESTINATION_SCHEMES );
 
 		if ( empty( $target_url ) ) {
 			return array(
@@ -388,6 +388,45 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Schemes a short URL may send to (#2337, decided in the session): the
+	 * QR generator's web schemes plus mailto, tel and sms. Never
+	 * `javascript:`, `data:` or `file:`. One list for the generator's shorten
+	 * action, the list's edit action, creation and the redirect itself.
+	 */
+	public const DESTINATION_SCHEMES = array( ...\FreeFormCertificate\Generators\QrPayload::URL_SCHEMES, 'mailto', 'tel', 'sms' );
+
+	/**
+	 * The schemes a phone follows reliably out of an HTTP redirect. Any other
+	 * accepted scheme gets a warning, never a refusal.
+	 */
+	public const RECOMMENDED_SCHEMES = array( 'https', 'http' );
+
+	/**
+	 * Whether a short URL may send to an address: one of DESTINATION_SCHEMES.
+	 *
+	 * @param string $url Address.
+	 * @return bool
+	 */
+	public static function is_allowed_destination( string $url ): bool {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		return is_string( $scheme ) && in_array( strtolower( $scheme ), self::DESTINATION_SCHEMES, true )
+			&& '' !== esc_url_raw( $url, self::DESTINATION_SCHEMES );
+	}
+
+	/**
+	 * The scheme of an accepted address that a phone may not follow out of a
+	 * redirect, or '' for http(s) (#2337).
+	 *
+	 * @param string $url Address.
+	 * @return string
+	 */
+	public static function scheme_warning( string $url ): string {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$scheme = is_string( $scheme ) ? strtolower( $scheme ) : '';
+		return in_array( $scheme, self::DESTINATION_SCHEMES, true ) && ! in_array( $scheme, self::RECOMMENDED_SCHEMES, true ) ? $scheme : '';
+	}
+
+	/**
 	 * File extensions whose address makes a browser download a file instead
 	 * of showing a page (#2337). Only the path is read: nothing is fetched.
 	 */
@@ -455,7 +494,7 @@ class UrlShortenerService {
 		return false !== $this->repository->update(
 			$id,
 			array(
-				'target_url' => esc_url_raw( $target_url ),
+				'target_url' => esc_url_raw( $target_url, self::DESTINATION_SCHEMES ),
 				'title'      => sanitize_text_field( $title ),
 				'updated_at' => current_time( 'mysql' ),
 			)

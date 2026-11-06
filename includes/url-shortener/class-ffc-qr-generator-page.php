@@ -121,6 +121,8 @@ class QrGeneratorPage {
 					/* translators: 1: creation date, 2: number of clicks */
 					'duplicateMeta'   => __( 'created %1$s, %2$d clicks', 'ffcertificate' ),
 					'useThis'         => __( 'Use this', 'ffcertificate' ),
+					/* translators: %s: a URL scheme such as ftp: */
+					'scheme'          => __( 'A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway.', 'ffcertificate' ),
 					/* translators: %s: a file extension such as .pdf */
 					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'titleRequired'   => __( 'Enter a title for the short URL before downloading or printing.', 'ffcertificate' ),
