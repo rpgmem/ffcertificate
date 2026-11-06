@@ -2241,11 +2241,6 @@ msgstr "Apto/Bl"
 msgid "Archived"
 msgstr "Arquivado"
 
-#: includes/settings/views/ffc-tab-advanced.php:999
-#| msgid "⚠️ Are you absolutely sure?\\n\\nThis action CANNOT be undone!\\n\\nAll selected data will be permanently deleted."
-msgid "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted."
-msgstr "Tem certeza absoluta?\n\nEsta ação NÃO PODE ser desfeita!\n\nTodos os dados selecionados serão excluídos permanentemente."
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:230
 msgid "Are you sure you want to cancel this appointment?"
 msgstr "Tem certeza que deseja cancelar este agendamento?"
@@ -31743,10 +31738,6 @@ msgstr "%d linhas de limite de requisições identificadas por um hash sem chave
 msgid "Rate Limit: Keyed Identifiers"
 msgstr "Rate Limit: Identificadores com Chave"
 
-#: includes/settings/views/documentation/config-advanced.php:83
-msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
-msgstr "Duas ferramentas destrutivas ficam aqui, ambas irreversíveis e ambas reservadas a contas com ffc_manage_settings_dangerzone. \"Excluir todos os dados do plugin ao desinstalar\" vem desligada; quando ligada, excluir o plugin remove suas tabelas, opções, transients, formulários, calendários, templates de certificado, papéis e capacidades, a pasta temporária de exportação e as páginas de verificação e de painel que ele criou, a menos que alguém as tenha editado. Uma conta cujo único papel era o do plugin recebe o papel padrão do site. A ação \"Excluir envios\" exclui todos os envios, ou os de um formulário, com a opção de reiniciar o contador de IDs."
-
 #: includes/settings/views/documentation/reference-privacy.php:74
 msgid "Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To honour an actual erasure request, run Erase Personal Data first and delete the account afterwards: once the account is gone the eraser still finds the certificates and appointments whose stored e-mail matches, but no longer the activity-log entries, attendance lines and date-message deliveries, which it reaches only through the account."
 msgstr "A exclusão da conta anonimiza o vínculo para que os registros continuem verificáveis; ela deixa de propósito intactos os dados pessoais criptografados dos registros mantidos. Para atender a um pedido real de apagamento, execute primeiro Apagar dados pessoais e só depois exclua a conta: sem a conta, o apagador ainda encontra os certificados e agendamentos cujo e-mail armazenado coincide, mas não mais as entradas do registro de atividades, as linhas de presença e os envios de mensagens de data, que ele só alcança pela conta."
@@ -32667,3 +32658,64 @@ msgstr "URLs Curtas Limpas"
 #: added
 msgid "Public Operator Access Disabled on Old Forms"
 msgstr "Acesso Público do Operador Desativado em Formulários Antigos"
+
+#: added
+msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter. It starts with no target chosen and shows how many submissions each target holds; the confirmation names the target and its count, asks for a typed word and counts down 15 seconds, and the deletion is recorded in the Activity Log."
+msgstr "Duas ferramentas destrutivas ficam aqui, ambas irreversíveis e ambas reservadas a contas com ffc_manage_settings_dangerzone. \"Excluir todos os dados do plugin ao desinstalar\" vem desligada; quando ligada, excluir o plugin remove suas tabelas, opções, transients, formulários, calendários, templates de certificado, papéis e capacidades, a pasta temporária de exportação e as páginas de verificação e de painel que ele criou, a menos que alguém as tenha editado. Uma conta cujo único papel era o do plugin recebe o papel padrão do site. A ação \"Excluir envios\" exclui todos os envios, ou os de um formulário, com a opção de reiniciar o contador de IDs. Ela começa sem alvo escolhido e mostra quantos envios cada alvo tem; a confirmação nomeia o alvo e a contagem, pede uma palavra digitada e conta 15 segundos, e a exclusão fica no Registro de Atividades."
+
+#: added
+msgid "All submissions of %1$s — %2$s records"
+msgstr "Todos os envios de %1$s — %2$s registros"
+
+#: added
+msgid "Check the target and type the word. You can confirm in %d seconds."
+msgstr "Confira o alvo e digite a palavra. Você pode confirmar em %d segundos."
+
+#: added
+msgid "Choose what to delete before confirming."
+msgstr "Escolha o que excluir antes de confirmar."
+
+#: added
+msgid "Delete (%d)"
+msgstr "Excluir (%d)"
+
+#: added
+msgid "Delete submissions?"
+msgstr "Excluir envios?"
+
+#: added
+msgid "Every submission of every form — %s records"
+msgstr "Todos os envios de todos os formulários — %s registros"
+
+#: added
+msgid "Nothing was deleted: the confirmation word did not match."
+msgstr "Nada foi excluído: a palavra de confirmação não confere."
+
+#: added
+msgid "The button unlocks once a target is chosen. A confirmation shows how many submissions will be deleted and asks you to type a word."
+msgstr "O botão é liberado quando um alvo é escolhido. Uma confirmação mostra quantos envios serão excluídos e pede que você digite uma palavra."
+
+#: added
+msgid "The submission ID counter is reset if the table ends up empty."
+msgstr "O contador de IDs dos envios é reiniciado se a tabela ficar vazia."
+
+#: added
+msgid "This cannot be undone. The deletion is recorded in the Activity Log with your name."
+msgstr "Isso não pode ser desfeito. A exclusão fica no Registro de Atividades com o seu nome."
+
+#: added
+msgid "This permanently deletes:"
+msgstr "Isto exclui permanentemente:"
+
+#: added
+msgid "Type %s to confirm"
+msgstr "Digite %s para confirmar"
+
+#: added
+msgid "— Choose what to delete —"
+msgstr "— Escolha o que excluir —"
+
+#: added
+msgctxt "word typed to confirm a Danger Zone deletion"
+msgid "DELETE"
+msgstr "EXCLUIR"

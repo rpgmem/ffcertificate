@@ -2243,10 +2243,6 @@ msgstr ""
 msgid "Archived"
 msgstr ""
 
-#: includes/settings/views/ffc-tab-advanced.php:999
-msgid "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted."
-msgstr ""
-
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:230
 msgid "Are you sure you want to cancel this appointment?"
 msgstr ""
@@ -31660,10 +31656,6 @@ msgstr ""
 msgid "Rate Limit: Keyed Identifiers"
 msgstr ""
 
-#: includes/settings/views/documentation/config-advanced.php:83
-msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-privacy.php:74
 msgid "Account deletion anonymises the link so records stay verifiable; it deliberately leaves the encrypted personal data in the retained records untouched. To honour an actual erasure request, run Erase Personal Data first and delete the account afterwards: once the account is gone the eraser still finds the certificates and appointments whose stored e-mail matches, but no longer the activity-log entries, attendance lines and date-message deliveries, which it reaches only through the account."
 msgstr ""
@@ -32583,4 +32575,65 @@ msgstr ""
 
 #: added
 msgid "Public Operator Access Disabled on Old Forms"
+msgstr ""
+
+#: added
+msgid "Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. \"Delete all plugin data on uninstall\" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin's receives the site's default role. The \"Delete submissions\" action deletes all submissions, or those of one form, with an option to reset the ID counter. It starts with no target chosen and shows how many submissions each target holds; the confirmation names the target and its count, asks for a typed word and counts down 15 seconds, and the deletion is recorded in the Activity Log."
+msgstr ""
+
+#: added
+msgid "All submissions of %1$s — %2$s records"
+msgstr ""
+
+#: added
+msgid "Check the target and type the word. You can confirm in %d seconds."
+msgstr ""
+
+#: added
+msgid "Choose what to delete before confirming."
+msgstr ""
+
+#: added
+msgid "Delete (%d)"
+msgstr ""
+
+#: added
+msgid "Delete submissions?"
+msgstr ""
+
+#: added
+msgid "Every submission of every form — %s records"
+msgstr ""
+
+#: added
+msgid "Nothing was deleted: the confirmation word did not match."
+msgstr ""
+
+#: added
+msgid "The button unlocks once a target is chosen. A confirmation shows how many submissions will be deleted and asks you to type a word."
+msgstr ""
+
+#: added
+msgid "The submission ID counter is reset if the table ends up empty."
+msgstr ""
+
+#: added
+msgid "This cannot be undone. The deletion is recorded in the Activity Log with your name."
+msgstr ""
+
+#: added
+msgid "This permanently deletes:"
+msgstr ""
+
+#: added
+msgid "Type %s to confirm"
+msgstr ""
+
+#: added
+msgid "— Choose what to delete —"
+msgstr ""
+
+#: added
+msgctxt "word typed to confirm a Danger Zone deletion"
+msgid "DELETE"
 msgstr ""

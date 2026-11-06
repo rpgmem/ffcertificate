@@ -146,6 +146,58 @@ class TabAdvancedTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/id="ffc_delete_data_on_uninstall"[^>]*disabled/', $output, 'Without the Danger Zone capability the purge cannot be armed.' );
 	}
 
+	public function test_danger_zone_starts_with_no_target_and_counts_each_one(): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( $key, $default = false ) {
+				return $default;
+			}
+		);
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'submit_button' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => number_format( (float) $n ) );
+		Functions\when( 'admin_url' )->returnArg();
+		$form             = new \stdClass();
+		$form->ID         = 7;
+		$form->post_title = 'Libras 2026';
+		$other            = new \stdClass();
+		$other->ID        = 9;
+		$other->post_title = 'Semana Pedagógica';
+		Functions\when( 'get_posts' )->justReturn( array( $form, $other ) );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings_dangerzone' === $cap );
+
+		global $wpdb;
+		$saved        = $wpdb;
+		$wpdb         = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static fn( $sql ) => false !== strpos( (string) $sql, 'GROUP BY form_id' )
+				? array(
+					array( 'form_id' => '7', 'total' => '1200' ),
+					array( 'form_id' => '3', 'total' => '84' ),
+				)
+				: array()
+		);
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$wpdb->shouldReceive( 'get_row' )->andReturn( null );
+
+		ob_start();
+		$this->tab->render();
+		$output = (string) ob_get_clean();
+		$wpdb   = $saved;
+
+		$this->assertMatchesRegularExpression( '/<select name="delete_target" id="ffc_delete_target"[^>]*required>\s*<option value="">/', $output, 'No target is chosen for the operator.' );
+		$this->assertStringContainsString( 'data-count-label="1,284"', $output, 'All forms count every row, a form no longer listed included.' );
+		$this->assertMatchesRegularExpression( '/value="7" data-label="Libras 2026" data-count-label="1,200"/', $output );
+		$this->assertMatchesRegularExpression( '/value="9" data-label="Semana Pedagógica" data-count-label="0"/', $output );
+		$this->assertMatchesRegularExpression( '/<button type="submit"[^>]*id="ffc-danger-zone-delete"[^>]*disabled/', $output, 'The button waits for a target.' );
+		$this->assertStringContainsString( 'name="ffc_delete_confirm"', $output );
+		$this->assertStringNotContainsString( 'onclick=', $output, 'The browser confirm() is gone.' );
+	}
+
 	// ==================================================================
 	// render() — error branch when view file missing
 	// ==================================================================
@@ -191,12 +243,22 @@ class TabAdvancedTest extends TestCase {
 				$handles[] = $h;
 			}
 		);
-		Functions\when( 'wp_localize_script' )->justReturn( true );
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias(
+			function ( $handle, $name, $data ) use ( &$localized ) {
+				$localized[ $name ] = $data;
+				return true;
+			}
+		);
 		Functions\when( 'wp_create_nonce' )->justReturn( 'nonce' );
+		Functions\when( '_x' )->returnArg();
 
 		$this->tab->enqueue_scripts( 'toplevel_page_ffc-settings' );
 
 		$this->assertContains( 'ffc-core', $handles );
+		$this->assertContains( 'ffc-danger-zone', $handles );
+		$this->assertSame( 'DELETE', $localized['ffcDangerZone']['word'] ?? null, 'The dialog asks for the word the server checks.' );
+		$this->assertSame( 15, $localized['ffcDangerZone']['dialog']['seconds'] ?? null, 'The shared countdown.' );
 		$this->assertContains( 'ffc-admin-autosave', $handles );
 		$this->assertContains( 'ffc-section-collapse', $handles );
 		$this->assertContains( 'ffc-encryption-key-suggest', $handles );

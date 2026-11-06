@@ -1047,7 +1047,7 @@
     border-top: 1px solid var(--ffc-gray-200);
 }
 
-/* The dialog's `<textarea>`. A form control does not inherit `color` (#1126),
+/* The dialog's `<textarea>` and typed-word field. A form control does not inherit `color` (#1126),
    and the sheet that styled `.ffc-form-group` is not loaded on the dashboard. */
 .ffc-shortcode .ffc-modal-body .ffc-form-group label {
     display: block;
@@ -1056,7 +1056,8 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
-.ffc-shortcode .ffc-modal-body .ffc-form-group textarea {
+.ffc-shortcode .ffc-modal-body .ffc-form-group textarea,
+.ffc-shortcode .ffc-modal-body .ffc-form-group input[type="text"] {
     width: 100%;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
@@ -1084,7 +1085,8 @@
     line-height: 1.5;
 }
 
-.ffc-shortcode .ffc-override-reason {
+.ffc-shortcode .ffc-override-reason,
+.ffc-shortcode .ffc-override-match {
     margin-top: var(--ffc-spacing-lg);
 }
 

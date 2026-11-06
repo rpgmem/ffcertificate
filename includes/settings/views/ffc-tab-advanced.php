@@ -1012,25 +1012,36 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						<label for="ffc_delete_target"><?php esc_html_e( 'Delete Submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="delete_target" id="ffc_delete_target" class="regular-text">
-							<option value="all"><?php esc_html_e( 'Delete All Submissions (All Forms)', 'ffcertificate' ); ?></option>
+						<?php
+						$ffcertificate_dz_counts = $ffcertificate_dz_delete ? \FreeFormCertificate\Admin\SettingsSaveHandler::danger_zone_counts() : array();
+						$ffcertificate_dz_forms  = get_posts(
+							array(
+								'post_type'      => 'ffc_form',
+								'posts_per_page' => -1,
+								'post_status'    => 'publish',
+							)
+						);
+						// The target is chosen, never defaulted; each option says
+						// how many submissions it removes (#2338).
+						?>
+						<select name="delete_target" id="ffc_delete_target" class="regular-text" required>
+							<option value=""><?php esc_html_e( '— Choose what to delete —', 'ffcertificate' ); ?></option>
 							<?php
-							$ffcertificate_forms = get_posts(
-								array(
-									'post_type'      => 'ffc_form',
-									'posts_per_page' => -1,
-									'post_status'    => 'publish',
-								)
-							);
-							if ( ! empty( $ffcertificate_forms ) ) :
-								foreach ( $ffcertificate_forms as $ffcertificate_f ) :
-									?>
-									<option value="<?php echo esc_attr( (string) $ffcertificate_f->ID ); ?>">
-										<?php echo esc_html( $ffcertificate_f->post_title ); ?>
-									</option>
-									<?php
-								endforeach;
-							endif;
+							$ffcertificate_dz_total = array_sum( $ffcertificate_dz_counts );
+							$ffcertificate_dz_all   = __( 'Delete All Submissions (All Forms)', 'ffcertificate' );
+							?>
+							<option value="all" data-label="<?php echo esc_attr( $ffcertificate_dz_all ); ?>" data-count-label="<?php echo esc_attr( number_format_i18n( $ffcertificate_dz_total ) ); ?>">
+								<?php echo esc_html( $ffcertificate_dz_all . ' — ' . number_format_i18n( $ffcertificate_dz_total ) ); ?>
+							</option>
+							<?php
+							foreach ( $ffcertificate_dz_forms as $ffcertificate_f ) :
+								$ffcertificate_f_count = (int) ( $ffcertificate_dz_counts[ (int) $ffcertificate_f->ID ] ?? 0 );
+								?>
+								<option value="<?php echo esc_attr( (string) $ffcertificate_f->ID ); ?>" data-label="<?php echo esc_attr( $ffcertificate_f->post_title ); ?>" data-count-label="<?php echo esc_attr( number_format_i18n( $ffcertificate_f_count ) ); ?>">
+									<?php echo esc_html( $ffcertificate_f->post_title . ' — ' . number_format_i18n( $ffcertificate_f_count ) ); ?>
+								</option>
+								<?php
+							endforeach;
 							?>
 						</select>
 
@@ -1055,10 +1066,23 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						</div>
 
 						<div class="ffc-mt-2xl">
-							<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's last guard. ?>
-							<button type="submit" class="ffc-btn ffc-btn-danger ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( "Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.", 'ffcertificate' ) ); ?>');">
-								<?php esc_html_e( 'Delete Data Permanently', 'ffcertificate' ); ?>
-							</button>
+							<input type="hidden" name="ffc_delete_confirm" id="ffc_delete_confirm" value="">
+							<?php
+							// The dialog (ffc-danger-zone.js) names the target and its
+							// count, asks for the typed word and counts down; the server
+							// refuses a submit without the word (#2338).
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Delete Data Permanently', 'ffcertificate' ),
+									'category' => 'danger',
+									'icon'     => 'delete',
+									'type'     => 'submit',
+									'id'       => 'ffc-danger-zone-delete',
+									'disabled' => true,
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'The button unlocks once a target is chosen. A confirmation shows how many submissions will be deleted and asks you to type a word.', 'ffcertificate' ); ?></p>
 						</div>
 					</td>
 				</tr>

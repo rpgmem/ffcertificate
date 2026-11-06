@@ -1074,6 +1074,9 @@
          * @param {Object}   [options.reasonField] Ask why (#2243): `{label, hint, min, max}`. The
          *                   confirm then also waits for a reason of that length, and the
          *                   promise resolves with the reason instead of `true`.
+         * @param {Object}   [options.matchField] A word to type before confirming (#2338):
+         *                   `{label, word}`. The confirm waits until the field holds exactly that word.
+         * @param {string}   [options.agreeIcon] Registry icon of the confirm; `checkmark` by default.
          * @param {Object}   [options.choiceField] A choice to make before confirming (#2243):
          *                   `{legend, value, options: [{value, label}]}`, drawn as the segmented
          *                   control. The promise then resolves with `{choice, reason}`.
@@ -1171,6 +1174,27 @@
                 body.appendChild(group);
             }
 
+            var match = null;
+            var matchWord = '';
+            if (opts.matchField && opts.matchField.word) {
+                matchWord = String(opts.matchField.word);
+                var matchGroup = document.createElement('div');
+                matchGroup.className = 'ffc-form-group ffc-override-match';
+                var matchLabel = document.createElement('label');
+                matchLabel.setAttribute('for', uid + '-match');
+                matchLabel.textContent = String(opts.matchField.label || '');
+                match = document.createElement('input');
+                match.type = 'text';
+                match.id = uid + '-match';
+                match.required = true;
+                match.setAttribute('autocomplete', 'off');
+                match.setAttribute('autocapitalize', 'characters');
+                match.setAttribute('spellcheck', 'false');
+                matchGroup.appendChild(matchLabel);
+                matchGroup.appendChild(match);
+                body.appendChild(matchGroup);
+            }
+
             var choices = [];
             if (opts.choiceField && opts.choiceField.options) {
                 var choiceSet = document.createElement('fieldset');
@@ -1219,7 +1243,7 @@
             var agree = core.button({
                 label: words.agree,
                 category: opts.agreeCategory || 'primary',
-                icon: 'checkmark',
+                icon: opts.agreeIcon || 'checkmark',
                 attrs: { 'data-ffc-override': 'agree' }
             });
             footer.appendChild(cancel);
@@ -1246,8 +1270,12 @@
                     return !field || (length >= reasonMin && (reasonMax === 0 || length <= reasonMax));
                 }
 
+                function matchOk() {
+                    return !match || match.value.trim() === matchWord;
+                }
+
                 function label() {
-                    var blocked = left > 0 || !reasonOk();
+                    var blocked = left > 0 || !reasonOk() || !matchOk();
                     agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
                     agree.disabled = blocked;
                     agree.setAttribute('aria-disabled', blocked ? 'true' : 'false');
@@ -1285,7 +1313,7 @@
                     // first when none is): listing every radio made the trap
                     // miss a checked second one and let the focus out.
                     var stop = choices.filter(function(radio) { return radio.checked; })[0] || choices[0];
-                    var focusable = [stop, field, cancel, agree].filter(function(el) { return el && !el.disabled; });
+                    var focusable = [stop, field, match, cancel, agree].filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1319,6 +1347,9 @@
                 });
                 if (field) {
                     field.addEventListener('input', label);
+                }
+                if (match) {
+                    match.addEventListener('input', label);
                 }
                 document.addEventListener('keydown', onKey, true);
 
