@@ -254,9 +254,21 @@ class UrlShortenerExportSource implements BatchedExportSourceInterface {
 			(string) ( $row['status'] ?? '' ),
 			(string) ( $row['post_id'] ?? '' ),
 			$this->creator_name( (int) ( $row['created_by'] ?? 0 ) ),
-			(string) ( $row['created_at'] ?? '' ),
-			(string) ( $row['updated_at'] ?? '' ),
+			self::instant( $row['created_at'] ?? 0 ),
+			self::instant( $row['updated_at'] ?? 0 ),
 		);
+	}
+
+	/**
+	 * An instant column in the plugin's date format, '' when never set
+	 * (#2337).
+	 *
+	 * @param mixed $value Unix seconds.
+	 * @return string
+	 */
+	private static function instant( $value ): string {
+		$ts = is_numeric( $value ) ? (int) $value : 0;
+		return $ts > 0 ? \FreeFormCertificate\Core\DateFormatter::format_datetime( $ts ) : '';
 	}
 
 	/**

@@ -73,8 +73,8 @@ function ffc_us_fail( string $message ): void {
  * @param string                 $status Status.
  * @return int Row ID, 0 when the database refused it.
  */
-function ffc_us_plant( UrlShortenerRepository $repo, string $code, ?int $post = null, string $status = 'active' ): int {
-	$now = current_time( 'mysql' );
+function ffc_us_plant( UrlShortenerRepository $repo, string $code, ?int $post = null, string $status = 'active', ?int $now = null ): int {
+	$now = $now ?? time();
 	$id  = $repo->insert(
 		array(
 			'short_code'  => $code,
@@ -270,6 +270,24 @@ if ( 'disabled' !== $ffc_us_trashed || ! in_array( $ffc_us_untrashed, array( 'ac
 	ffc_us_fail( "The link did not follow its post: trashed {$ffc_us_trashed}, restored {$ffc_us_untrashed}, published {$ffc_us_published}, deleted {$ffc_us_deleted}." );
 }
 echo "OK   the link follows its post: trash disables it, publishing restores it, deleting retires its code\n";
+
+// 8. The instants (#2337): both columns are BIGINT, and the cleaner's
+// "never clicked" age compares them with a cutoff in UTC seconds.
+foreach ( array( 'created_at', 'updated_at' ) as $ffc_us_column ) {
+	$ffc_us_type = (string) $wpdb->get_var(
+		$wpdb->prepare( 'SELECT DATA_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s AND COLUMN_NAME = %s', $ffc_us_table, $ffc_us_column )
+	);
+	if ( 'bigint' !== strtolower( $ffc_us_type ) ) {
+		ffc_us_fail( "{$ffc_us_column} is {$ffc_us_type}, not an instant (BIGINT)." );
+	}
+}
+ffc_us_plant( $ffc_us_repo, 'zqOld1', null, 'active', time() - 40 * DAY_IN_SECONDS );
+ffc_us_plant( $ffc_us_repo, 'zqNew1' );
+$ffc_us_never = array_column( $ffc_us_repo->find_cleanup_candidates( array( 'never_clicked' => true ), 30 ), 'short_code' );
+if ( ! in_array( 'zqOld1', $ffc_us_never, true ) || in_array( 'zqNew1', $ffc_us_never, true ) ) {
+	ffc_us_fail( 'The never-clicked age is wrong: ' . implode( ', ', $ffc_us_never ) );
+}
+echo "OK   created_at and updated_at are instants, and the never-clicked age compares them in UTC seconds\n";
 
 ffc_us_cleanup();
 echo "URL SHORTENER DB CHECK PASSED\n";

@@ -576,4 +576,33 @@ class DatabaseHelperTraitTest extends TestCase {
 		$this->assertSame( array(), $updates );
 		$this->assertStringContainsString( 'WHERE called_at_ts = 0', $selects[0] );
 	}
+
+	public function test_migrate_datetime_stops_when_a_full_batch_changes_nothing(): void {
+		// 500 rows that never parse to an instant: the select keeps
+		// returning them, so only "changed nothing" can end the loop (#1378, #2337).
+		$bad     = array_map(
+			static fn( $n ) => (object) array( 'id' => (string) $n, 'legacy_value' => '0000-00-00 00:00:00' ),
+			range( 1, 500 )
+		);
+		$selects = 0;
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_foo' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
+			static function ( $sql ) use ( $bad, &$selects ) {
+				if ( 0 === strpos( (string) $sql, 'SELECT id' ) ) {
+					++$selects;
+					return $selects > 3 ? array() : $bad;
+				}
+				return 0 === strpos( (string) $sql, 'SHOW COLUMNS' ) && false === strpos( (string) $sql, '_ts' )
+					? array( (object) array( 'Field' => 'called_at', 'Type' => 'datetime' ) )
+					: array();
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
+		$this->wpdb->shouldNotReceive( 'update' );
+
+		DatabaseHelperTraitHost::pub_migrate_datetime_column_to_unix( 'wp_foo', 'called_at', false );
+
+		$this->assertSame( 1, $selects, 'A batch that changed nothing ends the loop.' );
+	}
 }

@@ -53,8 +53,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     title: string|null,
  *     click_count: numeric-string|null,
  *     created_by: numeric-string|null,
- *     created_at: string,
- *     updated_at: string,
+ *     created_at: numeric-string,
+ *     updated_at: numeric-string,
  *     status: string|null,
  * }
  * @phpstan-type ShortUrlCleanupRow array{
@@ -710,8 +710,10 @@ class UrlShortenerReader extends AbstractRepository {
 	public function find_cleanup_candidates( array $criteria, int $never_clicked_days ): array {
 		$days = max( 0, $never_clicked_days );
 
+		// `created_at` is an instant (#2337): compared with a cutoff in UTC
+		// seconds, never with the database session's clock.
 		$orphan_expr  = '( s.post_id IS NOT NULL AND p.ID IS NULL )';
-		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < ( NOW() - INTERVAL %d DAY ) )';
+		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < %d )';
 		$trashed_expr = "( s.status = 'trashed' )";
 
 		$where = array();
@@ -739,9 +741,10 @@ class UrlShortenerReader extends AbstractRepository {
 			WHERE " . implode( ' OR ', $where ) . '
 			ORDER BY s.id ASC';
 
-		$args = array( $days, $this->table, $this->wpdb->posts );
+		$cutoff = time() - $days * DAY_IN_SECONDS;
+		$args   = array( $cutoff, $this->table, $this->wpdb->posts );
 		if ( ! empty( $criteria['never_clicked'] ) ) {
-			$args[] = $days;
+			$args[] = $cutoff;
 		}
 
 		/**

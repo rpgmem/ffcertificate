@@ -76,8 +76,8 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 			'status'      => 'active',
 			'post_id'     => 55,
 			'created_by'  => 3,
-			'created_at'  => '2026-01-15 10:30:00',
-			'updated_at'  => '2026-01-16 11:00:00',
+			'created_at'  => '1768473000', // 2026-01-15 10:30:00 UTC (#2337).
+			'updated_at'  => '1768561200', // 2026-01-16 11:00:00 UTC.
 		);
 	}
 
@@ -107,6 +107,11 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 		// resolves to the post's current permalink, matching the redirect (#888).
 		Functions\when( 'get_permalink' )->justReturn( 'https://example.com/current-permalink' );
 
+		// The instants print through DateFormatter, in the site's format.
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( $format, (int) $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->alias( static fn( $key, $fallback = false ) => $fallback );
+
 		$result = $this->source->format_row( $this->sample_row(), array() );
 
 		$this->assertSame( '7', $result[0] );
@@ -117,8 +122,8 @@ class UrlShortenerExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'active', $result[5] );
 		$this->assertSame( '55', $result[6] );
 		$this->assertSame( 'Alice', $result[7] );
-		$this->assertSame( '2026-01-15 10:30:00', $result[8] );
-		$this->assertSame( '2026-01-16 11:00:00', $result[9] );
+		$this->assertSame( '15/01/2026 10:30', $result[8] );
+		$this->assertSame( '16/01/2026 11:00', $result[9] );
 	}
 
 	public function test_creator_name_deleted_user_shows_id(): void {

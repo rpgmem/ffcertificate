@@ -268,7 +268,9 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$repo->shouldReceive( 'findByShortCode' )->andReturn( $by_code );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_short_url' )->andReturnUsing( static fn( $code ) => 'https://site.test/go/' . $code );
-		Functions\when( 'mysql2date' )->alias( static fn( $format, $date ) => substr( (string) $date, 0, 10 ) );
+		// `created_at` is an instant (#2337); the stub prints its UTC date.
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( 'Y-m-d', (int) $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		return $repo;
 	}
 
@@ -277,7 +279,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		'short_code'  => 'old111',
 		'target_url'  => 'https://example.com/page',
 		'title'       => 'Flyer 2025',
-		'created_at'  => '2025-03-01 10:00:00',
+		'created_at'  => '1740823200', // 2025-03-01 10:00:00 UTC.
 		'click_count' => '42',
 		'status'      => 'active',
 	);

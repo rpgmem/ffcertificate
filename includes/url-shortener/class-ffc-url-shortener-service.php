@@ -101,7 +101,8 @@ class UrlShortenerService {
 			}
 		}
 
-		$now  = current_time( 'mysql' );
+		// Instants, in UTC seconds (#2337, Category A).
+		$now  = time();
 		$data = array(
 			'short_code'  => '',
 			'target_url'  => $target_url,
@@ -496,7 +497,7 @@ class UrlShortenerService {
 			array(
 				'target_url' => esc_url_raw( $target_url, self::DESTINATION_SCHEMES ),
 				'title'      => sanitize_text_field( $title ),
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
@@ -549,7 +550,7 @@ class UrlShortenerService {
 			$id,
 			array(
 				'status'     => 'trashed',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
@@ -565,7 +566,7 @@ class UrlShortenerService {
 			$id,
 			array(
 				'status'     => 'disabled',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
@@ -584,7 +585,7 @@ class UrlShortenerService {
 			$id,
 			array(
 				'status'     => 'active',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
@@ -647,7 +648,7 @@ class UrlShortenerService {
 			$id,
 			array(
 				'status'     => $active ? 'active' : 'disabled',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
