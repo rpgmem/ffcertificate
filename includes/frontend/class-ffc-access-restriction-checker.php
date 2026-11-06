@@ -51,7 +51,7 @@ class AccessRestrictionChecker {
 	 * @return array<string, mixed> ['allowed' => bool, 'message' => string, 'is_ticket' => bool]
 	 */
 	public static function check( array $form_config, string $val_cpf, string $val_ticket, int $form_id, ?string $val_password = null, ?\Closure $is_reprint = null ): array {
-		$restrictions = isset( $form_config['restrictions'] ) ? $form_config['restrictions'] : array();
+		$restrictions = \FreeFormCertificate\Core\ArrayValue::array( $form_config, 'restrictions' );
 
 		// Clean CPF/RF (remove any mask).
 		$clean_cpf = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $val_cpf );
@@ -85,7 +85,7 @@ class AccessRestrictionChecker {
 		// 2. DENYLIST CHECK (if active - HAS PRIORITY)
 		// ========================================.
 		if ( ! empty( $restrictions['denylist'] ) && '1' === $restrictions['denylist'] ) {
-			$denied_raw  = isset( $form_config['denied_users_list'] ) ? $form_config['denied_users_list'] : '';
+			$denied_raw  = \FreeFormCertificate\Core\ArrayValue::string( $form_config, 'denied_users_list' );
 			$denied_list = array_filter( array_map( 'trim', explode( "\n", $denied_raw ) ) );
 
 			// Clean masks from denylist before comparing.
@@ -109,7 +109,7 @@ class AccessRestrictionChecker {
 		// 3. ALLOWLIST CHECK (if active)
 		// ========================================.
 		if ( ! empty( $restrictions['allowlist'] ) && '1' === $restrictions['allowlist'] ) {
-			$allowed_raw  = isset( $form_config['allowed_users_list'] ) ? $form_config['allowed_users_list'] : '';
+			$allowed_raw  = \FreeFormCertificate\Core\ArrayValue::string( $form_config, 'allowed_users_list' );
 			$allowed_list = array_filter( array_map( 'trim', explode( "\n", $allowed_raw ) ) );
 
 			// Clean masks from allowlist before comparing.
@@ -143,7 +143,7 @@ class AccessRestrictionChecker {
 				);
 			}
 
-			$tickets_raw = isset( $form_config['generated_codes_list'] ) ? $form_config['generated_codes_list'] : '';
+			$tickets_raw = \FreeFormCertificate\Core\ArrayValue::string( $form_config, 'generated_codes_list' );
 			$tickets     = array_filter(
 				array_map(
 					function ( $t ) {
@@ -224,7 +224,7 @@ class AccessRestrictionChecker {
 	 * @return bool
 	 */
 	private static function is_reprint_of_used_ticket( array $form_config, int $form_id, string $ticket, ?\Closure $is_reprint = null ): bool {
-		if ( ! empty( $form_config['quiz_enabled'] ) && '1' === (string) $form_config['quiz_enabled'] ) {
+		if ( '1' === \FreeFormCertificate\Core\ArrayValue::string( $form_config, 'quiz_enabled' ) ) {
 			return false;
 		}
 		if ( null !== $is_reprint ) {
@@ -382,7 +382,9 @@ class AccessRestrictionChecker {
 		$listed  = array();
 		$deleted = 0;
 		foreach ( $names as $name ) {
-			$name = (string) $name;
+			if ( ! is_string( $name ) ) {
+				continue;
+			}
 			if ( 1 !== preg_match( '/^' . preg_quote( self::TICKET_CLAIM_OPTION_PREFIX, '/' ) . '(\d+)_([0-9a-f]{64})$/', $name, $m ) ) {
 				continue;
 			}
