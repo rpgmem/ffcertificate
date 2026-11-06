@@ -84,7 +84,7 @@ class DecryptFailureLoggingTest extends TestCase {
 	private function enableActivityLog(): void {
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( 'ffc_settings' === $key ) {
-				return array( 'enable_activity_log' => 1 );
+				return \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 			}
 			return $default;
 		} );
@@ -304,7 +304,7 @@ class DecryptFailureLoggingTest extends TestCase {
 			function ( $key, $default = false ) use ( &$reads ) {
 				if ( 'ffc_settings' === $key ) {
 					++$reads;
-					return array( 'enable_activity_log' => 1 );
+					return \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 				}
 				return $default;
 			}

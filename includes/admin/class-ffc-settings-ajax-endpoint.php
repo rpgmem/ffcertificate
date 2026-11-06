@@ -119,14 +119,6 @@ class SettingsAjaxEndpoint {
 			'debug_qrcode',
 			// 6.6.4 follow-up (#361 Sprint 1).
 			'debug_browser_env',
-			// Activity-log granular filter — per-category enables.
-			'activity_log_cat_submissions',
-			'activity_log_cat_scheduling',
-			'activity_log_cat_public_access',
-			'activity_log_cat_users',
-			'activity_log_cat_recruitment',
-			'activity_log_cat_migrations',
-			'activity_log_cat_system',
 			// General tab — submission auto-delete opt-in (#936). Default OFF;
 			// gates the day-window field so no site purges data unintentionally.
 			'cleanup_enabled',
@@ -258,6 +250,11 @@ class SettingsAjaxEndpoint {
 			);
 		}
 
+		// Every activity-log item (#2340); the audit ones are raised to the
+		// Danger Zone capability with the rest of dangerzone_settings().
+		foreach ( array_keys( \FreeFormCertificate\Core\ActivityLogItems::ITEMS ) as $item ) {
+			$bool_settings[] = \FreeFormCertificate\Core\ActivityLogItems::setting_key( $item );
+		}
 		foreach ( $bool_settings as $key ) {
 			$allowlist[ $key ] = array(
 				'option' => 'ffc_settings',
@@ -633,8 +630,10 @@ class SettingsAjaxEndpoint {
 			'activity_log_retention_days',
 			'activity_log_max_records',
 		);
-		foreach ( \FreeFormCertificate\Core\ActivityLog::CATEGORIES as $category ) {
-			$keys[] = 'activity_log_cat_' . $category;
+		// Switching an audit item off stops recording who saw or deleted data
+		// (#2340); a secondary item needs only the tab's capability.
+		foreach ( \FreeFormCertificate\Core\ActivityLogItems::keys_of( \FreeFormCertificate\Core\ActivityLogItems::GROUP_AUDIT ) as $item ) {
+			$keys[] = \FreeFormCertificate\Core\ActivityLogItems::setting_key( $item );
 		}
 		return $keys;
 	}
@@ -780,7 +779,13 @@ class SettingsAjaxEndpoint {
 			if ( ! is_array( $option ) ) {
 				$option = array();
 			}
+			$before = $option;
 			self::set_nested( $option, $path, $value );
+			if ( 'ffc_settings' === $option_name ) {
+				// Audited before the write, so switching the log off is
+				// still recorded (#2340).
+				DangerzoneSettingsAudit::record( $before, $option );
+			}
 			update_option( $option_name, $option );
 		} finally {
 			// $holder is set only when the lock above was granted.

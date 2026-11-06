@@ -84,6 +84,9 @@ class AudienceAdminImportTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		$this->had_wpdb     = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup  = $GLOBALS['wpdb'] ?? null;
@@ -157,6 +160,7 @@ class AudienceAdminImportTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

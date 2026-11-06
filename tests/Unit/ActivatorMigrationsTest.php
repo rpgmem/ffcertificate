@@ -40,6 +40,9 @@ class ActivatorMigrationsTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		class_exists( '\\FreeFormCertificate\\Activator' );
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
@@ -100,6 +103,7 @@ class ActivatorMigrationsTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -294,9 +298,11 @@ class ActivatorMigrationsTest extends TestCase {
 
 	public function test_upgrade_auth_code_logs_how_many_duplicates_it_removed(): void {
 		// The dedupe used to delete in silence: a certificate whose code
-		// verified another one vanished with no trace (#2343).
+		// verified another one vanished with no trace (#2343). The class
+		// switches logging off for its other tests; this one reads it.
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default_value = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default_value
+			static fn( $key, $default_value = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default_value
 		);
 		foreach ( array( 'wp_json_encode' => 'json_encode' ) as $fn => $alias ) {
 			Functions\when( $fn )->alias( $alias );

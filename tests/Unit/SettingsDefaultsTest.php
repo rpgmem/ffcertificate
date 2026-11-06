@@ -292,15 +292,15 @@ final class SettingsDefaultsTest extends TestCase {
 	/**
 	 * Keys the scan sees but that are not `ffc_settings` keys.
 	 *
-	 * `activity_log_cat_` is a **prefix**: the read is
-	 * `self::get( 'activity_log_cat_' . $area )`, so the literal the scanner
-	 * captures is half a key name and there is nothing to declare. Add here
-	 * only for that reason — a key that is merely undeclared belongs in the
-	 * baseline, where the ratchet can watch it.
+	 * Held for a read whose literal is only a **prefix** of a key name, so
+	 * there is nothing to declare. The activity log's categories were the one
+	 * such read until #2340 replaced them with items read through a constant.
+	 * Add here only for that reason — a key that is merely undeclared belongs
+	 * in the baseline, where the ratchet can watch it.
 	 *
 	 * @var array<int, string>
 	 */
-	private const NOT_A_KEY = array( 'activity_log_cat_' );
+	private const NOT_A_KEY = array();
 
 	/**
 	 * Every `ffc_settings` key read anywhere, declared or not.

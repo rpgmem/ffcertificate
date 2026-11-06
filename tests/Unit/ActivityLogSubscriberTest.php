@@ -285,7 +285,7 @@ class ActivityLogSubscriberTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
 		$buffer->setAccessible( true );

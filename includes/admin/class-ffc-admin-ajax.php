@@ -434,7 +434,7 @@ class AdminAjax {
 
 		// Every served reveal is audited (#1655), except a type with no
 		// audit action (the activity log's own); ActivityLog honours the
-		// Activity Log switch and its category, as every other entry does.
+		// Activity Log switch and its item, as every other entry does.
 		// The record is named in the context by type and id (#2340): the
 		// `submission_id` column holds a submission, so an appointment or a
 		// profile id there named the wrong record.

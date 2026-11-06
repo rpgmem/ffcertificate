@@ -357,6 +357,7 @@ class AdminActivityLogPage {
 			'decrypt_failure'                              => __( 'Decryption Failure', 'ffcertificate' ),
 			'decrypt_failure_suppressed'                   => __( 'Decryption Failures Suppressed', 'ffcertificate' ),
 			'ip_geolocation_debug'                         => __( 'IP Geolocation Debug', 'ffcertificate' ),
+			'dangerzone_setting_changed'                   => __( 'Danger Zone Setting Changed', 'ffcertificate' ),
 
 			// Migrations.
 			'migration_foreign_keys'                       => __( 'Foreign Keys Migration', 'ffcertificate' ),

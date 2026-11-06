@@ -104,22 +104,17 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	/**
-	 * Action keys named in `ActivityLog::category_for_action()`'s map. An
-	 * action explicitly categorised there is one the plugin knows about, even
-	 * if this guard cannot see where it is written.
+	 * Action keys named in `ActivityLogItems::ACTIONS`. An action explicitly
+	 * assigned to an item there is one the plugin knows about, even if this
+	 * guard cannot see where it is written.
 	 *
 	 * @return array<int, string>
 	 */
 	private static function categorised_actions(): array {
-		$source = (string) file_get_contents( self::root() . '/' . self::ACTIVITY_LOG );
+		$actions = array_keys( \FreeFormCertificate\Core\ActivityLogItems::ACTIONS );
+		self::assertNotEmpty( $actions, 'ActivityLogItems::ACTIONS is empty; the item map moved.' );
 
-		$block = explode( '$by_action = array(', $source );
-		self::assertCount( 2, $block, 'ActivityLog::category_for_action() no longer declares $by_action.' );
-
-		$block = explode( ');', $block[1] )[0];
-		preg_match_all( "/'([a-z0-9_]+)'\s*=>/", $block, $m );
-
-		return $m[1];
+		return $actions;
 	}
 
 	/**

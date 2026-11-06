@@ -143,7 +143,7 @@ class ActivityLogTest extends TestCase {
 	private function enableActivityLog(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ($key === 'ffc_settings') {
-				return ['enable_activity_log' => 1];
+				return \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 			}
 			return $default;
 		});
@@ -193,13 +193,14 @@ class ActivityLogTest extends TestCase {
 		$this->assertFalse(ActivityLog::is_enabled());
 	}
 
-	public function test_is_enabled_returns_false_when_setting_missing(): void {
-		Functions\when('get_option')->justReturn([]);
-		$this->assertFalse(ActivityLog::is_enabled());
+	public function test_is_enabled_defaults_to_on_when_the_setting_is_missing(): void {
+		// On by default, on fresh installs and on upgrade (#2340).
+		Functions\when('get_option')->justReturn(array());
+		$this->assertTrue(ActivityLog::is_enabled());
 	}
 
-	public function test_is_enabled_returns_false_when_option_returns_empty_array(): void {
-		Functions\when('get_option')->justReturn(array());
+	public function test_is_enabled_returns_false_when_switched_off(): void {
+		Functions\when('get_option')->justReturn(array('enable_activity_log' => 0));
 		$this->assertFalse(ActivityLog::is_enabled());
 	}
 
@@ -207,50 +208,56 @@ class ActivityLogTest extends TestCase {
 	// log() — basic behaviour
 	// ==================================================================
 
-	public function test_category_for_action_mapping(): void {
-		$this->assertSame('recruitment', ActivityLog::category_for_action('recruitment_candidate_deleted'));
-		$this->assertSame('scheduling', ActivityLog::category_for_action('appointment_created'));
-		$this->assertSame('migrations', ActivityLog::category_for_action('cpf_rf_split_migration_batch'));
-		$this->assertSame('public_access', ActivityLog::category_for_action('csv_downloaded'));
-		$this->assertSame('users', ActivityLog::category_for_action('privacy_data_erased'));
-		$this->assertSame('system', ActivityLog::category_for_action('settings_changed'));
-		$this->assertSame('submissions', ActivityLog::category_for_action('submission_created'));
-		$this->assertSame('submissions', ActivityLog::category_for_action('pdf_generated'));
-		// Unknown actions fall back to submissions.
-		$this->assertSame('submissions', ActivityLog::category_for_action('totally_unknown_action'));
-	}
-
 	public function test_log_filtered_by_minimum_level(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ('ffc_settings' === $key) {
 				return array(
-					'enable_activity_log'    => 1,
-					'activity_log_min_level' => 'warning',
+					'enable_activity_log'                => 1,
+					'activity_log_item_cert_submissions' => 1,
+					'activity_log_min_level'             => 'warning',
 				);
 			}
 			return $default;
 		});
 
-		// Below the configured minimum → dropped.
+		// A secondary item below the configured minimum → dropped.
 		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
 		// At/above the minimum → recorded.
-		$this->assertTrue(ActivityLog::log('submission_deleted', ActivityLog::LEVEL_WARNING));
+		$this->assertTrue(ActivityLog::log('submission_created', ActivityLog::LEVEL_WARNING));
 	}
 
-	public function test_log_filtered_by_disabled_category(): void {
+	public function test_an_audit_item_is_recorded_whatever_the_minimum_level(): void {
+		Functions\when('get_option')->alias(function ($key, $default = false) {
+			return 'ffc_settings' === $key ? array('activity_log_min_level' => 'error') : $default;
+		});
+
+		// `submission_deleted` is a data deletion: audit, recorded at info level
+		// with the minimum at error (#2340).
+		$this->assertTrue(ActivityLog::log('submission_deleted', ActivityLog::LEVEL_INFO));
+	}
+
+	public function test_a_secondary_item_is_off_by_default_and_an_audit_item_on(): void {
+		Functions\when('get_option')->alias(function ($key, $default = false) {
+			return 'ffc_settings' === $key ? array() : $default;
+		});
+
+		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO), 'Secondary items start off.');
+		$this->assertTrue(ActivityLog::log('submission_pii_revealed', ActivityLog::LEVEL_INFO), 'Audit items start on.');
+	}
+
+	public function test_log_filtered_by_a_switched_off_item(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ('ffc_settings' === $key) {
 				return array(
-					'enable_activity_log'         => 1,
-					'activity_log_cat_submissions' => 0,
+					'enable_activity_log'                  => 1,
+					'activity_log_item_cert_submissions'   => 0,
+					'activity_log_item_sched_appointments' => 1,
 				);
 			}
 			return $default;
 		});
 
-		// submissions category off → dropped.
 		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
-		// scheduling category still on → recorded.
 		$this->assertTrue(ActivityLog::log('appointment_created', ActivityLog::LEVEL_INFO));
 	}
 

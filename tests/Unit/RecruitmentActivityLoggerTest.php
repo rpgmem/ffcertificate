@@ -41,7 +41,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		$this->wpdb   = $wpdb;
 
 		// Enable the activity log so ActivityLog::log() doesn't short-circuit.
-		Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS );
 		Functions\when( 'absint' )->alias( 'intval' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
@@ -234,7 +234,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			static fn ( $key ) => 'ffc_recruitment_settings' === $key
 				? array( 'audit_pii_reveals' => false )
-				: array( 'enable_activity_log' => 1 )
+				: \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS
 		);
 
 		$first  = RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
@@ -247,7 +247,7 @@ class RecruitmentActivityLoggerTest extends TestCase {
 	}
 
 	public function test_pii_revealed_logs_across_fields_and_candidates(): void {
-		Functions\when( 'get_option' )->justReturn( array( 'enable_activity_log' => 1 ) );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS );
 
 		RecruitmentActivityLogger::pii_revealed( 12, 'cpf' );
 		RecruitmentActivityLogger::pii_revealed( 12, 'rf' );

@@ -224,6 +224,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		unset( $_POST['ffc_capabilities_nonce'], $_POST['ffc_cap_fields_rendered'], $_POST['ffc_audience'], $_GET['user_id'] );
 		// Reset the per-request role snapshot so it never leaks between tests.
 		$this->reset_role_snapshot();
@@ -896,6 +897,9 @@ class AdminUserCapabilitiesTest extends TestCase {
 	// ==================================================================
 
 	public function test_save_adds_audience_membership(): void {
+		// The membership change is audited by default (#2340); its entry is
+		// asserted by test_an_audience_change_writes_a_permissions_entry.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
 		$_POST['ffc_cap_fields_rendered'] = '1';
 		$_POST['ffc_audience']           = array( '3', '7' );

@@ -554,6 +554,11 @@ class Loader {
 		// `init` because it queries the form post type.
 		add_action( 'init', array( \FreeFormCertificate\Security\GeofenceWindowMessages::class, 'maybe_migrate' ), 20 );
 
+		// Carry the activity log's categories onto its items and switch the
+		// log on, once (#2340). A flag in `ffc_settings` makes every later
+		// request a read of the already-loaded option.
+		add_action( 'init', array( \FreeFormCertificate\Core\ActivityLogItems::class, 'maybe_migrate' ), 20 );
+
 		// Encrypt an SMTP password saved before it was encrypted at rest
 		// (#2342). `admin_init` so a front-end request never writes the
 		// option; no flag, because an encrypted value returns at once.
