@@ -171,6 +171,19 @@ class ActivityLog {
 			}
 		}
 
+		// A context left in clear never carries an address (#2340): with no
+		// key, or a failed encryption, each address in it is replaced by a
+		// keyed fingerprint, which still tells two entries from one address
+		// apart and cannot be read back. The row's own address follows the
+		// same rule below.
+		if ( null === $context_encrypted ) {
+			$scrubbed = self::fingerprint_addresses( $context );
+			if ( $scrubbed !== $context ) {
+				$scrubbed_json  = wp_json_encode( $scrubbed );
+				$context_for_db = $scrubbed_json ? $scrubbed_json : '';
+			}
+		}
+
 		// The client IP is personal data and is never stored in clear (#1574):
 		// it goes into `user_ip_encrypted`, and an IP that cannot be encrypted
 		// is not stored at all rather than written in plaintext. The legacy
@@ -231,9 +244,30 @@ class ActivityLog {
 	}
 
 	/**
-	 * Flush the write buffer to database using a single multi-row INSERT
+	 * A context with every address replaced by a keyed fingerprint.
 	 *
-	 * Called automatically on shutdown or when buffer reaches threshold.
+	 * @param array<mixed> $context Context, or a value inside it.
+	 * @return array<mixed>
+	 */
+	private static function fingerprint_addresses( array $context ): array {
+		foreach ( $context as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$context[ $key ] = self::fingerprint_addresses( $value );
+			} elseif ( is_string( $key ) && in_array( $key, SensitiveFieldRegistry::PAYLOAD_ONLY_KEYS, true ) && is_string( $value ) && '' !== $value ) {
+				$context[ $key ] = 'fp:' . substr( \FreeFormCertificate\Core\Encryption::keyed_hash( $value, 'activity_log_ip' ), 0, 16 );
+			}
+		}
+		return $context;
+	}
+
+	/**
+	 * Flush the write buffer to the database, one INSERT per entry.
+	 *
+	 * Called automatically on shutdown or when the buffer reaches its
+	 * threshold. Each entry is its own INSERT because the columns written
+	 * vary per entry (an encrypted address or context is written only when
+	 * there is one) and a user id of 0 must reach the foreign key as NULL;
+	 * the buffer already spares the request a write per log call.
 	 *
 	 * @since 4.6.9
 	 * @return int Number of rows inserted
