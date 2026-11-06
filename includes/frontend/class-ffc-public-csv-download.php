@@ -971,7 +971,7 @@ class PublicCsvDownload {
 	 * metabox reads it).
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, full: bool, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		// Thin public delegator. The implementation lives in
