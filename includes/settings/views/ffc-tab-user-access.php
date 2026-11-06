@@ -319,7 +319,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'If unchecked, the WordPress admin bar will be hidden for blocked roles.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'When off, the WordPress admin bar is hidden for blocked roles.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -350,7 +350,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 				} else {
 					printf(
 						/* translators: %s: Dashboard page slug */
-						esc_html__( 'Dashboard page will be created at: %s (activate the plugin to create it)', 'ffcertificate' ),
+						esc_html__( 'No dashboard page exists yet. Add a page with the shortcode above, or deactivate and reactivate the plugin to create one at %s.', 'ffcertificate' ),
 						'<code>' . esc_html( home_url( '/dashboard' ) ) . '</code>'
 					);
 				}

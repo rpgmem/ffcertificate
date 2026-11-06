@@ -66,7 +66,8 @@ class SettingsTabControlsTest extends TestCase {
 		$src = self::source( 'includes/settings/views/ffc-tab-smtp.php' );
 
 		$this->assertStringContainsString( '$ffcertificate_mail_queue = \FreeFormCertificate\Integrations\MailQueue::is_active();', $src );
-		$this->assertStringContainsString( '<fieldset id="smtp-mode-options"<?php disabled( $ffcertificate_mail_queue ); ?>>', $src );
+		$this->assertStringContainsString( '<fieldset id="smtp-mode-options" aria-labelledby="smtp-mode-label"<?php disabled( $ffcertificate_mail_queue ); ?>>', $src );
+		$this->assertStringContainsString( '<span id="smtp-mode-label">', $src, 'The radio group is named by its row header.' );
 		$this->assertStringContainsString( 'Total Mail Queue is active and manages email delivery', $src );
 	}
 

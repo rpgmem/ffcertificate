@@ -83,7 +83,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					<?php else : ?>
 						<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Not detected', 'ffcertificate' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory.', 'ffcertificate' ); ?>
 						</p>
 					<?php endif; ?>
 				</td>
@@ -283,7 +283,7 @@ if ( $ffcertificate_cf_behind ) :
 						?>
 						<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's only guard. ?>
 						<a href="<?php echo esc_url( $ffcertificate_clear_qr_url ); ?>"
-							class="ffc-btn ffc-btn-danger ffc-icon-delete"
+							class="ffc-btn ffc-btn-caution ffc-icon-delete"
 							onclick="return confirm('<?php echo esc_js( __( "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.", 'ffcertificate' ) ); ?>');">
 							<?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>

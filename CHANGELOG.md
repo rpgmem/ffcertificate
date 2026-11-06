@@ -53,6 +53,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Settings: a disabled module takes its tabs and links with it** (#2338). The Certificates, Document Templates, Reregistration and Short URLs tabs, the Scheduling and Recruitment links, and the receipt and record cards and assignments on Document Templates hide while their module is off.
 - **Settings: the Danger Zone, Run Migration and Clear QR cache confirmations show their line breaks** (#2338).
 - **Settings: the Danger Zone delete starts with no target, shows each target's count, and confirms in the plugin's dialog** (#2338). The dialog names the target and how many submissions go, asks for a typed word (`DELETE`, translated) and counts down 15 seconds; the server refuses an empty target or a missing word.
+- **Settings: the section list takes the arrow keys, Home and End, and several texts tell the truth** (#2338). The arrows skip the "Go to" links; switch rows name their control; the Cache tab no longer says rate-limit counters reset without Redis; Clear QR cache is a caution action; the Advanced topic points to Certificates → Required data.
 
 ### Security
 

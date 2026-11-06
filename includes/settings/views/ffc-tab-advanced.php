@@ -853,7 +853,6 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>">
 			<p class="ffc-mb-2xs"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
 			<p>
-				<label class="screen-reader-text"><?php echo esc_html( $ffc_widget['label'] ); ?></label>
 				<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
 					aria-label="<?php echo esc_attr( $ffc_widget['label'] ); ?>"
 					spellcheck="false" autocomplete="off"></textarea>
@@ -925,7 +924,6 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY">
 				<p class="ffc-mb-2xs"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
 				<p>
-					<label class="screen-reader-text"><?php esc_html_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
 					<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
 						aria-label="<?php esc_attr_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?>"
 						spellcheck="false" autocomplete="off"></textarea>

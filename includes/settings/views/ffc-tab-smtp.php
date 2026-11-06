@@ -137,7 +137,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 				<tr class="ffc-email-option-row">
 					<th scope="row">
-						<label><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></label>
+						<span id="smtp-mode-label"><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></span>
 					</th>
 					<td>
 						<?php if ( $ffcertificate_mail_queue ) : ?>
@@ -148,7 +148,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 							);
 							?>
 						<?php endif; ?>
-						<fieldset id="smtp-mode-options"<?php disabled( $ffcertificate_mail_queue ); ?>>
+						<fieldset id="smtp-mode-options" aria-labelledby="smtp-mode-label"<?php disabled( $ffcertificate_mail_queue ); ?>>
 							<label>
 								<input type="radio" name="ffc_settings[smtp_mode]" value="wp" <?php checked( 'wp', $ffcertificate_smtp_mode ); ?>>
 								<strong><?php esc_html_e( 'WP Default (PHPMail)', 'ffcertificate' ); ?></strong>
