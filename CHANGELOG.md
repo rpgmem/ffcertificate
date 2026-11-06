@@ -90,6 +90,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: e-mail addresses, CPF, RF and other personal values in an entry's details are masked on the tab and in the CSV** (#2340). Only addresses were before; the clear details sit behind the entry's Reveal, which, like the address, no longer writes a log entry; a clear export still needs `ffc_view_activity_log_pii` and is logged.
 - **Revealing personal data is limited to 2,000 values per account every 15 minutes** (#2340). A page counts every value it names and is refused whole when it would cross the limit; the refusal says how many minutes to wait.
 - **Activity Log: an address in an entry's details is never stored in clear** (#2340). When the details cannot be encrypted (no key, or a failed encryption), each address in them is replaced by a keyed fingerprint, as the entry's own address already was not stored.
+- ⚠ **Public CSV endpoints count every request** (#2341). The form details, the certificate preview, the download and the export start share a read pool (10/minute, 100/hour), and Open early, Postpone close and Schedule exception a tighter one (5/minute, 30/hour), both on the Rate Limit tab; until now nothing recorded these calls, so no limit could stop a hash being guessed. A refusal sent with an HTTP error status now shows the plugin's message instead of "Connection error".
 
 ### Fixed
 

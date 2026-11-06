@@ -90,6 +90,8 @@ class PublicCsvDownloadTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		// The screen's read pool counts an anonymous caller (#2341).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( function ( $val ) { return abs( (int) $val ); } );
 		Functions\when( 'shortcode_atts' )->alias( function ( $defaults, $atts ) {
 			return array_merge( $defaults, is_array( $atts ) ? $atts : array() );

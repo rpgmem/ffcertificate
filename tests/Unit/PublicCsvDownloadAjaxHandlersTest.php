@@ -107,6 +107,8 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		// The screen's read pool counts an anonymous caller (#2341).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
@@ -236,6 +238,17 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 				);
 			}
 		);
+		// The read pool's day counter (#2341): no row yet, so it inserts one.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SELECT id,count FROM wp_ffc_rate_limits' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturn( 1 );
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $q ) {
 				$this->reads[] = $q;
@@ -541,6 +554,78 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertStringNotContainsString( 'CPF', $this->captured['payload']['message'], 'The answer says nothing about the CPF.' );
 		}
 		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
+	}
+
+	/**
+	 * The screen's endpoints and the read pool each one counts in (#2341).
+	 *
+	 * @return array<string, array{string, string}>
+	 */
+	public static function provider_read_pools(): array {
+		return array(
+			'form details'       => array( 'ajax_info', PublicCsvDownload::RATE_ENDPOINT ),
+			'certificate preview' => array( 'ajax_cert_preview', PublicCsvDownload::RATE_ENDPOINT ),
+			'open early'         => array( 'ajax_open_early', PublicCsvDownload::RATE_ENDPOINT_ACTIONS ),
+			'extend end'         => array( 'ajax_extend_end', PublicCsvDownload::RATE_ENDPOINT_ACTIONS ),
+			'schedule exception' => array( 'ajax_schedule_exception', PublicCsvDownload::RATE_ENDPOINT_ACTIONS ),
+		);
+	}
+
+	/**
+	 * The minute counter of a read pool, as the guard keys it.
+	 *
+	 * @param string $endpoint Endpoint key.
+	 * @return string
+	 */
+	private static function read_minute_base( string $endpoint ): string {
+		return 'ffc_rate_read_' . md5( IpAddress::fingerprint( self::IP ) . '|' . $endpoint ) . '_minute';
+	}
+
+	/**
+	 * #2341 — every call is counted, a refused one included: the IP limit above
+	 * the pool is fed by submissions only, so it never stopped these callers.
+	 *
+	 * @dataProvider provider_read_pools
+	 */
+	public function test_each_endpoint_records_a_hit_in_its_pool( string $method, string $endpoint ): void {
+		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		$this->valid_post();
+		// A guessed hash: the attempt a brute force makes, and the one that
+		// has to be counted.
+		$_POST['hash'] = 'wrong';
+
+		try {
+			( new PublicCsvDownload() )->$method();
+		} catch ( \RuntimeException $e ) {
+			unset( $e ); // Every branch ends the request.
+		}
+
+		$this->assertSame( 1, \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, self::read_minute_base( $endpoint ), MINUTE_IN_SECONDS ) );
+		$other = PublicCsvDownload::RATE_ENDPOINT === $endpoint ? PublicCsvDownload::RATE_ENDPOINT_ACTIONS : PublicCsvDownload::RATE_ENDPOINT;
+		$this->assertNull( \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, self::read_minute_base( $other ), MINUTE_IN_SECONDS ), 'The two pools are counted apart.' );
+	}
+
+	/**
+	 * #2341 — over the pool's minute limit the endpoint refuses with a 429 and
+	 * the pool's own message, before it reads the form.
+	 *
+	 * @dataProvider provider_read_pools
+	 */
+	public function test_each_endpoint_is_refused_over_its_pool( string $method, string $endpoint ): void {
+		$this->configure_form( array( 'time_start' => '13:00' ), array( PublicCsvDownload::META_CPF_MODE => 'audit' ) );
+		$max = RateLimitChecker::READ_ENDPOINT_DEFAULTS[ $endpoint ]['max_per_minute'];
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::read_minute_base( $endpoint ), MINUTE_IN_SECONDS, $max );
+		$this->valid_post();
+
+		try {
+			( new PublicCsvDownload() )->$method();
+			$this->fail( 'expected json_error' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'json_error', $e->getMessage() );
+			$this->assertSame( 429, $this->captured['code'] );
+			$this->assertMatchesRegularExpression( '/^Too many requests\. Please wait \d+ (second|seconds|minute)\./', $this->captured['payload']['message'] );
+		}
+		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'], 'Nothing changed.' );
 	}
 
 	/**
