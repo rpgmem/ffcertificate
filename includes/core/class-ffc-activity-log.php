@@ -310,14 +310,15 @@ class ActivityLog {
 			$user_id_for_db = $entry['user_id'] > 0 ? $entry['user_id'] : null;
 
 			// Until the column holds instants (#2340) an entry is written in
-			// the site's wall clock, as the column still expects.
+			// the site's wall clock, as the column still expects, read when the
+			// buffer is flushed: the same request that logged the entry.
 			$created_at = is_int( $entry['created_at'] ) ? $entry['created_at'] : time();
 			$row_data   = array(
 				'action'     => $entry['action'],
 				'level'      => $entry['level'],
 				'context'    => $entry['context'],
 				'user_id'    => $user_id_for_db,
-				'created_at' => $instants ? $created_at : (string) wp_date( 'Y-m-d H:i:s', $created_at ),
+				'created_at' => $instants ? $created_at : current_time( 'mysql' ),
 			);
 			$row_format = array( '%s', '%s', '%s', '%d', $instants ? '%d' : '%s' );
 
