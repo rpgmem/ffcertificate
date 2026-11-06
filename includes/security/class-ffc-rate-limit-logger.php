@@ -33,6 +33,21 @@ final class RateLimitLogger {
 	 * @param int|null $form_id Form ID.
 	 */
 	public static function log_attempt( string $type, string $identifier, string $action, string $reason, ?int $form_id ): void {
+		// A block also reaches the activity log (#2340), under its own switch:
+		// which limit fired, why and on which form. The identifier stays out;
+		// it is the person, and the table below keeps it keyed.
+		if ( 'blocked' === $action ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'rate_limit_blocked',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'limit'   => $type,
+					'reason'  => $reason,
+					'form_id' => $form_id,
+				)
+			);
+		}
+
 		$s = RateLimitChecker::get_settings();
 		// Allowed and blocked attempts each have their own switch (#2339);
 		// a near miss ('suppressed') and a whitelisted pass follow logging alone.

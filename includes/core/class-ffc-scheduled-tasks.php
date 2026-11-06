@@ -280,6 +280,26 @@ final class ScheduledTasks {
 			);
 		}
 
+		// A task that dies leaves the hook it was running in `$running`; the
+		// shutdown handler reports it to the activity log (#2340). First and
+		// last priorities, so the real callbacks run between the two.
+		foreach ( array_keys( self::TASKS ) as $hook ) {
+			add_action(
+				$hook,
+				static function () use ( $hook ): void {
+					self::start( $hook );
+				},
+				PHP_INT_MIN
+			);
+			add_action(
+				$hook,
+				static function (): void {
+					self::$running = null;
+				},
+				PHP_INT_MAX
+			);
+		}
+
 		foreach ( self::TASKS as $hook => $task ) {
 			if ( self::SINGLE === $task['recurrence'] ) {
 				continue;
@@ -358,6 +378,80 @@ final class ScheduledTasks {
 	}
 
 	/**
+	 * Hook of the task running in this request, while it runs.
+	 *
+	 * @var string|null
+	 */
+	private static $running = null;
+
+	/**
+	 * Whether the failure handler is registered for this request.
+	 *
+	 * @var bool
+	 */
+	private static $handler_registered = false;
+
+	/**
+	 * Note that a task started, and make sure a fatal error inside it is
+	 * reported when the request ends.
+	 *
+	 * @param string $hook Hook name.
+	 * @return void
+	 */
+	public static function start( string $hook ): void {
+		self::$running = $hook;
+		if ( ! self::$handler_registered ) {
+			self::$handler_registered = true;
+			register_shutdown_function( array( self::class, 'report_failure' ) );
+		}
+	}
+
+	/**
+	 * Shutdown handler: a task still marked as running ended in a fatal error.
+	 *
+	 * @return void
+	 */
+	public static function report_failure(): void {
+		$entry = self::failure_entry( self::$running, error_get_last() );
+		if ( null === $entry ) {
+			return;
+		}
+		self::$running = null;
+		ActivityLog::log( 'scheduled_task_failed', ActivityLog::LEVEL_ERROR, $entry );
+		// The log's own shutdown flush may already have run.
+		ActivityLog::flush_buffer();
+	}
+
+	/**
+	 * The activity-log context for a task that died, or null when nothing
+	 * failed: no task was running, or the last error was not fatal.
+	 *
+	 * The message is cut short and the file is kept by name only, so the entry
+	 * names where it broke without copying a server path into the log.
+	 *
+	 * @param string|null               $running Hook still marked as running.
+	 * @param array<string, mixed>|null $error   What `error_get_last()` returned.
+	 * @return array<string, mixed>|null
+	 */
+	public static function failure_entry( ?string $running, ?array $error ): ?array {
+		$fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR | E_RECOVERABLE_ERROR;
+		$type  = $error['type'] ?? 0;
+		if ( null === $running || ! is_int( $type ) || 0 === ( $type & $fatal ) ) {
+			return null;
+		}
+		$message = $error['message'] ?? '';
+		$file    = $error['file'] ?? '';
+		$line    = $error['line'] ?? 0;
+
+		return array(
+			'task'  => $running,
+			'error' => mb_substr( is_string( $message ) ? $message : '', 0, 300 ),
+			'file'  => basename( is_string( $file ) ? $file : '' ),
+			'line'  => is_int( $line ) ? $line : 0,
+		);
+	}
+
+	/**
 	 * Record that a hook ran now.
 	 *
 	 * @param string $hook Hook name.
@@ -423,6 +517,26 @@ final class ScheduledTasks {
 	public static function report( int $now ): array {
 		$beats = self::heartbeats();
 		$rows  = array();
+		// A task that dies leaves the hook it was running in `$running`; the
+		// shutdown handler reports it to the activity log (#2340). First and
+		// last priorities, so the real callbacks run between the two.
+		foreach ( array_keys( self::TASKS ) as $hook ) {
+			add_action(
+				$hook,
+				static function () use ( $hook ): void {
+					self::start( $hook );
+				},
+				PHP_INT_MIN
+			);
+			add_action(
+				$hook,
+				static function (): void {
+					self::$running = null;
+				},
+				PHP_INT_MAX
+			);
+		}
+
 		foreach ( self::TASKS as $hook => $task ) {
 			if ( self::SINGLE === $task['recurrence'] ) {
 				continue;

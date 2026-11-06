@@ -24,6 +24,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Users: changing someone's WordPress role on their profile asks whether their FFC roles stay** (#2340). Keep is the default; Remove FFC roles takes them off on Update User, FFC End User excepted, and is recorded in the Activity Log.
 - **Activity Log: a user's FFC roles, capabilities and audiences changed on their profile are recorded** (#2340). Each entry names who made the change, the account and what was added or removed; a save that changes nothing writes nothing.
 - **Activity Log: a change to a setting that deletes or suppresses data is recorded** (#2340): auto-delete, the uninstall wipe, the log's switch, retention and audit items. Switching the log off is recorded before it takes effect. While the log is off its items are greyed out.
+- **Activity Log: four secondary items record what they named** (#2340): attendance and check-in windows, rate-limit blocks and failed captchas (never the address or identifier), settings changed outside the Danger Zone (the keys, never the values) and scheduled tasks that ended in a fatal error. Each is off by default.
 
 ### Changed
 

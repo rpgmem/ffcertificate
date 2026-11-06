@@ -114,6 +114,7 @@ class SettingsSaveHandler {
 		// Settings that delete or suppress data are audited before they are
 		// written, so switching the log off is still recorded (#2340).
 		DangerzoneSettingsAudit::record( is_array( $current ) ? $current : array(), $clean );
+		SettingsChangeAudit::record( 'ffc_settings', is_array( $current ) ? $current : array(), $clean );
 
 		update_option( 'ffc_settings', $clean );
 

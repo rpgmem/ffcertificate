@@ -7197,6 +7197,50 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:361
+msgid "Rate Limit Block"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:362
+msgid "Captcha Failed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:363
+msgid "Attendance Recorded"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:364
+msgid "Attendance Removed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:365
+msgid "Check-in Opened"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:366
+msgid "Check-in Closed"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:367
+msgid "Scheduled Task Failed"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php:367
+msgid "Attendance marked or removed, check-in windows opened and closed"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php:373
+msgid "Rate-limit blocks and failed captchas"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php:374
+msgid "Settings changed outside the Danger Zone (which settings, never their values)"
+msgstr ""
+
+#: includes/core/class-ffc-activity-log-items.php:375
+msgid "Scheduled tasks that ended in an error"
+msgstr ""
+
 #: includes/settings/views/ffc-activity-log-items.php
 msgid "%1$d of %2$d on"
 msgstr ""
@@ -12807,7 +12851,7 @@ msgid "per slot"
 msgstr ""
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "off by default, one toggle each: users, certificates, personal and audience calendars, reregistration and recruitment, public access and security, and system errors."
+msgid "off by default, one toggle each: users, certificates, personal and audience calendars, attendance and check-in, reregistration and recruitment, public access and security, rate-limit blocks and failed captchas, settings changed outside the Danger Zone (named, never their values), scheduled tasks that ended in an error, and system errors."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-security.php:56

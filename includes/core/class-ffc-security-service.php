@@ -380,6 +380,10 @@ class SecurityService {
 			 * @param array<string, mixed> $data Form data the challenge came with.
 			 */
 			do_action( 'ffcertificate_captcha_failed', $data );
+
+			// Off by default, under its own activity-log item (#2340). The
+			// context names the surface the proof was for, never the answer.
+			ActivityLog::log( 'captcha_failed', ActivityLog::LEVEL_WARNING, array( 'context' => $context ) );
 		}
 
 		return $result;
