@@ -144,7 +144,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->andReturnUsing(
 			function ( $handle ) {
 				[ $sql, $args ] = $this->statement( (string) $handle );
-				if ( 'SELECT * FROM %i WHERE short_code = %s' === $sql && 'wp_ffc_short_urls' === $args[0] ) {
+				if ( 'SELECT ' . \FreeFormCertificate\UrlShortener\UrlShortenerReader::ROW_COLUMNS . ' FROM %i WHERE short_code = %s' === $sql && 'wp_ffc_short_urls' === $args[0] ) {
 					return $this->short_urls[ (string) $args[1] ] ?? null;
 				}
 				$this->fail( 'Unexpected get_row(): ' . $sql . ' with ' . var_export( $args, true ) );
@@ -466,8 +466,9 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		// upgrade path covered in UrlShortenerQrCacheSizeTest.
 		$this->qr_cache['code1'] = (string) json_encode(
 			array(
-				'v'    => 1,
+				'v'    => 2,
 				'size' => 200,
+				'url'  => 'https://example.com/x',
 				'png'  => 'CACHED64',
 			)
 		);

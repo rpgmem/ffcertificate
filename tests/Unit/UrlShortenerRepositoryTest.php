@@ -124,6 +124,124 @@ class UrlShortenerRepositoryTest extends TestCase {
 		$this->assertSame( 'cached', $result['short_code'] );
 	}
 
+	/**
+	 * A code nobody has is remembered briefly, so a bot walking random codes
+	 * does not reach the database on every request (#2337).
+	 */
+	public function test_an_unknown_code_is_cached_negatively_for_a_short_time(): void {
+		$set = array();
+		Functions\when( 'wp_cache_set' )->alias(
+			static function ( $key, $value, $group, $ttl ) use ( &$set ) {
+				$set[] = array( $key, $value, $group, $ttl );
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$this->assertNull( $this->repo->findByShortCode( 'nope' ) );
+		$this->assertSame( array( array( 'code_nope', 'missing', 'ffc_short_urls', 60 ) ), $set );
+	}
+
+	public function test_a_remembered_miss_is_answered_without_a_query(): void {
+		Functions\when( 'wp_cache_get' )->alias( static fn( $key ) => 'code_nope' === $key ? 'missing' : false );
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$this->assertNull( $this->repo->findByShortCode( 'nope' ) );
+	}
+
+	/**
+	 * Every read of a short URL row leaves the stored QR out (#2337): the
+	 * redirect, the editor lookup, the list and the CSV export.
+	 */
+	public function test_no_row_read_selects_the_qr_cache(): void {
+		$sql = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query ) use ( &$sql ) {
+				$sql[] = (string) $query;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+
+		$this->repo->findByShortCode( 'abc' );
+		$this->repo->findByPostId( 5 );
+		$this->repo->findByTargetUrl( 'https://example.org/' );
+		$this->repo->findPaginated( array() );
+		$this->repo->findByCursor( array(), PHP_INT_MAX, 50 );
+
+		$this->assertCount( 6, $sql, 'Five reads, the list one counting first.' );
+		foreach ( $sql as $query ) {
+			$this->assertStringNotContainsString( 'SELECT *', $query );
+			$this->assertStringNotContainsString( 'qr_cache', $query );
+		}
+		$this->assertStringNotContainsString( 'qr_cache', \FreeFormCertificate\UrlShortener\UrlShortenerReader::ROW_COLUMNS );
+	}
+
+	/**
+	 * The column list a short URL is read with is the table's, minus the
+	 * stored QR (#2337): a column added to the table and forgotten here would
+	 * be missing from every row the redirect, list and export read.
+	 */
+	public function test_the_row_columns_are_the_table_columns_but_the_qr_cache(): void {
+		require_once dirname( __DIR__, 2 ) . '/.github/scripts/ffc-create-statements.php';
+		$create = array_values(
+			array_filter(
+				ffc_create_statements( dirname( __DIR__, 2 ) . '/includes' ),
+				static fn( array $statement ): bool => 'ffc_short_urls' === $statement['table']
+			)
+		);
+		$this->assertCount( 1, $create, 'One CREATE TABLE for ffc_short_urls.' );
+
+		$table = array_values( array_diff( \FreeFormCertificate\Tests\Support\SchemaColumns::of_create( $create[0]['sql'] ), array( 'qr_cache' ) ) );
+		$read  = array_map( 'trim', explode( ',', \FreeFormCertificate\UrlShortener\UrlShortenerReader::ROW_COLUMNS ) );
+		sort( $table );
+		sort( $read );
+
+		$this->assertSame( $table, $read );
+	}
+
+	/**
+	 * Writing the QR cache flushes nothing (#2337): without `flush_group`
+	 * clearing the group was `wp_cache_flush()`, the whole site's cache.
+	 */
+	public function test_writing_the_qr_cache_flushes_no_cache(): void {
+		$flush  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_cache_flush', true );
+		$delete = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_cache_delete', true );
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+		$this->assertTrue( $this->repo->setQrCacheForShortCode( 'abc', '{}' ) );
+		$this->assertSame( 0, $flush->count() );
+		$this->assertSame( 0, $delete->count() );
+	}
+
+	/**
+	 * A post with a link in any state is not a backfill candidate (#2337): a
+	 * disabled or trashed link is still the post's link.
+	 */
+	public function test_the_backfill_counts_any_existing_link(): void {
+		$captured = array();
+		$this->wpdb->posts = 'wp_posts';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$captured ) {
+				$captured[] = $args;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$this->repo->countBackfillCandidates( array( 'page' ) );
+		$this->repo->findBackfillCandidates( array( 'page' ), PHP_INT_MAX, 10 );
+
+		foreach ( $captured as $args ) {
+			$this->assertStringNotContainsString( 's.status', (string) $args[0] );
+			$this->assertNotContains( 'active', array_slice( $args, 1 ) );
+		}
+	}
+
 	// ==================================================================
 	// findByPostId()
 	// ==================================================================

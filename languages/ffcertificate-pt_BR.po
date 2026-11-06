@@ -7236,6 +7236,10 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/url-shortener/class-ffc-url-shortener-qr-rest-controller.php
+msgid "This short URL is not active, so it has no QR code."
+msgstr "Esta URL curta não está ativa, por isso não tem QR code."
+
 #: templates/admin/date-messages/upcoming.php
 msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
 msgstr "Só as primeiras %d pessoas são listadas. Escolha um período menor ou um público para ver as demais."

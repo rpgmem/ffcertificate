@@ -582,6 +582,13 @@ jobs:
         # over wp_usermeta (29 February as the 28th) and the purge, and
         # deletes what it planted.
         run: php .github/scripts/date-messages-log-check.php "$HOME/wp"
+      - name: Check short URLs against the database and the object cache
+        # #2337: the UNIQUE key, the short_code collation and width, the cache
+        # a disabled, trashed, re-targeted or deleted link must leave, and the
+        # backfill's choice of posts are database properties that unit tests
+        # (against a $wpdb double and a stubbed cache) cannot reach. The
+        # script deletes what it planted.
+        run: php .github/scripts/url-shortener-db-check.php "$HOME/wp"
       - name: Plant the residue the sweeps must remove
         # #1290: removal used to intersect a hand-written list, and the list
         # named 31 of the 60 live capabilities, so 40 survived every uninstall.

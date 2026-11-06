@@ -114,6 +114,30 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
+	 * The columns a short URL is read with (#2337): every column but
+	 * `qr_cache`, a base64 PNG of several kilobytes that only the QR handler
+	 * reads, through {@see self::findQrCacheByShortCode()}. Selecting it on
+	 * every redirect, page of the list and export batch carried it into the
+	 * object cache and the CSV job for nothing. The list matches
+	 * `ShortUrlRow`, and `UrlShortenerRepositoryTest` holds it to the
+	 * table's `CREATE TABLE`, minus `qr_cache`.
+	 */
+	public const ROW_COLUMNS = 'id, short_code, target_url, post_id, title, click_count, created_by, created_at, updated_at, status';
+
+	/**
+	 * What the object cache holds for a code nobody has (#2337), so a bot
+	 * walking random codes does not reach the database on every request.
+	 */
+	private const MISSING = 'missing';
+
+	/**
+	 * How long a missing code is remembered, in seconds. Short, because the
+	 * first insert under the code clears it anyway; the bound is for a cache
+	 * that misses that clear.
+	 */
+	private const MISSING_TTL = 60;
+
+	/**
 	 * Find a short URL record by its short code.
 	 *
 	 * @param string $code The short code (e.g. "abc123").
@@ -128,11 +152,14 @@ class UrlShortenerReader extends AbstractRepository {
 		 * while the read below was typed. That is the #1072 finding, applied
 		 * here only now because this file was invisible to the ruler (#1087).
 		 *
-		 * @var ShortUrlRow|false $cached
+		 * @var ShortUrlRow|string|false $cached
 		 */
 		$cached = $this->get_cache( $cache_key );
 
-		if ( false !== $cached ) {
+		if ( self::MISSING === $cached ) {
+			return null;
+		}
+		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
@@ -145,12 +172,16 @@ class UrlShortenerReader extends AbstractRepository {
 		 * @var ShortUrlRow|null $result
 		 */
 		$result = $this->wpdb->get_row(
-			$this->wpdb->prepare( 'SELECT * FROM %i WHERE short_code = %s', $this->table, $code ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+			$this->wpdb->prepare( 'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE short_code = %s', $this->table, $code ),
 			ARRAY_A
 		);
 
 		if ( $result ) {
 			$this->set_cache( $cache_key, $result );
+		} else {
+			// Remembered briefly; an insert under the code clears it (#2337).
+			wp_cache_set( $cache_key, self::MISSING, $this->cache_group, self::MISSING_TTL );
 		}
 
 		return $result;
@@ -187,7 +218,8 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
-				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
 				$this->table,
 				$post_id,
 				'active'
@@ -224,7 +256,8 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$rows = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				'SELECT * FROM %i WHERE target_url = %s AND status <> %s ORDER BY id DESC LIMIT %d',
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE target_url = %s AND status <> %s ORDER BY id DESC LIMIT %d',
 				$this->table,
 				$target_url,
 				'trashed',
@@ -319,7 +352,7 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		// Build items query.
-		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$items_query = 'SELECT ' . self::ROW_COLUMNS . " FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 
 		/**
@@ -414,7 +447,7 @@ class UrlShortenerReader extends AbstractRepository {
 	public function findByCursor( array $filters, int $cursor, int $size ): array {
 		list( $where_sql, $where_values ) = $this->build_export_where( $filters );
 
-		$query = "SELECT * FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
+		$query = 'SELECT ' . self::ROW_COLUMNS . " FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
 		$args  = array_merge( array( $this->table ), $where_values, array( $cursor, $size ) );
 
 		/**
@@ -435,8 +468,10 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
-	 * Count published posts of the given post types that do NOT yet have an
-	 * active short URL — the number of rows the backfill would create.
+	 * Count published posts of the given post types that have no short URL
+	 * in any state — the number of rows the backfill would create. A disabled
+	 * or trashed link is still the post's link, so the backfill never gives
+	 * a post a second one (#2337).
 	 *
 	 * @param array<string> $post_types Post types to consider.
 	 * @return int
@@ -451,13 +486,13 @@ class UrlShortenerReader extends AbstractRepository {
 
 		$sql = "SELECT COUNT(*)
 			FROM %i p
-			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			LEFT JOIN %i s ON s.post_id = p.ID
 			WHERE p.post_status = 'publish'
 				AND p.post_type IN ( {$placeholders} )
 				AND s.id IS NULL";
 
 		$args = array_merge(
-			array( $this->wpdb->posts, $this->table, 'active' ),
+			array( $this->wpdb->posts, $this->table ),
 			$post_types
 		);
 
@@ -469,7 +504,7 @@ class UrlShortenerReader extends AbstractRepository {
 
 	/**
 	 * Keyset page of published posts of the given post types that have no
-	 * active short URL yet, newest first (`ID DESC`), bounded by `id < $cursor`.
+	 * short URL in any state yet (#2337), newest first (`ID DESC`), bounded by `id < $cursor`.
 	 * Keyset (not LIMIT/OFFSET) so paging stays stable while the batch inserts
 	 * new short URLs mid-run. Used by the settings-tab backfill.
 	 *
@@ -488,7 +523,7 @@ class UrlShortenerReader extends AbstractRepository {
 
 		$sql = "SELECT p.ID, p.post_title
 			FROM %i p
-			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			LEFT JOIN %i s ON s.post_id = p.ID
 			WHERE p.post_status = 'publish'
 				AND p.post_type IN ( {$placeholders} )
 				AND s.id IS NULL
@@ -497,7 +532,7 @@ class UrlShortenerReader extends AbstractRepository {
 			LIMIT %d";
 
 		$args = array_merge(
-			array( $this->wpdb->posts, $this->table, 'active' ),
+			array( $this->wpdb->posts, $this->table ),
 			$post_types,
 			array( $cursor, $size )
 		);

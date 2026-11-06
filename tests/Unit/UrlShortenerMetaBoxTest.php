@@ -446,8 +446,9 @@ class UrlShortenerMetaBoxTest extends TestCase {
 		$repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'code60' )->andReturn(
 			(string) json_encode(
 				array(
-					'v'    => 1,
+					'v'    => 2,
 					'size' => \FreeFormCertificate\UrlShortener\UrlShortenerQrHandler::CACHE_SIZE,
+					'url'  => 'https://example.com/go/code60',
 					'png'  => 'CACHEDBASE64',
 				)
 			)

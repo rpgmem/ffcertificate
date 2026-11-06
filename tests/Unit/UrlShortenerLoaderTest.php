@@ -614,11 +614,41 @@ class UrlShortenerLoaderTest extends TestCase {
 		$this->loader->intercept_short_url( $wp );
 	}
 
+	/**
+	 * The match is anchored to the home path (#2337).
+	 *
+	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 */
+	public function provide_paths(): array {
+		return array(
+			'root'                       => array( '/go/abc123', '/', 'abc123' ),
+			'root, trailing slash'       => array( '/go/abc123/', '/', 'abc123' ),
+			'deeper path is not a link'  => array( '/docs/go/install', '/', '' ),
+			'a code with more after it'  => array( '/go/abc123/extra', '/', '' ),
+			'sub-directory site'         => array( '/blog/go/abc123', '/blog/', 'abc123' ),
+			'outside the sub-directory'  => array( '/go/abc123', '/blog/', '' ),
+			'another sub-directory'      => array( '/shop/go/abc123', '/blog/', '' ),
+			'prefix only'                => array( '/go/', '/', '' ),
+		);
+	}
+
+	/**
+	 * @dataProvider provide_paths
+	 */
+	public function test_only_home_path_prefix_code_is_a_short_url( string $path, string $home_path, string $expected ): void {
+		$this->assertSame( $expected, UrlShortenerLoader::code_from_path( $path, $home_path, 'go' ) );
+	}
+
+	public function test_an_empty_prefix_matches_nothing(): void {
+		$this->assertSame( '', UrlShortenerLoader::code_from_path( '/abc123', '/', '' ) );
+	}
+
 	public function test_intercept_short_url_works_with_subdirectory(): void {
+		// A site whose home is /blog/: the prefix sits under it (#2337).
 		$_SERVER['REQUEST_URI'] = '/blog/go/sub123';
 		$this->service->shouldReceive( 'get_prefix' )->andReturn( 'go' );
 
-		Functions\when( 'home_url' )->justReturn( 'https://example.com/' );
+		Functions\when( 'home_url' )->justReturn( 'https://example.com/blog/' );
 		Functions\when( 'do_action' )->justReturn( null );
 		$this->run_shutdown_callbacks_immediately();
 

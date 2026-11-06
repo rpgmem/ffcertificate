@@ -103,10 +103,9 @@ class UrlShortenerWriter extends AbstractRepository {
 			array( '%s' ),
 			array( '%s' )
 		);
-		if ( false === $result ) {
-			return false;
-		}
-		$this->clear_cache();
-		return true;
+		// No cache to clear: the cached rows are read without `qr_cache`
+		// (UrlShortenerReader::ROW_COLUMNS), and flushing the group here was,
+		// without `flush_group`, flushing the whole site cache (#2337).
+		return false !== $result;
 	}
 }
