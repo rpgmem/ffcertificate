@@ -231,7 +231,7 @@ class ActivityLogExportSource implements BatchedExportSourceInterface {
 
 		$log_context = '';
 		if ( ! empty( $row['context'] ) ) {
-			$details     = $clear ? $row['context'] : AdminActivityLogPage::mask_addresses( $row['context'] );
+			$details     = $clear ? $row['context'] : AdminActivityLogPage::mask_personal_data( $row['context'] );
 			$log_context = is_array( $details )
 				? (string) wp_json_encode( $details, JSON_UNESCAPED_UNICODE )
 				: (string) $details;

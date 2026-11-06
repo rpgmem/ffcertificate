@@ -26381,8 +26381,8 @@ msgid "Personal data is masked in this e-mail. Open the submissions screen to re
 msgstr "Os dados pessoais estão mascarados neste e-mail. Abra a tela de submissões para revelá-los; cada revelação é registrada no registro de atividades."
 
 #: includes/settings/views/documentation/reference-capabilities.php:39
-msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
-msgstr "Os dados pessoais ficam mascarados em todos os níveis. O Gestor e o Administrador têm a capacidade ffc_view_<module>_pii do módulo, que revela um valor ou uma página inteira de uma lista com o botão Revelar; cada revelação é registrada no registro de atividades. Nenhuma função, nem mesmo o FFC Administrador, vê os dados de outra pessoa sem revelá-los, e o FFC Somente leitura nunca revela."
+msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log, except one made on the activity log itself. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
+msgstr "Os dados pessoais ficam mascarados em todos os níveis. O Gestor e o Administrador têm a capacidade ffc_view_<module>_pii do módulo, que revela um valor ou uma página inteira de uma lista com o botão Revelar; cada revelação é registrada no registro de atividades, exceto a feita no próprio registro de atividades. Nenhuma função, nem mesmo o FFC Administrador, vê os dados de outra pessoa sem revelá-los, e o FFC Somente leitura nunca revela."
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:279
 msgid "Profile Personal Data Revealed"
@@ -29000,8 +29000,8 @@ msgstr "Revelar o endereço do cliente de uma entrada do registro de atividades 
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
 msgstr "Uma conta com ffc_view_settings_pii (o Gerente e o Administrador das Configurações FFC) revela um endereço com o botão Revelar; cada revelação é registrada no registro de atividades."
 
-msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
-msgstr "revelar o endereço do cliente de uma entrada com o botão Revelar e exportar os endereços às claras. Sem ela, todo endereço na aba, nos detalhes de uma entrada e no CSV fica mascarado. Cada revelação e cada exportação às claras é registrada no log."
+msgid "reveal the client address of an entry, or its details, with the Reveal button, and export them in clear. Without it every address, e-mail address and CPF, RF or other personal value on the tab, in an entry's details and in the CSV is masked. A clear export is recorded in the log; a reveal on this tab is not, since each one would add an entry to the log being read."
+msgstr "revelar o endereço do cliente de uma entrada, ou os seus detalhes, com o botão Revelar e exportá-los às claras. Sem ela, todo endereço, endereço de e-mail e CPF, RF ou outro dado pessoal na aba, nos detalhes de uma entrada e no CSV fica mascarado. Uma exportação às claras é registrada no log; uma revelação nesta aba não, pois cada uma acrescentaria uma entrada ao log que está sendo lido."
 
 msgid "Activity Log: Clear Refused Addresses"
 msgstr "Registro de Atividades: Limpar Endereços Recusados"
@@ -31850,8 +31850,8 @@ msgid "Some forms and check-ins are available only at certain places. Your brows
 msgstr "Alguns formulários e check-ins só estão disponíveis em certos lugares. Nesse caso, seu navegador pode pedir a localização do seu dispositivo. A posição é comparada com as áreas permitidas e não é armazenada; o formulário guarda apenas que a verificação passou."
 
 #: includes/settings/views/documentation/reference-privacy.php:33
-msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. The activity log shows a client address masked, behind the same audited Reveal; identity resolution shows the data it needs unmasked, because the screen itself is restricted."
-msgstr "O registro de atividades e a resolução de identidades pertencem apenas ao FFC Administrator e aos administradores do WordPress. O registro de atividades mostra o endereço do cliente mascarado, atrás do mesmo Revelar auditado; a resolução de identidades mostra sem máscara os dados de que precisa, porque a própria tela é restrita."
+msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. The activity log shows a client address and the personal data in an entry's details masked, behind a Reveal that adds no entry to the log; identity resolution shows the data it needs unmasked, because the screen itself is restricted."
+msgstr "O registro de atividades e a resolução de identidades pertencem apenas ao FFC Administrator e aos administradores do WordPress. O registro de atividades mostra mascarados o endereço do cliente e os dados pessoais nos detalhes de uma entrada, atrás de um Revelar que não acrescenta entrada ao registro; a resolução de identidades mostra sem máscara os dados de que precisa, porque a própria tela é restrita."
 
 #: includes/settings/views/documentation/reference-privacy.php:87
 msgid "The plugin contributes ready-to-adapt privacy-policy wording to Settings → Privacy → Policy Guide, describing what personal data it collects, the location, device and abuse-prevention checks, what it stores in the browser, the address lookup, how data is stored, how long it is kept (using your configured activity-log and device-signal retention, and the submission cleanup when it is on), who can access it and the subject's rights. Review it, trim the sections for modules you do not use, and copy it into your site's own privacy page."

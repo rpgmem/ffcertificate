@@ -962,14 +962,15 @@ class AdminAjaxTest extends TestCase {
 	 */
 	public function address_reveal_types(): array {
 		return array(
-			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', 'activity_log_ip_revealed', 'wp_ffc_activity_log', 'user_ip_encrypted' ),
+			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', '', 'wp_ffc_activity_log', 'user_ip_encrypted' ),
 			'rate limit log entry' => array( 'rate_limit_log', 'ffc_view_settings', 'ffc_view_settings_pii', 'rate_limit_ip_revealed', 'wp_ffc_rate_limit_logs', 'ip_address_encrypted' ),
 		);
 	}
 
 	/**
 	 * A client address with no owner reveals through its screen's own cap,
-	 * audited under its own action (#2109).
+	 * audited under its own action (#2109), except on the activity log
+	 * itself, where a reveal writes no row (#2340).
 	 *
 	 * @dataProvider address_reveal_types
 	 */
@@ -988,7 +989,12 @@ class AdminAjaxTest extends TestCase {
 		$this->assertSame( 1, count( array_keys( $this->cap_checks, $surface, true ) ), 'The surface cap is checked once.' );
 		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
 		$this->assertStringContainsString( "FROM {$table} WHERE id = 31", $this->queries[0] );
-		$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31, $type );
+		if ( '' === $action ) {
+			// Revealing on the activity log writes no row onto it (#2340).
+			$this->assertSame( array(), ActivityLogBuffer::entries(), 'An activity log reveal is not logged.' );
+		} else {
+			$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31, $type );
+		}
 
 		// A log line has no owner, so the owner tier can never apply: even
 		// the account whose id equals the entry's goes through the capability.
@@ -1003,6 +1009,29 @@ class AdminAjaxTest extends TestCase {
 			$this->assertStringContainsString( 'permission to reveal', $e->getMessage() );
 		}
 		$this->assertContains( $pii_cap, $this->policy_checks );
+	}
+
+	public function test_reveal_pii_an_activity_log_entrys_details_in_clear(): void {
+		$this->post_reveal( 'activity_log', 31, 'context' );
+		$this->store(
+			'wp_ffc_activity_log',
+			31,
+			array(
+				'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
+				'context'           => '{"requester":"ana@example.org"}',
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_activity_log_pii';
+
+		$this->assertSame(
+			array(
+				'field' => 'context',
+				'value' => json_encode( array( 'requester' => 'ana@example.org' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ),
+			),
+			$this->reveal()
+		);
+		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'An activity log reveal is not logged.' );
 	}
 
 	/**
@@ -1173,6 +1202,28 @@ class AdminAjaxTest extends TestCase {
 			$this->assertSame( 0, $log->count() );
 			$this->assertSame( array(), $this->queries );
 		}
+	}
+
+	public function test_reveal_pii_page_on_the_activity_log_writes_no_row(): void {
+		$this->post_page( array( array( 'type' => 'activity_log', 'id' => 31, 'field' => 'ip' ) ) );
+		$this->store( 'wp_ffc_activity_log', 31, array( 'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ) ) );
+		$this->viewer_caps[] = 'ffc_view_activity_log_pii';
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'values' => array(
+						array( 'type' => 'activity_log', 'id' => 31, 'field' => 'ip', 'value' => '203.0.113.9' ),
+					),
+				),
+				$e->getData()
+			);
+		}
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'Revealing a page of the log adds nothing to it.' );
 	}
 
 	public function test_reveal_pii_page_refuses_an_empty_request(): void {

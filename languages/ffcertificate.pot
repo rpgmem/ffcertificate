@@ -26299,7 +26299,7 @@ msgid "Personal data is masked in this e-mail. Open the submissions screen to re
 msgstr ""
 
 #: includes/settings/views/documentation/reference-capabilities.php:39
-msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
+msgid "Personal data stays masked for every tier. The Manager and the Administrator hold the module's ffc_view_<module>_pii capability, which reveals a value or a whole list page with the Reveal button; every reveal is recorded in the activity log, except one made on the activity log itself. No role, FFC Administrator included, sees another person's data without revealing it, and FFC Read-only never reveals."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:279
@@ -28918,7 +28918,7 @@ msgstr ""
 msgid "An account holding ffc_view_settings_pii (the FFC Settings Manager and Administrator) reveals one address with the Reveal button; each reveal is recorded in the activity log."
 msgstr ""
 
-msgid "reveal the client address of an entry with the Reveal button, and export the addresses in clear. Without it every address on the tab, in an entry's details and in the CSV is masked. Each reveal and each clear export is recorded in the log."
+msgid "reveal the client address of an entry, or its details, with the Reveal button, and export them in clear. Without it every address, e-mail address and CPF, RF or other personal value on the tab, in an entry's details and in the CSV is masked. A clear export is recorded in the log; a reveal on this tab is not, since each one would add an entry to the log being read."
 msgstr ""
 
 msgid "Activity Log: Clear Refused Addresses"
@@ -31768,7 +31768,7 @@ msgid "Some forms and check-ins are available only at certain places. Your brows
 msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:33
-msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. The activity log shows a client address masked, behind the same audited Reveal; identity resolution shows the data it needs unmasked, because the screen itself is restricted."
+msgid "The activity log and identity resolution belong to FFC Administrator and WordPress administrators alone. The activity log shows a client address and the personal data in an entry's details masked, behind a Reveal that adds no entry to the log; identity resolution shows the data it needs unmasked, because the screen itself is restricted."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-privacy.php:87

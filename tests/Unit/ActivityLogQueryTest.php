@@ -712,4 +712,25 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertSame( '', ActivityLogQuery::ip_of( 7 ), 'a missing entry' );
 		$this->assertSame( '', ActivityLogQuery::ip_of( 0 ), 'no id, no query' );
 	}
+
+	public function test_entry_of_reads_an_entrys_address_and_details_once(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
+			array(
+				'id'                => 5,
+				'user_ip'           => '203.0.113.5',
+				'user_ip_encrypted' => null,
+				'context'           => '{"email":"ana@example.org"}',
+			)
+		);
+
+		$this->assertSame(
+			array(
+				'user_ip' => '203.0.113.5',
+				'context' => array( 'email' => 'ana@example.org' ),
+			),
+			ActivityLogQuery::entry_of( 5 )
+		);
+		$this->assertNull( ActivityLogQuery::entry_of( 0 ), 'no id, no query' );
+	}
 }
