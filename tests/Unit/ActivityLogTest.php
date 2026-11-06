@@ -1416,9 +1416,6 @@ class ActivityLogTest extends TestCase {
 		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
 		$ref->setAccessible(true);
 		$ref->setValue(null, false);
-		Functions\when('wp_date')->alias(
-			static fn($format, $ts) => (new \DateTimeImmutable('@' . $ts))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format($format)
-		);
 
 		$this->setWriteBuffer([
 			[
@@ -1437,7 +1434,7 @@ class ActivityLogTest extends TestCase {
 			->once()
 			->with(
 				'wp_ffc_activity_log',
-				Mockery::on(static fn($row) => '2026-03-01 07:00:00' === $row['created_at']),
+				Mockery::on(static fn($row) => '2026-03-01 10:00:00' === $row['created_at']),
 				['%s', '%s', '%s', '%d', '%s']
 			)
 			->andReturn(1);
