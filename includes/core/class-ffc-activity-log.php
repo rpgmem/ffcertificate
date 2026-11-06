@@ -191,7 +191,7 @@ class ActivityLog {
 			'user_id'           => absint( $user_id ),
 			'user_ip_encrypted' => $ip_encrypted,
 			'submission_id'     => absint( $submission_id ),
-			'created_at'        => current_time( 'mysql' ),
+			'created_at'        => time(),
 		);
 
 		// Add to write buffer.
@@ -258,6 +258,7 @@ class ActivityLog {
 		$has_submission_id     = in_array( 'submission_id', $columns, true );
 		$has_context_encrypted = in_array( 'context_encrypted', $columns, true );
 		$has_ip_encrypted      = in_array( 'user_ip_encrypted', $columns, true );
+		$instants              = self::stores_instants();
 
 		$count              = count( self::$write_buffer );
 		$entries            = self::$write_buffer;
@@ -274,14 +275,17 @@ class ActivityLog {
 			// the format when the value is NULL and writes a literal NULL.
 			$user_id_for_db = $entry['user_id'] > 0 ? $entry['user_id'] : null;
 
+			// Until the column holds instants (#2340) an entry is written in
+			// the site's wall clock, as the column still expects.
+			$created_at = is_int( $entry['created_at'] ) ? $entry['created_at'] : time();
 			$row_data   = array(
 				'action'     => $entry['action'],
 				'level'      => $entry['level'],
 				'context'    => $entry['context'],
 				'user_id'    => $user_id_for_db,
-				'created_at' => $entry['created_at'],
+				'created_at' => $instants ? $created_at : (string) wp_date( 'Y-m-d H:i:s', $created_at ),
 			);
-			$row_format = array( '%s', '%s', '%s', '%d', '%s' );
+			$row_format = array( '%s', '%s', '%s', '%d', $instants ? '%d' : '%s' );
 
 			if ( $has_submission_id ) {
 				$row_data['submission_id'] = $entry['submission_id'];
@@ -334,8 +338,23 @@ class ActivityLog {
 	 * stored there and nowhere else; `user_ip` stays declared only because
 	 * rows written before it still hold a plaintext address until the
 	 * "Activity Log: Encrypt Client IPs" migration clears it.
+	 *
+	 * 2.5.0 (#2340): `created_at` stores UTC seconds instead of the site's
+	 * wall clock. See {@see ActivityLogInstants}.
 	 */
-	public const SCHEMA_REVISION = '2.4.0';
+	public const SCHEMA_REVISION = '2.5.0';
+
+	/**
+	 * First revision whose `created_at` stores instants (#2340).
+	 */
+	public const INSTANTS_REVISION = '2.5.0';
+
+	/**
+	 * Whether `created_at` stores instants, as far as this request knows.
+	 *
+	 * @var bool|null
+	 */
+	private static $stores_instants = null;
 
 	/**
 	 * Option holding the revision last applied (#2430). Listed in
@@ -355,12 +374,21 @@ class ActivityLog {
 	 * dbDelta is idempotent — letting it run on every call lets it heal
 	 * legacy schemas without breaking fresh installs.
 	 *
-	 * @return bool Success
+	 * 2.5.0 (#2340): the creation times are converted to instants FIRST, and
+	 * while they are not -- another request holds the lock, or this is a
+	 * front-end request -- `dbDelta` does not run: given the BIGINT column
+	 * this statement declares, it would `ALTER` the DATETIME in place, which
+	 * the server converts to a number like `20261106103000`.
+	 *
+	 * @return bool Whether the schema is complete, the creation times included.
 	 */
 	public static function create_table(): bool {
 		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_activity_log';
-		$charset_collate = $wpdb->get_charset_collate();
+		// A revision past the conversion needs no reading of the column.
+		$instants              = self::stores_instants() || ActivityLogInstants::migrate();
+		self::$stores_instants = $instants;
+		$table_name            = $wpdb->prefix . 'ffc_activity_log';
+		$charset_collate       = $wpdb->get_charset_collate();
 
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -372,7 +400,7 @@ class ActivityLog {
             submission_id bigint(20) unsigned DEFAULT NULL,
             user_ip varchar(100),
             user_ip_encrypted text,
-            created_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             KEY action (action),
             KEY level (level),
@@ -382,8 +410,10 @@ class ActivityLog {
             KEY user_ip (user_ip)
         ) {$charset_collate};";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
+		if ( $instants ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+			dbDelta( $sql );
+		}
 
 		// BOTH AFTER `dbDelta`, because they are the half `dbDelta` demonstrably
 		// does not do -- it never drops a column, and it did not reconcile the
@@ -392,7 +422,33 @@ class ActivityLog {
 		self::drop_dead_legacy_columns();
 		self::relax_legacy_not_null();
 
-		return true;
+		return $instants;
+	}
+
+	/**
+	 * Whether `created_at` stores UTC seconds (#2340).
+	 *
+	 * Known for certain once this request healed the table; otherwise read
+	 * from the revision the healing last recorded, which it records only
+	 * once the column is converted.
+	 *
+	 * @return bool
+	 */
+	public static function stores_instants(): bool {
+		if ( null === self::$stores_instants ) {
+			$stored                = get_option( self::SCHEMA_REVISION_OPTION, '' );
+			self::$stores_instants = is_string( $stored ) && '' !== $stored && version_compare( $stored, self::INSTANTS_REVISION, '>=' );
+		}
+		return self::$stores_instants;
+	}
+
+	/**
+	 * Forget what this request knows of the column, for tests.
+	 *
+	 * @return void
+	 */
+	public static function reset_instants_cache(): void {
+		self::$stores_instants = null;
 	}
 
 	/**
@@ -569,8 +625,9 @@ class ActivityLog {
 		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
-		self::create_table();
-		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		if ( self::create_table() ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
 	}
 
 	/**

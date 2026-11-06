@@ -101,6 +101,11 @@ class ActivityLogTest extends TestCase {
 		$colCache = $ref->getProperty('table_columns_cache');
 		$colCache->setAccessible(true);
 		$colCache->setValue(null);
+
+		// The column stores instants, as on every install past 2.5.0 (#2340).
+		$instants = $ref->getProperty('stores_instants');
+		$instants->setAccessible(true);
+		$instants->setValue(null, true);
 	}
 
 	/**
@@ -295,7 +300,7 @@ class ActivityLogTest extends TestCase {
 		$this->assertSame('warning', $buffer[0]['level']);
 		$this->assertSame(7, $buffer[0]['user_id']);
 		$this->assertSame(42, $buffer[0]['submission_id']);
-		$this->assertSame('2026-03-01 10:00:00', $buffer[0]['created_at']);
+		$this->assertEqualsWithDelta(time(), $buffer[0]['created_at'], 5, 'An entry is stamped in UTC seconds (#2340).');
 	}
 
 	public function test_log_registers_shutdown_hook_once(): void {
@@ -513,7 +518,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '127.0.0.1',
 				'submission_id'     => 10,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 			[
 				'action'            => 'action_two',
@@ -523,7 +528,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 2,
 				'user_ip'           => '10.0.0.1',
 				'submission_id'     => 20,
-				'created_at'        => '2026-03-01 10:01:00',
+				'created_at'        => 1772359260,
 			],
 		];
 
@@ -567,7 +572,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 0,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -603,7 +608,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 42,
 				'user_ip'           => '127.0.0.1',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -638,7 +643,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 5,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -678,7 +683,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 42,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1353,7 +1358,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 0,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -1406,6 +1411,85 @@ class ActivityLogTest extends TestCase {
 	// flush_buffer() format arrays
 	// ==================================================================
 
+	public function test_until_the_column_is_converted_an_entry_is_written_in_the_site_wall_clock(): void {
+		$this->enableActivityLog();
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$ref->setValue(null, false);
+		Functions\when('wp_date')->alias(
+			static fn($format, $ts) => (new \DateTimeImmutable('@' . $ts))->setTimezone(new \DateTimeZone('America/Sao_Paulo'))->format($format)
+		);
+
+		$this->setWriteBuffer([
+			[
+				'action'            => 'test',
+				'level'             => 'info',
+				'context'           => '{}',
+				'context_encrypted' => null,
+				'user_id'           => 1,
+				'submission_id'     => 0,
+				'created_at'        => 1772359200,
+			],
+		]);
+		$this->wpdb->shouldReceive('prepare')->andReturn('DESCRIBE ...');
+		$this->wpdb->shouldReceive('get_col')->andReturn(['id', 'action', 'level', 'context', 'user_id', 'created_at']);
+		$this->wpdb->shouldReceive('insert')
+			->once()
+			->with(
+				'wp_ffc_activity_log',
+				Mockery::on(static fn($row) => '2026-03-01 07:00:00' === $row['created_at']),
+				['%s', '%s', '%s', '%d', '%s']
+			)
+			->andReturn(1);
+
+		ActivityLog::flush_buffer();
+	}
+
+	public function test_dbdelta_never_meets_a_datetime_column_it_would_cast_to_a_number(): void {
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$ref->setValue(null, false);
+		Functions\when('get_option')->justReturn('2.4.0');
+		Functions\when('is_admin')->justReturn(false);
+		Functions\when('wp_doing_cron')->justReturn(false);
+		$dbdelta = \FreeFormCertificate\Tests\Support\CallLog::record('dbDelta', []);
+
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($s) => $s);
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			static fn($sql) => false !== strpos((string) $sql, 'SHOW COLUMNS') ? [(object) ['Field' => 'created_at', 'Type' => 'datetime']] : []
+		);
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static fn($sql, ...$args) => 'SHOW COLUMNS FROM %i LIKE %s' === $sql ? 'SHOW COLUMNS ' . $args[1] : (string) $sql
+		);
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+
+		$this->assertFalse(ActivityLog::create_table(), 'A front-end request does not convert the column.');
+		$this->assertSame(0, $dbdelta->count(), 'Given the BIGINT statement, dbDelta would ALTER the DATETIME in place (#2340).');
+		$this->assertFalse(ActivityLog::stores_instants());
+	}
+
+	public function test_stores_instants_reads_the_revision_the_healing_recorded(): void {
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$stored = '2.4.0';
+		Functions\when('get_option')->alias(static function ($key, $default = false) use (&$stored) {
+			return ActivityLog::SCHEMA_REVISION_OPTION === $key ? $stored : $default;
+		});
+
+		$ref->setValue(null, null);
+		$this->assertFalse(ActivityLog::stores_instants(), 'Before 2.5.0 the column is a DATETIME.');
+
+		$stored = '2.5.0';
+		ActivityLog::reset_instants_cache();
+		$this->assertTrue(ActivityLog::stores_instants());
+
+		$stored = '2.10.0';
+		ActivityLog::reset_instants_cache();
+		$this->assertTrue(ActivityLog::stores_instants(), 'Revisions compare as versions, not as text.');
+	}
+
 	public function test_flush_buffer_uses_correct_format_for_base_columns(): void {
 		$this->enableActivityLog();
 
@@ -1418,7 +1502,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1435,7 +1519,7 @@ class ActivityLogTest extends TestCase {
 				'wp_ffc_activity_log',
 				Mockery::on(static fn($row) => is_array($row) && ! array_key_exists('user_ip', $row)),
 				// Base format: 5 string/int placeholders; the plaintext IP is gone (#1574).
-				['%s', '%s', '%s', '%d', '%s']
+				['%s', '%s', '%s', '%d', '%d']
 			)
 			->andReturn(1);
 
@@ -1454,7 +1538,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip_encrypted' => 'ip_blob',
 				'submission_id'     => 5,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1474,7 +1558,7 @@ class ActivityLogTest extends TestCase {
 				'wp_ffc_activity_log',
 				Mockery::on(static fn($row) => is_array($row) && 'ip_blob' === ($row['user_ip_encrypted'] ?? null) && ! array_key_exists('user_ip', $row)),
 				// Base 5 + submission_id (%d) + context_encrypted (%s) + user_ip_encrypted (%s).
-				['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']
+				['%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s']
 			)
 			->andReturn(1);
 
@@ -1533,7 +1617,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1591,7 +1675,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			];
 		};
 

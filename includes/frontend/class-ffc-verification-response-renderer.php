@@ -95,9 +95,7 @@ class VerificationResponseRenderer {
 	 *   - Context: the matching `schedule_override_created` row from
 	 *     `ffc_activity_log` for this submission. The `ts` field is
 	 *     Category A unix UTC int (per CLAUDE.md) and renders via
-	 *     `DateFormatter::format_datetime()` — NOT from the activity
-	 *     log's `created_at` DATETIME column (housekeeping per the
-	 *     "Category A exception" subsection).
+	 *     `DateFormatter::format_datetime()`.
 	 *
 	 * Returns the array consumed by the template, with already-formatted
 	 * "before" / "after" range strings + the i18n-friendly operator
