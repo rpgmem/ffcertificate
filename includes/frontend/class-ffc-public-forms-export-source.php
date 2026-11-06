@@ -375,6 +375,9 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			isset( $job['cpf_digits'] ) ? (string) $job['cpf_digits'] : '',
 			'download_delivered'
 		);
+		// The file carries CPF, e-mail and RF in clear (#2341): the delivery
+		// is a PII-access audit entry, as on the download without JavaScript.
+		\FreeFormCertificate\Core\PiiExport::log( PublicCsvDownload::PII_EXPORT_TYPE, (int) ( $job['processed'] ?? 0 ), array( 'form_id' => $form_id ) );
 	}
 
 	/**

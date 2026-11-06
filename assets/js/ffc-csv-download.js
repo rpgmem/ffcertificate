@@ -204,7 +204,30 @@
 
 		// ── Initialise ──────────────────────────────────────────────
 
+		// The access hash is the operator's credential: once the page has
+		// read it into the form, it leaves the address bar, so it does not
+		// sit in the history, a bookmark or a screen share (#2341). The form
+		// id stays; the link keeps working because the server reads the
+		// query on load.
+		stripHashFromAddress: function () {
+			if (!window.history || typeof window.history.replaceState !== 'function' || typeof window.URL !== 'function') {
+				return;
+			}
+			var url;
+			try {
+				url = new window.URL(window.location.href);
+			} catch (e) {
+				return;
+			}
+			if (!url.searchParams.has('hash')) {
+				return;
+			}
+			url.searchParams.delete('hash');
+			window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+		},
+
 		init: function () {
+			api.stripHashFromAddress();
 			api.$container = $('.ffc-public-csv-download');
 			api.$form      = api.$container.find('form');
 			if (!api.$form.length) {

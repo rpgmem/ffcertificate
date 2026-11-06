@@ -80,6 +80,11 @@ class PublicCsvDownload {
 	 */
 	const RATE_ENDPOINT_ACTIONS = 'public_csv_actions';
 
+	/**
+	 * The export name a public download's PII-access entry carries (#2341).
+	 */
+	const PII_EXPORT_TYPE = 'public_csv';
+
 	const EXPORT_LOG_ACTION = 'ffc_export_csv_public_download_log';
 	const EXPORT_LOG_NONCE  = 'ffc_export_csv_public_download_log';
 
@@ -184,8 +189,17 @@ class PublicCsvDownload {
 		$shortcodes    = new Shortcodes();
 		$security_html = $shortcodes->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 
+		// The link may carry the form and the hash in the query or, so the
+		// hash stays out of the address bar and of logs, as a POST (#2341).
+		// The page script removes a query hash from the address bar.
 		$prefill_form_id = RequestInput::get_get_int( 'form_id' );
 		$prefill_hash    = RequestInput::get_get_string( 'hash' );
+		if ( '' === $prefill_hash ) {
+			$prefill_hash = RequestInput::get_post_string( 'hash' );
+		}
+		if ( 0 === $prefill_form_id ) {
+			$prefill_form_id = RequestInput::get_post_int( 'form_id' );
+		}
 
 		// CPF gate mode is per-form. We can't read it without a known form_id;
 		// when prefilled, honour that form's setting. Otherwise render the
@@ -403,7 +417,8 @@ class PublicCsvDownload {
 		// claimed in one statement, so two requests racing for the last
 		// download cannot both get it.
 		$exporter = new PublicCsvExporter();
-		if ( null === $exporter->rows_within_sync_limit( $form_id, 'publish' ) ) {
+		$rows     = $exporter->rows_within_sync_limit( $form_id, 'publish' );
+		if ( null === $rows ) {
 			return;
 		}
 		if ( ! $this->validator->claim_download( $form_id ) ) {
@@ -434,6 +449,11 @@ class PublicCsvDownload {
 			$cpf_digits,
 			'download_delivered'
 		);
+
+		// 10b'. The file carries CPF, e-mail and RF in clear, behind the
+		// access hash: the public CSV is the one export that does, so every
+		// delivery is a PII-access audit entry (#2341).
+		\FreeFormCertificate\Core\PiiExport::log( self::PII_EXPORT_TYPE, $rows, array( 'form_id' => $form_id ) );
 
 		// 10c. Mirror the delivery into the global Activity Log (the
 		// ring-buffer above is per-form; this gives a site-wide audit trail).

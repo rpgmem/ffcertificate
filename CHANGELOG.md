@@ -94,6 +94,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Public CSV operator actions require their own captcha** (#2341). Open early, Postpone close and Schedule exception show the active challenge (ALTCHA or math) in their dialog, bound to the actions' own context, and spend it before the hash is checked; a refusal hands the dialog a fresh one. A proof solved for the download no longer authorises a change to the form.
 - **Public CSV download log: failures can no longer wipe it** (#2341). A failure repeated from one address folds into one row with a count and its first and last time; failures and other entries keep 100 rows each, so bad requests never push a delivery out; a request naming a post that is not a form writes nothing. The log CSV gains `attempts` and `first_seen`.
 - **Public CSV: the quota is spent at delivery, and other hardening** (#2341). A download is claimed in one conditional UPDATE when the file is delivered, after the no-JS row cap; a refused, oversize or empty export costs nothing. The page fragments return geofence data only for published forms; a batched job is driven only by the source that started it; a CPF refused on an operator action is recorded.
+- **Public CSV: every download is a PII-access entry, and the hash leaves the address bar** (#2341). The no-JS and the batched download each write `pii_exported` with the form and the rows; the page removes `hash` from the URL once read, and the shortcode also takes the form ID and the hash from a POST.
 
 ### Fixed
 
