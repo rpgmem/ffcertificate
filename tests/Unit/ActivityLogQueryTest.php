@@ -331,64 +331,117 @@ class ActivityLogQueryTest extends TestCase {
 	}
 
 	// ==================================================================
-	// cleanup() — deletes old logs + clears transients
+	// Retention (#2340): bounded statements, a follow-up run when cut short
 	// ==================================================================
 
-	public function test_cleanup_returns_deleted_count(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 15 );
-
-		$deleted = ActivityLogQuery::cleanup( 90 );
-		$this->assertSame( 15, $deleted );
+	/**
+	 * A `query()` that answers each DELETE with the next count in `$answers`,
+	 * and records the statements.
+	 *
+	 * @param array<int, int>    $answers Rows each DELETE removes, in order.
+	 * @param array<int, string> $ran     Filled with the statements.
+	 */
+	private function deletes( array $answers, array &$ran ): void {
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$answers, &$ran ) {
+				$ran[] = (string) $sql;
+				return array() === $answers ? 0 : array_shift( $answers );
+			}
+		);
 	}
 
-	public function test_cleanup_clears_stats_transients(): void {
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 0 );
+	public function test_cleanup_deletes_by_age_in_bounded_statements(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
+		$ran = array();
+		$this->deletes( array( ActivityLogQuery::CLEANUP_BATCH, 15 ), $ran );
 
+		$result = ActivityLogQuery::cleanup( 90 );
+
+		$this->assertSame(
+			array(
+				'deleted' => ActivityLogQuery::CLEANUP_BATCH + 15,
+				'batches' => 2,
+				'more'    => false,
+			),
+			$result
+		);
+		$this->assertCount( 2, $ran, 'A statement deleting less than its limit is the last.' );
+		$this->assertStringStartsWith( 'DELETE FROM %i WHERE created_at < %d ORDER BY id LIMIT %d', $ran[0] );
+		$this->assertStringEndsWith( ',' . ActivityLogQuery::CLEANUP_BATCH, $ran[0] );
+	}
+
+	public function test_cleanup_stops_at_its_budget_and_says_rows_remain(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
+		$ran = array();
+		$this->deletes( array_fill( 0, 10, ActivityLogQuery::CLEANUP_BATCH ), $ran );
+
+		$result = ActivityLogQuery::cleanup( 90, 3 );
+
+		$this->assertSame( 3, $result['batches'] );
+		$this->assertTrue( $result['more'] );
+		$this->assertCount( 3, $ran );
+	}
+
+	public function test_run_cleanup_clears_the_stats_when_rows_left(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$ran = array();
+		$this->deletes( array( 3 ), $ran );
 		$cleared = array();
-		Functions\when( 'delete_transient' )->alias( function ( $key ) use ( &$cleared ) {
-			$cleared[] = $key;
-			return true;
-		} );
+		Functions\when( 'delete_transient' )->alias(
+			function ( $key ) use ( &$cleared ) {
+				$cleared[] = $key;
+				return true;
+			}
+		);
 
-		ActivityLogQuery::cleanup();
-
-		$this->assertContains( 'ffc_activity_stats_7', $cleared );
-		$this->assertContains( 'ffc_activity_stats_30', $cleared );
-		$this->assertContains( 'ffc_activity_stats_90', $cleared );
+		$this->assertSame( 3, ActivityLogQuery::run_cleanup() );
+		$this->assertSame( array( 'ffc_activity_stats_7', 'ffc_activity_stats_30', 'ffc_activity_stats_90' ), $cleared );
 	}
 
-	// ==================================================================
-	// run_cleanup() — settings-driven
-	// ==================================================================
-
-	public function test_run_cleanup_uses_settings_retention(): void {
+	public function test_run_cleanup_cut_short_schedules_a_follow_up_run(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 10 );
+		$ran = array();
+		$this->deletes( array_fill( 0, ActivityLogQuery::CLEANUP_BATCHES_PER_RUN, ActivityLogQuery::CLEANUP_BATCH ), $ran );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\expect( 'wp_schedule_single_event' )->once()->with( \Mockery::type( 'int' ), ActivityLogQuery::CLEANUP_CONTINUE_HOOK );
+		$this->wpdb->shouldNotReceive( 'get_var' );
 
-		$deleted = ActivityLogQuery::run_cleanup();
-		$this->assertSame( 10, $deleted );
+		ActivityLogQuery::run_cleanup();
+
+		$this->assertCount( ActivityLogQuery::CLEANUP_BATCHES_PER_RUN, $ran, 'The record cap waits for the next run once the budget is spent.' );
+	}
+
+	public function test_run_cleanup_that_finishes_schedules_nothing(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$ran = array();
+		$this->deletes( array( 10 ), $ran );
+		Functions\expect( 'wp_schedule_single_event' )->never();
+
+		$this->assertSame( 10, ActivityLogQuery::run_cleanup() );
 	}
 
 	public function test_run_cleanup_zero_retention_skips(): void {
 		Functions\when( 'get_option' )->justReturn( array( 'activity_log_retention_days' => 0 ) );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT COUNT(*)' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$this->wpdb->shouldNotReceive( 'query' );
 
-		$result = ActivityLogQuery::run_cleanup();
-		$this->assertSame( 0, $result );
+		$this->assertSame( 0, ActivityLogQuery::run_cleanup() );
 	}
 
 	/**
 	 * The record cap (#2338): rows beyond it go, oldest first, the way the
-	 * rate-limit logs are trimmed.
+	 * rate-limit logs are trimmed -- in bounded statements (#2340).
 	 */
 	public function test_trim_to_deletes_the_oldest_rows_beyond_the_cap(): void {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
 		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/^SELECT COUNT/' ) )->andReturn( '1500' );
 		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/OFFSET %d \| wp_ffc_activity_log,1000$/' ) )->andReturn( '700' );
-		$this->wpdb->shouldReceive( 'query' )->once()->with( 'DELETE FROM %i WHERE id <= %d | wp_ffc_activity_log,700' )->andReturn( 500 );
+		$this->wpdb->shouldReceive( 'query' )->once()->with( 'DELETE FROM %i WHERE id <= %d ORDER BY id LIMIT %d | wp_ffc_activity_log,700,' . ActivityLogQuery::CLEANUP_BATCH )->andReturn( 500 );
 
-		$this->assertSame( 500, ActivityLogQuery::trim_to( 1000 ) );
+		$this->assertSame( 500, ActivityLogQuery::trim_to( 1000 )['deleted'] );
 	}
 
 	public function test_trim_to_deletes_nothing_under_the_cap(): void {
@@ -396,7 +449,7 @@ class ActivityLogQueryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '800' );
 		$this->wpdb->shouldNotReceive( 'query' );
 
-		$this->assertSame( 0, ActivityLogQuery::trim_to( 1000 ) );
+		$this->assertSame( 0, ActivityLogQuery::trim_to( 1000 )['deleted'] );
 	}
 
 	public function test_run_cleanup_trims_to_the_record_cap_even_when_kept_indefinitely(): void {
@@ -409,19 +462,23 @@ class ActivityLogQueryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
 		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/^SELECT COUNT/' ) )->andReturn( '1001' );
 		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/OFFSET/' ) )->andReturn( '1' );
-		$this->wpdb->shouldReceive( 'query' )->once()->with( \Mockery::pattern( '/^DELETE FROM %i WHERE id <= %d/' ) )->andReturn( 1 );
+		$this->wpdb->shouldReceive( 'query' )->once()->with( \Mockery::pattern( '/^DELETE FROM %i WHERE id <= %d ORDER BY id LIMIT %d/' ) )->andReturn( 1 );
 
 		$this->assertSame( 1, ActivityLogQuery::run_cleanup() );
 	}
 
 	public function test_run_cleanup_missing_setting_defaults_to_90(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$ran = array();
+		$this->deletes( array( 5 ), $ran );
+		$before = time() - 90 * DAY_IN_SECONDS;
 
-		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'DELETE ...' );
-		$this->wpdb->shouldReceive( 'query' )->andReturn( 5 );
-
-		$deleted = ActivityLogQuery::run_cleanup();
-		$this->assertSame( 5, $deleted );
+		$this->assertSame( 5, ActivityLogQuery::run_cleanup() );
+		$cutoff = (int) explode( ',', $ran[0] )[1];
+		$this->assertGreaterThanOrEqual( $before, $cutoff );
+		$this->assertLessThanOrEqual( time() - 90 * DAY_IN_SECONDS, $cutoff );
 	}
 
 	// ------------------------------------------------------------------

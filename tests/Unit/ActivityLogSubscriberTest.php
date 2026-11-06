@@ -352,34 +352,19 @@ class ActivityLogSubscriberTest extends TestCase {
 		$subscriber->on_daily_cleanup();
 	}
 
-	public function test_cleanup_fallback_skips_when_transient_exists(): void {
-		global $wpdb;
-		$wpdb = \Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldNotReceive( 'query' );
-
-		Functions\when( 'add_action' )->justReturn( true );
-		Functions\when( 'get_transient' )->alias( function ( $key ) {
-			if ( $key === 'ffc_last_log_cleanup' ) {
-				return time();
+	public function test_cleanup_runs_from_cron_and_its_follow_up_never_from_a_page_load(): void {
+		$hooks = array();
+		Functions\when( 'add_action' )->alias(
+			static function ( $hook ) use ( &$hooks ) {
+				$hooks[] = $hook;
+				return true;
 			}
-			return false;
-		} );
+		);
 
-		$subscriber = new ActivityLogSubscriber();
-		$subscriber->maybe_run_cleanup_fallback();
-	}
+		new ActivityLogSubscriber();
 
-	public function test_cleanup_fallback_runs_when_transient_missing(): void {
-		global $wpdb;
-		$wpdb = \Mockery::mock( 'wpdb' )->makePartial();
-		$wpdb->prefix = 'wp_';
-		$wpdb->shouldReceive( 'prepare' )->atLeast()->once()->andReturn( '' );
-		$wpdb->shouldReceive( 'query' )->atLeast()->once()->andReturn( 5 );
-
-		Functions\when( 'add_action' )->justReturn( true );
-
-		$subscriber = new ActivityLogSubscriber();
-		$subscriber->maybe_run_cleanup_fallback();
+		$this->assertContains( 'ffc_daily_cleanup', $hooks );
+		$this->assertContains( \FreeFormCertificate\Core\ActivityLogQuery::CLEANUP_CONTINUE_HOOK, $hooks );
+		$this->assertNotContains( 'admin_init', $hooks, 'A large log would be deleted in the request of whoever visited wp-admin (#2340).' );
 	}
 }

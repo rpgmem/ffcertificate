@@ -7199,6 +7199,10 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/core/class-ffc-scheduled-tasks.php:251
+msgid "Activity log cleanup, continued (when one run was not enough)"
+msgstr "Limpeza do registro de atividades, continuação (quando uma execução não bastou)"
+
 #: includes/admin/class-ffc-admin-activity-log-page.php:361
 msgid "Rate Limit Block"
 msgstr "Bloqueio por limite de requisições"
@@ -32754,8 +32758,8 @@ msgid "Max records"
 msgstr "Máximo de registros"
 
 #: includes/settings/views/ffc-tab-advanced.php
-msgid "the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000)."
-msgstr "a limpeza diária também exclui as entradas mais antigas além deste número (padrão 100.000, cerca de 60 MB; de 1.000 a 1.000.000)."
+msgid "the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000). It deletes up to 100,000 entries a run, in steps of 5,000, and carries on a minute later when more are past a limit; it runs from the scheduled tasks only, never when someone opens a page."
+msgstr "a limpeza diária também apaga as entradas mais antigas além deste número (padrão 100.000, cerca de 60 MB; de 1.000 a 1.000.000). Ela apaga até 100.000 entradas por execução, em etapas de 5.000, e continua um minuto depois quando ainda há entradas além de um limite; roda apenas pelas tarefas agendadas, nunca quando alguém abre uma página."
 
 #: includes/settings/views/ffc-tab-advanced.php
 msgid "The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB."

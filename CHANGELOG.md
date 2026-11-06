@@ -63,6 +63,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Roles: `ffc_administrator` is given to an administrator once, and the capability migrations run only in wp-admin, cron or WP-CLI, one request at a time** (#2340). Taking the role off an administrator now holds; each migration reads only the accounts that hold the names it acts on, not every end user.
 - ⚠ **The Activity Log is on by default, with audit items that are always recorded** (#2340). The categories became items: access to personal data, the Danger Zone and permissions are on at any level and switch off only with the Danger Zone capability; the rest is off. On update the log turns on and each category passes its state on.
 - ⚠ **Activity Log: entry times are instants, shown in the site's timezone** (#2340). `created_at` moves from the site's wall clock to UTC seconds; existing rows are converted from the site timezone, daylight saving included, in a few statements the first time wp-admin loads. The screen no longer shifts times by the offset, retention and the stats compare true ages, and the CSV prints the date in the site's format. A query reading the column directly must read seconds.
+- **Activity Log: retention runs in bounded steps, from the scheduled tasks only** (#2340). Old entries and those past the record cap are deleted 5,000 at a time, up to 100,000 a run, with a follow-up run a minute later when more remain. The cleanup no longer runs when wp-admin loads.
 
 ### Security
 

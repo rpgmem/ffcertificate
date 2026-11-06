@@ -28,6 +28,7 @@ class Deactivator {
 	public static function deactivate(): void {
 		// Clear scheduled cron tasks.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
@@ -89,6 +90,7 @@ class Deactivator {
 
 		// 3. Clear scheduled CRON tasks.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 		// #1248's internal hook, which replaced the one above in the scheduling.

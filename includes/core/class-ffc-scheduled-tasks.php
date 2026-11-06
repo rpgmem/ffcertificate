@@ -126,6 +126,11 @@ final class ScheduledTasks {
 			'recurrence' => self::SINGLE,
 			'module'     => null,
 		),
+		// The rest of an activity-log cleanup one run could not finish (#2340).
+		'ffc_activity_log_cleanup_continue'   => array(
+			'recurrence' => self::SINGLE,
+			'module'     => null,
+		),
 		'ffc_reregistration_reminder_batch'   => array(
 			'recurrence' => self::SINGLE,
 			'module'     => 'reregistration',
@@ -238,6 +243,8 @@ final class ScheduledTasks {
 				return __( 'Bulk issue: expire unfinished imports', 'ffcertificate' );
 			case 'ffc_process_submission_async':
 				return __( 'Submission processing (one per submission)', 'ffcertificate' );
+			case 'ffc_activity_log_cleanup_continue':
+				return __( 'Activity log cleanup, continued (when one run was not enough)', 'ffcertificate' );
 			case 'ffc_reregistration_reminder_batch':
 				return __( 'Reregistration reminder batch (one per batch)', 'ffcertificate' );
 			case 'ffc_reregistration_invitation_batch':
