@@ -31,6 +31,11 @@ class ActivatorTest extends TestCase {
 		// The code under test is audited by default (#2340); this test is not
 		// about the log, so nothing is written.
 		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		// The activity-log column conversion runs only in wp-admin, a cron
+		// run or WP-CLI, behind function_exists() guards; this test chooses
+		// "none of them" rather than inheriting an earlier test's stub.
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'wp_doing_cron' )->justReturn( false );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
