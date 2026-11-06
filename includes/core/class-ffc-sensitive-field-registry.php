@@ -412,7 +412,7 @@ final class SensitiveFieldRegistry {
 	 * is encrypted by `ActivityLog`, so a context still carrying one in clear
 	 * would undo it.
 	 */
-	private const PAYLOAD_ONLY_KEYS = array( 'ip', 'triggered_by_ip', 'bypassed_ip' );
+	public const PAYLOAD_ONLY_KEYS = array( 'ip', 'triggered_by_ip', 'bypassed_ip' );
 
 	/**
 	 * Union of all static sensitive field keys across every context, plus the

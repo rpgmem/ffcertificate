@@ -392,6 +392,23 @@ class ActivityLogTest extends TestCase {
 		$this->assertIsString($buffer[0]['context_encrypted']);
 	}
 
+	public function test_an_address_left_in_a_clear_context_is_a_keyed_fingerprint(): void {
+		$scrub = new \ReflectionMethod(ActivityLog::class, 'fingerprint_addresses');
+		$scrub->setAccessible(true);
+
+		$out = $scrub->invoke(null, [
+			'ip'      => '203.0.113.5',
+			'form_id' => 12,
+			'nested'  => ['bypassed_ip' => '203.0.113.5', 'triggered_by_ip' => '198.51.100.7', 'note' => '203.0.113.5'],
+		]);
+
+		$this->assertMatchesRegularExpression('/^fp:[0-9a-f]{16}$/', $out['ip'], 'With no key the address is never written in clear (#2340).');
+		$this->assertSame($out['ip'], $out['nested']['bypassed_ip'], 'One address, one fingerprint: entries from it still group together.');
+		$this->assertNotSame($out['ip'], $out['nested']['triggered_by_ip']);
+		$this->assertSame(12, $out['form_id']);
+		$this->assertSame('203.0.113.5', $out['nested']['note'], 'Only the keys that name an address are touched.');
+	}
+
 	public function test_log_context_not_encrypted_without_sensitive_keys(): void {
 		$this->enableActivityLog();
 
