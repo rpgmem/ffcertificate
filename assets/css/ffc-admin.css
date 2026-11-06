@@ -769,6 +769,24 @@
     border: 1px solid var(--ffc-border-light);
 }
 
+/* An entry's details, summarised above the dump: one value per line,
+   its name beside it (#2340). */
+.ffc-log-summary-dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: var(--ffc-spacing-2xs) var(--ffc-spacing-sm);
+    margin: 0 0 var(--ffc-spacing-xs);
+}
+
+.ffc-log-summary-dl dt {
+    color: var(--ffc-text-secondary);
+}
+
+.ffc-log-summary-dl dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 /* Activity log card */
 .ffc-activity-card {
     margin-top: var(--ffc-spacing-2xl);
