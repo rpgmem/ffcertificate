@@ -671,11 +671,16 @@ class SettingsActionHandlerTest extends TestCase {
 		$_POST['url_cleanup_trashed']       = '1';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 
-		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
+		$before = time() - 30 * DAY_IN_SECONDS;
+		$url    = $this->redirect_of( 'handle_url_shortener_cleanup' );
+		$after  = time() - 30 * DAY_IN_SECONDS;
 
 		$this->assertStringContainsString( 'url_cleanup_msg=Preview generated.', $url );
 		$this->assertCount( 1, $this->queries, 'One candidate query.' );
-		$this->assertStringContainsString( 'INTERVAL 30 DAY', $this->queries[0] );
+		// The 30-day window is a UTC-seconds cutoff on created_at (#2337).
+		$this->assertSame( 1, preg_match( '/s\.created_at < (\d+)/', $this->queries[0], $m ) );
+		$this->assertGreaterThanOrEqual( $before, (int) $m[1] );
+		$this->assertLessThanOrEqual( $after, (int) $m[1] );
 		$this->assertTrue( $this->transients['ffc_url_cleanup_report_7']['dry_run'] );
 	}
 
