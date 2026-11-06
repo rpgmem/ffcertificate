@@ -21,7 +21,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'An audit trail (useful for LGPD). When it is off, debug logging is also disabled.', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><strong><?php esc_html_e( 'Enable activity log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'master switch.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Retention (days)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'auto-delete entries older than this (default 90; 0 keeps them indefinitely).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Retention (days)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'auto-delete entries older than this (default 90, at most 3,650; 0 keeps them indefinitely).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000).', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Minimum level', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'debug / info / warning / error.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Categories', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'per-area toggles (submissions, scheduling, public access, users, recruitment, migrations, system).', 'ffcertificate' ); ?></li>
 	</ul>

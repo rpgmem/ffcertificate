@@ -285,119 +285,122 @@ class Settings {
 	 */
 	public function get_default_settings(): array {
 		return array(
-			'cleanup_enabled'            => false,
-			'validate_rf_check_digit'    => false,
+			'cleanup_enabled'             => false,
+			'validate_rf_check_digit'     => false,
 			// Settings → General: the address lookup by CEP (#2234). Off by
 			// default -- it sends each CEP typed to a third party.
-			'cep_lookup_enabled'         => false,
-			'cep_lookup_primary'         => 'viacep',
-			'cleanup_days'               => 365,
-			'quiz_focus_grace_ms'        => 1000,
+			'cep_lookup_enabled'          => false,
+			'cep_lookup_primary'          => 'viacep',
+			'cleanup_days'                => 365,
+			// Settings → Advanced: the activity log's retention (#2338).
+			'activity_log_retention_days' => 90,
+			'activity_log_max_records'    => 100000,
+			'quiz_focus_grace_ms'         => 1000,
 			// Settings → Certificates: check the visitor's browser (#2030).
-			'browser_check'              => true,
+			'browser_check'               => true,
 			// The "Required data" table on Settings → Certificates (#1759).
 			// Empty reads as "not built yet": RequiredData::maybe_migrate()
 			// builds it from the two legacy keys, and until then the readers
 			// fall back to them, so nothing is required by an empty default.
-			'required_data'              => array(),
-			'smtp_mode'                  => 'wp',
-			'smtp_host'                  => '',
-			'smtp_port'                  => 587,
-			'smtp_user'                  => '',
-			'smtp_pass'                  => '',
-			'smtp_secure'                => 'tls',
-			'smtp_from_email'            => '',
-			'smtp_from_name'             => '',
-			'qr_cache_enabled'           => 0,
-			'qr_default_size'            => 200,
-			'qr_default_margin'          => 2,
-			'qr_default_error_level'     => 'M',
+			'required_data'               => array(),
+			'smtp_mode'                   => 'wp',
+			'smtp_host'                   => '',
+			'smtp_port'                   => 587,
+			'smtp_user'                   => '',
+			'smtp_pass'                   => '',
+			'smtp_secure'                 => 'tls',
+			'smtp_from_email'             => '',
+			'smtp_from_name'              => '',
+			'qr_cache_enabled'            => 0,
+			'qr_default_size'             => 200,
+			'qr_default_margin'           => 2,
+			'qr_default_error_level'      => 'M',
 			// Global QR design (#1563). Plain by default and applied to
 			// nothing, so an upgrade changes no QR until an admin opts in.
-			'qr_design_dots'             => 'square',
-			'qr_design_eye_frame'        => 'square',
-			'qr_design_eye_ball'         => 'square',
-			'qr_design_color'            => '#000000',
-			'qr_design_gradient'         => 0,
-			'qr_design_color_end'        => '#2271b1',
-			'qr_design_background'       => '#ffffff',
-			'qr_design_eye_frame_color'  => '#000000',
-			'qr_design_eye_ball_color'   => '#000000',
-			'qr_design_logo_id'          => 0,
-			'qr_design_frame'            => 'none',
-			'qr_design_frame_text'       => '',
-			'qr_design_frame_color'      => '#1d2327',
-			'qr_design_frame_icon'       => 'scan',
-			'qr_design_transparent'      => 0,
-			'qr_design_on_certificate'   => 0,
-			'qr_design_on_short_urls'    => 0,
+			'qr_design_dots'              => 'square',
+			'qr_design_eye_frame'         => 'square',
+			'qr_design_eye_ball'          => 'square',
+			'qr_design_color'             => '#000000',
+			'qr_design_gradient'          => 0,
+			'qr_design_color_end'         => '#2271b1',
+			'qr_design_background'        => '#ffffff',
+			'qr_design_eye_frame_color'   => '#000000',
+			'qr_design_eye_ball_color'    => '#000000',
+			'qr_design_logo_id'           => 0,
+			'qr_design_frame'             => 'none',
+			'qr_design_frame_text'        => '',
+			'qr_design_frame_color'       => '#1d2327',
+			'qr_design_frame_icon'        => 'scan',
+			'qr_design_transparent'       => 0,
+			'qr_design_on_certificate'    => 0,
+			'qr_design_on_short_urls'     => 0,
 			// Settings → Public Design: off, and at the stylesheet's own look.
-			'public_design'              => 0,
-			'public_design_accent'       => '#2271b1',
-			'public_design_border'       => '#8e8f91',
-			'public_design_muted'        => '#646970',
-			'public_design_error'        => '#d63638',
-			'public_design_info'         => '#006ba1',
-			'public_design_radius'       => 4,
-			'public_design_card_radius'  => 8,
-			'public_design_width'        => 600,
-			'public_design_font'         => 'theme',
+			'public_design'               => 0,
+			'public_design_accent'        => '#2271b1',
+			'public_design_border'        => '#8e8f91',
+			'public_design_muted'         => '#646970',
+			'public_design_error'         => '#d63638',
+			'public_design_info'          => '#006ba1',
+			'public_design_radius'        => 4,
+			'public_design_card_radius'   => 8,
+			'public_design_width'         => 600,
+			'public_design_font'          => 'theme',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted
 			// value, not the default. Fresh installs and any user who
 			// never visited Settings → General pick up `d/m/Y` now.
-			'date_format'                => 'd/m/Y',
-			'date_format_custom'         => '',
+			'date_format'                 => 'd/m/Y',
+			'date_format_custom'          => '',
 			// New in #244 — time-of-day formatting + per-context PDF
 			// overrides. Empty `_pdf` values inherit the base format.
 			// `*_custom` companions hold the user-typed format when
 			// `date_format_pdf` / `time_format_pdf` equals 'custom'
 			// (#248, same idiom as date_format / date_format_custom).
-			'time_format'                => 'H:i',
-			'time_format_custom'         => '',
-			'date_format_pdf'            => '',
-			'date_format_pdf_custom'     => '',
-			'time_format_pdf'            => '',
-			'time_format_pdf_custom'     => '',
-			'public_csv_default_limit'   => 1,    // Default limit for public CSV downloads.
-			'obsolete_shortcode_days'    => 90,   // Grace window (days) for obsolete shortcode cleanup.
-			'url_cleanup_days'           => 90,   // Grace window (days) for the short-URL never-clicked criterion.
-			'url_cleanup_orphaned'       => 1,    // Short-URL cleanup: target post deleted.
-			'url_cleanup_never_clicked'  => 0,   // Short-URL cleanup: never clicked + older than the grace window.
-			'url_cleanup_trashed'        => 1,    // Short-URL cleanup: status = 'trashed'.
-			'public_access_disable_days' => 90, // Grace window (days) for disabling Public Operator Access on old forms.
-			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
+			'time_format'                 => 'H:i',
+			'time_format_custom'          => '',
+			'date_format_pdf'             => '',
+			'date_format_pdf_custom'      => '',
+			'time_format_pdf'             => '',
+			'time_format_pdf_custom'      => '',
+			'public_csv_default_limit'    => 1,    // Default limit for public CSV downloads.
+			'obsolete_shortcode_days'     => 90,   // Grace window (days) for obsolete shortcode cleanup.
+			'url_cleanup_days'            => 90,   // Grace window (days) for the short-URL never-clicked criterion.
+			'url_cleanup_orphaned'        => 1,    // Short-URL cleanup: target post deleted.
+			'url_cleanup_never_clicked'   => 0,   // Short-URL cleanup: never clicked + older than the grace window.
+			'url_cleanup_trashed'         => 1,    // Short-URL cleanup: status = 'trashed'.
+			'public_access_disable_days'  => 90, // Grace window (days) for disabling Public Operator Access on old forms.
+			'code_editor_theme'           => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 			// Window of the invitation's password-set link, in hours (#1212).
 			// Clamped to 1..720 on read and on save by `PasswordInvite`.
-			'invite_password_link_hours' => 168,
+			'invite_password_link_hours'  => 168,
 			// Days the dashboard keeps an approved reregistration's banner after
 			// the later of the campaign's end and the approval (#1887); 0 never
 			// hides. Clamped to 0..365 by `ReregistrationBannerWindow`.
-			'rereg_approved_banner_days' => 30,
+			'rereg_approved_banner_days'  => 30,
 			// Captcha (#1053). `math` on upgrade: the arithmetic challenge is
 			// the only one that runs without JavaScript and without a secure
 			// context, so it is the choice that cannot lock anyone out of a
 			// form they could use before. A NEW install is seeded instead
 			// (Activator, #1758): ALTCHA only on HTTPS, math otherwise.
-			'captcha_provider'           => 'math', // 'math' | 'altcha' | 'both'.
+			'captcha_provider'            => 'math', // 'math' | 'altcha' | 'both'.
 			// Work factor for the ALTCHA proof of work — the upper bound of
 			// the secret number the solver has to find, so expected work is
 			// about half of it. Bounded by CaptchaSettings, not here.
-			'captcha_altcha_complexity'  => 200000,
-			'captcha_altcha_ttl'         => 600,  // Seconds a challenge stays valid.
-			'captcha_altcha_type'        => 'checkbox', // 'checkbox' | 'switch'.
-			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
-			'captcha_altcha_hide_logo'   => 0,
+			'captcha_altcha_complexity'   => 200000,
+			'captcha_altcha_ttl'          => 600,  // Seconds a challenge stays valid.
+			'captcha_altcha_type'         => 'checkbox', // 'checkbox' | 'switch'.
+			'captcha_altcha_auto'         => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
+			'captcha_altcha_hide_logo'    => 0,
 			// Shown on upgrade; a new install starts with it hidden (#1758).
-			'captcha_altcha_hide_footer' => 0,
+			'captcha_altcha_hide_footer'  => 0,
 			// #1123. Read since the "Access granted" email was written, but
 			// never written by anything, so `get_bool()` returned false on
 			// every install and the email was unreachable. `0` keeps that
 			// state as the *declared* one — the fix is the SMTP-tab toggle
 			// that now writes the key, not a default that starts mailing
 			// every existing install on upgrade.
-			'notify_capability_grant'    => 0,
+			'notify_capability_grant'     => 0,
 		);
 	}
 

@@ -318,8 +318,15 @@ class SettingsAjaxEndpoint {
 			'activity_log_retention_days' => array(
 				'int',
 				array(
-					'min' => 0,
-					'max' => 3650,
+					'min' => \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN,
+					'max' => \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX,
+				),
+			),
+			'activity_log_max_records'    => array(
+				'int',
+				array(
+					'min' => \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN,
+					'max' => \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX,
 				),
 			),
 			// Data Migrations tab — "never clicked … days ago" grace window.

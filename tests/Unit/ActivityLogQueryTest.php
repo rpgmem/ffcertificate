@@ -377,6 +377,42 @@ class ActivityLogQueryTest extends TestCase {
 		$this->assertSame( 0, $result );
 	}
 
+	/**
+	 * The record cap (#2338): rows beyond it go, oldest first, the way the
+	 * rate-limit logs are trimmed.
+	 */
+	public function test_trim_to_deletes_the_oldest_rows_beyond_the_cap(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/^SELECT COUNT/' ) )->andReturn( '1500' );
+		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/OFFSET %d \| wp_ffc_activity_log,1000$/' ) )->andReturn( '700' );
+		$this->wpdb->shouldReceive( 'query' )->once()->with( 'DELETE FROM %i WHERE id <= %d | wp_ffc_activity_log,700' )->andReturn( 500 );
+
+		$this->assertSame( 500, ActivityLogQuery::trim_to( 1000 ) );
+	}
+
+	public function test_trim_to_deletes_nothing_under_the_cap(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'SELECT COUNT(*)' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '800' );
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertSame( 0, ActivityLogQuery::trim_to( 1000 ) );
+	}
+
+	public function test_run_cleanup_trims_to_the_record_cap_even_when_kept_indefinitely(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'activity_log_retention_days' => 0,
+				'activity_log_max_records'    => 1000,
+			)
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $sql . ' | ' . implode( ',', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/^SELECT COUNT/' ) )->andReturn( '1001' );
+		$this->wpdb->shouldReceive( 'get_var' )->with( \Mockery::pattern( '/OFFSET/' ) )->andReturn( '1' );
+		$this->wpdb->shouldReceive( 'query' )->once()->with( \Mockery::pattern( '/^DELETE FROM %i WHERE id <= %d/' ) )->andReturn( 1 );
+
+		$this->assertSame( 1, ActivityLogQuery::run_cleanup() );
+	}
+
 	public function test_run_cleanup_missing_setting_defaults_to_90(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
 

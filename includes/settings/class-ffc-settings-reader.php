@@ -555,7 +555,19 @@ final class SettingsReader {
 	 * older than this are eligible for the daily cleanup cron.
 	 */
 	public static function activity_log_retention_days(): int {
-		return self::get_int( 'activity_log_retention_days', 90 );
+		return \FreeFormCertificate\Core\ActivityLogRetention::clamp_days(
+			self::get_int( 'activity_log_retention_days', 90 )
+		);
+	}
+
+	/**
+	 * Most `ffc_activity_log` rows the daily cleanup keeps; the oldest
+	 * beyond it are deleted (#2338).
+	 */
+	public static function activity_log_max_records(): int {
+		return \FreeFormCertificate\Core\ActivityLogRetention::clamp_records(
+			self::get_int( 'activity_log_max_records', 100000 )
+		);
 	}
 
 	/**

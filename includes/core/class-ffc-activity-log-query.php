@@ -653,10 +653,46 @@ class ActivityLogQuery {
 	public static function run_cleanup(): int {
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
 
-		if ( $retention_days <= 0 ) {
+		$deleted = $retention_days > 0 ? self::cleanup( $retention_days ) : 0;
+
+		return $deleted + self::trim_to( \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() );
+	}
+
+	/**
+	 * Delete the oldest rows beyond a record cap (#2338), the way the
+	 * rate-limit logs are trimmed.
+	 *
+	 * @param int $max_records Rows to keep.
+	 * @return int Number of deleted rows.
+	 */
+	public static function trim_to( int $max_records ): int {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+		if ( $max_records < 1 || $count <= $max_records ) {
 			return 0;
 		}
 
-		return self::cleanup( $retention_days );
+		// The id of the newest row that falls outside the cap; it and every
+		// older row go.
+		$cutoff_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT id FROM %i ORDER BY id DESC LIMIT 1 OFFSET %d',
+				$table_name,
+				$max_records
+			)
+		);
+		if ( $cutoff_id < 1 ) {
+			return 0;
+		}
+
+		$deleted = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id <= %d', $table_name, $cutoff_id ) );
+
+		delete_transient( 'ffc_activity_stats_7' );
+		delete_transient( 'ffc_activity_stats_30' );
+		delete_transient( 'ffc_activity_stats_90' );
+
+		return (int) $deleted;
 	}
 }

@@ -79,10 +79,21 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'activity_log_retention_days', 90 ) ); ?>" min="0" max="365" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required>
+						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX ); ?>" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required>
 						<p class="description">
 							<?php esc_html_e( 'Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely.', 'ffcertificate' ); ?><br>
 							<?php esc_html_e( 'Cleanup runs daily via scheduled cron task.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="activity_log_max_records"><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number" name="ffc_settings[activity_log_max_records]" id="activity_log_max_records" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX ); ?>" class="regular-text" data-ffc-autosave-key="activity_log_max_records" required>
+						<p class="description">
+							<?php esc_html_e( 'The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>

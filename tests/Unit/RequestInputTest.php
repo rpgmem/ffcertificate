@@ -394,4 +394,30 @@ class RequestInputTest extends TestCase {
 		$this->assertFalse( RequestInput::get_post_bool( 'b' ) );
 		$this->assertFalse( RequestInput::get_post_bool( 'c' ) );
 	}
+
+	/**
+	 * A cleared number field is "not supplied", never 0 (#2338).
+	 */
+	public function test_optional_int_answers_null_for_empty_or_non_numeric(): void {
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( '' ) );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( '  ' ) );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( 'abc' ) );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( '-5' ) );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( array( '1' ) ) );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::optional_int( null ) );
+		$this->assertSame( 0, \FreeFormCertificate\Core\RequestInput::optional_int( '0' ) );
+		$this->assertSame( 42, \FreeFormCertificate\Core\RequestInput::optional_int( ' 42 ' ) );
+		$this->assertSame( 7, \FreeFormCertificate\Core\RequestInput::optional_int( 7 ) );
+	}
+
+	public function test_get_post_optional_int_reads_the_post(): void {
+		Functions\when( 'wp_unslash' )->returnArg();
+		unset( $_POST['ffc_probe_days'] );
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'ffc_probe_days' ) );
+		$_POST['ffc_probe_days'] = '';
+		$this->assertNull( \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'ffc_probe_days' ) );
+		$_POST['ffc_probe_days'] = '30';
+		$this->assertSame( 30, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'ffc_probe_days' ) );
+		unset( $_POST['ffc_probe_days'] );
+	}
 }

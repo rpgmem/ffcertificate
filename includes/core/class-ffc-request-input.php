@@ -312,6 +312,44 @@ class RequestInput {
 	}
 
 	/**
+	 * Read a `$_POST` number that may be left out.
+	 *
+	 * A cleared number field posts the empty string, and `absint( '' )` is 0,
+	 * so a reader that defaults would store a value nobody typed. This one
+	 * answers null when the key is absent, empty or not a whole number, so
+	 * the caller keeps the stored value. Caller verifies the nonce.
+	 *
+	 * @param string $key `$_POST` key.
+	 * @return int|null The non-negative integer posted, or null when none was.
+	 */
+	public static function get_post_optional_int( string $key ): ?int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Caller responsibility.
+		if ( ! isset( $_POST[ $key ] ) ) {
+			return null;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Caller responsibility. Type-checked below.
+		return self::optional_int( wp_unslash( $_POST[ $key ] ) );
+	}
+
+	/**
+	 * A posted value as a non-negative integer, or null when it is empty or
+	 * not a whole number.
+	 *
+	 * @param mixed $raw Posted value.
+	 * @return int|null
+	 */
+	public static function optional_int( $raw ): ?int {
+		if ( ! is_scalar( $raw ) ) {
+			return null;
+		}
+		$text = trim( (string) $raw );
+		if ( '' === $text || 1 !== preg_match( '/^\d+$/', $text ) ) {
+			return null;
+		}
+		return absint( $text );
+	}
+
+	/**
 	 * Read a checkbox-style `$_POST` bool. `! empty()` semantics:
 	 * any non-empty value (`'1'`, `'on'`, etc.) returns true; absence
 	 * or empty-string returns false. Caller is responsible for nonce
