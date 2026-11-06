@@ -325,6 +325,8 @@ final class RoleCapabilityEditor {
 		} else {
 			$role->remove_cap( $cap );
 		}
+		// Kept as an override so the next request does not undo it (#2340).
+		RoleRegistrar::record_override( $role_slug, $cap, $grant );
 
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(

@@ -221,7 +221,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['ffc_capabilities_nonce'], $_POST['ffc_audience'], $_GET['user_id'] );
+		unset( $_POST['ffc_capabilities_nonce'], $_POST['ffc_cap_fields_rendered'], $_POST['ffc_audience'], $_GET['user_id'] );
 		// Reset the per-request role snapshot so it never leaks between tests.
 		$this->reset_role_snapshot();
 		if ( $this->had_wpdb ) {
@@ -349,6 +349,8 @@ class AdminUserCapabilitiesTest extends TestCase {
 		$this->assertStringContainsString( 'FFC Permissions', $output );
 		$this->assertStringContainsString( 'ffc-cap-roles', $output );
 		$this->assertStringNotContainsString( 'ffc-cap-group', $output );
+		// No per-capability fields, so no marker: the save leaves them alone.
+		$this->assertStringNotContainsString( 'ffc_cap_fields_rendered', $output );
 	}
 
 	public function test_render_offers_only_aggregator_chip_for_wp_admin(): void {
@@ -494,8 +496,9 @@ class AdminUserCapabilitiesTest extends TestCase {
 		$this->assertStringContainsString( 'ffc_end_user', $output );
 		$this->assertStringContainsString( 'page=ffc-scheduling-audiences', $output );
 
-		// Nonce field.
+		// Nonce field, and the marker that lets the save clear unticked boxes.
 		$this->assertStringContainsString( 'ffc_capabilities_nonce', $output );
+		$this->assertStringContainsString( 'name="ffc_cap_fields_rendered" value="1"', $output );
 	}
 
 	public function test_render_outputs_audience_membership_checklist(): void {
@@ -576,6 +579,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 	private function run_ajax_role(): array {
 		$captured = array();
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'is_multisite' )->justReturn( false );
 		Functions\when( 'wp_send_json_success' )->alias(
 			static function ( $data = null ) use ( &$captured ) {
 				$captured = array( 'ok' => true, 'data' => $data );
@@ -756,6 +760,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
 	public function test_save_grants_capabilities(): void {
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 		$_POST['ffc_cap_ffc_view_own_certificates'] = '1';
 		$_POST['ffc_cap_ffc_book_own_appointments'] = '1';
 
@@ -781,6 +786,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
 	public function test_save_removes_capabilities(): void {
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 		// No ffc_cap_* fields set — all capabilities should be removed
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -799,12 +805,96 @@ class AdminUserCapabilitiesTest extends TestCase {
 		$this->assertArrayNotHasKey( 'ffc_book_own_appointments', $user->caps );
 	}
 
+	public function test_save_without_the_fields_marker_keeps_every_grant(): void {
+		// A WordPress administrator's profile draws the role presets alone:
+		// the boxes it never drew must not read as unticked.
+		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$user = new \WP_User( 5 );
+		$user->add_cap( 'ffc_view_own_certificates', true );
+		$user->add_cap( 'ffc_book_own_appointments', true );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		$this->memberships = array( 5 => array( 7 ) );
+
+		AdminUserCapabilities::save_capability_fields( 5 );
+
+		$this->assertArrayHasKey( 'ffc_view_own_certificates', $user->caps );
+		$this->assertArrayHasKey( 'ffc_book_own_appointments', $user->caps );
+		$this->assertSame( array(), $this->member_deletes );
+	}
+
+	public function test_ajax_refuses_a_target_the_editor_may_not_promote(): void {
+		$_POST['user_id'] = '5';
+		$_POST['role']    = 'ffc_recruitment_manager';
+		$_POST['assign']  = '1';
+
+		$user        = new \WP_User( 5 );
+		$user->roles = array( 'ffc_end_user' );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'current_user_can' )->alias(
+			static function ( $cap ) {
+				return 'promote_user' !== $cap;
+			}
+		);
+
+		$res = $this->run_ajax_role();
+
+		$this->assertFalse( $res['ok'] );
+		$this->assertSame( 403, $res['code'] );
+		$this->assertSame( 'cannot_edit_user', $res['data']['message'] );
+		$this->assertNotContains( 'ffc_recruitment_manager', $user->roles );
+
+		unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+	}
+
+	public function test_ajax_refuses_a_target_from_another_site_of_the_network(): void {
+		$_POST['user_id'] = '5';
+		$_POST['role']    = 'ffc_recruitment_manager';
+		$_POST['assign']  = '1';
+
+		$user        = new \WP_User( 5 );
+		$user->roles = array( 'ffc_end_user' );
+		Functions\when( 'get_userdata' )->justReturn( $user );
+		Functions\when( 'is_user_member_of_blog' )->justReturn( false );
+
+		$captured = array();
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'is_multisite' )->justReturn( true );
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data = null ) use ( &$captured ) {
+				$captured = array( 'ok' => true, 'data' => $data );
+				throw new \Exception( 'ffc_json_halt' );
+			}
+		);
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data = null, $code = null ) use ( &$captured ) {
+				$captured = array( 'ok' => false, 'data' => $data, 'code' => $code );
+				throw new \Exception( 'ffc_json_halt' );
+			}
+		);
+		try {
+			AdminUserCapabilities::ajax_toggle_user_role();
+		} catch ( \Exception $e ) {
+			$this->assertSame( 'ffc_json_halt', $e->getMessage() );
+		}
+
+		$this->assertFalse( $captured['ok'] );
+		$this->assertSame( 403, $captured['code'] );
+		$this->assertSame( 'user_not_on_site', $captured['data']['message'] );
+		$this->assertNotContains( 'ffc_recruitment_manager', $user->roles );
+
+		unset( $_POST['user_id'], $_POST['role'], $_POST['assign'] );
+	}
+
 	// ==================================================================
 	// save_capability_fields() — audience membership sync
 	// ==================================================================
 
 	public function test_save_adds_audience_membership(): void {
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 		$_POST['ffc_audience']           = array( '3', '7' );
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -831,6 +921,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
 	public function test_save_removes_audience_membership_when_unchecked(): void {
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 		// No ffc_audience key → every box unchecked → drop current memberships.
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -853,6 +944,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 
 	public function test_save_does_not_touch_audiences_when_none_active(): void {
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'current_user_can' )->justReturn( true );
@@ -881,6 +973,7 @@ class AdminUserCapabilitiesTest extends TestCase {
 		// when it is present (class_exists returns true naturally since the
 		// autoloader loaded it).
 		$_POST['ffc_capabilities_nonce'] = 'valid_nonce';
+		$_POST['ffc_cap_fields_rendered'] = '1';
 		$_POST['ffc_cap_ffc_view_own_certificates'] = '1';
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
