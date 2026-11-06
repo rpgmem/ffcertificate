@@ -358,6 +358,13 @@ class AdminActivityLogPage {
 			'decrypt_failure_suppressed'                   => __( 'Decryption Failures Suppressed', 'ffcertificate' ),
 			'ip_geolocation_debug'                         => __( 'IP Geolocation Debug', 'ffcertificate' ),
 			'dangerzone_setting_changed'                   => __( 'Danger Zone Setting Changed', 'ffcertificate' ),
+			'rate_limit_blocked'                           => __( 'Rate Limit Block', 'ffcertificate' ),
+			'captcha_failed'                               => __( 'Captcha Failed', 'ffcertificate' ),
+			'attendance_recorded'                          => __( 'Attendance Recorded', 'ffcertificate' ),
+			'attendance_removed'                           => __( 'Attendance Removed', 'ffcertificate' ),
+			'checkin_window_opened'                        => __( 'Check-in Opened', 'ffcertificate' ),
+			'checkin_window_closed'                        => __( 'Check-in Closed', 'ffcertificate' ),
+			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.
 			'migration_foreign_keys'                       => __( 'Foreign Keys Migration', 'ffcertificate' ),

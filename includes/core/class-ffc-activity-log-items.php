@@ -147,6 +147,11 @@ final class ActivityLogItems {
 			'section' => 'scheduling',
 			'legacy'  => 'scheduling',
 		),
+		'sched_attendance'     => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'scheduling',
+			'legacy'  => 'scheduling',
+		),
 		'rereg_reviews'        => array(
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'rereg_recruitment',
@@ -171,6 +176,21 @@ final class ActivityLogItems {
 			'group'   => self::GROUP_SECONDARY,
 			'section' => 'public_access',
 			'legacy'  => 'public_access',
+		),
+		'public_blocks'        => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'public_access',
+			'legacy'  => 'public_access',
+		),
+		'system_settings'      => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'system',
+			'legacy'  => 'system',
+		),
+		'system_tasks'         => array(
+			'group'   => self::GROUP_SECONDARY,
+			'section' => 'system',
+			'legacy'  => 'system',
 		),
 		'system_errors'        => array(
 			'group'   => self::GROUP_SECONDARY,
@@ -240,7 +260,6 @@ final class ActivityLogItems {
 		'pdf_generated'                           => 'cert_submissions',
 		'certificate_emailed'                     => 'cert_submissions',
 		'data_accessed'                           => 'cert_submissions',
-		'captcha_fallback_used'                   => 'cert_submissions',
 
 		'submission_updated'                      => 'cert_changes',
 		'submission_trashed'                      => 'cert_changes',
@@ -269,7 +288,18 @@ final class ActivityLogItems {
 
 		'preflight_blocked'                       => 'public_preflight',
 
-		'settings_changed'                        => 'system_errors',
+		'rate_limit_blocked'                      => 'public_blocks',
+		'captcha_failed'                          => 'public_blocks',
+		'captcha_fallback_used'                   => 'public_blocks',
+
+		'attendance_recorded'                     => 'sched_attendance',
+		'attendance_removed'                      => 'sched_attendance',
+		'checkin_window_opened'                   => 'sched_attendance',
+		'checkin_window_closed'                   => 'sched_attendance',
+
+		'settings_changed'                        => 'system_settings',
+		'scheduled_task_failed'                   => 'system_tasks',
+
 		'access_denied'                           => 'system_errors',
 		'decrypt_failure'                         => 'system_errors',
 		'decrypt_failure_suppressed'              => 'system_errors',
@@ -334,11 +364,15 @@ final class ActivityLogItems {
 				'cert_bulk_issue'      => __( 'Bulk issue and certificates issued by an operator', 'ffcertificate' ),
 				'sched_appointments'   => __( 'Appointments booked, cancelled and closed', 'ffcertificate' ),
 				'sched_bookings'       => __( 'Audience bookings confirmed over the calendar\'s rules', 'ffcertificate' ),
+				'sched_attendance'     => __( 'Attendance marked or removed, check-in windows opened and closed', 'ffcertificate' ),
 				'rereg_reviews'        => __( 'Reregistration submissions, reviews and invitations', 'ffcertificate' ),
 				'recruit_imports'      => __( 'Candidate imports', 'ffcertificate' ),
 				'recruit_calls'        => __( 'Calls, promotions and candidate changes', 'ffcertificate' ),
 				'public_overrides'     => __( 'Schedule exceptions, operator bypass and public downloads', 'ffcertificate' ),
 				'public_preflight'     => __( 'Preflight and browser blocks', 'ffcertificate' ),
+				'public_blocks'        => __( 'Rate-limit blocks and failed captchas', 'ffcertificate' ),
+				'system_settings'      => __( 'Settings changed outside the Danger Zone (which settings, never their values)', 'ffcertificate' ),
+				'system_tasks'         => __( 'Scheduled tasks that ended in an error', 'ffcertificate' ),
 				'system_errors'        => __( 'Errors and refusals (decryption failures, access denied, refused field changes)', 'ffcertificate' ),
 			),
 		);

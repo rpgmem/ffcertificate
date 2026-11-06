@@ -29,6 +29,9 @@ class SettingsAjaxEndpointTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The writers record to the activity log; that is covered elsewhere.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		// The write takes a database lock (#1902). Without a `$wpdb` it is
 		// skipped, so every test chooses one rather than inheriting it.
@@ -61,6 +64,7 @@ class SettingsAjaxEndpointTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		unset( $_POST['key'], $_POST['value'], $_POST['nonce'] );
 		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		Monkey\tearDown();

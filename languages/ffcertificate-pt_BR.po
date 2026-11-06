@@ -7199,6 +7199,50 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/admin/class-ffc-admin-activity-log-page.php:361
+msgid "Rate Limit Block"
+msgstr "Bloqueio por limite de requisições"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:362
+msgid "Captcha Failed"
+msgstr "Captcha falhou"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:363
+msgid "Attendance Recorded"
+msgstr "Presença registrada"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:364
+msgid "Attendance Removed"
+msgstr "Presença removida"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:365
+msgid "Check-in Opened"
+msgstr "Check-in aberto"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:366
+msgid "Check-in Closed"
+msgstr "Check-in fechado"
+
+#: includes/admin/class-ffc-admin-activity-log-page.php:367
+msgid "Scheduled Task Failed"
+msgstr "Tarefa agendada falhou"
+
+#: includes/core/class-ffc-activity-log-items.php:367
+msgid "Attendance marked or removed, check-in windows opened and closed"
+msgstr "Presença marcada ou removida, janelas de check-in abertas e fechadas"
+
+#: includes/core/class-ffc-activity-log-items.php:373
+msgid "Rate-limit blocks and failed captchas"
+msgstr "Bloqueios por limite de requisições e captchas que falharam"
+
+#: includes/core/class-ffc-activity-log-items.php:374
+msgid "Settings changed outside the Danger Zone (which settings, never their values)"
+msgstr "Configurações alteradas fora da Zona de Perigo (quais configurações, nunca seus valores)"
+
+#: includes/core/class-ffc-activity-log-items.php:375
+msgid "Scheduled tasks that ended in an error"
+msgstr "Tarefas agendadas que terminaram em erro"
+
 #: includes/settings/views/ffc-activity-log-items.php
 msgid "%1$d of %2$d on"
 msgstr "%1$d de %2$d ligados"
@@ -12827,8 +12871,8 @@ msgid "per slot"
 msgstr "por horário"
 
 #: includes/settings/views/documentation/config-advanced.php:26
-msgid "off by default, one toggle each: users, certificates, personal and audience calendars, reregistration and recruitment, public access and security, and system errors."
-msgstr "desligados por padrão, um alternador cada: usuários, certificados, calendários pessoais e de públicos, recadastramento e recrutamento, acesso público e segurança, e erros do sistema."
+msgid "off by default, one toggle each: users, certificates, personal and audience calendars, attendance and check-in, reregistration and recruitment, public access and security, rate-limit blocks and failed captchas, settings changed outside the Danger Zone (named, never their values), scheduled tasks that ended in an error, and system errors."
+msgstr "desligados por padrão, um alternador cada: usuários, certificados, calendários pessoais e de públicos, presença e check-in, recadastramento e recrutamento, acesso público e segurança, bloqueios por limite de requisições e captchas que falharam, configurações alteradas fora da Zona de Perigo (nomeadas, nunca seus valores), tarefas agendadas que terminaram em erro, e erros do sistema."
 
 #: includes/settings/views/documentation/reference-security.php:56
 msgid "Per-device limit (fingerprint)"

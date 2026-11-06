@@ -63,6 +63,10 @@ final class ActivityLogBuffer {
 		'activity_log_item_public_overrides'     => 1,
 		'activity_log_item_public_preflight'     => 1,
 		'activity_log_item_system_errors'        => 1,
+		'activity_log_item_sched_attendance' => 1,
+		'activity_log_item_public_blocks' => 1,
+		'activity_log_item_system_settings' => 1,
+		'activity_log_item_system_tasks' => 1,
 	);
 
 	/**

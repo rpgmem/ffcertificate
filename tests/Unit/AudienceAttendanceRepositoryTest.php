@@ -35,6 +35,9 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The writers record to the activity log; that is covered elsewhere.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -46,6 +49,7 @@ class AudienceAttendanceRepositoryTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

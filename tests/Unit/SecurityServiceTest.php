@@ -433,6 +433,42 @@ class SecurityServiceTest extends TestCase {
 		$this->assertContains( 'ffcertificate_captcha_failed', $fired );
 	}
 
+	/**
+	 * A failed captcha is a secondary activity-log entry naming the surface,
+	 * never the answer (#2340).
+	 */
+	public function test_a_failed_gate_writes_a_captcha_failed_entry(): void {
+		$captcha = $this->issueCaptcha();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+
+		SecurityService::validate_security_fields(
+			array(
+				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
+				'ffc_captcha_hash' => $captcha['hash'],
+				'ffc_hp_ts'        => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+			),
+			'verify'
+		);
+
+		$entries = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$this->assertSame(
+			array(
+				array(
+					'action'  => 'captcha_failed',
+					'level'   => 'warning',
+					'context' => array( 'context' => 'verify' ),
+				),
+			),
+			$entries
+		);
+	}
+
 	public function test_verify_captcha_rejects_a_legacy_answer_only_digest(): void {
 		Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
 		$this->stubChallengeInfrastructure();

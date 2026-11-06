@@ -786,6 +786,10 @@ class SettingsAjaxEndpoint {
 				// still recorded (#2340).
 				DangerzoneSettingsAudit::record( $before, $option );
 			}
+			if ( $before !== $option ) {
+				// Which setting moved, by its path; never the value (#2340).
+				SettingsChangeAudit::record_keys( $option_name, array( implode( '.', $path ) ) );
+			}
 			update_option( $option_name, $option );
 		} finally {
 			// $holder is set only when the lock above was granted.
