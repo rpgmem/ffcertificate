@@ -892,9 +892,11 @@ class AppointmentRestControllerTest extends TestCase {
 		$this->assertCount( 1, $logged, 'Only the revealing read is audited.' );
 		$this->assertSame( 'appointment_pii_revealed', $logged[0]['action'] );
 		$this->assertSame( ActivityLog::LEVEL_INFO, $logged[0]['level'] );
-		$this->assertSame( '{"field_key":"rest_api"}', $logged[0]['context'] );
+		// The appointment is named in the context; `submission_id` names a
+		// submission, so it stays empty (#2340).
+		$this->assertSame( '{"field_key":"rest_api","record_type":"appointment","record_id":10}', $logged[0]['context'] );
 		$this->assertSame( 5, $logged[0]['user_id'] );
-		$this->assertSame( 10, $logged[0]['submission_id'] );
+		$this->assertSame( 0, $logged[0]['submission_id'] );
 	}
 
 	// ------------------------------------------------------------------

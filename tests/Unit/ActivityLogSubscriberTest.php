@@ -261,6 +261,57 @@ class ActivityLogSubscriberTest extends TestCase {
 		$subscriber->on_appointment_cancelled( 100, $appointment, 'User request', 42 );
 	}
 
+	/**
+	 * Run the cancellation handler with the log on and return its row.
+	 *
+	 * @param int|null $cancelled_by Actor.
+	 * @return array<string, mixed>
+	 */
+	private function cancellation_row( ?int $cancelled_by ): array {
+		global $wpdb;
+		$saved        = $wpdb;
+		$wpdb         = \Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
+		);
+		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$buffer->setAccessible( true );
+		$buffer->setValue( null, array() );
+
+		( new ActivityLogSubscriber() )->on_appointment_cancelled( 100, array( 'calendar_id' => 1 ), 'User request', $cancelled_by );
+
+		$rows = array_values( (array) $buffer->getValue() );
+		$buffer->setValue( null, array() );
+		$wpdb = $saved;
+		$this->assertCount( 1, $rows );
+		return $rows[0];
+	}
+
+	public function test_a_cancellation_is_attributed_to_who_cancelled_not_to_the_appointment(): void {
+		$row = $this->cancellation_row( 42 );
+
+		$this->assertSame( 'appointment_cancelled', $row['action'] );
+		$this->assertSame( 42, $row['user_id'] );
+		$this->assertSame( 100, json_decode( (string) $row['context'], true )['appointment_id'] ?? null );
+	}
+
+	public function test_a_guest_cancellation_names_no_account(): void {
+		$this->assertSame( 0, $this->cancellation_row( null )['user_id'] );
+	}
+
 	public function test_on_pdf_generated_runs_without_error(): void {
 		Functions\when( 'add_action' )->justReturn( true );
 

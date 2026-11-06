@@ -184,7 +184,11 @@ class ActivityLogSubscriber {
 				'cancelled_by'   => $cancelled_by,
 				'reason'         => $reason,
 			),
-			$appointment_id
+			// 4th argument is the actor, as in on_appointment_created(): the
+			// appointment id named whichever user held that id, or was
+			// refused by `fk_ffc_activity_log_user` (#2340). A guest who
+			// cancels through their link has no account, so 0.
+			(int) ( $cancelled_by ?? 0 )
 		);
 	}
 

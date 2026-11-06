@@ -1262,6 +1262,8 @@ class ActivityLogTest extends TestCase {
 		$decoded = json_decode($buffer[0]['context'], true);
 		$this->assertSame('certificate', $decoded['context']);
 		$this->assertSame($caps, $decoded['capabilities']);
+		// The account that received them is recorded too (#2340).
+		$this->assertSame(15, $decoded['target_user_id']);
 	}
 
 	// ==================================================================

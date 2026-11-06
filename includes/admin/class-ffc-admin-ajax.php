@@ -399,12 +399,19 @@ class AdminAjax {
 
 		// Every served reveal is audited (#1655); ActivityLog honours the
 		// Activity Log switch and its category, as every other entry does.
+		// The record is named in the context by type and id (#2340): the
+		// `submission_id` column holds a submission, so an appointment or a
+		// profile id there named the wrong record.
 		\FreeFormCertificate\Core\ActivityLog::log(
 			$config['audit_action'],
 			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-			array( 'field_key' => $field ),
+			array(
+				'field_key'   => $field,
+				'record_type' => $type,
+				'record_id'   => $id,
+			),
 			get_current_user_id(),
-			$id
+			'submission' === $type ? $id : 0
 		);
 
 		wp_send_json_success(
@@ -478,9 +485,10 @@ class AdminAjax {
 				$configs[ $type ]['audit_action'],
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
-					'field_key'  => 'page',
-					'fields'     => array_values( $what['fields'] ),
-					'record_ids' => array_values( $what['ids'] ),
+					'field_key'   => 'page',
+					'record_type' => $type,
+					'fields'      => array_values( $what['fields'] ),
+					'record_ids'  => array_values( $what['ids'] ),
 				),
 				get_current_user_id(),
 				0

@@ -195,9 +195,12 @@ class UserReregistrationsRestController {
 				array(
 					'view_as'         => true,
 					'subject_user_id' => $user_id,
+					'record_type'     => 'reregistration',
+					'record_id'       => (int) $submission->id,
 				),
 				get_current_user_id(),
-				(int) $submission->id
+				// `submission_id` names a certificate submission (#2340).
+				0
 			);
 		}
 
