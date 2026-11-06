@@ -31,8 +31,6 @@ beforeEach(() => {
 		i18n: {
 			copied: 'Copied!',
 			copyFailed: 'Copy failed',
-			confirm: 'Generate a new short code?',
-			regenerated: 'Regenerated!',
 			error: 'Error',
 		},
 	};
@@ -226,11 +224,24 @@ describe('url-shortener — QR download', () => {
 // ----------------------------------------------------------------------
 
 describe('url-shortener — regenerate', () => {
-	function mountRegenBtn() {
+	function mountRegenBtn(confirmMsg = 'Generate a new short code?') {
 		document.body.innerHTML = `
-			<button class="ffc-regenerate-shorturl" data-post-id="55">Regen</button>
+			<button class="ffc-regenerate-shorturl" data-post-id="55" data-ffc-confirm="${confirmMsg}">Regen</button>
 		`;
 	}
+
+	it('posts without asking when the button carries no confirmation (Generate, Reactivate)', async () => {
+		mountRegenBtn('');
+		await loadAdmin();
+		const confirmSpy = vi.spyOn(window, 'confirm');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+
+		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalled();
+	});
 
 	it('bails when the user cancels the confirm()', async () => {
 		mountRegenBtn();
@@ -259,13 +270,13 @@ describe('url-shortener — regenerate', () => {
 			value: stubLocation,
 		});
 
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { message: 'Short URL regenerated. The old code is retired.' } } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
 		await flush();
 
 		expect(stubLocation.reload).toHaveBeenCalled();
-		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Regenerated!', 'success', 2000);
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Short URL regenerated. The old code is retired.', 'success', 2000);
 
 		Object.defineProperty(window, 'location', {
 			configurable: true,

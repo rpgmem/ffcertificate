@@ -88,6 +88,10 @@ class UrlShortenerLoader {
 		$meta_box = new UrlShortenerMetaBox( $this->service );
 		$meta_box->init_auto_create();
 
+		// The link follows its post (#2337). Posts are trashed and deleted
+		// over REST and WP-CLI too, so this sits outside the gate as well.
+		( new UrlShortenerPostLifecycle( $this->service ) )->init();
+
 		// Admin components.
 		if ( is_admin() ) {
 			$admin_page = new UrlShortenerAdminPage( $this->service );

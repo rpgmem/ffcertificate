@@ -104,29 +104,28 @@ class UrlShortenerMetaBox {
 	public function render( \WP_Post $post ): void {
 		$repository = $this->service->get_repository();
 		$record     = $repository->findByPostId( $post->ID );
+		$can_manage = self::can_manage( $post->ID );
 
-		if ( 'publish' !== $post->post_status && ! $record ) {
-			echo '<p class="description">' . esc_html__( 'Publish the post to generate a short URL.', 'ffcertificate' ) . '</p>';
-			wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
-			return;
-		}
+		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
 
-		// No record yet: the guard above already returned for any non-published
-		// post without a record, so reaching here with no record implies the
-		// post is published — auto-create the short URL.
+		// Viewing the editor never creates a link (#2337): publishing does, and
+		// so does a later save while the post has none.
 		if ( ! $record ) {
-			$permalink_raw = get_permalink( $post->ID );
-			$permalink     = $permalink_raw ? $permalink_raw : '';
-			$result        = $this->service->create_short_url( $permalink, $post->post_title, $post->ID );
-			$record        = $result['success'] && isset( $result['data'] ) ? $result['data'] : null;
-		}
-
-		if ( ! $record ) {
-			echo '<p class="description">' . esc_html__( 'Could not generate short URL.', 'ffcertificate' ) . '</p>';
+			if ( 'publish' !== $post->post_status ) {
+				echo '<p class="description">' . esc_html__( 'Publish the post to generate a short URL.', 'ffcertificate' ) . '</p>';
+			} elseif ( $this->service->is_auto_create_enabled() ) {
+				echo '<p class="description">' . esc_html__( 'The short URL is created when the post is saved.', 'ffcertificate' ) . '</p>';
+			} elseif ( $can_manage ) {
+				echo '<p class="description">' . esc_html__( 'This post has no short URL yet.', 'ffcertificate' ) . '</p>';
+				$this->render_action_button( $post->ID, 'generate' );
+			} else {
+				echo '<p class="description">' . esc_html__( 'This post has no short URL yet.', 'ffcertificate' ) . '</p>';
+			}
 			return;
 		}
 
 		$short_url = $this->service->get_short_url( $record['short_code'] );
+		$is_active = 'active' === ( $record['status'] ?? '' );
 
 		// Generate QR Code pointing to the short URL so clicks are tracked.
 		// Pass short_code for database caching (avoids regeneration on every admin load).
@@ -137,9 +136,7 @@ class UrlShortenerMetaBox {
 		// here, changing the constant would make the metabox -- the only repeated
 		// caller, and the reason the cache exists -- stop caching in silence.
 		// With the QR design applied it renders the styled SVG instead (#1563).
-		$qr_src = $qr_handler->preview_src( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] );
-
-		wp_nonce_field( 'ffc_short_url_meta_box', 'ffc_short_url_meta_nonce' );
+		$qr_src = $is_active ? $qr_handler->preview_src( $short_url, UrlShortenerQrHandler::CACHE_SIZE, $record['short_code'] ) : '';
 		?>
 		<div class="ffc-shorturl-metabox">
 			<!-- Short URL -->
@@ -170,8 +167,20 @@ class UrlShortenerMetaBox {
 				<?php esc_html_e( 'clicks', 'ffcertificate' ); ?>
 			</p>
 
+			<?php if ( ! $is_active ) : ?>
+				<p class="description">
+					<?php
+					echo esc_html(
+						'trashed' === ( $record['status'] ?? '' )
+							? __( 'This short URL is in the trash and does not redirect.', 'ffcertificate' )
+							: __( 'This short URL is disabled and does not redirect.', 'ffcertificate' )
+					);
+					?>
+				</p>
+			<?php endif; ?>
+
 			<!-- QR Code Preview -->
-			<?php if ( '' !== $qr_src ) : ?>
+			<?php if ( $is_active && '' !== $qr_src ) : ?>
 				<div class="ffc-shorturl-qr-preview">
 					<img src="<?php echo esc_attr( $qr_src ); ?>"
 						alt="<?php esc_attr_e( 'QR Code', 'ffcertificate' ); ?>" />
@@ -206,24 +215,58 @@ class UrlShortenerMetaBox {
 				</div>
 			<?php endif; ?>
 
-			<!-- Regenerate -->
-			<div class="ffc-shorturl-regenerate">
-				<?php
-				\FreeFormCertificate\Core\Button::render(
-					array(
-						'label'    => __( 'Regenerate', 'ffcertificate' ),
-						'category' => 'caution',
-						'icon'     => 'sync',
-						'class'    => 'ffc-regenerate-shorturl',
-						'attrs'    => array(
-							'data-post-id' => (string) $post->ID,
-						),
-					)
-				);
-				?>
-			</div>
+			<?php
+			// An off link comes back with its code; a live one swaps it (#2337).
+			if ( $can_manage ) {
+				$this->render_action_button( $post->ID, $is_active ? 'regenerate' : 'reactivate' );
+			}
+			?>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The box's one action button, named for what it will do (#2337).
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $action  `generate`, `reactivate` or `regenerate`.
+	 */
+	private function render_action_button( int $post_id, string $action ): void {
+		$buttons                                   = array(
+			'generate'   => array( __( 'Generate', 'ffcertificate' ), 'create', 'plus', '' ),
+			'reactivate' => array( __( 'Reactivate', 'ffcertificate' ), 'caution', 'restore', '' ),
+			'regenerate' => array( __( 'Regenerate', 'ffcertificate' ), 'caution', 'sync', __( 'Give this link a new code? The current code stops working and is never issued again.', 'ffcertificate' ) ),
+		);
+		list( $label, $category, $icon, $confirm ) = $buttons[ $action ];
+
+		echo '<div class="ffc-shorturl-regenerate">';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label'    => $label,
+				'category' => $category,
+				'icon'     => $icon,
+				'class'    => 'ffc-regenerate-shorturl',
+				'attrs'    => array(
+					'data-post-id'     => (string) $post_id,
+					// Not `data-confirm`: ffc-core.js asks for every element carrying
+					// that one, so the box would ask twice.
+					'data-ffc-confirm' => $confirm,
+				),
+			)
+		);
+		echo '</div>';
+	}
+
+	/**
+	 * Whether the current user may generate, reactivate or regenerate the
+	 * post's link: the manage capability and editing that post (#2337).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	private static function can_manage( int $post_id ): bool {
+		return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' )
+			&& current_user_can( 'edit_post', $post_id );
 	}
 
 	/**
@@ -298,9 +341,7 @@ class UrlShortenerMetaBox {
 				'i18n'    => array(
 					'copied'        => __( 'Copied!', 'ffcertificate' ),
 					'copyFailed'    => __( 'Copy failed', 'ffcertificate' ),
-					'regenerated'   => __( 'Short URL regenerated!', 'ffcertificate' ),
 					'error'         => __( 'An error occurred.', 'ffcertificate' ),
-					'confirm'       => __( 'Generate a new short code? The old one will stop working.', 'ffcertificate' ),
 					'qrLoadFailed'  => __( 'Failed to load QR Code', 'ffcertificate' ),
 					'copy'          => __( 'Copy', 'ffcertificate' ),
 					'requestFailed' => __( 'Request failed', 'ffcertificate' ),
@@ -310,7 +351,13 @@ class UrlShortenerMetaBox {
 	}
 
 	/**
-	 * AJAX: Regenerate short URL for a post.
+	 * AJAX: the box's action on the post's link, decided by its state (#2337).
+	 *
+	 * - no link: create it (the post must be published);
+	 * - disabled or trashed: reactivate it, same code;
+	 * - active: swap its code in place and retire the old one.
+	 *
+	 * Needs the manage capability and editing that post.
 	 */
 	public function ajax_regenerate(): void {
 		$this->verify_ajax_nonce( 'ffc_short_url_nonce' );
@@ -318,28 +365,46 @@ class UrlShortenerMetaBox {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Nonce verified in $this->verify_ajax_nonce() above. Cast to int, which sanitises; unslashing a value that becomes an int is a no-op.
 		$post_id = (int) ( $_POST['post_id'] ?? 0 );
-		if ( $post_id <= 0 ) {
+		$post    = $post_id > 0 ? get_post( $post_id ) : null;
+		if ( ! $post instanceof \WP_Post ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid post ID.', 'ffcertificate' ) ) );
 		}
-
-		// Delete existing.
-		$existing = $this->service->get_repository()->findByPostId( $post_id );
-		if ( $existing ) {
-			$this->service->delete_short_url( (int) $existing['id'] );
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You cannot edit this post.', 'ffcertificate' ) ) );
 		}
 
-		// Create new.
-		$permalink_raw = get_permalink( $post_id );
-		$permalink     = $permalink_raw ? $permalink_raw : '';
-		$post          = get_post( $post_id );
-		$result        = $this->service->create_short_url( $permalink, $post->post_title ?? '', $post_id );
+		$existing = $this->service->get_repository()->findByPostId( $post_id );
 
-		if ( $result['success'] ) {
-			$data              = $result['data'] ?? array();
-			$data['short_url'] = $this->service->get_short_url( $data['short_code'] );
-			wp_send_json_success( $data );
+		if ( ! $existing ) {
+			if ( 'publish' !== $post->post_status ) {
+				wp_send_json_error( array( 'message' => __( 'Publish the post to generate a short URL.', 'ffcertificate' ) ) );
+			}
+			$permalink = get_permalink( $post_id );
+			$result    = $this->service->create_short_url( $permalink ? $permalink : '', $post->post_title, $post_id );
+			$message   = __( 'Short URL created.', 'ffcertificate' );
+		} elseif ( 'active' !== ( $existing['status'] ?? '' ) ) {
+			$result  = $this->service->reactivate_short_url( (int) $existing['id'] )
+				? array(
+					'success' => true,
+					'data'    => array_merge( $existing, array( 'status' => 'active' ) ),
+				)
+				: array(
+					'success' => false,
+					'error'   => __( 'The short URL could not be reactivated.', 'ffcertificate' ),
+				);
+			$message = __( 'Short URL reactivated. Its code and QR code work again.', 'ffcertificate' );
 		} else {
+			$result  = $this->service->regenerate_code( $existing );
+			$message = __( 'Short URL regenerated. The old code is retired.', 'ffcertificate' );
+		}
+
+		if ( ! $result['success'] ) {
 			wp_send_json_error( array( 'message' => $result['error'] ?? '' ) );
 		}
+
+		$data              = $result['data'] ?? array();
+		$data['short_url'] = $this->service->get_short_url( (string) ( $data['short_code'] ?? '' ) );
+		$data['message']   = $message;
+		wp_send_json_success( $data );
 	}
 }

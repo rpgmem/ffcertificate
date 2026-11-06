@@ -183,6 +183,57 @@ class UrlShortenerActivatorTest extends TestCase {
 		$this->assertSame( 'wp_ffc_short_url_retired', UrlShortenerActivator::get_retired_table_name() );
 	}
 
+	// ==================================================================
+	// Case-sensitive codes (#2337)
+	// ==================================================================
+
+	public function test_both_tables_declare_a_binary_short_code(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_charset_collate' )->andReturn( 'DEFAULT CHARSET utf8mb4' );
+		$statements = array();
+		Functions\when( 'dbDelta' )->alias(
+			static function ( $sql ) use ( &$statements ) {
+				$statements[] = $sql;
+			}
+		);
+
+		UrlShortenerActivator::create_tables();
+
+		$this->assertCount( 2, $statements );
+		foreach ( $statements as $sql ) {
+			$this->assertStringContainsString( 'short_code ' . UrlShortenerActivator::SHORT_CODE_COLUMN, $sql );
+		}
+	}
+
+	public function test_a_case_insensitive_short_code_is_made_binary(): void {
+		$queries = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => $q . ' | ' . implode( ' | ', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn( $q ) => 0 === strpos( $q, 'SHOW TABLES' ) ? 'wp_ffc_short_urls' : 'utf8mb4_unicode_520_ci'
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$queries ) {
+				$queries[] = $q;
+				return 1;
+			}
+		);
+
+		UrlShortenerActivator::ensure_case_sensitive_codes( 'wp_ffc_short_urls' );
+
+		$this->assertSame( array( 'ALTER TABLE %i MODIFY short_code ' . UrlShortenerActivator::SHORT_CODE_COLUMN . ' | wp_ffc_short_urls' ), $queries );
+	}
+
+	public function test_a_binary_short_code_is_left_alone(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $q, ...$args ) => $q . ' | ' . implode( ' | ', $args ) );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing(
+			static fn( $q ) => 0 === strpos( $q, 'SHOW TABLES' ) ? 'wp_ffc_short_urls' : 'utf8mb4_bin'
+		);
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		UrlShortenerActivator::ensure_case_sensitive_codes( 'wp_ffc_short_urls' );
+	}
+
 	/**
 	 * Every `SHOW TABLES LIKE` answers with the table it asked about.
 	 */

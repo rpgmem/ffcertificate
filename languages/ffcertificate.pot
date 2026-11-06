@@ -4540,7 +4540,7 @@ msgid "Could not generate record."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:125
-msgid "Could not generate short URL."
+msgid "The short URL is created when the post is saved."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:114
@@ -7233,6 +7233,46 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/url-shortener/class-ffc-url-shortener-service.php:526
+msgid "Could not generate a new short code. The short URL is unchanged."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:236
+msgid "Generate"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:237
+msgid "Reactivate"
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:384
+msgid "Short URL created."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:395
+msgid "Short URL reactivated. Its code and QR code work again."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:393
+msgid "The short URL could not be reactivated."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:119
+msgid "This post has no short URL yet."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:176
+msgid "This short URL is disabled and does not redirect."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:175
+msgid "This short URL is in the trash and does not redirect."
+msgstr ""
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:373
+msgid "You cannot edit this post."
+msgstr ""
+
 #: templates/admin/url-shortener/retired-codes.php:19
 msgid "Replaced by Regenerate"
 msgstr ""
@@ -8516,7 +8556,7 @@ msgid "General settings view file not found."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:271
-msgid "Generate a new short code? The old one will stop working."
+msgid "Give this link a new code? The current code stops working and is never issued again."
 msgstr ""
 
 
@@ -15395,7 +15435,7 @@ msgid "Short URL permanently deleted."
 msgstr ""
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:269
-msgid "Short URL regenerated!"
+msgid "Short URL regenerated. The old code is retired."
 msgstr ""
 
 #: templates/admin/url-shortener/short-urls-page.php:64

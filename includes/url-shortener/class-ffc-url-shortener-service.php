@@ -29,15 +29,13 @@ class UrlShortenerService {
 	private UrlShortenerRepository $repository;
 
 	/**
-	 * Characters a generated code is drawn from: lowercase and digits (#2337).
+	 * Characters a generated code is drawn from: upper and lower case and
+	 * digits (#2337).
 	 *
-	 * The `short_code` column is compared case-insensitively on a default
-	 * install (measured `utf8mb4_unicode_520_ci`), so `AbC` and `abc` are one
-	 * code: drawing both cases only made the space look larger than it was.
-	 * Lowercase codes are distinct under any collation, so nothing depends
-	 * on how the table was created. Codes issued before keep working.
+	 * `short_code` has a binary collation, so `AbC` and `abc` are two codes
+	 * ({@see UrlShortenerActivator::SHORT_CODE_COLUMN}).
 	 */
-	public const CHARSET = 'abcdefghijklmnopqrstuvwxyz0123456789';
+	public const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 	/**
 	 * The longest code the `short_code` column holds.
@@ -215,7 +213,7 @@ class UrlShortenerService {
 	 * @return string
 	 */
 	public function get_example_short_url(): string {
-		return $this->get_short_url( substr( str_repeat( 'ab3def9h', 8 ), 0, $this->get_code_length() ) );
+		return $this->get_short_url( substr( str_repeat( 'Ab3dEf9h', 8 ), 0, $this->get_code_length() ) );
 	}
 
 	/**
@@ -470,6 +468,62 @@ class UrlShortenerService {
 				'status'     => 'disabled',
 				'updated_at' => current_time( 'mysql' ),
 			)
+		);
+	}
+
+	/**
+	 * Bring a disabled or trashed link back as active, same code (#2337).
+	 *
+	 * Its clicks and every printed QR keep working, which is why the meta
+	 * box offers this instead of a new code when a post's link is off.
+	 *
+	 * @param int $id Record ID.
+	 * @return bool
+	 */
+	public function reactivate_short_url( int $id ): bool {
+		return false !== $this->repository->update(
+			$id,
+			array(
+				'status'     => 'active',
+				'updated_at' => current_time( 'mysql' ),
+			)
+		);
+	}
+
+	/**
+	 * Give a link a new code in place and retire the old one (#2337).
+	 *
+	 * The same row takes the code, so clicks, title and target carry over and
+	 * nothing goes to the trash. The old code stops answering at once and is
+	 * never issued again. A code another request takes first is drawn again.
+	 *
+	 * @param array<string, mixed> $record The link row.
+	 * @return array{success: bool, data?: array<string, mixed>, error?: string}
+	 */
+	public function regenerate_code( array $record ): array {
+		for ( $attempt = 0; $attempt < self::INSERT_ATTEMPTS; $attempt++ ) {
+			$code = $this->generate_unique_code();
+			if ( '' === $code ) {
+				break;
+			}
+			if ( $this->repository->swapCode( $record, $code ) ) {
+				$fresh = $this->repository->findById( (int) $record['id'] );
+				if ( is_array( $fresh ) ) {
+					return array(
+						'success' => true,
+						'data'    => $fresh,
+					);
+				}
+				break;
+			}
+			if ( ! $this->code_taken( $code ) ) {
+				break; // Refused for another reason; drawing again will not help.
+			}
+		}
+
+		return array(
+			'success' => false,
+			'error'   => __( 'Could not generate a new short code. The short URL is unchanged.', 'ffcertificate' ),
 		);
 	}
 

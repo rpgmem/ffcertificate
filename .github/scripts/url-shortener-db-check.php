@@ -44,8 +44,8 @@ $ffc_us_post    = 0;
  */
 function ffc_us_cleanup(): void {
 	global $wpdb, $ffc_us_table, $ffc_us_retired, $ffc_us_post;
-	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE short_code LIKE %s', $ffc_us_table, 'zq%' ) );
-	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE short_code LIKE %s', $ffc_us_retired, 'zq%' ) );
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE LOWER(short_code) LIKE %s', $ffc_us_table, 'zq%' ) );
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE LOWER(short_code) LIKE %s', $ffc_us_retired, 'zq%' ) );
 	if ( $ffc_us_post > 0 ) {
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE post_id = %d', $ffc_us_table, $ffc_us_post ) );
 		wp_delete_post( $ffc_us_post, true );
@@ -127,6 +127,10 @@ $wpdb->suppress_errors( false );
 if ( $ffc_us_found !== $ffc_us_exists || $ffc_us_exists !== $ffc_us_refused ) {
 	ffc_us_fail( "Collation {$ffc_us_collation}: lookup " . var_export( $ffc_us_found, true ) . ', codeExists ' . var_export( $ffc_us_exists, true ) . ', key refused ' . var_export( $ffc_us_refused, true ) . ' disagree on a code in another case.' );
 }
+// Case counts (#2337): the generator draws from both cases.
+if ( $ffc_us_exists || '_bin' !== substr( $ffc_us_collation, -4 ) ) {
+	ffc_us_fail( "short_code is {$ffc_us_collation}: a code in another case is the same code, so the generator's upper and lower case would collide." );
+}
 echo 'OK   collation ' . $ffc_us_collation . ': codes in another case are ' . ( $ffc_us_exists ? 'one code' : 'two codes' ) . ", and the lookup, codeExists() and the key agree\n";
 
 // 3. The column holds the longest code the settings allow.
@@ -181,10 +185,10 @@ if ( $ffc_us_repo->codeRetired( 'ZQCACHE1' ) !== $ffc_us_exists ) {
 	ffc_us_fail( 'The retired codes compare case differently from the links table.' );
 }
 $ffc_us_drawn = $ffc_us_service->generate_unique_code();
-if ( 1 !== preg_match( '/^[a-z0-9]+$/', $ffc_us_drawn ) || $ffc_us_repo->codeExists( $ffc_us_drawn ) || $ffc_us_repo->codeRetired( $ffc_us_drawn ) ) {
-	ffc_us_fail( "The generator drew '{$ffc_us_drawn}', which is not a free lowercase code." );
+if ( 1 !== preg_match( '/^[A-Za-z0-9]+$/', $ffc_us_drawn ) || $ffc_us_repo->codeExists( $ffc_us_drawn ) || $ffc_us_repo->codeRetired( $ffc_us_drawn ) ) {
+	ffc_us_fail( "The generator drew '{$ffc_us_drawn}', which is not a free code." );
 }
-echo "OK   deleting a link retires its code, and the generator draws a free lowercase code\n";
+echo "OK   deleting a link retires its code, and the generator draws a free code\n";
 
 // 4c. Empty Trash removes every trashed link, retires each code and counts them.
 $ffc_us_trashed_before = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status = %s', $ffc_us_table, 'trashed' ) );
@@ -220,6 +224,52 @@ if ( $ffc_us_after !== $ffc_us_before - 1 || in_array( (string) $ffc_us_post, ar
 	ffc_us_fail( "The backfill still offers a post whose link is disabled (before {$ffc_us_before}, after {$ffc_us_after})." );
 }
 echo "OK   the backfill leaves alone a post whose link is disabled\n";
+
+// 6. Regenerate swaps the code in place and retires the old one (#2337).
+$ffc_us_swap_id = ffc_us_plant( $ffc_us_repo, 'zqSwap1' );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET click_count = 7 WHERE id = %d', $ffc_us_table, $ffc_us_swap_id ) );
+$ffc_us_repo->findByShortCode( 'zqSwap1' );
+$ffc_us_swapped = $ffc_us_service->regenerate_code( (array) $ffc_us_repo->findById( $ffc_us_swap_id ) );
+$ffc_us_new     = (string) ( $ffc_us_swapped['data']['short_code'] ?? '' );
+$ffc_us_reason  = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT reason FROM %i WHERE short_code = %s', $ffc_us_retired, 'zqSwap1' ) );
+$ffc_us_after   = '' === $ffc_us_new ? null : $ffc_us_repo->findByShortCode( $ffc_us_new );
+if ( empty( $ffc_us_swapped['success'] ) || null !== $ffc_us_repo->findByShortCode( 'zqSwap1' ) || 'regenerated' !== $ffc_us_reason
+	|| ! $ffc_us_after || (int) $ffc_us_after['id'] !== $ffc_us_swap_id || 7 !== (int) $ffc_us_after['click_count'] ) {
+	ffc_us_fail( 'Regenerate did not give the same row a new code, keep its clicks and retire the old code.' );
+}
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id = %d', $ffc_us_table, $ffc_us_swap_id ) );
+echo "OK   Regenerate gives the same row a new code, keeps its clicks and retires the old one\n";
+
+// 7. The link follows its post: trash disables, publishing again restores, delete retires.
+$ffc_us_follow = (int) wp_insert_post(
+	array(
+		'post_title'  => 'ffc short url ci follow',
+		'post_status' => 'publish',
+		'post_type'   => 'post',
+	)
+);
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE post_id = %d', $ffc_us_table, $ffc_us_follow ) );
+wp_cache_flush();
+ffc_us_plant( $ffc_us_repo, 'zqFollow1', $ffc_us_follow );
+$ffc_us_status = static function () use ( $ffc_us_repo, $ffc_us_follow ): string {
+	$row = $ffc_us_repo->findByPostId( $ffc_us_follow );
+	return $row ? (string) $row['status'] : 'none';
+};
+wp_trash_post( $ffc_us_follow );
+$ffc_us_trashed = $ffc_us_status();
+wp_untrash_post( $ffc_us_follow );
+$ffc_us_untrashed = $ffc_us_status();
+wp_publish_post( $ffc_us_follow );
+$ffc_us_published = $ffc_us_status();
+wp_delete_post( $ffc_us_follow, true );
+$ffc_us_deleted = $ffc_us_status();
+$ffc_us_follow_retired = $ffc_us_repo->codeRetired( 'zqFollow1' );
+// wp_untrash_post() restores to draft unless a filter says otherwise, and a
+// draft's link stays off until the post is published; either is accepted.
+if ( 'disabled' !== $ffc_us_trashed || ! in_array( $ffc_us_untrashed, array( 'active', 'disabled' ), true ) || 'active' !== $ffc_us_published || 'none' !== $ffc_us_deleted || ! $ffc_us_follow_retired ) {
+	ffc_us_fail( "The link did not follow its post: trashed {$ffc_us_trashed}, restored {$ffc_us_untrashed}, published {$ffc_us_published}, deleted {$ffc_us_deleted}." );
+}
+echo "OK   the link follows its post: trash disables it, publishing restores it, deleting retires its code\n";
 
 ffc_us_cleanup();
 echo "URL SHORTENER DB CHECK PASSED\n";

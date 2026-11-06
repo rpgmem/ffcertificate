@@ -245,6 +245,7 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$repo->shouldReceive( 'findByPostId' )->with( 42 )->andReturn( [
 			'id'         => 7,
 			'short_code' => 'pst42x',
+			'status'     => 'active',
 		] );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_short_url' )->with( 'pst42x' )->andReturn( 'https://example.com/go/pst42x' );
@@ -257,6 +258,26 @@ class UrlShortenerQrHandlerTest extends TestCase {
 
 		$this->assertSame( 'https://example.com/go/pst42x', $result['url'] );
 		$this->assertSame( 'qr-my-page', $result['prefix'] );
+	}
+
+	public function test_resolve_qr_target_refuses_a_post_whose_link_is_off(): void {
+		$_POST['post_id'] = '42';
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findByPostId' )->with( 42 )->andReturn( array( 'id' => 7, 'short_code' => 'pst42x', 'status' => 'disabled' ) );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'get_short_url' );
+
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data ) {
+				throw new \RuntimeException( $data['message'] );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'not active' );
+
+		$this->invoke_resolve_qr_target();
 	}
 
 	public function test_resolve_qr_target_post_has_no_short_url_sends_error(): void {
@@ -370,6 +391,41 @@ class UrlShortenerQrHandlerTest extends TestCase {
 		$ref->setAccessible( true );
 		return $ref->invoke( $this->handler );
 	}
+
+	/**
+	 * Runs the private download gate; true when it let the request through.
+	 */
+	private function qr_download_allowed(): bool {
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function () {
+				throw new \RuntimeException( 'denied' );
+			}
+		);
+		$ref = new \ReflectionMethod( UrlShortenerQrHandler::class, 'check_qr_view_permission' );
+		$ref->setAccessible( true );
+		try {
+			$ref->invoke( $this->handler );
+			return true;
+		} catch ( \RuntimeException $e ) {
+			return false;
+		}
+	}
+
+	public function test_editing_the_post_is_enough_to_download_its_qr(): void {
+		$_POST['post_id'] = '42';
+		// No short-URL capability; can edit post 42 (#2337).
+		Functions\when( 'current_user_can' )->alias( static fn( $cap, $id = 0 ) => 'edit_post' === $cap && 42 === $id );
+
+		$this->assertTrue( $this->qr_download_allowed() );
+	}
+
+	public function test_without_a_post_the_view_capability_is_still_needed(): void {
+		unset( $_POST['post_id'] );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'edit_post' === $cap );
+
+		$this->assertFalse( $this->qr_download_allowed() );
+	}
+
 	// ==================================================================
 	// generate_svg() — pure matrix → SVG (phpqrcode raw, no GD/temp files)
 	// ==================================================================

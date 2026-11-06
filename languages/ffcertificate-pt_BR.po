@@ -4542,8 +4542,8 @@ msgid "Could not generate record."
 msgstr "Não foi possível gerar a ficha."
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:125
-msgid "Could not generate short URL."
-msgstr "Não foi possível gerar um URL curto."
+msgid "The short URL is created when the post is saved."
+msgstr "O link curto é criado ao salvar o post."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:114
 msgid "Could not link the adjutancy to the notice. Please try again."
@@ -7236,6 +7236,46 @@ msgstr "O evento dura mais de um dia"
 msgid "Event:"
 msgstr "Evento:"
 
+#: includes/url-shortener/class-ffc-url-shortener-service.php:526
+msgid "Could not generate a new short code. The short URL is unchanged."
+msgstr "Não foi possível gerar um novo código. O link curto não foi alterado."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:236
+msgid "Generate"
+msgstr "Gerar"
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:237
+msgid "Reactivate"
+msgstr "Reativar"
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:384
+msgid "Short URL created."
+msgstr "Link curto criado."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:395
+msgid "Short URL reactivated. Its code and QR code work again."
+msgstr "Link curto reativado. O código e o QR code voltam a funcionar."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:393
+msgid "The short URL could not be reactivated."
+msgstr "Não foi possível reativar o link curto."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:119
+msgid "This post has no short URL yet."
+msgstr "Este post ainda não tem link curto."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:176
+msgid "This short URL is disabled and does not redirect."
+msgstr "Este link curto está desativado e não redireciona."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:175
+msgid "This short URL is in the trash and does not redirect."
+msgstr "Este link curto está no lixo e não redireciona."
+
+#: includes/url-shortener/class-ffc-url-shortener-meta-box.php:373
+msgid "You cannot edit this post."
+msgstr "Você não pode editar este post."
+
 #: templates/admin/url-shortener/retired-codes.php:19
 msgid "Replaced by Regenerate"
 msgstr "Trocado ao regenerar"
@@ -8516,8 +8556,8 @@ msgid "General settings view file not found."
 msgstr "Arquivo de visualização das configurações gerais não encontrado."
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:271
-msgid "Generate a new short code? The old one will stop working."
-msgstr "Gerar um novo código curto? O antigo deixará de funcionar."
+msgid "Give this link a new code? The current code stops working and is never issued again."
+msgstr "Dar um novo código a este link? O código atual para de funcionar e nunca mais é emitido."
 
 
 #: includes/settings/views/ffc-tab-advanced.php:848 includes/settings/views/ffc-tab-advanced.php:904
@@ -15444,8 +15484,8 @@ msgid "Short URL permanently deleted."
 msgstr "URL curta excluída permanentemente."
 
 #: includes/url-shortener/class-ffc-url-shortener-meta-box.php:269
-msgid "Short URL regenerated!"
-msgstr "URL curta regenerada!"
+msgid "Short URL regenerated. The old code is retired."
+msgstr "Link curto regenerado. O código antigo foi aposentado."
 
 #: templates/admin/url-shortener/short-urls-page.php:64
 msgid "Short URL restored."

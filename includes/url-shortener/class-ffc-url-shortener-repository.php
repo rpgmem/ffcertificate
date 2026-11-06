@@ -312,4 +312,40 @@ class UrlShortenerRepository extends AbstractRepository {
 
 		return true;
 	}
+
+	/**
+	 * Give a link a new code and retire the old one, both or neither (#2337).
+	 *
+	 * The row keeps its id, clicks, title and target. The QR stored for the
+	 * old code is dropped with it. Lookups under the old and the new code
+	 * are cleared by update().
+	 *
+	 * @param array<string, mixed> $row      The link row; needs id and short_code.
+	 * @param string               $new_code The code it takes.
+	 * @return bool False when the new code was refused or a write failed; the link is then unchanged.
+	 */
+	public function swapCode( array $row, string $new_code ): bool {
+		$id = (int) ( $row['id'] ?? 0 );
+		if ( $id <= 0 || '' === (string) ( $row['short_code'] ?? '' ) || '' === $new_code ) {
+			return false;
+		}
+
+		$this->begin_transaction();
+		$changed = $this->writer->retireCode( $row, 'regenerated', time() )
+			&& 1 === (int) $this->update(
+				$id,
+				array(
+					'short_code' => $new_code,
+					'qr_cache'   => null,
+					'updated_at' => current_time( 'mysql' ),
+				)
+			);
+		if ( ! $changed ) {
+			$this->rollback();
+			return false;
+		}
+		$this->commit();
+
+		return true;
+	}
 }
