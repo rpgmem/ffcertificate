@@ -43,11 +43,13 @@ class UrlShortenerQrHandler {
 	public const CACHE_SIZE = 200;
 
 	/**
-	 * Version of the envelope stored in the `qr_cache` column.
+	 * Version of the envelope stored in the `qr_cache` column. Version 2
+	 * records the URL the PNG encodes (#2337), so an envelope written before
+	 * it -- which cannot say what it encodes -- is a miss and is rewritten.
 	 *
 	 * @var int
 	 */
-	private const CACHE_FORMAT = 1;
+	private const CACHE_FORMAT = 2;
 
 	/*
 	 * TWO QR CACHES SHARING ONE POPULAR NAME -- do not confuse them (#1233).
@@ -117,7 +119,7 @@ class UrlShortenerQrHandler {
 		$cacheable = '' !== $short_code && self::CACHE_SIZE === $size;
 
 		if ( $cacheable ) {
-			$cached = $this->get_qr_cache( $short_code, $size );
+			$cached = $this->get_qr_cache( $short_code, $size, $url );
 			if ( '' !== $cached ) {
 				return $cached;
 			}
@@ -136,7 +138,7 @@ class UrlShortenerQrHandler {
 
 		// Persist to cache.
 		if ( $cacheable && '' !== $base64 ) {
-			$this->set_qr_cache( $short_code, $size, $base64 );
+			$this->set_qr_cache( $short_code, $size, $url, $base64 );
 		}
 
 		return $base64;
@@ -168,11 +170,16 @@ class UrlShortenerQrHandler {
 	 * written under the previous value start failing the size check and are
 	 * discarded rather than served.
 	 *
+	 * The URL check does the same for what the PNG says (#2337): a new prefix,
+	 * a moved domain or a swapped code changes the URL, and a PNG of the old
+	 * one would send every scan to a link that no longer exists.
+	 *
 	 * @param string $short_code Short code.
 	 * @param int    $size       The required size, in pixels.
+	 * @param string $url        The URL the PNG must encode.
 	 * @return string Base64 data or empty string.
 	 */
-	private function get_qr_cache( string $short_code, int $size ): string {
+	private function get_qr_cache( string $short_code, int $size, string $url ): string {
 		$raw = $this->service->get_repository()->findQrCacheByShortCode( $short_code );
 		if ( '' === $raw ) {
 			return '';
@@ -186,8 +193,9 @@ class UrlShortenerQrHandler {
 		$version = $payload['v'] ?? null;
 		$stored  = $payload['size'] ?? null;
 		$png     = $payload['png'] ?? null;
+		$encodes = $payload['url'] ?? null;
 
-		if ( self::CACHE_FORMAT !== $version || $size !== $stored || ! is_string( $png ) || '' === $png ) {
+		if ( self::CACHE_FORMAT !== $version || $size !== $stored || $url !== $encodes || ! is_string( $png ) || '' === $png ) {
 			return '';
 		}
 
@@ -205,13 +213,15 @@ class UrlShortenerQrHandler {
 	 *
 	 * @param string $short_code Short code.
 	 * @param int    $size       The PNG's size, in pixels.
+	 * @param string $url        The URL the PNG encodes.
 	 * @param string $base64     Base64-encoded PNG.
 	 */
-	private function set_qr_cache( string $short_code, int $size, string $base64 ): void {
+	private function set_qr_cache( string $short_code, int $size, string $url, string $base64 ): void {
 		$payload = wp_json_encode(
 			array(
 				'v'    => self::CACHE_FORMAT,
 				'size' => $size,
+				'url'  => $url,
 				'png'  => $base64,
 			)
 		);

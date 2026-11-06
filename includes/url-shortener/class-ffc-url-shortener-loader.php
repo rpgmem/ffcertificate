@@ -176,17 +176,35 @@ class UrlShortenerLoader {
 	 * Extract a short code from the current request path.
 	 *
 	 * Parses REQUEST_URI directly so it works regardless of whether
-	 * WordPress rewrite rules matched the request.
+	 * WordPress rewrite rules matched the request. The match is anchored to
+	 * the site's home path (#2337): only `<home path>/<prefix>/<code>` is a
+	 * short URL. Unanchored, `/docs/go/install` was captured at
+	 * `parse_request` priority 1 and sent home.
 	 *
 	 * @return string Short code, or empty string if not a short URL request.
 	 */
 	private function extract_code_from_uri(): string {
-		$prefix = $this->service->get_prefix();
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_URI, parsed by wp_parse_url() on the next line and matched against the code pattern.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Server-set REQUEST_URI, parsed by wp_parse_url() and matched against the anchored code pattern.
 		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-		$path    = trim( (string) wp_parse_url( $raw_uri, PHP_URL_PATH ), '/' );
+		return self::code_from_path( (string) wp_parse_url( $raw_uri, PHP_URL_PATH ), (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), $this->service->get_prefix() );
+	}
 
-		if ( preg_match( '/(?:^|\/)' . preg_quote( $prefix, '/' ) . '\/([A-Za-z0-9]+)\/?$/', $path, $matches ) ) {
+	/**
+	 * The short code a request path names, or '' (#2337): the path must be
+	 * exactly the home path, the prefix and one code, with an optional
+	 * trailing slash.
+	 *
+	 * @param string $path      Request path, as sent.
+	 * @param string $home_path The home URL's path ('/' at the root, '/site/' in a sub-directory).
+	 * @param string $prefix    Short URL prefix.
+	 * @return string
+	 */
+	public static function code_from_path( string $path, string $home_path, string $prefix ): string {
+		$path = trim( $path, '/' );
+		$home = trim( $home_path, '/' );
+		$base = ( '' === $home ? '' : preg_quote( $home, '/' ) . '\/' ) . preg_quote( trim( $prefix, '/' ), '/' );
+
+		if ( '' !== trim( $prefix, '/' ) && 1 === preg_match( '/^' . $base . '\/([A-Za-z0-9]+)$/', $path, $matches ) ) {
 			return $matches[1];
 		}
 

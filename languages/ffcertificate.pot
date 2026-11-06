@@ -7233,6 +7233,10 @@ msgstr ""
 msgid "Event:"
 msgstr ""
 
+#: includes/url-shortener/class-ffc-url-shortener-qr-rest-controller.php
+msgid "This short URL is not active, so it has no QR code."
+msgstr ""
+
 #: templates/admin/date-messages/upcoming.php
 msgid "Only the first %d people are listed. Choose a shorter period or an audience to see the rest."
 msgstr ""
