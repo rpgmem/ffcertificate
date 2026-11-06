@@ -121,6 +121,55 @@
 			location.reload();
 		},
 
+		// ── The operator actions' challenge (#2341) ────────────────
+
+		// The info answer carries a security block bound to the actions'
+		// own context. It is kept detached as a template: each dialog
+		// mounts a copy, and a refusal's fresh challenge updates the
+		// template, so the next dialog shows the new question.
+		$actionSecurity: null,
+
+		setActionSecurity: function (html) {
+			api.$actionSecurity = html ? $('<div></div>').html(html) : null;
+		},
+
+		// Put a copy of the block into a dialog; nothing when the screen
+		// did not send one.
+		mountActionSecurity: function ($target) {
+			if (!api.$actionSecurity || !$target || !$target.length) {
+				return;
+			}
+			$target.empty().append(api.$actionSecurity.children().clone());
+		},
+
+		// The request of an action: the page form without its action and
+		// without its own security fields (those belong to the download),
+		// plus the dialog's security fields.
+		actionPayload: function ($dialog) {
+			var own = {};
+			api.$form.find('.ffc-security-container :input').each(function () {
+				if (this.name) own[this.name] = true;
+			});
+			var base = api.$form.serializeArray().filter(function (field) {
+				return field.name !== 'action' && !own[field.name];
+			});
+			var fields = $dialog ? $dialog.find('.ffc-security-container :input').serializeArray() : [];
+			return $.param(base.concat(fields));
+		},
+
+		// After a refused action: the server spent the challenge and sent
+		// a fresh one, which the next dialog must show.
+		refreshActionSecurity: function (err) {
+			var data = err && err.data;
+			if (!data || !data.refresh_captcha || !api.$actionSecurity) {
+				return;
+			}
+			var UI = window.FFC && window.FFC.Frontend && window.FFC.Frontend.UI;
+			if (UI && typeof UI.refreshCaptcha === 'function') {
+				UI.refreshCaptcha(api.$actionSecurity, data);
+			}
+		},
+
 		// ── Browser check (#2030) ───────────────────────────────────
 
 		// The visitor pre-flight's browser step, as on a certificate form:

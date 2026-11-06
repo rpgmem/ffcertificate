@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><code>owner</code> — <?php esc_html_e( 'the CPF must match the form author\'s account CPF.', 'ffcertificate' ); ?></li>
 		<li><code>whitelist</code> — <?php esc_html_e( 'the CPF must be on a per-form allowlist.', 'ffcertificate' ); ?></li>
 	</ul>
-	<p><?php esc_html_e( 'The CPF gate is checked again when the operator uses Start Form Early or Postpone Close.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The CPF gate is checked again when the operator uses Start Form Early or Postpone Close.', 'ffcertificate' ); ?> <?php esc_html_e( 'Each of the three actions (Start Form Early, Postpone Close, Schedule exception) shows its own verification in its dialog and spends it, so the one solved for the download never changes the form.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Per-participant entry/exit exception', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'With "Enable Schedule Exception" switched on in the form\'s Time tab, the operator page shows an "Entry/exit exception" button. It records an individual entry/exit time for one participant, which replaces {{schedule}} on that participant\'s certificate. The "Default Modal Mode" setting chooses whether the dialog opens with the end time pre-filled with the current moment (Now) or lets the operator type both ends (Manual).', 'ffcertificate' ); ?></p>

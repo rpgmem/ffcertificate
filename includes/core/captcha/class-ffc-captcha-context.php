@@ -47,6 +47,16 @@ final class CaptchaContext {
 	public const PUBLIC_CSV = 'public_csv';
 
 	/**
+	 * The public CSV screen's operator actions: open early, postpone the
+	 * close and the schedule exception (#2341). Apart from the download's
+	 * context, so a proof solved for the download never authorises a change
+	 * to the form, and the download spending its proof leaves the actions'.
+	 *
+	 * @var string
+	 */
+	public const PUBLIC_CSV_ACTION = 'public_csv_action';
+
+	/**
 	 * The personal-calendar booking form.
 	 *
 	 * @var string
@@ -80,7 +90,7 @@ final class CaptchaContext {
 		}
 
 		$raw = trim( $raw );
-		if ( in_array( $raw, array( self::VERIFY, self::PUBLIC_CSV, self::BOOKING ), true ) ) {
+		if ( in_array( $raw, array( self::VERIFY, self::PUBLIC_CSV, self::PUBLIC_CSV_ACTION, self::BOOKING ), true ) ) {
 			return $raw;
 		}
 

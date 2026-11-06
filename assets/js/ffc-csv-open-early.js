@@ -61,6 +61,7 @@
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Confirm is caution,
 			// because it moves the start the participants see (#1881).
+			+     '<div class="ffc-csv-action-security"></div>'
 			+     '<div class="ffc-open-early-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-open-early-cancel', attrs: { autofocus: true } })
 			+       FFC.buttonHtml({ label: strings.openEarlyConfirm || 'Confirm and start form', category: 'caution', icon: 'clock', className: 'ffc-open-early-confirm' })
@@ -69,6 +70,7 @@
 			+ '</div>';
 
 		var $modal = $(modalHtml).appendTo(document.body);
+		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		// Trap Esc to cancel.
 		var onKey = function (e) {
 			if (e.key === 'Escape') {
@@ -84,21 +86,19 @@
 
 		$modal.find('.ffc-open-early-cancel, .ffc-open-early-close, .ffc-open-early-backdrop').on('click', closeModal);
 		$modal.find('.ffc-open-early-confirm').on('click', function () {
+			var payload = api.actionPayload($modal);
 			closeModal();
-			submitOpenEarly();
+			submitOpenEarly(payload);
 		});
 
 		// Ensure the Cancel button has focus on open.
 		setTimeout(function () { $modal.find('.ffc-open-early-cancel').focus(); }, 0);
 	}
 
-	function submitOpenEarly() {
+	function submitOpenEarly(payload) {
 		var $btnEarly = api.$container.find('.ffc-btn-open-early');
 		$btnEarly.prop('disabled', true).text(strings.starting || 'Starting…');
 
-		// Page's existing form carries form_id + hash + nonce; strip its
-		// `action` so FFC.request can inject ours.
-		var payload = api.$form.serialize().replace(/(^|&)action=[^&]*/, '');
 
 		FFC.request('ffc_public_open_early', payload)
 			.then(function (data) {
@@ -110,6 +110,7 @@
 				window.location.reload();
 			})
 			.catch(function (err) {
+				api.refreshActionSecurity(err);
 				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
 			});

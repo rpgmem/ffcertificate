@@ -512,7 +512,12 @@ class PublicCsvDownload {
 			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
-		wp_send_json_success( $this->form_info_builder->build_form_info( $form_id ) );
+		$info = $this->form_info_builder->build_form_info( $form_id );
+		// The operator actions' own challenge (#2341): each dialog shows it
+		// and the action spends it, so it is never the one this screen
+		// peeked at, which the download spends.
+		$info['action_security'] = \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION );
+		wp_send_json_success( $info );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -642,10 +647,15 @@ class PublicCsvDownload {
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
@@ -710,10 +720,15 @@ class PublicCsvDownload {
 				'out_of_day'          => __( 'The new close time must stay within the same day.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
@@ -770,28 +785,39 @@ class PublicCsvDownload {
 				'no_change'                   => __( 'The override is identical to the baseline — nothing to do.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
 		}
 
+		// The dialog stays on screen, so the next action takes a fresh
+		// challenge from this answer (#2341).
 		wp_send_json_success(
-			array(
-				'message'  => __( 'Schedule exception staged. Open the participant form in the next tab.', 'ffcertificate' ),
-				'token'    => $result['token'],
-				'form_url' => $result['form_url'],
+			\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+				array(
+					'message'  => __( 'Schedule exception staged. Open the participant form in the next tab.', 'ffcertificate' ),
+					'token'    => $result['token'],
+					'form_url' => $result['form_url'],
+				),
+				\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 			)
 		);
 	}
 
 	/**
 	 * The checks every public CSV action runs before its own, in this order
-	 * (#2241): the address's rate limit, the form's access hash, then the
-	 * CPF. The CPF answer says whether a CPF is authorised on the form, so a
+	 * (#2241): the address's rate limits, the action's challenge (#2341), the
+	 * form's access hash, then the CPF. The challenge is spent here, so every
+	 * refusal after it carries a fresh one for the dialog. The CPF answer says whether a CPF is authorised on the form, so a
 	 * caller without the hash must never reach it: the three actions used to
 	 * check the CPF first, which let anyone holding a page nonce probe CPFs
 	 * against a form, unthrottled. The CPF check stays silent because each
@@ -813,14 +839,20 @@ class PublicCsvDownload {
 			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
 		}
 
+		$context        = \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION;
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, $context ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the page nonce is checked by each action before it calls this guard.
+		if ( true !== $security_check ) {
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), $context ), 403 );
+		}
+
 		$hash_error = $this->validator->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $hash_error ) {
-			wp_send_json_error( array( 'message' => $hash_error ), 403 );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $hash_error ), $context ), 403 );
 		}
 
 		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), $context ), 403 );
 		}
 	}
 

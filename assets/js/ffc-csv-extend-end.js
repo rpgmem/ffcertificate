@@ -78,6 +78,7 @@
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Confirm is caution,
 			// because it moves the close the participants see (#1881).
+			+     '<div class="ffc-csv-action-security"></div>'
 			+     '<div class="ffc-open-early-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-extend-end-cancel', attrs: { autofocus: true } })
 			+       FFC.buttonHtml({ label: strings.postponeConfirm || 'Confirm postponement', category: 'caution', icon: 'calendar-check', className: 'ffc-extend-end-confirm' })
@@ -86,6 +87,7 @@
 			+ '</div>';
 
 		var $modal = $(modalHtml).appendTo(document.body);
+		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		var onKey = function (e) {
 			if (e.key === 'Escape') { closeModal(); }
 		};
@@ -145,19 +147,19 @@
 				$input.focus();
 				return;
 			}
+			var payload = api.actionPayload($modal);
 			closeModal();
-			submitExtendEnd(newTime);
+			submitExtendEnd(newTime, payload);
 		});
 
 		setTimeout(function () { $modal.find('.ffc-extend-end-cancel').focus(); }, 0);
 	}
 
-	function submitExtendEnd(newTime) {
+	function submitExtendEnd(newTime, base) {
 		var $btn = api.$container.find('.ffc-btn-extend-end');
 		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
 
-		var payload = api.$form.serialize().replace(/(^|&)action=[^&]*/, '')
-			+ '&new_time_end=' + encodeURIComponent(newTime);
+		var payload = base + '&new_time_end=' + encodeURIComponent(newTime);
 
 		FFC.request('ffc_public_extend_end', payload)
 			.then(function (data) {
@@ -165,6 +167,7 @@
 				window.location.reload();
 			})
 			.catch(function (err) {
+				api.refreshActionSecurity(err);
 				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
 			});
