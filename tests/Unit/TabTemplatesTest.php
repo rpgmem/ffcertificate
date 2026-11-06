@@ -117,4 +117,50 @@ class TabTemplatesTest extends TestCase {
 		$this->assertStringNotContainsString( 'Current assignments', $out );
 		$this->assertStringNotContainsString( 'ffc-template-assignments', $out );
 	}
+
+	/**
+	 * Render as an admin with the given `ffc_settings` module flags.
+	 *
+	 * @param array<string, int> $flags Module option keys and values.
+	 * @return string
+	 */
+	private function render_with_modules( array $flags ): string {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			static fn( $name, $fallback = false ) => 'ffc_settings' === $name ? $flags : array()
+		);
+
+		ob_start();
+		$this->tab->render();
+		return (string) ob_get_clean();
+	}
+
+	public function test_receipt_card_and_rows_go_with_the_scheduling_module(): void {
+		$out = $this->render_with_modules( array( 'module_self_scheduling_enabled' => 0 ) );
+
+		$this->assertStringNotContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $out );
+		$this->assertStringNotContainsString( 'page=ffc-scheduling-settings&tab=receipt', $out );
+		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_RECORD, $out, 'The record card stays while reregistration is on.' );
+		$this->assertStringContainsString( 'page=ffc-settings&tab=reregistration', $out );
+	}
+
+	public function test_record_card_and_row_go_with_the_reregistration_module(): void {
+		$out = $this->render_with_modules( array( 'module_reregistration_enabled' => 0 ) );
+
+		$this->assertStringNotContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_RECORD, $out );
+		$this->assertStringNotContainsString( 'page=ffc-settings&tab=reregistration', $out );
+		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_APPOINTMENT_RECEIPT, $out );
+	}
+
+	public function test_assignments_panel_hidden_when_both_feature_modules_are_off(): void {
+		$out = $this->render_with_modules(
+			array(
+				'module_self_scheduling_enabled' => 0,
+				'module_reregistration_enabled'  => 0,
+			)
+		);
+
+		$this->assertStringNotContainsString( 'ffc-template-assignments', $out );
+		$this->assertStringContainsString( 'ffc_kind=' . CertTemplateCpt::KIND_CERTIFICATE, $out, 'The certificate card always shows.' );
+	}
 }

@@ -163,6 +163,18 @@ class Settings {
 	}
 
 	/**
+	 * Settings tabs that belong to a module, by tab id. The Templates tab
+	 * edits the certificate-template pool, whose post type is registered
+	 * only while the certificate module is on.
+	 */
+	public const TAB_MODULES = array(
+		'certificates'   => 'certificates',
+		'templates'      => 'certificates',
+		'reregistration' => 'reregistration',
+		'url_shortener'  => 'url_shortener',
+	);
+
+	/**
 	 * Load all tab classes
 	 *
 	 * @since 4.0.0 Uses autoloader and namespaces (Hotfix 9)
@@ -490,10 +502,16 @@ class Settings {
 	private function visible_tabs(): array {
 		return array_filter(
 			$this->tabs,
-			function ( $tab ): bool {
+			function ( $tab, $tab_id ): bool {
+				// A tab of a module switched off is hidden (#2338): its screens
+				// are gone, so its settings and links lead nowhere.
+				if ( isset( self::TAB_MODULES[ $tab_id ] ) && ! \FreeFormCertificate\Settings\SettingsReader::module_enabled( self::TAB_MODULES[ $tab_id ] ) ) {
+					return false;
+				}
 				return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_view_cap( $tab ) )
 					|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_manage_cap( $tab ) );
-			}
+			},
+			ARRAY_FILTER_USE_BOTH
 		);
 	}
 
@@ -646,21 +664,12 @@ class Settings {
 			?>
 
 			<?php
-			// Display migration messages.
-            // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-			if ( isset( $_GET['migration_success'] ) ) {
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'success',
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) )
-				);
+			// Display migration messages: stored on the server, named by the
+			// URL (#2338), so a link cannot put its own words here.
+			$ffc_migration_notice = SettingsNotice::take( 'migration' );
+			if ( null !== $ffc_migration_notice ) {
+				\FreeFormCertificate\Core\AdminNotice::render( $ffc_migration_notice['type'], esc_html( $ffc_migration_notice['message'] ) );
 			}
-			if ( isset( $_GET['migration_error'] ) ) {
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'error',
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) )
-				);
-			}
-            // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
 			
 			<div class="ffc-settings-tabs">
@@ -829,7 +838,12 @@ class Settings {
 	protected function module_settings_links(): array {
 		$links = array();
 
-		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
+		// A link to a module switched off would open a screen that is gone
+		// (#2338).
+		$scheduling_on = \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'self_scheduling' )
+			|| \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'audiences' );
+
+		if ( $scheduling_on && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
 			$links[] = array(
 				'url'   => admin_url( 'admin.php?page=ffc-scheduling-settings' ),
 				'icon'  => 'ffc-icon-calendar',
@@ -838,7 +852,7 @@ class Settings {
 			);
 		}
 
-		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' ) ) {
+		if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'recruitment' ) && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' ) ) {
 			$links[] = array(
 				'url'   => admin_url( 'admin.php?page=ffc-recruitment&tab=settings' ),
 				'icon'  => 'ffc-icon-users',
