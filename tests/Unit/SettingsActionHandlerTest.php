@@ -439,7 +439,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url = $this->redirect_of( 'handle_migration_execution' );
 
 		$this->assertSame( array( 'execute:foo' ), $strategy->calls );
-		$this->assertStringContainsString( 'migration_success=Migration executed: 5 records processed.', $url );
+		$this->assertNotice( $url, 'migration', 'success', 'Migration executed: 5 records processed.' );
 	}
 
 	public function test_migration_wp_error_redirects(): void {
@@ -450,7 +450,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_migration_execution' );
 
-		$this->assertStringContainsString( 'migration_error=No strategy found for migration: foo', $url );
+		$this->assertNotice( $url, 'migration', 'error', 'No strategy found for migration: foo' );
 	}
 
 	// ==================================================================
@@ -512,7 +512,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url = $this->redirect_of( 'handle_migration_rearm' );
 
 		$this->assertSame( array( 'rearm' ), $strategy->calls );
-		$this->assertStringContainsString( 'Walk re-armed: 12 records', $url );
+		$this->assertNotice( $url, 'migration', 'success', 'Walk re-armed: 12 records' );
 	}
 
 	public function test_rearm_wp_error_redirects(): void {
@@ -523,7 +523,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_migration_rearm' );
 
-		$this->assertStringContainsString( 'migration_error=No strategy found for migration: foo', $url );
+		$this->assertNotice( $url, 'migration', 'error', 'No strategy found for migration: foo' );
 	}
 
 	// ==================================================================
@@ -582,7 +582,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'success', 'Preview generated.' );
 		$this->assertTrue( $this->transients['ffc_obsolete_cleanup_report_7']['dry_run'] );
 		$this->assertSame( 1, $this->transients['ffc_obsolete_cleanup_preview_ok_7'] );
 	}
@@ -601,7 +601,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_obsolete_apply_without_preview_redirects(): void {
@@ -612,7 +612,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Please run a preview first' );
 	}
 
 	public function test_obsolete_apply_with_preview_runs_tool(): void {
@@ -623,7 +623,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_msg=Cleanup complete. Removed 0 shortcode(s) from 0 post(s).', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'success', 'Cleanup complete. Removed 0 shortcode(s) from 0 post(s).' );
 		$this->assertFalse( $this->transients['ffc_obsolete_cleanup_report_7']['dry_run'] );
 	}
 
@@ -678,7 +678,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_url_cleanup_preview_runs_tool(): void {
@@ -694,7 +694,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url    = $this->redirect_of( 'handle_url_shortener_cleanup' );
 		$after  = time() - 30 * DAY_IN_SECONDS;
 
-		$this->assertStringContainsString( 'url_cleanup_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Preview generated.' );
 		$this->assertCount( 1, $this->queries, 'One candidate query.' );
 		// The 30-day window is a UTC-seconds cutoff on created_at (#2337).
 		$this->assertSame( 1, preg_match( '/s\.created_at < (\d+)/', $this->queries[0], $m ) );
@@ -711,7 +711,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Please run a preview first' );
 		$this->assertSame( array(), $this->queries, 'Nothing is deleted without a preview.' );
 	}
 
@@ -731,7 +731,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_msg=Cleanup complete. Deleted 0 short URL(s).', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Cleanup complete. Deleted 0 short URL(s).' );
 		$this->assertFalse( $this->transients['ffc_url_cleanup_report_7']['dry_run'] );
 	}
 
@@ -786,7 +786,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_pubaccess_preview_runs_tool(): void {
@@ -797,7 +797,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Preview generated.' );
 		$this->assertSame( 45, $this->transients['ffc_pubaccess_report_7']['days'] );
 		$this->assertTrue( $this->transients['ffc_pubaccess_report_7']['dry_run'] );
 	}
@@ -822,7 +822,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Please run a preview first' );
 		$this->assertSame( array(), $GLOBALS['ffc_test_wp_query_calls'], 'No form is even looked up without a preview.' );
 	}
 
@@ -835,7 +835,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_msg=Done. Disabled Public Operator Access on 0 form(s).', $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Done. Disabled Public Operator Access on 0 form(s).' );
 		$this->assertSame( 60, $this->transients['ffc_pubaccess_report_7']['days'] );
 		$this->assertFalse( $this->transients['ffc_pubaccess_report_7']['dry_run'] );
 	}
@@ -891,7 +891,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'submission_audit', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_submission_audit_scan_runs_tool(): void {
@@ -904,7 +904,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_msg=Audit complete.', $url );
+		$this->assertNotice( $url, 'submission_audit', 'success', 'Audit complete.' );
 		$this->assertNotSame( array(), $this->queries, 'The audit read the stores.' );
 		$this->assertSame( 0, $this->transients['ffc_submission_audit_report_7']['total'] );
 	}
@@ -1201,7 +1201,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Table is locked' );
 		$this->assertArrayNotHasKey( 'ffc_obsolete_cleanup_preview_ok_7', $this->transients );
 	}
 
@@ -1215,7 +1215,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Table is locked' );
 		$this->assertStringNotContainsString( 'obsolete_cleanup_msg', $url );
 	}
 
@@ -1234,7 +1234,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_url_cleanup_preview_reports_a_tool_failure_over_unreadable_settings(): void {
@@ -1248,7 +1248,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Table is locked' );
 		$this->assertSame( 90, $written['ffc_settings']['url_cleanup_days'], 'the posted criteria are still saved' );
 	}
 
@@ -1262,7 +1262,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Table is locked' );
 	}
 
 	public function test_pubaccess_preview_reports_a_tool_failure_over_unreadable_settings(): void {
@@ -1277,7 +1277,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Table is locked' );
 		$this->assertSame( array( 'public_access_disable_days' => 3650 ), $written['ffc_settings'] );
 	}
 
@@ -1291,7 +1291,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Table is locked' );
 	}
 
 	public function test_submission_audit_scan_reports_a_tool_failure(): void {
@@ -1302,7 +1302,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_error=Table is locked', $url );
+		$this->assertNotice( $url, 'submission_audit', 'error', 'Table is locked' );
 	}
 
 	public function test_submission_audit_export_is_gated_by_the_identity_audit_source(): void {
@@ -1326,5 +1326,22 @@ class SettingsActionHandlerTest extends TestCase {
 		}
 		$this->assertSame( array( IdentityAuditExportSource::NONCE ), $nonces );
 		$this->assertSame( array(), $this->queries, 'Nothing was read or streamed.' );
+	}
+
+	/**
+	 * The URL names the area, and the text waits on the server (#2338).
+	 *
+	 * @param string $url  Redirect URL.
+	 * @param string $area Notice area.
+	 * @param string $type 'success' or 'error'.
+	 * @param string $text Text the stored message contains.
+	 */
+	private function assertNotice( string $url, string $area, string $type, string $text ): void {
+		$this->assertStringContainsString( 'ffc_notice=' . $area, $url );
+		$this->assertStringNotContainsString( rawurlencode( $text ), $url, 'The text never travels in the URL.' );
+		$notice = $this->transients[ 'ffc_notice_7_' . $area ] ?? null;
+		$this->assertIsArray( $notice, "No notice was stored for {$area}." );
+		$this->assertSame( $type, $notice['type'] );
+		$this->assertStringContainsString( $text, $notice['message'] );
 	}
 }

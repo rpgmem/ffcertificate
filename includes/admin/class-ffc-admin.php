@@ -389,6 +389,11 @@ class Admin {
 	 */
 	private function display_admin_notices(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
+		$migration_notice = SettingsNotice::take( 'migration' );
+		if ( null !== $migration_notice ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'error' === $migration_notice['type'] ? 'error' : 'updated', esc_html( $migration_notice['message'] ) );
+		}
+
 		$msg = RequestInput::get_get_key( 'msg' );
 		if ( '' === $msg ) {
 			return;
@@ -452,17 +457,6 @@ class Admin {
 			case 'quiz_grade_incomplete':
 				$text = __( 'Give every open answer a grade.', 'ffcertificate' );
 				$type = 'error';
-				break;
-			case 'migration_success':
-				$migrated       = RequestInput::get_get_int( 'migrated' );
-				$migration_name = isset( $_GET['migration_name'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['migration_name'] ) ) ) : __( 'Migration', 'ffcertificate' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-				/* translators: 1: migration name, 2: number of records migrated */
-				$text = sprintf( __( '%1$s: %2$d records migrated successfully.', 'ffcertificate' ), $migration_name, $migrated );
-				break;
-			case 'migration_error':
-				$error_msg = isset( $_GET['error_msg'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['error_msg'] ) ) ) : __( 'Unknown error', 'ffcertificate' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-				$text      = __( 'Migration Error: ', 'ffcertificate' ) . $error_msg;
-				$type      = 'error';
 				break;
 			case 'move_invalid':
 				$text = __( 'Move failed: source or target form is missing or invalid.', 'ffcertificate' );
@@ -647,28 +641,30 @@ class Admin {
 		// Run migration.
 		$result = $this->migration_manager->run_migration( $migration_key );
 
+		// The result text stays on the server (#2338): the URL names the
+		// area only, so a crafted link cannot put words on this screen.
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-submissions',
+			),
+			admin_url( 'edit.php' )
+		);
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg(
-				array(
-					'post_type' => 'ffc_form',
-					'page'      => 'ffc-submissions',
-					'msg'       => 'migration_error',
-					'error_msg' => rawurlencode( $result->get_error_message() ),
-				),
-				admin_url( 'edit.php' )
+			$redirect_url = SettingsNotice::add(
+				$redirect_url,
+				'migration',
+				'error',
+				__( 'Migration Error: ', 'ffcertificate' ) . $result->get_error_message()
 			);
 		} else {
-			$migrated = isset( $result['migrated'] ) ? $result['migrated'] : 0;
-
-			$redirect_url = add_query_arg(
-				array(
-					'post_type'      => 'ffc_form',
-					'page'           => 'ffc-submissions',
-					'msg'            => 'migration_success',
-					'migration_name' => rawurlencode( $migration['name'] ),
-					'migrated'       => $migrated,
-				),
-				admin_url( 'edit.php' )
+			$migrated     = isset( $result['migrated'] ) ? (int) $result['migrated'] : 0;
+			$redirect_url = SettingsNotice::add(
+				$redirect_url,
+				'migration',
+				'success',
+				/* translators: 1: migration name, 2: number of records migrated */
+				sprintf( __( '%1$s: %2$d records migrated successfully.', 'ffcertificate' ), (string) $migration['name'], $migrated )
 			);
 		}
 

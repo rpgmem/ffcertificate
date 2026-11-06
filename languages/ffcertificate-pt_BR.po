@@ -11017,10 +11017,6 @@ msgstr "Mensagens exibidas quando um calendário tem restrições de horário co
 msgid "Migrated"
 msgstr "Migrado"
 
-#: includes/admin/class-ffc-admin.php:393
-msgid "Migration"
-msgstr "Migração"
-
 #: includes/migrations/class-ffc-migration-custom-fields-tables.php:67 includes/migrations/class-ffc-migration-self-scheduling-tables.php:65 includes/migrations/class-ffc-migration-dynamic-rereg-fields.php:56
 msgid "Migration already completed."
 msgstr "Migração já concluída."
@@ -18192,10 +18188,6 @@ msgstr "Ação desconhecida."
 msgid "Unknown Calendar"
 msgstr "Calendário Desconhecido"
 
-#: includes/admin/class-ffc-admin.php:398
-msgid "Unknown error"
-msgstr "Erro desconhecido"
-
 #: includes/integrations/class-ffc-ip-geolocation.php:159
 msgid "Unknown error from ip-api.com"
 msgstr "Erro desconhecido de ip-api.com"
@@ -23621,9 +23613,6 @@ msgstr "Registra um cartão de migração e sua estratégia em Configurações �
 
 msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
 msgstr "O Enviar agora também é como se recupera um dia perdido de uma regra por data: a execução diária cobre só o dia corrente, então um dia em que o agendador não rodou não é recuperado no dia seguinte. Só uma regra ativa pode ser enviada; desativar uma regra para uma execução ainda em andamento no próximo lote."
-
-msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
-msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração e interrompe sua execução (suas tarefas agendadas continuam disparando no horário, mas não fazem nada), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."
 
 msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries."
 msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do FFC\" define quais capacidades cada função FFC tem."
@@ -32654,3 +32643,7 @@ msgstr "Ligá-la pede confirmação, e alterá-la ou o seu prazo exige a permiss
 #: added
 msgid "You do not have permission to clear the QR Code cache."
 msgstr "Você não tem permissão para limpar o cache de QR Code."
+
+#: added
+msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens, its Settings tabs and the Settings links to it, and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
+msgstr "Em Configurações → Módulos, você pode ativar ou desativar módulos de recursos individuais. Todos os módulos vêm ativados por padrão; desativar um módulo oculta suas telas de administração, suas abas de Configurações e os links das Configurações para ele, e interrompe sua execução (suas tarefas agendadas continuam disparando no horário, mas não fazem nada), mas nunca exclui seus dados — basta reativá-lo a qualquer momento para que tudo volte ao normal. Cada alteração é salva instantaneamente e entra em vigor no próximo carregamento da página."

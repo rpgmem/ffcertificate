@@ -33,6 +33,9 @@ class SettingsTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/** @var array<string, mixed> Transients the handlers set. */
+	private array $notices = array();
+
 	/** @var Settings */
 	private $settings;
 
@@ -93,6 +96,16 @@ class SettingsTest extends TestCase {
 		$this->queries        = array();
 		$this->bound          = array();
 		$this->redirect       = null;
+		$this->notices        = array();
+
+		// A Settings action stores its result for the next screen (#2338).
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->notices[ $key ] = $value;
+				return true;
+			}
+		);
 
 		// SettingsTab's file does a top-level
 		// `require_once ABSPATH . 'wp-includes/formatting.php'` guarded by
@@ -484,7 +497,7 @@ class SettingsTest extends TestCase {
 		$this->assertCount( 1, $this->queries, 'One batch runs.' );
 		$this->assertStringStartsWith( 'DELETE FROM', $this->queries[0][0] );
 		$this->assertSame( array( 'wp_ffc_activity_log', 'ip_geolocation_debug', 500 ), $this->queries[0][1] );
-		$this->assertStringContainsString( 'migration_success=' . rawurlencode( 'Migration executed: 42 records processed.' ), $url );
+		$this->assertNotice( $url, 'migration', 'success', 'Migration executed: 42 records processed.' );
 		$this->assertStringNotContainsString( 'migration_error', $url );
 	}
 
@@ -549,7 +562,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'set_transient' )->alias( function ( $key, $value ) { $this->notices[ $key ] = $value; return true; } );
 		Functions\when( 'delete_transient' )->justReturn( true );
 		// The lazily-built UrlShortenerRepository reads $wpdb->posts and runs
 		// a query; setUp's $wpdb answers it with no rows.
@@ -590,7 +603,7 @@ class SettingsTest extends TestCase {
 		// Dry-run preview runs the tool through to the redirect (which we trap).
 		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->assertStringContainsString( 'url_cleanup_msg=' . rawurlencode( 'Preview generated.' ), $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Preview generated.' );
 	}
 
 	public function test_handle_url_cleanup_apply_requires_preview_first(): void {
@@ -601,7 +614,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->assertStringContainsString( 'url_cleanup_error=' . rawurlencode( 'Please run a preview first before deleting short URLs.' ), $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Please run a preview first before deleting short URLs.' );
 	}
 
 	public function test_handle_url_cleanup_apply_runs_when_previewed(): void {
@@ -618,7 +631,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_url_shortener_cleanup() );
 
-		$this->assertStringContainsString( 'url_cleanup_msg=' . rawurlencode( 'Cleanup complete. Deleted 0 short URL(s).' ), $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Cleanup complete. Deleted 0 short URL(s).' );
 	}
 
 	// ==================================================================
@@ -636,7 +649,7 @@ class SettingsTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'update_option' )->justReturn( true );
-		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'set_transient' )->alias( function ( $key, $value ) { $this->notices[ $key ] = $value; return true; } );
 		Functions\when( 'delete_transient' )->justReturn( true );
 	}
 
@@ -672,7 +685,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->assertStringContainsString( 'pubaccess_msg=' . rawurlencode( 'Preview generated.' ), $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Preview generated.' );
 	}
 
 	public function test_handle_pubaccess_apply_requires_preview_first(): void {
@@ -683,7 +696,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->assertStringContainsString( 'pubaccess_error=' . rawurlencode( 'Please run a preview first before disabling access.' ), $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Please run a preview first before disabling access.' );
 	}
 
 	public function test_handle_pubaccess_apply_runs_when_previewed(): void {
@@ -695,7 +708,7 @@ class SettingsTest extends TestCase {
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_public_access_disabler() );
 
-		$this->assertStringContainsString( 'pubaccess_msg=' . rawurlencode( 'Done. Disabled Public Operator Access on 0 form(s).' ), $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Done. Disabled Public Operator Access on 0 form(s).' );
 	}
 
 	// ==================================================================
@@ -731,13 +744,13 @@ class SettingsTest extends TestCase {
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
-		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'set_transient' )->alias( function ( $key, $value ) { $this->notices[ $key ] = $value; return true; } );
 		// The auditor lazily builds a SubmissionRepository and runs read-only
 		// queries against setUp's $wpdb, which finds no rows.
 
 		$url = $this->redirect_of( fn() => $this->settings->handle_submission_link_audit() );
 
-		$this->assertStringContainsString( 'submission_audit_msg=' . rawurlencode( 'Audit complete.' ), $url );
+		$this->assertNotice( $url, 'submission_audit', 'success', 'Audit complete.' );
 	}
 
 	// ==================================================================
@@ -984,6 +997,71 @@ class SettingsTest extends TestCase {
 		$this->assertStringNotContainsString( 'page=ffc-scheduling-settings', $html );
 	}
 
+	/**
+	 * Stub `ffc_settings` with the given module flags; every other option
+	 * reads as its default.
+	 *
+	 * @param array<string, int> $flags Module option keys and values.
+	 */
+	private function stub_module_flags( array $flags ): void {
+		Functions\when( 'get_option' )->alias(
+			static function ( $name, $fallback = false ) use ( $flags ) {
+				return 'ffc_settings' === $name ? $flags : $fallback;
+			}
+		);
+	}
+
+	public function test_display_hides_tabs_of_a_disabled_module(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_module_flags(
+			array(
+				'module_reregistration_enabled' => 0,
+				'module_certificates_enabled'   => 0,
+			)
+		);
+
+		$html = $this->render_settings_page_html( array( 'general', 'templates', 'reregistration', 'url_shortener' ) );
+
+		$this->assertStringContainsString( 'ffc-settings-tabnav-general', $html );
+		$this->assertStringContainsString( 'ffc-settings-tabnav-url_shortener', $html, 'A tab of an enabled module stays.' );
+		$this->assertStringNotContainsString( 'ffc-settings-tabnav-reregistration', $html, 'A tab of a disabled module must be hidden.' );
+		$this->assertStringNotContainsString( 'ffc-settings-tabnav-templates', $html, 'The template pool goes with the certificate module.' );
+	}
+
+	public function test_display_hides_url_shortener_tab_when_its_module_is_off(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_module_flags( array( 'url_shortener_enabled' => 0 ) );
+
+		$html = $this->render_settings_page_html( array( 'general', 'url_shortener' ) );
+
+		$this->assertStringNotContainsString( 'ffc-settings-tabnav-url_shortener', $html );
+	}
+
+	public function test_display_hides_module_links_of_disabled_modules(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_module_flags(
+			array(
+				'module_self_scheduling_enabled' => 0,
+				'module_audiences_enabled'       => 0,
+				'module_recruitment_enabled'     => 0,
+			)
+		);
+
+		$html = $this->render_settings_page_html();
+
+		$this->assertStringNotContainsString( 'page=ffc-scheduling-settings', $html );
+		$this->assertStringNotContainsString( 'page=ffc-recruitment', $html );
+	}
+
+	public function test_display_keeps_scheduling_link_while_one_scheduling_module_is_on(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$this->stub_module_flags( array( 'module_self_scheduling_enabled' => 0 ) );
+
+		$html = $this->render_settings_page_html();
+
+		$this->assertStringContainsString( 'page=ffc-scheduling-settings', $html, 'Audience calendars still use the scheduling settings.' );
+	}
+
 	public function test_display_settings_page_renders_module_links_above_advanced_tab(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 
@@ -1176,15 +1254,39 @@ class SettingsTest extends TestCase {
 		unset( $_GET['msg'] );
 	}
 
-	public function test_display_settings_page_shows_migration_messages(): void {
-		$_GET['migration_success'] = 'Migration done';
-		$_GET['migration_error']   = 'Something failed';
+	public function test_display_settings_page_shows_the_stored_migration_notice_once(): void {
+		$_GET['ffc_notice'] = 'migration';
+		$stored             = array( 'ffc_notice_7_migration' => array( 'type' => 'error', 'message' => 'Something failed' ) );
+		Functions\when( 'get_transient' )->alias( static fn( $key ) => $stored[ $key ] ?? false );
+		$deleted = array();
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
 
 		$html = $this->render_with_tab();
 
-		$this->assertStringContainsString( 'Migration done', $html );
 		$this->assertStringContainsString( 'Something failed', $html );
-		unset( $_GET['migration_success'], $_GET['migration_error'] );
+		$this->assertContains( 'ffc_notice_7_migration', $deleted, 'Shown once.' );
+		unset( $_GET['ffc_notice'] );
+	}
+
+	/**
+	 * Text in the URL is never printed: a link cannot put its own words on a
+	 * Settings screen (#2338).
+	 */
+	public function test_text_in_the_url_is_not_shown(): void {
+		$_GET['migration_success'] = 'Call this number to verify your account';
+		$_GET['ffc_notice']        = 'migration';
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'delete_transient' )->justReturn( true );
+
+		$html = $this->render_with_tab();
+
+		$this->assertStringNotContainsString( 'Call this number', $html );
+		unset( $_GET['migration_success'], $_GET['ffc_notice'] );
 	}
 
 	public function test_display_settings_page_renders_active_tab_body(): void {
@@ -1303,5 +1405,22 @@ class SettingsTest extends TestCase {
 		$this->assertStringContainsString( "<a class='x' href='#'>Plain</a>", $locked );
 		$this->assertStringContainsString( '<a class="ffc-btn" aria-disabled="true" tabindex="-1">Run</a>', $locked );
 		$this->assertStringNotContainsString( '/run', $locked );
+	}
+
+	/**
+	 * The URL names the area, and the text waits on the server (#2338).
+	 *
+	 * @param string $url  Redirect URL.
+	 * @param string $area Notice area.
+	 * @param string $type 'success' or 'error'.
+	 * @param string $text Text the stored message contains.
+	 */
+	private function assertNotice( string $url, string $area, string $type, string $text ): void {
+		$this->assertStringContainsString( 'ffc_notice=' . $area, $url );
+		$this->assertStringNotContainsString( rawurlencode( $text ), $url, 'The text never travels in the URL.' );
+		$notice = $this->notices[ 'ffc_notice_7_' . $area ] ?? null;
+		$this->assertIsArray( $notice, "No notice was stored for {$area}." );
+		$this->assertSame( $type, $notice['type'] );
+		$this->assertStringContainsString( $text, $notice['message'] );
 	}
 }

@@ -10999,10 +10999,6 @@ msgstr ""
 msgid "Migrated"
 msgstr ""
 
-#: includes/admin/class-ffc-admin.php:393
-msgid "Migration"
-msgstr ""
-
 #: includes/migrations/class-ffc-migration-custom-fields-tables.php:67 includes/migrations/class-ffc-migration-self-scheduling-tables.php:65 includes/migrations/class-ffc-migration-dynamic-rereg-fields.php:56
 msgid "Migration already completed."
 msgstr ""
@@ -18136,10 +18132,6 @@ msgstr ""
 msgid "Unknown Calendar"
 msgstr ""
 
-#: includes/admin/class-ffc-admin.php:398
-msgid "Unknown error"
-msgstr ""
-
 #: includes/integrations/class-ffc-ip-geolocation.php:159
 msgid "Unknown error from ip-api.com"
 msgstr ""
@@ -23537,9 +23529,6 @@ msgid "Register a migration card and its strategy on Settings → Data Migration
 msgstr ""
 
 msgid "Send now is also how a missed day of a dated rule is recovered: the daily run covers only the current day, so a day the scheduler did not run is not caught up the next day. Only an active rule can be sent; deactivating a rule stops a run still in progress at its next batch."
-msgstr ""
-
-msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
 msgstr ""
 
 msgid "Settings → User Access → \"FFC Roles & Capabilities\" edits which capabilities each FFC role carries."
@@ -32570,4 +32559,8 @@ msgstr ""
 
 #: added
 msgid "You do not have permission to clear the QR Code cache."
+msgstr ""
+
+#: added
+msgid "Settings → Modules lets you turn individual feature modules on or off. Every module ships enabled; disabling one hides its admin screens, its Settings tabs and the Settings links to it, and stops its runtime (its scheduled tasks still fire on schedule but do nothing), but never deletes its data — re-enable it at any time and everything is back. Each switch saves instantly and takes effect on the next page load."
 msgstr ""
