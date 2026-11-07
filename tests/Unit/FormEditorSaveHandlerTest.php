@@ -186,6 +186,35 @@ class FormEditorSaveHandlerTest extends TestCase {
 	 * of inheriting it from that accident, and this test is what stops the
 	 * skip from being lost when someone reorders the guards.
 	 */
+	public function test_saving_keeps_an_early_opening_made_today_and_clears_an_older_one(): void {
+		// #2341: an opening made today is today's start; saving the form
+		// must not close it again until the scheduled time.
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
+		$opened = (string) time();
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$opened ) {
+				return '_ffc_csv_public_start_opened_at' === $key ? $opened : '';
+			}
+		);
+		$deleted = array();
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$this->invoke( 'reset_operator_one_shot_meta', array( 100 ) );
+		$this->assertNotContains( '_ffc_csv_public_start_opened_at', $deleted );
+		$this->assertContains( '_ffc_csv_public_end_postponed_at', $deleted );
+
+		$opened  = (string) ( time() - 2 * DAY_IN_SECONDS );
+		$deleted = array();
+		$this->invoke( 'reset_operator_one_shot_meta', array( 100 ) );
+		$this->assertContains( '_ffc_csv_public_start_opened_at', $deleted );
+		$this->assertContains( '_ffc_csv_public_start_opened_from', $deleted );
+	}
+
 	public function test_save_fields_meta_skips_rows_that_are_not_arrays(): void {
 		$_POST['ffc_fields'] = array(
 			array(

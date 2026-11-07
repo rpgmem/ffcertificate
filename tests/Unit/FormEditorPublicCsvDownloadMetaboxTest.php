@@ -338,11 +338,30 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$this->meta_values['_ffc_csv_public_start_opened_at']     = '1700000000';
 		$this->meta_values['_ffc_csv_public_start_opened_from']   = '08:00';
 		$this->meta_values['_ffc_csv_public_end_postponed_at']    = '1700000000';
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
 
 		list( $start, $end ) = $this->status_pills( $this->render() );
 
-		$this->assertStringContainsString( 'Already started early once for this form (was 08:00)', $start );
+		// Opened on an earlier day: that day only (#2341).
+		$this->assertStringContainsString( 'Opened early on 14/11/2023 22:13. It applied to that day only', $start );
 		$this->assertStringContainsString( 'Already postponed once for this form (was —)', $end );
+	}
+
+	public function test_status_on_the_day_the_form_was_opened_early(): void {
+		$this->enable_master();
+		$this->meta_values['_ffc_csv_public_start_early_enabled'] = '1';
+		$this->meta_values['_ffc_geofence_config']                = array(
+			'date_start' => '2020-01-01',
+			'date_end'   => '2099-01-01',
+		);
+		$this->meta_values['_ffc_csv_public_start_opened_at']     = (string) time();
+		$this->meta_values['_ffc_csv_public_start_opened_from']   = '08:00';
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
+
+		list( $start ) = $this->status_pills( $this->render() );
+
+		$this->assertStringContainsString( 'Opened early today at ' . gmdate( 'H:i' ), $start );
+		$this->assertStringContainsString( '(scheduled for 08:00). Later days open at their scheduled time.', $start );
 	}
 
 	public function test_status_for_a_form_that_has_ended(): void {

@@ -5,9 +5,11 @@
  *
  * Use case: a trusted operator (palestrante / event MC / assistant)
  * hits the public CSV download page before the form's scheduled start
- * and clicks "Start Form Now" — the form's `date_start` + `time_start`
- * inside `_ffc_geofence_config` get rewritten to the current local
- * time, so visitors who reload the form page see it as open.
+ * and clicks "Start Form Now". The moment is stored apart from the
+ * form's schedule ({@see META_OPENED_AT}), and the geofence reads it as
+ * today's start ({@see \FreeFormCertificate\Security\Geofence::with_early_open()}),
+ * so visitors who reload the form page see it as open, and every later
+ * day of a multi-day form still opens at its scheduled time (#2341).
  *
  * Security model:
  *   - Credential is the form's existing CSV-public hash (already
@@ -54,7 +56,7 @@ class EarlyOpenAction {
 	 *
 	 * @since 6.6.2
 	 */
-	public const META_OPENED_AT = '_ffc_csv_public_start_opened_at';
+	public const META_OPENED_AT = \FreeFormCertificate\Security\Geofence::EARLY_OPEN_META;
 
 	/**
 	 * Snapshot of the `time_start` value before the early-open rewrite
@@ -194,9 +196,9 @@ class EarlyOpenAction {
 	}
 
 	/**
-	 * Execute the early-open: rewrite the form's `date_start` +
-	 * `time_start` inside `_ffc_geofence_config` to "now", invalidate
-	 * caches, and emit an Activity Log audit entry.
+	 * Execute the early-open: record "now" as today's start, invalidate
+	 * caches, and emit an Activity Log audit entry. The stored schedule is
+	 * not touched (#2341).
 	 *
 	 * Caller is responsible for having validated the hash via
 	 * {@see self::is_eligible()} first (the public AJAX endpoint does
@@ -239,22 +241,15 @@ class EarlyOpenAction {
 		$now_date = current_time( 'Y-m-d' );
 		$now_time = current_time( 'H:i' );
 
-		// Scope of the write is intentionally narrow: only `time_start`
-		// is rewritten. The configured date_start stays untouched —
-		// eligibility (above) and the frontend button guard ensure
-		// this action only fires on the same calendar day the form was
-		// scheduled to start. date_end / time_end / time_mode are all
-		// preserved so the form's scheduled close behaviour is intact.
-		$geofence['time_start'] = $now_time;
-		$new_time_start         = $now_time;
+		// The schedule itself is not written: an early opening is today's,
+		// and rewriting `time_start` moved every later day of a multi-day
+		// daily form as well (#2341). META_OPENED_AT below is what the
+		// geofence reads as today's start.
+		$new_time_start = $now_time;
 
-		update_post_meta( $form_id, '_ffc_geofence_config', $geofence );
-
-		// Persist the snapshot so the admin metabox can render the
-		// "Already started early once (was %s)" status, and the
-		// `already_opened` eligibility guard above can short-circuit
-		// repeat triggers. Mirrors ExtendEndAction's META_POSTPONED_*
-		// pair (#350).
+		// The moment is today's start, the admin metabox's status ("opened
+		// early today at …") and the `already_opened` guard above. The
+		// scheduled time is kept beside it for the audit trail.
 		update_post_meta( $form_id, self::META_OPENED_AT, time() );
 		update_post_meta( $form_id, self::META_OPENED_FROM, $original_time_start );
 
@@ -265,7 +260,7 @@ class EarlyOpenAction {
 		// embeds `[ffc_form id=N]`, a different post the cache plugins
 		// can't associate with the form id. Use the aggressive site-wide
 		// purge for this one-shot, deliberate state change so the page
-		// hosting the shortcode actually picks up the new time_start.
+		// hosting the shortcode actually picks up the new start.
 		\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $form_id, 'early_open' );
 		\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $form_id, 'early_open' );
 

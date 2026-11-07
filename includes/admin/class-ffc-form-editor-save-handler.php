@@ -165,8 +165,12 @@ class FormEditorSaveHandler {
 	private function reset_operator_one_shot_meta( int $post_id ): void {
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT );
 		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_FROM );
-		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT );
-		delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_FROM );
+		// An opening made today is today's start (#2341): saving the form
+		// must not close it again until the scheduled time.
+		if ( null === \FreeFormCertificate\Security\Geofence::early_open_today( $post_id ) ) {
+			delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT );
+			delete_post_meta( $post_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_FROM );
+		}
 	}
 
 	/**
