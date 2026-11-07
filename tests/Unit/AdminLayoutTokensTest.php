@@ -79,6 +79,16 @@ final class AdminLayoutTokensTest extends TestCase {
 				'max-height' => '--ffc-admin-side-max-height',
 			),
 		),
+		'ffc-certificates-dashboard.css' => array(
+			'.ffc-certificates-dashboard'      => array(
+				'grid-template-columns' => '--ffc-admin-side-width',
+				'gap'                   => '--ffc-admin-gap',
+			),
+			'.ffc-certificates-dashboard-side' => array(
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
+		),
 	);
 
 	private const TOKENS = array( '--ffc-admin-nav-width', '--ffc-admin-side-width', '--ffc-admin-gap', '--ffc-admin-side-top', '--ffc-admin-side-max-height' );

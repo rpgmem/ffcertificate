@@ -13,6 +13,13 @@
     gap: var(--ffc-spacing-md);
 }
 
+/* In the dashboard's side column (#2486) they stack, one per line. */
+.ffc-dashboard__side .ffc-scheduling-quick-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-sm);
+}
+
 /* Status Badges — a name of their own since #1162.
    They used to be `.ffc-status-badge` + `.ffc-status-<state>`, and this
    sheet's `.ffc-status-cancelled` collided with `ffc-calendar-admin.css`'s on
@@ -345,6 +352,11 @@
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
+}
+
+/* Only the second row is spaced: the first starts level with the tab menu,
+   like the first card of every other tab (#2486). */
+.ffc-import-export-cards + .ffc-import-export-cards {
     margin-top: var(--ffc-spacing-2xl);
 }
 

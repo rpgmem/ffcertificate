@@ -16,24 +16,33 @@
 
 .ffc-certificates-dashboard {
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: var(--ffc-spacing-2xl);
+    /* The calendar takes the width; the day list is the standard side
+       column, read from the layout tokens (#2486). */
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
     margin-top: var(--ffc-spacing-2xl);
     align-items: start;
 }
 
 .ffc-certificates-dashboard-calendar {
+    min-width: 0;
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
+    border-radius: var(--ffc-radius-lg);
     padding: 0;
     overflow: hidden;
 }
 
+/* The side column is a card that stays in view while the page scrolls, as
+   on every screen with one (#2486). */
 .ffc-certificates-dashboard-side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
+    border-radius: var(--ffc-radius-lg);
     padding: var(--ffc-spacing-xl);
 }
 
@@ -344,9 +353,15 @@
     background: var(--ffc-text-muted);
 }
 
-@media screen and (max-width: 782px) {
+@media screen and (max-width: 960px) {
     .ffc-certificates-dashboard {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-certificates-dashboard-side {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 }
 

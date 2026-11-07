@@ -2418,10 +2418,6 @@ msgstr ""
 msgid "Audience not found."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-dashboard.php:98
-msgid "Audience Scheduling"
-msgstr ""
-
 #: templates/admin/audience/audience-tab.php:20
 msgid "Audience Scheduling Settings"
 msgstr ""
@@ -19152,10 +19148,6 @@ msgstr ""
 msgid "View Activity Logs"
 msgstr ""
 
-#: includes/audience/class-ffc-audience-admin-dashboard.php:92 includes/audience/class-ffc-audience-admin-dashboard.php:145
-msgid "View All"
-msgstr ""
-
 #: templates/admin/audience/self-scheduling-tab.php:41
 msgid "View All Appointments"
 msgstr ""
@@ -33413,4 +33405,37 @@ msgstr ""
 
 #: templates/admin/date-messages/page.php
 msgid "Back to rules"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Active Audience Calendars"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Active Personal Calendars"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+#, php-format
+msgid "Open %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Open appointments"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Open audiences"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Open bookings"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-dashboard.php
+msgid "Open calendars"
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "The Dashboard counts upcoming appointments and bookings and the active calendars of each kind, gives each area a card with its figures and the buttons that open it, and keeps the quick actions in the side column."
 msgstr ""

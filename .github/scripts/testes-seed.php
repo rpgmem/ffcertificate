@@ -1218,7 +1218,7 @@ function ffc_tseed_short_urls( array $ctx ): array {
 			continue;
 		}
 		if ( 0 === $i % 6 ) {
-			$service->toggle_status( (int) $r['data']['id'] );
+			$service->set_active( (int) $r['data']['id'], false );
 		}
 	}
 	return $ctx;
