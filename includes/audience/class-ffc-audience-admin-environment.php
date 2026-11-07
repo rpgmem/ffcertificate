@@ -440,23 +440,31 @@ class AudienceAdminEnvironment {
 		}
 
 		?>
-		<h1><?php echo esc_html( $page_title ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr;
-			<?php
-			/* translators: %s: environment label (plural, e.g. "Environments", "Rooms") */
-			printf( esc_html__( 'Back to %s', 'ffcertificate' ), esc_html( $env_label_plural ) );
-			?>
-		</a>
+		<h1 class="wp-heading-inline"><?php echo esc_html( $page_title ); ?></h1>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				/* translators: %s: environment label (plural, e.g. "Environments", "Rooms") */
+				'label' => sprintf( __( 'Back to %s', 'ffcertificate' ), $env_label_plural ),
+				'icon'  => 'chevron-left',
+				'href'  => $back_url,
+			)
+		);
+		?>
+		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
 
+		<?php // One content column with Save in the side column (#2486). ?>
+		<div class="ffc-editor">
+		<div class="ffc-editor__main">
 		<?php // The heading is the calendar's own label for an environment ("Room", "Service"). ?>
 		<div class="card">
 		<h2 class="ffc-icon-building"><?php echo esc_html( $env_label_singular ); ?></h2>
-		<form method="post" action="" class="ffc-form">
+		<form method="post" action="" class="ffc-form" id="ffc-environment-form">
 			<?php wp_nonce_field( 'save_environment', 'ffc_environment_nonce' ); ?>
 			<input type="hidden" name="environment_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_environment">
@@ -582,8 +590,17 @@ class AudienceAdminEnvironment {
 			</tbody></table>
 			<?php if ( ! $can_manage ) : ?>
 				</fieldset>
-			<?php else : ?>
+			<?php endif; ?>
+		</form>
+		</div>
+		</div>
+
+		<div class="ffc-editor__side">
+			<?php if ( $can_manage ) : ?>
+			<div class="card">
+				<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
 				<?php
+				// Outside the form it posts, so it names the form.
 				$save_label = $id > 0
 					/* translators: %s: environment label (singular, e.g. "Room") */
 					? sprintf( __( 'Update %s', 'ffcertificate' ), $env_label_singular )
@@ -594,11 +611,13 @@ class AudienceAdminEnvironment {
 					array(
 						'icon'  => $id > 0 ? 'save' : 'plus',
 						'value' => $save_label,
+						'attrs' => array( 'form' => 'ffc-environment-form' ),
 					)
 				);
 				?>
+			</div>
 			<?php endif; ?>
-		</form>
+		</div>
 		</div>
 
 		<!-- Styles in ffc-audience-admin.css -->

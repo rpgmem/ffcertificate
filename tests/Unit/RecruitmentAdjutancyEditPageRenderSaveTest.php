@@ -174,8 +174,14 @@ class RecruitmentAdjutancyEditPageRenderSaveTest extends TestCase {
 		$this->assertStringContainsString( '#123456', $html );
 		// A boxed edit screen (#1631): the record is the h1, and the section
 		// is a card whose heading carries the adjutancy icon, not a postbox.
-		$this->assertMatchesRegularExpression( '/<h1>Edit adjutancy — [^<]+<\/h1>/', $html );
+		$this->assertMatchesRegularExpression( '/<h1 class="wp-heading-inline">Edit adjutancy — [^<]+<\/h1>/', $html );
 		$this->assertStringContainsString( '<div class="card"><h2 class="ffc-icon-building">General</h2>', $html );
+		// One content column, Save in the side column naming the form (#2486).
+		$this->assertStringContainsString( '<div class="ffc-editor"><div class="ffc-editor__main"><div class="card">', $html );
+		$this->assertStringContainsString( 'id="ffc-adjutancy-form"', $html );
+		$this->assertMatchesRegularExpression( '#</form>.*<div class="ffc-editor__side"><div class="card"><h2 class="ffc-icon-save">Save</h2>.*form="ffc-adjutancy-form"#s', $html );
+		$this->assertStringContainsString( 'ffc-icon-chevron-left">Back to Adjutancies</a>', $html );
+		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ) );
 		$this->assertStringNotContainsString( 'postbox', $html );
 	}
 

@@ -1212,7 +1212,8 @@ class AudienceAdminCalendarTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ffc-boxed">', $output );
 		$this->assertStringContainsString( 'name="ffc_action" value="save_environment"', $output );
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments">&larr;', $output, 'Back goes to the view' );
+		// Back is a button beside the title (#2486), and it goes to the view.
+		$this->assertStringContainsString( '<a href="admin.php?page=ffc-scheduling-calendars&view=environments" class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">', $output, 'Back goes to the view' );
 		$this->assertStringNotContainsString( 'schedule_name', $output, 'the calendar form is not drawn' );
 	}
 

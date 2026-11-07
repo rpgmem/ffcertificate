@@ -88,6 +88,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin: one width for the vertical menu and the side column, one card** (#2486). Both menus are 220 px and every side column 300 px, read from layout tokens; boxes have 8 px corners and no shadow, card titles take the type scale, and the section and QR choice tiles use the plugin's blue instead of purple.
 - **Admin editors: the menu and the open panel are separate cards, and every editor keeps the side column** (#2486). Back is a button beside the title on the calendar and audience editors; the audience editor keeps the side column empty; a table wider than the panel scrolls inside it; the segmented control wraps when its column is narrow.
 - **Admin settings: the menu and the content are separate cards, and the side column holds the previews** (#2486). FFC Settings and Scheduling Settings lose the box around both and reserve the side column; the QR and Email Model previews and the documentation's Quick Navigation move into it. Every side column stays in view while the page scrolls.
+- **Admin: the environment, adjutancy and reason editors take the editor layout** (#2486). One content column with Save as the first card of the side column, and Back a button beside the title.
 
 ### Security
 
