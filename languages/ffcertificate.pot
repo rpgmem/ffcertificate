@@ -30311,9 +30311,6 @@ msgstr ""
 msgid "Present / reached"
 msgstr ""
 
-msgid "Search bookings"
-msgstr ""
-
 msgid "Select all active bookings"
 msgstr ""
 
@@ -33240,5 +33237,12 @@ msgstr ""
 #: includes/admin/class-ffc-submissions-list.php:776
 msgid "%d form"
 msgid_plural "%d forms"
+msgstr[0] ""
+msgstr[1] ""
+
+#. %s: number of short URLs
+#: templates/admin/url-shortener/short-urls-page.php:256
+msgid "%s link"
+msgid_plural "%s links"
 msgstr[0] ""
 msgstr[1] ""

@@ -90,6 +90,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin settings: the menu and the content are separate cards, and the side column holds the previews** (#2486). FFC Settings and Scheduling Settings lose the box around both and reserve the side column; the QR and Email Model previews and the documentation's Quick Navigation move into it. Every side column stays in view while the page scrolls.
 - **Admin: the environment, adjutancy and reason editors take the editor layout** (#2486). One content column with Save as the first card of the side column, and Back a button beside the title.
 - **Admin lists: Submissions and Appointments share one list top** (#2486). The filters sit in a card with a label on every field, "Reveal this page" joins the bulk bar beside Apply, the views read as pills, and the appointment row actions are buttons in an Actions column instead of links shown on hover.
+- **Admin lists: Audience Bookings and Short URLs share the list top** (#2486). Labelled filters in a card, always visible; the bookings bulk bar no longer overlaps the filters and its Cancel is amber; row actions are buttons; Short URLs paginate above the table, the short link fits its column and the on/off toggle sits beside the status.
 
 ### Security
 

@@ -29,15 +29,28 @@
     background: var(--ffc-bg-alt);
 }
 
-/* Search & Filter */
-.ffc-shorturl-filter {
-    margin-bottom: var(--ffc-spacing-md);
+/* The short URL fits its column (#2486): the label drops the scheme and
+   an ellipsis cuts what still does not fit; the title holds it whole. */
+.ffc-shorturl-table .ffc-shorturl-code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 
-.ffc-shorturl-filter-row {
+.ffc-shorturl-table .ffc-shorturl-code::before {
+    margin-right: var(--ffc-spacing-2xs);
+    vertical-align: middle;
+}
+
+/* The switch sits beside the state it switches. */
+.ffc-shorturl-status-cell {
     display: flex;
-    gap: var(--ffc-spacing-md);
+    flex-wrap: wrap;
     align-items: center;
+    gap: var(--ffc-spacing-xs);
 }
 
 /* QR Code Modal Overlay */
@@ -195,12 +208,12 @@
 }
 
 /* Admin page: table column widths */
-.ffc-shorturl-table .column-title    { width: 22%; }
+.ffc-shorturl-table .column-title    { width: 17%; }
 .ffc-shorturl-table .column-shorturl { width: 18%; }
 .ffc-shorturl-table .column-dest     { width: 22%; }
-.ffc-shorturl-table .column-clicks   { width: 8%; }
-.ffc-shorturl-table .column-status   { width: 10%; }
-.ffc-shorturl-table .column-actions  { width: 20%; }
+.ffc-shorturl-table .column-clicks   { width: 7%; }
+.ffc-shorturl-table .column-status   { width: 13%; }
+.ffc-shorturl-table .column-actions  { width: 23%; }
 
 /* Editor box: the link's state (#2337) */
 .ffc-shorturl-state {
@@ -239,11 +252,6 @@
 .ffc-shorturl-destination-warning {
     margin: var(--ffc-spacing-xs) 0 0;
     color: var(--ffc-warning-text);
-}
-
-/* Admin page: empty trash wrapper */
-.ffc-shorturl-empty-trash {
-    margin-bottom: var(--ffc-spacing-md);
 }
 
 /* Admin page: inline error text (edit modal / AJAX failures) */
