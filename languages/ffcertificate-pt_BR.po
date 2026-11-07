@@ -4663,8 +4663,8 @@ msgid "CPF / RF"
 msgstr "CPF / RF"
 
 #: includes/frontend/class-ffc-csv-download-validator.php:248
-msgid "CPF does not match the form author."
-msgstr "O CPF não corresponde ao autor do formulário."
+msgid "This CPF is not the one of the person responsible for this form."
+msgstr "Este CPF não é o da pessoa responsável por este formulário."
 
 #: includes/frontend/class-ffc-csv-download-validator.php:278
 msgid "CPF gate misconfigured. Contact the administrator."
@@ -9033,8 +9033,8 @@ msgid "Form Details"
 msgstr "Detalhes do Formulário"
 
 #: includes/frontend/class-ffc-csv-download-validator.php:240
-msgid "Form has no author to validate against."
-msgstr "O formulário não possui autor para validação."
+msgid "This form has no responsible person whose CPF can be checked, so the download is unavailable. Ask the site administrator to set the form's author."
+msgstr "Este formulário não tem um responsável cujo CPF possa ser conferido, por isso o download não está disponível. Peça ao administrador do site que defina o autor do formulário."
 
 #: includes/frontend/class-ffc-shortcodes.php:149
 msgid "Form has no fields."
@@ -20426,12 +20426,12 @@ msgid "Your CPF is required for traceability and is recorded in this form's audi
 msgstr "Seu CPF é necessário para será registrado (criptografado) para auditoria deste formulário. Ele não será validado em nenhuma lista de permissões."
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:98
-msgid "Your CPF/RF is blocked."
-msgstr "Seu CPF/RF está bloqueado."
+msgid "This CPF/RF cannot use this form. If you think this is a mistake, contact whoever sent you the form."
+msgstr "Este CPF/RF não pode usar este formulário. Se achar que é um engano, fale com quem lhe enviou o formulário."
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:122
-msgid "Your CPF/RF is not authorized."
-msgstr "Seu CPF/RF não está autorizado."
+msgid "This CPF/RF is not on the list of people who can use this form. If it should be, contact whoever sent you the form."
+msgstr "Este CPF/RF não está na lista de pessoas que podem usar este formulário. Se deveria estar, fale com quem lhe enviou o formulário."
 
 #: includes/privacy/class-ffc-privacy-handler.php:100
 msgid "Your data is accessible to the site administrators and to the authorised operators who manage the relevant forms. We do not sell your personal data."

@@ -369,7 +369,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 0;
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'no author', $msg );
+		$this->assertStringContainsString( 'no responsible person', $msg );
 		$this->assertSame( array(), $this->profile_queries, 'No author means no profile is read.' );
 	}
 
@@ -411,7 +411,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
@@ -429,7 +429,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
@@ -465,7 +465,7 @@ class CsvDownloadValidatorTest extends TestCase {
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertNotNull( $msg, 'Two absent hashes opened the owner gate: hash_equals( \'\', \'\' ) is TRUE.' );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 	}
 
 	public function test_cpf_unknown_mode_fails_closed(): void {

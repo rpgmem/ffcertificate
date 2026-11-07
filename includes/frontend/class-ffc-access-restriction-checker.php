@@ -99,7 +99,8 @@ class AccessRestrictionChecker {
 			if ( in_array( $clean_cpf, $denied_clean, true ) ) {
 				return array(
 					'allowed'   => false,
-					'message'   => __( 'Your CPF/RF is blocked.', 'ffcertificate' ),
+					// Says whom to turn to (#2341): the visitor cannot fix this here.
+					'message'   => __( 'This CPF/RF cannot use this form. If you think this is a mistake, contact whoever sent you the form.', 'ffcertificate' ),
 					'is_ticket' => false,
 				);
 			}
@@ -123,7 +124,7 @@ class AccessRestrictionChecker {
 			if ( ! in_array( $clean_cpf, $allowed_clean, true ) ) {
 				return array(
 					'allowed'   => false,
-					'message'   => __( 'Your CPF/RF is not authorized.', 'ffcertificate' ),
+					'message'   => __( 'This CPF/RF is not on the list of people who can use this form. If it should be, contact whoever sent you the form.', 'ffcertificate' ),
 					'is_ticket' => false,
 				);
 			}

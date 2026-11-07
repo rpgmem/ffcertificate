@@ -81,6 +81,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public Operator Access: every unavailable action says why, and a download reports when the file arrived** (#2341). Each disabled button carries its reason behind an info button instead of a `title`; the screen takes the focus after it renders; "Download complete" waits for a cookie the file's response sets, a refusal page shows its own text, and the "x of y used" count goes up at once.
 - **Public Operator Access: the browser check speaks of this page, and the dialogs read the site's clock** (#2341). The CSV screen's browser gate says it downloads a file, and the shared gate strings say "document" rather than "certificate"; "now" in Start Form Now, Postpone close and the schedule exception is the site's time in the plugin's formats, not the device's clock.
 - **Public Operator Access: a second download works from the same screen** (#2341). The first download's start spent the challenge the screen was read with, so a second one was refused; the start now sends a fresh challenge, which the screen shows above the buttons and the next download sends.
+- **Public front end: refusals say whom to contact, and a refusal reaches only its own visitor** (#2341). A blocked or unlisted CPF/RF and the CSV owner check speak to the person reading them; "Form not found" and "Form has no fields" are notices in the Public Design; the CSV page's message is keyed by a token its redirect carries, not by the address, so visitors behind one NAT no longer see each other's.
 
 ### Security
 

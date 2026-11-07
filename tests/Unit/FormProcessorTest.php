@@ -246,7 +246,7 @@ class FormProcessorTest extends TestCase {
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
-		$this->assertStringContainsString( 'blocked', $result['message'] );
+		$this->assertStringContainsString( 'cannot use this form', $result['message'] );
 	}
 
 	public function test_restrictions_denylist_allows_clean_cpf(): void {
@@ -280,7 +280,7 @@ class FormProcessorTest extends TestCase {
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
-		$this->assertStringContainsString( 'not authorized', $result['message'] );
+		$this->assertStringContainsString( 'not on the list', $result['message'] );
 	}
 
 	public function test_restrictions_ticket_valid_consumes(): void {
@@ -355,6 +355,6 @@ class FormProcessorTest extends TestCase {
 
 		// Even though CPF is in allowlist, denylist takes priority
 		$this->assertFalse( $result['allowed'] );
-		$this->assertStringContainsString( 'blocked', $result['message'] );
+		$this->assertStringContainsString( 'cannot use this form', $result['message'] );
 	}
 }

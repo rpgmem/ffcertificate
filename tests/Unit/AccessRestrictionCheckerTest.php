@@ -254,7 +254,8 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
-		$this->assertStringContainsString( 'blocked', $result['message'] );
+		$this->assertStringContainsString( 'cannot use this form', $result['message'] );
+		$this->assertStringContainsString( 'contact', $result['message'], 'It says whom to turn to (#2341).' );
 	}
 
 	public function test_all_restrictions_pass(): void {

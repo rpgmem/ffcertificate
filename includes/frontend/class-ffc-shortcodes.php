@@ -160,7 +160,8 @@ class Shortcodes {
 					'ip'      => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
-			return '<p>' . esc_html__( 'Form not found.', 'ffcertificate' ) . '</p>';
+			// A notice inside the shortcode's root, in the Public Design (#2341).
+			return '<div class="ffc-shortcode">' . \FreeFormCertificate\Core\Notice::render( 'warning', 'warning', __( 'Form not found.', 'ffcertificate' ) ) . '</div>';
 		}
 
 		$form_post  = get_post( $form_id );
@@ -174,7 +175,7 @@ class Shortcodes {
 					'form_id' => $form_id,
 				)
 			);
-			return '<p>' . esc_html__( 'Form has no fields.', 'ffcertificate' ) . '</p>';
+			return '<div class="ffc-shortcode">' . \FreeFormCertificate\Core\Notice::render( 'warning', 'warning', __( 'Form has no fields.', 'ffcertificate' ) ) . '</div>';
 		}
 
 		\FreeFormCertificate\Core\Debug::log_frontend(
