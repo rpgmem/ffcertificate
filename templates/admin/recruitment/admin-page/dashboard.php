@@ -82,12 +82,12 @@ $by_status = array();
 foreach ( $notices as $status => $count ) {
 	$by_status[ RecruitmentAdminPage::notice_status_label( (string) $status ) ] = (int) $count;
 }
-RecruitmentDashboard::section_card( 'ffc-icon-megaphone', __( 'Notices', 'ffcertificate' ), RecruitmentDashboard::figures( $by_status ), $notice_buttons );
+\FreeFormCertificate\Core\AdminDashboard::section_card( 'ffc-icon-megaphone', __( 'Notices', 'ffcertificate' ), \FreeFormCertificate\Core\AdminDashboard::figures( $by_status ), $notice_buttons );
 
-RecruitmentDashboard::section_card(
+\FreeFormCertificate\Core\AdminDashboard::section_card(
 	'ffc-icon-id',
 	__( 'Candidates', 'ffcertificate' ),
-	RecruitmentDashboard::figures(
+	\FreeFormCertificate\Core\AdminDashboard::figures(
 		array(
 			__( 'Candidates', 'ffcertificate' )           => (int) $stats['candidates'],
 			__( 'Linked to an account', 'ffcertificate' ) => (int) $stats['linked'],
@@ -109,10 +109,10 @@ $adj_buttons = array(
 		'href'  => RecruitmentAdminPage::section_url( 'adjutancies' ),
 	),
 );
-RecruitmentDashboard::section_card(
+\FreeFormCertificate\Core\AdminDashboard::section_card(
 	'ffc-icon-building',
 	__( 'Adjutancies', 'ffcertificate' ),
-	RecruitmentDashboard::figures(
+	\FreeFormCertificate\Core\AdminDashboard::figures(
 		array(
 			__( 'Adjutancies', 'ffcertificate' )       => (int) $stats['adjutancies'],
 			__( 'Not in any notice', 'ffcertificate' ) => (int) $stats['unattached'],
@@ -122,10 +122,10 @@ RecruitmentDashboard::section_card(
 );
 
 if ( $reasons ) {
-	RecruitmentDashboard::section_card(
+	\FreeFormCertificate\Core\AdminDashboard::section_card(
 		'ffc-icon-clipboard',
 		__( 'Reasons', 'ffcertificate' ),
-		RecruitmentDashboard::figures( array( __( 'Reasons', 'ffcertificate' ) => (int) $stats['reasons'] ) ),
+		\FreeFormCertificate\Core\AdminDashboard::figures( array( __( 'Reasons', 'ffcertificate' ) => (int) $stats['reasons'] ) ),
 		array(
 			array(
 				'label' => __( 'Open reasons', 'ffcertificate' ),
@@ -137,7 +137,7 @@ if ( $reasons ) {
 }
 
 if ( $settings ) {
-	RecruitmentDashboard::section_card(
+	\FreeFormCertificate\Core\AdminDashboard::section_card(
 		'ffc-icon-settings',
 		__( 'Settings', 'ffcertificate' ),
 		'<p>' . esc_html__( 'The call e-mail, the public shortcode and the badge colors.', 'ffcertificate' ) . '</p>',
@@ -170,7 +170,7 @@ if ( empty( $rows ) ) {
 		);
 		$list[ $label ] = \FreeFormCertificate\Core\DateFormatter::format_date( (string) $row['date'] );
 	}
-	echo wp_kses_post( RecruitmentDashboard::figures( $list ) );
+	echo wp_kses_post( \FreeFormCertificate\Core\AdminDashboard::figures( $list ) );
 }
 echo '</div>';
 
@@ -179,7 +179,7 @@ if ( 0 === (int) $stats['overdue'] ) {
 	echo '<p class="description">' . esc_html__( 'Nothing is waiting.', 'ffcertificate' ) . '</p>';
 } else {
 	$overdue = array( __( 'Calls past their presentation date', 'ffcertificate' ) => (int) $stats['overdue'] );
-	echo wp_kses_post( RecruitmentDashboard::figures( $overdue ) );
+	echo wp_kses_post( \FreeFormCertificate\Core\AdminDashboard::figures( $overdue ) );
 }
 echo '</div>';
 echo '</aside></div>'; // .ffc-dashboard

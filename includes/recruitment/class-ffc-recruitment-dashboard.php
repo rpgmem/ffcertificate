@@ -18,8 +18,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
-use FreeFormCertificate\Core\Button;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -146,43 +144,5 @@ final class RecruitmentDashboard {
 			'unattached'    => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i a WHERE NOT EXISTS (SELECT 1 FROM %i l WHERE l.adjutancy_id = a.id)', $adj_table, $link_table ) ),
 			'reasons'       => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $reason_table ) ),
 		);
-	}
-
-	/**
-	 * A section card: the card heading with its icon, what the section
-	 * holds, and the buttons that open it.
-	 *
-	 * @param string                    $icon    `ffc-icon-*` class of the heading.
-	 * @param string                    $title   Section name.
-	 * @param string                    $body    Body markup, already escaped.
-	 * @param list<array<string,mixed>> $buttons `Button::html()` arguments.
-	 * @return void
-	 */
-	public static function section_card( string $icon, string $title, string $body, array $buttons ): void {
-		printf( '<div class="card ffc-dashboard__card"><h2 class="%1$s">%2$s</h2>', esc_attr( $icon ), esc_html( $title ) );
-		echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the caller.
-		echo '<div class="ffc-dashboard__actions">';
-		foreach ( $buttons as $button ) {
-			Button::render( $button );
-		}
-		echo '</div></div>';
-	}
-
-	/**
-	 * A list of label → number pairs.
-	 *
-	 * @param array<string, int|string> $rows Label => value.
-	 * @return string Escaped markup.
-	 */
-	public static function figures( array $rows ): string {
-		$html = '<ul class="ffc-dashboard__figures">';
-		foreach ( $rows as $label => $value ) {
-			$html .= sprintf(
-				'<li><span>%1$s</span><span>%2$s</span></li>',
-				esc_html( (string) $label ),
-				esc_html( is_int( $value ) ? number_format_i18n( $value ) : $value )
-			);
-		}
-		return $html . '</ul>';
 	}
 }

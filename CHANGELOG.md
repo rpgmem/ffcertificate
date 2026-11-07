@@ -93,6 +93,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin lists: Audience Bookings and Short URLs share the list top** (#2486). Labelled filters in a card, always visible; the bookings bulk bar no longer overlaps the filters and its Cancel is amber; row actions are buttons; Short URLs paginate above the table, the short link fits its column and the on/off toggle sits beside the status.
 - **Recruitment opens on a dashboard, and each section has its own page** (#2486). Counts, one card per section and the next presentations and overdue calls on the side; Notices, Adjutancies, Reasons, Candidates and Settings are full-width pages in the WordPress submenu, with row actions as buttons. New notice, beside the title, opens a dialog with the next code suggested and opens the new draft.
 - **Admin: the content takes the width left beside the menus, and the vertical menu stays in view** (#2486). The settings screens and their cards stopped at 1500 px, leaving a strip unused on wide screens; the menu of the settings and editor screens now scrolls with the page, like the side column.
+- **Date Messages opens on a dashboard, and each section has its own page** (#2486). Active rules, e-mails sent and failed in 30 days and the next daily run, one card per section, and the latest runs with what needs attention; Rules, Send now, History, Upcoming dates and Schedule are pages in the WordPress submenu instead of tabs.
 
 ### Security
 

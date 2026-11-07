@@ -151,7 +151,7 @@ class RecruitmentDashboardTest extends TestCase {
 	public function test_figures_escapes_and_formats(): void {
 		$this->assertSame(
 			'<ul class="ffc-dashboard__figures"><li><span>Draft</span><span>5</span></li><li><span>Date</span><span>12/11</span></li></ul>',
-			RecruitmentDashboard::figures(
+			\FreeFormCertificate\Core\AdminDashboard::figures(
 				array(
 					'Draft' => 5,
 					'Date'  => '12/11',

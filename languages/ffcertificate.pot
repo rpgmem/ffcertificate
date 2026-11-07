@@ -23177,7 +23177,7 @@ msgstr ""
 msgid "Date-message tokens:"
 msgstr ""
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Schedule pages follow it in the submenu."
 msgstr ""
 
 msgid "On, but silent until you create a rule."
@@ -23207,7 +23207,7 @@ msgstr ""
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr ""
 
-msgid "Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
+msgid "Rules can be edited, duplicated and deleted from the Rules page, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
 msgstr ""
 
 msgid "Who receives a message"
@@ -23928,7 +23928,7 @@ msgstr ""
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr ""
 
-msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the page shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
 msgstr ""
 
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
@@ -23955,7 +23955,7 @@ msgstr ""
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
 msgstr ""
 
-msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
 msgstr ""
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
@@ -26615,7 +26615,7 @@ msgid "E-mails to staff (new submission and new appointment notices, the Date Me
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:80
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The page is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:321
