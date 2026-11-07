@@ -252,49 +252,48 @@ describe('csv-download — open-early modal', () => {
 // ----------------------------------------------------------------------
 
 describe('csv-download — open-early submit', () => {
-	it('POSTs ffc_public_open_early on confirm and reloads on success', async () => {
+	it('POSTs ffc_public_open_early, redraws the screen and reports on the page (#2341)', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-		// Replace location with a stub before triggering reload.
 		const original = window.location;
 		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
-		Object.defineProperty(window, 'location', {
-			configurable: true,
-			writable: true,
-			value: stub,
-		});
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: stub });
 
-		postSpy.mockImplementation(() => postChain({ done: {
-				success: true,
-				data: { message: 'Form is now open.' },
-			} }));
+		let calls = 0;
+		postSpy.mockImplementation(() => {
+			calls++;
+			// First the action, then the fresh read of the form's state.
+			return 1 === calls
+				? postChain({ done: { success: true, data: { message: 'Form is now open.' } } })
+				: postChain({ done: { success: true, data: infoWithEarlyOpen({ status: { can_open_early: false } }) } });
+		});
 
 		window.$('.ffc-btn-open-early').trigger('click');
 		await flush();
 		window.$('.ffc-open-early-confirm').trigger('click');
 		await flush();
+		await flush();
 
-		// FFC.request → jQuery.post(url, payload); payload is the second
-		// positional arg.
-		const lastPayload = postSpy.mock.calls[postSpy.mock.calls.length - 1][1];
-		expect(lastPayload).toContain('action=ffc_public_open_early');
-		expect(lastPayload).toContain('form_id=42');
-		expect(lastPayload).toContain('hash=abc');
-		// Old `action=ffc_public_csv_info` should not survive the rewrite.
-		expect(lastPayload).not.toContain('action=ffc_public_csv_info');
+		const actionPayload = postSpy.mock.calls[1][1];
+		expect(actionPayload).toContain('action=ffc_public_open_early');
+		expect(actionPayload).toContain('form_id=42');
+		expect(actionPayload).toContain('hash=abc');
+		expect(actionPayload).not.toContain('action=ffc_public_csv_info');
+		expect(postSpy.mock.calls[2][1]).toContain("form_id=42");
 
-		expect(alertSpy).toHaveBeenCalledWith('Form is now open.');
-		expect(stub.reload).toHaveBeenCalled();
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(stub.reload).not.toHaveBeenCalled();
+		const notice = document.querySelector('.ffc-action-result');
+		expect(notice).not.toBeNull();
+		expect(notice.getAttribute('role')).toBe('status');
+		expect(notice.textContent).toContain('Form is now open.');
+		expect(document.activeElement).toBe(notice);
+		expect(window.$('.ffc-btn-open-early').length).toBe(0);
 
-		Object.defineProperty(window, 'location', {
-			configurable: true,
-			writable: true,
-			value: original,
-		});
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
 	});
 
-	it('alerts the server message and re-enables the button on failure', async () => {
+	it('shows the server refusal on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -308,15 +307,16 @@ describe('csv-download — open-early submit', () => {
 		window.$('.ffc-open-early-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already started.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const notice = document.querySelector('.ffc-action-result');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.textContent).toContain('Already started.');
 		expect(window.$('.ffc-btn-open-early').prop('disabled')).toBe(false);
 		expect(window.$('.ffc-btn-open-early').text()).toContain('Start Form Now');
 	});
 
-	it('alerts and re-enables the button on AJAX network error', async () => {
+	it('reports a network error on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
 		postSpy.mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-btn-open-early').trigger('click');
@@ -324,7 +324,8 @@ describe('csv-download — open-early submit', () => {
 		window.$('.ffc-open-early-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Error');
 		expect(window.$('.ffc-btn-open-early').prop('disabled')).toBe(false);
 	});
 });
+

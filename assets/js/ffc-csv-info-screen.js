@@ -484,7 +484,54 @@
 		return html;
 	}
 
+	/**
+	 * Report an action's result on the page, instead of an alert and a
+	 * reload (#2341).
+	 *
+	 * After a success the screen is drawn again from a fresh read, with the
+	 * same form id and hash, so the status, the times and the buttons show
+	 * the state the action left. The notice goes above it, takes the focus
+	 * and is announced. When the fresh read fails, the notice still shows on
+	 * the screen as it was.
+	 *
+	 * @param {string}  tone    success | error.
+	 * @param {string}  message What happened.
+	 * @param {boolean} refresh Whether to read the form's state again.
+	 * @return {Promise<void>}
+	 */
+	function reportResult(tone, message, refresh) {
+		var show = function () {
+			var $screen = api.$container.find('.ffc-info-screen');
+			$screen.find('.ffc-action-result').remove();
+			var el = window.FFC.notice(
+				'success' === tone ? 'success' : 'error',
+				'success' === tone ? 'success' : 'warning',
+				message,
+				'',
+				{ role: 'success' === tone ? 'status' : 'alert', live: 'success' === tone ? 'polite' : 'assertive' }
+			);
+			el.classList.add('ffc-action-result');
+			el.setAttribute('tabindex', '-1');
+			$screen.prepend(el);
+			el.focus();
+		};
+		if (!refresh || !api.formData) {
+			show();
+			return Promise.resolve();
+		}
+		return FFC.request('ffc_public_csv_info', api.formData)
+			.then(function (data) {
+				renderInfoScreen(data);
+			})
+			.catch(function () {
+				// The screen keeps the state it had; the notice says what
+				// the action did.
+			})
+			.then(show);
+	}
+
 	api.onSubmitInfo    = onSubmitInfo;
 	api.renderInfoScreen = renderInfoScreen;
+	api.reportResult    = reportResult;
 
 })();

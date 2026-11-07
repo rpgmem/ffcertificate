@@ -163,13 +163,14 @@
 
 		FFC.request('ffc_public_extend_end', payload)
 			.then(function (data) {
-				window.alert((data && data.message) || (strings.postponeSuccess || 'Close time postponed.'));
-				window.location.reload();
+				api.refreshActionSecurity({ data: data });
+				// On the page, with the state redrawn (#2341).
+				return api.reportResult('success', (data && data.message) || (strings.postponeSuccess || 'Close time postponed.'), true);
 			})
 			.catch(function (err) {
 				api.refreshActionSecurity(err);
-				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
+				return api.reportResult('error', (err && err.fromServer && err.message) || strings.error || 'Action failed.', false);
 			});
 	}
 
