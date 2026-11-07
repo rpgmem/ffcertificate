@@ -372,6 +372,17 @@ describe('ffcRecruitmentClsToggleAll', () => {
 		// Disabled box is skipped.
 		expect(document.querySelector('.ffc-cls-bulk-cb[value="2"]').checked).toBe(false);
 	});
+
+	it('runs from the header box without an inline handler (#2486)', () => {
+		document.body.innerHTML = `
+			<input type="checkbox" id="ffc-cls-bulk-all">
+			<input type="checkbox" class="ffc-cls-bulk-cb" value="1">`;
+		loadScript(SCRIPT);
+		const all = document.getElementById('ffc-cls-bulk-all');
+		all.checked = true;
+		all.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(document.querySelector('.ffc-cls-bulk-cb').checked).toBe(true);
+	});
 });
 
 describe('definitive list and calls CSV (#2245)', () => {
@@ -490,6 +501,25 @@ describe('ffcRecruitmentClsAct', () => {
 	}
 
 	const VALUES = { date_to_assume: '2026-05-20', time_to_assume: '09:00' };
+
+	it('a click on a row action opens its dialog, with no inline handler (#2486)', () => {
+		const btn = installRow();
+		const openConfirmModal = vi.fn();
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+		btn.click();
+		expect(openConfirmModal).toHaveBeenCalled();
+	});
+
+	it('a disabled row action does nothing', () => {
+		const btn = installRow();
+		btn.disabled = true;
+		const openConfirmModal = vi.fn();
+		window.ffcRecruitmentAdmin = { openConfirmModal };
+		loadScript(SCRIPT);
+		btn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		expect(openConfirmModal).not.toHaveBeenCalled();
+	});
 
 	it('asks for date, time and the OOO justification in one dialog, then POSTs /call', () => {
 		const btn = installRow();

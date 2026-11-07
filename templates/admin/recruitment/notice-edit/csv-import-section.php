@@ -26,7 +26,7 @@ echo '<div>';
 
 if ( ! \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::allows( \FreeFormCertificate\Recruitment\RecruitmentNoticeLocks::IMPORT_PREVIEW, $status ) ) {
 	echo '<p>' . esc_html__( 'Import is disabled for notices in `definitive` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import.', 'ffcertificate' ) . '</p>';
-	echo '</div></div>';
+	echo '</div>';
 	return;
 }
 

@@ -11280,14 +11280,6 @@ msgstr "Marcar como aceito"
 msgid "Mark hired"
 msgstr "Marcar como contratado"
 
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:905 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:911
-msgid "Mark not_shown"
-msgstr "Marcar como não compareceu"
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:906 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:912
-msgid "Mark withdrew"
-msgstr "Marcar desistiu"
-
 #: includes/reregistration/class-ffc-reregistration-field-options.php:138
 msgid "Married"
 msgstr "Casado(a)"
@@ -33522,3 +33514,26 @@ msgstr "Abrir calendários"
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The Dashboard counts upcoming appointments and bookings and the active calendars of each kind, gives each area a card with its figures and the buttons that open it, and keeps the quick actions in the side column."
 msgstr "O Painel conta os agendamentos e as reservas futuras e os calendários ativos de cada tipo, dá a cada área um cartão com seus números e os botões que a abrem, e mantém as ações rápidas na coluna lateral."
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Mark no-show"
+msgstr "Marcar como não compareceu"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Mark withdrawn"
+msgstr "Marcar como desistente"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "To assume: %s"
+msgstr "Assumir em: %s"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Called %1$s by %2$s"
+msgstr "Chamado em %1$s por %2$s"
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Called %s"
+msgstr "Chamado em %s"

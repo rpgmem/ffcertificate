@@ -11262,14 +11262,6 @@ msgstr ""
 msgid "Mark hired"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:905 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:911
-msgid "Mark not_shown"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:906 includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:912
-msgid "Mark withdrew"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-field-options.php:138
 msgid "Married"
 msgstr ""
@@ -33438,4 +33430,27 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "The Dashboard counts upcoming appointments and bookings and the active calendars of each kind, gives each area a card with its figures and the buttons that open it, and keeps the quick actions in the side column."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Mark no-show"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+msgid "Mark withdrawn"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "To assume: %s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Called %1$s by %2$s"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
+#, php-format
+msgid "Called %s"
 msgstr ""
