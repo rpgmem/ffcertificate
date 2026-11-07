@@ -13,7 +13,8 @@
  *
  *   - `form[data-ffc-create-endpoint="<path>"]` — on submit, POST the
  *     form's FormData to `<restRoot><path>`. Reload on success (response
- *     carries an `id`), or open `data-ffc-create-open` with the new id;
+ *     carries an `id`), or open the address `openUrls[data-ffc-create-open]`
+ *     names, with the new id;
  *     on failure show the server's message in the form's error line.
  *
  *   - `[data-ffc-dialog-open="<id>"]` / `[data-ffc-dialog-close]` — show
@@ -138,8 +139,9 @@
      * The PHP renderer marks each "create X" form with the REST path
      * to post against (e.g. `data-ffc-create-endpoint="notices"`).
      * On a successful POST the page reloads so the new entity shows up in
-     * the list, or opens `data-ffc-create-open` with the new id in place of
-     * `__ID__`. A refusal shows the server's message inside the form.
+     * the list, or opens the editor `data-ffc-create-open` names (an entry
+     * of the localized `openUrls`) on the new id. A refusal shows the
+     * server's message inside the form.
      */
     document.addEventListener('submit', function (event) {
         var form = event.target;
@@ -160,9 +162,12 @@
         }).then(function (res) {
             var body = res && res.body;
             if (body && body.id) {
-                var open = form.getAttribute('data-ffc-create-open');
-                if (open) {
-                    window.location.href = open.replace('__ID__', encodeURIComponent(String(body.id)));
+                // The form names where to land; the address comes from the
+                // localized config, never from the markup.
+                var urls = window.ffcRecruitmentAdmin.openUrls || {};
+                var base = urls[form.getAttribute('data-ffc-create-open')];
+                if (typeof base === 'string' && base !== '') {
+                    window.location.href = base + '&notice_id=' + encodeURIComponent(String(parseInt(body.id, 10)));
                 } else {
                     window.location.reload();
                 }

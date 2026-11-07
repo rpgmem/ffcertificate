@@ -468,15 +468,6 @@ final class RecruitmentAdminPageRenderer {
 			}
 		}
 		$suggested = RecruitmentNoticeReader::next_code_after( $latest );
-		$open_url  = add_query_arg(
-			array(
-				'page'      => RecruitmentAdminPage::PAGE_SLUG,
-				'action'    => 'edit-notice',
-				'notice_id' => '__ID__',
-			),
-			admin_url( 'admin.php' )
-		);
-
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/create-notice-form.php';
 	}
 

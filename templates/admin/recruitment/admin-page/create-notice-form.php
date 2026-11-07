@@ -4,7 +4,6 @@
  *
  * @var string $suggested Code suggested for the new notice, or ''.
  * @var string $latest    Code of the most recent notice, or ''.
- * @var string $open_url  The notice editor, with `__ID__` for the new id.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.12.0
@@ -23,7 +22,7 @@ RecruitmentAdminPageRenderer::open_dialog(
 	'notices',
 	// "Create and open": the new draft opens in its editor, where the
 	// adjutancies are attached and the CSV imported.
-	array( 'data-ffc-create-open' => $open_url )
+	array( 'data-ffc-create-open' => 'notice' )
 );
 RecruitmentAdminPageRenderer::dialog_field(
 	__( 'Code', 'ffcertificate' ),
