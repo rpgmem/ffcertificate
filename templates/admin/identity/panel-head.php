@@ -40,12 +40,12 @@ $capped = ! empty( $panel['capped'] );
 $toggle = $ffc_identity_screen->toggle( $tier, $list );
 // The tier is part of the class, so the chip is coloured by what the
 // finding IS rather than by a decision taken in the markup.
-$chip = IdentityResolutionLabels::chip_class( $tier );
+$look = IdentityResolutionLabels::tier_look( $tier );
 ?>
-	<div class="ffc-identity-panel">
+	<div class="ffc-identity-panel card">
 	<div class="ffc-identity-panel-head">
-		<span class="ffc-identity-panel-chip <?php echo esc_attr( $chip ); ?>"><?php echo esc_html( $label ); ?></span>
-		<h2 class="ffc-identity-panel-title screen-reader-text"><?php echo esc_html( $label ); ?></h2>
+		<?php // The card's own heading, visible since #2498: the chip that named the tier above a hidden heading said it twice. ?>
+		<h2 class="ffc-identity-panel-title <?php echo esc_attr( $look['heading'] ); ?>"><?php echo esc_html( $label ); ?></h2>
 		<p class="ffc-identity-panel-note description"><?php echo esc_html( $note ); ?></p>
 		<div class="ffc-identity-panel-nav">
 			<?php if ( $list ) : ?>

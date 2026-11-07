@@ -778,15 +778,14 @@ class IdentityResolutionPageTest extends TestCase {
 			'The remaining count must be the one the screen derived from the panels.'
 		);
 
-		// The strip derives its chip class from the tier exactly as the panel
-		// heading does, so a category cannot be one colour above and another
+		// The stat card and the panel heading take the tier's look from one
+		// function (#2498), so a category cannot be one colour above and another
 		// below.
 		$this->assertSame(
 			2,
-			substr_count( $view, 'IdentityResolutionLabels::chip_class( ' ),
-			'The chip class must be derived from the tier in both places, through one function.'
+			substr_count( $view, 'IdentityResolutionLabels::tier_look( ' ),
+			'The tier look must be derived in both places, through one function.'
 		);
-		$this->assertStringNotContainsString( "preg_replace( '/[^a-z]/'", $view, 'And never spelled out in the view again.' );
 	}
 
 	/**

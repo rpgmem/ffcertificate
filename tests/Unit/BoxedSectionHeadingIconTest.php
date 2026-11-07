@@ -51,6 +51,7 @@ class BoxedSectionHeadingIconTest extends TestCase {
 		// AdminUI::render_vertical_tabs(), shared by the form and calendar editors since #1761.
 		'includes/admin/class-ffc-admin-ui.php'                     => 'the icon is a child span (`ffc-vtabs__icon`) of the panel title',
 		'templates/admin/date-messages/page.php'                    => 'the class is the tab\'s icon, read from a static map',
+		'templates/admin/identity/panel-head.php'                   => 'the class is the tier\'s icon, from IdentityResolutionLabels::tier_look() (#2498)',
 	);
 
 	/**
