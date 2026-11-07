@@ -1840,10 +1840,16 @@ msgstr ""
 msgid "Already postponed once for this form (was %s). Edit time_end manually below if you need to extend further."
 msgstr ""
 
-#. %s: original time_start value (HH:MM).
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:495
+#. translators: 1: time the form was opened (HH:MM), 2: its scheduled start (HH:MM).
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php
 #, php-format
-msgid "Already started early once for this form (was %s). Edit time_start manually below if you need to advance further."
+msgid "Opened early today at %1$s (scheduled for %2$s). Later days open at their scheduled time."
+msgstr ""
+
+#. translators: %s: date and time the form was opened early.
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php
+#, php-format
+msgid "Opened early on %s. It applied to that day only; saving the form makes early start available again."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:325
@@ -11685,7 +11691,7 @@ msgid "Move to Trash"
 msgstr ""
 
 #: includes/settings/views/documentation/forms-schedule.php:51
-msgid "moves the start time to \"now\" so the form opens ahead of schedule (same day only)."
+msgid "opens the form now, ahead of schedule, on its scheduled start day. Only that day moves: the stored start time is kept, so every later day of a multi-day form opens at its scheduled time."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-schedule.php:35

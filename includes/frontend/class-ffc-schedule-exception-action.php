@@ -78,9 +78,9 @@ final class ScheduleExceptionAction {
 		}
 
 		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		if ( ! is_array( $geofence ) ) {
-			$geofence = array();
-		}
+		// The window an exception must sit in includes today's early
+		// opening (#2341).
+		$geofence = is_array( $geofence ) ? \FreeFormCertificate\Security\Geofence::with_early_open( $form_id, $geofence ) : array();
 
 		// Per-form opt-IN. Empty / '0' reads as off so legacy forms see
 		// zero behaviour change until admin flips the Sprint-2 toggle.
@@ -158,9 +158,9 @@ final class ScheduleExceptionAction {
 		}
 
 		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		if ( ! is_array( $geofence ) ) {
-			$geofence = array();
-		}
+		// The window an exception must sit in includes today's early
+		// opening (#2341).
+		$geofence = is_array( $geofence ) ? \FreeFormCertificate\Security\Geofence::with_early_open( $form_id, $geofence ) : array();
 
 		$baseline_start = self::resolve_baseline( $geofence, 'start' );
 		$baseline_end   = self::resolve_baseline( $geofence, 'end' );

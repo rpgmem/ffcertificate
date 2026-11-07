@@ -1836,11 +1836,17 @@ msgstr "Já foi cancelado"
 msgid "Already postponed once for this form (was %s). Edit time_end manually below if you need to extend further."
 msgstr "Este formulário já foi adiado uma vez (era %s). Edite o horário de término manualmente abaixo se precisar estender o prazo."
 
-#. %s: original time_start value (HH:MM).
-#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:495
+#. translators: 1: time the form was opened (HH:MM), 2: its scheduled start (HH:MM).
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php
 #, php-format
-msgid "Already started early once for this form (was %s). Edit time_start manually below if you need to advance further."
-msgstr "Já iniciei este formulário antecipadamente uma vez (era %s). Edite o horário de início manualmente abaixo se precisar avançar mais."
+msgid "Opened early today at %1$s (scheduled for %2$s). Later days open at their scheduled time."
+msgstr "Aberto antecipadamente hoje às %1$s (programado para %2$s). Os dias seguintes abrem no horário programado."
+
+#. translators: %s: date and time the form was opened early.
+#: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php
+#, php-format
+msgid "Opened early on %s. It applied to that day only; saving the form makes early start available again."
+msgstr "Aberto antecipadamente em %s. Valeu só para aquele dia; salvar o formulário libera o início antecipado de novo."
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:325
 msgid "Also notify admin on cancellation"
@@ -11703,8 +11709,8 @@ msgid "Move to Trash"
 msgstr "Mover para a Lixeira"
 
 #: includes/settings/views/documentation/forms-schedule.php:51
-msgid "moves the start time to \"now\" so the form opens ahead of schedule (same day only)."
-msgstr "altera o horário de início para \"agora\", de modo que o formulário seja aberto antes do previsto (apenas no mesmo dia)."
+msgid "opens the form now, ahead of schedule, on its scheduled start day. Only that day moves: the stored start time is kept, so every later day of a multi-day form opens at its scheduled time."
+msgstr "abre o formulário agora, antes do previsto, no dia de início programado. Só esse dia muda: o horário de início salvo é mantido, e cada dia seguinte de um formulário de vários dias abre no horário programado."
 
 #: includes/settings/views/documentation/forms-schedule.php:35
 msgid "Multi-day"

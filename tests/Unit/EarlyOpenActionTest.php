@@ -223,12 +223,19 @@ class EarlyOpenActionTest extends TestCase {
 	// execute() — happy path
 	// ==================================================================
 
-	public function test_execute_writes_time_start_only_and_preserves_date_start(): void {
-		// The action narrows the write to time_start. date_start /
-		// date_end / time_end / time_mode are all preserved as-is —
-		// the operator opens the form earlier within the same scheduled
-		// day, nothing else.
+	/**
+	 * Stub `wp_date()` on the test's site clock.
+	 */
+	private function stub_wp_date(): void {
+		Functions\when( 'wp_date' )->alias(
+			fn( string $format, ?int $ts = null ) => ( new \DateTimeImmutable( '@' . ( $ts ?? time() ) ) )->setTimezone( $this->clock->timezone )->format( $format )
+		);
+	}
+
+	public function test_execute_records_the_moment_and_leaves_the_schedule_alone(): void {
+		// #2341: the stored window is not rewritten; the moment is.
 		$this->configure_eligible_form( 1, 'h' );
+		$this->stub_wp_date();
 		// The plugin's cache and the per-form and site-wide page purges.
 		Actions\expectDone( 'ffc_form_cache_purged' )->twice();
 
@@ -237,35 +244,48 @@ class EarlyOpenActionTest extends TestCase {
 		$today = $this->clock->day();
 		$this->assertTrue( $r['ok'] );
 		$this->assertSame( $today, $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
-		$this->assertSame( '12:00', $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
+		$this->assertSame( '23:00', $this->meta_store[1]['_ffc_geofence_config']['time_start'], 'The schedule is kept.' );
+		$this->assertSame( '23:00', $this->meta_store[1][ EarlyOpenAction::META_OPENED_FROM ] );
+		$this->assertGreaterThan( 0, (int) $this->meta_store[1][ EarlyOpenAction::META_OPENED_AT ] );
 		$this->assertSame( $today . ' 23:00', $r['original_start_iso'] );
 		$this->assertSame( $today . ' 12:00', $r['new_start_iso'] );
 	}
 
-	public function test_execute_preserves_full_window_on_multi_day_forms(): void {
-		// Form scheduled for today with a future date_end. The action
-		// only touches time_start — date_end, time_end and time_mode
-		// all stay exactly as the admin configured them.
+	public function test_an_early_opening_moves_today_only(): void {
+		// A multi-day daily form opened early opens now today, and at its
+		// scheduled time on every later day (#2341).
 		$this->configure_form(
 			1,
 			array(
 				'date_start' => $this->clock->day(),
 				'time_start' => '23:00',
 				'date_end'   => $this->clock->day( 2 ),
-				'time_end'   => '21:00',
+				'time_end'   => '23:30',
 				'time_mode'  => 'daily',
 			)
 		);
+		$this->stub_wp_date();
 
-		$r = EarlyOpenAction::execute( 1, 'h' );
+		$this->assertTrue( EarlyOpenAction::execute( 1, 'h' )['ok'] );
 
-		$this->assertTrue( $r['ok'] );
-		$this->assertSame( $this->clock->day(), $this->meta_store[1]['_ffc_geofence_config']['date_start'] );
-		$this->assertSame( '12:00', $this->meta_store[1]['_ffc_geofence_config']['time_start'] );
-		// date_end + time_end + time_mode are preserved.
-		$this->assertSame( $this->clock->day( 2 ), $this->meta_store[1]['_ffc_geofence_config']['date_end'] );
-		$this->assertSame( '21:00', $this->meta_store[1]['_ffc_geofence_config']['time_end'] );
-		$this->assertSame( 'daily', $this->meta_store[1]['_ffc_geofence_config']['time_mode'] );
+		$today = \FreeFormCertificate\Security\Geofence::get_form_config( 1 );
+		$this->assertSame( '12:00', $today['time_start'], 'Today opens when the operator pressed it.' );
+		$this->assertSame( '23:30', $today['time_end'] );
+		$this->assertSame( $this->clock->day( 2 ), $today['date_end'] );
+
+		// The opening was yesterday: today keeps its scheduled time.
+		$this->meta_store[1][ EarlyOpenAction::META_OPENED_AT ] = (string) ( time() - DAY_IN_SECONDS );
+		$this->assertSame( '23:00', \FreeFormCertificate\Security\Geofence::get_form_config( 1 )['time_start'] );
+	}
+
+	public function test_an_opening_never_moves_a_start_later(): void {
+		$this->meta_store[1] = array(
+			'_ffc_geofence_config'          => array( 'time_start' => '08:00' ),
+			EarlyOpenAction::META_OPENED_AT => (string) time(),
+		);
+		$this->stub_wp_date();
+
+		$this->assertSame( '08:00', \FreeFormCertificate\Security\Geofence::get_form_config( 1 )['time_start'] );
 	}
 
 	public function test_execute_short_circuits_when_eligibility_fails(): void {
