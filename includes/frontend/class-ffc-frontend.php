@@ -153,6 +153,11 @@ class Frontend {
 	private array $assets_done = array();
 
 	/**
+	 * How many levels of synced patterns inside synced patterns are read.
+	 */
+	private const PATTERN_DEPTH = 3;
+
+	/**
 	 * Enqueue frontend CSS and JavaScript assets for the shortcodes the
 	 * post body carries.
 	 */
@@ -163,11 +168,74 @@ class Frontend {
 			return;
 		}
 
-		$flags = array();
+		$content = self::page_content( $post );
+		$flags   = array();
 		foreach ( array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE ) as $tag ) {
-			$flags[ $tag ] = ! isset( $this->assets_done[ $tag ] ) && has_shortcode( $post->post_content, $tag );
+			$flags[ $tag ] = ! isset( $this->assets_done[ $tag ] ) && has_shortcode( $content, $tag );
 		}
 		$this->enqueue_for( $flags );
+	}
+
+	/**
+	 * The post body, followed by the bodies of the synced patterns it embeds (#2341).
+	 *
+	 * A synced pattern (`core/block`) is its own post: its shortcode is not in
+	 * the page's body, so `has_shortcode()` alone missed it and the stylesheet
+	 * arrived late, with the late styles. Patterns nest, so the walk follows
+	 * them up to {@see self::PATTERN_DEPTH} levels and reads each one once.
+	 *
+	 * @param \WP_Post $post The queried post.
+	 * @return string
+	 */
+	private static function page_content( \WP_Post $post ): string {
+		$content = (string) $post->post_content;
+		if ( ! function_exists( 'parse_blocks' ) || false === strpos( $content, '<!-- wp:block' ) ) {
+			return $content;
+		}
+
+		$seen  = array();
+		$queue = array( $content );
+		for ( $depth = 0; $depth < self::PATTERN_DEPTH && array() !== $queue; $depth++ ) {
+			$next = array();
+			foreach ( $queue as $body ) {
+				foreach ( self::pattern_refs( parse_blocks( $body ) ) as $ref ) {
+					if ( isset( $seen[ $ref ] ) ) {
+						continue;
+					}
+					$seen[ $ref ] = true;
+					$pattern      = get_post( $ref );
+					if ( $pattern instanceof \WP_Post && 'wp_block' === $pattern->post_type && 'publish' === $pattern->post_status ) {
+						$content .= "\n" . $pattern->post_content;
+						$next[]   = (string) $pattern->post_content;
+					}
+				}
+			}
+			$queue = $next;
+		}
+
+		return $content;
+	}
+
+	/**
+	 * The ids of the synced patterns a block tree embeds, at any depth.
+	 *
+	 * @param array<array-key, mixed> $blocks Parsed blocks.
+	 * @return array<int, int>
+	 */
+	private static function pattern_refs( array $blocks ): array {
+		$refs = array();
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			if ( 'core/block' === ( $block['blockName'] ?? '' ) && is_array( $block['attrs'] ?? null ) && isset( $block['attrs']['ref'] ) && is_numeric( $block['attrs']['ref'] ) ) {
+				$refs[] = (int) $block['attrs']['ref'];
+			}
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$refs = array_merge( $refs, self::pattern_refs( $block['innerBlocks'] ) );
+			}
+		}
+		return array_values( array_filter( $refs ) );
 	}
 
 	/**
@@ -182,6 +250,11 @@ class Frontend {
 	 */
 	public function enqueue_on_render( $short_circuit, $tag, $attr = array() ) {
 		$tags = array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE );
+		// A further form on a page whose assets already loaded may need a
+		// script the first did not (#2341).
+		if ( false === $short_circuit && 'ffc_form' === $tag && isset( $this->assets_done[ $tag ] ) && is_array( $attr ) && isset( $attr['id'] ) && absint( $attr['id'] ) > 0 ) {
+			$this->enqueue_form_features( array( absint( $attr['id'] ) ) );
+		}
 		if ( false === $short_circuit && in_array( $tag, $tags, true ) && ! isset( $this->assets_done[ $tag ] ) ) {
 			$flags         = array_fill_keys( $tags, false );
 			$flags[ $tag ] = true;
@@ -201,7 +274,8 @@ class Frontend {
 	 */
 	private function enqueue_for( array $flags, array $form_ids = array() ): void {
 		global $post;
-		$page_id = is_a( $post, 'WP_Post' ) ? (int) $post->ID : 0;
+		$page_id       = is_a( $post, 'WP_Post' ) ? (int) $post->ID : 0;
+		$page_form_ids = array_merge( $form_ids, is_a( $post, 'WP_Post' ) ? self::form_ids_in( self::page_content( $post ) ) : array() );
 
 		foreach ( $flags as $tag => $on ) {
 			if ( $on ) {
@@ -231,8 +305,11 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 			// Shared CSV progress-overlay modal styles (#786) — the base
 			// .ffc-csv-progress-* rules moved here from ffc-frontend.css so the
-			// admin exports render the identical modal; loaded on both surfaces.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+			// admin exports render the identical modal. Only the CSV screen
+			// shows it (#2341).
+			if ( $has_csv_download ) {
+				\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+			}
 
 			// Dynamic fragments: refresh captcha + nonces on cached pages so
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
@@ -266,11 +343,6 @@ class Frontend {
 					)
 				);
 
-				// Clears a quiz's answers when the participant leaves the
-				// window, on the forms that ask for it (#1731). No dependency:
-				// it reads the form's markup, which carries its own strings.
-				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
-
 				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
 					'ffc-already-submitted-notice',
@@ -298,9 +370,11 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-preflight' );
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit', 'ffc-preflight' ), FFC_VERSION, true );
 
-			// The geofence core and its validation modules; the geofence config
-			// localize stays on 'ffc-geofence-frontend'.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
+			// The geofence core runs the visitor pre-flight on every form, and
+			// carries the config localize; its date/GPS modules load only for
+			// a form that restricts by date or location (#2341).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend' );
+			$this->enqueue_form_features( $page_form_ids );
 
 			// Pass geofence configurations to frontend.
 			$this->localize_geofence_config( $form_ids );
@@ -712,6 +786,65 @@ class Frontend {
 	}
 
 	/**
+	 * The ids of the forms a content's `[ffc_form]` shortcodes name.
+	 *
+	 * Pre-6.6.8 used a hand-rolled regex that only matched a double- or
+	 * single-quoted `id`, and missed `[ffc_form id=42]` and a shortcode with
+	 * further attributes; the form then rendered as if no geofence existed.
+	 * `get_shortcode_regex()` and `shortcode_parse_atts()` accept every form
+	 * WordPress's own parser does.
+	 *
+	 * @param string $content Content to scan.
+	 * @return array<int, int>
+	 */
+	private static function form_ids_in( string $content ): array {
+		$form_ids = array();
+		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
+		if ( '' !== $content && preg_match_all( '/' . $pattern . '/', $content, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				// Group 3 holds the raw attribute string.
+				$atts = shortcode_parse_atts( isset( $match[3] ) ? (string) $match[3] : '' );
+				$id   = isset( $atts['id'] ) ? (int) $atts['id'] : 0;
+				if ( $id > 0 ) {
+					$form_ids[] = $id;
+				}
+			}
+		}
+		return $form_ids;
+	}
+
+	/**
+	 * Enqueue the scripts only some forms need, for the forms given (#2341).
+	 *
+	 * The quiz "leave the window" script loads for a quiz form that clears
+	 * answers on leave, and the geofence date/GPS modules for a form whose
+	 * date/time or location restriction is on. The geofence core stays on
+	 * every form, because it runs the visitor pre-flight. Enqueuing twice is
+	 * harmless, so a form rendered outside the body calls this again.
+	 *
+	 * @param array<int, int> $form_ids Form ids.
+	 * @return void
+	 */
+	private function enqueue_form_features( array $form_ids ): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		foreach ( array_unique( $form_ids ) as $form_id ) {
+			$config = get_post_meta( $form_id, '_ffc_form_config', true );
+			$config = is_array( $config ) ? $config : array();
+			if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF !== \FreeFormCertificate\Core\QuizLeaveLevel::of( $config ) ) {
+				// Clears a quiz's answers when the participant leaves the
+				// window (#1731). It reads the form's markup, which carries
+				// its own strings.
+				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
+			}
+
+			$geofence = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
+			if ( null !== $geofence && ( ! empty( $geofence['datetime_enabled'] ) || ! empty( $geofence['geo_enabled'] ) ) ) {
+				\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
+			}
+		}
+	}
+
+	/**
 	 * Localize geofence configuration for frontend
 	 *
 	 * @since 3.0.0
@@ -722,40 +855,8 @@ class Frontend {
 	private function localize_geofence_config( array $extra_ids = array(), bool $geofence_content = false ): void {
 		global $post;
 
-		$content = is_a( $post, 'WP_Post' ) ? (string) $post->post_content : '';
-
-		// Find all form IDs in post content.
-		//
-		// Pre-6.6.8 used a hand-rolled regex that ONLY matched
-		// `[ffc_form id="42"]` (double-quoted) and `[ffc_form id='42']`
-		// (single-quoted). It silently missed two WP-valid formats that
-		// are common in the wild:
-		// `[ffc_form id=42]` (quotes are optional in shortcode atts) and
-		// `[ffc_form id="42" class="extra"]` (additional attributes).
-		// When the regex missed, `wp_localize_script` was never called
-		// for that form, so the JS geofence layer never received its
-		// config, never validated the datetime window, and the form
-		// rendered as if no geofence existed. Users would set
-		// "hide before start" in admin and still see the form on the
-		// public page.
-		//
-		// Fix: use `get_shortcode_regex(['ffc_form'])`, the canonical
-		// WP helper, then parse atts via `shortcode_parse_atts()` which
-		// handles all the quoting variants WP's own parser accepts.
-		$form_ids = $extra_ids;
-		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
-		if ( '' !== $content && preg_match_all( '/' . $pattern . '/', $content, $matches, PREG_SET_ORDER ) ) {
-			foreach ( $matches as $match ) {
-				// $match[3] holds the raw attribute string in WP's
-				// get_shortcode_regex layout (group 3).
-				$atts_raw = isset( $match[3] ) ? (string) $match[3] : '';
-				$atts     = shortcode_parse_atts( $atts_raw );
-				$id       = isset( $atts['id'] ) ? (int) $atts['id'] : 0;
-				if ( $id > 0 ) {
-					$form_ids[] = $id;
-				}
-			}
-		}
+		$content  = is_a( $post, 'WP_Post' ) ? self::page_content( $post ) : '';
+		$form_ids = array_merge( $extra_ids, self::form_ids_in( $content ) );
 
 		// A page with only [ffc_geofence] still needs the shared strings
 		// below: the content script reads them through the same object.
