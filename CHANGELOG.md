@@ -74,6 +74,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Capabilities reference corrected** (#2340). It no longer says WordPress administrators always hold every FFC capability (they receive FFC Administrator once, and its removal holds), and it says which Operators export: those of Reregistration and Short URLs.
 - ⚠ **Start Form Early applies to the day it is pressed only** (#2341). The moment is stored apart from the form's schedule instead of rewriting `time_start`, so a multi-day daily form opens at its scheduled time on every later day; the editor box says "opened early today at 07:40", and saving the form that day keeps the opening.
 - **An invitation link that no longer works no longer blocks an open form** (#2341). On a form that is not invite-only the form shows unfilled, with "The invitation link is not needed — fill in and submit the form as usual."; an invite-only form keeps the refusal and says to ask whoever sent the invitation for a new link.
+- **Public pages: a shortcode in a synced pattern is found, and scripts load where their feature is on** (#2341). The asset detection reads the synced patterns a page embeds, so their forms get their stylesheet in the head; the quiz window-leave script loads for a form that uses it, the geofence date/GPS modules for a form that restricts by date or location, and the progress overlay on the CSV screen only.
 
 ### Security
 

@@ -257,6 +257,109 @@ class FrontendTest extends TestCase {
 		$this->assertNotContains( 'jspdf', $enqueued_scripts );
 	}
 
+	/**
+	 * Render the page assets for a body and the stored meta of its forms.
+	 *
+	 * @param string                              $content Post body.
+	 * @param array<int, array<string, mixed>>     $meta    form id => meta key => value.
+	 * @return array{scripts: array<int, string>, styles: array<int, string>}
+	 */
+	private function assets_for( string $content, array $meta = array() ): array {
+		global $post;
+		$post               = Mockery::mock( 'WP_Post' );
+		$post->ID           = 1;
+		$post->post_content = $content;
+
+		Functions\when( 'has_shortcode' )->alias( static fn( $c, $tag ) => false !== strpos( (string) $c, '[' . $tag ) );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $id ][ $key ] ?? '' );
+		$scripts = array();
+		$styles  = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$scripts ) {
+				$scripts[] = $handle;
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
+
+		( new Frontend( $this->makeSubmissionHandlerMock() ) )->frontend_assets();
+
+		return array(
+			'scripts' => $scripts,
+			'styles'  => $styles,
+		);
+	}
+
+	public function test_a_plain_form_loads_no_quiz_geofence_module_or_progress_overlay(): void {
+		// #2341: scripts load only where their feature is on.
+		$assets = $this->assets_for( '[ffc_form id="42"]' );
+
+		$this->assertContains( 'ffc-geofence-frontend', $assets['scripts'], 'The core runs the pre-flight on every form.' );
+		$this->assertNotContains( 'ffc-quiz-leave', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-geofence-datetime', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-geofence-gps', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-progress-overlay', $assets['styles'] );
+	}
+
+	public function test_a_form_with_its_features_on_loads_their_scripts(): void {
+		$assets = $this->assets_for(
+			'[ffc_form id=42]',
+			array(
+				42 => array(
+					'_ffc_form_config'     => array(
+						'quiz_enabled'     => '1',
+						'quiz_reset_on_leave' => '1',
+					),
+					'_ffc_geofence_config' => array( 'datetime_enabled' => '1' ),
+				),
+			)
+		);
+
+		$this->assertContains( 'ffc-quiz-leave', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-datetime', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-gps', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-permission', $assets['scripts'] );
+	}
+
+	public function test_the_csv_screen_loads_the_progress_overlay(): void {
+		$this->assertContains( 'ffc-progress-overlay', $this->assets_for( '[ffc_csv_download]' )['styles'] );
+	}
+
+	public function test_a_shortcode_inside_a_synced_pattern_is_found(): void {
+		// #2341: a synced pattern is its own post, so its shortcode is not
+		// in the page body.
+		Functions\when( 'parse_blocks' )->alias(
+			static fn( $content ) => false !== strpos( (string) $content, 'wp:block' )
+				? array(
+					array(
+						'blockName'   => 'core/group',
+						'attrs'       => array(),
+						'innerBlocks' => array(
+							array(
+								'blockName'   => 'core/block',
+								'attrs'       => array( 'ref' => 77 ),
+								'innerBlocks' => array(),
+							),
+						),
+					),
+				)
+				: array()
+		);
+		$pattern               = Mockery::mock( 'WP_Post' );
+		$pattern->post_type    = 'wp_block';
+		$pattern->post_status  = 'publish';
+		$pattern->post_content = '[ffc_form id="42"]';
+		Functions\when( 'get_post' )->alias( static fn( $id ) => 77 === (int) $id ? $pattern : null );
+
+		$assets = $this->assets_for( '<!-- wp:group --><!-- wp:block {"ref":77} /--><!-- /wp:group -->' );
+
+		$this->assertContains( 'ffc-frontend-js', $assets['scripts'] );
+		$this->assertContains( 'ffc-frontend-css', $assets['styles'] );
+	}
+
 	// ==================================================================
 	// frontend_assets() — post with ffc_verification shortcode
 	// ==================================================================
