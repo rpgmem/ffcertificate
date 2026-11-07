@@ -304,6 +304,11 @@ final class DateMessagesAdminPage {
 		// for Recruitment; its other rules are scoped and stay dormant here.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
+		// The rule editor's tabs (#2498), the script the other editors use.
+		if ( RequestInput::has_get( 'rule' ) ) {
+			\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+		}
+
 		// The body appearance card (#1660) picks an image from the Media
 		// Library and its colours with the picker the Email Model uses.
 		wp_enqueue_media();
@@ -348,6 +353,27 @@ final class DateMessagesAdminPage {
 					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
 					'confirmSummary' => __( 'Run "%1$s" for %2$s? Personal e-mails are off: nobody is e-mailed, and its managers receive the summary of the %3$s people whose date it is.', 'ffcertificate' ),
 					'today'          => __( 'today', 'ffcertificate' ),
+					// The rule editor's "This rule" card (#2498); the same
+					// sentences the template renders first.
+					'facts'          => array(
+						'onDate'     => __( 'On the date itself', 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'dayBefore'  => _n( '%d day before the date', '%d days before the date', 1, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'daysBefore' => _n( '%d day before the date', '%d days before the date', 2, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'dayAfter'   => _n( '%d day after the date', '%d days after the date', 1, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'daysAfter'  => _n( '%d day after the date', '%d days after the date', 2, 'ffcertificate' ),
+						'atTime'     => __( 'Once, at the time set in Sending', 'ffcertificate' ),
+						'byHand'     => __( 'By hand, with Send now', 'ffcertificate' ),
+						'everyone'   => __( 'Everyone', 'ffcertificate' ),
+						/* translators: %d: number of audiences */
+						'audience'   => _n( '%d audience', '%d audiences', 1, 'ffcertificate' ),
+						/* translators: %d: number of audiences */
+						'audiences'  => _n( '%d audience', '%d audiences', 2, 'ffcertificate' ),
+						'off'        => __( 'Off', 'ffcertificate' ),
+					),
 				),
 			)
 		);

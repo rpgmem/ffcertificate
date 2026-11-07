@@ -1089,6 +1089,8 @@ class DateMessagesAdminPageTest extends TestCase {
 				'body'    => 'ANNOUNCE',
 			),
 		);
+		// The rule editor's "This rule" card strings (#2498).
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$media     = 0;
 		Functions\when( 'wp_enqueue_media' )->alias(
@@ -1481,6 +1483,34 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'The daily run is not scheduled', $html, 'a missing daily run needs attention' );
 		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
 		$this->assertStringNotContainsString( 'ffc-settings-tabs__nav', $html, 'no vertical menu: the WordPress submenu holds the sections' );
+	}
+
+	/**
+	 * The rule editor follows the admin layout (#2498): a tab per part of the
+	 * rule inside one form, and a side column whose first card holds the
+	 * Active switch and Save, then the "This rule" summary.
+	 */
+	public function test_the_rule_editor_is_tabs_and_a_side_column_in_one_form(): void {
+		Functions\when( 'wp_editor' )->justReturn( null );
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'esc_attr_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'checked' )->justReturn( '' );
+		$html = $this->render_screen( array( 'rule' => '0' ) );
+
+		preg_match_all( '/id="ffc-tabnav-([a-z]+)"/', $html, $tabs );
+		$this->assertSame( array( 'rule', 'message', 'appearance', 'sending', 'summary', 'check' ), $tabs[1] );
+		$this->assertStringNotContainsString( 'ffc-sections', $html, 'no stacked sections any more' );
+
+		$form = substr( $html, (int) strpos( $html, '<form' ), (int) strpos( $html, '</form>' ) - (int) strpos( $html, '<form' ) );
+		$side = (int) strpos( $form, 'ffc-editor__side' );
+		$this->assertGreaterThan( 0, $side, 'the side column is inside the form, so its switch and Save post with it' );
+		$this->assertGreaterThan( $side, (int) strpos( $form, 'name="rule[is_active]"' ), 'the Active switch sits in the side column' );
+		$this->assertGreaterThan( (int) strpos( $form, 'name="rule[is_active]"' ), (int) strpos( $form, 'Save rule' ), 'Save follows the switch in the first card' );
+		$this->assertGreaterThan( (int) strpos( $form, 'Save rule' ), (int) strpos( $form, 'This rule' ), 'the summary is the second card' );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="kind">By date<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="offset">On the date itself<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="audiences">Everyone<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="digest">Off<', $html );
 	}
 
 	public function test_opening_a_rule_that_no_longer_exists_lands_on_the_list_with_an_error(): void {
