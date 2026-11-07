@@ -222,7 +222,9 @@ final class CsvDownloadValidator {
 			$author_id = (int) get_post_field( 'post_author', $form_id );
 			if ( $author_id <= 0 ) {
 				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'Form has no author to validate against.', 'ffcertificate' );
+				// In the operator's words (#2341): the gate compares with the
+				// author's CPF, and this form has nobody to compare with.
+				return __( 'This form has no responsible person whose CPF can be checked, so the download is unavailable. Ask the site administrator to set the form\'s author.', 'ffcertificate' );
 			}
 			// COMPARE HASHES, NEVER THE STORED VALUE (#1443).
 			//
@@ -257,7 +259,7 @@ final class CsvDownloadValidator {
 
 			if ( '' === $author_hash || '' === $typed_hash || ! hash_equals( $author_hash, $typed_hash ) ) {
 				$this->record_download_log_entry( $form_id, $mode, $digits, 'fail_match' );
-				return __( 'CPF does not match the form author.', 'ffcertificate' );
+				return __( 'This CPF is not the one of the person responsible for this form.', 'ffcertificate' );
 			}
 			if ( ! $silent_audit ) {
 				$this->record_download_log_entry( $form_id, $mode, $digits, 'success' );

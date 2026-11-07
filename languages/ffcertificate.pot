@@ -4662,7 +4662,7 @@ msgid "CPF / RF"
 msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:248
-msgid "CPF does not match the form author."
+msgid "This CPF is not the one of the person responsible for this form."
 msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:278
@@ -9033,7 +9033,7 @@ msgid "Form Details"
 msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:240
-msgid "Form has no author to validate against."
+msgid "This form has no responsible person whose CPF can be checked, so the download is unavailable. Ask the site administrator to set the form's author."
 msgstr ""
 
 #: includes/frontend/class-ffc-shortcodes.php:149
@@ -20368,11 +20368,11 @@ msgid "Your CPF is required for traceability and is recorded in this form's audi
 msgstr ""
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:98
-msgid "Your CPF/RF is blocked."
+msgid "This CPF/RF cannot use this form. If you think this is a mistake, contact whoever sent you the form."
 msgstr ""
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:122
-msgid "Your CPF/RF is not authorized."
+msgid "This CPF/RF is not on the list of people who can use this form. If it should be, contact whoever sent you the form."
 msgstr ""
 
 #: includes/privacy/class-ffc-privacy-handler.php:100

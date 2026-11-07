@@ -67,6 +67,7 @@ class PublicCsvDownloadTest extends TestCase {
 		} );
 		Functions\when( 'get_transient' )->justReturn( false );
 		Functions\when( 'set_transient' )->justReturn( true );
+		Functions\when( 'add_query_arg' )->alias( fn( $key, $value, $url ) => $url . '?' . $key . '=' . $value );
 
 		$this->meta_store   = array();
 		$this->meta_updates = array();
@@ -599,6 +600,7 @@ class PublicCsvDownloadTest extends TestCase {
 
 	public function test_render_shortcode_shows_flash_message_when_set(): void {
 		unset( $_GET['form_id'], $_GET['hash'] );
+		$_GET['ffc_pcd_flash'] = str_repeat( 'ab', 16 );
 		Functions\when( 'get_transient' )->justReturn( array(
 			'type'    => 'error',
 			'message' => 'Invalid access hash.',
@@ -614,6 +616,7 @@ class PublicCsvDownloadTest extends TestCase {
 
 	public function test_render_shortcode_shows_a_success_flash_as_a_success_notice(): void {
 		unset( $_GET['form_id'], $_GET['hash'] );
+		$_GET['ffc_pcd_flash'] = str_repeat( 'ab', 16 );
 		Functions\when( 'get_transient' )->justReturn( array(
 			'type'    => 'success',
 			'message' => 'Download ready.',
@@ -624,6 +627,52 @@ class PublicCsvDownloadTest extends TestCase {
 		$this->assertStringContainsString( '<div class="ffc-notice ffc-notice-success" role="status">', $html );
 		$this->assertStringContainsString( 'ffc-icon-success', $html );
 		$this->assertStringContainsString( 'Download ready.', $html );
+	}
+
+	/**
+	 * #2341 — a flash is keyed by the token its redirect carries, never by
+	 * the address: two visitors behind one NAT do not see each other's
+	 * refusals, and a page without the token shows none.
+	 */
+	public function test_flash_reaches_only_the_browser_its_redirect_names(): void {
+		unset( $_GET['form_id'], $_GET['hash'], $_GET['ffc_pcd_flash'] );
+		$store = array();
+		Functions\when( 'set_transient' )->alias( function ( $key, $value ) use ( &$store ) {
+			$store[ $key ] = $value;
+			return true;
+		} );
+		Functions\when( 'get_transient' )->alias( function ( $key ) use ( &$store ) {
+			return $store[ $key ] ?? false;
+		} );
+		Functions\when( 'delete_transient' )->alias( function ( $key ) use ( &$store ) {
+			unset( $store[ $key ] );
+			return true;
+		} );
+		$location = '';
+		Functions\when( 'wp_safe_redirect' )->alias( function ( $url ) use ( &$location ) {
+			$location = $url;
+			throw new \RuntimeException( 'redirected' );
+		} );
+
+		$flash = new \FreeFormCertificate\Frontend\Csv\CsvDownloadFlash();
+		try {
+			$flash->fail_redirect( 'Invalid access hash.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'redirected', $e->getMessage() );
+		}
+		$this->assertMatchesRegularExpression( '/[?&]ffc_pcd_flash=([a-f0-9]{32})$/', $location );
+		preg_match( '/ffc_pcd_flash=([a-f0-9]{32})$/', $location, $m );
+
+		// Another visitor from the same address, without the token: nothing.
+		$html = $this->handler->render_shortcode( array() );
+		$this->assertStringNotContainsString( 'Invalid access hash.', $html );
+		$this->assertCount( 1, $store, 'The other visitor did not spend the message.' );
+
+		// The browser that was redirected sees it once.
+		$_GET['ffc_pcd_flash'] = $m[1];
+		$this->assertStringContainsString( 'Invalid access hash.', $this->handler->render_shortcode( array() ) );
+		$this->assertStringNotContainsString( 'Invalid access hash.', $this->handler->render_shortcode( array() ) );
+		unset( $_GET['ffc_pcd_flash'] );
 	}
 
 	// ==================================================================
