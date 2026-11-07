@@ -34,6 +34,9 @@ class ReregistrationFieldConsolidationTest extends TestCase {
 	/** @var array<string, mixed> Options. */
 	private array $options = array();
 
+	/** @var list<int> Field ids somebody's profile holds an answer under. */
+	private array $answered = array();
+
 	/** @var int Next insert id. */
 	private int $next_id = 1000;
 
@@ -43,6 +46,17 @@ class ReregistrationFieldConsolidationTest extends TestCase {
 		CustomFieldAnswerMerge::reset();
 
 		$this->options   = array();
+		$this->answered  = array();
+		Functions\when( 'get_users' )->alias(
+			function ( $args ) {
+				foreach ( $this->answered as $id ) {
+					if ( '"field_' . $id . '";' === $args['meta_value'] ) {
+						return array( 7 );
+					}
+				}
+				return array();
+			}
+		);
 		$this->audiences = array(
 			1 => array( 'id' => 1, 'name' => 'Teachers', 'parent_id' => null ),
 			2 => array( 'id' => 2, 'name' => 'Math', 'parent_id' => 1 ),
@@ -231,7 +245,8 @@ class ReregistrationFieldConsolidationTest extends TestCase {
 	 * A copy whose type differs cannot be read as the inherited field: it
 	 * stays, with its answers.
 	 */
-	public function test_a_copy_of_another_type_stays_as_it_is(): void {
+	public function test_an_answered_copy_of_another_type_stays_as_it_is(): void {
+		$this->answered = array( 21 );
 		$this->copy( 11, 1 );
 		$this->copy( 21, 2, array( 'field_type' => 'text' ) );
 
@@ -239,6 +254,20 @@ class ReregistrationFieldConsolidationTest extends TestCase {
 
 		$this->assertNull( $this->fields[21]['overrides_field_id'] );
 		$this->assertArrayNotHasKey( 21, CustomFieldAnswerMerge::map() );
+	}
+
+	/**
+	 * Nothing is stored under a copy nobody answered: it inherits the field
+	 * even though its type differs.
+	 */
+	public function test_an_unanswered_copy_of_another_type_inherits(): void {
+		$this->copy( 11, 1 );
+		$this->copy( 21, 2, array( 'field_type' => 'text' ) );
+
+		ReregistrationStandardFieldsSeeder::consolidate_into_global();
+
+		$this->assertArrayNotHasKey( 21, $this->fields );
+		$this->assertArrayNotHasKey( 21, CustomFieldAnswerMerge::map(), 'No answer to move.' );
 	}
 
 	public function test_a_field_only_one_audience_asks_stays_its_own(): void {

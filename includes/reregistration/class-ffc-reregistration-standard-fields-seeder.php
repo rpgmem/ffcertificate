@@ -934,8 +934,9 @@ class ReregistrationStandardFieldsSeeder {
 	 * A copy with the inherited values is deleted; one that differs becomes
 	 * the audience's change to the field; one that was inactive hides the
 	 * field in that audience. A copy whose type, sensitivity or profile
-	 * binding differs from the inherited field stays as it is: its answers
-	 * cannot be read as the inherited field's. Every folded id is recorded
+	 * binding differs from the inherited field stays as it is when somebody
+	 * answered it -- its answers cannot be read as the inherited field's --
+	 * and is deleted when nobody did. Every folded id is recorded
 	 * for {@see CustomFieldAnswerMerge}, which moves the answers.
 	 *
 	 * @return int Number of copies folded.
@@ -953,7 +954,15 @@ class ReregistrationStandardFieldsSeeder {
 			foreach ( CustomFieldReader::get_by_audience( $audience['id'], false ) as $row ) {
 				$key  = (string) $row->field_key;
 				$base = $inherited[ $key ] ?? null;
-				if ( null === $base || (int) ( $row->overrides_field_id ?? 0 ) > 0 || ! self::same_identity( $row, $base ) ) {
+				if ( null === $base || (int) ( $row->overrides_field_id ?? 0 ) > 0 ) {
+					continue;
+				}
+				if ( ! self::same_identity( $row, $base ) ) {
+					// Nothing is stored under a copy nobody answered, so it
+					// inherits the field even though it was set up differently.
+					if ( ! self::has_stored_answers( (int) $row->id ) ) {
+						CustomFieldWriter::drop_copy( (int) $row->id );
+					}
 					continue;
 				}
 
@@ -973,6 +982,29 @@ class ReregistrationStandardFieldsSeeder {
 
 		CustomFieldAnswerMerge::record( $map );
 		return count( $map );
+	}
+
+	/**
+	 * Whether anybody's profile holds an answer under a field id. A copy's
+	 * answers live there, keyed `field_<id>`; a submission keys them by
+	 * `field_key`, which the inherited field shares, so it stays readable
+	 * whatever happens to the copy.
+	 *
+	 * @param int $field_id Field row id.
+	 * @return bool
+	 */
+	private static function has_stored_answers( int $field_id ): bool {
+		$users = get_users(
+			array(
+				'meta_key'     => CustomFieldReader::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run once per copy that cannot fold, on the one-shot upgrade step; one row is enough.
+				'meta_value'   => '"field_' . $field_id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
+				'meta_compare' => 'LIKE',
+				'number'       => 1,
+				'fields'       => 'ID',
+				'count_total'  => false,
+			)
+		);
+		return ! empty( $users );
 	}
 
 	/**
