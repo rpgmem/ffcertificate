@@ -164,6 +164,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: the candidate summary sits beside the form again** (#2486). The permanent-deletion tab closed one container too many when the candidate had classifications, which pushed the summary below the editor.
 - **Audience Bookings: cancelling a booking keeps the row's View button** (#2486). Since the row actions became buttons, a successful cancel removed the button before Cancel (View or Attendance) instead of a "|" separator; now it removes Cancel and Attendance only.
 - **Recruitment: the notice summary sits beside the editor on a definitive notice** (#2486). The Import candidates tab closed one container too many once a notice left the preliminary stage, which pushed the side column below the page.
+- **Recruitment: the public notice page is one card, as wide as the user dashboard** (#2486). The list drew a second card inside the first and took the whole width of a full-width page; it now has the dashboard's width, margin and shadow.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

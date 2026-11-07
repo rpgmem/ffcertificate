@@ -38,13 +38,16 @@
     white-space: nowrap;
 }
 
+/* The same card as the user dashboard (#2486): its width, its margin and
+   its shadow, so the two public pages read as one. */
 .ffc-recruitment-queue {
+    max-width: 1500px;
     background: var(--ffc-bg);
     color: var(--ffc-text);
     border-radius: var(--ffc-radius-lg);
     padding: var(--ffc-spacing-3xl);
-    box-shadow: var(--ffc-shadow-sm);
-    margin: var(--ffc-spacing-3xl) 0;
+    box-shadow: var(--ffc-shadow-md);
+    margin: var(--ffc-spacing-2xl) auto;
     font-size: var(--ffc-font-size-base);
     line-height: 1.5;
 }

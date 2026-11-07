@@ -485,7 +485,9 @@ final class RecruitmentPublicShortcode {
 			'page_bottom'
 		);
 
-		$body = '<div class="ffc-recruitment-queue">'
+		// The card is the outer `.ffc-recruitment-queue` of wrap_output();
+		// a second one here drew a box inside the box (#2486).
+		$body = '<div class="ffc-recruitment-lists">'
 			. $filters_bar
 			. $top_section
 			. $bottom_section
