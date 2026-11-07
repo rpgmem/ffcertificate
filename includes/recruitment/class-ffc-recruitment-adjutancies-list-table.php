@@ -2,7 +2,7 @@
 /**
  * Recruitment Adjutancies List Table.
  *
- * `WP_List_Table` subclass that powers the Adjutancies tab. Extends
+ * `WP_List_Table` subclass that powers the Adjutancies page. Extends
  * {@see AbstractRecruitmentListTable} for the shared fetch-all / sort /
  * paginate / bulk-delete mechanics; this class supplies only the columns,
  * row shape and domain hooks. Bulk delete is gated per §14 — the
@@ -41,6 +41,7 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 			'color'      => __( 'Badge color', 'ffcertificate' ),
 			'usage'      => __( 'Notices using', 'ffcertificate' ),
 			'created_at' => __( 'Created at', 'ffcertificate' ),
+			'actions'    => __( 'Actions', 'ffcertificate' ),
 		);
 	}
 
@@ -66,6 +67,31 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 	protected function column_slug( $item ): string {
 		$slug = (string) $item['slug'];
 		$id   = (int) $item['id'];
+
+		$edit_url = add_query_arg(
+			array(
+				'page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'tab'          => 'adjutancies',
+				'action'       => 'edit-adjutancy',
+				'adjutancy_id' => $id,
+			),
+			admin_url( 'admin.php' )
+		);
+		return sprintf(
+			'<strong><a href="%s"><code>%s</code></a></strong>',
+			esc_url( $edit_url ),
+			esc_html( $slug )
+		);
+	}
+
+	/**
+	 * The row's actions as buttons (#2486).
+	 *
+	 * @param array<string, mixed> $item Row.
+	 * @return string
+	 */
+	protected function column_actions( $item ): string {
+		$id = (int) $item['id'];
 
 		$edit_url   = add_query_arg(
 			array(
@@ -97,7 +123,7 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 			)
 		);
 		$actions             = array(
-			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
+			'edit'   => $this->edit_button( $edit_url ),
 			'delete' => $this->delete_row_action_link(
 				$delete_url,
 				__( 'Delete this adjutancy?', 'ffcertificate' ),
@@ -106,12 +132,7 @@ class RecruitmentAdjutanciesListTable extends AbstractRecruitmentListTable {
 			),
 		);
 
-		return sprintf(
-			'<strong><a href="%s"><code>%s</code></a></strong>%s',
-			esc_url( $edit_url ),
-			esc_html( $slug ),
-			$this->row_actions( $actions )
-		);
+		return $this->row_buttons( $actions );
 	}
 
 	/**

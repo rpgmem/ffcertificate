@@ -6,11 +6,6 @@
 /* ==========================================================================
    BASE WRAPPER
    ========================================================================== */
-.ffc-settings-wrap,
-.ffc-settings-page {
-    max-width: 1500px;
-}
-
 /* Cards: the box and its heading moved to ffc-admin-components.css, which
    every FFC admin screen loads, so screens without this sheet draw the same box
    (#1627). */
@@ -822,11 +817,6 @@
     }
 }
 
-/* Tab Content Container */
-.ffc-settings-tab-content {
-    max-width: 1500px;
-}
-
 /* ==========================================================================
    VERTICAL TABS — WooCommerce "Product data" style.
    Mirrors the shared vertical-tab component (.ffc-vtabs__*),
@@ -849,6 +839,12 @@
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-lg);
+    /* The menu stays in view while the page scrolls, as the side column
+       does; a menu taller than the window scrolls inside itself (#2486). */
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
 }
 
 /* The menu is a <nav> of page links, not a tablist: each entry loads
@@ -1024,6 +1020,9 @@
 
     .ffc-settings-tabs__nav {
         flex: 0 0 auto;
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 
     .ffc-settings-tabs__list {

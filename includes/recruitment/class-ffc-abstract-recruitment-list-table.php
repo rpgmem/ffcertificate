@@ -36,6 +36,9 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
  */
 abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 
+	use RecruitmentRowButtonsTrait;
+
+
 	/**
 	 * Default and max page sizes (mirrors `WP_List_Table` defaults).
 	 */
@@ -316,27 +319,5 @@ abstract class AbstractRecruitmentListTable extends \WP_List_Table {
 		);
 
 		return $rows;
-	}
-
-	/**
-	 * Build the destructive "Delete" row-action anchor (the confirm-modal
-	 * markup is identical across the tables; only the copy + URL differ).
-	 *
-	 * @param string $delete_url        Nonced delete URL.
-	 * @param string $title             Confirm-modal title (translated, unescaped).
-	 * @param string $body              Confirm-modal body (translated, unescaped).
-	 * @param string $consequences_json JSON array of consequence bullet strings.
-	 * @return string
-	 */
-	protected function delete_row_action_link( string $delete_url, string $title, string $body, string $consequences_json ): string {
-		return sprintf(
-			'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
-			esc_url( $delete_url ),
-			esc_attr( $title ),
-			esc_attr( $body ),
-			esc_attr( $consequences_json ),
-			esc_attr__( 'Delete', 'ffcertificate' ),
-			esc_html__( 'Delete', 'ffcertificate' )
-		);
 	}
 }

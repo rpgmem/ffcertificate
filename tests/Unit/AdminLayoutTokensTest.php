@@ -42,9 +42,17 @@ final class AdminLayoutTokensTest extends TestCase {
 				'top'        => '--ffc-admin-side-top',
 				'max-height' => '--ffc-admin-side-max-height',
 			),
+			'.ffc-dashboard'    => array(
+				'grid-template-columns' => '--ffc-admin-side-width',
+				'gap'                   => '--ffc-admin-gap',
+			),
 		),
 		'ffc-admin-settings.css'        => array(
-			'.ffc-settings-tabs__nav'  => array( 'flex' => '--ffc-admin-nav-width' ),
+			'.ffc-settings-tabs__nav'  => array(
+				'flex'       => '--ffc-admin-nav-width',
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
 			'.ffc-settings-tabs__body' => array(
 				'grid-template-columns' => '--ffc-admin-side-width',
 				'gap'                   => '--ffc-admin-gap',

@@ -2,8 +2,9 @@
 // are covered:
 //
 //   1. `form[data-ffc-create-endpoint]` submit handler — POSTs FormData
-//      to the localized REST root + endpoint path, reloads on success
-//      (response `id`), alerts on failure.
+//      to the localized REST root + endpoint path, reloads (or opens the
+//      new record) on success, shows the refusal on failure; and the
+//      create dialogs that hold those forms (#2486).
 //   2. `input[data-ffc-color-endpoint][data-ffc-entity-id]` change
 //      handler — PATCHes a `{color}` payload via X-HTTP-Method-Override
 //      and updates the sibling `[data-ffc-color-hex]` element.
@@ -30,6 +31,7 @@ beforeAll(() => {
 	window.ffcRecruitmentAdmin = {
 		restRoot: REST_ROOT,
 		nonce: NONCE,
+		openUrls: { notice: 'admin.php?page=ffc-recruitment&action=edit-notice' },
 		confirmModalStrings: {
 			closeLabel: 'Close',
 			cancelLabel: 'Cancel',
@@ -157,7 +159,7 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 		expect(window.alert).toHaveBeenCalledWith('Slug already exists');
 	});
 
-	it('falls back to JSON.stringify(body) when the response has no message', async () => {
+	it('falls back to a generic message when the response has no message', async () => {
 		fetchMock.mockReturnValue(mockJsonResponse({ unexpected: 'shape' }, 500));
 
 		document.body.innerHTML = `
@@ -172,7 +174,118 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(window.alert).toHaveBeenCalledWith(JSON.stringify({ unexpected: 'shape' }));
+		// The raw response is not shown to the operator.
+		expect(window.alert).toHaveBeenCalledWith('The record was not created.');
+	});
+
+	it('shows a refusal inside the dialog and lets the form be sent again', async () => {
+		fetchMock.mockReturnValue(mockJsonResponse({ message: 'Duplicate code' }, 422));
+
+		document.body.innerHTML = `
+			<form data-ffc-create-endpoint="notices">
+				<input name="code" value="N1">
+				<p class="ffc-create-dialog__error" hidden></p>
+				<button type="submit">Create</button>
+			</form>
+		`;
+
+		const form = document.querySelector('form');
+		form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		expect(form.querySelector('[type="submit"]').disabled).toBe(true);
+
+		await new Promise((r) => setTimeout(r, 0));
+
+		const error = form.querySelector('.ffc-create-dialog__error');
+		expect(error.hidden).toBe(false);
+		expect(error.textContent).toBe('Duplicate code');
+		expect(window.alert).not.toHaveBeenCalled();
+		expect(form.querySelector('[type="submit"]').disabled).toBe(false);
+	});
+
+	it('opens the new record when the form names where to go', async () => {
+		fetchMock.mockReturnValue(mockJsonResponse({ id: 31 }));
+
+		document.body.innerHTML = `
+			<form data-ffc-create-endpoint="notices" data-ffc-create-open="notice">
+				<input name="code" value="N1">
+			</form>
+		`;
+
+		document.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(window.location.href).toBe('admin.php?page=ffc-recruitment&action=edit-notice&notice_id=31');
+		expect(reloadMock).not.toHaveBeenCalled();
+	});
+
+	it('reloads when the form names no known editor', async () => {
+		fetchMock.mockReturnValue(mockJsonResponse({ id: 31 }));
+
+		document.body.innerHTML = `
+			<form data-ffc-create-endpoint="notices" data-ffc-create-open="javascript:alert(1)">
+				<input name="code" value="N1">
+			</form>
+		`;
+
+		document.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(window.location.href).toBeUndefined();
+		expect(reloadMock).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('ffc-recruitment-admin: create dialogs', () => {
+	function render() {
+		document.body.innerHTML = `
+			<button type="button" id="opener" data-ffc-dialog-open="dlg">New notice</button>
+			<div class="ffc-confirm-modal-overlay" id="dlg" role="dialog" hidden>
+				<div class="ffc-confirm-modal">
+					<button type="button" id="x" data-ffc-dialog-close>Close</button>
+					<form>
+						<input id="code" name="code">
+						<p class="ffc-create-dialog__error">old</p>
+						<button type="submit" id="go">Create</button>
+					</form>
+				</div>
+			</div>
+		`;
+	}
+
+	it('opens on its button, focuses the first field and clears an old error', () => {
+		render();
+		document.getElementById('opener').click();
+
+		const dialog = document.getElementById('dlg');
+		expect(dialog.hidden).toBe(false);
+		expect(document.activeElement.id).toBe('code');
+		expect(dialog.querySelector('.ffc-create-dialog__error').hidden).toBe(true);
+	});
+
+	it('closes on Escape and on its close button, and returns the focus', () => {
+		render();
+		const opener = document.getElementById('opener');
+		opener.click();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(document.getElementById('dlg').hidden).toBe(true);
+		expect(document.activeElement).toBe(opener);
+
+		opener.click();
+		document.getElementById('x').click();
+		expect(document.getElementById('dlg').hidden).toBe(true);
+	});
+
+	it('keeps Tab inside the dialog', () => {
+		render();
+		document.getElementById('opener').click();
+		document.getElementById('go').focus();
+
+		const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+		document.dispatchEvent(tab);
+
+		expect(tab.defaultPrevented).toBe(true);
+		expect(document.activeElement.id).toBe('x');
+		document.getElementById('x').click();
 	});
 
 	it('ignores submit events on forms without data-ffc-create-endpoint', () => {

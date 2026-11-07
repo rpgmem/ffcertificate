@@ -326,11 +326,18 @@ final class RecruitmentAdminAssetsManager {
 			array(
 				'restRoot'            => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
 				'nonce'               => wp_create_nonce( 'wp_rest' ),
+				// Where a create dialog lands once the record exists, by the
+				// name its form carries in `data-ffc-create-open` (#2486). The
+				// address lives here, never in the markup the script reads.
+				'openUrls'            => array(
+					'notice' => admin_url( 'admin.php?page=' . RecruitmentAdminPage::PAGE_SLUG . '&action=edit-notice' ),
+				),
 				'confirmModalStrings' => array(
 					'closeLabel'   => __( 'Close', 'ffcertificate' ),
 					'cancelLabel'  => __( 'Cancel', 'ffcertificate' ),
 					'defaultTitle' => __( 'Confirm action', 'ffcertificate' ),
 					'defaultCta'   => __( 'Confirm', 'ffcertificate' ),
+					'createFailed' => __( 'The record was not created. Check the fields and try again.', 'ffcertificate' ),
 				),
 			)
 		);

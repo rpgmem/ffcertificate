@@ -1521,10 +1521,6 @@ msgstr "Destinatário(s) administrativo(s)"
 msgid "admin surfaces are gated separately by FFC capabilities — see the Capabilities & Roles reference page."
 msgstr "as áreas administrativas são controladas separadamente por recursos de FFC — consulte a página de referência de Recursos e Funções."
 
-#: includes/settings/views/documentation/feature-recruitment.php:23
-msgid "Admin tabs"
-msgstr "Guias de administração"
-
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php:87
 msgid "Admin View Mode"
 msgstr "Modo de Visualização do Administrador"
@@ -3488,10 +3484,6 @@ msgstr "O candidato foi desvinculado do usuário do WordPress. A conta wp_user n
 msgid "Candidates"
 msgstr "Candidatos"
 
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:270
-msgid "Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the \"Import candidates (CSV)\" section."
-msgstr "Os candidatos são importados por editais via CSV — abra o edital desejado (aba Editais → Editar) e use a seção \"Importar candidatos (CSV)\"."
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:229
 msgid "Candidates can see their position and any preliminary classification reasons exposed by the column toggles."
 msgstr "Os candidatos podem ver sua posição e quaisquer motivos preliminares de classificação exibidos pelas opções de alternância das colunas."
@@ -4814,18 +4806,6 @@ msgstr "Criar Calendário"
 msgid "Create exception"
 msgstr "Criar exceção"
 
-#: templates/admin/recruitment/admin-page/create-adjutancy-form.php:18
-msgid "Create new adjutancy"
-msgstr "Criar nova matéria"
-
-#: templates/admin/recruitment/admin-page/create-notice-form.php:16
-msgid "Create new notice"
-msgstr "Criar novo edital"
-
-#: templates/admin/recruitment/admin-page/create-reason-form.php:18
-msgid "Create new reason"
-msgstr "Criar um novo motivo"
-
 #: templates/admin/reregistration/form.php:146
 msgid "Create Reregistration"
 msgstr "Criar Recadastramento"
@@ -4842,10 +4822,6 @@ msgstr "Cria URLs curtas para os posts já publicados dos tipos de post salvos p
 #| msgid "Create users if they do not exist (with ffc_user role)"
 msgid "Create users if they do not exist (with ffc_end_user role)"
 msgstr "Crie usuários caso não existam (com a função ffc_end_user)"
-
-#: templates/admin/recruitment/admin-page/notices-empty-state.php:27
-msgid "Create your first notice (Code + Name) using the form below this list."
-msgstr "Crie seu primeiro edital (Código + Nome) usando o formulário abaixo desta lista."
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:173
 msgid "Create, edit and duplicate the HTML templates for your certificates and appointment receipts. They all live in one pool — use the buttons below to open the full management screen."
@@ -12138,10 +12114,6 @@ msgstr "Nenhuma migração disponível no momento."
 msgid "No new calls, status changes or cancellations can happen while closed."
 msgstr "Não é possível realizar novas chamadas, alterações de status ou cancelamentos enquanto o serviço estiver fechado."
 
-#: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:24
-msgid "No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued)."
-msgstr "Não há editais com status \"rascunho\" ou \"preliminar\" disponíveis para importação em CSV. Crie um edital (aba Editais) ou mova um existente de volta para o status \"preliminar\" (permitido somente quando nenhuma chamada tiver sido emitida)."
-
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:20
 msgid "No notices yet. The typical path to your first call is:"
 msgstr "Ainda não há editais. O caminho típico para sua primeira chamada é:"
@@ -15446,14 +15418,6 @@ msgstr "Busca"
 msgid "Search activity logs"
 msgstr "Pesquisar registros de atividades"
 
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:192
-msgid "Search adjutancies"
-msgstr "Buscar matérias"
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:279
-msgid "Search by name"
-msgstr "Buscar por nome"
-
 #: includes/audience/class-ffc-audience-admin-calendar.php:455
 msgid "Search by name or email..."
 msgstr "Pesquisar por nome ou e-mail..."
@@ -15486,11 +15450,6 @@ msgstr "Formulários de Pesquisa"
 msgid "Search logs..."
 msgstr "Registros de pesquisa..."
 
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:113
-msgid "Search notices"
-msgstr "Pesquisa de editais"
-
 #: includes/admin/class-ffc-admin-user-capabilities.php:362 includes/admin/class-ffc-role-capability-editor.php:201
 msgid "Search permission or slug…"
 msgstr "Pesquisar permissão ou slug…"
@@ -15502,10 +15461,6 @@ msgstr "Pesquisar permissões"
 #: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:96
 msgid "Search Personal Calendars"
 msgstr "Pesquisar Calendários Pessoais"
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:219
-msgid "Search reasons"
-msgstr "Pesquisar motivos"
 
 #: includes/admin/class-ffc-cert-template-cpt.php:135
 msgid "Search Templates"
@@ -17018,10 +16973,6 @@ msgstr "Sistema indisponível."
 msgid "System Variables"
 msgstr "Variáveis ​​do Sistema"
 
-#: includes/settings/views/documentation/feature-recruitment.php:27
-msgid "Tab"
-msgstr "Aba"
-
 #. %s: table name
 #: includes/migrations/class-ffc-migration-custom-fields-tables.php:115 includes/migrations/class-ffc-migration-custom-fields-tables.php:185 includes/migrations/class-ffc-migration-custom-fields-tables.php:250 includes/migrations/class-ffc-migration-self-scheduling-tables.php:133
 #, php-format
@@ -18063,10 +18014,6 @@ msgstr "Este link não é válido."
 #: includes/settings/views/documentation/reference-emails.php:26
 msgid "This means every email shares the same branded look, and one global switch can turn all of them off."
 msgstr "Isso significa que todos os e-mails compartilham a mesma identidade visual e que um único comando global pode desativá-los."
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:113
-msgid "This notice has no adjutancies linked. Add at least one adjutancy in the Adjutancies tab before importing a CSV."
-msgstr "Este aviso não possui nenhuma matéria vinculada. Adicione pelo menos uma na aba correspondente antes de importar um arquivo CSV."
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:125
 msgid "This notice is in a post-reopen freeze and the affected fields are temporarily locked."
@@ -19252,10 +19199,6 @@ msgstr "Visualizar"
 #: includes/settings/views/documentation/feature-recruitment.php:80
 msgid "view / edit the reason catalog."
 msgstr "visualizar / editar o catálogo de motivos."
-
-#: includes/settings/views/documentation/feature-recruitment.php:81
-msgid "view / save the Settings tab."
-msgstr "visualize / salve a guia Configurações."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:390
 msgid "View activity log"
@@ -33329,3 +33272,141 @@ msgid "%s link"
 msgid_plural "%s links"
 msgstr[0] "%s link"
 msgstr[1] "%s links"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "%1$s · %2$d person"
+msgid_plural "%1$s · %2$d people"
+msgstr[0] "%1$s · %2$d pessoa"
+msgstr[1] "%1$s · %2$d pessoas"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Calls awaiting an answer"
+msgstr "Convocações aguardando resposta"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Calls past their presentation date"
+msgstr "Convocações com a data de apresentação vencida"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Candidates are imported per notice: open the notice (Recruitment → Notices → Edit) and use its \"Import candidates (CSV)\" section."
+msgstr "Os candidatos são importados por edital: abra o edital (Recrutamento → Editais → Editar) e use a seção \"Importar candidatos (CSV)\"."
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Code or name"
+msgstr "Código ou nome"
+
+#: templates/admin/recruitment/admin-page/create-notice-form.php
+msgid "Create and open"
+msgstr "Criar e abrir"
+
+#: templates/admin/recruitment/admin-page/notices-empty-state.php
+msgid "Create your first notice with New notice, beside the title."
+msgstr "Crie o primeiro edital com Novo edital, ao lado do título."
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Linked to an account"
+msgstr "Vinculados a uma conta"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Needs attention"
+msgstr "Precisa de atenção"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New adjutancy"
+msgstr "Nova matéria"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New notice"
+msgstr "Novo edital"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New reason"
+msgstr "Novo motivo"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Next presentations"
+msgstr "Próximas apresentações"
+
+#: templates/admin/recruitment/admin-page/candidates-csv-import-section.php
+msgid "No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Recruitment → Notices) or move an existing one back to `preliminary` (allowed only when zero calls have been issued)."
+msgstr "Não há editais com status \"rascunho\" ou \"preliminar\" disponíveis para importação em CSV. Crie um edital (Recrutamento → Editais) ou mova um existente de volta para o status \"preliminar\" (permitido somente quando nenhuma convocação tiver sido emitida)."
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "No presentation in the next %d day."
+msgid_plural "No presentation in the next %d days."
+msgstr[0] "Nenhuma apresentação no próximo %d dia."
+msgstr[1] "Nenhuma apresentação nos próximos %d dias."
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Not in any notice"
+msgstr "Fora de qualquer edital"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Nothing is waiting."
+msgstr "Nada está pendente."
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open adjutancies"
+msgstr "Abrir matérias"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open candidates"
+msgstr "Abrir candidatos"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open notices"
+msgstr "Editais abertos"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open reasons"
+msgstr "Abrir motivos"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open settings"
+msgstr "Abrir configurações"
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Page"
+msgstr "Página"
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "Presentations in the next %d day"
+msgid_plural "Presentations in the next %d days"
+msgstr[0] "Apresentações no próximo %d dia"
+msgstr[1] "Apresentações nos próximos %d dias"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Slug or label"
+msgstr "Slug ou rótulo"
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Slug or name"
+msgstr "Slug ou nome"
+
+#: templates/admin/recruitment/admin-page/create-notice-form.php
+#, php-format
+msgid "Suggested from the latest notice, %s. You can change it."
+msgstr "Sugerido a partir do último edital, %s. Você pode alterá-lo."
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "The call e-mail, the public shortcode and the badge colors."
+msgstr "O e-mail de convocação, o shortcode público e as cores dos selos."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The menu opens on a dashboard: the open notices, the candidates, the calls awaiting an answer and the presentations of the next seven days, one card per section, and on the side the next presentations and the calls whose presentation date has passed. Each section below has its own page; New notice, beside the title, suggests the next code from the latest notice and opens the new draft."
+msgstr "O menu abre num painel: os editais abertos, os candidatos, as convocações aguardando resposta e as apresentações dos próximos sete dias, um card por seção, e ao lado as próximas apresentações e as convocações com a data de apresentação vencida. Cada seção abaixo tem sua própria página; Novo edital, ao lado do título, sugere o próximo código a partir do último edital e abre o novo rascunho."
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The record was not created. Check the fields and try again."
+msgstr "O registro não foi criado. Confira os campos e tente de novo."
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This notice has no adjutancies linked. Add at least one adjutancy on the Adjutancies page before importing a CSV."
+msgstr "Este edital não tem nenhuma matéria vinculada. Adicione ao menos uma na página Matérias antes de importar um CSV."
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "view / save the Settings page."
+msgstr "visualizar / salvar a página Configurações."

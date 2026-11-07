@@ -24,7 +24,6 @@ class AdminTabMenuSemanticsTest extends TestCase {
 	private const MENUS = array(
 		'includes/admin/class-ffc-settings.php',
 		'includes/audience/class-ffc-audience-admin-settings.php',
-		'templates/admin/recruitment/admin-page/tabs.php',
 		'templates/admin/date-messages/page.php',
 	);
 
@@ -32,7 +31,6 @@ class AdminTabMenuSemanticsTest extends TestCase {
 	private const PANELS = array(
 		'includes/admin/class-ffc-settings.php',
 		'includes/audience/class-ffc-audience-admin-settings.php',
-		'includes/recruitment/class-ffc-recruitment-admin-page.php',
 		'templates/admin/date-messages/page.php',
 	);
 

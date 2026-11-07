@@ -166,7 +166,7 @@
    settings cards look narrower than every other plugin surface. Mirror the
    .ffc-settings-wrap override so cards span the full content area. */
 .wrap.ffc-recruitment-admin .card {
-    max-width: 1500px;
+    max-width: none;
     min-width: 255px;
     margin-bottom: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-2xl);
@@ -382,4 +382,60 @@
     border-radius: var(--ffc-radius-sm);
     padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
     margin-bottom: var(--ffc-spacing-sm);
+}
+
+/* Create dialogs (#2486): New notice, New adjutancy and New reason open the
+   create form in the confirm modal's frame, beside the page title. */
+.ffc-confirm-modal-overlay[hidden] {
+    display: none;
+}
+
+.ffc-confirm-modal > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.ffc-create-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-lg);
+}
+
+.ffc-create-dialog__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.ffc-create-dialog__field > label,
+.ffc-create-dialog__field > legend {
+    padding: 0;
+    font-weight: 600;
+}
+
+.ffc-create-dialog__field input[type="text"] {
+    width: 100%;
+}
+
+.ffc-confirm-modal-body .ffc-create-dialog__field .description {
+    margin: 0;
+}
+
+.ffc-confirm-modal-body .ffc-create-dialog__error {
+    margin: 0;
+    color: var(--ffc-danger-text);
+}
+
+/* Row actions (#2486): the Actions column fits Edit and Delete on one line. */
+.ffc-recruitment-admin .wp-list-table .column-actions {
+    width: 13em;
+}
+
+.ffc-recruitment-admin .wp-list-table .column-actions .ffc-row-buttons {
+    flex-wrap: nowrap;
 }

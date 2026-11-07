@@ -2,7 +2,7 @@
 /**
  * Recruitment Candidates List Table.
  *
- * `WP_List_Table` subclass that powers the Candidates tab. Pagination
+ * `WP_List_Table` subclass that powers the Candidates page. Pagination
  * and search hit the repository directly (unlike notices/adjutancies
  * which load the full row set in PHP) — candidate volume per install
  * can run into thousands.
@@ -36,6 +36,9 @@ if ( ! class_exists( '\WP_List_Table' ) ) {
  * @phpstan-import-type CandidateRow from RecruitmentCandidateReader
  */
 class RecruitmentCandidatesListTable extends \WP_List_Table {
+
+	use RecruitmentRowButtonsTrait;
+
 
 	private const DEFAULT_PER_PAGE = 20;
 	private const MAX_PER_PAGE     = 100;
@@ -75,6 +78,7 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			'user_id'    => __( 'WP user', 'ffcertificate' ),
 			'phone'      => __( 'Phone', 'ffcertificate' ),
 			'created_at' => __( 'Created at', 'ffcertificate' ),
+			'actions'    => __( 'Actions', 'ffcertificate' ),
 		);
 	}
 
@@ -126,6 +130,31 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 		$name = (string) $item['name'];
 		$id   = (int) $item['id'];
 
+		$edit_url = add_query_arg(
+			array(
+				'page'         => RecruitmentAdminPage::PAGE_SLUG,
+				'tab'          => 'candidates',
+				'action'       => 'edit-candidate',
+				'candidate_id' => $id,
+			),
+			admin_url( 'admin.php' )
+		);
+		return sprintf(
+			'<strong><a href="%s">%s</a></strong>',
+			esc_url( $edit_url ),
+			esc_html( $name )
+		);
+	}
+
+	/**
+	 * The row's actions as buttons (#2486).
+	 *
+	 * @param array<string, mixed> $item Row.
+	 * @return string
+	 */
+	protected function column_actions( $item ): string {
+		$id = (int) $item['id'];
+
 		$edit_url   = add_query_arg(
 			array(
 				'page'         => RecruitmentAdminPage::PAGE_SLUG,
@@ -156,24 +185,16 @@ class RecruitmentCandidatesListTable extends \WP_List_Table {
 			)
 		);
 		$actions             = array(
-			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
-			'delete' => sprintf(
-				'<a href="%s" class="submitdelete" data-ffc-confirm data-ffc-confirm-title="%s" data-ffc-confirm-body="%s" data-ffc-confirm-consequences="%s" data-ffc-confirm-cta="%s" data-ffc-confirm-style="destructive">%s</a>',
-				esc_url( $delete_url ),
-				esc_attr__( 'Delete this candidate?', 'ffcertificate' ),
-				esc_attr__( 'You are about to permanently delete this candidate.', 'ffcertificate' ),
-				esc_attr( (string) $delete_consequences ),
-				esc_attr__( 'Delete', 'ffcertificate' ),
-				esc_html__( 'Delete', 'ffcertificate' )
+			'edit'   => $this->edit_button( $edit_url ),
+			'delete' => $this->delete_row_action_link(
+				$delete_url,
+				__( 'Delete this candidate?', 'ffcertificate' ),
+				__( 'You are about to permanently delete this candidate.', 'ffcertificate' ),
+				(string) $delete_consequences
 			),
 		);
 
-		return sprintf(
-			'<strong><a href="%s">%s</a></strong>%s',
-			esc_url( $edit_url ),
-			esc_html( $name ),
-			$this->row_actions( $actions )
-		);
+		return $this->row_buttons( $actions );
 	}
 
 	/**

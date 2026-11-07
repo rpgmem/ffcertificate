@@ -1,9 +1,6 @@
 <?php
 /**
- * Template: Recruitment admin page — Create-reason form.
- *
- * Extracted verbatim from the matching RecruitmentAdminPageRenderer method
- * (rpgmem/ffcertificate#563 coverage extraction); markup byte-identical.
+ * Template: Recruitment admin page — the New reason dialog (#2486).
  *
  * @var string $default_color Default reason badge color.
  *
@@ -17,17 +14,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-RecruitmentAdminPageRenderer::open_section_card( 'ffc-icon-plus', __( 'Create new reason', 'ffcertificate' ) );
-echo '<form id="ffc-create-reason" method="post" data-ffc-create-endpoint="reasons">';
-echo '<table class="form-table"><tbody>';
-echo '<tr><th><label for="ffc-reason-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required></td></tr>';
-echo '<tr><th><label for="ffc-reason-label">' . esc_html__( 'Label', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-reason-label" name="label" type="text" class="regular-text" required></td></tr>';
-echo '<tr><th><label for="ffc-reason-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-reason-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
-echo '<p class="description">' . esc_html__( 'Background color for the reason badge when surfaced. Accepts #RGB / #RRGGBB / #RRGGBBAA.', 'ffcertificate' ) . '</p>';
-echo '</td></tr>';
+RecruitmentAdminPageRenderer::open_dialog(
+	RecruitmentAdminPageRenderer::REASON_DIALOG,
+	__( 'New reason', 'ffcertificate' ),
+	'ffc-create-reason',
+	'reasons'
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Slug', 'ffcertificate' ),
+	'<input id="ffc-reason-slug" name="slug" type="text" class="regular-text" required>',
+	'ffc-reason-slug'
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Label', 'ffcertificate' ),
+	'<input id="ffc-reason-label" name="label" type="text" class="regular-text" required>',
+	'ffc-reason-label'
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Badge color', 'ffcertificate' ),
+	'<input id="ffc-reason-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">',
+	'ffc-reason-color',
+	__( 'Background color for the reason badge when surfaced. Accepts #RGB / #RRGGBB / #RRGGBBAA.', 'ffcertificate' )
+);
 
 $applies_options = array(
 	'denied'         => __( 'Denied', 'ffcertificate' ),
@@ -35,7 +43,7 @@ $applies_options = array(
 	'appeal_denied'  => __( 'Appeal denied', 'ffcertificate' ),
 	'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 );
-echo '<tr><th>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</th><td>';
+echo '<fieldset class="ffc-create-dialog__field"><legend>' . esc_html__( 'Applies to', 'ffcertificate' ) . '</legend>';
 echo '<div class="ffc-rec-flex-wrap">';
 foreach ( $applies_options as $key => $label ) {
 	$id_attr = 'ffc-reason-applies-' . $key;
@@ -46,18 +54,5 @@ foreach ( $applies_options as $key => $label ) {
 }
 echo '</div>';
 echo '<p class="description">' . esc_html__( 'Leave all unchecked to make this reason applicable to every preliminary status.', 'ffcertificate' ) . '</p>';
-echo '</td></tr>';
-
-echo '</tbody></table>';
-echo '<p>';
-\FreeFormCertificate\Core\Button::render(
-	array(
-		'label'    => __( 'Create', 'ffcertificate' ),
-		'category' => 'create',
-		'icon'     => 'plus',
-		'type'     => 'submit',
-	)
-);
-echo '</p>';
-echo '</form>';
-echo '</div>';
+echo '</fieldset>';
+RecruitmentAdminPageRenderer::close_dialog( __( 'Create', 'ffcertificate' ) );

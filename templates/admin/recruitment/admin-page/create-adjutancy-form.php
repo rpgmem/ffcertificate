@@ -1,9 +1,6 @@
 <?php
 /**
- * Template: Recruitment admin page — Create-adjutancy form.
- *
- * Extracted verbatim from the matching RecruitmentAdminPageRenderer method
- * (rpgmem/ffcertificate#563 coverage extraction); markup byte-identical.
+ * Template: Recruitment admin page — the New adjutancy dialog (#2486).
  *
  * @var string $default_color Default badge color.
  *
@@ -17,27 +14,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-RecruitmentAdminPageRenderer::open_section_card( 'ffc-icon-plus', __( 'Create new adjutancy', 'ffcertificate' ) );
-echo '<form id="ffc-create-adjutancy" method="post" data-ffc-create-endpoint="adjutancies">';
-echo '<table class="form-table"><tbody>';
-echo '<tr><th><label for="ffc-adj-slug">' . esc_html__( 'Slug', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required></td></tr>';
-echo '<tr><th><label for="ffc-adj-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-adj-name" name="name" type="text" class="regular-text" required></td></tr>';
-echo '<tr><th><label for="ffc-adj-color">' . esc_html__( 'Badge color', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-adj-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">';
-echo '<p class="description">' . esc_html__( 'Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default.', 'ffcertificate' ) . '</p>';
-echo '</td></tr>';
-echo '</tbody></table>';
-echo '<p>';
-\FreeFormCertificate\Core\Button::render(
-	array(
-		'label'    => __( 'Create', 'ffcertificate' ),
-		'category' => 'create',
-		'icon'     => 'plus',
-		'type'     => 'submit',
-	)
+RecruitmentAdminPageRenderer::open_dialog(
+	RecruitmentAdminPageRenderer::ADJUTANCY_DIALOG,
+	__( 'New adjutancy', 'ffcertificate' ),
+	'ffc-create-adjutancy',
+	'adjutancies'
 );
-echo '</p>';
-echo '</form>';
-echo '</div>';
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Slug', 'ffcertificate' ),
+	'<input id="ffc-adj-slug" name="slug" type="text" class="regular-text" required>',
+	'ffc-adj-slug'
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Name', 'ffcertificate' ),
+	'<input id="ffc-adj-name" name="name" type="text" class="regular-text" required>',
+	'ffc-adj-name'
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Badge color', 'ffcertificate' ),
+	'<input id="ffc-adj-color" name="color" type="color" value="' . esc_attr( $default_color ) . '">',
+	'ffc-adj-color',
+	__( 'Background color for this adjutancy badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values silently fall back to the default.', 'ffcertificate' )
+);
+RecruitmentAdminPageRenderer::close_dialog( __( 'Create', 'ffcertificate' ) );
