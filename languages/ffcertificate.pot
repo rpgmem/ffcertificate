@@ -452,12 +452,6 @@ msgid "%s created successfully."
 msgstr ""
 
 #. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:420
-#, php-format
-msgid "%s deactivated successfully."
-msgstr ""
-
-#. %s: environment label (singular)
 #: includes/audience/class-ffc-audience-admin-environment.php:422
 #, php-format
 msgid "%s deleted successfully."
@@ -2253,16 +2247,6 @@ msgstr ""
 msgid "Are you sure you want to cancel this booking?"
 msgstr ""
 
-#. %s: environment label (singular)
-#: includes/audience/class-ffc-audience-admin-environment.php:195
-#, php-format
-msgid "Are you sure you want to deactivate this %s?"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-calendar.php:138
-msgid "Are you sure you want to deactivate this calendar?"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-loader.php:400
 msgid "Are you sure you want to delete this item?"
 msgstr ""
@@ -2392,10 +2376,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience.php:88
 msgid "Audience created successfully."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience.php:89
-msgid "Audience deactivated successfully."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience.php:90
@@ -3163,10 +3143,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:625
 msgid "Calendar created successfully."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-calendar.php:626
-msgid "Calendar deactivated successfully."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-calendar.php:627
@@ -5247,10 +5223,6 @@ msgstr ""
 
 #: templates/emails/reregistration-reminder.php:30
 msgid "Days remaining:"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-environment.php:198 includes/audience/class-ffc-audience-admin-calendar.php:139 includes/audience/class-ffc-audience-admin-audience-renderer.php:137
-msgid "Deactivate"
 msgstr ""
 
 #: templates/emails/reregistration-reminder.php:29
@@ -10026,10 +9998,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:55
 msgid "Includes user ID, IP address, and timestamp for LGPD compliance."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:123
-msgid "Including children"
 msgstr ""
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:74
@@ -23107,9 +23075,6 @@ msgstr ""
 msgid "The Scheduling menu lists Dashboard, Personal Calendars, Appointments, Audience Calendars, Audiences, Audience Bookings and Settings. A new personal calendar is added with the Add New button of Personal Calendars or the Dashboard's quick action."
 msgstr ""
 
-msgid "Audience Calendars has two views, switched by the links under its heading: Calendars and Environments (named with the label you give environments). The environment count in a calendar's row opens that calendar's environments."
-msgstr ""
-
 
 msgid "The Scheduling → Settings → Import & Export tab imports and exports audiences (name, color, parent) and members (email, name, audience) as CSV, optionally creating WordPress users for imported members."
 msgstr ""
@@ -24070,9 +24035,6 @@ msgid "Acknowledgment notice (\"Termo de Ciência\") HTML — editable per-audie
 msgstr ""
 
 msgid "Administrators can schedule activities for audiences (groups) in configured environments."
-msgstr ""
-
-msgid "Are you sure you want to deactivate this audience?"
 msgstr ""
 
 msgid "Are you sure you want to permanently delete this audience?"
@@ -26010,9 +25972,6 @@ msgid "Each action is listed by a readable name, such as \"Appointment Personal 
 msgstr ""
 
 msgid "The dashboard is drawn with the plugin's own palette and icons, so it follows Dark Mode, and its fields, buttons and status badges look like those of the public forms. With Public Design switched on it also takes the design's font, accent colour, field corners and card corners."
-msgstr ""
-
-msgid "Add New on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
 msgstr ""
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php
@@ -33460,4 +33419,62 @@ msgstr ""
 
 #: templates/admin/identity/coverage.php
 msgid "Last scan"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:118
+#, php-format
+msgid "%s audience"
+msgid_plural "%s audiences"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:279
+#, php-format
+msgid "%s calendar"
+msgid_plural "%s calendars"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/reregistration/list.php:88
+#, php-format
+msgid "%s campaign"
+msgid_plural "%s campaigns"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:237
+#, php-format
+msgid "%s with the groups below"
+msgstr ""
+
+#: templates/admin/reregistration/submissions.php:31
+msgid "Back to campaigns"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php:63
+msgid "New audience"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-calendar.php:206
+msgid "New calendar"
+msgstr ""
+
+#: templates/admin/reregistration/list.php:26
+msgid "New campaign"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-record-autosave.php:182
+msgid "The environment could not be saved."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:79
+msgid "Audience Calendars has two views: Calendars, and Environments (named with the label you give environments), each opened by the button beside the other's heading. The environment count in a calendar's row opens that calendar's environments."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:79
+msgid "The calendars, environments and audiences lists filter by status above the table, and each row turns on and off with the switch in its Status column, which saves at once."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php:79
+msgid "The add button on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
 msgstr ""

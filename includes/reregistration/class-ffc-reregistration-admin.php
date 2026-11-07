@@ -250,7 +250,6 @@ class ReregistrationAdmin {
 					'exportProgress'      => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
 					'exportDone'          => __( 'Done!', 'ffcertificate' ),
 					'exportError'         => __( 'An error occurred.', 'ffcertificate' ),
-					'confirmDelete'       => __( 'Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate' ),
 					'confirmApprove'      => __( 'Approve selected submissions?', 'ffcertificate' ),
 					'reviewRejectTitle'   => __( 'Reject submission', 'ffcertificate' ),
 					'reviewReturnTitle'   => __( 'Return to draft', 'ffcertificate' ),

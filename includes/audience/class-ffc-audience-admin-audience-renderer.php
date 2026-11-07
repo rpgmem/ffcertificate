@@ -33,30 +33,94 @@ final class AudienceAdminAudienceRenderer {
 	/**
 	 * Render audiences list
 	 *
+	 * The list top of the admin layout (#2498): the action beside the title,
+	 * the labelled filters in a card and the count above the table.
+	 *
 	 * @param string $menu_slug The menu slug prefix.
 	 * @return void
 	 */
 	public static function render_list( string $menu_slug ): void {
+		$status = \FreeFormCertificate\Core\RequestInput::get_get_key( 'status' );
+		$status = in_array( $status, array( 'active', 'inactive' ), true ) ? $status : '';
+		$search = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
+
 		$audiences = AudienceReader::get_hierarchical();
-		$add_url   = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=new' );
+		$matches   = 0;
+		if ( '' !== $status || '' !== $search ) {
+			$audiences = self::filter_tree( $audiences, $status, $search, $matches );
+		} else {
+			$matches = self::count_tree( $audiences );
+		}
+		$list_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences' );
+		$add_url  = $list_url . '&action=new';
 
 		?>
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></h1>
-		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-			<?php
+		<?php
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			\FreeFormCertificate\Admin\AdminUI::render_button(
 				array(
-					'label'    => __( 'Add New', 'ffcertificate' ),
+					'label'    => __( 'New audience', 'ffcertificate' ),
 					'category' => 'create',
 					'icon'     => 'plus',
 					'href'     => $add_url,
 				)
 			);
-			?>
-		<?php endif; ?>
+		}
+		?>
 		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
+
+		<form method="get" class="ffc-list">
+			<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug . '-audiences' ); ?>" />
+			<div class="ffc-list-filters">
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-audience-status-filter"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+					<select name="status" id="ffc-audience-status-filter">
+						<option value="" <?php selected( $status, '' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
+						<option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+						<option value="inactive" <?php selected( $status, 'inactive' ); ?>><?php esc_html_e( 'Inactive', 'ffcertificate' ); ?></option>
+					</select>
+				</div>
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-audience-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+					<input type="search" id="ffc-audience-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Name', 'ffcertificate' ); ?>" />
+				</div>
+				<div class="ffc-list-filters__actions">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Filter', 'ffcertificate' ),
+							'icon'  => 'filter',
+							'type'  => 'submit',
+						)
+					);
+					if ( '' !== $status || '' !== $search ) {
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Clear', 'ffcertificate' ),
+								'icon'  => 'eraser',
+								'href'  => $list_url,
+							)
+						);
+					}
+					?>
+				</div>
+			</div>
+		</form>
+
+		<div class="tablenav top">
+			<div class="tablenav-pages one-page">
+				<span class="displaying-num">
+					<?php
+					/* translators: %s: number of audiences */
+					echo esc_html( sprintf( _n( '%s audience', '%s audiences', $matches, 'ffcertificate' ), number_format_i18n( $matches ) ) );
+					?>
+				</span>
+			</div>
+			<br class="clear">
+		</div>
 
 		<table class="wp-list-table widefat fixed striped">
 			<thead>
@@ -86,6 +150,56 @@ final class AudienceAdminAudienceRenderer {
 	}
 
 	/**
+	 * The audiences of a tree that match the filters, with the groups above
+	 * each match kept so it still reads under its parent (#2498).
+	 *
+	 * @param array<int, \stdClass> $nodes   Audiences, each with optional `children`.
+	 * @param string                $status  `active`, `inactive` or '' for any.
+	 * @param string                $search  Part of the name, or '' for any.
+	 * @param int                   $matches Incremented once per matching audience.
+	 * @phpstan-param list<\stdClass> $nodes
+	 * @phpstan-return list<AudienceRow>
+	 * @return array<int, object>
+	 */
+	public static function filter_tree( array $nodes, string $status, string $search, int &$matches ): array {
+		$kept = array();
+		foreach ( $nodes as $node ) {
+			$children = ! empty( $node->children ) ? self::filter_tree( $node->children, $status, $search, $matches ) : array();
+			$is_match = ( '' === $status || $status === $node->status )
+				&& ( '' === $search || false !== mb_stripos( (string) $node->name, $search ) );
+			if ( $is_match ) {
+				++$matches;
+			}
+			if ( $is_match || ! empty( $children ) ) {
+				/**
+				 * A copy of a row the reader returned, so it keeps its shape.
+				 *
+				 * @var AudienceRow $copy
+				 */
+				$copy           = clone $node;
+				$copy->children = $children;
+				$kept[]         = $copy;
+			}
+		}
+		return $kept;
+	}
+
+	/**
+	 * How many audiences a tree holds.
+	 *
+	 * @param array<int, \stdClass> $nodes Audiences, each with optional `children`.
+	 * @phpstan-param list<\stdClass> $nodes
+	 * @return int
+	 */
+	private static function count_tree( array $nodes ): int {
+		$count = 0;
+		foreach ( $nodes as $node ) {
+			$count += 1 + ( ! empty( $node->children ) ? self::count_tree( $node->children ) : 0 );
+		}
+		return $count;
+	}
+
+	/**
 	 * Render an audience row and its children recursively.
 	 *
 	 * @param string $menu_slug The menu slug prefix.
@@ -102,23 +216,11 @@ final class AudienceAdminAudienceRenderer {
 		$edit_url    = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=edit&id=' . $audience->id );
 		$members_url = admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=members&id=' . $audience->id );
 		$is_active   = ( 'active' === $audience->status );
-		// Edit / Deactivate / Delete render only for the caps
+		// Edit / Delete render only for the caps
 		// AudienceAdminAudience::handle_actions() checks; Members stays, since
 		// the members screen opens on the menu's own `ffc_view_audiences` (#1769).
 		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' );
 		$can_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' );
-
-		if ( $is_active ) {
-			$deactivate_url = wp_nonce_url(
-				admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=deactivate&id=' . $audience->id ),
-				'deactivate_audience_' . $audience->id
-			);
-		} else {
-			$delete_url = wp_nonce_url(
-				admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=delete&id=' . $audience->id ),
-				'delete_audience_' . $audience->id
-			);
-		}
 
 		$indent_class = $level > 0 ? 'ffc-hierarchy-child ffc-hierarchy-level-' . $level : '';
 
@@ -131,34 +233,64 @@ final class AudienceAdminAudienceRenderer {
 				<span class="ffc-color-swatch" style="--ffc-color: <?php echo esc_attr( $audience->color ); ?>;"></span>
 			</td>
 			<td class="column-members">
-				<a href="<?php echo esc_url( $members_url ); ?>">
-					<?php echo esc_html( (string) $direct_count ); ?>
-					<?php if ( $has_children && $total_count > $direct_count ) : ?>
-						<span class="ffc-member-total" title="<?php esc_attr_e( 'Including children', 'ffcertificate' ); ?>">(<?php echo esc_html( (string) $total_count ); ?>)</span>
-					<?php endif; ?>
-				</a>
+				<?php echo esc_html( number_format_i18n( $direct_count ) ); ?>
+				<?php if ( $has_children && $total_count > $direct_count ) : ?>
+					<?php // The second number says what it is (#2498): the members of the groups below are counted too. ?>
+					<span class="description ffc-member-total">
+						<?php
+						/* translators: %s: number of members, the groups below included */
+						echo esc_html( sprintf( __( '%s with the groups below', 'ffcertificate' ), number_format_i18n( $total_count ) ) );
+						?>
+					</span>
+				<?php endif; ?>
 			</td>
 			<td class="column-status">
-				<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $audience->status ); ?>">
+				<?php
+				// On/off is a switch that saves the moment it flips (#2498).
+				if ( $can_manage ) {
+					AudienceAdminCalendar::render_status_toggle( 'audience', (int) $audience->id, $is_active, (string) $audience->name, 'ffc-audience-row-status-' . $audience->id );
+				}
+				?>
+				<span id="ffc-audience-row-status-<?php echo esc_attr( (string) $audience->id ); ?>" class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $audience->status ); ?>" data-ffc-status-on-class="ffc-audience-status-active" data-ffc-status-off-class="ffc-audience-status-inactive">
 					<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 				</span>
 			</td>
 			<td class="column-actions">
-				<?php if ( $can_manage ) : ?>
-					<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a> |
-				<?php endif; ?>
-				<a href="<?php echo esc_url( $members_url ); ?>"><?php esc_html_e( 'Members', 'ffcertificate' ); ?></a>
-				<?php if ( $is_active && $can_manage ) : ?>
-					| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to deactivate this audience?', 'ffcertificate' ); ?>');">
-						<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
-					</a>
-				<?php elseif ( ! $is_active && $can_delete && AudienceBookingReader::count_for_audience_tree( (int) $audience->id ) > 0 ) : ?>
-					| <span class="description"><?php esc_html_e( 'Has bookings, kept', 'ffcertificate' ); ?></span>
-				<?php elseif ( ! $is_active && $can_delete ) : ?>
-					| <a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ); ?>');">
-						<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-					</a>
-				<?php endif; ?>
+				<div class="ffc-row-buttons">
+					<?php
+					if ( $can_manage ) {
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Edit', 'ffcertificate' ),
+								'icon'  => 'edit',
+								'href'  => $edit_url,
+							)
+						);
+					}
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Members', 'ffcertificate' ),
+							'icon'  => 'users',
+							'href'  => $members_url,
+						)
+					);
+					if ( ! $is_active && $can_delete ) {
+						if ( AudienceBookingReader::count_for_audience_tree( (int) $audience->id ) > 0 ) {
+							echo '<span class="description">' . esc_html__( 'Has bookings, kept', 'ffcertificate' ) . '</span>';
+						} else {
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Delete', 'ffcertificate' ),
+									'category' => 'danger',
+									'icon'     => 'delete',
+									'href'     => wp_nonce_url( admin_url( 'admin.php?page=' . $menu_slug . '-audiences&action=delete&id=' . $audience->id ), 'delete_audience_' . $audience->id ),
+									'attrs'    => array( 'data-confirm' => __( 'Are you sure you want to permanently delete this audience?', 'ffcertificate' ) ),
+								)
+							);
+						}
+					}
+					?>
+				</div>
 			</td>
 		</tr>
 		<?php

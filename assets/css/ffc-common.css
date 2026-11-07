@@ -223,6 +223,8 @@
     /* Semantic Tokens - Borders */
     --ffc-border: #8e8f91;          /* 3,24:1 on white, 3,02:1 on #f6f7f7 — was #c3c4c7, 1,74:1 (#1132). */
     --ffc-border-light: #dcdcde;
+    --ffc-btn-neutral-bg: var(--ffc-gray-100);
+    --ffc-btn-neutral-border: var(--ffc-border-light);
     --ffc-border-focus: #2271b1;
 
     /* Semantic Tokens - Status Surfaces */
@@ -331,6 +333,10 @@
     --ffc-border: #6f7c89;           /* 3,72:1 on the background, 3,00:1 on the card, 3,48:1 on
                                         the field — was #3c434a, 1,28:1 on the card (#1132). */
     --ffc-border-light: #2c3338;
+    /* The neutral button's ground and edge (#2498): grey-100 is the striped
+       row's ground here and border-light the card's, so the button needs its own. */
+    --ffc-btn-neutral-bg: #353d44;
+    --ffc-btn-neutral-border: #59646e;
     --ffc-border-focus: #5dabde;
 
     /* Semantic Tokens - Status Surfaces */
@@ -2366,12 +2372,12 @@ body.wp-admin .ffc-btn {
 .ffc-btn-neutral:hover,
 .ffc-btn-neutral:focus,
 .ffc-btn-neutral:active {
-    background: var(--ffc-gray-100);
+    background: var(--ffc-btn-neutral-bg);
     color: var(--ffc-text);
 }
 
 .ffc-btn-neutral {
-    border-color: var(--ffc-border-light);
+    border-color: var(--ffc-btn-neutral-border);
 }
 
 .ffc-btn-neutral:hover {

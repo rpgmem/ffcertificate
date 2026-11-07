@@ -1003,7 +1003,9 @@ class ReregistrationAdminTest extends TestCase {
 
 		$this->assertStringContainsString( 'My Campaign', $html );
 		$this->assertStringContainsString( 'column-actions', $html );
-		$this->assertStringContainsString( 'delete-link', $html );
+		// The row actions are buttons (#2498); Delete confirms through data-confirm.
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-danger ffc-icon-delete" data-confirm="Are you sure you want to delete this reregistration? This will also delete all submissions.">Delete</a>', $html );
+		$this->assertStringNotContainsString( 'onclick=', $html );
 		$this->assertStringContainsString( 'Active', $html );
 		$this->assertStringContainsString( '2 / 5', $html, 'approved over total, from the statistics query' );
 	}

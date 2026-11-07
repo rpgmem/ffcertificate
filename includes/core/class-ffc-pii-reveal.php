@@ -68,9 +68,13 @@ final class PiiReveal {
 	 *                                        endpoint reads, without the
 	 *                                        `data-` prefix (`field`,
 	 *                                        `nonce`, a record id).
+	 * @param bool                      $icon_only Draw the eye alone, the label
+	 *                                             becoming its accessible name:
+	 *                                             for a value in a table cell
+	 *                                             (#2498).
 	 * @return string Escaped HTML.
 	 */
-	public static function field_button( array $data ): string {
+	public static function field_button( array $data, bool $icon_only = false ): string {
 		$attrs = array();
 		foreach ( $data as $key => $value ) {
 			$attrs[ 'data-' . $key ] = (string) $value;
@@ -78,10 +82,11 @@ final class PiiReveal {
 
 		return Button::html(
 			array(
-				'label' => __( 'Reveal', 'ffcertificate' ),
-				'icon'  => 'eye',
-				'class' => 'ffc-reveal-pii',
-				'attrs' => $attrs,
+				'label'     => __( 'Reveal', 'ffcertificate' ),
+				'icon'      => 'eye',
+				'icon_only' => $icon_only,
+				'class'     => 'ffc-reveal-pii',
+				'attrs'     => $attrs,
 			)
 		);
 	}

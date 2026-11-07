@@ -286,6 +286,40 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		);
 	}
 
+	public function test_the_environment_registers_its_status_switch(): void {
+		AudienceRecordAutosave::register();
+
+		$environment = $this->registered( 'audience_environment' );
+		$this->assertSame( 'ffc_manage_audiences', $environment['cap'] );
+		$this->assertSame(
+			array(
+				'status' => array(
+					'type' => 'map',
+					'map'  => array(
+						1 => 'active',
+						0 => 'inactive',
+					),
+				),
+			),
+			$environment['fields']
+		);
+	}
+
+	public function test_an_environment_status_is_a_one_column_update(): void {
+		$this->assertTrue( AudienceRecordAutosave::save_environment( 6, 'status', 'inactive' ) );
+
+		$writes = $this->updates_of( 'wp_ffc_audience_environments' );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( array( 'status' => 'inactive' ), $writes[0]['data'] );
+		$this->assertSame( array( 'id' => 6 ), $writes[0]['where'] );
+	}
+
+	public function test_a_failed_environment_write_is_an_error(): void {
+		$this->update_results = array( false );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_environment( 6, 'status', 'active' ) );
+	}
+
 	public function test_the_booking_registers_its_attendance_and_post_event_fields(): void {
 		AudienceRecordAutosave::register();
 

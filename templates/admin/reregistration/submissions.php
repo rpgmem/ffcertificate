@@ -18,13 +18,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method scope).
 ?>
-		<h1>
+		<h1 class="wp-heading-inline">
 			<?php
 			/* translators: %s: reregistration title */
 			echo esc_html( sprintf( __( 'Submissions: %s', 'ffcertificate' ), $rereg->title ) );
 			?>
 		</h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
+		<?php
+		// The screen's actions beside the title (#2498).
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to campaigns', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => $back_url,
+			)
+		);
+		// Batched CSV export (#772): the button drives the shared
+		// window.FFCBatchedExport engine through the unified dispatcher. The
+		// applied filters ride along (#2242), so the file holds the rows
+		// listed here -- every page of them, not only this one.
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Export CSV', 'ffcertificate' ),
+				'icon'  => 'download',
+				'id'    => 'ffc-rereg-export-btn',
+				'attrs' => array(
+					'data-id'         => (string) $id,
+					'data-sub-status' => (string) $status_filter,
+					'data-search'     => (string) $search,
+					'data-audience'   => (string) $audience_id,
+				),
+			)
+		);
+		?>
+		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
@@ -73,105 +100,107 @@ if ( ! defined( 'ABSPATH' ) ) {
 			?>
 		</div>
 
-		<!-- Filters & actions -->
-		<div class="tablenav top">
-			<form method="get" class="ffc-rereg-filters ffc-rereg-inline">
-				<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug ); ?>">
-				<input type="hidden" name="view" value="submissions">
-				<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
-				<select name="sub_status" aria-label="<?php esc_attr_e( 'Status', 'ffcertificate' ); ?>">
-					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-					<option value="<?php echo esc_attr( ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>" <?php selected( $status_filter, ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>><?php esc_html_e( 'Not finished (pending or in progress)', 'ffcertificate' ); ?></option>
-					<?php foreach ( ReregistrationSubmissionReader::STATUSES as $s ) : ?>
-						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $s ) ); ?></option>
-					<?php endforeach; ?>
-				</select>
+		<?php // The list top (#2498): a card with a label on every field. ?>
+		<form method="get" class="ffc-list">
+			<input type="hidden" name="page" value="<?php echo esc_attr( $menu_slug ); ?>">
+			<input type="hidden" name="view" value="submissions">
+			<input type="hidden" name="id" value="<?php echo esc_attr( (string) $id ); ?>">
+			<div class="ffc-list-filters">
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-rereg-sub-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+					<select name="sub_status" id="ffc-rereg-sub-status">
+						<option value=""><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
+						<option value="<?php echo esc_attr( ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>" <?php selected( $status_filter, ReregistrationSubmissionReader::NOT_FINISHED_FILTER ); ?>><?php esc_html_e( 'Not finished (pending or in progress)', 'ffcertificate' ); ?></option>
+						<?php foreach ( ReregistrationSubmissionReader::STATUSES as $s ) : ?>
+							<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $status_filter, $s ); ?>><?php echo esc_html( ReregistrationSubmissionReader::get_status_label( $s ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
 				<?php if ( count( $audiences ) > 1 ) : ?>
-				<select name="audience" aria-label="<?php esc_attr_e( 'Audience', 'ffcertificate' ); ?>">
-					<option value="0"><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
-					<?php foreach ( $audiences as $ffc_audience_id => $ffc_audience_name ) : ?>
-						<option value="<?php echo esc_attr( (string) $ffc_audience_id ); ?>" <?php selected( $audience_id, $ffc_audience_id ); ?>><?php echo esc_html( $ffc_audience_name ); ?></option>
-					<?php endforeach; ?>
-				</select>
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-rereg-sub-audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label>
+					<select name="audience" id="ffc-rereg-sub-audience">
+						<option value="0"><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
+						<?php foreach ( $audiences as $ffc_audience_id => $ffc_audience_name ) : ?>
+							<option value="<?php echo esc_attr( (string) $ffc_audience_id ); ?>" <?php selected( $audience_id, $ffc_audience_id ); ?>><?php echo esc_html( $ffc_audience_name ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
 				<?php endif; ?>
-				<input type="search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Name, email, CPF or RF', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search', 'ffcertificate' ); ?>">
-				<?php
-				\FreeFormCertificate\Admin\AdminUI::render_button(
-					array(
-						'label' => __( 'Filter', 'ffcertificate' ),
-						'icon'  => 'filter',
-						'type'  => 'submit',
-					)
-				);
-				?>
-			</form>
-			<?php
-			// Batched CSV export (#772): the button drives the shared
-			// window.FFCBatchedExport engine through the unified dispatcher. The
-			// applied filters ride along (#2242), so the file holds the rows
-			// listed here -- every page of them, not only this one.
-			?>
-			<?php
-			\FreeFormCertificate\Admin\AdminUI::render_button(
-				array(
-					'label' => __( 'Export CSV', 'ffcertificate' ),
-					'icon'  => 'download',
-					'id'    => 'ffc-rereg-export-btn',
-					'class' => 'ffc-rereg-ml-10',
-					'attrs' => array(
-						'data-id'         => (string) $id,
-						'data-sub-status' => (string) $status_filter,
-						'data-search'     => (string) $search,
-						'data-audience'   => (string) $audience_id,
-					),
-				)
-			);
-			?>
-			<?php self::render_submissions_pagination( $total, $pagination ); ?>
-		</div>
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-rereg-sub-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+					<input type="search" id="ffc-rereg-sub-search" name="s" value="<?php echo esc_attr( $search ?? '' ); ?>" placeholder="<?php esc_attr_e( 'Name, email, CPF or RF', 'ffcertificate' ); ?>">
+				</div>
+				<div class="ffc-list-filters__actions">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Filter', 'ffcertificate' ),
+							'icon'  => 'filter',
+							'type'  => 'submit',
+						)
+					);
+					if ( null !== $status_filter || '' !== (string) $search || $audience_id > 0 ) {
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Clear', 'ffcertificate' ),
+								'icon'  => 'eraser',
+								'href'  => $base_url,
+							)
+						);
+					}
+					?>
+				</div>
+			</div>
+		</form>
 
 		<!-- Bulk actions form -->
-		<form method="post" id="ffc-submissions-form">
+		<form method="post" id="ffc-submissions-form" class="ffc-list">
 			<?php wp_nonce_field( 'bulk_submissions_' . $id, 'ffc_bulk_nonce' ); ?>
 			<input type="hidden" name="ffc_action" value="bulk_submissions">
 			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
 
-			<?php if ( $can_edit ) : ?>
+			<?php // One bar (#2498): the bulk action, "Reveal this page", then the count and the pages. ?>
 			<div class="tablenav top">
-				<select name="bulk_action">
-					<option value=""><?php esc_html_e( 'Bulk Actions', 'ffcertificate' ); ?></option>
-					<option value="approve"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></option>
-					<option value="return_to_draft"><?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?></option>
-					<option value="send_reminder"><?php esc_html_e( 'Send Reminder', 'ffcertificate' ); ?></option>
-				</select>
-				<?php
-				\FreeFormCertificate\Admin\AdminUI::render_button(
-					array(
-						'label' => __( 'Apply', 'ffcertificate' ),
-						'icon'  => 'checkmark',
-						'type'  => 'submit',
-					)
-				);
-				?>
+				<div class="alignleft actions ffc-rereg-bulk-bar">
+					<?php if ( $can_edit ) : ?>
+					<label class="screen-reader-text" for="ffc-rereg-bulk-action"><?php esc_html_e( 'Bulk Actions', 'ffcertificate' ); ?></label>
+					<select name="bulk_action" id="ffc-rereg-bulk-action">
+						<option value=""><?php esc_html_e( 'Bulk Actions', 'ffcertificate' ); ?></option>
+						<option value="approve"><?php esc_html_e( 'Approve', 'ffcertificate' ); ?></option>
+						<option value="return_to_draft"><?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?></option>
+						<option value="send_reminder"><?php esc_html_e( 'Send Reminder', 'ffcertificate' ); ?></option>
+					</select>
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Apply', 'ffcertificate' ),
+							'icon'  => 'checkmark',
+							'type'  => 'submit',
+						)
+					);
+					?>
+					<?php endif; ?>
+					<?php
+					// One "Reveal this page" over the list (#1863).
+					// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value.
+					echo \FreeFormCertificate\Core\PiiReveal::page_button( \FreeFormCertificate\Reregistration\ReregistrationAjaxHandler::PII_CAPABILITY );
+					// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+					?>
+				</div>
+				<?php self::render_submissions_pagination( $total, $pagination ); ?>
+				<br class="clear">
 			</div>
-			<?php endif; ?>
-
-			<?php
-			// One "Reveal this page" over the list (#1863).
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value.
-			echo \FreeFormCertificate\Core\PiiReveal::page_button( \FreeFormCertificate\Reregistration\ReregistrationAjaxHandler::PII_CAPABILITY );
-			// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-			?>
-			<table class="wp-list-table widefat fixed striped">
+			<table class="wp-list-table widefat fixed striped ffc-rereg-submissions-table">
 				<thead>
 					<tr>
 						<td class="check-column"><input type="checkbox" id="cb-select-all"></td>
-						<th><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Submitted', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Reviewed', 'ffcertificate' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
+						<th class="column-user"><?php esc_html_e( 'User', 'ffcertificate' ); ?></th>
+						<th class="column-email"><?php esc_html_e( 'Email', 'ffcertificate' ); ?></th>
+						<th class="column-sub-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
+						<th class="column-date"><?php esc_html_e( 'Submitted', 'ffcertificate' ); ?></th>
+						<th class="column-date"><?php esc_html_e( 'Reviewed', 'ffcertificate' ); ?></th>
+						<th class="column-sub-actions"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>

@@ -96,7 +96,6 @@ class AudienceAdminAudience {
 			$msg      = RequestInput::get_get_string( 'message' );
 			$messages = array(
 				'created'        => __( 'Audience created successfully.', 'ffcertificate' ),
-				'deactivated'    => __( 'Audience deactivated successfully.', 'ffcertificate' ),
 				'deleted'        => __( 'Audience deleted successfully.', 'ffcertificate' ),
 				'member_removed' => __( 'Member removed successfully.', 'ffcertificate' ),
 			);
@@ -209,16 +208,6 @@ class AudienceAdminAudience {
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'remove_member_' . $user_id ) ) {
 				AudienceWriter::remove_member( $audience_id, $user_id );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience_id . '&message=member_removed' ) );
-				exit;
-			}
-		}
-
-		// Handle deactivate (active items get deactivated instead of deleted).
-		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) && isset( $_GET['page'] ) && $_GET['page'] === $this->menu_slug . '-audiences' ) {
-			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'deactivate_audience_' . $id ) ) {
-				AudienceWriter::update( $id, array( 'status' => 'inactive' ) );
-				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&message=deactivated' ) );
 				exit;
 			}
 		}

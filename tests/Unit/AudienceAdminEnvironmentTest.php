@@ -91,6 +91,10 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The list tops (#2498): labelled filters and a count.
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_textarea_field' )->returnArg();
@@ -467,7 +471,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	 * @dataProvider row_action_tiers
 	 *
 	 * @param list<string> $caps       Capabilities held.
-	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_manage Whether Edit and the Status switch render.
 	 * @param bool         $can_delete Whether Delete renders.
 	 */
 	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
@@ -483,8 +487,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 
 		$this->assertStringContainsString( 'Active Room', $output, 'The rows render for every tier.' );
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
-		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'name="ffc_audience_environment_active_' ), 'the Status switch (#2498)' );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete</a>' ) );
 	}
 
 	public function test_render_list_filters_by_schedule(): void {
@@ -790,7 +794,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->render_view();
 		$output = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output );
+		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments' . $expected . '" class="ffc-btn ffc-btn-create ffc-icon-plus">Add environment</a>', $output );
 	}
 
 	/**
@@ -903,7 +907,11 @@ class AudienceAdminEnvironmentTest extends TestCase {
 	// handle_actions() — deactivate
 	// ==================================================================
 
-	public function test_handle_actions_deactivates_environment(): void {
+	/**
+	 * The Status switch saves through the record autosave (#2498), so the
+	 * list's old `action=deactivate` link has no handler left to act on it.
+	 */
+	public function test_handle_actions_no_longer_deactivates_from_a_link(): void {
 		$_GET = array(
 			'action'   => 'deactivate',
 			'id'       => '8',
@@ -913,9 +921,8 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 
-		$page = new AudienceAdminEnvironment( 'ffc-scheduling' );
-		$this->assertStringContainsString( 'message=deactivated', $this->redirect_of( $page ) );
-		$this->assertSame( array( array( 'update', self::ENV_TABLE, array( 'status' => 'inactive' ), array( 'id' => 8 ) ) ), $this->writes );
+		( new AudienceAdminEnvironment( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array(), $this->writes );
 	}
 
 	// ==================================================================
@@ -1055,28 +1062,6 @@ class AudienceAdminEnvironmentTest extends TestCase {
 			'view' => 'environments',
 		);
 		$this->assertFalse( $page->is_own_request(), 'a sibling page carrying the view' );
-	}
-
-	/**
-	 * @dataProvider locations
-	 *
-	 * @param array<string, string> $location The page (and view) of the request.
-	 */
-	public function test_deactivate_works_from_either_location_and_lands_on_the_view( array $location ): void {
-		$_GET = $location + array(
-			'action'   => 'deactivate',
-			'id'       => '8',
-			'_wpnonce' => 'n',
-		);
-		Functions\expect( 'wp_verify_nonce' )->once()->with( 'n', 'deactivate_environment_8' )->andReturn( 1 );
-		Functions\when( 'admin_url' )->returnArg();
-		$this->environment( array( 'id' => 8, 'schedule_id' => 2, 'status' => 'active' ) );
-
-		$this->assertSame(
-			'admin.php?page=ffc-scheduling-calendars&view=environments&message=deactivated&calendar_id=2',
-			$this->redirect_of( new AudienceAdminEnvironment( 'ffc-scheduling' ) )
-		);
-		$this->assertSame( array( array( 'update', self::ENV_TABLE, array( 'status' => 'inactive' ), array( 'id' => 8 ) ) ), $this->writes );
 	}
 
 	/**
@@ -1259,23 +1244,25 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertSame( array( self::ENV_TABLE, 1 ), $env_reads[0][1], 'the list reads the filtered calendar\'s environments' );
 
 		$view = 'admin.php?page=ffc-scheduling-calendars&view=environments';
-		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="ffc-btn ffc-btn-create ffc-icon-plus">Add New</a>', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
+		$this->assertStringContainsString( 'href="' . $view . '&action=new&schedule_id=1" class="ffc-btn ffc-btn-create ffc-icon-plus">Add environment</a>', $output, 'the filtered list\'s Add New carries the calendar (#1801)' );
 		$this->assertSame( 2, substr_count( $output, 'href="' . $view . '&action=edit&id=1"' ), 'the name link and the Edit action' );
-		$this->assertStringContainsString( 'href="' . $view . '&action=deactivate&id=1&_wpnonce=deactivate_environment_1"', $output );
+		$this->assertStringNotContainsString( 'action=deactivate', $output, 'on/off is the Status switch (#2498)' );
 		$this->assertStringContainsString( 'href="' . $view . '&action=delete&id=2&_wpnonce=delete_environment_2"', $output );
 		$this->assertStringNotContainsString( 'ffc-scheduling-environments', $output, 'no link is left on the previous slug' );
 
-		// The filter: a GET form that stays on the view, the calendar select and its Filter button.
-		$this->assertMatchesRegularExpression( '/<div class="tablenav top">\s*<form method="get">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<select name="schedule_id">/', $output );
+		// The filter (#2498): a GET form in the list-top card that stays on the view, with labelled fields.
+		$this->assertMatchesRegularExpression( '/<form method="get" class="ffc-list">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<div class="ffc-list-filters">/', $output );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-environment-calendar-filter">Calendar</label>', $output );
+		$this->assertStringContainsString( '<select name="status" id="ffc-environment-status-filter">', $output );
 		$this->assertStringContainsString( '<option value="">All Calendars</option>', $output );
-		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter" name="filter" value="Filter">Filter</button>', $output );
+		$this->assertStringContainsString( '<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter">Filter</button>', $output );
 
 		// The same columns as before the move, plus the shortcode (#1814).
 		preg_match_all( '/<th scope="col" class="(column-[a-z]+)">/', $output, $columns );
 		$this->assertSame( array( 'column-color', 'column-name', 'column-shortcode', 'column-calendar', 'column-status', 'column-actions' ), $columns[1] );
 
-		// The view switch, with Environments current.
-		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars">Calendars<\/a>.*href="' . preg_quote( $view, '/' ) . '" class="current" aria-current="page">Environments<\/a>/s', $output );
+		// The way back to the Calendars view, a button beside the title (#2498).
+		$this->assertMatchesRegularExpression( '/<h1 class="wp-heading-inline">Environments<\/h1>.*<a href="admin\.php\?page=ffc-scheduling-calendars" class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">Calendars<\/a>.*<hr class="wp-header-end">/s', $output );
 	}
 
 	/**
