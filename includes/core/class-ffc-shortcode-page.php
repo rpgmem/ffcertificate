@@ -106,8 +106,8 @@ final class ShortcodePage {
 	/**
 	 * Record what a saved page embeds, and drop what it no longer does.
 	 *
-	 * @param int      $post_id Post id.
-	 * @param \WP_Post $post    The saved post.
+	 * @param int   $post_id Post id.
+	 * @param mixed $post    The saved post; a hook callback checks it.
 	 * @return void
 	 */
 	public static function on_save_post( $post_id, $post ): void {
