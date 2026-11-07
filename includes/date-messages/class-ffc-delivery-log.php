@@ -212,7 +212,12 @@ class DeliveryLog {
 	 */
 	public static function totals_since( int $since ): array {
 		$wpdb = self::db();
-		$row  = $wpdb->get_row(
+		/**
+		 * One row of sums; COALESCE makes each a number even with no run.
+		 *
+		 * @var array{sent: numeric-string, failed: numeric-string, failed_runs: numeric-string}|null $row
+		 */
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
 				'SELECT COALESCE(SUM(sent), 0) AS sent, COALESCE(SUM(failed), 0) AS failed, COALESCE(SUM(failed > 0), 0) AS failed_runs FROM %i WHERE started_at >= %d AND trigger_kind <> %s',
 				DateMessagesActivator::runs_table(),
@@ -222,9 +227,9 @@ class DeliveryLog {
 			ARRAY_A
 		);
 		return array(
-			'sent'        => (int) ( is_array( $row ) ? ( $row['sent'] ?? 0 ) : 0 ),
-			'failed'      => (int) ( is_array( $row ) ? ( $row['failed'] ?? 0 ) : 0 ),
-			'failed_runs' => (int) ( is_array( $row ) ? ( $row['failed_runs'] ?? 0 ) : 0 ),
+			'sent'        => null === $row ? 0 : (int) $row['sent'],
+			'failed'      => null === $row ? 0 : (int) $row['failed'],
+			'failed_runs' => null === $row ? 0 : (int) $row['failed_runs'],
 		);
 	}
 
