@@ -204,19 +204,21 @@
 		if (info.status.can_preview_cert) {
 			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', false, '');
 		} else if (info.status.cert_preview_disabled_by_admin) {
-			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', true,
-				strings.certPreviewDisabledTip || 'Certificate Preview disabled');
+			html += disabledWithReason(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview',
+				strings.certPreviewDisabledReason || 'The administrator turned off Preview Certificate for this form.');
 		}
 		// Start Form Early: enabled when can_open_early; disabled-visible
 		// when admin turned it off (so the operator sees the feature exists
 		// but is blocked); hidden otherwise. Same shape for Postpone Close.
+		// A disabled action always carries its reason behind the info
+		// button, never in a `title` alone (#2341).
 		var startLabel = strings.startFormNow || 'Start Form Now';
 		if (info.status.can_open_early) {
 			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', false,
 				strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.');
 		} else if (info.status.start_early_disabled_by_admin) {
-			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', true,
-				strings.startEarlyDisabledTip || 'Start Form Early disabled');
+			html += disabledWithReason(startLabel, 'caution', 'clock', 'ffc-btn-open-early',
+				strings.startEarlyDisabledReason || 'The administrator turned off Start Form Now for this form.');
 		}
 		var postponeLabel = strings.postponeClose || 'Postpone close';
 		if (info.status.can_extend_end) {
@@ -226,8 +228,8 @@
 			html += disabledWithReason(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end',
 				strings.postponeLastMinute || 'Postpone close is unavailable: the form already closes at 23:59, the last minute of the day.');
 		} else if (info.status.extend_end_disabled_by_admin) {
-			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', true,
-				strings.extendEndDisabledTip || 'Postpone Close disabled');
+			html += disabledWithReason(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end',
+				strings.extendEndDisabledReason || 'The administrator turned off Postpone close for this form.');
 		}
 		// Schedule exception button (#366). Gated server-side by
 		// `can_schedule_exception` which mirrors the action's
@@ -240,19 +242,17 @@
 				'ffc-btn-schedule-exception', false,
 				strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.');
 		}
-		// Download CSV button is always rendered — toggle disabled state.
-		// Admin-disabled gets a specific tooltip so the operator knows the
-		// feature was turned off intentionally vs. just temporarily blocked
-		// (form still active, quota exhausted, etc., which the info alert
-		// below explains).
+		// Download CSV is always rendered. Disabled, it says why behind
+		// the info button: turned off by the administrator, or the same
+		// reason the status notice gives (still open, quota spent, no end).
 		var downloadLabel = strings.downloadCsv || 'Download CSV';
 		if (info.status.can_download) {
 			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', false, '');
-		} else if (info.status.csv_download_disabled_by_admin) {
-			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true,
-				strings.csvDownloadDisabledTip || 'CSV download disabled');
 		} else {
-			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true, '');
+			html += disabledWithReason(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv',
+				info.status.csv_download_disabled_by_admin
+					? (strings.csvDownloadDisabledReason || 'The administrator turned off the CSV download for this form.')
+					: (downloadBlockedText(info.status) || strings.csvDownloadDisabled || 'The CSV download is not available for this form.'));
 		}
 		html += '</div>';
 
@@ -273,6 +273,11 @@
 		api.$container.find('.ffc-btn-extend-end').not('[disabled]').on('click', api.onExtendEndClick);
 		api.$container.find('.ffc-action-reason-toggle').on('click', onReasonToggle);
 		api.$container.find('.ffc-btn-schedule-exception').on('click', api.onScheduleExceptionClick);
+
+		// The form the operator was in is gone; the focus goes to the new
+		// screen's heading, so a screen reader starts reading there (#2341).
+		// A result notice, when one follows, takes it from here.
+		api.$container.find('.ffc-info-header h2').attr('tabindex', '-1').trigger('focus');
 	}
 
 	// ── Section builders ────────────────────────────────────────
@@ -454,34 +459,57 @@
 		return html;
 	}
 
+	/**
+	 * Why the download is not available yet, in the words of the status
+	 * notice; empty when nothing blocks it (#2341).
+	 *
+	 * @param {Object} status The info answer's status block.
+	 * @return {string}
+	 */
+	function downloadBlockedText(status) {
+		var reason = status.download_blocked_reason;
+		if (reason === 'no_end_date') {
+			return strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.';
+		}
+		if (reason === 'active') {
+			if (status.before_start) {
+				return (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
+					.replace('%s', status.start_date_formatted || '');
+			}
+			return (strings.formActiveUntil || 'This form is still active until %s. The download will be available after the end date.')
+				.replace('%s', status.end_date_formatted || '');
+		}
+		if (reason === 'quota_exhausted') {
+			return strings.quotaExhausted || 'The download quota for this form has been exhausted.';
+		}
+		if (reason === 'download_disabled') {
+			return strings.csvDownloadDisabled || 'The CSV download is not available for this form.';
+		}
+		return '';
+	}
+
 	function buildStatusMessage(status) {
-		var html = '';
 		var reason = status.download_blocked_reason;
 
 		if (reason === 'no_end_date') {
 			// Already shown in datetime section alert.
 			return '';
 		}
-
 		if (reason === 'active') {
-			var msg = (strings.formActiveUntil || 'This form is still active until %s. The download will be available after the end date.')
-				.replace('%s', status.end_date_formatted || '');
-			if (status.before_start) {
-				msg = (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
-					.replace('%s', status.start_date_formatted || '');
-			}
-			html += notice('info', 'clock', msg);
-		} else if (reason === 'quota_exhausted') {
-			html += notice('warning', 'warning', strings.quotaExhausted || 'The download quota for this form has been exhausted.');
-		} else if (reason === 'download_disabled') {
+			return notice('info', 'clock', downloadBlockedText(status));
+		}
+		if (reason === 'quota_exhausted') {
+			return notice('warning', 'warning', downloadBlockedText(status));
+		}
+		if (reason === 'download_disabled') {
 			// CSV Download sub-toggle (post-#241) is off — Start Early /
 			// Postpone Close may still be available on this same page.
-			html += notice('info', 'info', strings.csvDownloadDisabled || 'The CSV download is not available for this form.');
-		} else if (!reason) {
-			html += notice('success', 'success', strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.');
+			return notice('info', 'info', downloadBlockedText(status));
 		}
-
-		return html;
+		if (!reason) {
+			return notice('success', 'success', strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.');
+		}
+		return '';
 	}
 
 	/**
