@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAccountEmail;
 use FreeFormCertificate\Audience\AudienceAdminAudience;
+use FreeFormCertificate\Audience\AudienceAdminAudienceRenderer;
 use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
@@ -110,6 +111,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The list tops (#2498): labelled filters and a count.
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -480,11 +485,11 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$this->assertStringContainsString( 'Parent Aud', $output );
 		$this->assertStringContainsString( 'Child Aud', $output );
-		// Parent has children: total (10) shown alongside direct (4).
-		$this->assertStringContainsString( '(10)', $output );
-		// Active parent shows Deactivate; inactive child shows Delete.
-		$this->assertStringContainsString( 'Deactivate', $output );
-		$this->assertStringContainsString( 'Delete', $output );
+		// Parent has children: the total (10) says what it counts (#2498).
+		$this->assertStringContainsString( '10 with the groups below', $output );
+		// Each row's status is a switch; the inactive child offers Delete.
+		$this->assertSame( 2, substr_count( $output, 'name="ffc_audience_active_' ) );
+		$this->assertStringContainsString( 'Delete</a>', $output );
 
 		// Once a booking names the child, its row offers no Delete (#2243).
 		$this->booked_audiences = array( 2 );
@@ -545,8 +550,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		// `ffc_view_audiences`.
 		$this->assertSame( 2, substr_count( $output, 'Members</a>' ) );
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
-		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'name="ffc_audience_active_' ), 'the Status switch (#2498)' );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete</a>' ) );
 	}
 
 	// ==================================================================
@@ -1287,11 +1292,43 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( array(), $this->writes, 'no member is removed' );
 	}
 
+	/**
+	 * Filtering keeps a match's parents, so the match still reads under its
+	 * group, and counts the matches only (#2498).
+	 */
+	public function test_the_filtered_tree_keeps_each_match_under_its_parents(): void {
+		$grandchild = (object) array( 'id' => 3, 'name' => 'Kitchen night', 'status' => 'inactive', 'children' => array() );
+		$child      = (object) array( 'id' => 2, 'name' => 'Kitchen', 'status' => 'active', 'children' => array( $grandchild ) );
+		$parent     = (object) array( 'id' => 1, 'name' => 'Staff', 'status' => 'active', 'children' => array( $child ) );
+		$other      = (object) array( 'id' => 4, 'name' => 'Teachers', 'status' => 'active', 'children' => array() );
+
+		$matches = 0;
+		$tree    = AudienceAdminAudienceRenderer::filter_tree( array( $parent, $other ), 'inactive', '', $matches );
+		$this->assertSame( 1, $matches );
+		$this->assertCount( 1, $tree, 'Teachers holds no match' );
+		$this->assertSame( 'Staff', $tree[0]->name );
+		$this->assertSame( 'Kitchen night', $tree[0]->children[0]->children[0]->name );
+		$this->assertCount( 1, $parent->children, 'the source tree is not changed' );
+
+		$matches = 0;
+		$tree    = AudienceAdminAudienceRenderer::filter_tree( array( $parent, $other ), '', 'KITCHEN', $matches );
+		$this->assertSame( 2, $matches, 'the search ignores case' );
+		$this->assertCount( 1, $tree );
+
+		$matches = 0;
+		$this->assertSame( array(), AudienceAdminAudienceRenderer::filter_tree( array( $parent ), 'active', 'nobody', $matches ) );
+		$this->assertSame( 0, $matches );
+	}
+
 	// ==================================================================
 	// handle_actions() — deactivate / delete
 	// ==================================================================
 
-	public function test_handle_actions_deactivates_audience(): void {
+	/**
+	 * The Status switch saves through the record autosave (#2498), so the
+	 * list's old `action=deactivate` link has no handler left to act on it.
+	 */
+	public function test_handle_actions_no_longer_deactivates_from_a_link(): void {
 		$_GET = array(
 			'action'   => 'deactivate',
 			'id'       => '5',
@@ -1299,13 +1336,11 @@ class AudienceAdminAudienceTest extends TestCase {
 			'_wpnonce' => 'n',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
 		$this->audience( 5 );
 
-		$this->assertStringContainsString( 'message=deactivated', $this->handleUntilRedirect() );
-		$this->assertSame(
-			array( array( 'update', self::AUDIENCES, array( 'status' => 'inactive' ), array( 'id' => 5 ) ) ),
-			$this->writes
-		);
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_deletes_inactive_audience(): void {

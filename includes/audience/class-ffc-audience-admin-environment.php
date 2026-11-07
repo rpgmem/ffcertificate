@@ -115,14 +115,23 @@ class AudienceAdminEnvironment {
 	/**
 	 * Render environments list
 	 *
+	 * The list top of the admin layout (#2498), as the calendars list draws
+	 * it: the actions beside the title, the labelled filters in a card and the
+	 * count above the table.
+	 *
 	 * @return void
 	 */
 	private function render_list(): void {
 		$filter_schedule = RequestInput::get_get_int( 'schedule_id' );
+		$filter_status   = RequestInput::get_get_key( 'status' );
+		$filter_status   = in_array( $filter_status, array( 'active', 'inactive' ), true ) ? $filter_status : '';
 
 		$args = array();
 		if ( $filter_schedule > 0 ) {
 			$args['schedule_id'] = $filter_schedule;
+		}
+		if ( '' !== $filter_status ) {
+			$args['status'] = $filter_status;
 		}
 		$environments = AudienceEnvironmentRepository::get_all( $args );
 		$schedules    = AudienceScheduleRepository::get_all();
@@ -157,52 +166,94 @@ class AudienceAdminEnvironment {
 		$env_label = $filter_schedule > 0
 			? AudienceScheduleRepository::get_environment_label( $filter_schedule )
 			: AudienceScheduleRepository::get_environment_label();
+		$env_one   = $filter_schedule > 0
+			? AudienceScheduleRepository::get_environment_label( $filter_schedule, true )
+			: AudienceScheduleRepository::get_environment_label( null, true );
 
 		?>
 		<h1 class="wp-heading-inline"><?php echo esc_html( $env_label ); ?></h1>
-		<?php if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) : ?>
-			<?php
+		<?php
+		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_audiences' ) ) {
 			\FreeFormCertificate\Admin\AdminUI::render_button(
 				array(
-					'label'    => __( 'Add New', 'ffcertificate' ),
+					/* translators: %s: environment label, singular (e.g. "Environment", "Room") */
+					'label'    => sprintf( __( 'Add %s', 'ffcertificate' ), mb_strtolower( $env_one ) ),
 					'category' => 'create',
 					'icon'     => 'plus',
 					'href'     => $add_url,
 				)
 			);
-			?>
-		<?php endif; ?>
+		}
+		// The page's first view (#1761), a button beside the title (#2498).
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Calendars', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ),
+			)
+		);
+		?>
 		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
-		<?php AudienceAdminCalendar::render_view_switch( $this->menu_slug, self::VIEW ); ?>
+		<form method="get" class="ffc-list">
+			<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-calendars' ); ?>">
+			<input type="hidden" name="view" value="<?php echo esc_attr( self::VIEW ); ?>">
+			<div class="ffc-list-filters">
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-environment-calendar-filter"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></label>
+					<select name="schedule_id" id="ffc-environment-calendar-filter">
+						<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
+						<?php foreach ( $schedules as $schedule ) : ?>
+							<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
+								<?php echo esc_html( $schedule->name ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<div class="ffc-list-filters__field">
+					<label class="ffc-list-filters__label" for="ffc-environment-status-filter"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+					<select name="status" id="ffc-environment-status-filter">
+						<option value="" <?php selected( $filter_status, '' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
+						<option value="active" <?php selected( $filter_status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+						<option value="inactive" <?php selected( $filter_status, 'inactive' ); ?>><?php esc_html_e( 'Inactive', 'ffcertificate' ); ?></option>
+					</select>
+				</div>
+				<div class="ffc-list-filters__actions">
+					<?php
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Filter', 'ffcertificate' ),
+							'icon'  => 'filter',
+							'type'  => 'submit',
+						)
+					);
+					if ( $filter_schedule > 0 || '' !== $filter_status ) {
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Clear', 'ffcertificate' ),
+								'icon'  => 'eraser',
+								'href'  => self::view_url( $this->menu_slug ),
+							)
+						);
+					}
+					?>
+				</div>
+			</div>
+		</form>
 
-		<!-- Filters: one row in the table navigation, as on the other lists (#1761) -->
 		<div class="tablenav top">
-			<form method="get">
-				<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug . '-calendars' ); ?>">
-				<input type="hidden" name="view" value="<?php echo esc_attr( self::VIEW ); ?>">
-				<select name="schedule_id">
-					<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
-					<?php foreach ( $schedules as $schedule ) : ?>
-						<option value="<?php echo esc_attr( (string) $schedule->id ); ?>" <?php selected( $filter_schedule, $schedule->id ); ?>>
-							<?php echo esc_html( $schedule->name ); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
-				<?php
-				\FreeFormCertificate\Admin\AdminUI::render_button(
-					array(
-						'label' => __( 'Filter', 'ffcertificate' ),
-						'icon'  => 'filter',
-						'type'  => 'submit',
-						'name'  => 'filter',
-						'value' => __( 'Filter', 'ffcertificate' ),
-					)
-				);
-				?>
-			</form>
+			<div class="tablenav-pages one-page">
+				<span class="displaying-num">
+					<?php
+					// The label is the calendar's own word (#1761), so the count is
+					// the number beside it rather than a sentence to translate.
+					echo esc_html( number_format_i18n( count( $environments ) ) . ' ' . mb_strtolower( 1 === count( $environments ) ? $env_one : $env_label ) );
+					?>
+				</span>
+			</div>
+			<br class="clear">
 		</div>
 
 		<?php
@@ -295,20 +346,6 @@ class AudienceAdminEnvironment {
 						$edit_url           = self::view_url( $this->menu_slug, '&action=edit&id=' . $env->id );
 						$is_active          = ( 'active' === $env->status );
 						$env_label_singular = mb_strtolower( AudienceScheduleRepository::get_environment_label( isset( $env->schedule_id ) ? (int) $env->schedule_id : null, true ) );
-
-						$deactivate_url = '';
-						$delete_url     = '';
-						if ( $is_active ) {
-							$deactivate_url = wp_nonce_url(
-								self::view_url( $this->menu_slug, '&action=deactivate&id=' . $env->id ),
-								'deactivate_environment_' . $env->id
-							);
-						} else {
-							$delete_url = wp_nonce_url(
-								self::view_url( $this->menu_slug, '&action=delete&id=' . $env->id ),
-								'delete_environment_' . $env->id
-							);
-						}
 						?>
 						<tr>
 							<td class="column-color">
@@ -332,37 +369,48 @@ class AudienceAdminEnvironment {
 								<?php echo esc_html( $schedule_name ); ?>
 							</td>
 							<td class="column-status">
-								<span class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $env->status ); ?>">
+								<?php
+								// On/off is a switch that saves the moment it flips (#2498).
+								if ( $can_manage ) {
+									AudienceAdminCalendar::render_status_toggle( 'audience_environment', (int) $env->id, $is_active, (string) $env->name, 'ffc-environment-status-' . $env->id );
+								}
+								?>
+								<span id="ffc-environment-status-<?php echo esc_attr( (string) $env->id ); ?>" class="ffc-audience-status ffc-audience-status-<?php echo esc_attr( $env->status ); ?>" data-ffc-status-on-class="ffc-audience-status-active" data-ffc-status-off-class="ffc-audience-status-inactive">
 									<?php echo $is_active ? esc_html__( 'Active', 'ffcertificate' ) : esc_html__( 'Inactive', 'ffcertificate' ); ?>
 								</span>
 							</td>
 							<td class="column-actions">
-								<?php if ( $can_manage ) : ?>
-									<a href="<?php echo esc_url( $edit_url ); ?>"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></a>
-								<?php endif; ?>
-								<?php if ( $is_active && $can_manage ) : ?>
-									| <a href="<?php echo esc_url( $deactivate_url ); ?>" class="ffc-delete-link" onclick="return confirm('
+								<div class="ffc-row-buttons">
 									<?php
-										/* translators: %s: environment label (singular) */
-										printf( esc_attr__( 'Are you sure you want to deactivate this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
+									if ( $can_manage ) {
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label' => __( 'Edit', 'ffcertificate' ),
+												'icon'  => 'edit',
+												'href'  => $edit_url,
+											)
+										);
+									}
+									if ( ! $is_active && $can_delete ) {
+										if ( self::has_bookings( (int) $env->id ) ) {
+											echo '<span class="description">' . esc_html__( 'Has bookings, kept', 'ffcertificate' ) . '</span>';
+										} else {
+											\FreeFormCertificate\Admin\AdminUI::render_button(
+												array(
+													'label' => __( 'Delete', 'ffcertificate' ),
+													'category' => 'danger',
+													'icon' => 'delete',
+													'href' => wp_nonce_url( self::view_url( $this->menu_slug, '&action=delete&id=' . $env->id ), 'delete_environment_' . $env->id ),
+													'attrs' => array(
+														/* translators: %s: environment label (singular) */
+														'data-confirm' => sprintf( __( 'Are you sure you want to permanently delete this %s?', 'ffcertificate' ), $env_label_singular ),
+													),
+												)
+											);
+										}
+									}
 									?>
-										');">
-										<?php esc_html_e( 'Deactivate', 'ffcertificate' ); ?>
-									</a>
-								<?php elseif ( ! $is_active && $can_delete && self::has_bookings( (int) $env->id ) ) : ?>
-									<?php echo $can_manage ? '|' : ''; ?>
-									<span class="description"><?php esc_html_e( 'Has bookings, kept', 'ffcertificate' ); ?></span>
-								<?php elseif ( ! $is_active && $can_delete ) : ?>
-									<?php echo $can_manage ? '|' : ''; ?>
-									<a href="<?php echo esc_url( $delete_url ); ?>" class="ffc-delete-link" onclick="return confirm('
-									<?php
-										/* translators: %s: environment label (singular) */
-										printf( esc_attr__( 'Are you sure you want to permanently delete this %s?', 'ffcertificate' ), esc_attr( $env_label_singular ) );
-									?>
-										');">
-										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
-									</a>
-								<?php endif; ?>
+								</div>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -686,11 +734,9 @@ class AudienceAdminEnvironment {
 			$label    = AudienceScheduleRepository::get_environment_label( $calendar > 0 ? $calendar : null, true );
 			$messages = array(
 				/* translators: %s: environment label (singular) */
-				'created'     => sprintf( __( '%s created successfully.', 'ffcertificate' ), $label ),
+				'created' => sprintf( __( '%s created successfully.', 'ffcertificate' ), $label ),
 				/* translators: %s: environment label (singular) */
-				'deactivated' => sprintf( __( '%s deactivated successfully.', 'ffcertificate' ), $label ),
-				/* translators: %s: environment label (singular) */
-				'deleted'     => sprintf( __( '%s deleted successfully.', 'ffcertificate' ), $label ),
+				'deleted' => sprintf( __( '%s deleted successfully.', 'ffcertificate' ), $label ),
 			);
 			if ( isset( $messages[ $msg ] ) ) {
 				add_settings_error( 'ffc_audience', 'ffc_message', $messages[ $msg ], 'success' );
@@ -760,17 +806,6 @@ class AudienceAdminEnvironment {
 					wp_safe_redirect( self::view_url( $this->menu_slug, '&action=edit&id=' . $new_id . '&message=created&calendar_id=' . (int) $data['schedule_id'] ) );
 					exit;
 				}
-			}
-		}
-
-		// Handle deactivate (active items get deactivated instead of deleted).
-		if ( isset( $_GET['action'] ) && 'deactivate' === $_GET['action'] && isset( $_GET['id'] ) ) {
-			$id = absint( $_GET['id'] );
-			if ( wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'deactivate_environment_' . $id ) ) {
-				$env = AudienceEnvironmentRepository::get_by_id( $id );
-				AudienceEnvironmentRepository::update( $id, array( 'status' => 'inactive' ) );
-				wp_safe_redirect( self::view_url( $this->menu_slug, '&message=deactivated&calendar_id=' . (int) ( $env->schedule_id ?? 0 ) ) );
-				exit;
 			}
 		}
 

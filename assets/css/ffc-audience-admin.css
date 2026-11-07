@@ -61,14 +61,38 @@
 /* Table Columns */
 [class*="ffc-page-scheduling-"] .column-visibility,
 [class*="ffc-page-scheduling-"] .column-environments,
-[class*="ffc-page-scheduling-"] .column-status,
 [class*="ffc-page-scheduling-"] .column-color,
 [class*="ffc-page-scheduling-"] .column-members {
     width: 100px;
 }
 
+/* The on/off switch beside the badge it updates (#2498). */
+[class*="ffc-page-scheduling-"] .column-status {
+    width: 170px;
+}
+
+[class*="ffc-page-scheduling-"] td.column-status .ffc-control-toggle {
+    margin-right: var(--ffc-spacing-xs);
+    vertical-align: middle;
+}
+
+/* The row's actions are buttons (#2498): Edit, then Delete or the reason
+   it is kept; an audience adds Members. */
 [class*="ffc-page-scheduling-"] .column-actions {
-    width: 140px;
+    width: 240px;
+}
+
+.ffc-page-scheduling-audiences .column-actions {
+    width: 330px;
+}
+
+.ffc-page-scheduling-audiences .column-members {
+    width: 170px;
+}
+
+/* The members of the groups below, under the direct count (#2498). */
+.ffc-member-total {
+    display: block;
 }
 
 [class*="ffc-page-scheduling-"] .column-calendar {

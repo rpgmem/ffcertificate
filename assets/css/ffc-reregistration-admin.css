@@ -84,14 +84,6 @@
     background-color: var(--ffc-color, currentColor);
 }
 
-/* ── Filters ─────────────────────────────────── */
-.ffc-rereg-filters {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ffc-spacing-xs);
-    flex-wrap: wrap;
-}
-
 /* ── Table tweaks ────────────────────────────── */
 .ffc-page-reregistration .column-status,
 .ffc-page-custom-fields .column-status,
@@ -113,6 +105,47 @@
 .ffc-page-reregistration .column-actions,
 .ffc-page-custom-fields .column-actions {
     width: 200px;
+}
+
+/* A campaign's three buttons: Edit, Submissions, Delete (#2498). */
+.ffc-page-reregistration .column-actions {
+    width: 340px;
+}
+
+/* A campaign's submissions (#2498): the actions on one line, so the
+   column takes the room the dates do not need. */
+.ffc-rereg-submissions-table .column-user {
+    width: 16%;
+}
+
+.ffc-rereg-submissions-table .column-email {
+    width: 17%;
+}
+
+.ffc-rereg-submissions-table .column-sub-status {
+    width: 15%;
+}
+
+.ffc-rereg-submissions-table .column-date {
+    width: 10%;
+}
+
+.ffc-rereg-submissions-table .column-sub-actions {
+    width: 32%;
+}
+
+/* A long status ("Submitted — Pending Review") wraps inside its column
+   instead of running over the date beside it. */
+.ffc-rereg-submissions-table .ffc-reregistration-status-badge {
+    white-space: normal;
+}
+
+/* The bulk bar: the action, Apply and "Reveal this page" on one line. */
+.ffc-rereg-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
 }
 
 /* ── Custom Fields table columns ─────────────── */
@@ -284,14 +317,6 @@ body.ffc-rereg-modal-open {
 .ffc-rereg-icon {
     vertical-align: middle;
     font-size: var(--ffc-font-size-base);
-}
-
-.ffc-rereg-ml-10 {
-    margin-left: var(--ffc-spacing-md);
-}
-
-.ffc-rereg-inline {
-    display: inline;
 }
 
 .ffc-rereg-yes {

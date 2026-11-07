@@ -96,6 +96,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The Environments tab's list top (#2498): a count.
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
@@ -669,7 +671,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$list = array_values(
 			array_filter(
 				self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
-				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
+				// The list top's labelled filters (#2498) carry ids the tab has no use for.
+				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && ! str_ends_with( $item, '-filter' ) && $view !== $item
 			)
 		);
 

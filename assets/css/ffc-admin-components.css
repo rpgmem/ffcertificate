@@ -775,6 +775,17 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     margin: 0;
 }
 
+/* Room for the arrow beside the longest short option ("All statuses"). */
+.ffc-list-filters__field select {
+    min-width: 11em;
+}
+
+/* The card keeps the stat row's distance from the header when a screen has
+   no stat row (#2498); after one, the two margins collapse into one. */
+.wp-header-end ~ form.ffc-list:first-of-type > .ffc-list-filters {
+    margin-top: var(--ffc-spacing-lg);
+}
+
 /* Filter and Clear close the card on the right. */
 .ffc-list-filters__actions {
     display: flex;
@@ -842,6 +853,12 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     display: flex;
     flex-wrap: wrap;
     gap: var(--ffc-spacing-xs);
+}
+
+/* A note in place of a button ("Has bookings, kept") sits on the buttons'
+   middle line. */
+.ffc-row-buttons > .description {
+    align-self: center;
 }
 
 @media (forced-colors: active) {
