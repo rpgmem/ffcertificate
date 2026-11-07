@@ -38,10 +38,14 @@
 		window.FFCBatchedExport.run({
 			type: 'public_forms',
 			ajaxUrl: api.cfg.ajax_url,
-			startData: api.formData,
+			startData: api.downloadPayload(),
 			callbacks: {
-				onStart: function (t) {
+				onStart: function (t, resp) {
 					total = t;
+					// The challenge for the next download (#2341).
+					if (resp && resp.download_security) {
+						api.setDownloadSecurity(resp.download_security);
+					}
 					api.updateStatus(
 						(strings.generating || 'Generating CSV — %d records…')
 							.replace('%d', total)
@@ -60,6 +64,14 @@
 					onExportComplete($dlBtn, downloadUrl);
 				},
 				onError: function (err) {
+					// A refused start spent the screen's block; the fresh one
+					// it sent goes into the block on the screen (#2341).
+					var $block = api.$container.find('.ffc-csv-download-security');
+					var UI = window.FFC && window.FFC.Frontend && window.FFC.Frontend.UI;
+					if ($block.length && err && err.data && err.data.refresh_captcha && UI && typeof UI.refreshCaptcha === 'function') {
+						UI.refreshCaptcha($block, err.data);
+						UI.refreshCaptcha(api.$downloadSecurity, err.data);
+					}
 					api.showError((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
 					$dlBtn.prop('disabled', false).removeClass('ffc-btn-loading');
 				}

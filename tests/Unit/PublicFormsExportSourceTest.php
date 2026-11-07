@@ -775,8 +775,18 @@ class PublicFormsExportSourceTest extends TestCase {
 	// ==================================================================
 
 	public function test_extra_start_response_returns_batch_nonce(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->echoArg();
+		Functions\when( 'esc_attr_e' )->echoArg();
 		$extra = $this->source->extra_start_response( 'job-1', array() );
 		$this->assertSame( 'nonce-ffc_public_csv_batch_job-1', $extra['nonce_batch'] );
+		// #2341 — a fresh challenge for the next download from the screen,
+		// bound to the download's own context.
+		$this->assertStringContainsString( 'ffc_captcha_hash', $extra['download_security'] );
+		$hash = array();
+		preg_match( '/name="ffc_captcha_hash"[^>]*value="([^"]+)"/', $extra['download_security'], $hash );
+		$this->assertNotEmpty( $hash );
 	}
 
 	public function test_on_complete_fires_completed_action(): void {

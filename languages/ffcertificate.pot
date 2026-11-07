@@ -33187,3 +33187,7 @@ msgstr ""
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "Dates and times on this page follow the plugin's date and time formats, and \"now\" in its dialogs is the site's time, not the clock of the operator's device."
 msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "A second download from the same screen asks for a new verification, shown above the buttons, because the first download used the one solved with the form."
+msgstr ""

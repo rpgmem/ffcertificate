@@ -202,6 +202,11 @@
 		// and the schedule exception move a deadline the participants see
 		// (caution). The `ffc-btn-*` hook classes are what the handlers
 		// below bind to.
+		// A download after the first one solves its own challenge here
+		// (#2341): the first spent the one the form was read with.
+		if (api.$downloadSecurity && info.status.can_download) {
+			html += '<div class="ffc-csv-download-security"></div>';
+		}
 		html += '<div class="ffc-info-actions">';
 		var previewLabel = strings.previewCertificate || 'Preview Certificate';
 		if (info.status.can_preview_cert) {
@@ -265,6 +270,9 @@
 		// formatted for the warning text).
 		api.$container.data('ffc-last-info', info);
 		api.setActionSecurity(info.action_security);
+		if (api.$downloadSecurity) {
+			api.$container.find('.ffc-csv-download-security').append(api.$downloadSecurity.children().clone());
+		}
 
 		// Bind events. Handlers are owned by the sibling flow modules and
 		// exposed on the namespace; they are defined by the time a click can

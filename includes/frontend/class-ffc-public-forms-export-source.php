@@ -328,7 +328,13 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return array<string, mixed>
 	 */
 	public function extra_start_response( string $job_id, array $job ): array {
-		return array( 'nonce_batch' => wp_create_nonce( 'ffc_public_csv_batch_' . $job_id ) );
+		return array(
+			'nonce_batch'       => wp_create_nonce( 'ffc_public_csv_batch_' . $job_id ),
+			// The start spent the screen's challenge (#2341): a fresh one
+			// for the next download from the same screen, which the
+			// operator solves there instead of going back to the form.
+			'download_security' => \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ),
+		);
 	}
 
 	/**
