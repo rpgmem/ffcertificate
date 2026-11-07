@@ -37,6 +37,8 @@
         if (btn.getAttribute('data-ffc-pii-revealed') === '1') {
             ph.textContent = btn.getAttribute('data-ffc-pii-mask') || '';
             btn.textContent = strings.reveal || 'Reveal';
+            btn.classList.remove('ffc-icon-eye-off');
+            btn.classList.add('ffc-icon-eye');
             btn.removeAttribute('data-ffc-pii-revealed');
             return;
         }
@@ -68,6 +70,9 @@
                 btn.setAttribute('data-ffc-pii-mask', ph.textContent);
                 ph.textContent = o.body.value;
                 btn.textContent = strings.hide || 'Hide';
+                // Hide wears the same crossed eye everywhere (#2502).
+                btn.classList.remove('ffc-icon-eye');
+                btn.classList.add('ffc-icon-eye-off');
                 btn.setAttribute('data-ffc-pii-revealed', '1');
             } else {
                 var msg = (o.body && o.body.message) ? o.body.message : (strings.error || 'Error');

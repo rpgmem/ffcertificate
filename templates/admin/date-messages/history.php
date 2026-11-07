@@ -70,9 +70,9 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 
 <p class="ffc-date-messages-history-filter">
 	<?php if ( $show_tests ) : ?>
-		<a href="<?php echo esc_url( add_query_arg( 'tests', 'hide', remove_query_arg( 'paged' ) ) ); ?>"><?php esc_html_e( 'Hide test sends', 'ffcertificate' ); ?></a>
+		<a class="ffc-icon-eye-off" href="<?php echo esc_url( add_query_arg( 'tests', 'hide', remove_query_arg( 'paged' ) ) ); ?>"><?php esc_html_e( 'Hide test sends', 'ffcertificate' ); ?></a>
 	<?php else : ?>
-		<a href="<?php echo esc_url( remove_query_arg( array( 'tests', 'paged' ) ) ); ?>"><?php esc_html_e( 'Show test sends', 'ffcertificate' ); ?></a>
+		<a class="ffc-icon-eye" href="<?php echo esc_url( remove_query_arg( array( 'tests', 'paged' ) ) ); ?>"><?php esc_html_e( 'Show test sends', 'ffcertificate' ); ?></a>
 	<?php endif; ?>
 </p>
 
