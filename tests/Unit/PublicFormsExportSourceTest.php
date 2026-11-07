@@ -843,6 +843,34 @@ class PublicFormsExportSourceTest extends TestCase {
 	}
 
 	/**
+	 * #2341 — the delivery tells the page the file was sent through a cookie
+	 * named for the job. A job id is reduced to the characters a UUID has,
+	 * and the cookie is never attempted once output has begun.
+	 */
+	public function test_on_before_download_names_the_delivered_cookie_after_the_job(): void {
+		$this->post_types[ self::FORM ] = 'ffc_form';
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+		$_GET['job_id'] = 'ABCD-1234"; x';
+
+		$method = new \ReflectionMethod( PublicFormsExportSource::class, 'send_delivered_cookie' );
+		$method->setAccessible( true );
+		$this->source->on_before_download( array( 'form_id' => self::FORM, 'cpf_digits' => '' ) );
+		unset( $_GET['job_id'] );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+
+		$this->assertSame( 'ffc_csv_delivered_', PublicFormsExportSource::DELIVERED_COOKIE_PREFIX );
+		$this->assertSame( 'download_delivered', $this->audit_log()[0]['result'], 'The cookie follows the delivery, it never replaces it.' );
+		// Under PHPUnit the output has begun, so the call must return quietly
+		// instead of raising "headers already sent".
+		$this->assertTrue( headers_sent() );
+		$this->assertNull( $method->invoke( null, 'abcd-1234' ) );
+	}
+
+	/**
 	 * #2341 — a job delivered after the quota was spent by another is
 	 * refused at delivery, and nothing is recorded as delivered.
 	 */

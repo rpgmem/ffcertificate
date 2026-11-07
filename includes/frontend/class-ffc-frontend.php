@@ -565,11 +565,14 @@ class Frontend {
 				'ffc-csv-download',
 				'ffc_csv_download',
 				array(
-					'ajax_url'       => admin_url( 'admin-ajax.php' ),
-					'min_display_ms' => 1500,
+					'ajax_url'                => admin_url( 'admin-ajax.php' ),
+					'min_display_ms'          => 1500,
+					// The cookie the file's response sets, which the screen
+					// waits for before it says the download is complete (#2341).
+					'delivered_cookie_prefix' => PublicFormsExportSource::DELIVERED_COOKIE_PREFIX,
 					// The browser check before the form (#2030), as on a
 					// certificate form: the same switch and strings.
-					'preflight'      => array(
+					'preflight'               => array(
 						'browserCheck' => BrowserGate::settings()['browserCheck'],
 						'strings'      => BrowserGate::strings(),
 						// The page a visitor was stopped on, for the
@@ -579,7 +582,7 @@ class Frontend {
 							'id'   => $page_id,
 						),
 					),
-					'strings'        => array(
+					'strings'                 => array(
 						// Progress overlay.
 						'validating'                     => __( 'Validating access…', 'ffcertificate' ),
 						/* translators: %d is the total number of records */
@@ -588,6 +591,7 @@ class Frontend {
 						'exporting'                      => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
 						'downloading'                    => __( 'Starting download…', 'ffcertificate' ),
 						'complete'                       => __( 'Download complete!', 'ffcertificate' ),
+						'downloadNotStarted'             => __( 'The file did not arrive. Try the download again.', 'ffcertificate' ),
 						'error'                          => __( 'Error', 'ffcertificate' ),
 						'downloadCsv'                    => __( 'Download CSV', 'ffcertificate' ),
 						'timeout'                        => __( 'Export timed out. Please try again.', 'ffcertificate' ),
@@ -659,10 +663,10 @@ class Frontend {
 						// the admin explicitly turned the sub-feature off
 						// (master is on but the per-feature toggle is off).
 						// See `*_disabled_by_admin` flags in the info builder.
-						'csvDownloadDisabledTip'         => __( 'CSV download disabled', 'ffcertificate' ),
-						'startEarlyDisabledTip'          => __( 'Start Form Early disabled', 'ffcertificate' ),
-						'extendEndDisabledTip'           => __( 'Postpone Close disabled', 'ffcertificate' ),
-						'certPreviewDisabledTip'         => __( 'Certificate Preview disabled', 'ffcertificate' ),
+						'csvDownloadDisabledReason'      => __( 'The administrator turned off the CSV download for this form.', 'ffcertificate' ),
+						'startEarlyDisabledReason'       => __( 'The administrator turned off Start Form Now for this form.', 'ffcertificate' ),
+						'extendEndDisabledReason'        => __( 'The administrator turned off Postpone close for this form.', 'ffcertificate' ),
+						'certPreviewDisabledReason'      => __( 'The administrator turned off Preview Certificate for this form.', 'ffcertificate' ),
 						/* translators: %s is the formatted start date */
 						'beforeStartMsg'                 => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
 

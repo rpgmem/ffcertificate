@@ -127,7 +127,7 @@ beforeEach(() => {
 			postponeInvalidFormat: 'Please enter a valid time (HH:MM).',
 			postponeBeforeCurrent: 'Time must be later than the current close (%s).',
 			postponeBeforeNow: 'Time must be in the future.',
-			extendEndDisabledTip: 'Postpone Close disabled',
+			extendEndDisabledReason: 'The administrator turned off Postpone close for this form.',
 		},
 	};
 	window.$.fx.off = true;

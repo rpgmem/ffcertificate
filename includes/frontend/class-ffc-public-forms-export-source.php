@@ -46,6 +46,14 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	public const TYPE = 'public_forms';
 
 	/**
+	 * Prefix of the cookie that tells the page a job's file was sent; the
+	 * job id follows it (#2341).
+	 *
+	 * @var string
+	 */
+	public const DELIVERED_COOKIE_PREFIX = 'ffc_csv_delivered_';
+
+	/**
 	 * Repository.
 	 *
 	 * @var SubmissionRepository
@@ -378,6 +386,37 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		// The file carries CPF, e-mail and RF in clear (#2341): the delivery
 		// is a PII-access audit entry, as on the download without JavaScript.
 		\FreeFormCertificate\Core\PiiExport::log( PublicCsvDownload::PII_EXPORT_TYPE, (int) ( $job['processed'] ?? 0 ), array( 'form_id' => $form_id ) );
+		self::send_delivered_cookie( RequestInput::get_get_string( 'job_id' ) );
+	}
+
+	/**
+	 * Tell the page the file is on its way (#2341).
+	 *
+	 * The file arrives in a hidden frame, which fires no event for an
+	 * attachment, so the screen said "Download complete" on a timer. The
+	 * cookie travels with the file's own response, and the screen waits for
+	 * it. It carries no data, only that this job's file was sent, so a
+	 * script may read it (`httponly` off) and it expires in two minutes.
+	 *
+	 * @param string $job_id The job being delivered.
+	 * @return void
+	 */
+	private static function send_delivered_cookie( string $job_id ): void {
+		$job_id = (string) preg_replace( '/[^a-f0-9-]/', '', strtolower( $job_id ) );
+		if ( '' === $job_id || headers_sent() ) {
+			return;
+		}
+		setcookie(
+			self::DELIVERED_COOKIE_PREFIX . $job_id,
+			'1',
+			array(
+				'expires'  => time() + 2 * MINUTE_IN_SECONDS,
+				'path'     => '/',
+				'secure'   => is_ssl() || 0 === strpos( (string) home_url(), 'https://' ),
+				'httponly' => false,
+				'samesite' => 'Lax',
+			)
+		);
 	}
 
 	/**

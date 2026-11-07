@@ -3717,7 +3717,7 @@ msgid "Certificate Preview"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:510
-msgid "Certificate Preview disabled"
+msgid "The administrator turned off Preview Certificate for this form."
 msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:505
@@ -4894,7 +4894,7 @@ msgid "CSV Download"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:507
-msgid "CSV download disabled"
+msgid "The administrator turned off the CSV download for this form."
 msgstr ""
 
 #: includes/frontend/class-ffc-csv-download-validator.php:73
@@ -13478,7 +13478,7 @@ msgid "Postpone close"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:509
-msgid "Postpone Close disabled"
+msgid "The administrator turned off Postpone close for this form."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:602
@@ -16448,7 +16448,7 @@ msgid "Start Form Early"
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:508
-msgid "Start Form Early disabled"
+msgid "The administrator turned off Start Form Now for this form."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:525
@@ -33154,4 +33154,12 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php
 msgid "What changes"
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "The file did not arrive. Try the download again."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "An action the operator cannot use right now shows disabled, with an info button beside it that says why (turned off for this form, the form still open, the quota spent). After a download the screen says it is complete only once the file has arrived, and the count of downloads used goes up at once."
 msgstr ""

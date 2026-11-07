@@ -355,6 +355,107 @@ describe('csv-download — download flow', () => {
 		expect(payload).not.toMatch(/(?:^|&)\d+=/);
 	});
 
+	// #2341 — "Download complete" waits for the file: its response sets a
+	// cookie naming the job; an error page loads into the frame instead.
+	describe('waiting for the file (#2341)', () => {
+		const JOB = 'abcd-1234';
+		const COOKIE = 'ffc_csv_delivered_' + JOB;
+
+		async function startDownload(postSpy, total) {
+			const responses = [
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: total } },
+				{ success: true, data: { processed: total, total: total, done: true } },
+			];
+			postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+			window.$('.ffc-btn-download-csv').trigger('click');
+			await vi.advanceTimersByTimeAsync(10);
+		}
+
+		afterEach(() => {
+			document.cookie = COOKIE + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+		});
+
+		it('keeps the overlay until the cookie arrives, then reports and counts the download', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				const iframe = document.querySelector('iframe[src*="ffc_export_download"]');
+				expect(iframe).not.toBeNull();
+				expect(iframe.hidden).toBe(true);
+				expect(iframe.getAttribute('style')).toBeNull();
+
+				await vi.advanceTimersByTimeAsync(5000);
+				// No cookie yet: still starting, nothing reported.
+				expect(window.$('.ffc-csv-progress-status').text()).not.toContain('Download complete!');
+				expect(window.$('.ffc-action-result').length).toBe(0);
+
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(500);
+				expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
+				await vi.advanceTimersByTimeAsync(2000);
+
+				expect(document.querySelector('iframe[src*="ffc_export_download"]')).toBeNull();
+				const result = document.querySelector('.ffc-action-result');
+				expect(result).not.toBeNull();
+				expect(result.textContent).toContain('Download complete!');
+				expect(document.activeElement).toBe(result);
+				// The count shows the download the server just spent, without
+				// a second read (which the spent challenge would refuse).
+				expect(window.$('.ffc-info-summary').text()).toContain('1 of 100 used');
+				expect(document.cookie).not.toContain(COOKIE);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('disables the download with the quota reason once the last one is spent', async () => {
+			const postSpy = await reachInfoScreen();
+			window.$('.ffc-public-csv-download').data('ffc-last-info').csv.limit = 1;
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+				const $btn = window.$('.ffc-btn-download-csv');
+				expect($btn.prop('disabled')).toBe(true);
+				expect($btn.closest('.ffc-action-with-reason').length).toBe(1);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('shows the refusal page\'s text when the frame loads instead of a file', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				const iframe = document.querySelector('iframe[src*="ffc_export_download"]');
+				// jsdom loads nothing into the frame: stand in the page wp_die() prints.
+				Object.defineProperty(iframe, 'contentDocument', { value: { body: { textContent: ' Session mismatch. ' } } });
+				window.$(iframe).trigger('load');
+				await vi.advanceTimersByTimeAsync(10);
+				expect(window.$('.ffc-csv-progress-error').text()).toBe('Session mismatch.');
+				expect(window.$('.ffc-btn-download-csv').prop('disabled')).toBe(false);
+				expect(window.$('.ffc-action-result').length).toBe(0);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('says the file did not arrive when nothing comes back in time', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				await vi.advanceTimersByTimeAsync(121000);
+				expect(window.$('.ffc-csv-progress-error').text()).toContain('did not arrive');
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+	});
+
 	it('after completion, the cleanup timer hides the overlay, re-enables the button, and removes the iframe', async () => {
 		const postSpy = await reachInfoScreen();
 		const responses = [
@@ -1176,8 +1277,30 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 				const $btn = window.$(hook);
 				expectFamily($btn, category, icon);
 				expect($btn.prop('disabled')).toBe(true);
-				expect($btn.attr('title').length).toBeGreaterThan(0);
+				// #2341: the reason is behind the info button, never a title.
+				expect($btn.attr('title')).toBeUndefined();
+				const $pair = $btn.closest('.ffc-action-with-reason');
+				expect($pair.length).toBe(1);
+				const toggle = $pair.find('.ffc-action-reason-toggle')[0];
+				const note = document.getElementById(toggle.getAttribute('aria-controls'));
+				expect(note.textContent).toContain('administrator turned off');
 			});
+	});
+
+	it('gives a blocked download the status notice\'s reason behind the info button (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'quota_exhausted' }));
+		const $btn = window.$('.ffc-btn-download-csv');
+		expect($btn.prop('disabled')).toBe(true);
+		const toggle = $btn.closest('.ffc-action-with-reason').find('.ffc-action-reason-toggle')[0];
+		const note = document.getElementById(toggle.getAttribute('aria-controls'));
+		expect(note.textContent).toContain('quota');
+	});
+
+	it('moves the focus to the new screen\'s heading after it renders (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ can_download: true }));
+		const heading = document.querySelector('.ffc-info-header h2');
+		expect(document.activeElement).toBe(heading);
+		expect(heading.getAttribute('tabindex')).toBe('-1');
 	});
 
 	it('renders the admin-disabled download button when csv_download_disabled_by_admin', async () => {

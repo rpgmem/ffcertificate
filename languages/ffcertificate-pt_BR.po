@@ -3714,8 +3714,8 @@ msgid "Certificate Preview"
 msgstr "Visualizar Certificado"
 
 #: includes/frontend/class-ffc-frontend.php:510
-msgid "Certificate Preview disabled"
-msgstr "Visualização de Certificado desativada"
+msgid "The administrator turned off Preview Certificate for this form."
+msgstr "O administrador desativou Visualizar Certificado neste formulário."
 
 #: includes/frontend/class-ffc-public-csv-download.php:505
 msgid "Certificate preview is only available before the form collection period begins."
@@ -4898,8 +4898,8 @@ msgid "CSV Download"
 msgstr "Download do CSV"
 
 #: includes/frontend/class-ffc-frontend.php:507
-msgid "CSV download disabled"
-msgstr "Download de CSV desativado"
+msgid "The administrator turned off the CSV download for this form."
+msgstr "O administrador desativou o download do CSV neste formulário."
 
 #: includes/frontend/class-ffc-csv-download-validator.php:73
 msgid "CSV download is disabled for this form."
@@ -13503,8 +13503,8 @@ msgid "Postpone close"
 msgstr "Adiar fechamento"
 
 #: includes/frontend/class-ffc-frontend.php:509
-msgid "Postpone Close disabled"
-msgstr "Adiar Encerramento desativado"
+msgid "The administrator turned off Postpone close for this form."
+msgstr "O administrador desativou Adiar fechamento neste formulário."
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:602
 msgid "Postpone Close — status"
@@ -16499,8 +16499,8 @@ msgid "Start Form Early"
 msgstr "Início Antecipado"
 
 #: includes/frontend/class-ffc-frontend.php:508
-msgid "Start Form Early disabled"
-msgstr "Início Antecipado desativado"
+msgid "The administrator turned off Start Form Now for this form."
+msgstr "O administrador desativou Adiantar Início (agora) neste formulário."
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:525
 msgid "Start Form Early — status"
@@ -33238,3 +33238,11 @@ msgstr "Se o site usa cache de página, alguns visitantes podem ver o horário d
 #: includes/frontend/class-ffc-frontend.php
 msgid "What changes"
 msgstr "O que muda"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "The file did not arrive. Try the download again."
+msgstr "O arquivo não chegou. Tente o download novamente."
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "An action the operator cannot use right now shows disabled, with an info button beside it that says why (turned off for this form, the form still open, the quota spent). After a download the screen says it is complete only once the file has arrived, and the count of downloads used goes up at once."
+msgstr "Uma ação que o operador não pode usar no momento aparece desativada, com um botão de informação ao lado que diz o motivo (desativada neste formulário, o formulário ainda aberto, a cota esgotada). Depois de um download, a tela só diz que ele terminou quando o arquivo chega, e a contagem de downloads usados sobe na hora."
