@@ -31,10 +31,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		// list to step through and is always the list. Calling it would print
 		// a link that does nothing, which is worse than the four lines below.
 		?>
-		<div class="ffc-identity-panel">
+		<div class="ffc-identity-panel card">
 		<div class="ffc-identity-panel-head">
-			<span class="ffc-identity-panel-chip ffc-identity-chip-orphans"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></span>
-			<h2 class="ffc-identity-panel-title screen-reader-text"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-identity-panel-title ffc-icon-user-minus ffc-icon-tone-neutral"><?php esc_html_e( 'No account', 'ffcertificate' ); ?></h2>
 			<p class="ffc-identity-panel-note description"><?php esc_html_e( 'Records carrying an identifier that belongs to no login at all.', 'ffcertificate' ); ?></p>
 			<div class="ffc-identity-panel-nav">
 				<span class="ffc-identity-panel-count">

@@ -21444,11 +21444,6 @@ msgstr ""
 msgid "A category holding nothing does not appear — not here, and not below."
 msgstr ""
 
-msgid "%s finding left:"
-msgid_plural "%s findings left:"
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "%s · fails its check digit"
 msgstr ""
 
@@ -33453,4 +33448,16 @@ msgstr ""
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php
 #, php-format
 msgid "Called %s"
+msgstr ""
+
+#: templates/admin/identity/stats.php
+msgid "Findings left"
+msgstr ""
+
+#: includes/admin/views/identity-resolution-page.php
+msgid "Reading this screen"
+msgstr ""
+
+#: templates/admin/identity/coverage.php
+msgid "Last scan"
 msgstr ""
