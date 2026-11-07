@@ -199,7 +199,10 @@
     padding: var(--ffc-spacing-2xl);
     margin-bottom: var(--ffc-spacing-2xl);
     min-width: 255px;
-    max-width: 1500px;
+    /* Core's `.card` stops at 520px; ours fills its column, whose width the
+       screen's grid sets (#2486). No cap of its own: a fixed one left a
+       strip of unused width on wide screens. */
+    max-width: none;
 }
 
 .ffc-settings-wrap .card:last-child,
@@ -625,6 +628,12 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     flex-direction: column;
     gap: var(--ffc-spacing-3xs);
     padding: var(--ffc-spacing-xs);
+    /* The menu stays in view while the page scrolls, as the side column
+       does (#2486). */
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
 }
 
 .ffc-boxed .ffc-editor__tabs > .ffc-vtabs__panels {
@@ -663,6 +672,9 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     .ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav {
         flex-direction: row;
         flex-wrap: wrap;
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 
     .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
@@ -835,5 +847,69 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
 @media (forced-colors: active) {
     .ffc-list .subsubsub a.current {
         border: 1px solid Highlight;
+    }
+}
+
+/* ==========================================================================
+   MODULE DASHBOARD (#2486)
+   The page a module menu opens on: stat cards, one card per section with
+   what it holds and the buttons that open it, and the side column of what
+   needs action. Same grid and side width as the editor.
+   ========================================================================== */
+
+.ffc-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
+    align-items: start;
+}
+
+.ffc-dashboard__sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+    gap: var(--ffc-spacing-lg);
+    min-width: 0;
+}
+
+/* Inside the grid a card takes its track: no width floor of its own, and no
+   top margin (core's `.card` has one), so both columns start level. */
+.ffc-boxed .ffc-dashboard .card {
+    margin-top: 0;
+    min-width: 0;
+}
+
+.ffc-boxed .ffc-dashboard__sections > .card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+.ffc-dashboard__figures {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-dashboard__figures li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-dashboard__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-top: auto;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-dashboard {
+        grid-template-columns: minmax(0, 1fr);
     }
 }

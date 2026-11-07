@@ -2,7 +2,7 @@
 /**
  * Recruitment Notices List Table.
  *
- * `WP_List_Table` subclass that powers the Notices tab of the recruitment
+ * `WP_List_Table` subclass that powers the Notices page of the recruitment
  * admin page. Extends {@see AbstractRecruitmentListTable} for the shared
  * fetch-all / sort / paginate / bulk-delete mechanics; this class supplies
  * only the columns, row shape and domain hooks.
@@ -30,6 +30,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 
+	/** The notice statuses, in lifecycle order. */
+	private const STATUSES = array( 'draft', 'preliminary', 'definitive', 'closed' );
+
 	/**
 	 * Columns rendered in the table header / each row.
 	 *
@@ -44,6 +47,7 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 			'reopened'    => __( 'Reopened?', 'ffcertificate' ),
 			'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
 			'created_at'  => __( 'Created at', 'ffcertificate' ),
+			'actions'     => __( 'Actions', 'ffcertificate' ),
 		);
 	}
 
@@ -68,7 +72,30 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 	 * @return string
 	 */
 	protected function column_code( $item ): string {
-		$code       = (string) $item['code'];
+		$code     = (string) $item['code'];
+		$id       = (int) $item['id'];
+		$edit_url = add_query_arg(
+			array(
+				'page'      => RecruitmentAdminPage::PAGE_SLUG,
+				'action'    => 'edit-notice',
+				'notice_id' => $id,
+			),
+			admin_url( 'admin.php' )
+		);
+		return sprintf(
+			'<strong><a href="%s">%s</a></strong>',
+			esc_url( $edit_url ),
+			esc_html( $code )
+		);
+	}
+
+	/**
+	 * The row's actions as buttons (#2486).
+	 *
+	 * @param array<string, mixed> $item Row.
+	 * @return string
+	 */
+	protected function column_actions( $item ): string {
 		$id         = (int) $item['id'];
 		$edit_url   = add_query_arg(
 			array(
@@ -91,7 +118,7 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 		);
 
 		$actions = array(
-			'edit' => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
+			'edit' => $this->edit_button( $edit_url ),
 		);
 
 		// Only a draft is deletable (#2245); a published notice is closed.
@@ -110,12 +137,7 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 			);
 		}
 
-		return sprintf(
-			'<strong><a href="%s">%s</a></strong>%s',
-			esc_url( $edit_url ),
-			esc_html( $code ),
-			$this->row_actions( $actions )
-		);
+		return $this->row_buttons( $actions );
 	}
 
 	/**
@@ -230,7 +252,66 @@ class RecruitmentNoticesListTable extends AbstractRecruitmentListTable {
 	 * @return array<int, array<string, mixed>>
 	 */
 	protected function fetch_rows(): array {
-		return self::convert_rows( RecruitmentNoticeReader::get_all() );
+		$rows   = self::convert_rows( RecruitmentNoticeReader::get_all() );
+		$status = self::status_filter();
+		if ( '' === $status ) {
+			return $rows;
+		}
+		return array_values(
+			array_filter(
+				$rows,
+				static function ( array $row ) use ( $status ): bool {
+					return $status === $row['status'];
+				}
+			)
+		);
+	}
+
+	/**
+	 * The status the list is narrowed to, or '' for every notice.
+	 *
+	 * @return string
+	 */
+	public static function status_filter(): string {
+		$status = \FreeFormCertificate\Core\RequestInput::get_get_key( 'notice_status' );
+		return in_array( $status, self::STATUSES, true ) ? $status : '';
+	}
+
+	/**
+	 * The status views as pills with their counts (#2486).
+	 *
+	 * @return array<string, string>
+	 */
+	protected function get_views() {
+		$counts = array_fill_keys( self::STATUSES, 0 );
+		$total  = 0;
+		foreach ( RecruitmentNoticeReader::get_all() as $row ) {
+			$status = (string) $row->status;
+			if ( isset( $counts[ $status ] ) ) {
+				++$counts[ $status ];
+			}
+			++$total;
+		}
+		$current = self::status_filter();
+		$views   = array(
+			'all' => sprintf(
+				'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
+				esc_url( RecruitmentAdminPage::section_url( 'notices' ) ),
+				'' === $current ? ' class="current" aria-current="page"' : '',
+				esc_html__( 'All', 'ffcertificate' ),
+				esc_html( number_format_i18n( $total ) )
+			),
+		);
+		foreach ( $counts as $status => $count ) {
+			$views[ $status ] = sprintf(
+				'<a href="%1$s"%2$s>%3$s <span class="count">(%4$s)</span></a>',
+				esc_url( add_query_arg( 'notice_status', $status, RecruitmentAdminPage::section_url( 'notices' ) ) ),
+				$status === $current ? ' class="current" aria-current="page"' : '',
+				esc_html( RecruitmentAdminPage::notice_status_label( $status ) ),
+				esc_html( number_format_i18n( $count ) )
+			);
+		}
+		return $views;
 	}
 
 	/**

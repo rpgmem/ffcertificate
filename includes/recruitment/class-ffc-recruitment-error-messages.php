@@ -144,7 +144,7 @@ final class RecruitmentErrorMessages {
 			'recruitment_notice_not_found'                 => __( 'Notice not found.', 'ffcertificate' ),
 			'recruitment_notice_create_failed'             => __( 'Could not create the notice. Please try again.', 'ffcertificate' ),
 			'recruitment_notice_update_failed'             => __( 'Could not update the notice. Please try again.', 'ffcertificate' ),
-			'recruitment_notice_has_no_adjutancies'        => __( 'This notice has no adjutancies linked. Add at least one adjutancy in the Adjutancies tab before importing a CSV.', 'ffcertificate' ),
+			'recruitment_notice_has_no_adjutancies'        => __( 'This notice has no adjutancies linked. Add at least one adjutancy on the Adjutancies page before importing a CSV.', 'ffcertificate' ),
 			'recruitment_notice_adjutancy_attach_failed'   => __( 'Could not link the adjutancy to the notice. Please try again.', 'ffcertificate' ),
 			'recruitment_notice_status_changed'            => __( 'Notice status changed.', 'ffcertificate' ),
 			'recruitment_notice_delete_requires_draft'     => __( 'Only a draft notice can be deleted. A published notice can only be closed.', 'ffcertificate' ),

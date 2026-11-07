@@ -331,6 +331,7 @@ final class RecruitmentAdminAssetsManager {
 					'cancelLabel'  => __( 'Cancel', 'ffcertificate' ),
 					'defaultTitle' => __( 'Confirm action', 'ffcertificate' ),
 					'defaultCta'   => __( 'Confirm', 'ffcertificate' ),
+					'createFailed' => __( 'The record was not created. Check the fields and try again.', 'ffcertificate' ),
 				),
 			)
 		);

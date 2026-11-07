@@ -1,9 +1,10 @@
 <?php
 /**
- * Template: Recruitment admin page — Create-notice form.
+ * Template: Recruitment admin page — the New notice dialog (#2486).
  *
- * Extracted verbatim from the matching RecruitmentAdminPageRenderer method
- * (rpgmem/ffcertificate#563 coverage extraction); markup byte-identical.
+ * @var string $suggested Code suggested for the new notice, or ''.
+ * @var string $latest    Code of the most recent notice, or ''.
+ * @var string $open_url  The notice editor, with `__ID__` for the new id.
  *
  * @package FreeFormCertificate\Recruitment
  * @since   6.12.0
@@ -15,23 +16,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-RecruitmentAdminPageRenderer::open_section_card( 'ffc-icon-plus', __( 'Create new notice', 'ffcertificate' ) );
-echo '<form id="ffc-create-notice" method="post" data-ffc-create-endpoint="notices">';
-echo '<table class="form-table"><tbody>';
-echo '<tr><th><label for="ffc-notice-code">' . esc_html__( 'Code', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-notice-code" name="code" type="text" class="regular-text" required></td></tr>';
-echo '<tr><th><label for="ffc-notice-name">' . esc_html__( 'Name', 'ffcertificate' ) . '</label></th>';
-echo '<td><input id="ffc-notice-name" name="name" type="text" class="regular-text" required></td></tr>';
-echo '</tbody></table>';
-echo '<p>';
-\FreeFormCertificate\Core\Button::render(
-	array(
-		'label'    => __( 'Create', 'ffcertificate' ),
-		'category' => 'create',
-		'icon'     => 'plus',
-		'type'     => 'submit',
-	)
+RecruitmentAdminPageRenderer::open_dialog(
+	RecruitmentAdminPageRenderer::NOTICE_DIALOG,
+	__( 'New notice', 'ffcertificate' ),
+	'ffc-create-notice',
+	'notices',
+	// "Create and open": the new draft opens in its editor, where the
+	// adjutancies are attached and the CSV imported.
+	array( 'data-ffc-create-open' => $open_url )
 );
-echo '</p>';
-echo '</form>';
-echo '</div>';
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Code', 'ffcertificate' ),
+	'<input id="ffc-notice-code" name="code" type="text" class="regular-text" required value="' . esc_attr( $suggested ) . '">',
+	'ffc-notice-code',
+	'' !== $suggested && '' !== $latest
+		/* translators: %s: code of the most recent notice */
+		? sprintf( __( 'Suggested from the latest notice, %s. You can change it.', 'ffcertificate' ), $latest )
+		: ''
+);
+RecruitmentAdminPageRenderer::dialog_field(
+	__( 'Name', 'ffcertificate' ),
+	'<input id="ffc-notice-name" name="name" type="text" class="regular-text" required>',
+	'ffc-notice-name'
+);
+RecruitmentAdminPageRenderer::close_dialog( __( 'Create and open', 'ffcertificate' ) );

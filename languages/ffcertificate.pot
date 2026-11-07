@@ -1525,10 +1525,6 @@ msgstr ""
 msgid "admin surfaces are gated separately by FFC capabilities — see the Capabilities & Roles reference page."
 msgstr ""
 
-#: includes/settings/views/documentation/feature-recruitment.php:23
-msgid "Admin tabs"
-msgstr ""
-
 #: includes/shortcodes/class-ffc-dashboard-view-mode.php:87
 msgid "Admin View Mode"
 msgstr ""
@@ -3492,10 +3488,6 @@ msgstr ""
 msgid "Candidates"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:270
-msgid "Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the \"Import candidates (CSV)\" section."
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-notice-edit-page-renderer.php:229
 msgid "Candidates can see their position and any preliminary classification reasons exposed by the column toggles."
 msgstr ""
@@ -4811,18 +4803,6 @@ msgstr ""
 msgid "Create exception"
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/create-adjutancy-form.php:18
-msgid "Create new adjutancy"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/create-notice-form.php:16
-msgid "Create new notice"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/create-reason-form.php:18
-msgid "Create new reason"
-msgstr ""
-
 #: templates/admin/reregistration/form.php:146
 msgid "Create Reregistration"
 msgstr ""
@@ -4837,10 +4817,6 @@ msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:126
 msgid "Create users if they do not exist (with ffc_end_user role)"
-msgstr ""
-
-#: templates/admin/recruitment/admin-page/notices-empty-state.php:27
-msgid "Create your first notice (Code + Name) using the form below this list."
 msgstr ""
 
 #: includes/settings/tabs/class-ffc-tab-templates.php:173
@@ -12120,10 +12096,6 @@ msgstr ""
 msgid "No new calls, status changes or cancellations can happen while closed."
 msgstr ""
 
-#: templates/admin/recruitment/admin-page/candidates-csv-import-section.php:24
-msgid "No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued)."
-msgstr ""
-
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:20
 msgid "No notices yet. The typical path to your first call is:"
 msgstr ""
@@ -15403,14 +15375,6 @@ msgstr ""
 msgid "Search activity logs"
 msgstr ""
 
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:192
-msgid "Search adjutancies"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:279
-msgid "Search by name"
-msgstr ""
-
 #: includes/audience/class-ffc-audience-admin-calendar.php:455
 msgid "Search by name or email..."
 msgstr ""
@@ -15443,11 +15407,6 @@ msgstr ""
 msgid "Search logs..."
 msgstr ""
 
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:113
-msgid "Search notices"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-user-capabilities.php:362 includes/admin/class-ffc-role-capability-editor.php:201
 msgid "Search permission or slug…"
 msgstr ""
@@ -15458,10 +15417,6 @@ msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-cpt.php:96
 msgid "Search Personal Calendars"
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php:219
-msgid "Search reasons"
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-cpt.php:135
@@ -16966,10 +16921,6 @@ msgstr ""
 msgid "System Variables"
 msgstr ""
 
-#: includes/settings/views/documentation/feature-recruitment.php:27
-msgid "Tab"
-msgstr ""
-
 #. %s: table name
 #: includes/migrations/class-ffc-migration-custom-fields-tables.php:115 includes/migrations/class-ffc-migration-custom-fields-tables.php:185 includes/migrations/class-ffc-migration-custom-fields-tables.php:250 includes/migrations/class-ffc-migration-self-scheduling-tables.php:133
 #, php-format
@@ -18008,10 +17959,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-emails.php:26
 msgid "This means every email shares the same branded look, and one global switch can turn all of them off."
-msgstr ""
-
-#: includes/recruitment/class-ffc-recruitment-error-messages.php:113
-msgid "This notice has no adjutancies linked. Add at least one adjutancy in the Adjutancies tab before importing a CSV."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:125
@@ -19195,10 +19142,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php:80
 msgid "view / edit the reason catalog."
-msgstr ""
-
-#: includes/settings/views/documentation/feature-recruitment.php:81
-msgid "view / save the Settings tab."
 msgstr ""
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:390
@@ -33246,3 +33189,141 @@ msgid "%s link"
 msgid_plural "%s links"
 msgstr[0] ""
 msgstr[1] ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "%1$s · %2$d person"
+msgid_plural "%1$s · %2$d people"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Calls awaiting an answer"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Calls past their presentation date"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Candidates are imported per notice: open the notice (Recruitment → Notices → Edit) and use its \"Import candidates (CSV)\" section."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Code or name"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/create-notice-form.php
+msgid "Create and open"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/notices-empty-state.php
+msgid "Create your first notice with New notice, beside the title."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Linked to an account"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Needs attention"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New adjutancy"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New notice"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "New reason"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Next presentations"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/candidates-csv-import-section.php
+msgid "No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Recruitment → Notices) or move an existing one back to `preliminary` (allowed only when zero calls have been issued)."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "No presentation in the next %d day."
+msgid_plural "No presentation in the next %d days."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Not in any notice"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Nothing is waiting."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open adjutancies"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open candidates"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open notices"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open reasons"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "Open settings"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "Page"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+#, php-format
+msgid "Presentations in the next %d day"
+msgid_plural "Presentations in the next %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Slug or label"
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-page-renderer.php
+msgid "Slug or name"
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/create-notice-form.php
+#, php-format
+msgid "Suggested from the latest notice, %s. You can change it."
+msgstr ""
+
+#: templates/admin/recruitment/admin-page/dashboard.php
+msgid "The call e-mail, the public shortcode and the badge colors."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "The menu opens on a dashboard: the open notices, the candidates, the calls awaiting an answer and the presentations of the next seven days, one card per section, and on the side the next presentations and the calls whose presentation date has passed. Each section below has its own page; New notice, beside the title, suggests the next code from the latest notice and opens the new draft."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-admin-assets-manager.php
+msgid "The record was not created. Check the fields and try again."
+msgstr ""
+
+#: includes/recruitment/class-ffc-recruitment-error-messages.php
+msgid "This notice has no adjutancies linked. Add at least one adjutancy on the Adjutancies page before importing a CSV."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-recruitment.php
+msgid "view / save the Settings page."
+msgstr ""

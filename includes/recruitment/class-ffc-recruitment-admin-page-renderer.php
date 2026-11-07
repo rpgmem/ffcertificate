@@ -29,38 +29,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class RecruitmentAdminPageRenderer {
 
-	/**
-	 * Each tab's icon, read by the vertical nav and by the heading that opens
-	 * the tab's screen, so the two cannot drift: the menu entry and the screen
-	 * it opens are one place to a reader (CLAUDE.md "Icons").
-	 *
-	 * @var array<string, string>
-	 */
-	private const TAB_ICONS = array(
-		'notices'     => 'ffc-icon-megaphone',
-		'adjutancies' => 'ffc-icon-building',
-		'reasons'     => 'ffc-icon-clipboard',
-		'candidates'  => 'ffc-icon-id',
-		'settings'    => 'ffc-icon-settings',
-	);
+	/** The New notice dialog. */
+	public const NOTICE_DIALOG = 'ffc-new-notice-dialog';
+
+	/** The New adjutancy dialog. */
+	public const ADJUTANCY_DIALOG = 'ffc-new-adjutancy-dialog';
+
+	/** The New reason dialog. */
+	public const REASON_DIALOG = 'ffc-new-reason-dialog';
 
 	/**
-	 * Open a tab's box: a `.card` whose heading carries the tab's own icon.
-	 *
-	 * @param string $tab   Tab slug, a key of {@see self::TAB_ICONS}.
-	 * @param string $title Heading text.
-	 * @return void
-	 */
-	public static function open_tab_card( string $tab, string $title ): void {
-		printf(
-			'<div class="card"><h2 class="%1$s">%2$s</h2>',
-			esc_attr( self::TAB_ICONS[ $tab ] ?? '' ),
-			esc_html( $title )
-		);
-	}
-
-	/**
-	 * Open a box for a section of a tab: a `.card` whose heading carries the
+	 * Open a box for a section of a page: a `.card` whose heading carries the
 	 * icon of its own subject.
 	 *
 	 * @param string $icon  `.ffc-icon-*` class.
@@ -72,92 +51,192 @@ final class RecruitmentAdminPageRenderer {
 	}
 
 	/**
-	 * Render the vertical tab navigation (WooCommerce "Product data" style),
-	 * matching the look of `page=ffc-settings` and the certificate form
-	 * editor. Emits only the `<ul>` — the surrounding `.ffc-settings-tabs`
-	 * container and `.ffc-settings-tabs__panel` are opened/closed by the
-	 * caller in {@see RecruitmentAdminPage::render_page()}.
+	 * The page header: the title, the page's create action beside it, and
+	 * the line WordPress moves its notices below (#2486).
 	 *
-	 * @param string $active Current tab.
+	 * @param string $tab `dashboard` or a key of {@see RecruitmentAdminPage::section_labels()}.
 	 * @return void
 	 */
-	public static function render_tabs( string $active ): void {
-		// Notices pinned first (landing tab), Settings pinned last; the data
-		// tabs in between read A→Z by translated label. Kept in sync with the
-		// sidebar submenu order in RecruitmentAdminPage::register_menu().
-		$tabs = LabelSorter::sort(
-			array(
-				'notices'     => array(
-					'label' => __( 'Notices', 'ffcertificate' ),
-					'icon'  => self::TAB_ICONS['notices'],
-				),
-				'adjutancies' => array(
-					'label' => __( 'Adjutancies', 'ffcertificate' ),
-					'icon'  => self::TAB_ICONS['adjutancies'],
-				),
-				'reasons'     => array(
-					'label' => __( 'Reasons', 'ffcertificate' ),
-					'icon'  => self::TAB_ICONS['reasons'],
-				),
-				'candidates'  => array(
-					'label' => __( 'Candidates', 'ffcertificate' ),
-					'icon'  => self::TAB_ICONS['candidates'],
-				),
-				'settings'    => array(
-					'label' => __( 'Settings', 'ffcertificate' ),
-					'icon'  => self::TAB_ICONS['settings'],
-				),
-			),
-			static function ( array $tab ): string {
-				return (string) $tab['label'];
-			},
-			array( 'notices' ),
-			array( 'settings' )
-		);
+	public static function render_header( string $tab ): void {
+		$labels = RecruitmentAdminPage::section_labels();
+		$title  = $labels[ $tab ] ?? \FreeFormCertificate\Core\PluginAreas::label( 'recruitment' );
+		echo '<h1 class="wp-heading-inline">' . esc_html( $title ) . '</h1>';
 
-		// Hide the Settings tab from users without its view cap (3-state).
-		if ( ! RecruitmentAdminPage::can_view_settings() ) {
-			unset( $tabs['settings'] );
+		$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment' );
+		$action     = null;
+		if ( ( 'dashboard' === $tab || 'notices' === $tab ) && $can_manage ) {
+			$action = array( __( 'New notice', 'ffcertificate' ), self::NOTICE_DIALOG );
+		} elseif ( 'adjutancies' === $tab && $can_manage ) {
+			$action = array( __( 'New adjutancy', 'ffcertificate' ), self::ADJUTANCY_DIALOG );
+		} elseif ( 'reasons' === $tab && RecruitmentAdminPage::can_edit_reasons() ) {
+			$action = array( __( 'New reason', 'ffcertificate' ), self::REASON_DIALOG );
 		}
-		// Hide the Reasons tab from users without its view cap (3-state, GAP I).
-		if ( ! RecruitmentAdminPage::can_view_reasons() ) {
-			unset( $tabs['reasons'] );
+		if ( null !== $action ) {
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label'    => $action[0],
+					'category' => 'create',
+					'icon'     => 'plus',
+					'attrs'    => array(
+						'data-ffc-dialog-open' => $action[1],
+						'aria-haspopup'        => 'dialog',
+					),
+				)
+			);
 		}
-
-		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/tabs.php';
+		echo '<hr class="wp-header-end">';
 	}
 
 	/**
-	 * Notices tab — list + create form.
+	 * Open a create dialog: the overlay, its title and close button, and the
+	 * form whose fields follow. Hidden until its header button opens it; the
+	 * form posts to the REST endpoint through `data-ffc-create-endpoint`.
+	 *
+	 * @param string               $id       Dialog id, one of the `*_DIALOG` constants.
+	 * @param string               $title    Dialog title.
+	 * @param string               $form_id  Form id.
+	 * @param string               $endpoint REST path the form posts to.
+	 * @param array<string,string> $attrs    Further form attributes.
+	 * @return void
+	 */
+	public static function open_dialog( string $id, string $title, string $form_id, string $endpoint, array $attrs = array() ): void {
+		$close = \FreeFormCertificate\Core\Button::html(
+			array(
+				'label'     => __( 'Close', 'ffcertificate' ),
+				'icon'      => 'cross',
+				'icon_only' => true,
+				'attrs'     => array( 'data-ffc-dialog-close' => true ),
+			)
+		);
+		printf(
+			'<div class="ffc-confirm-modal-overlay ffc-create-dialog" id="%1$s" role="dialog" aria-modal="true" aria-labelledby="%1$s-title" hidden><div class="ffc-confirm-modal" data-style="primary"><div class="ffc-confirm-modal-header"><h2 id="%1$s-title">%2$s</h2>%3$s</div>',
+			esc_attr( $id ),
+			esc_html( $title ),
+			$close // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html escapes every part.
+		);
+		$extra = '';
+		foreach ( $attrs as $name => $value ) {
+			$extra .= sprintf( ' %s="%s"', esc_attr( $name ), esc_attr( $value ) );
+		}
+		printf(
+			'<form id="%1$s" method="post" data-ffc-create-endpoint="%2$s"%3$s><div class="ffc-confirm-modal-body ffc-create-dialog__body">',
+			esc_attr( $form_id ),
+			esc_attr( $endpoint ),
+			$extra // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Each name and value escaped above.
+		);
+	}
+
+	/**
+	 * Close a create dialog: the error line, Cancel and the submit button.
+	 *
+	 * @param string $submit Submit button label.
+	 * @return void
+	 */
+	public static function close_dialog( string $submit ): void {
+		echo '<p class="ffc-create-dialog__error" role="alert" hidden></p>';
+		echo '</div><div class="ffc-confirm-modal-footer">';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => __( 'Cancel', 'ffcertificate' ),
+				'icon'  => 'cross',
+				'attrs' => array( 'data-ffc-dialog-close' => true ),
+			)
+		);
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label'    => $submit,
+				'category' => 'create',
+				'icon'     => 'plus',
+				'type'     => 'submit',
+			)
+		);
+		echo '</div></form></div></div>';
+	}
+
+	/**
+	 * A labelled field of a create dialog.
+	 *
+	 * @param string $label Field label.
+	 * @param string $input The input markup, already escaped.
+	 * @param string $input_id Id of the input the label names.
+	 * @param string $help  Help text under the input.
+	 * @return void
+	 */
+	public static function dialog_field( string $label, string $input, string $input_id, string $help = '' ): void {
+		echo '<div class="ffc-create-dialog__field">';
+		printf( '<label for="%1$s">%2$s</label>', esc_attr( $input_id ), esc_html( $label ) );
+		echo $input; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped by the caller.
+		if ( '' !== $help ) {
+			echo '<p class="description">' . esc_html( $help ) . '</p>';
+		}
+		echo '</div>';
+	}
+
+	/**
+	 * The search card above a section list: one labelled field, Filter, and
+	 * Clear once something is searched (#2486). The form it opens wraps the
+	 * list table too, so the bulk actions, the sort and the search travel
+	 * together; the caller displays the table and closes the form.
+	 *
+	 * @param string $tab         Section slug.
+	 * @param string $placeholder Field placeholder.
+	 * @return void
+	 */
+	public static function open_list_form( string $tab, string $placeholder ): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only list filter.
+		$search = isset( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( (string) $_REQUEST['s'] ) ) : '';
+		$id     = 'ffc-recruitment-' . $tab . '-search';
+		echo '<form method="get" class="ffc-list">';
+		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
+		echo '<input type="hidden" name="tab" value="' . esc_attr( $tab ) . '">';
+		echo '<div class="ffc-list-filters">';
+		echo '<div class="ffc-list-filters__field">';
+		echo '<label class="ffc-list-filters__label" for="' . esc_attr( $id ) . '">' . esc_html__( 'Search', 'ffcertificate' ) . '</label>';
+		echo '<input type="search" id="' . esc_attr( $id ) . '" name="s" class="regular-text" value="' . esc_attr( $search ) . '" placeholder="' . esc_attr( $placeholder ) . '">';
+		echo '</div><div class="ffc-list-filters__actions">';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label' => __( 'Filter', 'ffcertificate' ),
+				'icon'  => 'filter',
+				'type'  => 'submit',
+			)
+		);
+		if ( '' !== $search ) {
+			\FreeFormCertificate\Core\Button::render(
+				array(
+					'label' => __( 'Clear', 'ffcertificate' ),
+					'icon'  => 'eraser',
+					'href'  => RecruitmentAdminPage::section_url( $tab ),
+				)
+			);
+		}
+		echo '</div></div>';
+	}
+
+	/**
+	 * Notices page — the status views, the search and the list.
 	 *
 	 * @return void
 	 */
 	public static function render_notices_tab(): void {
-		self::open_tab_card( 'notices', __( 'Notices', 'ffcertificate' ) );
-
-		// First-run empty-state guidance: when no notices exist at all
-		// (regardless of search/filter state), surface a card walking
-		// the operator through the next steps. Keeps the standard list
-		// table + create form intact below; the card is just an
-		// orientation aid for fresh installs.
-		$total_notices = count( RecruitmentNoticeReader::get_all() );
-		if ( 0 === $total_notices ) {
+		// First-run guidance: when no notice exists at all (whatever the
+		// search), a card walks the operator through the next steps.
+		if ( 0 === count( RecruitmentNoticeReader::get_all() ) ) {
 			self::render_notices_empty_state();
 		}
 
 		$table = new RecruitmentNoticesListTable();
 		$table->prepare_items();
 
-		// Search box + form wrapper so WP's bulk-action + sort + search
-		// query params are preserved on submit.
-		echo '<form method="get">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
-		$table->search_box( __( 'Search notices', 'ffcertificate' ), 'ffc-recruitment-notices' );
+		self::open_list_form( 'notices', __( 'Code or name', 'ffcertificate' ) );
+		$status = RecruitmentNoticesListTable::status_filter();
+		if ( '' !== $status ) {
+			echo '<input type="hidden" name="notice_status" value="' . esc_attr( $status ) . '">';
+		}
+		$table->views();
 		$table->display();
 		echo '</form>';
 		self::render_rest_pointer();
-		echo '</div>';
-
 		self::render_create_notice_form();
 	}
 
@@ -223,29 +302,23 @@ final class RecruitmentAdminPageRenderer {
 	}
 
 	/**
-	 * Adjutancies tab — list + create form.
+	 * Adjutancies page — the search and the list.
 	 *
 	 * @return void
 	 */
 	public static function render_adjutancies_tab(): void {
-		self::open_tab_card( 'adjutancies', __( 'Adjutancies', 'ffcertificate' ) );
-
 		$table = new RecruitmentAdjutanciesListTable();
 		$table->prepare_items();
 
-		echo '<form method="get">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
-		echo '<input type="hidden" name="tab" value="adjutancies">';
-		$table->search_box( __( 'Search adjutancies', 'ffcertificate' ), 'ffc-recruitment-adjutancies' );
+		self::open_list_form( 'adjutancies', __( 'Slug or name', 'ffcertificate' ) );
 		$table->display();
 		echo '</form>';
-		echo '</div>';
 
 		self::render_create_adjutancy_form();
 	}
 
 	/**
-	 * Reasons tab — global catalog of operator-defined labels attached
+	 * Reasons page — global catalog of operator-defined labels attached
 	 * to a preliminary-list classification's preview_status.
 	 *
 	 * Reasons are reusable across every notice (no attach junction):
@@ -255,19 +328,14 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_reasons_tab(): void {
-		self::open_tab_card( 'reasons', __( 'Reasons', 'ffcertificate' ) );
 		echo '<p class="description">' . esc_html__( 'Global catalog of operator-defined labels attached to a preliminary-list candidate when setting their preliminary status. Reusable across every notice (no need to attach per-edital).', 'ffcertificate' ) . '</p>';
 
 		$table = new RecruitmentReasonsListTable( RecruitmentAdminPage::can_edit_reasons() );
 		$table->prepare_items();
 
-		echo '<form method="get">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
-		echo '<input type="hidden" name="tab" value="reasons">';
-		$table->search_box( __( 'Search reasons', 'ffcertificate' ), 'ffc-recruitment-reasons' );
+		self::open_list_form( 'reasons', __( 'Slug or label', 'ffcertificate' ) );
 		$table->display();
 		echo '</form>';
-		echo '</div>';
 
 		self::render_create_reason_form();
 	}
@@ -291,7 +359,7 @@ final class RecruitmentAdminPageRenderer {
 	}
 
 	/**
-	 * Candidates tab — CSV import flow.
+	 * Candidates page — the list and the CSV import.
 	 *
 	 * Admin selects the target notice, picks a CSV file, and the form POSTs
 	 * via fetch() to `/notices/{id}/import`. The endpoint writes to
@@ -304,37 +372,31 @@ final class RecruitmentAdminPageRenderer {
 	 * @return void
 	 */
 	public static function render_candidates_tab(): void {
-		self::open_tab_card( 'candidates', __( 'Candidates', 'ffcertificate' ) );
-
 		// Without the strict `ffc_import_recruitment` tier (GAP H; the umbrella
 		// `ffc_manage_recruitment` no longer grants it) the import box below is
 		// not drawn, so the list says where importing happens instead.
 		$can_import = current_user_can( 'ffc_import_recruitment' );
 		if ( ! $can_import ) {
-			echo '<p class="description">' . esc_html__( 'Candidates are imported per-notice via CSV — open the target notice (Notices tab → Edit) and use the "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Candidates are imported per notice: open the notice (Recruitment → Notices → Edit) and use its "Import candidates (CSV)" section.', 'ffcertificate' ) . '</p>';
 		}
 
 		$table = new RecruitmentCandidatesListTable();
 		$table->prepare_items();
 
-		echo '<form method="get">';
-		echo '<input type="hidden" name="page" value="' . esc_attr( RecruitmentAdminPage::PAGE_SLUG ) . '">';
-		echo '<input type="hidden" name="tab" value="candidates">';
-		$table->search_box( __( 'Search by name', 'ffcertificate' ), 'ffc-recruitment-candidates' );
+		self::open_list_form( 'candidates', __( 'Name', 'ffcertificate' ) );
 		$table->display();
 		echo '</form>';
-		echo '</div>';
 
 		// Standalone CSV import — same backend as the per-notice importer on
 		// the Notice Edit screen, exposed here so the operator can pick the
-		// target notice without going through the Notices tab first.
+		// target notice without opening the notice first.
 		if ( $can_import ) {
 			self::render_candidates_csv_import_section();
 		}
 	}
 
 	/**
-	 * Standalone CSV import section on the Candidates tab.
+	 * Standalone CSV import section on the Candidates page.
 	 *
 	 * Mirrors the per-notice importer rendered on the Notice Edit
 	 * screen (see {@see RecruitmentNoticeEditPageRenderer::render_csv_import_section})
@@ -368,7 +430,7 @@ final class RecruitmentAdminPageRenderer {
 	}
 
 	/**
-	 * Settings tab — editable form backed by the WP Settings API.
+	 * Settings page — editable form backed by the WP Settings API.
 	 *
 	 * Posts to `options.php` with `settings_fields(OPTION_GROUP)` so the
 	 * registered `sanitize` callback runs on save. Settings panel is
@@ -385,8 +447,9 @@ final class RecruitmentAdminPageRenderer {
 	}
 
 	/**
-	 * Render the create-notice form. Submit is handled by the delegated
-	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
+	 * Render the New notice dialog, its code suggested from the most recent
+	 * notice. Submit is handled by the delegated `data-ffc-create-endpoint`
+	 * listener in `ffc-recruitment-admin.js`, which opens the new notice.
 	 *
 	 * @return void
 	 */
@@ -394,11 +457,31 @@ final class RecruitmentAdminPageRenderer {
 		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_recruitment' ) ) {
 			return;
 		}
+		// The latest notice is the one created last: the highest id, since
+		// rows created in one batch share their `created_at` second.
+		$latest = '';
+		$top_id = 0;
+		foreach ( RecruitmentNoticeReader::get_all() as $notice ) {
+			if ( (int) $notice->id > $top_id ) {
+				$top_id = (int) $notice->id;
+				$latest = (string) $notice->code;
+			}
+		}
+		$suggested = RecruitmentNoticeReader::next_code_after( $latest );
+		$open_url  = add_query_arg(
+			array(
+				'page'      => RecruitmentAdminPage::PAGE_SLUG,
+				'action'    => 'edit-notice',
+				'notice_id' => '__ID__',
+			),
+			admin_url( 'admin.php' )
+		);
+
 		include FFC_PLUGIN_DIR . 'templates/admin/recruitment/admin-page/create-notice-form.php';
 	}
 
 	/**
-	 * Render the create-adjutancy form. Submit is handled by the delegated
+	 * Render the New adjutancy dialog. Submit is handled by the delegated
 	 * `data-ffc-create-endpoint` listener in `ffc-recruitment-admin.js`.
 	 *
 	 * @return void

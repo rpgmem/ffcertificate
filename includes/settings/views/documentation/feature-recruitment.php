@@ -20,11 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<p><?php esc_html_e( 'The Recruitment module manages public-tender candidate queues: import classified candidates, publish the ranking, and record call-ups (convocations). It lives under the top-level "Recruitment" admin menu.', 'ffcertificate' ); ?></p>
 
-	<h4><?php esc_html_e( 'Admin tabs', 'ffcertificate' ); ?></h4>
+	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The menu opens on a dashboard: the open notices, the candidates, the calls awaiting an answer and the presentations of the next seven days, one card per section, and on the side the next presentations and the calls whose presentation date has passed. Each section below has its own page; New notice, beside the title, suggests the next code from the latest notice and opens the new draft.', 'ffcertificate' ); ?></p>
 	<table class="widefat striped">
 		<thead>
 			<tr>
-				<th scope="col"><?php esc_html_e( 'Tab', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Page', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Purpose', 'ffcertificate' ); ?></th>
 			</tr>
 		</thead>
@@ -104,7 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_import_recruitment</code> / <code>ffc_call_recruitment</code></td><td><?php esc_html_e( 'import candidates / call candidates, record outcomes and cancel their own calls.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_delete_recruitment</code></td><td><?php esc_html_e( 'delete notices, candidates and adjutancies.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_reasons</code> / <code>ffc_manage_recruitment_reasons</code></td><td><?php esc_html_e( 'view / edit the reason catalog.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>ffc_view_recruitment_settings</code> / <code>ffc_manage_recruitment_settings</code></td><td><?php esc_html_e( 'view / save the Settings tab.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>ffc_view_recruitment_settings</code> / <code>ffc_manage_recruitment_settings</code></td><td><?php esc_html_e( 'view / save the Settings page.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_pii</code></td><td><?php esc_html_e( 'reveal unmasked CPF/RF/email — without it those columns stay masked.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_export_recruitment</code></td><td><?php esc_html_e( 'download a notice\'s definitive list and its calls as CSV. Held by the FFC Recruitment - Manager and Administrator roles.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_history</code></td><td><?php esc_html_e( 'see who made and who cancelled each call, on the definitive list and in the Calls record. Held by the FFC Recruitment - Administrator role and by WordPress administrators.', 'ffcertificate' ); ?></td></tr>

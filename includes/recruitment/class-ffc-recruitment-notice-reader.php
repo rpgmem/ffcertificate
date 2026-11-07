@@ -123,6 +123,32 @@ class RecruitmentNoticeReader {
 	}
 
 	/**
+	 * The code that follows `$code`: its last number that is not a year
+	 * (four digits from 1900 to 2199) plus one, zero padding and the rest
+	 * kept — `EDT-0005/2026` → `EDT-0006/2026`, `EDITAL-2026-01` →
+	 * `EDITAL-2026-02`. '' when there is no such number to count from.
+	 *
+	 * @param string $code The latest notice code.
+	 * @return string
+	 */
+	public static function next_code_after( string $code ): string {
+		if ( ! preg_match_all( '/\d+/', $code, $matches, PREG_OFFSET_CAPTURE ) ) {
+			return '';
+		}
+		for ( $i = count( $matches[0] ) - 1; $i >= 0; $i-- ) {
+			$digits = (string) $matches[0][ $i ][0];
+			$offset = (int) $matches[0][ $i ][1];
+			$value  = (int) $digits;
+			if ( 4 === strlen( $digits ) && $value >= 1900 && $value <= 2199 ) {
+				continue;
+			}
+			$next = str_pad( (string) ( $value + 1 ), strlen( $digits ), '0', STR_PAD_LEFT );
+			return substr( $code, 0, $offset ) . $next . substr( $code, $offset + strlen( $digits ) );
+		}
+		return '';
+	}
+
+	/**
 	 * List notices, optionally filtered by status.
 	 *
 	 * @param string|null $status One of {draft, preliminary, active, closed} or null for all.

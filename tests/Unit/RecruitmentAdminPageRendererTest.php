@@ -182,23 +182,28 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 		return (string) ob_get_clean();
 	}
 
-	public function test_render_tabs_includes_all_tabs_when_caps_open(): void {
-		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_tabs( 'notices' ) );
+	public function test_render_header_puts_the_page_create_action_beside_the_title(): void {
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_header( 'notices' ) );
 
-		$this->assertStringContainsString( 'ffc-settings-tabs__nav', $out );
-		$this->assertStringContainsString( 'Settings', $out );
-		$this->assertStringContainsString( 'Reasons', $out );
-		$this->assertStringContainsString( 'is-active', $out );
+		$this->assertStringStartsWith( '<h1 class="wp-heading-inline">Notices</h1>', $out );
+		$this->assertStringContainsString( 'data-ffc-dialog-open="ffc-new-notice-dialog"', $out );
+		$this->assertStringContainsString( 'New notice', $out );
+		$this->assertStringEndsWith( '<hr class="wp-header-end">', $out );
+
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_header( 'adjutancies' ) );
+		$this->assertStringContainsString( 'data-ffc-dialog-open="ffc-new-adjutancy-dialog"', $out );
+
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_header( 'candidates' ) );
+		$this->assertStringNotContainsString( 'data-ffc-dialog-open', $out, 'candidates are imported, not created one by one' );
 	}
 
-	public function test_render_tabs_hides_settings_and_reasons_without_view_caps(): void {
-		$this->deny( 'ffc_view_recruitment_settings', 'ffc_manage_recruitment_settings', 'ffc_view_recruitment_reasons', 'ffc_manage_recruitment_reasons' );
+	public function test_render_header_offers_nothing_to_create_without_the_capability(): void {
+		$this->deny( 'ffc_manage_recruitment', 'ffc_manage_recruitment_reasons' );
 
-		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_tabs( 'notices' ) );
-
-		$this->assertStringContainsString( 'Notices', $out );
-		$this->assertStringNotContainsString( 'Settings', $out );
-		$this->assertStringNotContainsString( 'Reasons', $out );
+		foreach ( array( 'dashboard', 'notices', 'adjutancies', 'reasons' ) as $tab ) {
+			$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_header( $tab ) );
+			$this->assertStringNotContainsString( 'data-ffc-dialog-open', $out, $tab );
+		}
 	}
 
 	public function test_render_notices_tab_with_empty_state(): void {
@@ -251,14 +256,16 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	public function test_render_adjutancies_tab(): void {
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_adjutancies_tab() );
 
-		$this->assertStringContainsString( 'Adjutancies', $out );
+		$this->assertStringContainsString( '<input type="hidden" name="tab" value="adjutancies">', $out, 'the search keeps the page' );
+		$this->assertStringContainsString( 'placeholder="Slug or name"', $out );
 		$this->assertStringContainsString( 'ffc-create-adjutancy', $out );
 	}
 
 	public function test_render_reasons_tab(): void {
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_reasons_tab() );
 
-		$this->assertStringContainsString( 'Reasons', $out );
+		$this->assertStringContainsString( '<input type="hidden" name="tab" value="reasons">', $out, 'the search keeps the page' );
+		$this->assertStringContainsString( 'Global catalog', $out );
 		$this->assertStringContainsString( 'ffc-create-reason', $out );
 	}
 
@@ -287,7 +294,7 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 
 		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_candidates_tab() );
 
-		$this->assertStringContainsString( 'imported per-notice via CSV', $out );
+		$this->assertStringContainsString( 'Candidates are imported per notice', $out );
 		// The standalone import form is not rendered (the cap is denied);
 		// only the inline guidance <p> mentioning it remains.
 		$this->assertStringNotContainsString( 'ffc-recruitment-candidates-import', $out );
@@ -352,59 +359,80 @@ class RecruitmentAdminPageRendererTest extends TestCase {
 	}
 
 	/**
-	 * Each tab's renderer and the icon its nav entry carries.
+	 * Each section page's renderer.
 	 *
-	 * @return array<string, array{0: string, 1: string, 2: string}>
+	 * @return array<string, array{0: string}>
 	 */
 	public function tab_screens(): array {
 		return array(
-			'notices'     => array( 'render_notices_tab', 'Notices', 'ffc-icon-megaphone' ),
-			'adjutancies' => array( 'render_adjutancies_tab', 'Adjutancies', 'ffc-icon-building' ),
-			'reasons'     => array( 'render_reasons_tab', 'Reasons', 'ffc-icon-clipboard' ),
-			'candidates'  => array( 'render_candidates_tab', 'Candidates', 'ffc-icon-id' ),
-			'settings'    => array( 'render_settings_tab', 'Settings', 'ffc-icon-settings' ),
+			'notices'     => array( 'render_notices_tab' ),
+			'adjutancies' => array( 'render_adjutancies_tab' ),
+			'reasons'     => array( 'render_reasons_tab' ),
+			'candidates'  => array( 'render_candidates_tab' ),
+			'settings'    => array( 'render_settings_tab' ),
 		);
 	}
 
 	/**
-	 * Every tab screen opens with a box whose heading carries the tab's own
-	 * icon, the one its nav entry draws, and closes every box it opens.
+	 * A section page closes every box it opens: the list is full width, no
+	 * card around it (#2486).
 	 *
 	 * @dataProvider tab_screens
 	 */
-	public function test_each_tab_opens_with_a_card_headed_by_its_own_icon( string $method, string $label, string $icon ): void {
+	public function test_each_section_page_closes_every_box_it_opens( string $method ): void {
 		$this->notices = array( $this->notice( 1, 'draft' ) );
 
-		$out = trim( $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() ) );
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() );
 
-		$this->assertStringStartsWith( '<div class="card"><h2 class="' . $icon . '">' . $label . '</h2>', $out );
 		$this->assertSame( substr_count( $out, '<div' ), substr_count( $out, '</div>' ), 'every box the screen opens is closed' );
-
-		$nav = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_tabs( 'notices' ) );
-		$this->assertMatchesRegularExpression(
-			'/ffc-recruitment-tabnav-' . preg_quote( strtolower( $label ), '/' ) . '"[^>]*>\\s*<span class="ffc-settings-tabs__icon ' . preg_quote( $icon, '/' ) . '"/',
-			$nav,
-			'the nav entry and the screen heading draw the same icon'
-		);
+		$this->assertStringNotContainsString( 'ffc-settings-tabs', $out, 'no vertical menu around the section' );
 	}
 
-	public function test_create_forms_and_the_import_sit_in_their_own_cards_after_the_list(): void {
+	public function test_create_forms_open_in_dialogs_and_the_import_stays_a_card(): void {
 		$this->notices = array( $this->notice( 1, 'draft' ) );
 
 		foreach (
 			array(
-				'render_notices_tab'     => array( 'ffc-icon-plus', 'Create new notice' ),
-				'render_adjutancies_tab' => array( 'ffc-icon-plus', 'Create new adjutancy' ),
-				'render_reasons_tab'     => array( 'ffc-icon-plus', 'Create new reason' ),
-				'render_candidates_tab'  => array( 'ffc-icon-upload', 'Import candidates (CSV)' ),
-			) as $method => $section
+				'render_notices_tab'     => array( 'ffc-new-notice-dialog', 'ffc-create-notice', 'notices' ),
+				'render_adjutancies_tab' => array( 'ffc-new-adjutancy-dialog', 'ffc-create-adjutancy', 'adjutancies' ),
+				'render_reasons_tab'     => array( 'ffc-new-reason-dialog', 'ffc-create-reason', 'reasons' ),
+			) as $method => $dialog
 		) {
-			$out  = $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() );
-			$card = '<div class="card"><h2 class="' . $section[0] . '">' . $section[1] . '</h2>';
+			$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::$method() );
 
-			$this->assertStringContainsString( $card, $out, $method );
-			$this->assertStringContainsString( '</div>' . $card, $out, $method . ': the section box follows the closed list box, not nested in it' );
+			$this->assertMatchesRegularExpression( '/<div class="ffc-confirm-modal-overlay ffc-create-dialog" id="' . $dialog[0] . '" role="dialog" aria-modal="true" aria-labelledby="' . $dialog[0] . '-title" hidden>/', $out, $method );
+			$this->assertStringContainsString( '<form id="' . $dialog[1] . '" method="post" data-ffc-create-endpoint="' . $dialog[2] . '"', $out, $method );
+			$this->assertStringContainsString( 'ffc-create-dialog__error', $out, $method . ': a refusal is shown inside the dialog' );
+			$this->assertStringNotContainsString( 'Create new', $out, $method . ': the end-of-page form is gone' );
 		}
+
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_candidates_tab() );
+		$this->assertStringContainsString( '<div class="card"><h2 class="ffc-icon-upload">Import candidates (CSV)</h2>', $out );
+	}
+
+	public function test_new_notice_suggests_the_next_code_and_opens_the_new_draft(): void {
+		// Listed newest first by date, but created in one second: the
+		// highest id is the latest, wherever the list puts it.
+		$this->notices          = array( $this->notice( 3, 'draft' ), $this->notice( 7, 'draft' ), $this->notice( 5, 'draft' ) );
+		$this->notices[0]->code = 'EDT-0003/2026';
+		$this->notices[1]->code = 'EDT-0005/2026';
+		$this->notices[2]->code = 'EDT-0004/2026';
+
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_create_notice_form() );
+
+		$this->assertStringContainsString( 'name="code" type="text" class="regular-text" required value="EDT-0006/2026"', $out );
+		$this->assertStringContainsString( 'Suggested from the latest notice, EDT-0005/2026. You can change it.', $out, 'the hint names where the suggestion came from' );
+		$this->assertStringContainsString( 'data-ffc-create-open="', $out );
+		$this->assertStringContainsString( 'Create and open', $out );
+	}
+
+	public function test_new_notice_suggests_nothing_without_a_notice_to_count_from(): void {
+		$this->notices = array();
+
+		$out = $this->capture( static fn() => RecruitmentAdminPageRenderer::render_create_notice_form() );
+
+		$this->assertStringContainsString( 'name="code" type="text" class="regular-text" required value=""', $out );
+		$this->assertStringNotContainsString( 'Suggested from the latest notice', $out );
 	}
 
 	public function test_no_tab_keeps_the_old_postbox_or_a_loose_heading(): void {

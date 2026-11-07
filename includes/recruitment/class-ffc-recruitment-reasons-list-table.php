@@ -2,7 +2,7 @@
 /**
  * Recruitment Reasons List Table.
  *
- * `WP_List_Table` subclass that powers the Reasons tab — the global
+ * `WP_List_Table` subclass that powers the Reasons page — the global
  * catalog of operator-defined labels attached to a preliminary-list
  * classification's `preview_status`. Extends {@see AbstractRecruitmentListTable}
  * for the shared fetch-all / sort / paginate / bulk-delete mechanics; this
@@ -61,6 +61,7 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 			'applies_to' => __( 'Applies to', 'ffcertificate' ),
 			'usage'      => __( 'In use', 'ffcertificate' ),
 			'created_at' => __( 'Created at', 'ffcertificate' ),
+			'actions'    => __( 'Actions', 'ffcertificate' ),
 		);
 	}
 
@@ -106,6 +107,37 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 			return sprintf( '<strong><code>%s</code></strong>', esc_html( $slug ) );
 		}
 
+		$edit_url = add_query_arg(
+			array(
+				'page'      => RecruitmentAdminPage::PAGE_SLUG,
+				'tab'       => 'reasons',
+				'action'    => 'edit-reason',
+				'reason_id' => $id,
+			),
+			admin_url( 'admin.php' )
+		);
+		return sprintf(
+			'<strong><a href="%s"><code>%s</code></a></strong>',
+			esc_url( $edit_url ),
+			esc_html( $slug )
+		);
+	}
+
+	/**
+	 * The row's actions as buttons (#2486).
+	 *
+	 * @param array<string, mixed> $item Row.
+	 * @return string
+	 */
+	protected function column_actions( $item ): string {
+		$id = (int) $item['id'];
+
+		// Read-only viewers (GAP I) get no buttons: the edit screen is
+		// manage-gated and would wp_die.
+		if ( ! $this->can_edit ) {
+			return '';
+		}
+
 		$edit_url   = add_query_arg(
 			array(
 				'page'      => RecruitmentAdminPage::PAGE_SLUG,
@@ -136,7 +168,7 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 			)
 		);
 		$actions             = array(
-			'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), esc_html__( 'Edit', 'ffcertificate' ) ),
+			'edit'   => $this->edit_button( $edit_url ),
 			'delete' => $this->delete_row_action_link(
 				$delete_url,
 				__( 'Delete this reason?', 'ffcertificate' ),
@@ -145,12 +177,7 @@ class RecruitmentReasonsListTable extends AbstractRecruitmentListTable {
 			),
 		);
 
-		return sprintf(
-			'<strong><a href="%s"><code>%s</code></a></strong>%s',
-			esc_url( $edit_url ),
-			esc_html( $slug ),
-			$this->row_actions( $actions )
-		);
+		return $this->row_buttons( $actions );
 	}
 
 	/**
