@@ -15,9 +15,21 @@ use PHPUnit\Framework\TestCase;
  */
 class ShortcodePageTest extends TestCase {
 
+	/** @var array<string, mixed> */
+	private array $transients = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		$this->transients = array();
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
 	}
 
 	protected function tearDown(): void {
@@ -68,5 +80,87 @@ class ShortcodePageTest extends TestCase {
 
 		$this->assertSame( '', ShortcodePage::url( 'ffc_self_scheduling', 31 ) );
 		$this->assertSame( '', ShortcodePage::url( 'ffc_self_scheduling', 0 ) );
+	}
+
+	/**
+	 * #2341 — the answer is kept: a second ask reads no post content
+	 * search, and a kept answer that stopped being true is searched again.
+	 */
+	public function test_url_keeps_its_answer_and_rechecks_it(): void {
+		$searches = 0;
+		Functions\when( 'get_posts' )->alias(
+			static function () use ( &$searches ) {
+				++$searches;
+				return array( 12 );
+			}
+		);
+		$content = '[ffc_form id="31"]';
+		Functions\when( 'get_post_field' )->alias( static function () use ( &$content ) {
+			return $content;
+		} );
+		Functions\when( 'get_permalink' )->alias( static fn( $id ) => 'https://example.test/page-' . $id . '/' );
+
+		$this->assertSame( 'https://example.test/page-12/', ShortcodePage::url( 'ffc_form', 31 ) );
+		$this->assertSame( 'https://example.test/page-12/', ShortcodePage::url( 'ffc_form', 31 ) );
+		$this->assertSame( 1, $searches, 'The second ask reads the kept answer.' );
+
+		// The page stopped embedding the form: the kept answer is not
+		// believed, and the search runs again.
+		$content = 'nothing';
+		$this->assertSame( '', ShortcodePage::url( 'ffc_form', 31 ) );
+		$this->assertSame( 2, $searches );
+	}
+
+	/**
+	 * #2341 — a miss searches past the fifty newest pages.
+	 */
+	public function test_url_finds_a_page_older_than_the_fifty_newest(): void {
+		$pages = array();
+		Functions\when( 'get_posts' )->alias(
+			static function ( array $args ) use ( &$pages ) {
+				$pages[] = $args['paged'];
+				return 1 === $args['paged'] ? range( 100, 149 ) : array( 7 );
+			}
+		);
+		Functions\when( 'get_post_field' )->alias( static fn( $field, $id ) => 7 === $id ? '[ffc_form id=31]' : '[ffc_form id=99]' );
+		Functions\when( 'get_permalink' )->alias( static fn( $id ) => 'https://example.test/page-' . $id . '/' );
+
+		$this->assertSame( 'https://example.test/page-7/', ShortcodePage::url( 'ffc_form', 31 ) );
+		$this->assertSame( array( 1, 2 ), $pages );
+	}
+
+	/**
+	 * #2341 — saving a page primes the answers it embeds; trashing it or
+	 * unpublishing it drops them.
+	 */
+	public function test_saving_a_page_primes_and_leaving_drops(): void {
+		Functions\when( 'wp_is_post_revision' )->justReturn( false );
+		Functions\when( 'wp_is_post_autosave' )->justReturn( false );
+		Functions\when( 'get_posts' )->alias( function () {
+			$this->fail( 'A primed answer needs no search.' );
+		} );
+		Functions\when( 'get_post_field' )->justReturn( '[ffc_form id="31"] [ffc_self_scheduling id=4]' );
+		Functions\when( 'get_permalink' )->alias( static fn( $id ) => 'https://example.test/page-' . $id . '/' );
+
+		$post               = \Mockery::mock( 'WP_Post' );
+		$post->post_type    = 'page';
+		$post->post_status  = 'publish';
+		$post->post_content = '[ffc_form id="31"] [ffc_self_scheduling id=4]';
+		ShortcodePage::on_save_post( 12, $post );
+
+		$this->assertSame( 'https://example.test/page-12/', ShortcodePage::url( 'ffc_form', 31 ) );
+		$this->assertSame( 'https://example.test/page-12/', ShortcodePage::url( 'ffc_self_scheduling', 4 ) );
+
+		ShortcodePage::forget_post( 12 );
+		$this->assertSame( array(), $this->transients[ ShortcodePage::CACHE_KEY ] );
+
+		ShortcodePage::on_save_post( 12, $post );
+		$post->post_status = 'draft';
+		ShortcodePage::on_save_post( 12, $post );
+		$this->assertSame( array(), $this->transients[ ShortcodePage::CACHE_KEY ], 'An unpublished page holds no answer.' );
+	}
+
+	public function test_ids_in_reads_every_embedded_record(): void {
+		$this->assertSame( array( 31, 7 ), ShortcodePage::ids_in( '[ffc_form id="31"] x [ffc_form id=7] [ffc_form id=\'31\'] [ffc_form_x id=9]', 'ffc_form' ) );
 	}
 }
