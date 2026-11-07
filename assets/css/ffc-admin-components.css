@@ -691,6 +691,14 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     min-width: 0;
 }
 
+/* The side column stays in view while the panel scrolls (#2486). */
+.ffc-editor__side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
+}
+
 /* The side column's first card lines up with the menu and the panel
    (#2486); WordPress's `.card` gives it a top margin of its own. */
 .ffc-editor__side > .card:first-child {
@@ -700,5 +708,11 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
 @media screen and (max-width: 960px) {
     .ffc-editor {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-editor__side {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 }

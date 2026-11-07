@@ -190,6 +190,9 @@ class AudienceAdminSettings {
 				</ul></nav>
 
 				<div id="ffc-scheduling-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel">
+					<?php // The side column is reserved, as on FFC Settings (#2486); no tab here has a widget for it. ?>
+					<div class="ffc-settings-tabs__body">
+					<div class="ffc-settings-tabs__main">
 					<?php
 					switch ( $active_tab ) {
 						case 'self-scheduling':
@@ -216,6 +219,8 @@ class AudienceAdminSettings {
 							break;
 					}
 					?>
+					</div>
+					</div>
 				</div>
 			</div>
 		</div>

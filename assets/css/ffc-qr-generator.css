@@ -27,7 +27,9 @@
 .ffc-page-qr-generator .ffc-qr-generator__side {
     flex: 0 1 var(--ffc-admin-side-width);
     position: sticky;
-    top: 40px;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
 }
 
 /* Content types: a grid of icon tiles over visually hidden radios. */

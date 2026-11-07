@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php ob_start(); ?>
 		<p>
 			<strong><?php esc_html_e( 'Find your way around:', 'ffcertificate' ); ?></strong>
-			<?php esc_html_e( 'Use the Quick Navigation on the left — it mirrors the plugin\'s own menus. Start with', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Use the Quick Navigation beside the topics — it mirrors the plugin\'s own menus. Start with', 'ffcertificate' ); ?>
 			<a href="#feature-certificates"><?php esc_html_e( 'Certificates & Forms', 'ffcertificate' ); ?></a>, <?php esc_html_e( 'or jump to any area (Scheduling, Reregistration, Recruitment, Short URLs, Date Messages, Developer).', 'ffcertificate' ); ?>
 		</p>
 	<?php

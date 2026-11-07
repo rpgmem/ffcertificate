@@ -38,22 +38,42 @@ final class AdminLayoutTokensTest extends TestCase {
 				'grid-template-columns' => '--ffc-admin-side-width',
 				'gap'                   => '--ffc-admin-gap',
 			),
+			'.ffc-editor__side' => array(
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
 		),
 		'ffc-admin-settings.css'        => array(
-			'.ffc-settings-tabs__nav' => array( 'flex' => '--ffc-admin-nav-width' ),
+			'.ffc-settings-tabs__nav'  => array( 'flex' => '--ffc-admin-nav-width' ),
+			'.ffc-settings-tabs__body' => array(
+				'grid-template-columns' => '--ffc-admin-side-width',
+				'gap'                   => '--ffc-admin-gap',
+			),
+			'.ffc-settings-tabs__side' => array(
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
 		),
 		'ffc-admin-submission-edit.css' => array(
 			'.ffc-edit-layout' => array(
 				'grid-template-columns' => '--ffc-admin-side-width',
 				'gap'                   => '--ffc-admin-gap',
 			),
+			'.ffc-edit-side'   => array(
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
 		),
 		'ffc-qr-generator.css'          => array(
-			'.ffc-page-qr-generator .ffc-qr-generator__side' => array( 'flex' => '--ffc-admin-side-width' ),
+			'.ffc-page-qr-generator .ffc-qr-generator__side' => array(
+				'flex'       => '--ffc-admin-side-width',
+				'top'        => '--ffc-admin-side-top',
+				'max-height' => '--ffc-admin-side-max-height',
+			),
 		),
 	);
 
-	private const TOKENS = array( '--ffc-admin-nav-width', '--ffc-admin-side-width', '--ffc-admin-gap' );
+	private const TOKENS = array( '--ffc-admin-nav-width', '--ffc-admin-side-width', '--ffc-admin-gap', '--ffc-admin-side-top', '--ffc-admin-side-max-height' );
 
 	private static function css( string $sheet ): string {
 		return (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/' . $sheet );

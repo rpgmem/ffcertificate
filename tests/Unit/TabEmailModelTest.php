@@ -149,4 +149,29 @@ class TabEmailModelTest extends TestCase {
 			'settings view'   => array( array( 'ffc_view_settings' ), false ),
 		);
 	}
+
+	/**
+	 * The live preview prints in the side column (#2486); the model's script
+	 * finds the frame by its class, outside the Email Model card.
+	 */
+	public function test_render_side_prints_the_preview_frame(): void {
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( string $text ): void {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
+			}
+		);
+		Functions\when( 'esc_attr_e' )->alias(
+			static function ( string $text ): void {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
+			}
+		);
+
+		ob_start();
+		$this->tab->render_side();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="card ffc-email-model-preview">', $html );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-eye">Live Preview</h2>', $html );
+		$this->assertStringContainsString( '<iframe class="ffc-email-model-preview-frame" sandbox=""', $html );
+	}
 }

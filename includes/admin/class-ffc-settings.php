@@ -611,6 +611,25 @@ class Settings {
 	}
 
 	/**
+	 * What a (possibly duck-typed) tab prints in the side column (#2486).
+	 *
+	 * A tab a plugin adds through `ffcertificate_settings_tabs` need not
+	 * extend SettingsTab, so one without `render_side()` leaves the column
+	 * empty, as SettingsTab's own default does.
+	 *
+	 * @param object $tab Tab instance.
+	 * @return string The widget markup, or '' when the tab has none.
+	 */
+	private function tab_side( $tab ): string {
+		if ( ! method_exists( $tab, 'render_side' ) ) {
+			return '';
+		}
+		ob_start();
+		$tab->render_side();
+		return trim( (string) ob_get_clean() );
+	}
+
+	/**
 	 * Echo the QR-cache-cleared success notice when the `msg` URL parameter
 	 * carries it. Split out of {@see display_settings_page()} so the render
 	 * method reads as markup emission; emitted at the same position as before.
@@ -789,6 +808,8 @@ class Settings {
 				</ul></nav>
 
 				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel">
+					<div class="ffc-settings-tabs__body">
+					<div class="ffc-settings-tabs__main">
 					<?php
 					// A disabled <fieldset> natively disables every descendant form
 					// control (inputs, selects, textareas, submit + action buttons)
@@ -824,6 +845,18 @@ class Settings {
 						$visible_tabs[ $active_tab ]->render_unlocked();
 					}
 					?>
+					</div>
+					<?php
+					// The side column is reserved on every tab (#2486); a tab
+					// with a widget prints it there. Outside the read-only
+					// lock: a widget shows, it does not save.
+					$ffc_side = isset( $visible_tabs[ $active_tab ] ) ? $this->tab_side( $visible_tabs[ $active_tab ] ) : '';
+					if ( '' !== $ffc_side ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The tab's own output, escaped by its template.
+						echo '<aside class="ffc-settings-tabs__side">' . $ffc_side . '</aside>';
+					}
+					?>
+					</div>
 				</div>
 			</div>
 		</div>

@@ -130,6 +130,24 @@ class TabEmailModel extends SettingsTab {
 	}
 
 	/**
+	 * Render the live preview in the side column (#2486).
+	 *
+	 * `ffc-email-model.js` writes the preview into this frame from the fields
+	 * of the Email Model card, so it follows the form while the form scrolls.
+	 *
+	 * @since 6.44.0
+	 * @return void
+	 */
+	public function render_side(): void {
+		?>
+		<div class="card ffc-email-model-preview">
+			<h2 class="ffc-icon-eye"><?php esc_html_e( 'Live Preview', 'ffcertificate' ); ?></h2>
+			<iframe class="ffc-email-model-preview-frame" sandbox="" title="<?php esc_attr_e( 'Email preview', 'ffcertificate' ); ?>"></iframe>
+		</div>
+		<?php
+	}
+
+	/**
 	 * Render the "Send a test email" card, outside the read-only lock.
 	 *
 	 * The Settings page wraps a tab in a disabled fieldset for a user who

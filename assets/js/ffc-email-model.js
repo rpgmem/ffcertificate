@@ -91,7 +91,8 @@ jQuery(function ($) {
 	}
 
 	function refreshPreview() {
-		var frame = $box.find('.ffc-email-model-preview-frame').get(0);
+		// The preview sits in the screen's side column, outside the box (#2486).
+		var frame = $('.ffc-email-model-preview-frame').get(0);
 		if (frame) {
 			frame.srcdoc = buildPreview(collect());
 		}

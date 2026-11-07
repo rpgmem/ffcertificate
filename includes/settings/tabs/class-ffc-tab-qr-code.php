@@ -105,4 +105,23 @@ class TabQrCode extends SettingsTab {
 			);
 		}
 	}
+
+	/**
+	 * Render the live design preview in the side column (#2486).
+	 *
+	 * `ffc-qr-design.js` finds the image and the checks by id, so they draw
+	 * the same beside the form as they did inside the design card.
+	 *
+	 * @since 6.44.0
+	 * @return void
+	 */
+	public function render_side(): void {
+		?>
+		<div class="card ffc-qr-design-preview">
+			<h2 class="ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
+			<div id="ffc-qr-design-preview" class="ffc-qr-design-preview__image" aria-hidden="true"></div>
+			<div id="ffc-qr-design-checks" class="ffc-qr-design-preview__checks ffc-status" role="status" aria-live="polite" hidden></div>
+		</div>
+		<?php
+	}
 }

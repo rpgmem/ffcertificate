@@ -27,6 +27,14 @@
     min-width: 0;
 }
 
+/* The side column stays in view while the record scrolls (#2486). */
+.ffc-edit-side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
+}
+
 .ffc-edit-card {
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border: 1px solid var(--ffc-border);
@@ -177,6 +185,12 @@
 @media (max-width: 960px) {
     .ffc-edit-layout {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-edit-side {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 }
 

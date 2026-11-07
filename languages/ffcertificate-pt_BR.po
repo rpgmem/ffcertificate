@@ -18887,8 +18887,8 @@ msgid "Use tables for complex layouts"
 msgstr "Utilize tabelas para layouts complexos."
 
 #: includes/settings/views/documentation/overview.php:62
-msgid "Use the Quick Navigation on the left — it mirrors the plugin's own menus. Start with"
-msgstr "Use a Navegação Rápida à esquerda — ela espelha os menus do próprio plugin. Comece com"
+msgid "Use the Quick Navigation beside the topics — it mirrors the plugin's own menus. Start with"
+msgstr "Use a Navegação Rápida ao lado dos tópicos — ela espelha os menus do próprio plugin. Comece com"
 
 #: includes/settings/views/documentation/reference-tokens.php:18
 msgid "Use these variables in your PDF template (HTML editor). They will be automatically replaced with user data:"
