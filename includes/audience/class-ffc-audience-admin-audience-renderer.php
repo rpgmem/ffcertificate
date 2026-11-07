@@ -1258,7 +1258,7 @@ final class AudienceAdminAudienceRenderer {
 					} else {
 						self::render_inheritance_button( 'customize', (int) $field->id, __( 'Customize', 'ffcertificate' ), 'neutral', 'edit' );
 						if ( ! $hidden ) {
-							self::render_inheritance_button( 'hide', (int) $field->id, __( 'Hide', 'ffcertificate' ), 'neutral', 'minus' );
+							self::render_inheritance_button( 'hide', (int) $field->id, __( 'Hide', 'ffcertificate' ), 'neutral', 'eye-off' );
 						}
 					}
 					?>

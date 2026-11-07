@@ -80,6 +80,7 @@ final class Icons {
 		'skip'           => '<path d="M5 5l9 7-9 7zM18 5v14"/>',
 		'logout'         => '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/>',
 		'eye'            => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+		'eye-off'        => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>',
 		'link'           => '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
 
 		// Status.
@@ -242,6 +243,7 @@ final class Icons {
 		'error'          => 'error',
 		'external'       => 'external',
 		'eye'            => 'eye',
+		'eye-off'        => 'eye-off',
 		'file'           => 'file',
 		'file-check'     => 'file-check',
 		'filter'         => 'filter',
