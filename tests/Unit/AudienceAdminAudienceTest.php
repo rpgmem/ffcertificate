@@ -68,6 +68,9 @@ class AudienceAdminAudienceTest extends TestCase {
 	/** @var int The id the next insert reports. */
 	private int $next_insert_id = 1;
 
+	/** @var array<int, list<array<string, mixed>>> Field rows by audience id (0 = the global list); empty draws no row. */
+	private array $field_rows = array();
+
 	/** @var list<array{0: int, 1: string}> Every user_can() call, as [user id, capability]. */
 	private array $user_can_calls = array();
 
@@ -279,9 +282,20 @@ class AudienceAdminAudienceTest extends TestCase {
 			return array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
 		}
 		if ( 'get_results' === $method && self::FIELDS === $table && false !== strpos( $text, 'ORDER BY sort_order ASC, id ASC' ) ) {
-			// The fields are listed without one being drawn: the rows are
-			// render_custom_field_row()'s, tested on their own below.
-			return array();
+			// Unless a test set field rows, the fields are listed without one
+			// being drawn: the rows are render_custom_field_row()'s, tested on
+			// their own below.
+			return array_map( static fn( $r ) => (object) $r, $this->field_rows[ (int) ( $args[0] ?? -1 ) ] ?? array() );
+		}
+		if ( 'get_row' === $method && self::FIELDS === $table && 'SELECT * FROM %i WHERE id = %d' === $text ) {
+			foreach ( $this->field_rows as $rows ) {
+				foreach ( $rows as $row ) {
+					if ( (int) $row['id'] === (int) $args[0] ) {
+						return (object) $row;
+					}
+				}
+			}
+			return null;
 		}
 		$this->fail( "Unexpected {$method}(): {$text} with " . var_export( $bound, true ) );
 	}
@@ -612,6 +626,49 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Read-only', $output );
+	}
+
+	/**
+	 * An audience's tab draws what it asks, level by level (#2502): an
+	 * inherited field is one line with Customize and Hide, a field it hid has
+	 * Show again, its change is edited in place with Back to inherited, and its
+	 * own field is edited as before.
+	 */
+	public function test_custom_fields_section_draws_each_field_by_where_it_comes_from(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		$this->audience( 5, array( 'name' => 'Kitchen' ) );
+		$row = static fn( array $r ) => array_merge(
+			array( 'audience_id' => 0, 'overrides_field_id' => null, 'field_label' => 'L', 'field_type' => 'text', 'field_group' => '', 'field_source' => 'custom', 'field_profile_key' => null, 'field_mask' => null, 'is_sensitive' => '0', 'field_options' => null, 'validation_rules' => null, 'sort_order' => '0', 'is_required' => '0', 'is_active' => '1', 'is_hidden' => '0' ),
+			$r
+		);
+		$this->field_rows = array(
+			0 => array(
+				$row( array( 'id' => 1, 'field_key' => 'sindicato', 'field_label' => 'Union' ) ),
+				$row( array( 'id' => 2, 'field_key' => 'email', 'field_label' => 'E-mail' ) ),
+				$row( array( 'id' => 3, 'field_key' => 'turno', 'field_label' => 'Shift' ) ),
+			),
+			5 => array(
+				$row( array( 'id' => 20, 'audience_id' => 5, 'overrides_field_id' => '2', 'field_key' => 'email', 'is_hidden' => '1' ) ),
+				$row( array( 'id' => 30, 'audience_id' => 5, 'overrides_field_id' => '3', 'field_key' => 'turno', 'field_label' => 'Kitchen shift' ) ),
+				$row( array( 'id' => 40, 'audience_id' => 5, 'field_key' => 'certificado', 'field_label' => 'Food handler' ) ),
+			),
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_fields_section( 5 );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '#<div class="ffc-inherited-field-row" data-field-id="1">.*?Global.*?Union.*?data-ffc-inheritance="customize" data-field-id="1".*?data-ffc-inheritance="hide" data-field-id="1"#s', $output );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-inherited-field-row ffc-field-inactive" data-field-id="2">.*?Hidden here.*?data-ffc-inheritance="show" data-field-id="20"#s', $output, 'Show again undoes the hiding row.' );
+		$this->assertMatchesRegularExpression( '#data-field-id="30" data-field-source="custom" data-override="1">.*?Changed here.*?value="Kitchen shift".*?data-ffc-inheritance="revert" data-field-id="30"#s', $output );
+		$this->assertMatchesRegularExpression( '#data-field-id="40" data-field-source="custom">.*?Only here.*?value="Food handler"#s', $output );
+		$this->assertStringNotContainsString( 'data-field-id="30" data-field-source="custom" data-override="1">\n\t\t\t<div class="ffc-field-handle"', $output, 'A change has no drag handle.' );
+		$this->assertMatchesRegularExpression( '#Asks</dt>\s*<dd class="ffc-facts__value">3</dd>#', $output );
+		$this->assertMatchesRegularExpression( '#Hidden here</dt>\s*<dd class="ffc-facts__value">1</dd>#', $output );
 	}
 
 	public function test_render_custom_field_row_custom_select_field(): void {

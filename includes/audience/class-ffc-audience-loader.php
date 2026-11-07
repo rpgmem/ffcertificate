@@ -255,38 +255,7 @@ class AudienceLoader {
 			wp_enqueue_script( 'wp-color-picker' );
 		}
 		if ( 'ffc-scheduling-audiences' === $page ) {
-			wp_enqueue_script( 'jquery-ui-sortable' );
-
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-custom-fields-admin-css' );
-
-			wp_enqueue_script(
-				'ffc-division-sector-editor',
-				FFC_PLUGIN_URL . "assets/js/ffc-division-sector-editor{$s}.js",
-				array( 'jquery', 'ffc-core' ),
-				FFC_VERSION,
-				true
-			);
-			wp_localize_script(
-				'ffc-division-sector-editor',
-				'ffcDivisionSectorEditor',
-				array(
-					'strings' => array(
-						'divisionName'   => __( 'Division name', 'ffcertificate' ),
-						'departmentName' => __( 'Department name', 'ffcertificate' ),
-						'removeDivision' => __( 'Remove division', 'ffcertificate' ),
-						'removeSector'   => __( 'Remove department', 'ffcertificate' ),
-						'addSector'      => __( 'Add Department', 'ffcertificate' ),
-					),
-				)
-			);
-
-			wp_enqueue_script(
-				'ffc-custom-fields-admin',
-				FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-admin{$s}.js",
-				array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-core', 'ffc-audience-admin', 'ffc-division-sector-editor' ),
-				FFC_VERSION,
-				true
-			);
+			self::enqueue_field_editor();
 		}
 
 		// Attendance screen of one booking (#1947).
@@ -335,6 +304,67 @@ class AudienceLoader {
 		);
 		// The calendar and audience edit screens save their toggles per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
+	}
+
+	/**
+	 * The reregistration field editor: the audience editor's fields tab and
+	 * the global list on Reregistration -> Custom Fields (#2502).
+	 *
+	 * @return void
+	 */
+	public static function enqueue_field_editor(): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+
+		wp_enqueue_script( 'jquery-ui-sortable' );
+
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-custom-fields-admin-css' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
+
+		wp_enqueue_script(
+			'ffc-division-sector-editor',
+			FFC_PLUGIN_URL . "assets/js/ffc-division-sector-editor{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-division-sector-editor',
+			'ffcDivisionSectorEditor',
+			array(
+				'strings' => array(
+					'divisionName'   => __( 'Division name', 'ffcertificate' ),
+					'departmentName' => __( 'Department name', 'ffcertificate' ),
+					'removeDivision' => __( 'Remove division', 'ffcertificate' ),
+					'removeSector'   => __( 'Remove department', 'ffcertificate' ),
+					'addSector'      => __( 'Add Department', 'ffcertificate' ),
+				),
+			)
+		);
+
+		wp_enqueue_script(
+			'ffc-custom-fields-admin',
+			FFC_PLUGIN_URL . "assets/js/ffc-custom-fields-admin{$s}.js",
+			array( 'jquery', 'jquery-ui-sortable', 'wp-util', 'ffc-core', 'ffc-division-sector-editor' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-custom-fields-admin',
+			'ffcFieldEditor',
+			array(
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'adminNonce' => wp_create_nonce( 'ffc_admin_nonce' ),
+				'strings'    => array(
+					'saving'               => __( 'Saving...', 'ffcertificate' ),
+					'saved'                => __( 'Saved!', 'ffcertificate' ),
+					'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),
+					'confirmDelete'        => __( 'Are you sure you want to delete this item?', 'ffcertificate' ),
+					'cannotDeleteStandard' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
+					'confirmReplicate'     => __( "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists.", 'ffcertificate' ),
+					'confirmRevert'        => __( "Discard this audience's changes to the field? It goes back to the inherited one.", 'ffcertificate' ),
+				),
+			)
+		);
 	}
 
 	/**
@@ -399,50 +429,48 @@ class AudienceLoader {
 	 */
 	private function get_admin_strings(): array {
 		return array(
-			'confirmDelete'        => __( 'Are you sure you want to delete this item?', 'ffcertificate' ),
-			'confirmCancel'        => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
-			'saving'               => __( 'Saving...', 'ffcertificate' ),
-			'saved'                => __( 'Saved!', 'ffcertificate' ),
-			'error'                => __( 'An error occurred. Please try again.', 'ffcertificate' ),
-			'loading'              => __( 'Loading...', 'ffcertificate' ),
-			'noResults'            => __( 'No results found.', 'ffcertificate' ),
-			'selectAudience'       => __( 'Select audience groups', 'ffcertificate' ),
-			'selectUsers'          => __( 'Select users', 'ffcertificate' ),
-			'requiredField'        => __( 'This field is required.', 'ffcertificate' ),
-			'invalidTime'          => __( 'End time must be after start time.', 'ffcertificate' ),
-			'allEnvironments'      => __( 'All Environments', 'ffcertificate' ),
-			'environmentLabel'     => __( 'Environment', 'ffcertificate' ),
-			'cancelReason'         => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
-			'bookingCancelled'     => __( 'Booking cancelled successfully.', 'ffcertificate' ),
-			'bookingDetails'       => __( 'Booking Details', 'ffcertificate' ),
-			'date'                 => __( 'Date', 'ffcertificate' ),
-			'time'                 => __( 'Time', 'ffcertificate' ),
-			'description'          => __( 'Description', 'ffcertificate' ),
-			'type'                 => __( 'Type', 'ffcertificate' ),
-			'status'               => __( 'Status', 'ffcertificate' ),
-			'createdBy'            => __( 'Created By', 'ffcertificate' ),
-			'audiences'            => __( 'Audiences', 'ffcertificate' ),
-			'users'                => __( 'Users', 'ffcertificate' ),
-			'cancelReasonLabel'    => __( 'Cancel Reason', 'ffcertificate' ),
+			'confirmDelete'      => __( 'Are you sure you want to delete this item?', 'ffcertificate' ),
+			'confirmCancel'      => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
+			'saving'             => __( 'Saving...', 'ffcertificate' ),
+			'saved'              => __( 'Saved!', 'ffcertificate' ),
+			'error'              => __( 'An error occurred. Please try again.', 'ffcertificate' ),
+			'loading'            => __( 'Loading...', 'ffcertificate' ),
+			'noResults'          => __( 'No results found.', 'ffcertificate' ),
+			'selectAudience'     => __( 'Select audience groups', 'ffcertificate' ),
+			'selectUsers'        => __( 'Select users', 'ffcertificate' ),
+			'requiredField'      => __( 'This field is required.', 'ffcertificate' ),
+			'invalidTime'        => __( 'End time must be after start time.', 'ffcertificate' ),
+			'allEnvironments'    => __( 'All Environments', 'ffcertificate' ),
+			'environmentLabel'   => __( 'Environment', 'ffcertificate' ),
+			'cancelReason'       => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
+			'bookingCancelled'   => __( 'Booking cancelled successfully.', 'ffcertificate' ),
+			'bookingDetails'     => __( 'Booking Details', 'ffcertificate' ),
+			'date'               => __( 'Date', 'ffcertificate' ),
+			'time'               => __( 'Time', 'ffcertificate' ),
+			'description'        => __( 'Description', 'ffcertificate' ),
+			'type'               => __( 'Type', 'ffcertificate' ),
+			'status'             => __( 'Status', 'ffcertificate' ),
+			'createdBy'          => __( 'Created By', 'ffcertificate' ),
+			'audiences'          => __( 'Audiences', 'ffcertificate' ),
+			'users'              => __( 'Users', 'ffcertificate' ),
+			'cancelReasonLabel'  => __( 'Cancel Reason', 'ffcertificate' ),
 			/* translators: %d: number of bookings selected for cancellation. */
-			'bulkCancelSentence'   => __( '%d bookings will be cancelled and their participants e-mailed.', 'ffcertificate' ),
-			'close'                => __( 'Close', 'ffcertificate' ),
-			'allDay'               => __( 'All Day', 'ffcertificate' ),
-			'audience'             => __( 'Audience', 'ffcertificate' ),
-			'customUsers'          => __( 'Custom Users', 'ffcertificate' ),
-			'active'               => __( 'Active', 'ffcertificate' ),
-			'cancelled'            => __( 'Cancelled', 'ffcertificate' ),
-			'alreadyAdded'         => __( 'already added', 'ffcertificate' ),
-			'noUsersFound'         => __( 'No users found.', 'ffcertificate' ),
-			'errorAddingUser'      => __( 'Error adding user.', 'ffcertificate' ),
-			'confirmRemoveUser'    => __( "Remove this user's access?", 'ffcertificate' ),
-			'noUsersYet'           => __( 'No users have been granted access yet.', 'ffcertificate' ),
-			'cannotDeleteStandard' => __( 'Standard fields cannot be deleted. Deactivate instead.', 'ffcertificate' ),
-			'confirmReplicate'     => __( "Copy this audience's option lists to all child and grandchild audiences? This overwrites their current lists.", 'ffcertificate' ),
-			'exportPreparing'      => __( 'Preparing…', 'ffcertificate' ),
+			'bulkCancelSentence' => __( '%d bookings will be cancelled and their participants e-mailed.', 'ffcertificate' ),
+			'close'              => __( 'Close', 'ffcertificate' ),
+			'allDay'             => __( 'All Day', 'ffcertificate' ),
+			'audience'           => __( 'Audience', 'ffcertificate' ),
+			'customUsers'        => __( 'Custom Users', 'ffcertificate' ),
+			'active'             => __( 'Active', 'ffcertificate' ),
+			'cancelled'          => __( 'Cancelled', 'ffcertificate' ),
+			'alreadyAdded'       => __( 'already added', 'ffcertificate' ),
+			'noUsersFound'       => __( 'No users found.', 'ffcertificate' ),
+			'errorAddingUser'    => __( 'Error adding user.', 'ffcertificate' ),
+			'confirmRemoveUser'  => __( "Remove this user's access?", 'ffcertificate' ),
+			'noUsersYet'         => __( 'No users have been granted access yet.', 'ffcertificate' ),
+			'exportPreparing'    => __( 'Preparing…', 'ffcertificate' ),
 			/* translators: %1$d processed, %2$d total */
-			'exportProgress'       => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
-			'exportDone'           => __( 'Done!', 'ffcertificate' ),
+			'exportProgress'     => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
+			'exportDone'         => __( 'Done!', 'ffcertificate' ),
 		);
 	}
 }

@@ -319,7 +319,7 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
 		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
-		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
+		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcFieldEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
 	public function test_enqueue_admin_assets_on_the_calendars_page_loads_the_shortcode_copy(): void {

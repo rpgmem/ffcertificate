@@ -25,6 +25,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Global fields and inheritance', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'Reregistration → Custom Fields edits the global list: the fields every audience asks. Below it, each audience inherits from its parent audiences, and a sub-audience from its audience. The audience\'s Reregistration fields tab shows where each field comes from (Global, From a parent, Changed here, Hidden here, Only here).', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><?php esc_html_e( 'Customize copies one inherited field into the audience, where its label, group, options, validation and whether it is required or active can change. The key, type, sensitivity and profile binding follow the inherited field, and the answers stay under it, so a person answering in two audiences answers once. Back to inherited discards the change.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Hide stops asking an inherited field in the audience and its sub-audiences, required fields included. Answers already stored stay. Show again asks it once more.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience\'s fields tab.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Audiences created before the global list keep their own copy of each standard field, marked "Own copy", with answers of its own; it is asked in place of the inherited one.', 'ffcertificate' ); ?></li>
+		</ul>
+	</div>
+
+	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Supported Field Types:', 'ffcertificate' ); ?></h4>
 		<table class="widefat striped">
 			<thead>

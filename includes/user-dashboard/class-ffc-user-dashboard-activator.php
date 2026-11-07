@@ -37,7 +37,7 @@ class UserDashboardActivator {
 	 *
 	 * @var string
 	 */
-	public const SCHEMA_REVISION = '1';
+	public const SCHEMA_REVISION = '2';
 
 	/**
 	 * Option holding the revision last applied. Listed in `uninstall.php`.
@@ -61,6 +61,7 @@ class UserDashboardActivator {
 		self::create_user_profiles_table();
 		self::add_user_profiles_columns();
 		self::create_custom_fields_table();
+		self::add_custom_fields_columns();
 	}
 
 	/**
@@ -113,6 +114,7 @@ class UserDashboardActivator {
 		self::add_user_profiles_columns();
 		self::backfill_identity_index();
 		self::create_custom_fields_table();
+		self::add_custom_fields_columns();
 
 		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
@@ -220,6 +222,37 @@ class UserDashboardActivator {
 	}
 
 	/**
+	 * Add the two columns the field inheritance reads (#2502):
+	 * `overrides_field_id` points an audience's change at the field it
+	 * changes, and `is_hidden` marks a field an audience does not ask.
+	 *
+	 * @return void
+	 */
+	private static function add_custom_fields_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_custom_fields';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		self::add_columns_if_missing(
+			$table_name,
+			array(
+				'overrides_field_id' => array(
+					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+					'after' => 'audience_id',
+					'index' => 'overrides_field_id',
+				),
+				'is_hidden'          => array(
+					'type'  => 'TINYINT(1) NOT NULL DEFAULT 0',
+					'after' => 'is_active',
+				),
+			)
+		);
+	}
+
+	/**
 	 * Move the identity hashes out of wp_usermeta and into their columns.
 	 *
 	 * WHAT IT COPIES, AND WHAT IT DOES NOT FIX
@@ -314,6 +347,7 @@ class UserDashboardActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
+            overrides_field_id bigint(20) unsigned DEFAULT NULL,
             field_key varchar(100) NOT NULL,
             field_label varchar(250) NOT NULL,
             field_type varchar(50) NOT NULL DEFAULT 'text',
@@ -327,6 +361,7 @@ class UserDashboardActivator {
             sort_order int(11) NOT NULL DEFAULT 0,
             is_required tinyint(1) NOT NULL DEFAULT 0,
             is_active tinyint(1) NOT NULL DEFAULT 1,
+            is_hidden tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -334,7 +369,8 @@ class UserDashboardActivator {
             KEY idx_field_key (field_key),
             KEY idx_sort_order (audience_id, sort_order),
             KEY idx_group_sort (audience_id, field_group, sort_order),
-            KEY idx_source (audience_id, field_source)
+            KEY idx_source (audience_id, field_source),
+            KEY idx_overrides_field_id (overrides_field_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

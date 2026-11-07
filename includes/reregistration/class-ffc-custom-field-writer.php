@@ -27,6 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Write operations for audience-specific custom field definitions.
  *
  * @since 6.12.0
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class CustomFieldWriter {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -437,6 +439,12 @@ class CustomFieldWriter {
 
 		$result = $wpdb->delete( $table, array( 'id' => $field_id ), array( '%d' ) );
 
+		// The audiences' changes to the field go with it (#2502): they point
+		// at a field that no longer exists.
+		if ( false !== $result ) {
+			$wpdb->delete( $table, array( 'overrides_field_id' => $field_id ), array( '%d' ) );
+		}
+
 		static::cache_delete( "id_{$field_id}" );
 
 		if ( false !== $result && $field && ! empty( $field->is_sensitive ) ) {
@@ -556,12 +564,219 @@ class CustomFieldWriter {
 		global $wpdb;
 		$table = self::get_table_name();
 
-		$result = $wpdb->insert(
-			$table,
-			$data,
-			array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%d', '%d', '%d' )
+		$formats = array();
+		foreach ( array_keys( $data ) as $column ) {
+			$formats[] = self::COLUMN_FORMATS[ $column ] ?? '%s';
+		}
+
+		$result = $wpdb->insert( $table, $data, $formats );
+		if ( false === $result ) {
+			return false;
+		}
+		if ( ! empty( $data['is_sensitive'] ) ) {
+			self::invalidate_sensitive_registry_cache();
+		}
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * The `$wpdb` format of each column a row is written with.
+	 *
+	 * @var array<string, string>
+	 */
+	private const COLUMN_FORMATS = array(
+		'audience_id'        => '%d',
+		'overrides_field_id' => '%d',
+		'field_key'          => '%s',
+		'field_label'        => '%s',
+		'field_type'         => '%s',
+		'field_group'        => '%s',
+		'field_source'       => '%s',
+		'field_profile_key'  => '%s',
+		'field_mask'         => '%s',
+		'is_sensitive'       => '%d',
+		'field_options'      => '%s',
+		'validation_rules'   => '%s',
+		'sort_order'         => '%d',
+		'is_required'        => '%d',
+		'is_active'          => '%d',
+		'is_hidden'          => '%d',
+	);
+
+	/**
+	 * Start changing an inherited field in one audience (#2502): a row that
+	 * points at the field and carries its current values, which the
+	 * audience then edits. The other audiences keep inheriting.
+	 *
+	 * @param int    $audience_id Audience the change belongs to.
+	 * @param object $field       The field as the audience inherits it, from {@see CustomFieldReader::resolve()}.
+	 * @param bool   $hidden      Hide the field in the audience instead of changing it.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return int|false The change row's id, or false.
+	 */
+	public static function override( int $audience_id, object $field, bool $hidden = false ) {
+		if ( $audience_id <= 0 || (int) $field->id <= 0 ) {
+			return false;
+		}
+		$existing = self::override_row( $audience_id, (int) $field->id );
+		if ( null !== $existing ) {
+			if ( $hidden && empty( $existing->is_hidden ) ) {
+				self::update_override( (int) $existing->id, array( 'is_hidden' => 1 ) );
+			}
+			return (int) $existing->id;
+		}
+
+		$row = array(
+			'audience_id'        => $audience_id,
+			'overrides_field_id' => (int) $field->id,
+			'field_key'          => (string) $field->field_key,
+			'field_type'         => (string) $field->field_type,
+			'field_source'       => (string) $field->field_source,
+			'field_profile_key'  => $field->field_profile_key,
+			'field_mask'         => $field->field_mask,
+			'is_sensitive'       => (int) $field->is_sensitive,
+			'is_hidden'          => $hidden ? 1 : 0,
 		);
-		return false === $result ? false : (int) $wpdb->insert_id;
+		foreach ( CustomFieldReader::OVERRIDABLE_COLUMNS as $column ) {
+			$row[ $column ] = $field->{$column};
+		}
+		return self::insert_row( $row );
+	}
+
+	/**
+	 * Show again a field an audience hid (#2502). A change row that only
+	 * hid the field -- its values equal what the audience would inherit --
+	 * is deleted, so the field inherits again; one that also changed the
+	 * field keeps the change.
+	 *
+	 * @param int $override_id The change row's id.
+	 * @return bool
+	 */
+	public static function unhide( int $override_id ): bool {
+		$row = CustomFieldReader::get_by_id( $override_id );
+		if ( null === $row || (int) ( $row->overrides_field_id ?? 0 ) <= 0 ) {
+			return false;
+		}
+		$inherited = self::inherited_above( $row );
+		if ( null !== $inherited && self::same_values( $row, $inherited ) ) {
+			return self::revert( $override_id );
+		}
+		return self::update_override( $override_id, array( 'is_hidden' => 0 ) );
+	}
+
+	/**
+	 * Drop an audience's change to a field, so it inherits again (#2502).
+	 * Only a change row is deleted this way; a field's definition never is.
+	 *
+	 * @param int $override_id The change row's id.
+	 * @return bool
+	 */
+	public static function revert( int $override_id ): bool {
+		$row = CustomFieldReader::get_by_id( $override_id );
+		if ( null === $row || (int) ( $row->overrides_field_id ?? 0 ) <= 0 ) {
+			return false;
+		}
+		$wpdb   = self::db();
+		$result = $wpdb->delete( self::get_table_name(), array( 'id' => $override_id ), array( '%d' ) );
+		static::cache_delete( "id_{$override_id}" );
+		return false !== $result;
+	}
+
+	/**
+	 * Write the columns a change may carry; anything else in `$data` is
+	 * ignored, because the key, type and sensitivity follow the field the
+	 * change points at.
+	 *
+	 * @param int                  $override_id The change row's id.
+	 * @param array<string, mixed> $data        Column => value.
+	 * @return bool
+	 */
+	public static function update_override( int $override_id, array $data ): bool {
+		$allowed = array_merge( CustomFieldReader::OVERRIDABLE_COLUMNS, array( 'is_hidden' ) );
+		$data    = array_intersect_key( $data, array_flip( $allowed ) );
+		if ( empty( $data ) ) {
+			return false;
+		}
+		foreach ( array( 'field_options', 'validation_rules' ) as $json ) {
+			if ( array_key_exists( $json, $data ) && null !== $data[ $json ] && ! is_string( $data[ $json ] ) ) {
+				$data[ $json ] = wp_json_encode( $data[ $json ] );
+			}
+		}
+		if ( isset( $data['field_label'] ) ) {
+			$data['field_label'] = sanitize_text_field( (string) $data['field_label'] );
+		}
+		if ( isset( $data['field_group'] ) ) {
+			$data['field_group'] = sanitize_text_field( (string) $data['field_group'] );
+		}
+
+		$formats = array();
+		foreach ( array_keys( $data ) as $column ) {
+			$formats[] = self::COLUMN_FORMATS[ $column ];
+		}
+		$wpdb   = self::db();
+		$result = $wpdb->update( self::get_table_name(), $data, array( 'id' => $override_id ), $formats, array( '%d' ) );
+		static::cache_delete( "id_{$override_id}" );
+		return false !== $result;
+	}
+
+	/**
+	 * An audience's change row for a field, if it has one.
+	 *
+	 * @param int $audience_id Audience ID.
+	 * @param int $field_id    The field's id.
+	 * @return CustomFieldRow|null
+	 */
+	private static function override_row( int $audience_id, int $field_id ): ?object {
+		$wpdb = self::db();
+		/**
+		 * Cast wpdb result to typed shape.
+		 *
+		 * @var CustomFieldRow|null $row
+		 */
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT * FROM %i WHERE audience_id = %d AND overrides_field_id = %d LIMIT 1',
+				self::get_table_name(),
+				$audience_id,
+				$field_id
+			)
+		);
+		return $row ? $row : null;
+	}
+
+	/**
+	 * The field as the change row's audience would inherit it without the
+	 * change: resolved at the parent, or the global list.
+	 *
+	 * @param object $row Change row.
+	 * @phpstan-param CustomFieldRow $row
+	 * @return CustomFieldRow|null
+	 */
+	private static function inherited_above( object $row ): ?object {
+		$audience = \FreeFormCertificate\Audience\AudienceReader::get_by_id( (int) $row->audience_id );
+		$parent   = $audience && ! empty( $audience->parent_id ) ? (int) $audience->parent_id : 0;
+		foreach ( CustomFieldReader::resolve( $parent ) as $field ) {
+			if ( (int) $field->id === (int) $row->overrides_field_id ) {
+				return $field;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Whether a change row carries the same values as the field it changes.
+	 *
+	 * @param object $row       Change row.
+	 * @param object $inherited The field as inherited.
+	 * @return bool
+	 */
+	private static function same_values( object $row, object $inherited ): bool {
+		foreach ( CustomFieldReader::OVERRIDABLE_COLUMNS as $column ) {
+			if ( (string) ( $row->{$column} ?? '' ) !== (string) ( $inherited->{$column} ?? '' ) ) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

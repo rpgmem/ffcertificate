@@ -18,7 +18,7 @@ function flush() { return Promise.resolve().then(() => Promise.resolve()); }
 
 
 beforeAll(() => {
-	window.ffcAudienceAdmin = {
+	window.ffcFieldEditor = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		adminNonce: 'admin-n',
 		strings: {
@@ -27,6 +27,7 @@ beforeAll(() => {
 			error: 'Error',
 			confirmDelete: 'Delete?',
 			cannotDeleteStandard: 'Cannot delete standard',
+			confirmRevert: 'Revert?',
 		},
 	};
 	window.$.fn.sortable = function () { return this; };
@@ -589,5 +590,85 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		expect($status.text()).toBe('Boom');
 		expect($status.hasClass('is-error')).toBe(true);
 		expect(window.$('#ffc-replicate-field-options').prop('disabled')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// The global list and the inheritance buttons (#2502)
+// ----------------------------------------------------------------------
+
+describe('custom-fields-admin — global list and inheritance', () => {
+	function mount(level) {
+		document.body.innerHTML = `
+			<div id="ffc-custom-fields-container" data-audience-id="${level}">
+				<div id="ffc-custom-fields-list">
+					<div class="ffc-inherited-field-row" data-field-id="3">
+						<button type="button" class="ffc-field-inheritance" data-ffc-inheritance="customize" data-field-id="3">Customize</button>
+					</div>
+					<div class="ffc-custom-field-row" data-field-id="30" data-override="1">
+						<input type="text" class="ffc-field-label" value="Kitchen shift">
+						<button type="button" class="ffc-field-inheritance" data-ffc-inheritance="revert" data-field-id="30">Back</button>
+					</div>
+				</div>
+				<button id="ffc-save-custom-fields">Save</button>
+				<span id="ffc-custom-fields-status"></span>
+			</div>
+		`;
+		window.$.fx.off = true;
+		if (!window.FFC) { loadScript('assets/js/ffc-core.js'); }
+		loadScript('assets/js/ffc-custom-fields-admin.js');
+		return new Promise((r) => setTimeout(r, 0));
+	}
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it('saves the global list as level 0 and posts only the editable rows', async () => {
+		await mount(0);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		window.$('#ffc-save-custom-fields').trigger('click');
+		await flush();
+		const payload = postSpy.mock.calls[0][1];
+		expect(payload.audience_id).toBe(0);
+		const fields = JSON.parse(payload.fields);
+		expect(fields.map((f) => f.id)).toEqual([30]);
+	});
+
+	it('sends Customize with the inherited field and the audience', async () => {
+		await mount(7);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		window.$('[data-ffc-inheritance="customize"]').trigger('click');
+		await flush();
+		const payload = postSpy.mock.calls[0][1];
+		expect(payload).toMatchObject({ action: 'ffc_custom_field_inheritance', audience_id: 7, field_id: '3', operation: 'customize' });
+	});
+
+	it('asks before going back to the inherited field', async () => {
+		await mount(7);
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		window.$('[data-ffc-inheritance="revert"]').trigger('click');
+		await flush();
+		expect(confirmSpy).toHaveBeenCalledWith('Revert?');
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('shows the server refusal and re-enables the button', async () => {
+		await mount(7);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Nope' } } }));
+		const $btn = window.$('[data-ffc-inheritance="customize"]');
+		$btn.trigger('click');
+		await flush();
+		expect(window.$('#ffc-custom-fields-status').text()).toBe('Nope');
+		expect($btn.prop('disabled')).toBe(false);
+	});
+
+	it('does nothing on the global list, which inherits from nothing', async () => {
+		await mount(0);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		window.$('[data-ffc-inheritance="customize"]').trigger('click');
+		await flush();
+		expect(postSpy).not.toHaveBeenCalled();
 	});
 });

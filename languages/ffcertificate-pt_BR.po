@@ -178,12 +178,6 @@ msgstr "\"Automático\" segue a preferência do seu sistema operacional."
 msgid "%1$d / %2$d"
 msgstr "%1$d / %2$d"
 
-#. 1: active count 2: total count
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:114
-#, php-format
-msgid "%1$d active / %2$d total"
-msgstr "%1$d ativo / %2$d total"
-
 #. 1: existing count, 2: total count
 #: includes/migrations/class-ffc-migration-foreign-keys.php:315
 #, php-format
@@ -1276,10 +1270,6 @@ msgstr "Adicione blocos personalizados para ver o relatório de ocupação."
 #: templates/reregistration/field-working-hours.php:53 includes/admin/class-ffc-admin-user-custom-fields.php:293
 msgid "Add Day"
 msgstr "Adicionar Dia"
-
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:125
-msgid "Add Fields"
-msgstr "Adicionar Campos"
 
 #: includes/settings/views/documentation/feature-audiences.php:63
 msgid "Add fields with labels, types, and validation rules"
@@ -4983,10 +4973,6 @@ msgstr "Campos Personalizados"
 msgid "Custom fields"
 msgstr "Campos personalizados"
 
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:48
-msgid "Custom fields are defined per audience. Select an audience to manage its fields."
-msgstr "Os campos personalizados são definidos por público-alvo. Selecione um público-alvo para gerenciar seus campos."
-
 #: includes/settings/views/documentation/reference-tokens.php:132
 msgid "Custom fields as variables"
 msgstr "Campos personalizados como variáveis"
@@ -5347,10 +5333,6 @@ msgstr "Padrão: Todas as notificações desabilitadas"
 #: includes/settings/views/documentation/reference-validation-url.php:31
 msgid "Default: link to magic, text shows /valid"
 msgstr "Padrão: link magico, o texto mostra /valid"
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:358
-msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"Add Field\" to create custom fields."
-msgstr "Defina todos os campos exibidos durante o recadastramento. Os campos padrão podem ser reordenados, renomeados, reagrupados e desativados, mas não excluídos. Use \"Adicionar Campo\" para criar campos personalizados."
 
 #. %s: link to the Adjutancies tab
 #: templates/admin/recruitment/admin-page/notices-empty-state.php:24
@@ -6199,10 +6181,6 @@ msgstr "Edite o candidato — %s"
 #: includes/admin/class-ffc-submissions-export-source.php:376 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:77
 msgid "Edit Date"
 msgstr "Data de Edição"
-
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:125
-msgid "Edit Fields"
-msgstr "Editar Campos"
 
 #: includes/admin/class-ffc-cpt.php:51
 msgid "Edit Form"
@@ -33605,3 +33583,147 @@ msgstr "Quem recebe e quando."
 #: includes/settings/views/documentation/feature-date-messages.php:36
 msgid "The rule editor has one tab per part of the rule — Rule, Message, Body appearance, Sending, Manager summary and Check before saving — and a side column: the Active switch and Save rule first, then \"This rule\", a summary of the choices on every tab that follows the form before it is saved. Save rule writes every tab at once; moving between tabs keeps what was typed."
 msgstr "O editor de regra tem uma aba para cada parte da regra — Regra, Mensagem, Aparência do corpo, Envio, Resumo para gestores e Confira antes de salvar — e uma coluna lateral: primeiro a chave Ativo e Salvar regra, depois \"Esta regra\", um resumo das escolhas de todas as abas que acompanha o formulário antes de salvar. Salvar regra grava todas as abas de uma vez; trocar de aba mantém o que foi digitado."
+
+#: includes/audience/class-ffc-audience-loader.php
+msgid "Discard this audience's changes to the field? It goes back to the inherited one."
+msgstr "Descartar as alterações deste público-alvo no campo? Ele volta a ser o herdado."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Asks"
+msgstr "Pergunta"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Back to inherited"
+msgstr "Voltar ao herdado"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Changed here"
+msgstr "Alterado aqui"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Customize"
+msgstr "Personalizar"
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+#, php-format
+msgid "Field \"%s\" belongs to another audience or to the global list and was not saved."
+msgstr "O campo \"%s\" pertence a outro público-alvo ou à lista global e não foi salvo."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "From %s"
+msgstr "De %s"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "From parent audiences"
+msgstr "Dos públicos-alvo pais"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "From the global list"
+msgstr "Da lista global"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Hidden here"
+msgstr "Oculto aqui"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "Hidden in %s"
+msgstr "Oculto em %s"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Only here"
+msgstr "Só aqui"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Own copies"
+msgstr "Cópias próprias"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Own copy"
+msgstr "Cópia própria"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Show again"
+msgstr "Mostrar de novo"
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "The field could not be changed. Reload the page and try again."
+msgstr "Não foi possível alterar o campo. Recarregue a página e tente de novo."
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "This audience does not inherit that field."
+msgstr "Este público-alvo não herda esse campo."
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "This audience has no change to that field."
+msgstr "Este público-alvo não tem alteração nesse campo."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience keeps its own copy of a field it also inherits, with answers of its own. It is asked in place of the inherited one."
+msgstr "Este público-alvo guarda uma cópia própria de um campo que também herda, com respostas próprias. Ela é perguntada no lugar da herdada."
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d changed"
+msgid_plural "%d changed"
+msgstr[0] "%d alterado"
+msgstr[1] "%d alterados"
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d hidden"
+msgid_plural "%d hidden"
+msgstr[0] "%d oculto"
+msgstr[1] "%d ocultos"
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d own field"
+msgid_plural "%d own fields"
+msgstr[0] "%d campo próprio"
+msgstr[1] "%d campos próprios"
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Changed in audiences"
+msgstr "Alterados nos públicos-alvo"
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Each name opens that audience's fields tab."
+msgstr "Cada nome abre a aba de campos desse público-alvo."
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Every audience asks these fields, unless it changes or hides one. A change here reaches every audience that has not changed that field. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted."
+msgstr "Todo público-alvo pergunta estes campos, a menos que altere ou oculte algum. Uma alteração aqui chega a todo público-alvo que não alterou esse campo. Campos padrão podem ser reordenados, renomeados, reagrupados e desativados, mas não excluídos."
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Global fields"
+msgstr "Campos globais"
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "The fields this audience asks: the global ones, those of its parent audiences and its own. Customize changes an inherited field for this audience and its sub-audiences only; Hide stops asking it here. Use \"Add Field\" for a field only this audience asks."
+msgstr "Os campos que este público-alvo pergunta: os globais, os dos públicos-alvo pais e os próprios. Personalizar altera um campo herdado só para este público-alvo e seus subgrupos; Ocultar deixa de perguntá-lo aqui. Use \"Adicionar Campo\" para um campo que só este público-alvo pergunta."
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Global fields and inheritance"
+msgstr "Campos globais e herança"
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Reregistration → Custom Fields edits the global list: the fields every audience asks. Below it, each audience inherits from its parent audiences, and a sub-audience from its audience. The audience's Reregistration fields tab shows where each field comes from (Global, From a parent, Changed here, Hidden here, Only here)."
+msgstr "Recadastramento → Campos Personalizados edita a lista global: os campos que todo público-alvo pergunta. Abaixo dela, cada público-alvo herda dos públicos-alvo pais, e um subgrupo do seu público-alvo. A aba Campos de recadastramento do público-alvo mostra de onde vem cada campo (Global, De um pai, Alterado aqui, Oculto aqui, Só aqui)."
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Customize copies one inherited field into the audience, where its label, group, options, validation and whether it is required or active can change. The key, type, sensitivity and profile binding follow the inherited field, and the answers stay under it, so a person answering in two audiences answers once. Back to inherited discards the change."
+msgstr "Personalizar copia um campo herdado para o público-alvo, onde o rótulo, o grupo, as opções, a validação e se é obrigatório ou ativo podem mudar. A chave, o tipo, a sensibilidade e o vínculo com o perfil seguem o campo herdado, e as respostas ficam guardadas nele, então quem responde em dois públicos-alvo responde uma vez. Voltar ao herdado descarta a alteração."
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Hide stops asking an inherited field in the audience and its sub-audiences, required fields included. Answers already stored stay. Show again asks it once more."
+msgstr "Ocultar deixa de perguntar um campo herdado no público-alvo e em seus subgrupos, inclusive os obrigatórios. As respostas já guardadas ficam. Mostrar de novo volta a perguntá-lo."
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience's fields tab."
+msgstr "A coluna lateral da página global lista, por público-alvo, quantos campos ele alterou, ocultou ou pergunta por conta própria; cada nome abre a aba de campos desse público-alvo."
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Audiences created before the global list keep their own copy of each standard field, marked \"Own copy\", with answers of its own; it is asked in place of the inherited one."
+msgstr "Públicos-alvo criados antes da lista global mantêm uma cópia própria de cada campo padrão, marcada como \"Cópia própria\", com respostas próprias; ela é perguntada no lugar da herdada."

@@ -221,6 +221,11 @@ class ReregistrationAdmin {
 		// The campaign editor is drawn in vertical tabs (#2362).
 		\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
 
+		// The global field list uses the audience tab's editor (#2502).
+		if ( false !== strpos( $hook, self::CUSTOM_FIELDS_SLUG ) && class_exists( '\FreeFormCertificate\Audience\AudienceLoader' ) ) {
+			\FreeFormCertificate\Audience\AudienceLoader::enqueue_field_editor();
+		}
+
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-reregistration-admin{$s}.js",
