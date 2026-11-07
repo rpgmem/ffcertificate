@@ -304,45 +304,61 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 	}
 
 	// ==================================================================
-	// seed_for_audience()
+	// seed_global() (#2502)
 	// ==================================================================
 
-	public function test_seed_for_audience_returns_zero_for_invalid_id(): void {
-		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( 0 ) );
-		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( -1 ) );
-	}
+	public function test_seed_global_inserts_every_standard_field_into_the_global_list(): void {
+		$defs    = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
+		$inserts = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserts ) {
+				$inserts[] = $data;
+				return 1;
+			}
+		);
 
-	public function test_seed_for_audience_inserts_all_fields(): void {
-		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array() );
-		$this->wpdb->shouldReceive( 'insert' )->times( count( $defs ) )->andReturn( 1 );
-
-		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
+		$inserted = ReregistrationStandardFieldsSeeder::seed_global();
 
 		$this->assertSame( count( $defs ), $inserted );
+		$this->assertSame( array( 0 ), array_values( array_unique( array_column( $inserts, 'audience_id' ) ) ), 'Every row goes to the global list.' );
+		$this->assertSame( array_column( $defs, 'field_key' ), array_column( $inserts, 'field_key' ) );
 	}
 
-	public function test_seed_for_audience_skips_existing_keys(): void {
-		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'display_name', 'cpf' ) );
-
+	public function test_seed_global_skips_keys_the_global_list_carries(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static fn( $sql ) => str_contains( (string) $sql, 'SELECT field_key' ) ? array( 'display_name', 'cpf' ) : array()
+		);
 		$defs = ReregistrationStandardFieldsSeeder::get_standard_fields_definition();
-		$expected = count( $defs ) - 2;
+		$this->wpdb->shouldReceive( 'insert' )->times( count( $defs ) - 2 )->andReturn( 1 );
 
-		$this->wpdb->shouldReceive( 'insert' )->times( $expected )->andReturn( 1 );
-
-		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
-
-		$this->assertSame( $expected, $inserted );
+		$this->assertSame( count( $defs ) - 2, ReregistrationStandardFieldsSeeder::seed_global() );
 	}
 
-	public function test_seed_for_audience_handles_insert_failure(): void {
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+	public function test_seed_global_handles_insert_failure(): void {
 		$this->wpdb->shouldReceive( 'insert' )->andReturn( false );
 
-		$inserted = ReregistrationStandardFieldsSeeder::seed_for_audience( 1 );
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_global() );
+	}
 
-		$this->assertSame( 0, $inserted );
+	/**
+	 * The old per-audience entry point seeds the global list and nothing of
+	 * the audience's own, and says it is deprecated.
+	 */
+	public function test_seed_for_audience_is_deprecated_and_seeds_the_global_list(): void {
+		$deprecated = CallLog::record( '_deprecated_function', null );
+		$inserts    = array();
+		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			static function ( $table, $data ) use ( &$inserts ) {
+				$inserts[] = $data;
+				return 1;
+			}
+		);
+
+		ReregistrationStandardFieldsSeeder::seed_for_audience( 4 );
+
+		$this->assertSame( 1, $deprecated->count() );
+		$this->assertNotContains( 4, array_column( $inserts, 'audience_id' ) );
+		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( 0 ) );
 	}
 
 	// ==================================================================
@@ -507,15 +523,22 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
 			static fn( ...$args ) => 2 === count( $args ) && is_array( $args[1] ) ? array_merge( array( $args[0] ), $args[1] ) : $args
 		);
+		// Only the reads by field key are recorded: the fold into the
+		// global list (#2502) reads by audience id and table, and on an
+		// install without audiences it finds nothing to fold.
 		$this->wpdb->shouldReceive( 'get_col' )->andReturnUsing(
 			static function ( $q ) use ( $asked ) {
-				$asked[] = 'col:' . $q[2];
+				if ( is_string( $q[2] ?? null ) ) {
+					$asked[] = 'col:' . $q[2];
+				}
 				return array();
 			}
 		);
 		$this->wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			static function ( $q ) use ( $asked ) {
-				$asked[] = 'results:' . $q[2];
+				if ( is_string( $q[2] ?? null ) ) {
+					$asked[] = 'results:' . $q[2];
+				}
 				return array();
 			}
 		);
@@ -545,9 +568,9 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->assertSame(
 			array( 'col:sindicato', 'col:vinculo', 'col:jornada', 'col:horario_trabalho', 'results:jornada', 'results:jornada_acumulo', 'results:email_institucional', 'col:rf', 'col:cep', 'results:cep' ),
 			$asked->getArrayCopy(),
-			'Each of the six steps runs, in order.'
+			'Each of the six relabel and reorder steps runs, in order, before the fold.'
 		);
-		$this->assertSame( array( ReregistrationStandardFieldsSeeder::FIELDS_VERSION_OPTION => array( 6, true ) ), $written, 'One autoloaded option, at the last step.' );
+		$this->assertSame( array( ReregistrationStandardFieldsSeeder::FIELDS_VERSION_OPTION => array( 7, true ) ), $written, 'One autoloaded option, at the last step; an install without audiences folds nothing and records no map.' );
 		$this->assertSame(
 			array( 'ffc_union_label_relabelled', 'ffc_schedule_fields_updated', 'ffc_edu_email_field_added', 'ffc_rf_field_validated', 'ffc_cep_field_validated', 'ffc_cep_before_address' ),
 			$deleted,
@@ -560,7 +583,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			static function ( $key, $default = false ) use ( &$reads ) {
 				$reads[] = $key;
-				return 6;
+				return 7;
 			}
 		);
 		$writes = CallLog::record( 'update_option', true );
@@ -584,7 +607,7 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 
 		ReregistrationStandardFieldsSeeder::maybe_upgrade_seeded_fields();
 
-		$this->assertSame( array( 'results:cep' ), $asked->getArrayCopy(), 'Only the step never flagged runs.' );
+		$this->assertSame( array( 'results:cep' ), $asked->getArrayCopy(), 'Only the steps never flagged run: the CEP reorder and the fold, which has no flag.' );
 	}
 
 	public function test_a_later_step_runs_without_repeating_the_earlier_ones(): void {

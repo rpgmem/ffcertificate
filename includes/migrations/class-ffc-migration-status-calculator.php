@@ -349,6 +349,21 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['name_parts_backfill'] );
 					break;
 
+				case 'custom_field_answers':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CustomFieldAnswersMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-custom-field-answers-migration-strategy.php';
+					}
+
+					$this->strategies['custom_field_answers'] = new \FreeFormCertificate\Migrations\Strategies\CustomFieldAnswersMigrationStrategy();
+					unset( $this->strategy_errors['custom_field_answers'] );
+					break;
+
 				case 'birth_date_backfill':
 					$strategy_dir = __DIR__ . '/strategies/';
 

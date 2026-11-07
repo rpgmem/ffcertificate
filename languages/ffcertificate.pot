@@ -33642,6 +33642,23 @@ msgstr ""
 msgid "The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience's fields tab."
 msgstr ""
 
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Reregistration: Move Answers to Inherited Fields"
+msgstr ""
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Audiences used to keep their own copy of each standard reregistration field, each with its own answers. The copies were folded into the field every audience now inherits; this moves the answers stored under a copy onto that field. Until it runs, the answers are read through the fold, so none is out of sight. When a person answered differently under two copies, the one kept is the value of their latest reregistration, otherwise the copy of the deepest audience they belong to."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-custom-field-answers-migration-strategy.php
+msgid "No answers wait to be moved."
+msgstr ""
+
+#: includes/migrations/strategies/class-ffc-custom-field-answers-migration-strategy.php
+#, php-format
+msgid "Examined %1$d users and moved the answers of %2$d onto the inherited fields."
+msgstr ""
+
 #: includes/settings/views/documentation/feature-audiences.php
-msgid "Audiences created before the global list keep their own copy of each standard field, marked \"Own copy\", with answers of its own; it is asked in place of the inherited one."
+msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
 msgstr ""

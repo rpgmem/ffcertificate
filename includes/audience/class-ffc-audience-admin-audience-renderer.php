@@ -726,9 +726,10 @@ final class AudienceAdminAudienceRenderer {
 		$can_edit_fields = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' );
 		$is_global       = 0 === $audience_id;
 
-		// Ensure standard fields are seeded for this audience before rendering.
-		if ( ! $is_global && class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
-			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
+		// The standard fields live in the global list, which every audience
+		// inherits (#2502): make sure it exists before drawing either level.
+		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
+			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_global();
 		}
 
 		// Custom fields for this audience, plus the ordered slug => translated

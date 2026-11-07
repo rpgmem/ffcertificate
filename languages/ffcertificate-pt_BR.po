@@ -33724,6 +33724,23 @@ msgstr "Ocultar deixa de perguntar um campo herdado no público-alvo e em seus s
 msgid "The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience's fields tab."
 msgstr "A coluna lateral da página global lista, por público-alvo, quantos campos ele alterou, ocultou ou pergunta por conta própria; cada nome abre a aba de campos desse público-alvo."
 
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Reregistration: Move Answers to Inherited Fields"
+msgstr "Recadastramento: mover respostas para os campos herdados"
+
+#: includes/migrations/class-ffc-migration-registry.php
+msgid "Audiences used to keep their own copy of each standard reregistration field, each with its own answers. The copies were folded into the field every audience now inherits; this moves the answers stored under a copy onto that field. Until it runs, the answers are read through the fold, so none is out of sight. When a person answered differently under two copies, the one kept is the value of their latest reregistration, otherwise the copy of the deepest audience they belong to."
+msgstr "Os públicos-alvo guardavam a própria cópia de cada campo padrão do recadastramento, cada uma com as próprias respostas. As cópias foram incorporadas ao campo que todo público-alvo agora herda; esta migração move as respostas guardadas numa cópia para esse campo. Até ela rodar, as respostas são lidas pela incorporação, então nenhuma fica fora de vista. Quando uma pessoa respondeu diferente em duas cópias, fica o valor do seu recadastramento mais recente; senão, a cópia do público-alvo mais profundo a que ela pertence."
+
+#: includes/migrations/strategies/class-ffc-custom-field-answers-migration-strategy.php
+msgid "No answers wait to be moved."
+msgstr "Nenhuma resposta aguarda para ser movida."
+
+#: includes/migrations/strategies/class-ffc-custom-field-answers-migration-strategy.php
+#, php-format
+msgid "Examined %1$d users and moved the answers of %2$d onto the inherited fields."
+msgstr "%1$d usuários examinados; as respostas de %2$d foram movidas para os campos herdados."
+
 #: includes/settings/views/documentation/feature-audiences.php
-msgid "Audiences created before the global list keep their own copy of each standard field, marked \"Own copy\", with answers of its own; it is asked in place of the inherited one."
-msgstr "Públicos-alvo criados antes da lista global mantêm uma cópia própria de cada campo padrão, marcada como \"Cópia própria\", com respostas próprias; ela é perguntada no lugar da herdada."
+msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
+msgstr "Os públicos-alvo recebiam a própria cópia de cada campo padrão. Na atualização, a cópia idêntica ao que o público-alvo herda virou herança simples, a diferente virou alteração do público-alvo e a inativa oculta o campo ali; as respostas foram junto (Configurações → Migrações de Dados, \"Mover respostas para os campos herdados\"). A cópia com tipo, sensibilidade ou vínculo com o perfil diferente continua como \"Cópia própria\" quando alguém a respondeu, com suas respostas, e é perguntada no lugar da herdada; a que ninguém respondeu passa a herdar como as demais. Públicos-alvo novos não recebem cópia."

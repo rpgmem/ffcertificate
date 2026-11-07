@@ -100,6 +100,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Identity Resolution follows the admin layout** (#2498). Stat cards count each queue; every queue is a card with a visible heading and its navigation; what the scan read, the control that reads it again and the reading guide sit in the side column; Export CSV moved beside the title.
 - **Five more lists take the standard list top** (#2498). Audience calendars, audiences, environments, reregistration campaigns and a campaign's submissions: actions beside the title, labelled filters in a card, a count, row actions as buttons, and an on/off switch in the Status column instead of a Deactivate link. Neutral buttons are visible again in the dark theme.
 - **The Date Messages rule editor follows the editor layout** (#2498). Its six stacked sections are tabs of one form; the side column holds the Active switch and Save rule first, then "This rule", a summary of every tab that follows the form before it is saved.
+- **Audiences inherit the reregistration fields instead of copying them** (#2502). On update each audience's copy of a standard field becomes inheritance, its change, or a hidden field; the answers move onto the inherited field (Settings → Data Migrations), read through the fold until they do. New audiences get no copy.
 
 ### Security
 

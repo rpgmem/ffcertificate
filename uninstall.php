@@ -331,6 +331,8 @@ $ffcertificate_options = array(
 	// flags below, which that request deletes; they stay listed for an install
 	// removed before it ran.
 	'ffc_rereg_fields_version',
+	'ffc_custom_fields_id_map',
+	'ffc_custom_field_answers_cursor',
 	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
 	// fields.
 	'ffc_union_label_relabelled',
