@@ -388,8 +388,18 @@ class AudienceAdminCalendar {
 			|| in_array( RequestInput::get_get_string( 'message' ), array( 'holiday_deleted', 'holiday_updated', 'holiday_not_updated' ), true );
 		$active      = AudienceEditorTabs::active( array_column( $tabs, 'key' ), $on_holidays ? 'closed-dates' : 'general' );
 		?>
-		<h1><?php echo esc_html( $page_title ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Calendars', 'ffcertificate' ); ?></a>
+		<h1 class="wp-heading-inline"><?php echo esc_html( $page_title ); ?></h1>
+		<?php
+		// Back is a button beside the title on every editor (#2486).
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Calendars', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => $back_url,
+			)
+		);
+		?>
+		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 		<?php if ( ! $can_manage ) : ?>

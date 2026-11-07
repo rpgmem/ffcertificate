@@ -558,8 +558,27 @@ table.ffc-calendar-names-table th {
     font-weight: 600;
 }
 
+/* The table fits the field column whatever its width (#2486): fixed
+   layout, each field filling its cell, and the singular above the plural,
+   so the editor panel beside the side column never scrolls sideways. */
+table.ffc-calendar-names-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+table.ffc-calendar-names-table thead th:first-child {
+    width: 28%;
+}
+
+table.ffc-calendar-names-table input[type="text"] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+}
+
 table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-cell {
-    margin-left: var(--ffc-spacing-xs);
+    margin-top: var(--ffc-spacing-2xs);
 }
 
 /* ==========================================================================
@@ -584,12 +603,84 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     min-width: 0;
 }
 
+/* The menu and the open panel are two cards side by side, with no box
+   around both (#2486): the box drew a second border round every card the
+   panel held. Inside a metabox (the post editors) the component keeps its
+   inset look; only `.ffc-boxed` screens take this one. */
 .ffc-boxed .ffc-editor__tabs {
+    gap: var(--ffc-admin-gap);
     margin: var(--ffc-spacing-xl) 0 0;
-    overflow: hidden;
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav,
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__panels {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-lg);
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-3xs);
+    padding: var(--ffc-spacing-xs);
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__panels {
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
+    /* A table wider than the card scrolls inside it instead of running
+       under the side column; several were sized for the wider box this
+       layout replaced. */
+    overflow-x: auto;
+}
+
+/* A list table in a panel sizes its columns to their content: core's
+   `.fixed` split the panel into equal columns, too narrow for an action
+   button or a status badge at this width. */
+.ffc-boxed .ffc-editor__tabs table.widefat.fixed {
+    table-layout: auto;
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab {
+    border: 0;
+    border-radius: var(--ffc-radius-md);
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab:hover {
+    background: var(--ffc-bg-alt);
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--ffc-primary);
+}
+
+/* Narrow screens: the menu card wraps its items into rows above the panel. */
+@media screen and (max-width: 782px) {
+    .ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+        box-shadow: inset 0 -3px 0 var(--ffc-primary);
+    }
+}
+
+/* Forced colours drop the ground and the inset bar, so the active item
+   gets a real border in the selection colour. */
+@media (forced-colors: active) {
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab {
+        border: 1px solid Canvas;
+    }
+
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+        border-color: Highlight;
+        font-weight: 700;
+    }
 }
 
 .ffc-editor .ffc-editor__tabs {
@@ -598,6 +689,12 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
 
 .ffc-editor__side .card {
     min-width: 0;
+}
+
+/* The side column's first card lines up with the menu and the panel
+   (#2486); WordPress's `.card` gives it a top margin of its own. */
+.ffc-editor__side > .card:first-child {
+    margin-top: 0;
 }
 
 @media screen and (max-width: 960px) {
