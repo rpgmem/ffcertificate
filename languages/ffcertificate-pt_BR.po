@@ -5858,8 +5858,8 @@ msgid "Displays a personal calendar with appointment booking."
 msgstr "Exibe um calendário pessoal com agendamento de compromissos."
 
 #: includes/settings/views/documentation/reference-shortcodes.php:44
-msgid "Displays a public page where trusted operators can download the submissions CSV, trigger Start Form Early, and Postpone Close for a specific form — all gated by a Form ID and an access hash."
-msgstr "Exibe uma página pública onde operadores confiáveis ​​podem baixar o arquivo CSV dos formulários enviados, acionar Início Antecipado e o Adiar Fechamento de um formulário específico — tudo isso protegido por um ID de formulário e um hash de acesso."
+msgid "Displays Public Operator Access: a public page where trusted operators see a form's status and, for that form, download the submissions CSV, trigger Start Form Early, Postpone Close and create a schedule exception — all gated by a Form ID and an access hash."
+msgstr "Exibe o Acesso Público de Operador: uma página pública onde operadores confiáveis veem a situação de um formulário e, para esse formulário, baixam o CSV dos envios, acionam Início Antecipado, Adiar Fechamento e criam uma exceção de horário — tudo protegido por um ID de formulário e um hash de acesso."
 
 #: includes/settings/views/documentation/reference-shortcodes.php:52
 msgid "Displays dashboard page."
@@ -6006,10 +6006,6 @@ msgstr "Baixar exemplo de CSV"
 msgid "Download Record"
 msgstr "Baixar Ficha"
 
-
-#: includes/frontend/class-ffc-public-csv-download.php:159
-msgid "Download form submissions (CSV)"
-msgstr "Baixar submissões (CSV)"
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:223
 msgid "Download Limit"
@@ -6882,8 +6878,8 @@ msgid "Enter the CPF authorized to download this CSV. The CPF is encrypted at re
 msgstr "Insira o CPF autorizado para baixar este arquivo CSV. O CPF fica criptografado em repouso no registro de auditoria do formulário."
 
 #: includes/frontend/class-ffc-public-csv-download.php:189
-msgid "Enter the Form ID and the access hash to download the submissions CSV."
-msgstr "Insira o ID do formulário e o hash de acesso para baixar o arquivo CSV com os envios."
+msgid "Enter the Form ID and the access hash to see the form's status and, where the form allows it, start it early, postpone its close, create a schedule exception or download its submissions (CSV)."
+msgstr "Insira o ID do formulário e o hash de acesso para ver a situação do formulário e, quando ele permitir, iniciá-lo antecipadamente, adiar seu fechamento, criar uma exceção de horário ou baixar seus envios (CSV)."
 
 #: includes/frontend/class-ffc-frontend.php:304
 msgid "Enter validation code"
@@ -7200,6 +7196,26 @@ msgstr "O evento dura mais de um dia"
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
 msgstr "Evento:"
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "Schedule exception:"
+msgstr "Exceção de horário:"
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "While the form is open, the operator sets other start and end times, inside the form's open window, for one participant's submission. The participant's form must be opened in the same browser within 30 minutes, and the first submission spends it. It is turned on per form."
+msgstr "Com o formulário aberto, o operador define outros horários de início e fim, dentro da janela de abertura do formulário, para o envio de um participante. O formulário do participante deve ser aberto no mesmo navegador em até 30 minutos, e o primeiro envio a consome. É ativada por formulário."
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "URL parameter:"
+msgstr "Parâmetro de URL:"
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "(an invitation code from an audience booking: the form fills in and locks the invitee's name and e-mail. On a form that is not invite-only, a code that no longer resolves shows the normal form with a notice)."
+msgstr "(um código de convite de um agendamento de público: o formulário preenche e bloqueia o nome e o e-mail do convidado. Em um formulário que não é só para convidados, um código que não vale mais mostra o formulário normal com um aviso)."
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "(the magic link sent with a certificate: the page shows that certificate and its download instead of the verification form)."
+msgstr "(o link mágico enviado com um certificado: a página mostra esse certificado e o download dele em vez do formulário de verificação)."
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:27
 msgid "The page takes the hash out of the address bar once it has read it, so it does not stay in the browser history or show on a shared screen; a link that posts the form ID and the hash works too. The CSV carries CPF, e-mail and RF in clear, so every download is recorded in the activity log as an access to personal data, naming the form."
@@ -24822,12 +24838,12 @@ msgid "Hints and secondary text"
 msgstr "Dicas e texto secundário"
 
 #: includes/settings/views/ffc-tab-public-design.php:21
-msgid "Errors"
-msgstr "Erros"
+msgid "Errors (also danger buttons and notices)"
+msgstr "Erros (também botões e avisos de perigo)"
 
 #: includes/settings/views/ffc-tab-public-design.php:34
-msgid "The look of every screen visitors see: forms, certificate verification, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
-msgstr "A aparência de todas as telas que os visitantes veem: formulários, verificação de certificados, agendamento, públicos, o painel do usuário e o recrutamento. As cores valem para o tema claro; no modo escuro o plugin mantém a própria paleta escura, cujo contraste já é verificado."
+msgid "The look of every screen visitors see: forms, certificate verification, Public Operator Access (the CSV download), geofenced content, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
+msgstr "A aparência de todas as telas que os visitantes veem: formulários, verificação de certificados, Acesso Público de Operador (o download do CSV), conteúdo com geolocalização, agendamento, públicos, o painel do usuário e o recrutamento. As cores valem para o tema claro; no modo escuro o plugin mantém a própria paleta escura, cujo contraste já é verificado."
 
 #: includes/settings/views/ffc-tab-public-design.php:40
 msgid "Customise"

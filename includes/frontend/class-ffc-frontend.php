@@ -432,7 +432,6 @@ class Frontend {
 						'connectionError'        => __( 'Connection error.', 'ffcertificate' ),
 						'enterCode'              => __( 'Please enter the code.', 'ffcertificate' ),
 						'generatingCertificate'  => __( 'Generating certificate in the background, please wait 10 seconds and check your downloads folder...', 'ffcertificate' ),
-						'idMustHaveDigits'       => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
 						'invalidToken'           => __( 'Invalid token.', 'ffcertificate' ),
 						'generating'             => __( 'Generating...', 'ffcertificate' ),
 						'downloadAgain'          => __( 'Download Again', 'ffcertificate' ),
@@ -449,8 +448,6 @@ class Frontend {
 
 						// Validation (CPF/RF).
 						'rfInvalid'              => __( 'Invalid RF', 'ffcertificate' ),
-						'cpfInvalid'             => __( 'Invalid CPF', 'ffcertificate' ),
-						'enterValidCpfRf'        => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
 
 						// Success/Error Messages.
 						'success'                => __( 'Success!', 'ffcertificate' ),
@@ -508,7 +505,7 @@ class Frontend {
 						// 6.6.2 (Sprint 4) — pre-submission warnings: don't-close + offline.
 						'pdfDontCloseTab'        => __( 'Please do not close this tab until the PDF appears.', 'ffcertificate' ),
 						'offlineMessage'         => __( 'You appear to be offline. Reconnect to the internet and try again.', 'ffcertificate' ),
-					),
+					) + self::cpf_validation_strings(),
 				)
 			);
 		}
@@ -731,24 +728,27 @@ class Frontend {
 						/* translators: %1$s and %2$s are HH:MM bounds of the form's open window */
 						'scheduleExceptionOutOfWindow'   => __( 'Range must stay within %1$s–%2$s.', 'ffcertificate' ),
 						'scheduleExceptionNoChange'      => __( 'Override matches the baseline — nothing to do.', 'ffcertificate' ),
-
-						// CPF / RF input validation messages. These ALSO
-						// live in `ffc_ajax.strings` for pages that load
-						// `ffc-frontend-js`; ffc-frontend-helpers.js reads
-						// from whichever object is present. Duplication is
-						// intentional pre-tech-debt cleanup (#243 Sprint 4):
-						// the proper fix is to extract these into a shared
-						// `ffc_common_strings` object localized on every
-						// page that loads ffc-frontend-helpers.js, so each
-						// shortcode-specific localize doesn't have to copy
-						// the validation strings. Tracking issue: TBD.
-						'cpfInvalid'                     => __( 'Invalid CPF', 'ffcertificate' ),
-						'enterValidCpfRf'                => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
-						'idMustHaveDigits'               => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
-					),
+					) + self::cpf_validation_strings(),
 				)
 			);
 		}
+	}
+
+	/**
+	 * The CPF / RF validation messages `ffc-frontend-helpers.js` reads.
+	 *
+	 * The helpers read them from whichever localized object the page carries
+	 * (`ffc_ajax` on a form, `ffc_csv_download` on the CSV screen), so both
+	 * merge this one list instead of each keeping a copy (#2341).
+	 *
+	 * @return array<string, string>
+	 */
+	private static function cpf_validation_strings(): array {
+		return array(
+			'cpfInvalid'       => __( 'Invalid CPF', 'ffcertificate' ),
+			'enterValidCpfRf'  => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
+			'idMustHaveDigits' => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
+		);
 	}
 
 	/**

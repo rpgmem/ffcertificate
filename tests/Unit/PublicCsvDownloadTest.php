@@ -551,7 +551,10 @@ class PublicCsvDownloadTest extends TestCase {
 		$this->assertStringContainsString( 'name="form_id"', $html );
 		$this->assertStringContainsString( 'name="hash"', $html );
 		$this->assertStringContainsString( '_ffc_pcd_nonce', $html );
-		// Honeypot rendered by Shortcodes::generate_security_fields()
+		// #2341 — the default title and intro name the whole screen, not only the CSV.
+		$this->assertStringContainsString( '<h2>Public Operator Access</h2>', $html );
+		$this->assertStringContainsString( 'create a schedule exception or download its submissions (CSV)', $html );
+		// Honeypot rendered by SecurityService::render_security_fields()
 		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 

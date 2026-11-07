@@ -197,15 +197,14 @@ class PublicCsvDownload {
 	public function render_shortcode( $atts = array() ): string {
 		$atts = shortcode_atts(
 			array(
-				'title' => __( 'Download form submissions (CSV)', 'ffcertificate' ),
+				'title' => __( 'Public Operator Access', 'ffcertificate' ),
 			),
 			is_array( $atts ) ? $atts : array(),
 			self::SHORTCODE
 		);
 
 		$flash         = $this->get_flash_message();
-		$shortcodes    = new Shortcodes();
-		$security_html = $shortcodes->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
+		$security_html = \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 
 		// The link may carry the form and the hash in the query or, so the
 		// hash stays out of the address bar and of logs, as a POST (#2341).
@@ -236,7 +235,7 @@ class PublicCsvDownload {
 		<div class="ffc-shortcode ffc-verification-container ffc-verification-manual ffc-public-csv-download">
 			<div class="ffc-verification-header">
 				<h2><?php echo esc_html( $atts['title'] ); ?></h2>
-				<p><?php esc_html_e( 'Enter the Form ID and the access hash to download the submissions CSV.', 'ffcertificate' ); ?></p>
+				<p><?php esc_html_e( 'Enter the Form ID and the access hash to see the form\'s status and, where the form allows it, start it early, postpone its close, create a schedule exception or download its submissions (CSV).', 'ffcertificate' ); ?></p>
 			</div>
 
 			<?php if ( $flash ) : ?>
@@ -324,7 +323,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-no-js-security">
 					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside generate_security_fields().
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside render_security_fields().
 					echo $security_html;
 					?>
 				</div>
