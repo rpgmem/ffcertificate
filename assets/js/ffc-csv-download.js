@@ -109,6 +109,51 @@
 			if (api.$btn) api.$btn.prop('disabled', false).removeClass('ffc-btn-loading');
 		},
 
+		// ── Dialogs (#2341) ─────────────────────────────────────────
+
+		/**
+		 * Show a dialog of this screen, and return the function that closes it.
+		 *
+		 * The dialog goes into a `.ffc-shortcode` host, so the operator's
+		 * Public Design reaches it as it reaches the screen. Tab and Shift+Tab
+		 * stay inside it, and closing it returns the focus to the control
+		 * that opened it, when that control is still on the page.
+		 *
+		 * @param {jQuery} $dialog The dialog's root element.
+		 * @return {Function} Closes the dialog.
+		 */
+		openDialog: function ($dialog) {
+			var opener = document.activeElement;
+			var $host  = $('<div class="ffc-shortcode ffc-csv-dialog-host"></div>').append($dialog).appendTo(document.body);
+			var selector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+			$dialog.on('keydown.ffcDialogTrap', function (e) {
+				if (e.key !== 'Tab') {
+					return;
+				}
+				var items = $dialog.find(selector).filter(function () {
+					return !$(this).closest('[hidden]').length;
+				});
+				if (!items.length) {
+					return;
+				}
+				var first = items[0];
+				var last  = items[items.length - 1];
+				if (e.shiftKey && (document.activeElement === first || !$dialog[0].contains(document.activeElement))) {
+					e.preventDefault();
+					last.focus();
+				} else if (!e.shiftKey && document.activeElement === last) {
+					e.preventDefault();
+					first.focus();
+				}
+			});
+			return function () {
+				$host.remove();
+				if (opener && opener !== document.body && typeof opener.focus === 'function' && document.contains(opener)) {
+					opener.focus();
+				}
+			};
+		},
+
 		// ── Misc ────────────────────────────────────────────────────
 
 		// Stashed by the info screen for the modal flows that need the

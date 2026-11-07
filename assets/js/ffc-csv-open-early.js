@@ -26,7 +26,7 @@
 
 	function showOpenEarlyModal(origStart) {
 		// Clean up any prior modal.
-		$('.ffc-open-early-modal').remove();
+		$('.ffc-csv-dialog-host').remove();
 
 		var nowDate = new Date();
 		var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
@@ -69,7 +69,8 @@
 			+   '</div>'
 			+ '</div>';
 
-		var $modal = $(modalHtml).appendTo(document.body);
+		var $modal = $(modalHtml);
+		var close  = api.openDialog($modal);
 		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		// Trap Esc to cancel.
 		var onKey = function (e) {
@@ -81,7 +82,7 @@
 
 		function closeModal() {
 			$(document).off('keydown.ffcOpenEarly');
-			$modal.remove();
+			close();
 		}
 
 		$modal.find('.ffc-open-early-cancel, .ffc-open-early-close, .ffc-open-early-backdrop').on('click', closeModal);
@@ -97,7 +98,8 @@
 
 	function submitOpenEarly(payload) {
 		var $btnEarly = api.$container.find('.ffc-btn-open-early');
-		$btnEarly.prop('disabled', true).text(strings.starting || 'Starting…');
+		// Busy is a state, not a label (#2341): the button keeps its text and icon.
+		$btnEarly.prop('disabled', true).addClass('ffc-btn-loading').attr('aria-busy', 'true');
 
 
 		FFC.request('ffc_public_open_early', payload)
@@ -111,7 +113,7 @@
 			})
 			.catch(function (err) {
 				api.refreshActionSecurity(err);
-				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
+				$btnEarly.prop('disabled', false).removeClass('ffc-btn-loading').removeAttr('aria-busy');
 				return api.reportResult('error', (err && err.fromServer && err.message) || strings.error || 'Action failed.', false);
 			});
 	}

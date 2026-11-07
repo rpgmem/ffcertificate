@@ -329,3 +329,59 @@ describe('csv-download — open-early submit', () => {
 	});
 });
 
+
+// #2341 — the CSV screen's dialogs: inside the Public Design's host, focus kept
+// inside, focus returned, busy as a state.
+describe('csv-download — dialog behaviour', () => {
+	it('renders the dialog inside a .ffc-shortcode host and returns the focus on close', async () => {
+		await reachInfoScreen();
+		const opener = document.querySelector('.ffc-btn-open-early');
+		opener.focus();
+		window.$(opener).trigger('click');
+		await flush();
+
+		const modal = document.querySelector('.ffc-open-early-modal');
+		expect(modal.parentElement.classList.contains('ffc-shortcode')).toBe(true);
+		expect(modal.parentElement.classList.contains('ffc-csv-dialog-host')).toBe(true);
+
+		window.$('.ffc-open-early-cancel').trigger('click');
+		expect(document.querySelector('.ffc-csv-dialog-host')).toBeNull();
+		expect(document.activeElement).toBe(opener);
+	});
+
+	it('keeps Tab and Shift+Tab inside the dialog', async () => {
+		await reachInfoScreen();
+		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
+
+		const modal = document.querySelector('.ffc-open-early-modal');
+		const items = modal.querySelectorAll('button:not([disabled])');
+		const first = items[0];
+		const last = items[items.length - 1];
+
+		last.focus();
+		const tab = new window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+		last.dispatchEvent(tab);
+		expect(tab.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(first);
+
+		const back = new window.KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+		first.dispatchEvent(back);
+		expect(back.defaultPrevented).toBe(true);
+		expect(document.activeElement).toBe(last);
+	});
+
+	it('marks the action busy without replacing its label', async () => {
+		const postSpy = await reachInfoScreen();
+		postSpy.mockImplementation(() => ({ done() { return this; }, fail() { return this; }, always() { return this; }, then() { return new Promise(() => {}); } }));
+		window.$('.ffc-btn-open-early').trigger('click');
+		await flush();
+		window.$('.ffc-open-early-confirm').trigger('click');
+		await flush();
+
+		const $btn = window.$('.ffc-btn-open-early');
+		expect($btn.hasClass('ffc-btn-loading')).toBe(true);
+		expect($btn.attr('aria-busy')).toBe('true');
+		expect($btn.text()).toContain('Start Form Now');
+	});
+});

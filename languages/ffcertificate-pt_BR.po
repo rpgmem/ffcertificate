@@ -33230,3 +33230,11 @@ msgstr "Adiar o encerramento não está disponível: o formulário já encerra �
 #, php-format
 msgid "Why is %s unavailable?"
 msgstr "Por que %s não está disponível?"
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "If your site uses page caching, some visitors may see the old close time until the cache refreshes. Ask them to reload if needed."
+msgstr "Se o site usa cache de página, alguns visitantes podem ver o horário de encerramento antigo até o cache ser atualizado. Peça que recarreguem a página, se for preciso."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "What changes"
+msgstr "O que muda"

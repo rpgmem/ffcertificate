@@ -682,6 +682,8 @@ class Frontend {
 						'openEarlyNewLabel'              => __( 'New start will be:', 'ffcertificate' ),
 						'openEarlyNewNow'                => __( 'now', 'ffcertificate' ),
 						'openEarlyIrreversible'          => __( 'This cannot be undone from this page.', 'ffcertificate' ),
+						'postponeCacheWarn'              => __( 'If your site uses page caching, some visitors may see the old close time until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
+						'scheduleExceptionModeLegend'    => __( 'What changes', 'ffcertificate' ),
 						'openEarlyCacheWarn'             => __( 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
 						'cancel'                         => __( 'Cancel', 'ffcertificate' ),
 						'openEarlyConfirm'               => __( 'Confirm and start form', 'ffcertificate' ),
