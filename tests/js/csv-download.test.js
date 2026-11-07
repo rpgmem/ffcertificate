@@ -505,6 +505,14 @@ describe('csv-download — cert preview', () => {
 
 		expect(window.FFCLayoutPreview.capture).toHaveBeenCalledWith('<div>John Doe</div>', 1123, 794);
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
+		// #2341: a dialog by role, named by its title, in the Public Design host,
+		// with the focus on its close button.
+		const previewModal = document.getElementById('ffc-preview-modal');
+		expect(previewModal.getAttribute('role')).toBe('dialog');
+		expect(previewModal.getAttribute('aria-modal')).toBe('true');
+		expect(document.getElementById(previewModal.getAttribute('aria-labelledby')).textContent.length).toBeGreaterThan(0);
+		expect(previewModal.parentElement.classList.contains('ffc-shortcode')).toBe(true);
+		expect(document.activeElement).toBe(previewModal.querySelector('.ffc-preview-close'));
 		// #1881 — the handler rewrites the label while loading and back; the
 		// icon is a class on the button, so it survives both rewrites.
 		const $preview = window.$('.ffc-btn-cert-preview');

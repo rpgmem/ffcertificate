@@ -31,7 +31,7 @@
 
 	function showExtendEndModal(currentEnd, currentTime) {
 		// Clean up any prior modal.
-		$('.ffc-extend-end-modal').remove();
+		$('.ffc-csv-dialog-host').remove();
 
 		// Default the time picker to current_time_end + 30 min, clamped
 		// to 23:59. The user can edit freely; server validates.
@@ -73,7 +73,9 @@
 			+         esc(strings.postponeIrreversible || 'This action can only be performed once per form.')
 			+       '</strong></p>'
 			+       '<p class="ffc-open-early-warn-cache">'
-			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes.')
+			// Its own warning, about the close (#2341): open early's speaks of
+			// a form that has not started.
+			+         esc(strings.postponeCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes. Ask them to reload if needed.')
 			+       '</p>'
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Confirm is caution,
@@ -86,7 +88,8 @@
 			+   '</div>'
 			+ '</div>';
 
-		var $modal = $(modalHtml).appendTo(document.body);
+		var $modal = $(modalHtml);
+		var close  = api.openDialog($modal);
 		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		var onKey = function (e) {
 			if (e.key === 'Escape') { closeModal(); }
@@ -95,7 +98,7 @@
 
 		function closeModal() {
 			$(document).off('keydown.ffcExtendEnd');
-			$modal.remove();
+			close();
 		}
 
 		// Client-side validation, in the field-message standard (#1844): the
@@ -157,7 +160,7 @@
 
 	function submitExtendEnd(newTime, base) {
 		var $btn = api.$container.find('.ffc-btn-extend-end');
-		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
+		$btn.prop('disabled', true).addClass('ffc-btn-loading').attr('aria-busy', 'true');
 
 		var payload = base + '&new_time_end=' + encodeURIComponent(newTime);
 
@@ -169,7 +172,7 @@
 			})
 			.catch(function (err) {
 				api.refreshActionSecurity(err);
-				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
+				$btn.prop('disabled', false).removeClass('ffc-btn-loading').removeAttr('aria-busy');
 				return api.reportResult('error', (err && err.fromServer && err.message) || strings.error || 'Action failed.', false);
 			});
 	}

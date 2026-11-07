@@ -41,11 +41,12 @@
 		var noteText     = strings.certPreviewNote || 'Placeholders replaced with sample data.';
 
 		// The page is a PNG captured from the server's render: no frame, no markup runs.
-		var $modal = $('<div id="ffc-preview-modal">' +
+		// A dialog by role, named by its title (#2341).
+		var $modal = $('<div id="ffc-preview-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-preview-title">' +
 			'<div class="ffc-preview-backdrop"></div>' +
 			'<div class="ffc-preview-container">' +
 				'<div class="ffc-preview-header">' +
-					'<h2>' + esc(previewTitle) + '</h2>' +
+					'<h2 id="ffc-preview-title">' + esc(previewTitle) + '</h2>' +
 					FFC.buttonHtml({ label: closeText, category: 'neutral', icon: 'cross', iconOnly: true, className: 'ffc-preview-close' }) +
 				'</div>' +
 				'<div class="ffc-preview-note">' + esc(noteText) + '</div>' +
@@ -56,7 +57,7 @@
 		'</div>');
 
 		$modal.find('.ffc-preview-page').attr({ alt: previewTitle, src: src });
-		$('body').append($modal);
+		var close = api.openDialog($modal);
 		// A close before the first frame must not be undone by the fade-in.
 		var closed = false;
 		requestAnimationFrame(function () {
@@ -68,11 +69,11 @@
 		function closePreview() {
 			closed = true;
 			$modal.removeClass('ffc-preview-visible');
-			setTimeout(function () { $modal.remove(); }, 200);
+			setTimeout(close, 200);
 			$(document).off('keydown.ffcCertPreview');
 		}
 
-		$modal.find('.ffc-preview-close').on('click', closePreview);
+		$modal.find('.ffc-preview-close').on('click', closePreview).trigger('focus');
 		$modal.find('.ffc-preview-backdrop').on('click', closePreview);
 		$(document).on('keydown.ffcCertPreview', function (e) {
 			if (e.key === 'Escape') closePreview();
