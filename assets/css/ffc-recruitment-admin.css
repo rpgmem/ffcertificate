@@ -219,10 +219,6 @@
     margin-right: .5em;
 }
 
-.ffc-rec-mr-quarter {
-    margin-right: .25em;
-}
-
 /* Component patterns */
 .ffc-rec-progress-inline {
     display: none;
@@ -295,6 +291,24 @@
 
 .ffc-rec-col-checkbox {
     width: 1%;
+}
+
+/* Classifications (#2486): the adjutancy, the subscription and the call
+   sit under the cell's main value, and the row's icon-only actions on one
+   line, so the table fits the editor panel. */
+.ffc-cls-meta {
+    display: block;
+    margin-top: var(--ffc-spacing-2xs);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-cls-actions {
+    white-space: nowrap;
+}
+
+.ffc-cls-actions .ffc-btn + .ffc-btn {
+    margin-left: var(--ffc-spacing-2xs);
 }
 
 .ffc-rec-bulk-toolbar {

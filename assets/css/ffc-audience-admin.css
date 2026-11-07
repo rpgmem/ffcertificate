@@ -436,6 +436,12 @@
     min-width: 200px;
 }
 
+/* The field takes its item's width: core's `.regular-text` is 25em, wider
+   than the item in an editor panel, so it ran past the panel (#2486). */
+.ffc-aud-flex-200 > input[type="text"] {
+    width: 100%;
+}
+
 .ffc-aud-panel {
     margin-bottom: var(--ffc-spacing-2xl);
     padding: var(--ffc-spacing-xl);

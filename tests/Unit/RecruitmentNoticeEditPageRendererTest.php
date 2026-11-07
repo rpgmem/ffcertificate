@@ -427,6 +427,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'Import is disabled', $html );
 		$this->assertStringNotContainsString( 'name="csv_file"', $html );
+		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ), 'An extra closing tag pushed the side column out of the editor (#2486).' );
 	}
 
 	// ------------------------------------------------------------------
@@ -695,7 +696,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$this->assertStringContainsString( 'data-ffc-clspanel="definitive"', $html );
 		// definitive (with_actions) renders bulk toolbar + action buttons.
 		$this->assertStringContainsString( 'ffc-cls-bulk-toolbar', $html );
-		$this->assertStringContainsString( 'ffcRecruitmentClsAct', $html );
+		$this->assertStringContainsString( 'data-cls-action="', $html );
 		// preview tab renders the editable preview-status select.
 		$this->assertStringContainsString( 'ffc-cls-preview-status', $html );
 		// empties map handed to JS on the definitive panel.
@@ -751,7 +752,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertSame( $marks, 1 === preg_match( '/<select class="ffc-cls-preview-status" data-cls-id="50">/', $html ), 'Preliminary statuses change only while the notice is preliminary (#2245).' );
-		$this->assertSame( $calls, str_contains( $html, 'ffcRecruitmentClsAct' ), 'Call, outcomes, reopen and undo only on a definitive notice.' );
+		$this->assertSame( $calls, str_contains( $html, 'data-cls-action="' ), 'Call, outcomes, reopen and undo only on a definitive notice.' );
 	}
 
 	public function test_cancel_names_the_rows_active_call(): void {
@@ -822,7 +823,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'Cand 601', $html );
-		$this->assertStringNotContainsString( 'ffcRecruitmentClsAct', $html );
+		$this->assertStringNotContainsString( 'data-cls-action="', $html );
 		$this->assertStringNotContainsString( 'ffc-cls-bulk-toolbar', $html );
 	}
 
@@ -882,8 +883,9 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<th>Date to assume</th>', $html );
-		$this->assertStringContainsString( '<th>Called on</th>', $html );
+		// Status carries the call since #2486: when to assume, and when and by whom it was made.
+		$this->assertStringContainsString( 'To assume: ', $html );
+		$this->assertStringNotContainsString( '<th>Called on</th>', $html );
 		$this->assertStringContainsString( '09:30', $html, 'The time to assume is shown as stored, with no time zone.' );
 		$this->assertStringContainsString( 'Olga Operator', $html, 'A WordPress administrator sees who called.' );
 	}
@@ -901,8 +903,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<th>Called on</th>', $html );
-		$this->assertStringNotContainsString( 'Called by', $html );
+		$this->assertStringContainsString( '<span class="ffc-cls-meta">Called 01/06/2026 10:00</span>', $html, 'The call is shown with its date and no caller.' );
 		$this->assertStringNotContainsString( 'Olga Operator', $html );
 	}
 
@@ -918,8 +919,7 @@ class RecruitmentNoticeEditPageRendererTest extends TestCase {
 		RecruitmentNoticeEditPageRenderer::render_classifications_section( $this->notice( array( 'status' => 'definitive' ) ) );
 		$html = (string) ob_get_clean();
 
-		$this->assertStringContainsString( '<th>Called by</th>', $html );
-		$this->assertStringContainsString( 'Deleted user #99', $html, 'An account that no longer exists is named by its ID.' );
+		$this->assertStringContainsString( ' by Deleted user #99', $html, 'An account that no longer exists is named by its ID.' );
 	}
 
 	public function test_the_status_filter_counts_each_status_and_narrows_the_list(): void {

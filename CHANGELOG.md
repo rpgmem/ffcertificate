@@ -95,6 +95,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Admin: the content takes the width left beside the menus, and the vertical menu stays in view** (#2486). The settings screens and their cards stopped at 1500 px, leaving a strip unused on wide screens; the menu of the settings and editor screens now scrolls with the page, like the side column.
 - **Date Messages opens on a dashboard, and each section has its own page** (#2486). Active rules, e-mails sent and failed in 30 days and the next daily run, one card per section, and the latest runs with what needs attention; Rules, Send now, History, Upcoming dates and Schedule are pages in the WordPress submenu instead of tabs.
 - **Scheduling and Certificates dashboards follow the module dashboard** (#2486). Scheduling shows four counts, one card per area with its buttons and the quick actions in the side column; the Certificates side column reads the layout tokens and stays in view. The Scheduling import cards no longer start below the menu, and the testes seed deactivates short URLs again.
+- **Admin: busy rows and buttons are drawn by the sheet, and the audience calendar's Closed dates fits its panel** (#2486). A submission row a bulk action is processing and the Cancel of a booking being cancelled take a state class instead of an inline fade; the description field of Closed dates no longer runs past the panel. The notice's Classifications table fits its panel too: the adjutancy and subscription sit under the candidate, the call under the status, and the row actions are icon-only buttons, named in their tip and to screen readers ("Mark no-show" and "Mark withdrawn" replace the raw status codes).
 
 ### Security
 
@@ -161,6 +162,8 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Key rotation: never complete with rows left under the old key** (#2338). A row the rotation could not decrypt or re-encrypt was passed by the cursor, and the next batch latched the rotation complete. Both rotation cards now keep those rows in a register: the card stays pending, lists them, warns not to change the WordPress salts and offers to try them again. A failed batch reports failure.
 - **Activity Log: entries name the right person and record** (#2340). An appointment cancellation names who cancelled, not the appointment's id; a reveal names its record by type and id in the context instead of putting every record in the submission column; a capability grant names the account that received it.
 - **Recruitment: the candidate summary sits beside the form again** (#2486). The permanent-deletion tab closed one container too many when the candidate had classifications, which pushed the summary below the editor.
+- **Audience Bookings: cancelling a booking keeps the row's View button** (#2486). Since the row actions became buttons, a successful cancel removed the button before Cancel (View or Attendance) instead of a "|" separator; now it removes Cancel and Attendance only.
+- **Recruitment: the notice summary sits beside the editor on a definitive notice** (#2486). The Import candidates tab closed one container too many once a notice left the preliminary stage, which pushed the side column below the page.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

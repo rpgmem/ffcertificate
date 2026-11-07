@@ -64,6 +64,9 @@ final class OpacityContrastTest extends TestCase {
 			'.ffc-selected-user .ffc-selected-user-remove' => 'the remove ×, a decorative glyph',
 			'.ffc-user-result.ffc-user-exists'             => 'a search result already in the audience: an INACTIVE component (not pickable, `cursor: default`), exempt under SC 1.4.3 -- the fade was written inline by the script until #1837',
 		),
+		'ffc-admin-submissions.css'       => array(
+			'.ffc-page-submissions tr.is-busy' => 'loading state, transient: a row a bulk action is processing, until the server answers -- written inline by the script until #2486',
+		),
 		'ffc-audience.css'                => array(
 			'.ffc-shortcode .ffc-day.ffc-other-month'  => 'neighbouring-month day: inactive component, not clickable — measured in #1185, 5.74:1 light and 5.55:1 dark with the fade included',
 			'.ffc-shortcode .ffc-booking-cancelled'    => 'cancelled booking: inactive component, exempt under SC 1.4.3 — and measured in #1185, 8.45:1 light and 7.04:1 dark WITH the fade included',
