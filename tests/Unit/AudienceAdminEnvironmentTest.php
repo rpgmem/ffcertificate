@@ -711,7 +711,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertMatchesRegularExpression( '#<option value="2"\s*>\s*Cal Two\s*</option>#', $output );
 		$this->assertMatchesRegularExpression( '#<option value=""\s*>\s*Select a calendar\s*</option>#', $output );
 		$this->assertStringContainsString( 'name="environment_id" value="0"', $output, 'the form still creates' );
-		$this->assertStringContainsString( '<h1>Add New Room</h1>', $output, 'the title takes the calendar\'s label' );
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Add New Room</h1>', $output, 'the title takes the calendar\'s label' );
 	}
 
 	public function test_render_form_new_ignores_an_unknown_calendar(): void {
@@ -720,7 +720,7 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertStringNotContainsString( 'selected="selected"', $output );
 		$this->assertMatchesRegularExpression( '#<option value=""\s*>\s*Select a calendar\s*</option>#', $output );
 		$this->assertStringNotContainsString( 'value="99"', $output );
-		$this->assertStringContainsString( '<h1>Add New Environment</h1>', $output );
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Add New Environment</h1>', $output );
 	}
 
 	public function test_render_form_new_ignores_a_value_that_is_not_an_id(): void {
@@ -1325,7 +1325,13 @@ class AudienceAdminEnvironmentTest extends TestCase {
 		$this->assertSame( ! $can_manage, str_contains( $output, 'Read-only — you can view this page' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '<fieldset disabled class="ffc-readonly-lock">' ) );
 		$this->assertSame( $can_manage ? 0 : 1, substr_count( $output, '</fieldset>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, 'name="submit" value="Update Room">Update Room</button>' ) );
+		// Save is the side column's card and names the form it posts (#2486).
+		$this->assertSame( $can_manage, str_contains( $output, 'name="submit" value="Update Room" form="ffc-environment-form">Update Room</button>' ) );
+		$this->assertStringContainsString( '<form method="post" action="" class="ffc-form" id="ffc-environment-form">', $output );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-editor">\s*<div class="ffc-editor__main">.*</form>.*<div class="ffc-editor__side">#s', $output );
+		$this->assertSame( $can_manage, str_contains( $output, '<h2 class="ffc-icon-save">Save</h2>' ), 'no Save card without the manage tier' );
+		// Back is a button beside the title.
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">[^<]+</h1>\s*<a [^>]*class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">Back to Rooms?</a>\s*<hr class="wp-header-end">#', $output );
 		if ( ! $can_manage ) {
 			$open  = (int) strpos( $output, '<fieldset disabled' );
 			$close = (int) strpos( $output, '</fieldset>' );

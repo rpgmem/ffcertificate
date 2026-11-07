@@ -67,16 +67,29 @@ final class RecruitmentAdjutancyEditPage {
 				'error',
 				esc_html__( 'Adjutancy not found.', 'ffcertificate' )
 			);
-			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Adjutancies', 'ffcertificate' ) . '</a></p>';
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Back to Adjutancies', 'ffcertificate' ),
+					'icon'  => 'chevron-left',
+					'href'  => self::back_url(),
+				)
+			);
 			return;
 		}
 
-		echo '<h1>' . sprintf(
+		echo '<h1 class="wp-heading-inline">' . sprintf(
 			/* translators: %s — adjutancy name */
 			esc_html__( 'Edit adjutancy — %s', 'ffcertificate' ),
 			esc_html( (string) $adjutancy->name )
 		) . '</h1>';
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Adjutancies', 'ffcertificate' ) . '</a></p>';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Adjutancies', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => self::back_url(),
+			)
+		);
+		echo '<hr class="wp-header-end">';
 
 		self::render_general_section( $adjutancy );
 	}
@@ -95,11 +108,13 @@ final class RecruitmentAdjutancyEditPage {
 			? (string) $adjutancy->color
 			: RecruitmentAdjutancyReader::DEFAULT_COLOR;
 
+		// One content column with Save in the side column (#2486).
+		echo '<div class="ffc-editor"><div class="ffc-editor__main">';
 		echo '<div class="card">';
 		echo '<h2 class="ffc-icon-building">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
 		echo '<div>';
 
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="ffc-adjutancy-form">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_save_adjutancy">';
 		echo '<input type="hidden" name="adjutancy_id" value="' . esc_attr( (string) $id ) . '">';
 		wp_nonce_field( $nonce_action );
@@ -119,9 +134,21 @@ final class RecruitmentAdjutancyEditPage {
 		echo '<p class="description">' . esc_html__( 'Background color for the badge on the public shortcode. Accepts #RGB / #RRGGBB / #RRGGBBAA. Bad values fall back to the default.', 'ffcertificate' ) . '</p></td></tr>';
 
 		echo '</tbody></table>';
-		\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save adjutancy', 'ffcertificate' ), array( 'value' => __( 'Save adjutancy', 'ffcertificate' ) ) );
 		echo '</form>';
 
+		echo '</div></div>';
+		echo '</div><div class="ffc-editor__side">';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-save">' . esc_html__( 'Save', 'ffcertificate' ) . '</h2>';
+		// Outside the form it posts, so it names the form.
+		\FreeFormCertificate\Admin\AdminUI::render_save_button(
+			__( 'Save adjutancy', 'ffcertificate' ),
+			array(
+				'value' => __( 'Save adjutancy', 'ffcertificate' ),
+				'attrs' => array( 'form' => 'ffc-adjutancy-form' ),
+			)
+		);
+		echo '</div>';
 		echo '</div></div>';
 	}
 

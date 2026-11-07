@@ -73,16 +73,29 @@ final class RecruitmentReasonEditPage {
 				'error',
 				esc_html__( 'Reason not found.', 'ffcertificate' )
 			);
-			echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Back to Reasons', 'ffcertificate' ),
+					'icon'  => 'chevron-left',
+					'href'  => self::back_url(),
+				)
+			);
 			return;
 		}
 
-		echo '<h1>' . sprintf(
+		echo '<h1 class="wp-heading-inline">' . sprintf(
 			/* translators: %s — reason label */
 			esc_html__( 'Edit reason — %s', 'ffcertificate' ),
 			esc_html( (string) $reason->label )
 		) . '</h1>';
-		echo '<p><a href="' . esc_url( self::back_url() ) . '">&larr; ' . esc_html__( 'Back to Reasons', 'ffcertificate' ) . '</a></p>';
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Reasons', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => self::back_url(),
+			)
+		);
+		echo '<hr class="wp-header-end">';
 
 		self::render_general_section( $reason );
 	}
@@ -112,11 +125,13 @@ final class RecruitmentReasonEditPage {
 			'appeal_granted' => __( 'Appeal granted', 'ffcertificate' ),
 		);
 
+		// One content column with Save in the side column (#2486).
+		echo '<div class="ffc-editor"><div class="ffc-editor__main">';
 		echo '<div class="card">';
 		echo '<h2 class="ffc-icon-clipboard">' . esc_html__( 'General', 'ffcertificate' ) . '</h2>';
 		echo '<div>';
 
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" id="ffc-reason-form">';
 		echo '<input type="hidden" name="action" value="ffc_recruitment_save_reason">';
 		echo '<input type="hidden" name="reason_id" value="' . esc_attr( (string) $id ) . '">';
 		wp_nonce_field( $nonce_action );
@@ -156,9 +171,21 @@ final class RecruitmentReasonEditPage {
 		echo '</td></tr>';
 
 		echo '</tbody></table>';
-		\FreeFormCertificate\Admin\AdminUI::render_save_button( __( 'Save reason', 'ffcertificate' ), array( 'value' => __( 'Save reason', 'ffcertificate' ) ) );
 		echo '</form>';
 
+		echo '</div></div>';
+		echo '</div><div class="ffc-editor__side">';
+		echo '<div class="card">';
+		echo '<h2 class="ffc-icon-save">' . esc_html__( 'Save', 'ffcertificate' ) . '</h2>';
+		// Outside the form it posts, so it names the form.
+		\FreeFormCertificate\Admin\AdminUI::render_save_button(
+			__( 'Save reason', 'ffcertificate' ),
+			array(
+				'value' => __( 'Save reason', 'ffcertificate' ),
+				'attrs' => array( 'form' => 'ffc-reason-form' ),
+			)
+		);
+		echo '</div>';
 		echo '</div></div>';
 	}
 

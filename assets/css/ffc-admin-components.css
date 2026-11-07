@@ -699,8 +699,9 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     overflow-y: auto;
 }
 
-/* The side column's first card lines up with the menu and the panel
-   (#2486); WordPress's `.card` gives it a top margin of its own. */
+/* The first card of each column lines up with the other column (#2486);
+   WordPress's `.card` gives it a top margin of its own. */
+.ffc-editor__main > .card:first-child,
 .ffc-editor__side > .card:first-child {
     margin-top: 0;
 }

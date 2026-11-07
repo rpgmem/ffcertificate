@@ -174,6 +174,13 @@ class RecruitmentReasonEditPageRenderSaveTest extends TestCase {
 		$this->assertMatchesRegularExpression( '/id="ffc-reason-edit-applies-denied"[^>]* checked/', $html );
 		$this->assertMatchesRegularExpression( '/id="ffc-reason-edit-applies-granted"[^>]* checked/', $html );
 		$this->assertDoesNotMatchRegularExpression( '/id="ffc-reason-edit-applies-appeal_denied"[^>]* checked/', $html );
+		// One content column, Save in the side column naming the form (#2486).
+		$this->assertMatchesRegularExpression( '/<h1 class="wp-heading-inline">Edit reason — [^<]+<\/h1>/', $html );
+		$this->assertStringContainsString( '<div class="ffc-editor"><div class="ffc-editor__main"><div class="card">', $html );
+		$this->assertStringContainsString( 'id="ffc-reason-form"', $html );
+		$this->assertMatchesRegularExpression( '#</form>.*<div class="ffc-editor__side"><div class="card"><h2 class="ffc-icon-save">Save</h2>.*form="ffc-reason-form"#s', $html );
+		$this->assertStringContainsString( 'ffc-icon-chevron-left">Back to Reasons</a>', $html );
+		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ) );
 	}
 
 	public function test_render_applies_all_when_stored_empty(): void {
