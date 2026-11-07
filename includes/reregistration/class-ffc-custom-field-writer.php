@@ -722,6 +722,44 @@ class CustomFieldWriter {
 	}
 
 	/**
+	 * Fold an audience's own copy of a field into the field it repeats
+	 * (#2502): the copy row turns into a change pointing at that field, or
+	 * into a hidden one. Its answers move with {@see CustomFieldAnswerMerge}.
+	 *
+	 * @param int  $copy_id  The copy row's id.
+	 * @param int  $field_id The field it repeats.
+	 * @param bool $hidden   The copy was inactive: the audience stops asking it.
+	 * @return bool
+	 */
+	public static function fold_into( int $copy_id, int $field_id, bool $hidden ): bool {
+		$data   = array(
+			'overrides_field_id' => $field_id,
+			'is_hidden'          => $hidden ? 1 : 0,
+			'is_active'          => 1,
+		);
+		$wpdb   = self::db();
+		$result = $wpdb->update( self::get_table_name(), $data, array( 'id' => $copy_id ), array( '%d', '%d', '%d' ), array( '%d' ) );
+		static::cache_delete( "id_{$copy_id}" );
+		return false !== $result;
+	}
+
+	/**
+	 * Delete an audience's own copy of a field that is identical to the field
+	 * it repeats (#2502). Unlike {@see self::delete()} it ignores answers and
+	 * the standard source: the answers move to the inherited field with
+	 * {@see CustomFieldAnswerMerge}, and nothing points at a copy.
+	 *
+	 * @param int $copy_id The copy row's id.
+	 * @return bool
+	 */
+	public static function drop_copy( int $copy_id ): bool {
+		$wpdb   = self::db();
+		$result = $wpdb->delete( self::get_table_name(), array( 'id' => $copy_id ), array( '%d' ) );
+		static::cache_delete( "id_{$copy_id}" );
+		return false !== $result;
+	}
+
+	/**
 	 * An audience's change row for a field, if it has one.
 	 *
 	 * @param int $audience_id Audience ID.

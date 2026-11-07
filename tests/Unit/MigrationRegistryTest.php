@@ -74,7 +74,10 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 20, $all );
+		$this->assertCount( 21, $all );
+		// #2502: the answers under the folded per-audience copies of the
+		// reregistration fields move onto the inherited field.
+		$this->assertArrayHasKey( 'custom_field_answers', $all );
 		$this->assertArrayHasKey( 'rate_limit_keyed_identifiers', $all );
 		$this->assertArrayHasKey( 'recruitment_pcd_per_notice', $all );
 		$this->assertArrayHasKey( 'split_cpf_rf', $all );

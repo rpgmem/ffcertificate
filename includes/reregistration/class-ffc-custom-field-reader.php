@@ -690,7 +690,9 @@ class CustomFieldReader {
 		 *
 		 * @var array<string, mixed> $data
 		 */
-		return $data;
+		// Answers under an audience's former copy of a field read as the
+		// field's own until the migration rewrites them (#2502).
+		return CustomFieldAnswerMerge::converge( $user_id, $data )['data'];
 	}
 
 	/**
@@ -871,7 +873,8 @@ class CustomFieldReader {
 	 * @return array<string, bool> Map of `field_key => true` for O(1) lookup.
 	 */
 	public static function existing_field_keys_for_audience( int $audience_id ): array {
-		if ( $audience_id <= 0 ) {
+		// 0 is the global list (#2502).
+		if ( $audience_id < 0 ) {
 			return array();
 		}
 		global $wpdb;
@@ -1078,11 +1081,16 @@ class CustomFieldReader {
 			);
 		}
 
-		if ( ! $answered && $id > 0 ) {
+		// The ids folded into this field still hold answers until the
+		// migration rewrites them (#2502).
+		foreach ( $id > 0 ? array_merge( array( $id ), CustomFieldAnswerMerge::old_ids_of( $id ) ) : array() as $stored_id ) {
+			if ( $answered ) {
+				break;
+			}
 			$users    = get_users(
 				array(
 					'meta_key'     => self::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run only when the editor renders a field or a locked property changes; one row is enough.
-					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
+					'meta_value'   => '"field_' . $stored_id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
 					'meta_compare' => 'LIKE',
 					'number'       => 1,
 					'fields'       => 'ID',

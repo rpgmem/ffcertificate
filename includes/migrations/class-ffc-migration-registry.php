@@ -169,6 +169,16 @@ class MigrationRegistry {
 			'order'       => 11,
 		);
 
+		// #2502: the per-audience copies of the reregistration fields folded
+		// into the field every audience inherits; their answers follow.
+		$this->migrations['custom_field_answers'] = array(
+			'name'        => __( 'Reregistration: Move Answers to Inherited Fields', 'ffcertificate' ),
+			'description' => __( 'Audiences used to keep their own copy of each standard reregistration field, each with its own answers. The copies were folded into the field every audience now inherits; this moves the answers stored under a copy onto that field. Until it runs, the answers are read through the fold, so none is out of sight. When a person answered differently under two copies, the one kept is the value of their latest reregistration, otherwise the copy of the deepest audience they belong to.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-merge',
+			'batch_size'  => 200,
+			'order'       => 12,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),

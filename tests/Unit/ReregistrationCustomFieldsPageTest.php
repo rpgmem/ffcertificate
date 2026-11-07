@@ -84,6 +84,11 @@ class ReregistrationCustomFieldsPageTest extends TestCase {
 		);
 		// CustomFieldReader::level_counts(), the global field list, and
 		// AudienceReader::get_all() for everything else.
+		// ReregistrationStandardFieldsSeeder::seed_global() finds every
+		// standard key already in the global list, so it inserts nothing.
+		$wpdb->shouldReceive( 'get_col' )->andReturnUsing(
+			static fn() => array_column( \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' )
+		);
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $sql ) {
 				if ( str_contains( (string) $sql, 'GROUP BY audience_id' ) ) {

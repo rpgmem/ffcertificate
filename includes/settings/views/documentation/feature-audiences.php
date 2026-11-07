@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'Customize copies one inherited field into the audience, where its label, group, options, validation and whether it is required or active can change. The key, type, sensitivity and profile binding follow the inherited field, and the answers stay under it, so a person answering in two audiences answers once. Back to inherited discards the change.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'Hide stops asking an inherited field in the audience and its sub-audiences, required fields included. Answers already stored stay. Show again asks it once more.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience\'s fields tab.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'Audiences created before the global list keep their own copy of each standard field, marked "Own copy", with answers of its own; it is asked in place of the inherited one.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience\'s change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, "Move Answers to Inherited Fields"). A copy whose type, sensitivity or profile binding differs stays as "Own copy", with its answers, and is asked in place of the inherited one. New audiences receive no copy.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 

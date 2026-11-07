@@ -1467,10 +1467,20 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame( array( 'name' => true, 'email' => true ), CustomFieldReader::existing_field_keys_for_audience( 5 ) );
 	}
 
-	public function test_existing_field_keys_for_audience_short_circuits_on_zero_id(): void {
+	public function test_existing_field_keys_for_audience_short_circuits_on_a_negative_id(): void {
 		$this->wpdb->shouldNotReceive( 'get_col' );
 
-		$this->assertSame( array(), CustomFieldReader::existing_field_keys_for_audience( 0 ) );
+		$this->assertSame( array(), CustomFieldReader::existing_field_keys_for_audience( -1 ) );
+	}
+
+	/**
+	 * 0 is the global list every audience inherits (#2502): the seeder asks
+	 * which standard keys it already carries.
+	 */
+	public function test_existing_field_keys_for_audience_reads_the_global_list(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cpf', '' ) );
+
+		$this->assertSame( array( 'cpf' => true ), CustomFieldReader::existing_field_keys_for_audience( 0 ) );
 	}
 
 	public function test_insert_row_returns_insert_id_on_success(): void {

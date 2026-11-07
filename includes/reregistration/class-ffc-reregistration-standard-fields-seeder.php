@@ -28,6 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Reregistration Standard Fields Seeder.
+ *
+ * @phpstan-import-type CustomFieldRow from CustomFieldReader
  */
 class ReregistrationStandardFieldsSeeder {
 
@@ -70,6 +72,7 @@ class ReregistrationStandardFieldsSeeder {
 		4 => 'validate_rf_fields',
 		5 => 'validate_cep_fields',
 		6 => 'move_cep_before_address_everywhere',
+		7 => 'consolidate_into_global',
 	);
 
 	/**
@@ -85,6 +88,7 @@ class ReregistrationStandardFieldsSeeder {
 		4 => 'ffc_rf_field_validated',
 		5 => 'ffc_cep_field_validated',
 		6 => 'ffc_cep_before_address',
+		7 => '',
 	);
 
 	/**
@@ -111,14 +115,14 @@ class ReregistrationStandardFieldsSeeder {
 			}
 			// An install upgraded from the per-step flags already ran the
 			// steps it flagged; they are skipped, never repeated.
-			if ( 0 === $version && get_option( self::LEGACY_STEP_OPTIONS[ $step ] ) ) {
+			if ( 0 === $version && '' !== self::LEGACY_STEP_OPTIONS[ $step ] && get_option( self::LEGACY_STEP_OPTIONS[ $step ] ) ) {
 				continue;
 			}
 			self::$method();
 		}
 
 		update_option( self::FIELDS_VERSION_OPTION, $current, true );
-		foreach ( self::LEGACY_STEP_OPTIONS as $legacy ) {
+		foreach ( array_filter( self::LEGACY_STEP_OPTIONS ) as $legacy ) {
 			delete_option( $legacy );
 		}
 	}
@@ -316,7 +320,9 @@ class ReregistrationStandardFieldsSeeder {
 		if ( $audience_id <= 0 ) {
 			return;
 		}
-		self::seed_for_audience( $audience_id );
+		// A new audience inherits the global list (#2502); it receives no
+		// copy of its own. The list is made sure to exist.
+		self::seed_global();
 	}
 
 	/**
@@ -816,29 +822,45 @@ class ReregistrationStandardFieldsSeeder {
 	/**
 	 * Seed standard fields for a single audience.
 	 *
-	 * Idempotent: only inserts fields whose field_key does not already exist
-	 * for the given audience. Returns the number of fields inserted.
+	 * Every audience inherits the global list since #2502, so this seeds the
+	 * global list and nothing of the audience's own.
 	 *
 	 * @param int $audience_id Audience ID.
-	 * @return int Number of fields inserted.
+	 * @return int Number of fields inserted (into the global list).
+	 *
+	 * @deprecated 6.43.0 Audiences inherit the global list (#2502); use {@see self::seed_global()}.
+	 * @removal    6.45.0
 	 */
 	public static function seed_for_audience( int $audience_id ): int {
+		_deprecated_function( __METHOD__, '6.43.0', __CLASS__ . '::seed_global' );
 		if ( $audience_id <= 0 ) {
 			return 0;
 		}
+		return self::seed_global();
+	}
 
-		$existing_keys = CustomFieldReader::existing_field_keys_for_audience( $audience_id );
+	/**
+	 * Seed the standard fields every audience inherits (#2502).
+	 *
+	 * Idempotent: only inserts fields whose key the global list does not
+	 * carry yet. A field takes the values most top-level audiences already
+	 * give their own copy -- the label they renamed it to, the options they
+	 * set -- so folding the copies afterwards turns as many as possible into
+	 * plain inheritance; a field no audience carries takes the definition.
+	 *
+	 * @return int Number of fields inserted.
+	 */
+	public static function seed_global(): int {
+		$existing_keys = CustomFieldReader::existing_field_keys_for_audience( 0 );
+		$inserted      = 0;
 
-		$definitions = self::get_standard_fields_definition();
-		$inserted    = 0;
-
-		foreach ( $definitions as $index => $def ) {
+		foreach ( self::get_standard_fields_definition() as $index => $def ) {
 			if ( isset( $existing_keys[ $def['field_key'] ] ) ) {
 				continue;
 			}
 
 			$insert_data = array(
-				'audience_id'       => $audience_id,
+				'audience_id'       => 0,
 				'field_key'         => $def['field_key'],
 				'field_label'       => $def['field_label'],
 				'field_type'        => $def['field_type'],
@@ -853,15 +875,208 @@ class ReregistrationStandardFieldsSeeder {
 				'is_required'       => (int) ( $def['required'] ?? 0 ),
 				'is_active'         => 1,
 			);
+			$common      = self::most_common_root_values( $def['field_key'], $def['field_type'] );
+			if ( null !== $common ) {
+				$insert_data = array_merge( $insert_data, $common );
+			}
 
-			$result = CustomFieldWriter::insert_row( $insert_data );
-
-			if ( false !== $result ) {
+			if ( false !== CustomFieldWriter::insert_row( $insert_data ) ) {
 				++$inserted;
 			}
 		}
 
 		return $inserted;
+	}
+
+	/**
+	 * The values most top-level audiences give their copy of a standard
+	 * field, or null when none carries one of the definition's type.
+	 *
+	 * @param string $field_key  Standard field key.
+	 * @param string $field_type The definition's type; a copy of another type is not counted.
+	 * @return array<string, mixed>|null field_label, field_group, field_options, validation_rules, is_required.
+	 */
+	private static function most_common_root_values( string $field_key, string $field_type ): ?array {
+		$votes  = array();
+		$values = array();
+		foreach ( self::audience_tree() as $audience ) {
+			if ( 0 !== $audience['depth'] ) {
+				continue;
+			}
+			foreach ( CustomFieldReader::get_by_audience( $audience['id'], false ) as $row ) {
+				if ( (string) $row->field_key !== $field_key || (string) $row->field_type !== $field_type || (int) ( $row->overrides_field_id ?? 0 ) > 0 ) {
+					continue;
+				}
+				$candidate            = array(
+					'field_label'      => (string) $row->field_label,
+					'field_group'      => (string) $row->field_group,
+					'field_options'    => $row->field_options,
+					'validation_rules' => $row->validation_rules,
+					'is_required'      => (int) $row->is_required,
+				);
+				$signature            = (string) wp_json_encode( self::comparable( $candidate ) );
+				$votes[ $signature ]  = ( $votes[ $signature ] ?? 0 ) + 1;
+				$values[ $signature ] = $values[ $signature ] ?? $candidate;
+			}
+		}
+		if ( empty( $votes ) ) {
+			return null;
+		}
+		arsort( $votes );
+		return $values[ (string) array_key_first( $votes ) ];
+	}
+
+	/**
+	 * Fold every audience's own copy of a field into the field it inherits
+	 * (#2502), top-level audiences first so a sub-audience compares with
+	 * what its parent became.
+	 *
+	 * A copy with the inherited values is deleted; one that differs becomes
+	 * the audience's change to the field; one that was inactive hides the
+	 * field in that audience. A copy whose type, sensitivity or profile
+	 * binding differs from the inherited field stays as it is: its answers
+	 * cannot be read as the inherited field's. Every folded id is recorded
+	 * for {@see CustomFieldAnswerMerge}, which moves the answers.
+	 *
+	 * @return int Number of copies folded.
+	 */
+	public static function consolidate_into_global(): int {
+		self::seed_global();
+
+		$map = array();
+		foreach ( self::audience_tree() as $audience ) {
+			$inherited = array();
+			foreach ( CustomFieldReader::resolve( $audience['parent'] ) as $field ) {
+				$inherited[ (string) $field->field_key ] = $field;
+			}
+
+			foreach ( CustomFieldReader::get_by_audience( $audience['id'], false ) as $row ) {
+				$key  = (string) $row->field_key;
+				$base = $inherited[ $key ] ?? null;
+				if ( null === $base || (int) ( $row->overrides_field_id ?? 0 ) > 0 || ! self::same_identity( $row, $base ) ) {
+					continue;
+				}
+
+				if ( empty( $row->is_active ) && ! empty( $base->is_active ) ) {
+					$done = CustomFieldWriter::fold_into( (int) $row->id, (int) $base->id, true );
+				} elseif ( self::comparable( self::overridable( $row ) ) === self::comparable( self::overridable( $base ) ) ) {
+					$done = CustomFieldWriter::drop_copy( (int) $row->id );
+				} else {
+					$done = CustomFieldWriter::fold_into( (int) $row->id, (int) $base->id, false );
+				}
+
+				if ( $done ) {
+					$map[ (int) $row->id ] = array( (int) $base->id, $audience['id'], $audience['depth'], $key );
+				}
+			}
+		}
+
+		CustomFieldAnswerMerge::record( $map );
+		return count( $map );
+	}
+
+	/**
+	 * Every audience with its parent and depth, top-level ones first.
+	 *
+	 * @return list<array{id: int, parent: int, depth: int}>
+	 */
+	private static function audience_tree(): array {
+		$parents = array();
+		foreach ( AudienceReader::get_all_ids() as $id ) {
+			$audience       = AudienceReader::get_by_id( $id );
+			$parents[ $id ] = $audience && ! empty( $audience->parent_id ) ? (int) $audience->parent_id : 0;
+		}
+
+		$tree = array();
+		foreach ( $parents as $id => $parent ) {
+			$depth = 0;
+			$at    = $parent;
+			while ( $at > 0 && isset( $parents[ $at ] ) && $depth < 32 ) {
+				++$depth;
+				$at = $parents[ $at ];
+			}
+			$tree[] = array(
+				'id'     => $id,
+				'parent' => $parent,
+				'depth'  => $depth,
+			);
+		}
+		usort(
+			$tree,
+			static fn( array $a, array $b ): int => array( $a['depth'], $a['id'] ) <=> array( $b['depth'], $b['id'] )
+		);
+		return $tree;
+	}
+
+	/**
+	 * Whether a copy can be read as the inherited field: answers are read by
+	 * type, encrypted by sensitivity and copied by profile binding (#2242).
+	 *
+	 * @param object $copy      The audience's copy.
+	 * @param object $inherited The field it repeats.
+	 * @phpstan-param CustomFieldRow $copy
+	 * @phpstan-param CustomFieldRow $inherited
+	 * @return bool
+	 */
+	private static function same_identity( object $copy, object $inherited ): bool {
+		return (string) $copy->field_type === (string) $inherited->field_type
+			&& (int) $copy->is_sensitive === (int) $inherited->is_sensitive
+			&& (string) ( $copy->field_profile_key ?? '' ) === (string) ( $inherited->field_profile_key ?? '' );
+	}
+
+	/**
+	 * The values an audience may change on a field, as compared when
+	 * folding a copy. The order is not compared: it follows the inherited
+	 * field.
+	 *
+	 * @param object $field Field row.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return array<string, mixed>
+	 */
+	private static function overridable( object $field ): array {
+		return array(
+			'field_label'      => (string) $field->field_label,
+			'field_group'      => (string) $field->field_group,
+			'field_options'    => $field->field_options,
+			'validation_rules' => $field->validation_rules,
+			'is_required'      => (int) $field->is_required,
+		);
+	}
+
+	/**
+	 * Values in a form two stored copies compare equal in: the JSON columns
+	 * decoded, so key order and escaping do not count as a difference.
+	 *
+	 * @param array<string, mixed> $values Column => value.
+	 * @return array<string, mixed>
+	 */
+	private static function comparable( array $values ): array {
+		foreach ( array( 'field_options', 'validation_rules' ) as $json ) {
+			$raw     = $values[ $json ] ?? null;
+			$decoded = is_string( $raw ) && '' !== $raw ? json_decode( $raw, true ) : $raw;
+			if ( is_array( $decoded ) ) {
+				self::ksort_deep( $decoded );
+			}
+			$values[ $json ] = ( null === $decoded || array() === $decoded || 'null' === $raw ) ? null : $decoded;
+		}
+		return $values;
+	}
+
+	/**
+	 * Sort an array's string keys at every level.
+	 *
+	 * @param array<mixed> $value Array to sort in place.
+	 * @return void
+	 */
+	private static function ksort_deep( array &$value ): void {
+		if ( array_keys( $value ) !== range( 0, count( $value ) - 1 ) ) {
+			ksort( $value );
+		}
+		foreach ( $value as &$item ) {
+			if ( is_array( $item ) ) {
+				self::ksort_deep( $item );
+			}
+		}
 	}
 
 	/**
@@ -879,12 +1094,8 @@ class ReregistrationStandardFieldsSeeder {
 			return 0;
 		}
 
-		$total = 0;
-		foreach ( $ids as $aud_id ) {
-			$total += self::seed_for_audience( $aud_id );
-		}
-
-		return $total;
+		// Audiences inherit the global list (#2502): seeding it once covers all.
+		return self::seed_global();
 	}
 
 	/**
