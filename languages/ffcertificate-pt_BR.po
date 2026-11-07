@@ -28416,8 +28416,8 @@ msgid "This CPF/RF does not match your registration. Type the one you registered
 msgstr "Este CPF/RF não confere com o seu cadastro. Digite o que você cadastrou, ou fale com a organização."
 
 #: includes/settings/views/documentation/reference-security.php
-msgid "Only a person invited by an audience booking's post-event link can submit. The link fills in and locks their name and e-mail from their account, works without logging in until the booking's form window closes, and names one person: their CPF/RF is typed, and refused when it belongs to another account. Opening the link again after answering returns the same certificate. Without this restriction the form stays open, and an invitation link only fills it in."
-msgstr "Só pode enviar quem foi convidado pelo link pós-evento de um agendamento de público. O link preenche e bloqueia o nome e o e-mail da conta da pessoa, funciona sem login até fechar o prazo do formulário do agendamento e vale para uma única pessoa: o CPF/RF é digitado, e recusado se pertencer a outra conta. Abrir o link de novo depois de responder devolve o mesmo certificado. Sem esta restrição o formulário continua aberto, e o link de convite só o preenche."
+msgid "Only a person invited by an audience booking's post-event link can submit. The link fills in and locks their name and e-mail from their account, works without logging in until the booking's form window closes, and names one person: their CPF/RF is typed, and refused when it belongs to another account. Opening the link again after answering returns the same certificate. Without this restriction the form stays open, and an invitation link only fills it in; a link that no longer works shows the form unfilled, saying the link is not needed. With it, a link that no longer works is refused and the visitor is told to ask whoever sent the invitation for a new one."
+msgstr "Só pode enviar quem foi convidado pelo link pós-evento de um agendamento de público. O link preenche e bloqueia o nome e o e-mail da conta da pessoa, funciona sem login até fechar o prazo do formulário do agendamento e vale para uma única pessoa: o CPF/RF é digitado, e recusado se pertencer a outra conta. Abrir o link de novo depois de responder devolve o mesmo certificado. Sem esta restrição o formulário continua aberto, e o link de convite só o preenche; um link que não funciona mais mostra o formulário em branco, avisando que o link não é necessário. Com ela, um link que não funciona mais é recusado e o visitante é orientado a pedir um novo link a quem enviou o convite."
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "An invitation link opens the form with the participant's name and e-mail filled in and locked, from their account; no login is needed, so treat the link as personal. The CPF/RF is not filled in: the participant types it, and it is refused when it belongs to another account, or when it differs from the one already on record. A first CPF/RF is accepted and recorded on their profile. The submission keeps the booking it came from. To keep the form closed to everyone else, switch on its \"Booking participants only\" restriction."
@@ -33208,3 +33208,11 @@ msgstr "Sem Redis/Memcached, o limitador de taxa guarda seus contadores como tra
 #: added
 msgid "You do not have permission to change when tasks run."
 msgstr "Você não tem permissão para alterar quando as tarefas rodam."
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "The invitation link is not needed — fill in and submit the form as usual."
+msgstr "O link de convite não é necessário, preencha e envie normalmente."
+
+#: includes/frontend/class-ffc-shortcodes.php
+msgid "For a new link, contact whoever sent you the invitation."
+msgstr "Para receber um novo link, fale com quem enviou o convite."

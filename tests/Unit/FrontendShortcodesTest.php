@@ -612,14 +612,30 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'Filling in as Ana Souza, for Workshop.', $html );
 	}
 
-	public function test_a_refused_invitation_shows_why_and_no_form(): void {
+	public function test_a_refused_invitation_on_an_invite_only_form_says_why_and_whom_to_ask(): void {
 		$_GET['ffc_invite'] = 'bad';
 		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'closed', 'The period to fill in this form has ended.' ) );
 
-		$html = $this->render_invite_form( false );
+		$html = $this->render_invite_form( true );
 
 		$this->assertStringContainsString( 'The period to fill in this form has ended.', $html );
+		$this->assertStringContainsString( 'contact whoever sent you the invitation', $html );
 		$this->assertStringNotContainsString( '<form', $html );
+	}
+
+	public function test_a_dead_invitation_on_an_open_form_shows_the_form_unfilled(): void {
+		// #2341: a form open to everyone does not need the link, so an old
+		// one shows the form as anyone else sees it, with a notice.
+		$_GET['ffc_invite'] = 'bad';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'invalid', 'This invitation link is not valid.' ) );
+
+		$html = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( '<form', $html );
+		$this->assertStringContainsString( 'The invitation link is not needed', $html );
+		$this->assertStringNotContainsString( 'name="ffc_invite"', $html, 'The dead code is not posted.' );
+		$this->assertStringNotContainsString( 'readonly', $html, 'Nothing is filled in or locked.' );
+		$this->assertStringNotContainsString( 'not valid', $html );
 	}
 
 	public function test_an_invite_only_form_shows_nothing_without_an_invitation(): void {
