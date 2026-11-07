@@ -370,7 +370,8 @@
                         return;
                     }
 
-                    $link.css('pointer-events', 'none').css('opacity', '0.5');
+                    // Busy (#1881): the family's state, not a faded inline style (#2486).
+                    $link.prop('disabled', true).addClass('ffc-btn-loading');
 
                     FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason, scope: following ? 'following' : 'this' }, { nonce: adminNonce })
                         .then(function() {
@@ -382,13 +383,14 @@
                             // Update the row status and remove cancel link
                             var $row = $link.closest('tr');
                             $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
-                            $link.prev().remove(); // remove "|" separator
+                            // A cancelled booking takes no attendance: its button goes with Cancel.
+                            $row.find('.ffc-attendance-link').remove();
                             $link.remove();
                         })
                         .catch(function(err) {
                             var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
                             alert(msg);
-                            $link.css('pointer-events', '').css('opacity', '');
+                            $link.prop('disabled', false).removeClass('ffc-btn-loading');
                         });
                 });
             });

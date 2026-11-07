@@ -19,6 +19,12 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
+/* A row a bulk action is processing, until the server answers: the script
+   sets the state, the sheet draws it (written inline until #2486). */
+.ffc-page-submissions tr.is-busy {
+    opacity: 0.55;
+}
+
 /* ==========================================================================
    DATA PREVIEW - EMPTY STATES
    ========================================================================== */

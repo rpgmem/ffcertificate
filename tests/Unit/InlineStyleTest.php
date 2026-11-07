@@ -63,7 +63,6 @@ final class InlineStyleTest extends TestCase {
 
 	private const SELF_CONTAINED = 'the PDF generator draws its overlay, error box and rasterising container itself: it also runs on the standalone appointment receipt, which loads no plugin stylesheet';
 
-	private const TRANSIENT_STATE = 'a busy state set and cleared around one request (the row or link being processed), never the resting state anyone reads';
 
 	private const SCROLL_LOCK = 'scroll lock on the host document\'s body while a modal is open; the body belongs to the theme, so no sheet of ours should style it';
 
@@ -96,16 +95,6 @@ final class InlineStyleTest extends TestCase {
 		),
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
-		),
-		'assets/js/ffc-admin-submissions-bulk.js' => array(
-			'.css(): .css("opacity", "0.55"' => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", ""'     => array( 1, self::TRANSIENT_STATE ),
-		),
-		'assets/js/ffc-audience-admin.js' => array(
-			'.css(): .css("pointer-events", "none"' => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", "0.5"'         => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("pointer-events", ""'     => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", ""'            => array( 1, self::TRANSIENT_STATE ),
 		),
 		'assets/js/ffc-audience-bookings.js' => array(
 			'style=: style="border-left: 4px solid' => array( 1, self::OPERATOR_COLOUR ),
