@@ -368,3 +368,15 @@
 .ffc-field-answer-lock {
     margin: var(--ffc-spacing-2xs) 0 0;
 }
+
+/* Forced colours: the source badge keeps a boundary once its tint is gone. */
+@media (forced-colors: active) {
+    .ffc-field-source-badge,
+    .ffc-field-source-badge.ffc-field-source-changed,
+    .ffc-field-source-badge.ffc-field-source-copy,
+    .ffc-field-source-badge.ffc-field-source-global,
+    .ffc-field-source-badge.ffc-field-source-own,
+    .ffc-field-source-badge.ffc-field-source-parent {
+        border: 1px solid CanvasText;
+    }
+}

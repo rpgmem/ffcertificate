@@ -288,7 +288,7 @@ class CustomFieldReader {
 
 		foreach ( $levels as $depth => $level ) {
 			foreach ( self::get_by_audience( $level['id'], $active_only ) as $row ) {
-				$key     = (string) $row->field_key;
+				$key     = (string) ( $row->field_key ?? '' );
 				$base    = $resolved[ $key ] ?? null;
 				$pointer = (int) ( $row->overrides_field_id ?? 0 );
 
