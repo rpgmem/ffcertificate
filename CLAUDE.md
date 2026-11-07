@@ -711,7 +711,7 @@ Every public form is guarded by the same block: a honeypot (provider-independent
 
 The plugin is a **guest in someone else's document** — the site's theme owns `<html>` on the frontend, WordPress owns it in wp-admin — and almost everything below follows from that one fact. It is its own section because "Architecture and patterns" is about how the PHP is composed and this is about what reaches the browser; a reader answering a question about repositories, email or CSV does not need the stylesheets, and a reader answering one about a selector should not have to find it inside a section named for something else.
 
-The subsections follow the order a question usually arrives in: **how many sheets there are and why**, **how a class is named**, **how a rule is scoped to a screen**, **how an icon is drawn**, **how a choice is drawn**, **how an action is drawn**, **when CSS may stay inline**, and **how colour works**. Each records the measurement behind a standing decision, so a proposal framed as "adopt BEM" or "collapse the sheets into a bundle" is answered from what was measured rather than from scratch.
+The subsections follow the order a question usually arrives in: **how many sheets there are and why**, **how a class is named**, **how a rule is scoped to a screen**, **how an icon is drawn**, **how a choice is drawn**, **how an action is drawn**, **how an admin screen is laid out**, **when CSS may stay inline**, and **how colour works**. Each records the measurement behind a standing decision, so a proposal framed as "adopt BEM" or "collapse the sheets into a bundle" is answered from what was measured rather than from scratch.
 
 ### Stylesheet architecture (one sheet per screen — deliberately not a bundle)
 
@@ -883,6 +883,17 @@ An action is drawn by a `.ffc-btn` button whose category says what the action do
 - **An icon-only button is the one exception to the visible label, never to the label** (#1879). `icon_only` / `iconOnly` adds `.ffc-btn-icon`: a square (32px public, 28px admin) with the icon centred and no text, and the label becomes its `aria-label` and `title`. Without a label or a registry icon nothing is printed (`_doing_it_wrong()` in PHP, `null` in JS). A dialog's close is `neutral` and a row's remove `danger`, both with `cross`; the screen's old class stays as the script hook, its sheet keeping only position. `IconOnlyButtonTest` refuses a `<button>` or `<a>` holding only a `&times;`, and an `.ffc-btn-icon` without an `aria-label`.
 - **A button whose content is more than a label is written by hand with the family's classes**: the calendar exporter (a caret after the label) and the section pager's keys, whose digit or arrow IS the label and so carry no icon. The current page is a state, so `aria-current` paints it, never the `primary` category.
 - **Public Design's error colour reaches the danger tone** — `--ffc-danger-text`, `-border` and a derived `-bg`, as the information colour does (#1842) — and only when it differs from the default, so the sheet's hand-tuned pair stays otherwise.
+
+### Admin layout (one standard — #2486)
+
+Every admin screen of ours is one of four shapes, and each reads the same layout tokens from `ffc-common.css` (`--ffc-admin-nav-width`, `--ffc-admin-side-width`, `--ffc-admin-gap`, `--ffc-admin-side-top`, `--ffc-admin-side-max-height`):
+
+- **A module dashboard** opens a module that has several sections: a row of stat cards, then `.ffc-dashboard` — one `Core\AdminDashboard::section_card()` per section (icon, title, `figures()`, the buttons that open it) and an `aside.ffc-dashboard__side` with what needs a look now. A bare `?page=` opens it.
+- **A section page** is a page of its own in the WordPress submenu, at the same `?page=X&tab=Y` it had as a tab, so links and bookmarks keep working; the module registers its submenus and highlights the current one through `submenu_file`. A list there uses the shared list top (`.ffc-list-filters` in a card, row actions as buttons in an Actions column).
+- **An editor or a settings screen** is a vertical menu card, the open panel and a side column (`.ffc-editor`, `.ffc-settings-tabs`), the side column kept even when it is empty, so the panel has the same width on every tab.
+- **A simple edit screen** is the editor without the menu: one content column, Save as the first card of the side column, Back a button beside the title.
+
+Content takes the width left beside the menus — no `max-width` on a wrap or a card — and the vertical menu and the side column are sticky, from the top token. A box is the one `.card` (`ffc-settings-wrap` or `ffc-boxed` on the wrap), and the first card of a column starts level with the other column: a card or a row of cards never carries its own top margin there. `AdminLayoutTokensTest` holds the sheets that read the tokens; whether a screen looks right is only visible rendered, so a layout change is screenshotted before it ships.
 
 ### Inline CSS (one rule, a short list of exceptions — #1837)
 

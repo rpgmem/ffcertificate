@@ -83,18 +83,21 @@ class AudienceAdminDashboardTest extends TestCase {
 		$this->assertStringContainsString( 'wrap', $output );
 	}
 
-	public function test_dashboard_draws_the_shared_stat_cards_under_icon_headings(): void {
-		// #1631: the screen had its own card markup and bare h2s with a rule.
+	public function test_dashboard_follows_the_module_dashboard_layout(): void {
+		// #1631 then #2486: the shared stat cards, then one card per section
+		// headed by its icon, and the quick actions in the side column.
 		$page = new AudienceAdminDashboard( 'ffc-scheduling' );
 		ob_start();
 		$page->render_dashboard_page();
 		$output = (string) ob_get_clean();
 
-		$this->assertSame( 6, substr_count( $output, '<div class="ffc-stat-card">' ) );
-		$this->assertSame( 6, substr_count( $output, 'class="ffc-stat-card__link"' ) );
-		foreach ( array( 'ffc-icon-user', 'ffc-icon-users', 'ffc-icon-zap' ) as $icon ) {
+		$this->assertSame( 4, substr_count( $output, '<div class="ffc-stat-card">' ) );
+		$this->assertStringContainsString( 'class="wrap ffc-admin-page ffc-page-scheduling-dashboard ffc-boxed"', $output );
+		$this->assertSame( 4, substr_count( $output, '<div class="card ffc-dashboard__card">' ), 'one card per section' );
+		foreach ( array( 'ffc-icon-user', 'ffc-icon-users', 'ffc-icon-building', 'ffc-icon-zap' ) as $icon ) {
 			$this->assertStringContainsString( '<h2 class="' . $icon . '">', $output );
 		}
+		$this->assertMatchesRegularExpression( '#<aside class="ffc-dashboard__side">.*Quick Actions.*New Personal Calendar#s', $output );
 		$this->assertStringNotContainsString( 'ffc-audience-stat-card', $output );
 	}
 
