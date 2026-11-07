@@ -54,6 +54,56 @@
 		});
 	}
 
+	var reasonSeq = 0;
+
+	/**
+	 * A disabled action with its reason one tap away (#2341).
+	 *
+	 * The reason is not a `title`: a disabled button takes no focus and no
+	 * hover on a touch screen, so a tooltip on it is unreachable. A focusable
+	 * info button beside it names what it explains, and toggles the reason,
+	 * which is read out as it appears.
+	 *
+	 * @param {string} label    Visible text of the unavailable action.
+	 * @param {string} category Its button category.
+	 * @param {string} icon     Its icon.
+	 * @param {string} hook     Its hook class.
+	 * @param {string} reason   Why it is unavailable.
+	 * @return {string}
+	 */
+	function disabledWithReason(label, category, icon, hook, reason) {
+		var id = 'ffc-action-reason-' + (++reasonSeq);
+		var toggle = window.FFC.buttonHtml({
+			label: (strings.whyUnavailable || 'Why is %s unavailable?').replace('%s', label),
+			category: 'neutral',
+			icon: 'info',
+			iconOnly: true,
+			className: 'ffc-action-reason-toggle',
+			attrs: { 'aria-expanded': 'false', 'aria-controls': id }
+		});
+		return '<span class="ffc-action-with-reason">'
+			+ actionButton(label, category, icon, hook, true, '')
+			+ toggle
+			+ '<span class="ffc-action-reason" id="' + id + '" role="status" hidden>' + esc(reason) + '</span>'
+			+ '</span>';
+	}
+
+	/**
+	 * Show or hide the reason an info button controls.
+	 *
+	 * @param {Event} e Click event.
+	 */
+	function onReasonToggle(e) {
+		var btn = e.currentTarget;
+		var note = document.getElementById(btn.getAttribute('aria-controls'));
+		if (!note) {
+			return;
+		}
+		var open = btn.getAttribute('aria-expanded') !== 'true';
+		btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+		note.hidden = !open;
+	}
+
 	// ── Step 1: Request form info ───────────────────────────────
 
 	function onSubmitInfo(e) {
@@ -172,6 +222,9 @@
 		if (info.status.can_extend_end) {
 			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', false,
 				strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.');
+		} else if (info.status.extend_end_last_minute) {
+			html += disabledWithReason(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end',
+				strings.postponeLastMinute || 'Postpone close is unavailable: the form already closes at 23:59, the last minute of the day.');
 		} else if (info.status.extend_end_disabled_by_admin) {
 			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', true,
 				strings.extendEndDisabledTip || 'Postpone Close disabled');
@@ -217,7 +270,8 @@
 		api.$container.find('.ffc-btn-download-csv').not('[disabled]').on('click', api.onDownloadClick);
 		api.$container.find('.ffc-btn-cert-preview').on('click', api.onCertPreviewClick);
 		api.$container.find('.ffc-btn-open-early').on('click', api.onOpenEarlyClick);
-		api.$container.find('.ffc-btn-extend-end').on('click', api.onExtendEndClick);
+		api.$container.find('.ffc-btn-extend-end').not('[disabled]').on('click', api.onExtendEndClick);
+		api.$container.find('.ffc-action-reason-toggle').on('click', onReasonToggle);
 		api.$container.find('.ffc-btn-schedule-exception').on('click', api.onScheduleExceptionClick);
 	}
 
