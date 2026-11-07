@@ -104,6 +104,7 @@ class MigrationDynamicReregFields {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
+            overrides_field_id bigint(20) unsigned DEFAULT NULL,
             field_key varchar(100) NOT NULL,
             field_label varchar(250) NOT NULL,
             field_type varchar(50) NOT NULL DEFAULT 'text',
@@ -117,6 +118,7 @@ class MigrationDynamicReregFields {
             sort_order int(11) NOT NULL DEFAULT 0,
             is_required tinyint(1) NOT NULL DEFAULT 0,
             is_active tinyint(1) NOT NULL DEFAULT 1,
+            is_hidden tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (id),
@@ -124,7 +126,8 @@ class MigrationDynamicReregFields {
             KEY idx_field_key (field_key),
             KEY idx_sort_order (audience_id, sort_order),
             KEY idx_group_sort (audience_id, field_group, sort_order),
-            KEY idx_source (audience_id, field_source)
+            KEY idx_source (audience_id, field_source),
+            KEY idx_overrides_field_id (overrides_field_id)
         ) {$charset_collate};";
 
 		dbDelta( $sql );

@@ -269,9 +269,6 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="width:794px;height:1123px;padding:60px;box-sizing:border-box;font-fami' => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="text-align:center;color:#0073aa'                                        => array( 1, self::PDF_DOCUMENT ),
 		),
-		'includes/reregistration/class-ffc-reregistration-custom-fields-page.php' => array(
-			'style=: style="--ffc-color:<?php echo esc_attr( $audience->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
-		),
 		'includes/scheduling/class-ffc-calendar-appearance.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( $handle' => array( 1, self::GENERATED ),
 		),

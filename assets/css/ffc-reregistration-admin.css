@@ -148,14 +148,9 @@
     gap: var(--ffc-spacing-xs);
 }
 
-/* ── Custom Fields table columns ─────────────── */
-.ffc-page-reregistration .column-fields,
-.ffc-page-custom-fields .column-fields {
+/* ── Fields column ─────────────── */
+.ffc-page-reregistration .column-fields {
     width: 120px;
-}
-
-.ffc-custom-fields-table .column-actions {
-    width: 180px;
 }
 
 /* ── Delete link ─────────────────────────────── */

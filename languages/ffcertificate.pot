@@ -180,12 +180,6 @@ msgstr ""
 msgid "%1$d / %2$d"
 msgstr ""
 
-#. 1: active count 2: total count
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:114
-#, php-format
-msgid "%1$d active / %2$d total"
-msgstr ""
-
 #. 1: existing count, 2: total count
 #: includes/migrations/class-ffc-migration-foreign-keys.php:315
 #, php-format
@@ -1275,10 +1269,6 @@ msgstr ""
 
 #: templates/reregistration/field-working-hours.php:53 includes/admin/class-ffc-admin-user-custom-fields.php:293
 msgid "Add Day"
-msgstr ""
-
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:125
-msgid "Add Fields"
 msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php:63
@@ -4979,10 +4969,6 @@ msgstr ""
 msgid "Custom fields"
 msgstr ""
 
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:48
-msgid "Custom fields are defined per audience. Select an audience to manage its fields."
-msgstr ""
-
 #: includes/settings/views/documentation/reference-tokens.php:132
 msgid "Custom fields as variables"
 msgstr ""
@@ -5342,10 +5328,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/reference-validation-url.php:31
 msgid "Default: link to magic, text shows /valid"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-admin-audience-renderer.php:358
-msgid "Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use \"Add Field\" to create custom fields."
 msgstr ""
 
 #. %s: link to the Adjutancies tab
@@ -6192,10 +6174,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:376 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:77
 msgid "Edit Date"
-msgstr ""
-
-#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:125
-msgid "Edit Fields"
 msgstr ""
 
 #: includes/admin/class-ffc-cpt.php:51
@@ -33522,4 +33500,148 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php:36
 msgid "The rule editor has one tab per part of the rule — Rule, Message, Body appearance, Sending, Manager summary and Check before saving — and a side column: the Active switch and Save rule first, then \"This rule\", a summary of the choices on every tab that follows the form before it is saved. Save rule writes every tab at once; moving between tabs keeps what was typed."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-loader.php
+msgid "Discard this audience's changes to the field? It goes back to the inherited one."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Asks"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Back to inherited"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Changed here"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Customize"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+#, php-format
+msgid "Field \"%s\" belongs to another audience or to the global list and was not saved."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "From %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "From parent audiences"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "From the global list"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Hidden here"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+#, php-format
+msgid "Hidden in %s"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Only here"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Own copies"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Own copy"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Show again"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "The field could not be changed. Reload the page and try again."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "This audience does not inherit that field."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-ajax-controller.php
+msgid "This audience has no change to that field."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "This audience keeps its own copy of a field it also inherits, with answers of its own. It is asked in place of the inherited one."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d changed"
+msgid_plural "%d changed"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d hidden"
+msgid_plural "%d hidden"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+#, php-format
+msgid "%d own field"
+msgid_plural "%d own fields"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Changed in audiences"
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Each name opens that audience's fields tab."
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "Every audience asks these fields, unless it changes or hides one. A change here reaches every audience that has not changed that field. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-custom-fields-page.php
+msgid "Global fields"
+msgstr ""
+
+#: includes/audience/class-ffc-audience-admin-audience-renderer.php
+msgid "The fields this audience asks: the global ones, those of its parent audiences and its own. Customize changes an inherited field for this audience and its sub-audiences only; Hide stops asking it here. Use \"Add Field\" for a field only this audience asks."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Global fields and inheritance"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Reregistration → Custom Fields edits the global list: the fields every audience asks. Below it, each audience inherits from its parent audiences, and a sub-audience from its audience. The audience's Reregistration fields tab shows where each field comes from (Global, From a parent, Changed here, Hidden here, Only here)."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Customize copies one inherited field into the audience, where its label, group, options, validation and whether it is required or active can change. The key, type, sensitivity and profile binding follow the inherited field, and the answers stay under it, so a person answering in two audiences answers once. Back to inherited discards the change."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Hide stops asking an inherited field in the audience and its sub-audiences, required fields included. Answers already stored stay. Show again asks it once more."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "The side column of the global page lists, per audience, how many fields it changed, hid or asks on its own; each name opens that audience's fields tab."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-audiences.php
+msgid "Audiences created before the global list keep their own copy of each standard field, marked \"Own copy\", with answers of its own; it is asked in place of the inherited one."
 msgstr ""

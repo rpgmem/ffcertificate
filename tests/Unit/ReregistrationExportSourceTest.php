@@ -472,7 +472,8 @@ class ReregistrationExportSourceTest extends BatchedExportSourceContractTestCase
 		$this->assertCount( 1, $context['fields'] );
 		$this->assertSame( 'ramal', $context['fields'][0]->field_key );
 
-		$field_reads = array_values( array_filter( $this->prepared, static fn( array $call ): bool => 'wp_ffc_custom_fields' === ( $call[1] ?? null ) ) );
+		// The global list every audience inherits is read first (#2502).
+		$field_reads = array_values( array_filter( $this->prepared, static fn( array $call ): bool => 'wp_ffc_custom_fields' === ( $call[1] ?? null ) && 0 !== ( $call[2] ?? null ) ) );
 		$this->assertCount( 1, $field_reads );
 		$this->assertStringNotContainsString( 'is_active = 1', $field_reads[0][0], 'Inactive fields are read too: their answers stay in the export (#2242).' );
 		$this->assertSame( 1, $field_reads[0][2], 'The fields are read for the campaign\'s audience.' );

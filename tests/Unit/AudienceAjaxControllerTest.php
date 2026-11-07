@@ -306,6 +306,10 @@ class AudienceAjaxControllerTest extends TestCase {
 			$key = $args[1] . ':' . $args[2];
 			return isset( $this->permissions[ $key ] ) ? (object) $this->permissions[ $key ] : null;
 		}
+		if ( 'wp_ffc_custom_fields' === $table && false !== strpos( $sql, 'WHERE audience_id = %d AND overrides_field_id = %d LIMIT 1' ) ) {
+			$found = $this->fields_where( array( 'audience_id' => $args[1], 'overrides_field_id' => $args[2] ) );
+			return $found ? (object) $found[0] : null;
+		}
 		if ( 'wp_ffc_custom_fields' === $table && false !== strpos( $sql, 'WHERE audience_id = %d AND field_key = %s LIMIT 1' ) ) {
 			$found = $this->fields_where( array( 'audience_id' => $args[1], 'field_key' => $args[2] ) );
 			return $found ? (object) $found[0] : null;
@@ -355,7 +359,7 @@ class AudienceAjaxControllerTest extends TestCase {
 				$this->fields,
 				static function ( $row ) use ( $match ) {
 					foreach ( $match as $col => $value ) {
-						if ( (string) $row[ $col ] !== (string) $value ) {
+						if ( (string) ( $row[ $col ] ?? '' ) !== (string) $value ) {
 							return false;
 						}
 					}
@@ -1119,6 +1123,13 @@ class AudienceAjaxControllerTest extends TestCase {
 					'data'  => array(),
 					'where' => array( 'id' => 3 ),
 				),
+				// The audiences' changes to the field go with it (#2502).
+				array(
+					'op'    => 'delete',
+					'table' => 'wp_ffc_custom_fields',
+					'data'  => array(),
+					'where' => array( 'overrides_field_id' => 3 ),
+				),
 			),
 			$this->writes
 		);
@@ -1199,14 +1210,159 @@ class AudienceAjaxControllerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid field data format', $this->responses[0]['data']['message'] );
 	}
 
-	public function test_save_custom_fields_rejects_missing_audience(): void {
-		$this->caps = array( 'ffc_manage_custom_fields' );
-		$_POST      = array( 'nonce' => 'n', 'audience_id' => '0', 'fields' => '[]' );
+	/**
+	 * Audience 0 is the global list every audience inherits (#2502).
+	 */
+	public function test_save_custom_fields_accepts_the_global_list(): void {
+		$this->caps   = array( 'ffc_manage_custom_fields' );
+		$_POST        = array( 'nonce' => 'n', 'audience_id' => '0', 'fields' => json_encode( array( array( 'id' => 12, 'label' => 'Shoe size', 'type' => 'number' ) ) ) );
+		$this->fields = array( 12 => array( 'id' => 12, 'audience_id' => 0, 'field_key' => 'shoe', 'field_source' => 'custom', 'is_sensitive' => 0 ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( array( 12 ), $this->responses[0]['data']['saved_ids'] );
+	}
+
+	/**
+	 * A screen edits its own level: a global field posted from an audience
+	 * screen is refused, never written (#2502).
+	 */
+	public function test_save_custom_fields_refuses_a_field_of_another_level(): void {
+		$this->postFields( array( array( 'id' => 12, 'label' => 'Hijack', 'type' => 'text' ) ) );
+		$this->fields = array( 12 => array( 'id' => 12, 'audience_id' => 0, 'field_key' => 'nome', 'field_source' => 'standard' ) );
 
 		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
 
 		$this->assertFalse( $this->responses[0]['ok'] );
-		$this->assertStringContainsString( 'Invalid data', $this->responses[0]['data']['message'] );
+		$this->assertStringContainsString( 'belongs to another audience', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes_to( 'wp_ffc_custom_fields' ) );
+	}
+
+	/**
+	 * A change writes what an audience may change and nothing else: no key,
+	 * no type, no sensitivity, and not the editor's position (#2502).
+	 */
+	public function test_save_custom_fields_writes_only_the_overridable_columns_of_a_change(): void {
+		$this->postFields(
+			array(
+				array(
+					'id'           => 9,
+					'label'        => 'Kitchen union',
+					'type'         => 'text',
+					'key'          => 'renamed',
+					'is_sensitive' => 1,
+					'is_required'  => 1,
+					'choices'      => array( 'A', 'B' ),
+				),
+			)
+		);
+		$this->fields = array( 9 => array( 'id' => 9, 'audience_id' => 4, 'overrides_field_id' => 1, 'field_key' => 'sindicato', 'field_source' => 'custom', 'field_options' => null ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_save_custom_fields() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$writes = $this->writes_to( 'wp_ffc_custom_fields' );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( array( 'id' => 9 ), $writes[0]['where'] );
+		$this->assertSame( 'Kitchen union', $writes[0]['data']['field_label'] );
+		$this->assertSame( 1, $writes[0]['data']['is_required'] );
+		$this->assertSame( '{"choices":["A","B"]}', $writes[0]['data']['field_options'] );
+		foreach ( array( 'field_key', 'field_type', 'is_sensitive', 'sort_order', 'audience_id' ) as $locked ) {
+			$this->assertArrayNotHasKey( $locked, $writes[0]['data'], $locked . ' follows the inherited field.' );
+		}
+	}
+
+	// ── custom_field_inheritance (#2502) ───────────────────────────────
+
+	/**
+	 * Audience 4 under no parent, with one global field to inherit.
+	 *
+	 * @param array<string, string> $post Extra POST values.
+	 */
+	private function postInheritance( array $post ): void {
+		$this->caps         = array( 'ffc_manage_custom_fields' );
+		$this->audiences[4] = array( 'id' => 4, 'parent_id' => null, 'name' => 'Kitchen' );
+		$this->fields       = array(
+			1 => array( 'id' => 1, 'audience_id' => 0, 'field_key' => 'sindicato', 'field_label' => 'Union', 'field_type' => 'select', 'field_group' => 'union', 'field_source' => 'standard', 'field_profile_key' => null, 'field_mask' => null, 'is_sensitive' => 0, 'field_options' => '{"choices":["A"]}', 'validation_rules' => null, 'sort_order' => 3, 'is_required' => 1, 'is_active' => 1 ),
+		);
+		$_POST = array_merge( array( 'nonce' => 'n', 'audience_id' => '4' ), $post );
+	}
+
+	public function test_customize_copies_the_inherited_field_into_a_change(): void {
+		$this->postInheritance( array( 'field_id' => '1', 'operation' => 'customize' ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$writes = $this->writes_to( 'wp_ffc_custom_fields' );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( 'insert', $writes[0]['op'] );
+		$this->assertSame( 4, $writes[0]['data']['audience_id'] );
+		$this->assertSame( 1, $writes[0]['data']['overrides_field_id'] );
+		$this->assertSame( 'sindicato', $writes[0]['data']['field_key'] );
+		$this->assertSame( 'Union', $writes[0]['data']['field_label'] );
+		$this->assertSame( 0, $writes[0]['data']['is_hidden'] );
+	}
+
+	public function test_hide_adds_a_hidden_change(): void {
+		$this->postInheritance( array( 'field_id' => '1', 'operation' => 'hide' ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( 1, $this->writes_to( 'wp_ffc_custom_fields' )[0]['data']['is_hidden'] );
+	}
+
+	public function test_customize_refuses_a_field_the_audience_does_not_inherit(): void {
+		$this->postInheritance( array( 'field_id' => '77', 'operation' => 'customize' ) );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+
+		$this->assertFalse( $this->responses[0]['ok'] );
+		$this->assertStringContainsString( 'does not inherit', $this->responses[0]['data']['message'] );
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_revert_deletes_the_change_only(): void {
+		$this->postInheritance( array( 'field_id' => '9', 'operation' => 'revert' ) );
+		$this->fields[9] = array( 'id' => 9, 'audience_id' => 4, 'overrides_field_id' => 1, 'field_key' => 'sindicato' );
+
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+
+		$this->assertTrue( $this->responses[0]['ok'] );
+		$this->assertSame( array( array( 'id' => 9 ) ), array_column( $this->writes_to( 'wp_ffc_custom_fields' ), 'where' ) );
+	}
+
+	/**
+	 * Revert never deletes a field's definition, nor another audience's change.
+	 */
+	public function test_revert_refuses_a_definition_and_another_audience_change(): void {
+		$this->postInheritance( array( 'field_id' => '1', 'operation' => 'revert' ) );
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+
+		$this->responses = array();
+		$this->postInheritance( array( 'field_id' => '9', 'operation' => 'revert' ) );
+		$this->fields[9] = array( 'id' => 9, 'audience_id' => 5, 'overrides_field_id' => 1, 'field_key' => 'sindicato' );
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+
+		$this->assertSame( array(), $this->writes );
+	}
+
+	public function test_inheritance_requires_the_manage_cap_and_a_known_operation(): void {
+		$this->postInheritance( array( 'field_id' => '1', 'operation' => 'drop' ) );
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+
+		$this->responses = array();
+		$this->postInheritance( array( 'field_id' => '1', 'operation' => 'customize' ) );
+		$this->caps = array();
+		$this->dispatch( fn() => ( new AudienceAjaxController() )->ajax_custom_field_inheritance() );
+		$this->assertFalse( $this->responses[0]['ok'] );
+
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_save_custom_fields_reports_audience_not_found(): void {

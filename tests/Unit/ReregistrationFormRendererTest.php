@@ -170,6 +170,10 @@ class ReregistrationFormRendererTest extends TestCase {
 				if ( str_starts_with( (string) $sql, 'SELECT * FROM wp_ffc_custom_fields WHERE audience_id = 1 AND is_active = 1' ) ) {
 					return $this->fields;
 				}
+				// The global list every audience inherits (#2502): empty here.
+				if ( str_starts_with( (string) $sql, 'SELECT * FROM wp_ffc_custom_fields WHERE audience_id = 0 AND is_active = 1' ) ) {
+					return array();
+				}
 				$this->fail( 'Unexpected get_results: ' . $sql );
 			}
 		);

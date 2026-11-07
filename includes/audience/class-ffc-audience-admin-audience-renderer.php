@@ -705,9 +705,15 @@ final class AudienceAdminAudienceRenderer {
 
 	/**
 	 * Render custom fields management section: the body of the Reregistration
-	 * fields tab, whose panel carries the heading.
+	 * fields tab, whose panel carries the heading, and of the global list on
+	 * Reregistration -> Custom Fields (#2502).
 	 *
-	 * @param int $audience_id Audience ID.
+	 * An audience's tab shows what the audience asks, level by level (see
+	 * {@see CustomFieldReader::resolve()}): its own fields and its changes
+	 * are edited here; a field it inherits is one line with Customize and
+	 * Hide.
+	 *
+	 * @param int $audience_id Audience ID; 0 renders the global list.
 	 * @return void
 	 */
 	public static function render_custom_fields_section( int $audience_id ): void {
@@ -718,16 +724,19 @@ final class AudienceAdminAudienceRenderer {
 			return;
 		}
 		$can_edit_fields = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_custom_fields' );
+		$is_global       = 0 === $audience_id;
 
 		// Ensure standard fields are seeded for this audience before rendering.
-		if ( class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
+		if ( ! $is_global && class_exists( '\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder' ) ) {
 			\FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder::seed_for_audience( $audience_id );
 		}
 
 		// Custom fields for this audience, plus the ordered slug => translated
 		// label map: A→Z by translated label with the display-only
 		// `acknowledgment` type pinned last.
-		$fields       = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( $audience_id, false );
+		$fields       = $is_global
+			? \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_audience( 0, false )
+			: \FreeFormCertificate\Reregistration\CustomFieldReader::resolve( $audience_id );
 		$field_types  = LabelSorter::sort(
 			CustomFieldReader::field_type_labels(),
 			static function ( string $label ): string {
@@ -742,18 +751,82 @@ final class AudienceAdminAudienceRenderer {
 
 		// "Replicate to children" is only meaningful when this audience has
 		// descendants to push its option lists down to.
-		$has_children = ! empty( AudienceReader::get_children( $audience_id ) );
+		$has_children = ! $is_global && ! empty( AudienceReader::get_children( $audience_id ) );
+
+		// An older copy of a field shadows the inherited one in this tab, so
+		// a field is listed once (#2502).
+		$own_keys = array();
+		foreach ( $fields as $field ) {
+			if ( ! $is_global && (int) ( $field->definition_audience_id ?? -1 ) === $audience_id && 0 === (int) ( $field->override_id ?? 0 ) ) {
+				$own_keys[ (string) $field->field_key ] = true;
+			}
+		}
 
 		?>
-		<p class="description"><?php esc_html_e( 'Define all fields shown during reregistration. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted. Use "Add Field" to create custom fields.', 'ffcertificate' ); ?></p>
+		<p class="description">
+			<?php
+			if ( $is_global ) {
+				esc_html_e( 'Every audience asks these fields, unless it changes or hides one. A change here reaches every audience that has not changed that field. Standard fields can be reordered, relabelled, regrouped and deactivated, but not deleted.', 'ffcertificate' );
+			} else {
+				esc_html_e( 'The fields this audience asks: the global ones, those of its parent audiences and its own. Customize changes an inherited field for this audience and its sub-audiences only; Hide stops asking it here. Use "Add Field" for a field only this audience asks.', 'ffcertificate' );
+			}
+			?>
+		</p>
+
+		<?php
+		if ( ! $is_global ) {
+			self::render_fields_summary( $fields, $audience_id, $own_keys );
+		}
+		?>
 
 		<div id="ffc-custom-fields-container" data-audience-id="<?php echo esc_attr( (string) $audience_id ); ?>">
 			<div id="ffc-custom-fields-list" class="ffc-custom-fields-sortable">
-				<?php if ( ! empty( $fields ) ) : ?>
-					<?php foreach ( $fields as $field ) : ?>
-						<?php self::render_custom_field_row( $field, $field_types, $group_labels ); ?>
-					<?php endforeach; ?>
-				<?php endif; ?>
+				<?php foreach ( $fields as $field ) : ?>
+					<?php
+					if ( $is_global ) {
+						self::render_custom_field_row( $field, $field_types, $group_labels );
+						continue;
+					}
+					$override_id = (int) ( $field->override_id ?? 0 );
+					$here        = (int) ( $field->source_audience_id ?? -1 ) === $audience_id;
+					$own         = (int) ( $field->definition_audience_id ?? -1 ) === $audience_id && 0 === $override_id;
+					if ( $own ) {
+						$inherited_key = false;
+						foreach ( $fields as $other ) {
+							if ( (string) $other->field_key === (string) $field->field_key && $other !== $field ) {
+								$inherited_key = true;
+								break;
+							}
+						}
+						self::render_custom_field_row(
+							$field,
+							$field_types,
+							$group_labels,
+							array( 'badge' => $inherited_key ? 'copy' : 'own' )
+						);
+						continue;
+					}
+					if ( isset( $own_keys[ (string) $field->field_key ] ) ) {
+						continue;
+					}
+					if ( $here && $override_id > 0 && empty( $field->is_hidden ) ) {
+						$change = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( $override_id );
+						if ( null !== $change ) {
+							self::render_custom_field_row(
+								$change,
+								$field_types,
+								$group_labels,
+								array(
+									'badge'    => 'changed',
+									'override' => true,
+								)
+							);
+							continue;
+						}
+					}
+					self::render_inherited_field_row( $field, $audience_id, $field_types, $can_edit_fields );
+					?>
+				<?php endforeach; ?>
 			</div>
 
 			<?php if ( $can_edit_fields ) : ?>
@@ -886,10 +959,17 @@ final class AudienceAdminAudienceRenderer {
 	 * @param object                $field        Field object from database.
 	 * @param array<string, string> $field_types  Ordered slug => translated label map.
 	 * @param array<string, string> $group_labels Map of group_key => translated label.
+	 * @param array<string, mixed>  $context      How an audience's tab draws the row (#2502):
+	 *                                            `badge` is `own`, `copy` or `changed`;
+	 *                                            `override` marks a change to an inherited
+	 *                                            field, which keeps the field's key, type,
+	 *                                            sensitivity and binding, follows its order
+	 *                                            and goes back to the inherited field instead
+	 *                                            of being deleted.
 	 * @phpstan-param CustomFieldRow $field
 	 * @return void
 	 */
-	public static function render_custom_field_row( object $field, array $field_types, array $group_labels = array() ): void {
+	public static function render_custom_field_row( object $field, array $field_types, array $group_labels = array(), array $context = array() ): void {
 		$options = $field->field_options;
 		if ( is_string( $options ) ) {
 			$options = json_decode( $options, true );
@@ -915,12 +995,14 @@ final class AudienceAdminAudienceRenderer {
 
 		$source      = isset( $field->field_source ) && 'standard' === $field->field_source ? 'standard' : 'custom';
 		$is_standard = ( 'standard' === $source );
+		$is_override = ! empty( $context['override'] );
 		$locked_attr = $is_standard ? ' disabled' : '';
 		// A custom field anybody answered keeps its key, type, sensitivity and
 		// profile binding, and cannot be deleted (#2242). The server enforces
-		// it; the row draws it.
-		$answered     = ! $is_standard && \FreeFormCertificate\Reregistration\CustomFieldReader::has_answers( $field );
-		$answer_lock  = ( $is_standard || $answered ) ? ' disabled' : '';
+		// it; the row draws it. A change to an inherited field never moves
+		// those: they follow the field it changes (#2502).
+		$answered     = ! $is_standard && ! $is_override && \FreeFormCertificate\Reregistration\CustomFieldReader::has_answers( $field );
+		$answer_lock  = ( $is_standard || $answered || $is_override ) ? ' disabled' : '';
 		$field_group  = (string) ( $field->field_group ?? '' );
 		$profile_key  = (string) ( $field->field_profile_key ?? '' );
 		$mask         = (string) ( $field->field_mask ?? '' );
@@ -930,6 +1012,22 @@ final class AudienceAdminAudienceRenderer {
 			? __( 'Standard', 'ffcertificate' )
 			: __( 'Custom', 'ffcertificate' );
 		$badge_class = $is_standard ? 'ffc-field-source-standard' : 'ffc-field-source-custom';
+		$badge_title = '';
+		switch ( $context['badge'] ?? '' ) {
+			case 'own':
+				$badge_label = __( 'Only here', 'ffcertificate' );
+				$badge_class = 'ffc-field-source-own';
+				break;
+			case 'copy':
+				$badge_label = __( 'Own copy', 'ffcertificate' );
+				$badge_class = 'ffc-field-source-copy';
+				$badge_title = __( 'This audience keeps its own copy of a field it also inherits, with answers of its own. It is asked in place of the inherited one.', 'ffcertificate' );
+				break;
+			case 'changed':
+				$badge_label = __( 'Changed here', 'ffcertificate' );
+				$badge_class = 'ffc-field-source-changed';
+				break;
+		}
 
 		// Ensure the field's current group appears in the select even if it.
 		// is not one of the canonical seeder groups (custom field groups).
@@ -938,11 +1036,15 @@ final class AudienceAdminAudienceRenderer {
 		}
 
 		?>
-		<div class="ffc-custom-field-row <?php echo empty( $field->is_active ) ? 'ffc-field-inactive' : ''; ?> ffc-field-source-<?php echo esc_attr( $source ); ?>" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>" data-field-source="<?php echo esc_attr( $source ); ?>">
-			<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
+		<div class="ffc-custom-field-row <?php echo empty( $field->is_active ) ? 'ffc-field-inactive' : ''; ?> ffc-field-source-<?php echo esc_attr( $source ); ?>" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>" data-field-source="<?php echo esc_attr( $source ); ?>"<?php echo $is_override ? ' data-override="1"' : ''; ?>>
+			<?php if ( $is_override ) : ?>
+				<div class="ffc-field-handle-placeholder" aria-hidden="true"></div>
+			<?php else : ?>
+				<div class="ffc-field-handle"><span class="ffc-icon-grip" aria-hidden="true"></span></div>
+			<?php endif; ?>
 			<div class="ffc-field-content">
 				<div class="ffc-field-main-row">
-					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
+					<span class="ffc-field-source-badge <?php echo esc_attr( $badge_class ); ?>"<?php echo '' !== $badge_title ? ' title="' . esc_attr( $badge_title ) . '"' : ''; ?>><?php echo esc_html( $badge_label ); ?></span>
 					<input type="text" class="ffc-field-label regular-text" placeholder="<?php esc_attr_e( 'Field Label', 'ffcertificate' ); ?>" value="<?php echo esc_attr( $field->field_label ); ?>">
 					<select class="ffc-field-type"<?php echo esc_attr( $answer_lock ); ?>>
 						<?php foreach ( $field_types as $type => $label ) : ?>
@@ -981,7 +1083,7 @@ final class AudienceAdminAudienceRenderer {
 							'class'       => 'ffc-field-sensitive-label',
 							'label'       => __( 'Sensitive', 'ffcertificate' ),
 							'checked'     => $is_sensitive,
-							'disabled'    => $is_standard || $answered,
+							'disabled'    => $is_standard || $answered || $is_override,
 							'title'       => __( 'Encrypt this value at rest (AES-256).', 'ffcertificate' ),
 						)
 					);
@@ -1098,9 +1200,167 @@ final class AudienceAdminAudienceRenderer {
 				</div>
 			</div>
 			<div class="ffc-field-actions">
-				<?php self::render_field_actions( ! $is_standard && ! $answered ); ?>
+				<?php
+				if ( $is_override ) {
+					self::render_inheritance_button( 'revert', (int) $field->id, __( 'Back to inherited', 'ffcertificate' ), 'caution', 'restore' );
+					self::render_field_actions( false );
+				} else {
+					self::render_field_actions( ! $is_standard && ! $answered );
+				}
+				?>
 			</div>
 		</div>
+		<?php
+	}
+
+	/**
+	 * One line for a field the audience inherits (#2502): its label, type,
+	 * group and where it comes from, with Customize and Hide -- or Show again
+	 * when the audience hid it.
+	 *
+	 * @param object                $field       Field as resolved for the audience.
+	 * @param int                   $audience_id Audience whose tab this is.
+	 * @param array<string, string> $field_types Slug => translated type label.
+	 * @param bool                  $can_edit    Whether the actions are drawn.
+	 * @phpstan-param CustomFieldRow $field
+	 * @return void
+	 */
+	private static function render_inherited_field_row( object $field, int $audience_id, array $field_types, bool $can_edit ): void {
+		$source_id   = (int) ( $field->source_audience_id ?? 0 );
+		$hidden      = ! empty( $field->is_hidden );
+		$hidden_here = $hidden && $source_id === $audience_id;
+		if ( $hidden_here ) {
+			$badge = __( 'Hidden here', 'ffcertificate' );
+			$class = 'ffc-field-source-hidden';
+		} elseif ( $hidden ) {
+			/* translators: %s: name of the parent audience that hid the field */
+			$badge = sprintf( __( 'Hidden in %s', 'ffcertificate' ), (string) ( $field->source_audience_name ?? '' ) );
+			$class = 'ffc-field-source-hidden';
+		} elseif ( 0 === $source_id ) {
+			$badge = __( 'Global', 'ffcertificate' );
+			$class = 'ffc-field-source-global';
+		} else {
+			/* translators: %s: name of the parent audience the field comes from */
+			$badge = sprintf( __( 'From %s', 'ffcertificate' ), (string) ( $field->source_audience_name ?? '' ) );
+			$class = 'ffc-field-source-parent';
+		}
+		$type = $field_types[ (string) $field->field_type ] ?? (string) $field->field_type;
+		?>
+		<div class="ffc-inherited-field-row<?php echo $hidden || empty( $field->is_active ) ? ' ffc-field-inactive' : ''; ?>" data-field-id="<?php echo esc_attr( (string) $field->id ); ?>">
+			<span class="ffc-field-source-badge <?php echo esc_attr( $class ); ?>"><?php echo esc_html( $badge ); ?></span>
+			<span class="ffc-inherited-field-label"><?php echo esc_html( (string) $field->field_label ); ?></span>
+			<span class="ffc-inherited-field-meta"><?php echo esc_html( $type ); ?><?php echo ! empty( $field->is_required ) ? ' · ' . esc_html__( 'Required', 'ffcertificate' ) : ''; ?></span>
+			<?php if ( $can_edit ) : ?>
+				<span class="ffc-field-actions">
+					<?php
+					if ( $hidden_here ) {
+						self::render_inheritance_button( 'show', (int) $field->override_id, __( 'Show again', 'ffcertificate' ), 'neutral', 'eye' );
+					} else {
+						self::render_inheritance_button( 'customize', (int) $field->id, __( 'Customize', 'ffcertificate' ), 'neutral', 'edit' );
+						if ( ! $hidden ) {
+							self::render_inheritance_button( 'hide', (int) $field->id, __( 'Hide', 'ffcertificate' ), 'neutral', 'eye-off' );
+						}
+					}
+					?>
+				</span>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * A button that changes how the audience inherits a field (#2502).
+	 * `ffc-custom-fields-admin.js` sends `data-ffc-inheritance` and
+	 * `data-field-id` to `ffc_custom_field_inheritance`.
+	 *
+	 * @param string $operation customize, hide, show or revert.
+	 * @param int    $field_id  The inherited field's id (customize, hide) or the change row's (show, revert).
+	 * @param string $label     Button label.
+	 * @param string $category  Button category.
+	 * @param string $icon      Registry icon.
+	 * @return void
+	 */
+	private static function render_inheritance_button( string $operation, int $field_id, string $label, string $category, string $icon ): void {
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label'    => $label,
+				'category' => $category,
+				'icon'     => $icon,
+				'class'    => 'ffc-field-inheritance',
+				'attrs'    => array(
+					'data-ffc-inheritance' => $operation,
+					'data-field-id'        => (string) $field_id,
+				),
+			)
+		);
+	}
+
+	/**
+	 * How many of the fields an audience asks come from where (#2502).
+	 *
+	 * @param array<int, object>  $fields      The audience's resolved fields, hidden included.
+	 * @param int                 $audience_id Audience ID.
+	 * @param array<string, bool> $own_keys    Keys the audience defines itself.
+	 * @phpstan-param list<CustomFieldRow> $fields
+	 * @return void
+	 */
+	private static function render_fields_summary( array $fields, int $audience_id, array $own_keys ): void {
+		$inherited = array();
+		foreach ( $fields as $field ) {
+			if ( (int) ( $field->definition_audience_id ?? -1 ) !== $audience_id ) {
+				$inherited[ (string) $field->field_key ] = true;
+			}
+		}
+		$counts = array(
+			'asked'   => 0,
+			'global'  => 0,
+			'parents' => 0,
+			'changed' => 0,
+			'hidden'  => 0,
+			'own'     => 0,
+			'copies'  => 0,
+		);
+		foreach ( $fields as $field ) {
+			$own = (int) ( $field->definition_audience_id ?? -1 ) === $audience_id && 0 === (int) ( $field->override_id ?? 0 );
+			if ( ! $own && isset( $own_keys[ (string) $field->field_key ] ) ) {
+				continue;
+			}
+			if ( ! empty( $field->is_hidden ) ) {
+				++$counts['hidden'];
+				continue;
+			}
+			++$counts['asked'];
+			if ( $own && isset( $inherited[ (string) $field->field_key ] ) ) {
+				++$counts['copies'];
+			} elseif ( $own ) {
+				++$counts['own'];
+			} elseif ( (int) ( $field->source_audience_id ?? -1 ) === $audience_id ) {
+				++$counts['changed'];
+			} elseif ( 0 === (int) ( $field->source_audience_id ?? 0 ) ) {
+				++$counts['global'];
+			} else {
+				++$counts['parents'];
+			}
+		}
+		$rows = array(
+			'asked'   => __( 'Asks', 'ffcertificate' ),
+			'global'  => __( 'From the global list', 'ffcertificate' ),
+			'parents' => __( 'From parent audiences', 'ffcertificate' ),
+			'changed' => __( 'Changed here', 'ffcertificate' ),
+			'hidden'  => __( 'Hidden here', 'ffcertificate' ),
+			'own'     => __( 'Only here', 'ffcertificate' ),
+			'copies'  => __( 'Own copies', 'ffcertificate' ),
+		);
+		if ( 0 === $counts['copies'] ) {
+			unset( $rows['copies'] );
+		}
+		?>
+		<dl class="ffc-facts ffc-fields-summary">
+			<?php foreach ( $rows as $key => $label ) : ?>
+				<dt class="ffc-facts__label"><?php echo esc_html( $label ); ?></dt>
+				<dd class="ffc-facts__value"><?php echo esc_html( number_format_i18n( $counts[ $key ] ) ); ?></dd>
+			<?php endforeach; ?>
+		</dl>
 		<?php
 	}
 

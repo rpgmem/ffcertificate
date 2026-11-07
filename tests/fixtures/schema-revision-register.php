@@ -60,7 +60,7 @@ return array(
 	),
 	'includes/user-dashboard/class-ffc-user-dashboard-activator.php' => array(
 		'class'       => 'FreeFormCertificate\\UserDashboard\\UserDashboardActivator',
-		'revision'    => '1',
-		'fingerprint' => '748f3c5b450d1c1e4eea7b482cb3d3f48fff8231',
+		'revision'    => '2',
+		'fingerprint' => 'b68466a5b332f40d4d413efa5cc9057833ba2cba',
 	),
 );

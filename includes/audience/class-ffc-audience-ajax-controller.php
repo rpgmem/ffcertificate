@@ -48,6 +48,7 @@ final class AudienceAjaxController {
 		// Custom fields AJAX.
 		add_action( 'wp_ajax_ffc_save_custom_fields', array( $this, 'ajax_save_custom_fields' ) );
 		add_action( 'wp_ajax_ffc_delete_custom_field', array( $this, 'ajax_delete_custom_field' ) );
+		add_action( 'wp_ajax_ffc_custom_field_inheritance', array( $this, 'ajax_custom_field_inheritance' ) );
 		add_action( 'wp_ajax_ffc_replicate_field_options', array( $this, 'ajax_replicate_field_options' ) );
 	}
 
@@ -467,12 +468,12 @@ final class AudienceAjaxController {
 				wp_send_json_error( array( 'message' => __( 'Invalid field data format.', 'ffcertificate' ) ) );
 			}
 
-			if ( ! $audience_id ) {
+			// 0 is the global list every audience inherits (#2502).
+			if ( $audience_id < 0 ) {
 				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
 			}
 
-			$audience = AudienceReader::get_by_id( $audience_id );
-			if ( ! $audience ) {
+			if ( $audience_id > 0 && ! AudienceReader::get_by_id( $audience_id ) ) {
 				wp_send_json_error( array( 'message' => __( 'Audience not found.', 'ffcertificate' ) ) );
 			}
 
@@ -563,7 +564,40 @@ final class AudienceAjaxController {
 				// mask, profile_key, etc. stay immutable for standard fields.
 				if ( ! $is_new ) {
 					$existing = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( (int) $field_id );
-					if ( $existing && isset( $existing->field_source ) && 'standard' === $existing->field_source ) {
+					// A screen edits its own level only: an inherited field is
+					// changed through Customize, never by posting its id (#2502).
+					if ( ! $existing || (int) $existing->audience_id !== $audience_id ) {
+						$errors[] = sprintf(
+							/* translators: %s: field label */
+							__( 'Field "%s" belongs to another audience or to the global list and was not saved.', 'ffcertificate' ),
+							$label
+						);
+						continue;
+					}
+					if ( (int) ( $existing->overrides_field_id ?? 0 ) > 0 ) {
+						// A change keeps its place in the inherited order and
+						// writes only what an audience may change.
+						unset( $data['sort_order'] );
+						if ( null !== $data['field_options'] ) {
+							$data['field_options'] = $this->preserve_dependent_labels( $existing, $data['field_options'] );
+						} else {
+							unset( $data['field_options'] );
+						}
+						if ( 'standard' === ( $existing->field_source ?? '' ) ) {
+							unset( $data['validation_rules'] );
+						}
+						if ( \FreeFormCertificate\Reregistration\CustomFieldWriter::update_override( (int) $field_id, $data ) ) {
+							$saved_ids[] = (int) $field_id;
+						} else {
+							$errors[] = sprintf(
+								/* translators: %s: field label */
+								__( 'Failed to update field "%s".', 'ffcertificate' ),
+								$label
+							);
+						}
+						continue;
+					}
+					if ( 'standard' === ( $existing->field_source ?? '' ) ) {
 						$allowed = array(
 							'field_label',
 							'field_group',
@@ -638,6 +672,63 @@ final class AudienceAjaxController {
 					'saved_ids' => $saved_ids,
 				)
 			);
+		} catch ( \Throwable $e ) {
+			$this->handle_ajax_exception( $e );
+		}
+	}
+
+	/**
+	 * AJAX: change how an audience inherits a field (#2502).
+	 *
+	 * `customize` and `hide` take the inherited field's id and add a change
+	 * row for the audience; `show` and `revert` take the change row's id and
+	 * undo it. Each answers with the list to reload, never a partial one.
+	 *
+	 * @return void
+	 */
+	public function ajax_custom_field_inheritance(): void {
+		try {
+			$this->verify_ajax_nonce( 'ffc_admin_nonce' );
+			$this->check_ajax_permission( 'ffc_manage_custom_fields' );
+
+			$audience_id = $this->get_post_int( 'audience_id' );
+			$field_id    = $this->get_post_int( 'field_id' );
+			$operation   = \FreeFormCertificate\Core\RequestInput::get_post_string( 'operation' );
+
+			if ( $audience_id <= 0 || $field_id <= 0 || ! AudienceReader::get_by_id( $audience_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
+			}
+
+			$done = false;
+			if ( in_array( $operation, array( 'customize', 'hide' ), true ) ) {
+				$inherited = null;
+				foreach ( \FreeFormCertificate\Reregistration\CustomFieldReader::resolve( $audience_id ) as $field ) {
+					if ( (int) $field->id === $field_id && (int) ( $field->definition_audience_id ?? -1 ) !== $audience_id ) {
+						$inherited = $field;
+						break;
+					}
+				}
+				if ( null === $inherited ) {
+					wp_send_json_error( array( 'message' => __( 'This audience does not inherit that field.', 'ffcertificate' ) ) );
+				}
+				$done = false !== \FreeFormCertificate\Reregistration\CustomFieldWriter::override( $audience_id, $inherited, 'hide' === $operation );
+			} elseif ( in_array( $operation, array( 'show', 'revert' ), true ) ) {
+				$row = \FreeFormCertificate\Reregistration\CustomFieldReader::get_by_id( $field_id );
+				if ( null === $row || (int) $row->audience_id !== $audience_id || (int) ( $row->overrides_field_id ?? 0 ) <= 0 ) {
+					wp_send_json_error( array( 'message' => __( 'This audience has no change to that field.', 'ffcertificate' ) ) );
+				}
+				$done = 'show' === $operation
+					? \FreeFormCertificate\Reregistration\CustomFieldWriter::unhide( $field_id )
+					: \FreeFormCertificate\Reregistration\CustomFieldWriter::revert( $field_id );
+			} else {
+				wp_send_json_error( array( 'message' => __( 'Invalid data.', 'ffcertificate' ) ) );
+			}
+
+			if ( ! $done ) {
+				wp_send_json_error( array( 'message' => __( 'The field could not be changed. Reload the page and try again.', 'ffcertificate' ) ) );
+			}
+
+			wp_send_json_success( array( 'message' => __( 'Saved!', 'ffcertificate' ) ) );
 		} catch ( \Throwable $e ) {
 			$this->handle_ajax_exception( $e );
 		}

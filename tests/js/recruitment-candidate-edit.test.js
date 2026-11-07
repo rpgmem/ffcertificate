@@ -84,6 +84,8 @@ describe('candidate-edit — PII reveal/hide', () => {
 		expect(btn.textContent).toBe('Hide');
 		expect(btn.getAttribute('data-ffc-pii-revealed')).toBe('1');
 		expect(btn.getAttribute('data-ffc-pii-mask')).toBe('***');
+		expect(btn.classList.contains('ffc-icon-eye-off')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-eye')).toBe(false);
 		expect(btn.disabled).toBe(false);
 	});
 
@@ -100,6 +102,8 @@ describe('candidate-edit — PII reveal/hide', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(ph.textContent).toBe('***');
 		expect(btn.textContent).toBe('Reveal');
+		expect(btn.classList.contains('ffc-icon-eye')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-eye-off')).toBe(false);
 		expect(btn.getAttribute('data-ffc-pii-revealed')).toBeNull();
 	});
 

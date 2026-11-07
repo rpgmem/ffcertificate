@@ -37,6 +37,100 @@
     background: var(--ffc-bg-alt);
 }
 
+/* Where a field comes from (#2502): the global list, a parent audience,
+   this audience's change, its own field, or a hidden one. */
+.ffc-field-source-badge {
+    display: inline-block;
+    flex-shrink: 0;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 600;
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+    white-space: nowrap;
+}
+
+.ffc-field-source-badge.ffc-field-source-global,
+.ffc-field-source-badge.ffc-field-source-parent {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-field-source-badge.ffc-field-source-changed,
+.ffc-field-source-badge.ffc-field-source-copy {
+    background: var(--ffc-warning-bg);
+    color: var(--ffc-warning-text);
+}
+
+.ffc-field-source-badge.ffc-field-source-own {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+/* An inherited field is one line: the audience changes it through
+   Customize, never in place. */
+.ffc-inherited-field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+    background: var(--ffc-bg-alt);
+    border: 1px dashed var(--ffc-border);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-2xs);
+    border-radius: var(--ffc-radius-xs);
+}
+
+.ffc-inherited-field-label {
+    font-weight: 600;
+    min-width: 0;
+}
+
+.ffc-inherited-field-meta {
+    color: var(--ffc-text-light);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-inherited-field-row .ffc-field-actions {
+    margin-left: auto;
+    display: flex;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-inherited-field-row.ffc-field-inactive .ffc-inherited-field-label {
+    text-decoration: line-through;
+}
+
+/* A change keeps the inherited order, so it has no drag handle. */
+.ffc-field-handle-placeholder {
+    width: var(--ffc-spacing-lg);
+    flex-shrink: 0;
+}
+
+/* The global page's side card: one line per audience. */
+.ffc-field-levels {
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+.ffc-field-levels li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-xs);
+    margin: 0;
+    padding: var(--ffc-spacing-2xs) 0;
+    border-bottom: 1px solid var(--ffc-border);
+}
+
+.ffc-field-levels .ffc-field-level-child {
+    padding-left: var(--ffc-spacing-lg);
+}
+
+.ffc-fields-summary {
+    margin-bottom: var(--ffc-spacing-md);
+}
+
 /* Drag handle */
 .ffc-field-handle {
     cursor: move;
@@ -273,4 +367,16 @@
    profile binding are locked. The lock icon comes from the registry. */
 .ffc-field-answer-lock {
     margin: var(--ffc-spacing-2xs) 0 0;
+}
+
+/* Forced colours: the source badge keeps a boundary once its tint is gone. */
+@media (forced-colors: active) {
+    .ffc-field-source-badge,
+    .ffc-field-source-badge.ffc-field-source-changed,
+    .ffc-field-source-badge.ffc-field-source-copy,
+    .ffc-field-source-badge.ffc-field-source-global,
+    .ffc-field-source-badge.ffc-field-source-own,
+    .ffc-field-source-badge.ffc-field-source-parent {
+        border: 1px solid CanvasText;
+    }
 }
