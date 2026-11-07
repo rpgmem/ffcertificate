@@ -99,6 +99,7 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
@@ -223,6 +224,10 @@ class AppointmentsListViewTest extends TestCase {
 				}
 				if ( str_starts_with( $sql, 'SELECT status, COUNT(*) AS total FROM ' . self::APPOINTMENTS ) ) {
 					return $this->closeout_due;
+				}
+				// The filter card's calendar list (#2486).
+				if ( 'SELECT * FROM ' . self::CALENDARS . " WHERE `status` = 'active' ORDER BY created_at DESC" === $sql ) {
+					return array();
 				}
 				return $this->unexpected_query( $sql );
 			}
@@ -885,18 +890,16 @@ class AppointmentsListViewTest extends TestCase {
 	// ==================================================================
 
 	public function test_view_renders_list_table_by_default(): void {
-		// The list's "Reveal this page" asks the policy (#1863); this viewer
-		// holds the appointments PII cap.
-		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
-		Functions\when( 'wp_create_nonce' )->justReturn( 'page-nonce' );
-
 		ob_start();
 		$this->include_view();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
-		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="page-nonce"', $out );
+		// The list top (#2486): the filter card inside the list's form; the
+		// page reveal moved into the bulk bar the table draws, tested there.
+		$this->assertMatchesRegularExpression( '#<form method="get" class="ffc-list">\s*<input type="hidden" name="page" value="ffc-appointments" />\s*<div class="ffc-list-filters">#', $out );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-appointments-calendar">Calendar</label>', $out );
 		// The header's Export CSV is a family button with the hook the script binds (#1904).
 		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-appointments-export-btn"', $out );
 		$this->assertStringNotContainsString( 'page-title-action', $out );
@@ -977,15 +980,5 @@ class AppointmentsListViewTest extends TestCase {
 
 		$this->include_view_expecting_stop( 'died' );
 		$this->assertSame( array(), $this->transients );
-	}
-
-	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {
-		Functions\when( 'user_can' )->justReturn( false );
-
-		ob_start();
-		$this->include_view();
-		$out = ob_get_clean();
-
-		$this->assertStringNotContainsString( 'ffc-reveal-pii-page', $out );
 	}
 }

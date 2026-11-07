@@ -68,14 +68,6 @@
     width: 22em;
 }
 
-/* The buttons sit on one line when they fit and wrap with an even gap when
-   they do not (a trashed row has four). */
-.ffc-submission-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-xs);
-}
-
 .ffc-table-responsive table.wp-list-table {
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);
@@ -253,22 +245,6 @@
     gap: var(--ffc-spacing-sm);
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border);
-}
-
-/* ==========================================================================
-   ADMIN TOP ACTIONS - MODERN
-   ========================================================================== */
-
-.ffc-admin-top-actions {
-    display: flex;
-    gap: var(--ffc-spacing-lg);
-    align-items: center;
-    margin-bottom: var(--ffc-spacing-xl);
-    flex-wrap: wrap;
-}
-
-.ffc-admin-top-actions form {
-    display: inline-block;
 }
 
 /* ==========================================================================
