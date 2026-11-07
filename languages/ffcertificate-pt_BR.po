@@ -33270,3 +33270,7 @@ msgstr "Faltam neste navegador recursos de que esta página precisa para baixar 
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "Dates and times on this page follow the plugin's date and time formats, and \"now\" in its dialogs is the site's time, not the clock of the operator's device."
 msgstr "As datas e horas desta página seguem os formatos de data e hora do plugin, e o \"agora\" dos seus diálogos é a hora do site, não o relógio do aparelho do operador."
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "A second download from the same screen asks for a new verification, shown above the buttons, because the first download used the one solved with the form."
+msgstr "Um segundo download na mesma tela pede uma nova verificação, mostrada acima dos botões, porque o primeiro download usou a que foi resolvida com o formulário."

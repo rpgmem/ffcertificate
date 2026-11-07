@@ -271,6 +271,34 @@
 			return $.param(base.concat(fields));
 		},
 
+		// The download's own challenge after the first one (#2341). The
+		// screen's challenge is spent by the first download's start, which
+		// sends a fresh one; the screen shows it above the actions and the
+		// next download sends it instead of the page form's.
+		$downloadSecurity: null,
+
+		setDownloadSecurity: function (html) {
+			api.$downloadSecurity = html ? $('<div></div>').html(html) : null;
+		},
+
+		// The start request of a download: the page form as read for the
+		// info screen, or, once a download spent its challenge, the page
+		// form without its security fields plus the screen's fresh block.
+		downloadPayload: function () {
+			var $block = api.$container ? api.$container.find('.ffc-csv-download-security') : $();
+			if (!api.$downloadSecurity || !$block.length || !api.$form) {
+				return api.formData;
+			}
+			var own = {};
+			api.$form.find('.ffc-security-container :input').each(function () {
+				if (this.name) own[this.name] = true;
+			});
+			var base = api.$form.serializeArray().filter(function (field) {
+				return !own[field.name];
+			});
+			return $.param(base.concat($block.find('.ffc-security-container :input').serializeArray()));
+		},
+
 		// After a refused action: the server spent the challenge and sent
 		// a fresh one, which the next dialog must show.
 		refreshActionSecurity: function (err) {

@@ -443,6 +443,63 @@ describe('csv-download — download flow', () => {
 			}
 		});
 
+		it('a second download solves the fresh challenge the first start sent (#2341)', async () => {
+			document.body.innerHTML = `
+				<div class="ffc-public-csv-download">
+					<div class="ffc-verification-header">header</div>
+					<form>
+						<input type="text" name="form_id" value="42" />
+						<input type="text" name="hash" value="abc" />
+						<div class="ffc-security-container"><input name="ffc_captcha_ans" value="3" /><input name="ffc_captcha_hash" value="SPENT" /></div>
+						<button type="submit" class="ffc-submit-btn">Info</button>
+					</form>
+				</div>
+			`;
+			await loadAndReady();
+			const postSpy = vi.spyOn(window.$, 'ajax');
+			postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
+			window.$('.ffc-public-csv-download form').trigger('submit');
+			await flush();
+			expect(document.querySelector('.ffc-csv-download-security')).toBeNull();
+
+			const fresh = '<div class="ffc-security-container"><input name="ffc_captcha_ans" value="" /><input name="ffc_captcha_hash" value="FRESH" /></div>';
+			const responses = [
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+			];
+			postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+			vi.useFakeTimers();
+			try {
+				window.$('.ffc-btn-download-csv').trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+
+				// The screen shows the fresh challenge above the actions.
+				const block = document.querySelector('.ffc-csv-download-security');
+				expect(block).not.toBeNull();
+				expect(block.nextElementSibling.classList.contains('ffc-info-actions')).toBe(true);
+				block.querySelector('input[name="ffc_captcha_ans"]').value = '9';
+
+				postSpy.mockClear();
+				window.$('.ffc-btn-download-csv').trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				const start = postSpy.mock.calls.find((c) => String(c[0].data).indexOf('action=ffc_export_start') !== -1);
+				expect(start).toBeTruthy();
+				const payload = String(start[0].data);
+				expect(payload).toContain('ffc_captcha_hash=FRESH');
+				expect(payload).toContain('ffc_captcha_ans=9');
+				expect(payload).not.toContain('SPENT');
+				expect(payload).toContain('form_id=42');
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
 		it('says the file did not arrive when nothing comes back in time', async () => {
 			const postSpy = await reachInfoScreen();
 			vi.useFakeTimers();
