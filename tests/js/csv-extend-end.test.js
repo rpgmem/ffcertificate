@@ -321,7 +321,7 @@ describe('csv extend-end — submit', () => {
 		vi.setSystemTime(new Date('2026-06-10T08:00:00'));
 	});
 
-	it('POSTs ffc_public_extend_end on a valid confirm and reloads on success', async () => {
+	it('POSTs ffc_public_extend_end, redraws the screen and reports on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -329,28 +329,31 @@ describe('csv extend-end — submit', () => {
 		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
 		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: stub });
 
-		postSpy.mockImplementation(() => postChain({ done: {
-			success: true,
-			data: { message: 'Close time postponed.' },
-		} }));
+		const actionAnswer = postChain({ done: { success: true, data: { message: 'Close time postponed.' } } });
+		postSpy.mockImplementation((url, data) => (String(data).includes('ffc_public_extend_end') ? actionAnswer : postChain({ done: { success: true, data: { form_title: 'My Form', submission_count: 0, restrictions: {}, datetime: { has_dates: false, has_times: false }, geolocation: { enabled: false }, quiz: null, csv: { count: 0, limit: 1 }, status: { has_end_date: true } } } })));
 
 		window.$('.ffc-btn-extend-end').trigger('click');
 		await flush();
 		window.$('.ffc-extend-end-input').val('19:30');
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
+		await flush();
 
-		const lastPayload = postSpy.mock.calls[postSpy.mock.calls.length - 1][1];
-		expect(lastPayload).toContain('action=ffc_public_extend_end');
-		expect(lastPayload).toContain('new_time_end=19%3A30');
-		expect(lastPayload).not.toContain('action=ffc_public_csv_info');
-		expect(alertSpy).toHaveBeenCalledWith('Close time postponed.');
-		expect(stub.reload).toHaveBeenCalled();
+		const actionPayload = postSpy.mock.calls.map((c) => String(c[1])).find((p) => p.includes('action=ffc_public_extend_end'));
+		expect(actionPayload).toContain('new_time_end=19%3A30');
+		expect(actionPayload).not.toContain('action=ffc_public_csv_info');
+		// #2341: on the page, after a fresh read, with no alert or reload.
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(stub.reload).not.toHaveBeenCalled();
+		const notice = document.querySelector('.ffc-action-result');
+		expect(notice.textContent).toContain('Close time postponed.');
+		expect(document.activeElement).toBe(notice);
+		expect(window.$('.ffc-btn-extend-end').length).toBe(0);
 
 		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
 	});
 
-	it('alerts the server message and re-enables the button on failure', async () => {
+	it('shows the server refusal on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -365,11 +368,12 @@ describe('csv extend-end — submit', () => {
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already postponed.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Already postponed.');
 		expect(window.$('.ffc-btn-extend-end').prop('disabled')).toBe(false);
 	});
 
-	it('alerts a generic error and re-enables the button on network failure', async () => {
+	it('reports a network error on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -381,7 +385,8 @@ describe('csv extend-end — submit', () => {
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Error');
 		expect(window.$('.ffc-btn-extend-end').prop('disabled')).toBe(false);
 	});
 });

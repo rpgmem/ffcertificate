@@ -515,7 +515,7 @@ describe('csv-download — cert preview', () => {
 		expect(document.querySelector('#ffc-preview-iframe')).toBeNull();
 	});
 
-	it('alerts and keeps the modal closed when the page cannot be captured', async () => {
+	it('reports on the page and keeps the modal closed when the page cannot be captured', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
@@ -528,12 +528,14 @@ describe('csv-download — cert preview', () => {
 		// A rejected capture walks a longer promise chain than flush() covers.
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		expect(alertSpy).toHaveBeenCalled();
+		// #2341: on the page, not an alert.
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result')).not.toBeNull();
 		expect(window.$('#ffc-preview-modal').length).toBe(0);
 		expect(window.$('.ffc-btn-cert-preview').prop('disabled')).toBe(false);
 	});
 
-	it('shows alert on preview failure', async () => {
+	it('shows the preview failure on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: { success: false, data: { message: 'No template' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -541,12 +543,13 @@ describe('csv-download — cert preview', () => {
 		window.$('.ffc-btn-cert-preview').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('No template');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('No template');
 		// Modal not opened.
 		expect(window.$('#ffc-preview-modal').length).toBe(0);
 	});
 
-	it('shows alert on preview network error', async () => {
+	it('shows a preview network error on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -554,7 +557,8 @@ describe('csv-download — cert preview', () => {
 		window.$('.ffc-btn-cert-preview').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Connection error.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Connection error.');
 	});
 
 	it('closes the modal on the close button click', async () => {

@@ -102,17 +102,17 @@
 
 		FFC.request('ffc_public_open_early', payload)
 			.then(function (data) {
-				window.alert((data && data.message) || (strings.openEarlySuccess || 'Form is now open.'));
-				// Full reload — the original form was replaced by the
-				// info screen, so re-running the validation flow from
-				// scratch is the cleanest way to repaint with the new
-				// state (before_start is now false, button is gone).
-				window.location.reload();
+				// The challenge is spent; the next action needs the fresh
+				// one the answer carries (#2341).
+				api.refreshActionSecurity({ data: data });
+				// The screen is drawn again with the state the action left,
+				// and says so on the page (#2341).
+				return api.reportResult('success', (data && data.message) || (strings.openEarlySuccess || 'Form is now open.'), true);
 			})
 			.catch(function (err) {
 				api.refreshActionSecurity(err);
-				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
 				$btnEarly.prop('disabled', false).text(strings.startFormNow || 'Start Form Now');
+				return api.reportResult('error', (err && err.fromServer && err.message) || strings.error || 'Action failed.', false);
 			});
 	}
 

@@ -30,7 +30,8 @@
 			})
 			.catch(function (err) {
 				$btn.prop('disabled', false).text(strings.previewCertificate || 'Preview Certificate');
-				alert((err && err.fromServer && err.message) || strings.connError || 'Connection error.');
+				// On the page, not an alert (#2341).
+				api.reportResult('error', (err && err.fromServer && err.message) || strings.connError || 'Connection error.', false);
 			});
 	}
 

@@ -76,6 +76,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **An invitation link that no longer works no longer blocks an open form** (#2341). On a form that is not invite-only the form shows unfilled, with "The invitation link is not needed — fill in and submit the form as usual."; an invite-only form keeps the refusal and says to ask whoever sent the invitation for a new link.
 - **Public pages: a shortcode in a synced pattern is found, and scripts load where their feature is on** (#2341). The asset detection reads the synced patterns a page embeds, so their forms get their stylesheet in the head; the quiz window-leave script loads for a form that uses it, the geofence date/GPS modules for a form that restricts by date or location, and the progress overlay on the CSV screen only.
 - **Public Operator Access: the info screen offers only what the server accepts** (#2341). Start Form Now is gone once used, the schedule exception needs a start and a close, and Postpone close on a form that already closes at 23:59 (or has no close time) is refused as `last_minute` and drawn disabled, with an info button whose reason opens on tap and is announced.
+- **Public Operator Access: an action's result is a notice on the page, not an alert and a reload** (#2341). Start Form Now and Postpone close read the form's state again and redraw the screen with it, then show what happened above it, focused and announced; the operator does not retype the form ID and hash. A refusal and a failed certificate preview show the same way.
 
 ### Security
 

@@ -1419,6 +1419,7 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-lg);
     margin-top: var(--ffc-spacing-3xl);
     flex-wrap: wrap;
+    align-items: flex-start;
     width: 100%;
     box-sizing: border-box;
 }
@@ -1443,7 +1444,15 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason .ffc-btn-icon {
     flex: 0 0 auto;
+    align-self: stretch;
+    height: auto;
     min-width: 0;
+    aspect-ratio: 1;
+}
+
+/* The reason opens on its own line, under the pair. */
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason > .ffc-btn:first-child {
+    flex: 1;
 }
 
 .ffc-public-csv-download .ffc-action-reason {
