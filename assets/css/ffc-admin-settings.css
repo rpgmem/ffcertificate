@@ -835,22 +835,20 @@
    ========================================================================== */
 .ffc-settings-tabs {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
+    gap: var(--ffc-admin-gap);
     margin-top: var(--ffc-spacing-2xl);
+}
+
+/* The menu is its own card beside the panel, with no box around both
+   (#2486): the box drew a second border round every card the panel held. */
+.ffc-settings-tabs__nav {
+    box-sizing: border-box;
+    flex: 0 0 var(--ffc-admin-nav-width);
+    padding: var(--ffc-spacing-xs);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-lg);
-    /* Clips the columns to the rounded corners. `clip`, not `hidden`: a
-       `hidden` box is a scroll container, so every `position: sticky` inside
-       a tab (the documentation's navigation, the QR preview) stuck to this
-       box instead of the page and scrolled away with it. */
-    overflow: clip;
-}
-
-.ffc-settings-tabs__nav {
-    flex: 0 0 var(--ffc-admin-nav-width);
-    background: var(--ffc-bg-alt);
-    border-right: 1px solid var(--ffc-border);
 }
 
 /* The menu is a <nav> of page links, not a tablist: each entry loads
@@ -869,18 +867,18 @@
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
-    padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
+    padding: var(--ffc-spacing-sm) var(--ffc-spacing-md);
     color: var(--ffc-text);
     text-decoration: none;
-    border-left: 4px solid transparent;
+    border-radius: var(--ffc-radius-md);
     line-height: 1.3;
-    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ffc-settings-tabs__tab:hover,
 .ffc-settings-tabs__tab:focus {
-    background: var(--ffc-primary-light);
-    color: var(--ffc-primary);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-primary-hover);
     box-shadow: none;
 }
 
@@ -890,9 +888,9 @@
 }
 
 .ffc-settings-tabs__tab.is-active {
-    background: var(--ffc-bg-card);
-    color: var(--ffc-primary);
-    border-left-color: var(--ffc-primary);
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
+    box-shadow: inset 3px 0 0 var(--ffc-primary);
     font-weight: 600;
 }
 
@@ -960,8 +958,56 @@
 .ffc-settings-tabs__panel {
     flex: 1 1 auto;
     min-width: 0;
-    padding: var(--ffc-spacing-2xs) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
     animation: ffc-tab-fade-in 0.2s ease-out;
+}
+
+/* The settings screens reserve the side column (#2486): the content keeps
+   the width it has on the editors, and a tab with a widget (a preview, the
+   documentation's navigation) prints it there. */
+.ffc-settings-tabs__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
+    align-items: start;
+}
+
+.ffc-settings-tabs__main,
+.ffc-settings-tabs__side {
+    min-width: 0;
+}
+
+/* The columns start on one line: WordPress's `.card` gives every card a top
+   margin, which only ever separated it from the box this layout replaced;
+   the card above still keeps its bottom margin. */
+.ffc-settings-tabs__body .card {
+    margin-top: 0;
+}
+
+/* A list table wider than the column scrolls inside its card instead of
+   running under the side column: several were sized for the wider box this
+   layout replaced. Only the cards that hold one, so a popup in any other
+   card is never clipped. */
+.ffc-settings-tabs__main .card:has(table.widefat) {
+    overflow-x: auto;
+}
+
+.ffc-settings-tabs__side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-settings-tabs__body {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-settings-tabs__side {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
 }
 
 @keyframes ffc-tab-fade-in {
@@ -973,12 +1019,11 @@
 @media screen and (max-width: 782px) {
     .ffc-settings-tabs {
         flex-direction: column;
+        align-items: stretch;
     }
 
     .ffc-settings-tabs__nav {
         flex: 0 0 auto;
-        border-right: none;
-        border-bottom: 1px solid var(--ffc-border);
     }
 
     .ffc-settings-tabs__list {
@@ -987,15 +1032,8 @@
         gap: 0;
     }
 
-    .ffc-settings-tabs__tab {
-        border-left: none;
-        border-bottom: 3px solid transparent;
-        padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
-    }
-
     .ffc-settings-tabs__tab.is-active {
-        border-left: none;
-        border-bottom-color: var(--ffc-primary);
+        box-shadow: inset 0 -3px 0 var(--ffc-primary);
     }
 
     /* A group label takes a row of its own, so it heads the tabs it names
@@ -1014,6 +1052,19 @@
     .ffc-settings-tabs__panel {
         transition: none;
         animation: none;
+    }
+}
+
+/* Forced colours drop the ground and the inset bar, so the active item
+   gets a real border in the selection colour. */
+@media (forced-colors: active) {
+    .ffc-settings-tabs__tab {
+        border: 1px solid Canvas;
+    }
+
+    .ffc-settings-tabs__tab.is-active {
+        border-color: Highlight;
+        font-weight: 700;
     }
 }
 
@@ -1041,32 +1092,15 @@
 }
 
 /* ==========================================================================
-   Documentation tab — Quick Navigation beside the topics.
+   Documentation tab — Quick Navigation in the side column (#2486).
 
-   On a wide screen the layout is two columns: the navigation card (search
-   box and section tree) sticks below the admin bar while the topics scroll
-   next to it, so it never covers the text being read. The tree itself is
-   what opens and closes, one branch at a time (native <details>); a tree
-   taller than the screen scrolls on its own. On a narrower screen the card
-   sits above the topics and scrolls away with them.
+   The navigation card (search box and section tree) sits in the screen's
+   side column, which sticks below the admin bar while the topics scroll, so
+   it never covers the text being read. The tree itself is what opens and
+   closes, one branch at a time (native <details>); a tree taller than the
+   screen scrolls with the column. On a narrower screen the card sits below
+   the topics.
    ========================================================================== */
-
-@media screen and (min-width: 1280px) {
-    .ffc-doc-layout {
-        display: grid;
-        grid-template-columns: 280px minmax(0, 1fr);
-        column-gap: var(--ffc-spacing-2xl);
-        align-items: start;
-    }
-
-    .ffc-doc-toc {
-        position: sticky;
-        top: calc(var(--wp-admin--admin-bar--height, 32px) + var(--ffc-spacing-xl));
-        z-index: var(--ffc-z-sticky);
-        max-height: calc(100vh - var(--wp-admin--admin-bar--height, 32px) - 2 * var(--ffc-spacing-xl));
-        overflow-y: auto;
-    }
-}
 
 /* ==========================================================================
    Settings page — floating "Back to top" button (zero JS, all tabs).
@@ -1302,28 +1336,11 @@ html:has(.ffc-settings-back-to-top) {
     width: 6em;
 }
 
-/* #1563 — QR Code tab: design controls beside a live preview. */
-.ffc-qr-design-layout {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-xl);
-    align-items: flex-start;
-}
-
-.ffc-qr-design-layout .ffc-sections {
-    flex: 1 1 28em;
-    min-width: 0;
-}
-
-.ffc-qr-design-preview {
-    flex: 0 0 auto;
-    width: 240px;
-    position: sticky;
-    top: 40px;
-}
-
+/* #1563 — QR Code tab: the live preview of the design, in the side column
+   (#2486). */
 .ffc-qr-design-preview__image {
-    width: 240px;
+    box-sizing: border-box;
+    width: 100%;
     min-height: 240px;
     border: 1px solid var(--ffc-border);
     border-radius: var(--ffc-radius-sm);

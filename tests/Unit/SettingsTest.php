@@ -1206,17 +1206,21 @@ class SettingsTest extends TestCase {
 	 * @param string $active_tab_id Tab id to inject + select.
 	 * @return string Rendered markup.
 	 */
-	private function render_with_tab( string $active_tab_id = 'general' ): string {
+	private function render_with_tab( string $active_tab_id = 'general', string $side = '' ): string {
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'get_settings_errors' )->justReturn( array() );
 		Functions\when( 'current_user_can' )->justReturn( true );
 
-		$tab = new class( $active_tab_id ) {
+		$tab = new class( $active_tab_id, $side ) {
 			private $id;
-			public function __construct( $id ) {
-				$this->id = $id; }
+			private $side;
+			public function __construct( $id, $side ) {
+				$this->id   = $id;
+				$this->side = $side; }
+			public function render_side(): void {
+				echo $this->side; }
 			public function get_id(): string {
 				return $this->id; }
 			public function get_icon(): string {
@@ -1299,6 +1303,27 @@ class SettingsTest extends TestCase {
 
 		$this->assertStringContainsString( 'tab-body', $html );
 		$this->assertStringContainsString( 'ffc-settings-tabs', $html );
+		// The body keeps the side column's place; a tab with nothing for it
+		// prints no empty landmark (#2486).
+		$this->assertStringContainsString( '<div class="ffc-settings-tabs__body">', $html );
+		$this->assertStringContainsString( '<div class="ffc-settings-tabs__main">', $html );
+		$this->assertStringNotContainsString( '<aside', $html );
+		unset( $_GET['tab'] );
+	}
+
+	/**
+	 * A tab's side widget prints in the side column, after the main column
+	 * and outside the read-only lock (#2486).
+	 */
+	public function test_display_settings_page_prints_the_tab_side_column(): void {
+		$_GET['tab'] = 'general';
+
+		$html = $this->render_with_tab( 'general', '<div class="card">side-widget</div>' );
+
+		$this->assertMatchesRegularExpression(
+			'#<div class="ffc-settings-tabs__main">.*tab-body.*</div>\s*<aside class="ffc-settings-tabs__side"><div class="card">side-widget</div></aside>#s',
+			$html
+		);
 		unset( $_GET['tab'] );
 	}
 

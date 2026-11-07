@@ -107,7 +107,8 @@ class TabQrCodeTest extends TestCase {
 		$this->assertStringContainsString( 'class="ffc-qr-swatch"', $html );
 		$this->assertStringContainsString( 'data-ffc-qr-hex-for="qr_design_color"', $html );
 		$this->assertStringContainsString( 'id="qr_design_color" value="#123456"', $html );
-		$this->assertStringContainsString( 'id="ffc-qr-design-preview"', $html );
+		// The preview prints in the side column (#2486), not in the form.
+		$this->assertStringNotContainsString( 'id="ffc-qr-design-preview"', $html );
 		$this->assertStringContainsString( 'id="qr_design_logo_id" value="12"', $html );
 		$this->assertStringContainsString( 'src="https://example.com/logo-150x150.png"', $html );
 		$this->assertStringContainsString( 'name="ffc_settings[qr_design_frame]" value="bubble"  checked="checked"', $html );
@@ -190,5 +191,26 @@ class TabQrCodeTest extends TestCase {
 		$this->assertSame( array( 'ffc-common' ), $styles['ffc-qr-design-fields'] ?? null );
 		$this->assertSame( 'ffc_qr_design_preview', $localized['ffcQrDesign']['action'] );
 		$this->assertSame( 'nonce-ffc_qr_design_preview', $localized['ffcQrDesign']['nonce'] );
+	}
+
+	/**
+	 * The live preview prints in the side column, with the ids the design
+	 * script finds it by (#2486).
+	 */
+	public function test_render_side_prints_the_preview(): void {
+		Functions\when( 'esc_html_e' )->alias(
+			static function ( string $text ): void {
+				echo $text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Test stub.
+			}
+		);
+
+		ob_start();
+		$this->tab->render_side();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<div class="card ffc-qr-design-preview">', $html );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-eye">Preview</h2>', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-design-preview"', $html );
+		$this->assertStringContainsString( 'id="ffc-qr-design-checks"', $html );
 	}
 }

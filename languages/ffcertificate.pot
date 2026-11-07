@@ -18831,7 +18831,7 @@ msgid "Use tables for complex layouts"
 msgstr ""
 
 #: includes/settings/views/documentation/overview.php:62
-msgid "Use the Quick Navigation on the left — it mirrors the plugin's own menus. Start with"
+msgid "Use the Quick Navigation beside the topics — it mirrors the plugin's own menus. Start with"
 msgstr ""
 
 #: includes/settings/views/documentation/reference-tokens.php:18

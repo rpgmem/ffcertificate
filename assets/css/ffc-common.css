@@ -147,6 +147,11 @@
     --ffc-admin-nav-width: 220px;
     --ffc-admin-side-width: 300px;
     --ffc-admin-gap: var(--ffc-spacing-2xl);
+    /* The side column stays in view while the content scrolls: it sticks
+       below the admin bar, and a column taller than the screen scrolls on
+       its own instead of hiding its end. */
+    --ffc-admin-side-top: calc(var(--wp-admin--admin-bar--height, 32px) + var(--ffc-spacing-xl));
+    --ffc-admin-side-max-height: calc(100vh - var(--ffc-admin-side-top) - var(--ffc-spacing-xl));
 
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);

@@ -50,4 +50,22 @@ class TabDocumentation extends SettingsTab {
 			);
 		}
 	}
+
+	/**
+	 * Render the Quick Navigation in the side column (#2486).
+	 *
+	 * The same view, asked for its side part: the tree that orders the topics
+	 * is the one that draws the navigation, so the two cannot disagree.
+	 *
+	 * @since 6.44.0
+	 * @return void
+	 */
+	public function render_side(): void {
+		$view_file = $this->view_path( 'ffc-tab-documentation.php' );
+
+		if ( file_exists( $view_file ) ) {
+			$ffc_doc_part = 'side';
+			include $view_file;
+		}
+	}
 }
