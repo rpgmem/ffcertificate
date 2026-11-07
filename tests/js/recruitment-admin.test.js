@@ -31,6 +31,7 @@ beforeAll(() => {
 	window.ffcRecruitmentAdmin = {
 		restRoot: REST_ROOT,
 		nonce: NONCE,
+		openUrls: { notice: 'admin.php?page=ffc-recruitment&action=edit-notice' },
 		confirmModalStrings: {
 			closeLabel: 'Close',
 			cancelLabel: 'Cancel',
@@ -205,7 +206,7 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 		fetchMock.mockReturnValue(mockJsonResponse({ id: 31 }));
 
 		document.body.innerHTML = `
-			<form data-ffc-create-endpoint="notices" data-ffc-create-open="admin.php?page=ffc-recruitment&action=edit-notice&notice_id=__ID__">
+			<form data-ffc-create-endpoint="notices" data-ffc-create-open="notice">
 				<input name="code" value="N1">
 			</form>
 		`;
@@ -215,6 +216,22 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 
 		expect(window.location.href).toBe('admin.php?page=ffc-recruitment&action=edit-notice&notice_id=31');
 		expect(reloadMock).not.toHaveBeenCalled();
+	});
+
+	it('reloads when the form names no known editor', async () => {
+		fetchMock.mockReturnValue(mockJsonResponse({ id: 31 }));
+
+		document.body.innerHTML = `
+			<form data-ffc-create-endpoint="notices" data-ffc-create-open="javascript:alert(1)">
+				<input name="code" value="N1">
+			</form>
+		`;
+
+		document.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(window.location.href).toBeUndefined();
+		expect(reloadMock).toHaveBeenCalledTimes(1);
 	});
 });
 

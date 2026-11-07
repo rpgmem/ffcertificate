@@ -81,17 +81,32 @@ final class RecruitmentDashboard {
 		$reason_table    = RecruitmentReasonReader::get_table_name();
 
 		$notices = array_fill_keys( array( 'draft', 'preliminary', 'definitive', 'closed' ), 0 );
-		$rows    = $wpdb->get_results( $wpdb->prepare( 'SELECT status, COUNT(*) AS n FROM %i GROUP BY status', $notice_table ), ARRAY_A );
+		/**
+		 * One row per status, the count as the driver returns it.
+		 *
+		 * @var list<array{status: string, n: numeric-string}>|null $rows
+		 */
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT status, COUNT(*) AS n FROM %i GROUP BY status', $notice_table ), ARRAY_A );
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
-			$status = (string) ( $row['status'] ?? '' );
+			$status = $row['status'];
 			if ( isset( $notices[ $status ] ) ) {
-				$notices[ $status ] = (int) ( $row['n'] ?? 0 );
+				$notices[ $status ] = (int) $row['n'];
 			}
 		}
 
+		/**
+		 * Both counts as the driver returns them.
+		 *
+		 * @var array{total: numeric-string, linked: numeric-string}|null $candidates
+		 */
 		$candidates = $wpdb->get_row( $wpdb->prepare( 'SELECT COUNT(*) AS total, COUNT(user_id) AS linked FROM %i', $candidate_table ), ARRAY_A );
 
-		$until          = gmdate( 'Y-m-d', (int) strtotime( $today . ' +' . ( self::UPCOMING_DAYS - 1 ) . ' days' ) );
+		$until = gmdate( 'Y-m-d', (int) strtotime( $today . ' +' . ( self::UPCOMING_DAYS - 1 ) . ' days' ) );
+		/**
+		 * One row per notice and day.
+		 *
+		 * @var list<array{code: string, date: string, people: numeric-string}>|null $upcoming
+		 */
 		$upcoming       = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT n.code AS code, c.date_to_assume AS date, COUNT(*) AS people
@@ -112,12 +127,12 @@ final class RecruitmentDashboard {
 		$upcoming_rows  = array();
 		$upcoming_total = 0;
 		foreach ( is_array( $upcoming ) ? $upcoming : array() as $row ) {
-			$people          = (int) ( $row['people'] ?? 0 );
+			$people          = (int) $row['people'];
 			$upcoming_total += $people;
 			if ( count( $upcoming_rows ) < self::UPCOMING_ROWS ) {
 				$upcoming_rows[] = array(
-					'code'   => (string) ( $row['code'] ?? '' ),
-					'date'   => (string) ( $row['date'] ?? '' ),
+					'code'   => $row['code'],
+					'date'   => $row['date'],
 					'people' => $people,
 				);
 			}
@@ -136,8 +151,8 @@ final class RecruitmentDashboard {
 
 		return array(
 			'notices'       => $notices,
-			'candidates'    => (int) ( is_array( $candidates ) ? ( $candidates['total'] ?? 0 ) : 0 ),
-			'linked'        => (int) ( is_array( $candidates ) ? ( $candidates['linked'] ?? 0 ) : 0 ),
+			'candidates'    => is_array( $candidates ) ? (int) $candidates['total'] : 0,
+			'linked'        => is_array( $candidates ) ? (int) $candidates['linked'] : 0,
 			'awaiting'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'called'", $class_table ) ),
 			'upcoming'      => $upcoming_total,
 			'upcoming_rows' => $upcoming_rows,
