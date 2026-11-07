@@ -71,8 +71,8 @@
 
 .ffc-qr-tile__input:checked + .ffc-qr-tile__face {
     border-color: var(--ffc-primary);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
     box-shadow: 0 0 0 1px var(--ffc-primary);
 }
 

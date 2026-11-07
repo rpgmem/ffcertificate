@@ -13,8 +13,8 @@
  */
 .ffc-edit-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: var(--ffc-spacing-xl);
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
     align-items: start;
     margin-top: var(--ffc-spacing-lg);
 }

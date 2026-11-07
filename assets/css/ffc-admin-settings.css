@@ -839,8 +839,7 @@
     margin-top: var(--ffc-spacing-2xl);
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: var(--ffc-shadow-sm);
+    border-radius: var(--ffc-radius-lg);
     /* Clips the columns to the rounded corners. `clip`, not `hidden`: a
        `hidden` box is a scroll container, so every `position: sticky` inside
        a tab (the documentation's navigation, the QR preview) stuck to this
@@ -849,7 +848,7 @@
 }
 
 .ffc-settings-tabs__nav {
-    flex: 0 0 220px;
+    flex: 0 0 var(--ffc-admin-nav-width);
     background: var(--ffc-bg-alt);
     border-right: 1px solid var(--ffc-border);
 }

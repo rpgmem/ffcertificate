@@ -69,8 +69,10 @@
     width: 40px;
     height: 40px;
     border-radius: var(--ffc-radius-md);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    /* The plugin's blue, as on the active menu item (#2486); the accent
+       family stays for categories (chips, the waitlist status). */
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
 }
 
 .ffc-section__text {
@@ -191,12 +193,13 @@
 .ffc-boxed .card {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
+    /* The one card (#2486): the corners and the flat look of the
+       collapsible section, so a box reads the same on every screen. */
+    border-radius: var(--ffc-radius-lg);
     padding: var(--ffc-spacing-2xl);
     margin-bottom: var(--ffc-spacing-2xl);
     min-width: 255px;
     max-width: 1500px;
-    box-shadow: var(--ffc-shadow-sm);
 }
 
 .ffc-settings-wrap .card:last-child,
@@ -211,7 +214,7 @@
     margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
-    font-size: var(--ffc-font-size-xl);
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
@@ -263,7 +266,7 @@
 }
 
 .ffc-vtabs__nav {
-    flex: 0 0 200px;
+    flex: 0 0 var(--ffc-admin-nav-width);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -571,8 +574,8 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
 
 .ffc-editor {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: var(--ffc-spacing-2xl);
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
     align-items: start;
     margin-top: var(--ffc-spacing-xl);
 }
@@ -586,8 +589,7 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
     overflow: hidden;
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: var(--ffc-shadow-sm);
+    border-radius: var(--ffc-radius-lg);
 }
 
 .ffc-editor .ffc-editor__tabs {
