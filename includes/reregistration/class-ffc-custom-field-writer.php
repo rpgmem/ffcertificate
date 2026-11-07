@@ -705,10 +705,10 @@ class CustomFieldWriter {
 			}
 		}
 		if ( isset( $data['field_label'] ) ) {
-			$data['field_label'] = sanitize_text_field( (string) $data['field_label'] );
+			$data['field_label'] = is_scalar( $data['field_label'] ) ? sanitize_text_field( (string) $data['field_label'] ) : '';
 		}
 		if ( isset( $data['field_group'] ) ) {
-			$data['field_group'] = sanitize_text_field( (string) $data['field_group'] );
+			$data['field_group'] = is_scalar( $data['field_group'] ) ? sanitize_text_field( (string) $data['field_group'] ) : '';
 		}
 
 		$formats = array();
