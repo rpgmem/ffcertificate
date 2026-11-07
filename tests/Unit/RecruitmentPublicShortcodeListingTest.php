@@ -325,7 +325,7 @@ class RecruitmentPublicShortcodeListingTest extends TestCase {
 		$this->assertSame( array( 'wp_ffc_recruitment_classification', 5, 'definitive' ), $reads[0][3], 'No adjutancy narrows the read.' );
 
 		$body = $this->bodyUnderBanner( $html, 'definitive' );
-		$this->assertStringStartsWith( '<div class="ffc-recruitment-queue"><form class="ffc-recruitment-filters" method="get">', $body );
+		$this->assertStringStartsWith( '<div class="ffc-recruitment-lists"><form class="ffc-recruitment-filters" method="get">', $body );
 		$this->assertStringEndsWith( '</section></div>', $body );
 		$this->assertCount( 1, $this->queriesOn( 'ffc_recruitment_notice_adjutancy' ), 'An unlocked filter bar looks up the adjutancy dropdown.' );
 
