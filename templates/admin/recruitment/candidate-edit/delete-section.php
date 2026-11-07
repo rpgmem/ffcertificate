@@ -35,7 +35,7 @@ if ( $classification_count > 0 ) {
 		esc_html__( 'Blocked: this candidate is referenced by %d classification(s). Delete those first (or leave them — historical records survive).', 'ffcertificate' ),
 		(int) $classification_count
 	) . '</p>';
-	echo '</div></div>';
+	echo '</div>';
 	return;
 }
 

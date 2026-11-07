@@ -586,6 +586,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
 		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+		// #2486: the editor grid with no side card, so the side column stays
+		// empty, and Back is a button beside the title.
+		$this->assertStringContainsString( '<div class="ffc-editor">', $output );
+		$this->assertStringNotContainsString( 'ffc-editor__side', $output );
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">[^<]*</h1>\s*<a [^>]*class="ffc-btn[^"]*ffc-icon-chevron-left[^"]*"[^>]*>[^<]*Back to Audiences#', $output );
 		// The seeder found every standard field stored and wrote nothing.
 		$this->assertSame( array(), $this->writes );
 	}

@@ -234,8 +234,18 @@ final class AudienceAdminAudienceRenderer {
 		$active = AudienceEditorTabs::active( array_column( $tabs, 'key' ), $open_tab );
 
 		?>
-		<h1><?php echo esc_html( $page_title ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Audiences', 'ffcertificate' ); ?></a>
+		<h1 class="wp-heading-inline"><?php echo esc_html( $page_title ); ?></h1>
+		<?php
+		// Back is a button beside the title on every editor (#2486).
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Audiences', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => $back_url,
+			)
+		);
+		?>
+		<hr class="wp-header-end">
 
 		<?php if ( $audience && ! empty( $audience->parent_id ) ) : ?>
 			<?php
@@ -262,6 +272,9 @@ final class AudienceAdminAudienceRenderer {
 			<p class="description"><em><?php esc_html_e( 'Read-only — you can view this page but do not have permission to change it.', 'ffcertificate' ); ?></em></p>
 		<?php endif; ?>
 
+		<?php // The editor grid with no side card: the side column stays empty, so the form sits where it sits on every other editor (#2486). ?>
+		<div class="ffc-editor">
+		<div class="ffc-editor__main">
 		<?php AudienceEditorTabs::open( $tabs, $active ); ?>
 		<?php AudienceEditorTabs::panel_open( $tabs[0], $active ); ?>
 		<form method="post" action="" class="ffc-form">
@@ -542,6 +555,8 @@ final class AudienceAdminAudienceRenderer {
 			<?php endif; ?>
 		<?php endif; ?>
 		<?php AudienceEditorTabs::close(); ?>
+		</div>
+		</div>
 		<?php
 	}
 

@@ -518,6 +518,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Call #5', $html );
 		// Delete blocked branch (count_for_candidate > 0).
 		$this->assertStringContainsString( 'Blocked:', $html );
+		// #2486: the blocked branch closed one div too many, which shut the
+		// editor grid early and sent the summary below the form.
+		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ), 'Every div the candidate screen opens is closed once.' );
 	}
 
 	public function test_general_section_offers_the_reveal_tier_a_reveal_that_enables_the_email(): void {

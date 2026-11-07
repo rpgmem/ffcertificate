@@ -652,6 +652,9 @@ class AudienceAdminCalendarTest extends TestCase {
 		// #1761: a boxed screen of vertical tabs, each panel titled with its
 		// icon, and the Save and Shortcode cards beside them.
 		$this->assertStringContainsString( 'ffc-page-scheduling-calendars ffc-boxed', $output );
+		// #2486: Back is a button beside the title, not a link under it.
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">[^<]*</h1>\s*<a [^>]*class="ffc-btn[^"]*ffc-icon-chevron-left[^"]*"[^>]*>[^<]*Back to Calendars#', $output );
+		$this->assertStringNotContainsString( '&larr; Back to Calendars', $output );
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'general', 'notifications', 'event-list', 'post-event', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
 		preg_match_all( '/<a href="#ffc-tab-([a-z-]+)" id="ffc-tabnav-\1"/', $output, $nav );
