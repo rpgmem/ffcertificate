@@ -570,13 +570,7 @@ class CustomFieldWriter {
 		}
 
 		$result = $wpdb->insert( $table, $data, $formats );
-		if ( false === $result ) {
-			return false;
-		}
-		if ( ! empty( $data['is_sensitive'] ) ) {
-			self::invalidate_sensitive_registry_cache();
-		}
-		return (int) $wpdb->insert_id;
+		return false === $result ? false : (int) $wpdb->insert_id;
 	}
 
 	/**
@@ -696,6 +690,14 @@ class CustomFieldWriter {
 		$data    = array_intersect_key( $data, array_flip( $allowed ) );
 		if ( empty( $data ) ) {
 			return false;
+		}
+		// A change is always active: an audience that stops asking a field
+		// hides it, which is what the readers of active rows can see.
+		if ( array_key_exists( 'is_active', $data ) ) {
+			if ( empty( $data['is_active'] ) ) {
+				$data['is_hidden'] = 1;
+			}
+			$data['is_active'] = 1;
 		}
 		foreach ( array( 'field_options', 'validation_rules' ) as $json ) {
 			if ( array_key_exists( $json, $data ) && null !== $data[ $json ] && ! is_string( $data[ $json ] ) ) {

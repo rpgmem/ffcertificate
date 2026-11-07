@@ -290,6 +290,10 @@ class ReregistrationImportAjaxHandlerTest extends TestCase {
 				if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 7' ) ) {
 					return $this->fields;
 				}
+				// The global list every audience inherits (#2502): empty here.
+				if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 0 ' ) ) {
+					return array();
+				}
 				if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_staging WHERE job_id = job-1 AND processed = 0' ) ) {
 					return $this->batch;
 				}

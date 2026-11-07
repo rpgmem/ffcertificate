@@ -227,11 +227,10 @@ class CustomFieldReader {
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
 		$fields = array();
-		foreach ( self::resolve( $audience_id ) as $field ) {
+		foreach ( self::resolve( $audience_id, $active_only ) as $field ) {
+			// Inactive rows were not read when $active_only: a change is
+			// always active, so the SQL filter is the whole filter.
 			if ( ! empty( $field->is_hidden ) ) {
-				continue;
-			}
-			if ( $active_only && empty( $field->is_active ) ) {
 				continue;
 			}
 			$fields[] = $field;
@@ -267,10 +266,16 @@ class CustomFieldReader {
 	 * The order is the definition's level, then `sort_order`, then id: the
 	 * global fields first, then each parent's own, as before.
 	 *
-	 * @param int $audience_id Audience ID; 0 reads the global list alone.
+	 * A change row is always active -- an audience that stops asking a field
+	 * hides it ({@see CustomFieldWriter::update_override()}) -- so reading
+	 * active rows only drops an inactive definition and every change to it,
+	 * and never a change on its own.
+	 *
+	 * @param int  $audience_id Audience ID; 0 reads the global list alone.
+	 * @param bool $active_only Read active rows only.
 	 * @return list<CustomFieldRow>
 	 */
-	public static function resolve( int $audience_id ): array {
+	public static function resolve( int $audience_id, bool $active_only = false ): array {
 		$levels = self::levels( $audience_id );
 		if ( empty( $levels ) ) {
 			return array();
@@ -282,7 +287,7 @@ class CustomFieldReader {
 		$sequence = 0;
 
 		foreach ( $levels as $depth => $level ) {
-			foreach ( self::get_by_audience( $level['id'], false ) as $row ) {
+			foreach ( self::get_by_audience( $level['id'], $active_only ) as $row ) {
 				$key     = (string) $row->field_key;
 				$base    = $resolved[ $key ] ?? null;
 				$pointer = (int) ( $row->overrides_field_id ?? 0 );
@@ -302,7 +307,7 @@ class CustomFieldReader {
 							$field->{$column} = $row->{$column} ?? null;
 						}
 						$field->is_hidden = '0';
-						$rank[ $key ][1]  = (int) $row->sort_order;
+						$rank[ $key ][1]  = (int) ( $row->sort_order ?? 0 );
 					}
 					$field->override_id          = (int) $row->id;
 					$field->source_audience_id   = $level['id'];
@@ -318,12 +323,12 @@ class CustomFieldReader {
 				$row->definition_audience_id = $level['id'];
 
 				if ( null !== $base ) {
-					$copies[] = array( array( $depth, (int) $row->sort_order, $sequence++ ), $row );
+					$copies[] = array( array( $depth, (int) ( $row->sort_order ?? 0 ), $sequence++ ), $row );
 					continue;
 				}
 
 				$resolved[ $key ] = $row;
-				$rank[ $key ]     = array( $depth, (int) $row->sort_order, $sequence++ );
+				$rank[ $key ]     = array( $depth, (int) ( $row->sort_order ?? 0 ), $sequence++ );
 			}
 		}
 
