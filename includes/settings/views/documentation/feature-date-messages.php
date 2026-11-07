@@ -33,6 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	?>
 
 	<h4><?php esc_html_e( 'Rules', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The rule editor has one tab per part of the rule — Rule, Message, Body appearance, Sending, Manager summary and Check before saving — and a side column: the Active switch and Save rule first, then "This rule", a summary of the choices on every tab that follows the form before it is saved. Save rule writes every tab at once; moving between tabs keeps what was typed.', 'ffcertificate' ); ?></p>
 	<table class="widefat striped">
 		<thead>
 			<tr>

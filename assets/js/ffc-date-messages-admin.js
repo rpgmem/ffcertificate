@@ -26,9 +26,54 @@ jQuery(function ($) {
 	initAppearance();
 	initKind();
 	initSendRule();
+	initFacts();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
+	}
+
+	// The editor's "This rule" card (#2498) follows the form before it is
+	// saved: each fact is read from the field that sets it. The server
+	// renders the same values first, so this only keeps them in step.
+	function initFacts() {
+		var $card = $('.ffc-dm-facts');
+		var $form = $('#ffc-dm-rule-form');
+		if (!$card.length || !$form.length) {
+			return;
+		}
+		var facts = strings.facts || {};
+
+		function set(key, text) {
+			$card.find('[data-ffc-dm-fact="' + key + '"]').text(text);
+		}
+
+		function count(single, plural, n) {
+			return String(1 === n ? single : plural).replace('%d', String(n));
+		}
+
+		function apply() {
+			set('kind', $('#ffc-dm-kind option:selected').text());
+			set('source', $('#ffc-dm-source option:selected').text());
+
+			var offset = parseInt(String($('#ffc-dm-offset').val() || '0'), 10) || 0;
+			if (0 === offset) {
+				set('offset', String(facts.onDate || ''));
+			} else if (offset < 0) {
+				set('offset', count(facts.dayBefore, facts.daysBefore, -offset));
+			} else {
+				set('offset', count(facts.dayAfter, facts.daysAfter, offset));
+			}
+			set('send-at', String($('#ffc-dm-send-at').val() || '') ? String(facts.atTime || '') : String(facts.byHand || ''));
+
+			var audiences = $form.find('input[name="rule[audience_ids][]"]').length;
+			set('audiences', 0 === audiences ? String(facts.everyone || '') : count(facts.audience, facts.audiences, audiences));
+
+			set('digest', $('#ffc-dm-digest-enabled').is(':checked') ? $('#ffc-dm-digest-mode option:selected').text() : String(facts.off || ''));
+		}
+
+		$form.on('change input', ':input', apply);
+		$form.on('ffc:transfer-list-change', apply);
+		apply();
 	}
 
 	// The send tab asks for dates only when the chosen rule is dated (#1949).

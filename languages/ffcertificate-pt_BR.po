@@ -27672,16 +27672,8 @@ msgid "The background and the text area of the body only."
 msgstr "O fundo e a área de texto, apenas do corpo."
 
 #: templates/admin/date-messages/rule-form.php
-msgid "Who gets it, whether it is active, and when."
-msgstr "Quem recebe, se está ativa e quando."
-
-#: templates/admin/date-messages/rule-form.php
 msgid "An optional summary of each run for the people who manage the messages."
 msgstr "Um resumo opcional de cada execução para quem gerencia as mensagens."
-
-#: templates/admin/date-messages/rule-form.php
-msgid "Preview the recipients and the message with the values on this form."
-msgstr "Veja os destinatários e a mensagem com os valores deste formulário."
 
 #: templates/admin/date-messages/rule-form.php
 msgid "The day and the month of each person's date are the reference. The year is not used."
@@ -33560,3 +33552,56 @@ msgstr "As listas de calendários, ambientes e públicos-alvo filtram por status
 #: includes/settings/views/documentation/scheduling-audiences.php:79
 msgid "The add button on a calendar's Environments tab, or on the Environments view filtered to one calendar, opens the new environment with that calendar already chosen."
 msgstr "O botão de adicionar na aba Ambientes de um calendário, ou na visão Ambientes filtrada por um calendário, abre o novo ambiente com esse calendário já escolhido."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:372
+#, php-format
+msgid "%d audience"
+msgid_plural "%d audiences"
+msgstr[0] "%d público-alvo"
+msgstr[1] "%d públicos-alvo"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:365
+#, php-format
+msgid "%d day after the date"
+msgid_plural "%d days after the date"
+msgstr[0] "%d dia depois da data"
+msgstr[1] "%d dias depois da data"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:361
+#, php-format
+msgid "%d day before the date"
+msgid_plural "%d days before the date"
+msgstr[0] "%d dia antes da data"
+msgstr[1] "%d dias antes da data"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:369
+msgid "By hand, with Send now"
+msgstr "À mão, com Enviar agora"
+
+#: templates/admin/date-messages/rule-form.php:632
+msgid "Follows the form as you edit it, before saving."
+msgstr "Acompanha o formulário enquanto você edita, antes de salvar."
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:359
+msgid "On the date itself"
+msgstr "Na própria data"
+
+#: includes/date-messages/class-ffc-date-messages-admin-page.php:368
+msgid "Once, at the time set in Sending"
+msgstr "Uma vez, no horário definido em Envio"
+
+#: templates/admin/date-messages/rule-form.php:624
+msgid "Sends"
+msgstr "Envia"
+
+#: templates/admin/date-messages/rule-form.php:618
+msgid "This rule"
+msgstr "Esta regra"
+
+#: templates/admin/date-messages/rule-form.php:358
+msgid "Who gets it and when."
+msgstr "Quem recebe e quando."
+
+#: includes/settings/views/documentation/feature-date-messages.php:36
+msgid "The rule editor has one tab per part of the rule — Rule, Message, Body appearance, Sending, Manager summary and Check before saving — and a side column: the Active switch and Save rule first, then \"This rule\", a summary of the choices on every tab that follows the form before it is saved. Save rule writes every tab at once; moving between tabs keeps what was typed."
+msgstr "O editor de regra tem uma aba para cada parte da regra — Regra, Mensagem, Aparência do corpo, Envio, Resumo para gestores e Confira antes de salvar — e uma coluna lateral: primeiro a chave Ativo e Salvar regra, depois \"Esta regra\", um resumo das escolhas de todas as abas que acompanha o formulário antes de salvar. Salvar regra grava todas as abas de uma vez; trocar de aba mantém o que foi digitado."

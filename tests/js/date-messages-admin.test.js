@@ -426,4 +426,48 @@ describe('ffc-date-messages-admin', () => {
 		window.$('.ffc-dm-rule').val('1').trigger('change');
 		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
 	});
+
+	it('keeps the "This rule" card in step with the form before it is saved (#2498)', async () => {
+		document.body.innerHTML = `
+			<form id="ffc-dm-rule-form">
+				<select id="ffc-dm-kind"><option value="dated" selected>By date</option><option value="announcement">Announcement</option></select>
+				<select id="ffc-dm-source"><option value="birthday" selected>Birthday</option></select>
+				<input id="ffc-dm-offset" value="0">
+				<input id="ffc-dm-send-at" value="">
+				<div class="ffc-transfer-list"></div>
+				<input type="checkbox" id="ffc-dm-digest-enabled">
+				<select id="ffc-dm-digest-mode"><option value="summary" selected>Counts only</option></select>
+				<div class="card ffc-dm-facts">
+					<dd data-ffc-dm-fact="kind"></dd><dd data-ffc-dm-fact="source"></dd>
+					<dd data-ffc-dm-fact="offset"></dd><dd data-ffc-dm-fact="send-at"></dd>
+					<dd data-ffc-dm-fact="audiences"></dd><dd data-ffc-dm-fact="digest"></dd>
+				</div>
+			</form>
+		`;
+		window.ffcDateMessages.strings.facts = {
+			onDate: 'On the date', dayBefore: '%d day before', daysBefore: '%d days before', dayAfter: '%d day after', daysAfter: '%d days after',
+			atTime: 'At the time', byHand: 'By hand', everyone: 'Everyone', audience: '%d audience', audiences: '%d audiences', off: 'Off',
+		};
+		await loadOnReady();
+		const fact = (k) => window.$(`[data-ffc-dm-fact="${k}"]`).text();
+
+		expect([fact('kind'), fact('source'), fact('offset'), fact('send-at'), fact('audiences'), fact('digest')])
+			.toEqual(['By date', 'Birthday', 'On the date', 'By hand', 'Everyone', 'Off']);
+
+		window.$('#ffc-dm-offset').val('-1').trigger('input');
+		expect(fact('offset')).toBe('1 day before');
+		window.$('#ffc-dm-offset').val('7').trigger('input');
+		expect(fact('offset')).toBe('7 days after');
+
+		window.$('#ffc-dm-send-at').val('2026-12-01T09:00').trigger('change');
+		expect(fact('send-at')).toBe('At the time');
+
+		const $list = window.$('.ffc-transfer-list');
+		$list.append('<input type="hidden" name="rule[audience_ids][]" value="3"><input type="hidden" name="rule[audience_ids][]" value="4">');
+		$list.trigger('ffc:transfer-list-change', [[3, 4]]);
+		expect(fact('audiences')).toBe('2 audiences');
+
+		window.$('#ffc-dm-digest-enabled').prop('checked', true).trigger('change');
+		expect(fact('digest')).toBe('Counts only');
+	});
 });

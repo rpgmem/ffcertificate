@@ -49,6 +49,7 @@ return array(
 	'Audience>UserDashboard',
 	'Core>Reregistration',
 	'Core>Settings',
+	'DateMessages>Admin',
 	'DateMessages>Audience',
 	'DateMessages>Core',
 	'DateMessages>Integrations',

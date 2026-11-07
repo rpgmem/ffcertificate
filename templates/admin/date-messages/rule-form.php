@@ -83,47 +83,66 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 		$ffc_dm_image_txt .= ' · ' . size_format( (int) $ffc_dm_image_md['filesize'] );
 	}
 }
+
+// The editor of the admin layout (#2498): one tab per part of the rule, the
+// open panel, and a side column whose first card saves. It stays one form,
+// so moving between tabs keeps what was typed and Save writes every tab.
+$ffc_dm_tabs = array(
+	'rule'       => array(
+		'key'   => 'rule',
+		'label' => __( 'Rule', 'ffcertificate' ),
+		'title' => (int) $ffc_dm_values['id'] > 0 ? __( 'Edit rule', 'ffcertificate' ) : __( 'New rule', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-edit',
+	),
+	'message'    => array(
+		'key'   => 'message',
+		'label' => __( 'Message', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-email',
+	),
+	'appearance' => array(
+		'key'   => 'appearance',
+		'label' => __( 'Body appearance', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-image',
+	),
+	'sending'    => array(
+		'key'   => 'sending',
+		'label' => __( 'Sending', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-send',
+	),
+	'summary'    => array(
+		'key'   => 'summary',
+		'label' => __( 'Manager summary', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-users',
+	),
+	'check'      => array(
+		'key'   => 'check',
+		'label' => __( 'Check before saving', 'ffcertificate' ),
+		'icon'  => 'ffc-icon-search',
+	),
+);
+$ffc_dm_tab  = static function ( string $key, string $hint ) use ( $ffc_dm_tabs ): void {
+	\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $ffc_dm_tabs[ $key ], 'rule' );
+	if ( '' !== $hint ) {
+		echo '<p class="description">' . esc_html( $hint ) . '</p>';
+	}
+};
 ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-rule-form">
 	<?php wp_nonce_field( DateMessagesAdminPage::SAVE_ACTION ); ?>
 	<input type="hidden" name="action" value="<?php echo esc_attr( DateMessagesAdminPage::SAVE_ACTION ); ?>">
 	<input type="hidden" name="rule[id]" value="<?php echo esc_attr( (string) (int) $ffc_dm_values['id'] ); ?>">
 
-<div class="ffc-sections">
+<div class="ffc-editor">
+<div class="ffc-editor__main">
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => (int) $ffc_dm_values['id'] > 0 ? __( 'Edit rule', 'ffcertificate' ) : __( 'New rule', 'ffcertificate' ),
-			'icon'  => 'edit',
-			'hint'  => __( 'What the message is, who receives it and when.', 'ffcertificate' ),
-			'open'  => true,
-		)
-	);
+	\FreeFormCertificate\Admin\AdminUI::vertical_tabs_open( array_values( $ffc_dm_tabs ), 'rule', extra_class: 'ffc-editor__tabs' );
+	$ffc_dm_tab( 'rule', __( 'What the message is, who receives it and when.', 'ffcertificate' ) );
 	?>
 
 	<table class="form-table" role="presentation">
 		<tr>
 			<th scope="row"><label for="ffc-dm-name"><?php esc_html_e( 'Name', 'ffcertificate' ); ?></label></th>
 			<td><input type="text" id="ffc-dm-name" name="rule[name]" class="regular-text" required value="<?php echo esc_attr( (string) $ffc_dm_values['name'] ); ?>"></td>
-		</tr>
-<tr>
-			<th scope="row"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
-			<td>
-				<?php
-				\FreeFormCertificate\Admin\AdminUI::render_toggle(
-					array(
-						'name'    => 'rule[is_active]',
-						'id'      => 'ffc-dm-is-active',
-						'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
-						'label'   => __( 'Active', 'ffcertificate' ),
-						'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
-					)
-				);
-				?>
-				<?php // What "active" means depends on the kind (#2336). ?>
-				<p class="description" data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'The daily run sends it each day to the people whose date it is. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
-				<p class="description" data-ffc-dm-kind-only="announcement"<?php echo $ffc_dm_hidden( 'announcement' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'It goes out once, at its send time or from Send now; inactive, it is never sent. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
-			</td>
 		</tr>
 		<tr>
 			<th scope="row"><label for="ffc-dm-kind"><?php esc_html_e( 'Kind of message', 'ffcertificate' ); ?></label></th>
@@ -160,16 +179,10 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</tr>
 		<?php endif; ?>
 	</table>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => __( 'Message', 'ffcertificate' ),
-			'icon'  => 'email',
-			'hint'  => __( 'The subject and the body. The header and footer come from the Email Model.', 'ffcertificate' ),
-		)
-	);
+	$ffc_dm_tab( 'message', __( 'The subject and the body. The header and footer come from the Email Model.', 'ffcertificate' ) );
 	?>
 	<table class="form-table" role="presentation">
 		<tr>
@@ -219,18 +232,12 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
-	<div class="ffc-dm-appearance" data-model-bg="<?php echo esc_attr( (string) $ffc_dm_model['body_bg'] ); ?>" data-model-text="<?php echo esc_attr( (string) $ffc_dm_model['body_text_color'] ); ?>">
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => __( 'Body appearance', 'ffcertificate' ),
-			'icon'  => 'logo',
-			'hint'  => __( 'The background and the text area of the body only.', 'ffcertificate' ),
-		)
-	);
+	$ffc_dm_tab( 'appearance', __( 'The background and the text area of the body only.', 'ffcertificate' ) );
 	?>
+	<div class="ffc-dm-appearance" data-model-bg="<?php echo esc_attr( (string) $ffc_dm_model['body_bg'] ); ?>" data-model-text="<?php echo esc_attr( (string) $ffc_dm_model['body_text_color'] ); ?>">
 	<p class="description"><?php esc_html_e( 'Only the body of this message changes; the header and footer stay the Email Model\'s. Fields left empty follow the Email Model.', 'ffcertificate' ); ?></p>
 	<table class="form-table" role="presentation">
 		<tr>
@@ -344,17 +351,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
 	</div>
+	<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => __( 'Sending', 'ffcertificate' ),
-			'icon'  => 'send',
-			'hint'  => __( 'Who gets it, whether it is active, and when.', 'ffcertificate' ),
-		)
-	);
+	$ffc_dm_tab( 'sending', __( 'Who gets it and when.', 'ffcertificate' ) );
 	?>
 	<table class="form-table" role="presentation">
 		<tr data-ffc-dm-kind-only="dated"
@@ -427,16 +428,10 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 			</table>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => __( 'Manager summary', 'ffcertificate' ),
-			'icon'  => 'users',
-			'hint'  => __( 'An optional summary of each run for the people who manage the messages.', 'ffcertificate' ),
-		)
-	);
+	$ffc_dm_tab( 'summary', __( 'An optional summary of each run for the people who manage the messages.', 'ffcertificate' ) );
 	?>
 	<table class="form-table" role="presentation">
 		<tr>
@@ -474,16 +469,11 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			</td>
 		</tr>
 	</table>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+	<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
 	<?php
-	\FreeFormCertificate\Admin\AdminUI::render_section_open(
-		array(
-			'title' => __( 'Check before saving', 'ffcertificate' ),
-			'icon'  => 'search',
-			'hint'  => __( 'Preview the recipients and the message with the values on this form.', 'ffcertificate' ),
-		)
-	);
+	// The panel's own first line says what the check uses.
+	$ffc_dm_tab( 'check', '' );
 	?>
 	<p class="description"><?php esc_html_e( 'Uses the values on this form, saved or not. Nothing is sent and nothing is recorded.', 'ffcertificate' ); ?></p>
 	<div class="ffc-dm-preview" data-ffc-dm-preview="form">
@@ -568,15 +558,79 @@ if ( is_array( $ffc_dm_image_md ) && isset( $ffc_dm_image_md['width'], $ffc_dm_i
 			<p class="description"><?php esc_html_e( 'Sample values; images load as most readers show them. Outlook on Windows and readers that block images show the fallback colour instead.', 'ffcertificate' ); ?></p>
 		</div>
 	</div>
-	<?php \FreeFormCertificate\Admin\AdminUI::render_section_close(); ?>
+	<?php
+	\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close();
+	\FreeFormCertificate\Admin\AdminUI::vertical_tabs_close();
+	?>
 </div>
-
-	<?php if ( $can_manage ) : ?>
+<div class="ffc-editor__side">
+	<div class="card">
+		<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
 		<?php
-		\FreeFormCertificate\Admin\AdminUI::render_save_button(
-			__( 'Save rule', 'ffcertificate' ),
-			array( 'value' => __( 'Save rule', 'ffcertificate' ) )
+		// The switch saves on its own the moment it flips, as it did in the
+		// first section (#1757); the Save below writes every tab.
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'rule[is_active]',
+				'id'      => 'ffc-dm-is-active',
+				'checked' => $ffc_dm_flag( $ffc_dm_values['is_active'] ),
+				'label'   => __( 'Active', 'ffcertificate' ),
+				'data'    => \FreeFormCertificate\Core\RecordAutosave::attrs( 'date_message_rule', (int) $ffc_dm_values['id'], 'is_active' ),
+			)
 		);
 		?>
-	<?php endif; ?>
+		<?php // What "active" means depends on the kind (#2336). ?>
+		<p class="description" data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'The daily run sends it each day to the people whose date it is. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
+		<p class="description" data-ffc-dm-kind-only="announcement"<?php echo $ffc_dm_hidden( 'announcement' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'It goes out once, at its send time or from Send now; inactive, it is never sent. Activating it takes the right to send.', 'ffcertificate' ); ?></p>
+		<?php
+		if ( $can_manage ) {
+			\FreeFormCertificate\Admin\AdminUI::render_save_button(
+				__( 'Save rule', 'ffcertificate' ),
+				array( 'value' => __( 'Save rule', 'ffcertificate' ) )
+			);
+		}
+		?>
+	</div>
+	<?php
+	// The rule at a glance (#2498): what the other tabs hold, so they need not
+	// be opened one by one. ffc-date-messages-admin.js keeps it in step with
+	// the form before it is saved.
+	$ffc_dm_source_obj = DateSources::get( (string) $ffc_dm_values['source'] );
+	$ffc_dm_send_at    = (int) $ffc_dm_values['send_at'];
+	$ffc_dm_digest_on  = $ffc_dm_flag( $ffc_dm_values['digest_enabled'] );
+	$ffc_dm_fact_sends = 0 === $ffc_dm_offset
+		? __( 'On the date itself', 'ffcertificate' )
+		: sprintf(
+			/* translators: %d: number of days */
+			$ffc_dm_offset < 0 ? _n( '%d day before the date', '%d days before the date', abs( $ffc_dm_offset ), 'ffcertificate' ) : _n( '%d day after the date', '%d days after the date', $ffc_dm_offset, 'ffcertificate' ),
+			abs( $ffc_dm_offset )
+		);
+	$ffc_dm_fact_when  = $ffc_dm_send_at > 0 ? __( 'Once, at the time set in Sending', 'ffcertificate' ) : __( 'By hand, with Send now', 'ffcertificate' );
+	$ffc_dm_fact_reach = array() === $ffc_dm_audiences
+		? __( 'Everyone', 'ffcertificate' )
+		/* translators: %d: number of audiences */
+		: sprintf( _n( '%d audience', '%d audiences', count( $ffc_dm_audiences ), 'ffcertificate' ), count( $ffc_dm_audiences ) );
+	$ffc_dm_fact_digest = ! $ffc_dm_digest_on
+		? __( 'Off', 'ffcertificate' )
+		: ( 'detailed' === (string) $ffc_dm_values['digest_mode'] ? __( 'Counts and the names of who received it', 'ffcertificate' ) : __( 'Counts only', 'ffcertificate' ) );
+	?>
+	<div class="card ffc-dm-facts">
+		<h2 class="ffc-icon-info"><?php esc_html_e( 'This rule', 'ffcertificate' ); ?></h2>
+		<dl class="ffc-facts">
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Kind', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value" data-ffc-dm-fact="kind"><?php echo esc_html( Rule::KIND_ANNOUNCEMENT === (string) $ffc_dm_values['kind'] ? __( 'Announcement', 'ffcertificate' ) : __( 'By date', 'ffcertificate' ) ); ?></dd>
+			<dt class="ffc-facts__label" data-ffc-dm-kind-only="dated"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php esc_html_e( 'Date', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value" data-ffc-dm-kind-only="dated" data-ffc-dm-fact="source"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php echo esc_html( null === $ffc_dm_source_obj ? (string) $ffc_dm_values['source'] : $ffc_dm_source_obj->label() ); ?></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Sends', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value" data-ffc-dm-kind-only="dated" data-ffc-dm-fact="offset"<?php echo $ffc_dm_hidden( 'dated' ) ? ' hidden' : ''; ?>><?php echo esc_html( $ffc_dm_fact_sends ); ?></dd>
+			<dd class="ffc-facts__value" data-ffc-dm-kind-only="announcement" data-ffc-dm-fact="send-at"<?php echo $ffc_dm_hidden( 'announcement' ) ? ' hidden' : ''; ?>><?php echo esc_html( $ffc_dm_fact_when ); ?></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Audiences', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value" data-ffc-dm-fact="audiences"><?php echo esc_html( $ffc_dm_fact_reach ); ?></dd>
+			<dt class="ffc-facts__label"><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></dt>
+			<dd class="ffc-facts__value" data-ffc-dm-fact="digest"><?php echo esc_html( $ffc_dm_fact_digest ); ?></dd>
+		</dl>
+		<p class="description"><?php esc_html_e( 'Follows the form as you edit it, before saving.', 'ffcertificate' ); ?></p>
+	</div>
+</div>
+</div>
 </form>
