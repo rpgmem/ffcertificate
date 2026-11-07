@@ -18,7 +18,7 @@ $ffc_colors = array(
 	'accent' => __( 'Accent (buttons, links and focus)', 'ffcertificate' ),
 	'border' => __( 'Field borders', 'ffcertificate' ),
 	'muted'  => __( 'Hints and secondary text', 'ffcertificate' ),
-	'error'  => __( 'Errors', 'ffcertificate' ),
+	'error'  => __( 'Errors (also danger buttons and notices)', 'ffcertificate' ),
 	'info'   => __( 'Information notices (bar and text)', 'ffcertificate' ),
 );
 ?>
@@ -32,7 +32,7 @@ $ffc_colors = array(
 <div class="card">
 	<h2 class="ffc-icon-palette"><?php esc_html_e( 'Public Design', 'ffcertificate' ); ?></h2>
 	<p class="description">
-		<?php esc_html_e( 'The look of every screen visitors see: forms, certificate verification, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'The look of every screen visitors see: forms, certificate verification, Public Operator Access (the CSV download), geofenced content, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked.', 'ffcertificate' ); ?>
 	</p>
 
 	<table class="form-table" role="presentation">

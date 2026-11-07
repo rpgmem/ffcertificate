@@ -504,6 +504,9 @@ class FrontendTest extends TestCase {
 		$this->assertArrayHasKey( 'ajax_url', $localized['ffc_ajax'] );
 		$this->assertArrayHasKey( 'nonce', $localized['ffc_ajax'] );
 		$this->assertArrayHasKey( 'strings', $localized['ffc_ajax'] );
+		foreach ( array( 'cpfInvalid', 'enterValidCpfRf', 'idMustHaveDigits' ) as $key ) {
+			$this->assertArrayHasKey( $key, $localized['ffc_ajax']['strings'], "The form carries the shared CPF/RF message {$key}." );
+		}
 
 		// Geofence config should be localized
 		$this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
@@ -715,6 +718,12 @@ class FrontendTest extends TestCase {
 		$gate = $localized['ffc_csv_download']['preflight']['strings'];
 		$this->assertStringContainsString( 'download the file', $gate['browserFeaturesBody'] );
 		$this->assertStringContainsString( 'this page', $gate['browserFeaturesTitle'] );
+		// #2341 — the CPF/RF messages ffc-frontend-helpers.js reads come
+		// from one list, so the CSV screen carries the same three.
+		$strings = $localized['ffc_csv_download']['strings'];
+		$this->assertSame( 'Invalid CPF', $strings['cpfInvalid'] );
+		$this->assertSame( 'Enter a valid CPF (11 digits) or RF (7 digits)', $strings['enterValidCpfRf'] );
+		$this->assertSame( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', $strings['idMustHaveDigits'] );
 		$this->assertStringNotContainsString( 'certificate', implode( ' ', $gate ) );
 		$this->assertSame( 'csv_download', $localized['ffc_csv_download']['preflight']['telemetry']['type'] );
 	}

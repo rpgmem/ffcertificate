@@ -5851,7 +5851,7 @@ msgid "Displays a personal calendar with appointment booking."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-shortcodes.php:44
-msgid "Displays a public page where trusted operators can download the submissions CSV, trigger Start Form Early, and Postpone Close for a specific form — all gated by a Form ID and an access hash."
+msgid "Displays Public Operator Access: a public page where trusted operators see a form's status and, for that form, download the submissions CSV, trigger Start Form Early, Postpone Close and create a schedule exception — all gated by a Form ID and an access hash."
 msgstr ""
 
 #: includes/settings/views/documentation/reference-shortcodes.php:52
@@ -5999,10 +5999,6 @@ msgstr ""
 msgid "Download Record"
 msgstr ""
 
-
-#: includes/frontend/class-ffc-public-csv-download.php:159
-msgid "Download form submissions (CSV)"
-msgstr ""
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:223
 msgid "Download Limit"
@@ -6880,7 +6876,7 @@ msgid "Enter the CPF authorized to download this CSV. The CPF is encrypted at re
 msgstr ""
 
 #: includes/frontend/class-ffc-public-csv-download.php:189
-msgid "Enter the Form ID and the access hash to download the submissions CSV."
+msgid "Enter the Form ID and the access hash to see the form's status and, where the form allows it, start it early, postpone its close, create a schedule exception or download its submissions (CSV)."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:304
@@ -7197,6 +7193,26 @@ msgstr ""
 
 #: templates/certificate-preview.php:46 includes/generators/class-ffc-pdf-html-renderer.php:339 includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php:417 includes/frontend/class-ffc-verification-response-renderer.php:255
 msgid "Event:"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "Schedule exception:"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "While the form is open, the operator sets other start and end times, inside the form's open window, for one participant's submission. The participant's form must be opened in the same browser within 30 minutes, and the first submission spends it. It is turned on per form."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "URL parameter:"
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "(an invitation code from an audience booking: the form fills in and locks the invitee's name and e-mail. On a form that is not invite-only, a code that no longer resolves shows the normal form with a notice)."
+msgstr ""
+
+#: includes/settings/views/documentation/reference-shortcodes.php
+msgid "(the magic link sent with a certificate: the page shows that certificate and its download instead of the verification form)."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:27
@@ -24739,11 +24755,11 @@ msgid "Hints and secondary text"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:21
-msgid "Errors"
+msgid "Errors (also danger buttons and notices)"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:34
-msgid "The look of every screen visitors see: forms, certificate verification, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
+msgid "The look of every screen visitors see: forms, certificate verification, Public Operator Access (the CSV download), geofenced content, scheduling, audiences, the user dashboard and recruitment. The colours apply to the light theme; in dark mode the plugin keeps its own dark palette, whose contrast is already checked."
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:40
