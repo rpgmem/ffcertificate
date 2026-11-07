@@ -85,6 +85,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public front end: finding the page a form or calendar is on no longer searches post content each time** (#2341). The answer is kept and primed as pages are saved, dropped when a page is trashed, unpublished or stops embedding it, and a miss searches every matching page rather than only the fifty newest.
 - **Public Design: the contrast warning shows as the colours are picked, and measures more of what the design draws** (#2341). It also checks hints on the grey of rows and panels, the accent on its light background and under the pointer; the light background moved from 0.88 to 0.91, where the default accent clears 4.5:1; colours are disabled while the design is off; the CSV screen's "—" placeholder takes the hint colour.
 - **Public Operator Access: the screen and its documentation name all it does** (#2341). The `[ffc_csv_download]` default title is "Public Operator Access" and its intro lists the actions; Documentation → Shortcodes describes the schedule exception, `?ffc_invite=` and `?token=`; the Public Design tab names the CSV screen and says the error colour also paints danger buttons and notices.
+- **Admin: one width for the vertical menu and the side column, one card** (#2486). Both menus are 220 px and every side column 300 px, read from layout tokens; boxes have 8 px corners and no shadow, card titles take the type scale, and the section and QR choice tiles use the plugin's blue instead of purple.
 
 ### Security
 

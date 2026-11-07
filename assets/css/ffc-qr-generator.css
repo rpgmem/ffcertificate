@@ -25,7 +25,7 @@
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__side {
-    flex: 0 1 320px;
+    flex: 0 1 var(--ffc-admin-side-width);
     position: sticky;
     top: 40px;
 }
@@ -84,8 +84,8 @@
 
 .ffc-page-qr-generator .ffc-qr-type__input:checked + .ffc-qr-type__face {
     border-color: var(--ffc-primary);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
     box-shadow: 0 0 0 1px var(--ffc-primary);
 }
 

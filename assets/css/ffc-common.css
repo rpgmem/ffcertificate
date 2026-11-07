@@ -141,6 +141,13 @@
        between those overlays and every `modal` element exactly as it was. */
     --ffc-z-topmost: 999999;
 
+    /* Admin layout (#2486): the one grid every admin screen uses,
+       [vertical menu] content [side column]. The menu and the side column
+       read these widths, so no screen picks its own. */
+    --ffc-admin-nav-width: 220px;
+    --ffc-admin-side-width: 300px;
+    --ffc-admin-gap: var(--ffc-spacing-2xl);
+
     /* Shadows */
     --ffc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
     --ffc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.1);
