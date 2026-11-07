@@ -255,18 +255,18 @@ class AppointmentsListTableTest extends TestCase {
 		$table = new AppointmentsListTable();
 
 		foreach ( array( 'cancelled', 'completed', 'no_show' ) as $status ) {
-			$html = $table->column_id( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
-			$this->assertStringContainsString( 'ffc-appointment-delete', $html, $status );
+			$html = $table->column_actions( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
+			$this->assertStringContainsString( 'class="ffc-btn ffc-btn-danger ffc-icon-delete ffc-appointment-delete"', $html, $status );
 			$this->assertStringContainsString( 'ffc_action=delete_permanently', $html, $status );
 			$this->assertStringContainsString( '_n=ffc_delete_permanently_appointment_12', $html, $status );
 		}
 		foreach ( array( 'pending', 'confirmed', 'waitlist' ) as $status ) {
-			$html = $table->column_id( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
+			$html = $table->column_actions( array( 'id' => 12, 'status' => $status, 'appointment_date' => '2020-01-01' ) );
 			$this->assertStringNotContainsString( 'ffc-appointment-delete', $html, $status );
 		}
 
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_appointments' === $cap );
-		$html = $table->column_id( array( 'id' => 12, 'status' => 'cancelled' ) );
+		$html = $table->column_actions( array( 'id' => 12, 'status' => 'cancelled' ) );
 		$this->assertStringNotContainsString( 'ffc-appointment-delete', $html, 'Without the delete capability.' );
 	}
 
@@ -275,7 +275,7 @@ class AppointmentsListTableTest extends TestCase {
 		$cols  = $table->get_columns();
 
 		$this->assertSame(
-			array( 'cb', 'id', 'calendar', 'name', 'email', 'appointment_date', 'time', 'status', 'created_at' ),
+			array( 'cb', 'id', 'calendar', 'name', 'email', 'appointment_date', 'time', 'status', 'created_at', 'actions' ),
 			array_keys( $cols )
 		);
 	}
@@ -311,11 +311,14 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=1' );
 
 		$table = new AppointmentsListTable();
-		$html  = $table->column_id( array( 'id' => 7, 'status' => 'pending', 'confirmation_token' => 'tok' ) );
+		$html  = $table->column_actions( array( 'id' => 7, 'status' => 'pending', 'confirmation_token' => 'tok' ) );
 
-		$this->assertStringContainsString( '#7', $html );
-		$this->assertStringContainsString( 'Confirm', $html );
-		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
+		// Buttons of the family in the Actions column (#2486), in the order a
+		// reader scans: open it, the day's work, the destructive one last.
+		$this->assertMatchesRegularExpression( '#>View</a><a[^>]*>View Receipt</a><a[^>]*ffc-icon-checkmark">Confirm</a><a[^>]*>Cancel</a></div>$#', $html );
+		// Cancel keeps the record, so it is caution, and keeps its script hook.
+		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-cross ffc-appointment-cancel"', $html );
+		$this->assertStringContainsString( 'data-cancel-url="https://example.com/wp-admin/admin.php?page=ffc-appointments&ffc_action=cancel&appointment=7&_n=1"', $html );
 		$this->assertStringContainsString( '>View<', $html, 'A manager is offered the manage-gated detail view.' );
 		$this->assertStringContainsString( 'appointment=7', $html );
 		// The real MagicLinkHelper: no verification page stored, so /valid/.
@@ -328,9 +331,10 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false ); // read-only viewer.
 
 		$table = new AppointmentsListTable();
-		$html  = $table->column_id( array( 'id' => 9, 'status' => 'cancelled', 'confirmation_token' => 'tok' ) );
+		$this->assertSame( '#9', $table->column_id( array( 'id' => 9 ) ), 'the ID column carries the ID alone (#2486)' );
+		$html = $table->column_actions( array( 'id' => 9, 'status' => 'cancelled', 'confirmation_token' => 'tok' ) );
 
-		$this->assertStringContainsString( '#9', $html );
+		$this->assertSame( '<div class="ffc-row-buttons"></div>', $html );
 		$this->assertStringNotContainsString( 'Confirm', $html );
 		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
 		// The detail view requires ffc_manage_appointments, so a read-only
@@ -344,7 +348,7 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$table = new AppointmentsListTable();
-		$html  = $table->column_id( array( 'id' => 11, 'status' => 'confirmed', 'confirmation_token' => '' ) );
+		$html  = $table->column_actions( array( 'id' => 11, 'status' => 'confirmed', 'confirmation_token' => '' ) );
 
 		// The real AppointmentReceiptHandler::get_receipt_url( 11, '' ).
 		$this->assertStringContainsString( 'https://example.com?ffc_appointment_receipt=11', $html );
@@ -669,7 +673,7 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'wp_nonce_url' )->alias( fn( $u, $a = '' ) => $u . '&_n=' . $a );
 
 		$table = new AppointmentsListTable();
-		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+		$html  = $table->column_actions( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
 
 		$this->assertStringContainsString( 'ffc-appointment-cancel', $html );
 		$this->assertStringContainsString( 'ffc_cancel_appointment_21', $html );
@@ -684,7 +688,7 @@ class AppointmentsListTableTest extends TestCase {
 
 		$table = new AppointmentsListTable();
 		foreach ( array( '2026-05-10', '2026-05-01' ) as $date ) {
-			$html = $table->column_id( array( 'id' => 31, 'status' => 'confirmed', 'appointment_date' => $date, 'confirmation_token' => 'tok' ) );
+			$html = $table->column_actions( array( 'id' => 31, 'status' => 'confirmed', 'appointment_date' => $date, 'confirmation_token' => 'tok' ) );
 
 			$this->assertStringContainsString( '>Attended<', $html, $date );
 			$this->assertStringContainsString( 'ffc_attended_appointment_31', $html, $date );
@@ -701,7 +705,7 @@ class AppointmentsListTableTest extends TestCase {
 
 		$table = new AppointmentsListTable();
 		foreach ( array( array( 'appointment_date' => '2026-05-11' ), array() ) as $extra ) {
-			$html = $table->column_id( array( 'id' => 31, 'status' => 'confirmed', 'confirmation_token' => 'tok' ) + $extra );
+			$html = $table->column_actions( array( 'id' => 31, 'status' => 'confirmed', 'confirmation_token' => 'tok' ) + $extra );
 
 			$this->assertStringNotContainsString( 'ffc_attended_appointment_31', $html );
 			$this->assertStringNotContainsString( 'ffc_no_show_appointment_31', $html );
@@ -717,9 +721,10 @@ class AppointmentsListTableTest extends TestCase {
 
 		$table = new AppointmentsListTable();
 		foreach ( array( 'completed', 'no_show' ) as $status ) {
-			$html = $table->column_id( array( 'id' => 32, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
+			$html = $table->column_actions( array( 'id' => 32, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
 
 			$this->assertStringContainsString( '>Undo attendance<', $html, $status );
+			$this->assertStringContainsString( 'class="ffc-btn ffc-btn-caution ffc-icon-restore"', $html, 'undoing changes the status and keeps the record' );
 			$this->assertStringContainsString( 'ffc_undo_attendance_appointment_32', $html, $status );
 			$this->assertStringNotContainsString( 'ffc_attended_appointment_32', $html, $status );
 			$this->assertStringNotContainsString( 'ffc_cancel_appointment_32', $html, $status );
@@ -732,7 +737,7 @@ class AppointmentsListTableTest extends TestCase {
 
 		$table = new AppointmentsListTable();
 		foreach ( array( 'confirmed', 'completed' ) as $status ) {
-			$html = $table->column_id( array( 'id' => 33, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
+			$html = $table->column_actions( array( 'id' => 33, 'status' => $status, 'appointment_date' => '2026-05-01', 'confirmation_token' => 'tok' ) );
 
 			$this->assertStringNotContainsString( 'Attended', $html, $status );
 			$this->assertStringNotContainsString( 'Undo attendance', $html, $status );
@@ -743,7 +748,7 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'current_user_can' )->justReturn( false );
 
 		$table = new AppointmentsListTable();
-		$html  = $table->column_id( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
+		$html  = $table->column_actions( array( 'id' => 21, 'status' => 'waitlist', 'confirmation_token' => 'tok' ) );
 
 		$this->assertStringNotContainsString( 'ffc-appointment-cancel', $html );
 		$this->assertStringNotContainsString( 'Confirm', $html );
@@ -753,10 +758,32 @@ class AppointmentsListTableTest extends TestCase {
 		$table = new AppointmentsListTable();
 
 		ob_start();
-		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$table->render_filters();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( '<option value="waitlist"', $out );
+	}
+
+	/**
+	 * "Reveal this page" moved into the bulk bar (#2486), for the holders of
+	 * the module's reveal capability only.
+	 */
+	public function test_bulk_bar_offers_the_page_reveal_to_a_pii_holder_only(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		$table = new AppointmentsListTable();
+
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
+		ob_start();
+		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$out = (string) ob_get_clean();
+		$this->assertStringStartsWith( '<div class="alignleft actions"><p class="ffc-pii-reveal-bar">', $out );
+		$this->assertStringContainsString( 'ffc-reveal-pii-page', $out );
+
+		Functions\when( 'user_can' )->justReturn( false );
+		ob_start();
+		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$this->assertSame( '', ob_get_clean() );
 	}
 
 	public function test_extra_tablenav_returns_early_when_not_top(): void {
@@ -777,7 +804,7 @@ class AppointmentsListTableTest extends TestCase {
 		$table = new AppointmentsListTable();
 
 		ob_start();
-		$this->call_protected( $table, 'extra_tablenav', array( 'top' ) );
+		$table->render_filters();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Cal One', $out );
@@ -800,7 +827,7 @@ class AppointmentsListTableTest extends TestCase {
 		Functions\when( 'wp_date' )->justReturn( '2026-05-10' );
 
 		ob_start();
-		$this->call_protected( new AppointmentsListTable(), 'extra_tablenav', array( 'top' ) );
+		( new AppointmentsListTable() )->render_filters();
 		$out = (string) ob_get_clean();
 
 		$this->assertMatchesRegularExpression( '/<a [^>]*href="[^"]*page=ffc-appointments[^"]*calendar_id=1[^"]*date_from=2026-05-10[^"]*date_to=2026-05-10[^"]*orderby=appointment_date[^"]*order=asc[^"]*"[^>]*>Today</', $out );

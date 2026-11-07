@@ -239,7 +239,6 @@ class Admin {
 		?>
 		<div class="wrap ffc-admin-page ffc-page-submissions">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></h1>
-			<div class="ffc-admin-top-actions">
 				<?php
                 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export button.
 				$export_status   = RequestInput::get_get_key( 'status', 'publish' );
@@ -272,16 +271,15 @@ class Admin {
 					)
 				);
 				?>
-			</div>
 			<hr class="wp-header-end">
-			<form method="GET">
+			<?php // The list top (#2486): views, the filter card, then the bulk bar the table draws. ?>
+			<form method="GET" class="ffc-list">
 				<input type="hidden" name="post_type" value="ffc_form">
 				<input type="hidden" name="page" value="ffc-submissions">
 				<?php
 				$table->views();
-				$table->search_box( __( 'Search', 'ffcertificate' ), 's' );
+				$table->render_filters();
 				?>
-				<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_certificates_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 				<div class="ffc-table-responsive">
 					<?php $table->display(); ?>
 				</div>

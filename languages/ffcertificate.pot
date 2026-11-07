@@ -8859,11 +8859,6 @@ msgstr ""
 msgid "Filter"
 msgstr ""
 
-#. %d: number of selected filters
-#: includes/admin/class-ffc-submissions-list.php:596
-msgid "Filter (%d)"
-msgstr ""
-
 #. %s: environment label (singular)
 #: includes/audience/class-ffc-audience-shortcode.php:266
 #, php-format
@@ -30897,10 +30892,6 @@ msgstr ""
 msgid "Name, e-mail, CPF/RF or ID"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:526
-msgid "Search appointments"
-msgstr ""
-
 #: includes/settings/views/documentation/feature-self-scheduling.php:61
 msgid "The Appointments list filters by calendar, status and a date range, and Today opens the day's agenda in time order. The search box takes a name, an e-mail, a CPF or RF, or an appointment ID; CPF, RF and e-mail are stored encrypted, so they match only when typed in full. Export CSV exports exactly what the filters show."
 msgstr ""
@@ -33240,3 +33231,14 @@ msgstr ""
 #: includes/core/class-ffc-public-design.php
 msgid "links under the pointer, on white"
 msgstr ""
+
+#: includes/admin/class-ffc-submissions-list.php:777
+msgid "All forms"
+msgstr ""
+
+#. %d: number of forms picked in the filter
+#: includes/admin/class-ffc-submissions-list.php:776
+msgid "%d form"
+msgid_plural "%d forms"
+msgstr[0] ""
+msgstr[1] ""

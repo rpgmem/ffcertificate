@@ -459,7 +459,7 @@ class SubmissionsListTest extends TestCase {
 		$this->assertStringNotContainsString( 'Restore', $out );
 		// One flex container holds the buttons, so they keep one line and an
 		// even gap where the column fits them.
-		$this->assertMatchesRegularExpression( '#^<div class="ffc-submission-actions">.*</div>$#s', $out );
+		$this->assertMatchesRegularExpression( '#^<div class="ffc-row-buttons">.*</div>$#s', $out );
 	}
 
 	public function test_actions_manage_trash_shows_restore_delete(): void {
@@ -891,55 +891,86 @@ class SubmissionsListTest extends TestCase {
 		$this->assertSame( '', ob_get_clean() );
 	}
 
-	public function test_extra_tablenav_no_forms_returns_early(): void {
-		Functions\when( 'get_posts' )->justReturn( array() );
+	public function test_extra_tablenav_top_holds_the_page_reveal_only(): void {
+		// The filters left the bulk bar for their own card (#2486); without
+		// the reveal capability the bar has nothing extra to draw.
+		Functions\when( 'get_posts' )->justReturn( array( (object) array( 'ID' => 10, 'post_title' => 'Form Ten' ) ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 		$list = $this->makeList();
 		ob_start();
 		$this->call_protected( $list, 'extra_tablenav', array( 'top' ) );
 		$this->assertSame( '', ob_get_clean() );
 	}
 
-	public function test_extra_tablenav_renders_filter_overlay(): void {
+	public function test_filters_without_forms_keep_the_search(): void {
+		Functions\when( 'get_posts' )->justReturn( array() );
+		$list = $this->makeList();
+		ob_start();
+		$list->render_filters();
+		$out = (string) ob_get_clean();
+
+		$this->assertStringStartsWith( '<div class="ffc-list-filters">', trim( $out ) );
+		$this->assertStringNotContainsString( 'ffc-filter-overlay', $out );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-submissions-search">Search</label>', $out );
+		$this->assertStringContainsString( 'name="s"', $out );
+		$this->assertStringNotContainsString( 'Clear', $out, 'nothing to clear' );
+	}
+
+	public function test_filters_render_the_form_picker_with_its_label(): void {
 		$form1 = (object) array( 'ID' => 10, 'post_title' => 'Form Ten' );
 		$form2 = (object) array( 'ID' => 11, 'post_title' => 'Form Eleven' );
 		Functions\when( 'get_posts' )->justReturn( array( $form1, $form2 ) );
 
 		$list = $this->makeList();
 		ob_start();
-		$this->call_protected( $list, 'extra_tablenav', array( 'top' ) );
-		$out = ob_get_clean();
+		$list->render_filters();
+		$out = (string) ob_get_clean();
 
+		$this->assertStringContainsString( 'id="ffc-filter-forms-label">Forms</span>', $out );
+		$this->assertMatchesRegularExpression( '#<button[^>]*id="ffc-open-filter-overlay"[^>]*>All forms</button>#', $out );
 		$this->assertStringContainsString( 'ffc-filter-overlay', $out );
 		$this->assertStringContainsString( 'name="filter_form_id[]"', $out );
 		$this->assertStringContainsString( 'Form Ten', $out );
-		$this->assertStringContainsString( 'Filter', $out );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-list-filters__actions">\s*<button type="submit"[^>]*>Filter</button>#', $out );
 	}
 
-	public function test_extra_tablenav_with_selected_filter_shows_clear_and_checked(): void {
+	public function test_filters_with_a_picked_form_show_the_count_clear_and_checked(): void {
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
 		$form1 = (object) array( 'ID' => 10, 'post_title' => 'Form Ten' );
 		Functions\when( 'get_posts' )->justReturn( array( $form1 ) );
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-submissions' );
 		$_GET['filter_form_id'] = array( '10' );
 
 		$list = $this->makeList();
 		ob_start();
-		$this->call_protected( $list, 'extra_tablenav', array( 'top' ) );
-		$out = ob_get_clean();
+		$list->render_filters();
+		$out = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Clear Filter', $out );
+		$this->assertStringContainsString( '>1 form</button>', $out );
 		$this->assertStringContainsString( 'checked', $out );
-		$this->assertStringContainsString( 'Filter (1)', $out );
+		$this->assertStringContainsString( '>Clear</a>', $out );
 	}
 
-	public function test_extra_tablenav_selected_filter_string_form(): void {
+	public function test_filters_read_a_scalar_form_id_and_keep_the_view_and_sort(): void {
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === $n ? $one : $many );
 		$form1 = (object) array( 'ID' => 10, 'post_title' => 'Form Ten' );
 		Functions\when( 'get_posts' )->justReturn( array( $form1 ) );
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-submissions' );
 		$_GET['filter_form_id'] = '10';
+		$_GET['status']         = 'trash';
+		$_GET['orderby']        = 'id';
+		$_GET['order']          = 'asc';
 
 		$list = $this->makeList();
 		ob_start();
-		$this->call_protected( $list, 'extra_tablenav', array( 'top' ) );
-		$out = ob_get_clean();
+		$list->render_filters();
+		$out = (string) ob_get_clean();
 
-		$this->assertStringContainsString( 'Clear Filter', $out );
+		$this->assertStringContainsString( '>1 form</button>', $out );
+		// Filtering from a view keeps the view and the sort.
+		$this->assertStringContainsString( '<input type="hidden" name="status" value="trash">', $out );
+		$this->assertStringContainsString( '<input type="hidden" name="orderby" value="id">', $out );
+		$this->assertStringContainsString( '<input type="hidden" name="order" value="asc">', $out );
+		unset( $_GET['status'], $_GET['orderby'], $_GET['order'] );
 	}
 }

@@ -893,6 +893,9 @@ class AdminClassTest extends TestCase {
 	 */
 	private function use_list_wpdb(): void {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		// The filter card (#2486) lists the forms and links Clear.
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-submissions' );
 		$this->list_queries = array();
 
 		$wpdb         = Mockery::mock( 'wpdb' );

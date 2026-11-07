@@ -515,9 +515,10 @@ $ffcertificate_table->prepare_items();
 	endif;
 	?>
 
-	<form method="get">
+	<?php // The list top (#2486): the filter card, then the bulk bar the table draws. ?>
+	<form method="get" class="ffc-list">
 		<input type="hidden" name="page" value="ffc-appointments" />
-		<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_appointments_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
+		<?php $ffcertificate_table->render_filters(); ?>
 		<?php $ffcertificate_table->display(); ?>
 	</form>
 </div>

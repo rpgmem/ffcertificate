@@ -717,3 +717,123 @@ table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-ce
         overflow: visible;
     }
 }
+
+/* ==========================================================================
+   LIST TOP (#2486)
+   Every FFC list draws the same top, modelled on Short URLs: the actions
+   beside the title, the filters in one card with a label on every field, a
+   bulk bar holding the bulk actions, "Reveal this page" and the pagination,
+   and the row's actions as buttons.
+   ========================================================================== */
+
+.ffc-list-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    margin: 0 0 var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+}
+
+.ffc-list-filters__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-3xs);
+    min-width: 0;
+}
+
+.ffc-list-filters__label {
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-list-filters__range {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-list-filters__field select,
+.ffc-list-filters__field input {
+    margin: 0;
+}
+
+/* Filter and Clear close the card on the right. */
+.ffc-list-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-left: auto;
+}
+
+/* The views (Published, Trash…) as pills with their count, instead of
+   links joined by "|". */
+.ffc-list .subsubsub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-3xs);
+    float: none;
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+/* WordPress prints the " |" separator as text inside each item, so the
+   item's own text is set to nothing and the link carries the size: a
+   literal by necessity, not a step of the scale. */
+.ffc-list .subsubsub li {
+    font-size: 0;
+}
+
+.ffc-list .subsubsub a {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+    text-decoration: none;
+}
+
+.ffc-list .subsubsub a:hover {
+    background: var(--ffc-bg-alt);
+}
+
+.ffc-list .subsubsub a.current {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
+    font-weight: 600;
+}
+
+.ffc-list .subsubsub .count {
+    color: var(--ffc-text-muted);
+}
+
+/* "Reveal this page" sits in the bulk bar, beside Apply. */
+.ffc-list .tablenav .ffc-pii-reveal-bar {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    margin: 0;
+}
+
+.ffc-list .tablenav .ffc-pii-reveal-bar .description {
+    font-size: var(--ffc-font-size-xs);
+}
+
+/* A row's actions: buttons on one line when they fit, wrapping with an
+   even gap when they do not. */
+.ffc-row-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+}
+
+@media (forced-colors: active) {
+    .ffc-list .subsubsub a.current {
+        border: 1px solid Highlight;
+    }
+}

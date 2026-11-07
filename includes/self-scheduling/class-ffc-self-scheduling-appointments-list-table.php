@@ -102,6 +102,7 @@ class AppointmentsListTable extends \WP_List_Table {
 			'time'             => __( 'Time', 'ffcertificate' ),
 			'status'           => __( 'Status', 'ffcertificate' ),
 			'created_at'       => __( 'Created', 'ffcertificate' ),
+			'actions'          => __( 'Actions', 'ffcertificate' ),
 		);
 	}
 
@@ -160,11 +161,22 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * ID column
+	 * ID column.
 	 *
 	 * @param array<string, mixed> $item Row data.
 	 */
 	public function column_id( $item ): string {
+		return sprintf( '#%d', (int) $item['id'] );
+	}
+
+	/**
+	 * Actions column (#2486): the row's actions as buttons, always shown,
+	 * where they were links that appeared under the ID on hover. The cancel
+	 * and delete buttons keep the classes their script binds to.
+	 *
+	 * @param array<string, mixed> $item Row data.
+	 */
+	public function column_actions( $item ): string {
 		$actions       = array();
 		$ffc_page_slug = 'ffc-appointments';
 		// 3-state: confirm/cancel are writes — hidden from read-only viewers
@@ -183,10 +195,12 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 				'ffc_confirm_appointment_' . $item['id']
 			);
-			$actions['confirm'] = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $confirm_url ),
-				__( 'Confirm', 'ffcertificate' )
+			$actions['confirm'] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label' => __( 'Confirm', 'ffcertificate' ),
+					'icon'  => 'checkmark',
+					'href'  => $confirm_url,
+				)
 			);
 		}
 
@@ -196,7 +210,7 @@ class AppointmentsListTable extends \WP_List_Table {
 		// only a pending row (#2244), so promotion is the only way out of the
 		// queue into the slot.
 		if ( $ffc_can_edit_appt && in_array( $item['status'], array( 'pending', 'confirmed', 'waitlist' ), true ) ) {
-			$cancel_url        = wp_nonce_url(
+			$cancel_url = wp_nonce_url(
 				add_query_arg(
 					array(
 						'page'        => $ffc_page_slug,
@@ -207,12 +221,20 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 				'ffc_cancel_appointment_' . $item['id']
 			);
-			$actions['cancel'] = sprintf(
-				'<a href="#" class="ffc-appointment-cancel ffc-delete-link" data-cancel-url="%s" data-prompt="%s" data-too-short="%s">%s</a>',
-				esc_url( $cancel_url ),
-				esc_attr__( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
-				esc_attr__( 'The reason needs at least 5 characters. Nothing was cancelled.', 'ffcertificate' ),
-				esc_html__( 'Cancel', 'ffcertificate' )
+			// Caution, not danger: a cancellation changes the status and keeps the record.
+			$actions['cancel'] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Cancel', 'ffcertificate' ),
+					'category' => 'caution',
+					'icon'     => 'cross',
+					'href'     => '#',
+					'class'    => 'ffc-appointment-cancel',
+					'attrs'    => array(
+						'data-cancel-url' => $cancel_url,
+						'data-prompt'     => __( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
+						'data-too-short'  => __( 'The reason needs at least 5 characters. Nothing was cancelled.', 'ffcertificate' ),
+					),
+				)
 			);
 		}
 
@@ -222,13 +244,14 @@ class AppointmentsListTable extends \WP_List_Table {
 		$appointment_date   = (string) ( $item['appointment_date'] ?? '' );
 		if ( $ffc_can_edit_appt && 'confirmed' === $item['status'] && '' !== $appointment_date && $appointment_date <= wp_date( 'Y-m-d' ) ) {
 			$attendance_actions = array(
-				'attended' => __( 'Attended', 'ffcertificate' ),
-				'no_show'  => __( 'No-show', 'ffcertificate' ),
+				'attended' => array( __( 'Attended', 'ffcertificate' ), 'neutral', 'user-check' ),
+				'no_show'  => array( __( 'No-show', 'ffcertificate' ), 'neutral', 'user-minus' ),
 			);
 		} elseif ( $ffc_can_edit_appt && in_array( $item['status'], \FreeFormCertificate\Repositories\AppointmentWriter::ATTENDANCE_STATUSES, true ) ) {
-			$attendance_actions = array( 'undo_attendance' => __( 'Undo attendance', 'ffcertificate' ) );
+			// Undoing returns the row to confirmed: a status change, so caution.
+			$attendance_actions = array( 'undo_attendance' => array( __( 'Undo attendance', 'ffcertificate' ), 'caution', 'restore' ) );
 		}
-		foreach ( $attendance_actions as $attendance_action => $attendance_label ) {
+		foreach ( $attendance_actions as $attendance_action => $attendance_button ) {
 			$attendance_url                = wp_nonce_url(
 				add_query_arg(
 					array(
@@ -240,10 +263,13 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 				'ffc_' . $attendance_action . '_appointment_' . $item['id']
 			);
-			$actions[ $attendance_action ] = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $attendance_url ),
-				esc_html( $attendance_label )
+			$actions[ $attendance_action ] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => $attendance_button[0],
+					'category' => $attendance_button[1],
+					'icon'     => $attendance_button[2],
+					'href'     => $attendance_url,
+				)
 			);
 		}
 
@@ -262,10 +288,14 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 				'ffc_delete_permanently_appointment_' . $item['id']
 			);
-			$actions['delete'] = sprintf(
-				'<a href="%s" class="ffc-appointment-delete ffc-delete-link">%s</a>',
-				esc_url( $delete_url ),
-				esc_html__( 'Delete permanently', 'ffcertificate' )
+			$actions['delete'] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label'    => __( 'Delete permanently', 'ffcertificate' ),
+					'category' => 'danger',
+					'icon'     => 'delete',
+					'href'     => $delete_url,
+					'class'    => 'ffc-appointment-delete',
+				)
 			);
 		}
 
@@ -280,10 +310,12 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 				admin_url( 'admin.php' )
 			);
-			$actions['view'] = sprintf(
-				'<a href="%s">%s</a>',
-				esc_url( $view_url ),
-				__( 'View', 'ffcertificate' )
+			$actions['view'] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label' => __( 'View', 'ffcertificate' ),
+					'icon'  => 'eye',
+					'href'  => $view_url,
+				)
 			);
 		}
 
@@ -294,14 +326,27 @@ class AppointmentsListTable extends \WP_List_Table {
 		$item_status = $item['status'] ?? 'pending';
 		if ( 'cancelled' !== $item_status ) {
 			$receipt_url        = \FreeFormCertificate\SelfScheduling\AppointmentReceiptHandler::get_receipt_url( (int) $item['id'] );
-			$actions['receipt'] = sprintf(
-				'<a href="%s" target="_blank">%s</a>',
-				esc_url( $receipt_url ),
-				__( 'View Receipt', 'ffcertificate' )
+			$actions['receipt'] = \FreeFormCertificate\Core\Button::html(
+				array(
+					'label' => __( 'View Receipt', 'ffcertificate' ),
+					'icon'  => 'file',
+					'href'  => $receipt_url,
+					'attrs' => array( 'target' => '_blank' ),
+				)
 			);
 		}
 
-		return sprintf( '#%d %s', $item['id'], $this->row_actions( $actions ) );
+		// The order a reader scans: open it, then the day's work, then the
+		// destructive one last.
+		$order  = array( 'view', 'receipt', 'confirm', 'attended', 'no_show', 'undo_attendance', 'cancel', 'delete' );
+		$sorted = array();
+		foreach ( $order as $key ) {
+			if ( isset( $actions[ $key ] ) ) {
+				$sorted[] = $actions[ $key ];
+			}
+		}
+
+		return '<div class="ffc-row-buttons">' . implode( '', $sorted ) . '</div>';
 	}
 
 	/**
@@ -518,15 +563,28 @@ class AppointmentsListTable extends \WP_List_Table {
 	}
 
 	/**
-	 * Display filters
+	 * The bulk bar's extra control (#2486): "Reveal this page", beside Apply.
 	 *
-	 * @param mixed $which Which.
+	 * The filters left this bar for their own card, {@see self::render_filters()}.
+	 *
+	 * @param mixed $which Top or bottom.
 	 */
 	protected function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
 			return;
 		}
+		$reveal = \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_appointments_pii' );
+		if ( '' !== $reveal ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value.
+			echo '<div class="alignleft actions">' . $reveal . '</div>';
+		}
+	}
 
+	/**
+	 * The filter card (#2486): calendar, status, period and search, each with
+	 * its label, then Filter, Today and Clear.
+	 */
+	public function render_filters(): void {
 		$filters     = self::request_filters();
 		$calendar_id = $filters['calendar_id'];
 		$status      = $filters['status'];
@@ -535,31 +593,54 @@ class AppointmentsListTable extends \WP_List_Table {
 		// Get all calendars for filter.
 		$calendars = $this->calendar_repository->getActiveCalendars();
 
+		$statuses = array(
+			'pending'   => __( 'Pending', 'ffcertificate' ),
+			'confirmed' => __( 'Confirmed', 'ffcertificate' ),
+			'cancelled' => __( 'Cancelled', 'ffcertificate' ),
+			'completed' => __( 'Completed', 'ffcertificate' ),
+			'no_show'   => __( 'No Show', 'ffcertificate' ),
+			'waitlist'  => __( 'Waitlist', 'ffcertificate' ),
+		);
+		$filtered = $calendar_id > 0 || '' !== $status || '' !== $filters['start_date'] || '' !== $filters['end_date'] || '' !== $filters['search'];
 		?>
-	<div class="alignleft actions">
-		<select name="calendar_id">
-			<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
-			<?php foreach ( $calendars as $calendar ) : ?>
-				<option value="<?php echo esc_attr( $calendar['id'] ); ?>" <?php selected( $calendar_id, $calendar['id'] ); ?>>
-					<?php echo esc_html( $calendar['title'] ); ?>
-				</option>
-			<?php endforeach; ?>
-		</select>
+	<div class="ffc-list-filters">
+		<div class="ffc-list-filters__field">
+			<label class="ffc-list-filters__label" for="ffc-appointments-calendar"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></label>
+			<select name="calendar_id" id="ffc-appointments-calendar">
+				<option value=""><?php esc_html_e( 'All Calendars', 'ffcertificate' ); ?></option>
+				<?php foreach ( $calendars as $calendar ) : ?>
+					<option value="<?php echo esc_attr( $calendar['id'] ); ?>" <?php selected( $calendar_id, $calendar['id'] ); ?>>
+						<?php echo esc_html( $calendar['title'] ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</div>
 
-		<select name="status">
-			<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-			<option value="pending" <?php selected( $status, 'pending' ); ?>><?php esc_html_e( 'Pending', 'ffcertificate' ); ?></option>
-			<option value="confirmed" <?php selected( $status, 'confirmed' ); ?>><?php esc_html_e( 'Confirmed', 'ffcertificate' ); ?></option>
-			<option value="cancelled" <?php selected( $status, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
-			<option value="completed" <?php selected( $status, 'completed' ); ?>><?php esc_html_e( 'Completed', 'ffcertificate' ); ?></option>
-			<option value="no_show" <?php selected( $status, 'no_show' ); ?>><?php esc_html_e( 'No Show', 'ffcertificate' ); ?></option>
-			<option value="waitlist" <?php selected( $status, 'waitlist' ); ?>><?php esc_html_e( 'Waitlist', 'ffcertificate' ); ?></option>
-		</select>
+		<div class="ffc-list-filters__field">
+			<label class="ffc-list-filters__label" for="ffc-appointments-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+			<select name="status" id="ffc-appointments-status">
+				<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
+				<?php foreach ( $statuses as $value => $label ) : ?>
+					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $status, $value ); ?>><?php echo esc_html( $label ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
 
-		<input type="date" name="date_from" value="<?php echo esc_attr( $filters['start_date'] ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
-		<input type="date" name="date_to" value="<?php echo esc_attr( $filters['end_date'] ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
-		<input type="search" name="s" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php esc_attr_e( 'Name, e-mail, CPF/RF or ID', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search appointments', 'ffcertificate' ); ?>">
+		<div class="ffc-list-filters__field">
+			<label class="ffc-list-filters__label" for="ffc-appointments-from"><?php esc_html_e( 'Period', 'ffcertificate' ); ?></label>
+			<span class="ffc-list-filters__range">
+				<input type="date" name="date_from" id="ffc-appointments-from" value="<?php echo esc_attr( $filters['start_date'] ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
+				<span aria-hidden="true">&ndash;</span>
+				<input type="date" name="date_to" value="<?php echo esc_attr( $filters['end_date'] ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
+			</span>
+		</div>
 
+		<div class="ffc-list-filters__field">
+			<label class="ffc-list-filters__label" for="ffc-appointments-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+			<input type="search" name="s" id="ffc-appointments-search" class="regular-text" value="<?php echo esc_attr( $filters['search'] ); ?>" placeholder="<?php esc_attr_e( 'Name, e-mail, CPF/RF or ID', 'ffcertificate' ); ?>">
+		</div>
+
+		<div class="ffc-list-filters__actions">
 		<?php
 		\FreeFormCertificate\Admin\AdminUI::render_button(
 			array(
@@ -588,7 +669,17 @@ class AppointmentsListTable extends \WP_List_Table {
 				),
 			)
 		);
+		if ( $filtered ) {
+			\FreeFormCertificate\Admin\AdminUI::render_button(
+				array(
+					'label' => __( 'Clear', 'ffcertificate' ),
+					'icon'  => 'eraser',
+					'href'  => add_query_arg( array( 'page' => 'ffc-appointments' ), admin_url( 'admin.php' ) ),
+				)
+			);
+		}
 		?>
+		</div>
 	</div>
 		<?php
 	}
