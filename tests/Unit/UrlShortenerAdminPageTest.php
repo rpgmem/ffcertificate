@@ -293,6 +293,54 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'for="ffc-shorturl-search"', $html, 'The filters are labelled.' );
 	}
 
+	/**
+	 * The list top (#2486): the filter card, the count bar, the short link
+	 * fitting its column, the switch beside the state, the actions as buttons.
+	 */
+	public function test_the_list_follows_the_list_top(): void {
+		$_GET['status'] = 'all';
+		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( 'get_permalink' )->justReturn( '' );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findPaginated' )->andReturn(
+			array(
+				'items' => array(
+					array( 'id' => 3, 'short_code' => 'abc123', 'target_url' => 'https://example.com/', 'post_id' => null, 'title' => 'T', 'click_count' => 1, 'status' => 'active' ),
+				),
+				'total' => 1,
+			)
+		);
+		$repo->shouldReceive( 'countRetired' )->andReturn( 0 );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_short_url' )->andReturn( 'https://example.com/go/abc123' );
+		$this->service->shouldReceive( 'get_stats' )->andReturn( array( 'total_links' => 1, 'active_links' => 1, 'total_clicks' => 1, 'trashed_links' => 0 ) );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<form method="get" class="ffc-list ffc-shorturl-filter">', $html );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-shorturl-status-filter">', $html );
+		$this->assertStringNotContainsString( '>Clear</a>', $html, 'nothing to clear on the unfiltered list' );
+		$this->assertMatchesRegularExpression( '#<div class="tablenav top">.*<span class="displaying-num">\s*1 link\s*</span>#s', $html );
+		// The label drops the scheme; the copy, the title and the name keep it.
+		$this->assertMatchesRegularExpression( '#data-url="https://example.com/go/abc123" title="https://example.com/go/abc123"[^>]*>example.com/go/abc123</button>#', $html );
+		// The switch sits in the Status cell, before the badge it updates.
+		$this->assertMatchesRegularExpression( '#<td class="ffc-shorturl-status-cell">.*ffc-control-toggle.*id="ffc-short-url-status-3"#s', $html );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-row-buttons">\s*<button[^>]*ffc-edit-shorturl#', $html );
+	}
+
 	public function test_handle_actions_trash_calls_service(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
 		$_GET['page']       = 'ffc-short-urls';

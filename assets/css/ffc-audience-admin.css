@@ -637,3 +637,24 @@
 .ffc-calendar-appearance-table .ffc-calendar-booking-name + .ffc-calendar-booking-name {
     margin-top: var(--ffc-spacing-2xs);
 }
+
+/* Audience Bookings list (#2486): the Actions column holds View and
+   Attendance side by side, with Cancel below, and the labels keep one line.
+   The short columns take what they hold, so the text columns keep the rest. */
+.ffc-bookings-table .column-actions {
+    width: 15em;
+}
+
+.ffc-bookings-table .column-id {
+    width: 4em;
+}
+
+.ffc-bookings-table .column-date,
+.ffc-bookings-table .column-time,
+.ffc-bookings-table .column-present {
+    width: 7em;
+}
+
+.ffc-bookings-table .ffc-row-buttons .ffc-btn {
+    white-space: nowrap;
+}

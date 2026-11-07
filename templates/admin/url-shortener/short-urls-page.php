@@ -148,46 +148,58 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 
 
-			<!-- Search + Filter -->
-			<form method="get" class="ffc-shorturl-filter">
+			<!-- Search + Filter: the list top (#2486), a card with a label on every field -->
+			<form method="get" class="ffc-list ffc-shorturl-filter">
 				<input type="hidden" name="page" value="ffc-short-urls" />
-				<div class="ffc-shorturl-filter-row">
-					<?php // Each filter is named on screen, not only by its first option (#2337). ?>
-					<label class="ffc-shorturl-filter-field" for="ffc-shorturl-status-filter"><?php esc_html_e( 'Status', 'ffcertificate' ); ?>
-					<select name="status" id="ffc-shorturl-status-filter">
-						<option value="all" <?php selected( $status, 'all' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
-						<option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
-						<option value="disabled" <?php selected( $status, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></option>
-						<option value="trashed" <?php selected( $status, 'trashed' ); ?>>
-							<?php
-							/* translators: %d: number of trashed links */
-							$trashed = (int) $stats['trashed_links'];
-							/* translators: %s: number of trashed links */
-							printf( esc_html( _n( 'Trash (%s)', 'Trash (%s)', $trashed, 'ffcertificate' ) ), esc_html( number_format_i18n( $trashed ) ) );
-							?>
-						</option>
-						<?php if ( $can_see_retired ) : ?>
-							<option value="retired" <?php selected( $status, 'retired' ); ?>>
+				<div class="ffc-list-filters">
+					<div class="ffc-list-filters__field">
+						<label class="ffc-list-filters__label" for="ffc-shorturl-status-filter"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+						<select name="status" id="ffc-shorturl-status-filter">
+							<option value="all" <?php selected( $status, 'all' ); ?>><?php esc_html_e( 'All statuses', 'ffcertificate' ); ?></option>
+							<option value="active" <?php selected( $status, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+							<option value="disabled" <?php selected( $status, 'disabled' ); ?>><?php esc_html_e( 'Disabled', 'ffcertificate' ); ?></option>
+							<option value="trashed" <?php selected( $status, 'trashed' ); ?>>
 								<?php
-								/* translators: %d: number of retired short codes */
-								printf( esc_html__( 'Retired (%d)', 'ffcertificate' ), (int) $retired_count );
+								/* translators: %d: number of trashed links */
+								$trashed = (int) $stats['trashed_links'];
+								/* translators: %s: number of trashed links */
+								printf( esc_html( _n( 'Trash (%s)', 'Trash (%s)', $trashed, 'ffcertificate' ) ), esc_html( number_format_i18n( $trashed ) ) );
 								?>
 							</option>
-						<?php endif; ?>
-					</select>
-					</label>
-					<label class="ffc-shorturl-filter-field" for="ffc-shorturl-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?>
-					<input type="search" id="ffc-shorturl-search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Title, destination or code', 'ffcertificate' ); ?>" />
-					</label>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Filter', 'ffcertificate' ),
-							'icon'  => 'filter',
-							'type'  => 'submit',
-						)
-					);
-					?>
+							<?php if ( $can_see_retired ) : ?>
+								<option value="retired" <?php selected( $status, 'retired' ); ?>>
+									<?php
+									/* translators: %d: number of retired short codes */
+									printf( esc_html__( 'Retired (%d)', 'ffcertificate' ), (int) $retired_count );
+									?>
+								</option>
+							<?php endif; ?>
+						</select>
+					</div>
+					<div class="ffc-list-filters__field">
+						<label class="ffc-list-filters__label" for="ffc-shorturl-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+						<input type="search" id="ffc-shorturl-search" name="s" class="regular-text" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Title, destination or code', 'ffcertificate' ); ?>" />
+					</div>
+					<div class="ffc-list-filters__actions">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Filter', 'ffcertificate' ),
+								'icon'  => 'filter',
+								'type'  => 'submit',
+							)
+						);
+						if ( 'all' !== $status || '' !== $search ) {
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label' => __( 'Clear', 'ffcertificate' ),
+									'icon'  => 'eraser',
+									'href'  => admin_url( 'admin.php?page=ffc-short-urls' ),
+								)
+							);
+						}
+						?>
+					</div>
 				</div>
 			</form>
 
@@ -196,28 +208,61 @@ if ( ! defined( 'ABSPATH' ) ) {
 			$can_manage = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' );
 			$can_delete = $can_manage && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_url_shortener' );
 			?>
-			<?php if ( 'trashed' === $status && $total > 0 && $can_delete ) : ?>
-				<?php
-				$empty_trash_url = wp_nonce_url(
-					admin_url( 'admin.php?page=ffc-short-urls&ffc_action=empty_trash' ),
-					'ffc_short_url_empty_trash'
-				);
-				?>
-				<div class="ffc-shorturl-empty-trash">
+			<?php
+			// The bar under the filters (#2486): Empty Trash on the left, the
+			// count and the pages on the right, as the other lists draw it.
+			$ffc_pages = $total_pages > 1
+				? paginate_links(
+					array(
+						'base'      => add_query_arg( 'paged', '%#%' ),
+						'format'    => '',
+						'total'     => $total_pages,
+						'current'   => $page,
+						'prev_text' => '&laquo;',
+						'next_text' => '&raquo;',
+					)
+				)
+				: '';
+			?>
+			<?php if ( 'retired' !== $status ) : ?>
+			<div class="tablenav top">
+				<?php if ( 'trashed' === $status && $total > 0 && $can_delete ) : ?>
 					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label'    => __( 'Empty Trash', 'ffcertificate' ),
-							'category' => 'danger',
-							'icon'     => 'delete',
-							'href'     => $empty_trash_url,
-							'attrs'    => array(
-								'data-confirm' => __( 'Are you sure you want to permanently delete all items in the trash?', 'ffcertificate' ),
-							),
-						)
+					$empty_trash_url = wp_nonce_url(
+						admin_url( 'admin.php?page=ffc-short-urls&ffc_action=empty_trash' ),
+						'ffc_short_url_empty_trash'
 					);
 					?>
+					<div class="alignleft actions ffc-shorturl-empty-trash">
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Empty Trash', 'ffcertificate' ),
+								'category' => 'danger',
+								'icon'     => 'delete',
+								'href'     => $empty_trash_url,
+								'attrs'    => array(
+									'data-confirm' => __( 'Are you sure you want to permanently delete all items in the trash?', 'ffcertificate' ),
+								),
+							)
+						);
+						?>
+					</div>
+				<?php endif; ?>
+				<div class="tablenav-pages">
+					<span class="displaying-num">
+						<?php
+						/* translators: %s: number of short URLs */
+						echo esc_html( sprintf( _n( '%s link', '%s links', $total, 'ffcertificate' ), number_format_i18n( $total ) ) );
+						?>
+					</span>
+					<?php
+					if ( '' !== $ffc_pages ) {
+						echo wp_kses_post( (string) $ffc_pages );
+					}
+					?>
 				</div>
+			</div>
 			<?php endif; ?>
 
 			<?php if ( 'retired' === $status ) : ?>
@@ -284,13 +329,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 								<td>
 									<?php
 									// A button, so the keyboard reaches it (#2337).
+									// The label drops the scheme and the cell cuts what still does
+									// not fit (#2486); the title, the name and the copy keep it whole.
 									\FreeFormCertificate\Admin\AdminUI::render_button(
 										array(
-											'label' => $short_url,
+											'label' => (string) preg_replace( '#^https?://#', '', $short_url ),
 											'icon'  => 'copy',
 											'class' => 'ffc-shorturl-code',
 											'attrs' => array(
 												'data-url' => $short_url,
+												'title'    => $short_url,
 												/* translators: %s: short URL */
 												'aria-label' => sprintf( __( 'Copy %s', 'ffcertificate' ), $short_url ),
 											),
@@ -308,8 +356,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 								</td>
 								<td><strong><?php echo esc_html( number_format_i18n( (int) $item['click_count'] ) ); ?></strong></td>
 								<?php // The Status badge follows the row's toggle once its save is confirmed (#1904). ?>
-								<td><span id="ffc-short-url-status-<?php echo esc_attr( (string) $item['id'] ); ?>" class="<?php echo esc_attr( $status_css_class ); ?>" data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled"><?php echo esc_html( $status_label ); ?></span></td>
+								<td class="ffc-shorturl-status-cell">
+									<?php
+									// The switch sits with the state it switches (#2486), so the
+									// Actions column holds the actions alone. On/off is a state,
+									// not an action: the toggle saves the link's status the
+									// moment it flips (#1904).
+									if ( ! $is_trashed && $can_manage ) {
+										\FreeFormCertificate\Admin\AdminUI::render_toggle(
+											array(
+												'name'    => 'ffc_short_url_active_' . $item['id'],
+												'id'      => 'ffc-short-url-active-' . $item['id'],
+												'checked' => 'active' === $item['status'],
+												'aria_label' => sprintf(
+													/* translators: %s: short URL */
+													__( 'Active: %s', 'ffcertificate' ),
+													$short_url
+												),
+												'data'    => array_merge(
+													\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
+													array(
+														'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
+														'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
+														'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
+													)
+												),
+											)
+										);
+									}
+									?>
+									<span id="ffc-short-url-status-<?php echo esc_attr( (string) $item['id'] ); ?>" class="<?php echo esc_attr( $status_css_class ); ?>" data-ffc-status-on-class="ffc-shorturl-status-active" data-ffc-status-off-class="ffc-shorturl-status-disabled"><?php echo esc_html( $status_label ); ?></span>
+								</td>
 								<td>
+									<div class="ffc-row-buttons">
 									<?php if ( $is_trashed && $can_delete ) : ?>
 										<?php
 										$restore_url = wp_nonce_url(
@@ -350,30 +429,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 										);
 										?>
 										<?php
-										// On/off is a state, not an action: the toggle saves the link's
-										// status the moment it flips (#1904).
-										if ( $can_manage ) {
-											\FreeFormCertificate\Admin\AdminUI::render_toggle(
-												array(
-													'name' => 'ffc_short_url_active_' . $item['id'],
-													'id'   => 'ffc-short-url-active-' . $item['id'],
-													'checked' => 'active' === $item['status'],
-													'aria_label' => sprintf(
-													/* translators: %s: short URL */
-														__( 'Active: %s', 'ffcertificate' ),
-														$short_url
-													),
-													'data' => array_merge(
-														\FreeFormCertificate\Core\RecordAutosave::attrs( 'short_url', (int) $item['id'], 'status' ),
-														array(
-															'ffc-status-target' => 'ffc-short-url-status-' . $item['id'],
-															'ffc-status-on'     => __( 'Active', 'ffcertificate' ),
-															'ffc-status-off'    => __( 'Disabled', 'ffcertificate' ),
-														)
-													),
-												)
-											);
-										}
 										if ( $is_manual && $can_manage ) {
 											\FreeFormCertificate\Admin\AdminUI::render_button(
 												array(
@@ -412,6 +467,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										}
 										?>
 									<?php endif; ?>
+									</div>
 								</td>
 							</tr>
 						<?php endforeach; ?>
@@ -421,24 +477,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 
 			<!-- Pagination -->
-			<?php if ( $total_pages > 1 ) : ?>
+			<?php if ( '' !== $ffc_pages && 'retired' !== $status ) : ?>
 				<div class="tablenav bottom">
-					<div class="tablenav-pages">
-						<?php
-						echo wp_kses_post(
-							paginate_links(
-								array(
-									'base'      => add_query_arg( 'paged', '%#%' ),
-									'format'    => '',
-									'total'     => $total_pages,
-									'current'   => $page,
-									'prev_text' => '&laquo;',
-									'next_text' => '&raquo;',
-								)
-							)
-						);
-						?>
-					</div>
+					<div class="tablenav-pages"><?php echo wp_kses_post( (string) $ffc_pages ); ?></div>
 				</div>
 			<?php endif; ?>
 

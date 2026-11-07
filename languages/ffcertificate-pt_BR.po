@@ -30394,9 +30394,6 @@ msgstr "Para"
 msgid "Present / reached"
 msgstr "Presentes / alcançados"
 
-msgid "Search bookings"
-msgstr "Buscar reservas"
-
 msgid "Select all active bookings"
 msgstr "Selecionar todas as reservas ativas"
 
@@ -33325,3 +33322,10 @@ msgid "%d form"
 msgid_plural "%d forms"
 msgstr[0] "%d formulário"
 msgstr[1] "%d formulários"
+
+#. %s: number of short URLs
+#: templates/admin/url-shortener/short-urls-page.php:256
+msgid "%s link"
+msgid_plural "%s links"
+msgstr[0] "%s link"
+msgstr[1] "%s links"

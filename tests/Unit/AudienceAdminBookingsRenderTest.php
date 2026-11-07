@@ -260,9 +260,16 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		// Creator resolved from the batch map; missing one falls back to Unknown.
 		$this->assertStringContainsString( 'Ana Creator', $output );
 		$this->assertStringContainsString( 'Unknown', $output );
-		// Active row shows the Cancel link; cancelled row does not add a second one.
+		// Active row shows the Cancel button; cancelled row does not add a second one.
 		$this->assertSame( 1, substr_count( $output, 'ffc-cancel-booking' ) );
 		$this->assertSame( 2, substr_count( $output, 'ffc-view-booking' ) );
+		// The row's actions are buttons of the family (#2486), Cancel in caution.
+		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-view-booking" data-booking-id="101">View</button>', $output );
+		$this->assertMatchesRegularExpression( '#<button type="button" class="ffc-btn ffc-btn-caution ffc-icon-cross ffc-cancel-booking" data-booking-id="101"[^>]*>Cancel</button>#', $output );
+		// The filter card: a label on every field.
+		$this->assertStringContainsString( '<div class="ffc-list-filters">', $output );
+		$this->assertStringContainsString( 'for="filter-schedule">Calendar</label>', $output );
+		$this->assertStringContainsString( 'for="filter-search">Search</label>', $output );
 		// Type labels: known 'audience' mapped, unknown 'mystery' echoed raw.
 		$this->assertStringContainsString( 'Audience', $output );
 		$this->assertStringContainsString( 'mystery', $output );
@@ -479,6 +486,10 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'id="ffc-bookings-bulk-cancel"', $output );
+		// The bulk bar sits after the filter form, in its own row, so the
+		// button no longer slides under Filter and Clear (#2486); a
+		// cancellation keeps the bookings, so it is caution.
+		$this->assertMatchesRegularExpression( '#</form>\s*(<\?php[^?]*\?>)?\s*<div class="tablenav top">\s*<div class="alignleft actions bulkactions">\s*<button type="button" class="ffc-btn ffc-btn-caution ffc-icon-cross" id="ffc-bookings-bulk-cancel"#', $output );
 		$this->assertStringContainsString( 'id="ffc-bookings-select-all"', $output );
 		$this->assertSame( 1, substr_count( $output, 'class="ffc-bookings-select"' ), 'A cancelled booking has nothing to tick.' );
 		$this->assertStringContainsString( 'value="101"', $output );
