@@ -1083,6 +1083,30 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 		expect($btn.prop('disabled')).toBe(true);
 	});
 
+	it('renders postpone disabled with a focusable reason at the last minute of the day (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ extend_end_last_minute: true }));
+		const $btn = window.$('.ffc-btn-extend-end');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+		expect($btn.attr('title')).toBeUndefined();
+
+		const toggle = document.querySelector('.ffc-action-reason-toggle');
+		expect(toggle).not.toBeNull();
+		expect(toggle.disabled).toBe(false);
+		expect(toggle.classList.contains('ffc-icon-info')).toBe(true);
+		expect(toggle.getAttribute('aria-label')).toContain('Postpone close');
+		const note = document.getElementById(toggle.getAttribute('aria-controls'));
+		expect(note.getAttribute('role')).toBe('status');
+		expect(note.hidden).toBe(true);
+		expect(note.textContent).toContain('23:59');
+
+		toggle.click();
+		expect(note.hidden).toBe(false);
+		expect(toggle.getAttribute('aria-expanded')).toBe('true');
+		toggle.click();
+		expect(note.hidden).toBe(true);
+	});
+
 	// #1881 — the screen's buttons are the `.ffc-btn` family: each carries
 	// its category, its registry icon and the hook class its handler binds.
 	const FAMILY = [

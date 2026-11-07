@@ -90,11 +90,26 @@ final class CsvDownloadFormInfoBuilder {
 
 		// `can_schedule_exception` mirrors ScheduleExceptionAction::is_eligible()
 		// so the JS can't render a button the server would reject.
-		$can_schedule_exception = ! $before_start
+		// A start and an end are both required, as ScheduleExceptionAction
+		// refuses `no_window` (#2341).
+		$can_schedule_exception = null !== $start_ts
+			&& null !== $end_ts
+			&& ! $before_start
 			&& ! $form_ended
 			&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 			&& '1' === (string) ( $geofence_config['schedule_exception_enabled'] ?? '' )
 			&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' );
+
+		// Mirrors ExtendEndAction::is_eligible(), whose last check, the
+		// last minute of the day, is reported apart (#2341).
+		$extend_eligible = ! $before_start
+			&& ! $form_ended
+			&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
+			&& '1' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true )
+			&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
+			&& self::is_today_end_date( $geofence_config )
+			&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true );
+		$last_minute     = \FreeFormCertificate\Frontend\ExtendEndAction::closes_at_last_minute( $geofence_config );
 
 		// Pre-resolve the page that embeds this form so the operator gets a
 		// clickable "open participant form" link in the summary at
@@ -158,7 +173,9 @@ final class CsvDownloadFormInfoBuilder {
 					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
 					&& '1' === self::start_early_meta( $form_id )
 					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
-					&& self::is_today_start_date( $geofence_config ),
+					&& self::is_today_start_date( $geofence_config )
+					// The one-shot guard EarlyOpenAction refuses `already_opened` on (#2341).
+					&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\EarlyOpenAction::META_OPENED_AT, true ),
 				// `can_extend_end` powers the "Postergar fim" button —
 				// it fires only when CSV public is on, the per-form
 				// opt-IN is on, datetime restrictions are enabled, the
@@ -166,13 +183,10 @@ final class CsvDownloadFormInfoBuilder {
 				// configured date_end, and the one-shot guard hasn't
 				// fired. Mirrors ExtendEndAction::is_eligible() so JS
 				// can't see a stale "can-extend" state.
-				'can_extend_end'                 => ! $before_start
-					&& ! $form_ended
-					&& '1' === (string) get_post_meta( $form_id, '_ffc_csv_public_enabled', true )
-					&& '1' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_ENABLED, true )
-					&& '1' === (string) ( $geofence_config['datetime_enabled'] ?? '' )
-					&& self::is_today_end_date( $geofence_config )
-					&& '' === (string) get_post_meta( $form_id, \FreeFormCertificate\Frontend\ExtendEndAction::META_POSTPONED_AT, true ),
+				'can_extend_end'                 => $extend_eligible && ! $last_minute,
+				// Eligible but already closing at 23:59 (#2341): the button
+				// shows disabled, with the reason beside it.
+				'extend_end_last_minute'         => $extend_eligible && $last_minute,
 				'current_time_end'               => isset( $geofence_config['time_end'] ) ? (string) $geofence_config['time_end'] : '',
 				// Date-only formatted string for the postpone-close modal
 				// (which composes "<date> <current_time_end>" so the time

@@ -55,7 +55,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'Two one-shot actions let a trusted operator adjust the window without logging into WordPress:', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><strong><?php esc_html_e( 'Start Form Early', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'opens the form now, ahead of schedule, on its scheduled start day. Only that day moves: the stored start time is kept, so every later day of a multi-day form opens at its scheduled time.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Postpone Close', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day. A form that already closes at 23:59, or has no close time, has no later minute: the button shows disabled, with an info button that says why.', 'ffcertificate' ); ?></li>
 	</ul>
 	<p><?php esc_html_e( 'Each action fires once per form; afterwards edit the start/end time in the form editor to change the window again. Both are exposed through', 'ffcertificate' ); ?> <a href="#forms-public-operator-access"><?php esc_html_e( 'Public Operator Access', 'ffcertificate' ); ?></a> <?php esc_html_e( 'and must be enabled there per form.', 'ffcertificate' ); ?></p>
 </div>

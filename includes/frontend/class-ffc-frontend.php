@@ -690,6 +690,9 @@ class Frontend {
 						// Postpone close (6.5.12).
 						'postponeClose'                  => __( 'Postpone close', 'ffcertificate' ),
 						'postponeCloseTooltip'           => __( 'Move the form\'s close time later within the same day. One-shot per form.', 'ffcertificate' ),
+						'postponeLastMinute'             => __( 'Postpone close is unavailable: the form already closes at 23:59, the last minute of the day.', 'ffcertificate' ),
+						/* translators: %s: the name of an unavailable action, e.g. "Postpone close". */
+						'whyUnavailable'                 => __( 'Why is %s unavailable?', 'ffcertificate' ),
 						'postponeCloseTitle'             => __( 'Postpone form close?', 'ffcertificate' ),
 						'postponeCloseBody'              => __( 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.', 'ffcertificate' ),
 						'postponeCurrentLabel'           => __( 'Current scheduled close:', 'ffcertificate' ),

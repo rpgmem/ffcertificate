@@ -23195,8 +23195,8 @@ msgstr "Antes, durante ou após a janela, você pode, de forma independente, exi
 msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
 msgstr "Os horários do \"Cronograma do Evento (Referência)\" na mesma aba são impressos no certificado pelos tokens {{schedule}} e {{schedule_total}} — eles não abrem nem fecham o formulário. Quando Configurações → Certificados exige {{schedule}}, o layout do certificado precisa conter o marcador. Os tokens usam primeiro uma exceção individual do participante, depois o Cronograma do Evento e, por fim, o horário de início/término da janela. Veja"
 
-msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
-msgstr "adia o horário de fechamento no dia previsto para o encerramento, depois que o formulário já abriu; o novo horário deve permanecer no mesmo dia."
+msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day. A form that already closes at 23:59, or has no close time, has no later minute: the button shows disabled, with an info button that says why."
+msgstr "altera o horário de encerramento para mais tarde no dia programado de encerramento, depois que o formulário abriu; o novo horário precisa ficar no mesmo dia. Um formulário que já encerra às 23:59, ou sem horário de encerramento, não tem minuto posterior: o botão aparece desativado, com um botão de informação que explica o motivo."
 
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
 msgstr "A página /valid (shortcode [ffc_verification]) também oferece uma consulta manual: qualquer pessoa pode digitar o código de autenticação de um certificado para confirmar que ele é autêntico e ver seu status. A mesma consulta e o link mágico também verificam comprovantes de agendamento e fichas de recadastramento pelos seus próprios códigos e links. Esse caminho é protegido por nonce, honeypot + o captcha configurado e limitação de taxa por IP."
@@ -33216,3 +33216,17 @@ msgstr "O link de convite não é necessário, preencha e envie normalmente."
 #: includes/frontend/class-ffc-shortcodes.php
 msgid "For a new link, contact whoever sent you the invitation."
 msgstr "Para receber um novo link, fale com quem enviou o convite."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The form already closes at 23:59, the last minute of the day."
+msgstr "O formulário já encerra às 23:59, o último minuto do dia."
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Postpone close is unavailable: the form already closes at 23:59, the last minute of the day."
+msgstr "Adiar o encerramento não está disponível: o formulário já encerra às 23:59, o último minuto do dia."
+
+#. translators: %s: the name of an unavailable action, e.g. \"Postpone close\".
+#: includes/frontend/class-ffc-frontend.php
+#, php-format
+msgid "Why is %s unavailable?"
+msgstr "Por que %s não está disponível?"

@@ -259,10 +259,11 @@ class ExtendEndActionTest extends TestCase {
 		$this->assertSame( 'not_extending', $r['reason'] );
 	}
 
-	public function test_execute_rejects_past_now_value(): void {
-		// A form that closes at the end of today, with no closing time
-		// stored: eligible (it is noon), and no stored time_end for the
-		// new one to extend, so the only check left is "not before now".
+	public function test_a_form_with_no_closing_time_has_no_later_minute(): void {
+		// A form that closes at the end of today with no closing time stored
+		// already ends at the day's last minute (#2341). Before, it was
+		// eligible, and any time not before now "postponed" it, which could
+		// only move the close earlier.
 		$this->configure_form(
 			1,
 			array(
@@ -271,9 +272,26 @@ class ExtendEndActionTest extends TestCase {
 				'date_end'   => $this->clock->day(),
 			)
 		);
-		// 11:00 < 12:00 (now).
-		$r = ExtendEndAction::execute( 1, 'h', '11:00' );
-		$this->assertSame( 'past_now', $r['reason'] );
+
+		$this->assertSame( 'last_minute', ExtendEndAction::execute( 1, 'h', '11:00' )['reason'] );
+		$this->assertSame( 'last_minute', ExtendEndAction::is_eligible( 1, 'h' )['reason'] );
+	}
+
+	public function test_a_form_closing_at_2359_cannot_be_postponed(): void {
+		$this->configure_form(
+			1,
+			array(
+				'date_start' => $this->clock->day(),
+				'time_start' => '08:00',
+				'date_end'   => $this->clock->day(),
+				'time_end'   => '23:59',
+			)
+		);
+
+		$this->assertSame( 'last_minute', ExtendEndAction::is_eligible( 1, 'h' )['reason'] );
+		$this->assertTrue( ExtendEndAction::closes_at_last_minute( array( 'time_end' => '23:59' ) ) );
+		$this->assertTrue( ExtendEndAction::closes_at_last_minute( array() ) );
+		$this->assertFalse( ExtendEndAction::closes_at_last_minute( array( 'time_end' => '23:58' ) ) );
 	}
 
 	// ==================================================================

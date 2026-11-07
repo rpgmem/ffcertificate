@@ -748,6 +748,7 @@ class PublicCsvDownload {
 				'not_started_yet'     => __( 'The form has not started yet — wait until it opens before postponing the close.', 'ffcertificate' ),
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 				'already_postponed'   => __( 'This form\'s close has already been postponed once.', 'ffcertificate' ),
+				'last_minute'         => __( 'The form already closes at 23:59, the last minute of the day.', 'ffcertificate' ),
 				'bad_time_format'     => __( 'Please pick a valid time (HH:MM).', 'ffcertificate' ),
 				'not_extending'       => __( 'The new close time must be later than the current one.', 'ffcertificate' ),
 				'past_now'            => __( 'The new close time must be in the future.', 'ffcertificate' ),

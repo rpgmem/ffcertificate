@@ -23112,7 +23112,7 @@ msgstr ""
 msgid "The \"Event Schedule (Reference)\" times on the same tab are printed on the certificate via the {{schedule}} and {{schedule_total}} tokens — they do not open or close the form. When Settings → Certificates requires {{schedule}}, the certificate layout must contain it. The tokens use a per-participant exception first, then the Event Schedule, then the window's start/end time. See"
 msgstr ""
 
-msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day."
+msgid "moves the close time later on the scheduled close day, after the form has opened; the new time must stay within the same day. A form that already closes at 23:59, or has no close time, has no later minute: the button shows disabled, with an info button that says why."
 msgstr ""
 
 msgid "The /valid page (the [ffc_verification] shortcode) also offers a manual lookup: anyone can type a certificate's authentication code to confirm it is genuine and view its status. The same lookup and the magic link also verify appointment receipts and reregistration records by their own codes and links. This path is protected by a nonce, a honeypot + the configured captcha, and IP rate-limiting."
@@ -33132,4 +33132,18 @@ msgstr ""
 
 #: includes/frontend/class-ffc-shortcodes.php
 msgid "For a new link, contact whoever sent you the invitation."
+msgstr ""
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "The form already closes at 23:59, the last minute of the day."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php
+msgid "Postpone close is unavailable: the form already closes at 23:59, the last minute of the day."
+msgstr ""
+
+#. translators: %s: the name of an unavailable action, e.g. \"Postpone close\".
+#: includes/frontend/class-ffc-frontend.php
+#, php-format
+msgid "Why is %s unavailable?"
 msgstr ""

@@ -1430,6 +1430,28 @@ details.ffc-consent-description > p {
     min-width: 160px;
 }
 
+/* A disabled action with its reason beside it (#2341): the pair takes the
+   button's place in the row, the info button keeps its own square, and the
+   reason opens below on its own line. */
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    min-width: 160px;
+}
+
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason .ffc-btn-icon {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.ffc-public-csv-download .ffc-action-reason {
+    flex-basis: 100%;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
 /* ────────────────────────────────────────────────────────────
    Early-open confirmation modal — Cancel takes the focus, a
    defensive default (the action is irreversible from the public page).
