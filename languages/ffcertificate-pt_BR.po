@@ -24847,8 +24847,8 @@ msgid "Default: %s"
 msgstr "Padrão: %s"
 
 #: includes/settings/views/ffc-tab-public-design.php:70
-msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
-msgstr "O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível sobre o branco (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim, com um aviso que a nomeia."
+msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved; the warning above names it as you pick, measured where the colour is read: on white, on the grey of rows and panels, on the light accent background and under the pointer."
+msgstr "O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim; o aviso acima a nomeia enquanto você escolhe, medida onde a cor é lida: sobre o branco, sobre o cinza de linhas e painéis, sobre o fundo claro do destaque e sob o ponteiro."
 
 #: includes/settings/views/documentation/config-public-design.php:24
 msgid "Shape and Font"
@@ -24895,8 +24895,8 @@ msgid "Settings → Public Design sets the look of every screen visitors see: fo
 msgstr "Configurações → Design Público define a aparência de todas as telas que os visitantes veem: formulários, verificação de certificados, o download de CSV, conteúdo com geolocalização, agendamento, públicos, o painel do usuário e o recrutamento. Vem desligado, e as telas mantêm a aparência do próprio plugin até que seja ligado."
 
 #: includes/settings/views/documentation/config-public-design.php:21
-msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
-msgstr "O destaque de botões, links e do contorno de foco, as bordas dos campos, as dicas e o texto secundário, e os erros. O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível sobre o branco (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim, com um aviso que a nomeia."
+msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgstr "O destaque de botões, links e do contorno de foco, as bordas dos campos, as dicas e o texto secundário, e os erros. O texto dos botões é escolhido automaticamente, preto ou branco, o que for mais legível sobre o destaque. Uma cor pouco legível (abaixo de 4,5:1 para texto e 3:1 para bordas, como pede a WCAG) é salva mesmo assim, com um aviso que a nomeia."
 
 #: includes/settings/views/documentation/config-public-design.php:22
 msgid "The colours apply to the light theme only. With Dark Mode on, the plugin keeps its own dark palette, because a colour chosen for a white page is often unreadable on a dark one."
@@ -24921,8 +24921,8 @@ msgstr "%1$s (%2$s:1, pelo menos %3$s:1)"
 
 #: includes/admin/class-ffc-settings-save-handler.php:494
 #, php-format
-msgid "The design was saved, but some colours are hard to read: %s"
-msgstr "O design foi salvo, mas algumas cores são difíceis de ler: %s"
+msgid "The design was saved. %s"
+msgstr "O design foi salvo. %s"
 
 #: includes/integrations/class-ffc-screenshot-viewer.php
 msgid "Screenshots"
@@ -33274,3 +33274,36 @@ msgstr "As datas e horas desta página seguem os formatos de data e hora do plug
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "A second download from the same screen asks for a new verification, shown above the buttons, because the first download used the one solved with the form."
 msgstr "Um segundo download na mesma tela pede uma nova verificação, mostrada acima dos botões, porque o primeiro download usou a que foi resolvida com o formulário."
+
+#: includes/core/class-ffc-public-design.php
+#, php-format
+msgid "Some colours are hard to read: %s"
+msgstr "Algumas cores são difíceis de ler: %s"
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The warning appears as the colours are picked, before saving, and measures each colour where it is read: on white, hints also on the grey of table rows and panels, the accent also on its light background and under the pointer. While Customise is off the colours are not used, and their fields cannot be changed."
+msgstr "O aviso aparece enquanto as cores são escolhidas, antes de salvar, e mede cada cor onde ela é lida: sobre o branco, as dicas também sobre o cinza das linhas de tabela e dos painéis, o destaque também sobre o seu fundo claro e sob o ponteiro. Com Personalizar desligado, as cores não são usadas e os seus campos não podem ser alterados."
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "While Customise is off, the colours are not used and cannot be changed."
+msgstr "Com Personalizar desligado, as cores não são usadas e não podem ser alteradas."
+
+#: includes/admin/class-ffc-public-design-check-endpoint.php
+msgid "You do not have permission to change the public design."
+msgstr "Você não tem permissão para alterar o design público."
+
+#: includes/core/class-ffc-public-design.php
+msgid "button text under the pointer"
+msgstr "texto dos botões sob o ponteiro"
+
+#: includes/core/class-ffc-public-design.php
+msgid "hints on the grey background of rows and panels"
+msgstr "dicas sobre o fundo cinza de linhas e painéis"
+
+#: includes/core/class-ffc-public-design.php
+msgid "links on the light accent background"
+msgstr "links sobre o fundo claro do destaque"
+
+#: includes/core/class-ffc-public-design.php
+msgid "links under the pointer, on white"
+msgstr "links sob o ponteiro, sobre o branco"

@@ -83,6 +83,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Public Operator Access: a second download works from the same screen** (#2341). The first download's start spent the challenge the screen was read with, so a second one was refused; the start now sends a fresh challenge, which the screen shows above the buttons and the next download sends.
 - **Public front end: refusals say whom to contact, and a refusal reaches only its own visitor** (#2341). A blocked or unlisted CPF/RF and the CSV owner check speak to the person reading them; "Form not found" and "Form has no fields" are notices in the Public Design; the CSV page's message is keyed by a token its redirect carries, not by the address, so visitors behind one NAT no longer see each other's.
 - **Public front end: finding the page a form or calendar is on no longer searches post content each time** (#2341). The answer is kept and primed as pages are saved, dropped when a page is trashed, unpublished or stops embedding it, and a miss searches every matching page rather than only the fifty newest.
+- **Public Design: the contrast warning shows as the colours are picked, and measures more of what the design draws** (#2341). It also checks hints on the grey of rows and panels, the accent on its light background and under the pointer; the light background moved from 0.88 to 0.91, where the default accent clears 4.5:1; colours are disabled while the design is off; the CSV screen's "—" placeholder takes the hint colour.
 
 ### Security
 

@@ -77,6 +77,21 @@ final class PublicDesign {
 	public const INFO_BG_MIX = 0.91;
 
 	/**
+	 * How far the light accent ground is mixed towards white. It was 0.88,
+	 * which put the default accent at 4.39:1 on it, below the text floor,
+	 * while the palette's own pair (#2271b1 on #e7f3ff) reads at 4.59:1;
+	 * links and pills draw the accent there (#2341). 0.91 is the first step
+	 * that clears 4.5:1 for the default, and the same mix as the notices'.
+	 */
+	public const ACCENT_LIGHT_MIX = 0.91;
+
+	/**
+	 * The light palette's `--ffc-bg-alt`, the grey of table rows and panels
+	 * that hints are read on; the design does not change it.
+	 */
+	public const BG_ALT = '#f6f7f7';
+
+	/**
 	 * How far the danger ground is mixed from the picked error colour towards
 	 * white (#1874): the ground of the delete buttons and the danger notices.
 	 *
@@ -280,14 +295,14 @@ final class PublicDesign {
 		}
 
 		$text_on = ContrastColor::on( $this->accent );
-		$hover   = self::shade( $this->accent, '#ffffff' === $text_on ? '#000000' : '#ffffff', 0.25 );
+		$hover   = $this->accent_hover();
 		$rgb     = self::rgb( $this->accent );
 
 		$colors = sprintf(
 			'--ffc-primary:%1$s;--ffc-primary-hover:%2$s;--ffc-primary-light:%3$s;--ffc-text-on-primary:%4$s;--ffc-link:%1$s;--ffc-link-hover:%2$s;--ffc-border-focus:%1$s;--ffc-focus-ring:rgba(%5$d, %6$d, %7$d, 0.75);--ffc-border:%8$s;--ffc-text-muted:%9$s;--ffc-danger:%10$s;',
 			$this->accent,
 			$hover,
-			self::shade( $this->accent, '#ffffff', 0.88 ),
+			$this->accent_light(),
 			$text_on,
 			$rgb[0],
 			$rgb[1],
@@ -327,6 +342,53 @@ final class PublicDesign {
 	}
 
 	/**
+	 * The accent under the pointer: a quarter of the way towards the button
+	 * text's opposite, so it stays on the same side of the accent.
+	 *
+	 * @return string `#rrggbb`.
+	 */
+	public function accent_hover(): string {
+		$text_on = ContrastColor::on( $this->accent );
+		return self::shade( $this->accent, '#ffffff' === $text_on ? '#000000' : '#ffffff', 0.25 );
+	}
+
+	/**
+	 * The light accent ground (`--ffc-primary-light`): the accent mixed
+	 * towards white.
+	 *
+	 * @return string `#rrggbb`.
+	 */
+	public function accent_light(): string {
+		return self::shade( $this->accent, '#ffffff', self::ACCENT_LIGHT_MIX );
+	}
+
+	/**
+	 * The warning a design whose colours read poorly earns, or '' when every
+	 * pair passes or the design is off. Shared by the save and the live
+	 * check, so the two say the same thing (#2341).
+	 *
+	 * @return string
+	 */
+	public function contrast_warning(): string {
+		if ( ! $this->enabled ) {
+			return '';
+		}
+		$weak = array();
+		foreach ( $this->weak_contrasts() as $pair ) {
+			/* translators: 1: a colour pair, such as "hints on white"; 2: its contrast ratio; 3: the minimum WCAG asks. */
+			$weak[] = sprintf( __( '%1$s (%2$s:1, at least %3$s:1)', 'ffcertificate' ), $pair['pair'], number_format_i18n( $pair['ratio'], 2 ), number_format_i18n( $pair['min'], 1 ) );
+		}
+		if ( array() === $weak ) {
+			return '';
+		}
+		return sprintf(
+			/* translators: %s: the colour pairs, separated by semicolons. */
+			__( 'Some colours are hard to read: %s', 'ffcertificate' ),
+			implode( '; ', $weak )
+		);
+	}
+
+	/**
 	 * The ground of the information notices: the picked colour mixed towards
 	 * white by INFO_BG_MIX.
 	 *
@@ -360,20 +422,30 @@ final class PublicDesign {
 	 * @return list<array{pair: string, ratio: float, min: float}>
 	 */
 	public function weak_contrasts(): array {
+		$text_on = ContrastColor::on( $this->accent );
+		$hover   = $this->accent_hover();
+		$light   = $this->accent_light();
+		// Each row: the colour, what it is read as, its floor, the ground it
+		// is read on. Colours the design derives (the hover, the light
+		// ground) are measured where they are drawn (#2341).
 		$pairs = array(
-			array( 'accent', __( 'links on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
-			array( 'muted', __( 'hints on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
-			array( 'error', __( 'errors on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
-			array( 'border', __( 'field borders on white', 'ffcertificate' ), self::MIN_BORDER_CONTRAST, '#ffffff' ),
-			array( 'info', __( 'information notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->info_background() ),
+			array( $this->accent, __( 'links on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( $hover, __( 'links under the pointer, on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( $text_on, __( 'button text under the pointer', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $hover ),
+			array( $this->accent, __( 'links on the light accent background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $light ),
+			array( $this->muted, __( 'hints on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( $this->muted, __( 'hints on the grey background of rows and panels', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, self::BG_ALT ),
+			array( $this->error, __( 'errors on white', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, '#ffffff' ),
+			array( $this->border, __( 'field borders on white', 'ffcertificate' ), self::MIN_BORDER_CONTRAST, '#ffffff' ),
+			array( $this->info, __( 'information notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->info_background() ),
 		);
 		if ( self::DEFAULTS['error'] !== $this->error ) {
-			$pairs[] = array( 'error', __( 'delete buttons and danger notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->error_background() );
+			$pairs[] = array( $this->error, __( 'delete buttons and danger notices on their background', 'ffcertificate' ), self::MIN_TEXT_CONTRAST, $this->error_background() );
 		}
 
 		$weak = array();
 		foreach ( $pairs as $pair ) {
-			$ratio = (float) ContrastColor::ratio( $this->{ $pair[0] }, $pair[3] );
+			$ratio = (float) ContrastColor::ratio( $pair[0], $pair[3] );
 			if ( $ratio < $pair[2] ) {
 				$weak[] = array(
 					'pair'  => $pair[1],

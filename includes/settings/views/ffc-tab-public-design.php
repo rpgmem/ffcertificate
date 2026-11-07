@@ -58,7 +58,7 @@ $ffc_colors = array(
 			<tr>
 				<th scope="row"><label for="public_design_<?php echo esc_attr( $ffc_field ); ?>"><?php echo esc_html( $ffc_label ); ?></label></th>
 				<td>
-					<input type="color" id="public_design_<?php echo esc_attr( $ffc_field ); ?>" name="<?php echo esc_attr( $ffc_name( $ffc_field ) ); ?>" value="<?php echo esc_attr( $ffc_design->{ $ffc_field } ); ?>">
+					<input type="color" id="public_design_<?php echo esc_attr( $ffc_field ); ?>" name="<?php echo esc_attr( $ffc_name( $ffc_field ) ); ?>" value="<?php echo esc_attr( $ffc_design->{ $ffc_field } ); ?>"<?php disabled( ! $ffc_design->enabled ); ?>>
 					<?php
 					/* translators: %s: the default colour, #rrggbb. */
 					echo ' <code>' . esc_html( sprintf( __( 'Default: %s', 'ffcertificate' ), PublicDesign::DEFAULTS[ $ffc_field ] ) ) . '</code>';
@@ -68,7 +68,17 @@ $ffc_colors = array(
 			<?php endforeach; ?>
 		</tbody>
 	</table>
-	<p class="description"><?php esc_html_e( 'The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it.', 'ffcertificate' ); ?></p>
+	<?php // The live contrast warning (#2341): drawn here on load, updated as the colours change. ?>
+	<div class="ffc-public-design-contrast" aria-live="polite">
+		<?php
+		$ffc_contrast_warning = $ffc_design->contrast_warning();
+		if ( '' !== $ffc_contrast_warning ) {
+			echo \FreeFormCertificate\Core\Notice::render( 'warning', 'warning', $ffc_contrast_warning, '', array( 'role' => 'status' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+		}
+		?>
+	</div>
+	<p class="description"><?php esc_html_e( 'The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved; the warning above names it as you pick, measured where the colour is read: on white, on the grey of rows and panels, on the light accent background and under the pointer.', 'ffcertificate' ); ?></p>
+	<p class="description"><?php esc_html_e( 'While Customise is off, the colours are not used and cannot be changed.', 'ffcertificate' ); ?></p>
 	<p class="description"><?php esc_html_e( 'The background of the information notices (the administrator bypass, the quiz and schedule notices, "already submitted") is a light shade of their colour, made for you. Their colour is checked against that background, at 4.5:1.', 'ffcertificate' ); ?></p>
 </div>
 

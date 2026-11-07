@@ -653,19 +653,15 @@ class SettingsSaveHandler {
 		}
 		$design = new \FreeFormCertificate\Core\PublicDesign( $raw );
 
-		$weak = array();
-		foreach ( $design->weak_contrasts() as $pair ) {
-			/* translators: 1: a colour pair, such as "hints on white"; 2: its contrast ratio; 3: the minimum WCAG asks. */
-			$weak[] = sprintf( __( '%1$s (%2$s:1, at least %3$s:1)', 'ffcertificate' ), $pair['pair'], number_format_i18n( $pair['ratio'], 2 ), number_format_i18n( $pair['min'], 1 ) );
-		}
-		if ( $design->enabled && array() !== $weak ) {
+		$warning = $design->contrast_warning();
+		if ( '' !== $warning ) {
 			add_settings_error(
 				'ffc_settings',
 				'ffc_public_design_contrast',
 				sprintf(
-					/* translators: %s: the colour pairs, separated by semicolons. */
-					__( 'The design was saved, but some colours are hard to read: %s', 'ffcertificate' ),
-					implode( '; ', $weak )
+					/* translators: %s: the warning that names the weak colour pairs. */
+					__( 'The design was saved. %s', 'ffcertificate' ),
+					$warning
 				),
 				'warning'
 			);

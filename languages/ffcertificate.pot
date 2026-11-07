@@ -24764,7 +24764,7 @@ msgid "Default: %s"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-public-design.php:70
-msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgid "The text on buttons is chosen for you, black or white, whichever reads best on the accent. A colour that reads poorly (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved; the warning above names it as you pick, measured where the colour is read: on white, on the grey of rows and panels, on the light accent background and under the pointer."
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:24
@@ -24812,7 +24812,7 @@ msgid "Settings → Public Design sets the look of every screen visitors see: fo
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:21
-msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly on white (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
+msgid "The accent of buttons, links and the focus outline, the field borders, hints and secondary text, and errors. The text on buttons is chosen automatically, black or white, whichever reads best on the accent. A colour that reads poorly (below 4.5:1 for text, 3:1 for borders, as WCAG asks) is still saved, with a warning naming it."
 msgstr ""
 
 #: includes/settings/views/documentation/config-public-design.php:22
@@ -24838,7 +24838,7 @@ msgstr ""
 
 #: includes/admin/class-ffc-settings-save-handler.php:494
 #, php-format
-msgid "The design was saved, but some colours are hard to read: %s"
+msgid "The design was saved. %s"
 msgstr ""
 
 #: includes/integrations/class-ffc-screenshot-viewer.php
@@ -33190,4 +33190,37 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "A second download from the same screen asks for a new verification, shown above the buttons, because the first download used the one solved with the form."
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+#, php-format
+msgid "Some colours are hard to read: %s"
+msgstr ""
+
+#: includes/settings/views/documentation/config-public-design.php
+msgid "The warning appears as the colours are picked, before saving, and measures each colour where it is read: on white, hints also on the grey of table rows and panels, the accent also on its light background and under the pointer. While Customise is off the colours are not used, and their fields cannot be changed."
+msgstr ""
+
+#: includes/settings/views/ffc-tab-public-design.php
+msgid "While Customise is off, the colours are not used and cannot be changed."
+msgstr ""
+
+#: includes/admin/class-ffc-public-design-check-endpoint.php
+msgid "You do not have permission to change the public design."
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "button text under the pointer"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "hints on the grey background of rows and panels"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "links on the light accent background"
+msgstr ""
+
+#: includes/core/class-ffc-public-design.php
+msgid "links under the pointer, on white"
 msgstr ""
