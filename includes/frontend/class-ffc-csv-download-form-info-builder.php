@@ -43,7 +43,8 @@ final class CsvDownloadFormInfoBuilder {
 		$form_config     = get_post_meta( $form_id, '_ffc_form_config', true );
 		$form_config     = is_array( $form_config ) ? $form_config : array();
 		$geofence_config = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		$geofence_config = is_array( $geofence_config ) ? $geofence_config : array();
+		// Today's early opening is today's start (#2341).
+		$geofence_config = is_array( $geofence_config ) ? Geofence::with_early_open( $form_id, $geofence_config ) : array();
 
 		$now      = time();
 		$start_ts = Geofence::get_form_start_timestamp( $form_id );

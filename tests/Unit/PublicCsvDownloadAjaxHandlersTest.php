@@ -785,7 +785,8 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 			$this->assertSame( $this->clock->day() . ' ' . $now_time, $this->captured['payload']['new_start_iso'] );
 			$this->assertSame( $this->clock->day() . ' 13:00', $this->captured['payload']['original_start_iso'] );
 		}
-		$this->assertSame( $now_time, $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'] );
+		$this->assertSame( '13:00', $this->meta[ self::FORM_ID ]['_ffc_geofence_config']['time_start'], 'The schedule is kept; the moment is stored apart (#2341).' );
+		$this->assertArrayHasKey( '_ffc_csv_public_start_opened_at', $this->meta[ self::FORM_ID ] );
 		$this->assertSame( array( 'action_early_open' ), $this->audit_results() );
 	}
 
