@@ -162,6 +162,75 @@
 			return api.$container && api.$container.data('ffc-last-info');
 		},
 
+		// ── The site's clock (#2341) ────────────────────────────────
+		// The info answer carries the server's `now`, the site's UTC offset
+		// and its formats. The gap to this browser's clock is kept, so a
+		// dialog opened minutes later still reads the site's wall time, not
+		// the operator's timezone or a wrong clock.
+
+		clockSkew: 0,
+
+		setClock: function (clock) {
+			api.clock = clock || null;
+			api.clockSkew = clock && clock.now ? clock.now * 1000 - Date.now() : 0;
+		},
+
+		/**
+		 * The site's current wall time as `HH:MM`, and today's date in the
+		 * plugin's date format; the browser's clock when no info was read.
+		 *
+		 * @return {{hm: string, today: string}}
+		 */
+		siteNow: function () {
+			var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+			var c = api.clock;
+			if (!c || typeof c.offset !== 'number') {
+				var local = new Date();
+				return { hm: pad(local.getHours()) + ':' + pad(local.getMinutes()), today: '' };
+			}
+			var d = new Date(Date.now() + api.clockSkew + c.offset * 1000);
+			return { hm: pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()), today: c.today || '' };
+		},
+
+		/**
+		 * A wall-clock `HH:MM` in the plugin's time format. Reads the PHP
+		 * format letters a time format uses (H G h g i s a A, `\` escapes);
+		 * anything else is printed as written.
+		 *
+		 * @param {string} hm `HH:MM` or `HH:MM:SS`.
+		 * @return {string}
+		 */
+		formatTime: function (hm) {
+			var m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(hm || ''));
+			var fmt = api.clock && api.clock.time_format;
+			if (!m || !fmt) {
+				return hm || '';
+			}
+			var h = parseInt(m[1], 10);
+			var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+			var h12 = h % 12 === 0 ? 12 : h % 12;
+			var out = '';
+			for (var i = 0; i < fmt.length; i++) {
+				var ch = fmt.charAt(i);
+				if (ch === '\\') {
+					out += fmt.charAt(++i);
+					continue;
+				}
+				switch (ch) {
+					case 'H': out += pad(h); break;
+					case 'G': out += h; break;
+					case 'h': out += pad(h12); break;
+					case 'g': out += h12; break;
+					case 'i': out += m[2]; break;
+					case 's': out += m[3] || '00'; break;
+					case 'a': out += h < 12 ? 'am' : 'pm'; break;
+					case 'A': out += h < 12 ? 'AM' : 'PM'; break;
+					default: out += ch;
+				}
+			}
+			return out;
+		},
+
 		goBack: function () {
 			location.reload();
 		},

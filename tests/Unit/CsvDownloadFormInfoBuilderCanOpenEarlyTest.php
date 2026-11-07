@@ -156,6 +156,26 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
 		$this->assertTrue( $info['status']['can_open_early'] );
 	}
 
+	/**
+	 * #2341 — the answer carries the site's clock, so the dialogs read the
+	 * site's wall time and formats instead of the browser's.
+	 */
+	public function test_info_carries_the_site_clock_and_formats(): void {
+		$this->window( array( 0, '13:00' ), array( 0, '14:00' ) );
+		$this->configure_form( 1 );
+		$this->options['time_format'] = 'g:i a';
+		$this->options['ffc_settings'] = array( 'time_format' => 'custom', 'time_format_custom' => 'G\hi' );
+
+		$before = time();
+		$clock  = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 )['clock'];
+
+		$this->assertGreaterThanOrEqual( $before, $clock['now'] );
+		$this->assertLessThanOrEqual( time(), $clock['now'] );
+		$this->assertSame( wp_timezone()->getOffset( new \DateTimeImmutable( '@' . $clock['now'] ) ), $clock['offset'] );
+		$this->assertSame( 'G\hi', $clock['time_format'], 'The plugin\'s time format, the one every other time on the screen uses.' );
+		$this->assertSame( \FreeFormCertificate\Core\DateFormatter::format_date( $clock['now'] ), $clock['today'], 'Today in the plugin\'s date format.' );
+	}
+
 	public function test_can_open_early_false_when_form_already_started(): void {
 		$this->window( array( 0, '11:00' ), array( 0, '13:00' ) );
 		$this->configure_form( 1 );

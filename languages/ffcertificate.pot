@@ -28523,7 +28523,7 @@ msgstr[1] ""
 msgid "JavaScript is off"
 msgstr ""
 
-msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your document."
 msgstr ""
 
 msgid "The form did not load completely"
@@ -28571,7 +28571,7 @@ msgstr ""
 msgid "Open this page in your browser"
 msgstr ""
 
-msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
+msgid "You are viewing this page inside an app, where your location and the document download often fail. Open it in %s."
 msgstr ""
 
 msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
@@ -28586,7 +28586,7 @@ msgstr ""
 msgid "This browser cannot run the form"
 msgstr ""
 
-msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
+msgid "This browser is missing features the form needs to issue your document. Open this page in %s."
 msgstr ""
 
 msgid "no HTTPS"
@@ -33162,4 +33162,28 @@ msgstr ""
 
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "An action the operator cannot use right now shows disabled, with an info button beside it that says why (turned off for this form, the form still open, the quota spent). After a download the screen says it is complete only once the file has arrived, and the count of downloads used goes up at once."
+msgstr ""
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This page requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr ""
+
+#: includes/frontend/class-ffc-public-csv-download.php
+#. translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge".
+#, php-format
+msgid "You are viewing this page inside an app, where downloading the file often fails. Open it in %s."
+msgstr ""
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This browser cannot run this page"
+msgstr ""
+
+#: includes/frontend/class-ffc-public-csv-download.php
+#. translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge".
+#, php-format
+msgid "This browser is missing features this page needs to download the file. Open this page in %s."
+msgstr ""
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "Dates and times on this page follow the plugin's date and time formats, and \"now\" in its dialogs is the site's time, not the clock of the operator's device."
 msgstr ""

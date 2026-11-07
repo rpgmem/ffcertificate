@@ -134,6 +134,9 @@
 
 	function renderInfoScreen(info) {
 		var html = '';
+		// The site's clock and formats first: the sections below print
+		// times through them (#2341).
+		api.setClock(info.clock);
 
 		// Header with back button.
 		html += '<div class="ffc-info-header">';
@@ -366,14 +369,14 @@
 				html += row(strings.dateStart || 'Start date', dt.date_start ? esc(dt.date_start) : inf, null);
 				html += row(strings.dateEnd   || 'End date',   dt.date_end   ? esc(dt.date_end)   : inf, null);
 			}
-			var accStart = dt.has_times ? (dt.time_start ? esc(dt.time_start) : inf) : inf;
-			var accEnd   = dt.has_times ? (dt.time_end   ? esc(dt.time_end)   : inf) : inf;
-			html += row(strings.timeStart || 'Start time', accStart, twoCol ? (bStart ? esc(bStart) : inf) : undefined);
-			html += row(strings.timeEnd   || 'End time',   accEnd,   twoCol ? (bEnd   ? esc(bEnd)   : inf) : undefined);
+			var accStart = dt.has_times ? (dt.time_start ? esc(api.formatTime(dt.time_start)) : inf) : inf;
+			var accEnd   = dt.has_times ? (dt.time_end   ? esc(api.formatTime(dt.time_end))   : inf) : inf;
+			html += row(strings.timeStart || 'Start time', accStart, twoCol ? (bStart ? esc(api.formatTime(bStart)) : inf) : undefined);
+			html += row(strings.timeEnd   || 'End time',   accEnd,   twoCol ? (bEnd   ? esc(api.formatTime(bEnd))   : inf) : undefined);
 		} else {
 			// Reference-only: single column of baseline times.
-			html += row(strings.scheduleReferenceStart || 'Start', bStart ? esc(bStart) : inf, undefined);
-			html += row(strings.scheduleReferenceEnd   || 'End',   bEnd   ? esc(bEnd)   : inf, undefined);
+			html += row(strings.scheduleReferenceStart || 'Start', bStart ? esc(api.formatTime(bStart)) : inf, undefined);
+			html += row(strings.scheduleReferenceEnd   || 'End',   bEnd   ? esc(api.formatTime(bEnd))   : inf, undefined);
 		}
 
 		html += '</tbody></table>';
