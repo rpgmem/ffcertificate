@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="card">
 	<h3 id="feature-date-messages" class="ffc-icon-email"><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></h3>
 
-	<p><?php esc_html_e( 'Date Messages sends an e-mail on a date stored in each person\'s profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level "Date Messages" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Date Messages sends an e-mail on a date stored in each person\'s profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level "Date Messages" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Schedule pages follow it in the submenu.', 'ffcertificate' ); ?></p>
 
 	<?php ob_start(); ?>
 		<p>
@@ -51,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><strong><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
-	<p><?php esc_html_e( 'Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Rules can be edited, duplicated and deleted from the Rules page, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history.', 'ffcertificate' ); ?></p>
 
 	<p class="description"><?php esc_html_e( 'On a record that already exists, a switch saves the moment you flip it, without the Save button. A new record keeps the Save button until it is created.', 'ffcertificate' ); ?></p>
 
@@ -78,17 +78,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A batch that is cut off part-way, for example by a slow mail server, is run again ten minutes later, up to three times; nobody it already reached is sent the message twice or counted twice. A message that cannot be built or sent counts as failed and the batch goes on. The daily run starts each rule as its own scheduled task, so one rule that fails does not stop the others.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'History', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked "Test", and "Hide test sends" leaves them out. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. "Sent" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked "Test", and "Hide test sends" leaves them out. Above the list, the page shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The history keeps the last 365 days: each daily run removes older runs together with their deliveries, even while e-mails are disabled. A message can never go out twice because of it, since a delivery is recorded per date including its year.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Manager summary', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'When enabled on a rule, the chosen managers receive a summary 24 hours after each run starts. Names go only to recipients allowed to see who receives date messages (ffc_view_date_messages_pii, or administrators), and travel masked, with a link to the run in History; everyone else gets the counts. A run that reached nobody sends no summary. A run still in progress after 24 hours is reported once it closes, checked every hour for up to 12 hours, and a summary every send refused is tried again on the same schedule. Only administrators and accounts holding a date-messages capability can be chosen, listed by name with the e-mail masked.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Upcoming dates', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule\'s audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and "Reveal this page" all of them, each recorded in the activity log.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule\'s audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The page is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and "Reveal this page" all of them, each recorded in the activity log.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Daily schedule', 'ffcertificate' ); ?></h4>
-	<p><?php esc_html_e( 'The daily run sends every active rule once a day, for that day\'s dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?> <?php esc_html_e( 'Announcements are not part of it: each goes out at its own send time, or from Send now.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'The daily run sends every active rule once a day, for that day\'s dates only, at 08:00 in the site timezone by default. The Schedule page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site.', 'ffcertificate' ); ?> <?php esc_html_e( 'Announcements are not part of it: each goes out at its own send time, or from Send now.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Opting out', 'ffcertificate' ); ?></h4>
 	<ul>

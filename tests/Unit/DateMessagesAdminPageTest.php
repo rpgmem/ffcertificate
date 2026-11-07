@@ -305,6 +305,19 @@ class DateMessagesAdminPageTest extends TestCase {
 				if ( false !== strpos( (string) $sql, 'WHERE id = %d' ) && self::RUNS === $bound[0] ) {
 					return $this->runs[ (int) $bound[1] ] ?? null;
 				}
+				if ( false !== strpos( (string) $sql, 'COALESCE(SUM(sent)' ) && self::RUNS === $bound[0] ) {
+					// The dashboard totals (#2486): runs since the bound time, tests left out.
+					$totals = array( 'sent' => 0, 'failed' => 0, 'failed_runs' => 0 );
+					foreach ( $this->runs as $run ) {
+						if ( (int) ( $run['started_at'] ?? 0 ) < (int) $bound[1] || $bound[2] === ( $run['trigger_kind'] ?? '' ) ) {
+							continue;
+						}
+						$totals['sent']        += (int) ( $run['sent'] ?? 0 );
+						$totals['failed']      += (int) ( $run['failed'] ?? 0 );
+						$totals['failed_runs'] += (int) ( $run['failed'] ?? 0 ) > 0 ? 1 : 0;
+					}
+					return $totals;
+				}
 				$this->fail( 'Unexpected get_row(): ' . $sql );
 			}
 		);
@@ -463,7 +476,9 @@ class DateMessagesAdminPageTest extends TestCase {
 			return $this->user_audiences[ (int) $bound[2] ] ?? array();
 		}
 		if ( self::RUNS === ( $bound[0] ?? null ) && false !== strpos( $sql, 'ORDER BY id DESC' ) ) {
-			return array();
+			// The history page asks for a page of runs; the dashboard (#2486)
+			// asks for its latest ones and is answered from the stored runs.
+			return false !== strpos( $sql, 'trigger_kind <> %s' ) ? array_reverse( array_values( $this->runs ) ) : array();
 		}
 		$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
 	}
@@ -604,6 +619,15 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 
+		$submenus = array();
+		Functions\when( 'add_submenu_page' )->alias(
+			static function ( ...$args ) use ( &$submenus ) {
+				$submenus[] = array( $args[3], $args[4] );
+				return 'hook';
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+
 		$this->caps = array( 'ffc_manage_date_messages' );
 		( new DateMessagesAdminPage() )->register_menu();
 		$this->caps = array( 'ffc_view_date_messages' );
@@ -617,6 +641,53 @@ class DateMessagesAdminPageTest extends TestCase {
 			$registered,
 			'A top-level menu in the FFC block.'
 		);
+		// The dashboard on the bare slug, then a page per section (#2486);
+		// Upcoming dates names people and needs the PII capability.
+		$this->assertSame(
+			array(
+				array( 'ffc_view_date_messages', 'ffc-date-messages' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=rules' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=send' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=history' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=settings' ),
+			),
+			array_slice( $submenus, 5 )
+		);
+	}
+
+	public function test_the_dashboard_sums_the_last_runs_and_flags_failures(): void {
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_manage_date_messages' );
+		$this->store_rule( $this->rule() );
+		$this->runs[1] = array( 'id' => 1, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 3600, 'sent' => 9, 'failed' => 0 );
+		$this->runs[2] = array( 'id' => 2, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 1800, 'sent' => 4, 'failed' => 2 );
+		$this->runs[3] = array( 'id' => 3, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 40 * DAY_IN_SECONDS, 'sent' => 50, 'failed' => 7 );
+
+		$html = $this->render_screen( array() );
+
+		$this->assertMatchesRegularExpression( '#ffc-stat-card__value">13</span><span class="ffc-stat-card__label">E-mails sent in the last 30 days#', $html, 'runs older than the window are left out' );
+		$this->assertMatchesRegularExpression( '#ffc-icon-badge-danger ffc-icon-warning" aria-hidden="true"></span><span class="ffc-stat-card__value">2</span>#', $html, 'failures wear the danger tone' );
+		$this->assertStringContainsString( '<span>Runs with failures in the last 30 days</span><span>1</span>', $html );
+		$this->assertStringContainsString( '4 sent, 2 failed', $html, 'the latest runs say what failed' );
+		$this->assertStringContainsString( 'Add rule', $html, 'a manager can add a rule from the dashboard' );
+	}
+
+	public function test_the_submenu_lights_the_open_section(): void {
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		$_GET = array( 'page' => 'ffc-date-messages' );
+		$this->assertSame( 'ffc-date-messages', DateMessagesAdminPage::highlight_section( 'x' ), 'the dashboard' );
+		$_GET = array(
+			'page' => 'ffc-date-messages',
+			'tab'  => 'history',
+		);
+		$this->assertSame( 'ffc-date-messages&tab=history', DateMessagesAdminPage::highlight_section( 'x' ) );
+		$_GET = array(
+			'page' => 'ffc-date-messages',
+			'rule' => '4',
+		);
+		$this->assertSame( 'ffc-date-messages&tab=rules', DateMessagesAdminPage::highlight_section( 'x' ), 'the rule editor belongs to Rules' );
+		$_GET = array( 'page' => 'other' );
+		$this->assertSame( 'x', DateMessagesAdminPage::highlight_section( 'x' ) );
+		$_GET = array();
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
@@ -1387,12 +1458,29 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'tab=scheduled_tasks', $html );
 	}
 
-	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_rules(): void {
+	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_the_dashboard(): void {
 		$html = $this->render_screen( array( 'tab' => 'upcoming' ), 'not an array' );
 
-		$this->assertMatchesRegularExpression( '#id="ffc-date-messages-tabnav-rules"[^>]*aria-current="page"#', $html, 'The rules page is the one shown (#2344).' );
+		$this->assertStringContainsString( 'id="ffc-date-messages-dashboard"', $html, 'The dashboard is the page shown (#2486).' );
 		$this->assertStringContainsString( 'Add rule', $html );
+		$this->assertStringNotContainsString( 'tab=upcoming', $html, 'no upcoming card without the PII capability' );
 		$this->assertStringNotContainsString( 'class="notice', $html, 'a non-array outcome is no outcome' );
+	}
+
+	public function test_the_dashboard_counts_the_rules_and_the_last_runs(): void {
+		$this->caps = array( 'ffc_view_date_messages' );
+		$this->store_rule( $this->rule() );
+
+		$html = $this->render_screen( array() );
+
+		$this->assertStringContainsString( 'id="ffc-date-messages-dashboard"', $html );
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Date Messages</h1>', $html );
+		$this->assertStringContainsString( 'class="ffc-dashboard"', $html );
+		$this->assertStringContainsString( 'tab=rules', $html, 'the Rules card opens the rules page' );
+		$this->assertStringContainsString( 'Nothing has run yet.', $html );
+		$this->assertStringContainsString( 'The daily run is not scheduled', $html, 'a missing daily run needs attention' );
+		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
+		$this->assertStringNotContainsString( 'ffc-settings-tabs__nav', $html, 'no vertical menu: the WordPress submenu holds the sections' );
 	}
 
 	public function test_opening_a_rule_that_no_longer_exists_lands_on_the_list_with_an_error(): void {
@@ -1404,7 +1492,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( '<div class="notice notice-error"><span class="ffc-admin-notice-icon ffc-icon-error ffc-icon-tone-danger" aria-hidden="true"></span>That rule no longer exists.</div>', $html );
-		$this->assertMatchesRegularExpression( '#id="ffc-date-messages-tabnav-rules"[^>]*aria-current="page"#', $html, 'The rules page is the one shown (#2344).' );
+		$this->assertStringContainsString( 'id="ffc-date-messages-rules"', $html, 'The rules page is the one shown.' );
 	}
 
 	public function test_the_history_tab_reads_a_page_of_runs(): void {

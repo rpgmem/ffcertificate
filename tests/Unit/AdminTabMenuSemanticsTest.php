@@ -24,14 +24,12 @@ class AdminTabMenuSemanticsTest extends TestCase {
 	private const MENUS = array(
 		'includes/admin/class-ffc-settings.php',
 		'includes/audience/class-ffc-audience-admin-settings.php',
-		'templates/admin/date-messages/page.php',
 	);
 
 	/** The files that print the panel those menus sit beside. */
 	private const PANELS = array(
 		'includes/admin/class-ffc-settings.php',
 		'includes/audience/class-ffc-audience-admin-settings.php',
-		'templates/admin/date-messages/page.php',
 	);
 
 	/**

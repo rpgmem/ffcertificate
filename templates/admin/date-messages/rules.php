@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <p class="description">
-	<?php esc_html_e( 'A dated rule sends its message on a date in each person\'s profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose.', 'ffcertificate' ); ?>
+	<?php esc_html_e( 'A dated rule sends its message on a date in each person\'s profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now page, which also sends a dated rule over dates you choose.', 'ffcertificate' ); ?>
 </p>
 
 <?php if ( array() === $rules ) : ?>

@@ -22137,8 +22137,8 @@ msgstr "Excluir esta regra? O que ela já enviou continua no histórico."
 msgid "E-mail each person on their date"
 msgstr "Enviar e-mail a cada pessoa na sua data"
 
-msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose."
-msgstr "Uma regra com data envia a mensagem numa data do perfil de cada pessoa, ou alguns dias antes ou depois dela; a execução diária envia todas as ativas. Um comunicado não tem data: vai uma vez para todos do seu público, no horário de envio ou pela aba Enviar agora, que também envia uma regra com data nas datas que você escolher."
+msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now page, which also sends a dated rule over dates you choose."
+msgstr "Uma regra com data envia a mensagem numa data do perfil de cada pessoa, ou alguns dias antes ou depois dela; a execução diária envia todas as ativas. Um comunicado não tem data: vai uma vez para todos do seu público, no horário de envio ou pela página Enviar agora, que também envia uma regra com data nas datas que você escolher."
 
 msgid "Edit rule"
 msgstr "Editar regra"
@@ -23260,8 +23260,8 @@ msgstr "Cada regra de Mensagens por Data envia o seu próprio assunto e corpo, p
 msgid "Date-message tokens:"
 msgstr "Tokens das mensagens por data:"
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu with the Rules, Send now, History, Upcoming dates and Schedule tabs."
-msgstr "O Mensagens por Data envia um e-mail em uma data guardada no perfil de cada pessoa — hoje, o aniversário — ou, como comunicado, uma única vez a um público. Ele tem o seu próprio menu \"Mensagens por Data\", com as abas Regras, Enviar agora, Histórico, Próximas datas e Agendamento."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Schedule pages follow it in the submenu."
+msgstr "O Mensagens por Data envia um e-mail em uma data guardada no perfil de cada pessoa — hoje, o aniversário — ou, como comunicado, uma única vez a um público. Ele tem o seu próprio menu \"Mensagens por Data\", que abre num painel: as regras ativas, os e-mails enviados e com falha nos últimos 30 dias, a próxima execução diária, um card por seção e as últimas execuções. As páginas Regras, Enviar agora, Histórico, Próximas datas e Agendamento vêm em seguida no submenu."
 
 msgid "On, but silent until you create a rule."
 msgstr "Ativo, mas sem enviar nada até que você crie uma regra."
@@ -23290,8 +23290,8 @@ msgstr "\"Ativo\" e \"Enviar e-mail a cada pessoa na sua data\". Ativa, uma regr
 msgid "Optionally e-mails chosen managers a summary 24 hours after each run, with counts only or counts and the names of who received it. See below."
 msgstr "Opcionalmente, envia a gestores escolhidos um resumo 24 horas após cada execução, apenas com os totais ou com os totais e os nomes de quem recebeu. Veja abaixo."
 
-msgid "Rules can be edited, duplicated and deleted from the Rules tab, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
-msgstr "As regras podem ser editadas, duplicadas e excluídas na aba Regras, onde o botão Ativo de cada uma a liga ou desliga e salva na hora. Excluir uma regra mantém no histórico o que ela já enviou."
+msgid "Rules can be edited, duplicated and deleted from the Rules page, where the Active toggle on each rule switches it on or off and saves at once. Deleting a rule keeps what it already sent in the history."
+msgstr "As regras podem ser editadas, duplicadas e excluídas na página Regras, onde o botão Ativo de cada uma a liga ou desliga e salva na hora. Excluir uma regra mantém no histórico o que ela já enviou."
 
 msgid "Who receives a message"
 msgstr "Quem recebe uma mensagem"
@@ -24011,8 +24011,8 @@ msgstr "Criar, editar e duplicar regras. Excluir uma exige Excluir mensagens de 
 msgid "Dashboard → Updates shows a short summary of the release on offer, taken from that release's own readme, together with the WordPress and PHP versions it requires and the WordPress version it was tested up to, so you can read what changes before applying it."
 msgstr "Painel → Atualizações mostra um breve resumo da versão oferecida, tirado do readme dessa própria versão, junto com as versões de WordPress e PHP que ela exige e a versão de WordPress com que foi testada, para que você leia o que muda antes de aplicá-la."
 
-msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the tab shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
-msgstr "Cada execução é listada com a sua regra, o seu disparo — Diária, Manual, ou Comunicado para um comunicado agendado —, as suas datas e os seus contadores: enviados, enviados apesar do descadastro, descadastrados, sem e-mail válido, fora do público-alvo, falharam e listados só para o resumo. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mail ativa, a entrega acontece depois, pela fila. Os envios de teste aparecem marcados como \"Teste\", e \"Ocultar envios de teste\" os deixa de fora. Acima da lista, a aba mostra quando é a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
+msgid "Every run is listed with its rule, its trigger — Daily, Manual, or Announcement for a scheduled announcement — its dates and its counters: sent, sent despite an opt-out, opted out, no valid e-mail, outside the audience, failed, and listed for the summary only. \"Sent\" counts messages handed to wp_mail(); with a mail queue active, delivery happens afterwards from the queue. Test sends are listed marked \"Test\", and \"Hide test sends\" leaves them out. Above the list, the page shows when the next daily run is due, with a link to Settings → Scheduled Tasks for those who can open it."
+msgstr "Cada execução é listada com a sua regra, o seu disparo — Diária, Manual, ou Comunicado para um comunicado agendado —, as suas datas e os seus contadores: enviados, enviados apesar do descadastro, descadastrados, sem e-mail válido, fora do público-alvo, falharam e listados só para o resumo. \"Enviados\" conta as mensagens entregues ao wp_mail(); com uma fila de e-mail ativa, a entrega acontece depois, pela fila. Os envios de teste aparecem marcados como \"Teste\", e \"Ocultar envios de teste\" os deixa de fora. Acima da lista, a página mostra quando é a próxima execução diária, com um link para Configurações → Tarefas Agendadas para quem pode abri-la."
 
 msgid "Off, On (always dark), or Auto (follow the operating system). Applies to the plugin's admin screens and to what it shows visitors: the public forms, the user dashboard and the scheduling, audience and recruitment shortcodes. Certificates and other PDFs are always light."
 msgstr "Desativado, Ativado (sempre escuro) ou Automático (segue o sistema operacional). Vale para as telas de administração do plugin e para o que ele mostra aos visitantes: os formulários públicos, o painel do usuário e os shortcodes de agendamento, público-alvo e convocação. Certificados e outros PDFs são sempre claros."
@@ -24038,8 +24038,8 @@ msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do 
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
 msgstr "A lista Todos os Formulários tem uma coluna Recursos com três interruptores por formulário — CSV (o download público do operador), Quiz e Limite do dispositivo. Cada um salva assim que é acionado, grava a mesma configuração que o editor do formulário e fica somente leitura para quem não pode editar aquele formulário."
 
-msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule tab shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
-msgstr "A execução diária envia todas as regras ativas uma vez por dia, só para as datas daquele dia, por padrão às 08:00 no fuso horário do site. A aba Agendamento mostra o horário atual e a próxima execução; o horário em si é alterado em Configurações → Tarefas Agendadas, que exige a capacidade de gerenciar configurações (ffc_manage_settings) e também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr "A execução diária envia todas as regras ativas uma vez por dia, só para as datas daquele dia, por padrão às 08:00 no fuso horário do site. A página Agendamento mostra o horário atual e a próxima execução; o horário em si é alterado em Configurações → Tarefas Agendadas, que exige a capacidade de gerenciar configurações (ffc_manage_settings) e também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
@@ -26698,8 +26698,8 @@ msgid "E-mails to staff (new submission and new appointment notices, the Date Me
 msgstr "E-mails para a equipe (avisos de nova submissão e de novo agendamento, o resumo de Mensagens de Datas) levam os dados pessoais mascarados, com um link para a tela onde o destinatário pode revelá-los."
 
 #: includes/settings/views/documentation/feature-date-messages.php:80
-msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The tab is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
-msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês. Pode ser restrita a uma regra ativa e, depois, a um dos públicos-alvo dessa regra; sem regra escolhida, o filtro de público-alvo oferece os de todas as regras ativas. Uma coluna Públicos-alvo indica a quais deles cada pessoa pertence. A aba aparece somente para quem tem ffc_view_date_messages_pii e para administradores. Os nomes ficam mascarados, aqui e na prévia de destinatários; Revelar mostra um e \"Revelar esta página\" mostra todos, cada revelação registrada no registro de atividades."
+msgid "Lists the birthdays in the next 7 or 30 days or in a chosen month, by day and month. It can be narrowed to one active rule, and then to one of that rule's audiences; with no rule chosen, the audience filter offers those of every active rule. An Audiences column names which of them each person belongs to. The page is shown only to holders of ffc_view_date_messages_pii and administrators. Names are masked, here and in the recipient preview; Reveal shows one and \"Reveal this page\" all of them, each recorded in the activity log."
+msgstr "Lista os aniversários dos próximos 7 ou 30 dias ou de um mês escolhido, por dia e mês. Pode ser restrita a uma regra ativa e, depois, a um dos públicos-alvo dessa regra; sem regra escolhida, o filtro de público-alvo oferece os de todas as regras ativas. Uma coluna Públicos-alvo indica a quais deles cada pessoa pertence. A página aparece somente para quem tem ffc_view_date_messages_pii e para administradores. Os nomes ficam mascarados, aqui e na prévia de destinatários; Revelar mostra um e \"Revelar esta página\" mostra todos, cada revelação registrada no registro de atividades."
 
 #: includes/admin/class-ffc-admin-user-custom-fields.php:321
 msgid "Masked. Revealing it requires the audience PII capability."
@@ -33410,3 +33410,90 @@ msgstr "Este edital não tem nenhuma matéria vinculada. Adicione ao menos uma n
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "view / save the Settings page."
 msgstr "visualizar / salvar a página Configurações."
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%1$d sent, %2$d failed"
+msgstr "%1$d enviados, %2$d com falha"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%d sent"
+msgstr "%d enviados"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Active rules"
+msgstr "Regras ativas"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Dated"
+msgstr "Com data"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Deleted rule"
+msgstr "Regra excluída"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "E-mails sent in the last %d day"
+msgid_plural "E-mails sent in the last %d days"
+msgstr[0] "E-mails enviados no último %d dia"
+msgstr[1] "E-mails enviados nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Every run, who started it, and what it sent, skipped and failed."
+msgstr "Cada execução, quem a iniciou e o que ela enviou, pulou e falhou."
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Failures in the last %d day"
+msgid_plural "Failures in the last %d days"
+msgstr[0] "Falhas no último %d dia"
+msgstr[1] "Falhas nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Latest runs"
+msgstr "Últimas execuções"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Next daily run"
+msgstr "Próxima execução diária"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "No rule is active"
+msgstr "Nenhuma regra está ativa"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Nothing has run yet."
+msgstr "Nada foi executado ainda."
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open history"
+msgstr "Abrir histórico"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open rules"
+msgstr "Abrir regras"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Runs with failures in the last %d day"
+msgid_plural "Runs with failures in the last %d days"
+msgstr[0] "Execuções com falha no último %d dia"
+msgstr[1] "Execuções com falha nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Send a rule outside the daily run: a dated rule over the dates you choose, an announcement to everyone in its audience."
+msgstr "Envie uma regra fora da execução diária: uma regra com data nas datas que você escolher, um comunicado a todos do seu público-alvo."
+
+#: templates/admin/date-messages/dashboard.php
+msgid "The daily run is not scheduled"
+msgstr "A execução diária não está agendada"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Who receives a message in the coming days, with names masked until revealed."
+msgstr "Quem recebe uma mensagem nos próximos dias, com os nomes mascarados até serem revelados."
+
+#: templates/admin/date-messages/page.php
+msgid "Back to rules"
+msgstr "Voltar às regras"
