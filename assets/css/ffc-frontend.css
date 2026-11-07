@@ -1588,7 +1588,8 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-table .ffc-info-table-dash {
     text-align: right;
-    color: var(--ffc-border);
+    /* Read as text, so the hint colour (4.5:1), not the border's 3:1 (#2341). */
+    color: var(--ffc-text-muted);
 }
 
 .ffc-public-csv-download .ffc-info-schedule-ref-note {

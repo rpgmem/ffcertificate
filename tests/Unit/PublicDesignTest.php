@@ -317,8 +317,42 @@ class PublicDesignTest extends TestCase {
 				'border'  => '#eeeeee',
 			)
 		) )->weak_contrasts();
-		$this->assertSame( array( 'links on white', 'field borders on white' ), array_column( $weak, 'pair' ) );
-		$this->assertSame( array( 4.5, 3.0 ), array_column( $weak, 'min' ) );
+		$this->assertSame( array( 'links on white', 'links under the pointer, on white', 'links on the light accent background', 'field borders on white' ), array_column( $weak, 'pair' ) );
+		$this->assertSame( array( 4.5, 4.5, 4.5, 3.0 ), array_column( $weak, 'min' ) );
+	}
+
+	/**
+	 * #2341 — the pairs the design derives are measured where they are
+	 * read: hints on the grey of rows and panels, the accent on its light
+	 * ground, the hover under the pointer.
+	 */
+	public function test_derived_grounds_are_measured_where_they_are_drawn(): void {
+		// A hint grey that passes on white (4.6:1) and fails on #f6f7f7.
+		$weak = ( new PublicDesign(
+			array(
+				'enabled' => '1',
+				'muted'   => '#757575',
+			)
+		) )->weak_contrasts();
+		$this->assertSame( array( 'hints on the grey background of rows and panels' ), array_column( $weak, 'pair' ) );
+
+		$design = new PublicDesign( array( 'enabled' => '1' ) );
+		$this->assertSame( '#ebf2f8', $design->accent_light(), 'The default accent clears 4.5:1 on its light ground.' );
+		$this->assertGreaterThanOrEqual( 4.5, \FreeFormCertificate\Core\ContrastColor::ratio( PublicDesign::DEFAULTS['accent'], $design->accent_light() ) );
+		$this->assertStringContainsString( '--ffc-primary-light:#ebf2f8;', $design->css() );
+	}
+
+	public function test_the_warning_names_the_weak_pairs_and_is_empty_when_off_or_clean(): void {
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n, $d = 0 ) => number_format( (float) $n, $d ) );
+		$weak = new PublicDesign(
+			array(
+				'enabled' => '1',
+				'border'  => '#eeeeee',
+			)
+		);
+		$this->assertStringContainsString( 'field borders on white (1.16:1, at least 3.0:1)', $weak->contrast_warning() );
+		$this->assertSame( '', ( new PublicDesign( array( 'enabled' => '1' ) ) )->contrast_warning() );
+		$this->assertSame( '', ( new PublicDesign( array( 'border' => '#eeeeee' ) ) )->contrast_warning(), 'Off, the colours are not used.' );
 	}
 
 	public function test_the_stylesheet_follows_ffc_common_on_public_pages_only(): void {
