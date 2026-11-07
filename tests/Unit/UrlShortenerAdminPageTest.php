@@ -64,7 +64,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_POST['nonce'], $_POST['target_url'], $_POST['title'], $_POST['id'] );
-		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'] );
+		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'], $_GET['s'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -256,6 +256,8 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	public function test_a_viewer_gets_no_write_controls_in_the_list(): void {
 		$_GET['status'] = 'all';
+		// Unfiltered: a search another test left behind would draw Clear.
+		unset( $_GET['s'] );
 		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
@@ -299,6 +301,8 @@ class UrlShortenerAdminPageTest extends TestCase {
 	 */
 	public function test_the_list_follows_the_list_top(): void {
 		$_GET['status'] = 'all';
+		// Unfiltered: a search another test left behind would draw Clear.
+		unset( $_GET['s'] );
 		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
 			Functions\when( $fn )->returnArg();
 		}
