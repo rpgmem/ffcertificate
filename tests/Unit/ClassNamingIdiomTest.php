@@ -86,6 +86,7 @@ final class ClassNamingIdiomTest extends TestCase {
 		'disabled'         => 'core button state (`.button.disabled`), written by core itself',
 		'displaying-num'   => 'core list-table item count',
 		'error'            => 'core admin notice (`div.error`) — not to be confused with a state of ours, which is `has-error`',
+		'fixed'            => 'core list-table modifier (`table.widefat.fixed`, equal columns)',
 		'form-table'       => 'core admin form table',
 		'hndle'            => 'core metabox title',
 		'html-active'      => 'core wp_editor state: the Code tab is showing',
