@@ -126,6 +126,7 @@ final class CsvDownloadFormInfoBuilder {
 			'datetime'         => $this->build_datetime_info( $geofence_config, $tz ),
 			'geolocation'      => $this->build_geolocation_info( $geofence_config ),
 			'quiz'             => $this->build_quiz_info( $form_config ),
+			'clock'            => self::site_clock( $tz ),
 			'csv'              => array(
 				'limit'     => $limit,
 				'count'     => $count,
@@ -232,6 +233,28 @@ final class CsvDownloadFormInfoBuilder {
 					? \FreeFormCertificate\Core\DateFormatter::format_datetime( $end_ts, 'default', ' ', $tz )
 					: null,
 			),
+		);
+	}
+
+	/**
+	 * The site's clock and formats, for the screen's own "now" (#2341).
+	 *
+	 * The dialogs compare times with the site's day, never the browser's:
+	 * an operator in another timezone, or with a wrong clock, would
+	 * otherwise be told a valid close is in the past. The script keeps the
+	 * gap between this `now` and its own clock and reads the site's wall
+	 * time from `offset`; times print in the plugin's time format.
+	 *
+	 * @param \DateTimeZone $tz Site timezone.
+	 * @return array{now: int, offset: int, today: string, time_format: string}
+	 */
+	public static function site_clock( \DateTimeZone $tz ): array {
+		$now = time();
+		return array(
+			'now'         => $now,
+			'offset'      => $tz->getOffset( new \DateTimeImmutable( '@' . $now ) ),
+			'today'       => \FreeFormCertificate\Core\DateFormatter::format_date( $now, 'default', $tz ),
+			'time_format' => \FreeFormCertificate\Core\DateFormatter::resolve_time_format(),
 		);
 	}
 

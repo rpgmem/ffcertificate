@@ -28,10 +28,10 @@
 		// Clean up any prior modal.
 		$('.ffc-csv-dialog-host').remove();
 
-		var nowDate = new Date();
-		var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
-		var nowFormatted = pad(nowDate.getDate()) + '/' + pad(nowDate.getMonth() + 1) + '/' + nowDate.getFullYear()
-			+ ' ' + pad(nowDate.getHours()) + ':' + pad(nowDate.getMinutes());
+		// The site's date and time in the plugin's formats, not the
+		// browser's clock and a fixed dd/mm/yyyy (#2341).
+		var siteNow      = api.siteNow();
+		var nowFormatted = (siteNow.today ? siteNow.today + ' ' : '') + api.formatTime(siteNow.hm);
 
 		var modalHtml = ''
 			+ '<div class="ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-open-early-title">'

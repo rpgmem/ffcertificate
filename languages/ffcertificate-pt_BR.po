@@ -28606,8 +28606,8 @@ msgstr[1] "Você tem %d formulários de certificado para preencher. Eles estão 
 msgid "JavaScript is off"
 msgstr "O JavaScript está desativado"
 
-msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate."
-msgstr "Este formulário precisa de JavaScript, que está desativado neste navegador. Ative-o ou abra esta página em outro navegador para obter o seu certificado."
+msgid "This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your document."
+msgstr "Este formulário precisa de JavaScript, que está desativado neste navegador. Ative-o ou abra esta página em outro navegador para obter o seu documento."
 
 msgid "The form did not load completely"
 msgstr "O formulário não carregou por completo"
@@ -28654,8 +28654,8 @@ msgstr "Chrome, Firefox, Edge ou Safari"
 msgid "Open this page in your browser"
 msgstr "Abra esta página no seu navegador"
 
-msgid "You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s."
-msgstr "Você está vendo esta página dentro de um aplicativo, onde a localização e o download do certificado costumam falhar. Abra-a em um destes navegadores: %s."
+msgid "You are viewing this page inside an app, where your location and the document download often fail. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde a localização e o download do documento costumam falhar. Abra-a em um destes navegadores: %s."
 
 msgid "Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\"."
 msgstr "Toque no menu (••• ou no ícone de compartilhar) e escolha \"Abrir no Safari\" ou \"Abrir no navegador\"."
@@ -28669,8 +28669,8 @@ msgstr "Abrir no Chrome"
 msgid "This browser cannot run the form"
 msgstr "Este navegador não consegue executar o formulário"
 
-msgid "This browser is missing features the form needs to issue your certificate. Open this page in %s."
-msgstr "Faltam neste navegador recursos de que o formulário precisa para emitir o seu certificado. Abra esta página em um destes navegadores: %s."
+msgid "This browser is missing features the form needs to issue your document. Open this page in %s."
+msgstr "Faltam neste navegador recursos de que o formulário precisa para emitir o seu documento. Abra esta página em um destes navegadores: %s."
 
 msgid "no HTTPS"
 msgstr "sem HTTPS"
@@ -33246,3 +33246,27 @@ msgstr "O arquivo não chegou. Tente o download novamente."
 #: includes/settings/views/documentation/forms-public-operator-access.php
 msgid "An action the operator cannot use right now shows disabled, with an info button beside it that says why (turned off for this form, the form still open, the quota spent). After a download the screen says it is complete only once the file has arrived, and the count of downloads used goes up at once."
 msgstr "Uma ação que o operador não pode usar no momento aparece desativada, com um botão de informação ao lado que diz o motivo (desativada neste formulário, o formulário ainda aberto, a cota esgotada). Depois de um download, a tela só diz que ele terminou quando o arquivo chega, e a contagem de downloads usados sobe na hora."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This page requires a secure connection (HTTPS). Please contact the site administrator."
+msgstr "Esta página exige uma conexão segura (HTTPS). Entre em contato com o administrador do site."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+#. translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge".
+#, php-format
+msgid "You are viewing this page inside an app, where downloading the file often fails. Open it in %s."
+msgstr "Você está vendo esta página dentro de um aplicativo, onde o download do arquivo costuma falhar. Abra-a em um destes navegadores: %s."
+
+#: includes/frontend/class-ffc-public-csv-download.php
+msgid "This browser cannot run this page"
+msgstr "Este navegador não consegue executar esta página"
+
+#: includes/frontend/class-ffc-public-csv-download.php
+#. translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge".
+#, php-format
+msgid "This browser is missing features this page needs to download the file. Open this page in %s."
+msgstr "Faltam neste navegador recursos de que esta página precisa para baixar o arquivo. Abra esta página em um destes navegadores: %s."
+
+#: includes/settings/views/documentation/forms-public-operator-access.php
+msgid "Dates and times on this page follow the plugin's date and time formats, and \"now\" in its dialogs is the site's time, not the clock of the operator's device."
+msgstr "As datas e horas desta página seguem os formatos de data e hora do plugin, e o \"agora\" dos seus diálogos é a hora do site, não o relógio do aparelho do operador."

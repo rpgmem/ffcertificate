@@ -571,13 +571,12 @@ class Frontend {
 					// waits for before it says the download is complete (#2341).
 					'delivered_cookie_prefix' => PublicFormsExportSource::DELIVERED_COOKIE_PREFIX,
 					// The browser check before the form (#2030), as on a
-					// certificate form: the same switch and strings.
-					'preflight'               => array(
-						'browserCheck' => BrowserGate::settings()['browserCheck'],
-						'strings'      => BrowserGate::strings(),
+					// certificate form, in this page's own words: it
+					// downloads a file, it issues nothing (#2341).
+					'preflight'               => BrowserGate::script_config( PublicCsvDownload::preflight_strings() ) + array(
 						// The page a visitor was stopped on, for the
 						// pre-flight telemetry (#2040).
-						'telemetry'    => array(
+						'telemetry' => array(
 							'type' => 'csv_download',
 							'id'   => $page_id,
 						),

@@ -1000,7 +1000,7 @@ class FrontendShortcodesTest extends TestCase {
 	 * @return array<string, array<string, mixed>>
 	 */
 	private static function allowed_differences( array $baseline ): array {
-		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate.</p></div></div>';
+		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your document.</p></div></div>';
 
 		foreach ( $baseline as $name => $record ) {
 			$record['form'] = str_replace( '" autocomplete="off"', '" method="post" autocomplete="off"', (string) $record['form'] );

@@ -745,7 +745,7 @@
 				hideBehind(ctx, window.FFC.notice(
 					'warning',
 					'monitor',
-					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your certificate. Open this page in %s.').replace('%s', list),
+					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your document. Open this page in %s.').replace('%s', list),
 					ctx.text('browserFeaturesTitle', 'This browser cannot run the form'),
 					{ role: 'alert', live: 'assertive', hook: 'preflight-browser' }
 				));
@@ -786,7 +786,7 @@
 			var notice = window.FFC.notice(
 				'warning',
 				'phone',
-				[ctx.text('inAppBody', 'You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s.').replace('%s', list), how],
+				[ctx.text('inAppBody', 'You are viewing this page inside an app, where your location and the document download often fail. Open it in %s.').replace('%s', list), how],
 				ctx.text('inAppTitle', 'Open this page in your browser'),
 				{ role: 'alert', live: 'assertive', hook: 'preflight-browser', children: [actions] }
 			);

@@ -390,3 +390,64 @@ describe('csv extend-end — submit', () => {
 		expect(window.$('.ffc-btn-extend-end').prop('disabled')).toBe(false);
 	});
 });
+
+// ----------------------------------------------------------------------
+// #2341 — the screen's "now" is the site's, in the plugin's formats
+// ----------------------------------------------------------------------
+
+describe('csv screen — the site clock (#2341)', () => {
+	// 2026-06-06 15:00 UTC; the site is at UTC-3, so its wall time is 12:00.
+	const INSTANT = Date.UTC(2026, 5, 6, 15, 0, 0);
+	const CLOCK = { now: INSTANT / 1000, offset: -3 * 3600, today: '06/06/2026', time_format: 'H:i' };
+
+	async function openModal(infoOverride) {
+		await reachInfoScreen(infoOverride);
+		window.$('.ffc-btn-extend-end').trigger('click');
+		await flush();
+	}
+
+	it('reads the site wall time from the server clock, whatever the browser clock says', async () => {
+		mountContainer();
+		await loadAndReady();
+		const api = window.FFCCsv;
+		const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(INSTANT + 7 * 3600 * 1000);
+		// The browser runs seven hours ahead; the gap is kept at setClock.
+		api.setClock(CLOCK);
+		nowSpy.mockReturnValue(INSTANT + 7 * 3600 * 1000 + 5 * 60 * 1000);
+		expect(api.siteNow()).toEqual({ hm: '12:05', today: '06/06/2026' });
+	});
+
+	it('prints a wall time in the plugin\'s time format', async () => {
+		mountContainer();
+		await loadAndReady();
+		const api = window.FFCCsv;
+		api.setClock(Object.assign({}, CLOCK, { time_format: 'g:i a' }));
+		expect(api.formatTime('18:05')).toBe('6:05 pm');
+		expect(api.formatTime('00:30')).toBe('12:30 am');
+		api.setClock(Object.assign({}, CLOCK, { time_format: 'H\\hi' }));
+		expect(api.formatTime('09:07')).toBe('09h07');
+		api.setClock(null);
+		expect(api.formatTime('09:07')).toBe('09:07');
+	});
+
+	it('checks "in the future" against the site clock, not the browser\'s', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(INSTANT);
+		await openModal(infoWithExtendEnd({
+			clock: CLOCK,
+			status: { current_time_end: '08:00', current_date_end_formatted: '2026-06-06' },
+		}));
+		window.$('.ffc-extend-end-input').val('11:30');
+		window.$('.ffc-extend-end-confirm').trigger('click');
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').text()).toContain('future');
+	});
+
+	it('shows the current close in the plugin\'s time format', async () => {
+		await openModal(infoWithExtendEnd({
+			clock: Object.assign({}, CLOCK, { time_format: 'g:i a' }),
+			status: { current_time_end: '18:00', current_date_end_formatted: '31/12/2026' },
+		}));
+		expect(window.$('.ffc-open-early-times').text()).toContain('31/12/2026 6:00 pm');
+		// The input keeps the raw value the browser's time picker reads.
+		expect(window.$('.ffc-extend-end-input').attr('min')).toBe('18:00');
+	});
+});

@@ -171,6 +171,24 @@ class PublicCsvDownload {
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
+	 * The browser step's strings on this screen, which downloads a file and
+	 * issues nothing (#2341). Merged over the form's by
+	 * `BrowserGate::script_config()`.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function preflight_strings(): array {
+		return array(
+			'secureRequired'       => __( 'This page requires a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'inAppBody'            => __( 'You are viewing this page inside an app, where downloading the file often fails. Open it in %s.', 'ffcertificate' ),
+			'browserFeaturesTitle' => __( 'This browser cannot run this page', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'browserFeaturesBody'  => __( 'This browser is missing features this page needs to download the file. Open this page in %s.', 'ffcertificate' ),
+		);
+	}
+
+	/**
 	 * Render the public download form.
 	 *
 	 * @param array<string, mixed>|string $atts Shortcode attributes.

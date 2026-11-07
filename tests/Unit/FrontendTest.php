@@ -711,5 +711,11 @@ class FrontendTest extends TestCase {
 		$this->assertContains( 'ffc-preflight', $deps['ffc-csv-download'] );
 		$this->assertTrue( $localized['ffc_csv_download']['preflight']['browserCheck'] );
 		$this->assertArrayHasKey( 'inAppTitle', $localized['ffc_csv_download']['preflight']['strings'] );
+		// #2341 — this page downloads a file; it issues nothing.
+		$gate = $localized['ffc_csv_download']['preflight']['strings'];
+		$this->assertStringContainsString( 'download the file', $gate['browserFeaturesBody'] );
+		$this->assertStringContainsString( 'this page', $gate['browserFeaturesTitle'] );
+		$this->assertStringNotContainsString( 'certificate', implode( ' ', $gate ) );
+		$this->assertSame( 'csv_download', $localized['ffc_csv_download']['preflight']['telemetry']['type'] );
 	}
 }

@@ -100,12 +100,10 @@
 		function applyMode() {
 			var mode = $modal.find('input[name="ffc-schedule-exception-mode"]:checked').val();
 			if (mode === 'now') {
-				// Start stays baseline (disabled), end gets current local time.
+				// Start stays baseline (disabled), end gets the site's
+				// current time, not the browser's (#2341).
 				$start.val(opts.baselineStart).prop('disabled', true);
-				var now    = new Date();
-				var nowStr = (now.getHours()   < 10 ? '0' : '') + now.getHours()
-					+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-				$end.val(nowStr).prop('disabled', false);
+				$end.val(api.siteNow().hm).prop('disabled', false);
 			} else {
 				$start.prop('disabled', false);
 				$end.prop('disabled', false);
