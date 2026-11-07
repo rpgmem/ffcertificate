@@ -171,15 +171,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<option value="return_to_draft"><?php esc_html_e( 'Return to Draft', 'ffcertificate' ); ?></option>
 						<option value="send_reminder"><?php esc_html_e( 'Send Reminder', 'ffcertificate' ); ?></option>
 					</select>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Apply', 'ffcertificate' ),
-							'icon'  => 'checkmark',
-							'type'  => 'submit',
-						)
-					);
-					?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Apply', 'ffcertificate' ),
+								'icon'  => 'checkmark',
+								'type'  => 'submit',
+							)
+						);
+						?>
 					<?php endif; ?>
 					<?php
 					// One "Reveal this page" over the list (#1863).

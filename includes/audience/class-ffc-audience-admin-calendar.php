@@ -354,11 +354,11 @@ class AudienceAdminCalendar {
 										} else {
 											\FreeFormCertificate\Admin\AdminUI::render_button(
 												array(
-													'label'    => __( 'Delete', 'ffcertificate' ),
+													'label' => __( 'Delete', 'ffcertificate' ),
 													'category' => 'danger',
-													'icon'     => 'delete',
-													'href'     => wp_nonce_url( $list_url . '&action=delete&id=' . $schedule->id, 'delete_schedule_' . $schedule->id ),
-													'attrs'    => array( 'data-confirm' => __( 'Are you sure you want to permanently delete this calendar?', 'ffcertificate' ) ),
+													'icon' => 'delete',
+													'href' => wp_nonce_url( $list_url . '&action=delete&id=' . $schedule->id, 'delete_schedule_' . $schedule->id ),
+													'attrs' => array( 'data-confirm' => __( 'Are you sure you want to permanently delete this calendar?', 'ffcertificate' ) ),
 												)
 											);
 										}
