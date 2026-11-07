@@ -84,6 +84,10 @@ class PublicCsvDownloadAjaxHandlersTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The page lookup keeps its answers in a transient (#2341): no
+		// answer kept, and the search below decides.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		// Static state the real classes keep: the limiter's settings memo and
 		// the captcha provider instances.

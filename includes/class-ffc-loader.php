@@ -101,6 +101,9 @@ class Loader {
 		// The administrator's public design, printed after `ffc-common` on
 		// public pages (Settings → Public Design).
 		\FreeFormCertificate\Core\PublicDesign::init();
+		// The page each form or calendar is embedded on, kept as pages are
+		// saved, so the CSV screen does not search post content (#2341).
+		\FreeFormCertificate\Core\ShortcodePage::init();
 		$this->define_activation_hooks();
 	}
 
