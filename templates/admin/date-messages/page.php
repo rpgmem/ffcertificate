@@ -69,6 +69,19 @@ $ffc_dm_title = 'edit' === $tab ? $ffc_dm_titles['rules'] : $ffc_dm_titles[ $tab
 		);
 		?>
 	<?php endif; ?>
+	<?php if ( 'edit' === $tab ) : ?>
+		<?php
+		// The editor's way back to the list, a button beside the title as on
+		// every editor (#2486).
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to rules', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => DateMessagesAdminPage::section_url( 'rules' ),
+			)
+		);
+		?>
+	<?php endif; ?>
 	<hr class="wp-header-end">
 
 	<?php \FreeFormCertificate\Core\EmailDisabledNotice::render(); ?>

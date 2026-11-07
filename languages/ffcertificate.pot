@@ -22054,7 +22054,7 @@ msgstr ""
 msgid "E-mail each person on their date"
 msgstr ""
 
-msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose."
+msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now page, which also sends a dated rule over dates you choose."
 msgstr ""
 
 msgid "Edit rule"
@@ -33326,4 +33326,91 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "view / save the Settings page."
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%1$d sent, %2$d failed"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%d sent"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Active rules"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Dated"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Deleted rule"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "E-mails sent in the last %d day"
+msgid_plural "E-mails sent in the last %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Every run, who started it, and what it sent, skipped and failed."
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Failures in the last %d day"
+msgid_plural "Failures in the last %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Latest runs"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Next daily run"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "No rule is active"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Nothing has run yet."
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open history"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open rules"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Runs with failures in the last %d day"
+msgid_plural "Runs with failures in the last %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Send a rule outside the daily run: a dated rule over the dates you choose, an announcement to everyone in its audience."
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "The daily run is not scheduled"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Who receives a message in the coming days, with names masked until revealed."
+msgstr ""
+
+#: templates/admin/date-messages/page.php
+msgid "Back to rules"
 msgstr ""

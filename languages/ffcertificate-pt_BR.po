@@ -22137,8 +22137,8 @@ msgstr "Excluir esta regra? O que ela já enviou continua no histórico."
 msgid "E-mail each person on their date"
 msgstr "Enviar e-mail a cada pessoa na sua data"
 
-msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now tab, which also sends a dated rule over dates you choose."
-msgstr "Uma regra com data envia a mensagem numa data do perfil de cada pessoa, ou alguns dias antes ou depois dela; a execução diária envia todas as ativas. Um comunicado não tem data: vai uma vez para todos do seu público, no horário de envio ou pela aba Enviar agora, que também envia uma regra com data nas datas que você escolher."
+msgid "A dated rule sends its message on a date in each person's profile, or a number of days before or after it; the daily run sends every active one. An announcement has no date: it goes once to everyone in its audience, at its send time or from the Send now page, which also sends a dated rule over dates you choose."
+msgstr "Uma regra com data envia a mensagem numa data do perfil de cada pessoa, ou alguns dias antes ou depois dela; a execução diária envia todas as ativas. Um comunicado não tem data: vai uma vez para todos do seu público, no horário de envio ou pela página Enviar agora, que também envia uma regra com data nas datas que você escolher."
 
 msgid "Edit rule"
 msgstr "Editar regra"
@@ -33410,3 +33410,90 @@ msgstr "Este edital não tem nenhuma matéria vinculada. Adicione ao menos uma n
 #: includes/settings/views/documentation/feature-recruitment.php
 msgid "view / save the Settings page."
 msgstr "visualizar / salvar a página Configurações."
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%1$d sent, %2$d failed"
+msgstr "%1$d enviados, %2$d com falha"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "%d sent"
+msgstr "%d enviados"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Active rules"
+msgstr "Regras ativas"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Dated"
+msgstr "Com data"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Deleted rule"
+msgstr "Regra excluída"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "E-mails sent in the last %d day"
+msgid_plural "E-mails sent in the last %d days"
+msgstr[0] "E-mails enviados no último %d dia"
+msgstr[1] "E-mails enviados nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Every run, who started it, and what it sent, skipped and failed."
+msgstr "Cada execução, quem a iniciou e o que ela enviou, pulou e falhou."
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Failures in the last %d day"
+msgid_plural "Failures in the last %d days"
+msgstr[0] "Falhas no último %d dia"
+msgstr[1] "Falhas nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Latest runs"
+msgstr "Últimas execuções"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Next daily run"
+msgstr "Próxima execução diária"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "No rule is active"
+msgstr "Nenhuma regra está ativa"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Nothing has run yet."
+msgstr "Nada foi executado ainda."
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open history"
+msgstr "Abrir histórico"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Open rules"
+msgstr "Abrir regras"
+
+#: templates/admin/date-messages/dashboard.php
+#, php-format
+msgid "Runs with failures in the last %d day"
+msgid_plural "Runs with failures in the last %d days"
+msgstr[0] "Execuções com falha no último %d dia"
+msgstr[1] "Execuções com falha nos últimos %d dias"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Send a rule outside the daily run: a dated rule over the dates you choose, an announcement to everyone in its audience."
+msgstr "Envie uma regra fora da execução diária: uma regra com data nas datas que você escolher, um comunicado a todos do seu público-alvo."
+
+#: templates/admin/date-messages/dashboard.php
+msgid "The daily run is not scheduled"
+msgstr "A execução diária não está agendada"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Who receives a message in the coming days, with names masked until revealed."
+msgstr "Quem recebe uma mensagem nos próximos dias, com os nomes mascarados até serem revelados."
+
+#: templates/admin/date-messages/page.php
+msgid "Back to rules"
+msgstr "Voltar às regras"
