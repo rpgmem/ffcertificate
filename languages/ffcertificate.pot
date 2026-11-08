@@ -9790,7 +9790,7 @@ msgstr ""
 #. %s: value
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:639
 #, php-format
-msgid "I agree to the collection and processing of my personal data in accordance with the <a href=\"%s\" target=\"_blank\">Privacy Policy</a> (LGPD)."
+msgid "I agree to the collection and processing of my personal data in accordance with the %s (LGPD)."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php:402

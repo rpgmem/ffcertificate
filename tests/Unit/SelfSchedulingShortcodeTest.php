@@ -338,6 +338,21 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-self-scheduling-form', $result );
 		// Calendar config JSON is emitted.
 		$this->assertStringContainsString( 'ffc-calendar-config-42', $result );
+		// The consent links the site's privacy page (#2537).
+		$this->assertStringContainsString( 'in accordance with the <a href="/privacy-policy/" target="_blank" rel="noopener">Privacy Policy</a> (LGPD).', $result );
+	}
+
+	/**
+	 * A site with no privacy page names the policy without an empty link
+	 * (#2537): `href=""` reloaded the page in a new tab.
+	 */
+	public function test_render_calendar_consent_names_the_policy_without_a_link_when_there_is_no_privacy_page(): void {
+		Functions\when( 'get_privacy_policy_url' )->justReturn( '' );
+		$shortcode = $this->shortcode_with_calendar( $this->make_calendar() );
+		$result    = $shortcode->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( 'in accordance with the Privacy Policy (LGPD).', $result );
+		$this->assertStringNotContainsString( 'href=""', $result );
 	}
 
 	public function test_render_calendar_without_the_panel_prints_no_wrapper(): void {
