@@ -65,10 +65,6 @@ class SchemaWrittenColumnTest extends TestCase {
 	 * @var array<string, string>
 	 */
 	private const UNRESOLVED_TABLE = array(
-		'includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php' =>
-			'foreach ( array( $this->submissions_table, $this->appointments_table ) as $table ) -- the write targets TWO tables in one loop, so there is no single table to compare against.',
-		'includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php' =>
-			'$table_name comes from a loop over the two stores the split covers.',
 		'includes/maintenance/class-ffc-identity-merge.php' =>
 			'foreach ( $plan["stores"] as $table ) -- the set is computed at runtime, and the class comment says re-resolving it here would let the confirmation name a store the loop then skips.',
 		'includes/maintenance/class-ffc-identity-repair.php' =>
@@ -100,20 +96,14 @@ class SchemaWrittenColumnTest extends TestCase {
 	/**
 	 * Columns written that NO declarer names, with why that is correct.
 	 *
-	 * All three are legacy columns the CPF/RF split retires. A fresh install has
-	 * never had them -- they were dropped from every `CREATE` once production
-	 * read 0 pending, which `CLAUDE.md` records as the `cpf_rf_encrypted`
-	 * exemplar -- while the migration still NULLs them on an install that does.
-	 * The card's own `calculate_status()` reports 100% complete when the column
-	 * is gone, so the write is unreachable there rather than broken.
+	 * Empty since the CPF/RF split card left in 6.45.0 (#2552): it was the last
+	 * writer of the legacy `cpf_rf`, `cpf_rf_encrypted` and `cpf_rf_hash`
+	 * columns, which no `CREATE` has declared since production read 0 pending.
+	 * A column added here has to argue for itself, as those three did.
 	 *
 	 * @var array<string, string>
 	 */
-	private const LEGACY_WITHOUT_DECLARATION = array(
-		'cpf_rf'           => 'Retired by split_cpf_rf; absent from every CREATE by design.',
-		'cpf_rf_encrypted' => 'Same column family; the reads were removed once production read 0 pending.',
-		'cpf_rf_hash'      => 'Same, and it is the column the migration counts pending rows by.',
-	);
+	private const LEGACY_WITHOUT_DECLARATION = array();
 
 	/**
 	 * The site this guard exists for, which must resolve at FULL strength.
@@ -340,18 +330,16 @@ class SchemaWrittenColumnTest extends TestCase {
 			}
 		}
 
-		foreach ( array_keys( self::LEGACY_WITHOUT_DECLARATION ) as $column ) {
-			$this->assertArrayHasKey(
-				$column,
-				$written,
-				sprintf(
-					'`%s` is excused here and is written by nothing any more. Drop the entry --'
-					. ' an exception that describes no code makes this guard narrower and says so'
-					. ' to nobody.',
-					$column
-				)
-			);
-		}
+		$this->assertNotSame( array(), $written, 'The write scan read nothing -- the check below proves nothing.' );
+
+		$stale = array_keys( array_diff_key( self::LEGACY_WITHOUT_DECLARATION, $written ) );
+		$this->assertSame(
+			array(),
+			$stale,
+			'Excused here and written by nothing any more: ' . implode( ', ', $stale )
+			. '. Drop the entry -- an exception that describes no code makes this guard narrower'
+			. ' and says so to nobody.'
+		);
 	}
 
 	/**

@@ -28,7 +28,7 @@
  *     an error and left UNTOUCHED — the migration never overwrites a column it
  *     could not read, so data is never orphaned in silence.
  *
- * Progress is cursor-based per table (same shape as EmailHashRehash): a row id
+ * Progress is cursor-based per table (the shape the e-mail rehash card used before it left): a row id
  * cursor advances through the batch; completion latches once both tables are
  * fully walked under the current fingerprint.
  *

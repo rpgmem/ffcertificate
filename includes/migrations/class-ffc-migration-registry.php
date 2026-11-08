@@ -7,7 +7,6 @@
  *
  * @package FreeFormCertificate\Migrations
  * @since 3.1.0 (Extracted from FFC_Migration_Manager v3.1.0 refactor)
- * @version 5.0.0 - Retired 10 completed migrations, kept only split_cpf_rf
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace
  */
@@ -50,28 +49,6 @@ class MigrationRegistry {
 	 */
 	private function register_migrations(): void {
 		$this->migrations = array();
-
-		// v5.0.0: CPF/RF split migration.
-		$this->migrations['split_cpf_rf'] = array(
-			'name'        => __( 'Split CPF/RF', 'ffcertificate' ),
-			'description' => __( 'Separate combined CPF/RF column into individual CPF and RF columns', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-split',
-			'batch_size'  => 50,
-			'order'       => 1,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot split of the combined CPF/RF column.
-			'removal'     => '6.45.0',
-		);
-
-		// v5.3.1: Rehash legacy unsalted email_hash values in submissions and appointments.
-		$this->migrations['email_hash_rehash'] = array(
-			'name'        => __( 'Rehash Email Lookup Hashes', 'ffcertificate' ),
-			'description' => __( 'Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-hash',
-			'batch_size'  => 100,
-			'order'       => 2,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot rehash of the unsalted e-mail hashes.
-			'removal'     => '6.45.0',
-		);
 
 		// v6.19.0 (#857 S7b): Re-encrypt submissions + appointments PII under a
 		// newly-defined FFC_ENCRYPTION_KEY and rebuild search hashes under
@@ -198,18 +175,6 @@ class MigrationRegistry {
 			'order'       => 12,
 		);
 
-		// v5.4.1: Clear plaintext context on activity log rows that already
-		// hold a ciphertext, eliminating the dual-storage leak.
-		$this->migrations['activity_log_clear_plaintext'] = array(
-			'name'        => __( 'Activity Log: Clear Plaintext on Encrypted Rows', 'ffcertificate' ),
-			'description' => __( 'NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-log-clean',
-			'batch_size'  => 200,
-			'order'       => 3,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the one-shot cleanup of rows written before the dual-storage fix.
-			'removal'     => '6.45.0',
-		);
-
 		// #1574: the activity log wrote the client IP in clear until this
 		// release; encrypt what older rows hold and clear the plaintext.
 		$this->migrations['activity_log_encrypt_ip'] = array(
@@ -260,31 +225,6 @@ class MigrationRegistry {
 			'order'       => 4,
 		);
 
-		// v6.18.0 (#865): import certificate layouts left in the legacy `html/`
-		// drop-folder into the database-backed template pool, then retire the glob.
-		$this->migrations['import_legacy_templates'] = array(
-			'name'        => __( 'Import Legacy Certificate Templates', 'ffcertificate' ),
-			'description' => __( 'Import certificate layouts left in the plugin\'s html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-template-load',
-			'batch_size'  => 20,
-			'order'       => 5,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ folder it reads left the plugin in 6.23.0.
-			'removal'     => '6.45.0',
-		);
-
-		// v6.18.0 (#865): move images referenced from the legacy `html/` folder
-		// into the Media Library and rewrite stored form layouts / backgrounds /
-		// pool templates to point at the new attachments.
-		$this->migrations['rewrite_html_image_refs'] = array(
-			'name'        => __( 'Rewrite html/ Image References', 'ffcertificate' ),
-			'description' => __( 'Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors.', 'ffcertificate' ),
-			'icon'        => 'ffc-icon-image-plus',
-			'batch_size'  => 10,
-			'order'       => 6,
-			// @removal 6.45.0 -- deprecated in 6.43.0 (#2115): the html/ images it side-loads left the plugin in 6.23.0.
-			'removal'     => '6.45.0',
-		);
-
 		// Allow plugins to add custom migrations.
 		$this->migrations = apply_filters( 'ffcertificate_migrations_registry', $this->migrations );
 	}
@@ -321,36 +261,14 @@ class MigrationRegistry {
 	/**
 	 * Check if a migration is available to run
 	 *
+	 * The gate the Migrations tab consults before asking for a status, and the
+	 * one {@see \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint}
+	 * consults before running anything.
+	 *
 	 * @param string $migration_key Migration identifier.
 	 * @return bool
 	 */
 	public function is_available( string $migration_key ): bool {
-		return $this->exists( $migration_key ) && self::is_applicable( $migration_key );
-	}
-
-	/**
-	 * Whether the install still has the thing a migration operates on.
-	 *
-	 * Separate from {@see exists} because a migration can be correctly registered
-	 * and have nothing to act on. `is_available()` is the gate the Migrations tab
-	 * consults BEFORE asking for a status, and the one
-	 * {@see \FreeFormCertificate\Admin\MigrationActionsAjaxEndpoint} consults
-	 * before running anything — so answering false here hides the card and closes
-	 * the endpoint in one place, rather than hiding a control whose handler stays
-	 * reachable.
-	 *
-	 * The two `html/` migrations are gated on the drop-folder because the folder
-	 * is what they read. `LegacyHtmlRefs::drop_folder_exists()` carries why, and
-	 * it is a live probe: recreate the folder and both cards return.
-	 *
-	 * @param string $migration_key Migration identifier.
-	 * @return bool
-	 */
-	public static function is_applicable( string $migration_key ): bool {
-		if ( 'rewrite_html_image_refs' === $migration_key || 'import_legacy_templates' === $migration_key ) {
-			return \FreeFormCertificate\Core\LegacyHtmlRefs::drop_folder_exists();
-		}
-
-		return true;
+		return $this->exists( $migration_key );
 	}
 }

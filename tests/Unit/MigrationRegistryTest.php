@@ -48,7 +48,6 @@ class MigrationRegistryTest extends TestCase {
 
 		$this->assertIsArray( $all );
 		$this->assertNotEmpty( $all );
-		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 	}
 
 	// ==================================================================
@@ -61,7 +60,9 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
-		// Nineteen since the recruitment PCD-per-notice move joined (#2245),
+		// Sixteen once the five one-shot cards of #2115 left in 6.45.0 (#2552);
+		// twenty-one before that. Nineteen since the recruitment PCD-per-notice
+		// move joined (#2245),
 		// eighteen once the reregistration draft encryption did (#2242),
 		// seventeen once the refused-address cleanup did (#2109), sixteen
 		// once the rate-limit log address encryption did (#2109).
@@ -74,14 +75,12 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 21, $all );
+		$this->assertCount( 16, $all );
 		// #2502: the answers under the folded per-audience copies of the
 		// reregistration fields move onto the inherited field.
 		$this->assertArrayHasKey( 'custom_field_answers', $all );
 		$this->assertArrayHasKey( 'rate_limit_keyed_identifiers', $all );
 		$this->assertArrayHasKey( 'recruitment_pcd_per_notice', $all );
-		$this->assertArrayHasKey( 'split_cpf_rf', $all );
-		$this->assertArrayHasKey( 'email_hash_rehash', $all );
 		$this->assertArrayHasKey( 'key_rotation', $all );
 		// The rotation's second pass, over the areas the first never covered
 		// (#1236). It is a SEPARATE migration, not new targets on `key_rotation`,
@@ -90,9 +89,9 @@ class MigrationRegistryTest extends TestCase {
 		// "complete" without ever touching them.
 		$this->assertArrayHasKey( 'key_rotation_remaining', $all );
 		// The card that rewrites stored identifiers into their canonical form
-		// (#1313). Separate from `email_hash_rehash` for the reason above: that
-		// one latches complete, and it repaired a SALT rather than the string the
-		// salt was applied to.
+		// (#1313). Separate from the e-mail rehash card that preceded it (#2115):
+		// that one latched complete, and it repaired a SALT rather than the
+		// string the salt was applied to.
 		$this->assertArrayHasKey( 'identity_normalization', $all );
 		// The repair for accounts that own a certificate and hold no capability
 		// to read it -- the consequence of adoption linking a row without
@@ -109,7 +108,6 @@ class MigrationRegistryTest extends TestCase {
 		$this->assertArrayHasKey( 'name_parts_backfill', $all );
 		// The encryption of sensitive answers drafts stored in clear (#2242).
 		$this->assertArrayHasKey( 'rereg_draft_encryption', $all );
-		$this->assertArrayHasKey( 'activity_log_clear_plaintext', $all );
 		// The encryption of client IPs older rows still hold in clear (#1574).
 		$this->assertArrayHasKey( 'activity_log_encrypt_ip', $all );
 		// The deletion of the debug rows that logged visitors' positions (#2040).
@@ -119,86 +117,6 @@ class MigrationRegistryTest extends TestCase {
 		// The plaintext address geofence refusals copied into their context (#2109).
 		$this->assertArrayHasKey( 'activity_log_access_denied_ip', $all );
 		$this->assertArrayHasKey( 'identity_index_backfill', $all );
-		$this->assertArrayHasKey( 'import_legacy_templates', $all );
-		$this->assertArrayHasKey( 'rewrite_html_image_refs', $all );
-	}
-
-	public function test_rewrite_html_image_refs_migration_has_expected_keys(): void {
-		$registry  = new MigrationRegistry();
-		$migration = $registry->get_all_migrations()['rewrite_html_image_refs'];
-
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
-
-		foreach ( $expected_keys as $key ) {
-			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
-		}
-
-		$this->assertSame( 'ffc-icon-image-plus', $migration['icon'] );
-		$this->assertSame( 10, $migration['batch_size'] );
-		$this->assertSame( 6, $migration['order'] );
-	}
-
-	public function test_import_legacy_templates_migration_has_expected_keys(): void {
-		$registry  = new MigrationRegistry();
-		$migration = $registry->get_all_migrations()['import_legacy_templates'];
-
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
-
-		foreach ( $expected_keys as $key ) {
-			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
-		}
-
-		$this->assertSame( 'ffc-icon-template-load', $migration['icon'] );
-		$this->assertSame( 20, $migration['batch_size'] );
-		$this->assertSame( 5, $migration['order'] );
-	}
-
-	public function test_activity_log_clear_plaintext_migration_has_expected_keys(): void {
-		$registry  = new MigrationRegistry();
-		$migration = $registry->get_all_migrations()['activity_log_clear_plaintext'];
-
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
-
-		foreach ( $expected_keys as $key ) {
-			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
-		}
-
-		$this->assertSame( 'ffc-icon-log-clean', $migration['icon'] );
-		$this->assertSame( 200, $migration['batch_size'] );
-		$this->assertSame( 3, $migration['order'] );
-	}
-
-	public function test_split_cpf_rf_migration_has_expected_keys(): void {
-		$registry   = new MigrationRegistry();
-		$migration  = $registry->get_all_migrations()['split_cpf_rf'];
-
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
-
-		foreach ( $expected_keys as $key ) {
-			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
-		}
-
-		// Verify specific values
-		$this->assertSame( 'Split CPF/RF', $migration['name'] );
-		$this->assertSame( 'ffc-icon-split', $migration['icon'] );
-		$this->assertSame( 50, $migration['batch_size'] );
-		$this->assertSame( 1, $migration['order'] );
-	}
-
-	public function test_email_hash_rehash_migration_has_expected_keys(): void {
-		$registry  = new MigrationRegistry();
-		$migration = $registry->get_all_migrations()['email_hash_rehash'];
-
-		$expected_keys = array( 'name', 'description', 'icon', 'batch_size', 'order' );
-
-		foreach ( $expected_keys as $key ) {
-			$this->assertArrayHasKey( $key, $migration, "Missing expected key: {$key}" );
-		}
-
-		$this->assertSame( 'Rehash Email Lookup Hashes', $migration['name'] );
-		$this->assertSame( 'ffc-icon-hash', $migration['icon'] );
-		$this->assertSame( 100, $migration['batch_size'] );
-		$this->assertSame( 2, $migration['order'] );
 	}
 
 	public function test_identity_index_backfill_migration_has_expected_keys(): void {
@@ -227,14 +145,14 @@ class MigrationRegistryTest extends TestCase {
 	// get_migration
 	// ==================================================================
 
-	public function test_get_migration_returns_correct_config_for_split_cpf_rf(): void {
+	public function test_get_migration_returns_correct_config_for_key_rotation(): void {
 		$registry  = new MigrationRegistry();
-		$migration = $registry->get_migration( 'split_cpf_rf' );
+		$migration = $registry->get_migration( 'key_rotation' );
 
 		$this->assertIsArray( $migration );
-		$this->assertSame( 'Split CPF/RF', $migration['name'] );
-		$this->assertSame( 50, $migration['batch_size'] );
-		$this->assertSame( 1, $migration['order'] );
+		$this->assertSame( 'Encryption Key Rotation', $migration['name'] );
+		$this->assertSame( 100, $migration['batch_size'] );
+		$this->assertSame( 4, $migration['order'] );
 	}
 
 	public function test_get_migration_returns_null_for_nonexistent_key(): void {
@@ -247,10 +165,10 @@ class MigrationRegistryTest extends TestCase {
 	// exists
 	// ==================================================================
 
-	public function test_exists_returns_true_for_split_cpf_rf(): void {
+	public function test_exists_returns_true_for_key_rotation(): void {
 		$registry = new MigrationRegistry();
 
-		$this->assertTrue( $registry->exists( 'split_cpf_rf' ) );
+		$this->assertTrue( $registry->exists( 'key_rotation' ) );
 	}
 
 	public function test_exists_returns_false_for_nonexistent_key(): void {
@@ -268,10 +186,10 @@ class MigrationRegistryTest extends TestCase {
 
 		// is_available should return true for an existing migration, same as exists
 		$this->assertSame(
-			$registry->exists( 'split_cpf_rf' ),
-			$registry->is_available( 'split_cpf_rf' )
+			$registry->exists( 'key_rotation' ),
+			$registry->is_available( 'key_rotation' )
 		);
-		$this->assertTrue( $registry->is_available( 'split_cpf_rf' ) );
+		$this->assertTrue( $registry->is_available( 'key_rotation' ) );
 	}
 
 	public function test_is_available_delegates_to_exists_and_returns_false(): void {
@@ -307,7 +225,7 @@ class MigrationRegistryTest extends TestCase {
 		$registry = new MigrationRegistry();
 
 		// Verify the registry still works correctly after filter pass-through
-		$this->assertArrayHasKey( 'split_cpf_rf', $registry->get_all_migrations() );
+		$this->assertArrayHasKey( 'key_rotation', $registry->get_all_migrations() );
 	}
 
 	public function test_apply_filters_allows_adding_custom_migrations(): void {
@@ -336,71 +254,16 @@ class MigrationRegistryTest extends TestCase {
 		$all      = $registry->get_all_migrations();
 
 		// Both the default and custom migration should be present
-		$this->assertArrayHasKey( 'split_cpf_rf', $all );
 		$this->assertArrayHasKey( 'custom_migration', $all );
 		$this->assertSame( 'Custom Migration', $all['custom_migration']['name'] );
 	}
 
-	// ==================================================================
-	// Registered is not the same as applicable (#1438)
-	// ==================================================================
-
 	/**
-	 * The two `html/` migrations stay REGISTERED and stop being AVAILABLE.
-	 *
-	 * The distinction is the whole change. `exists()` is about the registry and
-	 * must not move: the definitions, their order and their copy are still
-	 * correct, and recreating the drop-folder brings both cards back. What moves
-	 * is `is_available()`, which the Migrations tab consults before asking for a
-	 * status and the AJAX endpoint consults before running anything -- so one
-	 * answer hides the card AND closes the endpoint, rather than hiding a
-	 * control whose handler stays reachable.
+	 * No card carries a removal release once the #2115 cycle closed: the five
+	 * one-shot cards it deprecated left in 6.45.0 (#2552). A card deprecated
+	 * later names its release here, beside the `@removal` marker.
 	 */
-	public function test_the_html_migrations_are_registered_but_not_available_without_the_folder(): void {
-		$registry = new MigrationRegistry();
-
-		foreach ( array( 'rewrite_html_image_refs', 'import_legacy_templates' ) as $key ) {
-			$this->assertTrue( $registry->exists( $key ), "{$key} must stay registered." );
-			$this->assertFalse(
-				$registry->is_available( $key ),
-				"{$key} reads the html/ drop-folder, which no install has since 6.23.0, so its card must not render."
-			);
-		}
-	}
-
-	/**
-	 * The gate is specific, not a blanket.
-	 *
-	 * Without this, an `is_applicable()` that returned false for everything
-	 * would satisfy the test above and hide every card on the screen.
-	 */
-	public function test_every_other_migration_stays_available(): void {
-		$registry = new MigrationRegistry();
-		$gated    = array( 'rewrite_html_image_refs', 'import_legacy_templates' );
-		$hidden   = array();
-
-		foreach ( array_keys( $registry->get_all_migrations() ) as $key ) {
-			if ( in_array( $key, $gated, true ) ) {
-				continue;
-			}
-			if ( ! $registry->is_available( $key ) ) {
-				$hidden[] = $key;
-			}
-		}
-
-		$this->assertSame( array(), $hidden, 'These lost their card and nothing asked for that: ' . implode( ', ', $hidden ) );
-		$this->assertGreaterThan(
-			count( $gated ),
-			count( $registry->get_all_migrations() ),
-			'The registry scan collapsed -- with no migrations beyond the gated two the test above proves nothing.'
-		);
-	}
-
-	/**
-	 * Exactly the five one-shot cards of #2115 are deprecated, all for the
-	 * same release; a card that stays carries no removal.
-	 */
-	public function test_the_deprecated_cards_name_their_removal_release(): void {
+	public function test_no_card_names_a_removal_release(): void {
 		$registry = new MigrationRegistry();
 		$removals = array();
 		foreach ( $registry->get_all_migrations() as $key => $migration ) {
@@ -408,18 +271,7 @@ class MigrationRegistryTest extends TestCase {
 				$removals[ $key ] = $migration['removal'];
 			}
 		}
-		ksort( $removals );
 
-		$this->assertSame(
-			array(
-				'activity_log_clear_plaintext' => '6.45.0',
-				'email_hash_rehash'            => '6.45.0',
-				'import_legacy_templates'      => '6.45.0',
-				'rewrite_html_image_refs'      => '6.45.0',
-				'split_cpf_rf'                 => '6.45.0',
-			),
-			$removals
-		);
+		$this->assertSame( array(), $removals );
 	}
-
 }
