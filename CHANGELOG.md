@@ -16,6 +16,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the days of the month work by keyboard and screen reader** (#2528). Each day is a button named by its date with one tab stop; the arrows, Home and End move and Enter or Space opens it, as on the personal calendar.
 - **Reregistration: a dependent select with nothing chosen is empty** (#2530). A required one now says it is required, instead of an invalid choice, and an optional one passes; its two selects are named by their labels and carry `required`.
 - **Testes seed: the wipe never deletes an administrator** (#2532). It removed every `@example.test` account, the admin it acted as included when its address was in that domain. Seeded booking owners also get the appointment capabilities, so their dashboard lists the bookings the seed gave them.
+- **Audience Calendars: the cancel reason is asked in the confirmation, and results show on the page** (#2534). No `prompt()` or `alert()` is left in booking or cancelling; the bulk cancel updates its rows without a reload. A ratchet freezes the other native dialogs per file, so no new one is added.
 - **Consent: no empty Privacy Policy link without a privacy page** (#2537). The certificate and personal-calendar booking forms printed `href=""` when no page is set in Settings → Privacy; they now name the policy as plain text, and link it when the page exists.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`

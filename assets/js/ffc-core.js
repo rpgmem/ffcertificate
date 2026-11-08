@@ -1029,7 +1029,11 @@
          * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
          * @param {boolean}  [options.series] The booking is a date of a weekly series: the
          *                   dialog asks whether the later dates go too.
+         * @param {Object}   [options.reasonField] Ask why inside the same dialog (#2534):
+         *                   `{label, hint, min, max}`, as `overrideConfirm()` takes it.
          * @return {Promise<boolean|Object>} True when the person agreed; `{choice}` for a series.
+         *                   With a reason field it is always `{choice, reason}`, `choice`
+         *                   being `this` for a single booking.
          */
         confirmRangeCancel: function(options) {
             var opts = options || {};
@@ -1059,7 +1063,18 @@
                 };
             }
 
-            return core.overrideConfirm(confirm);
+            if (!opts.reasonField) {
+                return core.overrideConfirm(confirm);
+            }
+            // The reason is typed in this dialog, not in a prompt() opened
+            // after it (#2534): one answer, one shape for either case.
+            confirm.reasonField = opts.reasonField;
+            return core.overrideConfirm(confirm).then(function(answer) {
+                if (!answer) {
+                    return false;
+                }
+                return typeof answer === 'object' ? answer : { choice: 'this', reason: String(answer) };
+            });
         },
 
         /**

@@ -653,6 +653,14 @@ class AudienceShortcodeTest extends TestCase {
 
 		$this->assertSame('reservation', $localized['strings']['booking']);
 		$this->assertSame('reservations', $localized['strings']['bookings']);
+
+		// Results are said on the page, not in an alert() (#2534): an empty
+		// polite live region on the calendar and one on the day panel, and
+		// the reason is asked in the cancel dialog, so no prompt text ships.
+		$this->assertStringContainsString('<div class="ffc-audience-status" id="ffc-audience-status" aria-live="polite"></div>', $result);
+		$this->assertStringContainsString('<div class="ffc-day-status" id="ffc-day-status" aria-live="polite"></div>', $result);
+		$this->assertSame('Cancel Reason', $localized['strings']['cancelReasonLabel']);
+		$this->assertArrayNotHasKey('cancelReason', $localized['strings']);
 	}
 
 	public function test_bypass_notice_follows_the_wrapper_when_the_event_list_is_beside(): void {

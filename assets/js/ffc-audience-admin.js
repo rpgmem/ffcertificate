@@ -20,6 +20,43 @@
                           .replace(/'/g, '&#39;');
     }
 
+    function adminStrings() {
+        return (typeof ffcAudienceAdmin !== 'undefined' && ffcAudienceAdmin.strings) || {};
+    }
+
+    /**
+     * Mark a bookings-list row cancelled: its status reads Cancelled, and the
+     * actions a cancelled booking does not take (Cancel, attendance, the
+     * bulk checkbox) go with it.
+     *
+     * @param {jQuery} $row The booking's row.
+     */
+    function markCancelled($row) {
+        $row.find('.ffc-booking-status-active')
+            .removeClass('ffc-booking-status-active')
+            .addClass('ffc-booking-status-cancelled')
+            .text(adminStrings().cancelled || 'Cancelled');
+        $row.find('.ffc-attendance-link, .ffc-cancel-booking').remove();
+        $row.find('.ffc-bookings-select').prop('checked', false).remove();
+    }
+
+    /**
+     * Say the outcome of a cancellation above the bookings list, where an
+     * `alert()` used to block the screen (#2534). The host is a polite live
+     * region printed empty by the template.
+     *
+     * @param {string} tone    `danger` or `success`.
+     * @param {string} message What happened.
+     */
+    function announce(tone, message) {
+        var $host = $('#ffc-bookings-status');
+        if (!$host.length || !message) {
+            return;
+        }
+        var danger = tone === 'danger';
+        $host.empty().append(FFC.notice(danger ? 'danger' : 'success', '', String(message), '', { role: danger ? 'alert' : 'status' }));
+    }
+
     const FFCAudienceAdmin = {
 
         init: function() {
@@ -131,13 +168,21 @@
                     $btn.prop('disabled', true).addClass('ffc-btn-loading');
                     FFC.request('ffc_audience_cancel_bookings', { booking_ids: ids, reason: reason }, { nonce: cfg.adminNonce || '' })
                         .then(function(data) {
-                            alert((data && data.message) || strings.bookingCancelled || '');
-                            window.location.reload();
+                            // The rows change in place (#2534): no reload, so the
+                            // filters and the page the operator is on stay.
+                            ((data && data.cancelled) || []).forEach(function(id) {
+                                var $box = $('.ffc-bookings-select').filter(function() { return String(this.value) === String(id); });
+                                markCancelled($box.closest('tr'));
+                            });
+                            $btn.removeClass('ffc-btn-loading');
+                            $('#ffc-bookings-select-all').prop('checked', false);
+                            refresh();
+                            announce('success', (data && data.message) || strings.bookingCancelled || 'Booking cancelled successfully.');
                         })
                         .catch(function(err) {
                             $btn.removeClass('ffc-btn-loading');
                             refresh();
-                            alert((err && err.fromServer) ? err.message : (strings.error || 'An error occurred.'));
+                            announce('danger', (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.'));
                         });
                 });
             });
@@ -352,44 +397,36 @@
                 var $link = $(this);
                 var bookingId = $link.data('booking-id');
 
-                // A range is cancelled whole: the confirmation names every day of it.
+                // A range is cancelled whole: the confirmation names every day of it,
+                // and asks the reason in the same dialog (#2534).
                 FFC.confirmRangeCancel({
                     count: $link.attr('data-days'),
                     label: $link.attr('data-date-label'),
                     series: $link.attr('data-series') === '1',
-                    strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {}
+                    strings: typeof ffcAudienceAdmin !== 'undefined' ? ffcAudienceAdmin.cancelConfirm : {},
+                    reasonField: { label: strings.cancelReasonLabel || 'Cancel Reason', min: 1 }
                 }).then(function(agreed) {
                     if (!agreed) {
                         return;
                     }
                     // A date of a weekly series may take the later dates with it (#2243).
-                    var following = agreed && agreed.choice === 'following';
-
-                    var reason = prompt(strings.cancelReason || 'Please provide a reason for cancellation:');
-                    if (reason === null) {
-                        return;
-                    }
+                    var following = agreed.choice === 'following';
 
                     // Busy (#1881): the family's state, not a faded inline style (#2486).
                     $link.prop('disabled', true).addClass('ffc-btn-loading');
 
-                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: reason, scope: following ? 'following' : 'this' }, { nonce: adminNonce })
+                    FFC.request('ffc_audience_cancel_booking', { booking_id: bookingId, reason: agreed.reason, scope: following ? 'following' : 'this' }, { nonce: adminNonce })
                         .then(function() {
                             // The later dates sit on other rows, maybe other pages: reload.
                             if (following) {
                                 window.location.reload();
                                 return;
                             }
-                            // Update the row status and remove cancel link
-                            var $row = $link.closest('tr');
-                            $row.find('.ffc-booking-status-active').removeClass('ffc-booking-status-active').addClass('ffc-booking-status-cancelled').text(strings.cancelled || 'Cancelled');
-                            // A cancelled booking takes no attendance: its button goes with Cancel.
-                            $row.find('.ffc-attendance-link').remove();
-                            $link.remove();
+                            markCancelled($link.closest('tr'));
+                            announce('success', strings.bookingCancelled || 'Booking cancelled successfully.');
                         })
                         .catch(function(err) {
-                            var msg = (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.');
-                            alert(msg);
+                            announce('danger', (err && err.fromServer) ? err.message : (strings.error || 'An error occurred.'));
                             $link.prop('disabled', false).removeClass('ffc-btn-loading');
                         });
                 });

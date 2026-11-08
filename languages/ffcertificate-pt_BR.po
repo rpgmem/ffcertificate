@@ -13272,10 +13272,6 @@ msgstr "Por favor escolha horários válidos (HH:MM)."
 msgid "Please provide a reason for cancellation (minimum 5 characters):"
 msgstr "Por favor, indique o motivo do cancelamento (mínimo de 5 caracteres):"
 
-#: includes/audience/class-ffc-audience-loader.php:413 includes/audience/class-ffc-audience-shortcode.php:793
-msgid "Please provide a reason for cancellation:"
-msgstr "Por favor, informe o motivo do cancelamento:"
-
 #: templates/emails/audience-cancellation.php:35
 msgid "Please remove this event from your calendar."
 msgstr "Por favor, remova este evento do seu calendário."
@@ -30522,6 +30518,10 @@ msgstr "Ordenar em ordem crescente."
 #: includes/admin/class-ffc-admin-ui.php:523
 msgid "Sort descending."
 msgstr "Ordenar em ordem decrescente."
+
+#: includes/settings/views/documentation/scheduling-audiences.php:81
+msgid "The reason of a cancellation, single or together, is typed in the confirmation itself; the list then marks the cancelled bookings and says what happened above it, without reloading the page. On the calendar a booking made, changed or cancelled is reported the same way, on the page."
+msgstr "O motivo de um cancelamento, individual ou em conjunto, é digitado na própria confirmação; a lista então marca as reservas canceladas e informa o que aconteceu acima dela, sem recarregar a página. No calendário, uma reserva feita, alterada ou cancelada é informada da mesma forma, na própria página."
 
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
