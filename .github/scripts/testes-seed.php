@@ -240,13 +240,26 @@ function ffc_tseed_wipe( array $tables ): void {
 }
 
 /**
- * Accounts whose e-mail ends in `@example.test`.
+ * Accounts whose e-mail ends in `@example.test`, administrators excepted.
+ *
+ * The wipe deletes these, and an administrator is never one of them: on a
+ * throwaway site the admin's own address is often in that domain, and the
+ * seed deleted the very account it was acting as, leaving every post it had
+ * written with an author that no longer existed (#2532).
  *
  * @return array<int, int>
  */
 function ffc_tseed_demo_user_ids(): array {
 	global $wpdb;
-	return array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i WHERE user_email LIKE %s', $wpdb->users, '%' . $wpdb->esc_like( '@example.test' ) ) ) );
+	$ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT ID FROM %i WHERE user_email LIKE %s', $wpdb->users, '%' . $wpdb->esc_like( '@example.test' ) ) ) );
+	return array_values(
+		array_filter(
+			$ids,
+			static function ( int $id ): bool {
+				return ! user_can( $id, 'manage_options' );
+			}
+		)
+	);
 }
 
 /**
