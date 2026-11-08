@@ -40,12 +40,17 @@
 		if (!$block.length) {
 			return null;
 		}
+		// No field is named here (CaptchaFieldNameTest): the proof is the
+		// hidden field the widget writes inside itself, and the math answer
+		// is the block's one visible input outside the honeypot.
 		var $widget = $block.find('altcha-widget');
 		if ($widget.length) {
-			return String($block.find('input[name="altcha"]').val() || '').trim() ? null : $widget.first();
+			return String($widget.find('input[type="hidden"]').val() || '').trim() ? null : $widget.first();
 		}
-		var $answer = $block.find('input[name="ffc_captcha_ans"]');
-		if ($answer.length && !String($answer.val() || '').trim()) {
+		var $answer = $block.find('.ffc-security-container input')
+			.not('[type="hidden"]')
+			.not('.ffc-honeypot-field input');
+		if ($answer.length && !String($answer.first().val() || '').trim()) {
 			return $answer.first();
 		}
 		return null;

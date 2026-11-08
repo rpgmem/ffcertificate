@@ -541,7 +541,7 @@ describe('csv-download — download flow', () => {
 
 		it('sends nothing while the fresh math challenge is unanswered, and says so beside it (#2539)', async () => {
 			try {
-				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><label for="ffc_captcha_ans_x">2 + 2?</label><input id="ffc_captcha_ans_x" name="ffc_captcha_ans" value="" /><input name="ffc_captcha_hash" value="FRESH" /></div>');
+				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><div class="ffc-honeypot-field" aria-hidden="true"><input type="text" name="ffc_hp_x7" value="" tabindex="-1" /></div><input type="hidden" name="ffc_hp_ts" value="t" /><label for="ffc_captcha_ans_x">2 + 2?</label><input id="ffc_captcha_ans_x" type="text" name="ffc_captcha_ans" value="" /><input type="hidden" name="ffc_captcha_hash" value="FRESH" /></div>');
 				const $btn = window.$('.ffc-btn-download-csv');
 				expect($btn.prop('disabled')).toBe(false);
 
@@ -579,7 +579,7 @@ describe('csv-download — download flow', () => {
 
 		it('waits for the fresh ALTCHA proof the same way (#2539)', async () => {
 			try {
-				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><altcha-widget name="altcha"></altcha-widget><input type="hidden" name="altcha" value="" /></div>');
+				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><altcha-widget name="altcha"><input type="hidden" name="altcha" value="" /></altcha-widget></div>');
 				const $btn = window.$('.ffc-btn-download-csv');
 
 				$btn.trigger('click');
