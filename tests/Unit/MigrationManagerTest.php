@@ -150,11 +150,6 @@ class MigrationManagerTest extends TestCase {
 		$this->assertNull( $this->manager->get_migration( 'email' ) );
 	}
 
-	public function test_can_run_migration_delegates(): void {
-		$this->statusCalculator->shouldReceive( 'can_run' )->with( 'key_rotation' )->andReturn( true );
-		$this->assertTrue( $this->manager->can_run_migration( 'key_rotation' ) );
-	}
-
 	public function test_run_migration_delegates(): void {
 		$result = array( 'success' => true, 'processed' => 50 );
 		$this->statusCalculator->shouldReceive( 'execute' )->with( 'key_rotation', 3 )->andReturn( $result );

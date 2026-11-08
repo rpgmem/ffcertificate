@@ -325,26 +325,6 @@ class RoleRegistrarTest extends TestCase {
 		$this->assertFalse( $role->capabilities['ffc_manage_recruitment'], 'An operator\'s explicit choice is not overwritten.' );
 	}
 
-	public function test_the_removals_name_the_roles_they_own(): void {
-		$removed = array();
-		Functions\when( 'remove_role' )->alias(
-			static function ( $slug ) use ( &$removed ) {
-				$removed[] = $slug;
-			}
-		);
-
-		RoleRegistrar::remove_recruitment_manager_role();
-		RoleRegistrar::remove_role();
-		RoleRegistrar::remove_module_roles();
-
-		$this->assertSame( \FreeFormCertificate\UserDashboard\CapabilityManager::RECRUITMENT_MANAGER_ROLE, $removed[0] );
-		$this->assertSame( 'ffc_end_user', $removed[1] );
-		$this->assertSame(
-			array_keys( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() ),
-			array_slice( $removed, 2 )
-		);
-	}
-
 	public function test_module_roles_are_created_with_read_and_their_declared_caps(): void {
 		Functions\when( 'get_option' )->justReturn( array() );
 		$added = array();

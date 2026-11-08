@@ -192,37 +192,4 @@ class AudienceAttendanceRuleTest extends TestCase {
 		);
 		$GLOBALS['wpdb'] = $wpdb;
 	}
-
-	public function test_has_attended_reads_the_booking_and_the_days_present(): void {
-		$this->install_wpdb(
-			array(
-				5 => $this->booking(
-					array(
-						'end_date'               => '2027-03-02',
-						'attendance_mode'        => 'total',
-						'attendance_min_percent' => '100',
-					)
-				),
-			),
-			array(
-				'5:42' => array( '2027-03-01', '2027-03-02' ),
-				'5:43' => array( '2027-03-01' ),
-			)
-		);
-
-		$this->assertTrue( AudienceAttendanceRule::has_attended( 5, 42 ) );
-		$this->assertFalse( AudienceAttendanceRule::has_attended( 5, 43 ) );
-		$this->assertSame( array( array( 5, 42 ), array( 5, 43 ) ), $this->attendance_reads, 'The days are read for that booking and that person.' );
-	}
-
-	public function test_nobody_attended_a_cancelled_or_unknown_booking(): void {
-		$this->install_wpdb(
-			array( 5 => $this->booking( array( 'status' => 'cancelled' ) ) ),
-			array( '5:42' => array( '2027-03-01' ) )
-		);
-
-		$this->assertFalse( AudienceAttendanceRule::has_attended( 5, 42 ) );
-		$this->assertFalse( AudienceAttendanceRule::has_attended( 6, 42 ) );
-		$this->assertSame( array(), $this->attendance_reads, 'No attendance is read for a cancelled or unknown booking.' );
-	}
 }

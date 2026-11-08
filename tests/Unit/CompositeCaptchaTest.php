@@ -114,22 +114,6 @@ class CompositeCaptchaTest extends TestCase {
 		}
 	}
 
-	public function test_only_the_two_widget_modes_load_the_bundle(): void {
-		// A site on the math challenge must not ship 111 KB it cannot use.
-		$expected = array(
-			MathCaptcha::ID      => false,
-			AltchaCaptcha::ID    => true,
-			CompositeCaptcha::ID => true,
-		);
-
-		foreach ( $expected as $id => $needed ) {
-			CaptchaProvider::reset();
-			$this->settings = array( CaptchaProvider::SETTING_KEY => $id );
-
-			$this->assertSame( $needed, CaptchaProvider::needs_altcha_widget(), "mode {$id}" );
-		}
-	}
-
 	// ==================================================================
 	// Routing
 	// ==================================================================

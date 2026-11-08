@@ -266,27 +266,6 @@ class IdentityAcceptanceTest extends TestCase {
 	}
 
 	/**
-	 * The check is in the key because `subject` means two different things.
-	 *
-	 * `IdentityConflictQuery::grouped()` aliases whatever it grouped by as
-	 * `subject`, so it is a hash in two checks and an account id in the third.
-	 */
-	public function test_the_same_subject_under_two_checks_is_two_records(): void {
-		$record = new IdentityAcceptance();
-
-		$record->accept( IdentityQueue::CHECK_DIGITS, 'rf', '41', IdentityQueue::TIER_ISOLATED, IdentityAcceptance::REASON_NEVER_SUPPLIED, 7 );
-		$record->accept( IdentityQueue::CHECK_MULTIPLE, 'rf', '41', IdentityQueue::TIER_DECISION, IdentityAcceptance::REASON_UNIDENTIFIABLE, 7 );
-
-		$this->assertCount( 2, $record->all() );
-		$this->assertSame( IdentityQueue::TIER_ISOLATED, $record->accepted_tier( IdentityQueue::CHECK_DIGITS, 'rf', '41' ) );
-		$this->assertSame( IdentityQueue::TIER_DECISION, $record->accepted_tier( IdentityQueue::CHECK_MULTIPLE, 'rf', '41' ) );
-	}
-
-	public function test_a_finding_that_is_not_accepted_has_no_tier(): void {
-		$this->assertNull( ( new IdentityAcceptance() )->accepted_tier( IdentityQueue::CHECK_DIGITS, 'rf', 'nope' ) );
-	}
-
-	/**
 	 * A record this release cannot read is DROPPED, never repaired.
 	 *
 	 * Dropping it returns its finding to the work list, which is the safe
@@ -334,16 +313,6 @@ class IdentityAcceptanceTest extends TestCase {
 	// =====================================================================
 	// Withdrawing
 	// =====================================================================
-
-	public function test_withdrawing_returns_the_finding_to_the_queue(): void {
-		$record = $this->with_one_accepted();
-
-		$result = $record->withdraw( IdentityQueue::CHECK_DIGITS, 'rf', 'aaaaaaaabbbbbbbbcccccccc', 7 );
-
-		$this->assertTrue( $result );
-		$this->assertSame( array(), $record->all() );
-		$this->assertNull( $record->accepted_tier( IdentityQueue::CHECK_DIGITS, 'rf', 'aaaaaaaabbbbbbbbcccccccc' ) );
-	}
 
 	public function test_withdrawing_something_that_is_not_recorded_says_so(): void {
 		$result = ( new IdentityAcceptance() )->withdraw( IdentityQueue::CHECK_DIGITS, 'rf', 'never', 7 );

@@ -13090,10 +13090,6 @@ msgstr ""
 msgid "Please confirm that you want to cancel the following appointment."
 msgstr ""
 
-#: includes/class-ffc-deactivator.php:52
-msgid "Please confirm the uninstallation to proceed."
-msgstr ""
-
 #: includes/frontend/class-ffc-frontend.php:362
 msgid "Please do not close this tab until the PDF appears."
 msgstr ""
@@ -14427,16 +14423,8 @@ msgstr ""
 msgid "Required column \"email\" not found in CSV."
 msgstr ""
 
-#: includes/audience/class-ffc-audience-csv-importer.php:461
-msgid "Required column \"email\" not found."
-msgstr ""
-
 #: includes/audience/class-ffc-audience-csv-importer.php:231
 msgid "Required column \"name\" not found in CSV."
-msgstr ""
-
-#: includes/audience/class-ffc-audience-csv-importer.php:464
-msgid "Required column \"name\" not found."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:87

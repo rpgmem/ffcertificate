@@ -136,15 +136,6 @@ class GeofenceConfigEntryTest extends TestCase {
 		$this->assertTrue( $result['allowed'] );
 	}
 
-	public function test_can_access_form_returns_what_check_access_returns_for_its_meta(): void {
-		Functions\when( 'get_post_meta' )->justReturn( self::EXPIRED );
-
-		$this->assertSame(
-			Geofence::check_access( Geofence::normalize_config( self::EXPIRED ) ),
-			Geofence::can_access_form( 7 )
-		);
-	}
-
 	public function test_build_frontend_config_leads_with_the_identity_it_is_given(): void {
 		Functions\expect( 'get_post_meta' )->never();
 

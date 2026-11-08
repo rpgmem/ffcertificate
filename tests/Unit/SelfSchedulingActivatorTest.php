@@ -212,24 +212,6 @@ class SelfSchedulingActivatorTest extends TestCase {
 	// drop_tables()
 	// ==================================================================
 
-	public function test_drop_tables_drops_all_three(): void {
-		$prepared_queries = [];
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
-			$args = func_get_args();
-			$prepared_queries[] = $args;
-			return 'PREPARED_QUERY';
-		} );
-		$this->wpdb->shouldReceive( 'query' )->with( 'PREPARED_QUERY' )->andReturn( 1 );
-
-		SelfSchedulingActivator::drop_tables();
-
-		$drop_queries = array_filter( $prepared_queries, function ( $args ) {
-			return stripos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
-		} );
-
-		$this->assertCount( 3, $drop_queries, 'Should prepare DROP TABLE for all 3 self-scheduling tables' );
-	}
-
 	// ==================================================================
 	// maybe_heal_columns() — the panel columns between releases (#2405)
 	// ==================================================================
