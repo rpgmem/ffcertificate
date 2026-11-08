@@ -115,20 +115,23 @@ describe('Unlink user button', () => {
 	});
 
 	it('does nothing when the user declines the confirmation', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const form = document.querySelector('form');
 		const submitSpy = vi.spyOn(form, 'submit').mockImplementation(() => {});
 		document.querySelector('.ffc-unlink-user-btn').click();
+		await Promise.resolve();
 		expect(submitSpy).not.toHaveBeenCalled();
 		// Hidden input untouched.
 		expect(document.querySelector('input[name="linked_user_id"]').value).toBe('42');
 	});
 
 	it('empties the linked_user_id and submits the form on confirm', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const form = document.querySelector('form');
 		const submitSpy = vi.spyOn(form, 'submit').mockImplementation(() => {});
 		document.querySelector('.ffc-unlink-user-btn').click();
+		await Promise.resolve();
+		await Promise.resolve();
 		expect(submitSpy).toHaveBeenCalledOnce();
 		expect(document.querySelector('input[name="linked_user_id"]').value).toBe('');
 	});
@@ -191,11 +194,13 @@ describe('User search', () => {
 		await loadOnReady();
 	});
 
-	it("alerts when the search term is shorter than 2 characters", async () => {
+	it("says in the results area when the search term is shorter than 2 characters", async () => {
 		globalThis.alert.mockClear?.();
 		document.getElementById('ffc-user-search-input').value = 'a';
 		document.querySelector('.ffc-search-user-btn').click();
-		expect(globalThis.alert).toHaveBeenCalledWith('Please enter at least 2 characters.');
+		expect(globalThis.alert).not.toHaveBeenCalled();
+		const results = document.getElementById('ffc-user-search-results');
+		expect(results.querySelector('[role="status"]').textContent).toBe('Please enter at least 2 characters.');
 	});
 
 	it('fires AJAX with the search term + nonce when >= 2 chars', async () => {
@@ -254,13 +259,14 @@ describe('User search', () => {
 		expect(document.getElementById('ffc-user-search-results').textContent).toContain('No users found.');
 	});
 
-	it('alerts the search-error string when the request rejects without fromServer', async () => {
+	it('says the search-error string in the results area when the request rejects without fromServer', async () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: { status: 0 } }));
 		globalThis.alert.mockClear?.();
 		document.getElementById('ffc-user-search-input').value = 'qu';
 		document.querySelector('.ffc-search-user-btn').click();
 		await flush();
-		expect(globalThis.alert).toHaveBeenCalledWith('Search error');
+		expect(globalThis.alert).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-user-search-results').textContent).toContain('Search error');
 	});
 
 	it('shows the server-provided message when the rejection comes fromServer', async () => {

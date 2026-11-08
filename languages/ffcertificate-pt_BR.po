@@ -33911,3 +33911,15 @@ msgstr "Cancelar este agendamento? O registro fica, marcado como cancelado."
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
 msgid "At least 5 characters."
 msgstr "Pelo menos 5 caracteres."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save as template"
+msgstr "Salvar como modelo"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save this layout and its background as a template you can load into other forms?"
+msgstr "Salvar este layout e o fundo como um modelo que pode ser carregado em outros formulários?"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save template"
+msgstr "Salvar modelo"

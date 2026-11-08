@@ -89,16 +89,23 @@ jQuery(document).ready(function($) {
     // ========================================
     $('.ffc-unlink-user-btn').on('click', function(e) {
         e.preventDefault();
-        var confirmMsg = $(this).data('confirm');
+        var $form = $(this).closest('form');
 
-        if (confirm(confirmMsg)) {
+        return FFC.confirmDialog({
+            message: $(this).data('confirm'),
+            category: 'danger',
+            icon: 'cross'
+        }).then(function(agreed) {
+            if (!agreed) {
+                return;
+            }
             // Empty means unlink; `__keep__` means leave the link alone.
             $('input[name="linked_user_id"]').val('');
             // A programmatic submit activates no button, so the marker the
             // handler gates on must be a FIELD of the form -- it is, since the
             // fix that made this control work at all.
-            $(this).closest('form').submit();
-        }
+            $form.submit();
+        });
     });
 
     // ========================================
@@ -138,7 +145,7 @@ jQuery(document).ready(function($) {
         var searchTerm = $searchInput.val().trim();
 
         if (searchTerm.length < 2) {
-            alert(ffc_submission_edit.search_min_chars || 'Please enter at least 2 characters.');
+            displayNoResults(ffc_submission_edit.search_min_chars || 'Please enter at least 2 characters.');
             return;
         }
 
@@ -160,7 +167,7 @@ jQuery(document).ready(function($) {
                 if (err && err.fromServer) {
                     displayNoResults(err.message || ffc_submission_edit.no_users_found || 'No users found.');
                 } else {
-                    alert(ffc_submission_edit.search_error || 'Error searching for users. Please try again.');
+                    displayNoResults(ffc_submission_edit.search_error || 'Error searching for users. Please try again.');
                 }
             });
     }
@@ -183,7 +190,7 @@ jQuery(document).ready(function($) {
     }
 
     function displayNoResults(message) {
-        $resultsContainer.html('<div class="ffc-no-results">' + escapeHtml(message) + '</div>').removeClass('ffc-hidden');
+        $resultsContainer.html('<div class="ffc-no-results" role="status">' + escapeHtml(message) + '</div>').removeClass('ffc-hidden');
     }
 
     // Select user from results

@@ -33829,3 +33829,15 @@ msgstr ""
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
 msgid "At least 5 characters."
 msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save as template"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save this layout and its background as a template you can load into other forms?"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save template"
+msgstr ""

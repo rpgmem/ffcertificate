@@ -22,8 +22,17 @@ function installFFC() {
 		Admin: {
 			notify: vi.fn(),
 		},
+		// The plugin's dialog (#2535): answers no unless a test says otherwise.
+		confirmDialog: vi.fn(() => Promise.resolve(false)),
 	};
 }
+
+// Answer the next plugin dialog: true/false for a question, a string for a reason field.
+function answer(value) {
+	window.FFC.confirmDialog.mockReturnValue(Promise.resolve(value === null ? false : value));
+	return window.FFC.confirmDialog;
+}
+const settle = () => new Promise((r) => setTimeout(r, 0));
 
 function reset() {
 	document.body.innerHTML = '';
@@ -265,18 +274,16 @@ describe('ffc-admin-pdf.js — save as model', () => {
 	});
 
 	afterEach(() => {
-		if (window.prompt && window.prompt.mockRestore) {
-			window.prompt.mockRestore();
-		}
 		reset();
 	});
 
-	it('POSTs ffc_save_template with the prompted title and current layout', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+	it('POSTs ffc_save_template with the title typed in the plugin dialog and the current layout', async () => {
+		answer('My Model');
 		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
 		window.$.post = vi.fn(() => jqxhr);
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		expect(window.$.post).toHaveBeenCalled();
 		const [url, data] = window.$.post.mock.calls[0];
@@ -287,17 +294,18 @@ describe('ffc-admin-pdf.js — save as model', () => {
 		expect(data.html).toContain('{{name}}');
 	});
 
-	it('does not POST when the prompt is cancelled', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue(null);
+	it('does not POST when the dialog is cancelled', async () => {
+		answer(null);
 		window.$.post = vi.fn();
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		expect(window.$.post).not.toHaveBeenCalled();
 	});
 
-	it('includes the current background image URL so the model round-trips it', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+	it('includes the current background image URL so the model round-trips it', async () => {
+		answer('My Model');
 		document.body.insertAdjacentHTML(
 			'beforeend',
 			'<input id="ffc_bg_image_input" value="https://example.com/bg.png" />'
@@ -306,18 +314,20 @@ describe('ffc-admin-pdf.js — save as model', () => {
 		window.$.post = vi.fn(() => jqxhr);
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		const [, data] = window.$.post.mock.calls[0];
 		expect(data.bg_image).toBe('https://example.com/bg.png');
 	});
 
-	it('includes the current page colour so the model round-trips it', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('My Model');
+	it('includes the current page colour so the model round-trips it', async () => {
+		answer('My Model');
 		document.body.insertAdjacentHTML('beforeend', '<input type="color" id="ffc_bg_color_input" value="#0a3d62" />');
 		const jqxhr = { done(cb) { cb({ success: true, data: { id: 9 } }); return jqxhr; }, fail() { return jqxhr; } };
 		window.$.post = vi.fn(() => jqxhr);
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		const [, data] = window.$.post.mock.calls[0];
 		expect(data.bg_color).toBe('#0a3d62');
@@ -475,16 +485,11 @@ describe('ffc-admin-pdf.js — preview button', () => {
 
 	afterEach(reset);
 
-	it('alerts when the layout textarea is empty', () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
+	it('says on the screen when the layout textarea is empty', () => {
 		window.$('#ffc_btn_preview').trigger('click');
 
-		expect(alertSpy).toHaveBeenCalled();
-		expect(alertSpy.mock.calls[0][0]).toMatch(/empty/i);
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith(expect.stringMatching(/empty/i), 'warning');
 		expect(document.querySelector('#ffc-preview-modal')).toBeNull();
-
-		alertSpy.mockRestore();
 	});
 
 	// The preview is rendered by the server and captured by FFCLayoutPreview; the
@@ -694,36 +699,37 @@ describe('ffc-admin-pdf.js — template modal interactions', () => {
 		expect(document.querySelector('#ffc-template-modal')).toBeNull();
 	});
 
-	it('asks with the localized confirmation and loads the chosen template by id', () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('asks with the localized confirmation and loads the chosen template by id', async () => {
+		const confirmSpy = answer(true);
 		window.$.post = vi.fn(() => jqAnswer({ success: true, data: '<p>M1</p>' }));
 
 		window.$('.ffc-template-option').first().trigger('click');
+		await settle();
 
 		expect(document.querySelector('#ffc-template-modal')).toBeNull();
-		expect(confirmSpy).toHaveBeenCalledWith('Replace with "Model 1"?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Replace with "Model 1"?', category: 'caution' });
 		expect(window.$.post.mock.calls[0][1].template_id).toBe(10);
 		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>M1</p>');
 	});
 
-	it('loads nothing when the confirmation is declined', () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+	it('loads nothing when the confirmation is declined', async () => {
+		answer(false);
 		window.$.post = vi.fn();
 
 		window.$('.ffc-template-option').first().trigger('click');
+		await settle();
 
 		expect(window.$.post).not.toHaveBeenCalled();
 	});
 
-	it('falls back to the English confirmation without a localized one', () => {
+	it('falls back to the English confirmation without a localized one', async () => {
 		window.ffc_ajax.strings = {};
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answer(false);
 
 		window.$('.ffc-template-option').last().trigger('click');
+		await settle();
 
-		expect(confirmSpy).toHaveBeenCalledWith(
-			'Load "Mine"? This will replace your current certificate HTML.'
-		);
+		expect(confirmSpy.mock.calls[0][0].message).toBe('Load "Mine"? This will replace your current certificate HTML.');
 	});
 });
 
@@ -774,41 +780,45 @@ describe('ffc-admin-pdf.js — save as model outcomes', () => {
 		reset();
 	});
 
-	it('alerts and does not prompt when the layout is blank', () => {
+	it('says so on the screen and asks nothing when the layout is blank', async () => {
 		document.querySelector('#ffc_pdf_layout').value = '   ';
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		const promptSpy = vi.spyOn(window, 'prompt');
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
-		expect(alertSpy).toHaveBeenCalledWith('The HTML editor is empty. Add a template first.');
-		expect(promptSpy).not.toHaveBeenCalled();
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('The HTML editor is empty. Add a template first.', 'warning');
+		expect(window.FFC.confirmDialog).not.toHaveBeenCalled();
 	});
 
-	it('does not POST for a whitespace-only name', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('   ');
+	it('does not POST without a name', async () => {
+		answer('');
 		window.$.post = vi.fn();
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		expect(window.$.post).not.toHaveBeenCalled();
 	});
 
-	it('trims the name and reports a refused save', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('  Named  ');
+	it('asks the name in a required field and reports a refused save', async () => {
+		const dialog = answer('Named');
 		window.$.post = vi.fn(() => jqAnswer({ success: false }));
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
+		// The dialog trims and requires the name; the save sends what it resolved.
+		expect(dialog.mock.calls[0][0].reasonField).toMatchObject({ min: 1 });
 		expect(window.$.post.mock.calls[0][1].title).toBe('Named');
 		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('Error: ', 'error', 8000);
 	});
 
-	it('reports a connection failure', () => {
-		vi.spyOn(window, 'prompt').mockReturnValue('Named');
+	it('reports a connection failure', async () => {
+		answer('Named');
 		window.$.post = vi.fn(() => jqFailure({ status: 0 }));
 
 		window.$('#ffc_save_as_model_btn').trigger('click');
+		await settle();
 
 		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('Connection error.', 'error', 8000);
 	});

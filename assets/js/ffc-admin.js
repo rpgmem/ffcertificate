@@ -189,7 +189,7 @@
         var nonce   = (typeof ffc_ajax !== 'undefined') ? ffc_ajax.export_nonce : '';
 
         if (!nonce) {
-            alert(strings.error || 'Error: missing export nonce');
+            notify(strings.error || 'Error: missing export nonce', 'error');
             return;
         }
 
@@ -408,9 +408,17 @@
         e.preventDefault();
         var $btn = $(this);
         var confirmText = String($btn.data('confirm') || '');
-        if (confirmText && !window.confirm(confirmText)) {
-            return;
+        if (!confirmText) {
+            return runPublicAction($btn);
         }
+        return window.FFC.confirmDialog({ message: confirmText, category: 'caution', icon: 'refresh' }).then(function (agreed) {
+            if (agreed) {
+                runPublicAction($btn);
+            }
+        });
+    });
+
+    function runPublicAction($btn) {
         var $status = $btn.closest('.ffc-csv-public-actions').find('.ffc-csv-public-action-status');
         $btn.prop('disabled', true);
         window.FFC.request('ffc_csv_public_action',
@@ -431,7 +439,7 @@
             .then(function () {
                 $btn.prop('disabled', false);
             });
-    });
+    }
 
     // A list row's on/off toggle names the Status cell it describes
     // (`data-ffc-status-target`), with the label for each state; the cell
