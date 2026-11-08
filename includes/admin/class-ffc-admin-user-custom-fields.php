@@ -542,6 +542,7 @@ class AdminUserCustomFields {
 		$child        = is_string( $decoded['child'] ?? null ) ? $decoded['child'] : '';
 		$field_id     = $input_name;
 		$field_name   = $input_name;
+		$required     = ! empty( $field->is_required ); // The shared template marks both selects (#2530).
 
 		include FFC_PLUGIN_DIR . 'templates/reregistration/field-dependent-select.php';
 	}

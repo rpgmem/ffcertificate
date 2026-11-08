@@ -88,6 +88,14 @@ class CustomFieldValidatorTest extends TestCase {
 		$this->assertFalse( CustomFieldValidator::is_empty_value( '0' ) );
 	}
 
+	public function test_is_empty_value_dependent_select_pair_with_nothing_chosen(): void {
+		// #2530: the pair is posted as JSON even when nothing was chosen.
+		$this->assertTrue( CustomFieldValidator::is_empty_value( '{"parent":"","child":""}' ) );
+		$this->assertFalse( CustomFieldValidator::is_empty_value( '{"parent":"North","child":""}' ) );
+		$this->assertFalse( CustomFieldValidator::is_empty_value( '{"parent":"North","child":"N1"}' ) );
+		$this->assertFalse( CustomFieldValidator::is_empty_value( '{not json' ) );
+	}
+
 	public function test_is_empty_value_non_empty_array(): void {
 		$this->assertFalse( CustomFieldValidator::is_empty_value( array( 'a' ) ) );
 	}
@@ -129,6 +137,20 @@ class CustomFieldValidatorTest extends TestCase {
 		$result = CustomFieldValidator::validate( $field, 'hello' );
 
 		$this->assertTrue( $result );
+	}
+
+	public function test_validate_required_dependent_select_with_nothing_chosen_says_required(): void {
+		$field  = $this->make_field( array( 'field_type' => 'dependent_select', 'is_required' => 1 ) );
+		$result = CustomFieldValidator::validate( $field, '{"parent":"","child":""}' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'field_required', $result->get_error_code() );
+	}
+
+	public function test_validate_optional_dependent_select_with_nothing_chosen_passes(): void {
+		$field = $this->make_field( array( 'field_type' => 'dependent_select', 'is_required' => 0 ) );
+
+		$this->assertTrue( CustomFieldValidator::validate( $field, '{"parent":"","child":""}' ) );
 	}
 
 	public function test_validate_optional_empty_returns_true(): void {

@@ -14,6 +14,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificates: a form on a shipped certificate model can be saved again** (#2524). The default Required data asks for {{schedule}} in every layout and no shipped model carried it; the six models now do, under the course title (empty without an Event Schedule), and the seeder refreshes them.
 - **Front end: the PDF overlay speaks the site's language on the calendar, receipt and check-in pages, and the booking time loses its seconds** (#2526). Those pages carried no overlay texts, so it fell back to English; one list now feeds every page. Four pt_BR strings are corrected.
 - **Audience Calendars: the days of the month work by keyboard and screen reader** (#2528). Each day is a button named by its date with one tab stop; the arrows, Home and End move and Enter or Space opens it, as on the personal calendar.
+- **Reregistration: a dependent select with nothing chosen is empty** (#2530). A required one now says it is required, instead of an invalid choice, and an optional one passes; its two selects are named by their labels and carry `required`.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`
 

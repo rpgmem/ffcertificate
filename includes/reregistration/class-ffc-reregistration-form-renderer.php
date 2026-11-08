@@ -341,7 +341,7 @@ class ReregistrationFormRenderer {
 				break;
 
 			case 'dependent_select':
-				self::render_dependent_select_field( $field, $field_id, $field_name, is_scalar( $value ) ? (string) $value : null );
+				self::render_dependent_select_field( $field, $field_id, $field_name, is_scalar( $value ) ? (string) $value : null, $required );
 				break;
 
 			case 'checkbox':
@@ -406,8 +406,9 @@ class ReregistrationFormRenderer {
 	 * @param string      $field_id   Hidden input id.
 	 * @param string      $field_name Hidden input name.
 	 * @param string|null $value      Current JSON-encoded {parent,child} value.
+	 * @param bool        $required   Whether both selects are required (#2530).
 	 */
-	private static function render_dependent_select_field( object $field, string $field_id, string $field_name, ?string $value ): void {
+	private static function render_dependent_select_field( object $field, string $field_id, string $field_name, ?string $value, bool $required = false ): void {
 		$groups       = CustomFieldReader::get_dependent_choices( $field );
 		$opts         = self::decode_options( $field );
 		$parent_label = $opts['parent_label'] ?? __( 'Category', 'ffcertificate' );
