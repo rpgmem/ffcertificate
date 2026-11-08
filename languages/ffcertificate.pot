@@ -4165,6 +4165,10 @@ msgstr ""
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
 msgstr ""
 
+#: includes/core/class-ffc-asset-helper.php:143
+msgid "Are you sure?"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:146 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:306
 msgid "Confirm"
 msgstr ""
