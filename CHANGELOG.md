@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - ⚠ **The legacy cron hook names and the per-audience field seed are gone** (#2552, #2323, #2502). A callback attached to an `ffcertificate_*` cron name no longer runs; attach it to the `ffc_*` name. `ReregistrationStandardFieldsSeeder::seed_for_audience()` is removed; call `seed_global()`.
 - ⚠ **Five finished one-shot migrations leave Settings → Migrations** (#2552, #2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. A site still showing records pending on one ran it before updating, as its card said since 6.43.0.
+- ⚠ **The form-settings cache and the submission lookups nothing called are gone** (#2552, #2241). `FormCache` keeps only the page-cache purges; its config, fields, background, complete, clear, warm and stats methods leave, with `SettingsReader::cache_expiration_seconds()`. `SubmissionReader` and `SubmissionRepository` lose `findByEmail`, `findByCpfRf`, `findByFormId` and `getForExport`, and the reader its identity audits, which live in `SubmissionIdentityAudit`. Read a form's settings with `get_post_meta()` or `FormRepository`.
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 

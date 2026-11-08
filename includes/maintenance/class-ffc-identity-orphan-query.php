@@ -7,7 +7,7 @@
  *
  * WIDER THAN THE QUERY THAT EXISTED, IN THREE DIRECTIONS.
  *
- * `SubmissionReader::find_unlinked_with_matching_identity()` finds a real and
+ * `SubmissionIdentityAudit::find_unlinked_with_matching_identity()` finds a real and
  * useful subset — and only a subset: submissions only, CPF only, and, by
  * construction, only those whose CPF already appears on a LINKED submission.
  * An orphan nobody can be matched to can never be returned by it, and that is

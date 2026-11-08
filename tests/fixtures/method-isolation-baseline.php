@@ -19,7 +19,7 @@ return array(
 	'DashboardShortcodeTest.php' => 1,
 	'EncryptionKeyHealthNoticeTest.php' => 1,
 	'EncryptionTest.php' => 8,
-	'FormCacheThirdPartyPurgeTest.php' => 8,
+	'FormCacheThirdPartyPurgeTest.php' => 7,
 	'IdentityAuditExportSourceTest.php' => 1,
 	'IdentityIndexBackfillMigrationStrategyTest.php' => 1,
 	'IdentitySearchAjaxEndpointTest.php' => 1,

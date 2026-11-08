@@ -366,13 +366,6 @@ class SettingsReaderTest extends TestCase {
 	// OPTION_KEY constant
 	// ------------------------------------------------------------------
 
-	public function test_cache_expiration_answers_the_old_default_whatever_is_stored(): void {
-		// The setting left with the form-settings cache (#2241).
-		Functions\when( 'get_option' )->justReturn( array( 'cache_expiration' => 900 ) );
-
-		$this->assertSame( 3600, SettingsReader::cache_expiration_seconds() );
-	}
-
 	public function test_option_key_constant_is_ffc_settings(): void {
 		$this->assertSame( 'ffc_settings', SettingsReader::OPTION_KEY );
 	}
