@@ -8,38 +8,13 @@
  */
 
 return array(
-	'assets/js/ffc-admin-activity-log.js' => array(
-		'alert' => 1,
-	),
 	'assets/js/ffc-admin-autosave.js' => array(
 		'confirm' => 2,
-	),
-	'assets/js/ffc-admin-field-builder.js' => array(
-		'confirm' => 1,
 	),
 	'assets/js/ffc-admin-migrations.js' => array(
 		'confirm' => 1,
 	),
-	'assets/js/ffc-admin-pdf.js' => array(
-		'alert' => 2,
-		'confirm' => 1,
-		'prompt' => 1,
-	),
-	'assets/js/ffc-admin-submission-edit.js' => array(
-		'alert' => 2,
-		'confirm' => 1,
-	),
-	'assets/js/ffc-admin-submissions-bulk.js' => array(
-		'confirm' => 2,
-	),
-	'assets/js/ffc-admin.js' => array(
-		'alert' => 1,
-		'confirm' => 1,
-	),
 	'assets/js/ffc-cache-actions.js' => array(
-		'confirm' => 1,
-	),
-	'assets/js/ffc-cert-email-mode.js' => array(
 		'confirm' => 1,
 	),
 	'assets/js/ffc-core.js' => array(

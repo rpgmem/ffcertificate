@@ -167,6 +167,14 @@ final class NativeDialogRatchetTest extends TestCase {
 			'assets/js/ffc-locations-crud.js',
 			'includes/audience/class-ffc-audience-admin-audience-renderer.php',
 			'templates/admin/audience/general-tab.php',
+			// The certificate screens (#2535).
+			'assets/js/ffc-admin-activity-log.js',
+			'assets/js/ffc-admin-field-builder.js',
+			'assets/js/ffc-admin-pdf.js',
+			'assets/js/ffc-admin-submission-edit.js',
+			'assets/js/ffc-admin-submissions-bulk.js',
+			'assets/js/ffc-admin.js',
+			'assets/js/ffc-cert-email-mode.js',
 		);
 		foreach ( $clear as $file ) {
 			$this->assertArrayNotHasKey( $file, $found, $file . ' opens a native dialog again.' );

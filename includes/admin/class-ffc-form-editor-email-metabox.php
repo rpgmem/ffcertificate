@@ -286,7 +286,8 @@ class FormEditorEmailMetabox {
 		wp_enqueue_script(
 			'ffc-cert-email-mode',
 			FFC_PLUGIN_URL . "assets/js/ffc-cert-email-mode{$suffix}.js",
-			array( 'jquery' ),
+			// ffc-core: the reset question is asked in the plugin's dialog (#2535).
+			array( 'jquery', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

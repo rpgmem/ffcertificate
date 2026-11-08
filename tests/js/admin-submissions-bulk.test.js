@@ -151,7 +151,7 @@ describe('Submissions bulk — form interception', () => {
 	});
 
 	it('confirms before bulk_delete and bails on cancel', () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
 		window.$('select[name="action"]').val('bulk_delete');
@@ -159,7 +159,7 @@ describe('Submissions bulk — form interception', () => {
 
 		dispatchSubmit();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Permanently delete the selected submissions?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Permanently delete the selected submissions?', category: 'danger' });
 		expect(requestSpy).not.toHaveBeenCalled();
 	});
 
@@ -211,19 +211,19 @@ describe('Submissions bulk — per-row buttons', () => {
 	});
 
 	it('confirms before per-row Delete and bails on cancel', () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const requestSpy = vi.spyOn(window.FFC, 'request');
 
 		window.$('#row-2 a.ffc-submission-row-action').trigger('click');
 
-		expect(confirmSpy).toHaveBeenCalledWith('Permanently delete?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Permanently delete?', category: 'danger' });
 		expect(requestSpy).not.toHaveBeenCalled();
 		// Row still there.
 		expect(document.querySelector('#row-2')).not.toBeNull();
 	});
 
 	it('proceeds with per-row Delete when confirm is accepted', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: '1 submission permanently deleted.' });
 
 		window.$('#row-2 a.ffc-submission-row-action').trigger('click');

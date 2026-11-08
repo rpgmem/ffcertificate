@@ -325,7 +325,7 @@ describe('Activity Log — error path', () => {
 		expect(window.$('#ffc-activity-log-table tbody').html()).toContain('old row');
 	});
 
-	it('falls back to window.alert when notify is unavailable', async () => {
+	it('falls back to the core admin notice when notify is unavailable', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('Net down'));
 		// Temporarily remove the notify helper.
 		const saved = window.FFC.Admin.notify;
@@ -336,7 +336,8 @@ describe('Activity Log — error path', () => {
 			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 		await Promise.resolve(); await Promise.resolve();
 
-		expect(alertSpy).toHaveBeenCalledWith('Net down');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('Net down');
 		window.FFC.Admin.notify = saved;
 	});
 });

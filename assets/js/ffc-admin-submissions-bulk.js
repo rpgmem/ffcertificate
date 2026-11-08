@@ -123,18 +123,23 @@
             return;
         }
 
+        e.preventDefault();
         if ('delete' === action) {
             var s = strings();
-            var msg = s.confirmBulkDelete || 'Permanently delete the selected submissions?';
-            if (!window.confirm(msg)) {
-                e.preventDefault();
-                return;
-            }
+            askToDelete(s.confirmBulkDelete || 'Permanently delete the selected submissions?', action, ids);
+            return;
         }
-
-        e.preventDefault();
         dispatch(action, ids);
     });
+
+    // A permanent delete asks first, in the plugin's dialog (#2535).
+    function askToDelete(message, action, ids) {
+        return window.FFC.confirmDialog({ message: message, category: 'danger', icon: 'trash' }).then(function (agreed) {
+            if (agreed) {
+                dispatch(action, ids);
+            }
+        });
+    }
 
     // -----------------------------------------------------------------
     // Per-row buttons (Trash / Restore / Delete in the actions column)
@@ -149,16 +154,12 @@
         var parsed = parsePerRowAction(href);
         if (!parsed) { return; }
 
+        e.preventDefault();
         // Delete carries data-confirm — honour it.
         if ('delete' === parsed.action) {
-            var confirmMsg = $a.data('confirm') || (strings().confirmDelete || 'Permanently delete?');
-            if (!window.confirm(confirmMsg)) {
-                e.preventDefault();
-                return;
-            }
+            askToDelete($a.data('confirm') || (strings().confirmDelete || 'Permanently delete?'), parsed.action, [ parsed.id ]);
+            return;
         }
-
-        e.preventDefault();
         dispatch(parsed.action, [ parsed.id ]);
     });
 }(jQuery));

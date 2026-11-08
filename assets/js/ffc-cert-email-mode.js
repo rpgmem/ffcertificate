@@ -97,12 +97,15 @@
 			}
 			var message = globals.confirmReset ||
 				'Discard this form’s custom email text and use the shared global default instead?';
-			if ( window.confirm( message ) ) {
-				showGlobal();
-			} else {
-				// Revert — the operator kept the custom text.
-				$( this ).prop( 'checked', true );
-			}
+			var $box = $( this );
+			window.FFC.confirmDialog( { message: message, category: 'caution', icon: 'refresh' } ).then( function ( agreed ) {
+				if ( agreed ) {
+					showGlobal();
+				} else {
+					// Revert — the operator kept the custom text.
+					$box.prop( 'checked', true );
+				}
+			} );
 		} );
 	} );
 }( jQuery ) );

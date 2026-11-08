@@ -216,16 +216,20 @@ describe('FieldBuilder — option rows', () => {
 describe('FieldBuilder — removing a field', () => {
 	beforeEach(() => initOn([0, 1]));
 
-	it('removes the row once confirmed', () => {
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('removes the row once confirmed in the plugin dialog', async () => {
+		const confirm = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		$('#ffc-fields-container .ffc-remove-field').click();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(confirm.mock.calls[0][0].category).toBe('danger');
 		expect($$('#ffc-fields-container .ffc-field-row').length).toBe(1);
 		confirm.mockRestore();
 	});
 
-	it('keeps the row when the confirmation is declined', () => {
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+	it('keeps the row when the confirmation is declined', async () => {
+		const confirm = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		$('#ffc-fields-container .ffc-remove-field').click();
+		await Promise.resolve();
 		expect($$('#ffc-fields-container .ffc-field-row').length).toBe(2);
 		confirm.mockRestore();
 	});

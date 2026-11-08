@@ -145,11 +145,16 @@
                 ? ffc_ajax.strings.confirmLoadTemplate.replace('%s', templateName)
                 : 'Load "' + templateName + '"? This will replace your current certificate HTML.';
 
-            if (!confirm(confirmMsg)) {
-                return;
-            }
-
-            loadTemplateFile(templateId, templateName);
+            return window.FFC.confirmDialog({
+                message: confirmMsg,
+                confirmLabel: (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.loadTemplate) || '',
+                category: 'caution',
+                icon: 'download'
+            }).then(function(agreed) {
+                if (agreed) {
+                    loadTemplateFile(templateId, templateName);
+                }
+            });
         });
     });
 
@@ -242,18 +247,26 @@
         window.FFCCodeEditor.flush($layout);
         var html = $layout.val();
         if (!html || !html.trim()) {
-            alert(strings.previewEmpty || 'The HTML editor is empty. Add a template first.');
+            showNotification(strings.previewEmpty || 'The HTML editor is empty. Add a template first.', 'warning');
             return;
         }
 
-        var title = window.prompt(strings.saveModelPrompt || 'Name for this template:', '');
-        if (title === null) {
-            return; // cancelled
-        }
-        title = title.trim();
-        if (!title) {
-            return;
-        }
+        // The name is asked in the plugin's dialog (#2535): a labelled field
+        // whose Save stays off until something is typed.
+        return window.FFC.confirmDialog({
+            message: strings.saveModelQuestion || 'Save this layout as a template in the pool?',
+            title: strings.saveModelTitle || 'Save as template',
+            confirmLabel: strings.saveModelConfirm || 'Save template',
+            icon: 'save',
+            reasonField: { label: strings.saveModelPrompt || 'Name for this template:', min: 1 }
+        }).then(function(title) {
+            if (typeof title === 'string' && title) {
+                saveTemplate(title, html, ajaxData, strings, showNotification);
+            }
+        });
+    });
+
+    function saveTemplate(title, html, ajaxData, strings, showNotification) {
 
         showNotification(strings.loading || 'Loading...', 'info', 0);
         $.post(ajaxData.ajax_url || (typeof ajaxurl !== 'undefined' ? ajaxurl : ''), {
@@ -276,7 +289,7 @@
             .fail(function() {
                 showNotification((strings.connectionError || 'Connection error.'), 'error', 8000);
             });
-    });
+    }
 
     // ==========================================================================
     // IMPORT HTML FILE
@@ -385,7 +398,7 @@
 
         if (!htmlContent || !htmlContent.trim()) {
             var emptyMsg = strings.previewEmpty || 'The HTML editor is empty. Add a template first.';
-            alert(emptyMsg);
+            (window.FFC.Admin.notify || function() {})(emptyMsg, 'warning');
             return;
         }
 

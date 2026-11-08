@@ -46,7 +46,7 @@ describe('Public Operator Access buttons', () => {
 	});
 
 	it('regenerates on confirm and shows the new link', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const request = vi.spyOn(window.FFC, 'request').mockResolvedValue({ share_link: '?form_id=12&hash=new' });
 
 		window.$('[data-op="regenerate"]').trigger('click');
@@ -61,7 +61,7 @@ describe('Public Operator Access buttons', () => {
 	});
 
 	it('does nothing when the confirmation is declined', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const request = vi.spyOn(window.FFC, 'request');
 
 		window.$('[data-op="reset"]').trigger('click');
@@ -72,7 +72,7 @@ describe('Public Operator Access buttons', () => {
 	});
 
 	it('resets the counter shown on the page', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.FFC, 'request').mockResolvedValue({ count: 0 });
 
 		window.$('[data-op="reset"]').trigger('click');
@@ -83,7 +83,7 @@ describe('Public Operator Access buttons', () => {
 	});
 
 	it('shows the server error and re-enables the button', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('You do not have permission to edit this form.'));
 
 		window.$('[data-op="reset"]').trigger('click');
