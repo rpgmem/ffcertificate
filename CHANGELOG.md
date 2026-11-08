@@ -27,6 +27,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: four secondary items record what they named** (#2340): attendance and check-in windows, rate-limit blocks and failed captchas (never the address or identifier), settings changed outside the Danger Zone (the keys, never the values) and scheduled tasks that ended in a fatal error. Each is off by default.
 - **A global list of reregistration fields every audience inherits** (#2502). Reregistration → Custom Fields edits it and lists where each audience changed, hid or added a field. An audience's tab shows where each field comes from; Customize changes one inherited field there (answers stay under the inherited field), Hide stops asking it, Back to inherited undoes the change.
 - **User dashboard: Messages tab** (#2503). What Date Messages sent each person, built from the rule as it is now: current announcements, which also open the dashboard as notices for 2–15 days, and earlier messages, three a page; the two message preferences move there from Profile. Date Messages → Settings chooses the days and whether disabled rules' messages stay.
+- **Reregistration: a CSV template on the Import answers tab** (#2506). "Download CSV template" gives the chosen audience's header, built from the fields the import maps, so the file loads as it is.
 
 ### Changed
 

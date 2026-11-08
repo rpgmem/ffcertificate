@@ -33793,3 +33793,19 @@ msgstr ""
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "Each person finds what they were sent in the Messages tab of their dashboard, built from the rule as it is now: an edited rule shows its current text, and deleting a rule removes what it sent from every dashboard. On the Settings page, \"Show announcements at the top for\" chooses 2, 5, 7, 10 or 15 days, 7 by default: for that long after it was sent an announcement opens the person's dashboard as a notice and heads the tab. \"Messages from disabled rules\" leaves what a disabled rule sent listed unless \"Hide from the dashboard\" is turned on. Both save as they change and need ffc_manage_date_messages."
 msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "Download CSV template"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "One column per field of the chosen audience, named by its key, in the order the form asks them. Fill one row per person."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-template-source.php
+msgid "This audience is not part of the campaign."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "\"Download CSV template\" gives the header for the audience chosen above: one column per field, named by its key, in the order the form asks them, required ones included and display-only ones left out. Fill one row per person and upload it as it is."
+msgstr ""

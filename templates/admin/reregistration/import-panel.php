@@ -64,6 +64,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 				<p>
 					<?php
+					// The blank file of the chosen audience (#2506); the script
+					// adds the audience to the link as the select changes.
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label' => __( 'Download CSV template', 'ffcertificate' ),
+							'icon'  => 'download',
+							'class' => 'ffc-rereg-import-template',
+							'href'  => add_query_arg(
+								array(
+									'action'      => \FreeFormCertificate\Reregistration\ReregistrationImportTemplateSource::ACTION,
+									'rereg_id'    => (int) $id,
+									'audience_id' => (int) array_key_first( $import_audiences ),
+									'_wpnonce'    => wp_create_nonce( \FreeFormCertificate\Reregistration\ReregistrationImportAjaxHandler::NONCE_ACTION ),
+								),
+								admin_url( 'admin-post.php' )
+							),
+						)
+					);
+					?>
+					<span class="description">
+						<?php esc_html_e( 'One column per field of the chosen audience, named by its key, in the order the form asks them. Fill one row per person.', 'ffcertificate' ); ?>
+					</span>
+				</p>
+
+				<p>
+					<?php
 					\FreeFormCertificate\Admin\AdminUI::render_button(
 						array(
 							'label' => __( 'Check file', 'ffcertificate' ),
