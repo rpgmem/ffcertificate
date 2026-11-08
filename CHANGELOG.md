@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **QR Code settings: the design preview follows the form again** (#2520). Since it moved to the side column it sat outside the form, so no change redrew it and the first drawing ignored the saved design.
+
 ## [6.44.0] (2026-11-08) — `1ad1601`
 
 ### Added
