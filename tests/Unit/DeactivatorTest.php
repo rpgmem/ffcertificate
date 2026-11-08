@@ -111,8 +111,8 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
 		// The recruitment account batch (#2245).
 		$this->assertContains( 'ffc_recruitment_account_link_batch', $cleared );
-		// The pre-#2323 names, for one deprecation cycle.
-		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+		// The pre-#2323 names, which an install that skipped the relay may still hold.
+		foreach ( \FreeFormCertificate\Deactivator::LEGACY_CRON_HOOKS as $legacy ) {
 			$this->assertContains( $legacy, $cleared );
 		}
 		// The one-shot submission pipeline, under its name and its pre-#1248 one (#2343).
@@ -231,7 +231,7 @@ class DeactivatorTest extends TestCase {
 		$this->assertContains( 'ffc_bulk_issue_purge', $cleared );
 		$this->assertContains( 'ffc_self_scheduling_closeout', $cleared );
 		$this->assertContains( 'ffc_activity_log_cleanup_continue', $cleared );
-		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy ) {
+		foreach ( \FreeFormCertificate\Deactivator::LEGACY_CRON_HOOKS as $legacy ) {
 			$this->assertContains( $legacy, $cleared );
 		}
 		$this->assertCount( 15, $cleared );

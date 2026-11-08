@@ -22,6 +22,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Deactivator {
 
 	/**
+	 * Cron hook names used before the `ffc_` prefix (#2323).
+	 *
+	 * @var list<string>
+	 */
+	public const LEGACY_CRON_HOOKS = array(
+		'ffcertificate_daily_cleanup_hook',
+		'ffcertificate_reregistration_expire_hook',
+		'ffcertificate_self_scheduling_reminder_scan',
+		'ffcertificate_self_scheduling_closeout',
+		'ffcertificate_audience_post_event_invites',
+		'ffcertificate_bulk_issue_purge',
+	);
+
+
+	/**
 	 * Deactivation hook logic.
 	 * Usually, we only flush rewrite rules here to avoid breaking permalinks.
 	 */
@@ -34,8 +49,10 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 		wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
 		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
-		// @removal 6.45.0 -- an event may still sit under a pre-#2323 name.
-		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy_hook ) {
+		// The names these hooks had before #2323. The relay that moved their
+		// events is gone, so an install that skipped the releases carrying it
+		// may still hold one; clearing it costs nothing.
+		foreach ( self::LEGACY_CRON_HOOKS as $legacy_hook ) {
 			wp_clear_scheduled_hook( $legacy_hook );
 		}
 		// A pending reminder batch would otherwise fire into code that is no
@@ -99,8 +116,10 @@ class Deactivator {
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
-		// @removal 6.45.0 -- an event may still sit under a pre-#2323 name.
-		foreach ( array_keys( \FreeFormCertificate\Core\ScheduledTasks::LEGACY_HOOKS ) as $legacy_hook ) {
+		// The names these hooks had before #2323. The relay that moved their
+		// events is gone, so an install that skipped the releases carrying it
+		// may still hold one; clearing it costs nothing.
+		foreach ( self::LEGACY_CRON_HOOKS as $legacy_hook ) {
 			wp_clear_scheduled_hook( $legacy_hook );
 		}
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();

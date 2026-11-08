@@ -497,10 +497,6 @@ class Loader {
 
 		new ActivityLogSubscriber();
 
-		// Move events still scheduled under a pre-#2323 name first, so the
-		// checks below find them instead of scheduling a second copy.
-		\FreeFormCertificate\Core\ScheduledTasks::migrate_legacy_hooks();
-
 		// Ensure daily cleanup cron is scheduled.
 		if ( ! wp_next_scheduled( 'ffc_daily_cleanup' ) ) {
 			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( 'ffc_daily_cleanup', time() ), 'daily', 'ffc_daily_cleanup' );

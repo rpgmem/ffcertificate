@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- ⚠ **The legacy cron hook names and the per-audience field seed are gone** (#2552, #2323, #2502). A callback attached to an `ffcertificate_*` cron name no longer runs; attach it to the `ffc_*` name. `ReregistrationStandardFieldsSeeder::seed_for_audience()` is removed; call `seed_global()`.
+
 ## [6.44.1] (2026-11-08) — `513f0c4`
 
 ### Fixed
