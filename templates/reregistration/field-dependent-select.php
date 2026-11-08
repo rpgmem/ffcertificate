@@ -7,7 +7,11 @@
  * prepares the locals and includes this file (method locals + self::
  * sibling renderers resolve in the including method scope).
  *
- * Expected in scope: $field_id, $field_name, $groups, $parent_label, $child_label, $parent, $child.
+ * Expected in scope: $field_id, $field_name, $groups, $parent_label, $child_label, $parent, $child, $required.
+ *
+ * Each select is named by its own label and carries `required` when the
+ * field is required (#2530): the hidden input holds the value, so it can be
+ * neither, and the browser had nothing to stop an empty pair.
  *
  * @package FreeFormCertificate\Reregistration
  * @since   6.16.0
@@ -32,8 +36,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="ffc-dependent-select" data-target="<?php echo esc_attr( $field_id ); ?>">
 			<div class="ffc-rereg-row ffc-rereg-row-2">
 				<div class="ffc-rereg-field">
-					<label><?php echo esc_html( (string) $parent_label ); ?></label>
-					<select class="ffc-dep-parent">
+					<label for="<?php echo esc_attr( $field_id . '-parent' ); ?>"><?php echo esc_html( (string) $parent_label ); ?></label>
+					<select id="<?php echo esc_attr( $field_id . '-parent' ); ?>" class="ffc-dep-parent"<?php echo $required ? ' required' : ''; ?>>
 						<option value=""><?php esc_html_e( 'Select', 'ffcertificate' ); ?></option>
 						<?php foreach ( array_keys( $groups ) as $group ) : ?>
 							<option value="<?php echo esc_attr( (string) $group ); ?>" <?php selected( $parent, (string) $group ); ?>><?php echo esc_html( (string) $group ); ?></option>
@@ -41,8 +45,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</select>
 				</div>
 				<div class="ffc-rereg-field">
-					<label><?php echo esc_html( (string) $child_label ); ?></label>
-					<select class="ffc-dep-child">
+					<label for="<?php echo esc_attr( $field_id . '-child' ); ?>"><?php echo esc_html( (string) $child_label ); ?></label>
+					<select id="<?php echo esc_attr( $field_id . '-child' ); ?>" class="ffc-dep-child"<?php echo $required ? ' required' : ''; ?>>
 						<option value=""><?php esc_html_e( 'Select', 'ffcertificate' ); ?></option>
 						<?php
 						if ( '' !== $parent && isset( $groups[ $parent ] ) ) {
