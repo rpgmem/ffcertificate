@@ -102,9 +102,14 @@ class RecruitmentCsvImporterBatchedTest extends TestCase {
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
 		Functions\when( 'current_time' )->justReturn( '2026-05-01 10:00:00' );
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
-		// `ffc_settings` is empty: the activity log is off and every Debug
-		// area is off, whatever an earlier test left behind.
-		Functions\when( 'get_option' )->justReturn( array() );
+		// The activity log is switched off by its own setting, and every Debug
+		// area is off, whatever an earlier test left behind. An empty
+		// `ffc_settings` is not enough: the log defaults to on (#2340), and
+		// entries other tests buffered would be flushed into this `$wpdb`
+		// double once the buffer reached its threshold (#2549).
+		Functions\when( 'get_option' )->alias(
+			static fn( $key ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => false ) : array()
+		);
 		Functions\when( 'do_action' )->justReturn( null );
 		Functions\when( 'wp_generate_uuid4' )->justReturn( 'job-uuid-1234' );
 		Functions\when( 'sanitize_text_field' )->returnArg();
