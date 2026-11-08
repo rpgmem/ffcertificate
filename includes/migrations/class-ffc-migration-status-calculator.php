@@ -6,7 +6,6 @@
  *
  * @package FreeFormCertificate\Migrations
  * @since 3.1.0 (Migration Manager refactor - Phase 2)
- * @version 5.0.0 - Retired 10 completed migrations, kept only split_cpf_rf
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace
  */
@@ -62,14 +61,9 @@ class MigrationStatusCalculator {
 	/**
 	 * Initialize all migration strategies
 	 *
-	 * V5.0.0: Only split_cpf_rf remains after retiring 10 completed migrations.
-	 *
 	 * @return void
 	 */
 	private function initialize_strategies(): void {
-		$this->try_create_strategy( 'split_cpf_rf' );
-		$this->try_create_strategy( 'email_hash_rehash' );
-
 		// Allow plugins to register custom strategies.
 		$this->strategies = apply_filters( 'ffcertificate_migration_strategies', $this->strategies );
 	}
@@ -90,64 +84,6 @@ class MigrationStatusCalculator {
 
 		try {
 			switch ( $migration_key ) {
-				case 'split_cpf_rf':
-					// Explicit include fallback — if the autoloader already attempted.
-					// to load the file and failed (e.g. OPcache served stale bytecode.
-					// with a syntax error), require_once won't retry. Using include.
-					// with class_exists guards ensures the file is always loaded.
-					$strategy_dir = __DIR__ . '/strategies/';
-					$core_dir     = dirname( __DIR__ ) . '/core/';
-
-					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
-						include $core_dir . 'class-ffc-database-helper-trait.php';
-					}
-					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
-					}
-					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\CpfRfSplitMigrationStrategy', false ) ) {
-						include $strategy_dir . 'class-ffc-cpf-rf-split-migration-strategy.php';
-					}
-
-					$this->strategies['split_cpf_rf'] = new \FreeFormCertificate\Migrations\Strategies\CpfRfSplitMigrationStrategy();
-					unset( $this->strategy_errors['split_cpf_rf'] );
-					break;
-
-				case 'email_hash_rehash':
-					$strategy_dir = __DIR__ . '/strategies/';
-					$core_dir     = dirname( __DIR__ ) . '/core/';
-
-					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
-						include $core_dir . 'class-ffc-database-helper-trait.php';
-					}
-					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
-					}
-					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\EmailHashRehashMigrationStrategy', false ) ) {
-						include $strategy_dir . 'class-ffc-email-hash-rehash-migration-strategy.php';
-					}
-
-					$this->strategies['email_hash_rehash'] = new \FreeFormCertificate\Migrations\Strategies\EmailHashRehashMigrationStrategy();
-					unset( $this->strategy_errors['email_hash_rehash'] );
-					break;
-
-				case 'activity_log_clear_plaintext':
-					$strategy_dir = __DIR__ . '/strategies/';
-					$core_dir     = dirname( __DIR__ ) . '/core/';
-
-					if ( ! trait_exists( '\\FreeFormCertificate\\Core\\DatabaseHelperTrait', false ) ) {
-						include $core_dir . 'class-ffc-database-helper-trait.php';
-					}
-					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
-					}
-					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ActivityLogClearPlaintextMigrationStrategy', false ) ) {
-						include $strategy_dir . 'class-ffc-activity-log-clear-plaintext-migration-strategy.php';
-					}
-
-					$this->strategies['activity_log_clear_plaintext'] = new \FreeFormCertificate\Migrations\Strategies\ActivityLogClearPlaintextMigrationStrategy();
-					unset( $this->strategy_errors['activity_log_clear_plaintext'] );
-					break;
-
 				case 'activity_log_encrypt_ip':
 					$strategy_dir = __DIR__ . '/strategies/';
 					$core_dir     = dirname( __DIR__ ) . '/core/';
@@ -415,33 +351,6 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['recruitment_pcd_per_notice'] );
 					break;
 
-				case 'import_legacy_templates':
-					$strategy_dir = __DIR__ . '/strategies/';
-
-					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
-					}
-					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\ImportLegacyTemplatesMigrationStrategy', false ) ) {
-						include $strategy_dir . 'class-ffc-import-legacy-templates-migration-strategy.php';
-					}
-
-					$this->strategies['import_legacy_templates'] = new \FreeFormCertificate\Migrations\Strategies\ImportLegacyTemplatesMigrationStrategy();
-					unset( $this->strategy_errors['import_legacy_templates'] );
-					break;
-
-				case 'rewrite_html_image_refs':
-					$strategy_dir = __DIR__ . '/strategies/';
-
-					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
-						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
-					}
-					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\RewriteHtmlImageRefsMigrationStrategy', false ) ) {
-						include $strategy_dir . 'class-ffc-rewrite-html-image-refs-migration-strategy.php';
-					}
-
-					$this->strategies['rewrite_html_image_refs'] = new \FreeFormCertificate\Migrations\Strategies\RewriteHtmlImageRefsMigrationStrategy();
-					unset( $this->strategy_errors['rewrite_html_image_refs'] );
-					break;
 			}
 		} catch ( \Throwable $e ) {
 			$this->strategy_errors[ $migration_key ] = $e->getMessage();

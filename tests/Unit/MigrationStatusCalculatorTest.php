@@ -13,9 +13,8 @@ use FreeFormCertificate\Migrations\MigrationStatusCalculator;
 /**
  * Tests for MigrationStatusCalculator: delegation to strategies.
  *
- * The constructor tries to instantiate CpfRfSplitMigrationStrategy which has
- * complex dependencies, so we bypass it using reflection and inject mock
- * strategies directly.
+ * Strategies are built lazily and need a `$wpdb`, so the tests bypass the
+ * constructor through reflection and inject mock strategies directly.
  *
  * The lazy strategy creation fails without a `$wpdb` global, which is the
  * branch the error-detail tests rely on; setUp() removes the global so the
@@ -53,8 +52,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 		Functions\when( 'is_wp_error' )->alias( function( $thing ) { return $thing instanceof \WP_Error; } );
 		Functions\when( 'apply_filters' )->alias( function() { $args = func_get_args(); return $args[1] ?? null; } );
 
-		// Create calculator WITHOUT calling constructor to avoid loading
-		// CpfRfSplitMigrationStrategy which has complex dependencies
+		// Create calculator WITHOUT calling constructor, so no strategy is built.
 		$this->ref = new \ReflectionClass( MigrationStatusCalculator::class );
 		$this->calculator = $this->ref->newInstanceWithoutConstructor();
 
@@ -100,10 +98,8 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_constructor_catches_strategy_initialization_errors(): void {
-		// The real constructor calls initialize_strategies() which tries to
-		// instantiate CpfRfSplitMigrationStrategy. In our test environment
-		// this will fail because the class has complex dependencies.
-		// The constructor should catch the Throwable and store the error.
+		// The real constructor calls initialize_strategies(), which only
+		// passes the strategies through the filter; nothing is built yet.
 		$registry = Mockery::mock( 'FreeFormCertificate\Migrations\MigrationRegistry' );
 
 		$calculator = new MigrationStatusCalculator( $registry );
@@ -125,12 +121,12 @@ class MigrationStatusCalculatorTest extends TestCase {
 	}
 
 	public function test_get_strategies_returns_injected_strategies(): void {
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
 		$strategies = $this->calculator->get_strategies();
 
-		$this->assertArrayHasKey( 'split_cpf_rf', $strategies );
-		$this->assertSame( $this->strategy, $strategies['split_cpf_rf'] );
+		$this->assertArrayHasKey( 'key_rotation', $strategies );
+		$this->assertSame( $this->strategy, $strategies['key_rotation'] );
 	}
 
 	// ==================================================================
@@ -164,36 +160,36 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'exists' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( true );
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'calculate_status' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( $expected_status );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->calculate( 'split_cpf_rf' );
+		$result = $this->calculator->calculate( 'key_rotation' );
 
 		$this->assertSame( $expected_status, $result );
 	}
 
 	public function test_calculate_with_missing_strategy_returns_wp_error(): void {
 		$this->registry->shouldReceive( 'exists' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( true );
 
 		// No strategy injected — strategies array is empty
 
-		$result = $this->calculator->calculate( 'split_cpf_rf' );
+		$result = $this->calculator->calculate( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );
@@ -201,7 +197,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 
 	public function test_calculate_with_missing_strategy_includes_error_detail(): void {
 		$this->registry->shouldReceive( 'exists' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( true );
 
@@ -211,12 +207,12 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// the Throwable and stores its message in strategy_errors. We can't
 		// pre-set a custom message because it will be overwritten, so assert
 		// that *some* error detail is appended to the WP_Error.
-		$result = $this->calculator->calculate( 'split_cpf_rf' );
+		$result = $this->calculator->calculate( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );
 		// Error detail separator ": " is only present when strategy_errors has an entry
-		$this->assertStringContainsString( 'split_cpf_rf: ', $result->get_error_message() );
+		$this->assertStringContainsString( 'key_rotation: ', $result->get_error_message() );
 	}
 
 	public function test_calculate_with_complete_migration(): void {
@@ -233,23 +229,23 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'exists' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( true );
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'calculate_status' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( $expected_status );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->calculate( 'split_cpf_rf' );
+		$result = $this->calculator->calculate( 'key_rotation' );
 
 		$this->assertTrue( $result['is_complete'] );
 		$this->assertSame( 100, $result['percent'] );
@@ -262,7 +258,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 
 	public function test_can_run_with_missing_strategy_returns_wp_error(): void {
 		// No strategy injected — will fail to find strategy
-		$result = $this->calculator->can_run( 'split_cpf_rf' );
+		$result = $this->calculator->can_run( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );
@@ -275,18 +271,18 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( true );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->can_run( 'split_cpf_rf' );
+		$result = $this->calculator->can_run( 'key_rotation' );
 
 		$this->assertTrue( $result );
 	}
@@ -300,18 +296,18 @@ class MigrationStatusCalculatorTest extends TestCase {
 		$can_run_error = new \WP_Error( 'prerequisite_failed', 'Column does not exist' );
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->once()
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( $can_run_error );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->can_run( 'split_cpf_rf' );
+		$result = $this->calculator->can_run( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'prerequisite_failed', $result->get_error_code() );
@@ -338,20 +334,20 @@ class MigrationStatusCalculatorTest extends TestCase {
 		$can_run_error = new \WP_Error( 'prerequisite_failed', 'Missing column' );
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( $can_run_error );
 
 		// execute should NOT be called since can_run returned an error
 		$this->strategy->shouldNotReceive( 'execute' );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->execute( 'split_cpf_rf' );
+		$result = $this->calculator->execute( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'prerequisite_failed', $result->get_error_code() );
@@ -359,7 +355,7 @@ class MigrationStatusCalculatorTest extends TestCase {
 
 	public function test_execute_with_missing_strategy_returns_wp_error(): void {
 		// No strategy injected — can_run will fail with strategy_not_found
-		$result = $this->calculator->execute( 'split_cpf_rf' );
+		$result = $this->calculator->execute( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'strategy_not_found', $result->get_error_code() );
@@ -377,22 +373,22 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( true );
 
 		$this->strategy->shouldReceive( 'execute' )
-			->with( 'split_cpf_rf', $migration_config, 0 )
+			->with( 'key_rotation', $migration_config, 0 )
 			->once()
 			->andReturn( $expected_result );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->execute( 'split_cpf_rf' );
+		$result = $this->calculator->execute( 'key_rotation' );
 
 		$this->assertSame( $expected_result, $result );
 	}
@@ -409,22 +405,22 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( true );
 
 		$this->strategy->shouldReceive( 'execute' )
-			->with( 'split_cpf_rf', $migration_config, 5 )
+			->with( 'key_rotation', $migration_config, 5 )
 			->once()
 			->andReturn( $expected_result );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->execute( 'split_cpf_rf', 5 );
+		$result = $this->calculator->execute( 'key_rotation', 5 );
 
 		$this->assertSame( $expected_result, $result );
 	}
@@ -440,22 +436,22 @@ class MigrationStatusCalculatorTest extends TestCase {
 		);
 
 		$this->registry->shouldReceive( 'get_migration' )
-			->with( 'split_cpf_rf' )
+			->with( 'key_rotation' )
 			->andReturn( $migration_config );
 
 		$this->strategy->shouldReceive( 'can_run' )
-			->with( 'split_cpf_rf', $migration_config )
+			->with( 'key_rotation', $migration_config )
 			->once()
 			->andReturn( true );
 
 		$this->strategy->shouldReceive( 'execute' )
-			->with( 'split_cpf_rf', $migration_config, 0 )
+			->with( 'key_rotation', $migration_config, 0 )
 			->once()
 			->andReturn( $expected_result );
 
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->execute( 'split_cpf_rf' );
+		$result = $this->calculator->execute( 'key_rotation' );
 
 		$this->assertSame( $expected_result, $result );
 	}
@@ -471,10 +467,10 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// just verify that the WP_Error message contains SOME error detail
 		// (signalled by the ": " separator that only appears when a strategy
 		// error is present).
-		$result = $this->calculator->can_run( 'split_cpf_rf' );
+		$result = $this->calculator->can_run( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
-		$this->assertStringContainsString( 'split_cpf_rf: ', $result->get_error_message() );
+		$this->assertStringContainsString( 'key_rotation: ', $result->get_error_message() );
 	}
 
 	public function test_strategy_not_found_without_error_detail(): void {
@@ -570,9 +566,6 @@ class MigrationStatusCalculatorTest extends TestCase {
 	public function lazy_strategy_provider(): array {
 		$ns = 'FreeFormCertificate\\Migrations\\Strategies\\';
 		return array(
-			'split_cpf_rf'                    => array( 'split_cpf_rf', $ns . 'CpfRfSplitMigrationStrategy' ),
-			'email_hash_rehash'               => array( 'email_hash_rehash', $ns . 'EmailHashRehashMigrationStrategy' ),
-			'activity_log_clear_plaintext'    => array( 'activity_log_clear_plaintext', $ns . 'ActivityLogClearPlaintextMigrationStrategy' ),
 			'activity_log_encrypt_ip'         => array( 'activity_log_encrypt_ip', $ns . 'ActivityLogEncryptIpMigrationStrategy' ),
 			'activity_log_location_cleanup'   => array( 'activity_log_location_cleanup', $ns . 'ActivityLogLocationCleanupMigrationStrategy' ),
 			'rate_limit_logs_encrypt_ip'      => array( 'rate_limit_logs_encrypt_ip', $ns . 'RateLimitLogsEncryptIpMigrationStrategy' ),
@@ -585,8 +578,6 @@ class MigrationStatusCalculatorTest extends TestCase {
 			'name_parts_backfill'             => array( 'name_parts_backfill', $ns . 'NamePartsBackfillMigrationStrategy' ),
 			'birth_date_backfill'             => array( 'birth_date_backfill', $ns . 'BirthDateBackfillMigrationStrategy' ),
 			'rereg_draft_encryption'          => array( 'rereg_draft_encryption', $ns . 'ReregistrationDraftEncryptionMigrationStrategy' ),
-			'import_legacy_templates'         => array( 'import_legacy_templates', $ns . 'ImportLegacyTemplatesMigrationStrategy' ),
-			'rewrite_html_image_refs'         => array( 'rewrite_html_image_refs', $ns . 'RewriteHtmlImageRefsMigrationStrategy' ),
 		);
 	}
 
@@ -633,10 +624,10 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_rearm_returns_wp_error_when_strategy_is_missing(): void {
-		// A key no case of try_create_strategy() builds. `split_cpf_rf` was used
-		// here once and is the missing case only in a fresh process: in a shared
-		// one an earlier test has loaded what its constructor needs, so the lazy
-		// resolution succeeds and the verb check answers instead.
+		// A key no case of try_create_strategy() builds. A real key is the
+		// missing case only in a fresh process: in a shared one an earlier test
+		// has loaded what its constructor needs, so the lazy resolution
+		// succeeds and the verb check answers instead.
 		$result = $this->calculator->rearm( 'no_such_card' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
@@ -647,9 +638,9 @@ class MigrationStatusCalculatorTest extends TestCase {
 		// The interface mock declares the four contract methods and no more, so
 		// `method_exists` answers false -- which is the production condition for
 		// every card but the one that implements it.
-		$this->injectStrategy( 'split_cpf_rf' );
+		$this->injectStrategy( 'key_rotation' );
 
-		$result = $this->calculator->rearm( 'split_cpf_rf' );
+		$result = $this->calculator->rearm( 'key_rotation' );
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'migration_not_rearmable', $result->get_error_code() );

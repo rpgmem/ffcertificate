@@ -672,7 +672,7 @@ The account it could never clear held the capability through a **role**. A role'
 
 **So the rule is about the counter, not about the query.** A cursor-free batch terminates only when its processing provably negates its own pending predicate — and proving that for every future edit is not something a reviewer can keep doing. Count what **changed**: then a batch that changes nothing returns zero and stops, whatever the predicate later drifts into. Termination must not depend on the measure being right, because the measure is the part that goes wrong.
 
-**All eleven strategies were checked against it, and each of the other ten is safe by one of three means** — worth knowing which, because they are not interchangeable:
+**All eleven strategies were checked against it when #1378 measured it, and each of the other ten was safe by one of three means** — worth knowing which, because they are not interchangeable. Five of those ten were one-shot cards that left in 6.45.0 (#2552); they stay named here because each is the example of its means:
 
 - **A cursor or keyset** (`identity_normalization`, both key rotations, `email_hash_rehash`, `identity_index_backfill`, `activity_log_clear_plaintext`) — advances whatever the work does.
 - **A write that negates the predicate** (`cpf_rf_split`) — it filters on `cpf_rf_hash IS NOT NULL` and writes `NULL` into that very column, *and* increments only on a successful `update()`. Both halves are needed: the second is what the looping card lacked.

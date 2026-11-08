@@ -1209,10 +1209,6 @@ msgstr ""
 msgid "Activity Log Plaintext Cleanup Batch"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:169
-msgid "Activity log plaintext leak: nothing left to clear."
-msgstr ""
-
 #: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:221
 msgid "Activity log table is missing — re-activate the plugin to create it."
 msgstr ""
@@ -1223,14 +1219,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:28
 msgid "Activity Log tracks important actions in your system for audit and compliance purposes (LGPD)."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:233
-msgid "Activity Log: Clear Plaintext Context on Encrypted Rows"
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:88
-msgid "Activity Log: Clear Plaintext on Encrypted Rows"
 msgstr ""
 
 #: includes/admin/views/ffc-admin-activity-log.php:20
@@ -3910,11 +3898,6 @@ msgstr ""
 msgid "Clear WordPress cache"
 msgstr ""
 
-#. %d: number of activity log rows whose plaintext context column was nulled.
-#: includes/migrations/strategies/class-ffc-activity-log-clear-plaintext-migration-strategy.php:205
-msgid "Cleared plaintext context on %d activity log rows."
-msgstr ""
-
 
 #. %s: number of pending records
 #: includes/settings/views/ffc-tab-migrations.php:258
@@ -4467,12 +4450,6 @@ msgstr ""
 msgid "Could not decrypt %1$s on reregistration submission %2$d — left unchanged (the key may be unrecoverable)."
 msgstr ""
 
-#. 1: record ID, 2: table name
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:332
-#, php-format
-msgid "Could not decrypt email for ID %1$d in %2$s"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:132
 msgid "Could not delete the adjutancy. Please try again."
 msgstr ""
@@ -4505,24 +4482,12 @@ msgstr ""
 msgid "Could not read CSV file."
 msgstr ""
 
-#. %s: template filename
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:144
-#, php-format
-msgid "Could not read legacy template file: %s"
-msgstr ""
-
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:154
 msgid "Could not register the call. Please try again."
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:147
 msgid "Could not remove the classification entry. Please try again."
-msgstr ""
-
-#. 1: record ID, 2: table name
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:306
-#, php-format
-msgid "Could not resolve plain value for ID %1$d in %2$s"
 msgstr ""
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:137
@@ -4689,10 +4654,6 @@ msgstr ""
 
 #: includes/frontend/submission/class-ffc-field-sanitizer.php:65
 msgid "CPF/RF must be exactly 7 or 11 digits."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:191
-msgid "CPF/RF Split Migration"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-activity-log-page.php:312
@@ -6346,14 +6307,6 @@ msgstr ""
 msgid "Email Handler"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:221
-msgid "Email Hash Rehash"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:142
-msgid "Email hash rehash already completed."
-msgstr ""
-
 #: includes/admin/class-ffc-admin-activity-log-page.php:314
 msgid "Email Hash Rehash Batch"
 msgstr ""
@@ -6648,14 +6601,6 @@ msgstr ""
 msgid "Encryption at rest (LGPD):"
 msgstr ""
 
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:162
-msgid "Encryption class not found. Required for CPF/RF split migration."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:201
-msgid "Encryption class not found. Required for email hash rehash migration."
-msgstr ""
-
 #: includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php:269
 msgid "Encryption class not found. Required for key rotation."
 msgstr ""
@@ -6690,14 +6635,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-advanced.php:694
 msgid "Encryption key source"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:169
-msgid "Encryption keys not configured. Required for CPF/RF split migration."
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:208
-msgid "Encryption keys not configured. Required for email hash rehash migration."
 msgstr ""
 
 #: includes/migrations/strategies/class-ffc-key-rotation-migration-strategy.php:276
@@ -8436,18 +8373,6 @@ msgstr ""
 msgid "Failed to fetch logs."
 msgstr ""
 
-#. 1: file path, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:392
-#, php-format
-msgid "Failed to import html/ file \"%1$s\" into the Media Library (%2$s)"
-msgstr ""
-
-#. %s: template filename
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:153
-#, php-format
-msgid "Failed to import legacy template: %s"
-msgstr ""
-
 #: includes/reregistration/class-ffc-reregistration-admin.php:224
 msgid "Failed to load submission details."
 msgstr ""
@@ -9903,10 +9828,6 @@ msgstr ""
 msgid "Import candidates (CSV)"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:100
-msgid "Import certificate layouts left in the plugin's html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once."
-msgstr ""
-
 #. 1: number imported, 2: number skipped
 #: includes/audience/class-ffc-audience-admin-import.php:344 includes/audience/class-ffc-audience-admin-import.php:391
 #, php-format
@@ -9919,10 +9840,6 @@ msgstr ""
 
 #: templates/admin/recruitment/notice-edit/csv-import-section.php:29
 msgid "Import is disabled for notices in `definitive` or `closed` status. Move the notice back to `preliminary` (allowed only when zero calls have been issued) to re-import."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:99 includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:198
-msgid "Import Legacy Certificate Templates"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-import.php:70 includes/audience/class-ffc-audience-admin-import.php:135
@@ -9943,11 +9860,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:50
 msgid "Important:"
-msgstr ""
-
-#. %d: number of templates imported
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:170
-msgid "Imported %d legacy certificate template(s)"
 msgstr ""
 
 #: includes/api/class-ffc-user-reregistrations-rest-controller.php:89 includes/reregistration/class-ffc-reregistration-submission-reader.php:60
@@ -11507,12 +11419,6 @@ msgstr ""
 msgid "Missing form id."
 msgstr ""
 
-#. 1: file path, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:386
-#, php-format
-msgid "Missing html/ file \"%1$s\" (%2$s)"
-msgstr ""
-
 #: includes/settings/views/ffc-tab-advanced.php:598
 msgid "Missing keys"
 msgstr ""
@@ -11589,10 +11495,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-admin.php:407
 msgid "Move failed: the selected target form does not exist."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:112
-msgid "Move images referenced from the legacy html/ folder into the Media Library and update stored certificate layouts, backgrounds and template-pool bodies to point at the new attachments. Idempotent; missing files are reported as errors."
 msgstr ""
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:334
@@ -11776,10 +11678,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:541
 msgid "New close time:"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:178
-msgid "New cpf/rf columns not found. Please re-activate the plugin to create them."
 msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:560
@@ -12316,10 +12214,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:528
 msgid "now"
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:89
-msgid "NULL the plaintext context column on activity log rows that already store the JSON in context_encrypted."
 msgstr ""
 
 #: includes/admin/class-ffc-form-editor-builder-metabox.php:78 includes/admin/class-ffc-admin-assets-manager.php:620 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:264 includes/reregistration/class-ffc-custom-field-reader.php:77
@@ -14108,10 +14002,6 @@ msgstr ""
 msgid "Recommended: 100-200px for certificates"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:66
-msgid "Recompute email_hash with the salted Encryption::hash() so lookups match cross-table writes."
-msgstr ""
-
 #: includes/settings/views/ffc-tab-rate-limit.php:446
 msgid "Record blocked device-fingerprint attempts in the rate-limit log"
 msgstr ""
@@ -14275,15 +14165,6 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:25
 msgid "Regular:"
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:65
-msgid "Rehash Email Lookup Hashes"
-msgstr ""
-
-#. %d: number of records rehashed
-#: includes/migrations/strategies/class-ffc-email-hash-rehash-migration-strategy.php:185
-msgid "Rehashed email_hash for %d records"
 msgstr ""
 
 #: templates/admin/reregistration/submission-row.php:36
@@ -14870,17 +14751,8 @@ msgstr ""
 msgid "Revoke all"
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:111 includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:207
-msgid "Rewrite html/ Image References"
-msgstr ""
-
 #: includes/settings/views/documentation/developer-hooks-api.php:35
 msgid "Rewrite the certificate HTML before it is rendered to PDF."
-msgstr ""
-
-#. %d: number of posts rewritten
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:185
-msgid "Rewrote html/ image references on %d item(s)"
 msgstr ""
 
 #: includes/admin/class-ffc-submissions-export-source.php:364 includes/admin/class-ffc-admin-submission-edit-page.php:461 includes/reregistration/class-ffc-reregistration-standard-fields-seeder.php:150 includes/frontend/class-ffc-verification-response-renderer.php:461 templates/public/recruitment/section-open.php:41 includes/self-scheduling/views/appointments-list.php:265 includes/frontend/csv/class-ffc-public-csv-row-formatter.php:71 templates/admin/recruitment/candidate-edit/sensitive-section.php:46
@@ -15770,10 +15642,6 @@ msgstr ""
 msgid "Sent when a candidate is called — subject/body edited globally in the hub above."
 msgstr ""
 
-#: includes/migrations/class-ffc-migration-registry.php:56
-msgid "Separate combined CPF/RF column into individual CPF and RF columns"
-msgstr ""
-
 #: includes/admin/class-ffc-admin-conditional-assets.php:206 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:183 includes/audience/class-ffc-audience-shortcode.php:813
 msgid "September"
 msgstr ""
@@ -16300,15 +16168,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:355
 msgid "Something went wrong while building the PDF. Try again — if it keeps failing, use a different browser or contact the organizer."
-msgstr ""
-
-#: includes/migrations/class-ffc-migration-registry.php:55
-msgid "Split CPF/RF"
-msgstr ""
-
-#. %d: number of records migrated
-#: includes/migrations/strategies/class-ffc-cpf-rf-split-migration-strategy.php:143
-msgid "Split CPF/RF for %d records"
 msgstr ""
 
 #: includes/audience/class-ffc-audience-admin-audience-renderer.php:521
@@ -16961,10 +16820,6 @@ msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:697
 msgid "Template options"
-msgstr ""
-
-#: includes/migrations/strategies/class-ffc-import-legacy-templates-migration-strategy.php:186
-msgid "Template pool writer not found. Required to import legacy templates."
 msgstr ""
 
 #: includes/admin/class-ffc-cert-template-admin-screen.php:610
@@ -18546,12 +18401,6 @@ msgstr ""
 
 #: includes/settings/views/ffc-tab-migrations.php:903
 msgid "Unlinked but CPF matches a linked record"
-msgstr ""
-
-#. 1: reference URL, 2: context
-#: includes/migrations/strategies/class-ffc-rewrite-html-image-refs-migration-strategy.php:378
-#, php-format
-msgid "Unrecognized html/ reference \"%1$s\" (%2$s)"
 msgstr ""
 
 #: includes/admin/class-ffc-admin-ajax.php:119
