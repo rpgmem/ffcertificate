@@ -9798,8 +9798,8 @@ msgstr "https://github.com/rpgmem/ffcertificate"
 #. %s: value
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:639
 #, php-format
-msgid "I agree to the collection and processing of my personal data in accordance with the <a href=\"%s\" target=\"_blank\">Privacy Policy</a> (LGPD)."
-msgstr "Concordo com a coleta e processamento dos meus dados pessoais de acordo com a <a href=\"%s\" target=\"_blank\">Política de Privacidade</a> (LGPD)."
+msgid "I agree to the collection and processing of my personal data in accordance with the %s (LGPD)."
+msgstr "Concordo com a coleta e processamento dos meus dados pessoais de acordo com a %s (LGPD)."
 
 #: includes/audience/class-ffc-audience-shortcode.php:402
 msgid "I am aware of the conflicts and want to proceed."

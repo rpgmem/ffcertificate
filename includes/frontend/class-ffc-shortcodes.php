@@ -17,6 +17,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Frontend;
 
 use FreeFormCertificate\Core\Button;
+use FreeFormCertificate\Core\PrivacyPolicyLink;
 use FreeFormCertificate\Core\Utils;
 use FreeFormCertificate\Core\RequestInput;
 
@@ -414,7 +415,7 @@ class Shortcodes {
 								sprintf(
 								/* translators: %s: Privacy Policy page link */
 									esc_html__( 'I have read and agree to the %s and authorize the storage of my personal data for certificate issuance.', 'ffcertificate' ),
-									'<a href="' . esc_url( get_privacy_policy_url() ) . '" target="_blank">' . esc_html__( 'Privacy Policy', 'ffcertificate' ) . '</a>'
+									PrivacyPolicyLink::html()
 								)
 							);
 							?>
