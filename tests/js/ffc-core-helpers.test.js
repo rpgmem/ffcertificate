@@ -5,7 +5,7 @@
 //   - isModuleLoaded / registerModule / getModules
 //   - ajax() (legacy callback helper)
 //   - toggleFields() (checkbox / select / radio, slide + invert paths)
-//   - the delegated [data-confirm] click guard
+//   - the delegated [data-confirm] click guard (asked in FFC.confirmDialog)
 //
 // FFC.request / FFC.rest have their own suites (ffc-request, ffc-rest,
 // ffc-core-nonce-*). This file targets the remaining surface.
@@ -213,20 +213,61 @@ describe('ffc-core.js — toggleFields()', () => {
 });
 
 describe('ffc-core.js — delegated [data-confirm] guard', () => {
-	it('prevents default when confirm() is cancelled, allows it when accepted', async () => {
+	const settle = () => new Promise((r) => setTimeout(r, 0));
+	// Every load() binds one more delegated handler, each to its own module;
+	// keep only the one of the copy under test.
+	async function loadFresh() {
+		window.$(document).off('click', '[data-confirm]');
 		await load();
+	}
+
+	it('asks in the plugin dialog, never confirm(), and replays the click once on yes (#2535)', async () => {
+		await loadFresh();
 		document.body.innerHTML = '<a href="#" data-confirm="Sure?" id="danger">x</a>';
+		const nativeSpy = vi.spyOn(window, 'confirm');
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
+		// A listener after the core's sees whether each click was prevented.
+		const clicks = [];
+		const record = (e) => { if (e.target.id === 'danger') { clicks.push(e.defaultPrevented); } };
+		document.addEventListener('click', record);
 
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		let ev = window.$.Event('click');
-		window.$('#danger').trigger(ev);
-		expect(confirmSpy).toHaveBeenCalledWith('Sure?');
-		expect(ev.isDefaultPrevented()).toBe(true);
+		document.getElementById('danger').click();
+		expect(clicks).toEqual([true]);
+		expect(dialog.mock.calls[0][0]).toMatchObject({ message: 'Sure?', category: 'danger', icon: 'delete' });
+		await settle();
+		// Declined: nothing is replayed.
+		expect(clicks).toEqual([true]);
 
-		confirmSpy.mockReturnValue(true);
-		ev = window.$.Event('click');
-		window.$('#danger').trigger(ev);
-		expect(ev.isDefaultPrevented()).toBe(false);
+		dialog.mockReturnValue(Promise.resolve(true));
+		document.getElementById('danger').click();
+		await settle();
+		document.removeEventListener('click', record);
+		// Accepted: the click runs again, this time not prevented, and the marker is spent.
+		expect(clicks).toEqual([true, true, false]);
+		expect(document.getElementById('danger').hasAttribute('data-ffc-confirmed')).toBe(false);
+		expect(dialog).toHaveBeenCalledTimes(2);
+		expect(nativeSpy).not.toHaveBeenCalled();
+	});
+
+	it('takes the category and icon from the element', async () => {
+		await loadFresh();
+		document.body.innerHTML = '<a href="#" data-confirm="Clear?" data-confirm-category="caution" data-confirm-icon="eraser" id="c">x</a>';
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
+
+		document.getElementById('c').click();
+
+		expect(dialog.mock.calls[0][0]).toMatchObject({ message: 'Clear?', category: 'caution', icon: 'eraser' });
+	});
+
+	it('leaves an element alone when its own script already took the click', async () => {
+		await loadFresh();
+		document.body.innerHTML = '<button type="button" data-confirm="Mine?" id="own">x</button>';
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog');
+		document.getElementById('own').addEventListener('click', (e) => e.preventDefault());
+
+		document.getElementById('own').click();
+
+		expect(dialog).not.toHaveBeenCalled();
 	});
 });
 

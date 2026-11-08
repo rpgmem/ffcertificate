@@ -47,6 +47,8 @@ function installDom() {
 	`;
 }
 
+let savedFFC;
+
 beforeEach(() => {
 	window.$.fx.off = true;
 	document.body.innerHTML = '';
@@ -65,12 +67,14 @@ beforeEach(() => {
 		sampleLink: 'Link',
 		confirmRestore: 'Sure?',
 	};
-	window.confirm = () => true;
+	// The restore question is asked in the plugin's dialog (#2535).
+	savedFFC = window.FFC;
+	window.FFC = Object.assign({}, savedFFC || {}, { confirmDialog: () => Promise.resolve(true) });
 });
 
 afterEach(() => {
 	delete window.ffcEmailModel;
-	delete window.confirm;
+	window.FFC = savedFFC;
 	delete window.wp;
 	// wp-color-picker is an optional jQuery plugin: some tests define a stub of
 	// it on the shared jsdom `$.fn`. Remove it so it never leaks into the tests
@@ -149,16 +153,18 @@ describe('ffc-email-model', () => {
 		window.$('[data-ffc-model-field="header_bg"]').val('#000000');
 		window.$('[data-ffc-model-field="body_max_width"]').val('900');
 		window.$('.ffc-email-model-restore').trigger('click');
+		await Promise.resolve();
 		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#2271b1');
 		expect(window.$('[data-ffc-model-field="body_max_width"]').val()).toBe('600');
 	});
 
-	it('does not restore when the confirm is cancelled', async () => {
+	it('does not restore when the dialog is declined', async () => {
 		installDom();
-		window.confirm = () => false;
+		window.FFC.confirmDialog = () => Promise.resolve(false);
 		await loadOnReady();
 		window.$('[data-ffc-model-field="header_bg"]').val('#000000');
 		window.$('.ffc-email-model-restore').trigger('click');
+		await Promise.resolve();
 		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#000000');
 	});
 
@@ -178,6 +184,7 @@ describe('ffc-email-model', () => {
 		// (not a plain .val()); the stub mirrors the value so it reads back.
 		window.$('[data-ffc-model-field="header_bg"]').val('#000000');
 		window.$('.ffc-email-model-restore').trigger('click');
+		await Promise.resolve();
 		expect(window.$('[data-ffc-model-field="header_bg"]').val()).toBe('#2271b1');
 	});
 

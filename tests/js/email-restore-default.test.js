@@ -1,7 +1,7 @@
 // Tests for `assets/js/ffc-email-restore-default.js`.
 //
 // Generic "Restore Default Text" button: restores a wp_editor's content to the
-// localized default (after a confirm), in both TinyMCE and textarea modes.
+// localized default (after the plugin dialog asks), in both TinyMCE and textarea modes.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadScript } from './helpers.js';
 
@@ -19,19 +19,23 @@ function installDom() {
 	`;
 }
 
+let savedFFC;
+
 beforeEach(() => {
 	window.$.fx.off = true;
 	document.body.innerHTML = '';
 	window.ffcEmailRestoreDefaults = {
 		recruitment_body: { body: 'DEFAULT_TEMPLATE', confirm: 'Sure?' },
 	};
-	window.confirm = () => true;
+	// The restore question is asked in the plugin's dialog (#2535).
+	savedFFC = window.FFC;
+	window.FFC = Object.assign({}, savedFFC || {}, { confirmDialog: () => Promise.resolve(true) });
 });
 
 afterEach(() => {
 	delete window.ffcEmailRestoreDefaults;
 	delete window.tinymce;
-	delete window.confirm;
+	window.FFC = savedFFC;
 });
 
 describe('ffc-email-restore-default', () => {
@@ -44,6 +48,7 @@ describe('ffc-email-restore-default', () => {
 		installDom();
 		await loadOnReady();
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 		expect(window.$('#ffc_rs_body').val()).toBe('DEFAULT_TEMPLATE');
 	});
 
@@ -66,6 +71,7 @@ describe('ffc-email-restore-default', () => {
 		await loadOnReady();
 
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 
 		expect(window.$('#ffc_rs_subject').val()).toBe('DEFAULT_SUBJECT');
 		expect(window.$('#ffc_rs_body').val()).toBe('DEFAULT_TEMPLATE');
@@ -78,15 +84,17 @@ describe('ffc-email-restore-default', () => {
 		await loadOnReady();
 
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 
 		expect(window.$('#ffc_rs_subject').val()).toBe('edited subject');
 	});
 
-	it('does nothing when the confirm is cancelled', async () => {
+	it('does nothing when the dialog is declined', async () => {
 		installDom();
-		window.confirm = () => false;
+		window.FFC.confirmDialog = () => Promise.resolve(false);
 		await loadOnReady();
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 		expect(window.$('#ffc_rs_body').val()).toBe('edited by user');
 	});
 
@@ -107,6 +115,7 @@ describe('ffc-email-restore-default', () => {
 		};
 		await loadOnReady();
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 		expect(setTo).toBe('DEFAULT_TEMPLATE');
 		expect(saved).toBe(true);
 	});
@@ -124,6 +133,7 @@ describe('ffc-email-restore-default', () => {
 		};
 		await loadOnReady();
 		window.$('.ffc-email-restore-default').trigger('click');
+		await Promise.resolve();
 		expect(window.$('#ffc_rs_body').val()).toBe('DEFAULT_TEMPLATE');
 	});
 });
