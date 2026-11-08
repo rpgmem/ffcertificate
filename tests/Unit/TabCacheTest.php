@@ -111,6 +111,7 @@ class TabCacheTest extends TestCase {
 
 	public function test_enqueue_scripts_enqueues_on_cache_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'cache' );
+		Functions\when( 'admin_url' )->returnArg();
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias( function ( $h ) use ( &$handles ) {

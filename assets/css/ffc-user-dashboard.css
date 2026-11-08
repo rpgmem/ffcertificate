@@ -196,6 +196,19 @@
     background: transparent;
 }
 
+/* The Messages tab's count of current announcements (#2503). */
+.ffc-tab-count {
+    min-width: 1.5em;
+    padding: 0 var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-primary);
+    color: var(--ffc-text-on-primary);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: center;
+}
+
 /* ==========================================================================
    TAB CONTENT
    ========================================================================== */
@@ -2172,4 +2185,127 @@
 .ffc-set-password-actions .ffc-btn {
     width: 100%;
     font-weight: 600;
+}
+
+/* ==========================================================================
+   MESSAGES TAB (#2503)
+   The list beside the preferences; one column on a phone.
+   ========================================================================== */
+
+.ffc-messages {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: var(--ffc-spacing-2xl);
+    align-items: start;
+}
+
+.ffc-messages > .ffc-profile-section {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.ffc-messages-section + .ffc-messages-section {
+    margin-top: var(--ffc-spacing-2xl);
+    padding-top: var(--ffc-spacing-lg);
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-messages-hint,
+.ffc-messages-none,
+.ffc-messages-empty {
+    margin: 0 0 var(--ffc-spacing-md);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-messages-empty {
+    display: flex;
+    gap: var(--ffc-spacing-sm);
+    align-items: center;
+}
+
+.ffc-message-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-message-item {
+    padding: var(--ffc-spacing-md) 0;
+    border-top: 1px solid var(--ffc-border-light);
+}
+
+.ffc-message-item:first-child {
+    border-top: none;
+}
+
+.ffc-message-head {
+    display: flex;
+    gap: var(--ffc-spacing-md);
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.ffc-message-title {
+    min-width: 0;
+}
+
+.ffc-message-subject {
+    font-weight: 600;
+    color: var(--ffc-text);
+    overflow-wrap: anywhere;
+}
+
+.ffc-message-kind {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-xs);
+    padding: 0 var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-message-kind-announcement {
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+}
+
+.ffc-message-kind-dated {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+}
+
+.ffc-message-meta {
+    display: block;
+    margin-top: var(--ffc-spacing-2xs);
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+}
+
+.ffc-message-body {
+    margin-top: var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border-radius: var(--ffc-radius-md);
+    background: var(--ffc-bg-alt);
+    color: var(--ffc-text);
+    overflow-wrap: anywhere;
+}
+
+.ffc-message-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+.ffc-message-pref-desc {
+    display: block;
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 400;
+}
+
+@media (max-width: 782px) {
+    .ffc-messages {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

@@ -460,6 +460,7 @@ class SettingsTabTest extends TestCase {
 			return true;
 		} );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'autosave-nonce' );
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp/wp-admin/' . $p );
 
 		$tab->public_enqueue_autosave_infra();
 
@@ -468,6 +469,7 @@ class SettingsTabTest extends TestCase {
 		$this->assertContains( 'ffc-section-collapse', $handles );
 		$this->assertArrayHasKey( 'ffcAdminAutosave', $localized );
 		$this->assertSame( 'autosave-nonce', $localized['ffcAdminAutosave']['nonce'] );
+		$this->assertSame( 'https://example.org/wp/wp-admin/admin-ajax.php', $localized['ffcAdminAutosave']['ajaxUrl'], 'The autosave posts where the site really answers (#2503).' );
 		// #1116: the widget's badge strings were English literals baked into
 		// the JS on this half, while the form-editor half was translated.
 		// One widget with a translated half is worse than two, so both

@@ -135,14 +135,25 @@ if ( DateMessagesAdminPage::can_view_pii() ) {
 	);
 }
 
+$ffc_dm_notice_n    = \FreeFormCertificate\DateMessages\UserMessages::notice_days();
+$ffc_dm_notice_days = sprintf(
+	/* translators: %d: number of days */
+	_n( '%d day', '%d days', $ffc_dm_notice_n, 'ffcertificate' ),
+	$ffc_dm_notice_n
+);
 AdminDashboard::section_card(
-	'ffc-icon-clock',
-	__( 'Schedule', 'ffcertificate' ),
-	AdminDashboard::figures( array( __( 'Daily send time', 'ffcertificate' ) => $send_time ) ),
+	'ffc-icon-settings',
+	__( 'Settings', 'ffcertificate' ),
+	AdminDashboard::figures(
+		array(
+			__( 'Daily send time', 'ffcertificate' ) => $send_time,
+			__( 'Announcements on the user dashboard', 'ffcertificate' ) => $ffc_dm_notice_days,
+		)
+	),
 	array(
 		array(
 			'label' => __( 'Open', 'ffcertificate' ),
-			'icon'  => 'clock',
+			'icon'  => 'settings',
 			'href'  => DateMessagesAdminPage::section_url( 'settings' ),
 		),
 	)
