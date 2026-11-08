@@ -150,7 +150,17 @@ final class NativeDialogRatchetTest extends TestCase {
 	 */
 	public function test_the_audience_booking_flows_open_no_native_dialog(): void {
 		$found = NativeDialogs::found();
-		foreach ( array( 'assets/js/ffc-audience-booking-form.js', 'assets/js/ffc-audience-bookings.js' ) as $file ) {
+		$clear = array(
+			'assets/js/ffc-audience-booking-form.js',
+			'assets/js/ffc-audience-bookings.js',
+			// The public pages (#2535): what a visitor or a member sees.
+			'assets/js/ffc-user-dashboard-audience-join.js',
+			'assets/js/ffc-user-dashboard-profile.js',
+			'assets/js/ffc-reregistration-frontend.js',
+			'assets/js/ffc-self-scheduling-receipt.js',
+			'assets/js/ffc-pdf-generator.js',
+		);
+		foreach ( $clear as $file ) {
 			$this->assertArrayNotHasKey( $file, $found, $file . ' opens a native dialog again.' );
 		}
 		$this->assertArrayNotHasKey( 'prompt', $found['assets/js/ffc-audience-admin.js'] ?? array(), 'The admin cancellation asks its reason in a prompt() again.' );

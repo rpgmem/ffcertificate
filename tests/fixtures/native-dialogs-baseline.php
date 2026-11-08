@@ -72,9 +72,6 @@ return array(
 	'assets/js/ffc-locations-crud.js' => array(
 		'confirm' => 1,
 	),
-	'assets/js/ffc-pdf-generator.js' => array(
-		'alert' => 1,
-	),
 	'assets/js/ffc-recruitment-admin.js' => array(
 		'alert' => 2,
 	),
@@ -91,9 +88,6 @@ return array(
 		'alert' => 2,
 		'confirm' => 1,
 	),
-	'assets/js/ffc-reregistration-frontend.js' => array(
-		'confirm' => 2,
-	),
 	'assets/js/ffc-role-editor.js' => array(
 		'alert' => 4,
 	),
@@ -101,20 +95,11 @@ return array(
 		'alert' => 2,
 		'prompt' => 1,
 	),
-	'assets/js/ffc-self-scheduling-receipt.js' => array(
-		'alert' => 1,
-	),
 	'assets/js/ffc-url-shortener-admin.js' => array(
 		'confirm' => 1,
 	),
 	'assets/js/ffc-user-capabilities.js' => array(
 		'alert' => 2,
-	),
-	'assets/js/ffc-user-dashboard-audience-join.js' => array(
-		'confirm' => 3,
-	),
-	'assets/js/ffc-user-dashboard-profile.js' => array(
-		'confirm' => 1,
 	),
 	'includes/audience/class-ffc-audience-admin-audience-renderer.php' => array(
 		'confirm' => 1,

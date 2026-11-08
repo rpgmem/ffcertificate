@@ -213,6 +213,7 @@ class DashboardAssetManager {
 					'draftSaved'        => __( 'Draft saved.', 'ffcertificate' ),
 					'draftAutoSaved'    => __( 'Draft saved automatically.', 'ffcertificate' ),
 					'cancelConfirm'     => __( 'Close the form? Changes not saved yet will be lost.', 'ffcertificate' ),
+					'closeForm'         => __( 'Close', 'ffcertificate' ),
 					'submitted'         => __( 'Reregistration submitted successfully!', 'ffcertificate' ),
 					'errorLoading'      => __( 'Error loading form.', 'ffcertificate' ),
 					'errorSaving'       => __( 'Error saving draft.', 'ffcertificate' ),
@@ -240,6 +241,7 @@ class DashboardAssetManager {
 					'dualPostShowValue' => __( 'I hold', 'ffcertificate' ),
 					'importLoading'     => __( 'Bringing previous answers…', 'ffcertificate' ),
 					'retractConfirm'    => __( 'Retract your submission? It goes back to draft and leaves the review queue. Your answers are kept, and you must submit again before the deadline for it to be reviewed.', 'ffcertificate' ),
+					'retract'           => __( 'Retract submission', 'ffcertificate' ),
 					'errorRetracting'   => __( 'Could not retract the submission.', 'ffcertificate' ),
 				),
 			)

@@ -64,15 +64,22 @@ describe('ffc-self-scheduling-receipt', () => {
 		);
 	});
 
-	it('alerts when the PDF generator is not loaded', async () => {
+	it('says beside the button when the PDF generator is not loaded, with no alert() (#2535)', async () => {
 		window.ffcReceiptData = { errorMsg: 'not loaded' };
 		window.ffcGeneratePDF = undefined;
 		window.alert = vi.fn();
 		loadScript(SCRIPT);
 		await new Promise(function (r) { setTimeout(r, 0); });
 
-		document.getElementById("ffc-download-pdf-btn").click();
+		const btn = document.getElementById('ffc-download-pdf-btn');
+		btn.click();
+		btn.click();
 
-		expect(window.alert).toHaveBeenCalledWith('not loaded');
+		expect(window.alert).not.toHaveBeenCalled();
+		const lines = document.querySelectorAll('.ffc-receipt-error');
+		expect(lines).toHaveLength(1);
+		expect(lines[0].getAttribute('role')).toBe('alert');
+		expect(lines[0].textContent).toBe('not loaded');
+		expect(btn.nextElementSibling).toBe(lines[0]);
 	});
 });

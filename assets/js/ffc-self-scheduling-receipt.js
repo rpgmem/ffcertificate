@@ -21,7 +21,15 @@
 		function download() {
 			if (typeof window.ffcGeneratePDF !== 'function') {
 				window.console.error('FFC PDF Generator not loaded');
-				window.alert(data.errorMsg);
+				// Said beside the button, where an alert() used to block the
+				// page (#2535). The receipt is a document of its own and
+				// loads no plugin script, so the line is built here.
+				var $btn = $('#ffc-download-pdf-btn');
+				var $line = $btn.siblings('.ffc-receipt-error');
+				if (!$line.length) {
+					$line = $('<p class="ffc-receipt-error" role="alert"></p>').insertAfter($btn);
+				}
+				$line.text(data.errorMsg || '');
 				return;
 			}
 

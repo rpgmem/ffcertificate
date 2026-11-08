@@ -4,6 +4,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// FFC.confirmDialog() replaced window.confirm() (#2535): answer it, and read
+// back what it asked, joined the way confirm() used to show it.
+function answerDialogs(answer) {
+	return vi.spyOn(window.FFC, 'confirmDialog').mockImplementation(() => Promise.resolve(answer));
+}
+const asked = (spy) => spy.mock.calls.map((c) => [].concat(c[0].message).join('\n\n'));
+
 // What the dashboard's message region says: alerts left for it (#2246).
 const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
 afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
@@ -105,17 +112,17 @@ describe('audience-join — keep at least one group', () => {
 
 	it('names the group Leave all keeps in the confirm', async () => {
 		await render(payload({ locked: 2, keeps: [{ tree_id: 1, tree_name: 'Staff', group_id: 2, group_name: 'Morning' }] }));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
 		await flushPromises();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Confirm leave all 1?\n\nYou stay in "Morning" because "Staff" requires at least one group.');
+		expect(asked(confirmSpy)).toContain('Confirm leave all 1?\n\nYou stay in "Morning" because "Staff" requires at least one group.');
 	});
 
 	it('after Leave all, shows a notice naming each kept group and its audience', async () => {
 		await render(payload({ locked: 2 }));
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const kept = [
 			{ tree_id: 1, tree_name: 'Staff', group_id: 2, group_name: 'Morning' },
 			{ tree_id: 9, tree_name: 'Clubs', group_id: 10, group_name: 'Chess' },
@@ -149,7 +156,7 @@ describe('audience-join — keep at least one group', () => {
 
 	it('shows no notice when Leave all kept nothing', async () => {
 		await render(payload({ keep: false }));
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		vi.spyOn(window.$, 'ajax').mockImplementationOnce((opts) => {
 			opts.success({ success: true, removed: 1, kept: [] });
 			return {};
@@ -165,12 +172,12 @@ describe('audience-join — keep at least one group', () => {
 
 	it('runs Leave all as before when no tree blocks it', async () => {
 		await render(payload({ keep: false }));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
 		await flushPromises();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Confirm leave all 1?');
+		expect(asked(confirmSpy)).toContain('Confirm leave all 1?');
 	});
 });
 
@@ -191,7 +198,7 @@ describe('audience-join — switch', () => {
 
 	it('with one group held: confirms and POSTs one switch request', async () => {
 		await render(payload({ keep: false, max: 1, joined: 1 }));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const confirmSpy = answerDialogs(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
 			return {};
@@ -200,7 +207,7 @@ describe('audience-join — switch', () => {
 		window.$(row(3).querySelector('.ffc-audience-switch-btn')).trigger('click');
 		await flushPromises();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Leave "Morning" and join "Evening"?');
+		expect(asked(confirmSpy)).toContain('Leave "Morning" and join "Evening"?');
 		const opts = ajaxSpy.mock.calls[0][0];
 		expect(opts.url).toContain('/user/audience-group/switch');
 		expect(JSON.parse(opts.data)).toEqual({ from_group_id: 2, group_id: 3 });
@@ -212,7 +219,7 @@ describe('audience-join — switch', () => {
 			keep: false, max: 2, joined: 2, member: [2, 4],
 			held: [{ id: 2, name: 'Morning' }, { id: 4, name: 'Night' }], total: 2,
 		}));
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = answerDialogs(false);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
 			return {};
@@ -247,7 +254,7 @@ describe('audience-join — switch', () => {
 
 	it('alerts the server refusal', async () => {
 		await render(payload({ keep: false, max: 1, joined: 1 }));
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({ responseJSON: { message: 'Not the same audience' } });
 			return {};

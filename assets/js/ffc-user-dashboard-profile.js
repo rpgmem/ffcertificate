@@ -378,9 +378,14 @@
             $(document).on('click', '.ffc-lgpd-export-btn', function (e) { e.preventDefault(); privacyRequest('export_personal_data'); });
             $(document).on('click', '.ffc-lgpd-delete-btn', function (e) {
                 e.preventDefault();
-                if (confirm(ffcDashboard.strings.confirmDeletion || 'Are you sure?')) {
-                    privacyRequest('remove_personal_data');
-                }
+                // The plugin's dialog, not confirm() (#2535).
+                FFC.confirmDialog({
+                    message: ffcDashboard.strings.confirmDeletion || 'Are you sure?',
+                    category: 'danger',
+                    icon: 'trash'
+                }).then(function (agreed) {
+                    if (agreed) privacyRequest('remove_personal_data');
+                });
             });
 
             $(document).on('change', '.ffc-notif-toggle', function () { saveNotificationPreferences(); });
