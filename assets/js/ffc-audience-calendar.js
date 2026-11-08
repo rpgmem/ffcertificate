@@ -440,6 +440,48 @@
     }
 
     /**
+     * Give the month's tab stop to today, else the first day that opens, else
+     * the first day of the month: one day holds it at a time (#2528).
+     */
+    function assignDayTabStop() {
+        var $days = $('#ffc-calendar-days .ffc-day[data-ffc-focusable]');
+        var $stop = $days.filter('.ffc-today').first();
+        if (!$stop.length) { $stop = $days.not('[aria-disabled]').first(); }
+        if (!$stop.length) { $stop = $days.first(); }
+        $stop.attr('tabindex', '0');
+    }
+
+    // Keyboard (#2528): Enter or Space opens the focused day, the arrows move
+    // a day or a week, Home and End go to the month's first and last day.
+    $(document).on('keydown.ffcAudienceDays', '#ffc-calendar-days .ffc-day[data-ffc-focusable]', function(e) {
+        var $day = $(this);
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if ($day.attr('aria-disabled') !== 'true') {
+                $day.trigger('click');
+            }
+            return;
+        }
+        var step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+        var $days = $('#ffc-calendar-days .ffc-day[data-ffc-focusable]');
+        var index = $days.index($day);
+        var target = -1;
+        if (typeof step === 'number') {
+            target = index + step;
+        } else if (e.key === 'Home') {
+            target = 0;
+        } else if (e.key === 'End') {
+            target = $days.length - 1;
+        }
+        if (target < 0 || target >= $days.length) {
+            return;
+        }
+        e.preventDefault();
+        $day.attr('tabindex', '-1');
+        $days.eq(target).attr('tabindex', '0').trigger('focus');
+    });
+
+    /**
      * Render the calendar grid
      */
     function renderCalendar() {
@@ -541,7 +583,20 @@
                     // Get booking count
                     var bookingCount = getBookingCount(dateStr);
 
-                    html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '">';
+                    // A day of this month is a button to the keyboard and to a
+                    // screen reader, named by its full date; one that cannot
+                    // be opened says so instead of hiding (#2528, as the
+                    // personal calendar does since #2244).
+                    var a11y = '';
+                    if (!isOtherMonth) {
+                        var canOpen = classes.indexOf('ffc-bypassable') !== -1 ||
+                            (!isPast && classes.indexOf('ffc-disabled') === -1);
+                        a11y = ' role="button" data-ffc-focusable="1" tabindex="-1"' +
+                            ' aria-label="' + escapeHtml(cellDay + ' ' + ffcAudience.strings.months[cellDate.getMonth()] + ' ' + cellDate.getFullYear()) + '"' +
+                            (canOpen ? '' : ' aria-disabled="true"');
+                    }
+
+                    html += '<div class="' + classes.join(' ') + '" data-date="' + dateStr + '"' + a11y + '>';
                     html += '<span class="ffc-day-number">' + cellDay + '</span>';
                     html += '<div class="ffc-day-content">';
 
@@ -567,6 +622,7 @@
             }
 
             $('#ffc-calendar-days').html(html);
+            assignDayTabStop();
 
             // Update event list panel if present
             renderEventList();
