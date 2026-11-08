@@ -51,8 +51,8 @@ if ( ! $ffcertificate_purge ) {
 	wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 	wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 	wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
-	// @removal 6.45.0 -- the names these hooks had before #2323; an event
-	// may still be pending under one.
+	// The names these hooks had before #2323: an install that skipped the
+	// releases carrying the relay may still hold an event under one.
 	wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 	wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
@@ -453,8 +453,8 @@ wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
 wp_clear_scheduled_hook( 'ffc_audience_post_event_invites' );
-// @removal 6.45.0 -- the names these hooks had before #2323; an event
-// may still be pending under one.
+// The names these hooks had before #2323: an install that skipped the
+// releases carrying the relay may still hold an event under one.
 wp_clear_scheduled_hook( 'ffcertificate_daily_cleanup_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_reregistration_expire_hook' );
 wp_clear_scheduled_hook( 'ffcertificate_self_scheduling_reminder_scan' );
