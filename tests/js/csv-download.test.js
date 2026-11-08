@@ -500,6 +500,114 @@ describe('csv-download — download flow', () => {
 			}
 		});
 
+		// The fresh challenge comes before the next download (#2539): an
+		// unanswered one used to be sent, refused, and shown as an export
+		// error, counting a failed captcha against the address.
+		async function reachFreshChallenge(fresh) {
+			document.body.innerHTML = `
+				<div class="ffc-public-csv-download">
+					<div class="ffc-verification-header">header</div>
+					<form>
+						<input type="text" name="form_id" value="42" />
+						<input type="text" name="hash" value="abc" />
+						<div class="ffc-security-container"><input name="ffc_captcha_ans" value="3" /><input name="ffc_captcha_hash" value="SPENT" /></div>
+						<button type="submit" class="ffc-submit-btn">Info</button>
+					</form>
+				</div>
+			`;
+			await loadAndReady();
+			const postSpy = vi.spyOn(window.$, 'ajax');
+			postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
+			window.$('.ffc-public-csv-download form').trigger('submit');
+			await flush();
+			vi.useFakeTimers();
+			// Two downloads' worth: the first, then the one the test answers for.
+			const responses = [
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+			];
+			postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+			window.$('.ffc-btn-download-csv').trigger('click');
+			await vi.advanceTimersByTimeAsync(10);
+			document.cookie = COOKIE + '=1; path=/';
+			await vi.advanceTimersByTimeAsync(4000);
+			postSpy.mockClear();
+			return postSpy;
+		}
+
+		const starts = (spy) => spy.mock.calls.filter((c) => String(c[0].data).indexOf('action=ffc_export_start') !== -1);
+
+		it('sends nothing while the fresh math challenge is unanswered, and says so beside it (#2539)', async () => {
+			try {
+				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><div class="ffc-honeypot-field" aria-hidden="true"><input type="text" name="ffc_hp_x7" value="" tabindex="-1" /></div><input type="hidden" name="ffc_hp_ts" value="t" /><label for="ffc_captcha_ans_x">2 + 2?</label><input id="ffc_captcha_ans_x" type="text" name="ffc_captcha_ans" value="" /><input type="hidden" name="ffc_captcha_hash" value="FRESH" /></div>');
+				const $btn = window.$('.ffc-btn-download-csv');
+				expect($btn.prop('disabled')).toBe(false);
+
+				$btn.trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+
+				expect(starts(postSpy)).toHaveLength(0);
+				expect(window.$('.ffc-csv-progress-error').length ? window.$('.ffc-csv-progress-error').text() : '').toBe('');
+				const line = document.querySelector('.ffc-csv-download-security .ffc-csv-verify-first');
+				expect(line).not.toBeNull();
+				expect(line.getAttribute('role')).toBe('alert');
+				expect(line.textContent).toContain('verification');
+				const answer = document.querySelector('.ffc-csv-download-security input[name="ffc_captcha_ans"]');
+				expect(document.activeElement).toBe(answer);
+
+				// A second unanswered click keeps one line, not two.
+				$btn.trigger('click');
+				expect(document.querySelectorAll('.ffc-csv-verify-first')).toHaveLength(1);
+
+				// Answering removes the line; the next click starts the export.
+				answer.value = '4';
+				window.$(answer).trigger('input');
+				await vi.advanceTimersByTimeAsync(1);
+				expect(document.querySelector('.ffc-csv-verify-first')).toBeNull();
+				$btn.trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				expect(starts(postSpy)).toHaveLength(1);
+				expect(String(starts(postSpy)[0][0].data)).toContain('ffc_captcha_ans=4');
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('waits for the fresh ALTCHA proof the same way (#2539)', async () => {
+			try {
+				const postSpy = await reachFreshChallenge('<div class="ffc-security-container"><altcha-widget name="altcha"><input type="hidden" name="altcha" value="" /></altcha-widget></div>');
+				const $btn = window.$('.ffc-btn-download-csv');
+
+				$btn.trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				expect(starts(postSpy)).toHaveLength(0);
+				expect(document.querySelector('.ffc-csv-verify-first')).not.toBeNull();
+
+				// The widget writes its proof and announces the new state.
+				const block = document.querySelector('.ffc-csv-download-security');
+				// The widget announces the state first and writes the proof right
+				// after, so the line is checked on the next tick.
+				// The widget's event does not bubble (ffc-captcha.js listens on capture).
+				block.querySelector('altcha-widget').dispatchEvent(new CustomEvent('statechange', { bubbles: false, detail: { state: 'verified' } }));
+				block.querySelector('input[name="altcha"]').value = 'PROOF';
+				await vi.advanceTimersByTimeAsync(1);
+				expect(document.querySelector('.ffc-csv-verify-first')).toBeNull();
+
+				$btn.trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				expect(starts(postSpy)).toHaveLength(1);
+				expect(String(starts(postSpy)[0][0].data)).toContain('altcha=PROOF');
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
 		it('says the file did not arrive when nothing comes back in time', async () => {
 			const postSpy = await reachInfoScreen();
 			vi.useFakeTimers();

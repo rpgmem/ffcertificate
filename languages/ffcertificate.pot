@@ -4247,6 +4247,10 @@ msgstr ""
 msgid "Connection error. Please try again."
 msgstr ""
 
+#: includes/frontend/class-ffc-frontend.php:570
+msgid "Complete the verification above before downloading again."
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222
 msgid "Connection timeout. Please try again."
 msgstr ""
