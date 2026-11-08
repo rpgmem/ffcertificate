@@ -281,12 +281,22 @@ if ( $ffcertificate_cf_behind ) :
 							'ffc_clear_qr_cache'
 						);
 						?>
-						<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's only guard. ?>
-						<a href="<?php echo esc_url( $ffcertificate_clear_qr_url ); ?>"
-							class="ffc-btn ffc-btn-caution ffc-icon-delete"
-							onclick="return confirm('<?php echo esc_js( __( "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.", 'ffcertificate' ) ); ?>');">
-							<?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
-						</a>
+						<?php
+						// The question is ffc-core's delegated `[data-confirm]`, asked in the plugin's dialog (#2535).
+						$ffcertificate_clear_qr_button = \FreeFormCertificate\Admin\AdminUI::button(
+							array(
+								'label'    => __( 'Clear All QR Code Cache', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'delete',
+								'href'     => $ffcertificate_clear_qr_url,
+								'attrs'    => array(
+									'data-confirm' => __( "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.", 'ffcertificate' ),
+									'data-confirm-category' => 'caution',
+								),
+							)
+						);
+						echo $ffcertificate_clear_qr_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html() escapes every value.
+						?>
 						<p class="description ffc-mt-md">
 							<?php esc_html_e( 'QR Codes will be regenerated automatically when needed. This action is safe and reversible.', 'ffcertificate' ); ?>
 						</p>

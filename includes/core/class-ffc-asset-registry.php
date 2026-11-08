@@ -70,7 +70,7 @@ final class AssetRegistry {
 		// ffc-core dep: a section it hides takes its required fields with it,
 		// through FFC.setRequiredWithin() (#2344).
 		'ffc-section-collapse'      => array( 'assets/js/ffc-section-collapse', array( 'jquery', 'ffc-core' ) ),
-		'ffc-email-restore-default' => array( 'assets/js/ffc-email-restore-default', array( 'jquery' ) ),
+		'ffc-email-restore-default' => array( 'assets/js/ffc-email-restore-default', array( 'jquery', 'ffc-core' ) ),
 		'ffc-branding-media'        => array( 'assets/js/ffc-branding-media', array( 'jquery' ) ),
 		'ffc-calendar-core'         => array( 'assets/js/ffc-calendar-core', array( 'jquery' ) ),
 		'ffc-working-hours'         => array( 'assets/js/ffc-working-hours', array( 'jquery', 'ffc-core' ) ),

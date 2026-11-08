@@ -9,6 +9,13 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// A failure is said in the plugin's notice (#2535), never in alert().
+function installNotice() {
+	window.FFC = window.FFC || {};
+	window.FFC.adminNotice = vi.fn();
+	return window.FFC.adminNotice;
+}
+
 function panelMarkup() {
 	return `
 	<div class="ffc-cap-panel">
@@ -286,31 +293,35 @@ describe('role presets', () => {
 		expect(rowC.classList.contains('is-lit')).toBe(false);
 	});
 
-	it('alerts and reverts the chip when the server reports failure', async () => {
+	it('says the error and reverts the chip when the server reports failure', async () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: false }) }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock);
 
 		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
 		chip.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith('Err');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Err');
 		// Chip is re-enabled but NOT marked on (assignment didn't take).
 		expect(chip.disabled).toBe(false);
 		expect(chip.classList.contains('is-on')).toBe(false);
 	});
 
-	it('alerts when the network request rejects', async () => {
+	it('says the error when the network request rejects', async () => {
 		const fetchMock = vi.fn(() => Promise.reject(new Error('offline')));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock);
 
 		const chip = document.querySelector('[data-ffc-role="ffc_recruitment_manager"]');
 		chip.click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith('Err');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Err');
 		expect(chip.disabled).toBe(false);
 	});
 
@@ -319,34 +330,40 @@ describe('role presets', () => {
 			Promise.resolve({ json: () => Promise.resolve({ success: false, data: { message: 'cannot_edit_admin' } }) })
 		);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock, { errAdmin: 'AdminOnly' });
 
 		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith('AdminOnly');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'AdminOnly');
 	});
 
 	it('shows the nonce/session message when the server dies with a bare -1', async () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve(-1) }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock, { errNonce: 'NonceExpired' });
 
 		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith('NonceExpired');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'NonceExpired');
 	});
 
 	it('uses the network-specific message when the request rejects and one is localized', async () => {
 		const fetchMock = vi.fn(() => Promise.reject(new Error('offline')));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock, { errNetwork: 'Offline' });
 
 		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith('Offline');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Offline');
 	});
 
 	it.each([
@@ -359,12 +376,14 @@ describe('role presets', () => {
 			Promise.resolve({ json: () => Promise.resolve({ success: false, data: { message: code } }) })
 		);
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		roleSetup(fetchMock, { [key]: expected });
 
 		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
 		await new Promise((r) => setTimeout(r, 0));
 
-		expect(alertSpy).toHaveBeenCalledWith(expected);
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', expected);
 	});
 
 	it('does not POST on chip click when ajaxUrl is absent', () => {

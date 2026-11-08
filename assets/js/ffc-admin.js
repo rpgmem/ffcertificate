@@ -411,7 +411,7 @@
         if (!confirmText) {
             return runPublicAction($btn);
         }
-        return window.FFC.confirmDialog({ message: confirmText, category: 'caution', icon: 'refresh' }).then(function (agreed) {
+        return window.FFC.confirmDialog({ message: confirmText, category: 'caution', icon: 'sync' }).then(function (agreed) {
             if (agreed) {
                 runPublicAction($btn);
             }

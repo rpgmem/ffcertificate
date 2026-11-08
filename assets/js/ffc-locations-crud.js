@@ -87,7 +87,7 @@
         return FFC.confirmDialog({
             message: strings.confirmDelete || 'Delete this location?',
             category: 'danger',
-            icon: 'trash'
+            icon: 'delete'
         }).then(function (agreed) {
             if (agreed) {
                 sendDelete($row, id);

@@ -239,7 +239,7 @@
             return FFC.confirmDialog({
                 message: editorStrings.confirmDelete || 'Remove this working hour?',
                 category: 'danger',
-                icon: 'trash'
+                icon: 'delete'
             }).then(function(agreed) {
                 if (!agreed) {
                     return;
@@ -609,7 +609,7 @@
             return FFC.confirmDialog({
                 message: strings.blockRemove || 'Remove this block?',
                 category: 'danger',
-                icon: 'trash'
+                icon: 'delete'
             }).then(function(agreed) {
                 if (!agreed) {
                     return null;

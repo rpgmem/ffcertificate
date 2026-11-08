@@ -1,14 +1,14 @@
 <?php
 /**
- * The scan behind `NativeDialogRatchetTest` (#2534): every native browser
- * dialog the plugin opens -- `alert()`, `confirm()`, `prompt()` -- per file
- * and per kind.
+ * The scan behind `NativeDialogGuardTest` (#2534, #2535): every native
+ * browser dialog the plugin opens -- `alert()`, `confirm()`, `prompt()` --
+ * per file and per kind.
  *
  * A native dialog blocks the page, cannot carry the plugin's notice or
  * button standard, ignores the dark theme, and its text is not tied to a
  * label assistive technology can read. The plugin's own replacements are
- * `FFC.notice()` for a result and `FFC.overrideConfirm()` /
- * `FFC.confirmRangeCancel()` for a question, the reason field included.
+ * `FFC.adminNotice()` / `FFC.say()` for a result and `FFC.confirmDialog()`
+ * for a question, its reason field included.
  *
  * Read: the non-minified scripts under `assets/js/`, comments stripped, and
  * the PHP under `includes/` and `templates/`, PHP comments dropped by the

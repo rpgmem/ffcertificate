@@ -30,9 +30,18 @@ jQuery(function ($) {
 		if (!editorId) {
 			return;
 		}
-		if (confirmMsg && !window.confirm(confirmMsg)) {
+		if (!confirmMsg) {
+			restore($btn, editorId, body, entry);
 			return;
 		}
+		window.FFC.confirmDialog({ message: confirmMsg, category: 'caution', icon: 'restore' }).then(function (agreed) {
+			if (agreed) {
+				restore($btn, editorId, body, entry);
+			}
+		});
+	});
+
+	function restore($btn, editorId, body, entry) {
 
 		// Prefer the active TinyMCE instance (Visual mode); fall back to the
 		// raw textarea (Text mode, or TinyMCE not initialised).
@@ -48,5 +57,5 @@ jQuery(function ($) {
 		if (subjectId && typeof entry.subject === 'string') {
 			$('#' + subjectId).val(entry.subject).trigger('input');
 		}
-	});
+	}
 });

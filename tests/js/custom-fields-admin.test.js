@@ -301,23 +301,26 @@ describe('custom-fields-admin — saveFields', () => {
 // ----------------------------------------------------------------------
 
 describe('custom-fields-admin — deleteField', () => {
-	it('alerts and bails when the row is a standard field', async () => {
+	it('says it in the status line and bails when the row is a standard field', async () => {
 		window.$('.ffc-custom-field-row').data('field-source', 'standard');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
 		await flush();
+		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cannot delete standard');
-		expect(postSpy).not.toHaveBeenCalled();
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(window.$('#ffc-custom-fields-status').text()).toBe('Cannot delete standard');
+				expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('bails when the user declines the confirm', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+	it('bails when the user declines the plugin dialog', async () => {
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
@@ -326,10 +329,11 @@ describe('custom-fields-admin — deleteField', () => {
 
 	it('removes a new (unsaved) row from the DOM without AJAX', async () => {
 		window.$('.ffc-custom-field-row').data('field-id', 'new_99');
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-field-delete').trigger('click');
+		await flush();
 		await flush();
 
 		expect(postSpy).not.toHaveBeenCalled();
@@ -337,7 +341,7 @@ describe('custom-fields-admin — deleteField', () => {
 	});
 
 	it('deletes an existing row via AJAX on success', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function (cb) {
 				cb({ success: true });
@@ -347,12 +351,13 @@ describe('custom-fields-admin — deleteField', () => {
 
 		window.$('.ffc-field-delete').trigger('click');
 		await flush();
+		await flush();
 
 		expect(window.$('.ffc-custom-field-row').length).toBe(0);
 	});
 
-	it('on AJAX response.success=false: alerts the server message', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('on AJAX response.success=false: says the server message in the status line', async () => {
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function (cb) {
 				cb({ success: false, data: { message: 'In use' } });
@@ -363,13 +368,15 @@ describe('custom-fields-admin — deleteField', () => {
 
 		window.$('.ffc-field-delete').trigger('click');
 		await flush();
+		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('In use');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(window.$('#ffc-custom-fields-status').text()).toBe('In use');
 		expect(window.$('.ffc-custom-field-row').length).toBe(1);
 	});
 
-	it('on AJAX network failure: alerts the localised error', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('on AJAX network failure: says the localised error in the status line', async () => {
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => ({
 			done: function () {
 				return {
@@ -381,8 +388,10 @@ describe('custom-fields-admin — deleteField', () => {
 
 		window.$('.ffc-field-delete').trigger('click');
 		await flush();
+		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(window.$('#ffc-custom-fields-status').text()).toBe('Error');
 	});
 });
 
@@ -553,23 +562,26 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 		window.$('#ffc-replicate-field-options').trigger('click');
 		await flush();
-		expect(postSpy).not.toHaveBeenCalled();
-	});
-
-	it('bails when the user declines the confirm', async () => {
-		await mount();
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
-		window.$('#ffc-replicate-field-options').trigger('click');
 		await flush();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('POSTs ffc_replicate_field_options and shows the success message on confirm', async () => {
+	it('bails when the user declines the plugin dialog', async () => {
 		await mount();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
+		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
+		await flush();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('POSTs ffc_replicate_field_options and shows the success message on yes', async () => {
+		await mount();
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { message: 'Replicated to 4 audiences' } } }));
 		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
 		await flush();
 		expect(postSpy.mock.calls[0][1].action).toBe('ffc_replicate_field_options');
 		expect(postSpy.mock.calls[0][1].audience_id).toBe(9);
@@ -582,9 +594,10 @@ describe('custom-fields-admin — replicateFieldOptions', () => {
 
 	it('shows the error status when replication fails', async () => {
 		await mount();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Boom' } } }));
 		window.$('#ffc-replicate-field-options').trigger('click');
+		await flush();
 		await flush();
 		const $status = window.$('#ffc-custom-fields-status');
 		expect($status.text()).toBe('Boom');
@@ -646,11 +659,12 @@ describe('custom-fields-admin — global list and inheritance', () => {
 
 	it('asks before going back to the inherited field', async () => {
 		await mount(7);
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
 		window.$('[data-ffc-inheritance="revert"]').trigger('click');
 		await flush();
-		expect(confirmSpy).toHaveBeenCalledWith('Revert?');
+		await flush();
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Revert?', category: 'caution' });
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 

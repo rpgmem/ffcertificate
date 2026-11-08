@@ -204,7 +204,7 @@
             return window.FFC.confirmDialog({
                 message: strings().confirmDeleteField || 'Remove this field?',
                 category: 'danger',
-                icon: 'trash'
+                icon: 'delete'
             }).then(function(agreed) {
                 if (agreed) {
                     $row.fadeOut(300, function() {

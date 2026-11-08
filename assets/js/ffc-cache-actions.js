@@ -59,12 +59,11 @@
         if (!action) { return; }
 
         var confirmMsg = $btn.data('ffc-confirm') || strings.confirmClear || 'Purge page caches?';
-        if (!window.confirm(confirmMsg)) {
-            e.preventDefault();
-            return;
-        }
-
         e.preventDefault();
-        run(action, $btn);
+        window.FFC.confirmDialog({ message: confirmMsg, category: 'caution', icon: 'eraser' }).then(function (agreed) {
+            if (agreed) {
+                run(action, $btn);
+            }
+        });
     });
 }(jQuery));

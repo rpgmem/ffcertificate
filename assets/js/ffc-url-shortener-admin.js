@@ -183,7 +183,16 @@
             e.preventDefault();
             var $btn = $(this);
             var confirmMsg = $btn.attr('data-ffc-confirm');
-            if (confirmMsg && !confirm(confirmMsg)) return;
+            // Asked in the plugin's dialog (#2535); on yes the click runs again.
+            if (confirmMsg && $btn.attr('data-ffc-confirmed') !== '1') {
+                FFC.confirmDialog({ message: confirmMsg, category: 'caution', icon: 'sync' }).then(function (agreed) {
+                    if (agreed) {
+                        $btn.attr('data-ffc-confirmed', '1').trigger('click');
+                    }
+                });
+                return;
+            }
+            $btn.removeAttr('data-ffc-confirmed');
 
             var postId = $btn.data('post-id');
 

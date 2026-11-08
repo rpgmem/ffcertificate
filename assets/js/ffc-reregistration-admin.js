@@ -124,9 +124,26 @@
                 var msg = (window.ffcReregistrationAdmin && window.ffcReregistrationAdmin.strings)
                     ? window.ffcReregistrationAdmin.strings.confirmApprove
                     : 'Approve selected submissions?';
-                if (!confirm(msg)) {
-                    e.preventDefault();
+                var form = this;
+                if (form.getAttribute('data-ffc-confirmed') === '1') {
+                    form.removeAttribute('data-ffc-confirmed');
+                    return;
                 }
+                e.preventDefault();
+                var submitter = e.originalEvent && e.originalEvent.submitter;
+                // Asked in the plugin's dialog (#2535); on yes the form is
+                // sent again through the button that sent it.
+                window.FFC.confirmDialog({ message: msg, icon: 'checkmark' }).then(function (agreed) {
+                    if (!agreed) {
+                        return;
+                    }
+                    form.setAttribute('data-ffc-confirmed', '1');
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit(submitter || undefined);
+                    } else {
+                        form.submit();
+                    }
+                });
             }
 
             if (action === 'return_to_draft') {
@@ -225,12 +242,12 @@
                     if (data && data.pdf_data && typeof window.ffcGeneratePDF === 'function') {
                         window.ffcGeneratePDF(data.pdf_data, data.pdf_data.filename || 'record.pdf');
                     } else {
-                        alert(S.errorGenerating || 'PDF generator not available.');
+                        window.FFC.adminNotice('danger', S.errorGenerating || 'PDF generator not available.');
                     }
                 })
                 .catch(function (err) {
                     restoreBtn();
-                    alert((err && err.fromServer && err.message) || S.errorGenerating || 'Error generating record.');
+                    window.FFC.adminNotice('danger', (err && err.fromServer && err.message) || S.errorGenerating || 'Error generating record.');
                 });
         });
     }

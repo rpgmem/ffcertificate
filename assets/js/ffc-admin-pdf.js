@@ -149,7 +149,7 @@
                 message: confirmMsg,
                 confirmLabel: (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings && ffc_ajax.strings.loadTemplate) || '',
                 category: 'caution',
-                icon: 'download'
+                icon: 'template-load'
             }).then(function(agreed) {
                 if (agreed) {
                     loadTemplateFile(templateId, templateName);
@@ -257,7 +257,7 @@
             message: strings.saveModelQuestion || 'Save this layout as a template in the pool?',
             title: strings.saveModelTitle || 'Save as template',
             confirmLabel: strings.saveModelConfirm || 'Save template',
-            icon: 'save',
+            icon: 'template-save',
             reasonField: { label: strings.saveModelPrompt || 'Name for this template:', min: 1 }
         }).then(function(title) {
             if (typeof title === 'string' && title) {

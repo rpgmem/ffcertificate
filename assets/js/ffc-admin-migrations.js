@@ -119,12 +119,17 @@
         }
 
         var confirmMsg = $btn.data('confirm') || '';
-        if (confirmMsg && !window.confirm(confirmMsg)) {
-            e.preventDefault();
+        e.preventDefault();
+        // Asked in the plugin's dialog (#2535); on yes the click runs again.
+        if (confirmMsg && $btn.attr('data-ffc-confirmed') !== '1') {
+            window.FFC.confirmDialog({ message: confirmMsg, category: 'caution', icon: 'database' }).then(function (agreed) {
+                if (agreed) {
+                    $btn.attr('data-ffc-confirmed', '1').trigger('click');
+                }
+            });
             return;
         }
-
-        e.preventDefault();
+        $btn.removeAttr('data-ffc-confirmed');
         setOthersWaiting($btn, true);
 
         var initialStrings  = getStrings();
