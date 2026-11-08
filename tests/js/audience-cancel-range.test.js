@@ -121,3 +121,58 @@ describe('FFC.confirmRangeCancel — a date of a weekly series', () => {
 		expect(dialog().querySelector('.ffc-override-choice')).toBeNull();
 	});
 });
+
+// The reason is typed in the same dialog (#2534), where a prompt() used to
+// follow it: one answer, `{choice, reason}`, single date or series.
+describe('FFC.confirmRangeCancel — the reason asked in the dialog', () => {
+	const reasonField = { label: 'Cancel Reason', min: 1 };
+
+	function typeReason(text) {
+		const field = dialog().querySelector('.ffc-override-reason textarea');
+		field.value = text;
+		field.dispatchEvent(new Event('input'));
+		return field;
+	}
+
+	it('draws a labelled, required reason field', () => {
+		window.FFC.confirmRangeCancel({ count: 1, label: '01/04', strings, reasonField });
+		const field = dialog().querySelector('.ffc-override-reason textarea');
+		expect(field.required).toBe(true);
+		expect(dialog().querySelector('label[for="' + field.id + '"]').textContent).toBe('Cancel Reason');
+	});
+
+	it('keeps the confirm disabled until a reason is typed, after the countdown too', () => {
+		window.FFC.confirmRangeCancel({ count: 1, label: '01/04', strings, reasonField });
+		vi.advanceTimersByTime(5000);
+		const agree = dialog().querySelector('[data-ffc-override="agree"]');
+		expect(agree.disabled).toBe(true);
+		typeReason('   ');
+		expect(agree.disabled).toBe(true);
+		typeReason('Room flooded');
+		expect(agree.disabled).toBe(false);
+	});
+
+	it('resolves a single date with choice "this" and the trimmed reason', async () => {
+		const promise = window.FFC.confirmRangeCancel({ count: 1, label: '01/04', strings, reasonField });
+		vi.advanceTimersByTime(5000);
+		typeReason('  Room flooded ');
+		dialog().querySelector('[data-ffc-override="agree"]').click();
+		await expect(promise).resolves.toEqual({ choice: 'this', reason: 'Room flooded' });
+	});
+
+	it('resolves a series date with the choice and the reason', async () => {
+		const seriesStrings = Object.assign({}, strings, { seriesLegend: 'Cancel', seriesThis: 'This date', seriesFollowing: 'This and following' });
+		const promise = window.FFC.confirmRangeCancel({ count: 1, label: '08/04', series: true, strings: seriesStrings, reasonField });
+		dialog().querySelector('.ffc-override-choice input[value="following"]').click();
+		vi.advanceTimersByTime(5000);
+		typeReason('Course ended');
+		dialog().querySelector('[data-ffc-override="agree"]').click();
+		await expect(promise).resolves.toEqual({ choice: 'following', reason: 'Course ended' });
+	});
+
+	it('resolves false when the person keeps the booking', async () => {
+		const promise = window.FFC.confirmRangeCancel({ count: 1, label: '01/04', strings, reasonField });
+		dialog().querySelector('[data-ffc-override="cancel"]').click();
+		await expect(promise).resolves.toBe(false);
+	});
+});

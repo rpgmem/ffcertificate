@@ -58,6 +58,8 @@ $ffc_env_label   = $schedule_id > 0
 		?>
 	<?php endif; ?>
 	<hr class="wp-header-end">
+	<?php /* What a cancellation did (#2534): a live region, empty until then. */ ?>
+	<div class="ffc-bookings-status" id="ffc-bookings-status" aria-live="polite"></div>
 
 	<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 

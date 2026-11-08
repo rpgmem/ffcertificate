@@ -40,6 +40,8 @@
         state._triggerElement = document.activeElement;
         $modal.find('.ffc-day-modal-title').text(dateDisplay);
         $modal.data('date', date);
+        // A result said for another day does not stay (#2534).
+        $('#ffc-day-status').empty();
         $modal.show();
         $modal.find('.ffc-modal-close').focus();
         trapFocus($modal);
@@ -170,35 +172,33 @@
             count: $button.attr('data-days'),
             label: $button.attr('data-date-label'),
             series: $button.attr('data-series') === '1',
-            strings: ffcAudience.strings.cancelConfirm
+            strings: ffcAudience.strings.cancelConfirm,
+            // The reason is asked in the same dialog (#2534).
+            reasonField: { label: ffcAudience.strings.cancelReasonLabel || 'Cancel Reason', min: 1 }
         }).then(function(agreed) {
             if (!agreed) {
                 return;
             }
             // A date of a weekly series may take the later dates with it (#2243).
-            var scope = (agreed && agreed.choice === 'following') ? 'following' : 'this';
-
-            var reason = prompt(ffcAudience.strings.cancelReason);
-            if (!reason || reason.trim() === '') {
-                return;
-            }
+            var scope = agreed.choice === 'following' ? 'following' : 'this';
 
             FFC.rest(ffcAudience.restUrl + 'bookings/' + bookingId, {
                 method: 'DELETE',
-                data: { reason: reason, scope: scope },
+                data: { reason: agreed.reason, scope: scope },
                 nonce: ffcAudience.nonce
             })
                 .then(function(response) {
                     if (response && response.success) {
-                        alert(response.cancelled ? response.message : ffcAudience.strings.bookingCancelled);
                         api.renderCalendar();
                         loadDayBookings(date);
+                        api.announce('#ffc-day-status', 'success', response.cancelled ? response.message : ffcAudience.strings.bookingCancelled);
                     } else {
-                        alert((response && response.message) || ffcAudience.strings.error);
+                        api.announce('#ffc-day-status', 'danger', (response && response.message) || ffcAudience.strings.error);
                     }
                 })
-                .catch(function() {
-                    alert(ffcAudience.strings.error);
+                .catch(function(err) {
+                    var body = err && err.xhr && err.xhr.responseJSON;
+                    api.announce('#ffc-day-status', 'danger', (body && body.message) || ffcAudience.strings.error);
                 });
         });
     }

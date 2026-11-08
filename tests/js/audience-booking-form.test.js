@@ -49,6 +49,14 @@ beforeAll(() => {
 	api = window.FFCAudience;
 });
 
+// What a result says, where an alert() used to (#2534): the message of each
+// api.announce() call, in order. The host and tone are checked apart.
+function announcedMessages() {
+	const spy = vi.fn();
+	vi.spyOn(api, 'announce').mockImplementation((host, tone, message) => spy(message));
+	return spy;
+}
+
 function modalFixture() {
 	document.body.innerHTML = bookingModalHtml({
 		audiences: audienceRow(1, 'Group') + audienceRow(11, 'Sub', { parent: 1, depth: 1 }),
@@ -469,7 +477,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 	});
 
 	it('alerts when the server reports failure', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: false, message: 'Bad' });
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
@@ -477,7 +485,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 	});
 
 	it('alerts on a rejected conflict request (generic error)', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue({ message: 'boom', xhr: null });
 		api.checkConflicts();
 		await Promise.resolve().then(() => Promise.resolve());
@@ -501,7 +509,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 	});
 
 	it('surfaces the timeout string when the xhr reports a timeout', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue({
 			message: 'timeout',
 			xhr: { statusText: 'timeout', responseJSON: null },
@@ -512,7 +520,7 @@ describe('ffc-audience-booking-form — checkConflicts outcomes', () => {
 	});
 
 	it('alerts the generic error if the response handler throws', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		// A truthy success with audience_same_day entries whose shape makes
 		// the grouping logic run; force a throw by passing a non-iterable
 		// bookings value with type user.
@@ -530,7 +538,7 @@ describe('ffc-audience-booking-form — createBooking', () => {
 	beforeEach(setValidAudienceForm);
 
 	it('POSTs the booking and closes the modal on success', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
@@ -551,7 +559,7 @@ describe('ffc-audience-booking-form — createBooking', () => {
 	});
 
 	it('re-enables the button and alerts on a server failure', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: false, message: 'Nope' });
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
@@ -561,7 +569,7 @@ describe('ffc-audience-booking-form — createBooking', () => {
 	});
 
 	it('alerts on a rejected create request', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		vi.spyOn(window.FFC, 'rest').mockRejectedValue(new Error('net'));
 		api.createBooking();
 		await Promise.resolve().then(() => Promise.resolve());
@@ -749,7 +757,7 @@ describe('ffc-audience-booking-form — a weekly series (#2243)', () => {
 	});
 
 	it('creates the series leaving out the dates the check listed', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		const restSpy = vi.spyOn(window.FFC, 'rest')
 			.mockResolvedValueOnce(preview)
 			.mockResolvedValueOnce({ success: true, message: '3 weekly bookings created.' });
@@ -833,7 +841,7 @@ describe('ffc-audience-booking-form — editing a booking (#2243)', () => {
 	});
 
 	it('PUTs the moved slot to the booking, without its participants', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const alertSpy = announcedMessages();
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, message: 'Booking changed.' });
 		api.openEditModal(booking);
 		window.$('#booking-move-date').val('2026-06-17');

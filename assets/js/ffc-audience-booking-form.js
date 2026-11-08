@@ -742,12 +742,12 @@
         })
             .then(function(response) {
                 if (response && response.success) {
-                    alert(response.message || ffcAudience.strings.bookingCreated);
                     api.closeModals();
                     api.renderCalendar();
+                    api.announce('#ffc-audience-status', 'success', response.message || ffcAudience.strings.bookingCreated);
                 } else {
                     setSubmitStep('check');
-                    alert((response && response.message) || ffcAudience.strings.error);
+                    api.announce('#ffc-conflict-error', 'danger', (response && response.message) || ffcAudience.strings.error);
                 }
             })
             .catch(function(err) {
@@ -757,7 +757,7 @@
                     showSeriesCheck(body);
                     return;
                 }
-                alert((body && body.message) || ffcAudience.strings.error);
+                api.announce('#ffc-conflict-error', 'danger', (body && body.message) || ffcAudience.strings.error);
             });
     }
 
@@ -1004,12 +1004,12 @@
                         }
                     } else {
                         setSubmitStep('check');
-                        alert((response && response.message) || ffcAudience.strings.error);
+                        api.announce('#ffc-conflict-error', 'danger', (response && response.message) || ffcAudience.strings.error);
                     }
                 } catch (e) {
                     console.error('Error processing conflict response:', e);
                     setSubmitStep('check');
-                    alert(ffcAudience.strings.error);
+                    api.announce('#ffc-conflict-error', 'danger', ffcAudience.strings.error);
                 }
             })
             .catch(function(err) {
@@ -1029,7 +1029,7 @@
                     message = ffcAudience.strings.timeout;
                 }
                 setSubmitStep('check');
-                alert(message);
+                api.announce('#ffc-conflict-error', 'danger', message);
             });
     }
 
@@ -1086,12 +1086,12 @@
         })
             .then(function(response) {
                 if (response && response.success) {
-                    alert(editing ? (response.message || ffcAudience.strings.bookingChanged) : ffcAudience.strings.bookingCreated);
                     api.closeModals();
                     api.renderCalendar();
+                    api.announce('#ffc-audience-status', 'success', editing ? (response.message || ffcAudience.strings.bookingChanged) : ffcAudience.strings.bookingCreated);
                 } else {
                     restore();
-                    alert((response && response.message) || ffcAudience.strings.error);
+                    api.announce('#ffc-conflict-error', 'danger', (response && response.message) || ffcAudience.strings.error);
                 }
             })
             .catch(function(err) {
@@ -1127,7 +1127,7 @@
                     return;
                 }
                 restore();
-                alert((body && body.message) || ffcAudience.strings.error);
+                api.announce('#ffc-conflict-error', 'danger', (body && body.message) || ffcAudience.strings.error);
             });
     }
 
