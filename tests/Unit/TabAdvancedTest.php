@@ -236,6 +236,7 @@ class TabAdvancedTest extends TestCase {
 
 	public function test_enqueue_scripts_enqueues_autosave_on_tab(): void {
 		SettingsTab::set_resolved_active_tab( 'advanced' );
+		Functions\when( 'admin_url' )->returnArg();
 
 		$handles = array();
 		Functions\when( 'wp_enqueue_script' )->alias(

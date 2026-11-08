@@ -490,15 +490,10 @@
             html += '<div class="ffc-profile-section">';
             html += '<h3>' + (s.notificationSection || 'Notification Preferences') + '</h3>';
             html += '<div class="ffc-notif-list">';
-            // Only toggles the server reads (#1545). Both are on until turned
-            // off, which is what the send sites do with a missing key.
+            // Only toggles the server reads (#1545). On until turned off,
+            // which is what the send site does with a missing key. The two
+            // date-message preferences live in the Messages tab (#2503).
             html += buildToggle('notify_appointment_reminder', s.notifAppointmentReminder || 'Appointment reminder', prefs, true);
-            if (ffcDashboard.dateMessagesEnabled) {
-                html += buildToggle('notify_date_messages', s.notifDateMessages || 'Date messages (such as birthday greetings)', prefs, true);
-                html += buildToggle('notify_date_announcements', s.notifDateAnnouncements || 'Announcements from this site', prefs, true);
-                // The e-mail's own link writes these same two keys (#2336).
-                html += '<p class="ffc-notif-hint">' + esc(s.notifDateMessagesHint || 'The unsubscribe link at the end of these e-mails turns off the same preference.') + '</p>';
-            }
             html += '</div>';
             html += '<span class="ffc-notif-status ffc-status" role="status" aria-live="polite" hidden></span>';
             html += '</div>';

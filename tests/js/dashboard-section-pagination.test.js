@@ -117,8 +117,8 @@ function click(tab, key, page) {
 }
 
 describe('FFCDashboard.helpers section pager', () => {
-	it('declares the fixed page sizes Upcoming 5, Past 3, Cancelled 2', () => {
-		expect(helpers().SECTION_PAGE_SIZES).toEqual({ upcoming: 5, past: 3, cancelled: 2 });
+	it('declares the fixed page sizes Upcoming 5, Past 3, Cancelled 2, and the Messages groups 3 (#2503)', () => {
+		expect(helpers().SECTION_PAGE_SIZES).toEqual({ upcoming: 5, past: 3, cancelled: 2, messagesCurrent: 3, messagesEarlier: 3 });
 		expect(helpers().sectionPageSize('past')).toBe(3);
 	});
 

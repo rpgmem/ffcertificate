@@ -129,6 +129,28 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$this->assertSame( 'manage_options', SettingsAjaxEndpoint::allowlist()['user_access_bypass_for_admins']['cap'] );
 	}
 
+	/**
+	 * Date Messages → Settings, the user dashboard (#2503): the module's own
+	 * option, under the capability that edits its rules, and only the days
+	 * the control offers.
+	 */
+	public function test_the_dashboard_message_settings_save_into_the_module_option(): void {
+		$list = SettingsAjaxEndpoint::allowlist();
+
+		$days = $list['date_messages_notice_days'];
+		$this->assertSame( 'ffc_date_messages_settings', $days['option'] );
+		$this->assertSame( array( 'dashboard_notice_days' ), $days['path'] );
+		$this->assertSame( 'ffc_manage_date_messages', $days['cap'] );
+		$this->assertSame( '7', SettingsAjaxEndpoint::sanitize_value( '7', 'enum', $days ) );
+		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( '3', 'enum', $days ) );
+
+		$hide = $list['date_messages_hide_disabled_rules'];
+		$this->assertSame( 'ffc_date_messages_settings', $hide['option'] );
+		$this->assertSame( array( 'hide_disabled_rules' ), $hide['path'] );
+		$this->assertSame( 'bool', $hide['type'] );
+		$this->assertSame( 'ffc_manage_date_messages', $hide['cap'] );
+	}
+
 	// ==================================================================
 	// sanitize_value
 	// ==================================================================

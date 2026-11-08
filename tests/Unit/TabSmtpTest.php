@@ -132,6 +132,7 @@ class TabSmtpTest extends TestCase {
 	public function test_enqueue_scripts_enqueues_script_when_tab_is_smtp(): void {
 		SettingsTab::set_resolved_active_tab( 'smtp' );
 		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'admin_url' )->returnArg();
 
 		// Since the #976 split the SMTP tab is transport only: it enqueues its own
 		// ffc-smtp-settings plus the autosave infra (ffc-core, ffc-admin-autosave,

@@ -135,6 +135,33 @@ class DateMessagesMessageBuilderTest extends TestCase {
 		$this->assertStringContainsString( 't=' . Unsubscribe::token( 9, 'announcement' ), $message['body'] );
 	}
 
+	public function test_overrides_win_over_every_token_and_reach_the_appended_link(): void {
+		// The dashboard's Messages tab masks what another reader may not see
+		// and sends the unsubscribe link to the tab (#2503).
+		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana', 'last_name' => '' ) );
+
+		$message = MessageBuilder::build(
+			$this->rule( '<p>{{email}} turns {{age}}.</p>' ),
+			$this->source(),
+			array(
+				'user_id' => 9,
+				'email'   => 'a@b.c',
+				'name'    => 'Ana',
+			),
+			new \DateTimeImmutable( '2026-10-10' ),
+			new \DateTimeImmutable( '2026-10-10' ),
+			array(
+				'email'           => 'a***@b.c',
+				'age'             => '***',
+				'unsubscribe_url' => 'https://example.org/dashboard?tab=messages',
+			)
+		);
+
+		$this->assertStringContainsString( 'a***@b.c turns ***.', $message['body'] );
+		$this->assertStringContainsString( 'href="URL(https://example.org/dashboard?tab=messages)"', $message['body'] );
+		$this->assertStringNotContainsString( 'ffc_date_messages_unsubscribe', $message['body'] );
+	}
+
 	public function test_a_body_without_the_link_gets_it_appended(): void {
 		Functions\when( 'get_userdata' )->justReturn( (object) array( 'first_name' => 'Ana', 'last_name' => '' ) );
 

@@ -41,11 +41,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffc_dm_tabs   = DateMessagesAdminPage::section_labels();
 $ffc_dm_titles = array( 'dashboard' => __( 'Date Messages', 'ffcertificate' ) ) + $ffc_dm_tabs;
 // Each page names its icon from Core\Icons; the form pages open in one card
-// headed by it, the lists run full width, and the rule editor draws a card
-// per part of the rule itself (#1631, #2486).
+// headed by it, the lists run full width, and the rule editor and the
+// settings page draw a card per part themselves (#1631, #2486, #2503).
 $ffc_dm_icons = array(
-	'send'     => 'ffc-icon-send',
-	'settings' => 'ffc-icon-clock',
+	'send' => 'ffc-icon-send',
 );
 $ffc_dm_title = 'edit' === $tab ? $ffc_dm_titles['rules'] : $ffc_dm_titles[ $tab ];
 ?>

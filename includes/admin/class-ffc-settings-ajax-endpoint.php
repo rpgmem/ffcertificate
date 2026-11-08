@@ -241,6 +241,24 @@ class SettingsAjaxEndpoint {
 			'cap'     => 'ffc_manage_recruitment_settings',
 		);
 
+		// Date Messages → Settings, the user dashboard (#2503): how long an
+		// announcement opens the dashboard, and whether what a disabled rule
+		// sent leaves it. The module's own option, gated by the capability
+		// that edits its rules.
+		$allowlist['date_messages_notice_days']         = array(
+			'option'  => \FreeFormCertificate\DateMessages\UserMessages::SETTINGS_OPTION,
+			'path'    => array( 'dashboard_notice_days' ),
+			'type'    => 'enum',
+			'options' => array_map( 'strval', \FreeFormCertificate\DateMessages\UserMessages::NOTICE_DAYS_CHOICES ),
+			'cap'     => 'ffc_manage_date_messages',
+		);
+		$allowlist['date_messages_hide_disabled_rules'] = array(
+			'option' => \FreeFormCertificate\DateMessages\UserMessages::SETTINGS_OPTION,
+			'path'   => array( 'hide_disabled_rules' ),
+			'type'   => 'bool',
+			'cap'    => 'ffc_manage_date_messages',
+		);
+
 		foreach ( $recruitment_bools as $field ) {
 			$allowlist[ 'recruitment_' . $field ] = array(
 				'option' => 'ffc_recruitment_settings',

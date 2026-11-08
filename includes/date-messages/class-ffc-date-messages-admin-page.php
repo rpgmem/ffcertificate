@@ -249,7 +249,7 @@ final class DateMessagesAdminPage {
 			'send'     => __( 'Send now', 'ffcertificate' ),
 			'history'  => __( 'History', 'ffcertificate' ),
 			'upcoming' => __( 'Upcoming dates', 'ffcertificate' ),
-			'settings' => __( 'Schedule', 'ffcertificate' ),
+			'settings' => __( 'Settings', 'ffcertificate' ),
 		);
 		if ( ! self::can_view_pii() ) {
 			unset( $labels['upcoming'] );
@@ -388,6 +388,21 @@ final class DateMessagesAdminPage {
 
 		// The rule's toggles and appearance save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
+
+		// The Settings page's dashboard controls save as they change, through
+		// the settings endpoint (#2503); the page has no form to clobber them.
+		if ( 'settings' === RequestInput::get_get_key( 'tab' ) ) {
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-autosave' );
+			wp_localize_script(
+				'ffc-admin-autosave',
+				'ffcAdminAutosave',
+				array(
+					'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
+				)
+			);
+		}
 
 		// One default per kind; the editor switches between them with the kind
 		// selector (ffc-date-messages-admin.js), so both are supplied.

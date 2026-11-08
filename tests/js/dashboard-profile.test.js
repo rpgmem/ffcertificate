@@ -174,13 +174,13 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.activeElement).toBe(toggle);
 	});
 
-	it('says the e-mail link sets the same date-message preferences (#2336)', () => {
+	it('leaves the date-message preferences to the Messages tab (#2503)', () => {
 		window.ffcDashboard.dateMessagesEnabled = true;
 		try {
 			panel().render(makeProfile());
-			const hint = document.querySelector('#ffc-tabpanel-profile .ffc-notif-list .ffc-notif-hint');
-			expect(hint).not.toBeNull();
-			expect(hint.textContent).toContain('unsubscribe link');
+			const keys = Array.from(document.querySelectorAll('#ffc-tabpanel-profile .ffc-notif-toggle')).map((el) => el.getAttribute('data-key'));
+			expect(keys).toEqual(['notify_appointment_reminder']);
+			expect(document.querySelector('#ffc-tabpanel-profile .ffc-notif-hint')).toBeNull();
 		} finally {
 			delete window.ffcDashboard.dateMessagesEnabled;
 		}

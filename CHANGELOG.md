@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: a change to a setting that deletes or suppresses data is recorded** (#2340): auto-delete, the uninstall wipe, the log's switch, retention and audit items. Switching the log off is recorded before it takes effect. While the log is off its items are greyed out.
 - **Activity Log: four secondary items record what they named** (#2340): attendance and check-in windows, rate-limit blocks and failed captchas (never the address or identifier), settings changed outside the Danger Zone (the keys, never the values) and scheduled tasks that ended in a fatal error. Each is off by default.
 - **A global list of reregistration fields every audience inherits** (#2502). Reregistration → Custom Fields edits it and lists where each audience changed, hid or added a field. An audience's tab shows where each field comes from; Customize changes one inherited field there (answers stay under the inherited field), Hide stops asking it, Back to inherited undoes the change.
+- **User dashboard: Messages tab** (#2503). What Date Messages sent each person, built from the rule as it is now: current announcements, which also open the dashboard as notices for 2–15 days, and earlier messages, three a page; the two message preferences move there from Profile. Date Messages → Settings chooses the days and whether disabled rules' messages stay.
 
 ### Changed
 
@@ -170,6 +171,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Bookings: cancelling a booking keeps the row's View button** (#2486). Since the row actions became buttons, a successful cancel removed the button before Cancel (View or Attendance) instead of a "|" separator; now it removes Cancel and Attendance only.
 - **Recruitment: the notice summary sits beside the editor on a definitive notice** (#2486). The Import candidates tab closed one container too many once a notice left the preliminary stage, which pushed the side column below the page.
 - **Recruitment: the public notice page is one card, as wide as the user dashboard** (#2486). The list drew a second card inside the first and took the whole width of a full-width page; it now has the dashboard's width, margin and shadow.
+- **Autosave on a WordPress in a subdirectory** (#2503). A settings screen that received no `ffc_ajax` posted to a root `/wp-admin/admin-ajax.php`; the autosave now uses the URL each screen localizes.
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 
