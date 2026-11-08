@@ -19,6 +19,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Audience Calendars: the cancel reason is asked in the confirmation, and results show on the page** (#2534). No `prompt()` or `alert()` is left in booking or cancelling; the bulk cancel updates its rows without a reload. A ratchet freezes the other native dialogs per file, so no new one is added.
 - **Consent: no empty Privacy Policy link without a privacy page** (#2537). The certificate and personal-calendar booking forms printed `href=""` when no page is set in Settings → Privacy; they now name the policy as plain text, and link it when the page exists.
 - **Public CSV: a second download waits for its fresh verification** (#2539). A click before the new challenge was solved reached the server, came back as an export error and counted a failed captcha against the address; it now says beside the challenge that verification comes first and sends nothing.
+- **Admin and front end: the browser's native dialogs give way to the plugin's own** (#2535). `FFC.confirmDialog()` asks in the plugin dialog (a reason field replaces `prompt()`), and `FFC.say()` / `FFC.adminNotice()` say outcomes on the page instead of `alert()`.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`
 

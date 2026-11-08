@@ -4163,6 +4163,10 @@ msgstr "Configurar recrutamento"
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
 msgstr "Configure a estrutura única (cabeçalho, corpo, rodapé e contêiner externo) que envolve todos os e-mails do plugin. O conteúdo da mensagem é inserido automaticamente no corpo."
 
+#: includes/core/class-ffc-asset-helper.php:143
+msgid "Are you sure?"
+msgstr "Tem certeza?"
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:146 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:306
 msgid "Confirm"
 msgstr "Confirmar"
