@@ -14,7 +14,7 @@ use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
  * Tests for ReregistrationStandardFieldsSeeder: field definitions integrity,
- * group labels, seed_for_audience idempotency, and hook registration.
+ * group labels, seed_global idempotency, and hook registration.
  *
  * @covers \FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder
  */
@@ -338,27 +338,6 @@ class ReregistrationStandardFieldsSeederTest extends TestCase {
 		$this->wpdb->shouldReceive( 'insert' )->andReturn( false );
 
 		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_global() );
-	}
-
-	/**
-	 * The old per-audience entry point seeds the global list and nothing of
-	 * the audience's own, and says it is deprecated.
-	 */
-	public function test_seed_for_audience_is_deprecated_and_seeds_the_global_list(): void {
-		$deprecated = CallLog::record( '_deprecated_function', null );
-		$inserts    = array();
-		$this->wpdb->shouldReceive( 'insert' )->andReturnUsing(
-			static function ( $table, $data ) use ( &$inserts ) {
-				$inserts[] = $data;
-				return 1;
-			}
-		);
-
-		ReregistrationStandardFieldsSeeder::seed_for_audience( 4 );
-
-		$this->assertSame( 1, $deprecated->count() );
-		$this->assertNotContains( 4, array_column( $inserts, 'audience_id' ) );
-		$this->assertSame( 0, ReregistrationStandardFieldsSeeder::seed_for_audience( 0 ) );
 	}
 
 	// ==================================================================

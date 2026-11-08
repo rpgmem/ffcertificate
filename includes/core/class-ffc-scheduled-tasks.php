@@ -170,32 +170,6 @@ final class ScheduledTasks {
 	);
 
 	/**
-	 * The names six hooks had before they took the `ffc_` prefix (#2323),
-	 * mapped to the name each has now.
-	 *
-	 * For one cycle an upgraded install moves an event still scheduled under
-	 * an old name (migrate_legacy_hooks()), a callback a site attached to an
-	 * old name keeps running with a deprecation notice (init()), and
-	 * deactivation and `uninstall.php` clear both names.
-	 *
-	 * @removal 6.45.0
-	 * @var array<string, string>
-	 */
-	public const LEGACY_HOOKS = array(
-		'ffcertificate_daily_cleanup_hook'            => 'ffc_daily_cleanup',
-		'ffcertificate_reregistration_expire_hook'    => 'ffc_reregistration_expire',
-		'ffcertificate_self_scheduling_reminder_scan' => 'ffc_self_scheduling_reminder_scan',
-		'ffcertificate_self_scheduling_closeout'      => 'ffc_self_scheduling_closeout',
-		'ffcertificate_audience_post_event_invites'   => 'ffc_audience_post_event_invites',
-		'ffcertificate_bulk_issue_purge'              => 'ffc_bulk_issue_purge',
-	);
-
-	/**
-	 * The release the old names were deprecated in.
-	 */
-	private const LEGACY_SINCE = '6.43.0';
-
-	/**
 	 * How long past its interval a recurring task may go unrun before the
 	 * screen calls it late: the interval plus a margin for WP-Cron's
 	 * traffic-driven drift.
@@ -274,19 +248,6 @@ final class ScheduledTasks {
 	 * @return void
 	 */
 	public static function init(): void {
-		foreach ( self::LEGACY_HOOKS as $old => $new ) {
-			add_action(
-				$new,
-				static function () use ( $old, $new ): void {
-					if ( has_action( $old ) ) {
-						// @removal 6.45.0 -- the old name is relayed for one cycle (#2323).
-						do_action_deprecated( $old, array(), self::LEGACY_SINCE, $new );
-					}
-				},
-				998
-			);
-		}
-
 		// A task that dies leaves the hook it was running in `$running`; the
 		// shutdown handler reports it to the activity log (#2340). First and
 		// last priorities, so the real callbacks run between the two.
@@ -318,69 +279,6 @@ final class ScheduledTasks {
 				},
 				999
 			);
-		}
-	}
-
-	/**
-	 * Move every event still scheduled under an old name to its new one (#2323).
-	 *
-	 * The next run is kept, the event is cleared under the old name, and a
-	 * new-name event the Loader already scheduled is left alone, so no task
-	 * runs twice. The task's last-run time and chosen time follow it. Runs on
-	 * every request before the Loader schedules anything; with nothing left
-	 * under an old name it costs one lookup per name in the cron array
-	 * WordPress has already loaded, and writes nothing.
-	 *
-	 * @removal 6.45.0
-	 * @return int How many events moved.
-	 */
-	public static function migrate_legacy_hooks(): int {
-		$moved = 0;
-		foreach ( self::LEGACY_HOOKS as $old => $new ) {
-			$next = wp_next_scheduled( $old );
-			if ( false === $next ) {
-				continue;
-			}
-			$recurrence = wp_get_schedule( $old );
-			wp_clear_scheduled_hook( $old );
-			if ( false === wp_next_scheduled( $new ) ) {
-				wp_schedule_event( (int) $next, false !== $recurrence ? $recurrence : self::TASKS[ $new ]['recurrence'], $new );
-			}
-			++$moved;
-		}
-
-		if ( $moved > 0 ) {
-			self::rename_keys( self::HEARTBEAT_OPTION );
-			self::rename_keys( self::TIMES_OPTION );
-		}
-		return $moved;
-	}
-
-	/**
-	 * Re-key an option keyed by hook from the old names to the new ones. A
-	 * value already stored under the new name wins.
-	 *
-	 * @param string $option Option name.
-	 * @return void
-	 */
-	private static function rename_keys( string $option ): void {
-		$stored = get_option( $option, array() );
-		if ( ! is_array( $stored ) ) {
-			return;
-		}
-		$changed = false;
-		foreach ( self::LEGACY_HOOKS as $old => $new ) {
-			if ( ! array_key_exists( $old, $stored ) ) {
-				continue;
-			}
-			if ( ! array_key_exists( $new, $stored ) ) {
-				$stored[ $new ] = $stored[ $old ];
-			}
-			unset( $stored[ $old ] );
-			$changed = true;
-		}
-		if ( $changed ) {
-			update_option( $option, $stored, false );
 		}
 	}
 
