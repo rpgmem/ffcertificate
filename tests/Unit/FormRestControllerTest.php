@@ -96,6 +96,9 @@ class FormRestControllerTest extends TestCase {
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
 		\Brain\Monkey\Functions\when( '_deprecated_function' )->justReturn( null );
+		// The submit route is authenticated; its per-account guard reads
+		// the caller (#2342). A test that needs another caller says so.
+		Functions\when( 'get_current_user_id' )->justReturn( 21 );
 
 		$this->registered_routes = [];
 		$this->prepared          = array();
@@ -241,6 +244,11 @@ class FormRestControllerTest extends TestCase {
 					++$this->id_lookups;
 					// By default no earlier submission of this CPF: not a reprint.
 					return $this->earlier_row;
+				}
+				// An update reads the row first, to clear the keys it is cached
+				// under (#2343).
+				if ( 'SELECT * FROM %i WHERE id = %d' === $sql ) {
+					return null;
 				}
 				$this->unexpected[] = 'get_row(): ' . $sql;
 				return null;
@@ -1239,13 +1247,33 @@ class FormRestControllerTest extends TestCase {
 		}
 		$this->assertSame(
 			array(
-				array( 'ip', IpAddress::fingerprint( self::CLIENT_IP ), 1, 'day' ),
-				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'day' ),
-				array( 'email', hash( 'sha256', 'jane@example.com' ), 1, 'month' ),
+				array( 'email', \FreeFormCertificate\Core\Encryption::keyed_hash( 'jane@example.com', 'rate_limit_email' ), 1, 'day' ),
+				array( 'email', \FreeFormCertificate\Core\Encryption::keyed_hash( 'jane@example.com', 'rate_limit_email' ), 1, 'month' ),
 			),
 			$recorded,
-			'One attempt is recorded for the address and one for the e-mail, against the form.'
+			'The e-mail is counted against the form; the server address of an authenticated caller is not (#2342).'
 		);
+	}
+
+	public function test_submit_form_is_not_refused_by_the_address_pool(): void {
+		// An integration sends every request from one server address; the
+		// per-address pool the web form uses does not apply to it (#2342).
+		$this->serve_form( array(), $this->plain_fields() );
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour', HOUR_IN_SECONDS, 5 );
+
+		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+		$result = $ctrl->submit_form(
+			$this->make_request(
+				array( 'id' => 1 ),
+				array(
+					'email'            => 'jane@example.com',
+					'ffc_lgpd_consent' => '1',
+				)
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result );
+		$this->assertCount( 1, $this->inserted_into( 'wp_ffc_submissions' ) );
 	}
 
 	public function test_submit_form_looks_an_earlier_submission_up_once(): void {
@@ -1281,10 +1309,53 @@ class FormRestControllerTest extends TestCase {
 		$this->assertSame( 1, $this->id_lookups );
 	}
 
+	public function test_submit_form_hands_a_stranger_no_code_on_a_reprint(): void {
+		// The CPF already has a certificate that belongs to another account:
+		// the link goes to its stored address, and the caller gets the web
+		// form's notice, never the code or the id (#2342).
+		$fields   = $this->plain_fields();
+		$fields[] = array( 'type' => 'text', 'name' => 'cpf_rf', 'label' => 'CPF' );
+		$this->serve_form( array(), $fields );
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		$this->earlier_row = (object) array(
+			'id'              => '44',
+			'user_id'         => '9',
+			'status'          => 'publish',
+			'submission_date' => '1750000000',
+			'data'            => '{"email":"owner@example.com"}',
+			'auth_code'       => 'ABCD1234EFGH',
+		);
+		// Sent earlier today: nothing goes out again, and the notice says so.
+		$this->transients['ffc_reprint_link_44'] = time();
+
+		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
+		$result = $ctrl->submit_form(
+			$this->make_request(
+				array( 'id' => 1 ),
+				array(
+					'email'            => 'attacker@example.com',
+					'cpf_rf'           => self::masked( Identifiers::CPF_A ),
+					'ffc_lgpd_consent' => '1',
+				)
+			)
+		);
+
+		$this->assertNotInstanceOf( \WP_Error::class, $result );
+		$data = $result->data;
+		$this->assertTrue( $data['reprint'] );
+		$this->assertArrayNotHasKey( 'auth_code', $data );
+		$this->assertArrayNotHasKey( 'submission_id', $data );
+		$this->assertStringNotContainsString( 'ABCD', (string) json_encode( $data ) );
+		$this->assertStringContainsString( 'already sent today', $data['message'] );
+	}
+
 	public function test_submit_form_answers_429_when_rate_limited(): void {
 		$this->serve_form( array(), $this->plain_fields() );
-		// The address has already used the hour's default allowance (5).
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::CLIENT_IP ) ) . '_hour' ] = 5;
+		// The account has used the hour's allowance (#2342): the route counts
+		// the API caller, not its server's address. Read on both sides of the
+		// hour, as the key names it.
+		$this->transients[ 'ffc_rate_user_21_forms_api_submit_hour_' . gmdate( 'YmdH' ) ] = 300;
+		$this->transients[ 'ffc_rate_user_21_forms_api_submit_hour_' . gmdate( 'YmdH', time() + 60 ) ] = 300;
 
 		$ctrl   = new FormRestController( 'ffc/v1', $this->form_repo_mock );
 		$result = $ctrl->submit_form(

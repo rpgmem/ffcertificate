@@ -124,6 +124,124 @@ class UrlShortenerRepositoryTest extends TestCase {
 		$this->assertSame( 'cached', $result['short_code'] );
 	}
 
+	/**
+	 * A code nobody has is remembered briefly, so a bot walking random codes
+	 * does not reach the database on every request (#2337).
+	 */
+	public function test_an_unknown_code_is_cached_negatively_for_a_short_time(): void {
+		$set = array();
+		Functions\when( 'wp_cache_set' )->alias(
+			static function ( $key, $value, $group, $ttl ) use ( &$set ) {
+				$set[] = array( $key, $value, $group, $ttl );
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturn( 'QUERY' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
+
+		$this->assertNull( $this->repo->findByShortCode( 'nope' ) );
+		$this->assertSame( array( array( 'code_nope', 'missing', 'ffc_short_urls', 60 ) ), $set );
+	}
+
+	public function test_a_remembered_miss_is_answered_without_a_query(): void {
+		Functions\when( 'wp_cache_get' )->alias( static fn( $key ) => 'code_nope' === $key ? 'missing' : false );
+		$this->wpdb->shouldNotReceive( 'get_row' );
+
+		$this->assertNull( $this->repo->findByShortCode( 'nope' ) );
+	}
+
+	/**
+	 * Every read of a short URL row leaves the stored QR out (#2337): the
+	 * redirect, the editor lookup, the list and the CSV export.
+	 */
+	public function test_no_row_read_selects_the_qr_cache(): void {
+		$sql = array();
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $query ) use ( &$sql ) {
+				$sql[] = (string) $query;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+
+		$this->repo->findByShortCode( 'abc' );
+		$this->repo->findByPostId( 5 );
+		$this->repo->findByTargetUrl( 'https://example.org/' );
+		$this->repo->findPaginated( array() );
+		$this->repo->findByCursor( array(), PHP_INT_MAX, 50 );
+
+		$this->assertCount( 6, $sql, 'Five reads, the list one counting first.' );
+		foreach ( $sql as $query ) {
+			$this->assertStringNotContainsString( 'SELECT *', $query );
+			$this->assertStringNotContainsString( 'qr_cache', $query );
+		}
+		$this->assertStringNotContainsString( 'qr_cache', \FreeFormCertificate\UrlShortener\UrlShortenerReader::ROW_COLUMNS );
+	}
+
+	/**
+	 * The column list a short URL is read with is the table's, minus the
+	 * stored QR (#2337): a column added to the table and forgotten here would
+	 * be missing from every row the redirect, list and export read.
+	 */
+	public function test_the_row_columns_are_the_table_columns_but_the_qr_cache(): void {
+		require_once dirname( __DIR__, 2 ) . '/.github/scripts/ffc-create-statements.php';
+		$create = array_values(
+			array_filter(
+				ffc_create_statements( dirname( __DIR__, 2 ) . '/includes' ),
+				static fn( array $statement ): bool => 'ffc_short_urls' === $statement['table']
+			)
+		);
+		$this->assertCount( 1, $create, 'One CREATE TABLE for ffc_short_urls.' );
+
+		$table = array_values( array_diff( \FreeFormCertificate\Tests\Support\SchemaColumns::of_create( $create[0]['sql'] ), array( 'qr_cache' ) ) );
+		$read  = array_map( 'trim', explode( ',', \FreeFormCertificate\UrlShortener\UrlShortenerReader::ROW_COLUMNS ) );
+		sort( $table );
+		sort( $read );
+
+		$this->assertSame( $table, $read );
+	}
+
+	/**
+	 * Writing the QR cache flushes nothing (#2337): without `flush_group`
+	 * clearing the group was `wp_cache_flush()`, the whole site's cache.
+	 */
+	public function test_writing_the_qr_cache_flushes_no_cache(): void {
+		$flush  = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_cache_flush', true );
+		$delete = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_cache_delete', true );
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( 1 );
+
+		$this->assertTrue( $this->repo->setQrCacheForShortCode( 'abc', '{}' ) );
+		$this->assertSame( 0, $flush->count() );
+		$this->assertSame( 0, $delete->count() );
+	}
+
+	/**
+	 * A post with a link in any state is not a backfill candidate (#2337): a
+	 * disabled or trashed link is still the post's link.
+	 */
+	public function test_the_backfill_counts_any_existing_link(): void {
+		$captured = array();
+		$this->wpdb->posts = 'wp_posts';
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( ...$args ) use ( &$captured ) {
+				$captured[] = $args;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( '0' );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+
+		$this->repo->countBackfillCandidates( array( 'page' ) );
+		$this->repo->findBackfillCandidates( array( 'page' ), PHP_INT_MAX, 10 );
+
+		foreach ( $captured as $args ) {
+			$this->assertStringNotContainsString( 's.status', (string) $args[0] );
+			$this->assertNotContains( 'active', array_slice( $args, 1 ) );
+		}
+	}
+
 	// ==================================================================
 	// findByPostId()
 	// ==================================================================
@@ -433,6 +551,30 @@ class UrlShortenerRepositoryTest extends TestCase {
 		$this->assertSame( $rows, $result );
 	}
 
+	public function test_never_clicked_compares_created_at_with_an_instant_cutoff(): void {
+		$this->wpdb->posts = 'wp_posts';
+		$captured          = array();
+		$this->wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			static function ( ...$args ) use ( &$captured ) {
+				$captured = $args;
+				return 'Q';
+			}
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( array() );
+
+		$before = time() - 30 * DAY_IN_SECONDS;
+		$this->repo->find_cleanup_candidates( array( 'never_clicked' => true ), 30 );
+		$after = time() - 30 * DAY_IN_SECONDS;
+
+		// `created_at` is UTC seconds (#2337): no NOW() in the database's zone.
+		$this->assertStringContainsString( 's.created_at < %d', $captured[0] );
+		$this->assertStringNotContainsString( 'NOW()', $captured[0] );
+		foreach ( array( $captured[1], $captured[4] ) as $cutoff ) {
+			$this->assertGreaterThanOrEqual( $before, $cutoff );
+			$this->assertLessThanOrEqual( $after, $cutoff );
+		}
+	}
+
 	// ==================================================================
 	// countForExport() / findByCursor() — batched CSV export (#772)
 	// ==================================================================
@@ -522,5 +664,151 @@ class UrlShortenerRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
 
 		$this->assertSame( array(), $this->repo->findBackfillCandidates( array( 'post' ), 20, 50 ) );
+	}
+
+	// ==================================================================
+	// Retired codes (#2337)
+	// ==================================================================
+
+	/**
+	 * A `$wpdb` double whose prepare() records each query with its
+	 * arguments substituted, in order, and whose query() answers from a list.
+	 *
+	 * Recorded in $this->queries.
+	 *
+	 * @param array<int, int|false> $query_results What each query() returns.
+	 */
+	private function record_queries( array $query_results ): void {
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) {
+				return $sql . ' | ' . implode( ' | ', array_map( 'strval', $args ) );
+			}
+		);
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) use ( &$query_results ) {
+				$this->queries[] = $sql;
+				return in_array( $sql, array( 'START TRANSACTION', 'COMMIT', 'ROLLBACK' ), true ) ? 1 : array_shift( $query_results );
+			}
+		);
+	}
+
+	/** @var array<int, string> */
+	private array $queries = array();
+
+	public function test_code_retired_reads_the_retired_table(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with( 'SELECT COUNT(*) FROM %i WHERE short_code = %s', 'wp_ffc_short_url_retired', 'abc123' )->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_var' )->once()->with( 'Q' )->andReturn( '1' );
+
+		$this->assertTrue( $this->repo->codeRetired( 'abc123' ) );
+	}
+
+	public function test_retired_list_searches_code_title_and_destination_newest_first(): void {
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d' ) ),
+			'wp_ffc_short_url_retired',
+			'%form%',
+			'%form%',
+			'%form%',
+			20,
+			20
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( 'Q', ARRAY_A )->andReturn( array( array( 'short_code' => 'abc' ) ) );
+
+		$this->assertSame( array( array( 'short_code' => 'abc' ) ), $this->repo->findRetiredPaginated( 'form', 2, 20 ) );
+	}
+
+	public function test_retire_and_delete_records_the_code_then_deletes_in_one_transaction(): void {
+		$this->record_queries( array( 1 ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => '5', 'short_code' => 'abc123', 'post_id' => '9' ) );
+		$this->wpdb->shouldReceive( 'delete' )->once()->with( 'wp_ffc_short_urls', array( 'id' => 5 ) )->andReturn( 1 );
+
+		$row = array( 'id' => '5', 'short_code' => 'abc123', 'post_id' => '9', 'title' => 'T', 'target_url' => 'https://x/' );
+		$this->assertTrue( $this->repo->retireAndDelete( $row, 'deleted' ) );
+
+		$this->assertSame( 'START TRANSACTION', $this->queries[0] );
+		$this->assertStringStartsWith( 'INSERT IGNORE INTO %i (short_code, short_url_id, post_id, title, target_url, reason, retired_at)', $this->queries[1] );
+		$this->assertStringContainsString( '| wp_ffc_short_url_retired | abc123 | 5 | 9 | T | https://x/ | deleted |', $this->queries[1] );
+		$this->assertSame( 'COMMIT', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_rolls_back_when_the_code_cannot_be_recorded(): void {
+		$this->record_queries( array( false ) );
+		$this->wpdb->shouldNotReceive( 'delete' );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5, 'short_code' => 'abc123' ), 'deleted' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_rolls_back_when_the_row_is_already_gone(): void {
+		$this->record_queries( array( 1 ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'delete' )->once()->andReturn( 0 );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5, 'short_code' => 'abc123' ), 'deleted' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_retire_and_delete_refuses_a_row_without_a_code(): void {
+		$this->wpdb->shouldNotReceive( 'query' );
+
+		$this->assertFalse( $this->repo->retireAndDelete( array( 'id' => 5 ), 'deleted' ) );
+	}
+
+	public function test_the_trash_is_read_oldest_first_a_batch_at_a_time(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE status = %s ORDER BY id ASC LIMIT %d' ) ),
+			'wp_ffc_short_urls',
+			'trashed',
+			200
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn( null );
+
+		$this->assertSame( array(), $this->repo->findTrashedBatch( 200 ) );
+	}
+
+	public function test_swap_code_retires_the_old_code_and_renames_the_row_in_one_transaction(): void {
+		$this->record_queries( array( 1 ) );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( array( 'id' => '5', 'short_code' => 'old123', 'post_id' => '9' ) );
+		$before = time();
+		$this->wpdb->shouldReceive( 'update' )->once()->with(
+			'wp_ffc_short_urls',
+			Mockery::on(
+				// `updated_at` is an instant (#2337), read on both sides of the call.
+				static fn( $data ) => 'New456' === $data['short_code'] && null === $data['qr_cache']
+					&& is_int( $data['updated_at'] ) && $data['updated_at'] >= $before && $data['updated_at'] <= time()
+			),
+			array( 'id' => 5 )
+		)->andReturn( 1 );
+
+		$this->assertTrue( $this->repo->swapCode( array( 'id' => '5', 'short_code' => 'old123' ), 'New456' ) );
+
+		$this->assertSame( 'START TRANSACTION', $this->queries[0] );
+		$this->assertStringContainsString( '| old123 | 5 |', $this->queries[1] );
+		$this->assertStringContainsString( '| regenerated |', $this->queries[1] );
+		$this->assertSame( 'COMMIT', end( $this->queries ) );
+	}
+
+	public function test_swap_code_rolls_back_when_the_new_code_is_refused(): void {
+		$this->record_queries( array( 1 ) );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 01:00:00' );
+		$this->wpdb->shouldReceive( 'get_row' )->andReturn( null );
+		// The UNIQUE key refused it: wpdb answers false.
+		$this->wpdb->shouldReceive( 'update' )->once()->andReturn( false );
+
+		$this->assertFalse( $this->repo->swapCode( array( 'id' => 5, 'short_code' => 'old123' ), 'Taken1' ) );
+		$this->assertSame( 'ROLLBACK', end( $this->queries ) );
+	}
+
+	public function test_the_post_link_is_read_in_any_state_active_first(): void {
+		$this->wpdb->shouldReceive( 'prepare' )->once()->with(
+			Mockery::on( static fn( $sql ) => false !== strpos( $sql, 'WHERE post_id = %d ORDER BY status = %s DESC, id DESC LIMIT 1' ) ),
+			'wp_ffc_short_urls',
+			7,
+			'active'
+		)->andReturn( 'Q' );
+		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( array( 'id' => '3', 'status' => 'disabled' ) );
+
+		$this->assertSame( 'disabled', $this->repo->findByPostId( 7 )['status'] );
 	}
 }

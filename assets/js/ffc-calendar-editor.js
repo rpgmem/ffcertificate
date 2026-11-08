@@ -27,6 +27,11 @@
             this.bindEvents();
             this.initRowCounter();
             this.slotCounter = $('#ffc-custom-slots-list tr').length;
+            this.sessionCounter = $('#ffc-sessions-list tr').length;
+            // Sessions reorder by keyboard (#2405); the order is the rows' order.
+            if (window.FFC && window.FFC.reorder && $('#ffc-sessions-list').length) {
+                window.FFC.reorder({ list: '#ffc-sessions-list', item: 'tr', handle: '.ffc-session-order' });
+            }
             this.applyMode();
             // The cancellation and waitlist rows get their initial hidden
             // state from PHP, not from a handler, so nothing would have
@@ -87,6 +92,10 @@
             $(document).on('change', '.ffc-schedule-type-radio', this.applyMode);
             $(document).on('click', '#ffc-add-custom-slot', this.addCustomSlot.bind(this));
             $(document).on('click', '.ffc-remove-slot', this.removeCustomSlot);
+
+            // Sessions (#2405): add a row, remove one.
+            $(document).on('click', '#ffc-add-session', this.addSession.bind(this));
+            $(document).on('click', '.ffc-remove-session', this.removeSession);
         },
 
         /**
@@ -123,6 +132,40 @@
                 '<td>' + removeButton + '</td>' +
                 '</tr>';
             $('#ffc-custom-slots-list').append(rowHtml);
+        },
+
+        /**
+         * Counter for session rows (#2405); a new row's index only needs to
+         * differ from the others, the order is the rows' order.
+         */
+        sessionCounter: 0,
+
+        /**
+         * Add a session row (#2405), focused, with no id: the save gives it one.
+         */
+        addSession: function(e) {
+            e.preventDefault();
+            var index = this.sessionCounter++;
+            var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
+            var removeButton = window.FFC.buttonHtml({ label: editorStrings.remove || 'Remove', category: 'danger', icon: 'delete', className: 'ffc-remove-session' });
+            var n = 'ffc_self_scheduling_sessions[' + index + ']';
+            var $row = $('<tr class="ffc-session-row">' +
+                '<td><input type="hidden" name="' + n + '[id]" value=""><input type="text" class="regular-text" name="' + n + '[name]" maxlength="100" required></td>' +
+                '<td><span class="ffc-session-order"></span></td>' +
+                '<td>' + removeButton + '</td>' +
+                '</tr>');
+            $row.find('input[type="text"]').attr('aria-label', editorStrings.sessionName || 'Session name');
+            $('#ffc-sessions-list').append($row);
+            $row.find('input[type="text"]').trigger('focus');
+        },
+
+        /**
+         * Remove a session row (#2405). The save keeps a session that still
+         * has open appointments, and says so.
+         */
+        removeSession: function(e) {
+            e.preventDefault();
+            $(e.currentTarget).closest('tr').remove();
         },
 
         /**

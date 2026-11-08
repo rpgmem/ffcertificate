@@ -32,6 +32,21 @@ class SelfSchedulingActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Revision of the columns {@see self::maybe_heal_columns()} adds. Bump it in
+	 * the PR that adds one, so installs on the same `FFC_VERSION` heal too.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '3';
+
+	/**
+	 * Option holding the revision last applied.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_self_scheduling_schema_revision';
+
+	/**
 	 * Create all self-scheduling-related tables
 	 *
 	 * Called during plugin activation.
@@ -93,6 +108,9 @@ class SelfSchedulingActivator {
             slots_per_day int(10) unsigned DEFAULT 0 COMMENT '0 = unlimited',
             working_hours longtext DEFAULT NULL,
             custom_slots longtext DEFAULT NULL,
+            sessions longtext DEFAULT NULL,
+            session_label varchar(100) DEFAULT NULL,
+            session_label_plural varchar(100) DEFAULT NULL,
             advance_booking_min int(10) unsigned DEFAULT 0 COMMENT 'Minimum hours in advance',
             advance_booking_max int(10) unsigned DEFAULT 30 COMMENT 'Maximum days in advance',
             allow_cancellation tinyint(1) DEFAULT 1,
@@ -107,6 +125,8 @@ class SelfSchedulingActivator {
             scheduling_visibility enum('public','private') DEFAULT 'public' COMMENT 'Booking access: public or private',
             restrict_viewing_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict viewing to working hours only',
             restrict_booking_to_hours tinyint(1) DEFAULT 0 COMMENT 'Restrict booking to working hours only',
+            show_event_list tinyint(1) DEFAULT 0 COMMENT 'Show the free-slots panel beside or below the month',
+            event_list_position enum('side','below') DEFAULT 'side' COMMENT 'Position of the free-slots panel',
             email_config longtext DEFAULT NULL,
             status varchar(20) DEFAULT 'active' COMMENT 'active, inactive, archived',
             created_at datetime NOT NULL,
@@ -159,6 +179,7 @@ class SelfSchedulingActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             calendar_id bigint(20) unsigned NOT NULL,
+            session_id bigint(20) unsigned DEFAULT NULL,
             user_id bigint(20) unsigned DEFAULT NULL COMMENT 'WordPress user (if logged in)',
             appointment_date date NOT NULL,
             start_time time NOT NULL,
@@ -201,7 +222,8 @@ class SelfSchedulingActivator {
             KEY confirmation_token (confirmation_token),
             UNIQUE KEY validation_code (validation_code),
             KEY idx_calendar_date (calendar_id, appointment_date),
-            KEY idx_calendar_datetime (calendar_id, appointment_date, start_time)
+            KEY idx_calendar_datetime (calendar_id, appointment_date, start_time),
+            KEY idx_calendar_session_datetime (calendar_id, session_id, appointment_date, start_time)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -338,6 +360,9 @@ class SelfSchedulingActivator {
 	 * does not lock the chain at a version it never finished applying.
 	 */
 	public static function maybe_migrate(): void {
+		// Columns added between releases heal on their own revision (#2405).
+		self::maybe_heal_columns();
+
 		// Version gate (#1231) -- see the note just above the signature.
 		$ffc_schema_option = 'ffc_self_scheduling_schema_version';
 		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
@@ -345,6 +370,11 @@ class SelfSchedulingActivator {
 		}
 
 		global $wpdb;
+
+		// Every table this module declares, on an install that was updated
+		// rather than activated (#2343); each create returns at once when its
+		// table is there.
+		self::create_tables();
 
 		// Migrate appointments table.
 		$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
@@ -375,6 +405,100 @@ class SelfSchedulingActivator {
 		}
 
 		update_option( $ffc_schema_option, FFC_VERSION );
+	}
+
+	/**
+	 * Heal the columns this module gained without a version bump (#2405).
+	 *
+	 * The `FFC_VERSION` gate of {@see self::maybe_migrate()} runs once per
+	 * release, so a column added mid-batch would reach the testes site only at
+	 * the next release and every write naming it would fail until then. This
+	 * gate is the module's own schema revision, as the audience module's
+	 * (#1918): bump {@see self::SCHEMA_REVISION} in the PR that adds a column
+	 * here. Columns only; the option is not written when an `ALTER` failed,
+	 * so the next request tries again.
+	 *
+	 * @return void
+	 */
+	private static function maybe_heal_columns(): void {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
+			return;
+		}
+
+		$healed = self::migrate_event_list_columns();
+		$healed = self::migrate_session_columns() && $healed;
+
+		if ( $healed ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
+	}
+
+	/**
+	 * Add the session columns (#2405): the calendar's sessions, as JSON, and
+	 * the session an appointment belongs to, with the index availability is
+	 * counted by. Both are NULL by default, so a calendar without sessions
+	 * and every stored appointment read exactly as before.
+	 *
+	 * @return bool Whether both tables now carry the columns and the index, or do not exist yet.
+	 */
+	private static function migrate_session_columns(): bool {
+		global $wpdb;
+		$calendars    = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+		$appointments = $wpdb->prefix . 'ffc_self_scheduling_appointments';
+		$healed       = true;
+
+		if ( self::table_exists( $calendars ) ) {
+			self::add_column_if_missing( $calendars, 'sessions', 'longtext DEFAULT NULL', 'custom_slots' );
+			// The calendar's own word for a session (#2413).
+			self::add_column_if_missing( $calendars, 'session_label', 'varchar(100) DEFAULT NULL', 'sessions' );
+			self::add_column_if_missing( $calendars, 'session_label_plural', 'varchar(100) DEFAULT NULL', 'session_label' );
+			$healed = self::column_exists( $calendars, 'sessions' )
+				&& self::column_exists( $calendars, 'session_label' )
+				&& self::column_exists( $calendars, 'session_label_plural' );
+		}
+
+		if ( self::table_exists( $appointments ) ) {
+			self::add_column_if_missing( $appointments, 'session_id', 'bigint(20) unsigned DEFAULT NULL', 'calendar_id' );
+			self::add_index_if_missing( $appointments, 'idx_calendar_session_datetime', '(calendar_id, session_id, appointment_date, start_time)' );
+			$healed = $healed
+				&& self::column_exists( $appointments, 'session_id' )
+				&& self::index_exists( $appointments, 'idx_calendar_session_datetime' );
+		}
+
+		return $healed;
+	}
+
+	/**
+	 * Add the events panel columns to calendars (#2405).
+	 *
+	 * `show_event_list` shows a panel listing the month's free slots beside
+	 * or below the calendar; `event_list_position` places it. Off by default,
+	 * so existing calendars are unchanged on upgrade.
+	 *
+	 * @return bool Whether the table now has both columns, or does not exist yet.
+	 */
+	private static function migrate_event_list_columns(): bool {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_self_scheduling_calendars';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return true;
+		}
+
+		self::add_column_if_missing(
+			$table_name,
+			'show_event_list',
+			"tinyint(1) DEFAULT 0 COMMENT 'Show the free-slots panel beside or below the month'",
+			'restrict_booking_to_hours'
+		);
+		self::add_column_if_missing(
+			$table_name,
+			'event_list_position',
+			"enum('side','below') DEFAULT 'side' COMMENT 'Position of the free-slots panel'",
+			'show_event_list'
+		);
+
+		return self::column_exists( $table_name, 'show_event_list' ) && self::column_exists( $table_name, 'event_list_position' );
 	}
 
 	/**
@@ -674,7 +798,8 @@ class SelfSchedulingActivator {
 			$indexes = $wpdb->get_results( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', $table_name, 'validation_code' ) );
 
 			// Check if Non_unique = 0 (already unique).
-			if ( (int) 0 === $indexes[0]->Non_unique ) {
+			// `$wpdb` returns the column as a string (#2343).
+			if ( isset( $indexes[0] ) && 0 === (int) $indexes[0]->Non_unique ) {
 				return; // Already unique.
 			}
 

@@ -315,3 +315,196 @@ describe('init guards', () => {
 		vi.useRealTimers();
 	});
 });
+
+// A role that differs from its shipped definition (#2340).
+function diffMarkup() {
+	return `
+	<div class="ffc-cap-panel ffc-role-editor">
+		<select class="ffc-role-select">
+			<option value="ffc_x_operator" selected>Operator</option>
+			<option value="ffc_end_user">End user</option>
+		</select>
+		<div class="ffc-role-diff" role="status" hidden>
+			<p><span class="ffc-role-diff-count"></span></p>
+			<button type="button" class="ffc-role-restore">Restore role default</button>
+		</div>
+		<section class="ffc-cap-group">
+			<button class="ffc-cap-group-h"><span class="ffc-cap-count">0</span>/3</button>
+			<div class="ffc-cap-group-body">
+				${['cap_a', 'cap_b', 'cap_c'].map((slug) => `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}">
+					<input type="checkbox" class="ffc-role-cap">
+					<div><span class="ffc-cap-row-name">Name ${slug}<span class="badge">front</span></span></div>
+					<span class="ffc-role-cap-side"><span class="ffc-role-diff-tag" hidden></span><span data-ffc-savestate></span></span>
+				</div>`).join('')}
+			</div>
+		</section>
+	</div>`;
+}
+
+function setupDiff(fetchImpl, confirmAnswer = true) {
+	window.ffcRoleEditor = {
+		ajaxUrl: '/wp-admin/admin-ajax.php',
+		nonce: 'n',
+		roleCaps: { ffc_x_operator: ['cap_a', 'cap_c'], ffc_end_user: ['cap_b'] },
+		roleDefaults: { ffc_x_operator: ['cap_a', 'cap_b'] },
+		roles: { ffc_x_operator: { label: 'FFC X - Operator', users: 4 } },
+		i18n: {
+			error: 'Err',
+			saved: 'Saved',
+			tagAdded: 'Added to default',
+			tagRemoved: 'Removed from default',
+			diffSummary: '%1$d added, %2$d removed.',
+			restoreIntro: '%1$s goes back (users holding it: %2$d):',
+			comesBack: '%s comes back',
+			isRemoved: '%s is removed',
+			dialog: { title: 'Restore?', seconds: 0 },
+		},
+	};
+	const confirm = vi.fn(() => Promise.resolve(confirmAnswer));
+	window.FFC = { overrideConfirm: confirm };
+	if (fetchImpl) {
+		window.fetch = fetchImpl;
+		globalThis.fetch = fetchImpl;
+	}
+	document.body.innerHTML = diffMarkup();
+	window.ffcRoleEditorInit();
+	return confirm;
+}
+
+const tag = (slug) => document.querySelector(`[data-ffc-cap-slug="${slug}"] .ffc-role-diff-tag`);
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+describe('difference from the default', () => {
+	afterEach(() => {
+		delete window.FFC;
+	});
+
+	it('shows the bar and tags only for the changed rows', () => {
+		setupDiff();
+		const bar = document.querySelector('.ffc-role-diff');
+		expect(bar.hidden).toBe(false);
+		expect(bar.querySelector('.ffc-role-diff-count').textContent).toBe('1 added, 1 removed.');
+		expect(tag('cap_a').hidden).toBe(true);
+		expect(tag('cap_b').textContent).toBe('Removed from default');
+		expect(tag('cap_b').classList.contains('ffc-role-diff-tag--removed')).toBe(true);
+		expect(tag('cap_c').textContent).toBe('Added to default');
+		expect(tag('cap_c').classList.contains('ffc-role-diff-tag--added')).toBe(true);
+	});
+
+	it('shows nothing for a role the plugin does not define', () => {
+		setupDiff();
+		const select = document.querySelector('.ffc-role-select');
+		select.value = 'ffc_end_user';
+		select.dispatchEvent(new Event('change'));
+		expect(document.querySelector('.ffc-role-diff').hidden).toBe(true);
+		expect(tag('cap_b').hidden).toBe(true);
+	});
+
+	it('updates after a toggle brings the role back to its default', async () => {
+		const fetchImpl = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		setupDiff(fetchImpl);
+		const b = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		b.checked = true;
+		b.dispatchEvent(new Event('change'));
+		await flush();
+		const c = document.querySelector('[data-ffc-cap-slug="cap_c"] .ffc-role-cap');
+		c.checked = false;
+		c.dispatchEvent(new Event('change'));
+		await flush();
+		expect(document.querySelector('.ffc-role-diff').hidden).toBe(true);
+	});
+
+	it('asks first, naming what comes back and what goes, then restores', async () => {
+		const fetchImpl = vi.fn(() => Promise.resolve({
+			json: () => Promise.resolve({ success: true, data: { caps: ['cap_a', 'cap_b'] } }),
+		}));
+		const confirm = setupDiff(fetchImpl);
+		document.querySelector('.ffc-role-restore').click();
+		await flush();
+		await flush();
+
+		const opts = confirm.mock.calls[0][0];
+		expect(opts.reasons).toEqual(['Name cap_b comes back', 'Name cap_c is removed']);
+		expect(opts.strings.intro).toBe('FFC X - Operator goes back (users holding it: 4):');
+		expect(opts.strings.title).toBe('Restore?');
+		expect(opts.agreeCategory).toBe('caution');
+		expect(opts.agreeIcon).toBe('restore');
+		expect(opts.strings.seconds).toBe(0);
+
+		const body = String(fetchImpl.mock.calls[0][1].body);
+		expect(body).toContain('action=ffc_restore_role_default');
+		expect(body).toContain('role=ffc_x_operator');
+		expect(document.querySelector('.ffc-role-diff').hidden).toBe(true);
+		expect(document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap').checked).toBe(true);
+		expect(document.querySelector('[data-ffc-cap-slug="cap_c"] .ffc-role-cap').checked).toBe(false);
+	});
+
+	it('changes nothing when the dialog is cancelled', async () => {
+		const fetchImpl = vi.fn();
+		setupDiff(fetchImpl, false);
+		document.querySelector('.ffc-role-restore').click();
+		await flush();
+		expect(fetchImpl).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-role-diff').hidden).toBe(false);
+	});
+});
+
+describe('granting a powerful capability (#2340)', () => {
+	function powerfulSetup(fetchMock, answer) {
+		setup(fetchMock);
+		window.ffcRoleEditor.roles = { ffc_end_user: { label: 'FFC End User', users: 7 } };
+		window.ffcRoleEditor.i18n.grantTitle = 'Grant "%s"?';
+		window.ffcRoleEditor.i18n.grantIntro = '%1$d people hold %2$s. Each of them will be able to:';
+		window.ffcRoleEditor.i18n.grantAgree = 'Grant';
+		const target = document.querySelector('[data-ffc-cap-slug="cap_b"]');
+		target.setAttribute('data-ffc-confirm', '1');
+		target.querySelector('div').insertAdjacentHTML('beforeend', '<span class="ffc-cap-row-desc">Reveal the CPF.</span>');
+		window.FFC = window.FFC || {};
+		const confirmSpy = vi.fn(() => Promise.resolve(answer));
+		window.FFC.overrideConfirm = confirmSpy;
+		return confirmSpy;
+	}
+
+	it('asks first, naming the capability, the role and how many people hold it, then saves', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		const confirmSpy = powerfulSetup(fetchMock, true);
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+
+		expect(fetchMock).not.toHaveBeenCalled();
+		const opts = confirmSpy.mock.calls[0][0];
+		expect(opts.strings.title).toBe('Grant "cap_b"?');
+		expect(opts.strings.intro).toBe('7 people hold FFC End User. Each of them will be able to:');
+		expect(opts.reasons).toEqual(['Reveal the CPF.']);
+		expect(opts.agreeCategory).toBe('caution');
+
+		await new Promise((r) => setTimeout(r, 0));
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0][1].body).toContain('grant=1');
+	});
+
+	it('puts the toggle back and saves nothing when the dialog is cancelled', async () => {
+		const fetchMock = vi.fn();
+		powerfulSetup(fetchMock, false);
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(cb.checked).toBe(false);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('removes a powerful capability without asking', () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		const confirmSpy = powerfulSetup(fetchMock, true);
+		document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap').checked = true;
+		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
+		cb.checked = false;
+		cb.dispatchEvent(new Event('change'));
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+});

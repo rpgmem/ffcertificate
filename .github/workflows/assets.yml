@@ -32,9 +32,12 @@ jobs:
         run: npm run build
       - name: Check for uncommitted changes
         run: |
-          if ! git diff --quiet assets/; then
-            echo "::error::Minified assets are stale. Run 'npm run build' and commit the results."
-            git diff --stat assets/
+          # `git status --porcelain` and not `git diff`: a new sheet or script
+          # whose `.min` was never committed is an untracked file, which
+          # `git diff` does not see (#2344).
+          if [ -n "$(git status --porcelain --untracked-files=all -- assets/)" ]; then
+            echo "::error::Minified assets are stale or missing. Run 'npm run build' and commit the results."
+            git status --short --untracked-files=all -- assets/
             exit 1
           fi
           echo "All minified assets are up to date."

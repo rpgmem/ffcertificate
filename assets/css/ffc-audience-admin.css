@@ -13,6 +13,13 @@
     gap: var(--ffc-spacing-md);
 }
 
+/* In the dashboard's side column (#2486) they stack, one per line. */
+.ffc-dashboard__side .ffc-scheduling-quick-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ffc-spacing-sm);
+}
+
 /* Status Badges — a name of their own since #1162.
    They used to be `.ffc-status-badge` + `.ffc-status-<state>`, and this
    sheet's `.ffc-status-cancelled` collided with `ffc-calendar-admin.css`'s on
@@ -54,14 +61,38 @@
 /* Table Columns */
 [class*="ffc-page-scheduling-"] .column-visibility,
 [class*="ffc-page-scheduling-"] .column-environments,
-[class*="ffc-page-scheduling-"] .column-status,
 [class*="ffc-page-scheduling-"] .column-color,
 [class*="ffc-page-scheduling-"] .column-members {
     width: 100px;
 }
 
+/* The on/off switch beside the badge it updates (#2498). */
+[class*="ffc-page-scheduling-"] .column-status {
+    width: 170px;
+}
+
+[class*="ffc-page-scheduling-"] td.column-status .ffc-control-toggle {
+    margin-right: var(--ffc-spacing-xs);
+    vertical-align: middle;
+}
+
+/* The row's actions are buttons (#2498): Edit, then Delete or the reason
+   it is kept; an audience adds Members. */
 [class*="ffc-page-scheduling-"] .column-actions {
-    width: 140px;
+    width: 240px;
+}
+
+.ffc-page-scheduling-audiences .column-actions {
+    width: 330px;
+}
+
+.ffc-page-scheduling-audiences .column-members {
+    width: 170px;
+}
+
+/* The members of the groups below, under the direct count (#2498). */
+.ffc-member-total {
+    display: block;
 }
 
 [class*="ffc-page-scheduling-"] .column-calendar {
@@ -345,6 +376,11 @@
     display: flex;
     flex-wrap: wrap;
     gap: 30px;
+}
+
+/* Only the second row is spaced: the first starts level with the tab menu,
+   like the first card of every other tab (#2486). */
+.ffc-import-export-cards + .ffc-import-export-cards {
     margin-top: var(--ffc-spacing-2xl);
 }
 
@@ -422,6 +458,12 @@
 .ffc-aud-flex-200 {
     flex: 1;
     min-width: 200px;
+}
+
+/* The field takes its item's width: core's `.regular-text` is 25em, wider
+   than the item in an editor panel, so it ran past the panel (#2486). */
+.ffc-aud-flex-200 > input[type="text"] {
+    width: 100%;
 }
 
 .ffc-aud-panel {
@@ -533,50 +575,6 @@
     color: var(--ffc-text-muted);
 }
 
-/* ==========================================================================
-   EDITORS IN VERTICAL TABS (#1761)
-   The audience calendar and audience editors draw the shared vertical-tab
-   component (`.ffc-vtabs`, in ffc-admin-components.css) inside a box
-   of their own, with the Save and Shortcode cards in a side column. The
-   component's negative margins fit a metabox's inset, which this box does
-   not have.
-   ========================================================================== */
-
-.ffc-aud-editor {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 280px;
-    gap: var(--ffc-spacing-2xl);
-    align-items: start;
-    margin-top: var(--ffc-spacing-xl);
-}
-
-.ffc-aud-editor__main {
-    min-width: 0;
-}
-
-.ffc-boxed .ffc-aud-editor__tabs {
-    margin: var(--ffc-spacing-xl) 0 0;
-    overflow: hidden;
-    background: var(--ffc-bg-card);
-    border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
-    box-shadow: var(--ffc-shadow-sm);
-}
-
-.ffc-aud-editor .ffc-aud-editor__tabs {
-    margin-top: 0;
-}
-
-.ffc-aud-editor__side .card {
-    min-width: 0;
-}
-
-@media screen and (max-width: 960px) {
-    .ffc-aud-editor {
-        grid-template-columns: minmax(0, 1fr);
-    }
-}
-
 /* Scheduling settings → Audiences: the "Multiple audiences" badge colour
    picker. It lived in a `style=""` attribute until #1837; the selector
    outranks core's `input[type="color"]` the way the attribute did. */
@@ -680,4 +678,25 @@
 /* The booked row's two names, singular above plural (#2221). */
 .ffc-calendar-appearance-table .ffc-calendar-booking-name + .ffc-calendar-booking-name {
     margin-top: var(--ffc-spacing-2xs);
+}
+
+/* Audience Bookings list (#2486): the Actions column holds View and
+   Attendance side by side, with Cancel below, and the labels keep one line.
+   The short columns take what they hold, so the text columns keep the rest. */
+.ffc-bookings-table .column-actions {
+    width: 15em;
+}
+
+.ffc-bookings-table .column-id {
+    width: 4em;
+}
+
+.ffc-bookings-table .column-date,
+.ffc-bookings-table .column-time,
+.ffc-bookings-table .column-present {
+    width: 7em;
+}
+
+.ffc-bookings-table .ffc-row-buttons .ffc-btn {
+    white-space: nowrap;
 }

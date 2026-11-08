@@ -2,8 +2,8 @@
   "private": true,
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "build:css": "for f in assets/css/*.css; do case \"$f\" in *.min.css) continue;; esac; npx cleancss -o \"${f%.css}.min.css\" --source-map \"$f\"; done && echo 'CSS minified.'",
-    "build:js": "for f in assets/js/*.js; do case \"$f\" in *.min.js) continue;; esac; npx terser \"$f\" -o \"${f%.js}.min.js\" --compress --mangle --source-map \"url='$(basename ${f%.js}.min.js.map)'\"; done && echo 'JS minified.'",
+    "build:css": "for f in assets/css/*.css; do case \"$f\" in *.min.css) continue;; esac; npx cleancss -o \"${f%.css}.min.css\" \"$f\"; done && echo 'CSS minified.'",
+    "build:js": "for f in assets/js/*.js; do case \"$f\" in *.min.js) continue;; esac; npx terser \"$f\" -o \"${f%.js}.min.js\" --compress --mangle; done && echo 'JS minified.'",
     "build": "npm run build:css && npm run build:js",
     "lint:css": "stylelint \"assets/css/*.css\" --ignore-pattern \"assets/css/*.min.css\"",
     "lint:css:fix": "stylelint \"assets/css/*.css\" --ignore-pattern \"assets/css/*.min.css\" --fix",
@@ -25,5 +25,8 @@
     "stylelint-config-recommended": "^18.0.0",
     "terser": "^5.51.2",
     "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

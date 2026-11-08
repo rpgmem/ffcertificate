@@ -125,7 +125,7 @@ class FormEditorGeofenceMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_geofence[msg_before_open]"', $html );
 		$this->assertStringContainsString( '>Opens on 1 June.</textarea>', $html );
 		$this->assertStringContainsString( '>Registration has closed.</textarea>', $html );
-		$this->assertMatchesRegularExpression( '/name="ffc_geofence\[msg_outside_hours\]"[^>]*placeholder="This form is only available during specific hours."[^>]*><\/textarea>/', $html, 'An empty message shows its default as the placeholder.' );
+		$this->assertMatchesRegularExpression( '/name="ffc_geofence\[msg_outside_hours\]"[^>]*placeholder="This form is only available during specific hours. Come back during those hours to submit it."[^>]*><\/textarea>/', $html, 'An empty message shows its default as the placeholder.' );
 		$this->assertStringNotContainsString( 'ffc_geofence[msg_datetime]', $html );
 	}
 

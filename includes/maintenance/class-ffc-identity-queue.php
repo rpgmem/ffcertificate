@@ -343,7 +343,21 @@ class IdentityQueue {
 		// Same reason `IdentityCheckDigitScan::check_digit_failures()` resets its coverage.
 		$this->truncated = array();
 
-		$multiple = $this->capped( self::CHECK_MULTIPLE, $query->multiple_identities( $limit ), $limit );
+		// AN ACCEPTED FINDING DOES NOT USE UP THE CAP (#2338). Each check asks
+		// for as many more rows as it has acceptances, so the filter below
+		// can drop them and still leave a full page of findings to work; the
+		// list is cut back to the cap once they are gone. One read of the
+		// record, shared with the filter.
+		$accepted = $this->acceptances()->all();
+		$fetch    = static function ( string $check ) use ( $limit, $accepted ): int {
+			$checks = array_map(
+				static fn( array $record ): string => is_string( $record[ IdentityAcceptance::FIELD_CHECK ] ?? null ) ? $record[ IdentityAcceptance::FIELD_CHECK ] : '',
+				$accepted
+			);
+			return $limit + count( array_keys( $checks, $check, true ) );
+		};
+
+		$multiple = $this->capped( self::CHECK_MULTIPLE, $query->multiple_identities( $fetch( self::CHECK_MULTIPLE ) ), $fetch( self::CHECK_MULTIPLE ) );
 
 		foreach ( $multiple as $row ) {
 			$row      = (array) $row;
@@ -365,7 +379,7 @@ class IdentityQueue {
 			$out[] = $item;
 		}
 
-		foreach ( $this->capped( self::CHECK_SHARED, $query->shared_identities( $limit ), $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_SHARED, $query->shared_identities( $fetch( self::CHECK_SHARED ) ), $fetch( self::CHECK_SHARED ) ) as $row ) {
 			$row = (array) $row;
 
 			// NOT MARKED SPOKEN: a merge does not rewrite the shared number,
@@ -410,7 +424,7 @@ class IdentityQueue {
 		 * `IdentityCheckDigitScan::check_digit_failures()` scans rows rather than accounts -- plus,
 		 * now, every failing number whose account-side card can only point at it.
 		 */
-		foreach ( $this->capped( self::CHECK_DIGITS, $scan->check_digit_failures_of_both( $limit ), $limit ) as $row ) {
+		foreach ( $this->capped( self::CHECK_DIGITS, $scan->check_digit_failures_of_both( $fetch( self::CHECK_DIGITS ) ), $fetch( self::CHECK_DIGITS ) ) as $row ) {
 			$row     = (array) $row;
 			$subject = (string) ( $row['subject'] ?? '' );
 
@@ -430,7 +444,36 @@ class IdentityQueue {
 
 		$this->coverage = $scan->scan_coverage();
 
-		return $this->without_accepted( $out );
+		return $this->within_cap( $this->without_accepted( $out, $accepted ), $limit );
+	}
+
+	/**
+	 * Cut each check's findings back to the cap once acceptance has run.
+	 *
+	 * A check asked for more rows than the cap to make room for its
+	 * acceptances; what is left over after the filter is more than one
+	 * page, so it is dropped here and the check is reported as capped,
+	 * which it was: there are findings this page does not show.
+	 *
+	 * @param array<int, array<string, mixed>> $items Findings after the filter.
+	 * @param int                              $limit Findings per check.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function within_cap( array $items, int $limit ): array {
+		$seen = array();
+		$kept = array();
+		foreach ( $items as $item ) {
+			$check          = is_string( $item[ self::COLUMN_CHECK ] ?? null ) ? $item[ self::COLUMN_CHECK ] : '';
+			$seen[ $check ] = ( $seen[ $check ] ?? 0 ) + 1;
+			if ( $seen[ $check ] > $limit ) {
+				if ( ! in_array( $check, $this->truncated, true ) ) {
+					$this->truncated[] = $check;
+				}
+				continue;
+			}
+			$kept[] = $item;
+		}
+		return $kept;
 	}
 
 	/**
@@ -446,11 +489,10 @@ class IdentityQueue {
 	 *
 	 * AFTER `capped()`, deliberately. Truncation is a property of what the
 	 * SCAN read, not of what survives this filter, so a check that reached its
-	 * cap still says so even if acceptance empties its panel. The consequence
-	 * is worth knowing: an install with many acceptances can have unaccepted
-	 * findings beyond the cap that this scan never saw, which is why the
-	 * truncation notice is the thing to read before believing a panel is
-	 * complete -- not the panel's own count.
+	 * cap still says so even if acceptance empties its panel. Each check is
+	 * asked for its cap plus its acceptances (#2338), so accepted findings no
+	 * longer crowd unaccepted ones out of the page; the truncation notice is
+	 * still the thing to read before believing a panel is complete.
 	 *
 	 * A FINDING WHOSE SHAPE CHANGED IS NOT SUPPRESSED. The acceptance is a
 	 * judgement about the finding as it was; a tier change means the question
@@ -459,15 +501,14 @@ class IdentityQueue {
 	 * way to bury a finding that later became one click from correct.
 	 *
 	 * @since 6.33.0
-	 * @param array<int, array<string, mixed>> $items The scan's findings.
+	 * @param array<int, array<string, mixed>>    $items    The scan's findings.
+	 * @param array<string, array<string, mixed>> $accepted The acceptance record, read once by the caller.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private function without_accepted( array $items ): array {
+	private function without_accepted( array $items, array $accepted ): array {
 		// ONE READ, not one per finding: `all()` validates and sorts the whole
 		// record, and doing that a hundred times to answer a hundred lookups
 		// is the shape this file already avoids in `counts()`.
-		$accepted = $this->acceptances()->all();
-
 		if ( array() === $accepted ) {
 			return $items;
 		}

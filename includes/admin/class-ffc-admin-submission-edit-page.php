@@ -179,10 +179,8 @@ class AdminSubmissionEditPage {
 				<div class="ffc-edit-layout">
 					<div class="ffc-edit-main">
 						<?php
-						$this->render_grading_card();
 						$this->render_participant_data_section();
 						$this->render_dynamic_fields();
-						$this->render_correction_card();
 						$this->render_system_info_section();
 						$this->render_consent_section();
 						?>
@@ -225,88 +223,135 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
-	 * Main column: the open answers waiting for a grade (#1732), or the grades
-	 * already given, to correct (#2241).
+	 * The questions the grading part of "Form answers" lists: those waiting
+	 * for a grade (#1732), or those already graded, to amend (#2241, #2356).
 	 *
-	 * Its inputs belong to the grading form printed after the edit form, through
-	 * their `form` attribute: forms cannot nest, and the edit form's save must
-	 * not decide a result.
+	 * @return array<string, array{label: string, worth: int, answer: string}>
 	 */
-	private function render_grading_card(): void {
+	private function grading_questions(): array {
 		if ( ! $this->shows_grading() ) {
-			return;
+			return array();
 		}
-		$regrade = $this->can_regrade();
-		$config  = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_config', true );
-		$passing = \FreeFormCertificate\Core\ArrayValue::int( is_array( $config ) ? $config : array(), 'quiz_passing_score', 70 );
+		return $this->can_regrade()
+			? QuizGrading::graded_questions( $this->data, (array) $this->fields )
+			: QuizGrading::pending_questions( $this->data, (array) $this->fields );
+	}
 
-		if ( $regrade ) {
-			$questions = QuizGrading::graded_questions( $this->data, (array) $this->fields );
-			self::card_open( __( 'Graded answers', 'ffcertificate' ), 'edit' );
-			echo '<p class="description">' . esc_html(
-				sprintf(
-					/* translators: 1: the attempt's percentage, 2: passing percentage */
-					__( 'The attempt scored %1$d%%. The passing score is %2$d%%. Change a grade only to correct a mistake.', 'ffcertificate' ),
-					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_percent', 0 ),
-					$passing
-				)
-			) . '</p>';
+	/**
+	 * The passing percentage of the submission's form.
+	 */
+	private function passing_score(): int {
+		$config = get_post_meta( (int) $this->sub_array['form_id'], '_ffc_form_config', true );
+		return \FreeFormCertificate\Core\ArrayValue::int( is_array( $config ) ? $config : array(), 'quiz_passing_score', 70 );
+	}
+
+	/**
+	 * The chip of "Form answers" while it holds grading: what is pending, or
+	 * the result (#2356).
+	 *
+	 * @param int $open Open answers waiting for a grade.
+	 */
+	private function grading_chip( int $open ): string {
+		if ( ! $this->can_regrade() ) {
+			/* translators: %d: open answers waiting for a grade */
+			return sprintf( _n( 'Awaiting grading · %d open answer', 'Awaiting grading · %d open answers', $open, 'ffcertificate' ), $open );
+		}
+		$score  = \FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 );
+		$max    = \FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 );
+		$pct    = \FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_percent', 0 );
+		$passed = '1' === (string) ( $this->data['_quiz_passed'] ?? '0' );
+		return $passed
+			/* translators: 1: points earned, 2: maximum points, 3: percentage */
+			? sprintf( __( 'Passed · %1$d of %2$d (%3$d%%)', 'ffcertificate' ), $score, $max, $pct )
+			/* translators: 1: points earned, 2: maximum points, 3: percentage */
+			: sprintf( __( 'Not passed · %1$d of %2$d (%3$d%%)', 'ffcertificate' ), $score, $max, $pct );
+	}
+
+	/**
+	 * The quiz summary at the top of "Form answers".
+	 */
+	private function render_grading_summary(): void {
+		if ( $this->can_regrade() ) {
+			$text = sprintf(
+				/* translators: 1: the attempt's percentage, 2: passing percentage */
+				__( 'The attempt scored %1$d%%. The passing score is %2$d%%. Amend a grade only to fix a mistake.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_percent', 0 ),
+				$this->passing_score()
+			);
 		} else {
-			$questions = QuizGrading::pending_questions( $this->data, (array) $this->fields );
-			self::card_open( __( 'Grade open answers', 'ffcertificate' ), 'edit' );
-			echo '<p class="description">' . esc_html(
-				sprintf(
-					/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
-					__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
-					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
-					\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
-					$passing
-				)
-			) . '</p>';
+			$text = sprintf(
+				/* translators: 1: points earned by the automatically scored questions, 2: maximum points, 3: passing percentage */
+				__( 'The automatically scored questions earned %1$d of %2$d points. The passing score is %3$d%%.', 'ffcertificate' ),
+				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_score', 0 ),
+				\FreeFormCertificate\Core\ArrayValue::int( $this->data, '_quiz_max_score', 0 ),
+				$this->passing_score()
+			);
 		}
+		echo '<p class="description ffc-grade-summary">' . esc_html( $text ) . '</p>';
+	}
 
-		foreach ( $questions as $name => $question ) {
-			$id    = 'ffc-grade-' . sanitize_key( $name );
-			$value = $regrade && isset( $question['given'] ) ? (string) $question['given'] : '';
-			?>
-			<div class="ffc-grade-question">
-				<p><strong><?php echo esc_html( $question['label'] ); ?></strong></p>
-				<blockquote class="ffc-grade-answer"><?php echo '' !== $question['answer'] ? nl2br( esc_html( $question['answer'] ) ) : esc_html__( '(no answer)', 'ffcertificate' ); ?></blockquote>
-				<p>
-					<label for="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Points', 'ffcertificate' ); ?></label>
-					<input type="number" id="<?php echo esc_attr( $id ); ?>" name="ffc_grade[<?php echo esc_attr( $name ); ?>]" form="ffc-grade-form" value="<?php echo esc_attr( $value ); ?>" min="0" max="<?php echo esc_attr( (string) $question['worth'] ); ?>" step="1" required class="small-text">
-					<?php
-					/* translators: %d: points the question is worth */
-					echo esc_html( sprintf( __( 'of %d', 'ffcertificate' ), $question['worth'] ) );
-					?>
-				</p>
-			</div>
-			<?php
-		}
+	/**
+	 * An open answer's text and its points field, for its row.
+	 *
+	 * Its input belongs to the grading form printed after the edit form,
+	 * through its `form` attribute: forms cannot nest, and the edit form's
+	 * save must not decide a result.
+	 *
+	 * @param string                                                        $name     Question name.
+	 * @param array{label: string, worth: int, answer: string, given?: int} $question The question.
+	 */
+	private function grade_cell( string $name, array $question ): string {
+		$id    = 'ffc-grade-' . sanitize_key( $name );
+		$value = isset( $question['given'] ) && $this->can_regrade() ? (string) $question['given'] : '';
+		return sprintf(
+			'<blockquote class="ffc-grade-answer">%1$s</blockquote><p class="ffc-grade-points"><label for="%2$s">%3$s</label> <input type="number" id="%2$s" name="ffc_grade[%4$s]" form="ffc-grade-form" value="%5$s" min="0" max="%6$s" step="1" required class="small-text"> %7$s</p>',
+			'' !== $question['answer'] ? nl2br( esc_html( $question['answer'] ) ) : esc_html__( '(no answer)', 'ffcertificate' ),
+			esc_attr( $id ),
+			esc_html__( 'Points', 'ffcertificate' ),
+			esc_attr( $name ),
+			esc_attr( $value ),
+			esc_attr( (string) $question['worth'] ),
+			/* translators: %d: points the question is worth */
+			esc_html( sprintf( __( 'of %d', 'ffcertificate' ), $question['worth'] ) )
+		);
+	}
 
+	/**
+	 * The foot of "Form answers" while it holds grading: the save that
+	 * grades the attempt, or the reason and the save that amends the grades.
+	 */
+	private function render_grading_footer(): void {
+		$regrade = $this->can_regrade();
+		echo '<div class="ffc-grade-footer">';
 		if ( $regrade ) {
 			?>
 			<p>
-				<label for="ffc-grade-reason"><strong><?php esc_html_e( 'Reason for the change', 'ffcertificate' ); ?></strong></label><br>
-				<textarea id="ffc-grade-reason" name="ffc_grade_reason" form="ffc-grade-form" rows="3" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+				<label for="ffc-grade-reason"><strong><?php esc_html_e( 'Reason for amending the grades', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-grade-reason" name="ffc_grade_reason" form="ffc-grade-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
 			</p>
 			<?php
 		}
 		?>
 		<p class="ffc-edit-actions">
 			<?php
+			$attrs = array(
+				'form'         => 'ffc-grade-form',
+				'data-confirm' => $regrade
+					? __( 'Amend the grades? The amendment is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed.', 'ffcertificate' )
+					: __( 'Save the grades and send the result to the participant? This decides the attempt.', 'ffcertificate' ),
+			);
+			if ( ! $regrade ) {
+				// The label the script shows while an open answer is being amended with the grades.
+				$attrs['data-label-amend'] = __( 'Save the amendment and grades and send the result', 'ffcertificate' );
+			}
 			AdminUI::render_button(
 				array(
-					'label'    => $regrade ? __( 'Change grades', 'ffcertificate' ) : __( 'Save grades and send the result', 'ffcertificate' ),
+					'label'    => $regrade ? __( 'Amend grades', 'ffcertificate' ) : __( 'Save grades and send the result', 'ffcertificate' ),
 					'category' => $regrade ? 'caution' : 'primary',
-					'icon'     => 'save',
+					'icon'     => $regrade ? 'edit' : 'award',
 					'type'     => 'submit',
-					'attrs'    => array(
-						'form'         => 'ffc-grade-form',
-						'data-confirm' => $regrade
-							? __( 'Change the grades? The change is recorded in the activity log, and the participant is e-mailed only if the result changes between passed and not passed.', 'ffcertificate' )
-							: __( 'Save the grades and send the result to the participant? This decides the attempt.', 'ffcertificate' ),
-					),
+					'class'    => 'ffc-grade-save',
+					'attrs'    => $attrs,
 				)
 			);
 			?>
@@ -968,12 +1013,33 @@ class AdminSubmissionEditPage {
 		$protected_json_fields = array( 'auth_code', 'fill_date', 'ticket' );
 		$internal_labels       = self::internal_labels();
 
+		// One card for reading, amending and grading the answers (#2356): an
+		// open answer carries its points field on its own row, and the
+		// grading save sits at the foot.
+		$questions = $this->grading_questions();
+		$grading   = $this->shows_grading();
+		$pending   = $grading && ! $this->can_regrade();
+
 		\FreeFormCertificate\Admin\AdminUI::render_section_open(
 			array(
 				'title' => __( 'Form answers', 'ffcertificate' ),
 				'icon'  => 'list',
+				'open'  => $grading,
+				'chip'  => $grading ? $this->grading_chip( count( $questions ) ) : '',
 			)
 		);
+
+		if ( $grading ) {
+			$this->render_grading_summary();
+		}
+
+		// An answer is amended on its own row (#2354): a pencil opens the
+		// editor under it. Its inputs belong to the correction form printed
+		// after the edit form, as before: forms cannot nest.
+		$correctable = $this->correctable_answers();
+		if ( array() !== $correctable ) {
+			echo '<p class="description">' . esc_html__( 'A typo in an answer? Use its pencil to amend it. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ) . '</p>';
+		}
 
 		$answers   = '';
 		$protected = '';
@@ -1007,14 +1073,13 @@ class AdminSubmissionEditPage {
 
 			// An answer is locked: it reads as text, and the save keeps what is stored.
 			// One changed through the audited correction says so (#2241).
-			$answers .= sprintf(
-				'<dt class="ffc-facts__label">%1$s</dt><dd class="ffc-facts__value">%2$s%3$s</dd>',
-				esc_html( (string) $lbl ),
-				nl2br( esc_html( $display_value ) ),
-				in_array( $k, $this->corrected_fields(), true )
-					? '<span class="description ffc-edit-note ffc-icon-edit">' . esc_html__( 'Corrected after issue; see the activity log.', 'ffcertificate' ) . '</span>'
-					: ''
-			);
+			$answers .= $this->answer_row( (string) $k, (string) $lbl, $display_value, $correctable, $questions[ (string) $k ] ?? null, $pending );
+			unset( $questions[ (string) $k ] );
+		}
+
+		// An open question the attempt holds no answer for still takes a grade.
+		foreach ( $questions as $name => $question ) {
+			$answers .= $this->answer_row( (string) $name, $question['label'], '', array(), $question, $pending );
 		}
 
 		if ( '' === $answers && '' === $protected ) {
@@ -1026,7 +1091,64 @@ class AdminSubmissionEditPage {
 		if ( '' !== $protected ) {
 			echo '<dl class="ffc-facts ffc-edit-protected">' . $protected . '</dl>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value escaped where the markup is built above.
 		}
+		if ( array() !== $correctable ) {
+			$this->render_correction_editor();
+		}
+		if ( $grading ) {
+			$this->render_grading_footer();
+		}
 		\FreeFormCertificate\Admin\AdminUI::render_section_close();
+	}
+
+	/**
+	 * One answer's row: its value (or, for an open answer being graded, its
+	 * text and points field), the pencil that amends it, and the note when it
+	 * was amended after issue.
+	 *
+	 * @param string                                                             $key         Data key.
+	 * @param string                                                             $label       Field label.
+	 * @param string                                                             $value       Value as shown.
+	 * @param array<string, string>                                              $correctable Answers the current user may amend.
+	 * @param array{label: string, worth: int, answer: string, given?: int}|null $question    The open question, when graded here.
+	 * @param bool                                                               $pending     Whether the attempt awaits grading.
+	 */
+	private function answer_row( string $key, string $label, string $value, array $correctable, ?array $question, bool $pending ): string {
+		$pencil = '';
+		if ( isset( $correctable[ $key ] ) ) {
+			$pencil = AdminUI::button(
+				array(
+					/* translators: %s: the answer's label */
+					'label'     => sprintf( __( 'Amend %s', 'ffcertificate' ), $label ),
+					'category'  => 'neutral',
+					'icon'      => 'edit',
+					'icon_only' => true,
+					'class'     => 'ffc-correct-open',
+					'attrs'     => array(
+						'data-field'    => $key,
+						'data-value'    => $value,
+						// While the attempt awaits grading, amending an open
+						// answer rides the grading save (#2356).
+						'data-form'     => ( $pending && null !== $question ) ? 'ffc-grade-form' : 'ffc-correct-form',
+						'aria-controls' => 'ffc-correct-inline',
+						'aria-expanded' => 'false',
+					),
+				)
+			);
+		}
+
+		$tag  = null !== $question ? ' <span class="ffc-answer-tag">' . esc_html_x( 'Open', 'quiz answer graded by hand', 'ffcertificate' ) . '</span>' : '';
+		$body = null !== $question ? $this->grade_cell( $key, $question ) : nl2br( esc_html( $value ) );
+
+		return sprintf(
+			'<dt class="ffc-facts__label">%1$s%2$s</dt><dd class="ffc-facts__value"><div class="ffc-answer-row"><div class="ffc-answer-value">%3$s</div>%5$s</div>%4$s</dd>',
+			esc_html( $label ),
+			$tag,
+			$body, // Escaped where it is built.
+			in_array( $key, $this->corrected_fields(), true )
+				? '<span class="description ffc-edit-note ffc-icon-edit">' . esc_html__( 'Amended after issue; see the activity log.', 'ffcertificate' ) . '</span>'
+				: '',
+			$pencil // Built by AdminUI::button(), which escapes every attribute.
+		);
 	}
 
 	/**
@@ -1040,7 +1162,7 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
-	 * The answers a correction may change, keyed by data key, with their label.
+	 * The answers the current user may amend, keyed by data key, with their label.
 	 *
 	 * @return array<string, string>
 	 */
@@ -1048,7 +1170,7 @@ class AdminSubmissionEditPage {
 		$out = array();
 		foreach ( $this->data as $k => $v ) {
 			$k = (string) $k;
-			if ( ! AnswerCorrectionHandler::is_correctable( $k ) || is_array( $v ) ) {
+			if ( is_array( $v ) || ! AnswerCorrectionHandler::current_user_can_amend( $k, (array) $this->fields ) ) {
 				continue;
 			}
 			$label = $k;
@@ -1063,52 +1185,51 @@ class AdminSubmissionEditPage {
 	}
 
 	/**
-	 * Main column: correct one answer of an issued certificate (#2241).
+	 * The editor a row's pencil opens, under that row (#2241, #2354).
 	 *
-	 * Its inputs belong to the correction form printed after the edit form,
-	 * like the grading card's: forms cannot nest.
+	 * Printed once, hidden; the script moves it into the row it corrects,
+	 * names the answer in the hidden field and fills in the current value.
+	 * Its inputs belong to the correction form printed after the edit form:
+	 * forms cannot nest.
 	 */
-	private function render_correction_card(): void {
-		$answers = $this->correctable_answers();
-		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $answers ) {
-			return;
-		}
-		self::card_open( __( 'Correct an answer', 'ffcertificate' ), 'edit' );
+	private function render_correction_editor(): void {
 		?>
-		<p class="description"><?php esc_html_e( 'For a typo in an issued certificate. The certificate shows the new value the next time it is generated, and the participant is not e-mailed. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' ); ?></p>
-		<p>
-			<label for="ffc-correct-field"><strong><?php esc_html_e( 'Answer', 'ffcertificate' ); ?></strong></label><br>
-			<select id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" required>
-				<option value=""><?php esc_html_e( 'Choose an answer', 'ffcertificate' ); ?></option>
-				<?php foreach ( $answers as $key => $label ) : ?>
-					<option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
-				<?php endforeach; ?>
-			</select>
-		</p>
-		<p>
-			<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
-			<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
-		</p>
-		<p>
-			<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the correction', 'ffcertificate' ); ?></strong></label><br>
-			<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
-		</p>
-		<p class="ffc-edit-actions">
-			<?php
-			AdminUI::render_button(
-				array(
-					'label'    => __( 'Correct answer', 'ffcertificate' ),
-					'category' => 'caution',
-					'icon'     => 'save',
-					'type'     => 'submit',
-					'attrs'    => array(
-						'form'         => 'ffc-correct-form',
-						'data-confirm' => __( 'Correct this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
-					),
-				)
-			);
-			?>
-		</p>
+		<div id="ffc-correct-inline" class="ffc-correct-inline" hidden>
+			<input type="hidden" id="ffc-correct-field" name="ffc_correct_field" form="ffc-correct-form" value="">
+			<p>
+				<label for="ffc-correct-value"><strong><?php esc_html_e( 'New value', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-correct-value" name="ffc_correct_value" form="ffc-correct-form" rows="2" class="large-text"></textarea>
+			</p>
+			<p>
+				<label for="ffc-correct-reason"><strong><?php esc_html_e( 'Reason for the amendment', 'ffcertificate' ); ?></strong></label><br>
+				<textarea id="ffc-correct-reason" name="ffc_correct_reason" form="ffc-correct-form" rows="2" class="large-text" required minlength="<?php echo esc_attr( (string) QuizGradingHandler::MIN_REASON_LENGTH ); ?>"></textarea>
+			</p>
+			<p class="ffc-edit-actions">
+				<?php
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Amend answer', 'ffcertificate' ),
+						'category' => 'caution',
+						'icon'     => 'edit',
+						'type'     => 'submit',
+						'class'    => 'ffc-amend-own',
+						'attrs'    => array(
+							'form'         => 'ffc-correct-form',
+							'data-confirm' => __( 'Amend this answer? The old and new values and the reason are recorded in the activity log.', 'ffcertificate' ),
+						),
+					)
+				);
+				AdminUI::render_button(
+					array(
+						'label'    => __( 'Cancel', 'ffcertificate' ),
+						'category' => 'neutral',
+						'icon'     => 'cross',
+						'class'    => 'ffc-correct-cancel',
+					)
+				);
+				?>
+			</p>
+			<p class="description ffc-amend-with-grade" hidden><?php esc_html_e( 'While the attempt awaits grading, the amendment is saved with the grades: first the answer, then the grades. If the amendment cannot be saved, nothing is.', 'ffcertificate' ); ?></p>
 		</div>
 		<?php
 	}
@@ -1117,7 +1238,7 @@ class AdminSubmissionEditPage {
 	 * The correction form the card's inputs post through, outside the edit form.
 	 */
 	private function render_correction_form(): void {
-		if ( ! AnswerCorrectionHandler::current_user_can_correct() || array() === $this->correctable_answers() ) {
+		if ( array() === $this->correctable_answers() ) {
 			return;
 		}
 		$id = (int) $this->sub_array['id'];

@@ -40,18 +40,28 @@ $ffc_qr_types = array(
 );
 
 $ffc_qr_vcard_fields = array(
+	// Label, input type, then what the shared field behaviours read (#2368):
+	// the mask, the format check, and the key the CEP lookup fills.
 	'first_name'   => array( __( 'First name', 'ffcertificate' ), 'text' ),
 	'last_name'    => array( __( 'Last name', 'ffcertificate' ), 'text' ),
 	'organization' => array( __( 'Organisation', 'ffcertificate' ), 'text' ),
+	// The second component of ORG, where vCard puts a department (#2372).
+	'department'   => array( __( 'Department', 'ffcertificate' ), 'text' ),
 	'job_title'    => array( __( 'Job title', 'ffcertificate' ), 'text' ),
-	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel' ),
-	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel' ),
-	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email' ),
-	'website'      => array( __( 'Website', 'ffcertificate' ), 'url' ),
-	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text' ),
-	'city'         => array( __( 'City', 'ffcertificate' ), 'text' ),
-	'region'       => array( __( 'State', 'ffcertificate' ), 'text' ),
-	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text' ),
+	// The role held, apart from the job title (vCard ROLE, #2374).
+	'role'         => array( __( 'Role', 'ffcertificate' ), 'text' ),
+	'phone'        => array( __( 'Work phone', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
+	'mobile'       => array( __( 'Mobile', 'ffcertificate' ), 'tel', 'phone', 'phone' ),
+	'email'        => array( __( 'E-mail', 'ffcertificate' ), 'email', '', 'email' ),
+	'website'      => array( __( 'Website', 'ffcertificate' ), 'url', '', 'url' ),
+	// The postal code comes first: a found CEP fills the rest.
+	'postcode'     => array( __( 'Postal code', 'ffcertificate' ), 'text', 'cep', 'cep', 'cep' ),
+	'street'       => array( __( 'Street address', 'ffcertificate' ), 'text', '', '', 'endereco' ),
+	// The key the CEP lookup moves focus to once it has filled the street.
+	'number'       => array( __( 'Number', 'ffcertificate' ), 'text', '', '', 'endereco_numero' ),
+	'neighborhood' => array( __( 'Neighborhood', 'ffcertificate' ), 'text', '', '', 'bairro' ),
+	'city'         => array( __( 'City', 'ffcertificate' ), 'text', '', '', 'cidade' ),
+	'region'       => array( __( 'State', 'ffcertificate' ), 'text', '', '', 'uf' ),
 	'country'      => array( __( 'Country', 'ffcertificate' ), 'text' ),
 );
 ?>
@@ -155,14 +165,25 @@ $ffc_qr_vcard_fields = array(
 						</tr>
 						<tr>
 							<th scope="row"><?php esc_html_e( 'Hidden network', 'ffcertificate' ); ?></th>
-							<td><label><input type="checkbox" value="1" data-ffc-qr-field="wifi:hidden"> <?php esc_html_e( 'The network does not broadcast its name', 'ffcertificate' ); ?></label></td>
+							<td>
+								<?php
+								\FreeFormCertificate\Admin\AdminUI::render_toggle(
+									array(
+										'name'  => 'ffc_qr_wifi_hidden',
+										'id'    => 'ffc-qr-wifi-hidden',
+										'label' => __( 'The network does not broadcast its name', 'ffcertificate' ),
+										'data'  => array( 'ffc-qr-field' => 'wifi:hidden' ),
+									)
+								);
+								?>
+							</td>
 						</tr>
 					</tbody>
 				</table>
 
 				<table class="form-table" role="presentation" data-ffc-qr-type="email" hidden>
 					<tbody>
-						<tr>
+						<tr data-format="email">
 							<th scope="row"><label for="ffc-qr-email"><?php esc_html_e( 'To', 'ffcertificate' ); ?></label></th>
 							<td><input type="email" id="ffc-qr-email" class="regular-text" data-ffc-qr-field="email:email"></td>
 						</tr>
@@ -180,11 +201,11 @@ $ffc_qr_vcard_fields = array(
 				<?php foreach ( array( 'phone', 'sms', 'whatsapp' ) as $ffc_type ) : ?>
 				<table class="form-table" role="presentation" data-ffc-qr-type="<?php echo esc_attr( $ffc_type ); ?>" hidden>
 					<tbody>
-						<tr>
+						<tr data-format="phone">
 							<th scope="row"><label for="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone"><?php esc_html_e( 'Phone number', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="tel" id="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone" class="regular-text" placeholder="+55 11 98765-4321" data-ffc-qr-field="<?php echo esc_attr( $ffc_type ); ?>:phone">
-								<p class="description"><?php esc_html_e( 'With the country code, so it works from anywhere.', 'ffcertificate' ); ?></p>
+								<input type="tel" id="ffc-qr-<?php echo esc_attr( $ffc_type ); ?>-phone" class="regular-text" placeholder="(11) 98765-4321" data-mask="phone" inputmode="numeric" data-ffc-qr-field="<?php echo esc_attr( $ffc_type ); ?>:phone">
+								<p class="description"><?php esc_html_e( 'Area code and number. The code adds +55, so it works from anywhere.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 						<?php if ( 'phone' !== $ffc_type ) : ?>
@@ -198,11 +219,20 @@ $ffc_qr_vcard_fields = array(
 				<?php endforeach; ?>
 
 				<table class="form-table" role="presentation" data-ffc-qr-type="vcard" hidden>
+					<caption class="ffc-qr-vcard-format">
+						<?php
+						printf(
+							/* translators: %s: link to the vCard 3.0 specification */
+							esc_html__( 'A contact card in the vCard 3.0 format, which phones read most widely. Specification: %s.', 'ffcertificate' ),
+							'<a href="https://datatracker.ietf.org/doc/html/rfc2426" target="_blank" rel="noopener noreferrer">RFC 2426</a>'
+						);
+						?>
+					</caption>
 					<tbody>
 						<?php foreach ( $ffc_qr_vcard_fields as $ffc_key => $ffc_field ) : ?>
-						<tr>
+						<tr data-field-key="<?php echo esc_attr( $ffc_field[4] ?? $ffc_key ); ?>" data-format="<?php echo esc_attr( $ffc_field[3] ?? '' ); ?>">
 							<th scope="row"><label for="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>"><?php echo esc_html( $ffc_field[0] ); ?></label></th>
-							<td><input type="<?php echo esc_attr( $ffc_field[1] ); ?>" id="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>" class="regular-text" data-ffc-qr-field="vcard:<?php echo esc_attr( $ffc_key ); ?>"></td>
+							<td><input type="<?php echo esc_attr( $ffc_field[1] ); ?>" id="ffc-qr-vcard-<?php echo esc_attr( $ffc_key ); ?>" class="regular-text" data-ffc-qr-field="vcard:<?php echo esc_attr( $ffc_key ); ?>"<?php echo '' !== ( $ffc_field[2] ?? '' ) ? ' data-mask="' . esc_attr( $ffc_field[2] ) . '" inputmode="numeric"' : ''; ?>></td>
 						</tr>
 						<?php endforeach; ?>
 						<tr>
@@ -254,7 +284,9 @@ $ffc_qr_vcard_fields = array(
 									);
 									?>
 									<p class="description"><?php esc_html_e( 'On: the code carries a short URL that counts the scans and whose destination can be changed later, even after printing. It is saved on download or print. Off: the code carries the address itself, nothing is stored in the database, and it keeps working even if this site goes down.', 'ffcertificate' ); ?></p>
-									<p class="ffc-qr-short__notice" id="ffc-qr-short-direct" hidden><?php esc_html_e( 'A short URL redirects web addresses only (http or https), so this address is used as is.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-direct" hidden><?php esc_html_e( 'A short URL cannot send to this kind of address, so it is used as is.', 'ffcertificate' ); ?></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-scheme" role="status" hidden></p>
+									<p class="ffc-qr-short__notice" id="ffc-qr-short-download" role="status" hidden></p>
 									<p class="ffc-qr-short__notice" id="ffc-qr-short-circular" hidden><?php esc_html_e( 'This address is already a short URL of this site, so it is used as is: shortening it again would only chain two redirects.', 'ffcertificate' ); ?></p>
 								</td>
 							</tr>
@@ -321,11 +353,11 @@ $ffc_qr_vcard_fields = array(
 								</select>
 							</td>
 						</tr>
-						<tr>
+						<tr data-ffc-qr-event-until hidden>
 							<th scope="row"><label for="ffc-qr-event-until"><?php esc_html_e( 'Link valid until', 'ffcertificate' ); ?></label></th>
 							<td>
 								<input type="date" id="ffc-qr-event-until" data-ffc-qr-field="event:until">
-								<p class="description"><?php esc_html_e( 'Calendar file only. Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired.', 'ffcertificate' ); ?></p>
+								<p class="description"><?php esc_html_e( 'Leave empty for a link that never expires -- a printed code keeps working. After this date the link answers that it has expired.', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 					</tbody>
@@ -375,7 +407,7 @@ $ffc_qr_vcard_fields = array(
 				<h2 class="ffc-qr-generator__panel-title ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
 				<div id="ffc-qr-generator-preview" class="ffc-qr-generator__preview" aria-hidden="true"></div>
 				<p id="ffc-qr-generator-usage" class="ffc-qr-generator__usage"></p>
-				<p id="ffc-qr-generator-status" class="ffc-qr-generator__status ffc-status" role="status" aria-live="polite" hidden></p>
+				<div id="ffc-qr-generator-status" class="ffc-qr-generator__status ffc-status" role="status" aria-live="polite" hidden></div>
 				<div class="ffc-qr-generator__export">
 					<div class="ffc-qr-field">
 						<label class="ffc-qr-field__label" for="ffc-qr-format"><?php esc_html_e( 'Format', 'ffcertificate' ); ?></label>
@@ -403,6 +435,17 @@ $ffc_qr_vcard_fields = array(
 							'id'       => 'ffc-qr-download',
 							'class'    => 'ffc-qr-generator__download',
 							'disabled' => true,
+						)
+					);
+					// The contact card itself, for an e-mail or an import (#2374).
+					\FreeFormCertificate\Admin\AdminUI::render_button(
+						array(
+							'label'    => __( 'Download .vcf', 'ffcertificate' ),
+							'icon'     => 'id',
+							'id'       => 'ffc-qr-vcf',
+							'class'    => 'ffc-qr-generator__vcf',
+							'disabled' => true,
+							'attrs'    => array( 'hidden' => 'hidden' ),
 						)
 					);
 					\FreeFormCertificate\Admin\AdminUI::render_button(

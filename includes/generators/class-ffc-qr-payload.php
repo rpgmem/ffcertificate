@@ -255,6 +255,11 @@ final class QrPayload {
 	/**
 	 * A dialable number: digits with an optional leading `+`, 3 to 15 digits.
 	 *
+	 * The generator types numbers through the plugin's phone mask, (DD)
+	 * 98765-4321, which has no country code; a code read from abroad, and a
+	 * WhatsApp link anywhere, needs one. So a number of 10 or 11 digits with
+	 * no `+` is a Brazilian number and takes +55 (#2368).
+	 *
 	 * @param string $raw As typed, with spaces, dashes or brackets.
 	 * @return string '' when it is not a phone number.
 	 */
@@ -262,7 +267,13 @@ final class QrPayload {
 		$plus   = 0 === strpos( ltrim( $raw ), '+' );
 		$digits = (string) preg_replace( '/\D+/', '', $raw );
 		$length = strlen( $digits );
-		return $length >= 3 && $length <= 15 ? ( $plus ? '+' : '' ) . $digits : '';
+		if ( $length < 3 || $length > 15 ) {
+			return '';
+		}
+		if ( ! $plus && ( 10 === $length || 11 === $length ) ) {
+			return '+55' . $digits;
+		}
+		return ( $plus ? '+' : '' ) . $digits;
 	}
 
 	/**
@@ -301,9 +312,16 @@ final class QrPayload {
 			'FN:' . self::text_escape( '' !== $full ? $full : $org ),
 		);
 
+		// A department is the second component of ORG (#2372). Each part is
+		// escaped on its own, so the separator between them stays a separator.
+		$department = $get( 'department' );
+		if ( '' !== $org || '' !== $department ) {
+			$lines[] = 'ORG:' . self::text_escape( $org ) . ( '' !== $department ? ';' . self::text_escape( $department ) : '' );
+		}
+
 		$optional = array(
-			'ORG'                 => $org,
 			'TITLE'               => $get( 'job_title' ),
+			'ROLE'                => $get( 'role' ),
 			'TEL;TYPE=WORK,VOICE' => self::phone_number( $get( 'phone' ) ),
 			'TEL;TYPE=CELL'       => self::phone_number( $get( 'mobile' ) ),
 			'EMAIL;TYPE=INTERNET' => $email,
@@ -316,7 +334,11 @@ final class QrPayload {
 			}
 		}
 
-		$address = array( $get( 'street' ), $get( 'city' ), $get( 'region' ), $get( 'postcode' ), $get( 'country' ) );
+		// vCard 3.0 has one street line and no neighbourhood component, so
+		// the number and the neighbourhood join the street, which every
+		// reader shows (#2372).
+		$street  = implode( ', ', array_filter( array( $get( 'street' ), $get( 'number' ), $get( 'neighborhood' ) ), static fn( string $part ): bool => '' !== $part ) );
+		$address = array( $street, $get( 'city' ), $get( 'region' ), $get( 'postcode' ), $get( 'country' ) );
 		if ( '' !== implode( '', $address ) ) {
 			$lines[] = 'ADR;TYPE=WORK:;;' . implode( ';', array_map( array( self::class, 'text_escape' ), $address ) );
 		}

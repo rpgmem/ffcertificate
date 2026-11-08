@@ -290,6 +290,10 @@ class ReregistrationImportAjaxHandlerTest extends TestCase {
 				if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 7' ) ) {
 					return $this->fields;
 				}
+				// The global list every audience inherits (#2502): empty here.
+				if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 0 ' ) ) {
+					return array();
+				}
 				if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_staging WHERE job_id = job-1 AND processed = 0' ) ) {
 					return $this->batch;
 				}
@@ -740,7 +744,7 @@ class ReregistrationImportAjaxHandlerTest extends TestCase {
 		);
 	}
 
-	public function test_register_wires_the_four_actions(): void {
+	public function test_register_wires_the_four_actions_and_the_template_download(): void {
 		$handler = new ReregistrationImportAjaxHandler();
 
 		foreach ( array( 'start', 'validate', 'promote', 'commit' ) as $phase ) {
@@ -748,6 +752,10 @@ class ReregistrationImportAjaxHandlerTest extends TestCase {
 				->once()
 				->with( 'wp_ajax_ffc_rereg_import_' . $phase, Mockery::type( 'array' ) );
 		}
+		// The blank file is a plain link (#2506).
+		Functions\expect( 'add_action' )
+			->once()
+			->with( 'admin_post_ffc_rereg_import_template', array( $handler, 'download_template' ) );
 
 		$handler->register();
 	}

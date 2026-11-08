@@ -189,7 +189,7 @@ class CaptchaProviderTest extends TestCase {
 
 	public function test_math_render_fields_omits_the_honeypot(): void {
 		// The honeypot is provider-independent and belongs to the caller.
-		$this->assertStringNotContainsString( 'ffc_honeypot_trap', ( new MathCaptcha() )->render_fields() );
+		$this->assertStringNotContainsString( 'ffc_hp_x7', ( new MathCaptcha() )->render_fields() );
 	}
 
 	public function test_math_verify_accepts_a_matching_answer(): void {
@@ -199,6 +199,7 @@ class CaptchaProviderTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) $challenge['answer'],
 				'ffc_captcha_hash' => $challenge['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			)
 		);
 
@@ -212,6 +213,7 @@ class CaptchaProviderTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) ( $challenge['answer'] + 1 ),
 				'ffc_captcha_hash' => $challenge['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			)
 		);
 
@@ -231,6 +233,7 @@ class CaptchaProviderTest extends TestCase {
 		$request   = array(
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 		$provider  = new MathCaptcha();
 
@@ -249,6 +252,7 @@ class CaptchaProviderTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) $challenge['answer'],
 				'ffc_captcha_hash' => $challenge['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			)
 		);
 
@@ -262,6 +266,7 @@ class CaptchaProviderTest extends TestCase {
 			array(
 				'ffc_captcha_ans'  => (string) ( $challenge['answer'] + 1 ),
 				'ffc_captcha_hash' => $challenge['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			)
 		);
 
@@ -277,6 +282,7 @@ class CaptchaProviderTest extends TestCase {
 		$request   = array(
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 		$provider  = new MathCaptcha();
 
@@ -292,6 +298,7 @@ class CaptchaProviderTest extends TestCase {
 		$request   = array(
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 		$provider  = new MathCaptcha();
 
@@ -321,18 +328,19 @@ class CaptchaProviderTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_security_fields_composes_honeypot_and_challenge(): void {
-		$html = SecurityService::render_security_fields();
+		$html = SecurityService::render_security_fields( 'form:3' );
 
 		$this->assertStringContainsString( 'ffc-security-container', $html );
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 		$this->assertStringContainsString( 'ffc-captcha-row', $html );
+		$this->assertStringContainsString( 'data-ffc-captcha-context="form:3"', $html, 'The block names its context, so a cached-page refresh can ask for the same one.' );
 	}
 
 	public function test_validate_security_fields_still_gates_the_honeypot(): void {
-		$result = SecurityService::validate_security_fields( array( 'ffc_honeypot_trap' => 'bot' ) );
+		$result = SecurityService::validate_security_fields( array( 'ffc_honeypot_trap' => 'bot' ), '' );
 
 		$this->assertIsString( $result );
-		$this->assertStringContainsString( 'Honeypot', $result );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $result );
 	}
 
 	public function test_validate_security_fields_delegates_the_captcha_half(): void {
@@ -344,16 +352,17 @@ class CaptchaProviderTest extends TestCase {
 					'ffc_honeypot_trap' => '',
 					'ffc_captcha_ans'   => (string) $challenge['answer'],
 					'ffc_captcha_hash'  => $challenge['hash'],
-				)
+					'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+				), ''
 			)
 		);
 	}
 
 	public function test_peek_security_fields_still_gates_the_honeypot(): void {
-		$result = SecurityService::peek_security_fields( array( 'ffc_honeypot_trap' => 'bot' ) );
+		$result = SecurityService::peek_security_fields( array( 'ffc_honeypot_trap' => 'bot' ), '' );
 
 		$this->assertIsString( $result );
-		$this->assertStringContainsString( 'Honeypot', $result );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $result );
 	}
 
 	public function test_peek_security_fields_does_not_spend_the_challenge(): void {
@@ -362,10 +371,11 @@ class CaptchaProviderTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $challenge['answer'],
 			'ffc_captcha_hash'  => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
-		$this->assertTrue( SecurityService::peek_security_fields( $fields ) );
-		$this->assertTrue( SecurityService::validate_security_fields( $fields ) );
+		$this->assertTrue( SecurityService::peek_security_fields( $fields, '' ) );
+		$this->assertTrue( SecurityService::validate_security_fields( $fields, '' ) );
 	}
 
 	public function test_validate_security_fields_still_spends_the_challenge(): void {
@@ -374,14 +384,15 @@ class CaptchaProviderTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $challenge['answer'],
 			'ffc_captcha_hash'  => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
-		$this->assertTrue( SecurityService::validate_security_fields( $fields ) );
-		$this->assertIsString( SecurityService::validate_security_fields( $fields ) );
+		$this->assertTrue( SecurityService::validate_security_fields( $fields, '' ) );
+		$this->assertIsString( SecurityService::validate_security_fields( $fields, '' ) );
 	}
 
 	public function test_with_fresh_challenge_carries_the_provider_id(): void {
-		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ) );
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ), '' );
 
 		$this->assertSame( 'rate limited', $payload['message'] );
 		$this->assertTrue( $payload['refresh_captcha'] );

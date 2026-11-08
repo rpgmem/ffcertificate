@@ -72,3 +72,18 @@
         border: 1px solid CanvasText;
     }
 }
+
+/* Appointments list (#2486): the Actions column holds up to four buttons,
+   so it keeps the width two of them need side by side and the buttons keep
+   their labels on one line. */
+.ffc-page-appointments .wp-list-table .column-actions {
+    width: 16em;
+}
+
+.ffc-page-appointments .wp-list-table .column-created_at {
+    width: 9em;
+}
+
+.ffc-page-appointments .ffc-row-buttons .ffc-btn {
+    white-space: nowrap;
+}

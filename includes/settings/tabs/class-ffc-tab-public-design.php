@@ -37,7 +37,7 @@ class TabPublicDesign extends SettingsTab {
 
 	/**
 	 * Enqueue the autosave widget, which saves the switch the moment it is
-	 * flipped.
+	 * flipped, and the live contrast check.
 	 *
 	 * @param string $hook Hook name.
 	 * @return void
@@ -47,6 +47,26 @@ class TabPublicDesign extends SettingsTab {
 			return;
 		}
 		$this->enqueue_autosave_infra();
+
+		// The live contrast warning and the colour inputs that follow the
+		// switch (#2341). `ffc-core` draws the notice.
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-admin-public-design',
+			FFC_PLUGIN_URL . "assets/js/ffc-admin-public-design{$s}.js",
+			array( 'jquery', 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-admin-public-design',
+			'ffcPublicDesign',
+			array(
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'action'  => \FreeFormCertificate\Admin\PublicDesignCheckEndpoint::ACTION,
+				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\PublicDesignCheckEndpoint::ACTION ),
+			)
+		);
 	}
 
 	/**

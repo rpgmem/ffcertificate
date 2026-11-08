@@ -44,6 +44,9 @@ class GithubUpdaterTest extends TestCase {
 		Functions\when( 'wpautop' )->returnArg();
 		Functions\when( 'wp_kses_post' )->returnArg();
 		Functions\when( 'get_user_locale' )->justReturn( 'en_US' );
+		// upgrade_notice() guards on function_exists( 'get_locale' ), so the
+		// branch is chosen here rather than inherited from an earlier test.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'wp_strip_all_tags' )->alias( 'strip_tags' );
 		Functions\when( 'is_wp_error' )->alias(
 			static function ( $thing ) {
@@ -107,7 +110,7 @@ class GithubUpdaterTest extends TestCase {
 	 * @param string $sha256  Expected asset digest (hex, no prefix).
 	 * @return array<string, string>
 	 */
-	private function release( string $version = '6.17.0', string $sha256 = '' ): array {
+	private function release( string $version = '6.17.0', string $sha256 = 'f00dfeed' ): array {
 		return array(
 			'version'      => $version,
 			'package'      => "https://github.com/rpgmem/ffcertificate/releases/download/v{$version}/ffcertificate-{$version}.zip",
@@ -808,6 +811,250 @@ class GithubUpdaterTest extends TestCase {
 		$result = GithubUpdater::verify_download( false, 'https://example.com/other.zip' );
 
 		$this->assertFalse( $result );
+	}
+
+	// ------------------------------------------------------------------
+	// Check schedule (#2342)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Capture what the updater writes to its transient, and the expiry.
+	 *
+	 * @param mixed $stored  Receives the stored value.
+	 * @param mixed $expires Receives the expiry.
+	 */
+	private function capture_store( &$stored, &$expires ): void {
+		Functions\when( 'set_site_transient' )->alias(
+			static function ( $key, $value, $ttl = 0 ) use ( &$stored, &$expires ) {
+				$stored  = $value;
+				$expires = $ttl;
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * A failed check is retried 10 min, 30 min, 1 h and 2 h after each
+	 * failure in turn; the fifth waits until 12 h after the first.
+	 *
+	 * @return array<string, array{0: int, 1: int|null}>
+	 */
+	public static function failure_steps(): array {
+		return array(
+			'first failure'  => array( 0, 600 ),
+			'second failure' => array( 1, 1800 ),
+			'third failure'  => array( 2, 3600 ),
+			'fourth failure' => array( 3, 7200 ),
+			'fifth failure'  => array( 4, null ),
+		);
+	}
+
+	/**
+	 * @dataProvider failure_steps
+	 *
+	 * @param int      $failures_before Failures already counted.
+	 * @param int|null $delay           Expected wait, or null for "12h after the first".
+	 */
+	public function test_a_failed_check_is_retried_on_the_schedule( int $failures_before, ?int $delay ): void {
+		$first = time() - 5000;
+		$cache = array(
+			'payload'    => $this->release( '6.18.0' ),
+			'etag'       => '"e"',
+			'fetched_at' => time() - 50000,
+		);
+		if ( $failures_before > 0 ) {
+			$cache['failures']         = $failures_before;
+			$cache['first_failure_at'] = $first;
+			$cache['retry_at']         = time() - 1;
+		}
+		Functions\when( 'get_site_transient' )->justReturn( $cache );
+		$this->capture_store( $stored, $expires );
+
+		$before = time();
+		$out    = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+		$after  = time();
+
+		$this->assertArrayHasKey( self::PLUGIN_FILE, $out->response, 'The last payload is served while GitHub is unreachable.' );
+		$this->assertSame( '"e"', $stored['etag'] );
+		$this->assertSame( 604800, $expires, 'The state outlives the 12h window.' );
+		if ( null === $delay ) {
+			$this->assertSame( $first + 43200, $stored['retry_at'] );
+			$this->assertSame( 0, $stored['failures'], 'The cycle starts over after the 12h wait.' );
+			return;
+		}
+		$this->assertSame( $failures_before + 1, $stored['failures'] );
+		$this->assertGreaterThanOrEqual( $before + $delay, $stored['retry_at'] );
+		$this->assertLessThanOrEqual( $after + $delay, $stored['retry_at'] );
+	}
+
+	public function test_no_request_is_made_before_the_retry_time(): void {
+		Functions\when( 'get_site_transient' )->justReturn(
+			array(
+				'payload'          => $this->release( '6.18.0' ),
+				'fetched_at'       => time() - 50000,
+				'failures'         => 1,
+				'first_failure_at' => time() - 60,
+				'retry_at'         => time() + 540,
+			)
+		);
+		$wp_remote_get = CallLog::record( 'wp_remote_get', new \WP_Error( 'stub', 'stubbed' ) );
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertSame( 0, $wp_remote_get->count(), 'Each admin page must not wait on an unreachable GitHub.' );
+		$this->assertArrayHasKey( self::PLUGIN_FILE, $out->response );
+	}
+
+	public function test_a_success_clears_the_failure_count(): void {
+		Functions\when( 'get_site_transient' )->justReturn(
+			array(
+				'payload'          => $this->release( '6.17.0' ),
+				'etag'             => '"old"',
+				'fetched_at'       => time() - 50000,
+				'failures'         => 3,
+				'first_failure_at' => time() - 7000,
+				'retry_at'         => time() - 1,
+			)
+		);
+		Functions\when( 'wp_remote_get' )->justReturn( array( 'stub' => true ) );
+		Functions\when( 'wp_remote_retrieve_response_code' )->justReturn( 304 );
+		$this->capture_store( $stored, $expires );
+
+		GithubUpdater::check_for_update( $this->transient( '6.16.0' ) );
+
+		$this->assertArrayNotHasKey( 'failures', $stored );
+		$this->assertArrayNotHasKey( 'retry_at', $stored );
+		$this->assertSame( '"old"', $stored['etag'] );
+		$this->assertSame( '6.17.0', $stored['payload']['version'] );
+	}
+
+	public function test_a_check_that_found_no_release_stands_for_twelve_hours(): void {
+		Functions\when( 'get_site_transient' )->justReturn(
+			array(
+				'payload'    => null,
+				'etag'       => '',
+				'fetched_at' => time() - 3600,
+			)
+		);
+		$wp_remote_get = CallLog::record( 'wp_remote_get', new \WP_Error( 'stub', 'stubbed' ) );
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertSame( 0, $wp_remote_get->count() );
+		$this->assertSame( array(), $out->response );
+	}
+
+	/**
+	 * A release GitHub answered but that cannot be offered.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function refused_releases(): array {
+		$asset = static function ( string $url, string $digest ): string {
+			return '{"tag_name":"v6.18.0","assets":[{"name":"ffcertificate-6.18.0.zip","browser_download_url":"' . $url . '"' . ( '' === $digest ? '' : ',"digest":"' . $digest . '"' ) . '}]}';
+		};
+		$github = 'https://github.com/rpgmem/ffcertificate/releases/download/v6.18.0/ffcertificate-6.18.0.zip';
+		return array(
+			'no digest'      => array( $asset( $github, '' ) ),
+			'other digest'   => array( $asset( $github, 'sha1:abc' ) ),
+			'foreign host'   => array( $asset( 'https://example.com/ffcertificate-6.18.0.zip', 'sha256:abc' ) ),
+			'plain http'     => array( $asset( 'http://github.com/rpgmem/ffcertificate/releases/download/v6.18.0/ffcertificate-6.18.0.zip', 'sha256:abc' ) ),
+			'tag not a version' => array( str_replace( 'v6.18.0"', 'v6.18.0-beta"', $asset( $github, 'sha256:abc' ) ) ),
+			'tag with a path'   => array( str_replace( '"tag_name":"v6.18.0"', '"tag_name":"v6.18.0/../main"', $asset( $github, 'sha256:abc' ) ) ),
+		);
+	}
+
+	/**
+	 * @dataProvider refused_releases
+	 *
+	 * @param string $body releases/latest body.
+	 */
+	public function test_a_release_that_cannot_be_verified_is_not_offered_and_is_not_retried( string $body ): void {
+		Functions\when( 'get_site_transient' )->justReturn( false );
+		Functions\when( 'wp_remote_get' )->justReturn( array( 'body' => $body ) );
+		Functions\when( 'wp_remote_retrieve_body' )->justReturn( $body );
+		$this->capture_store( $stored, $expires );
+
+		$out = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertSame( array(), $out->response );
+		$this->assertNull( $stored['payload'] );
+		$this->assertArrayNotHasKey( 'failures', $stored, 'GitHub answered: the check stands for 12h.' );
+	}
+
+	public function test_the_etag_is_not_kept_when_the_readme_did_not_arrive(): void {
+		$urls = array();
+		$this->route_fetches( '6.18.0', null, $urls );
+		Functions\when( 'wp_remote_retrieve_header' )->justReturn( '"release-etag"' );
+		$this->capture_store( $stored, $expires );
+
+		GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertSame( '', $stored['etag'], 'A kept ETag would turn every later check into a 304 without the readme.' );
+		$this->assertSame( '6.18.0', $stored['payload']['version'] );
+	}
+
+	public function test_the_etag_is_kept_when_the_readme_arrived(): void {
+		$urls = array();
+		$this->route_fetches(
+			'6.18.0',
+			array(
+				'code' => 200,
+				'body' => $this->release_readme(),
+			),
+			$urls
+		);
+		Functions\when( 'wp_remote_retrieve_header' )->justReturn( '"release-etag"' );
+		$this->capture_store( $stored, $expires );
+
+		GithubUpdater::check_for_update( $this->transient( '6.17.0' ) );
+
+		$this->assertSame( '"release-etag"', $stored['etag'] );
+	}
+
+	public function test_details_modal_describes_the_installed_copy_when_no_release_is_known(): void {
+		Functions\when( 'get_site_transient' )->justReturn( false );
+
+		$args       = new \stdClass();
+		$args->slug = 'ffcertificate';
+		$info       = GithubUpdater::plugin_info( false, 'plugin_information', $args );
+
+		$this->assertIsObject( $info, 'WordPress would otherwise ask wordpress.org about a plugin it does not host.' );
+		$this->assertSame( FFC_VERSION, $info->version );
+		$this->assertSame( '', $info->download_link );
+		$this->assertArrayHasKey( 'description', $info->sections );
+		$this->assertSame( $this->installed_compat()['tested'], $info->tested );
+	}
+
+	public function test_a_site_in_a_translated_language_reads_the_translated_notice(): void {
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		$readme = "== Upgrade Notice ==\n\n= 6.18.0 =\nAviso em português.\n\nVeja o CHANGELOG.md.\n";
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.', 'readme_pt_BR' => $readme ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( 'Aviso em português.', $item->upgrade_notice );
+	}
+
+	public function test_a_translated_site_falls_back_to_the_installed_translation(): void {
+		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.' ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$installed = (string) file_get_contents( dirname( __DIR__, 2 ) . '/languages/readme-pt_BR.txt' );
+		preg_match( '/^==\s*Upgrade Notice\s*==.*?^=\s*\S+\s*=\s*$\R+(.+?)$/ms', $installed, $m );
+		$this->assertSame( trim( $m[1] ), $item->upgrade_notice );
+		$this->assertNotSame( 'English notice.', $item->upgrade_notice );
+	}
+
+	public function test_a_site_in_another_language_reads_the_english_notice(): void {
+		Functions\when( 'get_locale' )->justReturn( 'de_DE' );
+		$this->seed_cache( $this->release( '6.18.0' ) + array( 'upgrade_notice' => 'English notice.', 'readme_pt_BR' => "== Upgrade Notice ==\n\n= 6.18.0 =\nAviso.\n" ) );
+
+		$item = GithubUpdater::check_for_update( $this->transient( '6.17.0' ) )->response[ self::PLUGIN_FILE ];
+
+		$this->assertSame( 'English notice.', $item->upgrade_notice );
 	}
 
 	// ------------------------------------------------------------------

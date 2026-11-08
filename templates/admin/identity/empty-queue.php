@@ -83,7 +83,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 			// false while a single acceptance stands -- the same shape as the
 			// three readings above, one layer further out.
 			?>
-			<p class="description">
+			<?php // A card of its own in the queue column (#2498), where the queue's cards would be. ?>
+			<p class="card ffc-identity-empty">
 				<?php
 				printf(
 					/* translators: 1: values checked, 2: how many findings are accepted, 3: values that could not be read. */
@@ -95,7 +96,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				?>
 			</p>
 		<?php else : ?>
-			<p class="description">
+			<p class="card ffc-identity-empty">
 				<?php
 				printf(
 					/* translators: 1: values checked, 2: values that could not be read. */

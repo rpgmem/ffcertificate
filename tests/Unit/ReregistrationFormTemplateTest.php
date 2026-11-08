@@ -55,6 +55,8 @@ class ReregistrationFormTemplateTest extends TestCase {
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'esc_attr_e' )->echoArg();
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'wp_timezone' )->alias( static fn () => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn ( $format, $ts ) => gmdate( (string) $format, (int) $ts ) );
 
 		global $wpdb;
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -112,13 +114,14 @@ class ReregistrationFormTemplateTest extends TestCase {
 		return $host::run();
 	}
 
-	public function test_campaign_and_emails_are_cards_inside_the_form(): void {
+	public function test_campaign_and_emails_are_tabs_inside_the_form(): void {
 		$output = $this->render();
 
+		// Vertical tabs (#2362): one form wraps the first two panels.
 		$form = substr( $output, (int) strpos( $output, '<form' ), (int) strpos( $output, '</form>' ) - (int) strpos( $output, '<form' ) );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-user-check">Campaign</h2>', $form );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-email">Email Notifications</h2>', $form );
-		$this->assertSame( 2, substr_count( $form, '<div class="card">' ) );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-campaign"', $form );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-notifications"', $form );
+		$this->assertStringNotContainsString( '<div class="card">', $form, 'No stacked cards left inside the form.' );
 		// The shared audience picker, under the field name the save handler reads.
 		$this->assertStringContainsString( 'rereg_audience_ids[]', $form );
 		// Every field the save handler reads is still posted by this form.
@@ -127,14 +130,19 @@ class ReregistrationFormTemplateTest extends TestCase {
 		}
 	}
 
-	public function test_import_and_invitations_are_cards_outside_the_form(): void {
+	public function test_import_and_invitations_are_tabs_outside_the_form_and_save_names_it(): void {
 		$output = $this->render();
 		$tail   = substr( $output, (int) strpos( $output, '</form>' ) );
 
-		$this->assertStringContainsString( '<div class="card ffc-rereg-import-box">', $tail );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-upload">', $tail );
-		$this->assertStringContainsString( '<div class="card ffc-rereg-invite-box">', $tail );
-		$this->assertStringContainsString( '<h2 class="ffc-icon-send">', $tail );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-import"', $tail );
+		$this->assertStringContainsString( '<div class="ffc-rereg-import-box">', $tail );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-invitations"', $tail );
+		$this->assertStringContainsString( '<div class="ffc-rereg-invite-box">', $tail );
 		$this->assertStringNotContainsString( 'postbox', $output );
+		// The side column: Save names the form it sits outside, then the summary.
+		$side = substr( $output, (int) strpos( $output, 'ffc-editor__side' ) );
+		$this->assertMatchesRegularExpression( '/<button[^>]*type="submit"[^>]*form="ffc-rereg-form"/', $side );
+		$this->assertStringContainsString( 'id="ffc-affected-users"', $side );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">Summary</h2>', $side );
 	}
 }

@@ -369,7 +369,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'owner';
 		$this->meta_store[ '10:__field_post_author' ]                = 0;
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'no author', $msg );
+		$this->assertStringContainsString( 'no responsible person', $msg );
 		$this->assertSame( array(), $this->profile_queries, 'No author means no profile is read.' );
 	}
 
@@ -411,7 +411,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
@@ -429,7 +429,7 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->meta_store[ '10:__field_post_author' ]                = 88;
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 		$this->assertSame( array( 88 ), $this->profile_queries );
 	}
 
@@ -465,7 +465,7 @@ class CsvDownloadValidatorTest extends TestCase {
 
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertNotNull( $msg, 'Two absent hashes opened the owner gate: hash_equals( \'\', \'\' ) is TRUE.' );
-		$this->assertStringContainsString( 'does not match', $msg );
+		$this->assertStringContainsString( 'not the one of the person responsible', $msg );
 	}
 
 	public function test_cpf_unknown_mode_fails_closed(): void {
@@ -488,6 +488,18 @@ class CsvDownloadValidatorTest extends TestCase {
 		$msg = $this->validator->validate_cpf_requirement( 10, Identifiers::CPF_A );
 		$this->assertStringContainsString( 'No submission with this CPF', $msg );
 		$this->assertSame( array( array( 10, self::cpf_hash( Identifiers::CPF_A ) ) ), $this->submission_queries );
+	}
+
+	/**
+	 * #2341 — silent covers a CPF that passes, never one that fails: no
+	 * action row follows a refusal, so the gate writes its own.
+	 */
+	public function test_cpf_silent_audit_still_records_a_failure(): void {
+		$this->meta_store[ '10:' . PublicCsvDownload::META_CPF_MODE ] = 'audit';
+		$this->assertNotNull( $this->validator->validate_cpf_requirement( 10, '', true ) );
+
+		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
+		$this->assertSame( array( 'fail_missing' ), array_column( $log, 'result' ) );
 	}
 
 	public function test_cpf_silent_audit_suppresses_log_row(): void {
@@ -557,8 +569,8 @@ class CsvDownloadValidatorTest extends TestCase {
 	}
 
 	public function test_record_download_log_entry_prunes_to_max(): void {
-		// Pre-seed DOWNLOAD_LOG_MAX rows, then append one more.
-		$rows = array_fill( 0, PublicCsvDownload::DOWNLOAD_LOG_MAX, array( 'result' => 'old' ) );
+		// Pre-seed DOWNLOAD_LOG_MAX records, then append one more.
+		$rows = array_fill( 0, PublicCsvDownload::DOWNLOAD_LOG_MAX, array( 'result' => 'download_delivered' ) );
 		$this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ] = $rows;
 
 		$this->validator->record_download_log_entry( 10, 'access', '', 'success' );
@@ -567,5 +579,32 @@ class CsvDownloadValidatorTest extends TestCase {
 		$this->assertCount( PublicCsvDownload::DOWNLOAD_LOG_MAX, $log );
 		// The oldest row is dropped; the new row is last.
 		$this->assertSame( 'success', $log[ PublicCsvDownload::DOWNLOAD_LOG_MAX - 1 ]['result'] );
+	}
+
+	/**
+	 * #2341 — only a form has a download log: a refusal aimed at any other
+	 * post id writes nothing onto it.
+	 */
+	public function test_record_download_log_entry_writes_nothing_for_a_post_that_is_not_a_form(): void {
+		Functions\when( 'get_post_type' )->justReturn( 'page' );
+
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+
+		$this->assertArrayNotHasKey( '10:' . PublicCsvDownload::META_DOWNLOAD_LOG, $this->meta_store );
+	}
+
+	/**
+	 * #2341 — a failure repeated from one address folds, and stores the
+	 * address's keyed fingerprint, never the address.
+	 */
+	public function test_record_download_log_entry_folds_a_repeated_failure(): void {
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+		$this->validator->record_download_log_entry( 10, 'captcha', '', 'fail_captcha' );
+
+		$log = $this->meta_store[ '10:' . PublicCsvDownload::META_DOWNLOAD_LOG ];
+		$this->assertCount( 1, $log );
+		$this->assertSame( 2, $log[0]['count'] );
+		$this->assertNotSame( '', $log[0]['ip_fp'] );
+		$this->assertStringNotContainsString( (string) \FreeFormCertificate\Core\RequestInput::get_user_ip(), (string) $log[0]['ip_fp'] );
 	}
 }

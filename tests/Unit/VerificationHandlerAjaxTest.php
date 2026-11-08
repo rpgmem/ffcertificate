@@ -84,6 +84,8 @@ class VerificationHandlerAjaxTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The form background and the receipt background are cleaned on read (#2344).
+		Functions\when( 'esc_url_raw' )->returnArg();
 
 		// Static state the real classes keep: the limiter's settings memo,
 		// the captcha provider instances and the activity-log buffer.
@@ -297,11 +299,12 @@ class VerificationHandlerAjaxTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function answered_post( array $fields ): array {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
 		return array(
 			'nonce'            => 'ok',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		) + $fields;
 	}
 
@@ -370,12 +373,13 @@ class VerificationHandlerAjaxTest extends TestCase {
 
 	public function test_verification_ajax_security_fields_fail_refreshes_captcha(): void {
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
 
 		$_POST = array(
 			'nonce'            => 'ok',
 			'ffc_captcha_ans'  => (string) ( $challenge['answer'] + 1 ),
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		try {

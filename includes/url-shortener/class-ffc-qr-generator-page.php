@@ -82,10 +82,12 @@ class QrGeneratorPage {
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-raster', 'ffc-branding-media' );
 		wp_localize_script( 'ffc-branding-media', 'ffcBrandingMedia', array( 'chooseImage' => __( 'Select image', 'ffcertificate' ) ) );
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-qr-design' );
+		// The vCard's masks, checks and CEP lookup are the shared ones (#2368).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-field-behaviours' );
 		wp_enqueue_script(
 			'ffc-qr-generator',
 			FFC_PLUGIN_URL . "assets/js/ffc-qr-generator{$s}.js",
-			array( 'jquery', 'ffc-core', 'ffc-qr-design', 'ffc-qr-raster' ),
+			array( 'jquery', 'ffc-core', 'ffc-qr-design', 'ffc-qr-raster', 'ffc-field-behaviours' ),
 			FFC_VERSION,
 			true
 		);
@@ -100,17 +102,21 @@ class QrGeneratorPage {
 				'shortenNonce'  => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_SHORTEN ),
 				'remember'      => QrGeneratorAjaxEndpoint::ACTION_REMEMBER,
 				'rememberNonce' => wp_create_nonce( QrGeneratorAjaxEndpoint::ACTION_REMEMBER ),
+				'examples'      => self::examples(),
 				'i18n'          => array(
-					/* translators: 1: percentage of the code in use, 2: characters that still fit, 3: error correction level (L, M, Q or H) */
-					'usage'           => __( '%1$d%% full: about %2$d more characters fit at error correction %3$s (an accented letter counts as two).', 'ffcertificate' ),
-					/* translators: 1: percentage of the code in use, 2: characters that still fit */
-					'usageForced'     => __( '%1$d%% full: about %2$d more characters fit at error correction H, which the logo requires (an accented letter counts as two).', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: bytes that still fit, 3: error correction level (L, M, Q or H) */
+					'usage'           => __( '%1$d%% full: about %2$d more bytes fit at error correction %3$s (a plain letter is one byte, an accented one two).', 'ffcertificate' ),
+					/* translators: 1: percentage of the code in use, 2: bytes that still fit */
+					'usageForced'     => __( '%1$d%% full: about %2$d more bytes fit at error correction H, which the logo requires (a plain letter is one byte, an accented one two).', 'ffcertificate' ),
 					/* translators: %d: QR code version (1-40) */
 					'dense'           => __( 'Dense code (version %d): print it at least 3 cm wide, or shorten the content.', 'ffcertificate' ),
 					/* translators: %s: contrast ratio, e.g. 3.2 */
 					'lowContrast'     => __( 'Low contrast (%s:1). Phones may fail to read this code; aim for 4:1 or more.', 'ffcertificate' ),
 					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
 					'captionContrast' => __( 'The frame caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'captionLighter'  => __( 'The frame caption is hard to read on this dark background; pick a lighter frame colour.', 'ffcertificate' ),
+					'quietZone'       => __( 'Margin 0: many readers need a clear border around the code.', 'ffcertificate' ),
+					'several'         => __( 'May not scan well:', 'ffcertificate' ),
 					'transparent'     => __( 'Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable.', 'ffcertificate' ),
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'error'           => __( 'The QR code could not be drawn.', 'ffcertificate' ),
@@ -118,6 +124,10 @@ class QrGeneratorPage {
 					/* translators: 1: creation date, 2: number of clicks */
 					'duplicateMeta'   => __( 'created %1$s, %2$d clicks', 'ffcertificate' ),
 					'useThis'         => __( 'Use this', 'ffcertificate' ),
+					/* translators: %s: a URL scheme such as ftp: */
+					'scheme'          => __( 'A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway.', 'ffcertificate' ),
+					/* translators: %s: a file extension such as .pdf */
+					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'titleRequired'   => __( 'Enter a title for the short URL before downloading or printing.', 'ffcertificate' ),
 					'acknowledge'     => __( 'A short URL already sends to this address: click "Use this", or tick the box to create another one.', 'ffcertificate' ),
 					'copied'          => __( 'Copied.', 'ffcertificate' ),
@@ -125,8 +135,59 @@ class QrGeneratorPage {
 					'reset'           => __( 'Design reset to the global default.', 'ffcertificate' ),
 					/* translators: %s: title of the short URL */
 					'saved'           => __( '"%s" is stored and now counts the scans. Copy the link to share it.', 'ffcertificate' ),
+					// The vCard's format checks (#2368), read by FFC.Fields.formatError().
+					'invalidEmail'    => __( 'Invalid email.', 'ffcertificate' ),
+					'invalidPhone'    => __( 'Invalid phone number.', 'ffcertificate' ),
+					'invalidCep'      => __( 'Invalid CEP.', 'ffcertificate' ),
+					'cepRepeated'     => __( 'Invalid CEP: all digits are the same.', 'ffcertificate' ),
+					'invalidUrl'      => __( 'Invalid web address.', 'ffcertificate' ),
+					// The .vcf file name's prefix (#2374).
+					'vcfName'         => _x( 'contact', 'vcf file name prefix', 'ffcertificate' ),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Example content for each type (#2365), filled into a type's empty
+	 * fields when it opens so the preview draws at once. A code still holding
+	 * its example creates no short URL, because nobody chose its content.
+	 *
+	 * @return array<string, array<string, string>> Field values keyed by type, then by field key.
+	 */
+	public static function examples(): array {
+		$user  = wp_get_current_user();
+		$name  = trim( (string) $user->display_name );
+		$email = (string) $user->user_email;
+		$site  = (string) get_bloginfo( 'name' );
+		$home  = home_url( '/' );
+		$phone = '(11) 99999-9999';
+
+		return array(
+			'url'      => array( 'url' => $home ),
+			'text'     => array( 'text' => '' !== $site ? $site : $home ),
+			'wifi'     => array(
+				'ssid'     => __( 'MyNetwork', 'ffcertificate' ),
+				'security' => 'nopass',
+			),
+			'email'    => array( 'email' => (string) get_option( 'admin_email' ) ),
+			'phone'    => array( 'phone' => $phone ),
+			'sms'      => array( 'phone' => $phone ),
+			'whatsapp' => array( 'phone' => $phone ),
+			'vcard'    => array(
+				'first_name' => '' !== $name ? $name : $site,
+				'email'      => $email,
+			),
+			'social'   => array(
+				'network'  => (string) array_key_first( \FreeFormCertificate\Generators\QrPayload::NETWORKS ),
+				'username' => '' !== sanitize_title( $site ) ? sanitize_title( $site ) : 'example',
+			),
+			'event'    => array(
+				'title' => __( 'Event', 'ffcertificate' ),
+				'date'  => (string) wp_date( 'Y-m-d' ),
+				'start' => '09:00',
+				'end'   => '10:00',
+			),
 		);
 	}
 

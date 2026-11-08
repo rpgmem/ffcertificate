@@ -2,7 +2,7 @@
 //
 //   - assets/js/ffc-device-signals.js   — bails when crypto.subtle or
 //     ThumbmarkJS is unavailable, disables thumbmark telemetry on load.
-//   - assets/js/ffc-frontend.js         — exposes window.ffcUtils after
+//   - assets/js/ffc-frontend.js         — leaves window.ffcUtils as the helpers published it
 //     load + wires the alert helper.
 //
 // Both files have heavy real-runtime dependencies (SubtleCrypto, the
@@ -95,12 +95,15 @@ describe('ffc-frontend — load-side', () => {
 		loadScript('assets/js/ffc-frontend-helpers.js');
 	});
 
-	it('republishes window.ffcUtils as the Frontend.Masks namespace', () => {
+	it('keeps one window.ffcUtils carrying both sets of names (#2344)', () => {
+		const before = window.ffcUtils;
 		loadScript('assets/js/ffc-frontend.js');
-		// frontend.js does `window.ffcUtils = window.FFC.Frontend.Masks;`
-		expect(window.ffcUtils).toBe(window.FFC.Frontend.Masks);
-		// And the mask helpers still resolve.
-		expect(typeof window.ffcUtils.applyCpfRf).toBe('function');
+		// ffc-frontend.js no longer overwrites it with a different shape.
+		expect(window.ffcUtils).toBe(before);
+		expect(window.ffcUtils.applyCpfRf).toBe(window.FFC.Frontend.Masks.applyCpfRf);
+		expect(window.ffcUtils.applyCpfRfMask).toBe(window.FFC.Frontend.Masks.applyCpfRf);
+		expect(typeof window.ffcUtils.validateCPF).toBe('function');
+		expect(typeof window.ffcUtils.showFormError).toBe('function');
 	});
 
 	it('does not throw when loaded against a page that has no forms', () => {

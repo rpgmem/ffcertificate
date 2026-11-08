@@ -171,18 +171,52 @@ final class IdentityResolutionLabels {
 	}
 
 	/**
-	 * The class that colours a tier's chip.
+	 * The icon and tone of one tier, for its card heading and its stat card
+	 * (#2498): one look per tier, so a category reads the same in the counts
+	 * above and on its card below.
 	 *
-	 * The tier is part of the class, so the chip is coloured by what the
-	 * finding IS rather than by a decision taken in the markup. The values come
-	 * from `IdentityQueuePanels::ORDER`, never from the request, and the filter
-	 * is what keeps a value that did not from reaching an attribute.
+	 * Whole class names, never assembled, so the icon-class scan reads each one
+	 * (IconStylesheetTest).
 	 *
 	 * @param string $tier The tier.
-	 * @return string
+	 * @return array{icon: string, tone: string, heading: string} The icon name,
+	 *                                                            the stat-card
+	 *                                                            tone, and the
+	 *                                                            heading's classes.
 	 */
-	public static function chip_class( string $tier ): string {
-		return 'ffc-identity-chip-' . preg_replace( '/[^a-z]/', '', $tier );
+	public static function tier_look( string $tier ): array {
+		switch ( $tier ) {
+			case IdentityQueue::TIER_MECHANICAL:
+				return array(
+					'icon'    => 'edit',
+					'tone'    => 'success',
+					'heading' => 'ffc-icon-edit ffc-icon-tone-success',
+				);
+			case IdentityQueue::TIER_SHARED:
+				return array(
+					'icon'    => 'merge',
+					'tone'    => 'info',
+					'heading' => 'ffc-icon-merge ffc-icon-tone-info',
+				);
+			case IdentityQueue::TIER_ISOLATED:
+				return array(
+					'icon'    => 'flag',
+					'tone'    => 'danger',
+					'heading' => 'ffc-icon-flag ffc-icon-tone-danger',
+				);
+			case IdentityQueue::TIER_MAILBOX:
+				return array(
+					'icon'    => 'users',
+					'tone'    => 'neutral',
+					'heading' => 'ffc-icon-users ffc-icon-tone-neutral',
+				);
+			default:
+				return array(
+					'icon'    => 'help',
+					'tone'    => 'warning',
+					'heading' => 'ffc-icon-help ffc-icon-tone-warning',
+				);
+		}
 	}
 
 	/**

@@ -67,7 +67,9 @@ final class AssetRegistry {
 		'ffc-admin-pdf'             => array( 'assets/js/ffc-admin-pdf', array( 'jquery', 'ffc-core' ) ),
 		'ffc-admin-autosave'        => array( 'assets/js/ffc-admin-autosave', array( 'jquery', 'ffc-core', 'ffc-admin-js' ) ),
 		'ffc-admin-sections'        => array( 'assets/js/ffc-admin-sections', array() ),
-		'ffc-section-collapse'      => array( 'assets/js/ffc-section-collapse', array( 'jquery' ) ),
+		// ffc-core dep: a section it hides takes its required fields with it,
+		// through FFC.setRequiredWithin() (#2344).
+		'ffc-section-collapse'      => array( 'assets/js/ffc-section-collapse', array( 'jquery', 'ffc-core' ) ),
 		'ffc-email-restore-default' => array( 'assets/js/ffc-email-restore-default', array( 'jquery' ) ),
 		'ffc-branding-media'        => array( 'assets/js/ffc-branding-media', array( 'jquery' ) ),
 		'ffc-calendar-core'         => array( 'assets/js/ffc-calendar-core', array( 'jquery' ) ),
@@ -98,7 +100,20 @@ final class AssetRegistry {
 		// The boot watchdog of the certificate form (#2030). No dependencies:
 		// it has to run when the scripts it watches did not load.
 		'ffc-preflight'             => array( 'assets/js/ffc-preflight', array() ),
+		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
+		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
+		// which therefore has to be on the page first. In the map, so a
+		// shortcode that renders before `wp_enqueue_scripts` (a block theme's
+		// template) still finds it registered (#2344).
+		'ffc-dynamic-fragments'     => array( 'assets/js/ffc-dynamic-fragments', array( 'ffc-preflight' ) ),
 	);
+
+	/**
+	 * Whether `ffcCoreConfig` was localized on this request.
+	 *
+	 * @var bool
+	 */
+	private static bool $core_config_attached = false;
 
 	/**
 	 * Hook the two registrations.
@@ -128,8 +143,6 @@ final class AssetRegistry {
 	 * @return void
 	 */
 	public static function register_frontend(): void {
-		$s = AssetHelper::asset_suffix();
-
 		self::register_shared();
 
 		// Captcha widget + glue (#1053). Registered on every front-end request
@@ -139,18 +152,6 @@ final class AssetRegistry {
 		// self-scheduling booking form, the last of which is enqueued by a
 		// different class entirely.
 		Captcha\AltchaCaptcha::register_assets();
-
-		// Dynamic fragments: refresh captcha + nonces on cached pages (v4.12.0).
-		// ffc-preflight dep: the refresh reports to the boot watchdog (#2030),
-		// which therefore has to be on the page first.
-		\wp_register_script( 'ffc-dynamic-fragments', FFC_PLUGIN_URL . "assets/js/ffc-dynamic-fragments{$s}.js", array( 'ffc-preflight' ), FFC_VERSION, true );
-		\wp_localize_script(
-			'ffc-dynamic-fragments',
-			'ffcDynamic',
-			array(
-				'ajaxUrl' => \admin_url( 'admin-ajax.php' ),
-			)
-		);
 	}
 
 	/**
@@ -315,11 +316,73 @@ final class AssetRegistry {
 			return;
 		}
 		if ( 'ffc-core' === $handle ) {
-			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );
+			// Built only when ffc-core is about to print (#2344): the config
+			// carries a nonce and runs a filter, which a request that never
+			// prints the script has no use for.
+			\add_filter( 'print_scripts_array', array( self::class, 'attach_core_config' ) );
 		}
 		if ( 'ffc-pdf-generator' === $handle ) {
 			\wp_localize_script( 'ffc-pdf-generator', 'ffcPdfLibraries', self::pdf_library_urls() );
 		}
+		if ( 'ffc-dynamic-fragments' === $handle ) {
+			\wp_localize_script( 'ffc-dynamic-fragments', 'ffcDynamic', array( 'ajaxUrl' => \admin_url( 'admin-ajax.php' ) ) );
+		}
+		if ( 'ffc-batched-export' === $handle ) {
+			\wp_localize_script( 'ffc-batched-export', 'ffcBatchedExportStrings', self::batched_export_strings() );
+		}
+	}
+
+	/**
+	 * Localize `ffcCoreConfig` on the request that prints `ffc-core`.
+	 *
+	 * Hooked on `print_scripts_array` at the default priority: it is the one
+	 * point where WordPress has resolved every handle it is about to print,
+	 * dependencies included, and has not yet printed their localisation, so
+	 * a page that loads `ffc-core` only as a dependency gets the config too.
+	 * It runs for each group WordPress prints (head, footer, a standalone
+	 * document), and attaches the config once.
+	 *
+	 * @param mixed $handles The handles about to print.
+	 * @return mixed The handles, unchanged.
+	 */
+	public static function attach_core_config( $handles ) {
+		if ( ! self::$core_config_attached && is_array( $handles ) && in_array( 'ffc-core', $handles, true ) ) {
+			self::$core_config_attached = true;
+			\wp_localize_script( 'ffc-core', 'ffcCoreConfig', AssetHelper::core_script_config() );
+		}
+		return $handles;
+	}
+
+	/**
+	 * Forget that the config was attached, for a test that starts a new request.
+	 *
+	 * @return void
+	 */
+	public static function reset(): void {
+		self::$core_config_attached = false;
+	}
+
+	/**
+	 * The CSV export dialog's words, localised once for every export (#2344).
+	 * A caller passing its own string still wins.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function batched_export_strings(): array {
+		return array(
+			'title'           => __( 'Exporting CSV', 'ffcertificate' ),
+			'preparing'       => __( 'Preparing…', 'ffcertificate' ),
+			/* translators: %d: number of records */
+			'generating'      => __( 'Generating CSV — %d records…', 'ffcertificate' ),
+			/* translators: 1: records exported so far, 2: total records */
+			'exporting'       => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
+			'downloading'     => __( 'Starting download…', 'ffcertificate' ),
+			'error'           => __( 'Export failed.', 'ffcertificate' ),
+			'connectionError' => __( 'Connection error. Check your connection and try again.', 'ffcertificate' ),
+			'close'           => __( 'Close', 'ffcertificate' ),
+			/* translators: %d: percentage of the export done (25, 50, 75 or 100) */
+			'percent'         => __( '%d percent done', 'ffcertificate' ),
+		);
 	}
 
 	/**

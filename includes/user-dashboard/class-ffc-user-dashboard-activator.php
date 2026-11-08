@@ -29,6 +29,24 @@ class UserDashboardActivator {
 	use DatabaseHelperTrait;
 
 	/**
+	 * Revision of the schema steps this class runs on a request (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION = '2';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_user_dashboard_schema_version';
+
+	/**
 	 * Run all user-dashboard activation steps.
 	 *
 	 * Called during plugin activation. Order matches the previous inline
@@ -43,6 +61,7 @@ class UserDashboardActivator {
 		self::create_user_profiles_table();
 		self::add_user_profiles_columns();
 		self::create_custom_fields_table();
+		self::add_custom_fields_columns();
 	}
 
 	/**
@@ -77,9 +96,9 @@ class UserDashboardActivator {
 	 * they return early on exactly the installs that need a new column, and
 	 * `backfill_identity_index()`. Both are idempotent, so the chain is still a
 	 * no-op on an install that is current -- it costs four indexed statements
-	 * once per release, not per request.
+	 * once per revision, not per request.
 	 *
-	 * The `FFC_VERSION` gate and the write-after-body ordering carry the same
+	 * The revision gate and the write-after-body ordering carry the same
 	 * reasoning as the sibling method; see it for why a one-shot boolean is the
 	 * wrong marker (#1231).
 	 *
@@ -87,8 +106,7 @@ class UserDashboardActivator {
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		$ffc_schema_option = 'ffc_user_dashboard_schema_version';
-		if ( get_option( $ffc_schema_option, '' ) === FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) === self::SCHEMA_REVISION ) {
 			return;
 		}
 
@@ -96,13 +114,14 @@ class UserDashboardActivator {
 		self::add_user_profiles_columns();
 		self::backfill_identity_index();
 		self::create_custom_fields_table();
+		self::add_custom_fields_columns();
 
-		update_option( $ffc_schema_option, FFC_VERSION );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 	}
 
 	/**
-	 * Register the ffc_end_user role and grant admin-level FFC caps to the
-	 * administrator role.
+	 * Register the ffc_end_user role and give every administrator the
+	 * `ffc_administrator` role.
 	 */
 	private static function register_user_role(): void {
 		// Load User Manager if not already loaded.
@@ -116,13 +135,12 @@ class UserDashboardActivator {
 		if ( class_exists( '\FreeFormCertificate\UserDashboard\UserManager' ) ) {
 			\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
 
-			// Grant admin-level FFC capabilities to the administrator role.
-			$admin_role = get_role( 'administrator' );
-			if ( $admin_role ) {
-				foreach ( \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES as $cap ) {
-					$admin_role->add_cap( $cap, true );
-				}
-			}
+			// Administrators reach the plugin through `ffc_administrator`, never
+			// through FFC capabilities on the core role (#747). This grant used
+			// to put them on the core role, and only the capability migrations'
+			// next run took them off again; since those run in wp-admin alone
+			// (#2340), activation itself leaves the core role clean.
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_admin_role_assignment();
 		}
 	}
 
@@ -198,6 +216,37 @@ class UserDashboardActivator {
 					'type'  => 'VARCHAR(64) DEFAULT NULL',
 					'after' => 'cpf_hash',
 					'index' => 'rf_hash',
+				),
+			)
+		);
+	}
+
+	/**
+	 * Add the two columns the field inheritance reads (#2502):
+	 * `overrides_field_id` points an audience's change at the field it
+	 * changes, and `is_hidden` marks a field an audience does not ask.
+	 *
+	 * @return void
+	 */
+	private static function add_custom_fields_columns(): void {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_custom_fields';
+
+		if ( ! self::table_exists( $table_name ) ) {
+			return;
+		}
+
+		self::add_columns_if_missing(
+			$table_name,
+			array(
+				'overrides_field_id' => array(
+					'type'  => 'BIGINT(20) UNSIGNED DEFAULT NULL',
+					'after' => 'audience_id',
+					'index' => 'overrides_field_id',
+				),
+				'is_hidden'          => array(
+					'type'  => 'TINYINT(1) NOT NULL DEFAULT 0',
+					'after' => 'is_active',
 				),
 			)
 		);
@@ -298,6 +347,7 @@ class UserDashboardActivator {
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
             audience_id bigint(20) unsigned NOT NULL,
+            overrides_field_id bigint(20) unsigned DEFAULT NULL,
             field_key varchar(100) NOT NULL,
             field_label varchar(250) NOT NULL,
             field_type varchar(50) NOT NULL DEFAULT 'text',
@@ -311,6 +361,7 @@ class UserDashboardActivator {
             sort_order int(11) NOT NULL DEFAULT 0,
             is_required tinyint(1) NOT NULL DEFAULT 0,
             is_active tinyint(1) NOT NULL DEFAULT 1,
+            is_hidden tinyint(1) NOT NULL DEFAULT 0,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -318,7 +369,8 @@ class UserDashboardActivator {
             KEY idx_field_key (field_key),
             KEY idx_sort_order (audience_id, sort_order),
             KEY idx_group_sort (audience_id, field_group, sort_order),
-            KEY idx_source (audience_id, field_source)
+            KEY idx_source (audience_id, field_source),
+            KEY idx_overrides_field_id (overrides_field_id)
         ) {$charset_collate};";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -330,29 +382,13 @@ class UserDashboardActivator {
 	 * dashboard shortcode.
 	 */
 	private static function create_dashboard_page(): void {
-		$existing_page = get_page_by_path( 'dashboard' );
-
-		if ( $existing_page ) {
-			update_option( 'ffc_dashboard_page_id', $existing_page->ID );
-			return;
-		}
-
-		$page_data = array(
-			'post_title'     => 'My Dashboard',
-			'post_content'   => '[user_dashboard_personal]',
-			'post_status'    => 'publish',
-			'post_type'      => 'page',
-			'post_name'      => 'dashboard',
-			'post_author'    => 1,
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
+		$page_id = \FreeFormCertificate\Core\ManagedPages::ensure(
+			'dashboard',
+			__( 'My Dashboard', 'ffcertificate' ),
+			'[user_dashboard_personal]'
 		);
-
-		$page_id = wp_insert_post( $page_data, true );
-
-		if ( ! is_wp_error( $page_id ) ) {
+		if ( $page_id > 0 ) {
 			update_option( 'ffc_dashboard_page_id', $page_id );
-			update_post_meta( $page_id, '_ffc_managed_page', '1' );
 		}
 	}
 }

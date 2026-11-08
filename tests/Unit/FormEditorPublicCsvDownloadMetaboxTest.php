@@ -261,7 +261,8 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 
 	public function test_render_audit_summary_cards_cap_notice_and_export_link(): void {
 		$this->enable_master();
-		$log = array_fill( 0, 100, array( 'result' => 'success' ) );
+		// 100 records reach their cap; the one failure has a cap of its own (#2341).
+		$log = array_fill( 0, 101, array( 'result' => 'success' ) );
 		$log[0] = array( 'result' => 'wrong_cpf' );
 		$log[1] = array( 'result' => 'download_delivered' );
 		$this->meta_values['_ffc_csv_public_download_log'] = $log;
@@ -270,7 +271,7 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$html = $this->render();
 
 		$this->assertStringContainsString( 'ffc-csv-audit-summary', $html );
-		$this->assertMatchesRegularExpression( '/Successful accesses<\/span>\s*<span class="ffc-csv-audit-card-value">98</', $html );
+		$this->assertMatchesRegularExpression( '/Successful accesses<\/span>\s*<span class="ffc-csv-audit-card-value">99</', $html );
 		$this->assertMatchesRegularExpression( '/Successful downloads<\/span>\s*<span class="ffc-csv-audit-card-value">3</', $html );
 		$this->assertMatchesRegularExpression( '/Failed accesses<\/span>\s*<span class="ffc-csv-audit-card-value">1</', $html );
 		$this->assertStringContainsString( 'Limit of 100 entries reached', $html );
@@ -278,6 +279,22 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$this->assertStringContainsString( 'admin-post.php?', $html );
 		$this->assertStringContainsString( 'CPFs are stored encrypted at-rest', $html );
 		$this->assertStringNotContainsString( 'No download attempts have been logged yet.', $html );
+	}
+
+	/**
+	 * #2341 — a folded failure counts every attempt it stands for.
+	 */
+	public function test_render_audit_summary_counts_every_attempt_of_a_folded_failure(): void {
+		$this->enable_master();
+		$this->meta_values['_ffc_csv_public_download_log'] = array(
+			array( 'result' => 'fail_captcha', 'count' => 5 ),
+			array( 'result' => 'audit_pass' ),
+		);
+
+		$html = $this->render();
+
+		$this->assertMatchesRegularExpression( '/Failed accesses<\/span>\s*<span class="ffc-csv-audit-card-value">5</', $html );
+		$this->assertStringNotContainsString( 'Limit of 100 entries reached', $html );
 	}
 
 	public function test_render_audit_summary_without_cap_notice_below_the_limit(): void {
@@ -321,11 +338,30 @@ class FormEditorPublicCsvDownloadMetaboxTest extends TestCase {
 		$this->meta_values['_ffc_csv_public_start_opened_at']     = '1700000000';
 		$this->meta_values['_ffc_csv_public_start_opened_from']   = '08:00';
 		$this->meta_values['_ffc_csv_public_end_postponed_at']    = '1700000000';
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
 
 		list( $start, $end ) = $this->status_pills( $this->render() );
 
-		$this->assertStringContainsString( 'Already started early once for this form (was 08:00)', $start );
+		// Opened on an earlier day: that day only (#2341).
+		$this->assertStringContainsString( 'Opened early on 14/11/2023 22:13. It applied to that day only', $start );
 		$this->assertStringContainsString( 'Already postponed once for this form (was —)', $end );
+	}
+
+	public function test_status_on_the_day_the_form_was_opened_early(): void {
+		$this->enable_master();
+		$this->meta_values['_ffc_csv_public_start_early_enabled'] = '1';
+		$this->meta_values['_ffc_geofence_config']                = array(
+			'date_start' => '2020-01-01',
+			'date_end'   => '2099-01-01',
+		);
+		$this->meta_values['_ffc_csv_public_start_opened_at']     = (string) time();
+		$this->meta_values['_ffc_csv_public_start_opened_from']   = '08:00';
+		Functions\when( 'wp_date' )->alias( static fn( string $format, ?int $ts = null ) => gmdate( $format, $ts ?? time() ) );
+
+		list( $start ) = $this->status_pills( $this->render() );
+
+		$this->assertStringContainsString( 'Opened early today at ' . gmdate( 'H:i' ), $start );
+		$this->assertStringContainsString( '(scheduled for 08:00). Later days open at their scheduled time.', $start );
 	}
 
 	public function test_status_for_a_form_that_has_ended(): void {

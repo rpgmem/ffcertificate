@@ -613,3 +613,545 @@ describe('ffc-admin-pdf.js — preview button', () => {
 		post.mockRestore();
 	});
 });
+
+// The blocks below unbind every delegated handler before loading the script:
+// each earlier loadScript() stacked its own copy on document, and those copies
+// carry their own cached media frames, so one click would run several of them.
+function freshLoad() {
+	window.$(document).off();
+	window.$.fx.off = true;
+	loadScript('assets/js/ffc-code-editor-core.js');
+	loadScript('assets/js/ffc-admin-pdf.js');
+}
+
+const jqAnswer = (payload) => ({
+	done(cb) { cb(payload); return this; },
+	fail() { return this; },
+});
+const jqFailure = (xhr) => ({
+	done() { return this; },
+	fail(cb) { cb(xhr); return this; },
+});
+const wait = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForNotify() {
+	for (let i = 0; i < 50 && window.FFC.Admin.notify.mock.calls.length === 0; i++) {
+		await wait(5);
+	}
+}
+
+describe('ffc-admin-pdf.js — template modal interactions', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_load_template_btn">Load</button>' +
+			'<textarea id="ffc_pdf_layout"></textarea>';
+		window.ffc_ajax = {
+			ajax_url: '/ajax',
+			nonce: 'n',
+			strings: { confirmLoadTemplate: 'Replace with "%s"?' },
+			templates: [
+				{ id: 10, label: 'Model 1', is_default: true },
+				{ id: null, label: 'Mine', is_default: false },
+			],
+		};
+		freshLoad();
+		window.$('#ffc_load_template_btn').trigger('click');
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		window.$(document).off('keydown.ffcTemplateModal');
+		reset();
+	});
+
+	it('labels default and custom templates and maps a missing id to 0', () => {
+		const opts = document.querySelectorAll('.ffc-template-option');
+		expect(Array.from(opts).map((o) => o.getAttribute('data-id'))).toEqual(['10', '0']);
+		expect(opts[0].querySelector('.ffc-template-option-kind').textContent).toBe('Default template');
+		expect(opts[1].querySelector('.ffc-template-option-kind').textContent).toBe('My template');
+	});
+
+	it('removes the modal on Cancel', () => {
+		window.$('#ffc-modal-cancel').trigger('click');
+		expect(document.querySelector('#ffc-template-modal')).toBeNull();
+	});
+
+	it('closes on a click on the backdrop but not on a click inside the box', () => {
+		window.$('.ffc-template-modal-box').trigger('click');
+		expect(document.querySelector('#ffc-template-modal')).not.toBeNull();
+
+		window.$('#ffc-template-modal').trigger('click');
+		expect(document.querySelector('#ffc-template-modal')).toBeNull();
+	});
+
+	it('closes on Escape and ignores other keys', () => {
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Enter' }));
+		expect(document.querySelector('#ffc-template-modal')).not.toBeNull();
+
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		expect(document.querySelector('#ffc-template-modal')).toBeNull();
+	});
+
+	it('asks with the localized confirmation and loads the chosen template by id', () => {
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.$.post = vi.fn(() => jqAnswer({ success: true, data: '<p>M1</p>' }));
+
+		window.$('.ffc-template-option').first().trigger('click');
+
+		expect(document.querySelector('#ffc-template-modal')).toBeNull();
+		expect(confirmSpy).toHaveBeenCalledWith('Replace with "Model 1"?');
+		expect(window.$.post.mock.calls[0][1].template_id).toBe(10);
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>M1</p>');
+	});
+
+	it('loads nothing when the confirmation is declined', () => {
+		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.$.post = vi.fn();
+
+		window.$('.ffc-template-option').first().trigger('click');
+
+		expect(window.$.post).not.toHaveBeenCalled();
+	});
+
+	it('falls back to the English confirmation without a localized one', () => {
+		window.ffc_ajax.strings = {};
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+		window.$('.ffc-template-option').last().trigger('click');
+
+		expect(confirmSpy).toHaveBeenCalledWith(
+			'Load "Mine"? This will replace your current certificate HTML.'
+		);
+	});
+});
+
+describe('ffc-admin-pdf.js — loadTemplate failures', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		window.ffc_ajax = { ajax_url: '/ajax', strings: {} };
+		freshLoad();
+	});
+
+	afterEach(reset);
+
+	it('reports a missing layout field after a successful load', () => {
+		window.$.post = vi.fn(() => jqAnswer({ success: true, data: '<p>x</p>' }));
+
+		window.FFC.Admin.PDF.loadTemplate(1, 'X');
+
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('HTML field not found.', 'error');
+	});
+
+	it.each([
+		[403, 'Access denied. Reload the page and try again.'],
+		[404, 'Template not found. It may have been removed from the template pool.'],
+		[500, 'Network error. Check your connection.'],
+	])('maps an HTTP %i failure to its message', (status, message) => {
+		window.$.post = vi.fn(() => jqFailure({ status }));
+
+		window.FFC.Admin.PDF.loadTemplate(1, 'X');
+
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith(message, 'error', 8000);
+	});
+});
+
+describe('ffc-admin-pdf.js — save as model outcomes', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_save_as_model_btn">Save</button>' +
+			'<textarea id="ffc_pdf_layout"><p>x</p></textarea>';
+		window.ffc_ajax = { ajax_url: '/ajax', strings: {} };
+		freshLoad();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		reset();
+	});
+
+	it('alerts and does not prompt when the layout is blank', () => {
+		document.querySelector('#ffc_pdf_layout').value = '   ';
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const promptSpy = vi.spyOn(window, 'prompt');
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(alertSpy).toHaveBeenCalledWith('The HTML editor is empty. Add a template first.');
+		expect(promptSpy).not.toHaveBeenCalled();
+	});
+
+	it('does not POST for a whitespace-only name', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('   ');
+		window.$.post = vi.fn();
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post).not.toHaveBeenCalled();
+	});
+
+	it('trims the name and reports a refused save', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('  Named  ');
+		window.$.post = vi.fn(() => jqAnswer({ success: false }));
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.$.post.mock.calls[0][1].title).toBe('Named');
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('Error: ', 'error', 8000);
+	});
+
+	it('reports a connection failure', () => {
+		vi.spyOn(window, 'prompt').mockReturnValue('Named');
+		window.$.post = vi.fn(() => jqFailure({ status: 0 }));
+
+		window.$('#ffc_save_as_model_btn').trigger('click');
+
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith('Connection error.', 'error', 8000);
+	});
+});
+
+describe('ffc-admin-pdf.js — import HTML', () => {
+	function setFiles(input, files) {
+		Object.defineProperty(input, 'files', { value: files, configurable: true });
+	}
+	const htmlFile = (body) => new File([body], 'cert.html', { type: 'text/html' });
+
+	beforeEach(() => {
+		reset();
+		installFFC();
+		window.ffc_ajax = { strings: {} };
+		freshLoad();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		reset();
+	});
+
+	it('opens the page file input when one exists', () => {
+		document.body.innerHTML =
+			'<button id="ffc_btn_import_html">Import</button>' +
+			'<input type="file" id="ffc_import_html_file">';
+		const clicked = vi.fn();
+		document.querySelector('#ffc_import_html_file').addEventListener('click', clicked);
+
+		window.$('#ffc_btn_import_html').trigger('click');
+
+		expect(clicked).toHaveBeenCalledTimes(1);
+		expect(document.querySelectorAll('input[type="file"]').length).toBe(1);
+	});
+
+	it('falls back to a file input whose name mentions import', () => {
+		document.body.innerHTML =
+			'<button id="ffc_btn_import_html">Import</button>' +
+			'<input type="file" name="ffc_import_layout">';
+		const clicked = vi.fn();
+		document.querySelector('input[name="ffc_import_layout"]').addEventListener('click', clicked);
+
+		window.$('#ffc_btn_import_html').trigger('click');
+
+		expect(clicked).toHaveBeenCalledTimes(1);
+	});
+
+	it('reads a file chosen in the page input into the layout and resets the input', async () => {
+		document.body.innerHTML =
+			'<input type="file" id="ffc_import_html_file">' +
+			'<textarea id="ffc_pdf_layout"></textarea>';
+		const input = document.querySelector('#ffc_import_html_file');
+		setFiles(input, [htmlFile('<h1>Imported</h1>')]);
+		const valSpy = vi.spyOn(window.$.fn, 'val');
+
+		window.$(input).trigger('change');
+		await waitForNotify();
+
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<h1>Imported</h1>');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('HTML imported successfully!', 'success');
+		expect(valSpy).toHaveBeenCalledWith('');
+	});
+
+	it('reports a missing textarea when the page input is read', async () => {
+		document.body.innerHTML = '<input type="file" id="ffc_import_html_file">';
+		const input = document.querySelector('#ffc_import_html_file');
+		setFiles(input, [htmlFile('<p>x</p>')]);
+
+		window.$(input).trigger('change');
+		await waitForNotify();
+
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error: HTML textarea not found', 'error');
+	});
+
+	it('reports a read error from the page input', async () => {
+		document.body.innerHTML = '<input type="file" id="ffc_import_html_file">';
+		const input = document.querySelector('#ffc_import_html_file');
+		setFiles(input, [htmlFile('<p>x</p>')]);
+		vi.spyOn(window.FileReader.prototype, 'readAsText').mockImplementation(function () {
+			this.onerror();
+		});
+
+		window.$(input).trigger('change');
+
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error reading file', 'error');
+	});
+
+	it('ignores a change with no file chosen', () => {
+		document.body.innerHTML = '<input type="file" id="ffc_import_html_file">';
+		const input = document.querySelector('#ffc_import_html_file');
+		setFiles(input, []);
+		const readSpy = vi.spyOn(window.FileReader.prototype, 'readAsText');
+
+		window.$(input).trigger('change');
+
+		expect(readSpy).not.toHaveBeenCalled();
+	});
+
+	describe('without a file input on the page', () => {
+		function openTempInput() {
+			document.body.insertAdjacentHTML('afterbegin', '<button id="ffc_btn_import_html">Import</button>');
+			window.$('#ffc_btn_import_html').trigger('click');
+			return document.querySelector('input[type="file"][hidden]');
+		}
+
+		it('creates a hidden .html input and imports the chosen file, then removes it', async () => {
+			document.body.innerHTML = '<textarea id="ffc_pdf_layout"></textarea>';
+			const temp = openTempInput();
+			expect(temp).not.toBeNull();
+			expect(temp.getAttribute('accept')).toBe('.html');
+
+			setFiles(temp, [htmlFile('<h2>Temp</h2>')]);
+			window.$(temp).trigger('change');
+			await waitForNotify();
+
+			expect(document.querySelector('#ffc_pdf_layout').value).toBe('<h2>Temp</h2>');
+			expect(window.FFC.Admin.notify).toHaveBeenCalledWith('HTML imported successfully!', 'success');
+			expect(document.querySelector('input[type="file"][hidden]')).toBeNull();
+		});
+
+		it('accepts a .html name even when the browser reports another type', async () => {
+			document.body.innerHTML = '<textarea id="ffc_pdf_layout"></textarea>';
+			const temp = openTempInput();
+			setFiles(temp, [new File(['<b>t</b>'], 'cert.html', { type: '' })]);
+
+			window.$(temp).trigger('change');
+			await waitForNotify();
+
+			expect(document.querySelector('#ffc_pdf_layout').value).toBe('<b>t</b>');
+		});
+
+		it('warns and reads nothing for a file that is not HTML', () => {
+			const temp = openTempInput();
+			const readSpy = vi.spyOn(window.FileReader.prototype, 'readAsText');
+			setFiles(temp, [new File(['x'], 'notes.txt', { type: 'text/plain' })]);
+
+			window.$(temp).trigger('change');
+
+			expect(readSpy).not.toHaveBeenCalled();
+			expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Please select an HTML file.', 'warning');
+		});
+
+		it('reports a missing layout field after reading', async () => {
+			const temp = openTempInput();
+			setFiles(temp, [htmlFile('<p>x</p>')]);
+
+			window.$(temp).trigger('change');
+			await waitForNotify();
+
+			expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error: HTML field not found.', 'error');
+		});
+
+		it('does nothing when the dialog closes with no file', () => {
+			const temp = openTempInput();
+			setFiles(temp, []);
+			const readSpy = vi.spyOn(window.FileReader.prototype, 'readAsText');
+
+			window.$(temp).trigger('change');
+
+			expect(readSpy).not.toHaveBeenCalled();
+			expect(window.FFC.Admin.notify).not.toHaveBeenCalled();
+		});
+	});
+});
+
+describe('ffc-admin-pdf.js — preview closing', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<button id="ffc_btn_preview">Preview</button>' +
+			'<textarea id="ffc_pdf_layout"><p>x</p></textarea>';
+		window.ffc_ajax = {};
+		window.FFCLayoutPreview = { capture: vi.fn(() => new Promise(() => {})) };
+		freshLoad();
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		window.$(document).off('keydown.ffcPreview');
+		delete window.FFCLayoutPreview;
+		reset();
+	});
+
+	it('removes the modal after the fade when the close button is clicked', async () => {
+		window.$.post = vi.fn(() => jqAnswer({ success: true, data: { html: 'h', width: 1, height: 1 } }));
+		window.$('#ffc_btn_preview').trigger('click');
+
+		window.$('.ffc-preview-close').trigger('click');
+		expect(document.querySelector('#ffc-preview-modal')).not.toBeNull();
+		await wait(250);
+
+		expect(document.querySelector('#ffc-preview-modal')).toBeNull();
+	});
+
+	it('closes on Escape only', async () => {
+		window.$.post = vi.fn(() => jqAnswer({ success: true, data: { html: 'h', width: 1, height: 1 } }));
+		window.$('#ffc_btn_preview').trigger('click');
+
+		window.$(document).trigger(window.$.Event('keydown', { key: 'a' }));
+		await wait(250);
+		expect(document.querySelector('#ffc-preview-modal')).not.toBeNull();
+
+		window.$(document).trigger(window.$.Event('keydown', { key: 'Escape' }));
+		await wait(250);
+		expect(document.querySelector('#ffc-preview-modal')).toBeNull();
+	});
+
+	it('fails without capturing when the server answers unsuccessfully', () => {
+		window.$.post = vi.fn(() => jqAnswer({ success: false }));
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		expect(window.FFCLayoutPreview.capture).not.toHaveBeenCalled();
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith(
+			'The preview could not be rendered.',
+			'error',
+			3000
+		);
+	});
+
+	it('fails when the capture module is not loaded', () => {
+		delete window.FFCLayoutPreview;
+		window.$.post = vi.fn(() => jqAnswer({ success: true, data: { html: 'h', width: 1, height: 1 } }));
+
+		window.$('#ffc_btn_preview').trigger('click');
+
+		expect(window.FFC.Admin.notify).toHaveBeenLastCalledWith(
+			'The preview could not be rendered.',
+			'error',
+			3000
+		);
+	});
+});
+
+describe('ffc-admin-pdf.js — media frames', () => {
+	function stubFrame(attachment) {
+		const frame = {
+			_select: null,
+			on: vi.fn(function (evt, cb) {
+				if (evt === 'select') {
+					this._select = cb;
+				}
+				return this;
+			}),
+			open: vi.fn(function () {
+				if (this._select) {
+					this._select();
+				}
+			}),
+			state: () => ({ get: () => ({ first: () => ({ toJSON: () => attachment }) }) }),
+		};
+		window.wp = { media: vi.fn(() => frame) };
+		return frame;
+	}
+
+	beforeEach(() => {
+		reset();
+		installFFC();
+		window.ffc_ajax = { strings: {} };
+		freshLoad();
+	});
+
+	afterEach(() => {
+		delete window.wp;
+		reset();
+	});
+
+	it('writes the chosen background URL and a decorative preview image', () => {
+		document.body.innerHTML =
+			'<button id="ffc_btn_media_lib">Media</button>' +
+			'<input name="ffc_config[bg_image]" value="">' +
+			'<div id="ffc_bg_image_preview"><span>old</span></div>';
+		stubFrame({ url: 'https://example.test/bg.jpg' });
+
+		window.$('#ffc_btn_media_lib').trigger('click');
+
+		expect(window.wp.media).toHaveBeenCalledWith({
+			title: 'Choose Background Image',
+			button: { text: 'Use this image' },
+			multiple: false,
+		});
+		expect(document.querySelector('input[name="ffc_config[bg_image]"]').value).toBe(
+			'https://example.test/bg.jpg'
+		);
+		const img = document.querySelector('#ffc_bg_image_preview img');
+		expect(document.querySelector('#ffc_bg_image_preview span')).toBeNull();
+		expect(img.getAttribute('src')).toBe('https://example.test/bg.jpg');
+		expect(img.getAttribute('alt')).toBe('');
+		expect(img.className).toBe('ffc-bg-image-preview-img');
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Background image selected!', 'success');
+	});
+
+	it('still confirms the selection on a screen with no URL field or preview', () => {
+		document.body.innerHTML = '<button id="ffc_btn_media_lib">Media</button>';
+		stubFrame({ url: 'https://example.test/bg.jpg' });
+
+		window.$('#ffc_btn_media_lib').trigger('click');
+
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Background image selected!', 'success');
+	});
+
+	it('reuses the background frame on a second click', () => {
+		document.body.innerHTML = '<button id="ffc_btn_media_lib">Media</button>';
+		const frame = stubFrame({ url: 'u' });
+
+		window.$('#ffc_btn_media_lib').trigger('click');
+		window.$('#ffc_btn_media_lib').trigger('click');
+
+		expect(window.wp.media).toHaveBeenCalledTimes(1);
+		expect(frame.open).toHaveBeenCalledTimes(2);
+	});
+
+	it('reuses the image-insert frame on a second click', () => {
+		document.body.innerHTML =
+			'<button id="ffc_btn_insert_image">Insert</button><textarea id="ffc_pdf_layout"></textarea>';
+		const frame = stubFrame({ url: 'https://example.test/a.png' });
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		expect(window.wp.media).toHaveBeenCalledTimes(1);
+		expect(frame.open).toHaveBeenCalledTimes(2);
+	});
+
+	it('inserts nothing for an attachment without a URL', () => {
+		document.body.innerHTML =
+			'<button id="ffc_btn_insert_image">Insert</button><textarea id="ffc_pdf_layout">keep</textarea>';
+		stubFrame({ url: '' });
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('keep');
+		expect(window.FFC.Admin.notify).not.toHaveBeenCalled();
+	});
+
+	it('reports a missing editor when neither layout textarea is on the screen', () => {
+		document.body.innerHTML = '<button id="ffc_btn_insert_image">Insert</button>';
+		stubFrame({ url: 'https://example.test/a.png' });
+
+		window.$('#ffc_btn_insert_image').trigger('click');
+
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error: HTML textarea not found', 'error');
+	});
+});

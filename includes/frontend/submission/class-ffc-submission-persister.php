@@ -56,12 +56,52 @@ class SubmissionPersister {
 	}
 
 	/**
+	 * Persist the submission, and settle the ticket it claimed (#2341).
+	 *
+	 * A ticket claimed by AccessRestrictionGuard leaves the form's list once
+	 * a row holds it; a request that ends without one, refused or failed,
+	 * gives the claim back, so the participant can use the ticket again.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 * @throws \Throwable A SubmissionRejected on exhausted/failed quiz attempts or a
+	 *                    save error, or whatever the save throws, after the
+	 *                    claim is given back.
+	 */
+	public function apply( SubmissionContext $ctx ): void {
+		try {
+			$this->persist( $ctx );
+		} catch ( \Throwable $e ) {
+			if ( $ctx->ticket_claim_open ) {
+				$ctx->ticket_claim_open = false;
+				\FreeFormCertificate\Frontend\AccessRestrictionChecker::release_ticket( $ctx->form_id, $ctx->val_ticket );
+			}
+			throw $e;
+		}
+		// A reprint writes no row, and keeps the old behaviour: the ticket
+		// that reached it leaves the list.
+		$this->settle_ticket( $ctx );
+	}
+
+	/**
+	 * Remove the claimed ticket from the form's list, once a row holds it.
+	 *
+	 * @param SubmissionContext $ctx Submission context.
+	 */
+	private function settle_ticket( SubmissionContext $ctx ): void {
+		if ( ! $ctx->ticket_claim_open ) {
+			return;
+		}
+		$ctx->ticket_claim_open = false;
+		\FreeFormCertificate\Frontend\AccessRestrictionChecker::consume_ticket( $ctx->form_id, $ctx->val_ticket );
+	}
+
+	/**
 	 * Persist the submission, populating the context for the response stages.
 	 *
 	 * @param SubmissionContext $ctx Submission context.
 	 * @throws SubmissionRejected On exhausted/failed quiz attempts or a save error.
 	 */
-	public function apply( SubmissionContext $ctx ): void {
+	private function persist( SubmissionContext $ctx ): void {
 		$form_id                    = $ctx->form_id;
 		$form_config                = $ctx->form_config;
 		$fields_config              = $ctx->fields_config;
@@ -70,7 +110,6 @@ class SubmissionPersister {
 		$val_ticket                 = $ctx->val_ticket;
 		$has_exception              = $ctx->has_exception;
 		$schedule_exception_payload = $ctx->schedule_exception_payload;
-		$restriction_result         = $ctx->restriction_result;
 
 		// Operate on a local copy (process_submission mutates it by reference);
 		// written back to the context at the end for the response stages.
@@ -141,6 +180,12 @@ class SubmissionPersister {
 				$real_submission_date = $existing->submission_date;
 				$is_reprint           = true;
 
+				// A passed quiz is a certificate like any other: without a
+				// ticket, only its logged-in owner gets it on screen (#2342).
+				if ( '' === $val_ticket ) {
+					$this->send_to_stranger( $ctx, \FreeFormCertificate\Frontend\ReprintDetector::for_context( $ctx ), $submission_id );
+				}
+
 				// Surface the stored auth_code for the success card/message.
 				if ( ! empty( $existing->auth_code ) && empty( $submission_data['auth_code'] ) ) {
 					$submission_data['auth_code'] = $existing->auth_code;
@@ -205,6 +250,7 @@ class SubmissionPersister {
 						);
 					}
 					$real_submission_date = (string) $now;
+					$this->settle_ticket( $ctx );
 
 					// A retry that passes is the moment the certificate exists,
 					// so it is e-mailed now, as a first attempt's insert is.
@@ -236,6 +282,8 @@ class SubmissionPersister {
 							)
 						);
 					}
+
+					$this->settle_ticket( $ctx );
 
 					// Update status if not publish.
 					if ( 'publish' !== $quiz_status ) {
@@ -325,11 +373,8 @@ class SubmissionPersister {
 				// the certificate on screen; anyone else gets its link sent to
 				// the address stored on it (#2241). A ticket is a code its
 				// holder was given, and keeps handing the certificate over.
-				$owner = $reprint_result['user_id'];
-				if ( '' === $val_ticket && ( $owner <= 0 || get_current_user_id() !== $owner ) ) {
-					$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
-					$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
-					$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
+				if ( '' === $val_ticket ) {
+					$this->send_to_stranger( $ctx, $reprint_result, $submission_id );
 				}
 
 				// Surface the existing auth_code so the success card and message can show it.
@@ -363,10 +408,8 @@ class SubmissionPersister {
 				// Get the submission date from the newly created submission.
 				$real_submission_date = current_time( 'mysql' );
 
-				// Remove used ticket if applicable — delegated to AccessRestrictionChecker.
-				if ( $restriction_result['is_ticket'] && ! empty( $val_ticket ) ) {
-					\FreeFormCertificate\Frontend\AccessRestrictionChecker::consume_ticket( $form_id, $val_ticket );
-				}
+				// The row holds the ticket now, so it leaves the list (#2341).
+				$this->settle_ticket( $ctx );
 
 				// #366 Sprint 6 — persist the override TIME columns on the
 				// freshly inserted row + emit the two audit log entries. Runs
@@ -399,6 +442,29 @@ class SubmissionPersister {
 		$ctx->is_quiz              = $is_quiz;
 		$ctx->quiz_score           = $quiz_score;
 		$ctx->awaiting_grading     = $awaiting && ! $is_reprint;
+	}
+
+	/**
+	 * Hand a reprint to a caller who is not its logged-in owner by e-mail.
+	 *
+	 * Anyone can type a CPF/RF, so the certificate goes to the address stored
+	 * on it and the screen only says where, masked (#2241). The quiz path
+	 * reaches here too: a passed attempt is a certificate (#2342).
+	 *
+	 * @param SubmissionContext                                              $ctx            Submission context.
+	 * @param array{user_id: int, email: string, data: array<string, mixed>} $reprint_result The stored submission.
+	 * @param int                                                            $submission_id  Submission ID.
+	 * @return void
+	 */
+	private function send_to_stranger( SubmissionContext $ctx, array $reprint_result, int $submission_id ): void {
+		$owner = $reprint_result['user_id'];
+		if ( $owner > 0 && get_current_user_id() === $owner ) {
+			return;
+		}
+
+		$stored_email        = '' !== $reprint_result['email'] ? $reprint_result['email'] : ArrayValue::string( $reprint_result['data'], 'email' );
+		$sent                = ( new \FreeFormCertificate\Submissions\ReprintLinkMailer() )->send( $submission_id, $stored_email );
+		$ctx->reprint_notice = \FreeFormCertificate\Submissions\ReprintLinkMailer::message( $sent );
 	}
 
 	/**
@@ -561,7 +627,10 @@ class SubmissionPersister {
 			return;
 		}
 
-		$participant_cpf_hash = '' !== $participant_cpf_plain ? hash( 'sha256', $participant_cpf_plain ) : '';
+		// Keyed, as every stored identifier hash is (#2339): a bare SHA-256 of
+		// a CPF reverses by trying every CPF. Same context as the operator's,
+		// so the two can still be compared in the audit line.
+		$participant_cpf_hash = '' !== $participant_cpf_plain ? \FreeFormCertificate\Core\Encryption::keyed_hash( $participant_cpf_plain, 'schedule_exception_cpf' ) : '';
 
 		\FreeFormCertificate\Core\ActivityLog::log(
 			'schedule_override_created',

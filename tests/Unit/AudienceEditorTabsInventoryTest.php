@@ -96,6 +96,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The Environments tab's list top (#2498): a count.
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->returnArg();
@@ -607,6 +609,17 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 	}
 
 	/**
+	 * Drop the booking-shape switches (#2404): a feature added after the
+	 * tabs, asserted apart by the caller like the post-event controls.
+	 *
+	 * @param list<string> $items Inventory.
+	 * @return list<string>
+	 */
+	private static function without_booking_shape( array $items ): array {
+		return array_values( array_filter( $items, static fn( string $item ): bool => ! str_contains( $item, 'allow_multi_day' ) && ! str_contains( $item, 'allow_time_selection' ) ) );
+	}
+
+	/**
 	 * Drop the masked account-email cell (#1824). The fixture predates it, and
 	 * it is markup rather than a control, so the callers assert it is present
 	 * and compare the rest against the fixture.
@@ -658,7 +671,8 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$list = array_values(
 			array_filter(
 				self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'view' => 'environments', 'schedule_id' => '5' ) ) ),
-				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && $view !== $item
+				// The list top's labelled filters (#2498) carry ids the tab has no use for.
+				static fn( string $item ): bool => ! str_contains( $item, 'get-filter' ) && ! str_ends_with( $item, '-filter' ) && $view !== $item
 			)
 		);
 
@@ -666,7 +680,11 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$this->assertContains( self::MASKED_EMAIL, $after, 'the User access table masks the account email' );
 		$this->assertContains( 'field:select:select:schedule_post_event_form@save_schedule', $after, 'the Post-event form tab posts with the calendar' );
 		$this->assertContains( 'field:input:text:schedule_names[cell][closed]@save_schedule', $after, 'the calendar names post with the calendar' );
-		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_calendar_names( self::without_post_event( self::without_masked_email( self::without_tab_markup( $after ) ) ) ) );
+		foreach ( array( 'allow_multi_day', 'allow_time_selection' ) as $switch ) {
+			$this->assertContains( 'field:input:checkbox:schedule_' . $switch . '@save_schedule', $after, 'the booking-shape switches post with the calendar (#2404)' );
+			$this->assertContains( 'data:data-ffc-autosave-record-key=' . $switch, $after, 'and save on their own' );
+		}
+		$this->assertSame( self::union( $fixture[ 'calendar-edit-' . $tier ], $list ), self::without_booking_shape( self::without_calendar_names( self::without_post_event( self::without_masked_email( self::without_tab_markup( $after ) ) ) ) ) );
 		if ( 'manage' === $tier ) {
 			$this->assertContains( $view . '&action=new&schedule_id=5', $after, 'the tab\'s Add New carries the calendar' );
 		}
@@ -676,7 +694,7 @@ class AudienceEditorTabsInventoryTest extends TestCase {
 		$this->assertSame( array(), preg_grep( '/page=ffc-scheduling-environments/', $after ), 'no link is left on the previous slug' );
 
 		$after_new = self::inventory( $this->render( 'ffc-scheduling-calendars', array( 'action' => 'new' ) ) );
-		$this->assertSame( $fixture[ 'calendar-new-' . $tier ], self::without_calendar_names( self::without_post_event( self::without_tab_markup( $after_new ) ) ) );
+		$this->assertSame( $fixture[ 'calendar-new-' . $tier ], self::without_booking_shape( self::without_calendar_names( self::without_post_event( self::without_tab_markup( $after_new ) ) ) ) );
 	}
 
 	/**

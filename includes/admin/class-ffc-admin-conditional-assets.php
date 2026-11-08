@@ -43,6 +43,15 @@ class AdminConditionalAssets {
 		if ( AdminAssetsManager::is_settings_page() ) {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
 
+			// Arrow keys, Home and End in the section list (#2338).
+			wp_enqueue_script(
+				'ffc-settings-nav',
+				FFC_PLUGIN_URL . "assets/js/ffc-settings-nav{$s}.js",
+				array(),
+				FFC_VERSION,
+				true
+			);
+
 			wp_enqueue_script(
 				'ffc-admin-migrations',
 				FFC_PLUGIN_URL . "assets/js/ffc-admin-migrations{$s}.js",
@@ -64,6 +73,11 @@ class AdminConditionalAssets {
 						'migrationComplete'  => __( 'Migration Complete', 'ffcertificate' ),
 						'allRecordsMigrated' => __( 'All records have been successfully migrated.', 'ffcertificate' ),
 						'errorOccurred'      => __( 'Error occurred. Please try again.', 'ffcertificate' ),
+						/* translators: %s: how many records are still pending. */
+						'stuck'              => __( 'Stopped: the last batch changed nothing and %s records are still pending. Running it again will not move them; see the errors below.', 'ffcertificate' ),
+						/* translators: %s: how many problems the run reported. */
+						'completeWithErrors' => __( 'Finished, with %s problems reported along the way:', 'ffcertificate' ),
+						'otherRunning'       => __( 'Another migration is running. Wait for it to finish.', 'ffcertificate' ),
 					),
 				)
 			);

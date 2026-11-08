@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\ArrayValue;
 use FreeFormCertificate\Core\RequestInput;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -118,39 +119,36 @@ class AdminActivityLogPage {
 			return;
 		}
 
-		// Get filter parameters.
-		$current_page = max( 1, RequestInput::get_get_int( 'paged', 1 ) );
+		// The same filters the in-place refresh reads (#2340).
 		$per_page     = 50;
-		$level        = RequestInput::get_get_key( 'level' );
-		$action       = \FreeFormCertificate\Core\RequestInput::get_get_string( 'log_action' );
-		$search       = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
-
-		// Get logs.
-		$args = array(
-			'limit'   => $per_page,
-			'offset'  => ( $current_page - 1 ) * $per_page,
-			'orderby' => 'created_at',
-			'order'   => 'DESC',
+		$args         = self::build_query_args(
+			array(
+				'level'      => RequestInput::get_get_key( 'level' ),
+				'log_action' => RequestInput::get_get_string( 'log_action' ),
+				'search'     => RequestInput::get_get_string( 's' ),
+				'user'       => RequestInput::get_get_string( 'log_user' ),
+				'date_from'  => RequestInput::get_get_string( 'date_from' ),
+				'date_to'    => RequestInput::get_get_string( 'date_to' ),
+				'paged'      => RequestInput::get_get_int( 'paged', 1 ),
+			),
+			$per_page
 		);
+		$current_page = (int) ( ( $args['offset'] / $per_page ) + 1 );
+		$level        = ArrayValue::string( $args, 'level' );
+		$action       = ArrayValue::string( $args, 'action' );
+		$search       = ArrayValue::string( $args, 'search' );
+		$log_user     = ArrayValue::string( $args, 'user_id' );
+		$date_from    = ArrayValue::string( $args, 'date_from' );
+		$date_to      = ArrayValue::string( $args, 'date_to' );
+		$has_filters  = self::has_filters( $args );
 
-		if ( $level ) {
-			$args['level'] = $level;
-		}
+		$logs       = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
+		$total_logs = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
 
-		if ( $action ) {
-			$args['action'] = $action;
-		}
-
-		if ( $search ) {
-			$args['search'] = $search;
-		}
-
-		$logs        = \FreeFormCertificate\Core\ActivityLogQuery::get_activities( $args );
-		$total_logs  = \FreeFormCertificate\Core\ActivityLogQuery::count_activities( $args );
-		$total_pages = ceil( $total_logs / $per_page );
-
-		// Get unique actions for filter.
-		$unique_actions = $this->get_unique_actions();
+		// The filter lists, each sorted by what the reader sees (#2340).
+		$unique_actions = self::sorted_actions( $this->get_unique_actions() );
+		$user_options   = self::user_options();
+		$can_export     = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_export_activity_log' );
 
 		// Render view.
 		$view_file = FFC_PLUGIN_DIR . 'includes/admin/views/ffc-admin-activity-log.php';
@@ -224,14 +222,26 @@ class AdminActivityLogPage {
 			'submission_updated'                           => __( 'Submission Updated', 'ffcertificate' ),
 			'submission_deleted'                           => __( 'Submission Deleted', 'ffcertificate' ),
 			'quiz_graded'                                  => __( 'Quiz Graded', 'ffcertificate' ),
-			'quiz_regraded'                                => __( 'Quiz Regraded', 'ffcertificate' ),
-			'submission_answer_corrected'                  => __( 'Answer Corrected', 'ffcertificate' ),
+			'quiz_regraded'                                => __( 'Grades Amended', 'ffcertificate' ),
+			'submission_answer_corrected'                  => __( 'Answer Amended', 'ffcertificate' ),
 			'data_accessed'                                => __( 'Data Accessed', 'ffcertificate' ),
 			'access_denied'                                => __( 'Access Denied', 'ffcertificate' ),
 			'settings_changed'                             => __( 'Settings Changed', 'ffcertificate' ),
+			// Role editor (#2340).
+			'role_capability_changed'                      => __( 'Role Capability Changed', 'ffcertificate' ),
+			'role_default_restored'                        => __( 'Role Default Restored', 'ffcertificate' ),
+			'user_ffc_roles_removed'                       => __( 'FFC Roles Removed with a Role Change', 'ffcertificate' ),
+			'user_role_changed'                            => __( 'User FFC Role Changed', 'ffcertificate' ),
+			'user_capabilities_changed'                    => __( 'User Capabilities Changed', 'ffcertificate' ),
+			'user_audiences_changed'                       => __( 'User Audiences Changed', 'ffcertificate' ),
 			// Public Operator Access (#224) — early-open + ticket cleanup.
 			'early_open_executed'                          => __( 'Form Started Early', 'ffcertificate' ),
 			'tickets_purged_expired'                       => __( 'Expired Form Tickets Cleared', 'ffcertificate' ),
+			// Settings maintenance that changes data (#2338).
+			'danger_zone_data_deleted'                     => __( 'Submissions Deleted (Danger Zone)', 'ffcertificate' ),
+			'obsolete_shortcodes_removed'                  => __( 'Obsolete Shortcodes Removed', 'ffcertificate' ),
+			'short_urls_cleaned'                           => __( 'Short URLs Cleaned Up', 'ffcertificate' ),
+			'public_access_bulk_disabled'                  => __( 'Public Operator Access Disabled on Old Forms', 'ffcertificate' ),
 			// Postpone close (6.5.12).
 			'end_postponed'                                => __( 'Form Close Postponed', 'ffcertificate' ),
 			// Schedule exception per submission (#366 Sprint 9).
@@ -281,6 +291,7 @@ class AdminActivityLogPage {
 			'appointment_booked_with_override'             => __( 'Appointment Booked Outside the Rules', 'ffcertificate' ),
 			'appointment_booked_on_behalf'                 => __( 'Appointment Booked on Behalf of a Person', 'ffcertificate' ),
 			'appointment_bulk_purged'                      => __( 'Calendar Appointments Purged', 'ffcertificate' ),
+			'appointment_deleted'                          => __( 'Appointments Deleted Permanently', 'ffcertificate' ),
 			'appointment_bulk_cancelled'                   => __( 'Calendar Future Appointments Cancelled', 'ffcertificate' ),
 			'appointment_bulk_closed'                      => __( 'Old Appointments Closed', 'ffcertificate' ),
 			'audience_account_email_revealed'              => __( 'Audience Account Email Revealed', 'ffcertificate' ),
@@ -345,9 +356,18 @@ class AdminActivityLogPage {
 			'decrypt_failure'                              => __( 'Decryption Failure', 'ffcertificate' ),
 			'decrypt_failure_suppressed'                   => __( 'Decryption Failures Suppressed', 'ffcertificate' ),
 			'ip_geolocation_debug'                         => __( 'IP Geolocation Debug', 'ffcertificate' ),
+			'dangerzone_setting_changed'                   => __( 'Danger Zone Setting Changed', 'ffcertificate' ),
+			'rate_limit_blocked'                           => __( 'Rate Limit Block', 'ffcertificate' ),
+			'captcha_failed'                               => __( 'Captcha Failed', 'ffcertificate' ),
+			'attendance_recorded'                          => __( 'Attendance Recorded', 'ffcertificate' ),
+			'attendance_removed'                           => __( 'Attendance Removed', 'ffcertificate' ),
+			'checkin_window_opened'                        => __( 'Check-in Opened', 'ffcertificate' ),
+			'checkin_window_closed'                        => __( 'Check-in Closed', 'ffcertificate' ),
+			'scheduled_task_failed'                        => __( 'Scheduled Task Failed', 'ffcertificate' ),
 
 			// Migrations.
 			'migration_foreign_keys'                       => __( 'Foreign Keys Migration', 'ffcertificate' ),
+			'auth_code_duplicates_removed'                 => __( 'Duplicate Authentication Codes Removed', 'ffcertificate' ),
 			'legacy_columns_dropped'                       => __( 'Legacy Columns Dropped', 'ffcertificate' ),
 			'cpf_rf_split_migration_batch'                 => __( 'CPF/RF Split Migration Batch', 'ffcertificate' ),
 			'cpf_rf_split_unknown_length'                  => __( 'CPF/RF Split: Unknown Length', 'ffcertificate' ),
@@ -477,6 +497,78 @@ class AdminActivityLogPage {
 	}
 
 	/**
+	 * Most values the generic summary shows; the rest stay in the details.
+	 */
+	public const SUMMARY_ITEMS = 6;
+
+	/**
+	 * Longest value the generic summary shows, in characters.
+	 */
+	public const SUMMARY_VALUE_CHARS = 80;
+
+	/**
+	 * Largest details block drawn on the screen, in bytes. The CSV export
+	 * and the Reveal keep the whole value.
+	 */
+	public const DETAILS_MAX_BYTES = 8192;
+
+	/**
+	 * A readable summary of an entry's details, for an action with no
+	 * summary of its own (#2340): its top-level values, each on its own
+	 * line, in the order they were recorded. Nested values and the values
+	 * past the first few are left to the details below.
+	 *
+	 * @param array<int|string, mixed> $context Details, already masked.
+	 * @return string|null Escaped HTML, or null when nothing is shown.
+	 */
+	public static function render_context_summary( array $context ): ?string {
+		$rows    = array();
+		$skipped = 0;
+		foreach ( $context as $key => $value ) {
+			if ( is_bool( $value ) ) {
+				$value = $value ? __( 'Yes', 'ffcertificate' ) : __( 'No', 'ffcertificate' );
+			}
+			if ( ! is_scalar( $value ) || '' === (string) $value || count( $rows ) >= self::SUMMARY_ITEMS ) {
+				++$skipped;
+				continue;
+			}
+			$text = (string) $value;
+			if ( mb_strlen( $text ) > self::SUMMARY_VALUE_CHARS ) {
+				$text = mb_substr( $text, 0, self::SUMMARY_VALUE_CHARS - 1 ) . '…';
+			}
+			$label  = is_string( $key ) ? ucfirst( str_replace( '_', ' ', $key ) ) : (string) $key;
+			$rows[] = array( $label, $text );
+		}
+		if ( array() === $rows ) {
+			return null;
+		}
+		$html = self::render_summary_rows( $rows );
+		if ( $skipped > 0 ) {
+			$html .= '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: %s: number of further values */
+					_n( '%s more value in the details.', '%s more values in the details.', $skipped, 'ffcertificate' ),
+					number_format_i18n( $skipped )
+				)
+			) . '</p>';
+		}
+		return $html;
+	}
+
+	/**
+	 * The details block, cut at a size the screen can draw (#2340).
+	 *
+	 * @param string $json Encoded details.
+	 * @return string
+	 */
+	public static function bounded_json( string $json ): string {
+		if ( strlen( $json ) <= self::DETAILS_MAX_BYTES ) {
+			return $json;
+		}
+		return mb_strcut( $json, 0, self::DETAILS_MAX_BYTES ) . "\n… " . __( 'Cut here; the CSV export has the full details.', 'ffcertificate' );
+	}
+
+	/**
 	 * Truncate a sha256 hex digest to the first 12 chars so it stays
 	 * visible without crowding the row. Full hash remains in the
 	 * raw JSON dump below for forensic correlation.
@@ -561,7 +653,107 @@ class AdminActivityLogPage {
 			$args['search'] = $search;
 		}
 
+		// The account that made the entry, or the system (#2340).
+		$user = isset( $params['user'] ) ? sanitize_key( (string) $params['user'] ) : '';
+		if ( \FreeFormCertificate\Core\ActivityLogQuery::USER_SYSTEM === $user ) {
+			$args['user_id'] = $user;
+		} elseif ( ctype_digit( $user ) && (int) $user > 0 ) {
+			$args['user_id'] = $user;
+		}
+
+		// A date range in the site's timezone; the end date takes in the
+		// whole of that day (#2340).
+		foreach ( array( 'date_from', 'date_to' ) as $bound ) {
+			$date = isset( $params[ $bound ] ) ? sanitize_text_field( (string) $params[ $bound ] ) : '';
+			if ( '' !== $date && \FreeFormCertificate\Core\DateFormatter::is_valid_date( $date ) ) {
+				$args[ $bound ] = $date;
+			}
+		}
+
 		return $args;
+	}
+
+	/**
+	 * Whether a query narrows the log, so an empty answer means "no
+	 * matches" rather than "nothing recorded yet" (#2340).
+	 *
+	 * @param array<string, mixed> $args Query arguments from build_query_args().
+	 * @return bool
+	 */
+	public static function has_filters( array $args ): bool {
+		foreach ( array( 'level', 'action', 'search', 'user_id', 'date_from', 'date_to' ) as $key ) {
+			if ( '' !== ArrayValue::string( $args, $key ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The action filter's values, sorted by the label they are shown with.
+	 *
+	 * @param array<int, string> $actions Stored action names.
+	 * @return array<int, string>
+	 */
+	public static function sorted_actions( array $actions ): array {
+		return array_values( \FreeFormCertificate\Core\LabelSorter::sort( $actions, static fn( string $action ): string => self::get_action_label( $action ) ) );
+	}
+
+	/**
+	 * The user filter's options: the system first, then every account that
+	 * appears in the log, sorted by its label (#2340).
+	 *
+	 * @return array<int|string, string> Value => label; an account id key is an int, as PHP stores it.
+	 */
+	public static function user_options(): array {
+		$users = array();
+		foreach ( \FreeFormCertificate\Core\ActivityLogQuery::distinct_users() as $user_id ) {
+			$user = get_userdata( $user_id );
+			/* translators: %d: user ID */
+			$users[ (string) $user_id ] = $user ? sprintf( '%1$s (%2$s)', $user->display_name, $user->user_login ) : sprintf( __( 'User #%d (deleted)', 'ffcertificate' ), $user_id );
+		}
+		$users = \FreeFormCertificate\Core\LabelSorter::sort( $users, static fn( string $label ): string => $label );
+
+		return array( \FreeFormCertificate\Core\ActivityLogQuery::USER_SYSTEM => __( 'System / Anonymous', 'ffcertificate' ) ) + $users;
+	}
+
+	/**
+	 * The table's empty state: no entry matches the filters, or nothing has
+	 * been recorded yet (#2340). An in-content callout, not a core notice,
+	 * which common.js would lift out of the table container (#1843).
+	 *
+	 * @param bool $has_filters Whether the query was filtered.
+	 * @return string Escaped HTML.
+	 */
+	public static function render_empty_html( bool $has_filters ): string {
+		if ( ! $has_filters ) {
+			return \FreeFormCertificate\Core\AdminNotice::callout_markup(
+				'info',
+				esc_html__( 'Nothing has been recorded yet. Entries appear here as soon as an audited action happens.', 'ffcertificate' )
+			);
+		}
+		return \FreeFormCertificate\Core\AdminNotice::callout_markup(
+			'info',
+			esc_html__( 'No entries match these filters.', 'ffcertificate' ) . ' ' . \FreeFormCertificate\Core\Button::html(
+				array(
+					'label' => __( 'Clear Filters', 'ffcertificate' ),
+					'icon'  => 'eraser',
+					'href'  => admin_url( 'admin.php?page=ffc-settings&tab=activity_log' ),
+					'class' => 'ffc-log-clear',
+				)
+			)
+		);
+	}
+
+	/**
+	 * How many entries the filters match, for the line above the table.
+	 *
+	 * @param int $total Entries matched.
+	 * @return string Plain text.
+	 */
+	public static function count_text( int $total ): string {
+		/* translators: %s: number of entries */
+		return sprintf( _n( '%s entry', '%s entries', $total, 'ffcertificate' ), number_format_i18n( $total ) );
 	}
 
 	/**
@@ -617,7 +809,8 @@ class AdminActivityLogPage {
 				</td>
 				<td>
 					<?php
-					$ffcertificate_ip = (string) ( $ffcertificate_log['user_ip'] ?? '' );
+					$ffcertificate_log_id = is_numeric( $ffcertificate_log['id'] ?? null ) ? (int) $ffcertificate_log['id'] : 0;
+					$ffcertificate_ip     = (string) ( $ffcertificate_log['user_ip'] ?? '' );
 					if ( '' !== $ffcertificate_ip ) {
 						echo '<code class="ffc-pii-value" data-field="ip">' . esc_html( \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $ffcertificate_ip ) ) . '</code>';
 						if ( '' !== $ffcertificate_reveal_nonce ) {
@@ -625,7 +818,7 @@ class AdminActivityLogPage {
 								array(
 									'field'         => 'ip',
 									'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
-									'submission-id' => (int) ( $ffcertificate_log['id'] ?? 0 ),
+									'submission-id' => $ffcertificate_log_id,
 									'nonce'         => $ffcertificate_reveal_nonce,
 								)
 							);
@@ -640,10 +833,14 @@ class AdminActivityLogPage {
 						// wp_json_encode returns string|false. The false case (circular
 						// refs, malformed UTF-8) is treated as "no context" so the
 						// admin still sees a valid <details> block.
-						$ffcertificate_context_json = wp_json_encode( self::mask_addresses( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_json = wp_json_encode( self::mask_personal_data( $ffcertificate_log['context'] ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 						if ( false === $ffcertificate_context_json ) {
 							$ffcertificate_context_json = '';
 						}
+						// Something was masked: the clear details sit behind the
+						// same audited Reveal as the address (#2340).
+						$ffcertificate_context_clear  = (string) wp_json_encode( $ffcertificate_log['context'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+						$ffcertificate_context_masked = $ffcertificate_context_clear !== $ffcertificate_context_json;
 						// Schedule exception flow (#366 Sprint 9) gets a
 						// friendly summary above the raw JSON dump. Other
 						// action types render the raw block as before.
@@ -659,6 +856,13 @@ class AdminActivityLogPage {
 								$ffcertificate_context_arr
 							);
 						}
+						// Every other action: its top-level values, masked, in
+						// a few readable lines (#2340).
+						if ( null === $ffcertificate_summary ) {
+							$ffcertificate_masked_arr = self::mask_personal_data( $ffcertificate_context_arr );
+							$ffcertificate_summary    = self::render_context_summary( is_array( $ffcertificate_masked_arr ) ? $ffcertificate_masked_arr : array() );
+						}
+						$ffcertificate_context_json = self::bounded_json( $ffcertificate_context_json );
 						?>
 						<?php if ( null !== $ffcertificate_summary ) : ?>
 							<?php echo wp_kses_post( $ffcertificate_summary ); ?>
@@ -667,7 +871,20 @@ class AdminActivityLogPage {
 							<summary class="ffc-log-summary">
 								<?php esc_html_e( 'View Details', 'ffcertificate' ); ?> ▼
 							</summary>
-							<pre class="ffc-log-pre"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
+							<pre class="ffc-log-pre ffc-pii-value" data-field="context"><?php echo esc_html( $ffcertificate_context_json ); ?></pre>
+							<?php
+							if ( $ffcertificate_context_masked && '' !== $ffcertificate_reveal_nonce ) {
+								$ffcertificate_context_button = \FreeFormCertificate\Core\PiiReveal::field_button(
+									array(
+										'field'         => 'context',
+										'type'          => \FreeFormCertificate\Admin\AdminAjax::REVEAL_ACTIVITY_LOG,
+										'submission-id' => $ffcertificate_log_id,
+										'nonce'         => $ffcertificate_reveal_nonce,
+									)
+								);
+								echo $ffcertificate_context_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every attribute.
+							}
+							?>
 						</details>
 					<?php else : ?>
 						<span class="description">—</span>
@@ -689,11 +906,40 @@ class AdminActivityLogPage {
 	 * @return mixed
 	 */
 	public static function mask_addresses( $context ) {
+		return self::mask_personal_data( $context );
+	}
+
+	/**
+	 * Every piece of personal data in an entry's details masked (#2109,
+	 * #2340): an address wherever it sits, an e-mail address wherever it
+	 * sits, and a value under a key the plugin knows as personal (`cpf`,
+	 * `rf`, `email`, `phone`…, {@see DocumentFormatter::kind_for_key()}).
+	 * The clear details stay behind the entry's audited Reveal.
+	 *
+	 * @param mixed  $context Decoded details, or a value inside them.
+	 * @param string $key     Key the value sits under; '' at the top.
+	 * @return mixed
+	 */
+	public static function mask_personal_data( $context, string $key = '' ) {
 		if ( is_array( $context ) ) {
-			return array_map( array( self::class, 'mask_addresses' ), $context );
+			$out = array();
+			foreach ( $context as $k => $v ) {
+				$out[ $k ] = self::mask_personal_data( $v, is_string( $k ) ? $k : $key );
+			}
+			return $out;
 		}
-		if ( is_string( $context ) && null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
+		if ( ! is_string( $context ) || '' === $context ) {
+			return $context;
+		}
+		if ( null !== \FreeFormCertificate\Core\IpAddress::canonical( $context ) ) {
 			return \FreeFormCertificate\Core\DocumentFormatter::mask_ip( $context );
+		}
+		if ( false !== filter_var( $context, FILTER_VALIDATE_EMAIL ) ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask_email( $context );
+		}
+		$kind = '' !== $key ? \FreeFormCertificate\Core\DocumentFormatter::kind_for_key( strtolower( $key ) ) : null;
+		if ( null !== $kind ) {
+			return \FreeFormCertificate\Core\DocumentFormatter::mask( $kind, $context );
 		}
 		return $context;
 	}

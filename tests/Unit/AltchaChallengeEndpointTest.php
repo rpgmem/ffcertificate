@@ -8,8 +8,10 @@ use Brain\Monkey\Functions;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
+use FreeFormCertificate\Core\Captcha\AltchaCaptcha;
 use FreeFormCertificate\Core\Captcha\AltchaChallengeEndpoint;
 use FreeFormCertificate\Core\Captcha\CaptchaSettings;
+use FreeFormCertificate\Tests\Support\AltchaSolver;
 
 /**
  * Tests for the ALTCHA challenge endpoint (#1053 PR3).
@@ -193,6 +195,31 @@ class AltchaChallengeEndpointTest extends TestCase {
 		);
 	}
 
+	public function test_the_challenge_is_bound_to_the_context_the_widget_names(): void {
+		// #2339: the widget asks for its form's context; the proof it solves
+		// verifies there and nowhere else. An unknown name falls to ''.
+		$this->mock_ip( '203.0.113.14' );
+
+		$_GET['context'] = 'form:9';
+		$this->call_handle();
+		$_GET['context'] = 'form:9|forged';
+		$this->call_handle();
+		unset( $_GET['context'] );
+
+		$bound   = $this->responses[0];
+		$unknown = $this->responses[1];
+		$counter = AltchaSolver::counter_of( $bound, CaptchaSettings::complexity() );
+		$this->assertNotNull( $counter );
+
+		$provider = new AltchaCaptcha();
+		$solution = array( AltchaCaptcha::FIELD => AltchaSolver::payload( $bound, (int) $counter ) );
+		$this->assertIsString( $provider->peek( $solution, 'form:8' ) );
+		$this->assertTrue( $provider->peek( $solution, 'form:9' ) );
+
+		$counter = AltchaSolver::counter_of( $unknown, CaptchaSettings::complexity() );
+		$this->assertTrue( $provider->peek( array( AltchaCaptcha::FIELD => AltchaSolver::payload( $unknown, (int) $counter ) ), '' ) );
+	}
+
 	public function test_a_flood_from_one_address_is_throttled(): void {
 		$this->mock_ip( '203.0.113.13' );
 
@@ -206,6 +233,24 @@ class AltchaChallengeEndpointTest extends TestCase {
 			$this->responses[60],
 			'The refusal must be a body the widget can surface, not an empty 429.'
 		);
+	}
+
+	public function test_the_refusal_says_how_long_to_wait(): void {
+		// #2339: the widget's glue reads the wait and shows it, instead of
+		// asking for a reload that would only ask for another challenge.
+		// `Retry-After` itself is a header, which PHP never lists under the
+		// CLI; the body carries the same number.
+		$this->mock_ip( '203.0.113.14' );
+		$this->set_mint_cap( 1 );
+
+		$this->call_handle();
+		$this->call_handle();
+
+		$this->assertSame( array( 429 ), $this->statuses );
+		$wait = $this->responses[1]['retryAfter'];
+		$this->assertIsInt( $wait );
+		$this->assertGreaterThanOrEqual( 1, $wait );
+		$this->assertLessThanOrEqual( CaptchaSettings::mint_window(), $wait, 'The wait ends with the caller\'s window, never later.' );
 	}
 
 	public function test_the_throttle_is_per_address(): void {

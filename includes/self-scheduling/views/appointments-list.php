@@ -24,6 +24,7 @@ $ffcertificate_appointments_url = add_query_arg( array( 'page' => 'ffc-appointme
 // Determine if viewing a specific appointment:
 // - appointment=X alone → view.
 // - appointment=X + ffc_action=confirm|cancel|attended|no_show|undo_attendance → mutation.
+// - appointment=X + ffc_action=delete_permanently, or the bulk select → deletion (#2340).
 $ffc_self_scheduling_appointment_id = \FreeFormCertificate\Core\RequestInput::get_get_int( 'appointment' );
 $ffcertificate_action               = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_action' );
 
@@ -80,6 +81,41 @@ if ( 'bulk_no_show' === $ffcertificate_bulk ) {
 				__( '%1$d marked as no-show; %2$d skipped (only confirmed appointments whose date has come can be marked).', 'ffcertificate' ),
 				$ffcertificate_bulk_result['marked'],
 				$ffcertificate_bulk_result['skipped']
+			),
+		),
+		30
+	);
+	wp_safe_redirect( $ffcertificate_appointments_url );
+	exit;
+}
+
+// Delete permanently (#2340): from the bulk select or one row's action. Only
+// appointments that are over go; the rest are skipped and counted.
+$ffcertificate_delete_ids = array();
+if ( 'bulk_delete_permanently' === $ffcertificate_bulk ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'bulk-appointments' );
+	$ffcertificate_delete_ids = array_map( 'intval', \FreeFormCertificate\Core\RequestInput::get_get_raw_array( 'appointment' ) );
+} elseif ( 'delete_permanently' === $ffcertificate_action && $ffc_self_scheduling_appointment_id > 0 ) {
+	if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_appointments' ) ) {
+		wp_die( esc_html__( 'You do not have permission to perform this action.', 'ffcertificate' ) );
+	}
+	check_admin_referer( 'ffc_delete_permanently_appointment_' . $ffc_self_scheduling_appointment_id );
+	$ffcertificate_delete_ids = array( $ffc_self_scheduling_appointment_id );
+}
+if ( array() !== $ffcertificate_delete_ids ) {
+	$ffcertificate_deleted = ( new \FreeFormCertificate\SelfScheduling\AppointmentAdminActions() )->delete_permanently( $ffcertificate_delete_ids, get_current_user_id() );
+	set_transient(
+		'ffc_admin_notice_' . get_current_user_id(),
+		array(
+			'type'    => $ffcertificate_deleted['deleted'] > 0 ? 'success' : 'error',
+			'message' => sprintf(
+				/* translators: 1: appointments deleted, 2: appointments skipped */
+				__( '%1$d deleted permanently; %2$d skipped (only cancelled, completed or no-show appointments can be deleted; cancel the others first).', 'ffcertificate' ),
+				$ffcertificate_deleted['deleted'],
+				$ffcertificate_deleted['skipped']
 			),
 		),
 		30
@@ -479,9 +515,10 @@ $ffcertificate_table->prepare_items();
 	endif;
 	?>
 
-	<form method="get">
+	<?php // The list top (#2486): the filter card, then the bulk bar the table draws. ?>
+	<form method="get" class="ffc-list">
 		<input type="hidden" name="page" value="ffc-appointments" />
-		<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_appointments_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
+		<?php $ffcertificate_table->render_filters(); ?>
 		<?php $ffcertificate_table->display(); ?>
 	</form>
 </div>

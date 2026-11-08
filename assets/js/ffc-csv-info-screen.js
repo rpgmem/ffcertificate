@@ -54,6 +54,56 @@
 		});
 	}
 
+	var reasonSeq = 0;
+
+	/**
+	 * A disabled action with its reason one tap away (#2341).
+	 *
+	 * The reason is not a `title`: a disabled button takes no focus and no
+	 * hover on a touch screen, so a tooltip on it is unreachable. A focusable
+	 * info button beside it names what it explains, and toggles the reason,
+	 * which is read out as it appears.
+	 *
+	 * @param {string} label    Visible text of the unavailable action.
+	 * @param {string} category Its button category.
+	 * @param {string} icon     Its icon.
+	 * @param {string} hook     Its hook class.
+	 * @param {string} reason   Why it is unavailable.
+	 * @return {string}
+	 */
+	function disabledWithReason(label, category, icon, hook, reason) {
+		var id = 'ffc-action-reason-' + (++reasonSeq);
+		var toggle = window.FFC.buttonHtml({
+			label: (strings.whyUnavailable || 'Why is %s unavailable?').replace('%s', label),
+			category: 'neutral',
+			icon: 'info',
+			iconOnly: true,
+			className: 'ffc-action-reason-toggle',
+			attrs: { 'aria-expanded': 'false', 'aria-controls': id }
+		});
+		return '<span class="ffc-action-with-reason">'
+			+ actionButton(label, category, icon, hook, true, '')
+			+ toggle
+			+ '<span class="ffc-action-reason" id="' + id + '" role="status" hidden>' + esc(reason) + '</span>'
+			+ '</span>';
+	}
+
+	/**
+	 * Show or hide the reason an info button controls.
+	 *
+	 * @param {Event} e Click event.
+	 */
+	function onReasonToggle(e) {
+		var btn = e.currentTarget;
+		var note = document.getElementById(btn.getAttribute('aria-controls'));
+		if (!note) {
+			return;
+		}
+		var open = btn.getAttribute('aria-expanded') !== 'true';
+		btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+		note.hidden = !open;
+	}
+
 	// ── Step 1: Request form info ───────────────────────────────
 
 	function onSubmitInfo(e) {
@@ -84,6 +134,9 @@
 
 	function renderInfoScreen(info) {
 		var html = '';
+		// The site's clock and formats first: the sections below print
+		// times through them (#2341).
+		api.setClock(info.clock);
 
 		// Header with back button.
 		html += '<div class="ffc-info-header">';
@@ -149,32 +202,42 @@
 		// and the schedule exception move a deadline the participants see
 		// (caution). The `ffc-btn-*` hook classes are what the handlers
 		// below bind to.
+		// A download after the first one solves its own challenge here
+		// (#2341): the first spent the one the form was read with.
+		if (api.$downloadSecurity && info.status.can_download) {
+			html += '<div class="ffc-csv-download-security"></div>';
+		}
 		html += '<div class="ffc-info-actions">';
 		var previewLabel = strings.previewCertificate || 'Preview Certificate';
 		if (info.status.can_preview_cert) {
 			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', false, '');
 		} else if (info.status.cert_preview_disabled_by_admin) {
-			html += actionButton(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview', true,
-				strings.certPreviewDisabledTip || 'Certificate Preview disabled');
+			html += disabledWithReason(previewLabel, 'neutral', 'eye', 'ffc-btn-cert-preview',
+				strings.certPreviewDisabledReason || 'The administrator turned off Preview Certificate for this form.');
 		}
 		// Start Form Early: enabled when can_open_early; disabled-visible
 		// when admin turned it off (so the operator sees the feature exists
 		// but is blocked); hidden otherwise. Same shape for Postpone Close.
+		// A disabled action always carries its reason behind the info
+		// button, never in a `title` alone (#2341).
 		var startLabel = strings.startFormNow || 'Start Form Now';
 		if (info.status.can_open_early) {
 			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', false,
 				strings.openEarlyTooltip || 'Overrides the scheduled start time. Form opens immediately.');
 		} else if (info.status.start_early_disabled_by_admin) {
-			html += actionButton(startLabel, 'caution', 'clock', 'ffc-btn-open-early', true,
-				strings.startEarlyDisabledTip || 'Start Form Early disabled');
+			html += disabledWithReason(startLabel, 'caution', 'clock', 'ffc-btn-open-early',
+				strings.startEarlyDisabledReason || 'The administrator turned off Start Form Now for this form.');
 		}
 		var postponeLabel = strings.postponeClose || 'Postpone close';
 		if (info.status.can_extend_end) {
 			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', false,
 				strings.postponeCloseTooltip || 'Move the form\'s close time later within the same day. One-shot per form.');
+		} else if (info.status.extend_end_last_minute) {
+			html += disabledWithReason(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end',
+				strings.postponeLastMinute || 'Postpone close is unavailable: the form already closes at 23:59, the last minute of the day.');
 		} else if (info.status.extend_end_disabled_by_admin) {
-			html += actionButton(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end', true,
-				strings.extendEndDisabledTip || 'Postpone Close disabled');
+			html += disabledWithReason(postponeLabel, 'caution', 'calendar-check', 'ffc-btn-extend-end',
+				strings.extendEndDisabledReason || 'The administrator turned off Postpone close for this form.');
 		}
 		// Schedule exception button (#366). Gated server-side by
 		// `can_schedule_exception` which mirrors the action's
@@ -187,19 +250,17 @@
 				'ffc-btn-schedule-exception', false,
 				strings.scheduleExceptionTooltip || 'Create a one-use schedule exception for a single participant submission.');
 		}
-		// Download CSV button is always rendered — toggle disabled state.
-		// Admin-disabled gets a specific tooltip so the operator knows the
-		// feature was turned off intentionally vs. just temporarily blocked
-		// (form still active, quota exhausted, etc., which the info alert
-		// below explains).
+		// Download CSV is always rendered. Disabled, it says why behind
+		// the info button: turned off by the administrator, or the same
+		// reason the status notice gives (still open, quota spent, no end).
 		var downloadLabel = strings.downloadCsv || 'Download CSV';
 		if (info.status.can_download) {
 			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', false, '');
-		} else if (info.status.csv_download_disabled_by_admin) {
-			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true,
-				strings.csvDownloadDisabledTip || 'CSV download disabled');
 		} else {
-			html += actionButton(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv', true, '');
+			html += disabledWithReason(downloadLabel, 'primary', 'download', 'ffc-btn-download-csv',
+				info.status.csv_download_disabled_by_admin
+					? (strings.csvDownloadDisabledReason || 'The administrator turned off the CSV download for this form.')
+					: (downloadBlockedText(info.status) || strings.csvDownloadDisabled || 'The CSV download is not available for this form.'));
 		}
 		html += '</div>';
 
@@ -208,6 +269,10 @@
 		// Stash for the open-early modal copy (needs original start
 		// formatted for the warning text).
 		api.$container.data('ffc-last-info', info);
+		api.setActionSecurity(info.action_security);
+		if (api.$downloadSecurity) {
+			api.$container.find('.ffc-csv-download-security').append(api.$downloadSecurity.children().clone());
+		}
 
 		// Bind events. Handlers are owned by the sibling flow modules and
 		// exposed on the namespace; they are defined by the time a click can
@@ -216,8 +281,14 @@
 		api.$container.find('.ffc-btn-download-csv').not('[disabled]').on('click', api.onDownloadClick);
 		api.$container.find('.ffc-btn-cert-preview').on('click', api.onCertPreviewClick);
 		api.$container.find('.ffc-btn-open-early').on('click', api.onOpenEarlyClick);
-		api.$container.find('.ffc-btn-extend-end').on('click', api.onExtendEndClick);
+		api.$container.find('.ffc-btn-extend-end').not('[disabled]').on('click', api.onExtendEndClick);
+		api.$container.find('.ffc-action-reason-toggle').on('click', onReasonToggle);
 		api.$container.find('.ffc-btn-schedule-exception').on('click', api.onScheduleExceptionClick);
+
+		// The form the operator was in is gone; the focus goes to the new
+		// screen's heading, so a screen reader starts reading there (#2341).
+		// A result notice, when one follows, takes it from here.
+		api.$container.find('.ffc-info-header h2').attr('tabindex', '-1').trigger('focus');
 	}
 
 	// ── Section builders ────────────────────────────────────────
@@ -306,14 +377,14 @@
 				html += row(strings.dateStart || 'Start date', dt.date_start ? esc(dt.date_start) : inf, null);
 				html += row(strings.dateEnd   || 'End date',   dt.date_end   ? esc(dt.date_end)   : inf, null);
 			}
-			var accStart = dt.has_times ? (dt.time_start ? esc(dt.time_start) : inf) : inf;
-			var accEnd   = dt.has_times ? (dt.time_end   ? esc(dt.time_end)   : inf) : inf;
-			html += row(strings.timeStart || 'Start time', accStart, twoCol ? (bStart ? esc(bStart) : inf) : undefined);
-			html += row(strings.timeEnd   || 'End time',   accEnd,   twoCol ? (bEnd   ? esc(bEnd)   : inf) : undefined);
+			var accStart = dt.has_times ? (dt.time_start ? esc(api.formatTime(dt.time_start)) : inf) : inf;
+			var accEnd   = dt.has_times ? (dt.time_end   ? esc(api.formatTime(dt.time_end))   : inf) : inf;
+			html += row(strings.timeStart || 'Start time', accStart, twoCol ? (bStart ? esc(api.formatTime(bStart)) : inf) : undefined);
+			html += row(strings.timeEnd   || 'End time',   accEnd,   twoCol ? (bEnd   ? esc(api.formatTime(bEnd))   : inf) : undefined);
 		} else {
 			// Reference-only: single column of baseline times.
-			html += row(strings.scheduleReferenceStart || 'Start', bStart ? esc(bStart) : inf, undefined);
-			html += row(strings.scheduleReferenceEnd   || 'End',   bEnd   ? esc(bEnd)   : inf, undefined);
+			html += row(strings.scheduleReferenceStart || 'Start', bStart ? esc(api.formatTime(bStart)) : inf, undefined);
+			html += row(strings.scheduleReferenceEnd   || 'End',   bEnd   ? esc(api.formatTime(bEnd))   : inf, undefined);
 		}
 
 		html += '</tbody></table>';
@@ -399,37 +470,107 @@
 		return html;
 	}
 
+	/**
+	 * Why the download is not available yet, in the words of the status
+	 * notice; empty when nothing blocks it (#2341).
+	 *
+	 * @param {Object} status The info answer's status block.
+	 * @return {string}
+	 */
+	function downloadBlockedText(status) {
+		var reason = status.download_blocked_reason;
+		if (reason === 'no_end_date') {
+			return strings.noEndDateAlert || 'This form has no end date configured. The CSV download will only be available after the administrator sets an end date.';
+		}
+		if (reason === 'active') {
+			if (status.before_start) {
+				return (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
+					.replace('%s', status.start_date_formatted || '');
+			}
+			return (strings.formActiveUntil || 'This form is still active until %s. The download will be available after the end date.')
+				.replace('%s', status.end_date_formatted || '');
+		}
+		if (reason === 'quota_exhausted') {
+			return strings.quotaExhausted || 'The download quota for this form has been exhausted.';
+		}
+		if (reason === 'download_disabled') {
+			return strings.csvDownloadDisabled || 'The CSV download is not available for this form.';
+		}
+		return '';
+	}
+
 	function buildStatusMessage(status) {
-		var html = '';
 		var reason = status.download_blocked_reason;
 
 		if (reason === 'no_end_date') {
 			// Already shown in datetime section alert.
 			return '';
 		}
-
 		if (reason === 'active') {
-			var msg = (strings.formActiveUntil || 'This form is still active until %s. The download will be available after the end date.')
-				.replace('%s', status.end_date_formatted || '');
-			if (status.before_start) {
-				msg = (strings.beforeStartMsg || 'The form collection has not started yet. It will begin on %s.')
-					.replace('%s', status.start_date_formatted || '');
-			}
-			html += notice('info', 'clock', msg);
-		} else if (reason === 'quota_exhausted') {
-			html += notice('warning', 'warning', strings.quotaExhausted || 'The download quota for this form has been exhausted.');
-		} else if (reason === 'download_disabled') {
+			return notice('info', 'clock', downloadBlockedText(status));
+		}
+		if (reason === 'quota_exhausted') {
+			return notice('warning', 'warning', downloadBlockedText(status));
+		}
+		if (reason === 'download_disabled') {
 			// CSV Download sub-toggle (post-#241) is off — Start Early /
 			// Postpone Close may still be available on this same page.
-			html += notice('info', 'info', strings.csvDownloadDisabled || 'The CSV download is not available for this form.');
-		} else if (!reason) {
-			html += notice('success', 'success', strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.');
+			return notice('info', 'info', downloadBlockedText(status));
 		}
+		if (!reason) {
+			return notice('success', 'success', strings.downloadReady || 'The form collection period has ended. The CSV is ready for download.');
+		}
+		return '';
+	}
 
-		return html;
+	/**
+	 * Report an action's result on the page, instead of an alert and a
+	 * reload (#2341).
+	 *
+	 * After a success the screen is drawn again from a fresh read, with the
+	 * same form id and hash, so the status, the times and the buttons show
+	 * the state the action left. The notice goes above it, takes the focus
+	 * and is announced. When the fresh read fails, the notice still shows on
+	 * the screen as it was.
+	 *
+	 * @param {string}  tone    success | error.
+	 * @param {string}  message What happened.
+	 * @param {boolean} refresh Whether to read the form's state again.
+	 * @return {Promise<void>}
+	 */
+	function reportResult(tone, message, refresh) {
+		var show = function () {
+			var $screen = api.$container.find('.ffc-info-screen');
+			$screen.find('.ffc-action-result').remove();
+			var el = window.FFC.notice(
+				'success' === tone ? 'success' : 'error',
+				'success' === tone ? 'success' : 'warning',
+				message,
+				'',
+				{ role: 'success' === tone ? 'status' : 'alert', live: 'success' === tone ? 'polite' : 'assertive' }
+			);
+			el.classList.add('ffc-action-result');
+			el.setAttribute('tabindex', '-1');
+			$screen.prepend(el);
+			el.focus();
+		};
+		if (!refresh || !api.formData) {
+			show();
+			return Promise.resolve();
+		}
+		return FFC.request('ffc_public_csv_info', api.formData)
+			.then(function (data) {
+				renderInfoScreen(data);
+			})
+			.catch(function () {
+				// The screen keeps the state it had; the notice says what
+				// the action did.
+			})
+			.then(show);
 	}
 
 	api.onSubmitInfo    = onSubmitInfo;
 	api.renderInfoScreen = renderInfoScreen;
+	api.reportResult    = reportResult;
 
 })();

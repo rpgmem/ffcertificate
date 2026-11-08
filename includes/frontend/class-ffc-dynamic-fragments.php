@@ -71,13 +71,17 @@ class DynamicFragments {
 	 */
 	public function handle(): void {
 		$fragments = array(
-			// Forwarded verbatim from whichever strategy is configured. The
-			// endpoint deliberately does not name the fields: a proof-of-work
-			// challenge has no label and no answer hash, so any mapping here
-			// would only hold for the math one. The client dispatches on the
-			// payload's own `provider` key.
-			'captcha' => Captcha\CaptchaProvider::resolve()->challenge_payload(),
-			'nonces'  => array(
+			// Forwarded verbatim from whichever strategy is configured, once
+			// the blocks' contexts are read below. The endpoint deliberately
+			// does not name the fields: a proof-of-work challenge has no label
+			// and no answer hash, so any mapping here would only hold for the
+			// math one. The client dispatches on the payload's own `provider`.
+			'captcha'  => array(),
+			// A cached page carries the render time of whenever it was
+			// cached, which is never too fast; the honeypot stamp is reissued
+			// here like the captcha (#2339).
+			'honeypot' => \FreeFormCertificate\Core\Honeypot::stamp(),
+			'nonces'   => array(
 				'ffc_frontend_nonce'        => wp_create_nonce( 'ffc_frontend_nonce' ),
 				'ffc_self_scheduling_nonce' => wp_create_nonce( 'ffc_self_scheduling_nonce' ),
 				// Public CSV download: refresh the per-visitor nonce baked
@@ -114,22 +118,27 @@ class DynamicFragments {
 		// one page ever share a token — the resolver memoises the strategy
 		// instance, not the challenge, so each call mints a fresh one.
 		//
-		// The count comes from the client because only the client can know it:
-		// a block is whatever renders a challenge, and three of the shortcodes
-		// that render one ([ffc_self_scheduling], [ffc_csv_download]) sit
-		// outside any form wrapper. Counting form ids here instead was the
+		// The blocks come from the client because only the client can know
+		// them: a block is whatever renders a challenge, and two of the
+		// shortcodes that render one ([ffc_self_scheduling], [ffc_csv_download])
+		// sit outside any form wrapper. Counting form ids here instead was the
 		// #1063 defect — one certificate form beside one of those reads as a
 		// single form, no per-form map is emitted, and both blocks fall back
 		// to the same default payload. Since #1054 the token is single-use, so
 		// whoever submits first spends the other's.
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Intentionally nonce-free; see class docblock.
-		$blocks = isset( $_POST['blocks'] ) ? absint( wp_unslash( $_POST['blocks'] ) ) : 0;
-		$blocks = min( $blocks, self::MAX_SECURITY_BLOCKS );
+		//
+		// Each block names the context its challenge is bound to (#2339).
+		// Reading it from the client is safe here: issuing a challenge for any
+		// context is harmless, and the verifier names the context it expects.
+		$raw_contexts = isset( $_POST['contexts'] ) ? (array) wp_unslash( $_POST['contexts'] ) : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce-free by design (class docblock); each entry goes through CaptchaContext::sanitize().
+		$contexts     = array_map( array( Captcha\CaptchaContext::class, 'sanitize' ), array_slice( array_values( $raw_contexts ), 0, self::MAX_SECURITY_BLOCKS ) );
 
-		if ( $blocks > 1 ) {
+		$fragments['captcha'] = Captcha\CaptchaProvider::resolve()->challenge_payload( $contexts[0] ?? '' );
+
+		if ( count( $contexts ) > 1 ) {
 			$per_block = array();
-			for ( $i = 0; $i < $blocks; $i++ ) {
-				$per_block[] = Captcha\CaptchaProvider::resolve()->challenge_payload();
+			foreach ( $contexts as $context ) {
+				$per_block[] = Captcha\CaptchaProvider::resolve()->challenge_payload( $context );
 			}
 			$fragments['captchas'] = $per_block;
 		}
@@ -139,7 +148,10 @@ class DynamicFragments {
 		if ( ! empty( $form_ids ) ) {
 			$geofence = array();
 			foreach ( $form_ids as $fid ) {
-				if ( $fid > 0 ) {
+				// Only a published form (#2341): a page can embed nothing
+				// else, and a draft's, a private form's or a trashed one's
+				// geofence is not for anonymous callers.
+				if ( $fid > 0 && 'ffc_form' === get_post_type( $fid ) && 'publish' === get_post_status( $fid ) ) {
 					$config = \FreeFormCertificate\Security\Geofence::get_frontend_config( $fid );
 					if ( null !== $config ) {
 						$geofence[ $fid ] = $config;

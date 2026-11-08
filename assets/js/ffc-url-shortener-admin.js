@@ -94,6 +94,43 @@
             });
         });
 
+        // A dialog takes the focus in, keeps Tab inside, and gives it back to
+        // the control that opened it on close (#2337).
+        var opener = null;
+        var FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+        function openModal($modal, trigger) {
+            opener = trigger || null;
+            $modal.show();
+            $modal.off('keydown.ffcTrap').on('keydown.ffcTrap', function (e) {
+                if (e.key !== 'Tab') {
+                    return;
+                }
+                var $items = $modal.find(FOCUSABLE).filter(':visible');
+                if (!$items.length) {
+                    return;
+                }
+                var first = $items.first()[0];
+                var last = $items.last()[0];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            });
+            $modal.find('.ffc-qr-modal__close').first().trigger('focus');
+        }
+
+        function closeModals() {
+            $('#ffc-qr-modal, #ffc-edit-modal').off('keydown.ffcTrap').hide();
+            if (opener && document.body.contains(opener)) {
+                opener.focus();
+            }
+            opener = null;
+        }
+
         // --- Copy short URL (meta box) ---
         $(document).on('click', '.ffc-copy-shorturl', function (e) {
             e.preventDefault();
@@ -139,13 +176,15 @@
                 });
         });
 
-        // --- Regenerate short URL ---
+        // --- The meta box's action: Generate, Reactivate or Regenerate ---
+        // The server decides from the link's state; only Regenerate asks first,
+        // because it retires the current code for good.
         $(document).on('click', '.ffc-regenerate-shorturl', function (e) {
             e.preventDefault();
-            var confirmMsg = settings.i18n ? settings.i18n.confirm : 'Generate a new short code?';
-            if (!confirm(confirmMsg)) return;
-
             var $btn = $(this);
+            var confirmMsg = $btn.attr('data-ffc-confirm');
+            if (confirmMsg && !confirm(confirmMsg)) return;
+
             var postId = $btn.data('post-id');
 
             $btn.prop('disabled', true);
@@ -155,10 +194,21 @@
                 { post_id: postId },
                 { nonce: settings.nonce, ajaxUrl: settings.ajaxUrl }
             )
-                .then(function () {
+                .then(function (data) {
                     $btn.prop('disabled', false);
-                    showToast(settings.i18n ? settings.i18n.regenerated : 'Regenerated!');
-                    window.location.reload();
+                    if (data && data.message) {
+                        showToast(data.message);
+                    }
+                    // Redraw the box in place: reloading the editor would drop
+                    // whatever was being written in it (#2337).
+                    var $box = $btn.closest('.ffc-shorturl-metabox');
+                    if (data && data.html && $box.length) {
+                        var $fresh = $(data.html);
+                        $box.replaceWith($fresh);
+                        $fresh.find('.ffc-regenerate-shorturl').trigger('focus');
+                    } else {
+                        window.location.reload();
+                    }
                 })
                 .catch(function (err) {
                     $btn.prop('disabled', false);
@@ -184,8 +234,9 @@
 
             // Reset state
             $modal.find('.ffc-qr-modal__img').hide();
+            $modal.find('.ffc-qr-modal__error').prop('hidden', true).text('');
             $modal.find('.ffc-qr-modal__spinner').show();
-            $modal.show();
+            openModal($modal, this);
 
             // Fetch QR Code via AJAX
             FFC.request(
@@ -203,26 +254,24 @@
                 .catch(function (err) {
                     $modal.find('.ffc-qr-modal__spinner').hide();
                     var i18n = settings.i18n || {};
-                    if (err && err.fromServer) {
-                        $modal.find('.ffc-qr-modal__preview')
-                            .html('<p class="ffc-qr-modal__error"></p>')
-                            .find('p').text(err.message || i18n.error || 'Error');
-                    } else {
-                        $modal.find('.ffc-qr-modal__preview')
-                            .html('<p class="ffc-qr-modal__error"></p>')
-                            .find('p').text(i18n.qrLoadFailed || 'Failed to load QR Code');
-                    }
+                    // The preview keeps its markup: the next opening needs it (#2337).
+                    var text = (err && err.fromServer)
+                        ? (err.message || i18n.error || 'Error')
+                        : (i18n.qrLoadFailed || 'Failed to load QR Code');
+                    $modal.find('.ffc-qr-modal__error').text(text).prop('hidden', false);
                 });
         });
 
         // Close modal (QR + Edit share the .ffc-qr-modal chrome). Only one is
-        // ever open, so hiding both on any close/backdrop/Escape is harmless.
-        $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', function () {
-            $('#ffc-qr-modal, #ffc-edit-modal').hide();
-        });
+        // ever open, so closing both on any close/backdrop/Escape is harmless.
+        $(document).on('click', '.ffc-qr-modal__close, .ffc-qr-modal__backdrop', closeModals);
         $(document).on('keydown', function (e) {
-            if (e.key === 'Escape') {
-                $('#ffc-qr-modal, #ffc-edit-modal').hide();
+            // Read display, not :visible, which needs layout to answer.
+            var open = $('#ffc-qr-modal, #ffc-edit-modal').filter(function () {
+                return $(this).css('display') !== 'none';
+            }).length;
+            if (e.key === 'Escape' && open) {
+                closeModals();
             }
         });
 
@@ -235,8 +284,44 @@
             $('#ffc-edit-target').val($btn.data('target') || '');
             $('#ffc-edit-title').val($btn.data('title') || '');
             $('#ffc-edit-short-url-result').empty().hide();
-            $modal.show();
+            warnDestination();
+            openModal($modal, this);
+            $('#ffc-edit-target').trigger('focus');
         });
+
+        // A destination whose path ends in a file to download is warned
+        // about while it is typed, never refused (#2337). The extensions
+        // come from UrlShortenerService::DOWNLOAD_EXTENSIONS.
+        function downloadExtension(url) {
+            var path = String(url || '').split(/[?#]/)[0];
+            var match = /\.([a-z0-9]+)$/i.exec(path.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, ''));
+            var ext = match ? match[1].toLowerCase() : '';
+            return (settings.downloads || []).indexOf(ext) !== -1 ? ext : '';
+        }
+
+        // A scheme beyond http(s) is accepted with a soft warning (#2337).
+        function schemeWarning(url) {
+            var match = /^([a-z][a-z0-9+.-]*):/i.exec(String(url || '').trim());
+            var scheme = match ? match[1].toLowerCase() : '';
+            return scheme && (settings.recommended || ['https', 'http']).indexOf(scheme) === -1 ? scheme : '';
+        }
+
+        function warnDestination() {
+            var url = $('#ffc-edit-target').val();
+            var i18n = settings.i18n || {};
+            var ext = downloadExtension(url);
+            var scheme = schemeWarning(url);
+            var lines = [];
+            if (scheme) {
+                lines.push(String(i18n.scheme || '').replace('%s', scheme + ':'));
+            }
+            if (ext) {
+                lines.push(String(i18n.download || '').replace('%s', '.' + ext));
+            }
+            $('#ffc-edit-destination-warning').text(lines.join(' ')).prop('hidden', !lines.length);
+        }
+
+        $(document).on('input', '#ffc-edit-target', warnDestination);
 
         $('#ffc-edit-short-url').on('submit', function (e) {
             e.preventDefault();

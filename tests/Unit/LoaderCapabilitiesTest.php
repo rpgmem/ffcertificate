@@ -501,9 +501,9 @@ class LoaderCapabilitiesTest extends TestCase {
 			'Without this the daily event fires with no callback, as it did since it was written.'
 		);
 
-		// Three daily-cleanup callbacks + two expiry callbacks registered.
+		// Seven daily-cleanup callbacks + two expiry callbacks registered.
 		$daily = array_filter( $added, static fn ( $h ) => 'ffc_daily_cleanup' === $h );
-		$this->assertCount( 3, $daily, 'submission cleanup + CSV reap + schedule-exception reap.' );
+		$this->assertCount( 7, $daily, 'submission cleanup + CSV reap + schedule-exception reap + ticket-claim reap (#2341) + the two import-staging sweeps (#2343) + the rate-limit cleanup (#2339).' );
 	}
 
 	public function test_the_daily_reregistration_run_seeds_late_joiners_before_it_mails(): void {
@@ -748,27 +748,24 @@ class LoaderCapabilitiesTest extends TestCase {
 			\FreeFormCertificate\Settings\SettingsReader::OPTION_KEY => $ffc_settings,
 			'ffc_admin_caps_version_v6'                             => FFC_VERSION,
 			'ffc_submissions_db_version'                            => ( new \ReflectionMethod( \FreeFormCertificate\Activator::class, 'submissions_schema_fingerprint' ) )->invoke( null ),
-			'ffc_perf_indexes_db_version'                           => FFC_VERSION,
+			'ffc_perf_indexes_db_version'                           => \FreeFormCertificate\Activator::SCHEMA_REVISION,
+			'ffc_foreign_keys_db_version'                           => \FreeFormCertificate\Activator::SCHEMA_REVISION,
 			'ffc_submission_date_unix_migrated'                     => '1',
 			'ffc_submitted_at_unix_migrated'                        => '1',
 			'ffc_sibling_instants_unix_migrated'                    => '1',
-			'ffc_rate_limit_db_version'                             => \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION,
-			'ffc_activity_log_db_version'                           => ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue(),
-			'ffc_bulk_issue_db_version'                             => \FreeFormCertificate\Submissions\BulkIssueActivator::DB_VERSION,
-			'ffc_reregistration_schema_version'                     => FFC_VERSION,
-			'ffc_user_dashboard_schema_version'                     => FFC_VERSION,
-			'ffc_recruitment_tables_version'                        => FFC_VERSION,
-			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION => FFC_VERSION,
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::AUDIENCE_IDS_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::APPEARANCE_OPTION => '1',
 			\FreeFormCertificate\DateMessages\DateMessagesActivator::ANNOUNCEMENTS_OPTION => '1',
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::SEND_SCOPE_OPTION => '1',
 			'ffc_self_scheduling_schema_version'                    => FFC_VERSION,
-			\FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION => \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION,
 			'ffc_audience_schema_version'                           => FFC_VERSION,
 			'ffc_url_shortener_schema_version'                      => FFC_VERSION,
 			// Every numbered recruitment step already applied.
 			'ffc_recruitment_schema_version'                        => PHP_INT_MAX,
 		);
+		// Every schema revision gate is current (#2430), read from the
+		// activators rather than kept here by hand.
+		$options += \FreeFormCertificate\Tests\Support\SchemaRevisions::current_options();
 		Functions\when( 'get_option' )->alias(
 			function ( $name, $default = false ) use ( $options ) {
 				$this->option_reads[] = (string) $name;
@@ -864,6 +861,8 @@ class LoaderCapabilitiesTest extends TestCase {
 		foreach ( array(
 			'ffc_submissions_db_version',
 			'ffc_perf_indexes_db_version',
+			'ffc_core_schema_version',
+			'ffc_foreign_keys_db_version',
 			'ffc_submission_date_unix_migrated',
 			'ffc_submitted_at_unix_migrated',
 			'ffc_sibling_instants_unix_migrated',
@@ -871,7 +870,7 @@ class LoaderCapabilitiesTest extends TestCase {
 			'ffc_user_dashboard_schema_version',
 			'ffc_recruitment_tables_version',
 			'ffc_recruitment_schema_version',
-			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION,
+			\FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_REVISION_OPTION,
 		) as $gate ) {
 			$this->assertContains( $gate, $this->option_reads, "{$gate} was never read: its migration is not wired." );
 		}
@@ -910,7 +909,7 @@ class LoaderCapabilitiesTest extends TestCase {
 		// Schema heal and the daily schedule are not behind the toggles.
 		$this->assertContains( 'ffc_recruitment_tables_version', $this->option_reads, 'Recruitment table creation must run with the module off.' );
 		$this->assertContains( 'ffc_recruitment_schema_version', $this->option_reads, 'Recruitment schema migration must run with the module off.' );
-		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_OPTION, $this->option_reads, 'Date-messages schema heal must run with the module off.' );
+		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesActivator::SCHEMA_REVISION_OPTION, $this->option_reads, 'Date-messages schema heal must run with the module off.' );
 		$this->assertContains( \FreeFormCertificate\DateMessages\DateMessagesCron::CRON_HOOK, $this->cron_probes, 'The date-messages schedule must run with the module off.' );
 		$this->assertSame( array(), $this->boot_queries );
 	}

@@ -51,48 +51,78 @@ class CpfLimiter implements RateLimitStrategy {
 		$s  = $this->support->settings()['cpf'];
 		$cc = \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $identifier );
 
-		if ( RateLimitRepository::is_temporarily_blocked( 'cpf', $cc, $form_id ) ) {
+		// Already blocked: the wait is what is left of the block, not a fixed
+		// day nor the configured duration from now (#2339).
+		$until = RateLimitRepository::blocked_until( 'cpf', $cc, $form_id );
+		if ( null !== $until ) {
+			$wait = max( 1, $until - time() );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'cpf_blocked',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => 86400,
+				'message'      => self::blocked_message( $this->support, $wait ),
+				'wait_seconds' => $wait,
 			);
 		}
 
 		if ( $s['check_database'] ) {
-			$mc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'month', $form_id );
-			if ( $mc >= $s['max_per_month'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_month_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 2592000,
-				);
-			}
-
-			$yc = RateLimitRepository::get_submission_count( 'cpf', $cc, 'year', $form_id );
-			if ( $yc >= $s['max_per_year'] ) {
-				return array(
-					'allowed'      => false,
-					'reason'       => 'cpf_year_limit',
-					'message'      => $s['message'],
-					'wait_seconds' => 31536000,
-				);
+			foreach ( array(
+				'month' => array(
+					'max'    => (int) $s['max_per_month'],
+					'reason' => 'cpf_month_limit',
+				),
+				'year'  => array(
+					'max'    => (int) $s['max_per_year'],
+					'reason' => 'cpf_year_limit',
+				),
+			) as $period => $limit ) {
+				$count = RateLimitRepository::get_submission_count( 'cpf', $cc, $period, $form_id );
+				if ( $count >= $limit['max'] ) {
+					$wait = $this->support->period_wait( RateLimitRepository::oldest_submission_in( 'cpf', $cc, $period, $form_id ), $period );
+					return array(
+						'allowed'      => false,
+						'reason'       => $limit['reason'],
+						'message'      => $this->support->format_message(
+							$s['message'],
+							array(
+								'count' => $count,
+								'max'   => $limit['max'],
+								'wait'  => $wait,
+							)
+						),
+						'wait_seconds' => $wait,
+					);
+				}
 			}
 		}
 
-		$ac = RateLimitRepository::get_count_from_db( 'cpf', $cc, 'hour', $form_id );
+		// "Block after N attempts in X hours" counts over X hours (#2339).
+		$hours = max( 1, (int) $s['block_hours'] );
+		$ac    = RateLimitRepository::get_hourly_count_since( 'cpf', $cc, $hours, $form_id );
 		if ( $ac >= $s['block_threshold'] ) {
-			RateLimitRepository::block_temporarily( 'cpf', $cc, $form_id, $s['block_duration'] );
+			$duration = max( 1, (int) $s['block_duration'] );
+			RateLimitRepository::block_temporarily( 'cpf', $cc, $form_id, $duration );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'cpf_abuse',
-				'message'      => __( 'CPF blocked.', 'ffcertificate' ),
-				'wait_seconds' => $s['block_duration'] * 3600,
+				'message'      => self::blocked_message( $this->support, $duration * HOUR_IN_SECONDS ),
+				'wait_seconds' => $duration * HOUR_IN_SECONDS,
 			);
 		}
 
 		return array( 'allowed' => true );
+	}
+
+	/**
+	 * The refusal for a CPF/RF under a temporary block.
+	 *
+	 * @param RateLimitSupport $support Support.
+	 * @param int              $wait    Seconds left of the block.
+	 * @return string
+	 */
+	private static function blocked_message( RateLimitSupport $support, int $wait ): string {
+		return $support->format_message(
+			__( 'Too many attempts with this CPF/RF. It is blocked for {time}; try again after that.', 'ffcertificate' ),
+			array( 'wait' => $wait )
+		);
 	}
 }

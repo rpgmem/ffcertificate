@@ -5,7 +5,7 @@
  * Adds custom columns to WordPress users list:
  * - Certificates count
  * - Appointments count
- * - Login as User action link
+ * - View as user action link
  *
  * @package FreeFormCertificate\Admin
  * @since 3.1.0
@@ -163,8 +163,12 @@ class AdminUserColumns {
 			if ( 'posts' === $key ) {
 				$new_columns['ffc_certificates'] = __( 'Certificates', 'ffcertificate' );
 				$new_columns['ffc_appointments'] = __( 'Appointments', 'ffcertificate' );
-				$new_columns['ffc_notices']      = __( 'Notices', 'ffcertificate' );
-				$new_columns['ffc_user_actions'] = __( 'User Actions', 'ffcertificate' );
+				$new_columns['ffc_notices']      = __( 'Recruitment notices', 'ffcertificate' );
+				// The column holds only "View as user", so it is drawn only for
+				// someone who may use it (#2340).
+				if ( Capabilities::current_user_can_admin_or( 'ffc_view_as_user' ) ) {
+					$new_columns['ffc_user_actions'] = __( 'User Actions', 'ffcertificate' );
+				}
 			}
 		}
 
@@ -276,7 +280,7 @@ class AdminUserColumns {
 		return sprintf(
 			'<strong>%d</strong> %s',
 			$count,
-			_n( 'notice', 'notices', $count, 'ffcertificate' )
+			esc_html( _n( 'recruitment notice', 'recruitment notices', $count, 'ffcertificate' ) )
 		);
 	}
 
@@ -325,11 +329,15 @@ class AdminUserColumns {
 			$dashboard_url
 		);
 
+		// A core button: users.php and the profile are WordPress's screens,
+		// so the control matches the row actions around it. It opens a new
+		// tab, which the text says to a screen reader (#2340).
 		return sprintf(
-			'<a href="%s" class="ffc-view-as-user button button-small" target="_blank" title="%s">%s</a>',
+			'<a href="%s" class="ffc-view-as-user button button-small" target="_blank" rel="noopener" title="%s">%s<span class="screen-reader-text"> %s</span></a>',
 			esc_url( $view_as_url ),
 			esc_attr__( 'View dashboard as this user', 'ffcertificate' ),
-			__( 'Login as User', 'ffcertificate' )
+			esc_html__( 'View as user', 'ffcertificate' ),
+			esc_html__( '(opens in a new tab)', 'ffcertificate' )
 		);
 	}
 

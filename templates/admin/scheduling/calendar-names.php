@@ -6,7 +6,11 @@
  * In-scope: $ffc_names_base (string, the input name prefix), $ffc_names
  * (array, the calendar's names from CalendarAppearance::clean_override()),
  * $ffc_names_booking (bool, whether the booking badge's two names are
- * offered here; the audience calendar keeps its own booking label fields).
+ * offered here; the audience calendar keeps its own booking label fields),
+ * and optionally $ffc_names_sessions (array{session_label: string,
+ * session_label_plural: string}, the personal calendar's word for a session,
+ * #2420): when set, a Session row is added with its own two fields, which
+ * keep their own storage.
  *
  * An empty field inherits the general name, which its placeholder shows.
  *
@@ -66,6 +70,30 @@ $ffc_names_cells = array(
 				</td>
 			</tr>
 		<?php endforeach; ?>
+		<?php if ( isset( $ffc_names_sessions ) && is_array( $ffc_names_sessions ) ) : ?>
+			<?php // The word for a session (#2420): not a day state, so no legend name; its two forms take the name columns, as the booking badge's do. ?>
+			<tr class="ffc-calendar-names-session">
+				<th scope="row"><?php echo esc_html( CalendarAppearance::default_cell( CalendarAppearance::SESSION_SINGULAR ) ); ?></th>
+				<td colspan="2">
+					<?php
+					foreach ( array(
+						'session_label'        => array( 'ffc_self_scheduling_session_label', CalendarAppearance::SESSION_SINGULAR, __( 'Singular', 'ffcertificate' ) ),
+						'session_label_plural' => array( 'ffc_self_scheduling_session_label_plural', CalendarAppearance::SESSION_PLURAL, __( 'Plural', 'ffcertificate' ) ),
+					) as $ffc_names_key => list( $ffc_names_input, $ffc_names_general_key, $ffc_names_form ) ) :
+						?>
+						<input type="text" class="ffc-calendar-names-cell"
+								maxlength="<?php echo esc_attr( (string) \FreeFormCertificate\SelfScheduling\CalendarSessions::MAX_NAME ); ?>"
+								name="<?php echo esc_attr( $ffc_names_input ); ?>"
+								id="<?php echo esc_attr( $ffc_names_input ); ?>"
+								aria-label="<?php echo esc_attr( sprintf( /* translators: %s: Singular or Plural */ __( 'Word for a session (%s)', 'ffcertificate' ), $ffc_names_form ) ); ?>"
+								aria-describedby="ffc-session-label-help"
+								value="<?php echo esc_attr( (string) ( $ffc_names_sessions[ $ffc_names_key ] ?? '' ) ); ?>"
+								placeholder="<?php echo esc_attr( CalendarAppearance::cell( $ffc_names_general_key ) ); ?>">
+					<?php endforeach; ?>
+					<p class="description" id="ffc-session-label-help"><?php esc_html_e( 'The word for a session (e.g. "Room" / "Rooms"), shown to visitors when they book, on the receipt, in e-mails and on the verification page.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+		<?php endif; ?>
 	</tbody>
 </table>
 <?php

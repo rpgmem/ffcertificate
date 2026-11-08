@@ -72,10 +72,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		// it, which is what `CLAUDE.md` means by looking for the convention
 		// before making one up.
 		?>
-		<div class="ffc-identity-panel">
+		<div class="ffc-identity-panel card">
 		<div class="ffc-identity-panel-head">
-			<span class="ffc-identity-panel-chip ffc-identity-chip-accepted"><?php esc_html_e( 'Accepted', 'ffcertificate' ); ?></span>
-			<h2 class="ffc-identity-panel-title screen-reader-text"><?php esc_html_e( 'Accepted — no resolution possible', 'ffcertificate' ); ?></h2>
+			<h2 class="ffc-identity-panel-title ffc-icon-checkmark ffc-icon-tone-neutral"><?php esc_html_e( 'Accepted — no resolution possible', 'ffcertificate' ); ?></h2>
 			<p class="ffc-identity-panel-note description"><?php esc_html_e( 'Findings somebody judged impossible to resolve: the number was never supplied, or HR cannot say whose it is. Nothing about them was changed — the stored values still fail their check digits, and a merge or a move blocked by one of them stays blocked. Put one back as soon as the correct value is known.', 'ffcertificate' ); ?></p>
 			<div class="ffc-identity-panel-nav">
 				<span class="ffc-identity-panel-count">

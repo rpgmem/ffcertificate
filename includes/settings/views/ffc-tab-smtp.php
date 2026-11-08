@@ -53,8 +53,6 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<label for="emails_enabled"><?php esc_html_e( 'Enable Email Sending', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<?php // Mirror the inverted UI value to the legacy form field so a fallback non-autosave POST still writes the right slot. ?>
-						<input type="hidden" name="ffc_settings[disable_all_emails]" value="<?php echo $ffcertificate_emails_disabled ? '1' : '0'; ?>">
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
@@ -139,7 +137,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 
 				<tr class="ffc-email-option-row">
 					<th scope="row">
-						<label><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></label>
+						<span id="smtp-mode-label"><?php esc_html_e( 'Mode', 'ffcertificate' ); ?></span>
 					</th>
 					<td>
 						<?php if ( $ffcertificate_mail_queue ) : ?>
@@ -150,7 +148,7 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 							);
 							?>
 						<?php endif; ?>
-						<fieldset id="smtp-mode-options"<?php disabled( $ffcertificate_mail_queue ); ?>>
+						<fieldset id="smtp-mode-options" aria-labelledby="smtp-mode-label"<?php disabled( $ffcertificate_mail_queue ); ?>>
 							<label>
 								<input type="radio" name="ffc_settings[smtp_mode]" value="wp" <?php checked( 'wp', $ffcertificate_smtp_mode ); ?>>
 								<strong><?php esc_html_e( 'WP Default (PHPMail)', 'ffcertificate' ); ?></strong>
@@ -195,15 +193,73 @@ $ffcertificate_emails_enabled  = ! $ffcertificate_emails_disabled;
 						<tr>
 							<th scope="row"><label for="smtp_user"><?php esc_html_e( 'Username', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="text" name="ffc_settings[smtp_user]" id="smtp_user" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_user' ) ); ?>" class="regular-text" autocomplete="username">
+								<input type="text" name="ffc_settings[smtp_user]" id="smtp_user" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_user' ) ); ?>" class="regular-text" autocomplete="off" data-1p-ignore data-lpignore="true">
 								<p class="description"><?php esc_html_e( 'Your SMTP username (usually your email)', 'ffcertificate' ); ?></p>
 							</td>
 						</tr>
 						<tr>
 							<th scope="row"><label for="smtp_pass"><?php esc_html_e( 'Password', 'ffcertificate' ); ?></label></th>
 							<td>
-								<input type="password" name="ffc_settings[smtp_pass]" id="smtp_pass" value="<?php echo esc_attr( $ffcertificate_get_option( 'smtp_pass' ) ); ?>" class="regular-text" autocomplete="current-password">
-								<p class="description"><?php esc_html_e( 'Your SMTP password or app-specific password', 'ffcertificate' ); ?></p>
+								<?php
+								// The password never returns to the browser (#2342): the
+								// row says whether one is saved, and a new one is typed
+								// into an empty field that only opens on request.
+								$ffcertificate_pass_state = \FreeFormCertificate\Integrations\SmtpPassword::state(
+									array( 'smtp_pass' => (string) $ffcertificate_get_option( 'smtp_pass' ) )
+								);
+								$ffcertificate_pass_saved = \FreeFormCertificate\Integrations\SmtpPassword::STATE_SAVED === $ffcertificate_pass_state;
+								$ffcertificate_pass_edit  = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_smtp' );
+								?>
+								<?php if ( $ffcertificate_pass_saved ) : ?>
+									<div class="ffc-secret-row" id="ffc-smtp-pass-saved">
+										<span class="ffc-pill ffc-secret-saved ffc-icon-lock"><?php esc_html_e( 'Password saved', 'ffcertificate' ); ?></span>
+										<?php
+										\FreeFormCertificate\Admin\AdminUI::render_button(
+											array(
+												'label'    => __( 'Change password', 'ffcertificate' ),
+												'category' => 'neutral',
+												'icon'     => 'key',
+												'id'       => 'ffc-smtp-pass-change',
+												'disabled' => ! $ffcertificate_pass_edit,
+												'attrs'    => $ffcertificate_pass_edit ? array( 'aria-controls' => 'ffc-smtp-pass-edit' ) : array( 'title' => __( 'Only someone who manages SMTP can change the password.', 'ffcertificate' ) ),
+											)
+										);
+										?>
+										<?php if ( ! $ffcertificate_pass_edit ) : ?>
+											<span class="ffc-icon-info ffc-secret-reason" aria-hidden="true"></span>
+										<?php endif; ?>
+									</div>
+								<?php endif; ?>
+								<?php if ( $ffcertificate_pass_edit ) : ?>
+									<div class="ffc-secret-row" id="ffc-smtp-pass-edit"<?php echo $ffcertificate_pass_saved ? ' hidden' : ''; ?>>
+										<input type="password" name="ffc_settings[smtp_pass]" id="smtp_pass" value="" class="regular-text" autocomplete="new-password" placeholder="<?php echo esc_attr( $ffcertificate_pass_saved ? __( 'New password', 'ffcertificate' ) : '' ); ?>">
+										<?php
+										if ( $ffcertificate_pass_saved ) {
+											\FreeFormCertificate\Admin\AdminUI::render_button(
+												array(
+													'label' => __( 'Cancel', 'ffcertificate' ),
+													'category' => 'neutral',
+													'icon' => 'cross',
+													'id'   => 'ffc-smtp-pass-cancel',
+												)
+											);
+										}
+										?>
+									</div>
+								<?php endif; ?>
+								<p class="description" id="ffc-smtp-pass-desc">
+									<?php
+									if ( ! $ffcertificate_pass_edit ) {
+										esc_html_e( 'Only someone who manages SMTP can change the password.', 'ffcertificate' );
+									} elseif ( $ffcertificate_pass_saved ) {
+										esc_html_e( 'The password is never shown. To replace it, click "Change password", type the new one and save; "Cancel" keeps the saved one.', 'ffcertificate' );
+									} elseif ( \FreeFormCertificate\Integrations\SmtpPassword::STATE_UNREADABLE === $ffcertificate_pass_state ) {
+										esc_html_e( 'The saved password can no longer be read, because the encryption key changed. Type it again and save.', 'ffcertificate' );
+									} else {
+										esc_html_e( 'Your SMTP password or app-specific password', 'ffcertificate' );
+									}
+									?>
+								</p>
 							</td>
 						</tr>
 						<tr>

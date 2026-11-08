@@ -174,6 +174,18 @@ describe('FFCDashboard.panels.profile.render', () => {
 		expect(document.activeElement).toBe(toggle);
 	});
 
+	it('leaves the date-message preferences to the Messages tab (#2503)', () => {
+		window.ffcDashboard.dateMessagesEnabled = true;
+		try {
+			panel().render(makeProfile());
+			const keys = Array.from(document.querySelectorAll('#ffc-tabpanel-profile .ffc-notif-toggle')).map((el) => el.getAttribute('data-key'));
+			expect(keys).toEqual(['notify_appointment_reminder']);
+			expect(document.querySelector('#ffc-tabpanel-profile .ffc-notif-hint')).toBeNull();
+		} finally {
+			delete window.ffcDashboard.dateMessagesEnabled;
+		}
+	});
+
 	it('stores the profile on the panel state', () => {
 		const profile = makeProfile({ display_name: 'João' });
 		panel().render(profile);

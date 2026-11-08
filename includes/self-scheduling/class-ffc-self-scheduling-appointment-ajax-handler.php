@@ -80,7 +80,7 @@ class AppointmentAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Invalid parameters.', 'ffcertificate' ) ) );
 		}
 
-		$reasons = $this->handler->get_override_reasons( $calendar_id, $date, $time );
+		$reasons = $this->handler->get_override_reasons( $calendar_id, $date, $time, $this->get_post_int( 'session_id' ) );
 		if ( is_wp_error( $reasons ) ) {
 			wp_send_json_error( array( 'message' => $reasons->get_error_message() ) );
 		}
@@ -106,11 +106,12 @@ class AppointmentAjaxHandler {
 				);
 			}
 
-			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+			$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 			if ( true !== $security_check ) {
 				wp_send_json_error(
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-						array( 'message' => $security_check )
+						array( 'message' => $security_check ),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -123,7 +124,8 @@ class AppointmentAjaxHandler {
 			if ( ! $rate_check['allowed'] ) {
 				wp_send_json_error(
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
-						array( 'message' => $rate_check['message'] )
+						array( 'message' => $rate_check['message'] ),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					),
 					429
 				);
@@ -139,7 +141,8 @@ class AppointmentAjaxHandler {
 					\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
 						array(
 							'message' => __( 'Missing required fields.', 'ffcertificate' ),
-						)
+						),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -148,6 +151,8 @@ class AppointmentAjaxHandler {
 				'calendar_id'      => $calendar_id,
 				'appointment_date' => $date,
 				'start_time'       => $time,
+				// The session chosen on a calendar that has them (#2405).
+				'session_id'       => $this->get_post_int( 'session_id' ),
 				'name'             => $this->get_post_param( 'name' ),
 				'email'            => isset( $_POST['email'] ) ? \FreeFormCertificate\Core\DataSanitizer::normalize_email( sanitize_email( wp_unslash( $_POST['email'] ) ) ) : '',
 				'cpf_rf'           => $this->get_post_param( 'cpf_rf' ),
@@ -181,7 +186,8 @@ class AppointmentAjaxHandler {
 							'message' => $result->get_error_message(),
 							// Every rule a bypass holder must confirm (#1859).
 							'reasons' => self::error_reasons( $result ),
-						)
+						),
+						\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 					)
 				);
 			}
@@ -295,7 +301,8 @@ class AppointmentAjaxHandler {
 					array(
 						'code'    => 'ffc_internal_error',
 						'message' => __( 'An unexpected error occurred. Please try again.', 'ffcertificate' ),
-					)
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING
 				)
 			);
 		}
@@ -331,7 +338,25 @@ class AppointmentAjaxHandler {
 			);
 		}
 
-		$slots = $this->handler->get_available_slots( $calendar_id, $date );
+		// On a calendar with sessions the visitor chooses one first (#2405):
+		// a read without a session lists the sessions, with their free places.
+		$session_id = $this->get_post_int( 'session_id' );
+		if ( 0 === $session_id ) {
+			$sessions = $this->handler->day_sessions( $calendar_id, $date );
+			if ( is_wp_error( $sessions ) ) {
+				wp_send_json_error( array( 'message' => $sessions->get_error_message() ) );
+			}
+			if ( array() !== $sessions ) {
+				wp_send_json_success(
+					array(
+						'sessions' => $sessions,
+						'date'     => $date,
+					)
+				);
+			}
+		}
+
+		$slots = $this->handler->get_available_slots( $calendar_id, $date, $session_id );
 
 		if ( is_wp_error( $slots ) ) {
 			wp_send_json_error(
@@ -466,13 +491,22 @@ class AppointmentAjaxHandler {
 				}
 			}
 
-			wp_send_json_success(
-				array(
-					'counts'        => $counts,
-					'holidays'      => $holidays,
-					'holiday_kinds' => (object) $holiday_kinds,
-				)
+			$response = array(
+				'counts'        => $counts,
+				'holidays'      => $holidays,
+				'holiday_kinds' => (object) $holiday_kinds,
 			);
+
+			// The free-slots panel, only for a calendar that shows it (#2405).
+			if ( is_array( $calendar ) && ! empty( $calendar['show_event_list'] ) ) {
+				$panel             = $this->handler->month_panel( $calendar, $calendar_id, $start_date, $end_date );
+				$response['panel'] = array(
+					'days' => (object) $panel['days'],
+					'mine' => $panel['mine'],
+				);
+			}
+
+			wp_send_json_success( $response );
 
 		} catch ( \Throwable $e ) {
 			if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {

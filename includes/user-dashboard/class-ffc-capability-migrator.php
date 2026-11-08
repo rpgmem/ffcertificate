@@ -61,24 +61,47 @@ class CapabilityMigrator {
 	 * `get_users()` with `meta_compare` LIKE escapes the term's `_`, so `ffc_`
 	 * matches the literal prefix and not `ffcX`.
 	 *
+	 * NARROWED TO THE MIGRATION'S OWN SOURCES (#2340)
+	 *
+	 * Every end user carries `ffc_end_user` in that meta, so the bare `ffc_`
+	 * prefilter still returned the whole user base on a site with many of
+	 * them. Each migration decides on a short list of names (the capabilities
+	 * it seeds from, the names it renames), so it passes that list and the
+	 * query keeps only the users whose meta names one of them, quoted the way
+	 * the serialized meta stores a key. Still a superset of what the per-user
+	 * logic acts on: a name stored as `false` matches too, and the logic below
+	 * keeps deciding with `isset()` / `true ===`.
+	 *
 	 * @since 6.25.0
+	 * @param array<int, string> $names Capability or role names the caller decides on; empty for every `ffc_*` holder.
 	 * @return array<int, int>
 	 */
-	private static function users_with_ffc_grants(): array {
+	private static function users_with_ffc_grants( array $names = array() ): array {
 		global $wpdb;
 
-		$ids = get_users(
-			array(
-				'fields'       => 'ID',
-				'meta_key'     => $wpdb->get_blog_prefix() . 'capabilities', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The capabilities meta is indexed by `meta_key`; this query exists precisely so that every user does NOT have to be scanned (#1254).
-				'meta_value'   => 'ffc_', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Prefiltro deliberado; ver o docblock.
-				'meta_compare' => 'LIKE',
-				'orderby'      => 'ID',
-				'order'        => 'ASC',
-			)
+		$key  = $wpdb->get_blog_prefix() . 'capabilities';
+		$args = array(
+			'fields'  => 'ID',
+			'orderby' => 'ID',
+			'order'   => 'ASC',
 		);
+		if ( array() === $names ) {
+			$args['meta_key']     = $key; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- The capabilities meta is indexed by `meta_key`; this query exists precisely so that every user does NOT have to be scanned (#1254).
+			$args['meta_value']   = 'ffc_'; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Deliberate prefilter; see the docblock.
+			$args['meta_compare'] = 'LIKE';
+		} else {
+			$query = array( 'relation' => 'OR' );
+			foreach ( array_values( array_unique( $names ) ) as $name ) {
+				$query[] = array(
+					'key'     => $key,
+					'value'   => '"' . $name . '"',
+					'compare' => 'LIKE',
+				);
+			}
+			$args['meta_query'] = $query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Same indexed key, narrowed to the names this migration acts on (#2340).
+		}
 
-		return array_map( 'intval', (array) $ids );
+		return array_map( 'intval', (array) get_users( $args ) );
 	}
 
 	/**
@@ -126,7 +149,7 @@ class CapabilityMigrator {
 		$counts  = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $renames ) );
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
@@ -203,7 +226,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $manage => $delete ) {
 			$counts[ $delete ] = 0;
 			foreach ( $users as $user_id ) {
@@ -355,7 +378,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $manage => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -425,7 +448,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $source => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -489,7 +512,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $manage => $send ) {
 			$counts[ $send ] = 0;
 			foreach ( $users as $user_id ) {
@@ -516,6 +539,76 @@ class CapabilityMigrator {
 				if ( isset( $role->capabilities[ $manage ] ) && true === $role->capabilities[ $manage ]
 					&& ! isset( $role->capabilities[ $send ] ) ) {
 					$role->add_cap( $send, true );
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Map of the manage cap => the delete cap it seeds (#2336).
+	 *
+	 * Deleting a rule is split out of managing rules, like every delete cap.
+	 * The migration seeds `ffc_delete_date_messages` onto every current
+	 * `ffc_manage_date_messages` holder, so nobody loses the ability to delete.
+	 *
+	 * @return array<string, string> Manage cap => the delete cap it seeds.
+	 */
+	public static function date_messages_delete_cap_grant_map(): array {
+		return array(
+			'ffc_manage_date_messages' => 'ffc_delete_date_messages',
+		);
+	}
+
+	/**
+	 * Idempotent migration seeding `ffc_delete_date_messages` onto every user
+	 * and role that already holds `ffc_manage_date_messages` (#2336). Never
+	 * removes the source cap. Runs once per install via the Loader, flagged by
+	 * `ffc_date_messages_delete_cap_v1`.
+	 *
+	 * @return array<string, int> Delete-cap count of users seeded.
+	 */
+	public static function migrate_date_messages_delete_cap_grant(): array {
+		return self::seed_from_map( self::date_messages_delete_cap_grant_map() );
+	}
+
+	/**
+	 * Seed each target cap onto every user and role holding its source cap,
+	 * never removing the source.
+	 *
+	 * @param array<string, string> $map Source cap => cap it seeds.
+	 * @return array<string, int> Users seeded per target cap.
+	 */
+	private static function seed_from_map( array $map ): array {
+		$counts = array();
+
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
+		foreach ( $map as $source => $target ) {
+			$counts[ $target ] = 0;
+			foreach ( $users as $user_id ) {
+				$user = get_userdata( (int) $user_id );
+				if ( ! $user ) {
+					continue;
+				}
+				if ( isset( $user->caps[ $source ] ) && true === $user->caps[ $source ]
+					&& ! isset( $user->caps[ $target ] ) ) {
+					$user->add_cap( $target, true );
+					++$counts[ $target ];
+				}
+			}
+		}
+
+		$wp_roles = wp_roles();
+		foreach ( array_keys( $wp_roles->roles ) as $role_slug ) {
+			$role = get_role( $role_slug );
+			if ( ! $role ) {
+				continue;
+			}
+			foreach ( $map as $source => $target ) {
+				if ( isset( $role->capabilities[ $source ] ) && true === $role->capabilities[ $source ]
+					&& ! isset( $role->capabilities[ $target ] ) ) {
+					$role->add_cap( $target, true );
 				}
 			}
 		}
@@ -556,7 +649,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $source => $export ) {
 			$counts[ $export ] = 0;
 			foreach ( $users as $user_id ) {
@@ -641,7 +734,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $manage => $import ) {
 			$counts[ $import ] = 0;
 			foreach ( $users as $user_id ) {
@@ -713,7 +806,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $source => $reasons_cap ) {
 			$counts[ $reasons_cap ] = 0;
 			foreach ( $users as $user_id ) {
@@ -843,7 +936,7 @@ class CapabilityMigrator {
 		$counts  = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $renames ) );
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
@@ -922,7 +1015,7 @@ class CapabilityMigrator {
 		RoleRegistrar::register_module_roles();
 
 		$counts = array();
-		$users  = self::users_with_ffc_grants();
+		$users  = self::users_with_ffc_grants( array_keys( $renames ) );
 		foreach ( $renames as $old => $new ) {
 			$counts[ $old ] = 0;
 			foreach ( $users as $user_id ) {
@@ -1188,6 +1281,8 @@ class CapabilityMigrator {
 			self::activity_log_export_cap_grant_map(),
 			self::url_shortener_export_cap_grant_map(),
 			self::reasons_cap_grant_map(),
+			self::date_messages_delete_cap_grant_map(),
+			self::date_messages_send_cap_grant_map(),
 		);
 		foreach ( $single as $map ) {
 			foreach ( $map as $source => $target ) {
@@ -1395,7 +1490,7 @@ class CapabilityMigrator {
 		$counts = array();
 
 		// 1. User-meta grants.
-		$users = self::users_with_ffc_grants();
+		$users = self::users_with_ffc_grants( array_keys( $map ) );
 		foreach ( $map as $source => $targets ) {
 			foreach ( $targets as $target ) {
 				if ( ! isset( $counts[ $target ] ) ) {

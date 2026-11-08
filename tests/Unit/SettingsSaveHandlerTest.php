@@ -45,13 +45,15 @@ class SettingsSaveHandlerTest extends TestCase {
 		// SMTP / Email Model saves are gated on ffc_manage_settings_smtp (#711);
 		// default to granted so the existing save tests exercise the save path.
 		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( '_x' )->returnArg();
 
 		$mock_handler = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$this->handler = new SettingsSaveHandler( $mock_handler );
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['_ffc_tab'], $_POST['ffc_settings'] );
+		unset( $_POST['_ffc_tab'], $_POST['ffc_settings'], $_POST['emails_enabled'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -332,6 +334,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_general_dark_mode_valid_values_accepted(): void {
+		$_POST['_ffc_tab'] = 'general';
 		foreach ( array( 'off', 'on', 'auto' ) as $mode ) {
 			$result = $this->invoke( 'save_general_settings', array( array(), array( 'dark_mode' => $mode ) ) );
 			$this->assertSame( $mode, $result['dark_mode'] );
@@ -339,26 +342,31 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_general_dark_mode_invalid_defaults_to_off(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'dark_mode' => 'invalid' ) ) );
 		$this->assertSame( 'off', $result['dark_mode'] );
 	}
 
 	public function test_general_cleanup_days_stored_as_integer(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'cleanup_days' => '90' ) ) );
 		$this->assertSame( 90, $result['cleanup_days'] );
 	}
 
 	public function test_general_cleanup_days_clamped_to_minimum_one(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'cleanup_days' => '0' ) ) );
 		$this->assertSame( 1, $result['cleanup_days'] );
 	}
 
 	public function test_general_cleanup_enabled_true_when_checkbox_present(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'cleanup_enabled' => '1' ) ) );
 		$this->assertTrue( $result['cleanup_enabled'] );
 	}
 
 	public function test_general_cleanup_enabled_false_when_checkbox_absent(): void {
+		$_POST['_ffc_tab'] = 'general';
 		// An unchecked toggle is simply absent from POST; the rebuild must
 		// record it as off (no-clobber) rather than leave a stale true.
 		$result = $this->invoke( 'save_general_settings', array( array( 'cleanup_enabled' => true ), array() ) );
@@ -371,16 +379,19 @@ class SettingsSaveHandlerTest extends TestCase {
 	 * administrator flipped through the autosave is reset by the next Save.
 	 */
 	public function test_general_validate_rf_check_digit_true_when_checkbox_present(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'validate_rf_check_digit' => '1' ) ) );
 		$this->assertTrue( $result['validate_rf_check_digit'] );
 	}
 
 	public function test_general_validate_rf_check_digit_false_when_checkbox_absent(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array( 'validate_rf_check_digit' => true ), array() ) );
 		$this->assertFalse( $result['validate_rf_check_digit'] );
 	}
 
 	public function test_general_cep_lookup_toggle_follows_the_checkbox(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$on = $this->invoke( 'save_general_settings', array( array(), array( 'cep_lookup_enabled' => '1' ) ) );
 		$this->assertTrue( $on['cep_lookup_enabled'] );
 
@@ -389,6 +400,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_general_cep_lookup_primary_keeps_only_a_known_provider(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$brasil = $this->invoke( 'save_general_settings', array( array(), array( 'cep_lookup_primary' => 'brasilapi' ) ) );
 		$this->assertSame( 'brasilapi', $brasil['cep_lookup_primary'] );
 
@@ -397,11 +409,13 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_general_main_address_preserved(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'main_address' => '123 Main St' ) ) );
 		$this->assertSame( '123 Main St', $result['main_address'] );
 	}
 
 	public function test_general_branding_logos_sanitized_as_urls(): void {
+		$_POST['_ffc_tab'] = 'general';
 		// #865 Phase 2 — {{logo_gov}} / {{logo_org}} sources go through esc_url_raw.
 		$result = $this->invoke(
 			'save_general_settings',
@@ -418,6 +432,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_general_existing_settings_not_overwritten(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$existing = array( 'smtp_host' => 'mail.example.com', 'custom_key' => 'value' );
 		$result = $this->invoke( 'save_general_settings', array( $existing, array( 'main_address' => 'New Addr' ) ) );
 		$this->assertSame( 'mail.example.com', $result['smtp_host'] );
@@ -437,10 +452,65 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertSame( 0, $result['enable_activity_log'] );
 	}
 
-	public function test_general_advanced_tab_retention_days_capped_at_365(): void {
+	public function test_general_advanced_tab_retention_days_capped_at_the_shared_bound(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_retention_days' => '500' ) ) );
-		$this->assertSame( 365, $result['activity_log_retention_days'] );
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_retention_days' => '5000' ) ) );
+		$this->assertSame( \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX, $result['activity_log_retention_days'] );
+	}
+
+	public function test_activity_log_max_records_clamped_and_empty_keeps_the_stored_value(): void {
+		$_POST['_ffc_tab'] = 'advanced';
+		$low  = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_max_records' => '10' ) ) );
+		$high = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_max_records' => '99999999' ) ) );
+		$kept = $this->invoke( 'save_general_settings', array( array( 'activity_log_max_records' => 5000 ), array( 'activity_log_max_records' => '' ) ) );
+
+		$this->assertSame( \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN, $low['activity_log_max_records'] );
+		$this->assertSame( \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX, $high['activity_log_max_records'] );
+		$this->assertSame( 5000, $kept['activity_log_max_records'] );
+	}
+
+	/**
+	 * A cleared number field posts '' and `absint( '' )` is 0, so it used to
+	 * store the floor -- a one-day auto-delete, a log kept forever, port 0.
+	 * Every form save now keeps the stored value instead (#2338).
+	 */
+	public function test_an_emptied_number_field_keeps_the_stored_value(): void {
+		$_POST['_ffc_tab'] = 'general';
+		$this->assertSame( 365, $this->invoke( 'save_general_settings', array( array( 'cleanup_days' => 365 ), array( 'cleanup_days' => '' ) ) )['cleanup_days'] );
+
+		$_POST['_ffc_tab'] = 'advanced';
+		$stored = array(
+			'activity_log_retention_days' => 90,
+			'public_csv_default_limit'    => 50,
+			'public_csv_sync_max_rows'    => 2000,
+		);
+		$posted = array(
+			'activity_log_retention_days' => '',
+			'public_csv_default_limit'    => ' ',
+			'public_csv_sync_max_rows'    => 'abc',
+		);
+		$result = $this->invoke( 'save_general_settings', array( $stored, $posted ) );
+		$this->assertSame( 90, $result['activity_log_retention_days'] );
+		$this->assertSame( 50, $result['public_csv_default_limit'] );
+		$this->assertSame( 2000, $result['public_csv_sync_max_rows'] );
+
+		$_POST['_ffc_tab'] = 'smtp';
+		$this->assertSame( 465, $this->invoke( 'save_smtp_settings', array( array( 'smtp_port' => 465 ), array( 'smtp_port' => '' ) ) )['smtp_port'] );
+
+		$_POST['_ffc_tab'] = 'qr_code';
+		$qr = $this->invoke( 'save_qrcode_settings', array( array( 'qr_default_size' => 250, 'qr_default_margin' => 3 ), array( 'qr_default_size' => '', 'qr_default_margin' => '' ) ) );
+		$this->assertSame( 250, $qr['qr_default_size'] );
+		$this->assertSame( 3, $qr['qr_default_margin'] );
+
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->assertSame( 8, $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_code_length' => 8 ), array( 'url_shortener_code_length' => '' ) ) )['url_shortener_code_length'] );
+	}
+
+	public function test_qr_defaults_are_clamped_to_the_autosave_bounds(): void {
+		$_POST['_ffc_tab'] = 'qr_code';
+		$qr = $this->invoke( 'save_qrcode_settings', array( array(), array( 'qr_default_size' => '5000', 'qr_default_margin' => '99' ) ) );
+		$this->assertSame( 500, $qr['qr_default_size'] );
+		$this->assertSame( 10, $qr['qr_default_margin'] );
 	}
 
 	public function test_general_advanced_tab_retention_days_within_limit(): void {
@@ -504,22 +574,31 @@ class SettingsSaveHandlerTest extends TestCase {
 	// save_smtp_settings()
 	// ==================================================================
 
-	public function test_smtp_disable_all_emails_on_smtp_tab(): void {
-		$_POST['_ffc_tab'] = 'smtp';
-		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'disable_all_emails' => '1' ) ) );
-		$this->assertSame( 1, $result['disable_all_emails'] );
-	}
+	/**
+	 * The kill-switch is read from the live "Enable email sending" toggle,
+	 * a field of the SMTP form, never from a hidden copy frozen at page load
+	 * that undid what the toggle had just autosaved (#2338).
+	 */
+	public function test_smtp_kill_switch_follows_the_live_toggle(): void {
+		$_POST['_ffc_tab']       = 'smtp';
+		$_POST['emails_enabled'] = '1';
+		$on = $this->invoke( 'save_smtp_settings', array( array( 'disable_all_emails' => 1 ), array( 'disable_all_emails' => '1' ) ) );
+		unset( $_POST['emails_enabled'] );
+		$off = $this->invoke( 'save_smtp_settings', array( array( 'disable_all_emails' => 0 ), array( 'disable_all_emails' => '0' ) ) );
 
-	public function test_smtp_disable_all_emails_absent_on_smtp_tab_sets_zero(): void {
-		$_POST['_ffc_tab'] = 'smtp';
-		$result = $this->invoke( 'save_smtp_settings', array( array(), array() ) );
-		$this->assertSame( 0, $result['disable_all_emails'] );
+		$this->assertSame( 0, $on['disable_all_emails'] );
+		$this->assertSame( 1, $off['disable_all_emails'] );
 	}
 
 	public function test_smtp_disable_all_emails_ignored_on_other_tab(): void {
 		$_POST['_ffc_tab'] = 'general';
 		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'disable_all_emails' => '1' ) ) );
 		$this->assertArrayNotHasKey( 'disable_all_emails', $result );
+	}
+
+	public function test_the_smtp_view_posts_no_frozen_copy_of_the_kill_switch(): void {
+		$view = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/settings/views/ffc-tab-smtp.php' );
+		$this->assertStringNotContainsString( 'ffc_settings[disable_all_emails]', $view );
 	}
 
 	public function test_smtp_kill_switch_preserved_without_dangerzone(): void {
@@ -531,11 +610,13 @@ class SettingsSaveHandlerTest extends TestCase {
 				return 'ffc_manage_settings_smtp' === $cap;
 			}
 		);
+		unset( $_POST['emails_enabled'] );
 		$result = $this->invoke( 'save_smtp_settings', array( array( 'disable_all_emails' => 0 ), array( 'disable_all_emails' => '1' ) ) );
 		$this->assertSame( 0, $result['disable_all_emails'] );
 	}
 
 	public function test_smtp_host_and_port_stored(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$new = array( 'smtp_host' => 'smtp.example.com', 'smtp_port' => '587' );
 		$result = $this->invoke( 'save_smtp_settings', array( array(), $new ) );
 		$this->assertSame( 'smtp.example.com', $result['smtp_host'] );
@@ -543,11 +624,13 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_smtp_from_email_stored(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'smtp_from_email' => 'test@example.com' ) ) );
 		$this->assertSame( 'test@example.com', $result['smtp_from_email'] );
 	}
 
 	public function test_smtp_user_email_settings_all_saved(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$new = array(
 			'send_wp_user_email_submission'  => 'yes',
 			'send_wp_user_email_appointment' => 'no',
@@ -568,28 +651,79 @@ class SettingsSaveHandlerTest extends TestCase {
 	 * entry asserted in SettingsAjaxEndpointTest.
 	 */
 	public function test_notify_capability_grant_is_saved(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'notify_capability_grant' => '1' ) ) );
 		$this->assertSame( '1', $result['notify_capability_grant'] );
 	}
 
 	public function test_notify_capability_grant_absent_leaves_the_stored_value(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$result = $this->invoke( 'save_smtp_settings', array( array( 'notify_capability_grant' => '1' ), array() ) );
 		$this->assertSame( '1', $result['notify_capability_grant'] );
 	}
 
 	public function test_smtp_user_pass_from_name_stored(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$new = array(
 			'smtp_user'      => 'mailer@example.com',
 			'smtp_pass'      => 's3cret',
 			'smtp_from_name' => 'Acme Certs',
 		);
+		$_POST['ffc_settings'] = $new;
 		$result = $this->invoke( 'save_smtp_settings', array( array(), $new ) );
 		$this->assertSame( 'mailer@example.com', $result['smtp_user'] );
-		$this->assertSame( 's3cret', $result['smtp_pass'] );
+		// Stored encrypted, never as typed (#2342).
+		$this->assertStringStartsWith( 'v2:', $result['smtp_pass'] );
+		$this->assertSame( 's3cret', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
 		$this->assertSame( 'Acme Certs', $result['smtp_from_name'] );
 	}
 
+	public function test_smtp_pass_is_stored_as_typed_not_through_the_text_sanitiser(): void {
+		$_POST['_ffc_tab'] = 'smtp';
+		// The real sanitiser strips `<…`, `%xx` and runs of spaces: a password
+		// holding them was saved wrong and SMTP failed with no visible reason.
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) preg_replace( '/<[^>]*>?|%[a-f0-9]{2}|\s+/i', ' ', (string) $v ) ) );
+		$typed                 = 'a<b  %41 c';
+		$_POST['ffc_settings'] = array( 'smtp_pass' => $typed );
+
+		$result = $this->invoke( 'save_smtp_settings', array( array(), array( 'smtp_pass' => sanitize_text_field( $typed ) ) ) );
+
+		$this->assertSame( $typed, \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+	}
+
+	public function test_an_empty_smtp_pass_keeps_the_saved_one(): void {
+		$_POST['_ffc_tab'] = 'smtp';
+		$saved                 = array( 'smtp_pass' => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'kept' ) );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => '', 'smtp_host' => 'smtp.example.com' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( $saved, array( 'smtp_pass' => '', 'smtp_host' => 'smtp.example.com' ) ) );
+
+		$this->assertSame( $saved['smtp_pass'], $result['smtp_pass'] );
+		$this->assertSame( 'smtp.example.com', $result['smtp_host'] );
+	}
+
+	public function test_a_closed_password_field_posts_nothing_and_keeps_the_saved_one(): void {
+		$_POST['_ffc_tab'] = 'smtp';
+		$saved                 = array( 'smtp_pass' => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'kept' ) );
+		$_POST['ffc_settings'] = array( 'smtp_host' => 'smtp.example.com' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( $saved, array( 'smtp_host' => 'smtp.example.com' ) ) );
+
+		$this->assertSame( 'kept', \FreeFormCertificate\Integrations\SmtpPassword::read( $result ) );
+	}
+
+	public function test_smtp_pass_is_not_saved_without_the_smtp_capability(): void {
+		$_POST['_ffc_tab'] = 'smtp';
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$_POST['ffc_settings'] = array( 'smtp_pass' => 'intruder' );
+
+		$result = $this->invoke( 'save_smtp_settings', array( array( 'smtp_pass' => 'old' ), array( 'smtp_pass' => 'intruder' ) ) );
+
+		$this->assertSame( 'old', $result['smtp_pass'] );
+	}
+
 	public function test_smtp_secure_and_mode_stored(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$new = array( 'smtp_mode' => 'custom', 'smtp_secure' => 'tls' );
 		$result = $this->invoke( 'save_smtp_settings', array( array(), $new ) );
 		$this->assertSame( 'custom', $result['smtp_mode'] );
@@ -597,6 +731,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_smtp_preserves_existing_settings(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		$existing = array( 'dark_mode' => 'on' );
 		$new = array( 'smtp_host' => 'mail.test.com' );
 		$result = $this->invoke( 'save_smtp_settings', array( $existing, $new ) );
@@ -605,6 +740,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_smtp_settings_skipped_without_smtp_cap(): void {
+		$_POST['_ffc_tab'] = 'smtp';
 		// A settings manager lacking ffc_manage_settings_smtp cannot change the
 		// SMTP transport: save_smtp_settings returns $clean untouched (#711).
 		Functions\when( 'current_user_can' )->justReturn( false );
@@ -618,6 +754,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_qrcode_size_and_margin_stored_as_int(): void {
+		$_POST['_ffc_tab'] = 'qr_code';
 		$new = array( 'qr_default_size' => '300', 'qr_default_margin' => '10' );
 		$result = $this->invoke( 'save_qrcode_settings', array( array(), $new ) );
 		$this->assertSame( 300, $result['qr_default_size'] );
@@ -625,6 +762,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_qrcode_error_level_stored(): void {
+		$_POST['_ffc_tab'] = 'qr_code';
 		$result = $this->invoke( 'save_qrcode_settings', array( array(), array( 'qr_default_error_level' => 'H' ) ) );
 		$this->assertSame( 'H', $result['qr_default_error_level'] );
 	}
@@ -764,6 +902,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_general_csv_download_page_url_stored(): void {
+		$_POST['_ffc_tab'] = 'general';
 		Functions\when( 'esc_url_raw' )->returnArg();
 		$result = $this->invoke( 'save_general_settings', array( array(), array( 'csv_download_page_url' => 'https://x.test/csv' ) ) );
 		$this->assertSame( 'https://x.test/csv', $result['csv_download_page_url'] );
@@ -771,23 +910,65 @@ class SettingsSaveHandlerTest extends TestCase {
 
 	public function test_general_advanced_tab_min_level_valid(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_min_level' => 'warning' ) ) );
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'enable_activity_log' => '1', 'activity_log_min_level' => 'warning' ) ) );
 		$this->assertSame( 'warning', $result['activity_log_min_level'] );
 	}
 
 	public function test_general_advanced_tab_min_level_invalid_defaults_to_debug(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$result = $this->invoke( 'save_general_settings', array( array(), array( 'activity_log_min_level' => 'bogus' ) ) );
+		$result = $this->invoke( 'save_general_settings', array( array(), array( 'enable_activity_log' => '1', 'activity_log_min_level' => 'bogus' ) ) );
 		$this->assertSame( 'debug', $result['activity_log_min_level'] );
 	}
 
-	public function test_general_advanced_tab_category_flags_set_and_unset(): void {
+	public function test_general_advanced_tab_item_flags_set_and_unset(): void {
 		$_POST['_ffc_tab'] = 'advanced';
-		$new = array( 'activity_log_cat_submissions' => '1' );
+		$new = array(
+			'enable_activity_log'                => '1',
+			'activity_log_item_cert_submissions' => '1',
+		);
 		$result = $this->invoke( 'save_general_settings', array( array(), $new ) );
-		$this->assertSame( 1, $result['activity_log_cat_submissions'] );
-		// A category not present in $new is set to 0.
-		$this->assertSame( 0, $result['activity_log_cat_system'] );
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+		// An item not present in $new is set to 0, audit ones included.
+		$this->assertSame( 0, $result['activity_log_item_system_errors'] );
+		$this->assertSame( 0, $result['activity_log_item_pii_reveal'] );
+	}
+
+	/**
+	 * While the log is off its items are greyed out and post nothing, so a
+	 * save keeps what is stored instead of switching them all off (#2340).
+	 */
+	public function test_the_items_and_the_level_keep_their_values_while_the_log_is_off(): void {
+		$_POST['_ffc_tab'] = 'advanced';
+		$stored            = array(
+			'enable_activity_log'                => 1,
+			'activity_log_min_level'             => 'warning',
+			'activity_log_item_pii_reveal'       => 1,
+			'activity_log_item_cert_submissions' => 1,
+		);
+		$result = $this->invoke( 'save_general_settings', array( $stored, array() ) );
+
+		$this->assertSame( 0, $result['enable_activity_log'] );
+		$this->assertSame( 'warning', $result['activity_log_min_level'] );
+		$this->assertSame( 1, $result['activity_log_item_pii_reveal'] );
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+	}
+
+	public function test_a_secondary_item_saves_without_the_dangerzone_capability_and_an_audit_item_does_not(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings_dangerzone' !== $cap && 'manage_options' !== $cap );
+		$_POST['_ffc_tab'] = 'advanced';
+		$result            = $this->invoke(
+			'save_general_settings',
+			array(
+				array(
+					'enable_activity_log'          => 1,
+					'activity_log_item_pii_reveal' => 1,
+				),
+				array( 'activity_log_item_cert_submissions' => '1' ),
+			)
+		);
+
+		$this->assertSame( 1, $result['activity_log_item_cert_submissions'] );
+		$this->assertSame( 1, $result['activity_log_item_pii_reveal'], 'The audit item keeps its value.' );
 	}
 
 	public function test_general_advanced_tab_public_csv_default_limit_floored_at_one(): void {
@@ -857,10 +1038,85 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertArrayNotHasKey( 'url_shortener_enabled', $result );
 	}
 
+	/**
+	 * The prefix save asks which addresses are taken (#2337).
+	 *
+	 * Notices land in $this->prefix_notices as code, type.
+	 *
+	 * @param array<string, string> $taken Page slug => title.
+	 */
+	private function stub_prefix_save( array $taken = array() ): void {
+		$notices = array();
+		Functions\when( 'sanitize_title' )->alias( static fn( $v ) => strtolower( trim( (string) $v ) ) );
+		Functions\when( 'get_post_types' )->justReturn( array( 'post' => 'post', 'page' => 'page' ) );
+		Functions\when( 'get_page_by_path' )->alias(
+			function ( $slug ) use ( $taken ) {
+				if ( ! isset( $taken[ $slug ] ) ) {
+					return null;
+				}
+				$page             = Mockery::mock( \WP_Post::class );
+				$page->post_title = $taken[ $slug ];
+				return $page;
+			}
+		);
+		Functions\when( 'get_the_title' )->alias( static fn( $page ) => $page->post_title );
+		Functions\when( 'add_settings_error' )->alias(
+			function ( $setting, $code, $message, $type = 'error' ) use ( &$notices ) {
+				$notices[] = array( $code, $type );
+			}
+		);
+		$this->prefix_notices = &$notices;
+	}
+
+	/** @var array<int, array{0: string, 1: string}> */
+	private array $prefix_notices = array();
+
+	public function test_an_empty_prefix_is_refused_and_the_old_one_kept(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save();
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => '  ' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'] );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_empty', 'error' ) ), $this->prefix_notices );
+	}
+
+	public function test_a_changed_prefix_is_remembered_as_previous(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save();
+		Functions\when( 'delete_option' )->justReturn( true );
+		Functions\when( 'add_action' )->justReturn( true );
+
+		$result = $this->invoke(
+			'save_url_shortener_settings',
+			array(
+				array(
+					'url_shortener_prefix'            => 'go',
+					'url_shortener_previous_prefixes' => array( 'r', 'link' ),
+				),
+				array( 'url_shortener_prefix' => 'link' ),
+			)
+		);
+
+		$this->assertSame( 'link', $result['url_shortener_prefix'] );
+		$this->assertSame( array( 'r', 'go' ), $result['url_shortener_previous_prefixes'], 'The old one joins; the new one leaves the list.' );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_changed', 'success' ) ), $this->prefix_notices );
+	}
+
+	public function test_a_previous_prefix_that_became_a_page_address_is_refused(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save( array( 'go' => 'Go' ) );
+
+		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'l' ) ) );
+
+		$this->assertSame( 'go', $result['url_shortener_prefix'], 'The links printed with "go" would share addresses with the page.' );
+		$this->assertArrayNotHasKey( 'url_shortener_previous_prefixes', $result );
+		$this->assertSame( array( array( 'ffc_short_url_prefix_taken', 'error' ) ), $this->prefix_notices );
+	}
+
 	public function test_url_shortener_prefix_unchanged_no_flush(): void {
-		Functions\when( 'sanitize_title' )->alias( function ( $v ) {
-			return strtolower( $v );
-		} );
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save();
 		$deleted = false;
 		Functions\when( 'delete_option' )->alias( function () use ( &$deleted ) {
 			$deleted = true;
@@ -872,10 +1128,9 @@ class SettingsSaveHandlerTest extends TestCase {
 		$this->assertFalse( $deleted );
 	}
 
-	public function test_url_shortener_prefix_changed_triggers_flush(): void {
-		Functions\when( 'sanitize_title' )->alias( function ( $v ) {
-			return strtolower( $v );
-		} );
+	public function test_url_shortener_prefix_changed_triggers_one_flush_with_the_new_prefix(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
+		$this->stub_prefix_save();
 		$deleted = false;
 		Functions\when( 'delete_option' )->alias( function ( $key ) use ( &$deleted ) {
 			if ( 'ffc_url_shortener_rewrite_version' === $key ) {
@@ -883,33 +1138,41 @@ class SettingsSaveHandlerTest extends TestCase {
 			}
 			return true;
 		} );
-		Functions\expect( 'add_action' )->once()->with( 'shutdown', 'flush_rewrite_rules' );
+		// No flush in this request, where the old prefix's rule is the one
+		// registered: the next request's init flushes once with the new one.
+		Functions\expect( 'add_action' )->never();
+		Functions\expect( 'flush_rewrite_rules' )->never();
 		$result = $this->invoke( 'save_url_shortener_settings', array( array( 'url_shortener_prefix' => 'go' ), array( 'url_shortener_prefix' => 'link' ) ) );
 		$this->assertSame( 'link', $result['url_shortener_prefix'] );
 		$this->assertTrue( $deleted );
 	}
 
 	public function test_url_shortener_code_length_clamped_low(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
 		$result = $this->invoke( 'save_url_shortener_settings', array( array(), array( 'url_shortener_code_length' => '2' ) ) );
 		$this->assertSame( 4, $result['url_shortener_code_length'] );
 	}
 
 	public function test_url_shortener_code_length_clamped_high(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
 		$result = $this->invoke( 'save_url_shortener_settings', array( array(), array( 'url_shortener_code_length' => '99' ) ) );
 		$this->assertSame( 10, $result['url_shortener_code_length'] );
 	}
 
 	public function test_url_shortener_code_length_in_range(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
 		$result = $this->invoke( 'save_url_shortener_settings', array( array(), array( 'url_shortener_code_length' => '7' ) ) );
 		$this->assertSame( 7, $result['url_shortener_code_length'] );
 	}
 
 	public function test_url_shortener_redirect_type_valid(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
 		$result = $this->invoke( 'save_url_shortener_settings', array( array(), array( 'url_shortener_redirect_type' => '301' ) ) );
 		$this->assertSame( 301, $result['url_shortener_redirect_type'] );
 	}
 
 	public function test_url_shortener_redirect_type_invalid_defaults_to_302(): void {
+		$_POST['_ffc_tab'] = 'url_shortener';
 		$result = $this->invoke( 'save_url_shortener_settings', array( array(), array( 'url_shortener_redirect_type' => '418' ) ) );
 		$this->assertSame( 302, $result['url_shortener_redirect_type'] );
 	}
@@ -960,7 +1223,26 @@ class SettingsSaveHandlerTest extends TestCase {
 	// save_user_access_settings()
 	// ==================================================================
 
+	/**
+	 * The User Access save reads the stored settings and the role table;
+	 * both are chosen here rather than inherited from an earlier test.
+	 *
+	 * @param array<string, mixed> $stored Stored user-access settings.
+	 */
+	private function stub_user_access( array $stored = array() ): void {
+		Functions\when( 'get_option' )->alias( static fn( $name, $fallback = false ) => 'ffc_user_access_settings' === $name ? $stored : $fallback );
+		$roles        = new \stdClass();
+		$roles->roles = array(
+			'administrator' => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'site_owner'    => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'subscriber'    => array( 'capabilities' => array( 'read' => true ) ),
+			'ffc_end_user'  => array( 'capabilities' => array( 'read' => true ) ),
+		);
+		Functions\when( 'wp_roles' )->justReturn( $roles );
+	}
+
 	public function test_user_access_settings_defaults(): void {
+		$this->stub_user_access();
 		Functions\when( 'home_url' )->alias( function ( $path = '' ) {
 			return 'https://site.test' . $path;
 		} );
@@ -983,6 +1265,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	}
 
 	public function test_user_access_settings_with_post_values(): void {
+		$this->stub_user_access();
 		Functions\when( 'home_url' )->returnArg();
 		Functions\when( 'esc_url_raw' )->returnArg();
 		$_POST['block_wp_admin']    = '1';
@@ -1011,6 +1294,81 @@ class SettingsSaveHandlerTest extends TestCase {
 		unset( $_POST['block_wp_admin'], $_POST['blocked_roles'], $_POST['redirect_url'], $_POST['redirect_message'], $_POST['allow_admin_bar'], $_POST['bypass_for_admins'] );
 	}
 
+	/**
+	 * A role that administers the site can never be blocked: the save drops
+	 * `administrator` and any role holding `manage_options` (#2338).
+	 */
+	public function test_user_access_drops_roles_that_administer_the_site(): void {
+		$this->stub_user_access();
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		$_POST['blocked_roles'] = array( 'administrator', 'site_owner', 'ffc_end_user' );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $val ) use ( &$saved ) {
+			$saved = $val;
+			return true;
+		} );
+
+		$this->invoke( 'save_user_access_settings', array() );
+		unset( $_POST['blocked_roles'] );
+
+		$this->assertSame( array( 'ffc_end_user' ), $saved['blocked_roles'] );
+	}
+
+	/**
+	 * Only an administrator decides whether administrators skip the block.
+	 */
+	public function test_bypass_for_admins_keeps_the_stored_value_without_manage_options(): void {
+		$this->stub_user_access( array( 'bypass_for_admins' => true ) );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' !== $cap );
+		Functions\when( 'home_url' )->returnArg();
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		unset( $_POST['bypass_for_admins'] );
+
+		$saved = null;
+		Functions\when( 'update_option' )->alias( function ( $key, $val ) use ( &$saved ) {
+			$saved = $val;
+			return true;
+		} );
+
+		$this->invoke( 'save_user_access_settings', array() );
+
+		$this->assertTrue( $saved['bypass_for_admins'], 'Unchecked by a non-administrator, it stays as stored.' );
+	}
+
+	/**
+	 * Auto-delete, its window, the activity log switch, its categories and
+	 * its retention need the Danger Zone capability; without it a save
+	 * keeps what is stored (#2338).
+	 */
+	public function test_destructive_settings_keep_their_value_without_the_dangerzone_capability(): void {
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_settings_dangerzone' !== $cap && 'manage_options' !== $cap );
+
+		$_POST['_ffc_tab'] = 'general';
+		$general           = $this->invoke(
+			'save_general_settings',
+			array(
+				array( 'cleanup_enabled' => false, 'cleanup_days' => 365 ),
+				array( 'cleanup_enabled' => '1', 'cleanup_days' => '1' ),
+			)
+		);
+		$this->assertFalse( $general['cleanup_enabled'] );
+		$this->assertSame( 365, $general['cleanup_days'] );
+
+		$_POST['_ffc_tab'] = 'advanced';
+		$advanced          = $this->invoke(
+			'save_general_settings',
+			array(
+				array( 'enable_activity_log' => 1, 'activity_log_retention_days' => 90, 'activity_log_item_role_changes' => 1 ),
+				array( 'activity_log_retention_days' => '1' ),
+			)
+		);
+		$this->assertSame( 1, $advanced['enable_activity_log'] );
+		$this->assertSame( 90, $advanced['activity_log_retention_days'] );
+		$this->assertSame( 1, $advanced['activity_log_item_role_changes'] );
+	}
+
 	// ==================================================================
 	// handle_danger_zone()
 	// ==================================================================
@@ -1023,12 +1381,56 @@ class SettingsSaveHandlerTest extends TestCase {
 		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( null, false );
 		$handler = new SettingsSaveHandler( $sub );
 
-		$_POST['delete_target'] = 'all';
+		$_POST['delete_target']      = 'all';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
 		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
 		$ref->setAccessible( true );
 		$ref->invoke( $handler );
 
-		unset( $_POST['delete_target'] );
+		unset( $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
+	}
+
+	public function test_danger_zone_logs_who_deleted_what(): void {
+		global $wpdb;
+		$saved_wpdb   = $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'add_settings_error' )->justReturn( null );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$buffer->setAccessible( true );
+		$buffer->setValue( null, array() );
+
+		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( 42, false )->andReturn( 17 );
+		$handler = new SettingsSaveHandler( $sub );
+
+		$_POST['delete_target']      = '42';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
+		$ref                         = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
+		$ref->setAccessible( true );
+		$ref->invoke( $handler );
+		unset( $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
+
+		$rows = array_values( (array) $buffer->getValue() );
+		$buffer->setValue( null, array() );
+		$wpdb = $saved_wpdb;
+
+		$this->assertSame( 'danger_zone_data_deleted', $rows[0]['action'] ?? null );
+		$this->assertSame( 5, $rows[0]['user_id'] ?? null );
+		$this->assertSame( array( 'target' => 42, 'deleted' => 17, 'reset_counter' => false ), json_decode( (string) $rows[0]['context'], true ) );
 	}
 
 	public function test_danger_zone_specific_form_with_reset(): void {
@@ -1039,13 +1441,63 @@ class SettingsSaveHandlerTest extends TestCase {
 		$sub->shouldReceive( 'delete_all_submissions' )->once()->with( 42, true );
 		$handler = new SettingsSaveHandler( $sub );
 
-		$_POST['delete_target'] = '42';
-		$_POST['reset_counter'] = '1';
+		$_POST['delete_target']      = '42';
+		$_POST['reset_counter']      = '1';
+		$_POST['ffc_delete_confirm'] = 'DELETE';
 		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
 		$ref->setAccessible( true );
 		$ref->invoke( $handler );
 
-		unset( $_POST['delete_target'], $_POST['reset_counter'] );
+		unset( $_POST['delete_target'], $_POST['reset_counter'], $_POST['ffc_delete_confirm'] );
+	}
+
+	/**
+	 * @dataProvider unconfirmed_danger_zone_posts
+	 *
+	 * @param array<string, string> $post    Posted fields.
+	 * @param string                $message The refusal shown.
+	 */
+	public function test_danger_zone_deletes_nothing_without_a_target_and_the_word( array $post, string $message ): void {
+		Functions\when( 'do_action' )->justReturn( null );
+		$notices = array();
+		Functions\when( 'add_settings_error' )->alias(
+			static function ( $setting, $code, $text, $type ) use ( &$notices ) {
+				$notices[] = array( $type, $text );
+			}
+		);
+
+		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
+		$sub->shouldNotReceive( 'delete_all_submissions' );
+		$handler = new SettingsSaveHandler( $sub );
+
+		foreach ( $post as $key => $value ) {
+			$_POST[ $key ] = $value;
+		}
+		$ref = new \ReflectionMethod( SettingsSaveHandler::class, 'handle_danger_zone' );
+		$ref->setAccessible( true );
+		$ref->invoke( $handler );
+		foreach ( array_keys( $post ) as $key ) {
+			unset( $_POST[ $key ] );
+		}
+
+		$this->assertSame( array( array( 'error', $message ) ), $notices );
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>, 1: string}>
+	 */
+	public function unconfirmed_danger_zone_posts(): array {
+		$no_target = 'Choose what to delete before confirming.';
+		$no_word   = 'Nothing was deleted: the confirmation word did not match.';
+		return array(
+			'no target posted'      => array( array( 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'empty target'          => array( array( 'delete_target' => '', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'target that is no id'  => array( array( 'delete_target' => '12abc', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'zero target'           => array( array( 'delete_target' => '0', 'ffc_delete_confirm' => 'DELETE' ), $no_target ),
+			'word missing'          => array( array( 'delete_target' => 'all' ), $no_word ),
+			'word of another case'  => array( array( 'delete_target' => 'all', 'ffc_delete_confirm' => 'delete' ), $no_word ),
+			'word misspelt'         => array( array( 'delete_target' => '42', 'ffc_delete_confirm' => 'DELET' ), $no_word ),
+		);
 	}
 
 	// ==================================================================
@@ -1053,6 +1505,7 @@ class SettingsSaveHandlerTest extends TestCase {
 	// ==================================================================
 
 	public function test_save_general_and_specific_settings_persists(): void {
+		$_POST['_ffc_tab'] = 'general';
 		$_POST['ffc_settings'] = array( 'main_address' => 'HQ' );
 		Functions\when( 'get_option' )->justReturn( array( 'existing' => 'x' ) );
 		Functions\when( 'apply_filters' )->alias( function ( $hook, $value ) {
@@ -1150,6 +1603,9 @@ class SettingsSaveHandlerTest extends TestCase {
 
 	public function test_handle_all_submissions_runs_all_branches(): void {
 		Functions\when( 'current_user_can' )->justReturn( true );
+		// The User Access branch reads the role table; chosen here rather
+		// than inherited from whichever test ran first.
+		Functions\when( 'wp_roles' )->justReturn( null );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 		Functions\when( 'check_admin_referer' )->justReturn( true );
 		Functions\when( 'get_option' )->justReturn( array() );
@@ -1164,6 +1620,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$_POST['ffc_settings']        = array( 'main_address' => 'x' );
 		$_POST['ffc_delete_all_data'] = '1';
 		$_POST['delete_target']       = 'all';
+		$_POST['ffc_delete_confirm']  = 'DELETE';
 
 		$sub = Mockery::mock( 'FreeFormCertificate\Submissions\SubmissionHandler' );
 		$sub->shouldReceive( 'delete_all_submissions' )->once();
@@ -1172,7 +1629,7 @@ class SettingsSaveHandlerTest extends TestCase {
 		$handler->handle_all_submissions();
 		$this->assertTrue( true );
 
-		unset( $_POST['ffc_settings'], $_POST['ffc_delete_all_data'], $_POST['delete_target'] );
+		unset( $_POST['ffc_settings'], $_POST['ffc_delete_all_data'], $_POST['delete_target'], $_POST['ffc_delete_confirm'] );
 	}
 
 }

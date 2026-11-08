@@ -11,6 +11,16 @@
  * The reading is used for the decision and discarded: nothing here stores
  * or logs it.
  *
+ * THE READING IS CLIENT-ASSERTED (#2339)
+ *
+ * The browser sends the position and its error, and a visitor can send any
+ * values they like: nothing on the server can tell a real reading from one
+ * typed in. This gate stops a form being submitted from outside its area by
+ * someone using the page as built, and by a script that does not bother to
+ * forge a reading. It does not stop one that does. Where that matters, pair
+ * it with the IP check, which reads an address the visitor does not choose
+ * under the Secure strategy, or with an identity limit.
+ *
  * @package FreeFormCertificate\Security
  * @since 6.42.0
  */

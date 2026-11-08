@@ -69,6 +69,9 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		$this->wpdb_backup = array(
 			'set'   => array_key_exists( 'wpdb', $GLOBALS ),
@@ -129,6 +132,7 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -393,6 +397,45 @@ class KeyRotationMigrationStrategyTest extends TestCase {
 		$this->assertNotEmpty( $result['errors'] );
 		$this->assertSame( 0, $result['processed'] );
 		$this->assertCount( 0, $this->captured_updates );
+	}
+
+	/**
+	 * The batch after an unreadable row found nothing past the cursor and,
+	 * with no error of its own, latched the rotation complete: the row stayed
+	 * under the previous key (#2338). The register keeps it pending, listed,
+	 * with the salts warning, until a retry clears it.
+	 */
+	public function test_a_row_that_could_not_be_rotated_keeps_the_rotation_incomplete(): void {
+		$this->rows[ self::SUBMISSIONS ] = array(
+			array(
+				'id'                => 1,
+				'email_encrypted'   => 'not-a-valid-ciphertext',
+				'cpf_encrypted'     => '',
+				'rf_encrypted'      => '',
+				'user_ip_encrypted' => '',
+				'data_encrypted'    => '',
+			),
+		);
+
+		$first = $this->strategy->execute( 'key_rotation', array( 'batch_size' => 100 ) );
+		$this->assertFalse( $first['has_more'], 'Nothing is left past the cursor.' );
+
+		$second = $this->strategy->execute( 'key_rotation', array( 'batch_size' => 100 ) );
+		$this->assertSame( 0, $second['processed'] );
+
+		$status = $this->strategy->calculate_status( 'key_rotation', array() );
+		$this->assertFalse( $status['is_complete'], 'A walk with failures never latches complete.' );
+		$this->assertSame( 1, $status['pending'] );
+		$this->assertSame( 1, $status['failed'] );
+		$this->assertCount( 1, $status['failures'] );
+		$this->assertStringContainsString( 'ID 1', $status['failures'][0] );
+		$this->assertTrue( $status['salt_warning'] );
+		$this->assertTrue( $status['retryable'] );
+
+		$this->assertSame( 1, $this->strategy->rearm() );
+		$after = $this->strategy->calculate_status( 'key_rotation', array() );
+		$this->assertArrayNotHasKey( 'failed', $after, 'The retry starts a walk with a clean register.' );
+		$this->assertSame( 1, $after['pending'] );
 	}
 
 	// ------------------------------------------------------------------

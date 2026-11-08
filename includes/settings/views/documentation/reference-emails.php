@@ -50,6 +50,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'WordPress default:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'uses the server\'s PHP mail(). Simple, but frequently flagged as spam.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Custom SMTP (recommended):', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'authenticate against a real provider (host, port, user, password, TLS). The "Popular SMTP Providers" box lists common presets and appears when Custom SMTP is selected.', 'ffcertificate' ); ?></li>
 		</ul>
+		<p><?php esc_html_e( 'The password is stored encrypted with the plugin\'s key and never shown again: the tab says a password is saved, and "Change password" opens an empty field for a new one. Saving with the field closed or empty keeps the saved password; to stop using one, turn custom SMTP off. Only a holder of ffc_manage_settings_smtp can change it.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'While the total-mail-queue plugin is active it manages delivery: the choice is locked to WordPress default, and the one saved here applies again when it is deactivated.', 'ffcertificate' ); ?></p>
 	</div>
 
@@ -62,7 +63,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'The "Email texts" hub — edit every email\'s wording', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin\'s token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one\'s editor opens; each has its own {{token}} help and a "Restore Default Text" button. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The Email texts tab is the single place to edit the default subject + body of every plugin email. It is no longer just three editable emails — all the plugin\'s token-based emails are editable here, grouped by feature. Pick an email from the selector and only that one\'s editor opens; each has its own {{token}} help and a "Restore Default Text" button that restores the subject and the body. A subject + body left equal to the shipped default clears the override, so the email keeps tracking the built-in default automatically.', 'ffcertificate' ); ?></p>
 		<p><?php esc_html_e( 'The emails you can edit here (grouped by feature):', 'ffcertificate' ); ?></p>
 		<table class="widefat striped">
 			<thead>
@@ -77,7 +78,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<tr><td><strong><?php esc_html_e( 'Reregistration', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Campaign invitation, reminder, confirmation, not approved and returned for revision', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Audience Calendars', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'New scheduled activity and activity-cancelled notices, the "booking cancelled by an administrator" notice sent to the owner of a booking an override replaced, and the post-event form invitation sent to each participant once a booking ends', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Recruitment', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Recruitment call (convocation)', 'ffcertificate' ); ?></td></tr>
-				<tr><td><strong><?php esc_html_e( 'Date messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message — the default text a new rule starts from', 'ffcertificate' ); ?></td></tr>
+				<tr><td><strong><?php esc_html_e( 'Date Messages', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Birthday message and Announcement message — the default texts a new dated rule and a new announcement start from', 'ffcertificate' ); ?></td></tr>
 				<tr><td><strong><?php esc_html_e( 'Account access', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Access-granted notice, sent when a user gains plugin capabilities — only while "Access Granted Notification" is on in the SMTP tab, which it is not by default', 'ffcertificate' ); ?></td></tr>
 			</tbody>
 		</table>
@@ -87,8 +88,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Date-message e-mails', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'Each Date Messages rule sends its own subject and body to each person on their date, through the same pipeline and chrome. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body.', 'ffcertificate' ); ?></p>
-		<p><?php esc_html_e( 'Date-message tokens:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>, <code>{{age}}</code>, <code>{{days_until}}</code>, <code>{{site_name}}</code>, <code>{{dashboard_url}}</code>, <code>{{unsubscribe_url}}</code>. <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
+		<p><?php esc_html_e( 'Each Date Messages rule sends its own subject and body, through the same pipeline and chrome: a dated rule to each person on their date, an announcement once to the members of its audiences. A body that does not place {{unsubscribe_url}} gets an unsubscribe line appended. A rule can also e-mail chosen managers a summary 24 hours after each run; that summary has a fixed body.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Date-message tokens:', 'ffcertificate' ); ?> <code>{{name}}</code>, <code>{{first_name}}</code>, <code>{{last_name}}</code>, <code>{{full_name}}</code>, <code>{{email}}</code>, <code>{{date}}</code>, <code>{{age}}</code>, <code>{{days_until}}</code>, <code>{{site_name}}</code>, <code>{{dashboard_url}}</code>, <code>{{unsubscribe_url}}</code>. <?php esc_html_e( '{{date}}, {{age}} and {{days_until}} need a date, so an announcement does not offer them.', 'ffcertificate' ); ?> <a href="#feature-date-messages"><?php esc_html_e( 'See Date Messages', 'ffcertificate' ); ?></a>.</p>
 	</div>
 
 	<div class="ffc-doc-example">
@@ -126,7 +127,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'Deliverability', 'ffcertificate' ); ?></h4>
 		<ul>
-			<li><strong><?php esc_html_e( 'Multipart:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. No configuration needed.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Multipart:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'every HTML email is sent as multipart/alternative — the HTML plus an auto-derived plain-text part — which improves spam scoring and text-only client rendering. The inbox preview line shows the start of the message instead of the site name. No configuration needed.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Bulk sends:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'install the sibling total-mail-queue plugin for queueing, retries and backoff. Because every plugin email goes through wp_mail(), it is captured automatically once activated.', 'ffcertificate' ); ?></li>
 			<li><strong><?php esc_html_e( 'Developer hooks:', 'ffcertificate' ); ?></strong> <code>ffcertificate_email</code> <?php esc_html_e( '(inspect/rewrite the composed message before send) and', 'ffcertificate' ); ?> <code>ffcertificate_email_plain_text</code> <?php esc_html_e( '(customize or suppress the plain-text part). See the Developer page.', 'ffcertificate' ); ?></li>
 		</ul>

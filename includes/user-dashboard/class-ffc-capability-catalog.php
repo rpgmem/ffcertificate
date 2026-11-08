@@ -133,7 +133,7 @@ final class CapabilityCatalog {
 			),
 			array(
 				'key'   => self::GROUP_APPOINTMENT,
-				'label' => __( 'Appointments', 'ffcertificate' ),
+				'label' => __( 'Personal Calendars', 'ffcertificate' ),
 				'level' => 'user',
 				'caps'  => array(
 					'ffc_book_own_appointments'   => array(
@@ -152,7 +152,7 @@ final class CapabilityCatalog {
 			),
 			array(
 				'key'   => self::GROUP_AUDIENCE,
-				'label' => __( 'Audiences', 'ffcertificate' ),
+				'label' => __( 'Audience Calendars', 'ffcertificate' ),
 				'level' => 'user',
 				'caps'  => array(
 					'ffc_view_own_audience_bookings' => array(
@@ -169,7 +169,7 @@ final class CapabilityCatalog {
 			// ---------------------------------------------------------------
 			array(
 				'key'   => self::GROUP_ADMIN_CERTIFICATES,
-				'label' => __( 'Certificates', 'ffcertificate' ),
+				'label' => __( 'Certificates - Submissions', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_certificates'     => array(
@@ -178,7 +178,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_certificates'   => array(
 						'label'       => __( 'Manage certificates', 'ffcertificate' ),
-						'description' => __( 'Access the certificate administration screens.', 'ffcertificate' ),
+						'description' => __( 'Everything View certificates allows, plus trashing and restoring submissions, bulk actions, changing a submission\'s owner, correcting answers and issuing certificates through the operator API.', 'ffcertificate' ),
 					),
 					'ffc_edit_certificates'     => array(
 						'label'       => __( 'Edit submission data on issued certificates', 'ffcertificate' ),
@@ -186,7 +186,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_grade_certificates'    => array(
 						'label'       => __( 'Grade quiz answers', 'ffcertificate' ),
-						'description' => __( 'Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed (#1732).', 'ffcertificate' ),
+						'description' => __( 'Grade the open answers of a quiz attempt awaiting grading, which issues the certificate or records the attempt as not passed.', 'ffcertificate' ),
 					),
 					'ffc_export_certificates'   => array(
 						'label'       => __( 'Export certificates', 'ffcertificate' ),
@@ -202,28 +202,28 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_certificates_pii' => array(
 						'label'       => __( 'Reveal certificate PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked (#739).', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on a submission (audited). Without it the values stay masked.', 'ffcertificate' ),
 					),
 				),
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_FORMS,
-				'label' => __( 'Forms', 'ffcertificate' ),
+				'label' => __( 'Certificates - Forms', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_forms'   => array(
 						'label'       => __( 'View forms', 'ffcertificate' ),
-						'description' => __( 'Read-only access to certificate forms — structure, fields and options — without the ability to edit them (#739).', 'ffcertificate' ),
+						'description' => __( 'Read-only access to certificate forms — structure, fields and options — without the ability to edit them.', 'ffcertificate' ),
 					),
 					'ffc_manage_forms' => array(
 						'label'       => __( 'Manage forms', 'ffcertificate' ),
-						'description' => __( 'Create and edit certificate forms — PDF layout, fields and options. Replaces the native post-editing capability the form CPT relied on before (#739).', 'ffcertificate' ),
+						'description' => __( 'Everything View forms allows, plus creating, editing, duplicating and deleting forms and certificate templates — PDF layout, fields and options.', 'ffcertificate' ),
 					),
 				),
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_APPOINTMENTS,
-				'label' => __( 'Appointments', 'ffcertificate' ),
+				'label' => __( 'Personal Calendars - Bookings', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_appointments'           => array(
@@ -231,8 +231,8 @@ final class CapabilityCatalog {
 						'description' => __( 'Read-only access to all scheduled appointments.', 'ffcertificate' ),
 					),
 					'ffc_manage_appointments'         => array(
-						'label'       => __( 'Manage personal calendars', 'ffcertificate' ),
-						'description' => __( 'Configure personal calendars and their booking windows.', 'ffcertificate' ),
+						'label'       => __( 'Manage appointments', 'ffcertificate' ),
+						'description' => __( 'Everything View appointments allows, plus confirming and cancelling appointments, marking no-shows, closing old ones and booking on someone\'s behalf. Setting up the calendars is Manage calendars.', 'ffcertificate' ),
 					),
 					'ffc_bypass_appointments'         => array(
 						'label'       => __( 'Scheduling bypass', 'ffcertificate' ),
@@ -241,7 +241,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_bypass_appointment_capacity' => array(
 						'label'       => __( 'Overbook capacity', 'ffcertificate' ),
-						'description' => __( 'Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity (#941).', 'ffcertificate' ),
+						'description' => __( 'Book a slot or custom block that is already full — the only manual override of the always-enforced per-slot/per-block capacity.', 'ffcertificate' ),
 						'surface'     => 'frontend',
 					),
 					'ffc_export_appointments'         => array(
@@ -254,32 +254,32 @@ final class CapabilityCatalog {
 					),
 					'ffc_purge_appointments'          => array(
 						'label'       => __( 'Purge appointments', 'ffcertificate' ),
-						'description' => __( 'Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log (#1872).', 'ffcertificate' ),
+						'description' => __( 'Clean up a personal calendar in bulk: delete its past, cancelled or every appointment, and cancel its future ones with notice. Each run is written to the activity log.', 'ffcertificate' ),
 					),
 					'ffc_view_appointments_pii'       => array(
 						'label'       => __( 'Reveal appointment PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked (#739, #1824).', 'ffcertificate' ),
+						'description' => __( 'Reveal the decrypted CPF / RF / email on an appointment, and the account email on the audience screens (audited). Without it the values stay masked.', 'ffcertificate' ),
 					),
 				),
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_CALENDARS,
-				'label' => __( 'Calendars', 'ffcertificate' ),
+				'label' => __( 'Personal Calendars - Setup', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_calendars'   => array(
 						'label'       => __( 'View calendars', 'ffcertificate' ),
-						'description' => __( 'Read-only access to personal calendars — structure, working hours and options — without the ability to edit them (#739).', 'ffcertificate' ),
+						'description' => __( 'Read-only access to personal calendars — structure, working hours and options — without the ability to edit them.', 'ffcertificate' ),
 					),
 					'ffc_manage_calendars' => array(
 						'label'       => __( 'Manage calendars', 'ffcertificate' ),
-						'description' => __( 'Create and edit personal calendars — structure, working hours and options. Distinct from managing the bookings made against them (#739).', 'ffcertificate' ),
+						'description' => __( 'Everything View calendars allows, plus creating, editing, duplicating and deleting personal calendars — working hours, blocked dates and options — and the global holidays. The bookings are Manage appointments.', 'ffcertificate' ),
 					),
 				),
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_AUDIENCES,
-				'label' => __( 'Audiences', 'ffcertificate' ),
+				'label' => __( 'Audience Calendars', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_audiences'     => array(
@@ -288,7 +288,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_audiences'   => array(
 						'label'       => __( 'Manage audiences', 'ffcertificate' ),
-						'description' => __( 'Create audiences and manage their members.', 'ffcertificate' ),
+						'description' => __( 'Everything View audiences allows, plus saving audiences, their members and audience calendars, cancelling audience bookings and setting who may book a schedule.', 'ffcertificate' ),
 					),
 					'ffc_import_audiences'   => array(
 						'label'       => __( 'Import audiences', 'ffcertificate' ),
@@ -296,7 +296,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_checkin_audiences'  => array(
 						'label'       => __( 'Run attendance check-in', 'ffcertificate' ),
-						'description' => __( 'Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand (#1947).', 'ffcertificate' ),
+						'description' => __( 'Open and close check-in for a day of a booking, project its rotating QR and mark attendance by hand.', 'ffcertificate' ),
 					),
 					'ffc_export_audiences'   => array(
 						'label'       => __( 'Export audiences', 'ffcertificate' ),
@@ -308,11 +308,11 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_audiences_pii' => array(
 						'label'       => __( 'Reveal audience PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user\'s profile, and export them in clear (audited). Without it they stay masked (#1863).', 'ffcertificate' ),
+						'description' => __( 'Reveal the email of a person listed on the audience screens and the sensitive custom fields on a user\'s profile, and export them in clear (audited). Without it they stay masked.', 'ffcertificate' ),
 					),
 					'ffc_bypass_audiences'   => array(
 						'label'       => __( 'Audience calendar bypass', 'ffcertificate' ),
-						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on (#1859).', 'ffcertificate' ),
+						'description' => __( 'Book a shared space on closed days and holidays, outside opening hours, in the past, beyond the advance window or over an existing booking, after confirming a warning — on calendars whose Admin bypass toggle is on.', 'ffcertificate' ),
 						'surface'     => 'frontend',
 					),
 				),
@@ -328,7 +328,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_reregistration'   => array(
 						'label'       => __( 'Manage reregistration campaigns', 'ffcertificate' ),
-						'description' => __( 'Access the Reregistration admin page.', 'ffcertificate' ),
+						'description' => __( 'Everything View reregistration campaigns allows, plus creating and editing campaigns and their submissions.', 'ffcertificate' ),
 					),
 					'ffc_export_reregistration'   => array(
 						'label'       => __( 'Export reregistration submissions', 'ffcertificate' ),
@@ -344,7 +344,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_reregistration_pii' => array(
 						'label'       => __( 'Reveal reregistration PII', 'ffcertificate' ),
-						'description' => __( 'Reveal a submitter\'s email and open a submission\'s details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed (#1815).', 'ffcertificate' ),
+						'description' => __( 'Reveal a submitter\'s email and open a submission\'s details, with the decrypted CPF / RF / RG (audited). Without it the email stays masked and the details stay closed.', 'ffcertificate' ),
 					),
 				),
 			),
@@ -359,7 +359,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_custom_fields' => array(
 						'label'       => __( 'Manage user custom fields', 'ffcertificate' ),
-						'description' => __( 'Define extra user/audience fields.', 'ffcertificate' ),
+						'description' => __( 'Everything View custom fields allows, plus defining, editing and replicating user and audience fields.', 'ffcertificate' ),
 					),
 					'ffc_delete_custom_fields' => array(
 						'label'       => __( 'Delete custom fields', 'ffcertificate' ),
@@ -378,7 +378,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_url_shortener' => array(
 						'label'       => __( 'Manage short URLs', 'ffcertificate' ),
-						'description' => __( 'Create, edit and toggle short URLs (delete is its own cap below).', 'ffcertificate' ),
+						'description' => __( 'Everything View short URLs allows, plus creating, editing and toggling short URLs and using the QR generator. Deleting is Delete short URLs.', 'ffcertificate' ),
 					),
 					'ffc_delete_url_shortener' => array(
 						'label'       => __( 'Delete short URLs', 'ffcertificate' ),
@@ -401,15 +401,19 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_date_messages'   => array(
 						'label'       => __( 'Manage date messages', 'ffcertificate' ),
-						'description' => __( 'Create, edit, duplicate and delete rules. Sending a rule takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+						'description' => __( 'Create, edit and duplicate rules. Deleting one takes Delete date messages, and sending one, activating it or forcing it past opt-outs takes Send date messages; the daily send time belongs to Settings → Scheduled Tasks.', 'ffcertificate' ),
+					),
+					'ffc_delete_date_messages'   => array(
+						'label'       => __( 'Delete date messages', 'ffcertificate' ),
+						'description' => __( 'Delete a rule. Its history stays. The current managers receive it on upgrade.', 'ffcertificate' ),
 					),
 					'ffc_send_date_messages'     => array(
 						'label'       => __( 'Send date messages', 'ffcertificate' ),
-						'description' => __( 'Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade (#1949).', 'ffcertificate' ),
+						'description' => __( 'Send a rule now, or schedule an announcement to its audience. Managing rules does not include it; the current managers receive it on upgrade.', 'ffcertificate' ),
 					),
 					'ffc_test_date_messages'     => array(
 						'label'       => __( 'Send date-message tests', 'ffcertificate' ),
-						'description' => __( 'Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too (#1860).', 'ffcertificate' ),
+						'description' => __( 'Send a sample of a rule, with fictional values, to your own address. Managing date messages allows it too.', 'ffcertificate' ),
 					),
 					'ffc_view_date_messages_pii' => array(
 						'label'       => __( 'See who receives date messages', 'ffcertificate' ),
@@ -419,7 +423,7 @@ final class CapabilityCatalog {
 			),
 			array(
 				'key'   => self::GROUP_ADMIN_SETTINGS,
-				'label' => __( 'Settings', 'ffcertificate' ),
+				'label' => __( 'FFC Settings', 'ffcertificate' ),
 				'level' => 'admin',
 				'caps'  => array(
 					'ffc_view_settings'              => array(
@@ -428,7 +432,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_settings'            => array(
 						'label'       => __( 'Manage settings', 'ffcertificate' ),
-						'description' => __( 'Access the plugin Settings page.', 'ffcertificate' ),
+						'description' => __( 'Everything View settings allows, plus saving settings, the scheduled task times, the cache actions and the locations. SMTP and the Danger Zone take their own capabilities.', 'ffcertificate' ),
 					),
 					'ffc_manage_settings_smtp'       => array(
 						'label'       => __( 'Manage SMTP / email settings', 'ffcertificate' ),
@@ -440,7 +444,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_test_settings_smtp'         => array(
 						'label'       => __( 'Send the SMTP test email', 'ffcertificate' ),
-						'description' => __( 'Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too (#1860).', 'ffcertificate' ),
+						'description' => __( 'Send the Email Model test message to your own address, without being able to change the transport. Managing SMTP settings allows it too.', 'ffcertificate' ),
 					),
 					'ffc_manage_email_templates'     => array(
 						'label'       => __( 'Manage email templates', 'ffcertificate' ),
@@ -448,7 +452,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_settings_pii'          => array(
 						'label'       => __( 'Reveal settings PII', 'ffcertificate' ),
-						'description' => __( 'Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked (#2109).', 'ffcertificate' ),
+						'description' => __( 'Reveal a blocked address listed on the Rate Limit tab (audited). Without it the address stays masked.', 'ffcertificate' ),
 					),
 				),
 			),
@@ -467,7 +471,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_view_activity_log_pii' => array(
 						'label'       => __( 'Reveal activity log PII', 'ffcertificate' ),
-						'description' => __( 'Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked (#2109).', 'ffcertificate' ),
+						'description' => __( 'Reveal the client address of an activity log entry, and export it in clear (audited). Without it the address stays masked.', 'ffcertificate' ),
 					),
 					'ffc_view_as_user'          => array(
 						'label'       => __( 'View as user', 'ffcertificate' ),
@@ -536,7 +540,7 @@ final class CapabilityCatalog {
 					),
 					'ffc_manage_recruitment'          => array(
 						'label'       => __( 'Manage recruitment (umbrella)', 'ffcertificate' ),
-						'description' => __( 'Full access to the recruitment module.', 'ffcertificate' ),
+						'description' => __( 'Create and edit notices, candidates and classifications. Importing, deleting and the reasons take their own capabilities.', 'ffcertificate' ),
 					),
 					'ffc_manage_recruitment_reasons'  => array(
 						'label'       => __( 'Manage reasons', 'ffcertificate' ),
@@ -707,7 +711,8 @@ final class CapabilityCatalog {
 	 *
 	 * @param string $slug Capability slug.
 	 * @return string One of: view, reveal, book, submit, test, cancel, download,
-	 *                call, export, import, edit, manage, bypass, delete.
+	 *                call, checkin, grade, send, export, import, edit, manage,
+	 *                bypass, delete, purge, merge, split.
 	 */
 	public static function cap_tier( string $slug ): string {
 		if ( str_ends_with( $slug, '_pii' ) ) {
@@ -723,13 +728,85 @@ final class CapabilityCatalog {
 			'cancel',
 			'download',
 			'call',
+			'checkin',
+			'grade',
+			'send',
 			'export',
 			'import',
 			'edit',
 			'manage',
 			'bypass',
 			'delete',
+			'purge',
+			'merge',
+			'split',
 		);
 		return in_array( $action, $known, true ) ? $action : 'view';
+	}
+
+	/**
+	 * The band a tier belongs to, written out on each row so the tier is
+	 * read from text and not only from how strong the accent is (#2340).
+	 *
+	 * @param string $tier A {@see self::cap_tier()} token.
+	 * @return array{band: string, label: string} Band key and its label.
+	 */
+	public static function tier_band( string $tier ): array {
+		$bands  = array(
+			'read'     => array( 'view', 'download' ),
+			'act'      => array( 'book', 'submit', 'test', 'cancel', 'call', 'checkin', 'grade', 'send' ),
+			'data'     => array( 'reveal', 'export' ),
+			'change'   => array( 'import', 'edit', 'manage' ),
+			'override' => array( 'bypass' ),
+			'destroy'  => array( 'delete', 'purge', 'merge', 'split' ),
+		);
+		$labels = array(
+			'read'     => __( 'Read', 'ffcertificate' ),
+			'act'      => __( 'Act', 'ffcertificate' ),
+			'data'     => __( 'Personal data', 'ffcertificate' ),
+			'change'   => __( 'Change', 'ffcertificate' ),
+			'override' => __( 'Override', 'ffcertificate' ),
+			'destroy'  => __( 'Destructive', 'ffcertificate' ),
+		);
+		foreach ( $bands as $band => $tiers ) {
+			if ( in_array( $tier, $tiers, true ) ) {
+				return array(
+					'band'  => $band,
+					'label' => $labels[ $band ],
+				);
+			}
+		}
+		return array(
+			'band'  => 'read',
+			'label' => $labels['read'],
+		);
+	}
+
+	/**
+	 * Whether granting a capability asks first (#2340): it reaches personal
+	 * data or destroys records, or it opens the activity log, which records
+	 * what everybody else did.
+	 *
+	 * @param string $slug Capability slug.
+	 * @return bool
+	 */
+	public static function needs_grant_confirmation( string $slug ): bool {
+		$band = self::tier_band( self::cap_tier( $slug ) )['band'];
+		return in_array( $band, array( 'data', 'destroy' ), true ) || str_contains( $slug, '_activity_log' );
+	}
+
+	/**
+	 * The tier chip drawn beside a capability's name.
+	 *
+	 * @param string $slug Capability slug.
+	 * @return string Escaped HTML.
+	 */
+	public static function tier_chip( string $slug ): string {
+		$band = self::tier_band( self::cap_tier( $slug ) );
+		return sprintf(
+			'<span class="ffc-cap-tier ffc-cap-tier-%1$s">%2$s</span>',
+			esc_attr( $band['band'] ),
+			esc_html( $band['label'] )
+		);
 	}
 }

@@ -82,10 +82,14 @@ class CepLookupEndpoint {
 			'action'  => self::ACTION,
 			'nonce'   => wp_create_nonce( self::ACTION ),
 			'strings' => array(
-				'searching' => __( 'Looking up the address…', 'ffcertificate' ),
-				'filled'    => __( 'Address filled from the CEP. Check the number.', 'ffcertificate' ),
-				'cityOnly'  => __( 'City found. Fill in the street and the neighbourhood.', 'ffcertificate' ),
-				'notFound'  => __( 'CEP not found. Correct the CEP or fill in the address manually.', 'ffcertificate' ),
+				'searching'   => __( 'Looking up the address…', 'ffcertificate' ),
+				'filled'      => __( 'Address filled from the CEP. Check the number.', 'ffcertificate' ),
+				'cityOnly'    => __( 'City found. Fill in the street and the neighbourhood.', 'ffcertificate' ),
+				'notFound'    => __( 'CEP not found. Correct the CEP or fill in the address manually.', 'ffcertificate' ),
+				// The service down or a refused request is not a wrong CEP (#2342).
+				'unavailable' => __( 'The address service did not answer. Fill in the address manually.', 'ffcertificate' ),
+				/* translators: %d: seconds to wait before the next lookup */
+				'tooMany'     => __( 'Too many lookups. Try again in %d s or fill in the address manually.', 'ffcertificate' ),
 			),
 		);
 	}
@@ -107,6 +111,12 @@ class CepLookupEndpoint {
 		// spends nothing.
 		if ( CepRule::OK !== CepRule::check( $cep ) ) {
 			wp_send_json_success( CepLookup::lookup( $cep ) );
+		}
+
+		// A cached answer sends nothing to the provider, so it spends nothing (#2342).
+		$cached = CepLookup::cached( $cep );
+		if ( null !== $cached ) {
+			wp_send_json_success( $cached );
 		}
 
 		if ( ! WindowThrottle::take( self::THROTTLE_PREFIX, self::CAP, self::WINDOW, true ) ) {

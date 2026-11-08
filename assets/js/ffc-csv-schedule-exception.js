@@ -37,7 +37,7 @@
 	}
 
 	function showScheduleExceptionModal(opts) {
-		$('.ffc-schedule-exception-modal').remove();
+		$('.ffc-csv-dialog-host').remove();
 
 		var modalHtml = ''
 			+ '<div class="ffc-schedule-exception-modal ffc-open-early-modal" role="dialog" aria-modal="true" aria-labelledby="ffc-schedule-exception-title">'
@@ -52,25 +52,30 @@
 			+     '</div>'
 			+     '<div class="ffc-open-early-body ffc-schedule-exception-body">'
 			+       '<p>' + esc(strings.scheduleExceptionBody || 'Set a different schedule for one participant. The next form submission opened from this modal will record this exception.') + '</p>'
-			+       '<p>'
+			// The two modes are one choice, so they sit in a fieldset with its
+			// legend; the times sit side by side with a gap (#2341).
+			+       '<fieldset class="ffc-schedule-exception-modes">'
+			+         '<legend>' + esc(strings.scheduleExceptionModeLegend || 'What changes') + '</legend>'
 			+         '<label><input type="radio" name="ffc-schedule-exception-mode" value="now" ' + (opts.defaultMode === 'now' ? 'checked' : '') + '> '
 			+         esc(strings.scheduleExceptionModeNow || 'End now (start stays at baseline)')
-			+         '</label><br>'
+			+         '</label>'
 			+         '<label><input type="radio" name="ffc-schedule-exception-mode" value="manual" ' + (opts.defaultMode === 'manual' ? 'checked' : '') + '> '
 			+         esc(strings.scheduleExceptionModeManual || 'Edit both ends manually')
 			+         '</label>'
-			+       '</p>'
-			+       '<p>'
-			+         '<label for="ffc-schedule-exception-start"><strong>' + esc(strings.scheduleExceptionStartLabel || 'New start:') + '</strong></label> '
-			+         '<input type="time" id="ffc-schedule-exception-start" class="ffc-extend-end-input ffc-schedule-exception-start" value="' + esc(opts.baselineStart) + '">'
-			+         '&nbsp;&nbsp;'
-			+         '<label for="ffc-schedule-exception-end"><strong>' + esc(strings.scheduleExceptionEndLabel || 'New end:') + '</strong></label> '
-			+         '<input type="time" id="ffc-schedule-exception-end" class="ffc-extend-end-input ffc-schedule-exception-end" value="' + esc(opts.baselineEnd) + '">'
-			+       '</p>'
+			+       '</fieldset>'
+			+       '<div class="ffc-schedule-exception-times">'
+			+         '<label for="ffc-schedule-exception-start">' + esc(strings.scheduleExceptionStartLabel || 'New start:')
+			+         ' <input type="time" id="ffc-schedule-exception-start" class="ffc-input ffc-extend-end-input ffc-schedule-exception-start" value="' + esc(opts.baselineStart) + '">'
+			+         '</label>'
+			+         '<label for="ffc-schedule-exception-end">' + esc(strings.scheduleExceptionEndLabel || 'New end:')
+			+         ' <input type="time" id="ffc-schedule-exception-end" class="ffc-input ffc-extend-end-input ffc-schedule-exception-end" value="' + esc(opts.baselineEnd) + '">'
+			+         '</label>'
+			+       '</div>'
 			+       '<p class="ffc-schedule-exception-error" role="alert" hidden></p>'
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Create is caution,
 			// because it moves one participant's window (#1881).
+			+     '<div class="ffc-csv-action-security"></div>'
 			+     '<div class="ffc-open-early-actions ffc-schedule-exception-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-schedule-exception-cancel', attrs: { autofocus: true } })
 			+       FFC.buttonHtml({ label: strings.scheduleExceptionConfirm || 'Create exception', category: 'caution', icon: 'user-clock', className: 'ffc-schedule-exception-confirm' })
@@ -78,7 +83,9 @@
 			+   '</div>'
 			+ '</div>';
 
-		var $modal = $(modalHtml).appendTo(document.body);
+		var $modal = $(modalHtml);
+		var close  = api.openDialog($modal);
+		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		var $start = $modal.find('.ffc-schedule-exception-start');
 		var $end   = $modal.find('.ffc-schedule-exception-end');
 		var $err   = $modal.find('.ffc-schedule-exception-error');
@@ -93,12 +100,10 @@
 		function applyMode() {
 			var mode = $modal.find('input[name="ffc-schedule-exception-mode"]:checked').val();
 			if (mode === 'now') {
-				// Start stays baseline (disabled), end gets current local time.
+				// Start stays baseline (disabled), end gets the site's
+				// current time, not the browser's (#2341).
 				$start.val(opts.baselineStart).prop('disabled', true);
-				var now    = new Date();
-				var nowStr = (now.getHours()   < 10 ? '0' : '') + now.getHours()
-					+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-				$end.val(nowStr).prop('disabled', false);
+				$end.val(api.siteNow().hm).prop('disabled', false);
 			} else {
 				$start.prop('disabled', false);
 				$end.prop('disabled', false);
@@ -114,7 +119,7 @@
 		$(document).on('keydown.ffcSchedExc', onKey);
 		function closeModal() {
 			$(document).off('keydown.ffcSchedExc');
-			$modal.remove();
+			close();
 		}
 
 		function validate() {
@@ -162,12 +167,15 @@
 		var payloadStart = (startVal === opts.baselineStart) ? '' : startVal;
 		var payloadEnd   = (endVal   === opts.baselineEnd)   ? '' : endVal;
 
-		var payload = api.$form.serialize().replace(/(^|&)action=[^&]*/, '')
+		var payload = api.actionPayload($modal)
 			+ '&start_override=' + encodeURIComponent(payloadStart)
 			+ '&end_override='   + encodeURIComponent(payloadEnd);
 
 		FFC.request('ffc_public_schedule_exception', payload)
 			.then(function (data) {
+				// The challenge is spent; the next action needs the fresh
+				// one the answer carries (#2341).
+				api.refreshActionSecurity({ data: data });
 				// Swap modal body to the post-create CTA — preserves the
 				// click-driven user gesture for the window.open call below
 				// so popup blockers don't engage.
@@ -201,10 +209,21 @@
 						+ '</p>'
 					);
 					$modal.find('.ffc-schedule-exception-actions').empty();
-					setTimeout(function () { $modal.remove(); }, SCHED_EXC_OPEN_DELAY_MS);
+					setTimeout(function () {
+						$(document).off('keydown.ffcSchedExc');
+						$modal.closest('.ffc-csv-dialog-host').remove();
+						$modal.remove();
+					}, SCHED_EXC_OPEN_DELAY_MS);
 				});
 			})
 			.catch(function (err) {
+				api.refreshActionSecurity(err);
+				// The dialog stays open, so its own block takes the fresh
+				// challenge too.
+				var UI = window.FFC && window.FFC.Frontend && window.FFC.Frontend.UI;
+				if (UI && err && err.data && err.data.refresh_captcha) {
+					UI.refreshCaptcha($modal, err.data);
+				}
 				$confirm.prop('disabled', false).text(strings.scheduleExceptionConfirm || 'Create exception');
 				$modal.find('.ffc-schedule-exception-error')
 					.text((err && err.fromServer && err.message) || strings.error || 'Action failed.')

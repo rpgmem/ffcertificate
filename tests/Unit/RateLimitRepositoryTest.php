@@ -88,19 +88,13 @@ class RateLimitRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn(
 			(object) array( 'id' => 9, 'count' => 3 )
 		);
-		$this->wpdb->shouldReceive( 'update' )
+		// The increment is done by the database, so a hit between the read
+		// and the write is not lost (#2339).
+		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => array( $sql, $args ) );
+		$this->wpdb->shouldReceive( 'update' )->never();
+		$this->wpdb->shouldReceive( 'query' )
 			->once()
-			->with(
-				'wp_ffc_rate_limits',
-				Mockery::on(
-					function ( $data ) {
-						return 4 === $data['count'];
-					}
-				),
-				array( 'id' => 9 ),
-				array( '%d', '%s' ),
-				array( '%d' )
-			)
+			->with( Mockery::on( static fn( $q ) => is_array( $q ) && 'UPDATE %i SET count = count + 1, last_attempt = %s WHERE id = %d' === $q[0] && 9 === $q[1][2] ) )
 			->andReturn( 1 );
 
 		RateLimitRepository::increment_counter( 'ip', '1.1.1.1', 'hour', null );
@@ -138,7 +132,7 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					function ( $data ) use ( $email ) {
-						return $data['identifier'] === hash( 'sha256', $email )
+						return $data['identifier'] === \FreeFormCertificate\Core\Encryption::keyed_hash( $email, 'rate_limit_email' )
 							&& $data['identifier'] !== $email
 							&& 'email' === $data['type'];
 					}
@@ -177,7 +171,7 @@ class RateLimitRepositoryTest extends TestCase {
 				'wp_ffc_rate_limits',
 				Mockery::on(
 					function ( $data ) use ( $cpf ) {
-						return $data['identifier'] === hash( 'sha256', $cpf )
+						return $data['identifier'] === \FreeFormCertificate\Core\Encryption::keyed_hash( $cpf, 'rate_limit_cpf' )
 							&& $data['identifier'] !== $cpf;
 					}
 				),
@@ -204,7 +198,7 @@ class RateLimitRepositoryTest extends TestCase {
 
 		RateLimitRepository::get_count_from_db( 'email', $email, 'day', null );
 
-		$this->assertContains( hash( 'sha256', $email ), $captured );
+		$this->assertContains( \FreeFormCertificate\Core\Encryption::keyed_hash( $email, 'rate_limit_email' ), $captured );
 		$this->assertNotContains( $email, $captured );
 	}
 
@@ -260,11 +254,17 @@ class RateLimitRepositoryTest extends TestCase {
 			}
 		);
 
+		$before = time();
 		RateLimitRepository::get_submission_count( 'cpf', Identifiers::CPF_A, $period, null );
+		$after = time();
 
 		$this->assertCount( 1, $queries );
-		$this->assertStringContainsString( sprintf( 'INTERVAL %d DAY', $days ), $queries[0] );
-		$this->assertSame( 1, substr_count( $queries[0], 'INTERVAL' ), 'One window per count.' );
+		// `submission_date` is a unix instant, so the window is one too; a
+		// DATETIME comparison was always false and counted nothing (#2339).
+		$this->assertSame( 1, preg_match( '/submission_date >= (\d+)/', $queries[0], $m ), 'The window compares an instant.' );
+		$this->assertStringNotContainsString( 'NOW()', $queries[0] );
+		$this->assertGreaterThanOrEqual( $before - $days * DAY_IN_SECONDS, (int) $m[1] );
+		$this->assertLessThanOrEqual( $after - $days * DAY_IN_SECONDS, (int) $m[1] );
 	}
 
 	/**

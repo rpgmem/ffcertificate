@@ -22,6 +22,21 @@ async function mountAndLoad(html) {
 	await new Promise((r) => setTimeout(r, 0));
 }
 
+describe('ffc-section-collapse — aria-controls (#2344)', () => {
+	it('names every section of a checkbox master, giving an id to one that has none', async () => {
+		await mountAndLoad(`
+			<input type="checkbox" id="m" data-ffc-section-master="ip_api" checked />
+			<table><tr data-ffc-section="ip_api" id="kept"><td>a</td></tr><tr data-ffc-section="ip_api"><td>b</td></tr></table>
+			<span id="chip" data-ffc-section-master="ip_api"></span>
+		`);
+		const rows = document.querySelectorAll('[data-ffc-section="ip_api"]');
+		expect(rows[1].id).toBe('ffc-section-ip_api-2');
+		expect(document.getElementById('m').getAttribute('aria-controls')).toBe('kept ffc-section-ip_api-2');
+		expect(document.getElementById('m').hasAttribute('aria-expanded')).toBe(false);
+		expect(document.getElementById('chip').hasAttribute('aria-controls')).toBe(false);
+	});
+});
+
 describe('ffc-section-collapse — initial state', () => {
 	it('shows sections whose master is checked on load', async () => {
 		await mountAndLoad(`
@@ -77,5 +92,34 @@ describe('ffc-section-collapse — change handler', () => {
 		window.$(m1).trigger('change');
 		expect(document.getElementById('s1').style.display).toBe('none');
 		expect(document.getElementById('s2').style.display).not.toBe('none');
+	});
+});
+
+describe('ffc-section-collapse — required fields (#2344)', () => {
+	it('takes a hidden section\'s required fields with it, and gives them back', async () => {
+		if (!window.FFC || !window.FFC.setRequiredWithin) {
+			loadScript('assets/js/ffc-core.js');
+		}
+		await mountAndLoad(`
+			<form>
+				<input type="checkbox" data-ffc-section-master="ip" />
+				<table data-ffc-section="ip"><tbody><tr><td>
+					<input type="number" id="max" value="" required>
+					<input type="number" id="free" value="">
+				</td></tr></tbody></table>
+			</form>
+		`);
+		const max = document.getElementById('max');
+		const free = document.getElementById('free');
+		// Off on load: a cleared required number no longer blocks the save.
+		expect(max.required).toBe(false);
+		expect(document.querySelector('form').checkValidity()).toBe(true);
+
+		const master = document.querySelector('[data-ffc-section-master="ip"]');
+		master.checked = true;
+		window.$(master).trigger('change');
+		expect(max.required).toBe(true);
+		// A field that was never required is not promoted.
+		expect(free.required).toBe(false);
 	});
 });

@@ -37,7 +37,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * A refusal names its reason from a closed list, so the AJAX handler's
  * message map is checked against it and needs no generic fallback (#2169).
  *
- * @phpstan-type ExtendEndRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'extend_end_disabled'|'datetime_disabled'|'no_end_date'|'not_started_yet'|'already_ended'|'not_today'|'already_postponed'|'bad_time_format'|'not_extending'|'past_now'|'out_of_day'}
+ * @phpstan-type ExtendEndRefusal array{ok: false, reason: 'unknown_form'|'csv_disabled'|'bad_hash'|'extend_end_disabled'|'datetime_disabled'|'no_end_date'|'not_started_yet'|'already_ended'|'not_today'|'already_postponed'|'last_minute'|'bad_time_format'|'not_extending'|'past_now'|'out_of_day'}
  */
 final class ExtendEndAction {
 
@@ -162,7 +162,27 @@ final class ExtendEndAction {
 			);
 		}
 
+		// No later minute in the day (#2341): a close at 23:59, or a day
+		// with no close time, already ends at the last minute.
+		if ( self::closes_at_last_minute( $geofence ) ) {
+			return array(
+				'ok'     => false,
+				'reason' => 'last_minute',
+			);
+		}
+
 		return array( 'ok' => true );
+	}
+
+	/**
+	 * Whether a form's close is already the last minute of its day.
+	 *
+	 * @param array<string, mixed> $geofence Stored geofence config.
+	 * @return bool
+	 */
+	public static function closes_at_last_minute( array $geofence ): bool {
+		$time_end = isset( $geofence['time_end'] ) && is_string( $geofence['time_end'] ) ? trim( $geofence['time_end'] ) : '';
+		return '' === $time_end || substr( $time_end, 0, 5 ) >= '23:59';
 	}
 
 	/**

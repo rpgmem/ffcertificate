@@ -135,10 +135,10 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 	 * @param array<string, mixed> $status    What calculate_status() answers.
 	 * @return MigrationStrategyInterface
 	 */
-	private function strategy_with( int $processed, array $status ): MigrationStrategyInterface {
+	private function strategy_with( int $processed, array $status, array $extra = array() ): MigrationStrategyInterface {
 		$strategy = Mockery::mock( MigrationStrategyInterface::class );
 		$strategy->shouldReceive( 'can_run' )->with( self::KEY, Mockery::type( 'array' ) )->andReturn( true );
-		$strategy->shouldReceive( 'execute' )->once()->with( self::KEY, Mockery::type( 'array' ), 0 )->andReturn( array( 'processed' => $processed ) );
+		$strategy->shouldReceive( 'execute' )->once()->with( self::KEY, Mockery::type( 'array' ), 0 )->andReturn( array_merge( array( 'processed' => $processed ), $extra ) );
 		$strategy->shouldReceive( 'calculate_status' )->with( self::KEY, Mockery::type( 'array' ) )->andReturn( $status );
 		return $strategy;
 	}
@@ -259,5 +259,93 @@ class MigrationActionsAjaxEndpointTest extends TestCase {
 			$this->assertStringContainsString( '"is_complete":true', $e->getMessage() );
 			$this->assertStringContainsString( '"processed":32', $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Run the endpoint and return the decoded success payload.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function payload(): array {
+		$_POST = array( 'nonce' => 'x', 'migration_key' => self::KEY );
+		try {
+			MigrationActionsAjaxEndpoint::handle();
+			$this->fail( 'Expected wp_send_json_success to short-circuit' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_success', $e->getMessage() );
+			$json = (string) substr( $e->getMessage(), (int) strpos( $e->getMessage(), '{' ) );
+			return (array) json_decode( $json, true );
+		}
+		return array();
+	}
+
+	/**
+	 * The runner needs to know when to stop short of completion (#2338): a
+	 * batch that changed nothing has no more to give, and its errors travel
+	 * with the answer.
+	 */
+	public function test_a_batch_that_changed_nothing_has_no_more_and_carries_its_errors(): void {
+		$this->grant_dangerzone();
+		$this->register_migration(
+			$this->strategy_with(
+				0,
+				array( 'total' => 10, 'migrated' => 4, 'pending' => 6, 'percent' => 40.0, 'is_complete' => false ),
+				array( 'success' => false, 'errors' => array( 'Row 3 failed', '', array( 'x' ) ) )
+			)
+		);
+
+		$data = $this->payload();
+
+		$this->assertFalse( $data['has_more'] );
+		$this->assertFalse( $data['success'] );
+		$this->assertSame( array( 'Row 3 failed' ), $data['errors'] );
+	}
+
+	public function test_the_strategys_own_has_more_wins_and_errors_are_capped(): void {
+		$this->grant_dangerzone();
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === (int) $number ? $single : $plural );
+		$errors = array();
+		for ( $i = 1; $i <= 25; $i++ ) {
+			$errors[] = 'Row ' . $i;
+		}
+		$this->register_migration(
+			$this->strategy_with(
+				5,
+				array( 'total' => 10, 'migrated' => 5, 'pending' => 5, 'percent' => 50.0, 'is_complete' => false ),
+				array( 'has_more' => false, 'errors' => $errors )
+			)
+		);
+
+		$data = $this->payload();
+
+		$this->assertFalse( $data['has_more'] );
+		$this->assertCount( 21, $data['errors'] );
+		$this->assertSame( 'Row 20', $data['errors'][19] );
+	}
+
+	public function test_a_failure_without_a_list_reports_its_message(): void {
+		$this->grant_dangerzone();
+		$this->register_migration(
+			$this->strategy_with(
+				0,
+				array( 'total' => 1, 'migrated' => 0, 'pending' => 1, 'percent' => 0.0, 'is_complete' => false ),
+				array( 'success' => false, 'message' => 'Keys are not configured.' )
+			)
+		);
+
+		$this->assertSame( array( 'Keys are not configured.' ), $this->payload()['errors'] );
+	}
+
+	public function test_a_completed_migration_has_no_more(): void {
+		$this->grant_dangerzone();
+		$this->register_migration(
+			$this->strategy_with(
+				3,
+				array( 'total' => 3, 'migrated' => 3, 'pending' => 0, 'percent' => 100.0, 'is_complete' => true ),
+				array( 'has_more' => true )
+			)
+		);
+
+		$this->assertFalse( $this->payload()['has_more'] );
 	}
 }

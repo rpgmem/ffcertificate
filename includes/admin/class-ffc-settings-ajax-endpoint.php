@@ -119,19 +119,6 @@ class SettingsAjaxEndpoint {
 			'debug_qrcode',
 			// 6.6.4 follow-up (#361 Sprint 1).
 			'debug_browser_env',
-			// Activity-log granular filter — per-category enables.
-			'activity_log_cat_submissions',
-			'activity_log_cat_scheduling',
-			'activity_log_cat_public_access',
-			'activity_log_cat_users',
-			'activity_log_cat_recruitment',
-			'activity_log_cat_migrations',
-			'activity_log_cat_system',
-			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
-			// data (tables, options, CPT posts, roles, caps). Default OFF
-			// matches the WooCommerce / EDD / Yoast convention so plugin
-			// deletion never wipes data unintentionally.
-			'delete_data_on_uninstall',
 			// General tab — submission auto-delete opt-in (#936). Default OFF;
 			// gates the day-window field so no site purges data unintentionally.
 			'cleanup_enabled',
@@ -182,11 +169,12 @@ class SettingsAjaxEndpoint {
 				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings',
 			),
+			// Whether administrators skip the block is theirs alone (#2338).
 			'user_access_bypass_for_admins' => array(
 				'option' => 'ffc_user_access_settings',
 				'path'   => array( 'bypass_for_admins' ),
 				'type'   => 'bool',
-				'cap'    => 'ffc_manage_settings',
+				'cap'    => 'manage_options',
 			),
 			'user_access_allow_admin_bar'   => array(
 				'option' => 'ffc_user_access_settings',
@@ -203,6 +191,17 @@ class SettingsAjaxEndpoint {
 				'path'   => array( 'disable_all_emails' ),
 				'type'   => 'bool',
 				'invert' => true,
+				'cap'    => 'ffc_manage_settings_dangerzone',
+			),
+			// Danger Zone opt-in: when on, uninstall.php removes ALL plugin
+			// data (tables, options, CPT posts, roles, caps). Default OFF
+			// matches the WooCommerce / EDD / Yoast convention so plugin
+			// deletion never wipes data unintentionally. Arming it is a
+			// destructive decision, so it carries the dangerzone sub-cap like
+			// every other Danger Zone action (#2343).
+			'delete_data_on_uninstall'      => array(
+				'option' => 'ffc_settings',
+				'type'   => 'bool',
 				'cap'    => 'ffc_manage_settings_dangerzone',
 			),
 			// Raw kill-switch slot (legacy JS key) — same dangerzone gate as the
@@ -242,6 +241,24 @@ class SettingsAjaxEndpoint {
 			'cap'     => 'ffc_manage_recruitment_settings',
 		);
 
+		// Date Messages → Settings, the user dashboard (#2503): how long an
+		// announcement opens the dashboard, and whether what a disabled rule
+		// sent leaves it. The module's own option, gated by the capability
+		// that edits its rules.
+		$allowlist['date_messages_notice_days']         = array(
+			'option'  => \FreeFormCertificate\DateMessages\UserMessages::SETTINGS_OPTION,
+			'path'    => array( 'dashboard_notice_days' ),
+			'type'    => 'enum',
+			'options' => array_map( 'strval', \FreeFormCertificate\DateMessages\UserMessages::NOTICE_DAYS_CHOICES ),
+			'cap'     => 'ffc_manage_date_messages',
+		);
+		$allowlist['date_messages_hide_disabled_rules'] = array(
+			'option' => \FreeFormCertificate\DateMessages\UserMessages::SETTINGS_OPTION,
+			'path'   => array( 'hide_disabled_rules' ),
+			'type'   => 'bool',
+			'cap'    => 'ffc_manage_date_messages',
+		);
+
 		foreach ( $recruitment_bools as $field ) {
 			$allowlist[ 'recruitment_' . $field ] = array(
 				'option' => 'ffc_recruitment_settings',
@@ -251,6 +268,11 @@ class SettingsAjaxEndpoint {
 			);
 		}
 
+		// Every activity-log item (#2340); the audit ones are raised to the
+		// Danger Zone capability with the rest of dangerzone_settings().
+		foreach ( array_keys( \FreeFormCertificate\Core\ActivityLogItems::ITEMS ) as $item ) {
+			$bool_settings[] = \FreeFormCertificate\Core\ActivityLogItems::setting_key( $item );
+		}
 		foreach ( $bool_settings as $key ) {
 			$allowlist[ $key ] = array(
 				'option' => 'ffc_settings',
@@ -312,8 +334,15 @@ class SettingsAjaxEndpoint {
 			'activity_log_retention_days' => array(
 				'int',
 				array(
-					'min' => 0,
-					'max' => 3650,
+					'min' => \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN,
+					'max' => \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX,
+				),
+			),
+			'activity_log_max_records'    => array(
+				'int',
+				array(
+					'min' => \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN,
+					'max' => \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX,
 				),
 			),
 			// Data Migrations tab — "never clicked … days ago" grace window.
@@ -473,6 +502,11 @@ class SettingsAjaxEndpoint {
 					'max' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_MAX,
 				),
 			),
+			'ip_submission_unresolved'       => array(
+				array( 'ip', 'submission_unresolved' ),
+				'enum',
+				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
+			),
 			'ip_captcha_unresolved'          => array(
 				array( 'ip', 'captcha_unresolved' ),
 				'enum',
@@ -483,11 +517,18 @@ class SettingsAjaxEndpoint {
 				'enum',
 				array( 'options' => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_POLICIES ),
 			),
-			'ip_apply_to'                    => array( array( 'ip', 'apply_to' ), 'string', array() ),
 			'ip_message'                     => array( array( 'ip', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'email_max_per_day'              => array( array( 'email', 'max_per_day' ), 'int', array( 'min' => 1 ) ),
 			'email_max_per_week'             => array( array( 'email', 'max_per_week' ), 'int', array( 'min' => 1 ) ),
 			'email_max_per_month'            => array( array( 'email', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
+			'email_wait_hours'               => array(
+				array( 'email', 'wait_hours' ),
+				'int',
+				array(
+					'min' => 0,
+					'max' => 8760,
+				),
+			),
 			'email_message'                  => array( array( 'email', 'message' ), 'string', array( 'as' => 'multiline_text' ) ),
 			'cpf_max_per_month'              => array( array( 'cpf', 'max_per_month' ), 'int', array( 'min' => 1 ) ),
 			'cpf_max_per_year'               => array( array( 'cpf', 'max_per_year' ), 'int', array( 'min' => 1 ) ),
@@ -518,8 +559,9 @@ class SettingsAjaxEndpoint {
 				array( 'device', 'match_strong_min' ),
 				'int',
 				array(
-					'min' => 0,
-					'max' => 6,
+					'min'   => 0,
+					'max'   => 6,
+					'check' => array( \FreeFormCertificate\Settings\RateLimitSettingsReader::class, 'strong_min_error' ),
 				),
 			),
 			'device_retention_days'          => array(
@@ -569,11 +611,49 @@ class SettingsAjaxEndpoint {
 			'option'  => 'ffc_rate_limit_settings',
 			'path'    => array( 'device', 'signals_enabled' ),
 			'type'    => 'string[]',
-			'options' => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+			'options' => \FreeFormCertificate\Security\RateLimitChecker::DEVICE_SIGNALS,
 			'cap'     => 'ffc_manage_settings',
+			'check'   => array( \FreeFormCertificate\Settings\RateLimitSettingsReader::class, 'signals_error' ),
 		);
 
+		// Settings that delete data or switch the audit trail off carry the
+		// Danger Zone capability, on the autosave as on the form save (#2338).
+		foreach ( self::dangerzone_settings() as $key ) {
+			if ( isset( $allowlist[ $key ] ) ) {
+				$allowlist[ $key ]['cap'] = 'ffc_manage_settings_dangerzone';
+			}
+		}
+
 		return $allowlist;
+	}
+
+	/**
+	 * The `ffc_settings` keys that need `ffc_manage_settings_dangerzone`.
+	 *
+	 * Each one deletes data or stops recording who did what: auto-delete and
+	 * its window, the uninstall wipe, the activity log, its categories and its
+	 * retention. A Settings Manager without the Danger Zone capability could
+	 * otherwise set auto-delete to one day or switch the log off (#2338). Read
+	 * by the autosave allowlist and by `SettingsSaveHandler`, so the two
+	 * writers gate the same keys.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function dangerzone_settings(): array {
+		$keys = array(
+			'cleanup_enabled',
+			'cleanup_days',
+			'delete_data_on_uninstall',
+			'enable_activity_log',
+			'activity_log_retention_days',
+			'activity_log_max_records',
+		);
+		// Switching an audit item off stops recording who saw or deleted data
+		// (#2340); a secondary item needs only the tab's capability.
+		foreach ( \FreeFormCertificate\Core\ActivityLogItems::keys_of( \FreeFormCertificate\Core\ActivityLogItems::GROUP_AUDIT ) as $item ) {
+			$keys[] = \FreeFormCertificate\Core\ActivityLogItems::setting_key( $item );
+		}
+		return $keys;
 	}
 
 	/**
@@ -632,6 +712,16 @@ class SettingsAjaxEndpoint {
 				? __( 'The table could not be read. Reload the page and try again.', 'ffcertificate' )
 				: __( 'That value is not one of the choices.', 'ffcertificate' );
 			wp_send_json_error( array( 'message' => $message ), 400 );
+		}
+
+		// A value valid on its own may still contradict another setting: a
+		// strong-signal minimum above the strong signals enabled can never
+		// match (#2339). The entry's check answers with the reason, or null.
+		if ( isset( $entry['check'] ) && is_callable( $entry['check'] ) ) {
+			$refusal = call_user_func( $entry['check'], $value );
+			if ( is_string( $refusal ) && '' !== $refusal ) {
+				wp_send_json_error( array( 'message' => $refusal ), 400 );
+			}
 		}
 
 		// Optional bool inversion — the SMTP tab's "Ativar envios" toggle is
@@ -707,7 +797,17 @@ class SettingsAjaxEndpoint {
 			if ( ! is_array( $option ) ) {
 				$option = array();
 			}
+			$before = $option;
 			self::set_nested( $option, $path, $value );
+			if ( 'ffc_settings' === $option_name ) {
+				// Audited before the write, so switching the log off is
+				// still recorded (#2340).
+				DangerzoneSettingsAudit::record( $before, $option );
+			}
+			if ( $before !== $option ) {
+				// Which setting moved, by its path; never the value (#2340).
+				SettingsChangeAudit::record_keys( $option_name, array( implode( '.', $path ) ) );
+			}
 			update_option( $option_name, $option );
 		} finally {
 			// $holder is set only when the lock above was granted.

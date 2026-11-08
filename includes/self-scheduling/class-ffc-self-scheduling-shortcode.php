@@ -33,6 +33,13 @@ class SelfSchedulingShortcode {
 	private $calendar_repository;
 
 	/**
+	 * Whether this request already enqueued the calendar's assets.
+	 *
+	 * @var bool
+	 */
+	private bool $assets_done = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -43,23 +50,49 @@ class SelfSchedulingShortcode {
 
 		// Enqueue assets.
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		// The fallback for a calendar the post body does not carry: a widget,
+		// a block template part, a theme's do_shortcode() (#2344). Priority
+		// 10, two args; it returns the short-circuit value untouched.
+		add_filter( 'pre_do_shortcode_tag', array( $this, 'enqueue_on_render' ), 10, 2 );
+	}
+
+	/**
+	 * Enqueue the calendar's assets as it renders, when the post body did not
+	 * carry the shortcode (#2344).
+	 *
+	 * @param false|string $short_circuit The value `pre_do_shortcode_tag` passes on; returned unchanged.
+	 * @param string       $tag           The shortcode about to render.
+	 * @return false|string
+	 */
+	public function enqueue_on_render( $short_circuit, $tag ) {
+		if ( false === $short_circuit && 'ffc_self_scheduling' === $tag ) {
+			$this->enqueue_assets( true );
+		}
+		return $short_circuit;
 	}
 
 	/**
 	 * Enqueue frontend assets
 	 *
+	 * @param bool $force Enqueue without reading the post body (a render-time call).
 	 * @return void
 	 */
-	public function enqueue_assets(): void {
-		// Only enqueue if shortcode is present in content.
-		if ( ! is_singular() && ! is_page() ) {
+	public function enqueue_assets( bool $force = false ): void {
+		if ( $this->assets_done ) {
 			return;
 		}
+		if ( ! $force ) {
+			// Only enqueue if shortcode is present in content.
+			if ( ! is_singular() && ! is_page() ) {
+				return;
+			}
 
-		global $post;
-		if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_self_scheduling' ) ) {
-			return;
+			global $post;
+			if ( ! $post || ! has_shortcode( $post->post_content, 'ffc_self_scheduling' ) ) {
+				return;
+			}
 		}
+		$this->assets_done = true;
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 
@@ -122,7 +155,7 @@ class SelfSchedulingShortcode {
 		wp_localize_script( 'ffc-core', 'ffc_ajax', \FreeFormCertificate\Frontend\BrowserGate::request_config() );
 
 		// Dynamic fragments: refresh captcha + nonces on cached pages.
-		wp_enqueue_script( 'ffc-dynamic-fragments' );
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-dynamic-fragments' );
 
 		// Localize script.
 		wp_localize_script(
@@ -197,6 +230,22 @@ class SelfSchedulingShortcode {
 						// PDF overlay.
 						'generatingPdf'        => __( 'Generating PDF...', 'ffcertificate' ),
 						'pleaseWait'           => __( 'Please wait, this may take a few seconds...', 'ffcertificate' ),
+						// The session step (#2405).
+						'chooseSession'        => __( 'Choose a session', 'ffcertificate' ),
+						'changeSession'        => __( 'Change session', 'ffcertificate' ),
+						'session'              => __( 'Session', 'ffcertificate' ),
+						'sessionFull'          => __( 'Full', 'ffcertificate' ),
+						// The free-slots panel (#2405).
+						/* translators: %s: month and year, e.g. "March 2027". */
+						'panelHeading'         => __( 'Free Slots — %s', 'ffcertificate' ),
+						'panelMine'            => __( 'Your bookings', 'ffcertificate' ),
+						'panelNone'            => __( 'No free slots this month.', 'ffcertificate' ),
+						'panelFreeOne'         => __( '1 free place', 'ffcertificate' ),
+						/* translators: %d: number of free places, two or more. */
+						'panelFreeMany'        => __( '%d free places', 'ffcertificate' ),
+						'panelTimesOne'        => __( '1 time', 'ffcertificate' ),
+						/* translators: %d: number of times with free places, two or more. */
+						'panelTimesMany'       => __( '%d times', 'ffcertificate' ),
 						// The override warning (#1859).
 						'override'             => \FreeFormCertificate\Core\OverrideWarning::strings(),
 					)
@@ -332,7 +381,7 @@ class SelfSchedulingShortcode {
 					'role'    => 'note',
 					'html'    => true,
 					'hook'    => 'admin-bypass',
-					'classes' => array( 'ffc-calendar-notice' ),
+					'classes' => self::show_panel_beside( $calendar ) ? array( 'ffc-calendar-notice', 'ffc-calendar-notice-wide' ) : array( 'ffc-calendar-notice' ),
 				)
 			);
 			echo $notice_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
@@ -340,6 +389,16 @@ class SelfSchedulingShortcode {
 		$this->render_calendar_interface( $calendar, $can_book, $scheduling_message );
 		$output = ob_get_clean();
 		return $output ? $output : '';
+	}
+
+	/**
+	 * Whether the calendar shows its free-slots panel beside the month (#2405).
+	 *
+	 * @param array<string, mixed> $calendar Calendar row.
+	 * @return bool
+	 */
+	private static function show_panel_beside( array $calendar ): bool {
+		return ! empty( $calendar['show_event_list'] ) && 'below' !== ( $calendar['event_list_position'] ?? 'side' );
 	}
 
 	/**
@@ -505,11 +564,7 @@ class SelfSchedulingShortcode {
 	 * @param string $reason Short description for debugging.
 	 */
 	private static function send_nocache_headers( string $reason ): void {
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		nocache_headers();
-		do_action( 'litespeed_control_set_nocache', 'FFC ' . $reason );
+		\FreeFormCertificate\Core\NoCache::send( $reason );
 	}
 
 	/**
@@ -530,6 +585,12 @@ class SelfSchedulingShortcode {
 			: array();
 		$disabled_days = array_diff( array( 0, 1, 2, 3, 4, 5, 6 ), $working_days );
 
+		$show_panel = ! empty( $calendar['show_event_list'] );
+		if ( $show_panel ) :
+			?>
+		<div class="ffc-shortcode ffc-calendar-wrapper ffc-has-event-list <?php echo esc_attr( 'ffc-event-list-' . ( self::show_panel_beside( $calendar ) ? 'side' : 'below' ) ); ?>">
+			<?php
+		endif;
 		?>
 		<div class="ffc-shortcode ffc-audience-calendar" data-calendar-id="<?php echo esc_attr( $calendar['id'] ); ?>">
 
@@ -579,6 +640,8 @@ class SelfSchedulingShortcode {
 								<div class="ffc-spinner" aria-hidden="true"></div>
 								<p><?php esc_html_e( 'Loading available slots...', 'ffcertificate' ); ?></p>
 							</div>
+							<?php // The session step (#2405), filled by the script on a calendar with sessions. ?>
+							<div id="ffc-session-step" class="ffc-session-step" hidden></div>
 							<div id="ffc-timeslots-container" class="ffc-timeslots-grid" role="listbox" aria-label="<?php esc_attr_e( 'Available time slots', 'ffcertificate' ); ?>"></div>
 						</div>
 
@@ -590,6 +653,7 @@ class SelfSchedulingShortcode {
 								<input type="hidden" name="calendar_id" value="<?php echo esc_attr( $calendar['id'] ); ?>">
 								<input type="hidden" name="date" id="ffc-form-date" value="">
 								<input type="hidden" name="time" id="ffc-form-time" value="">
+								<input type="hidden" name="session_id" id="ffc-form-session" value="">
 
 								<div class="ffc-form-row">
 									<label for="ffc-booking-name">
@@ -646,7 +710,7 @@ class SelfSchedulingShortcode {
 								// and the two had drifted — the hidden input carried an id
 								// here and not there.
 								// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside render_security_fields().
-								echo \FreeFormCertificate\Core\SecurityService::render_security_fields();
+								echo \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 								?>
 
 								<!-- LGPD Consent -->
@@ -753,6 +817,15 @@ class SelfSchedulingShortcode {
 		</div>
 
 		<?php
+		if ( $show_panel ) {
+			// The month's free slots (#2405), filled by the calendar's script.
+			$ffc_panel_heading = __( 'Free Slots', 'ffcertificate' );
+			include FFC_PLUGIN_DIR . 'templates/public/scheduling/event-list-panel.php';
+			echo '</div><!-- .ffc-calendar-wrapper -->';
+		}
+		?>
+
+		<?php
 		// Build calendar config as data attribute (avoids wp_localize_script timing issues.
 		// and WordPress content filter mangling of inline JS).
 		$working_days_js = array();
@@ -779,15 +852,22 @@ class SelfSchedulingShortcode {
 			'minDateHours'  => isset( $calendar['advance_booking_min'] ) ? (int) $calendar['advance_booking_min'] : 0,
 			'maxDateDays'   => isset( $calendar['advance_booking_max'] ) ? (int) $calendar['advance_booking_max'] : 30,
 			'canBook'       => $can_book,
+			// The free-slots panel beside or below the month (#2405).
+			'showPanel'     => $show_panel,
 			// The booking form asks for the override warning first (#1859);
 			// the server decides again on the submission.
 			'canBypass'     => is_user_logged_in() && \FreeFormCertificate\Repositories\CalendarRepository::userHasSchedulingBypass( null, isset( $calendar['post_id'] ) ? (int) $calendar['post_id'] : null ),
 			// The state names with this calendar's own applied (#2223); the
 			// shared `ffcCalendar.strings` carries only the general ones.
-			'labels'        => \FreeFormCertificate\Scheduling\CalendarAppearance::strings(
-				\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
-					isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
-				)
+			// The session step's strings take this calendar's own word for a
+			// session (#2413).
+			'labels'        => array_merge(
+				\FreeFormCertificate\Scheduling\CalendarAppearance::strings(
+					\FreeFormCertificate\Scheduling\CalendarAppearance::clean_override(
+						isset( $calendar['post_id'] ) ? get_post_meta( (int) $calendar['post_id'], \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) : null
+					)
+				),
+				CalendarSessions::step_strings( $calendar )
 			),
 		);
 		?>

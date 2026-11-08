@@ -73,6 +73,19 @@ class BirthDateTest extends TestCase {
 		$this->assertNull( BirthDate::age_on( 'nope', new \DateTimeImmutable( '2025-05-20', $tz ) ) );
 	}
 
+	/**
+	 * Born on 29 February: measured as born on the 28th, in common and leap
+	 * years alike (#2336), so the age turns the day the message goes out.
+	 */
+	public function test_29_february_ages_on_28_february_every_year(): void {
+		$tz = new \DateTimeZone( 'America/Sao_Paulo' );
+		$this->assertSame( 27, BirthDate::age_on( '2000-02-29', new \DateTimeImmutable( '2027-02-28', $tz ) ), 'Common year: the 28th.' );
+		$this->assertSame( 26, BirthDate::age_on( '2000-02-29', new \DateTimeImmutable( '2027-02-27', $tz ) ) );
+		$this->assertSame( 28, BirthDate::age_on( '2000-02-29', new \DateTimeImmutable( '2028-02-28', $tz ) ), 'Leap year: the 28th too.' );
+		$this->assertSame( 28, BirthDate::age_on( '2000-02-29', new \DateTimeImmutable( '2028-02-29', $tz ) ) );
+		$this->assertSame( 27, BirthDate::age_on( '2000-02-29', new \DateTimeImmutable( '2028-02-27', $tz ) ) );
+	}
+
 	public function test_is_plausible_bounds_the_age_and_refuses_the_future(): void {
 		$today = new \DateTimeImmutable( '2026-10-03', new \DateTimeZone( 'UTC' ) );
 

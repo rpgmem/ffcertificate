@@ -25,9 +25,11 @@
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__side {
-    flex: 0 1 320px;
+    flex: 0 1 var(--ffc-admin-side-width);
     position: sticky;
-    top: 40px;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
 }
 
 /* Content types: a grid of icon tiles over visually hidden radios. */
@@ -84,8 +86,8 @@
 
 .ffc-page-qr-generator .ffc-qr-type__input:checked + .ffc-qr-type__face {
     border-color: var(--ffc-primary);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
     box-shadow: 0 0 0 1px var(--ffc-primary);
 }
 
@@ -136,12 +138,23 @@
 
 .ffc-page-qr-generator .ffc-qr-generator__actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--ffc-spacing-xs);
     margin-top: var(--ffc-spacing-md);
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__download {
     flex: 1 1 auto;
+}
+
+/* The contact card's own download takes a line under the code's (#2374). */
+.ffc-page-qr-generator .ffc-qr-generator__vcf {
+    flex: 1 1 100%;
+    order: 1;
+}
+
+.ffc-page-qr-generator .ffc-qr-generator__vcf[hidden] {
+    display: none;
 }
 
 .ffc-page-qr-generator .ffc-qr-generator__preview {
@@ -283,4 +296,12 @@
 .ffc-page-qr-generator .ffc-qr-short__copied {
     margin-left: var(--ffc-spacing-sm);
     color: var(--ffc-success-text);
+}
+
+/* The vCard's format note, above its fields (#2372). */
+.ffc-qr-vcard-format {
+    padding: 0 0 var(--ffc-spacing-sm);
+    color: var(--ffc-text-muted);
+    text-align: left;
+    caption-side: top;
 }

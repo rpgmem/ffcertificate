@@ -65,7 +65,7 @@
 
     function dispatch(action, ids) {
         var $rows = findRowsByIds(ids);
-        $rows.css('opacity', '0.55').find('input[type="checkbox"]').prop('disabled', true);
+        $rows.addClass('is-busy').find('input[type="checkbox"]').prop('disabled', true);
 
         return window.FFC.request('ffc_submissions_bulk_action', {
             action_name: action,
@@ -79,7 +79,7 @@
             })
             .catch(function (err) {
                 // Roll the visual state back so the admin can retry.
-                $rows.css('opacity', '').find('input[type="checkbox"]').prop('disabled', false);
+                $rows.removeClass('is-busy').find('input[type="checkbox"]').prop('disabled', false);
                 var s = strings();
                 var msg = (err && err.message) ? err.message : (s.error || 'Action failed.');
                 toast(msg, 'error');

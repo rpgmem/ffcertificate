@@ -79,6 +79,9 @@ class TabQrCode extends SettingsTab {
 					'inverted'        => __( 'The modules are lighter than the background. Most readers cannot scan an inverted code.', 'ffcertificate' ),
 					'ok'              => __( 'Readable: contrast and colours are fine.', 'ffcertificate' ),
 					'captionContrast' => __( 'The frame caption is hard to read on this background; pick a darker frame colour.', 'ffcertificate' ),
+					'captionLighter'  => __( 'The frame caption is hard to read on this dark background; pick a lighter frame colour.', 'ffcertificate' ),
+					'quietZone'       => __( 'Margin 0: many readers need a clear border around the code.', 'ffcertificate' ),
+					'several'         => __( 'May not scan well:', 'ffcertificate' ),
 					'transparent'     => __( 'Transparent background: contrast cannot be checked. Test the code on the surface it will be printed on; a dark one makes it unreadable.', 'ffcertificate' ),
 					'error'           => __( 'The preview could not be drawn.', 'ffcertificate' ),
 				),
@@ -101,5 +104,24 @@ class TabQrCode extends SettingsTab {
 				esc_html__( 'QR Code settings view file not found.', 'ffcertificate' )
 			);
 		}
+	}
+
+	/**
+	 * Render the live design preview in the side column (#2486).
+	 *
+	 * `ffc-qr-design.js` finds the image and the checks by id, so they draw
+	 * the same beside the form as they did inside the design card.
+	 *
+	 * @since 6.44.0
+	 * @return void
+	 */
+	public function render_side(): void {
+		?>
+		<div class="card ffc-qr-design-preview">
+			<h2 class="ffc-icon-eye"><?php esc_html_e( 'Preview', 'ffcertificate' ); ?></h2>
+			<div id="ffc-qr-design-preview" class="ffc-qr-design-preview__image" aria-hidden="true"></div>
+			<div id="ffc-qr-design-checks" class="ffc-qr-design-preview__checks ffc-status" role="status" aria-live="polite" hidden></div>
+		</div>
+		<?php
 	}
 }

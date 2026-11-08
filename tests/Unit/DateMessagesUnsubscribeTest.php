@@ -63,7 +63,16 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.org/wp-admin/' . $p );
-		Functions\when( 'get_userdata' )->alias( static fn( $id ) => 42 === (int) $id ? (object) array( 'ID' => 42 ) : false );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $id ) => 42 === (int) $id ? (object) array(
+				'ID'         => 42,
+				'user_email' => 'maria@example.org',
+			) : false
+		);
+		Functions\when( 'is_email' )->returnArg();
+		// The dashboard link: no page chosen, so the default path.
+		Functions\when( 'get_option' )->justReturn( false );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.org' . $p );
 		Functions\when( 'wp_nonce_field' )->justReturn( '<input name="_wpnonce" value="n">' );
 		Functions\when( 'wp_die' )->alias(
 			function ( $message, $title = '', $args = array() ) {
@@ -170,6 +179,9 @@ class DateMessagesUnsubscribeTest extends TestCase {
 		$this->assertStringContainsString( '<form method="post"', $this->died[0] );
 		$this->assertStringContainsString( 'name="t" value="' . Unsubscribe::token( 42 ) . '"', $this->died[0] );
 		$this->assertStringContainsString( '_wpnonce', $this->died[0] );
+		$this->assertStringContainsString( 'Account: m***@example.org', $this->died[0], 'The page names the account, masked.' );
+		$this->assertStringNotContainsString( 'maria@', $this->died[0] );
+		$this->assertStringContainsString( 'href="https://example.org/dashboard"', $this->died[0], 'It links to the dashboard profile.' );
 	}
 
 	public function test_a_post_without_a_valid_nonce_changes_nothing(): void {
@@ -209,6 +221,49 @@ class DateMessagesUnsubscribeTest extends TestCase {
 			$updates->rows,
 			'One write turns the personal date messages off and keeps every other preference.'
 		);
+	}
+
+	/**
+	 * A mail client's one-click POST (RFC 8058, #2336): the token rides in the
+	 * link, no nonce is sent, and the opt-out is recorded.
+	 */
+	public function test_a_one_click_post_records_the_opt_out_on_the_token_alone(): void {
+		$_GET  = array(
+			'u' => '42',
+			't' => Unsubscribe::token( 42 ),
+		);
+		$_POST = array( 'List-Unsubscribe' => 'One-Click' );
+		Functions\expect( 'wp_verify_nonce' )->never();
+		$updates = $this->profile_store( '{}' );
+
+		$this->handle();
+
+		$this->assertSame( 200, $this->died[1] );
+		$this->assertSame( array( 'preferences' => '{"notify_date_messages":false}' ), $updates->rows[0][1] );
+	}
+
+	public function test_a_one_click_post_with_a_forged_token_changes_nothing(): void {
+		$_GET  = array(
+			'u' => '42',
+			't' => 'forged',
+		);
+		$_POST = array( 'List-Unsubscribe' => 'One-Click' );
+
+		$this->handle();
+
+		$this->assertSame( 403, $this->died[1] );
+	}
+
+	public function test_the_headers_carry_the_link_and_the_one_click_marker(): void {
+		Functions\when( 'add_query_arg' )->alias(
+			static fn( array $args, string $url ) => $url . '?' . http_build_query( $args )
+		);
+		$headers = Unsubscribe::headers( 42 );
+
+		$this->assertCount( 2, $headers );
+		$this->assertStringStartsWith( 'List-Unsubscribe: <', $headers[0] );
+		$this->assertStringContainsString( 't=' . Unsubscribe::token( 42 ), $headers[0] );
+		$this->assertSame( 'List-Unsubscribe-Post: List-Unsubscribe=One-Click', $headers[1] );
 	}
 
 	public function test_an_announcement_opt_out_confirms_announcements(): void {

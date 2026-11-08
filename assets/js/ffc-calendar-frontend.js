@@ -20,6 +20,11 @@
 
         selectedDate: null,
         selectedTime: null,
+
+        /**
+         * The session chosen on a calendar with sessions (#2405): {id, name}.
+         */
+        selectedSession: null,
         calendarId: null,
 
         /**
@@ -179,10 +184,13 @@
         /**
          * Load available time slots for selected date
          */
-        loadTimeSlots: function(calendarId, date) {
+        loadTimeSlots: function(calendarId, date, session) {
             var self = this;
             this.calendarId = calendarId;
             this.selectedDate = date;
+            // A new day starts at the session step again (#2405).
+            this.selectedSession = session || null;
+            $('#ffc-session-step').prop('hidden', true).empty();
 
             var $container = $('#ffc-timeslots-container');
             var $loading = $('.ffc-timeslots-loading');
@@ -202,10 +210,17 @@
             // Open modal
             self.openModal();
 
-            FFC.request('ffc_get_available_slots', { calendar_id: calendarId, date: date }, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
+            var params = { calendar_id: calendarId, date: date };
+            if (this.selectedSession) {
+                params.session_id = this.selectedSession.id;
+            }
+            FFC.request('ffc_get_available_slots', params, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
                 .then(function (data) {
                     $loading.hide();
-                    if (data && data.slots) {
+                    if (data && data.sessions) {
+                        self.renderSessions(data.sessions);
+                    } else if (data && data.slots) {
+                        self.renderSessionHeader();
                         self.renderTimeSlots(data.slots);
                     } else {
                         $container.html('').append($('<p class="ffc-no-slots">').text(ffcCalendar.strings.noSlots));
@@ -218,8 +233,138 @@
         },
 
         /**
-         * Format date string (YYYY-MM-DD) to localized display
+         * The strings of the session step, with this calendar's own word for
+         * a session over the general one (#2413).
+         *
+         * @return {Object}
          */
+        sessionStrings: function() {
+            return $.extend({}, ffcCalendar.strings || {}, (this.config && this.config.labels) || {});
+        },
+
+        /**
+         * The session step (#2405): one button per session, naming its free
+         * places; a full session cannot be chosen. Choosing one loads its
+         * times.
+         *
+         * @param {Array<{id: number, name: string, free: number}>} sessions
+         */
+        renderSessions: function(sessions) {
+            var self = this;
+            var s = this.sessionStrings();
+            var $step = $('#ffc-session-step').empty().prop('hidden', false);
+            $step.append($('<p class="ffc-session-step-title">').text(s.chooseSession || 'Choose a session'));
+            sessions.forEach(function (session) {
+                var count = session.free === 1 ? (s.panelFreeOne || '1 free place') : (s.panelFreeMany || '%d free places').replace('%d', session.free);
+                var btn = FFC.button({
+                    label: session.name + ' — ' + (session.free > 0 ? count : (s.sessionFull || 'Full')),
+                    category: 'neutral',
+                    icon: 'users',
+                    className: 'ffc-btn-block ffc-session-choice'
+                });
+                if (!btn) {
+                    return;
+                }
+                btn.disabled = session.free <= 0;
+                $(btn).on('click', function () {
+                    self.loadTimeSlots(self.calendarId, self.selectedDate, { id: session.id, name: session.name });
+                });
+                $step.append(btn);
+            });
+            $step.find('.ffc-session-choice:not(:disabled)').first().trigger('focus');
+        },
+
+        /**
+         * Above the times of a session (#2405): its name and a way back to the
+         * session step.
+         */
+        renderSessionHeader: function() {
+            var self = this;
+            if (!this.selectedSession) {
+                return;
+            }
+            var s = this.sessionStrings();
+            var $step = $('#ffc-session-step').empty().prop('hidden', false);
+            var back = FFC.button({ label: s.changeSession || 'Change session', category: 'neutral', icon: 'chevron-left', className: 'ffc-session-back' });
+            if (back) {
+                $(back).on('click', function () {
+                    self.loadTimeSlots(self.calendarId, self.selectedDate);
+                });
+                $step.append(back);
+            }
+            $step.append($('<p class="ffc-session-step-title">').text((s.session || 'Session') + ': ' + this.selectedSession.name));
+        },
+
+        /**
+         * Fill the free-slots panel for a month (#2405): the visitor's own
+         * bookings first, then each day with free places or a holiday, in
+         * date order. The data names nobody but the visitor.
+         *
+         * @param {number} year     Full year.
+         * @param {number} month    Month, 1-12.
+         * @param {?Object} panel   `{days: {date: {free, slots}}, mine: []}`.
+         * @param {Object} holidays Date => holiday name.
+         * @param {Object} strings  The calendar's strings.
+         */
+        renderPanel: function(year, month, panel, holidays, strings) {
+            var self = this;
+            var months = strings.months || [];
+            var heading = (strings.panelHeading || 'Free Slots — %s').replace('%s', (months[month - 1] || month) + ' ' + year);
+            $('#ffc-event-list-panel .ffc-event-list-header h3').text(heading);
+
+            var $content = $('#ffc-event-list-content').empty();
+            var days = (panel && panel.days) || {};
+            var mine = (panel && panel.mine) || [];
+            var prefix = year + '-' + (month < 10 ? '0' : '') + month + '-';
+
+            if (mine.length) {
+                $content.append($('<div class="ffc-event-list-date">').text(strings.panelMine || 'Your bookings'));
+                mine.forEach(function (b) {
+                    var status = b.status === 'pending' ? strings.pendingApproval : strings.confirmed;
+                    $content.append(
+                        $('<div class="ffc-event-list-item ffc-event-list-mine">')
+                            .append($('<span class="ffc-event-list-time">').text(self.formatDate(b.date) + ' · ' + b.start + (b.end ? '–' + b.end : '')))
+                            .append($('<span class="ffc-event-list-desc">').text((b.session ? b.session + ' · ' : '') + (status || '')))
+                    );
+                });
+            }
+
+            var dates = Object.keys(days);
+            Object.keys(holidays || {}).forEach(function (d) {
+                if (d.indexOf(prefix) === 0 && dates.indexOf(d) === -1) {
+                    dates.push(d);
+                }
+            });
+            dates.sort();
+
+            dates.forEach(function (d) {
+                $content.append($('<div class="ffc-event-list-date">').text(self.formatDate(d)));
+                if (holidays && holidays[d]) {
+                    $content.append($('<div class="ffc-event-list-item ffc-event-list-holiday">').append($('<span class="ffc-event-list-desc">').text(holidays[d])));
+                    return;
+                }
+                // A calendar with sessions lists each one's places (#2405).
+                var lines = days[d].sessions || [{ name: '', free: days[d].free, slots: days[d].slots }];
+                lines.forEach(function (line) {
+                    var label = line.free === 1 ? (strings.panelFreeOne || '1 free place') : (strings.panelFreeMany || '%d free places').replace('%d', line.free);
+                    var times = line.slots === 1 ? (strings.panelTimesOne || '1 time') : (strings.panelTimesMany || '%d times').replace('%d', line.slots);
+                    if (line.free <= 0) {
+                        label = strings.sessionFull || 'Full';
+                        times = '';
+                    }
+                    $content.append(
+                        $('<div class="ffc-event-list-item ffc-event-list-free">')
+                            .append($('<span class="ffc-event-list-time">').text(line.name ? line.name + ' · ' + label : label))
+                            .append($('<span class="ffc-event-list-desc">').text(times))
+                    );
+                });
+            });
+
+            if (!mine.length && !dates.length) {
+                $content.append($('<p class="ffc-no-events">').text(strings.panelNone || 'No free slots this month.'));
+            }
+        },
+
         formatDate: function(dateStr) {
             var parts = dateStr.split('-');
             if (parts.length !== 3) return dateStr;
@@ -281,6 +426,7 @@
             // Set hidden fields
             $('#ffc-form-date').val(this.selectedDate);
             $('#ffc-form-time').val(this.selectedTime);
+            $('#ffc-form-session').val(this.selectedSession ? this.selectedSession.id : '');
 
             // Switch modal view: hide time slots, show form
             $('.ffc-timeslots-wrapper').hide();
@@ -359,11 +505,16 @@
                 return;
             }
 
-            FFC.request('ffc_check_booking_override', {
+            var check = {
                 calendar_id: $form.find('[name="calendar_id"]').val(),
                 date: $form.find('[name="date"]').val(),
                 time: $form.find('[name="time"]').val()
-            }, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
+            };
+            // The session, on a calendar that has them (#2405).
+            if ($form.find('[name="session_id"]').val()) {
+                check.session_id = $form.find('[name="session_id"]').val();
+            }
+            FFC.request('ffc_check_booking_override', check, { nonce: ffcCalendar.nonce, ajaxUrl: ffcCalendar.ajaxurl })
                 .then(function(data) {
                     var reasons = (data && data.reasons) || [];
                     if (!reasons.length) {
@@ -530,6 +681,9 @@
             var detailsHtml = '<div class="ffc-appointment-info">';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.formatDate(self.selectedDate) + '</p>';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + (self.selectedTime || '') + '</p>';
+            if (self.selectedSession) {
+                detailsHtml += '<p><strong>' + esc(self.sessionStrings().session || 'Session') + ':</strong> ' + esc(self.selectedSession.name) + '</p>';
+            }
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.name) + ':</strong> ' + esc($('#ffc-booking-name').val()) + '</p>';
             detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.email) + ':</strong> ' + esc($('#ffc-booking-email').val()) + '</p>';
 
@@ -685,6 +839,8 @@
             // Reset selections
             this.selectedDate = null;
             this.selectedTime = null;
+            this.selectedSession = null;
+            $('#ffc-session-step').prop('hidden', true).empty();
 
             // Scroll to calendar
             $('html, body').animate({
@@ -782,6 +938,7 @@
         var bookingCounts = {};
         var calendarHolidays = {};
         var calendarHolidayKinds = {};
+        var panelData = null;
         var fetchId = 0;
 
         // Function to fetch booking counts and holidays for a month
@@ -802,6 +959,7 @@
                         bookingCounts = data.counts;
                     }
                     calendarHolidayKinds = (data && data.holiday_kinds) || {};
+                    panelData = (data && data.panel) || null;
                     if (data && data.holidays) {
                         calendarHolidays = data.holidays;
                         if (calendar) {
@@ -874,6 +1032,9 @@
             onMonthChange: function(year, month) {
                 fetchBookingCounts(year, month, function() {
                     calendar.refresh();
+                    if (config.showPanel) {
+                        self.renderPanel(year, month, panelData, calendarHolidays, strings);
+                    }
                 });
             },
             onDayClick: function(dateStr, _$day) {

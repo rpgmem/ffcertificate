@@ -22,17 +22,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Resolution strategy', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'The Active strategy toggle switches between the two: on is Secure, off is Legacy.', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'Legacy', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the effective default. It trusts client-supplied headers such as X-Forwarded-For, so a forged header can spoof the address.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Legacy', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the effective default. It takes the first public address in headers the client supplies, Client-IP first and then X-Forwarded-For, so a forged header can spoof the address.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Secure (recommended)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a trusted-proxy model: a forwarded header is honoured only when the request really comes from Cloudflare or a proxy you trust, so the real client is found and cannot be forged.', 'ffcertificate' ); ?></li>
 	</ul>
 	<p><?php esc_html_e( 'With the secure strategy, the trusted-proxy mode says whom to believe: Auto (detect Cloudflare or a known proxy, else use the direct connection — recommended), Cloudflare, Custom (your own proxy CIDRs, one per line — never Cloudflare\'s, which are kept up to date automatically) or Direct (ignore every forwarded header).', 'ffcertificate' ); ?> <?php esc_html_e( 'The Custom proxy CIDRs field appears only in the Custom mode, the only one that reads it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'Direct behind a proxy or Cloudflare makes every visitor arrive from the proxy\'s address, so they all share one address and one rate-limit count; the tab warns when your own request shows that. Load balancer in front says whether a private connection address is your host\'s load balancer: when it is on, or in the Cloudflare mode, the secure strategy reads Cloudflare\'s header through it; when it is off, a private address is the visitor, which is right on an intranet, where a visitor could otherwise send that header.', 'ffcertificate' ); ?></p>
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'What the tab shows', 'ffcertificate' ); ?></h4>
 		<ul>
 			<li><strong><?php esc_html_e( 'Current request diagnosis', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how your own request would be resolved, the headers received, and what each strategy would do with a forged X-Forwarded-For. IPs are masked unless you are a full administrator.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Cloudflare ranges', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now.', 'ffcertificate' ); ?></li>
-			<li><strong><?php esc_html_e( 'Shadow-divergence logging', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'off by default. When on, it logs (with a hashed IP) every request where the two strategies would disagree, so you can measure the impact before switching.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Cloudflare ranges', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the official Cloudflare IP lists, refreshed daily (a bundled list is used until the first refresh), with a button to refresh them now. A refresh that fails for IPv4 or IPv6 keeps that half\'s last good list, and no range wider than /8 (IPv4) or /16 (IPv6) is trusted, whether it comes from the refresh or from the Custom field.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Forwarded headers on real traffic', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'under the Legacy strategy, a warning counting the requests of the last 7 days whose forwarded header named a different address from their connection. Under Legacy that header decides the address, and anybody can send it. Only the count and the time of the latest are kept.', 'ffcertificate' ); ?></li>
+			<li><strong><?php esc_html_e( 'Shadow-divergence logging', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'off by default. When on, it logs (with a keyed hash of the IP, never the address) every request where the two strategies would disagree, so you can measure the impact before switching.', 'ffcertificate' ); ?></li>
 		</ul>
 	</div>
 

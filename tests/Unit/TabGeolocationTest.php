@@ -51,6 +51,11 @@ class TabGeolocationTest extends TestCase {
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
+		// The location-in-use notice (#2339): no refused delete is pending,
+		// and no form reads a location unless a test says so.
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -213,7 +218,7 @@ class TabGeolocationTest extends TestCase {
 		$defaults = $ref->invoke( $this->tab );
 
 		$this->assertFalse( $defaults['ip_api_enabled'] );
-		$this->assertSame( 'ip-api', $defaults['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $defaults['ip_api_service'] );
 		$this->assertFalse( $defaults['ip_api_cascade'] );
 		$this->assertSame( '', $defaults['ipinfo_api_key'] );
 		$this->assertTrue( $defaults['ip_cache_enabled'] );
@@ -254,7 +259,7 @@ class TabGeolocationTest extends TestCase {
 
 		$this->assertTrue( $settings['ip_api_enabled'] );
 		// Defaults should be present for keys not in saved settings
-		$this->assertSame( 'ip-api', $settings['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $settings['ip_api_service'] );
 	}
 
 	public function test_get_settings_returns_defaults_when_no_saved_settings(): void {
@@ -328,6 +333,24 @@ class TabGeolocationTest extends TestCase {
 		$this->assertTrue( $captured_settings['admin_bypass_geo'] );
 		$this->assertArrayNotHasKey( 'debug_enabled', $captured_settings );
 		$this->assertArrayNotHasKey( 'gps_fallback', $captured_settings );
+	}
+
+	public function test_a_cleared_cache_ttl_keeps_the_stored_value(): void {
+		// A cleared field posts '', which absint() read as 0 and the floor
+		// then stored as 300 -- a value nobody typed (#2339).
+		$_POST['ip_api_service']      = 'ip-api';
+		$_POST['gps_fallback_preset'] = 'hybrid';
+		$_POST['ip_cache_ttl']        = '';
+		$_POST['gps_cache_ttl']       = '5000';
+		$this->use_option_store( array( 'ffc_geolocation_settings' => array( 'ip_cache_ttl' => 1200, 'gps_cache_ttl' => 120 ) ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
+
+		$ref = new \ReflectionMethod( TabGeolocation::class, 'save_settings' );
+		$ref->setAccessible( true );
+		$ref->invoke( $this->tab );
+
+		$this->assertSame( 1200, $this->options['ffc_geolocation_settings']['ip_cache_ttl'] );
+		$this->assertSame( 3600, $this->options['ffc_geolocation_settings']['gps_cache_ttl'], 'A typed value is clamped.' );
 	}
 
 	public function test_save_settings_custom_preset_reads_per_case_radios(): void {
@@ -491,7 +514,7 @@ class TabGeolocationTest extends TestCase {
 		$this->assertSame( 'custom', TabGeolocation::cases_to_preset( $mixed ) );
 	}
 
-	public function test_save_settings_defaults_invalid_service_to_ip_api(): void {
+	public function test_save_settings_defaults_invalid_service_to_ipinfo(): void {
 		$_POST['ip_api_service'] = 'invalid_service';
 		$_POST['api_fallback']   = 'gps_only';
 		$_POST['gps_fallback_preset'] = 'tolerant';
@@ -510,7 +533,7 @@ class TabGeolocationTest extends TestCase {
 		$ref->setAccessible( true );
 		$ref->invoke( $this->tab );
 
-		$this->assertSame( 'ip-api', $captured_settings['ip_api_service'] );
+		$this->assertSame( 'ipinfo', $captured_settings['ip_api_service'] );
 	}
 
 	public function test_save_settings_clamps_ip_cache_ttl(): void {

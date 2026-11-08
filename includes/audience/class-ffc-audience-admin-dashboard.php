@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Audience;
 
 use FreeFormCertificate\Admin\AdminUI;
+use FreeFormCertificate\Core\AdminDashboard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -64,115 +65,162 @@ class AudienceAdminDashboard {
 		// Self-scheduling statistics.
 		$self_stats = $this->get_self_scheduling_stats();
 
-		?>
-		<div class="wrap ffc-admin-page ffc-page-scheduling-dashboard">
-			<h1><?php esc_html_e( 'Scheduling Dashboard', 'ffcertificate' ); ?></h1>
+		$env_plural   = AudienceScheduleRepository::get_environment_label();
+		$env_singular = AudienceScheduleRepository::get_environment_label( null, true );
+		$calendars    = admin_url( 'edit.php?post_type=ffc_self_scheduling' );
+		$audience_cal = admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' );
 
-			<?php
-			// The shared stat cards (`AdminUI::get_stat_card()`, #1631), the
-			// component the Certificates Dashboard already draws; each section
-			// heading names its subject with an icon.
-			// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
-			?>
-			<h2 class="ffc-icon-user"><?php esc_html_e( 'Personal Calendars', 'ffcertificate' ); ?></h2>
-			<div class="ffc-stats">
-				<?php
-				echo AdminUI::get_stat_card(
-					array(
-						'label' => __( 'Active Calendars', 'ffcertificate' ),
-						'value' => (int) $self_stats['calendars'],
-						'icon'  => 'calendar',
-						'url'   => admin_url( 'edit.php?post_type=ffc_self_scheduling' ),
-						'link'  => __( 'Manage', 'ffcertificate' ),
-					)
-				);
-				echo AdminUI::get_stat_card(
-					array(
-						'label' => __( 'Upcoming Appointments', 'ffcertificate' ),
-						'value' => (int) $self_stats['upcoming_appointments'],
-						'icon'  => 'clock',
-						'url'   => admin_url( 'admin.php?page=ffc-appointments' ),
-						'link'  => __( 'View All', 'ffcertificate' ),
-					)
-				);
-				?>
-			</div>
+		// The module dashboard (#2486): the counts first, one card per section
+		// with the buttons that open it, and the ways to add something on the
+		// side. The same layout as the Recruitment and Date Messages ones.
+		echo '<div class="wrap ffc-admin-page ffc-page-scheduling-dashboard ffc-boxed">';
+		echo '<h1>' . esc_html__( 'Scheduling Dashboard', 'ffcertificate' ) . '</h1>';
 
-			<h2 class="ffc-icon-users"><?php esc_html_e( 'Audience Scheduling', 'ffcertificate' ); ?></h2>
-			<div class="ffc-stats">
-				<?php
-				echo AdminUI::get_stat_card(
-					array(
-						'label' => __( 'Active Calendars', 'ffcertificate' ),
-						'value' => (int) $audience_stats['schedules'],
-						'icon'  => 'calendar',
-						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars' ),
-						'link'  => __( 'Manage', 'ffcertificate' ),
-					)
-				);
-				echo AdminUI::get_stat_card(
-					array(
-						/* translators: %s: environment label (plural) */
-						'label' => sprintf( __( 'Active %s', 'ffcertificate' ), AudienceScheduleRepository::get_environment_label() ),
-						'value' => (int) $audience_stats['environments'],
-						'icon'  => 'building',
-						'url'   => AudienceAdminEnvironment::view_url( $this->menu_slug ),
-						'link'  => __( 'Manage', 'ffcertificate' ),
-					)
-				);
-				echo AdminUI::get_stat_card(
-					array(
-						'label' => __( 'Active Audiences', 'ffcertificate' ),
-						'value' => (int) $audience_stats['audiences'],
-						'icon'  => 'users',
-						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ),
-						'link'  => __( 'Manage', 'ffcertificate' ),
-					)
-				);
-				echo AdminUI::get_stat_card(
-					array(
-						'label' => __( 'Upcoming Bookings', 'ffcertificate' ),
-						'value' => (int) $audience_stats['upcoming_bookings'],
-						'icon'  => 'clock',
-						'url'   => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
-						'link'  => __( 'View All', 'ffcertificate' ),
-					)
-				);
-				// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
-				?>
-			</div>
+		echo '<div class="ffc-stats">';
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- get_stat_card() escapes every value.
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Upcoming Appointments', 'ffcertificate' ),
+				'value' => (int) $self_stats['upcoming_appointments'],
+				'icon'  => 'clock',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Upcoming Bookings', 'ffcertificate' ),
+				'value' => (int) $audience_stats['upcoming_bookings'],
+				'icon'  => 'clock',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Active Personal Calendars', 'ffcertificate' ),
+				'value' => (int) $self_stats['calendars'],
+				'icon'  => 'user',
+			)
+		);
+		echo AdminUI::get_stat_card(
+			array(
+				'label' => __( 'Active Audience Calendars', 'ffcertificate' ),
+				'value' => (int) $audience_stats['schedules'],
+				'icon'  => 'users',
+			)
+		);
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '</div>';
 
-			<h2 class="ffc-icon-zap"><?php esc_html_e( 'Quick Actions', 'ffcertificate' ); ?></h2>
-			<div class="ffc-scheduling-quick-actions">
-				<?php
-				// Four ways to add something (#1904): every one is `create`, so
-				// none of them claims to be the dashboard's own work.
-				$quick_actions = array(
-					array( __( 'New Personal Calendar', 'ffcertificate' ), admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ),
-					array( __( 'New Audience Calendar', 'ffcertificate' ), admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=new' ) ),
-					array(
-						/* translators: %s: environment label (singular) */
-						sprintf( __( 'Add %s', 'ffcertificate' ), AudienceScheduleRepository::get_environment_label( null, true ) ),
-						AudienceAdminEnvironment::view_url( $this->menu_slug, '&action=new' ),
-					),
-					array( __( 'Create Audience', 'ffcertificate' ), admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ),
-				);
-				foreach ( $quick_actions as $quick_action ) {
-					AdminUI::render_button(
-						array(
-							'label'    => $quick_action[0],
-							'category' => 'create',
-							'icon'     => 'plus',
-							'href'     => $quick_action[1],
-						)
-					);
-				}
-				?>
-			</div>
-		</div>
+		echo '<div class="ffc-dashboard"><div class="ffc-dashboard__sections">';
 
-		<!-- Styles loaded via ffc-audience-admin.css -->
-		<?php
+		AdminDashboard::section_card(
+			'ffc-icon-user',
+			__( 'Personal Calendars', 'ffcertificate' ),
+			AdminDashboard::figures(
+				array(
+					__( 'Active Calendars', 'ffcertificate' )      => (int) $self_stats['calendars'],
+					__( 'Upcoming Appointments', 'ffcertificate' ) => (int) $self_stats['upcoming_appointments'],
+				)
+			),
+			array(
+				array(
+					'label' => __( 'Open calendars', 'ffcertificate' ),
+					'icon'  => 'calendar',
+					'href'  => $calendars,
+				),
+				array(
+					'label' => __( 'Open appointments', 'ffcertificate' ),
+					'icon'  => 'clock',
+					'href'  => admin_url( 'admin.php?page=ffc-appointments' ),
+				),
+			)
+		);
+
+		AdminDashboard::section_card(
+			'ffc-icon-users',
+			__( 'Audience Calendars', 'ffcertificate' ),
+			AdminDashboard::figures(
+				array(
+					__( 'Active Calendars', 'ffcertificate' )  => (int) $audience_stats['schedules'],
+					__( 'Upcoming Bookings', 'ffcertificate' ) => (int) $audience_stats['upcoming_bookings'],
+				)
+			),
+			array(
+				array(
+					'label' => __( 'Open calendars', 'ffcertificate' ),
+					'icon'  => 'calendar',
+					'href'  => $audience_cal,
+				),
+				array(
+					'label' => __( 'Open bookings', 'ffcertificate' ),
+					'icon'  => 'clock',
+					'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
+				),
+			)
+		);
+
+		AdminDashboard::section_card(
+			'ffc-icon-building',
+			$env_plural,
+			AdminDashboard::figures(
+				array(
+					/* translators: %s: environment label (plural) */
+					sprintf( __( 'Active %s', 'ffcertificate' ), $env_plural ) => (int) $audience_stats['environments'],
+				)
+			),
+			array(
+				array(
+					/* translators: %s: environment label (plural) */
+					'label' => sprintf( __( 'Open %s', 'ffcertificate' ), $env_plural ),
+					'icon'  => 'building',
+					'href'  => AudienceAdminEnvironment::view_url( $this->menu_slug ),
+				),
+			)
+		);
+
+		AdminDashboard::section_card(
+			'ffc-icon-users',
+			__( 'Audiences', 'ffcertificate' ),
+			AdminDashboard::figures(
+				array(
+					__( 'Active Audiences', 'ffcertificate' ) => (int) $audience_stats['audiences'],
+				)
+			),
+			array(
+				array(
+					'label' => __( 'Open audiences', 'ffcertificate' ),
+					'icon'  => 'users',
+					'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences' ),
+				),
+			)
+		);
+
+		echo '</div>'; // .ffc-dashboard__sections
+
+		// Four ways to add something (#1904): every one is `create`, so none
+		// of them claims to be the dashboard's own work.
+		echo '<aside class="ffc-dashboard__side"><div class="card"><h2 class="ffc-icon-zap">' . esc_html__( 'Quick Actions', 'ffcertificate' ) . '</h2>';
+		echo '<div class="ffc-scheduling-quick-actions">';
+		$quick_actions = array(
+			array( __( 'New Personal Calendar', 'ffcertificate' ), admin_url( 'post-new.php?post_type=ffc_self_scheduling' ) ),
+			array( __( 'New Audience Calendar', 'ffcertificate' ), $audience_cal . '&action=new' ),
+			array(
+				/* translators: %s: environment label (singular) */
+				sprintf( __( 'Add %s', 'ffcertificate' ), $env_singular ),
+				AudienceAdminEnvironment::view_url( $this->menu_slug, '&action=new' ),
+			),
+			array( __( 'Create Audience', 'ffcertificate' ), admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=new' ) ),
+		);
+		foreach ( $quick_actions as $quick_action ) {
+			AdminUI::render_button(
+				array(
+					'label'    => $quick_action[0],
+					'category' => 'create',
+					'icon'     => 'plus',
+					'href'     => $quick_action[1],
+				)
+			);
+		}
+		echo '</div></div></aside></div>'; // .ffc-dashboard
+		echo '</div>'; // .wrap
 	}
 
 	/**

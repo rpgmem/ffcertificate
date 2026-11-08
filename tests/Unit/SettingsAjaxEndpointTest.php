@@ -29,6 +29,9 @@ class SettingsAjaxEndpointTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The writers record to the activity log; that is covered elsewhere.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 
 		// The write takes a database lock (#1902). Without a `$wpdb` it is
 		// skipped, so every test chooses one rather than inheriting it.
@@ -61,6 +64,7 @@ class SettingsAjaxEndpointTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		unset( $_POST['key'], $_POST['value'], $_POST['nonce'] );
 		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		Monkey\tearDown();
@@ -96,6 +100,55 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$list = SettingsAjaxEndpoint::allowlist();
 		$this->assertSame( 'ffc_manage_settings_dangerzone', $list['emails_enabled']['cap'] );
 		$this->assertSame( 'ffc_manage_settings_dangerzone', $list['disable_all_emails']['cap'] );
+	}
+
+	public function test_arming_the_uninstall_purge_requires_dangerzone(): void {
+		// Arming it decides that deleting the plugin wipes every table, so it
+		// is a Danger Zone action like the purge itself (#2343).
+		$list = SettingsAjaxEndpoint::allowlist();
+		$this->assertSame( 'ffc_manage_settings_dangerzone', $list['delete_data_on_uninstall']['cap'] );
+		$this->assertSame( 'ffc_settings', $list['delete_data_on_uninstall']['option'] );
+	}
+
+	/**
+	 * Settings that delete data or switch the audit trail off need the
+	 * Danger Zone capability on the autosave too (#2338).
+	 */
+	public function test_destructive_settings_require_dangerzone(): void {
+		$list = SettingsAjaxEndpoint::allowlist();
+		foreach ( SettingsAjaxEndpoint::dangerzone_settings() as $key ) {
+			$this->assertArrayHasKey( $key, $list, "{$key} is not autosaveable." );
+			$this->assertSame( 'ffc_manage_settings_dangerzone', $list[ $key ]['cap'], $key );
+		}
+		$this->assertContains( 'cleanup_days', SettingsAjaxEndpoint::dangerzone_settings() );
+		$this->assertContains( 'activity_log_item_pii_reveal', SettingsAjaxEndpoint::dangerzone_settings(), 'An audit item needs the Danger Zone.' );
+		$this->assertNotContains( 'activity_log_item_cert_submissions', SettingsAjaxEndpoint::dangerzone_settings(), 'A secondary item does not.' );
+	}
+
+	public function test_bypass_for_admins_requires_manage_options(): void {
+		$this->assertSame( 'manage_options', SettingsAjaxEndpoint::allowlist()['user_access_bypass_for_admins']['cap'] );
+	}
+
+	/**
+	 * Date Messages → Settings, the user dashboard (#2503): the module's own
+	 * option, under the capability that edits its rules, and only the days
+	 * the control offers.
+	 */
+	public function test_the_dashboard_message_settings_save_into_the_module_option(): void {
+		$list = SettingsAjaxEndpoint::allowlist();
+
+		$days = $list['date_messages_notice_days'];
+		$this->assertSame( 'ffc_date_messages_settings', $days['option'] );
+		$this->assertSame( array( 'dashboard_notice_days' ), $days['path'] );
+		$this->assertSame( 'ffc_manage_date_messages', $days['cap'] );
+		$this->assertSame( '7', SettingsAjaxEndpoint::sanitize_value( '7', 'enum', $days ) );
+		$this->assertNull( SettingsAjaxEndpoint::sanitize_value( '3', 'enum', $days ) );
+
+		$hide = $list['date_messages_hide_disabled_rules'];
+		$this->assertSame( 'ffc_date_messages_settings', $hide['option'] );
+		$this->assertSame( array( 'hide_disabled_rules' ), $hide['path'] );
+		$this->assertSame( 'bool', $hide['type'] );
+		$this->assertSame( 'ffc_manage_date_messages', $hide['cap'] );
 	}
 
 	// ==================================================================
@@ -589,7 +642,6 @@ class SettingsAjaxEndpointTest extends TestCase {
 		$list = SettingsAjaxEndpoint::allowlist();
 		$expected = array(
 			'ip_max_per_hour'        => array( array( 'ip',     'max_per_hour' ),     'int' ),
-			'ip_apply_to'            => array( array( 'ip',     'apply_to' ),         'string' ),
 			'ip_message'             => array( array( 'ip',     'message' ),          'string' ),
 			'cpf_block_duration'     => array( array( 'cpf',    'block_duration' ),   'int' ),
 			'device_message'         => array( array( 'device', 'message' ),          'string' ),
@@ -699,6 +751,48 @@ class SettingsAjaxEndpointTest extends TestCase {
 	// ==================================================================
 	// An empty numeric field is refused, never clamped (#1111 follow-up)
 	// ==================================================================
+
+	public function test_a_strong_minimum_above_the_strong_signals_enabled_is_refused(): void {
+		// Two strong signals enabled; a minimum of 3 could never match (#2339).
+		Functions\when( '__' )->returnArg();
+		$wrote = false;
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_rate_limit_settings' === $key
+				? array( 'device' => array( 'signals_enabled' => array( 'cookie', 'canvas', 'audio' ) ) )
+				: $default
+		);
+		Functions\when( 'update_option' )->alias(
+			function () use ( &$wrote ) {
+				$wrote = true;
+				return true;
+			}
+		);
+		$memo = new \ReflectionProperty( \FreeFormCertificate\Security\RateLimitChecker::class, 'settings_cache' );
+		$memo->setAccessible( true );
+		$memo->setValue( null, null );
+
+		$_POST = array(
+			'nonce' => 'x',
+			'key'   => 'device_match_strong_min',
+			'value' => '3',
+		);
+
+		try {
+			SettingsAjaxEndpoint::handle();
+			$this->fail( 'expected a refusal' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_error: The strong-signal minimum (3)', $e->getMessage() );
+		}
+		$this->assertFalse( $wrote );
+
+		$_POST['value'] = '2';
+		try {
+			SettingsAjaxEndpoint::handle();
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringStartsWith( 'json_success', $e->getMessage(), 'A minimum the signals reach is saved.' );
+		}
+		$this->assertTrue( $wrote );
+	}
 
 	public function test_an_empty_int_value_is_refused_instead_of_writing_the_floor(): void {
 		// `(int) ''` is 0, so before this guard a cleared field silently wrote

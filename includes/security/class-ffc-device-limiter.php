@@ -83,7 +83,7 @@ class DeviceLimiter {
 		$signals         = array_filter(
 			$signals,
 			static function ( $v, $k ) use ( $enabled_signals ) {
-				return '' !== $v && in_array( $k, $enabled_signals, true );
+				return '' !== $v && ( in_array( $k, $enabled_signals, true ) || ( 'cookie' === $k && RateLimitChecker::NO_SIGNALS_DEVICE === $v ) );
 			},
 			ARRAY_FILTER_USE_BOTH
 		);
@@ -94,10 +94,15 @@ class DeviceLimiter {
 
 		$cookie = $signals['cookie'] ?? null;
 
-		// Whitelisted cookie hashes bypass the limit entirely.
+		// Whitelisted cookie hashes bypass the limit entirely. They are the
+		// hashes the browser sends, so they compare before keying.
 		if ( $cookie && in_array( $cookie, (array) $d['bypass_whitelist_signals'], true ) ) {
 			return array( 'allowed' => true );
 		}
+
+		// What is stored and matched is the keyed hash (#2339).
+		$signals = self::keyed( $signals );
+		$cookie  = $signals['cookie'] ?? null;
 
 		$effective = $this->get_effective_settings( $form_id );
 
@@ -179,7 +184,15 @@ class DeviceLimiter {
 			return array(
 				'allowed'      => false,
 				'reason'       => 'device_limit',
-				'message'      => $effective['message'],
+				// The same tokens as every other limiter (#2339). There is no
+				// wait: the limit is per form, not per period.
+				'message'      => $this->support->format_message(
+					$effective['message'],
+					array(
+						'count' => $count,
+						'max'   => $max,
+					)
+				),
 				'wait_seconds' => 0,
 			);
 		}
@@ -220,6 +233,29 @@ class DeviceLimiter {
 	}
 
 	/**
+	 * The signals as they are stored and matched: each keyed with the site's
+	 * hash salt, per signal (#2339).
+	 *
+	 * The browser sends a bare SHA-256 of each reading, and several readings
+	 * have few possible values (a time zone, a screen size, a core count), so a
+	 * table of their hashes reads a stored row back. Keyed, a copy of the table
+	 * says nothing without the salt. The shared no-signals device is keyed too,
+	 * so it stays one device per form.
+	 *
+	 * @param array<string, string> $signals Signal name to the browser's hash.
+	 * @return array<string, string>
+	 */
+	private static function keyed( array $signals ): array {
+		$out = array();
+		foreach ( $signals as $name => $value ) {
+			$out[ $name ] = '' === (string) $value
+				? ''
+				: \FreeFormCertificate\Core\Encryption::keyed_hash( (string) $value, 'device_signal_' . $name );
+		}
+		return $out;
+	}
+
+	/**
 	 * Persist the collected device signal hashes for a successful submission.
 	 *
 	 * Called from the ffcertificate_after_submission_save hook so that the
@@ -237,13 +273,15 @@ class DeviceLimiter {
 			return;
 		}
 		$enabled = is_array( $d['signals_enabled'] ) ? array_map( 'strval', $d['signals_enabled'] ) : array();
+		$shared  = RateLimitChecker::NO_SIGNALS_DEVICE === ( $signals['cookie'] ?? null );
+		$signals = self::keyed( $signals );
 		$row     = array(
 			'submission_id' => $submission_id,
 			'form_id'       => $form_id,
 		);
 		$has_any = false;
-		foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ) as $k ) {
-			if ( ! empty( $signals[ $k ] ) && in_array( $k, $enabled, true ) ) {
+		foreach ( RateLimitChecker::DEVICE_SIGNALS as $k ) {
+			if ( ! empty( $signals[ $k ] ) && ( ( 'cookie' === $k && $shared ) || in_array( $k, $enabled, true ) ) ) {
 				$row[ 'sig_' . $k ] = substr( (string) $signals[ $k ], 0, 64 );
 				$has_any            = true;
 			} else {

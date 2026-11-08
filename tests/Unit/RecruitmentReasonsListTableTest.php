@@ -183,7 +183,7 @@ class RecruitmentReasonsListTableTest extends TestCase {
 		$cols = $this->table->get_columns();
 
 		$this->assertSame(
-			array( 'cb', 'slug', 'label', 'color', 'applies_to', 'usage', 'created_at' ),
+			array( 'cb', 'slug', 'label', 'color', 'applies_to', 'usage', 'created_at', 'actions' ),
 			array_keys( $cols )
 		);
 	}
@@ -297,8 +297,11 @@ class RecruitmentReasonsListTableTest extends TestCase {
 
 		$this->assertStringContainsString( 'no-show', $out );
 		$this->assertStringContainsString( 'action=edit-reason', $out );
+
+		$out = $this->call_protected( 'column_actions', array( array( 'id' => 9, 'slug' => 'no-show' ) ) );
+		$this->assertStringContainsString( 'action=edit-reason', $out );
 		$this->assertStringContainsString( 'action=delete-reason', $out );
-		$this->assertStringContainsString( 'submitdelete', $out );
+		$this->assertStringContainsString( 'ffc-btn-danger', $out );
 	}
 
 	public function test_column_slug_read_only_is_plain_code_no_actions(): void {
@@ -309,8 +312,11 @@ class RecruitmentReasonsListTableTest extends TestCase {
 
 		$this->assertStringContainsString( 'no-show', $out );
 		$this->assertStringContainsString( '<code>', $out );
-		$this->assertStringNotContainsString( 'submitdelete', $out );
 		$this->assertStringNotContainsString( 'row-actions', $out );
+
+		$ref = new \ReflectionMethod( $table, 'column_actions' );
+		$ref->setAccessible( true );
+		$this->assertSame( '', $ref->invokeArgs( $table, array( array( 'id' => 9, 'slug' => 'no-show' ) ) ), 'a viewer gets no buttons' );
 	}
 
 	// ------------------------------------------------------------------

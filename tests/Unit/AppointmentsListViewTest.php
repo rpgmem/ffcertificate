@@ -80,6 +80,9 @@ class AppointmentsListViewTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		Functions\when( 'wp_admin_notice' )->alias(
 			static function ( $message, $args = array() ) {
 				$ffc_type = isset( $args['type'] ) ? $args['type'] : 'info';
@@ -96,6 +99,7 @@ class AppointmentsListViewTest extends TestCase {
 		Functions\when( 'esc_attr' )->returnArg();
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $t ) { echo $t; } );
+		Functions\when( 'esc_attr_e' )->alias( function ( $t ) { echo $t; } );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
 		Functions\when( 'admin_url' )->alias( fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
@@ -160,6 +164,7 @@ class AppointmentsListViewTest extends TestCase {
 		} else {
 			unset( $GLOBALS['wpdb'] );
 		}
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -220,6 +225,10 @@ class AppointmentsListViewTest extends TestCase {
 				if ( str_starts_with( $sql, 'SELECT status, COUNT(*) AS total FROM ' . self::APPOINTMENTS ) ) {
 					return $this->closeout_due;
 				}
+				// The filter card's calendar list (#2486).
+				if ( 'SELECT * FROM ' . self::CALENDARS . " WHERE `status` = 'active' ORDER BY created_at DESC" === $sql ) {
+					return array();
+				}
 				return $this->unexpected_query( $sql );
 			}
 		);
@@ -230,7 +239,7 @@ class AppointmentsListViewTest extends TestCase {
 					return (string) count( $this->appointments );
 				}
 				// The slot recount Confirm takes under lock (#2244).
-				if ( str_starts_with( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) && str_contains( $sql, "status IN ('confirmed', 'pending') FOR UPDATE" ) ) {
+				if ( str_starts_with( $sql, 'SELECT COUNT(*) FROM ' . self::APPOINTMENTS ) && str_contains( $sql, "status IN ('confirmed', 'pending')" ) && str_ends_with( $sql, 'FOR UPDATE' ) ) {
 					return (string) $this->slot_count;
 				}
 				return $this->unexpected_query( $sql );
@@ -607,6 +616,83 @@ class AppointmentsListViewTest extends TestCase {
 		$this->assertStringStartsWith( '1 marked as no-show; 1 skipped', $this->transients[0][1]['message'] );
 	}
 
+	/**
+	 * Run Delete permanently with the given request and return the DELETEs it ran.
+	 *
+	 * @param array<string, mixed> $get Request.
+	 * @return array{0: list<string>, 1: list<string>} DELETE statements, nonce actions checked.
+	 */
+	private function run_delete( array $get ): array {
+		$_GET     = array_merge( $_GET, $get );
+		$referers = array();
+		$deletes  = array();
+		Functions\when( 'check_admin_referer' )->alias(
+			static function ( $nonce_action ) use ( &$referers ) {
+				$referers[] = $nonce_action;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias( fn() => throw new \RuntimeException( 'redirected' ) );
+		Functions\when( 'wp_cache_flush_group' )->justReturn( true );
+		Functions\when( 'wp_cache_supports' )->justReturn( true );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		$GLOBALS['wpdb']->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $sql ) use ( &$deletes ) {
+				$deletes[] = $sql;
+				return substr_count( $sql, ',' ) + 1;
+			}
+		);
+
+		try {
+			$this->include_view_expecting_stop( 'redirected' );
+		} finally {
+			unset( $_GET['action'], $_GET['ffc_action'] );
+			\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		}
+		return array( $deletes, $referers );
+	}
+
+	public function test_bulk_delete_permanently_removes_only_the_rows_that_are_over(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'cancelled' );
+		$this->appointments[6] = array( 'id' => 6, 'calendar_id' => 7, 'status' => 'confirmed' );
+		$this->appointments[8] = array( 'id' => 8, 'calendar_id' => 7, 'status' => 'no_show' );
+
+		[ $deletes, $referers ] = $this->run_delete( array( 'action' => 'bulk_delete_permanently', 'appointment' => array( '5', '6', '8' ) ) );
+
+		$this->assertSame( array( 'bulk-appointments' ), $referers );
+		$this->assertCount( 1, $deletes );
+		$this->assertStringContainsString( 'DELETE FROM', $deletes[0] );
+		$this->assertMatchesRegularExpression( '/IN \(5,\s*8\)/', $deletes[0], 'The confirmed row stays.' );
+		$this->assertSame( 'success', $this->transients[0][1]['type'] );
+		$this->assertStringStartsWith( '2 deleted permanently; 1 skipped', $this->transients[0][1]['message'] );
+	}
+
+	public function test_one_row_delete_checks_its_own_nonce(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'completed' );
+
+		[ $deletes, $referers ] = $this->run_delete( array( 'ffc_action' => 'delete_permanently', 'appointment' => '5' ) );
+
+		$this->assertSame( array( 'ffc_delete_permanently_appointment_5' ), $referers );
+		$this->assertCount( 1, $deletes );
+		$this->assertStringStartsWith( '1 deleted permanently; 0 skipped', $this->transients[0][1]['message'] );
+	}
+
+	public function test_delete_permanently_needs_the_delete_capability(): void {
+		$this->appointments[5] = array( 'id' => 5, 'calendar_id' => 7, 'status' => 'cancelled' );
+		$_GET['action']        = 'bulk_delete_permanently';
+		$_GET['appointment']   = array( '5' );
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_appointments' === $cap );
+		Functions\when( 'wp_die' )->alias( fn( $msg ) => throw new \RuntimeException( $msg ) );
+
+		try {
+			$this->include_view_expecting_stop( 'do not have permission' );
+		} finally {
+			unset( $_GET['action'] );
+		}
+		$this->assertSame( array(), $this->transients );
+	}
+
 	public function test_undo_attendance_puts_the_row_back_to_confirmed(): void {
 		$this->appointments[5] = array( 'id' => 5, 'status' => 'no_show', 'appointment_date' => '2026-05-01' );
 
@@ -804,18 +890,16 @@ class AppointmentsListViewTest extends TestCase {
 	// ==================================================================
 
 	public function test_view_renders_list_table_by_default(): void {
-		// The list's "Reveal this page" asks the policy (#1863); this viewer
-		// holds the appointments PII cap.
-		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_appointments_pii' === $cap );
-		Functions\when( 'wp_create_nonce' )->justReturn( 'page-nonce' );
-
 		ob_start();
 		$this->include_view();
 		$out = ob_get_clean();
 
 		$this->assertStringContainsString( 'Appointments', $out );
 		$this->assertStringContainsString( 'Export CSV', $out );
-		$this->assertStringContainsString( 'class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii-page" data-nonce="page-nonce"', $out );
+		// The list top (#2486): the filter card inside the list's form; the
+		// page reveal moved into the bulk bar the table draws, tested there.
+		$this->assertMatchesRegularExpression( '#<form method="get" class="ffc-list">\s*<input type="hidden" name="page" value="ffc-appointments" />\s*<div class="ffc-list-filters">#', $out );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-appointments-calendar">Calendar</label>', $out );
 		// The header's Export CSV is a family button with the hook the script binds (#1904).
 		$this->assertStringContainsString( '<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-appointments-export-btn"', $out );
 		$this->assertStringNotContainsString( 'page-title-action', $out );
@@ -896,15 +980,5 @@ class AppointmentsListViewTest extends TestCase {
 
 		$this->include_view_expecting_stop( 'died' );
 		$this->assertSame( array(), $this->transients );
-	}
-
-	public function test_the_list_offers_no_page_reveal_without_the_pii_cap(): void {
-		Functions\when( 'user_can' )->justReturn( false );
-
-		ob_start();
-		$this->include_view();
-		$out = ob_get_clean();
-
-		$this->assertStringNotContainsString( 'ffc-reveal-pii-page', $out );
 	}
 }

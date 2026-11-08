@@ -46,6 +46,11 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 
 	use MockeryPHPUnitIntegration;
 
+	/**
+	 * The URL every stored PNG here encodes.
+	 */
+	private const URL = 'https://example.org/go/abc123';
+
 	private UrlShortenerQrHandler $handler;
 
 	/** @var UrlShortenerService|Mockery\MockInterface */
@@ -112,7 +117,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 			}
 		);
 
-		$this->call( 'set_qr_cache', array( 'abc123', $size, $base64 ) );
+		$this->call( 'set_qr_cache', array( 'abc123', $size, self::URL, $base64 ) );
 
 		return $captured;
 	}
@@ -127,6 +132,20 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	 * It is the assertion holding all the others up: without the stored size,
 	 * there is no way for a later read to know whether what is there serves.
 	 */
+	public function test_the_stored_payload_names_the_url_it_encodes(): void {
+		$decoded = json_decode( $this->stored_payload( 200, 'PNGDATA' ), true );
+
+		$this->assertSame( self::URL, $decoded['url'] ?? null, 'The PNG is keyed to what it encodes (#2337).' );
+	}
+
+	public function test_a_png_of_another_url_is_a_miss(): void {
+		$payload = $this->stored_payload( 200, 'PNGDATA' );
+		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->andReturn( $payload );
+
+		$this->assertSame( 'PNGDATA', $this->call( 'get_qr_cache', array( 'abc123', 200, self::URL ) ) );
+		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200, 'https://example.org/link/abc123' ) ), 'A new prefix makes the stored PNG stale.' );
+	}
+
 	public function test_the_stored_payload_declares_its_size(): void {
 		$payload = $this->stored_payload( 200, 'PNGDATA' );
 
@@ -150,7 +169,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )->andReturn( $payload );
 
-		$this->assertSame( 'PNGDATA', $this->call( 'get_qr_cache', array( 'abc123', 200 ) ) );
+		$this->assertSame( 'PNGDATA', $this->call( 'get_qr_cache', array( 'abc123', 200, self::URL ) ) );
 	}
 
 	/**
@@ -165,7 +184,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 
 		$this->assertSame(
 			'',
-			$this->call( 'get_qr_cache', array( 'abc123', 1000 ) ),
+			$this->call( 'get_qr_cache', array( 'abc123', 1000, self::URL ) ),
 			'Um cache de 200px foi servido para um pedido de 1000px — e o defeito do #1233 de volta.'
 		);
 	}
@@ -183,7 +202,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )
 			->andReturn( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB' );
 
-		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200 ) ) );
+		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200, self::URL ) ) );
 	}
 
 	/**
@@ -208,7 +227,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 	public function test_legacy_base64_that_parses_as_json_is_still_a_miss( string $stored ): void {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )->andReturn( $stored );
 
-		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200 ) ) );
+		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200, self::URL ) ) );
 	}
 
 	/**
@@ -232,7 +251,7 @@ class UrlShortenerQrCacheSizeTest extends TestCase {
 		$this->repo->shouldReceive( 'findQrCacheByShortCode' )->with( 'abc123' )
 			->andReturn( (string) json_encode( array( 'v' => 99, 'size' => 200, 'png' => 'PNGDATA' ) ) );
 
-		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200 ) ) );
+		$this->assertSame( '', $this->call( 'get_qr_cache', array( 'abc123', 200, self::URL ) ) );
 	}
 
 	// ==================================================================

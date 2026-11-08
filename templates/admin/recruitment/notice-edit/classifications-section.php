@@ -26,8 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-list">' . esc_html__( 'Classifications', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- pre-rendered, already-escaped HTML.
@@ -60,4 +58,4 @@ echo '</div>';
 // matching [data-ffc-clspanel], and writes ffc_cls_tab into the URL so
 // a later pagination click preserves the operator's chosen tab.
 
-echo '</div></div>';
+echo '</div>';

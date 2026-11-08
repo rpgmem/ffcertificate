@@ -24,7 +24,7 @@ echo '<li>' . sprintf(
 	wp_kses_post( __( 'Define at least one <a href="%s">adjutancy</a> (subject / role) — these are reusable across notices.', 'ffcertificate' ) ),
 	esc_url( $adjutancies_url )
 ) . '</li>';
-echo '<li>' . esc_html__( 'Create your first notice (Code + Name) using the form below this list.', 'ffcertificate' ) . '</li>';
+echo '<li>' . esc_html__( 'Create your first notice with New notice, beside the title.', 'ffcertificate' ) . '</li>';
 echo '<li>' . esc_html__( 'Open the new notice and attach the relevant adjutancies + import the candidate CSV.', 'ffcertificate' ) . '</li>';
 echo '<li>' . esc_html__( 'Promote the preliminary list to definitive once you\'re ready, and call candidates per row or in bulk.', 'ffcertificate' ) . '</li>';
 echo '</ol>';

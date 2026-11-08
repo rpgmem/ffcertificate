@@ -120,6 +120,7 @@ class SelfSchedulingEditor {
 					'addWorkingHour'   => __( 'Add Working Hours', 'ffcertificate' ),
 					'lastWorkingHour'  => __( 'You must have at least one working hour configured.', 'ffcertificate' ),
 					'remove'           => __( 'Remove', 'ffcertificate' ),
+					'sessionName'      => __( 'Session name', 'ffcertificate' ),
 					'daysOfWeek'       => array(
 						__( 'Sunday', 'ffcertificate' ),
 						__( 'Monday', 'ffcertificate' ),
@@ -275,11 +276,12 @@ class SelfSchedulingEditor {
 	 * follows it, as their section chips did; the others are settings every
 	 * calendar has.
 	 *
-	 * @param bool $occupancy Whether the occupancy tab exists.
-	 * @param bool $saved     Whether the calendar exists (the blocked-dates tab needs its row).
+	 * @param bool   $occupancy      Whether the occupancy tab exists.
+	 * @param bool   $saved          Whether the calendar exists (the blocked-dates tab needs its row).
+	 * @param string $sessions_label The calendar's plural for its sessions (#2413), or '' for the default.
 	 * @return array<int, array{key: string, icon: string, label: string, title: string, masters: array<int, string>}>
 	 */
-	private static function tab_definitions( bool $occupancy, bool $saved = false ): array {
+	private static function tab_definitions( bool $occupancy, bool $saved = false, string $sessions_label = '' ): array {
 		$tabs = array(
 			array(
 				'key'     => 'calendar',
@@ -293,6 +295,14 @@ class SelfSchedulingEditor {
 				'icon'    => 'ffc-icon-clock',
 				'label'   => __( 'Slots & hours', 'ffcertificate' ),
 				'title'   => __( 'Booking slots', 'ffcertificate' ),
+				'masters' => array(),
+			),
+			array(
+				'key'     => 'sessions',
+				'icon'    => 'ffc-icon-users',
+				// The calendar's own plural when it has one (#2413).
+				'label'   => '' !== $sessions_label ? $sessions_label : __( 'Sessions', 'ffcertificate' ),
+				'title'   => '' !== $sessions_label ? $sessions_label : __( 'Sessions', 'ffcertificate' ),
 				'masters' => array(),
 			),
 			array(
@@ -350,7 +360,7 @@ class SelfSchedulingEditor {
 			// once the calendar does.
 			array_splice(
 				$tabs,
-				3,
+				4,
 				0,
 				array(
 					array(
@@ -406,7 +416,7 @@ class SelfSchedulingEditor {
 		SlotGridLock::render_notice( (int) $post->ID );
 
 		AdminUI::render_vertical_tabs(
-			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status ),
+			self::tab_definitions( $this->shows_occupancy( (int) $post->ID ), 'auto-draft' !== $post->post_status, trim( CalendarSessions::labels_of_post( (int) $post->ID )['session_label_plural'] ) ),
 			function ( string $key ) use ( $post, $config, $mode_locked ): void {
 				switch ( $key ) {
 					case 'calendar':
@@ -415,6 +425,9 @@ class SelfSchedulingEditor {
 					case 'slots':
 						$this->render_tab_slots( $config, $mode_locked );
 						$this->render_working_hours( $post, $mode_locked );
+						break;
+					case 'sessions':
+						$this->render_tab_sessions( (int) $post->ID );
 						break;
 					case 'window':
 						$this->render_tab_window( $config );
@@ -487,6 +500,8 @@ class SelfSchedulingEditor {
 			'scheduling_visibility'             => 'public',
 			'restrict_viewing_to_hours'         => 0,
 			'restrict_booking_to_hours'         => 0,
+			'show_event_list'                   => 0,
+			'event_list_position'               => 'side',
 			'admin_bypass'                      => $admin_bypass_default,
 		);
 
@@ -564,6 +579,84 @@ class SelfSchedulingEditor {
 	}
 
 	/**
+	 * Sessions tab (#2405): parallel services inside the calendar, each with
+	 * its own places. The marker field tells the save the tab was posted, so
+	 * a list emptied on purpose is saved as empty.
+	 *
+	 * @param int $post_id Calendar post.
+	 * @return void
+	 */
+	private function render_tab_sessions( int $post_id ): void {
+		self::render_tab_hint( __( 'Parallel services on the same days and hours, each with its own places.', 'ffcertificate' ) );
+
+		$kept = get_transient( SelfSchedulingSaveHandler::sessions_notice_key( $post_id ) );
+		if ( is_array( $kept ) && array() !== $kept ) {
+			delete_transient( SelfSchedulingSaveHandler::sessions_notice_key( $post_id ) );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'error',
+				esc_html(
+					sprintf(
+						/* translators: %s: session names, comma-separated */
+						__( 'Not deleted, because they have open appointments from today on: %s. Cancel or move those appointments first.', 'ffcertificate' ),
+						implode( ', ', array_map( 'strval', $kept ) )
+					)
+				),
+				array( 'additional_classes' => array( 'inline' ) )
+			);
+		}
+
+		$sessions = CalendarSessions::active( CalendarSessions::decode( get_post_meta( $post_id, CalendarSessions::META, true ) ) );
+		?>
+		<p class="description"><?php esc_html_e( 'Hours, slot length, capacity per slot and blocked dates come from the calendar; each session counts its own places, so a time booked in one session stays free in another. With fewer than two sessions the calendar works as it does without them. A session that has open appointments from today on cannot be deleted.', 'ffcertificate' ); ?></p>
+		<input type="hidden" name="ffc_self_scheduling_sessions_present" value="1">
+		<table class="widefat ffc-sessions-table">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Session name', 'ffcertificate' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Order', 'ffcertificate' ); ?></th>
+					<th scope="col"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></span></th>
+				</tr>
+			</thead>
+			<tbody id="ffc-sessions-list">
+				<?php foreach ( $sessions as $index => $session ) : ?>
+					<tr class="ffc-session-row">
+						<td>
+							<input type="hidden" name="ffc_self_scheduling_sessions[<?php echo esc_attr( (string) $index ); ?>][id]" value="<?php echo esc_attr( (string) $session['id'] ); ?>">
+							<input type="text" class="regular-text" name="ffc_self_scheduling_sessions[<?php echo esc_attr( (string) $index ); ?>][name]" value="<?php echo esc_attr( $session['name'] ); ?>" maxlength="<?php echo esc_attr( (string) CalendarSessions::MAX_NAME ); ?>" aria-label="<?php esc_attr_e( 'Session name', 'ffcertificate' ); ?>" required>
+						</td>
+						<td><span class="ffc-session-order"></span></td>
+						<td>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Remove', 'ffcertificate' ),
+									'category' => 'danger',
+									'icon'     => 'delete',
+									'class'    => 'ffc-remove-session',
+								)
+							);
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+		<p>
+			<?php
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Add Session', 'ffcertificate' ),
+					'category' => 'create',
+					'icon'     => 'plus',
+					'id'       => 'ffc-add-session',
+				)
+			);
+			?>
+		</p>
+		<?php
+	}
+
+	/**
 	 * Calendar tab: what the calendar is, and whether it takes bookings.
 	 *
 	 * @param array<string, mixed> $config Configuration with defaults.
@@ -589,6 +682,39 @@ class SelfSchedulingEditor {
 						<option value="archived" <?php selected( $config['status'], 'archived' ); ?>><?php esc_html_e( 'Archived', 'ffcertificate' ); ?></option>
 					</select>
 					<p class="description"><?php esc_html_e( 'Calendar status (inactive = no new bookings allowed)', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="show_event_list"><?php esc_html_e( 'Free Slots Panel', 'ffcertificate' ); ?></label></th>
+				<td>
+					<div class="ffc-control-toggle-stack">
+						<?php
+						AdminUI::render_toggle(
+							array(
+								'id'      => 'show_event_list',
+								'name'    => 'ffc_self_scheduling_config[show_event_list]',
+								'checked' => (bool) $config['show_event_list'],
+								'label'   => __( 'Show a panel with the free slots of the month', 'ffcertificate' ),
+							)
+						);
+						?>
+						<p class="description"><?php esc_html_e( 'Lists the days of the month shown that still have free slots, and how many, with the holidays. A signed-in visitor also sees their own bookings. It never shows who booked.', 'ffcertificate' ); ?></p>
+						<?php
+						AdminUI::render_segmented(
+							array(
+								'name'    => 'ffc_self_scheduling_config[event_list_position]',
+								'id'      => 'event_list_position',
+								'legend'  => __( 'Panel position', 'ffcertificate' ),
+								'value'   => (string) $config['event_list_position'],
+								'options' => array(
+									'side'  => __( 'Beside', 'ffcertificate' ),
+									'below' => __( 'Below', 'ffcertificate' ),
+								),
+								'size'    => 'sm',
+							)
+						);
+						?>
+					</div>
 				</td>
 			</tr>
 		</table>
@@ -1101,17 +1227,19 @@ class SelfSchedulingEditor {
 	}
 
 	/**
-	 * Render the Names tab (#2223): this calendar's own state names and
-	 * closed-label choice, each inheriting the general one when empty.
+	 * Render the Names tab (#2223): this calendar's own state names, its
+	 * closed-label choice and its word for a session (#2420), each inheriting
+	 * the general one when empty.
 	 *
 	 * @param object $post Post object.
 	 * @phpstan-param \WP_Post $post
 	 * @return void
 	 */
 	private function render_tab_names( object $post ): void {
-		$ffc_names_base    = 'ffc_calendar_names';
-		$ffc_names         = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
-		$ffc_names_booking = true;
+		$ffc_names_base     = 'ffc_calendar_names';
+		$ffc_names          = \FreeFormCertificate\Scheduling\CalendarAppearance::clean_override( get_post_meta( (int) $post->ID, \FreeFormCertificate\Scheduling\CalendarAppearance::NAMES_META, true ) );
+		$ffc_names_booking  = true;
+		$ffc_names_sessions = CalendarSessions::labels_of_post( (int) $post->ID );
 		include FFC_PLUGIN_DIR . 'templates/admin/scheduling/calendar-names.php';
 	}
 

@@ -371,6 +371,12 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringContainsString( '1 / 3', $html );
 		$this->assertStringContainsString( '<option value="4" >Teachers</option>', $html );
 		$this->assertStringContainsString( '<option value="5" >&mdash; Substitutes</option>', $html );
+
+		// The list top (#2498): New campaign beside the title, labelled filters in a card, the count above the table.
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">Reregistration</h1>\s*<a href="[^"]*view=new" class="ffc-btn ffc-btn-create ffc-icon-plus">New campaign</a>\s*<hr class="wp-header-end">#', $html );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-rereg-audience-filter">Audience</label>', $html );
+		$this->assertMatchesRegularExpression( '#<span class="displaying-num">\s*1 campaign\s*</span>#', $html );
+		$this->assertStringContainsString( 'Clear</a>', $html, 'a filter is applied' );
 	}
 
 	public function test_render_list_without_filters_asks_for_everything(): void {
@@ -422,7 +428,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$this->assertSame( array(), $this->preparedWith( 'WHERE id = %d' ), 'Neither a campaign nor an audience is read by id.' );
 		$this->assertSame( array(), $this->preparedWith( 'SELECT audience_id FROM %i WHERE reregistration_id' ), 'No linked audiences are read.' );
-		$this->assertStringContainsString( '<h1>New Reregistration</h1>', $html );
+		$this->assertStringContainsString( 'New Reregistration</h1>', $html );
 		$this->assertStringContainsString( 'Create Reregistration', $html );
 		$this->assertStringContainsString( 'data-selected="[]"', $html );
 		$this->assertStringNotContainsString( 'ffc-rereg-send-invitations', $html, 'An unsaved campaign has nobody to invite.' );
@@ -440,12 +446,12 @@ class ReregistrationAdminRendererTest extends TestCase {
 
 		$html = $this->capture( fn () => ReregistrationAdminRenderer::render_form( 'ffc-reregistration', 7 ) );
 
-		$this->assertStringContainsString( '<h1>Edit Reregistration</h1>', $html );
+		$this->assertStringContainsString( 'Edit Reregistration</h1>', $html );
 		$this->assertStringContainsString( 'data-selected="[3,9]"', $html );
 		$this->assertStringContainsString( 'value="Census 2026"', $html );
 		$this->assertToggle( $html, 'rereg_auto_approve', true );
 		$this->assertToggle( $html, 'rereg_email_reminder', false );
-		$this->assertStringContainsString( '<strong>Affected users:</strong> 3', $html );
+		$this->assertStringContainsString( '<dd class="ffc-facts__value" id="ffc-affected-users">3</dd>', $html );
 		$this->assertStringContainsString( 'ffc-rereg-send-invitations', $html );
 		// The import picker offers the live audience and drops the deleted one.
 		$this->assertStringContainsString( '<option value="3">Teachers</option>', $html );
@@ -508,6 +514,11 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringContainsString( 'No submissions found.', $html );
 		$this->assertStringContainsString( 'name="bulk_action"', $html );
 		$this->assertStringContainsString( 'value="maria"', $html );
+
+		// The header (#2498): Back and Export CSV beside the title; one bar with the bulk action, Reveal and the count.
+		$this->assertMatchesRegularExpression( '#</h1>\s*<a href="[^"]*page=ffc-reregistration" class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">Back to campaigns</a>\s*<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-download" id="ffc-rereg-export-btn"[^>]*>Export CSV</button>\s*<hr class="wp-header-end">#', $html );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-rereg-sub-search">Search</label>', $html );
+		$this->assertMatchesRegularExpression( '#<div class="tablenav top">\s*<div class="alignleft actions ffc-rereg-bulk-bar">.*name="bulk_action".*</div>\s*<div class="tablenav-pages"><span class="displaying-num">0 submissions</span></div>#s', $html );
 
 		preg_match_all(
 			'#<div class="ffc-stat-card"><span class="ffc-stat-card__icon ([^"]*)" aria-hidden="true"></span><span class="ffc-stat-card__value">([^<]*)</span><span class="ffc-stat-card__label">([^<]*)</span><a class="ffc-stat-card__link" href="[^"]*">Show &rarr;</a></div>#',
@@ -711,7 +722,7 @@ class ReregistrationAdminRendererTest extends TestCase {
 		$this->assertStringNotContainsString( 'maria@example.org', $html );
 		$this->assertStringContainsString( 'm***@example.org', $html );
 		$this->assertStringContainsString(
-			'<button type="button" class="ffc-btn ffc-btn-neutral ffc-icon-eye ffc-reveal-pii" data-type="reregistration" data-field="email" data-submission-id="31" data-nonce="nonce:ffc_reveal_pii_nonce">Reveal</button>',
+			'<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-eye ffc-reveal-pii" aria-label="Reveal" title="Reveal" data-type="reregistration" data-field="email" data-submission-id="31" data-nonce="nonce:ffc_reveal_pii_nonce"></button>',
 			$html
 		);
 		$this->assertStringContainsString( 'ffc-view-details-btn', $html );

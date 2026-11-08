@@ -61,83 +61,109 @@ $ffc_env_label   = $schedule_id > 0
 
 	<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_audience' ); ?>
 
-	<!-- Filters -->
-	<div class="tablenav top">
-		<form method="get" action="" class="ffc-bookings-filters">
-			<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug ); ?>-bookings">
-			<?php // Filtering keeps the chosen sort (#2291). ?>
-			<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
-			<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
+	<?php // The list top (#2486): the filter card, then the bulk bar with the pagination. ?>
+	<form method="get" action="" class="ffc-list ffc-bookings-filters">
+		<input type="hidden" name="page" value="<?php echo esc_attr( $this->menu_slug ); ?>-bookings">
+		<?php // Filtering keeps the chosen sort (#2291). ?>
+		<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
+		<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
 
-			<select name="schedule_id" id="filter-schedule">
-				<option value=""><?php esc_html_e( 'All Schedules', 'ffcertificate' ); ?></option>
-				<?php foreach ( $schedules as $ffc_schedule ) : ?>
-					<option value="<?php echo esc_attr( $ffc_schedule->id ); ?>" <?php selected( $schedule_id, $ffc_schedule->id ); ?>>
-						<?php echo esc_html( $ffc_schedule->name ); ?>
+		<div class="ffc-list-filters">
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-schedule"><?php esc_html_e( 'Calendar', 'ffcertificate' ); ?></label>
+				<select name="schedule_id" id="filter-schedule">
+					<option value=""><?php esc_html_e( 'All Schedules', 'ffcertificate' ); ?></option>
+					<?php foreach ( $schedules as $ffc_schedule ) : ?>
+						<option value="<?php echo esc_attr( $ffc_schedule->id ); ?>" <?php selected( $schedule_id, $ffc_schedule->id ); ?>>
+							<?php echo esc_html( $ffc_schedule->name ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-environment"><?php echo esc_html( AudienceScheduleRepository::get_environment_label( $schedule_id > 0 ? $schedule_id : null, true ) ); ?></label>
+				<select name="environment_id" id="filter-environment">
+					<option value="">
+						<?php
+						/* translators: %s: environment label (plural) */
+						printf( esc_html__( 'All %s', 'ffcertificate' ), esc_html( $ffc_env_label ) );
+						?>
 					</option>
-				<?php endforeach; ?>
-			</select>
+					<?php foreach ( $environments as $ffc_env ) : ?>
+						<option value="<?php echo esc_attr( $ffc_env->id ); ?>" <?php selected( $environment_id, $ffc_env->id ); ?>>
+							<?php echo esc_html( $ffc_env->name ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+			</div>
 
-			<select name="environment_id" id="filter-environment">
-				<option value="">
-					<?php
-					/* translators: %s: environment label (plural) */
-					printf( esc_html__( 'All %s', 'ffcertificate' ), esc_html( $ffc_env_label ) );
-					?>
-				</option>
-				<?php foreach ( $environments as $ffc_env ) : ?>
-					<option value="<?php echo esc_attr( $ffc_env->id ); ?>" <?php selected( $environment_id, $ffc_env->id ); ?>>
-						<?php echo esc_html( $ffc_env->name ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-audience"><?php esc_html_e( 'Audience', 'ffcertificate' ); ?></label>
+				<select name="audience_id" id="filter-audience">
+					<option value=""><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
+					<?php foreach ( $audience_choices as $ffc_audience ) : ?>
+						<option value="<?php echo esc_attr( $ffc_audience->id ); ?>" <?php selected( $audience_id, $ffc_audience->id ); ?>>
+							<?php echo esc_html( $ffc_audience->name ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+			</div>
 
-			<select name="audience_id" id="filter-audience" aria-label="<?php esc_attr_e( 'Audience', 'ffcertificate' ); ?>">
-				<option value=""><?php esc_html_e( 'All Audiences', 'ffcertificate' ); ?></option>
-				<?php foreach ( $audience_choices as $ffc_audience ) : ?>
-					<option value="<?php echo esc_attr( $ffc_audience->id ); ?>" <?php selected( $audience_id, $ffc_audience->id ); ?>>
-						<?php echo esc_html( $ffc_audience->name ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-status"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></label>
+				<select name="status" id="filter-status">
+					<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
+					<option value="active" <?php selected( $status_filter, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
+					<option value="cancelled" <?php selected( $status_filter, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
+				</select>
+			</div>
 
-			<select name="status">
-				<option value=""><?php esc_html_e( 'All Statuses', 'ffcertificate' ); ?></option>
-				<option value="active" <?php selected( $status_filter, 'active' ); ?>><?php esc_html_e( 'Active', 'ffcertificate' ); ?></option>
-				<option value="cancelled" <?php selected( $status_filter, 'cancelled' ); ?>><?php esc_html_e( 'Cancelled', 'ffcertificate' ); ?></option>
-			</select>
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-date-from"><?php esc_html_e( 'Period', 'ffcertificate' ); ?></label>
+				<span class="ffc-list-filters__range">
+					<input type="date" name="date_from" id="filter-date-from" value="<?php echo esc_attr( $date_from ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
+					<span aria-hidden="true">&ndash;</span>
+					<input type="date" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
+				</span>
+			</div>
 
-			<input type="date" name="date_from" value="<?php echo esc_attr( $date_from ); ?>" aria-label="<?php esc_attr_e( 'From', 'ffcertificate' ); ?>">
-			<input type="date" name="date_to" value="<?php echo esc_attr( $date_to ); ?>" aria-label="<?php esc_attr_e( 'To', 'ffcertificate' ); ?>">
-			<input type="search" name="s" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Description or number', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search bookings', 'ffcertificate' ); ?>">
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="filter-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+				<input type="search" name="s" id="filter-search" value="<?php echo esc_attr( $search ); ?>" placeholder="<?php esc_attr_e( 'Description or number', 'ffcertificate' ); ?>">
+			</div>
 
-			<?php
-			\FreeFormCertificate\Admin\AdminUI::render_button(
-				array(
-					'label' => __( 'Filter', 'ffcertificate' ),
-					'icon'  => 'filter',
-					'type'  => 'submit',
-				)
-			);
-			\FreeFormCertificate\Admin\AdminUI::render_button(
-				array(
-					'label' => __( 'Clear', 'ffcertificate' ),
-					'icon'  => 'eraser',
-					'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
-				)
-			);
-			?>
-		</form>
-	</div>
+			<div class="ffc-list-filters__actions">
+				<?php
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+					)
+				);
+				\FreeFormCertificate\Admin\AdminUI::render_button(
+					array(
+						'label' => __( 'Clear', 'ffcertificate' ),
+						'icon'  => 'eraser',
+						'href'  => admin_url( 'admin.php?page=' . $this->menu_slug . '-bookings' ),
+					)
+				);
+				?>
+			</div>
+		</div>
+	</form>
 
+	<?php // The bulk bar sits in its own row now, so "Cancel selected" no longer slides under the filters (#2486). ?>
 	<div class="tablenav top">
 		<?php if ( $can_manage ) : ?>
 			<div class="alignleft actions bulkactions">
 				<?php
+				// Caution, not danger: a cancellation keeps the bookings, as the row's Cancel does.
 				\FreeFormCertificate\Admin\AdminUI::render_button(
 					array(
 						'label'    => __( 'Cancel selected', 'ffcertificate' ),
-						'category' => 'danger',
+						'category' => 'caution',
 						'icon'     => 'cross',
 						'id'       => 'ffc-bookings-bulk-cancel',
 						'disabled' => true,
@@ -217,23 +243,47 @@ $ffc_env_label   = $schedule_id > 0
 						</td>
 						<td><?php echo esc_html( $creators_map[ (int) $booking->created_by ] ?? __( 'Unknown', 'ffcertificate' ) ); ?></td>
 						<td>
-							<?php if ( $can_manage ) : ?>
-								<a href="#" class="ffc-view-booking" data-booking-id="<?php echo esc_attr( (string) $ffc_id ); ?>">
-									<?php esc_html_e( 'View', 'ffcertificate' ); ?>
-								</a>
-								<?php if ( $ffc_active ) : ?>
-									|
-									<a href="#" class="ffc-cancel-booking ffc-delete-link" data-booking-id="<?php echo esc_attr( (string) $ffc_id ); ?>" data-days="<?php echo esc_attr( (string) $ffc_days ); ?>" data-series="<?php echo esc_attr( (int) ( $booking->series_id ?? 0 ) > 0 ? '1' : '' ); ?>" data-date-label="<?php echo esc_attr( $ffc_date_label ); ?>">
-										<?php esc_html_e( 'Cancel', 'ffcertificate' ); ?>
-									</a>
-								<?php endif; ?>
-							<?php endif; ?>
-							<?php if ( $can_checkin && $ffc_active ) : ?>
-								<?php echo $can_manage ? '|' : ''; ?>
-								<a href="<?php echo esc_url( $attendance->url( $ffc_id ) ); ?>" class="ffc-attendance-link">
-									<?php esc_html_e( 'Attendance', 'ffcertificate' ); ?>
-								</a>
-							<?php endif; ?>
+							<div class="ffc-row-buttons">
+							<?php
+							// The row's actions as buttons (#2486); the classes and data are the script's hooks.
+							if ( $can_manage ) {
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label' => __( 'View', 'ffcertificate' ),
+										'icon'  => 'eye',
+										'class' => 'ffc-view-booking',
+										'attrs' => array( 'data-booking-id' => (string) $ffc_id ),
+									)
+								);
+							}
+							if ( $can_checkin && $ffc_active ) {
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label' => __( 'Attendance', 'ffcertificate' ),
+										'icon'  => 'user-check',
+										'href'  => $attendance->url( $ffc_id ),
+										'class' => 'ffc-attendance-link',
+									)
+								);
+							}
+							if ( $can_manage && $ffc_active ) {
+								\FreeFormCertificate\Admin\AdminUI::render_button(
+									array(
+										'label'    => __( 'Cancel', 'ffcertificate' ),
+										'category' => 'caution',
+										'icon'     => 'cross',
+										'class'    => 'ffc-cancel-booking',
+										'attrs'    => array(
+											'data-booking-id' => (string) $ffc_id,
+											'data-days'   => (string) $ffc_days,
+											'data-series' => (int) ( $booking->series_id ?? 0 ) > 0 ? '1' : '',
+											'data-date-label' => $ffc_date_label,
+										),
+									)
+								);
+							}
+							?>
+							</div>
 						</td>
 					</tr>
 				<?php endforeach; ?>

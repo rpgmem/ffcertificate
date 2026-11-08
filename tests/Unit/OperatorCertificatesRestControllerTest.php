@@ -76,6 +76,8 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The form background and the receipt background are cleaned on read (#2344).
+		Functions\when( 'esc_url_raw' )->returnArg();
 
 		$this->registered_routes = array();
 		$this->caps              = array( 'ffc_manage_certificates' );
@@ -178,7 +180,15 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 
 		$this->form_repo = Mockery::mock( FormRepository::class );
 		$this->form_repo->shouldReceive( 'getConfig' )->andReturn( array() )->byDefault();
-		$this->form_repo->shouldReceive( 'getFields' )->andReturn( array() )->byDefault();
+		// The form the operator issues against: its fields are the only keys
+		// an issue stores (#2342).
+		$this->form_repo->shouldReceive( 'getFields' )->andReturn(
+			array(
+				array( 'name' => 'name', 'type' => 'text', 'label' => 'Name' ),
+				array( 'name' => 'email', 'type' => 'email', 'label' => 'Email' ),
+				array( 'name' => 'cpf_rf', 'type' => 'text', 'label' => 'CPF/RF' ),
+			)
+		)->byDefault();
 
 		$this->had_wpdb    = array_key_exists( 'wpdb', $GLOBALS );
 		$this->wpdb_backup = $GLOBALS['wpdb'] ?? null;
@@ -309,6 +319,18 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		return $req;
 	}
 
+	/**
+	 * The answers of the one row written, decrypted when they were stored encrypted.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function stored_data(): array {
+		$row  = $this->inserted[0];
+		$json = ! empty( $row['data_encrypted'] ) ? Encryption::decrypt( $row['data_encrypted'] ) : ( $row['data'] ?? '' );
+		$data = json_decode( (string) $json, true );
+		return is_array( $data ) ? $data : array();
+	}
+
 	private function publishedForm(): object {
 		return (object) array(
 			'ID'          => 10,
@@ -359,7 +381,7 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
 
 		$resp = $this->controller()->issue_certificate(
-			$this->request( array( 'form_id' => 10, 'name' => 'Maria', 'email' => 'maria@example.com' ) )
+			$this->request( array( 'form_id' => 10, 'name' => 'Maria Silva', 'email' => 'maria@example.com' ) )
 		);
 
 		$this->assertIsArray( $resp );
@@ -375,6 +397,54 @@ class OperatorCertificatesRestControllerTest extends TestCase {
 		$this->assertSame( 'C-' . implode( '-', str_split( $this->inserted[0]['auth_code'], 4 ) ), $resp['auth_code'] );
 		$this->assertSame( 'maria@example.com', Encryption::decrypt( $this->inserted[0]['email_encrypted'] ) );
 		$this->assertSame( array( array( 5 ) ), $this->scheduled );
+	}
+
+	public function test_issue_certificate_ignores_a_caller_chosen_code_and_unknown_keys(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+
+		$resp = $this->controller()->issue_certificate(
+			$this->request(
+				array(
+					'form_id'   => 10,
+					'name'      => 'Maria Silva',
+					'email'     => 'maria@example.com',
+					'auth_code' => 'AAAABBBBCCCC',
+					'injected'  => 'not a field of the form',
+				)
+			)
+		);
+
+		$this->assertTrue( $resp['success'] );
+		$this->assertNotSame( 'AAAABBBBCCCC', $this->inserted[0]['auth_code'], 'The code is generated, never the caller\'s.' );
+		$data = $this->stored_data();
+		$this->assertArrayNotHasKey( 'injected', $data, 'Only the keys the form defines are stored.' );
+		$this->assertArrayNotHasKey( 'ffc_lgpd_consent', $data, 'Consent is recorded only when the caller sends it.' );
+	}
+
+	public function test_issue_certificate_records_no_client_address(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+
+		$this->controller()->issue_certificate(
+			$this->request( array( 'form_id' => 10, 'name' => 'Maria Silva', 'email' => 'maria@example.com' ) )
+		);
+
+		$this->assertEmpty( $this->inserted[0]['user_ip_encrypted'] ?? null, 'The operator\'s address is not stored as the participant\'s.' );
+	}
+
+	public function test_issue_certificate_hidden_field_takes_the_form_value(): void {
+		Functions\when( 'get_post' )->justReturn( $this->publishedForm() );
+		$this->form_repo->shouldReceive( 'getFields' )->andReturn(
+			array(
+				array( 'name' => 'email', 'type' => 'email', 'label' => 'Email' ),
+				array( 'name' => 'curso', 'type' => 'hidden', 'default_value' => 'Fixed course' ),
+			)
+		);
+
+		$this->controller()->issue_certificate(
+			$this->request( array( 'form_id' => 10, 'email' => 'maria@example.com', 'curso' => 'Something else' ) )
+		);
+
+		$this->assertSame( 'Fixed course', $this->stored_data()['curso'] );
 	}
 
 	public function test_issue_certificate_rejects_empty_body(): void {

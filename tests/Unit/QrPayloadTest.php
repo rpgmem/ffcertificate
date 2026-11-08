@@ -164,7 +164,12 @@ class QrPayloadTest extends TestCase {
 
 	public function test_phone_sms_and_whatsapp_normalise_the_number(): void {
 		$this->assertSame( 'tel:+5511987654321', QrPayload::build( 'phone', array( 'phone' => '+55 (11) 98765-4321' ) ) );
-		$this->assertSame( 'SMSTO:11987654321:Oi: tudo bem?', QrPayload::build( 'sms', array( 'phone' => '11 98765 4321', 'message' => 'Oi: tudo bem?' ) ) );
+		// A number typed through the phone mask has no country code: +55 (#2368).
+		$this->assertSame( 'SMSTO:+5511987654321:Oi: tudo bem?', QrPayload::build( 'sms', array( 'phone' => '11 98765 4321', 'message' => 'Oi: tudo bem?' ) ) );
+		$this->assertSame( 'tel:+5511987654321', QrPayload::build( 'phone', array( 'phone' => '(11) 98765-4321' ) ) );
+		$this->assertSame( 'tel:+551132654321', QrPayload::build( 'phone', array( 'phone' => '(11) 3265-4321' ) ) );
+		$this->assertSame( 'https://wa.me/5511987654321', QrPayload::build( 'whatsapp', array( 'phone' => '(11) 98765-4321' ) ) );
+		$this->assertSame( 'tel:190', QrPayload::build( 'phone', array( 'phone' => '190' ) ), 'A short service number takes no country code.' );
 		$this->assertSame( 'https://wa.me/5511987654321?text=Quero%20o%20certificado', QrPayload::build( 'whatsapp', array( 'phone' => '+55 11 98765-4321', 'message' => 'Quero o certificado' ) ) );
 		$this->assertSame( 'https://wa.me/5511987654321', QrPayload::build( 'whatsapp', array( 'phone' => '5511987654321' ) ) );
 	}
@@ -215,6 +220,35 @@ class QrPayloadTest extends TestCase {
 				)
 			)
 		);
+	}
+
+	public function test_a_vcard_puts_the_department_in_org_and_the_number_and_neighbourhood_on_the_street(): void {
+		$card = (string) QrPayload::build(
+			'vcard',
+			array(
+				'organization' => 'SME',
+				'department'   => 'DRE Butantã; Núcleo',
+				'street'       => 'Rua X',
+				'number'       => '10',
+				'neighborhood' => 'Butantã',
+				'city'         => 'São Paulo',
+			)
+		);
+
+		// ORG's second component is the department, escaped on its own (#2372).
+		$this->assertStringContainsString( "ORG:SME;DRE Butantã\\; Núcleo\r\n", $card );
+		// vCard 3.0 has one street line: the number and the neighbourhood join it.
+		$this->assertStringContainsString( "ADR;TYPE=WORK:;;Rua X\\, 10\\, Butantã;São Paulo;;;\r\n", $card );
+
+		$only = (string) QrPayload::build( 'vcard', array( 'first_name' => 'Ana', 'neighborhood' => 'Butantã' ) );
+		$this->assertStringContainsString( "ADR;TYPE=WORK:;;Butantã;;;;\r\n", $only, 'A neighbourhood alone is still the street line.' );
+	}
+
+	public function test_a_vcard_carries_the_role_apart_from_the_job_title(): void {
+		$card = (string) QrPayload::build( 'vcard', array( 'first_name' => 'Ana', 'job_title' => 'Teacher', 'role' => 'Coordinator, pedagogy' ) );
+
+		// ROLE is the role held, TITLE the job title (#2374).
+		$this->assertStringContainsString( "TITLE:Teacher\r\nROLE:Coordinator\\, pedagogy\r\n", $card );
 	}
 
 	public function test_a_vcard_of_an_organisation_alone_names_it(): void {
@@ -301,5 +335,22 @@ class QrPayloadTest extends TestCase {
 		$this->assertStringStartsWith( 'https://site.test/', (string) QrPayload::build( 'event', $this->event( array( 'mode' => 'ics', 'until' => '2026-11-10' ) ) ) );
 		// Only the .ics link can expire; a malformed date is no error for the others.
 		$this->assertStringStartsWith( 'BEGIN:VEVENT', (string) QrPayload::build( 'event', $this->event( array( 'until' => 'garbage' ) ) ) );
+	}
+
+	public function test_the_generator_examples_all_build_a_payload(): void {
+		// The generator opens each type with an example (#2365); every one
+		// must be content the payload accepts, or the preview opens empty.
+		Functions\when( 'wp_get_current_user' )->justReturn( (object) array( 'display_name' => 'Ana Lima', 'user_email' => 'ana@site.test' ) );
+		Functions\when( 'get_bloginfo' )->justReturn( 'School Portal' );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://site.test' . $p );
+		Functions\when( 'sanitize_title' )->alias( static fn( $t ) => strtolower( str_replace( ' ', '-', (string) $t ) ) );
+		Functions\when( 'wp_date' )->justReturn( '2026-11-02' );
+		Functions\when( 'get_option' )->alias( static fn( $k, $d = false ) => 'admin_email' === $k ? 'admin@site.test' : $d );
+
+		foreach ( \FreeFormCertificate\UrlShortener\QrGeneratorPage::examples() as $type => $fields ) {
+			$payload = QrPayload::build( $type, $fields );
+			$this->assertIsString( $payload, $type . ': ' . ( $payload instanceof \WP_Error ? $payload->get_error_message() : '' ) );
+			$this->assertNotSame( '', $payload, $type );
+		}
 	}
 }

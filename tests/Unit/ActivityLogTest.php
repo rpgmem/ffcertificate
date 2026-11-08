@@ -101,6 +101,11 @@ class ActivityLogTest extends TestCase {
 		$colCache = $ref->getProperty('table_columns_cache');
 		$colCache->setAccessible(true);
 		$colCache->setValue(null);
+
+		// The column stores instants, as on every install past 2.5.0 (#2340).
+		$instants = $ref->getProperty('stores_instants');
+		$instants->setAccessible(true);
+		$instants->setValue(null, true);
 	}
 
 	/**
@@ -143,7 +148,7 @@ class ActivityLogTest extends TestCase {
 	private function enableActivityLog(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ($key === 'ffc_settings') {
-				return ['enable_activity_log' => 1];
+				return \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS;
 			}
 			return $default;
 		});
@@ -193,13 +198,14 @@ class ActivityLogTest extends TestCase {
 		$this->assertFalse(ActivityLog::is_enabled());
 	}
 
-	public function test_is_enabled_returns_false_when_setting_missing(): void {
-		Functions\when('get_option')->justReturn([]);
-		$this->assertFalse(ActivityLog::is_enabled());
+	public function test_is_enabled_defaults_to_on_when_the_setting_is_missing(): void {
+		// On by default, on fresh installs and on upgrade (#2340).
+		Functions\when('get_option')->justReturn(array());
+		$this->assertTrue(ActivityLog::is_enabled());
 	}
 
-	public function test_is_enabled_returns_false_when_option_returns_empty_array(): void {
-		Functions\when('get_option')->justReturn(array());
+	public function test_is_enabled_returns_false_when_switched_off(): void {
+		Functions\when('get_option')->justReturn(array('enable_activity_log' => 0));
 		$this->assertFalse(ActivityLog::is_enabled());
 	}
 
@@ -207,50 +213,56 @@ class ActivityLogTest extends TestCase {
 	// log() — basic behaviour
 	// ==================================================================
 
-	public function test_category_for_action_mapping(): void {
-		$this->assertSame('recruitment', ActivityLog::category_for_action('recruitment_candidate_deleted'));
-		$this->assertSame('scheduling', ActivityLog::category_for_action('appointment_created'));
-		$this->assertSame('migrations', ActivityLog::category_for_action('cpf_rf_split_migration_batch'));
-		$this->assertSame('public_access', ActivityLog::category_for_action('csv_downloaded'));
-		$this->assertSame('users', ActivityLog::category_for_action('privacy_data_erased'));
-		$this->assertSame('system', ActivityLog::category_for_action('settings_changed'));
-		$this->assertSame('submissions', ActivityLog::category_for_action('submission_created'));
-		$this->assertSame('submissions', ActivityLog::category_for_action('pdf_generated'));
-		// Unknown actions fall back to submissions.
-		$this->assertSame('submissions', ActivityLog::category_for_action('totally_unknown_action'));
-	}
-
 	public function test_log_filtered_by_minimum_level(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ('ffc_settings' === $key) {
 				return array(
-					'enable_activity_log'    => 1,
-					'activity_log_min_level' => 'warning',
+					'enable_activity_log'                => 1,
+					'activity_log_item_cert_submissions' => 1,
+					'activity_log_min_level'             => 'warning',
 				);
 			}
 			return $default;
 		});
 
-		// Below the configured minimum → dropped.
+		// A secondary item below the configured minimum → dropped.
 		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
 		// At/above the minimum → recorded.
-		$this->assertTrue(ActivityLog::log('submission_deleted', ActivityLog::LEVEL_WARNING));
+		$this->assertTrue(ActivityLog::log('submission_created', ActivityLog::LEVEL_WARNING));
 	}
 
-	public function test_log_filtered_by_disabled_category(): void {
+	public function test_an_audit_item_is_recorded_whatever_the_minimum_level(): void {
+		Functions\when('get_option')->alias(function ($key, $default = false) {
+			return 'ffc_settings' === $key ? array('activity_log_min_level' => 'error') : $default;
+		});
+
+		// `submission_deleted` is a data deletion: audit, recorded at info level
+		// with the minimum at error (#2340).
+		$this->assertTrue(ActivityLog::log('submission_deleted', ActivityLog::LEVEL_INFO));
+	}
+
+	public function test_a_secondary_item_is_off_by_default_and_an_audit_item_on(): void {
+		Functions\when('get_option')->alias(function ($key, $default = false) {
+			return 'ffc_settings' === $key ? array() : $default;
+		});
+
+		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO), 'Secondary items start off.');
+		$this->assertTrue(ActivityLog::log('submission_pii_revealed', ActivityLog::LEVEL_INFO), 'Audit items start on.');
+	}
+
+	public function test_log_filtered_by_a_switched_off_item(): void {
 		Functions\when('get_option')->alias(function ($key, $default = false) {
 			if ('ffc_settings' === $key) {
 				return array(
-					'enable_activity_log'         => 1,
-					'activity_log_cat_submissions' => 0,
+					'enable_activity_log'                  => 1,
+					'activity_log_item_cert_submissions'   => 0,
+					'activity_log_item_sched_appointments' => 1,
 				);
 			}
 			return $default;
 		});
 
-		// submissions category off → dropped.
 		$this->assertFalse(ActivityLog::log('submission_created', ActivityLog::LEVEL_INFO));
-		// scheduling category still on → recorded.
 		$this->assertTrue(ActivityLog::log('appointment_created', ActivityLog::LEVEL_INFO));
 	}
 
@@ -288,7 +300,7 @@ class ActivityLogTest extends TestCase {
 		$this->assertSame('warning', $buffer[0]['level']);
 		$this->assertSame(7, $buffer[0]['user_id']);
 		$this->assertSame(42, $buffer[0]['submission_id']);
-		$this->assertSame('2026-03-01 10:00:00', $buffer[0]['created_at']);
+		$this->assertEqualsWithDelta(time(), $buffer[0]['created_at'], 5, 'An entry is stamped in UTC seconds (#2340).');
 	}
 
 	public function test_log_registers_shutdown_hook_once(): void {
@@ -378,6 +390,23 @@ class ActivityLogTest extends TestCase {
 		$buffer = $this->getWriteBuffer();
 		$this->assertNotNull($buffer[0]['context_encrypted']);
 		$this->assertIsString($buffer[0]['context_encrypted']);
+	}
+
+	public function test_an_address_left_in_a_clear_context_is_a_keyed_fingerprint(): void {
+		$scrub = new \ReflectionMethod(ActivityLog::class, 'fingerprint_addresses');
+		$scrub->setAccessible(true);
+
+		$out = $scrub->invoke(null, [
+			'ip'      => '203.0.113.5',
+			'form_id' => 12,
+			'nested'  => ['bypassed_ip' => '203.0.113.5', 'triggered_by_ip' => '198.51.100.7', 'note' => '203.0.113.5'],
+		]);
+
+		$this->assertMatchesRegularExpression('/^fp:[0-9a-f]{16}$/', $out['ip'], 'With no key the address is never written in clear (#2340).');
+		$this->assertSame($out['ip'], $out['nested']['bypassed_ip'], 'One address, one fingerprint: entries from it still group together.');
+		$this->assertNotSame($out['ip'], $out['nested']['triggered_by_ip']);
+		$this->assertSame(12, $out['form_id']);
+		$this->assertSame('203.0.113.5', $out['nested']['note'], 'Only the keys that name an address are touched.');
 	}
 
 	public function test_log_context_not_encrypted_without_sensitive_keys(): void {
@@ -506,7 +535,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '127.0.0.1',
 				'submission_id'     => 10,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 			[
 				'action'            => 'action_two',
@@ -516,7 +545,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 2,
 				'user_ip'           => '10.0.0.1',
 				'submission_id'     => 20,
-				'created_at'        => '2026-03-01 10:01:00',
+				'created_at'        => 1772359260,
 			],
 		];
 
@@ -560,7 +589,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 0,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -596,7 +625,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 42,
 				'user_ip'           => '127.0.0.1',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -631,7 +660,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 5,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -671,7 +700,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 42,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1262,6 +1291,8 @@ class ActivityLogTest extends TestCase {
 		$decoded = json_decode($buffer[0]['context'], true);
 		$this->assertSame('certificate', $decoded['context']);
 		$this->assertSame($caps, $decoded['capabilities']);
+		// The account that received them is recorded too (#2340).
+		$this->assertSame(15, $decoded['target_user_id']);
 	}
 
 	// ==================================================================
@@ -1344,7 +1375,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 0,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		]);
 
@@ -1397,6 +1428,82 @@ class ActivityLogTest extends TestCase {
 	// flush_buffer() format arrays
 	// ==================================================================
 
+	public function test_until_the_column_is_converted_an_entry_is_written_in_the_site_wall_clock(): void {
+		$this->enableActivityLog();
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$ref->setValue(null, false);
+
+		$this->setWriteBuffer([
+			[
+				'action'            => 'test',
+				'level'             => 'info',
+				'context'           => '{}',
+				'context_encrypted' => null,
+				'user_id'           => 1,
+				'submission_id'     => 0,
+				'created_at'        => 1772359200,
+			],
+		]);
+		$this->wpdb->shouldReceive('prepare')->andReturn('DESCRIBE ...');
+		$this->wpdb->shouldReceive('get_col')->andReturn(['id', 'action', 'level', 'context', 'user_id', 'created_at']);
+		$this->wpdb->shouldReceive('insert')
+			->once()
+			->with(
+				'wp_ffc_activity_log',
+				Mockery::on(static fn($row) => '2026-03-01 10:00:00' === $row['created_at']),
+				['%s', '%s', '%s', '%d', '%s']
+			)
+			->andReturn(1);
+
+		ActivityLog::flush_buffer();
+	}
+
+	public function test_dbdelta_never_meets_a_datetime_column_it_would_cast_to_a_number(): void {
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$ref->setValue(null, false);
+		Functions\when('get_option')->justReturn('2.4.0');
+		Functions\when('is_admin')->justReturn(false);
+		Functions\when('wp_doing_cron')->justReturn(false);
+		$dbdelta = \FreeFormCertificate\Tests\Support\CallLog::record('dbDelta', []);
+
+		$this->wpdb->shouldReceive('get_charset_collate')->andReturn('');
+		$this->wpdb->shouldReceive('esc_like')->andReturnUsing(static fn($s) => $s);
+		$this->wpdb->shouldReceive('get_var')->andReturn('wp_ffc_activity_log');
+		$this->wpdb->shouldReceive('get_results')->andReturnUsing(
+			static fn($sql) => false !== strpos((string) $sql, 'SHOW COLUMNS') ? [(object) ['Field' => 'created_at', 'Type' => 'datetime']] : []
+		);
+		$this->wpdb->shouldReceive('prepare')->andReturnUsing(
+			static fn($sql, ...$args) => 'SHOW COLUMNS FROM %i LIKE %s' === $sql ? 'SHOW COLUMNS ' . $args[1] : (string) $sql
+		);
+		$this->wpdb->shouldReceive('get_row')->andReturn(null);
+
+		$this->assertFalse(ActivityLog::create_table(), 'A front-end request does not convert the column.');
+		$this->assertSame(0, $dbdelta->count(), 'Given the BIGINT statement, dbDelta would ALTER the DATETIME in place (#2340).');
+		$this->assertFalse(ActivityLog::stores_instants());
+	}
+
+	public function test_stores_instants_reads_the_revision_the_healing_recorded(): void {
+		$ref = new \ReflectionProperty(ActivityLog::class, 'stores_instants');
+		$ref->setAccessible(true);
+		$stored = '2.4.0';
+		Functions\when('get_option')->alias(static function ($key, $default = false) use (&$stored) {
+			return ActivityLog::SCHEMA_REVISION_OPTION === $key ? $stored : $default;
+		});
+
+		$ref->setValue(null, null);
+		$this->assertFalse(ActivityLog::stores_instants(), 'Before 2.5.0 the column is a DATETIME.');
+
+		$stored = '2.5.0';
+		ActivityLog::reset_instants_cache();
+		$this->assertTrue(ActivityLog::stores_instants());
+
+		$stored = '2.10.0';
+		ActivityLog::reset_instants_cache();
+		$this->assertTrue(ActivityLog::stores_instants(), 'Revisions compare as versions, not as text.');
+	}
+
 	public function test_flush_buffer_uses_correct_format_for_base_columns(): void {
 		$this->enableActivityLog();
 
@@ -1409,7 +1516,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1426,7 +1533,7 @@ class ActivityLogTest extends TestCase {
 				'wp_ffc_activity_log',
 				Mockery::on(static fn($row) => is_array($row) && ! array_key_exists('user_ip', $row)),
 				// Base format: 5 string/int placeholders; the plaintext IP is gone (#1574).
-				['%s', '%s', '%s', '%d', '%s']
+				['%s', '%s', '%s', '%d', '%d']
 			)
 			->andReturn(1);
 
@@ -1445,7 +1552,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip_encrypted' => 'ip_blob',
 				'submission_id'     => 5,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1465,7 +1572,7 @@ class ActivityLogTest extends TestCase {
 				'wp_ffc_activity_log',
 				Mockery::on(static fn($row) => is_array($row) && 'ip_blob' === ($row['user_ip_encrypted'] ?? null) && ! array_key_exists('user_ip', $row)),
 				// Base 5 + submission_id (%d) + context_encrypted (%s) + user_ip_encrypted (%s).
-				['%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s']
+				['%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s']
 			)
 			->andReturn(1);
 
@@ -1524,7 +1631,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			],
 		];
 
@@ -1582,7 +1689,7 @@ class ActivityLogTest extends TestCase {
 				'user_id'           => 1,
 				'user_ip'           => '0.0.0.0',
 				'submission_id'     => 0,
-				'created_at'        => '2026-03-01 10:00:00',
+				'created_at'        => 1772359200,
 			];
 		};
 

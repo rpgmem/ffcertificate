@@ -26,9 +26,54 @@ jQuery(function ($) {
 	initAppearance();
 	initKind();
 	initSendRule();
+	initFacts();
 
 	if (!$('.ffc-dm-preview').length || !window.FFC || typeof window.FFC.request !== 'function') {
 		return;
+	}
+
+	// The editor's "This rule" card (#2498) follows the form before it is
+	// saved: each fact is read from the field that sets it. The server
+	// renders the same values first, so this only keeps them in step.
+	function initFacts() {
+		var $card = $('.ffc-dm-facts');
+		var $form = $('#ffc-dm-rule-form');
+		if (!$card.length || !$form.length) {
+			return;
+		}
+		var facts = strings.facts || {};
+
+		function set(key, text) {
+			$card.find('[data-ffc-dm-fact="' + key + '"]').text(text);
+		}
+
+		function count(single, plural, n) {
+			return String(1 === n ? single : plural).replace('%d', String(n));
+		}
+
+		function apply() {
+			set('kind', $('#ffc-dm-kind option:selected').text());
+			set('source', $('#ffc-dm-source option:selected').text());
+
+			var offset = parseInt(String($('#ffc-dm-offset').val() || '0'), 10) || 0;
+			if (0 === offset) {
+				set('offset', String(facts.onDate || ''));
+			} else if (offset < 0) {
+				set('offset', count(facts.dayBefore, facts.daysBefore, -offset));
+			} else {
+				set('offset', count(facts.dayAfter, facts.daysAfter, offset));
+			}
+			set('send-at', String($('#ffc-dm-send-at').val() || '') ? String(facts.atTime || '') : String(facts.byHand || ''));
+
+			var audiences = $form.find('input[name="rule[audience_ids][]"]').length;
+			set('audiences', 0 === audiences ? String(facts.everyone || '') : count(facts.audience, facts.audiences, audiences));
+
+			set('digest', $('#ffc-dm-digest-enabled').is(':checked') ? $('#ffc-dm-digest-mode option:selected').text() : String(facts.off || ''));
+		}
+
+		$form.on('change input', ':input', apply);
+		$form.on('ffc:transfer-list-change', apply);
+		apply();
 	}
 
 	// The send tab asks for dates only when the chosen rule is dated (#1949).
@@ -76,6 +121,19 @@ jQuery(function ($) {
 			});
 		}
 
+		function getBody() {
+			var editor = window.tinymce && window.tinymce.get('ffc_dm_body');
+			if (editor && !editor.isHidden()) {
+				return String(editor.getContent());
+			}
+			return String($('#ffc_dm_body').val() || '');
+		}
+
+		// Whitespace aside, the editor may reformat the stored HTML.
+		function same(a, b) {
+			return String(a || '').replace(/\s+/g, '') === String(b || '').replace(/\s+/g, '');
+		}
+
 		$kind.on('change', function () {
 			var kind = String($kind.val());
 			var other = 'announcement' === kind ? 'dated' : 'announcement';
@@ -83,10 +141,18 @@ jQuery(function ($) {
 			var to = defaults[kind];
 			applyRows(kind);
 			$restore.attr('data-default-key', keys[kind] || keys.dated);
-			if (from && to && $subject.val() === from.subject) {
-				$subject.val(to.subject);
-				setBody(to.body);
+			if (!from || !to) {
+				return;
 			}
+			// The other kind's default text, untouched: swap it silently. An
+			// edited text is the operator's work, replaced only when they say
+			// so (#2336).
+			var untouched = $subject.val() === from.subject && same(getBody(), from.body);
+			if (!untouched && !window.confirm(String(strings.kindReplace || 'Replace the subject and the message with the default text of this kind? Your changes will be lost.'))) {
+				return;
+			}
+			$subject.val(to.subject);
+			setBody(to.body);
 		});
 	}
 
@@ -121,6 +187,15 @@ jQuery(function ($) {
 		);
 	}
 
+	// The kind of the rule the preview is about: the editor's selector, or
+	// the chosen rule on Send now.
+	function kindOf($box) {
+		if ('form' === String($box.data('ffc-dm-preview'))) {
+			return String($('#ffc-dm-kind').val() || 'dated');
+		}
+		return String($box.find('.ffc-dm-rule option:selected').attr('data-ffc-dm-kind') || 'dated');
+	}
+
 	function render($out, data) {
 		var totals = data.totals || {};
 		var $list = $('<ul></ul>');
@@ -139,9 +214,16 @@ jQuery(function ($) {
 			return;
 		}
 		if (!rows.length) {
-			$out.append($('<p></p>').text(strings.none || ''));
+			// An announcement has no dates to fall on: nobody listed means
+			// everyone in its audiences was reached or opted out.
+			var announcement = 'announcement' === kindOf($out.closest('.ffc-dm-preview'));
+			$out.append($('<p></p>').text((announcement ? strings.noneAnnounce : strings.none) || ''));
 			return;
 		}
+		var $head = $('<tr></tr>');
+		(Array.isArray(strings.columns) ? strings.columns : []).forEach(function (label) {
+			$head.append($('<th scope="col"></th>').text(String(label)));
+		});
 		var $tbody = $('<tbody></tbody>');
 		rows.forEach(function (row) {
 			$tbody.append(
@@ -152,7 +234,7 @@ jQuery(function ($) {
 					.append($('<td></td>').text(labels[row.decision] || row.decision || ''))
 			);
 		});
-		$out.append($('<table class="widefat striped"></table>').append($tbody));
+		$out.append($('<table class="widefat striped"></table>').append($('<thead></thead>').append($head), $tbody));
 		if (data.truncated) {
 			$out.append($('<p class="description"></p>').text(strings.truncated || ''));
 		}
@@ -161,7 +243,7 @@ jQuery(function ($) {
 	function run($button, action, nonce, onSuccess) {
 		var $box = $button.closest('.ffc-dm-preview');
 		var $out = $box.find('.ffc-dm-preview-result');
-		$button.prop('disabled', true);
+		$button.prop('disabled', true).addClass('ffc-btn-loading');
 		$out.empty().append($('<p></p>').text(strings.loading || ''));
 
 		window.FFC.request(action, payload($box), { nonce: nonce, ajaxUrl: cfg.ajaxUrl })
@@ -172,9 +254,49 @@ jQuery(function ($) {
 				message($out, (err && err.message) || strings.failed || '', true);
 			})
 			.then(function () {
-				$button.prop('disabled', false);
+				$button.prop('disabled', false).removeClass('ffc-btn-loading');
 			});
 	}
+
+	// Send now asks with the facts (#2336): the rule, the dates and how many
+	// people it will reach, counted by the same selection the send uses (the
+	// recipient preview). Confirmed, the form submits itself, once.
+	$(document).on('submit', '#ffc-dm-send-form', function (e) {
+		var form = this;
+		if (form.getAttribute('data-ffc-dm-confirmed') === '1') {
+			return;
+		}
+		e.preventDefault();
+		var $box = $(form).find('.ffc-dm-preview');
+		var $option = $box.find('.ffc-dm-rule option:selected');
+		var name = String($option.text() || '');
+		var announcement = 'announcement' === String($option.attr('data-ffc-dm-kind') || '');
+		var summaryOnly = '1' === String($option.attr('data-ffc-dm-summary-only') || '');
+		var from = String($box.find('.ffc-dm-from').val() || '');
+		var to = String($box.find('.ffc-dm-to').val() || '');
+		var range = announcement ? String(strings.today || 'today') : (from === to ? from : from + ' – ' + to);
+
+		function ask(count) {
+			var template = summaryOnly ? strings.confirmSummary : strings.confirmSend;
+			var text = String(template || 'Send "%1$s" for %2$s to %3$s people?')
+				.replace('%1$s', name)
+				.replace('%2$s', range)
+				.replace('%3$s', null === count ? '?' : String(count));
+			if (window.confirm(text)) {
+				form.setAttribute('data-ffc-dm-confirmed', '1');
+				form.submit();
+			}
+		}
+
+		window.FFC.request(cfg.previewAction, savedPayload($box), { nonce: cfg.previewNonce, ajaxUrl: cfg.ajaxUrl })
+			.then(function (data) {
+				var totals = (data && data.totals) || {};
+				ask(Number(totals.will_send || 0));
+			})
+			.catch(function () {
+				ask(null);
+			});
+	});
 
 	$(document).on('click', '.ffc-dm-preview-button', function () {
 		run($(this), cfg.previewAction, cfg.previewNonce, render);

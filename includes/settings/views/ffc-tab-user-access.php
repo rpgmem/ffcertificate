@@ -90,7 +90,13 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						$ffc_group_core    = array();
 						$ffc_group_admin   = array();
 						$ffc_group_other   = array();
+						// A role that administers the site is never offered: the
+						// save drops it anyway (#2338).
+						$ffc_protected_roles = \FreeFormCertificate\UserDashboard\AccessControl::protected_roles();
 						foreach ( $ffcertificate_available_roles as $ffc_slug => $ffc_name ) {
+							if ( in_array( (string) $ffc_slug, $ffc_protected_roles, true ) ) {
+								continue;
+							}
 							if ( 'ffc_end_user' === $ffc_slug ) {
 								$ffc_group_enduser[ $ffc_slug ] = $ffc_name;
 							} elseif ( in_array( $ffc_slug, $ffc_managed_slugs, true ) ) {
@@ -203,9 +209,10 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 							printf(
 								/* translators: %d: number of roles currently blocked */
 								esc_html__( 'Select which roles should be blocked from accessing wp-admin. Currently blocked: %d.', 'ffcertificate' ),
-								count( $ffc_blocked )
+								count( \FreeFormCertificate\UserDashboard\AccessControl::blockable( $ffc_blocked ) )
 							);
 							?>
+							<?php esc_html_e( 'Administrators, and any role that can manage the site\'s options, are not listed: they can never be blocked.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -220,16 +227,21 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'bypass_for_admins',
-								'id'      => 'bypass_for_admins',
-								'checked' => (bool) $ffcertificate_settings['bypass_for_admins'],
-								'label'   => __( 'Allow administrators to bypass the block (recommended)', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'user_access_bypass_for_admins' ),
+								'name'     => 'bypass_for_admins',
+								'id'       => 'bypass_for_admins',
+								'checked'  => (bool) $ffcertificate_settings['bypass_for_admins'],
+								'label'    => __( 'Allow administrators to bypass the block (recommended)', 'ffcertificate' ),
+								'data'     => array( 'ffc-autosave-key' => 'user_access_bypass_for_admins' ),
+								// Administrators decide whether they skip the block (#2338).
+								'disabled' => ! current_user_can( 'manage_options' ),
 							)
 						);
 						?>
 						<p class="description">
 							<?php esc_html_e( 'Even if an admin has a blocked role, they can still access wp-admin.', 'ffcertificate' ); ?>
+							<?php if ( ! current_user_can( 'manage_options' ) ) : ?>
+								<?php esc_html_e( 'Only an administrator can change this.', 'ffcertificate' ); ?>
+							<?php endif; ?>
 						</p>
 					</td>
 				</tr>
@@ -307,7 +319,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 						);
 						?>
 						<p class="description">
-							<?php esc_html_e( 'If unchecked, the WordPress admin bar will be hidden for blocked roles.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'When off, the WordPress admin bar is hidden for blocked roles.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -338,7 +350,7 @@ $ffcertificate_dashboard_url     = $ffcertificate_dashboard_page_id ? get_permal
 				} else {
 					printf(
 						/* translators: %s: Dashboard page slug */
-						esc_html__( 'Dashboard page will be created at: %s (activate the plugin to create it)', 'ffcertificate' ),
+						esc_html__( 'No dashboard page exists yet. Add a page with the shortcode above, or deactivate and reactivate the plugin to create one at %s.', 'ffcertificate' ),
 						'<code>' . esc_html( home_url( '/dashboard' ) ) . '</code>'
 					);
 				}

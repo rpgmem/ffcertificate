@@ -155,13 +155,34 @@ class ActivityLogAccessDeniedIpMigrationStrategyTest extends TestCase {
 		$this->assertTrue( $this->strategy->calculate_status( 'activity_log_access_denied_ip', array() )['is_complete'] );
 	}
 
-	public function test_a_context_that_does_not_decode_is_cleared(): void {
-		$this->rows = array( 1 => array( 'access_denied', '{"identifier":"203.0.113.7"' ) );
+	/**
+	 * A context that does not decode loses the address and keeps the rest
+	 * (#2338); it used to be replaced by NULL whole.
+	 */
+	public function test_a_context_that_does_not_decode_keeps_the_rest(): void {
+		$this->rows = array(
+			1 => array( 'access_denied', '{"reason":"geolocation_invalid","identifier":"203.0.113.7","form":12' ),
+			2 => array( 'access_denied', '{"identifier":"198.51.\\"100.9","reason":"x"' ),
+			3 => array( 'access_denied', '{"reason":"y","identifier":"2804::1"' ),
+		);
 
 		$result = $this->strategy->execute( 'activity_log_access_denied_ip', array() );
 
-		$this->assertSame( 1, $result['processed'] );
-		$this->assertNull( $this->rows[1][1] );
+		$this->assertSame( 3, $result['processed'] );
+		$this->assertSame( '{"reason":"geolocation_invalid","form":12', $this->rows[1][1] );
+		$this->assertSame( '{"reason":"x"', $this->rows[2][1] );
+		$this->assertSame( '{"reason":"y"', $this->rows[3][1] );
+	}
+
+	public function test_a_broken_context_whose_address_cannot_be_found_is_reported_and_kept(): void {
+		$this->rows = array( 1 => array( 'access_denied', '{"identifier": ["203.0.113.7"' ) );
+
+		$result = $this->strategy->execute( 'activity_log_access_denied_ip', array() );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertFalse( $result['success'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertSame( '{"identifier": ["203.0.113.7"', $this->rows[1][1] );
 	}
 
 	public function test_status_counts_what_is_left(): void {

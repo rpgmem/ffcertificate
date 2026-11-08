@@ -30,6 +30,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 class IpGeolocation {
 
 	/**
+	 * The ip-api.com service, asked only over its paid HTTPS plan.
+	 *
+	 * @var string
+	 */
+	public const SERVICE_IPAPI = 'ip-api';
+
+	/**
+	 * The ipinfo.io service, HTTPS on its free tier: the default.
+	 *
+	 * @var string
+	 */
+	public const SERVICE_IPINFO = 'ipinfo';
+
+	/**
+	 * How long a failed lookup is remembered, in seconds.
+	 *
+	 * @var int
+	 */
+	public const FAILURE_TTL = 5 * MINUTE_IN_SECONDS;
+
+	/**
 	 * Get location data by IP address
 	 *
 	 * @param string|null $ip IP address (optional, defaults to current user IP).
@@ -54,6 +75,13 @@ class IpGeolocation {
 			return new WP_Error( 'invalid_ip', __( 'Invalid IP address for geolocation.', 'ffcertificate' ) );
 		}
 
+		// A lookup that failed a moment ago is not repeated (#2339): a service
+		// that is down or rate-limiting would otherwise be asked again on every
+		// submission, each one waiting out the timeout.
+		if ( $use_cache && self::failed_recently( $ip ) ) {
+			return new WP_Error( 'ip_lookup_failed_recently', __( 'The IP geolocation service failed a moment ago. It will be asked again in a few minutes.', 'ffcertificate' ) );
+		}
+
 		// Check cache.
 		if ( $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
 			$cached = self::get_cached_location( $ip );
@@ -70,12 +98,13 @@ class IpGeolocation {
 		}
 
 		// Try primary service.
-		$primary_service = $settings['ip_api_service'] ?? 'ip-api';
+		$primary_service = self::effective_service( (string) ( $settings['ip_api_service'] ?? self::SERVICE_IPINFO ) );
 		$location        = self::fetch_from_service( $ip, $primary_service, $settings );
 
-		// If primary failed and cascade is enabled, try alternative.
-		if ( is_wp_error( $location ) && ! empty( $settings['ip_api_cascade'] ) ) {
-			$alternative_service = ( 'ip-api' === $primary_service ) ? 'ipinfo' : 'ip-api';
+		// If primary failed and cascade is enabled, try alternative — only
+		// when the alternative can also be asked over HTTPS.
+		$alternative_service = self::SERVICE_IPAPI === $primary_service ? self::SERVICE_IPINFO : self::SERVICE_IPAPI;
+		if ( is_wp_error( $location ) && ! empty( $settings['ip_api_cascade'] ) && self::effective_service( $alternative_service ) === $alternative_service ) {
 			self::debug_log(
 				'Primary service failed, trying alternative',
 				array(
@@ -89,10 +118,49 @@ class IpGeolocation {
 
 		// Cache successful result.
 		if ( ! is_wp_error( $location ) && $use_cache && ! empty( $settings['ip_cache_enabled'] ) ) {
-			self::cache_location( $ip, $location, $settings['ip_cache_ttl'] ?? 600 );
+			self::cache_location( $ip, $location, \FreeFormCertificate\Settings\GeolocationSettingsReader::ip_cache_ttl() );
+		}
+
+		if ( is_wp_error( $location ) && $use_cache ) {
+			self::remember_failure( $ip );
 		}
 
 		return $location;
+	}
+
+	/**
+	 * The service actually asked, given the one configured (#2339).
+	 *
+	 * Visitor addresses are never sent in clear text. ip-api.com serves HTTPS
+	 * only on its paid plan, so it is asked only when the `ffc_ipapi_use_https`
+	 * filter says the site has one; otherwise ipinfo.io, which serves HTTPS on
+	 * its free tier, is asked instead.
+	 *
+	 * @since 6.44.0
+	 * @param string $service Configured service id.
+	 * @return string `ip-api` or `ipinfo`.
+	 */
+	public static function effective_service( string $service ): string {
+		if ( self::SERVICE_IPAPI === $service && self::ipapi_over_https() ) {
+			return self::SERVICE_IPAPI;
+		}
+
+		return self::SERVICE_IPINFO;
+	}
+
+	/**
+	 * Whether the site has ip-api.com's HTTPS (paid) plan.
+	 *
+	 * @return bool
+	 */
+	private static function ipapi_over_https(): bool {
+		/**
+		 * Whether ip-api.com may be asked, over HTTPS (its paid plan).
+		 *
+		 * @since 3.0.0
+		 * @param bool $https Default false.
+		 */
+		return (bool) apply_filters( 'ffc_ipapi_use_https', false );
 	}
 
 	/**
@@ -113,9 +181,9 @@ class IpGeolocation {
 			)
 		);
 
-		if ( 'ip-api' === $service ) {
+		if ( self::SERVICE_IPAPI === $service ) {
 			return self::fetch_from_ipapi( $ip );
-		} elseif ( 'ipinfo' === $service ) {
+		} elseif ( self::SERVICE_IPINFO === $service ) {
 			$api_key = $settings['ipinfo_api_key'] ?? '';
 			return self::fetch_from_ipinfo( $ip, $api_key );
 		}
@@ -130,16 +198,15 @@ class IpGeolocation {
 	 * @return array<string, mixed>|\WP_Error
 	 */
 	private static function fetch_from_ipapi( string $ip ) {
-		// Use HTTPS: ip-api free tier only supports HTTP, but site owners can enable Pro (with API key via filter)
-		// to upgrade to HTTPS. The 'ffc_ipapi_use_https' filter allows admins to force HTTPS when appropriate.
-		$scheme = apply_filters( 'ffc_ipapi_use_https', false ) ? 'https' : 'http';
-		$url    = sprintf( '%s://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $scheme, $ip );
+		// HTTPS only (#2339): this is reached only when effective_service()
+		// allowed ip-api, i.e. the site has its HTTPS plan.
+		$url = sprintf( 'https://ip-api.com/json/%s?fields=status,message,country,countryCode,region,regionName,city,lat,lon', $ip );
 
 		$response = wp_remote_get(
 			$url,
 			array(
 				'timeout'   => 5,
-				'sslverify' => 'https' === $scheme,
+				'sslverify' => true,
 			)
 		);
 
@@ -246,8 +313,46 @@ class IpGeolocation {
 	 * @return array<string, mixed>|false Location data or false if not cached
 	 */
 	private static function get_cached_location( string $ip ) {
-		$cache_key = 'ffc_ip_geo_' . md5( $ip );
-		return get_transient( $cache_key );
+		$cached = get_transient( self::cache_key( $ip ) );
+		if ( ! is_array( $cached ) || ! empty( $cached['failed'] ) ) {
+			return false;
+		}
+
+		// The cache holds no address (#2339); the caller gets back the one it asked about.
+		$cached['ip'] = $ip;
+		return $cached;
+	}
+
+	/**
+	 * Whether a lookup for this address failed within the last few minutes.
+	 *
+	 * @param string $ip IP address.
+	 * @return bool
+	 */
+	private static function failed_recently( string $ip ): bool {
+		$cached = get_transient( self::cache_key( $ip ) );
+		return is_array( $cached ) && ! empty( $cached['failed'] );
+	}
+
+	/**
+	 * Remember a failed lookup for {@see self::FAILURE_TTL} seconds.
+	 *
+	 * @param string $ip IP address.
+	 * @return void
+	 */
+	private static function remember_failure( string $ip ): void {
+		set_transient( self::cache_key( $ip ), array( 'failed' => true ), self::FAILURE_TTL );
+	}
+
+	/**
+	 * Transient key for an address: a keyed hash, so the key is not a table
+	 * an attacker can reverse the way an md5 of the 2^32 IPv4 addresses is.
+	 *
+	 * @param string $ip IP address.
+	 * @return string
+	 */
+	private static function cache_key( string $ip ): string {
+		return 'ffc_ip_geo_' . substr( \FreeFormCertificate\Core\Encryption::keyed_hash( $ip, 'ip_geo_cache' ), 0, 32 );
 	}
 
 	/**
@@ -259,8 +364,8 @@ class IpGeolocation {
 	 * @return bool Success
 	 */
 	private static function cache_location( string $ip, array $location, int $ttl = 600 ): bool {
-		$cache_key = 'ffc_ip_geo_' . md5( $ip );
-		return set_transient( $cache_key, $location, absint( $ttl ) );
+		unset( $location['ip'] );
+		return set_transient( self::cache_key( $ip ), $location, absint( $ttl ) );
 	}
 
 	/**
@@ -413,8 +518,7 @@ class IpGeolocation {
 
 		if ( null !== $ip ) {
 			// Clear specific IP.
-			$cache_key = 'ffc_ip_geo_' . md5( $ip );
-			delete_transient( $cache_key );
+			delete_transient( self::cache_key( $ip ) );
 			return 1;
 		} else {
 			// Clear all IP geolocation transients.

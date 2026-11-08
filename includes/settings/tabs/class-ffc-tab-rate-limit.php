@@ -36,6 +36,13 @@ class TabRateLimit extends SettingsTab {
 	private array $refused_ip_lines = array();
 
 	/**
+	 * Why the save lowered the strong-signal minimum, when it did.
+	 *
+	 * @var string|null
+	 */
+	private ?string $refused_strong_min = null;
+
+	/**
 	 * Init.
 	 */
 	protected function init(): void {
@@ -70,119 +77,7 @@ class TabRateLimit extends SettingsTab {
 	 * @return array<string, mixed>
 	 */
 	private function get_settings(): array {
-		$defaults = array(
-			'ip'        => array(
-				'enabled'                     => true,
-				'max_per_hour'                => 5,
-				'max_per_day'                 => 20,
-				'cooldown_seconds'            => 60,
-				'apply_to'                    => 'all',
-				'message'                     => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
-				// Challenges the ALTCHA endpoint issues per address per
-				// window (#1111). Lives in the IP group because that is
-				// what it limits, and next to the submission cap an
-				// administrator raises for the same NAT reason. 0 = no cap.
-				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT,
-				'captcha_window_seconds'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT,
-				// Device-test requests per address per window (#2064), the
-				// same per-address shape as the captcha cap. 0 = no cap.
-				'device_check_max_per_window' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_CAP_DEFAULT,
-				'device_check_window_seconds' => \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT,
-				// What each throttle does with a caller the resolver could
-				// not read (#2106): let it through, or count it with every
-				// other unresolved caller.
-				'captcha_unresolved'          => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
-				'device_check_unresolved'     => \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_ALLOW,
-			),
-			'email'     => array(
-				'enabled'        => true,
-				'max_per_day'    => 3,
-				'max_per_week'   => 10,
-				'max_per_month'  => 30,
-				'wait_hours'     => 24,
-				'apply_to'       => 'all',
-				'message'        => __( 'You already have {count} certificates.', 'ffcertificate' ),
-				'check_database' => true,
-			),
-			'cpf'       => array(
-				'enabled'         => false,
-				'max_per_month'   => 5,
-				'max_per_year'    => 50,
-				'block_threshold' => 3,
-				'block_hours'     => 1,
-				'block_duration'  => 24,
-				'apply_to'        => 'all',
-				'message'         => __( 'CPF/RF limit reached.', 'ffcertificate' ),
-				'check_database'  => true,
-			),
-			'global'    => array(
-				'enabled'        => false,
-				'max_per_minute' => 100,
-				'max_per_hour'   => 1000,
-				'message'        => __( 'System unavailable.', 'ffcertificate' ),
-			),
-			'device'    => array(
-				'enabled'                   => false,
-				'max_per_form'              => 1,
-				'match_threshold'           => 7,
-				'match_strong_min'          => 2,
-				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
-				'bypass_logged_in_managers' => true,
-				'bypass_whitelist_signals'  => array(),
-				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
-				'retention_days'            => 90,
-				'log_blocks'                => true,
-			),
-			'whitelist' => array(
-				// UI visibility flag — when false the rate-limit settings
-				// page collapses the Whitelist card to declutter; the
-				// lists themselves still apply at runtime if populated.
-				// Defaults true so existing installs see no UI change.
-				'enabled'       => true,
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'blacklist' => array(
-				// UI visibility flag — see whitelist['enabled'] above.
-				'enabled'       => true,
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'logging'   => array(
-				'enabled'        => true,
-				'log_allowed'    => false,
-				'log_blocked'    => true,
-				'retention_days' => 30,
-				'max_logs'       => 10000,
-			),
-			'ui'        => array(
-				'show_remaining'  => true,
-				'show_wait_time'  => true,
-				'countdown_timer' => true,
-			),
-			'read'      => array(
-				'respect_whitelist' => true,
-				'bypass_logged_in'  => true,
-				'message'           => __( 'Too many requests. Please wait {time}.', 'ffcertificate' ),
-				// Per-endpoint thresholds (#259), owned by the checker so
-				// an endpoint never saved here still reads its default.
-				'endpoints'         => \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS,
-			),
-		);
-		// wp_parse_args only merges TOP-LEVEL keys; with the nested
-		// {ip,email,cpf,global,read,device,whitelist,blacklist,logging,ui}
-		// groups the stored array shadows entire sub-arrays when a
-		// pre-existing install was saved before a new field was added
-		// (e.g. legacy `ip => ['enabled' => true]` would wipe out
-		// max_per_hour / max_per_day / cooldown_seconds / message). Use
-		// array_replace_recursive so missing leaves fall through to the
-		// defaults without losing operator-customised values.
-		$stored = get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, array() );
-		return is_array( $stored ) ? array_replace_recursive( $defaults, $stored ) : $defaults;
+		return \FreeFormCertificate\Settings\RateLimitSettingsReader::effective();
 	}
 
 	/**
@@ -207,6 +102,9 @@ class TabRateLimit extends SettingsTab {
 
 		$settings = $this->get_settings();
 		$this->render_refused_ip_lines( $settings );
+		if ( null !== $this->refused_strong_min ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'warning', esc_html( $this->refused_strong_min . ' ' . __( 'It was saved as the number of strong signals enabled.', 'ffcertificate' ) ) );
+		}
 		include $this->view_path( 'ffc-tab-rate-limit.php' );
 	}
 
@@ -227,7 +125,7 @@ class TabRateLimit extends SettingsTab {
 				'max_per_hour'                => $this->post_int_or_current( 'ip_max_per_hour', $this->stored_int( $stored, 'ip', 'max_per_hour', 5 ), 1 ),
 				'max_per_day'                 => $this->post_int_or_current( 'ip_max_per_day', $this->stored_int( $stored, 'ip', 'max_per_day', 20 ), 1 ),
 				'cooldown_seconds'            => $this->post_int_or_current( 'ip_cooldown_seconds', $this->stored_int( $stored, 'ip', 'cooldown_seconds', 60 ), 1 ),
-				'apply_to'                    => \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_apply_to', 'all' ),
+				'apply_to'                    => $this->stored_apply_to( $stored, 'ip' ),
 				'message'                     => sanitize_textarea_field( wp_unslash( $_POST['ip_message'] ?? '' ) ),
 				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::clamp_mint_cap(
 					$this->post_int_or_current(
@@ -253,6 +151,7 @@ class TabRateLimit extends SettingsTab {
 						$this->stored_int( $stored, 'ip', 'device_check_window_seconds', \FreeFormCertificate\Settings\RateLimitSettingsReader::DEVICE_CHECK_WINDOW_DEFAULT )
 					)
 				),
+				'submission_unresolved'       => \FreeFormCertificate\Settings\RateLimitSettingsReader::clamp_unresolved_policy( isset( $_POST['ip_submission_unresolved'] ) ? \FreeFormCertificate\Core\RequestInput::get_post_string( 'ip_submission_unresolved' ) : ( $stored['ip']['submission_unresolved'] ?? null ), \FreeFormCertificate\Settings\RateLimitSettingsReader::UNRESOLVED_SHARE ),
 				'captcha_unresolved'          => $this->post_unresolved_policy( 'ip_captcha_unresolved', $stored['ip']['captcha_unresolved'] ?? null ),
 				'device_check_unresolved'     => $this->post_unresolved_policy( 'ip_device_check_unresolved', $stored['ip']['device_check_unresolved'] ?? null ),
 			),
@@ -263,8 +162,8 @@ class TabRateLimit extends SettingsTab {
 				'max_per_month'  => $this->post_int_or_current( 'email_max_per_month', $this->stored_int( $stored, 'email', 'max_per_month', 30 ), 1 ),
 				// No field renders this one, so the POST key is always absent
 				// and the old read reset it to 24 on every Save (#1114).
-				'wait_hours'     => $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 24 ), 1 ),
-				'apply_to'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'email_apply_to', 'all' ),
+				'wait_hours'     => min( 8760, $this->post_int_or_current( 'email_wait_hours', $this->stored_int( $stored, 'email', 'wait_hours', 0 ), 0 ) ),
+				'apply_to'       => $this->stored_apply_to( $stored, 'email' ),
 				'message'        => sanitize_textarea_field( wp_unslash( $_POST['email_message'] ?? '' ) ),
 				'check_database' => isset( $_POST['email_check_database'] ),
 			),
@@ -275,7 +174,7 @@ class TabRateLimit extends SettingsTab {
 				'block_threshold' => $this->post_int_or_current( 'cpf_block_threshold', $this->stored_int( $stored, 'cpf', 'block_threshold', 3 ), 1 ),
 				'block_hours'     => $this->post_int_or_current( 'cpf_block_hours', $this->stored_int( $stored, 'cpf', 'block_hours', 1 ), 1 ),
 				'block_duration'  => $this->post_int_or_current( 'cpf_block_duration', $this->stored_int( $stored, 'cpf', 'block_duration', 24 ), 1 ),
-				'apply_to'        => \FreeFormCertificate\Core\RequestInput::get_post_string( 'cpf_apply_to', 'all' ),
+				'apply_to'        => $this->stored_apply_to( $stored, 'cpf' ),
 				'message'         => sanitize_textarea_field( wp_unslash( $_POST['cpf_message'] ?? '' ) ),
 				'check_database'  => isset( $_POST['cpf_check_database'] ),
 			),
@@ -299,7 +198,7 @@ class TabRateLimit extends SettingsTab {
 				'signals_enabled'           => isset( $_POST['device_signals_enabled'] ) && is_array( $_POST['device_signals_enabled'] )
 					? array_values(
 						array_intersect(
-							array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+							\FreeFormCertificate\Security\RateLimitChecker::DEVICE_SIGNALS,
 							array_map( 'sanitize_key', wp_unslash( $_POST['device_signals_enabled'] ) )
 						)
 					)
@@ -346,6 +245,15 @@ class TabRateLimit extends SettingsTab {
 			),
 		);
         // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+		// A strong-signal minimum above the strong signals enabled never
+		// matches (#2339). The save keeps the minimum the signals allow and
+		// says so, rather than storing a limit that silently does nothing.
+		$strong = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_signals_in( $settings['device']['signals_enabled'] );
+		if ( $settings['device']['match_strong_min'] > $strong ) {
+			$this->refused_strong_min               = \FreeFormCertificate\Settings\RateLimitSettingsReader::strong_min_conflict( $settings['device']['match_strong_min'], $settings['device']['signals_enabled'] );
+			$settings['device']['match_strong_min'] = $strong;
+		}
 
 		update_option( 'ffc_rate_limit_settings', $settings );
 	}
@@ -441,10 +349,10 @@ class TabRateLimit extends SettingsTab {
 	 * clearing the cap would have stored "no cap" (#1111 follow-up). An empty
 	 * field means the value was not supplied, so the stored one stands.
 	 *
-	 * An **absent** key is the same case and matters on its own: `wait_hours`
-	 * has no field on this tab, so the rebuild-save was overwriting whatever
-	 * an operator had configured with the hardcoded default on every Save
-	 * (#1114). Reading the stored value fixes that too.
+	 * An **absent** key is the same case and matters on its own: a setting
+	 * with no field on this tab (`wait_hours` until #2339) was overwritten
+	 * with the hardcoded default on every Save (#1114). Reading the stored
+	 * value fixes that too.
 	 *
 	 * `$min` is the floor for the fields where `0` is not a value anyone
 	 * means. It is not a second guess at the default: on this tab a zero
@@ -468,6 +376,24 @@ class TabRateLimit extends SettingsTab {
 		}
 
 		return max( $min, \FreeFormCertificate\Core\RequestInput::get_post_int( $key, $current ) );
+	}
+
+	/**
+	 * The stored scope of a limit, kept as it is (#2339).
+	 *
+	 * The tab has no field for it: "all forms" was its only choice. A scope
+	 * stored by other means, such as a list of form ids, survives the save.
+	 *
+	 * @param array<string, mixed> $stored Stored settings.
+	 * @param string               $group  Settings group.
+	 * @return string|array<int, int>
+	 */
+	private function stored_apply_to( array $stored, string $group ) {
+		$scope = $stored[ $group ]['apply_to'] ?? 'all';
+		if ( is_array( $scope ) ) {
+			return array_values( array_map( 'intval', $scope ) );
+		}
+		return is_string( $scope ) && '' !== $scope ? $scope : 'all';
 	}
 
 	/**

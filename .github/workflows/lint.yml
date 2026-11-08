@@ -85,6 +85,12 @@ jobs:
       # ~99.4% high-water across the develop batch, so lock in part of the
       # standing gain: 96 → 97, leaving a ~2.4pp buffer (covers the ~1pp v8
       # async jitter noted above; within the ≤5pp policy).
+      #
+      # #2344: the six scripts that sat in vitest.config.mjs's exclusion list
+      # (PDF generator, admin PDF, personal calendar, code-editor core and
+      # wrapper, migrations) now count. Without new tests the measure fell to
+      # 95.32% (13181/13827); with them it reads 97.43% (13473/13827), so the
+      # floor holds at 97 and is not lowered.
       JS_COVERAGE_FLOOR_LINES: '97'
     steps:
       - uses: actions/checkout@v7

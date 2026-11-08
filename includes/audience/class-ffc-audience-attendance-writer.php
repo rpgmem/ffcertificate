@@ -114,8 +114,25 @@ class AudienceAttendanceWriter {
 		if ( false === $inserted ) {
 			return self::FAILED;
 		}
+		if ( 0 === $inserted ) {
+			return self::ALREADY;
+		}
 
-		return $inserted > 0 ? self::RECORDED : self::ALREADY;
+		// The actor is whoever marked it: the operator by hand, the person
+		// themself by QR (#2340).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'attendance_recorded',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'booking_id'     => $booking_id,
+				'target_user_id' => $user_id,
+				'date'           => $date,
+				'method'         => $method,
+			),
+			$marked_by ?? $user_id
+		);
+
+		return self::RECORDED;
 	}
 
 	/**
@@ -138,6 +155,21 @@ class AudienceAttendanceWriter {
 			array( '%d', '%d', '%s' )
 		);
 
-		return is_int( $removed ) && $removed > 0;
+		if ( ! is_int( $removed ) || $removed <= 0 ) {
+			return false;
+		}
+
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'attendance_removed',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'booking_id'     => $booking_id,
+				'target_user_id' => $user_id,
+				'date'           => $date,
+			),
+			get_current_user_id()
+		);
+
+		return true;
 	}
 }

@@ -283,10 +283,11 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_row')
 			->andReturn($audience);
 
-		// get_results for get_by_audience(10)
+		// get_results for get_by_audience(0), the global list (#2502), then
+		// get_by_audience(10).
 		$this->wpdb->shouldReceive('get_results')
-			->once()
-			->andReturn($fields);
+			->twice()
+			->andReturn([], $fields);
 
 		$result = CustomFieldReader::get_by_audience_with_parents(10);
 
@@ -317,9 +318,9 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('get_row')
 			->andReturn($child, $parent, $grandparent);
 
-		// get_by_audience calls: grandparent(1), parent(5), child(10) - reversed order
+		// get_by_audience calls: global(0), grandparent(1), parent(5), child(10) - reversed order
 		$this->wpdb->shouldReceive('get_results')
-			->andReturn($grandparent_fields, $parent_fields, $child_fields);
+			->andReturn([], $grandparent_fields, $parent_fields, $child_fields);
 
 		$result = CustomFieldReader::get_by_audience_with_parents(10);
 
@@ -352,6 +353,7 @@ class CustomFieldRepositoryTest extends TestCase {
 
 		$this->wpdb->shouldReceive('get_row')->andReturn($child, $parent);
 		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[],
 			[
 				$this->make_field(['id' => 200, 'audience_id' => 5, 'field_key' => 'vinculo', 'field_label' => 'Parent label']),
 				$this->make_field(['id' => 201, 'audience_id' => 5, 'field_key' => 'rf']),
@@ -378,7 +380,9 @@ class CustomFieldRepositoryTest extends TestCase {
 
 		$this->wpdb->shouldReceive('get_row')->andReturn($a, $b);
 		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[],
 			[$this->make_field(['id' => 1, 'audience_id' => 20, 'field_key' => 'jornada'])],
+			[],
 			[$this->make_field(['id' => 2, 'audience_id' => 30, 'field_key' => 'jornada'])]
 		);
 
@@ -393,7 +397,7 @@ class CustomFieldRepositoryTest extends TestCase {
 		$field = $this->make_field(['id' => 1, 'audience_id' => 10]);
 
 		$this->wpdb->shouldReceive('get_row')->andReturn($audience);
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn([$field]);
+		$this->wpdb->shouldReceive('get_results')->twice()->andReturn([], [$field]);
 
 		$result = CustomFieldReader::get_by_audience_with_parents(10);
 
@@ -402,6 +406,85 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertObjectHasProperty('source_audience_name', $result[0]);
 		$this->assertEquals(10, $result[0]->source_audience_id);
 		$this->assertSame('My Audience', $result[0]->source_audience_name);
+	}
+
+	/**
+	 * A change an audience makes to a global field keeps the global id --
+	 * the id answers are stored under -- and carries the audience's label,
+	 * options and source; the key and type stay the global field's (#2502).
+	 */
+	public function test_resolve_merges_a_change_onto_the_inherited_field_and_keeps_its_id(): void {
+		$audience = $this->make_audience(10, 'Kitchen', null);
+		$this->wpdb->shouldReceive('get_row')->andReturn($audience);
+		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[$this->make_field(['id' => 1, 'audience_id' => 0, 'field_key' => 'sindicato', 'field_label' => 'Union', 'field_type' => 'select', 'field_options' => '{"choices":["A"]}'])],
+			[$this->make_field(['id' => 9, 'audience_id' => 10, 'overrides_field_id' => '1', 'field_key' => 'sindicato', 'field_label' => 'Kitchen union', 'field_type' => 'text', 'field_options' => '{"choices":["B"]}'])]
+		);
+
+		$result = CustomFieldReader::get_by_audience_with_parents(10);
+
+		$this->assertCount(1, $result);
+		$this->assertSame(1, (int) $result[0]->id, 'Answers converge on the global field.');
+		$this->assertSame('Kitchen union', $result[0]->field_label);
+		$this->assertSame('{"choices":["B"]}', $result[0]->field_options);
+		$this->assertSame('select', $result[0]->field_type, 'The type follows the global field.');
+		$this->assertSame(9, $result[0]->override_id);
+		$this->assertSame(10, $result[0]->source_audience_id);
+		$this->assertSame(0, $result[0]->definition_audience_id);
+	}
+
+	/**
+	 * A hidden field leaves the audience's list; resolve() still reports it,
+	 * flagged, for the editor.
+	 */
+	public function test_a_hidden_field_leaves_the_audience_list(): void {
+		$audience = $this->make_audience(10, 'Kitchen', null);
+		$this->wpdb->shouldReceive('get_row')->andReturn($audience);
+		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[$this->make_field(['id' => 1, 'audience_id' => 0, 'field_key' => 'email', 'is_required' => '1'])],
+			[$this->make_field(['id' => 9, 'audience_id' => 10, 'overrides_field_id' => '1', 'field_key' => 'email', 'is_hidden' => '1'])],
+			[$this->make_field(['id' => 1, 'audience_id' => 0, 'field_key' => 'email', 'is_required' => '1'])],
+			[$this->make_field(['id' => 9, 'audience_id' => 10, 'overrides_field_id' => '1', 'field_key' => 'email', 'is_hidden' => '1'])]
+		);
+
+		$this->assertSame([], CustomFieldReader::get_by_audience_with_parents(10), 'A required field hides too.');
+
+		$resolved = CustomFieldReader::resolve(10);
+		$this->assertCount(1, $resolved);
+		$this->assertSame('1', $resolved[0]->is_hidden);
+	}
+
+	/**
+	 * A change pointing at a field the audience does not inherit changes
+	 * nothing, and an older per-audience copy stays beside the field it
+	 * repeats, as before #2502.
+	 */
+	public function test_a_stray_change_is_ignored_and_an_older_copy_is_kept(): void {
+		$audience = $this->make_audience(10, 'Kitchen', null);
+		$this->wpdb->shouldReceive('get_row')->andReturn($audience);
+		$this->wpdb->shouldReceive('get_results')->andReturn(
+			[$this->make_field(['id' => 1, 'audience_id' => 0, 'field_key' => 'rf'])],
+			[
+				$this->make_field(['id' => 7, 'audience_id' => 10, 'overrides_field_id' => '99', 'field_key' => 'rf', 'field_label' => 'Stray']),
+				$this->make_field(['id' => 8, 'audience_id' => 10, 'field_key' => 'rf', 'field_label' => 'Copy']),
+			]
+		);
+
+		$result = CustomFieldReader::get_by_audience_with_parents(10);
+
+		$this->assertSame([1, 8], array_map(fn($f) => (int) $f->id, $result));
+		$this->assertNotContains('Stray', array_map(fn($f) => $f->field_label, $result));
+	}
+
+	public function test_audience_zero_reads_the_global_list_alone(): void {
+		$this->wpdb->shouldReceive('get_results')->once()->andReturn(
+			[$this->make_field(['id' => 1, 'audience_id' => 0, 'field_key' => 'nome'])]
+		);
+
+		$result = CustomFieldReader::get_by_audience_with_parents(0);
+
+		$this->assertCount(1, $result);
+		$this->assertSame(0, $result[0]->source_audience_id);
 	}
 
 	// ==================================================================
@@ -816,6 +899,10 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->wpdb->shouldReceive('delete')->once()
 			->with('wp_ffc_custom_fields', ['id' => 5], ['%d'])
 			->andReturn(1);
+		// The audiences' changes to the field go with it (#2502).
+		$this->wpdb->shouldReceive('delete')->once()
+			->with('wp_ffc_custom_fields', ['overrides_field_id' => 5], ['%d'])
+			->andReturn(2);
 
 		$result = CustomFieldWriter::delete(5);
 
@@ -839,7 +926,7 @@ class CustomFieldRepositoryTest extends TestCase {
 			'id'           => 5,
 			'field_source' => 'custom',
 		]));
-		$this->wpdb->shouldReceive('delete')->once()->andReturn(1);
+		$this->wpdb->shouldReceive('delete')->twice()->andReturn(1);
 
 		$cache_deleted = false;
 		Functions\when('wp_cache_delete')->alias(function($key, $group) use (&$cache_deleted) {
@@ -1380,10 +1467,20 @@ class CustomFieldRepositoryTest extends TestCase {
 		$this->assertSame( array( 'name' => true, 'email' => true ), CustomFieldReader::existing_field_keys_for_audience( 5 ) );
 	}
 
-	public function test_existing_field_keys_for_audience_short_circuits_on_zero_id(): void {
+	public function test_existing_field_keys_for_audience_short_circuits_on_a_negative_id(): void {
 		$this->wpdb->shouldNotReceive( 'get_col' );
 
-		$this->assertSame( array(), CustomFieldReader::existing_field_keys_for_audience( 0 ) );
+		$this->assertSame( array(), CustomFieldReader::existing_field_keys_for_audience( -1 ) );
+	}
+
+	/**
+	 * 0 is the global list every audience inherits (#2502): the seeder asks
+	 * which standard keys it already carries.
+	 */
+	public function test_existing_field_keys_for_audience_reads_the_global_list(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( 'cpf', '' ) );
+
+		$this->assertSame( array( 'cpf' => true ), CustomFieldReader::existing_field_keys_for_audience( 0 ) );
 	}
 
 	public function test_insert_row_returns_insert_id_on_success(): void {

@@ -68,7 +68,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 				<td>
 					<span class="ffc-text-success ffc-icon-checkmark"><?php esc_html_e( 'Active', 'ffcertificate' ); ?></span>
 					<p class="description">
-						<?php esc_html_e( 'Pages with [user_dashboard_personal] are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'Pages with [user_dashboard_personal], and a form page opened with a schedule exception or an invitation link, are automatically excluded from page cache via DONOTCACHEPAGE constant, no-cache headers, and LiteSpeed-specific hooks.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -83,7 +83,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					<?php else : ?>
 						<span class="ffc-text-warning ffc-icon-warning"><?php esc_html_e( 'Not detected', 'ffcertificate' ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Without Redis/Memcached, rate limiter hourly counters reset on each request. Install an object cache plugin (e.g. LiteSpeed Cache with Redis) for full rate limiting functionality.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Without Redis/Memcached, the rate limiter keeps its counters as transients in the database: limits still hold, but each check reads and writes the database. An object cache plugin (e.g. LiteSpeed Cache with Redis) keeps them in memory.', 'ffcertificate' ); ?>
 						</p>
 					<?php endif; ?>
 				</td>
@@ -169,7 +169,7 @@ if ( $ffcertificate_cf_behind ) :
 					<td>
 						<span class="<?php echo esc_attr( $ffcertificate_cf_cls ); ?>"><?php echo esc_html( $ffcertificate_cf_msg ); ?></span>
 						<p class="description">
-							<?php esc_html_e( 'Best-effort: a loopback request to the front page reads the edge cf-cache-status header. Cached up to 6 hours.', 'ffcertificate' ); ?>
+							<?php esc_html_e( 'Best-effort: a loopback request to the front page reads the edge cf-cache-status header. A result is kept for 12 hours; a failed request is retried after 10 minutes, 30 minutes, 1 hour and 2 hours.', 'ffcertificate' ); ?>
 						</p>
 					</td>
 				</tr>
@@ -283,8 +283,8 @@ if ( $ffcertificate_cf_behind ) :
 						?>
 						<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's only guard. ?>
 						<a href="<?php echo esc_url( $ffcertificate_clear_qr_url ); ?>"
-							class="ffc-btn ffc-btn-danger ffc-icon-delete"
-							onclick="return confirm('<?php echo esc_js( __( 'Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.', 'ffcertificate' ) ); ?>');">
+							class="ffc-btn ffc-btn-caution ffc-icon-delete"
+							onclick="return confirm('<?php echo esc_js( __( "Clear all cached QR Codes?\n\nThey will be regenerated automatically when needed.", 'ffcertificate' ) ); ?>');">
 							<?php esc_html_e( 'Clear All QR Code Cache', 'ffcertificate' ); ?>
 						</a>
 						<p class="description ffc-mt-md">

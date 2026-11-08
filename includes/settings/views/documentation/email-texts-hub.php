@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<div class="ffc-doc-example">
 		<h4><?php esc_html_e( 'One email at a time', 'ffcertificate' ); ?></h4>
-		<p><?php esc_html_e( 'A feature-grouped selector lists every editable email; pick one and only that email\'s editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a "Restore Default Text" button. One "Save email texts" button persists them all — you do not save per email.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A feature-grouped selector lists every editable email; pick one and only that email\'s editor opens (its rich editor is created on demand, so the page stays light even though many emails exist). Each editor has its own {{token}} help and a "Restore Default Text" button, which restores its subject and body. One "Save email texts" button persists them all — you do not save per email.', 'ffcertificate' ); ?></p>
 	</div>
 
 	<div class="ffc-doc-example">

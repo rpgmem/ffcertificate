@@ -62,10 +62,13 @@ class TabUrlShortener extends SettingsTab {
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'i18n'    => array(
-					'working'       => __( 'Generating…', 'ffcertificate' ),
-					'done'          => __( 'Done.', 'ffcertificate' ),
-					'createdSuffix' => __( 'short URLs created.', 'ffcertificate' ),
-					'error'         => __( 'An error occurred.', 'ffcertificate' ),
+					'working'     => __( 'Generating…', 'ffcertificate' ),
+					'createdNone' => __( 'Done. Every page already had a short URL.', 'ffcertificate' ),
+					'createdOne'  => __( 'Done. 1 short URL created.', 'ffcertificate' ),
+					/* translators: %d: number of short URLs created (2 or more) */
+					'createdMany' => __( 'Done. %d short URLs created.', 'ffcertificate' ),
+					'saveFirst'   => __( 'Save the settings first: the missing short URLs are created for the post types that are saved.', 'ffcertificate' ),
+					'error'       => __( 'An error occurred.', 'ffcertificate' ),
 				),
 			)
 		);

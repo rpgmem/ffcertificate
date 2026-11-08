@@ -70,14 +70,19 @@ class IdentityQueueTest extends TestCase {
 		array $verdicts = array(),
 		array $shared = array(),
 		array $failures = array(),
-		array $accepted = array()
+		array $accepted = array(),
+		?callable $failures_for = null
 	): IdentityQueue {
 		$query = Mockery::mock( IdentityConflictQuery::class );
 		$query->shouldReceive( 'multiple_identities' )->andReturn( $multiple );
 		$query->shouldReceive( 'shared_identities' )->andReturn( $shared );
 
 		$scan = Mockery::mock( IdentityCheckDigitScan::class );
-		$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn( $failures );
+		if ( null !== $failures_for ) {
+			$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturnUsing( $failures_for );
+		} else {
+			$scan->shouldReceive( 'check_digit_failures_of_both' )->andReturn( $failures );
+		}
 		$scan->shouldReceive( 'check_digit_verdicts' )->andReturn( $verdicts );
 		// KEYED BY COLUMN (#1486): the scan reads two identifiers and one flat
 		// record cannot describe both, which is what lets a clean half vouch
@@ -807,14 +812,49 @@ class IdentityQueueTest extends TestCase {
 	}
 
 	/**
-	 * TRUNCATION IS THE SCAN'S PROPERTY, NOT THE FILTER'S.
+	 * AN ACCEPTED FINDING DOES NOT USE UP THE CAP (#2338).
 	 *
-	 * The filter runs after `capped()` on purpose: a check that reached its cap
-	 * still says so even when acceptance empties its panel, because there may
-	 * be unaccepted findings beyond the cap this scan never saw. Reporting a
-	 * complete panel there is the `#1071` failure one layer out.
+	 * Each check is asked for its cap plus its acceptances, so the filter can
+	 * drop the accepted ones and still leave a full page of findings to work.
+	 * Before, a hundred acceptances emptied a hundred-row page that had more
+	 * unaccepted findings behind it.
 	 */
-	public function test_a_capped_check_still_reports_truncation_when_acceptance_empties_it(): void {
+	public function test_accepted_findings_do_not_use_up_the_cap(): void {
+		$asked = array();
+		$scan  = static function ( $limit ) use ( &$asked ) {
+			$asked[] = $limit;
+			return array(
+				array( 'subject' => 'accepted-hash', 'identifier_column' => 'rf_hash' ),
+				array( 'subject' => 'open-hash', 'identifier_column' => 'rf_hash' ),
+			);
+		};
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array(),
+			array(
+				IdentityAcceptance::key( IdentityQueue::CHECK_DIGITS, 'rf', 'accepted-hash' ) => array(
+					IdentityAcceptance::FIELD_SUBJECT => 'accepted-hash',
+					IdentityAcceptance::FIELD_CHECK   => IdentityQueue::CHECK_DIGITS,
+					IdentityAcceptance::FIELD_TIER    => IdentityQueue::TIER_ISOLATED,
+				),
+			),
+			$scan
+		);
+
+		$items = $queue->items( 1 );
+
+		$this->assertSame( array( 2 ), $asked, 'The check is asked for its cap plus its one acceptance.' );
+		$this->assertSame( array( 'open-hash' ), array_column( $items, 'subject' ), 'The accepted finding no longer takes the only place on the page.' );
+		$this->assertContains( IdentityQueue::CHECK_DIGITS, $queue->truncated(), 'The padded page came back full, so there may be more.' );
+	}
+
+	/**
+	 * A check that returns fewer rows than its padded request is complete,
+	 * even when acceptance empties it.
+	 */
+	public function test_an_emptied_check_with_room_left_is_not_capped(): void {
 		$queue = $this->queue_reading(
 			array(),
 			array(),
@@ -829,9 +869,29 @@ class IdentityQueueTest extends TestCase {
 			)
 		);
 
-		// One finding against a cap of one: capped by the scan's own test, and
-		// then filtered to nothing.
 		$this->assertSame( array(), $queue->items( 1 ) );
+		$this->assertNotContains( IdentityQueue::CHECK_DIGITS, $queue->truncated() );
+	}
+
+	/**
+	 * More findings than the cap after the filter are cut to the cap, and the
+	 * check says so.
+	 */
+	public function test_findings_beyond_the_cap_after_the_filter_are_cut_and_reported(): void {
+		$queue = $this->queue_reading(
+			array(),
+			array(),
+			array(),
+			array(
+				array( 'subject' => 'one', 'identifier_column' => 'rf_hash' ),
+				array( 'subject' => 'two', 'identifier_column' => 'rf_hash' ),
+				array( 'subject' => 'three', 'identifier_column' => 'rf_hash' ),
+			)
+		);
+
+		$items = $queue->items( 2 );
+
+		$this->assertSame( array( 'one', 'two' ), array_column( $items, 'subject' ) );
 		$this->assertContains( IdentityQueue::CHECK_DIGITS, $queue->truncated() );
 	}
 }

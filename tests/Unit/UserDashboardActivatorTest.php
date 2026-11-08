@@ -49,8 +49,8 @@ class UserDashboardActivatorTest extends TestCase {
 		Monkey\setUp();
 
 		// pcov attribution: preload the class under test (and the real
-		// CapabilityManager, whose ADMIN_CAPABILITIES const the role grant
-		// iterates) before any test method autoloads them.
+		// CapabilityManager, whose ADMIN_CAPABILITIES const the admin-role
+		// assignment strips) before any test method autoloads them.
 		class_exists( '\FreeFormCertificate\UserDashboard\UserDashboardActivator' );
 		class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' );
 
@@ -95,6 +95,8 @@ class UserDashboardActivatorTest extends TestCase {
 
 		// Default WP function stubs (happy path: page already exists).
 		Functions\when( '__' )->returnArg();
+		// The page the activation creates is authored by the activating account (#2343).
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'dbDelta' )->justReturn( array() );
 		Functions\when( 'is_wp_error' )->justReturn( false );
@@ -102,6 +104,10 @@ class UserDashboardActivatorTest extends TestCase {
 		Functions\when( 'update_post_meta' )->justReturn( true );
 		Functions\when( 'wp_insert_post' )->justReturn( 42 );
 		Functions\when( 'get_role' )->justReturn( null );
+		// The admin-role assignment activation runs (#2340): no administrator
+		// and no role edited in the role editor, unless a test says so.
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		// The real RoleRegistrar::register_role() creates `ffc_end_user` when
 		// get_role() finds none; record what it asks for.
@@ -129,7 +135,7 @@ class UserDashboardActivatorTest extends TestCase {
 	// ==================================================================
 
 	public function test_maybe_migrate_does_nothing_when_the_stored_version_is_current(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\UserDashboard\UserDashboardActivator::SCHEMA_REVISION );
 
 		// Counted rather than expect()'d: setUp already stubs both (#1699).
 		$update_option = CallLog::record( 'update_option', true );
@@ -270,28 +276,32 @@ class UserDashboardActivatorTest extends TestCase {
 	 * a step that slipped outside it would be four statements per page load.
 	 */
 	public function test_maybe_migrate_runs_no_backfill_on_a_current_install(): void {
-		Functions\when( 'get_option' )->justReturn( FFC_VERSION );
+		Functions\when( 'get_option' )->justReturn( \FreeFormCertificate\UserDashboard\UserDashboardActivator::SCHEMA_REVISION );
 
 		$this->wpdb->shouldReceive( 'query' )->never();
 
 		UserDashboardActivator::maybe_migrate();
 	}
 
-	public function test_full_activation_registers_role_grants_caps_and_creates_tables(): void {
-		// An administrator role that records each granted cap.
-		$granted     = array();
-		$admin_role  = Mockery::mock();
-		$admin_role->shouldReceive( 'add_cap' )
-			->andReturnUsing(
-				function ( $cap, $grant ) use ( &$granted ) {
-					$granted[] = $cap;
-				}
-			);
+	public function test_full_activation_registers_role_assigns_the_admin_role_and_creates_tables(): void {
+		// The core administrator role must gain no FFC capability (#747,
+		// #2340); one left by an older activation is taken off.
+		$stale      = \FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES[0];
+		$admin_role = Mockery::mock();
+		$admin_role->capabilities = array( $stale => true );
+		$admin_role->shouldNotReceive( 'add_cap' );
+		$admin_role->shouldReceive( 'remove_cap' )->once()->with( $stale );
 		Functions\when( 'get_role' )->alias(
 			function ( $role ) use ( $admin_role ) {
 				return 'administrator' === $role ? $admin_role : null;
 			}
 		);
+		// Each administrator receives `ffc_administrator` instead.
+		$admin_user        = Mockery::mock( '\WP_User' );
+		$admin_user->roles = array( 'administrator' );
+		$admin_user->shouldReceive( 'add_role' )->once()->with( 'ffc_administrator' );
+		Functions\when( 'get_users' )->justReturn( array( 1 ) );
+		Functions\when( 'get_userdata' )->justReturn( $admin_user );
 
 		// Tables absent → dbDelta runs for each; capture the DDL.
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
@@ -313,14 +323,23 @@ class UserDashboardActivatorTest extends TestCase {
 			}
 		);
 
+		// No page recorded yet; the one created here is recorded (#2343).
+		Functions\when( 'get_option' )->justReturn( array() );
+		$written = array();
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) use ( &$written ) {
+				$written[ $key ] = $value;
+				return true;
+			}
+		);
+
 		UserDashboardActivator::create_tables();
 
-		$this->assertSame( array( 'ffc_end_user' ), $this->added_roles, 'The real RoleRegistrar::register_role() creates the end-user role.' );
-		$this->assertSame(
-			\FreeFormCertificate\UserDashboard\CapabilityManager::ADMIN_CAPABILITIES,
-			$granted,
-			'admin caps should be granted from ADMIN_CAPABILITIES'
-		);
+		$this->assertSame( 7, $inserted['post_author'] ?? null, 'The page is authored by the account that activated the plugin.' );
+		$this->assertSame( array( 77 ), $written[ \FreeFormCertificate\Core\ManagedPages::OPTION ] ?? null, 'The created page is recorded for the notice.' );
+		$this->assertSame( 77, $written['ffc_dashboard_page_id'] ?? null );
+		$this->assertSame( 'ffc_end_user', $this->added_roles[0] ?? null, 'The real RoleRegistrar::register_role() creates the end-user role.' );
+		$this->assertContains( 'ffc_administrator', $this->added_roles, 'The module roles are registered so the admin role can be assigned.' );
 		$this->assertCount( 2, $ddl, 'dbDelta should run for the two tables' );
 		$this->assertStringContainsString( 'ffc_user_profiles', $ddl[0] );
 		$this->assertStringContainsString( 'ffc_custom_fields', $ddl[1] );
@@ -340,7 +359,7 @@ class UserDashboardActivatorTest extends TestCase {
 		);
 
 		// Existing dashboard page → reuse its ID, no insert.
-		$existing      = new \stdClass();
+		$existing      = new \WP_Post();
 		$existing->ID  = 555;
 		Functions\when( 'get_page_by_path' )->justReturn( $existing );
 		$saved_option = null;
@@ -370,6 +389,7 @@ class UserDashboardActivatorTest extends TestCase {
 	public function test_admin_caps_skipped_when_no_administrator_role(): void {
 		Functions\when( 'get_role' )->justReturn( null ); // no admin role → cap loop skipped.
 		Functions\when( 'get_page_by_path' )->justReturn( null );
+		Functions\when( 'get_option' )->justReturn( array() );
 
 		$consulted = array();
 		Functions\when( 'get_role' )->alias(

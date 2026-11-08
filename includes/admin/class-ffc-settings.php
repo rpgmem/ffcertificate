@@ -88,6 +88,7 @@ class Settings {
 		add_action( 'admin_enqueue_scripts', array( $this, 'record_active_tab' ), 1 );
 		add_action( 'admin_init', array( $this, 'handle_settings_submission' ) );
 		add_action( 'admin_init', array( $this, 'handle_clear_qr_cache' ) );
+		add_action( 'admin_init', array( $this, 'handle_cron_times_save' ) );
 		add_action( 'admin_init', array( $this, 'handle_send_test_email' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_execution' ) );
 		add_action( 'admin_init', array( $this, 'handle_migration_rearm' ) );
@@ -161,6 +162,18 @@ class Settings {
 		}
 		return $allcaps;
 	}
+
+	/**
+	 * Settings tabs that belong to a module, by tab id. The Templates tab
+	 * edits the certificate-template pool, whose post type is registered
+	 * only while the certificate module is on.
+	 */
+	public const TAB_MODULES = array(
+		'certificates'   => 'certificates',
+		'templates'      => 'certificates',
+		'reregistration' => 'reregistration',
+		'url_shortener'  => 'url_shortener',
+	);
 
 	/**
 	 * Load all tab classes
@@ -285,119 +298,158 @@ class Settings {
 	 */
 	public function get_default_settings(): array {
 		return array(
-			'cleanup_enabled'            => false,
-			'validate_rf_check_digit'    => false,
+			'cleanup_enabled'                   => false,
+			'validate_rf_check_digit'           => false,
 			// Settings → General: the address lookup by CEP (#2234). Off by
 			// default -- it sends each CEP typed to a third party.
-			'cep_lookup_enabled'         => false,
-			'cep_lookup_primary'         => 'viacep',
-			'cleanup_days'               => 365,
-			'quiz_focus_grace_ms'        => 1000,
+			'cep_lookup_enabled'                => false,
+			'cep_lookup_primary'                => 'viacep',
+			'cleanup_days'                      => 365,
+			// Settings → Advanced: the activity log's retention (#2338).
+			'activity_log_retention_days'       => 90,
+			'activity_log_max_records'          => 100000,
+			'quiz_focus_grace_ms'               => 1000,
 			// Settings → Certificates: check the visitor's browser (#2030).
-			'browser_check'              => true,
+			'browser_check'                     => true,
 			// The "Required data" table on Settings → Certificates (#1759).
 			// Empty reads as "not built yet": RequiredData::maybe_migrate()
 			// builds it from the two legacy keys, and until then the readers
 			// fall back to them, so nothing is required by an empty default.
-			'required_data'              => array(),
-			'smtp_mode'                  => 'wp',
-			'smtp_host'                  => '',
-			'smtp_port'                  => 587,
-			'smtp_user'                  => '',
-			'smtp_pass'                  => '',
-			'smtp_secure'                => 'tls',
-			'smtp_from_email'            => '',
-			'smtp_from_name'             => '',
-			'qr_cache_enabled'           => 0,
-			'qr_default_size'            => 200,
-			'qr_default_margin'          => 2,
-			'qr_default_error_level'     => 'M',
+			'required_data'                     => array(),
+			'smtp_mode'                         => 'wp',
+			'smtp_host'                         => '',
+			'smtp_port'                         => 587,
+			'smtp_user'                         => '',
+			'smtp_pass'                         => '',
+			'smtp_secure'                       => 'tls',
+			'smtp_from_email'                   => '',
+			'smtp_from_name'                    => '',
+			'qr_cache_enabled'                  => 0,
+			'qr_default_size'                   => 200,
+			'qr_default_margin'                 => 2,
+			'qr_default_error_level'            => 'M',
 			// Global QR design (#1563). Plain by default and applied to
 			// nothing, so an upgrade changes no QR until an admin opts in.
-			'qr_design_dots'             => 'square',
-			'qr_design_eye_frame'        => 'square',
-			'qr_design_eye_ball'         => 'square',
-			'qr_design_color'            => '#000000',
-			'qr_design_gradient'         => 0,
-			'qr_design_color_end'        => '#2271b1',
-			'qr_design_background'       => '#ffffff',
-			'qr_design_eye_frame_color'  => '#000000',
-			'qr_design_eye_ball_color'   => '#000000',
-			'qr_design_logo_id'          => 0,
-			'qr_design_frame'            => 'none',
-			'qr_design_frame_text'       => '',
-			'qr_design_frame_color'      => '#1d2327',
-			'qr_design_frame_icon'       => 'scan',
-			'qr_design_transparent'      => 0,
-			'qr_design_on_certificate'   => 0,
-			'qr_design_on_short_urls'    => 0,
+			'qr_design_dots'                    => 'square',
+			'qr_design_eye_frame'               => 'square',
+			'qr_design_eye_ball'                => 'square',
+			'qr_design_color'                   => '#000000',
+			'qr_design_gradient'                => 0,
+			'qr_design_color_end'               => '#2271b1',
+			'qr_design_background'              => '#ffffff',
+			'qr_design_eye_frame_color'         => '#000000',
+			'qr_design_eye_ball_color'          => '#000000',
+			'qr_design_logo_id'                 => 0,
+			'qr_design_frame'                   => 'none',
+			'qr_design_frame_text'              => '',
+			'qr_design_frame_color'             => '#1d2327',
+			'qr_design_frame_icon'              => 'scan',
+			'qr_design_transparent'             => 0,
+			'qr_design_on_certificate'          => 0,
+			'qr_design_on_short_urls'           => 0,
 			// Settings → Public Design: off, and at the stylesheet's own look.
-			'public_design'              => 0,
-			'public_design_accent'       => '#2271b1',
-			'public_design_border'       => '#8e8f91',
-			'public_design_muted'        => '#646970',
-			'public_design_error'        => '#d63638',
-			'public_design_info'         => '#006ba1',
-			'public_design_radius'       => 4,
-			'public_design_card_radius'  => 8,
-			'public_design_width'        => 600,
-			'public_design_font'         => 'theme',
+			'public_design'                     => 0,
+			'public_design_accent'              => '#2271b1',
+			'public_design_border'              => '#8e8f91',
+			'public_design_muted'               => '#646970',
+			'public_design_error'               => '#d63638',
+			'public_design_info'                => '#006ba1',
+			'public_design_radius'              => 4,
+			'public_design_card_radius'         => 8,
+			'public_design_width'               => 600,
+			'public_design_font'                => 'theme',
 			// `d/m/Y` default since #244 — Brazilian-locale friendly. Pre-
 			// #244 default was 'F j, Y'; installs that explicitly saved
 			// 'F j, Y' keep it because get_option() returns the persisted
 			// value, not the default. Fresh installs and any user who
 			// never visited Settings → General pick up `d/m/Y` now.
-			'date_format'                => 'd/m/Y',
-			'date_format_custom'         => '',
+			'date_format'                       => 'd/m/Y',
+			'date_format_custom'                => '',
 			// New in #244 — time-of-day formatting + per-context PDF
 			// overrides. Empty `_pdf` values inherit the base format.
 			// `*_custom` companions hold the user-typed format when
 			// `date_format_pdf` / `time_format_pdf` equals 'custom'
 			// (#248, same idiom as date_format / date_format_custom).
-			'time_format'                => 'H:i',
-			'time_format_custom'         => '',
-			'date_format_pdf'            => '',
-			'date_format_pdf_custom'     => '',
-			'time_format_pdf'            => '',
-			'time_format_pdf_custom'     => '',
-			'public_csv_default_limit'   => 1,    // Default limit for public CSV downloads.
-			'obsolete_shortcode_days'    => 90,   // Grace window (days) for obsolete shortcode cleanup.
-			'url_cleanup_days'           => 90,   // Grace window (days) for the short-URL never-clicked criterion.
-			'url_cleanup_orphaned'       => 1,    // Short-URL cleanup: target post deleted.
-			'url_cleanup_never_clicked'  => 0,   // Short-URL cleanup: never clicked + older than the grace window.
-			'url_cleanup_trashed'        => 1,    // Short-URL cleanup: status = 'trashed'.
-			'public_access_disable_days' => 90, // Grace window (days) for disabling Public Operator Access on old forms.
-			'code_editor_theme'          => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
+			'time_format'                       => 'H:i',
+			'time_format_custom'                => '',
+			'date_format_pdf'                   => '',
+			'date_format_pdf_custom'            => '',
+			'time_format_pdf'                   => '',
+			'time_format_pdf_custom'            => '',
+			'public_csv_default_limit'          => 1,    // Default limit for public CSV downloads.
+			'obsolete_shortcode_days'           => 90,   // Grace window (days) for obsolete shortcode cleanup.
+			'url_cleanup_days'                  => 90,   // Grace window (days) for the short-URL never-clicked criterion.
+			'url_cleanup_orphaned'              => 1,    // Short-URL cleanup: target post deleted.
+			'url_cleanup_never_clicked'         => 0,   // Short-URL cleanup: never clicked + older than the grace window.
+			'url_cleanup_trashed'               => 1,    // Short-URL cleanup: status = 'trashed'.
+			'public_access_disable_days'        => 90, // Grace window (days) for disabling Public Operator Access on old forms.
+			'code_editor_theme'                 => 'dark', // 'dark' | 'light' | 'auto' (auto follows dark_mode).
 			// Window of the invitation's password-set link, in hours (#1212).
 			// Clamped to 1..720 on read and on save by `PasswordInvite`.
-			'invite_password_link_hours' => 168,
+			'invite_password_link_hours'        => 168,
 			// Days the dashboard keeps an approved reregistration's banner after
 			// the later of the campaign's end and the approval (#1887); 0 never
 			// hides. Clamped to 0..365 by `ReregistrationBannerWindow`.
-			'rereg_approved_banner_days' => 30,
+			'rereg_approved_banner_days'        => 30,
 			// Captcha (#1053). `math` on upgrade: the arithmetic challenge is
 			// the only one that runs without JavaScript and without a secure
 			// context, so it is the choice that cannot lock anyone out of a
 			// form they could use before. A NEW install is seeded instead
 			// (Activator, #1758): ALTCHA only on HTTPS, math otherwise.
-			'captcha_provider'           => 'math', // 'math' | 'altcha' | 'both'.
+			'captcha_provider'                  => 'math', // 'math' | 'altcha' | 'both'.
 			// Work factor for the ALTCHA proof of work — the upper bound of
 			// the secret number the solver has to find, so expected work is
 			// about half of it. Bounded by CaptchaSettings, not here.
-			'captcha_altcha_complexity'  => 200000,
-			'captcha_altcha_ttl'         => 600,  // Seconds a challenge stays valid.
-			'captcha_altcha_type'        => 'checkbox', // 'checkbox' | 'switch'.
-			'captcha_altcha_auto'        => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
-			'captcha_altcha_hide_logo'   => 0,
+			'captcha_altcha_complexity'         => 200000,
+			'captcha_altcha_ttl'                => 600,  // Seconds a challenge stays valid.
+			'captcha_altcha_type'               => 'checkbox', // 'checkbox' | 'switch'.
+			'captcha_altcha_auto'               => 'off', // 'off' | 'onfocus' | 'onload' | 'onsubmit'.
+			'captcha_altcha_hide_logo'          => 0,
 			// Shown on upgrade; a new install starts with it hidden (#1758).
-			'captcha_altcha_hide_footer' => 0,
+			'captcha_altcha_hide_footer'        => 0,
 			// #1123. Read since the "Access granted" email was written, but
 			// never written by anything, so `get_bool()` returned false on
 			// every install and the email was unreachable. `0` keeps that
 			// state as the *declared* one — the fix is the SMTP-tab toggle
 			// that now writes the key, not a default that starts mailing
 			// every existing install on upgrade.
-			'notify_capability_grant'    => 0,
+			'notify_capability_grant'           => 0,
+			// Keys read across the plugin with these fallbacks and declared
+			// here so the list and the reads agree (#2338). Each value is the
+			// one its read sites already use; declaring it changes nothing an
+			// install sees.
+			'activity_log_min_level'            => 'debug',
+			'audience_csv_create_users_default' => 1,
+			'csv_download_page_url'             => '',
+			'dangerzone_reset_counter_default'  => 1,
+			'dark_mode'                         => 'off',
+			'delete_data_on_uninstall'          => 0,
+			'disable_all_emails'                => 0,
+			// On by default, on fresh installs and on upgrade (#2340).
+			'enable_activity_log'               => 1,
+			'logo_gov'                          => '',
+			'logo_org'                          => '',
+			'main_address'                      => '',
+			'public_csv_sync_max_rows'          => 2000,
+			'url_shortener_auto_create'         => 1,
+			'url_shortener_code_length'         => 6,
+			'url_shortener_enabled'             => 1,
+			// Debug::is_enabled() reads each area as on only when it holds 1.
+			'debug_activity_log'                => 0,
+			'debug_admin'                       => 0,
+			'debug_audience'                    => 0,
+			'debug_browser_env'                 => 0,
+			'debug_email_handler'               => 0,
+			'debug_encryption'                  => 0,
+			'debug_form_processor'              => 0,
+			'debug_frontend'                    => 0,
+			'debug_geofence'                    => 0,
+			'debug_migrations'                  => 0,
+			'debug_pdf_generator'               => 0,
+			'debug_qrcode'                      => 0,
+			'debug_rest_api'                    => 0,
+			'debug_self_scheduling'             => 0,
+			'debug_user_manager'                => 0,
 		);
 	}
 
@@ -434,6 +486,13 @@ class Settings {
 	 */
 	public function handle_clear_qr_cache(): void {
 		$this->action_handler->handle_clear_qr_cache();
+	}
+
+	/**
+	 * Save the Scheduled Tasks run times (#2338).
+	 */
+	public function handle_cron_times_save(): void {
+		$this->action_handler->handle_cron_times_save();
 	}
 
 	/**
@@ -487,10 +546,16 @@ class Settings {
 	private function visible_tabs(): array {
 		return array_filter(
 			$this->tabs,
-			function ( $tab ): bool {
+			function ( $tab, $tab_id ): bool {
+				// A tab of a module switched off is hidden (#2338): its screens
+				// are gone, so its settings and links lead nowhere.
+				if ( isset( self::TAB_MODULES[ $tab_id ] ) && ! \FreeFormCertificate\Settings\SettingsReader::module_enabled( self::TAB_MODULES[ $tab_id ] ) ) {
+					return false;
+				}
 				return \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_view_cap( $tab ) )
 					|| \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( $this->tab_manage_cap( $tab ) );
-			}
+			},
+			ARRAY_FILTER_USE_BOTH
 		);
 	}
 
@@ -543,6 +608,25 @@ class Settings {
 	 */
 	private function tab_manage_cap( $tab ): string {
 		return method_exists( $tab, 'get_manage_cap' ) ? (string) $tab->get_manage_cap() : 'ffc_manage_settings';
+	}
+
+	/**
+	 * What a (possibly duck-typed) tab prints in the side column (#2486).
+	 *
+	 * A tab a plugin adds through `ffcertificate_settings_tabs` need not
+	 * extend SettingsTab, so one without `render_side()` leaves the column
+	 * empty, as SettingsTab's own default does.
+	 *
+	 * @param object $tab Tab instance.
+	 * @return string The widget markup, or '' when the tab has none.
+	 */
+	private function tab_side( $tab ): string {
+		if ( ! method_exists( $tab, 'render_side' ) ) {
+			return '';
+		}
+		ob_start();
+		$tab->render_side();
+		return trim( (string) ob_get_clean() );
 	}
 
 	/**
@@ -643,25 +727,16 @@ class Settings {
 			?>
 
 			<?php
-			// Display migration messages.
-            // phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-			if ( isset( $_GET['migration_success'] ) ) {
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'success',
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_success'] ) ) ) )
-				);
+			// Display migration messages: stored on the server, named by the
+			// URL (#2338), so a link cannot put its own words here.
+			$ffc_migration_notice = SettingsNotice::take( 'migration' );
+			if ( null !== $ffc_migration_notice ) {
+				\FreeFormCertificate\Core\AdminNotice::render( $ffc_migration_notice['type'], esc_html( $ffc_migration_notice['message'] ) );
 			}
-			if ( isset( $_GET['migration_error'] ) ) {
-				\FreeFormCertificate\Core\AdminNotice::render(
-					'error',
-					esc_html( sanitize_text_field( urldecode( wp_unslash( $_GET['migration_error'] ) ) ) )
-				);
-			}
-            // phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			?>
 			
 			<div class="ffc-settings-tabs">
-				<ul class="ffc-settings-tabs__nav" role="tablist" aria-orientation="vertical">
+				<nav class="ffc-settings-tabs__nav" aria-label="<?php echo esc_attr( __( 'Sections', 'ffcertificate' ) ); ?>"><ul class="ffc-settings-tabs__list">
 					<?php
 					// Grouped nav (#951): tabs render under domain subheadings,
 					// staying alphabetical within each group. Bucket the already
@@ -703,7 +778,7 @@ class Settings {
 								continue;
 							}
 							?>
-							<li class="ffc-settings-tabs__group" role="presentation">
+							<li class="ffc-settings-tabs__group">
 								<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
 							</li>
 							<?php
@@ -714,28 +789,27 @@ class Settings {
 							continue;
 						}
 						?>
-						<li class="ffc-settings-tabs__group" role="presentation">
+						<li class="ffc-settings-tabs__group">
 							<span class="ffc-settings-tabs__group-label"><?php echo esc_html( $ffc_glabel ); ?></span>
 						</li>
 						<?php foreach ( $ffc_buckets[ $ffc_gkey ] as $tab_id => $tab_obj ) : ?>
 							<?php $is_active = ( $active_tab === $tab_id ); ?>
-							<li class="ffc-settings-tabs__nav-item" role="presentation">
+							<li class="ffc-settings-tabs__nav-item">
 								<a href="<?php echo esc_url( admin_url( 'admin.php?page=ffc-settings&tab=' . $tab_id ) ); ?>"
 									id="ffc-settings-tabnav-<?php echo esc_attr( $tab_id ); ?>"
 									class="ffc-settings-tabs__tab<?php echo $is_active ? ' is-active' : ''; ?>"
-									role="tab"
-									aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>"
-									aria-controls="ffc-settings-tabpanel-<?php echo esc_attr( $tab_id ); ?>"
-									tabindex="<?php echo $is_active ? '0' : '-1'; ?>">
+									<?php echo $is_active ? 'aria-current="page"' : ''; ?>>
 									<span class="ffc-settings-tabs__icon <?php echo esc_attr( $tab_obj->get_icon() ); ?>" aria-hidden="true"></span>
 									<span class="ffc-settings-tabs__label"><?php echo esc_html( $tab_obj->get_title() ); ?></span>
 								</a>
 							</li>
 						<?php endforeach; ?>
 					<?php endforeach; ?>
-				</ul>
+				</ul></nav>
 
-				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-settings-tabnav-<?php echo esc_attr( $active_tab ); ?>" tabindex="0">
+				<div id="ffc-settings-tabpanel-<?php echo esc_attr( $active_tab ); ?>" class="ffc-settings-tabs__panel">
+					<div class="ffc-settings-tabs__body">
+					<div class="ffc-settings-tabs__main">
 					<?php
 					// A disabled <fieldset> natively disables every descendant form
 					// control (inputs, selects, textareas, submit + action buttons)
@@ -750,7 +824,16 @@ class Settings {
 					// guaranteed non-empty by the early-return at the top), so it is
 					// always a key of $visible_tabs; the isset() is defensive.
 					if ( isset( $visible_tabs[ $active_tab ] ) ) {
-						$visible_tabs[ $active_tab ]->render();
+						if ( $ffc_settings_can_edit ) {
+							$visible_tabs[ $active_tab ]->render();
+						} else {
+							// A disabled fieldset leaves a link button live:
+							// the lock takes its href away too (#2338).
+							ob_start();
+							$visible_tabs[ $active_tab ]->render();
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The tab's own output, escaped by its template; lock_link_buttons() only removes an href and adds two attributes.
+							echo self::lock_link_buttons( (string) ob_get_clean() );
+						}
 					}
 					if ( ! $ffc_settings_can_edit ) {
 						echo '</fieldset>';
@@ -762,6 +845,18 @@ class Settings {
 						$visible_tabs[ $active_tab ]->render_unlocked();
 					}
 					?>
+					</div>
+					<?php
+					// The side column is reserved on every tab (#2486); a tab
+					// with a widget prints it there. Outside the read-only
+					// lock: a widget shows, it does not save.
+					$ffc_side = isset( $visible_tabs[ $active_tab ] ) ? $this->tab_side( $visible_tabs[ $active_tab ] ) : '';
+					if ( '' !== $ffc_side ) {
+						// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- The tab's own output, escaped by its template.
+						echo '<aside class="ffc-settings-tabs__side">' . $ffc_side . '</aside>';
+					}
+					?>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -820,7 +915,12 @@ class Settings {
 	protected function module_settings_links(): array {
 		$links = array();
 
-		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
+		// A link to a module switched off would open a screen that is gone
+		// (#2338).
+		$scheduling_on = \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'self_scheduling' )
+			|| \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'audiences' );
+
+		if ( $scheduling_on && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_audiences' ) ) {
 			$links[] = array(
 				'url'   => admin_url( 'admin.php?page=ffc-scheduling-settings' ),
 				'icon'  => 'ffc-icon-calendar',
@@ -829,7 +929,7 @@ class Settings {
 			);
 		}
 
-		if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' ) ) {
+		if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'recruitment' ) && \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_view_recruitment_settings' ) ) {
 			$links[] = array(
 				'url'   => admin_url( 'admin.php?page=ffc-recruitment&tab=settings' ),
 				'icon'  => 'ffc-icon-users',
@@ -848,14 +948,14 @@ class Settings {
 	 * this page (rpgmem/ffcertificate#711 — discoverability). Each link is
 	 * gated by that module's own view cap so a user only sees links they can
 	 * actually open, and navigates away from this page — hence a plain link
-	 * (no `role="tab"`) with an external-link marker instead of a tab.
+	 * with an external-link marker beside it.
 	 *
 	 * @return void
 	 */
 	protected function render_module_settings_links(): void {
 		foreach ( $this->module_settings_links() as $link ) :
 			?>
-			<li class="ffc-settings-tabs__nav-item" role="presentation">
+			<li class="ffc-settings-tabs__nav-item">
 				<a href="<?php echo esc_url( $link['url'] ); ?>"
 					class="ffc-settings-tabs__tab ffc-settings-tabs__tab--module"
 					title="<?php echo esc_attr( $link['title'] ); ?>">
@@ -915,7 +1015,7 @@ class Settings {
 	 * Handle the Short URL Cleanup maintenance action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_url_cleanup_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the chosen criteria + grace window into
 	 *    `ffc_settings`, then run the {@see UrlShortenerCleaner} in dry-run and
 	 *    store the report + a "preview OK" flag so the apply button unlocks.
@@ -933,7 +1033,7 @@ class Settings {
 	 * action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_pubaccess_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the grace window into `ffc_settings`, then
 	 *    run the {@see PublicOperatorAccessDisabler} in dry-run and store the
 	 *    report + a "preview OK" flag so the apply button unlocks.
@@ -964,5 +1064,29 @@ class Settings {
 	 */
 	public function handle_cache_actions(): void {
 		$this->action_handler->handle_cache_actions();
+	}
+
+	/**
+	 * Link buttons in read-only markup, made inert (#2338).
+	 *
+	 * A disabled `<fieldset>` disables every form control under it and no
+	 * link, so a view-only user could still follow Clear QR cache or Run
+	 * Migration. Each `ffc-btn` link loses its href and takes the family's
+	 * disabled state, which works without JavaScript.
+	 *
+	 * @param string $html Rendered tab.
+	 * @return string
+	 */
+	public static function lock_link_buttons( string $html ): string {
+		$locked = preg_replace_callback(
+			'/<a\b([^>]*\bclass="[^"]*\bffc-btn\b[^"]*"[^>]*)>/i',
+			static function ( array $m ): string {
+				$attrs = (string) preg_replace( '/\shref=("[^"]*"|\'[^\']*\')/i', '', $m[1] );
+				$attrs = (string) preg_replace( '/\s(aria-disabled|tabindex)=("[^"]*"|\'[^\']*\')/i', '', $attrs );
+				return '<a' . $attrs . ' aria-disabled="true" tabindex="-1">';
+			},
+			$html
+		);
+		return is_string( $locked ) ? $locked : $html;
 	}
 }

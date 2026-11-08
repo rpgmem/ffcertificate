@@ -446,6 +446,9 @@ class AudienceActivatorTest extends TestCase {
 		$alters = implode( "\n", array_filter( $queries, static fn( $q ) => false !== stripos( (string) $q, 'ALTER TABLE' ) ) );
 		$this->assertStringContainsString( 'members_only', $alters );
 		$this->assertStringContainsString( 'require_membership', $alters );
+		// The calendar's booking-shape switches, on by default (#2404).
+		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_multi_day' tinyint\\(1\\) DEFAULT 1/", $alters );
+		$this->assertMatchesRegularExpression( "/ADD COLUMN 'allow_time_selection' tinyint\\(1\\) DEFAULT 1/", $alters );
 		$this->assertSame( AudienceActivator::SCHEMA_REVISION, $options[ AudienceActivator::SCHEMA_REVISION_OPTION ] );
 		$this->assertStringNotContainsString( 'allow_self_join', $alters, 'the FFC_VERSION chain stayed gated' );
 		// The bookings lock and invitation scan read their new indexes (#2243),
@@ -453,6 +456,7 @@ class AudienceActivatorTest extends TestCase {
 		// A weekly series is found by its first booking (#2243).
 		$this->assertSame( array( 'idx_env_status_date', 'idx_end_booking_date', 'idx_series' ), $indexes );
 		$this->assertStringContainsString( "ADD COLUMN 'series_id'", $alters );
+		$this->assertStringContainsString( "ADD INDEX 'idx_series' (series_id)", $alters, 'the series index carries its parentheses' );
 		$this->assertLessThan(
 			strpos( $alters, "DROP INDEX 'idx_environment'" ),
 			strpos( $alters, "ADD INDEX 'idx_env_status_date'" ),
@@ -609,26 +613,25 @@ class AudienceActivatorTest extends TestCase {
 	// maybe_migrate() — skips when table missing
 	// ==================================================================
 
-	public function test_maybe_migrate_skips_when_table_missing(): void {
-		// No tables exist
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function ( $query ) {
-				if ( stripos( $query, 'SHOW TABLES LIKE' ) !== false ) {
-					return null;
-				}
-				return null;
-			} );
+	public function test_maybe_migrate_creates_every_missing_table(): void {
+		// An install updated in place, never activated: no table exists, and
+		// maybe_migrate() is the only runtime path that can create them (#2343).
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
-		$query_called = false;
-		$this->wpdb->shouldReceive( 'query' )
-			->andReturnUsing( function () use ( &$query_called ) {
-				$query_called = true;
-				return 1;
-			} );
+		$created = array();
+		Functions\when( 'dbDelta' )->alias(
+			function ( $sql ) use ( &$created ) {
+				if ( preg_match( '/CREATE TABLE\s+(\S+)/', (string) $sql, $m ) ) {
+					$created[] = $m[1];
+				}
+				return array();
+			}
+		);
 
 		AudienceActivator::maybe_migrate();
 
-		$this->assertFalse( $query_called, 'No ALTER TABLE queries should run when tables do not exist' );
+		$this->assertCount( 12, array_unique( $created ), 'Every table the module declares is created when it is missing.' );
 	}
 
 	// ==================================================================

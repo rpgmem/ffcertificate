@@ -35,7 +35,7 @@ function mount() {
 			<input type="radio" name="icon" value="globe" data-ffc-qr-design="qr_design_frame_icon" checked>
 			<input type="checkbox" data-ffc-qr-design="qr_design_transparent">
 			<div id="ffc-qr-design-preview"></div>
-			<p id="ffc-qr-design-checks"></p>
+			<div id="ffc-qr-design-checks"></div>
 		</form>`;
 }
 
@@ -113,6 +113,51 @@ describe('ffc-qr-design.js', () => {
 
 		expect(window.$('#ffc-qr-design-checks').text()).toBe('Caption hard to read');
 		expect(window.$('#ffc-qr-design-checks').hasClass('is-warning')).toBe(true);
+	});
+
+	it('asks for a lighter frame colour on a dark ground', async () => {
+		window.ffcQrDesign.i18n.captionContrast = 'Pick darker';
+		window.ffcQrDesign.i18n.captionLighter = 'Pick lighter';
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg></svg>', checks: { caption_contrast: false, caption_lighter: true, min_ratio: 21 } } } }));
+
+		await window.FFC.QrDesign.refresh(window.$('form'));
+
+		expect(window.$('#ffc-qr-design-checks').text()).toBe('Pick lighter');
+	});
+
+	it('warns about the quiet zone when the margin is 0', async () => {
+		window.ffcQrDesign.i18n.quietZone = 'No quiet zone';
+		window.$('#qr_default_margin').val('0');
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg></svg>', checks: { min_ratio: 21 } } } }));
+
+		await window.FFC.QrDesign.refresh(window.$('form'));
+
+		expect(window.$('#ffc-qr-design-checks').text()).toBe('No quiet zone');
+		expect(window.$('#ffc-qr-design-checks').hasClass('is-warning')).toBe(true);
+	});
+
+	it('shows every problem at once, under a heading, in the worst state', async () => {
+		window.ffcQrDesign.i18n.quietZone = 'No quiet zone';
+		window.ffcQrDesign.i18n.several = 'May not scan well:';
+		window.ffcQrDesign.i18n.captionContrast = 'Caption hard to read';
+		window.$('#qr_default_margin').val('0');
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg></svg>', checks: { inverted: true, low_contrast: true, min_ratio: 2.1, caption_contrast: false } } } }));
+
+		await window.FFC.QrDesign.refresh(window.$('form'));
+
+		const $out = window.$('#ffc-qr-design-checks');
+		expect($out.hasClass('is-error')).toBe(true);
+		expect($out.find('.ffc-status-text').text()).toBe('May not scan well:');
+		expect($out.find('.ffc-qr-checks-list li').map(function () { return window.$(this).text(); }).get())
+			.toEqual(['Inverted', 'Low (2.1:1)', 'Caption hard to read', 'No quiet zone']);
+	});
+
+	it('writes each problem as text, never markup', () => {
+		const $out = window.$('#ffc-qr-design-checks');
+		window.FFC.QrDesign.showProblems($out, [{ state: 'warning', text: '<b>x</b>' }, { state: 'warning', text: 'y' }], { several: 'H' });
+
+		expect($out.find('b').length).toBe(0);
+		expect($out.find('li').first().text()).toBe('<b>x</b>');
 	});
 
 	it('flags an inverted code as an error', async () => {

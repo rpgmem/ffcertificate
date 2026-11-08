@@ -145,6 +145,7 @@ class SchedulingMailerTest extends TestCase {
 
 	public function test_send_returns_wp_mail_result(): void {
 		Functions\when( 'wp_mail' )->justReturn( false );
+		Functions\when( 'is_email' )->returnArg();
 		$this->assertFalse( SchedulingMailer::send( 'test@example.com', 'Subj', 'Body' ) );
 	}
 }

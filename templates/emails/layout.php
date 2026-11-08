@@ -12,6 +12,7 @@
  * @var array<string, mixed> $args {
  *     @type string $content   Pre-built inner HTML (the email body).
  *     @type string $recipient Optional recipient email (for the {{recipient}} footer token).
+ *     @type string $preheader Optional inbox preview line; absent, the start of the body text.
  *     @type array  $body_appearance Optional body background and text column, from
  *                                   {@see \FreeFormCertificate\Core\EmailBodyAppearance::document_args()};
  *                                   absent, the body renders exactly as the Email Model sets it.
@@ -40,6 +41,17 @@ $ffc_footer   = TokenResolver::resolve(
 );
 $ffc_has_logo = '' !== (string) $ffc_opt['header_logo_url'];
 
+// The line an inbox shows beside the subject. Without one, clients show the
+// first text of the document, which is the site name in the header band.
+$ffc_preheader = isset( $args['preheader'] ) && is_string( $args['preheader'] ) ? $args['preheader'] : '';
+if ( '' === trim( $ffc_preheader ) ) {
+	$ffc_preheader = (string) preg_replace( '/\s+/u', ' ', html_entity_decode( wp_strip_all_tags( $ffc_content ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+}
+$ffc_preheader = trim( $ffc_preheader );
+if ( mb_strlen( $ffc_preheader ) > 140 ) {
+	$ffc_preheader = rtrim( mb_substr( $ffc_preheader, 0, 139 ) ) . '…';
+}
+
 // Per-message body appearance (#1660). Only the body cell changes; the header
 // and footer above and below it are the Email Model's for every message.
 $ffc_app       = isset( $args['body_appearance'] ) && is_array( $args['body_appearance'] ) ? $args['body_appearance'] : array();
@@ -58,11 +70,13 @@ if ( '' !== $ffc_body_img ) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="<?php echo esc_attr( (string) get_bloginfo( 'language' ) ); ?>">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="color-scheme" content="light">
+	<meta name="supported-color-schemes" content="light">
 	<title><?php echo esc_html( get_bloginfo( 'name' ) ); ?></title>
 	<style type="text/css">
 		body { margin: 0; padding: 0; }
@@ -79,6 +93,9 @@ if ( '' !== $ffc_body_img ) {
 	</style>
 </head>
 <body style="margin:0;padding:0;background-color:<?php echo esc_attr( (string) $ffc_opt['wrapper_bg'] ); ?>;font-family:<?php echo esc_attr( $ffc_font ); ?>;">
+<?php if ( '' !== $ffc_preheader ) : ?>
+<div class="ffc-email-preheader" style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;"><?php echo esc_html( $ffc_preheader ); ?></div>
+<?php endif; ?>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:<?php echo esc_attr( (string) $ffc_opt['wrapper_bg'] ); ?>;padding:<?php echo esc_attr( (string) (int) $ffc_opt['wrapper_padding'] ); ?>px 0;">
 	<tr>
 		<td align="center" valign="top">

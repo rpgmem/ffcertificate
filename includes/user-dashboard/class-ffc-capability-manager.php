@@ -252,6 +252,9 @@ class CapabilityManager {
 		// rule to the operator's own address, which `manage` also allows, so
 		// the operator tier can check a message without editing any rule.
 		'ffc_test_date_messages',
+		// Deleting a rule (#2336), split out of `manage` like every delete
+		// cap; the current managers receive it on upgrade.
+		'ffc_delete_date_messages',
 
 		// Destructive "delete" tier (GAP E). Each `ffc_delete_<domain>` cap
 		// gates the irreversible removal paths of its domain *strictly* — the
@@ -943,7 +946,7 @@ class CapabilityManager {
 
 		$date_messages_viewer   = array( 'ffc_view_date_messages' );
 		$date_messages_operator = array_merge( $date_messages_viewer, array( 'ffc_test_date_messages' ) );
-		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii', 'ffc_send_date_messages' ) );
+		$date_messages_manager  = array_merge( $date_messages_operator, array( 'ffc_manage_date_messages', 'ffc_view_date_messages_pii', 'ffc_send_date_messages', 'ffc_delete_date_messages' ) );
 
 		$settings_viewer   = array( 'ffc_view_settings', 'ffc_view_custom_fields', 'ffc_view_forms_api' );
 		$settings_operator = array_merge( $settings_viewer, array( 'ffc_test_settings_smtp' ) );

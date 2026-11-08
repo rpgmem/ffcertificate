@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $ffcertificate_migration_manager = null;
 $ffcertificate_migrations        = array();
 $ffcertificate_init_error        = '';
+// Running, re-checking and retrying need the Danger Zone capability (#2338).
+$ffcertificate_can_migrate = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
 
 try {
 	$ffcertificate_migration_manager = new \FreeFormCertificate\Migrations\MigrationManager();
@@ -39,16 +41,16 @@ try {
 <div class="ffc-migrations-settings-wrap">
 	
 	<div class="card">
-		<h2 class="ffc-icon-database"><?php esc_html_e( 'Database Migrations', 'ffcertificate' ); ?></h2>
+		<h2 class="ffc-icon-database"><?php esc_html_e( 'Data Migrations', 'ffcertificate' ); ?></h2>
 		
 		<p class="description">
-			<?php esc_html_e( 'Manage database structure migrations to improve performance and data organization. These migrations move data from JSON storage to dedicated database columns for faster queries and better reliability.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Bring stored data up to date after an update: move it into dedicated columns, encrypt or re-encrypt personal data, rebuild search hashes and remove copies that are no longer needed.', 'ffcertificate' ); ?>
 		</p>
 		
 		<?php
 		\FreeFormCertificate\Core\AdminNotice::callout(
 			'warning',
-			esc_html__( 'Migrations are safe to run multiple times. Each migration processes up to 100 records at a time. Run again if needed until 100% complete.', 'ffcertificate' ),
+			esc_html__( 'Run Migration processes the records in batches until the card reaches 100%. If a batch changes nothing, the run stops and lists the errors; running it again will not move those records until the cause is fixed.', 'ffcertificate' ),
 			array( 'title' => __( 'Important:', 'ffcertificate' ) )
 		);
 		?>
@@ -112,11 +114,16 @@ try {
 				$ffcertificate_status_error = $ffcertificate_status->get_error_message();
 			} else {
 				$ffcertificate_status_error = '';
-				$ffcertificate_percent      = $ffcertificate_status['percent'];
+				$ffcertificate_percent      = (float) $ffcertificate_status['percent'];
 				$ffcertificate_is_complete  = $ffcertificate_status['is_complete'];
-				$ffcertificate_pending      = number_format( $ffcertificate_status['pending'] );
-				$ffcertificate_total        = number_format( $ffcertificate_status['total'] );
-				$ffcertificate_migrated     = number_format( $ffcertificate_status['migrated'] );
+				// One decimal rounds 99.96 up to 100.0; a card with records
+				// pending never reads 100% (#2338).
+				if ( (int) $ffcertificate_status['pending'] > 0 && $ffcertificate_percent >= 99.95 ) {
+					$ffcertificate_percent = 99.9;
+				}
+				$ffcertificate_pending  = number_format( $ffcertificate_status['pending'] );
+				$ffcertificate_total    = number_format( $ffcertificate_status['total'] );
+				$ffcertificate_migrated = number_format( $ffcertificate_status['migrated'] );
 			}
 
 			// OUTSTANDING WORK THIS BUTTON CANNOT DO (#1368).
@@ -324,6 +331,73 @@ try {
 				</div>
 			<?php endif; ?>
 
+			<?php
+			// RECORDS THE WALK COULD NOT DO (#2338). A rotation passes a row it
+			// cannot re-encrypt and keeps it in a register, so the card stays
+			// incomplete and says which rows they are -- and, while any are
+			// listed, that the WordPress salts must not change.
+			$ffcertificate_failures = ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['failures'] ) && is_array( $ffcertificate_status['failures'] ) )
+				? $ffcertificate_status['failures']
+				: array();
+			if ( array() !== $ffcertificate_failures ) :
+				$ffcertificate_failed = (int) ( $ffcertificate_status['failed'] ?? count( $ffcertificate_failures ) );
+				?>
+				<div class="ffc-migration-failures">
+					<p>
+						<strong>
+							<?php
+							printf(
+								/* translators: %s: how many records the migration could not process. */
+								esc_html( _n( '%s record could not be processed', '%s records could not be processed', $ffcertificate_failed, 'ffcertificate' ) ),
+								esc_html( number_format_i18n( $ffcertificate_failed ) )
+							);
+							?>
+						</strong>
+					</p>
+					<ul>
+						<?php foreach ( $ffcertificate_failures as $ffcertificate_failure ) : ?>
+							<li><?php echo esc_html( (string) $ffcertificate_failure ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<?php if ( $ffcertificate_failed > count( $ffcertificate_failures ) ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: how many failures are not listed. */
+								esc_html__( 'Only the first ones are listed; %s more are counted.', 'ffcertificate' ),
+								esc_html( number_format_i18n( $ffcertificate_failed - count( $ffcertificate_failures ) ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+					<?php
+					if ( ! empty( $ffcertificate_status['salt_warning'] ) ) {
+						\FreeFormCertificate\Core\AdminNotice::callout(
+							'warning',
+							esc_html__( 'Do not change the WordPress salts or the encryption constants in wp-config.php until these records are resolved. They are still encrypted under the previous key, and changing the salts would make them unreadable. Find out why they failed, fix it, then try them again.', 'ffcertificate' ),
+							array( 'title' => __( 'Do not rotate the salts yet.', 'ffcertificate' ) )
+						);
+					}
+					?>
+				</div>
+			<?php endif; ?>
+			<?php
+			// Built once, for the two branches that offer it: the re-check
+			// after completion (`rearmable`) and the retry of a walk that
+			// ended with records behind it (`retryable`, #2338).
+			$ffcertificate_rearm_url = wp_nonce_url(
+				add_query_arg(
+					array(
+						'post_type'           => 'ffc_form',
+						'page'                => 'ffc-settings',
+						'tab'                 => 'migrations',
+						'ffc_rearm_migration' => $ffcertificate_key,
+					),
+					admin_url( 'edit.php' )
+				),
+				'ffc_rearm_' . $ffcertificate_key
+			);
+			?>
 			<!-- Actions -->
 			<div class="ffc-migration-actions">
 				<?php if ( $ffcertificate_is_complete ) : ?>
@@ -381,19 +455,7 @@ try {
 					// that is when it pays most, since a resolution is what
 					// creates the work -- so the sentence says what the walk
 					// does and never implies it settles them.
-					if ( ! empty( $ffcertificate_status['rearmable'] ) ) :
-						$ffcertificate_rearm_url = wp_nonce_url(
-							add_query_arg(
-								array(
-									'post_type'           => 'ffc_form',
-									'page'                => 'ffc-settings',
-									'tab'                 => 'migrations',
-									'ffc_rearm_migration' => $ffcertificate_key,
-								),
-								admin_url( 'edit.php' )
-							),
-							'ffc_rearm_' . $ffcertificate_key
-						);
+					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['rearmable'] ) ) :
 						?>
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_button(
@@ -413,24 +475,40 @@ try {
 					?>
 				<?php else : ?>
 					<?php
-					// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label'    => __( 'Run Migration', 'ffcertificate' ),
-							'category' => 'caution',
-							'icon'     => 'sync',
-							'href'     => $ffcertificate_migrate_url,
-							'class'    => 'ffc-migration-run',
-							'attrs'    => array(
-								'data-confirm' => sprintf(
-									/* translators: %s: migration name */
-									__( 'Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.', 'ffcertificate' ),
-									$ffcertificate_migration['name']
+					// Without the Danger Zone capability the button renders
+					// disabled with the reason, not as a link that ends in
+					// wp_die (#2338).
+					if ( ! $ffcertificate_can_migrate ) :
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'disabled' => true,
+							)
+						);
+						?>
+						<p class="description ffc-icon-lock"><?php esc_html_e( 'Running a migration needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+					<?php else : ?>
+						<?php
+						// `ffc-migration-run` is the hook ffc-admin-migrations.js runs the batches from.
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Run Migration', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'href'     => $ffcertificate_migrate_url,
+								'class'    => 'ffc-migration-run',
+								'attrs'    => array(
+									'data-confirm' => sprintf(
+										/* translators: %s: migration name */
+										__( "Run %s migration?\n\nThis will automatically process ALL records in batches of 100 until complete.", 'ffcertificate' ),
+										$ffcertificate_migration['name']
+									),
 								),
-							),
-						)
-					);
-					?>
+							)
+						);
+						?>
 
 					<p class="description">
 						<?php
@@ -441,6 +519,28 @@ try {
 						);
 						?>
 					</p>
+					<?php endif; ?>
+					<?php
+					// A walk that ended with records behind it (a write that
+					// failed) does not revisit them on its own: Run would move
+					// nothing. Re-check sends it back to the start (#2338).
+					// `retryable`, never `rearmable`: a strategy sets it only
+					// once its walk has ended, so there is no progress for the
+					// re-check to discard.
+					if ( $ffcertificate_can_migrate && ! empty( $ffcertificate_status['retryable'] ) ) :
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Try the remaining records again', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'sync',
+								'href'     => $ffcertificate_rearm_url,
+							)
+						);
+						?>
+						<p class="description">
+							<?php esc_html_e( 'The last pass reached the end and left these records behind, usually because writing one of them failed. Fix the cause, then send the pass back to the start; records already done are not changed again.', 'ffcertificate' ); ?>
+						</p>
+					<?php endif; ?>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -461,8 +561,10 @@ try {
 	$ffcertificate_cleanup_report = get_transient( 'ffc_obsolete_cleanup_report_' . $ffcertificate_user_id );
 	$ffcertificate_preview_ok     = (bool) get_transient( 'ffc_obsolete_cleanup_preview_ok_' . $ffcertificate_user_id );
 
-	$ffcertificate_cleanup_msg = \FreeFormCertificate\Core\RequestInput::get_get_string( 'obsolete_cleanup_msg' );
-	$ffcertificate_cleanup_err = \FreeFormCertificate\Core\RequestInput::get_get_string( 'obsolete_cleanup_error' );
+	// The result text stays on the server; the URL names the area (#2338).
+	$ffcertificate_cleanup_notice = \FreeFormCertificate\Admin\SettingsNotice::take( 'obsolete_cleanup' );
+	$ffcertificate_cleanup_msg    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_cleanup_notice, 'success' );
+	$ffcertificate_cleanup_err    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_cleanup_notice, 'error' );
 
 	$ffcertificate_base_url = add_query_arg(
 		array(
@@ -725,8 +827,10 @@ try {
 
 	$ffcertificate_url_report     = get_transient( 'ffc_url_cleanup_report_' . $ffcertificate_user_id );
 	$ffcertificate_url_preview_ok = (bool) get_transient( 'ffc_url_cleanup_preview_ok_' . $ffcertificate_user_id );
-	$ffcertificate_url_msg        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'url_cleanup_msg' );
-	$ffcertificate_url_err        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'url_cleanup_error' );
+	// The result text stays on the server; the URL names the area (#2338).
+	$ffcertificate_url_notice = \FreeFormCertificate\Admin\SettingsNotice::take( 'url_cleanup' );
+	$ffcertificate_url_msg    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_url_notice, 'success' );
+	$ffcertificate_url_err    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_url_notice, 'error' );
 
 	$ffcertificate_url_preview_url = wp_nonce_url(
 		add_query_arg( 'ffc_url_cleanup', 'preview', $ffcertificate_base_url ),
@@ -955,8 +1059,10 @@ try {
 	$ffcertificate_pa_days       = max( 1, \FreeFormCertificate\Settings\SettingsReader::get_int( 'public_access_disable_days', 90 ) );
 	$ffcertificate_pa_report     = get_transient( 'ffc_pubaccess_report_' . $ffcertificate_user_id );
 	$ffcertificate_pa_preview_ok = (bool) get_transient( 'ffc_pubaccess_preview_ok_' . $ffcertificate_user_id );
-	$ffcertificate_pa_msg        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'pubaccess_msg' );
-	$ffcertificate_pa_err        = \FreeFormCertificate\Core\RequestInput::get_get_string( 'pubaccess_error' );
+	// The result text stays on the server; the URL names the area (#2338).
+	$ffcertificate_pa_notice = \FreeFormCertificate\Admin\SettingsNotice::take( 'pubaccess' );
+	$ffcertificate_pa_msg    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_pa_notice, 'success' );
+	$ffcertificate_pa_err    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_pa_notice, 'error' );
 
 	$ffcertificate_pa_preview_url = wp_nonce_url(
 		add_query_arg( 'ffc_pubaccess', 'preview', $ffcertificate_base_url ),
@@ -1128,8 +1234,10 @@ try {
 	// Submission ↔ user link audit (report-only) (v6.7.x)
 	// ──────────────────────────────────────────────────────────────.
 	$ffcertificate_sa_report = get_transient( 'ffc_submission_audit_report_' . $ffcertificate_user_id );
-	$ffcertificate_sa_msg    = \FreeFormCertificate\Core\RequestInput::get_get_string( 'submission_audit_msg' );
-	$ffcertificate_sa_err    = \FreeFormCertificate\Core\RequestInput::get_get_string( 'submission_audit_error' );
+	// The result text stays on the server; the URL names the area (#2338).
+	$ffcertificate_sa_notice = \FreeFormCertificate\Admin\SettingsNotice::take( 'submission_audit' );
+	$ffcertificate_sa_msg    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_sa_notice, 'success' );
+	$ffcertificate_sa_err    = \FreeFormCertificate\Admin\SettingsNotice::message_of( $ffcertificate_sa_notice, 'error' );
 
 	$ffcertificate_sa_scan_url = wp_nonce_url(
 		add_query_arg( 'ffc_submission_audit', 'scan', $ffcertificate_base_url ),
@@ -1452,16 +1560,16 @@ try {
 		<h2 class="ffc-icon-help"><?php esc_html_e( 'Need Help?', 'ffcertificate' ); ?></h2>
 		
 		<p><strong><?php esc_html_e( 'What are migrations?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Migrations improve database performance by moving frequently queried data from JSON format to dedicated database columns. This makes searches and filtering much faster.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'One-off jobs that bring data stored by an earlier version up to date: dedicated columns for faster searches, encryption of personal data, re-encryption under a new key, and the removal of copies that are no longer needed.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'Is it safe?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Yes! Migrations only copy data to new columns - your original data remains intact. They are safe to run multiple times.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'They are safe to run more than once: each one only works on the records it has not finished. Most copy data into new columns and leave the original in place, but some rewrite or delete what they replace — the plaintext copies of encrypted data, retired log columns, old identifiers. Each card says what it changes; read it before running, and take a backup first.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'How many times should I run it?', 'ffcertificate' ); ?></strong></p>
 		<p><?php esc_html_e( 'Just click "Run Migration" once! The process will automatically continue processing batches of 100 records until complete. You can watch the progress bar update in real-time.', 'ffcertificate' ); ?></p>
 		
 		<p><strong><?php esc_html_e( 'Can I undo a migration?', 'ffcertificate' ); ?></strong></p>
-		<p><?php esc_html_e( 'Migrations cannot be undone, but they don\'t delete any data. If you experience issues, your original data remains in the JSON column and can be accessed.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'No. A migration that deletes what it replaces cannot be reversed from here, so keep a backup from before the run.', 'ffcertificate' ); ?></p>
 	</div>
 
 </div>

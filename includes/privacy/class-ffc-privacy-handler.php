@@ -53,10 +53,15 @@ class PrivacyHandler {
 		}
 
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
+		$cleanup_days   = \FreeFormCertificate\Settings\SettingsReader::get_bool( 'cleanup_enabled', false )
+			? max( 0, \FreeFormCertificate\Settings\SettingsReader::get_int( 'cleanup_days', 365 ) )
+			: 0;
+		$device         = \FreeFormCertificate\Security\RateLimitChecker::get_settings()['device'] ?? array();
+		$device_days    = max( 1, (int) ( $device['retention_days'] ?? 90 ) );
 
 		wp_add_privacy_policy_content(
 			'Free Form Certificate',
-			wp_kses_post( self::build_privacy_policy_content( $retention_days ) )
+			wp_kses_post( self::build_privacy_policy_content( $retention_days, $cleanup_days, $device_days ) )
 		);
 	}
 
@@ -67,9 +72,11 @@ class PrivacyHandler {
 	 * matching WordPress core's own default-content convention.
 	 *
 	 * @param int $retention_days Configured activity-log retention window.
+	 * @param int $cleanup_days   Days after which submissions are deleted, or 0 when the cleanup is off.
+	 * @param int $device_days    Configured device-signal retention window.
 	 * @return string Privacy-policy HTML (sanitised by the caller).
 	 */
-	private static function build_privacy_policy_content( int $retention_days ): string {
+	private static function build_privacy_policy_content( int $retention_days, int $cleanup_days = 0, int $device_days = 90 ): string {
 		$hint = '<strong class="privacy-policy-tutorial">' . __( 'Suggested text:', 'ffcertificate' ) . ' </strong>';
 
 		// Whole-paragraph guidance — never copied (entire node is tutorial).
@@ -83,6 +90,24 @@ class PrivacyHandler {
 
 		$content .= '<p>' . $hint . esc_html__( 'For security and accountability we also record your IP address and basic browser information, together with the actions you perform, in an activity log.', 'ffcertificate' ) . '</p>';
 
+		$content .= '<p>' . $hint . esc_html__( 'If a form records quiz answers, your answers and score are kept with your submission. If a site sends date messages, such as a birthday greeting, the date is read from your profile and each message sent is recorded.', 'ffcertificate' ) . '</p>';
+
+		$content .= '<h2>' . esc_html__( 'Location, device and abuse prevention', 'ffcertificate' ) . '</h2>';
+
+		$content .= '<p>' . $hint . esc_html__( 'Some forms and check-ins are available only at certain places. Your browser may then ask for your device\'s location. The position is compared with the allowed areas and is not stored; a form remembers only that the check passed.', 'ffcertificate' ) . '</p>';
+
+		$content .= '<p>' . $hint . esc_html__( 'When a form is restricted by the location of your internet connection, your IP address is sent over an encrypted connection to an IP geolocation service (ipinfo.io, or ip-api.com on its paid plan) to find its approximate region.', 'ffcertificate' ) . '</p>';
+
+		$content .= '<p>' . $hint . sprintf(
+			/* translators: %d: number of days device signals are retained. */
+			esc_html__( 'To limit repeated or automated submissions, we record a device identifier kept in your browser and technical signals about your device and browser with each submission, and keep them for %d days. Attempts that exceed the limits are logged with your IP address (encrypted) and a keyed hash of the e-mail or document used; the log keeps only the most recent entries.', 'ffcertificate' ),
+			$device_days
+		) . '</p>';
+
+		$content .= '<p>' . $hint . esc_html__( 'The site stores a few items in your browser: a short-lived cookie while you set a password from an invitation, a cookie that carries an approved schedule exception for one form, a device identifier, and the list of forms you have already submitted from this browser, which is used only to show a notice.', 'ffcertificate' ) . '</p>';
+
+		$content .= '<p>' . $hint . esc_html__( 'When the address lookup is on, the postal code (CEP) you type is sent from our server to ViaCEP or BrasilAPI to find its address; nothing else is sent with it. Short links count how many times they were opened and record nothing about who opened them.', 'ffcertificate' ) . '</p>';
+
 		$content .= '<h2>' . esc_html__( 'How your data is stored', 'ffcertificate' ) . '</h2>';
 
 		$content .= '<p>' . $hint . esc_html__( 'Sensitive identifiers such as e-mail addresses and CPF/RF numbers are stored encrypted at rest. Where consent is required, the date and time you gave it are recorded. One-way hashes of some identifiers are kept so records can be located without exposing the original values.', 'ffcertificate' ) . '</p>';
@@ -95,13 +120,21 @@ class PrivacyHandler {
 			$retention_days
 		) . '</p>';
 
+		if ( $cleanup_days > 0 ) {
+			$content .= '<p>' . $hint . sprintf(
+				/* translators: %d: number of days after which certificate submissions are deleted. */
+				esc_html__( 'Certificate submissions are deleted automatically %d days after they were made.', 'ffcertificate' ),
+				$cleanup_days
+			) . '</p>';
+		}
+
 		$content .= '<h2>' . esc_html__( 'Who has access to your data', 'ffcertificate' ) . '</h2>';
 
 		$content .= '<p>' . $hint . esc_html__( 'Your data is accessible to the site administrators and to the authorised operators who manage the relevant forms. We do not sell your personal data.', 'ffcertificate' ) . '</p>';
 
 		$content .= '<h2>' . esc_html__( 'Your rights over your data', 'ffcertificate' ) . '</h2>';
 
-		$content .= '<p>' . $hint . esc_html__( 'You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress "Export Personal Data" and "Erase Personal Data" tools, which cover the data this plugin stores. Certificate authentication codes and verification tokens may be retained in anonymised form so that certificates already issued remain verifiable after erasure.', 'ffcertificate' ) . '</p>';
+		$content .= '<p>' . $hint . esc_html__( 'You can request a copy of your personal data or ask for it to be erased. The administrator can fulfil these requests from the WordPress "Export Personal Data" and "Erase Personal Data" tools, which cover the data this plugin stores. When data is erased, a certificate\'s form answers are kept without the e-mail address, identification numbers or IP address, so that a certificate already issued remains verifiable.', 'ffcertificate' ) . '</p>';
 
 		return $content;
 	}

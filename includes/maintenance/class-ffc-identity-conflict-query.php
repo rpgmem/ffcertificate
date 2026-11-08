@@ -620,7 +620,7 @@ class IdentityConflictQuery {
 		$out      = array();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema probe, as above.
-		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $profiles ) ) !== $profiles ) {
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', addcslashes( $profiles, '_%\\' ) ) ) !== $profiles ) {
 			return $out;
 		}
 

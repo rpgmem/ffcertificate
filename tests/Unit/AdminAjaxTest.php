@@ -35,6 +35,7 @@ use FreeFormCertificate\Tests\Support\Identifiers;
  * process: that WordPress class is not in the bootstrap, so each overloads it.
  *
  * @covers \FreeFormCertificate\Admin\AdminAjax
+ * @covers \FreeFormCertificate\Core\WindowThrottle
  */
 class AdminAjaxTest extends TestCase {
 
@@ -98,6 +99,9 @@ class AdminAjaxTest extends TestCase {
 	/** @var bool Whether `$wpdb` was set before this test. */
 	private bool $had_wpdb = false;
 
+	/** @var array<string, mixed> Transients, the reveal budget among them. */
+	private array $transients = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -116,6 +120,7 @@ class AdminAjaxTest extends TestCase {
 		$this->audience_members  = array();
 		$this->identifier_owners = array();
 		$this->queries           = array();
+		$this->transients        = array();
 
 		// The real ActivityLog, logging into its buffer (never flushed).
 		ActivityLogBuffer::reset();
@@ -124,6 +129,13 @@ class AdminAjaxTest extends TestCase {
 			static fn( $key, $default = false ) => 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'get_transient' )->alias( fn( $key ) => $this->transients[ $key ] ?? false );
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->transients[ $key ] = $value;
+				return true;
+			}
+		);
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
@@ -340,7 +352,17 @@ class AdminAjaxTest extends TestCase {
 	 * @param int                  $user_id   Expected actor.
 	 * @param int                  $object_id Expected record id.
 	 */
-	private function assertAuditedOnce( string $action, array $context, int $user_id, int $object_id ): void {
+	private function assertAuditedOnce( string $action, array $context, int $user_id, int $object_id, string $type = 'submission' ): void {
+		// The record is named by type and id in the context (#2340); the
+		// `submission_id` column carries it only when it is a submission.
+		if ( 'page' === ( $context['field_key'] ?? '' ) ) {
+			$context = array_merge( array( 'field_key' => 'page', 'record_type' => $type ), $context );
+		} else {
+			$context += array(
+				'record_type' => $type,
+				'record_id'   => $object_id,
+			);
+		}
 		$entries = ActivityLogBuffer::entries();
 		$this->assertCount( 1, $entries, 'Exactly one audit row.' );
 		$this->assertSame(
@@ -352,7 +374,7 @@ class AdminAjaxTest extends TestCase {
 			ActivityLogBuffer::contexts()[0]
 		);
 		$this->assertSame( $user_id, $entries[0]['user_id'] );
-		$this->assertSame( $object_id, $entries[0]['submission_id'] );
+		$this->assertSame( 'submission' === $type && 'page' !== $context['field_key'] ? $object_id : 0, $entries[0]['submission_id'] );
 	}
 
 	/**
@@ -689,7 +711,7 @@ class AdminAjaxTest extends TestCase {
 			),
 			$this->reveal()
 		);
-		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 7 );
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'cpf' ), self::VIEWER, 7, 'appointment' );
 	}
 
 	public function test_reveal_pii_appointment_unmasked_tier_returns_value_and_audits(): void {
@@ -713,7 +735,7 @@ class AdminAjaxTest extends TestCase {
 			),
 			$this->reveal()
 		);
-		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'email' ), 3, 7 );
+		$this->assertAuditedOnce( 'appointment_pii_revealed', array( 'field_key' => 'email' ), 3, 7, 'appointment' );
 	}
 
 	public function test_reveal_pii_appointment_masked_tier_denied(): void {
@@ -758,7 +780,7 @@ class AdminAjaxTest extends TestCase {
 			$this->reveal()
 		);
 		$this->assertSame( array( 'ffc_view_reregistration_pii' ), array_values( array_diff( $this->policy_checks, array( 'manage_options' ) ) ) );
-		$this->assertAuditedOnce( 'reregistration_pii_revealed', array( 'field_key' => 'email' ), self::VIEWER, 11 );
+		$this->assertAuditedOnce( 'reregistration_pii_revealed', array( 'field_key' => 'email' ), self::VIEWER, 11, 'reregistration' );
 		$this->assertOwnerTierFor( 3 );
 	}
 
@@ -909,7 +931,7 @@ class AdminAjaxTest extends TestCase {
 		);
 		$this->assertSame( 1, count( array_keys( $this->cap_checks, 'ffc_view_audiences', true ) ), 'The surface cap is checked once.' );
 		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'audience_account_email_revealed', array( 'field_key' => 'email' ), self::VIEWER, 7 );
+		$this->assertAuditedOnce( 'audience_account_email_revealed', array( 'field_key' => 'email' ), self::VIEWER, 7, 'audience_account' );
 		$this->assertOwnerTierFor( 7 );
 	}
 
@@ -952,14 +974,15 @@ class AdminAjaxTest extends TestCase {
 	 */
 	public function address_reveal_types(): array {
 		return array(
-			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', 'activity_log_ip_revealed', 'wp_ffc_activity_log', 'user_ip_encrypted' ),
+			'activity log entry'   => array( 'activity_log', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', '', 'wp_ffc_activity_log', 'user_ip_encrypted' ),
 			'rate limit log entry' => array( 'rate_limit_log', 'ffc_view_settings', 'ffc_view_settings_pii', 'rate_limit_ip_revealed', 'wp_ffc_rate_limit_logs', 'ip_address_encrypted' ),
 		);
 	}
 
 	/**
 	 * A client address with no owner reveals through its screen's own cap,
-	 * audited under its own action (#2109).
+	 * audited under its own action (#2109), except on the activity log
+	 * itself, where a reveal writes no row (#2340).
 	 *
 	 * @dataProvider address_reveal_types
 	 */
@@ -978,7 +1001,12 @@ class AdminAjaxTest extends TestCase {
 		$this->assertSame( 1, count( array_keys( $this->cap_checks, $surface, true ) ), 'The surface cap is checked once.' );
 		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
 		$this->assertStringContainsString( "FROM {$table} WHERE id = 31", $this->queries[0] );
-		$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31 );
+		if ( '' === $action ) {
+			// Revealing on the activity log writes no row onto it (#2340).
+			$this->assertSame( array(), ActivityLogBuffer::entries(), 'An activity log reveal is not logged.' );
+		} else {
+			$this->assertAuditedOnce( $action, array( 'field_key' => 'ip' ), self::VIEWER, 31, $type );
+		}
 
 		// A log line has no owner, so the owner tier can never apply: even
 		// the account whose id equals the entry's goes through the capability.
@@ -993,6 +1021,29 @@ class AdminAjaxTest extends TestCase {
 			$this->assertStringContainsString( 'permission to reveal', $e->getMessage() );
 		}
 		$this->assertContains( $pii_cap, $this->policy_checks );
+	}
+
+	public function test_reveal_pii_an_activity_log_entrys_details_in_clear(): void {
+		$this->post_reveal( 'activity_log', 31, 'context' );
+		$this->store(
+			'wp_ffc_activity_log',
+			31,
+			array(
+				'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ),
+				'context'           => '{"requester":"ana@example.org"}',
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_activity_log_pii';
+
+		$this->assertSame(
+			array(
+				'field' => 'context',
+				'value' => json_encode( array( 'requester' => 'ana@example.org' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ),
+			),
+			$this->reveal()
+		);
+		$this->assertCount( 1, $this->queries, 'The entry is read once.' );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'An activity log reveal is not logged.' );
 	}
 
 	/**
@@ -1165,6 +1216,130 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
+	public function test_reveal_pii_page_on_the_activity_log_writes_no_row(): void {
+		$this->post_page( array( array( 'type' => 'activity_log', 'id' => 31, 'field' => 'ip' ) ) );
+		$this->store( 'wp_ffc_activity_log', 31, array( 'user_ip_encrypted' => Encryption::encrypt( '203.0.113.9' ) ) );
+		$this->viewer_caps[] = 'ffc_view_activity_log_pii';
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertSame(
+				array(
+					'values' => array(
+						array( 'type' => 'activity_log', 'id' => 31, 'field' => 'ip', 'value' => '203.0.113.9' ),
+					),
+				),
+				$e->getData()
+			);
+		}
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'Revealing a page of the log adds nothing to it.' );
+	}
+
+	/**
+	 * The reveal budget this test spent for an account, read off the stored
+	 * transient (#2340).
+	 */
+	private function spent_by( int $user_id ): int {
+		$key = 'ffc_pii_reveal_' . substr( hash( 'sha256', 'user:' . $user_id ), 0, 32 ) . '_' . (int) floor( time() / 900 );
+		return (int) ( $this->transients[ $key ] ?? 0 );
+	}
+
+	/**
+	 * Spend an account's budget down to `$left` values (#2340).
+	 */
+	private function leave_budget( int $user_id, int $left ): void {
+		$key                      = 'ffc_pii_reveal_' . substr( hash( 'sha256', 'user:' . $user_id ), 0, 32 ) . '_' . (int) floor( time() / 900 );
+		$this->transients[ $key ] = 2000 - $left;
+	}
+
+	public function test_a_reveal_spends_one_value_of_the_accounts_budget(): void {
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$this->reveal();
+
+		$this->assertSame( 1, $this->spent_by( self::VIEWER ) );
+	}
+
+	public function test_a_reveal_past_the_budget_is_refused_before_any_read(): void {
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		$this->leave_budget( self::VIEWER, 0 );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii();
+			$this->fail( 'Expected a 429' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'revealed many values in a short time', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries, 'Nothing is read once the budget is spent.' );
+		$this->assertSame( array(), ActivityLogBuffer::entries(), 'A refused reveal is not audited as a reveal.' );
+	}
+
+	public function test_the_budget_belongs_to_the_account_not_the_address(): void {
+		$this->leave_budget( self::VIEWER, 0 );
+		$this->current_user = self::VIEWER + 1;
+		$this->post_reveal( 'submission', 5, 'email' );
+		$this->store( 'wp_ffc_submissions', 5, array( 'email_encrypted' => Encryption::encrypt( 'p5@x.com' ) ) );
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		Functions\when( 'user_can' )->alias(
+			fn( $user_id, $cap ) => (int) $user_id === $this->current_user && in_array( $cap, $this->viewer_caps, true )
+		);
+
+		$this->assertSame( 'p5@x.com', $this->reveal()['value'] );
+		$this->assertSame( 1, $this->spent_by( self::VIEWER + 1 ) );
+	}
+
+	public function test_a_page_counts_every_value_it_names(): void {
+		$this->post_page(
+			array(
+				array( 'type' => 'submission', 'id' => 5, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 6, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 7, 'field' => 'email' ),
+			)
+		);
+		foreach ( array( 5, 6, 7 ) as $id ) {
+			$this->store( 'wp_ffc_submissions', $id, array( 'email_encrypted' => Encryption::encrypt( 'p' . $id . '@x.com' ) ) );
+		}
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected AdminAjaxSuccessException' );
+		} catch ( AdminAjaxSuccessException $e ) {
+			$this->assertCount( 3, $e->getData()['values'] );
+		}
+		$this->assertSame( 3, $this->spent_by( self::VIEWER ) );
+	}
+
+	public function test_a_page_that_would_cross_the_budget_is_refused_whole_and_spends_nothing(): void {
+		$this->post_page(
+			array(
+				array( 'type' => 'submission', 'id' => 5, 'field' => 'email' ),
+				array( 'type' => 'submission', 'id' => 6, 'field' => 'email' ),
+			)
+		);
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+		$this->leave_budget( self::VIEWER, 1 );
+
+		$ajax = new AdminAjax();
+		try {
+			$ajax->reveal_pii_page();
+			$this->fail( 'Expected a 429' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'revealed many values in a short time', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries );
+		$this->assertSame( 1999, $this->spent_by( self::VIEWER ), 'The refused page spent nothing; one value is still left.' );
+	}
+
 	public function test_reveal_pii_page_refuses_an_empty_request(): void {
 		$_POST['nonce'] = 'n';
 		$_POST['items'] = 'not json';
@@ -1228,7 +1403,7 @@ class AdminAjaxTest extends TestCase {
 			$this->reveal()
 		);
 		$this->assertContains( 'ffc_view_audiences_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'user_profile_pii_revealed', array( 'field_key' => 'cf_3' ), self::VIEWER, 12 );
+		$this->assertAuditedOnce( 'user_profile_pii_revealed', array( 'field_key' => 'cf_3' ), self::VIEWER, 12, 'user_profile' );
 		$this->editable_users[] = 12;
 		$this->assertOwnerTierFor( 12 );
 	}
@@ -1261,7 +1436,7 @@ class AdminAjaxTest extends TestCase {
 
 		$this->assertSame( 'Maria da Silva', $this->reveal()['value'] );
 		$this->assertContains( 'ffc_view_date_messages_pii', $this->policy_checks );
-		$this->assertAuditedOnce( 'date_messages_pii_revealed', array( 'field_key' => 'name' ), self::VIEWER, 15 );
+		$this->assertAuditedOnce( 'date_messages_pii_revealed', array( 'field_key' => 'name' ), self::VIEWER, 15, 'date_messages_person' );
 		$this->assertOwnerTierFor( 15 );
 	}
 

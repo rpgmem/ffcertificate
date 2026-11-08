@@ -73,7 +73,13 @@ final class ScreenshotViewerTest extends TestCase {
 		// process may have defined, so it is read rather than assumed.
 		$this->assertSame( FFC_PLUGIN_URL . 'assets/js/ffc-screenshots' . AssetHelper::asset_suffix() . '.js', $this->enqueued['js:ffc-screenshots'] );
 		$this->assertSame( '%1$s of %2$s', $this->localized['ffcScreenshots']['counter'] );
-		$this->assertSame( array( 'dialog', 'close', 'previous', 'next', 'zoomIn', 'zoomOut', 'counter' ), array_keys( $this->localized['ffcScreenshots'] ) );
+		$this->assertSame( array( 'dialog', 'close', 'previous', 'next', 'zoomIn', 'zoomOut', 'counter', 'icons' ), array_keys( $this->localized['ffcScreenshots'] ) );
+		// Every button draws a registry icon, never a literal glyph (#2342).
+		$icons = $this->localized['ffcScreenshots']['icons'];
+		$this->assertSame( array( 'zoomOut', 'zoomIn', 'close', 'previous', 'next' ), array_keys( $icons ) );
+		foreach ( $icons as $key => $svg ) {
+			$this->assertStringStartsWith( '<svg class="ffc-svg-icon"', $svg, "{$key} has no registry icon." );
+		}
 	}
 
 	public function test_another_plugins_modal_does_not_get_it(): void {

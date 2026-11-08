@@ -201,6 +201,13 @@
                 api.setRangeOptions(api.isRange());
             });
 
+            // Another space may belong to a calendar with another booking shape (#2404).
+            $('#booking-environment-id').on('change', function() {
+                if (typeof api.applyBookingShape === 'function') {
+                    api.applyBookingShape();
+                }
+            });
+
             // Editing a booking moves it to the date its field names (#2243).
             $('#booking-move-date').on('change', function() {
                 api.moveToDate();

@@ -22,6 +22,7 @@ class CloudflareCacheProbeTest extends TestCase {
 		parent::setUp();
 		Monkey\setUp();
 		class_exists( '\FreeFormCertificate\Integrations\CloudflareCacheProbe' );
+		Functions\when( 'get_transient' )->justReturn( false );
 	}
 
 	protected function tearDown(): void {
@@ -84,25 +85,85 @@ class CloudflareCacheProbeTest extends TestCase {
 		$this->assertSame( '', $out['raw'] );
 	}
 
-	public function test_probe_reports_error_on_wp_error(): void {
+	/** Make the loopback fail. */
+	private function stub_failing_request(): void {
 		Functions\when( 'home_url' )->justReturn( 'https://example.test/' );
 		$err = Mockery::mock( 'WP_Error' );
 		$err->shouldReceive( 'get_error_message' )->andReturn( 'timeout' );
 		Functions\when( 'wp_remote_get' )->justReturn( $err );
 		Functions\when( 'is_wp_error' )->justReturn( true );
-		Functions\when( 'set_transient' )->justReturn( true );
+	}
 
-		$out = CloudflareCacheProbe::get( true );
+	public function test_probe_reports_error_on_wp_error(): void {
+		$this->stub_failing_request();
+		$stored = null;
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+
+		$before = time();
+		$out    = CloudflareCacheProbe::get( true );
+		$after  = time();
+
 		$this->assertSame( CloudflareCacheProbe::STATUS_ERROR, $out['status'] );
 		$this->assertSame( 'timeout', $out['detail'] );
+		// The first failure is retried after ten minutes, like the release check (#2342).
+		$this->assertSame( 1, $stored['failures'] );
+		$this->assertGreaterThanOrEqual( $before + 600, $stored['retry_at'] );
+		$this->assertLessThanOrEqual( $after + 600, $stored['retry_at'] );
+	}
+
+	public function test_a_failed_probe_waits_for_its_retry_time(): void {
+		Functions\when( 'get_transient' )->justReturn(
+			array(
+				'status'           => CloudflareCacheProbe::STATUS_ERROR,
+				'raw'              => '',
+				'checked'          => 1,
+				'detail'           => 'timeout',
+				'failures'         => 1,
+				'first_failure_at' => time() - 60,
+				'retry_at'         => time() + 540,
+			)
+		);
+		Functions\expect( 'wp_remote_get' )->never();
+
+		$this->assertSame( CloudflareCacheProbe::STATUS_ERROR, CloudflareCacheProbe::get()['status'] );
+	}
+
+	public function test_a_failed_probe_past_its_retry_time_counts_the_next_failure(): void {
+		$first = time() - 3000;
+		Functions\when( 'get_transient' )->justReturn(
+			array(
+				'status'           => CloudflareCacheProbe::STATUS_ERROR,
+				'failures'         => 2,
+				'first_failure_at' => $first,
+				'retry_at'         => time() - 1,
+			)
+		);
+		$this->stub_failing_request();
+		$stored = null;
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$stored ) {
+				$stored = $value;
+				return true;
+			}
+		);
+
+		CloudflareCacheProbe::get();
+
+		$this->assertSame( 3, $stored['failures'] );
+		$this->assertSame( $first, $stored['first_failure_at'] );
 	}
 
 	public function test_probe_caches_result_via_set_transient(): void {
 		$this->stub_request_with_cache_status( 'HIT' );
 		$captured = null;
 		Functions\when( 'set_transient' )->alias(
-			static function ( $key, $value ) use ( &$captured ) {
-				$captured = array( $key, $value );
+			static function ( $key, $value, $expiration ) use ( &$captured ) {
+				$captured = array( $key, $value, $expiration );
 				return true;
 			}
 		);
@@ -110,5 +171,7 @@ class CloudflareCacheProbeTest extends TestCase {
 		$this->assertIsArray( $captured );
 		$this->assertSame( CloudflareCacheProbe::TRANSIENT_KEY, $captured[0] );
 		$this->assertSame( CloudflareCacheProbe::STATUS_CACHING, $captured[1]['status'] );
+		$this->assertSame( 12 * HOUR_IN_SECONDS, $captured[2] );
+		$this->assertArrayNotHasKey( 'retry_at', $captured[1] );
 	}
 }

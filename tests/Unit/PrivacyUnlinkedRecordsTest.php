@@ -133,7 +133,24 @@ class PrivacyUnlinkedRecordsTest extends TestCase {
 		$cpf = Encryption::encrypt( Identifiers::CPF_A );
 		$this->assertNotNull( $cpf );
 
-		$this->wpdb->shouldReceive( 'get_results' )->once()->andReturn(
+		Functions\when( 'get_option' )->alias( static fn( $name, $fallback = false ) => $fallback );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
+
+		// The custom-field labels name each answer (#2343); a key whose field
+		// is gone reads as words.
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( Mockery::pattern( '/field_label/' ), ARRAY_A )->andReturn(
+			array(
+				array(
+					'field_key'   => 'cpf',
+					'field_label' => 'CPF',
+				),
+				array(
+					'field_key'   => 'nome_completo',
+					'field_label' => 'Full name',
+				),
+			)
+		);
+		$this->wpdb->shouldReceive( 'get_results' )->once()->with( Mockery::pattern( '/reregistration_id/' ), ARRAY_A )->andReturn(
 			array(
 				array(
 					'id'           => '4',
@@ -158,10 +175,12 @@ class PrivacyUnlinkedRecordsTest extends TestCase {
 
 		$this->assertTrue( $result['done'] );
 		$this->assertSame( 'Census 2026', $values['Campaign'] );
-		$this->assertSame( Identifiers::CPF_A, $values['cpf'], 'An encrypted answer is exported readable.' );
-		$this->assertSame( 'Maria da Silva', $values['nome_completo'] );
-		$this->assertSame( 'pt, en', $values['idiomas'] );
-		$this->assertSame( 9, $this->prepared[ count( $this->prepared ) - 1 ][3], 'Rows are filtered by the account.' );
+		$this->assertSame( 'Approved', $values['Status'], 'The status reads as its label.' );
+		$this->assertSame( Identifiers::CPF_A, $values['CPF'], 'An encrypted answer is exported readable.' );
+		$this->assertSame( 'Maria da Silva', $values['Full name'] );
+		$this->assertSame( 'pt, en', $values['Idiomas'] );
+		$rows_query = array_values( array_filter( $this->prepared, static fn( $args ) => false !== strpos( (string) $args[0], 'reregistration_id' ) ) );
+		$this->assertSame( 9, $rows_query[0][3], 'Rows are filtered by the account.' );
 	}
 
 	// ------------------------------------------------------------------

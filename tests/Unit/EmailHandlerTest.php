@@ -103,7 +103,7 @@ class EmailHandlerTest extends TestCase {
 			'smtp_host'       => 'smtp.example.com',
 			'smtp_port'       => '465',
 			'smtp_user'       => 'user@example.com',
-			'smtp_pass'       => 'secret',
+			'smtp_pass'       => \FreeFormCertificate\Integrations\SmtpPassword::for_storage( 'secret' ),
 			'smtp_secure'     => 'ssl',
 			'smtp_from_email' => 'noreply@example.com',
 			'smtp_from_name'  => 'My App',
@@ -138,15 +138,15 @@ class EmailHandlerTest extends TestCase {
 	public function test_configure_custom_smtp_leaves_phpmailer_alone_while_total_mail_queue_is_active(): void {
 		// Total Mail Queue manages delivery (#1758): WP default is used, and the
 		// stored custom SMTP applies again once it is deactivated.
-		Functions\when( 'get_option' )->alias(
-			static function ( $key ) {
-				if ( 'active_plugins' === $key ) {
-					return array( 'total-mail-queue/total-mail-queue.php' );
-				}
-				return array(
-					'smtp_mode' => 'custom',
-					'smtp_host' => 'smtp.example.com',
-				);
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'smtp_mode' => 'custom',
+				'smtp_host' => 'smtp.example.com',
+			)
+		);
+		Functions\when( 'apply_filters' )->alias(
+			static function ( $tag, $value ) {
+				return 'ffcertificate_mail_queue_active' === $tag ? true : $value;
 			}
 		);
 
@@ -340,9 +340,12 @@ class EmailHandlerTest extends TestCase {
 			10,
 			'Test Certificate',
 			array(
-				'name'  => 'John',
-				'cpf'   => '51817842080',
-				'email' => 'john@example.com',
+				'name'                => 'John',
+				'cpf'                 => '51817842080',
+				'email'               => 'john@example.com',
+				// Keys the plugin's one key-to-kind map knows (#2342).
+				'data_nascimento'     => '1990-04-15',
+				'email_institucional' => 'john@edu.example.com',
 			),
 			'john@example.com',
 			array(),
@@ -357,6 +360,8 @@ class EmailHandlerTest extends TestCase {
 		$this->assertStringNotContainsString( '51817842080', $body );
 		$this->assertStringContainsString( 'j***@example.com', $body );
 		$this->assertStringNotContainsString( 'john@example.com', $body );
+		$this->assertStringNotContainsString( '1990-04-15', $body );
+		$this->assertStringNotContainsString( 'john@edu.example.com', $body );
 		$this->assertStringContainsString( 'page=ffc-submissions', $body );
 	}
 

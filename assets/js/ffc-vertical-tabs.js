@@ -80,6 +80,14 @@
 			return;
 		}
 
+		// One set of handlers per container (#2344): `FFC.VerticalTabs.init()`
+		// runs on DOM ready and again when a screen calls it, and a second
+		// binding would answer every click, key and hash change twice.
+		if ( $container.data( 'ffcVtabsBound' ) ) {
+			return;
+		}
+		$container.data( 'ffcVtabsBound', true );
+
 		$container.addClass( 'is-ready' );
 
 		/**
@@ -199,6 +207,7 @@
 				return false;
 			}
 			var flagged = false;
+			var errorText = String( ( window.ffcFormTabsErrorText && window.ffcFormTabsErrorText.text ) || 'has an error' );
 			keys.forEach( function ( key ) {
 				var $tab = $container.find( '[aria-controls="' + PANEL_PREFIX + key + '"]' );
 				if ( ! $tab.length ) {
@@ -208,6 +217,8 @@
 				$tab.addClass( 'has-error' );
 				if ( ! $tab.find( '.ffc-vtabs__error-dot' ).length ) {
 					$tab.append( '<span class="ffc-vtabs__error-dot" aria-hidden="true"></span>' );
+					// The dot is colour only; the words reach a screen reader (#2344).
+					$tab.append( $( '<span class="screen-reader-text ffc-vtabs__error-text"></span>' ).text( ', ' + errorText ) );
 				}
 			} );
 			if ( flagged ) {

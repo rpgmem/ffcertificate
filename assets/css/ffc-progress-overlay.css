@@ -3,9 +3,8 @@
  *
  * One stylesheet for the single `window.FFCProgressOverlay` component
  * (ffc-batched-export.js), loaded on both the public download and the admin
- * exports so the modal renders identically on both surfaces. The CSS variables
- * carry front-end theming with hard fallbacks, so wp-admin (where the variables
- * are undefined) still gets on-brand colours.
+ * exports so the modal renders identically on both surfaces. It reads the
+ * palette from ffc-common, which every surface that loads it declares.
  *
  * z-index sits above the wp-admin bar (99999) so the overlay covers the whole
  * screen in wp-admin as well as on the front end.
@@ -34,8 +33,21 @@
     text-align: center;
 }
 
+.ffc-csv-progress-card:focus {
+    outline: 2px solid var(--ffc-border-focus);
+    outline-offset: 2px;
+}
+
+/* The dialog's accessible name (#2344). */
+.ffc-csv-progress-title {
+    margin: 0 0 var(--ffc-spacing-sm);
+    font-size: var(--ffc-font-size-lg);
+    font-weight: 600;
+    color: var(--ffc-text);
+}
+
 .ffc-csv-progress-status {
-    margin-bottom: var(--ffc-spacing-xl);
+    margin: 0 0 var(--ffc-spacing-xl);
     font-weight: 600;
     font-size: var(--ffc-font-size-base);
 }
@@ -71,8 +83,50 @@
 }
 
 .ffc-csv-progress-error {
-    color: var(--ffc-danger);
-    margin-top: var(--ffc-spacing-lg);
+    color: var(--ffc-danger-text);
+    margin: var(--ffc-spacing-lg) 0 0;
     font-weight: 500;
     font-size: var(--ffc-font-size-base);
+}
+
+.ffc-csv-progress-close {
+    margin-top: var(--ffc-spacing-lg);
+}
+
+/* Read by a screen reader at each quarter, never shown (#2344). */
+.ffc-csv-progress-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ffc-csv-progress-bar-fill {
+        transition: none;
+    }
+}
+
+/* Forced colours drop backgrounds: the bar keeps an outline and a fill
+   in system colours, so the progress stays visible (#2344). */
+@media (forced-colors: active) {
+    .ffc-csv-progress-card {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-csv-progress-bar-container {
+        border: 1px solid CanvasText;
+    }
+
+    .ffc-csv-progress-bar-fill,
+    .ffc-csv-progress-bar-fill.ffc-csv-complete,
+    .ffc-csv-progress-bar-fill.ffc-csv-error {
+        forced-color-adjust: none;
+        background: Highlight;
+    }
 }

@@ -3,7 +3,8 @@
  *
  * Sends the form's UNSAVED values to `ffc_qr_design_preview`, which draws
  * them with the same renderer and normaliser the plugin uses, and shows the
- * SVG plus the scan checks (low contrast, inverted colours). The markup comes
+ * SVG plus every scan problem at once (low contrast, inverted colours, no
+ * quiet zone). The markup comes
  * from the server built out of allowlisted shapes and `#rrggbb` colours only.
  * Also keeps each colour picker and its hex box in step, on both screens
  * that print the shared design fields (#1570). Selector-guarded: a no-op on
@@ -56,23 +57,80 @@
 	}
 
 	/**
-	 * Render the scan checks as one status line.
+	 * Every scan problem the checks report, the most serious first.
+	 *
+	 * Shared with the generator, which adds its own (a dense code). A margin
+	 * of 0 leaves no quiet zone, which many readers need around the code.
+	 *
+	 * @param {Object} checks  { inverted, transparent, caption_contrast, caption_lighter, low_contrast, min_ratio }.
+	 * @param {string} margin  The margin field's value.
+	 * @param {Object} strings Translated texts of the screen.
+	 * @returns {Array<{state: string, text: string}>}
+	 */
+	function problems(checks, margin, strings) {
+		var list = [];
+		checks = checks || {};
+		strings = strings || {};
+		if (checks.inverted) {
+			list.push({ state: 'error', text: String(strings.inverted || '') });
+		}
+		if (checks.transparent) {
+			list.push({ state: 'warning', text: String(strings.transparent || '') });
+		}
+		if (checks.low_contrast) {
+			list.push({ state: 'warning', text: String(strings.lowContrast || '').replace('%s', String(checks.min_ratio)) });
+		}
+		if (checks.caption_contrast === false) {
+			list.push({ state: 'warning', text: String((checks.caption_lighter ? strings.captionLighter : strings.captionContrast) || '') });
+		}
+		if (String(margin) === '0') {
+			list.push({ state: 'warning', text: String(strings.quietZone || '') });
+		}
+		return list;
+	}
+
+	/**
+	 * Show the problems together: one line for one, a heading and a list for
+	 * several, "readable" for none. Texts land through `textContent`.
 	 *
 	 * @param {jQuery} $out    Status element.
-	 * @param {Object} checks  { inverted, low_contrast, min_ratio, caption_contrast }.
+	 * @param {Array}  list    From problems().
+	 * @param {Object} strings Translated texts (ok, several).
 	 */
-	function showChecks($out, checks) {
-		if (checks.inverted) {
-			window.FFC.status($out, 'error', i18n.inverted || '');
-		} else if (checks.transparent) {
-			window.FFC.status($out, 'warning', i18n.transparent || '');
-		} else if (checks.caption_contrast === false) {
-			window.FFC.status($out, 'warning', i18n.captionContrast || '');
-		} else if (checks.low_contrast) {
-			window.FFC.status($out, 'warning', String(i18n.lowContrast || '').replace('%s', String(checks.min_ratio)));
-		} else {
-			window.FFC.status($out, 'success', i18n.ok || '');
+	function showProblems($out, list, strings) {
+		strings = strings || {};
+		if (!list.length) {
+			window.FFC.status($out, 'success', strings.ok || '');
+			return;
 		}
+		if (list.length === 1) {
+			window.FFC.status($out, list[0].state, list[0].text);
+			return;
+		}
+		var worst = list.some(function (p) { return p.state === 'error'; }) ? 'error' : 'warning';
+		var el = window.FFC.status($out, worst, strings.several || '');
+		if (!el) {
+			return;
+		}
+		var ul = document.createElement('ul');
+		ul.className = 'ffc-qr-checks-list';
+		list.forEach(function (p) {
+			var li = document.createElement('li');
+			li.textContent = p.text;
+			ul.appendChild(li);
+		});
+		el.appendChild(ul);
+	}
+
+	/**
+	 * Render the scan checks of the settings preview.
+	 *
+	 * @param {jQuery} $out    Status element.
+	 * @param {Object} checks  Scan checks.
+	 * @param {string} margin  The margin field's value.
+	 */
+	function showChecks($out, checks, margin) {
+		showProblems($out, problems(checks, margin, i18n), i18n);
 	}
 
 	/**
@@ -92,7 +150,7 @@
 					return;
 				}
 				$img.html(String(data.svg || ''));
-				showChecks($out, data.checks || {});
+				showChecks($out, data.checks || {}, collect($root).margin);
 			})
 			.catch(function () {
 				if (mine !== sequence) {
@@ -175,7 +233,7 @@
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrDesign = { init: init, collect: collect, refresh: refresh, bindColorPairs: bindColorPairs, normalizeHex: normalizeHex };
+	window.FFC.QrDesign = { init: init, collect: collect, refresh: refresh, bindColorPairs: bindColorPairs, normalizeHex: normalizeHex, problems: problems, showProblems: showProblems };
 
 	$(init);
 })(jQuery);

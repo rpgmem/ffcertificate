@@ -122,6 +122,16 @@ class UrlShortenerQrRestController {
 			);
 		}
 
+		// A disabled or trashed link does not redirect, so a QR of it would
+		// send every scan nowhere (#2337).
+		if ( 'active' !== ( $record['status'] ?? 'active' ) ) {
+			return new \WP_Error(
+				'ffc_short_url_inactive',
+				__( 'This short URL is not active, so it has no QR code.', 'ffcertificate' ),
+				array( 'status' => 410 )
+			);
+		}
+
 		$format    = 'svg' === $request->get_param( 'format' ) ? 'svg' : 'png';
 		$size      = max( 100, min( 1000, (int) $request->get_param( 'size' ) ) );
 		$short_url = $this->service->get_short_url( $code );

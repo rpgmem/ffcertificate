@@ -72,6 +72,9 @@ class ActivityLogAjaxEndpoint {
 			'search'     => isset( $_POST['search'] ) ? wp_unslash( $_POST['search'] ) : '',
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitised in AdminActivityLogPage::build_query_args() (absint).
 			'paged'      => isset( $_POST['paged'] ) ? wp_unslash( $_POST['paged'] ) : 1,
+			'user'       => \FreeFormCertificate\Core\RequestInput::get_post_string( 'log_user' ),
+			'date_from'  => \FreeFormCertificate\Core\RequestInput::get_post_string( 'date_from' ),
+			'date_to'    => \FreeFormCertificate\Core\RequestInput::get_post_string( 'date_to' ),
 		);
 
 		$args         = AdminActivityLogPage::build_query_args( $params, $per_page );
@@ -88,6 +91,10 @@ class ActivityLogAjaxEndpoint {
 				'total_pages'     => (int) ceil( $total_logs / $per_page ),
 				'current_page'    => $current_page,
 				'is_empty'        => empty( $logs ),
+				// What the table says when empty: no matches, or nothing yet (#2340).
+				'has_filters'     => AdminActivityLogPage::has_filters( $args ),
+				'empty_html'      => empty( $logs ) ? AdminActivityLogPage::render_empty_html( AdminActivityLogPage::has_filters( $args ) ) : '',
+				'count_text'      => AdminActivityLogPage::count_text( (int) $total_logs ),
 			)
 		);
 	}

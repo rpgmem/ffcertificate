@@ -72,7 +72,7 @@ class UserCleanup {
 
 			// 2. Self-scheduling appointments: SET user_id = NULL.
 			$appointments_table = $wpdb->prefix . 'ffc_self_scheduling_appointments';
-			if ( self::table_exists( $appointments_table ) ) {
+			if ( self::has_table( $appointments_table ) ) {
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						'UPDATE %i SET user_id = NULL WHERE user_id = %d',
@@ -93,7 +93,7 @@ class UserCleanup {
 
 			// 4. Audience members: DELETE.
 			$members_table = $wpdb->prefix . 'ffc_audience_members';
-			if ( self::table_exists( $members_table ) ) {
+			if ( self::has_table( $members_table ) ) {
 				$rows = $wpdb->delete( $members_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['audience_members'] = $rows;
@@ -102,7 +102,7 @@ class UserCleanup {
 
 			// 5. Audience booking users: DELETE.
 			$booking_users_table = $wpdb->prefix . 'ffc_audience_booking_users';
-			if ( self::table_exists( $booking_users_table ) ) {
+			if ( self::has_table( $booking_users_table ) ) {
 				$rows = $wpdb->delete( $booking_users_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['booking_users'] = $rows;
@@ -111,7 +111,7 @@ class UserCleanup {
 
 			// 6. Audience schedule permissions: DELETE.
 			$permissions_table = $wpdb->prefix . 'ffc_audience_schedule_permissions';
-			if ( self::table_exists( $permissions_table ) ) {
+			if ( self::has_table( $permissions_table ) ) {
 				$rows = $wpdb->delete( $permissions_table, array( 'user_id' => $user_id ), array( '%d' ) );
 				if ( $rows > 0 ) {
 					$anonymized['schedule_permissions'] = $rows;
@@ -120,9 +120,11 @@ class UserCleanup {
 
 			// 7. User profiles: DELETE.
 			$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
-			if ( self::table_exists( $profiles_table ) ) {
-				$wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
-				$anonymized['profile'] = 1;
+			if ( self::has_table( $profiles_table ) ) {
+				$rows = $wpdb->delete( $profiles_table, array( 'user_id' => $user_id ), array( '%d' ) );
+				if ( $rows > 0 ) {
+					$anonymized['profile'] = $rows;
+				}
 			}
 		}
 
@@ -141,7 +143,7 @@ class UserCleanup {
 		// person. Outside the footprint short-circuit, because a participant
 		// may have left every audience since the invitation was sent.
 		$invites_table = $wpdb->prefix . 'ffc_audience_form_invites';
-		if ( self::table_exists( $invites_table ) ) {
+		if ( self::has_table( $invites_table ) ) {
 			$rows = $wpdb->delete( $invites_table, array( 'user_id' => $user_id ), array( '%d' ) );
 			if ( $rows > 0 ) {
 				$anonymized['form_invites'] = $rows;
@@ -180,7 +182,9 @@ class UserCleanup {
 	 * Runs on every deletion (an actor/candidate need not have data-subject
 	 * footprint). The `*_by` columns are unindexed, so a bulk user deletion pays
 	 * a scan per column on large tables — acceptable on this cold admin path;
-	 * index the columns if it ever bites.
+	 * index the columns if it ever bites. The schema checks are memoised per
+	 * request (has_table(), has_column()), so deleting many accounts at once
+	 * asks the server about each table and column once, not once per account.
 	 *
 	 * @param int                  $user_id    Deleted user id.
 	 * @param array<string, mixed> $anonymized Accumulator (by reference).
@@ -215,13 +219,13 @@ class UserCleanup {
 
 		foreach ( $map as $basename => $columns ) {
 			$table = $wpdb->prefix . $basename;
-			if ( ! self::table_exists( $table ) ) {
+			if ( ! self::has_table( $table ) ) {
 				continue;
 			}
 
 			$affected = 0;
 			foreach ( $columns as $column ) {
-				if ( ! self::column_exists( $table, $column ) ) {
+				if ( ! self::has_column( $table, $column ) ) {
 					continue;
 				}
 				$rows = $wpdb->query(
@@ -247,10 +251,12 @@ class UserCleanup {
 	/**
 	 * Handle email change in WordPress
 	 *
-	 * When a user's email changes, reindex email_hash on their submissions
-	 * so that searches by the new email find their records.
-	 *
-	 * Does NOT alter email_encrypted (historical record of email at submission time).
+	 * Records the change and touches the profile timestamp. It does NOT
+	 * rewrite `email_hash` on the user's submissions any more (#2343): rows
+	 * linked to an account are found by `user_id`, and a hash rewritten to the
+	 * new address let a recycled address match another person's unlinked
+	 * rows in a privacy export. The hash stays the one of the address the
+	 * submission was made with, as `email_encrypted` always did.
 	 *
 	 * @param int      $user_id Updated user ID.
 	 * @param \WP_User $old_user_data User data before the update.
@@ -270,22 +276,6 @@ class UserCleanup {
 		}
 
 		global $wpdb;
-		$submissions_table = $wpdb->prefix . 'ffc_submissions';
-
-		// Reindex email_hash for submissions linked to this user_id.
-		// Must mirror SubmissionHandler exactly: Encryption::hash without normalization.
-		$new_email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $new_email );
-
-		if ( null !== $new_email_hash ) {
-			$wpdb->query(
-				$wpdb->prepare(
-					'UPDATE %i SET email_hash = %s WHERE user_id = %d',
-					$submissions_table,
-					$new_email_hash,
-					$user_id
-				)
-			);
-		}
 
 		// Update profile timestamp.
 		$profiles_table = $wpdb->prefix . 'ffc_user_profiles';
@@ -316,5 +306,61 @@ class UserCleanup {
 		}
 	}
 
-	// table_exists() provided by DatabaseHelperTrait.
+	/**
+	 * Schema answers already read in this request, per `$wpdb` instance.
+	 *
+	 * Keyed by the connection object, so a replaced `$wpdb` (a test double, a
+	 * switched connection) starts empty rather than reading another's answers.
+	 *
+	 * @var \WeakMap<object, array<string, bool>>|null
+	 */
+	private static ?\WeakMap $schema = null;
+
+	/**
+	 * Whether a table exists, asked once per request.
+	 *
+	 * The deletion path creates no table, so an answer read at the first
+	 * deletion holds for the rest of the request. The trait's table_exists()
+	 * stays uncached on purpose: activators create tables between two checks.
+	 *
+	 * @param string $table Full table name.
+	 * @return bool
+	 */
+	private static function has_table( string $table ): bool {
+		return self::remember( 't:' . $table, static fn(): bool => self::table_exists( $table ) );
+	}
+
+	/**
+	 * Whether a column exists, asked once per request.
+	 *
+	 * @param string $table  Full table name.
+	 * @param string $column Column name.
+	 * @return bool
+	 */
+	private static function has_column( string $table, string $column ): bool {
+		return self::remember( 'c:' . $table . '.' . $column, static fn(): bool => self::column_exists( $table, $column ) );
+	}
+
+	/**
+	 * Read a schema answer from the memo, or compute and keep it.
+	 *
+	 * @param string           $key     Memo key.
+	 * @param callable(): bool $compute Reads the live schema.
+	 * @return bool
+	 */
+	private static function remember( string $key, callable $compute ): bool {
+		global $wpdb;
+		if ( ! is_object( $wpdb ) ) {
+			return $compute();
+		}
+		self::$schema ??= new \WeakMap();
+		$known          = self::$schema[ $wpdb ] ?? array();
+		if ( ! array_key_exists( $key, $known ) ) {
+			$known[ $key ]         = $compute();
+			self::$schema[ $wpdb ] = $known;
+		}
+		return $known[ $key ];
+	}
+
+	// table_exists() and column_exists() provided by DatabaseHelperTrait.
 }

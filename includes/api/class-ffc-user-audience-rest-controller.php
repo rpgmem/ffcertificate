@@ -315,6 +315,7 @@ class UserAudienceRestController {
 						'parents'         => array(),
 						'joined_count'    => 0,
 						'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+						'note'            => self::self_join_note(),
 						'trees'           => array(),
 						'leave_all_keeps' => array(),
 					)
@@ -329,6 +330,7 @@ class UserAudienceRestController {
 						'parents'         => array(),
 						'joined_count'    => 0,
 						'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+						'note'            => self::self_join_note(),
 						'trees'           => array(),
 						'leave_all_keeps' => array(),
 					)
@@ -394,6 +396,7 @@ class UserAudienceRestController {
 					'parents'         => $result,
 					'joined_count'    => $joined_count,
 					'max_groups'      => \FreeFormCertificate\Audience\AudienceSelfJoinLimit::get(),
+					'note'            => self::self_join_note(),
 					'trees'           => $tree_list,
 					'leave_all_keeps' => AudienceTreeRules::groups_kept_on_leave_all( $user_id ),
 				)
@@ -867,5 +870,17 @@ class UserAudienceRestController {
 		} catch ( \Exception $e ) {
 			return new \WP_Error( 'switch_group_error', __( 'Error switching group', 'ffcertificate' ), array( 'status' => 500 ) );
 		}
+	}
+
+	/**
+	 * The text an administrator wrote to go under "Join Groups" (#2509), on
+	 * Scheduling Settings → Audience Calendars. Filtered again on the way out,
+	 * so a value written by hand cannot carry what the editor would refuse.
+	 *
+	 * @return string HTML, or '' when none was written.
+	 */
+	private static function self_join_note(): string {
+		$note = get_option( 'ffc_aud_self_join_note', '' );
+		return is_string( $note ) ? trim( wp_kses_post( $note ) ) : '';
 	}
 }

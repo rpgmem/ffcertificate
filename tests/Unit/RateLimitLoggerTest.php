@@ -117,6 +117,25 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 'allowed', $captured['action'] );
 	}
 
+	public function test_log_attempt_skips_blocked_action_when_log_blocked_disabled(): void {
+		// #2339: the switch was stored and never read.
+		$this->stub_settings( array( 'logging' => array( 'log_blocked' => false ) ) );
+
+		global $wpdb;
+		$rows = array();
+		$wpdb->shouldReceive( 'insert' )->andReturnUsing(
+			function ( $table, $row ) use ( &$rows ) {
+				$rows[] = $row['action'];
+				return 1;
+			}
+		);
+
+		RateLimitLogger::log_attempt( 'ip', '203.0.113.1', 'blocked', 'too_many', 42 );
+		RateLimitLogger::log_attempt( 'device', 'abc', 'suppressed', 'near_miss', 42 );
+
+		$this->assertSame( array( 'suppressed' ), $rows, 'Only the blocked attempt is silenced.' );
+	}
+
 	// ------------------------------------------------------------------
 	// log_attempt() — identifier hashing (LGPD/GDPR)
 	// ------------------------------------------------------------------
@@ -152,7 +171,7 @@ class RateLimitLoggerTest extends TestCase {
 
 		RateLimitLogger::log_attempt( 'email', 'user@example.com', 'blocked', 'email_day', 7 );
 
-		$this->assertSame( hash( 'sha256', 'user@example.com' ), $captured['identifier'] );
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( 'user@example.com', 'rate_limit_email' ), $captured['identifier'] );
 	}
 
 	public function test_log_attempt_populates_row_metadata(): void {
@@ -179,17 +198,17 @@ class RateLimitLoggerTest extends TestCase {
 		$this->assertSame( 'cpf_threshold', $captured['reason'] );
 		$this->assertArrayNotHasKey( 'ip_address', $captured, 'the plaintext column is no longer written (#2109)' );
 		$this->assertSame( '198.51.100.7', \FreeFormCertificate\Core\Encryption::decrypt( (string) $captured['ip_address_encrypted'] ) );
-		$this->assertSame( 'TestAgent/1.0', $captured['user_agent'] );
+		$this->assertArrayNotHasKey( 'user_agent', $captured, 'The browser is no longer recorded (#2339).' );
 		$this->assertSame( 0, $captured['current_count'] );
 		$this->assertSame( 0, $captured['max_allowed'] );
 		$this->assertSame(
-			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' ),
+			array( '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d' ),
 			$captured_format
 		);
 	}
 
-	public function test_log_attempt_falls_back_to_empty_user_agent_when_unset(): void {
-		unset( $_SERVER['HTTP_USER_AGENT'] );
+	public function test_log_attempt_never_records_the_user_agent(): void {
+		// #2339: it identified the visitor's browser and nothing read it.
 		$this->stub_settings();
 
 		global $wpdb;
@@ -201,7 +220,8 @@ class RateLimitLoggerTest extends TestCase {
 
 		RateLimitLogger::log_attempt( 'ip', '203.0.113.1', 'blocked', 'r', 1 );
 
-		$this->assertSame( '', $captured['user_agent'] );
+		$this->assertNotContains( 'TestAgent/1.0', $captured );
+		$this->assertArrayNotHasKey( 'user_agent', $captured );
 	}
 
 	// ------------------------------------------------------------------
@@ -256,6 +276,29 @@ class RateLimitLoggerTest extends TestCase {
 		$deleted = RateLimitLogger::cleanup_expired();
 
 		$this->assertSame( 17, $deleted );
+	}
+
+	public function test_cleanup_expired_compares_windows_with_the_utc_clock(): void {
+		// The window columns are written in UTC by PHP; the database's NOW()
+		// is in its own time zone (#2339).
+		$this->stub_settings( array( 'device' => array( 'retention_days' => 0 ) ) );
+
+		global $wpdb;
+		$prepared = array();
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing(
+			static function ( $sql, ...$args ) use ( &$prepared ) {
+				$prepared[] = array( $sql, $args );
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'query' )->andReturn( 0 );
+
+		$before = gmdate( 'Y-m-d H:i:s' );
+		RateLimitLogger::cleanup_expired();
+		$after = gmdate( 'Y-m-d H:i:s' );
+
+		$this->assertSame( 'DELETE FROM %i WHERE window_end < %s', $prepared[0][0] );
+		$this->assertContains( $prepared[0][1][1], array( $before, $after ) );
 	}
 
 	public function test_cleanup_expired_also_cleans_device_signals_when_retention_set(): void {

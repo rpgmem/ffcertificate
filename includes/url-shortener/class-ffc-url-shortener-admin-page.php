@@ -50,6 +50,24 @@ class UrlShortenerAdminPage {
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_ffc_edit_short_url', array( $this, 'ajax_edit_short_url' ) );
+		// Read by wp_admin_canonical_url() on admin_head, after the notice
+		// has read `msg` from the request: the address bar loses it, so the
+		// notice is not shown again on a reload or a later page (#2337).
+		add_filter( 'removable_query_args', array( $this, 'removable_query_args' ) );
+	}
+
+	/**
+	 * Drop the flash keys from this screen's address once shown (#2337).
+	 *
+	 * @param array<int, string> $args Query args WordPress removes.
+	 * @return array<int, string>
+	 */
+	public function removable_query_args( array $args ): array {
+		if ( 'ffc-short-urls' === \FreeFormCertificate\Core\RequestInput::get_get_string( 'page' ) ) {
+			$args[] = 'msg';
+			$args[] = 'count';
+		}
+		return $args;
 	}
 
 	/**
@@ -89,7 +107,14 @@ class UrlShortenerAdminPage {
 				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
 				'nonce'       => wp_create_nonce( 'ffc_short_url_nonce' ),
 				'exportNonce' => wp_create_nonce( 'ffc_url_shortener_export' ),
+				// The extensions that download a file, owned by the service (#2337).
+				'downloads'   => UrlShortenerService::DOWNLOAD_EXTENSIONS,
+				'recommended' => UrlShortenerService::RECOMMENDED_SCHEMES,
 				'i18n'        => array(
+					/* translators: %s: a URL scheme such as ftp: */
+					'scheme'          => __( 'A short URL is a web redirect, and some phones and QR readers do not follow it into %s addresses. Prefer http or https when you can. You can save it anyway.', 'ffcertificate' ),
+					/* translators: %s: a file extension such as .pdf */
+					'download'        => __( 'This address ends in %s and downloads a file instead of opening a page: whoever scans the code receives the file directly. You can save it anyway.', 'ffcertificate' ),
 					'copied'          => __( 'Copied!', 'ffcertificate' ),
 					'copyFailed'      => __( 'Copy failed', 'ffcertificate' ),
 					'error'           => __( 'An error occurred.', 'ffcertificate' ),
@@ -137,14 +162,15 @@ class UrlShortenerAdminPage {
 			return;
 		}
 
-		// These GET-link actions are all writes (trash/restore/delete/
-		// empty_trash) — read-only viewers never run them.
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+		if ( ! isset( $_GET['ffc_action'] ) ) {
 			return;
 		}
 
-		if ( ! isset( $_GET['ffc_action'] ) ) {
-			return;
+		// These GET-link actions are all writes (trash/restore/delete/
+		// empty_trash). A refusal says why instead of reloading the list as
+		// if nothing had been asked (#2337).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_url_shortener' ) ) {
+			wp_die( esc_html__( 'You do not have permission to change short URLs.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
 		$action = sanitize_key( wp_unslash( $_GET['ffc_action'] ) );
@@ -189,16 +215,9 @@ class UrlShortenerAdminPage {
 			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_empty_trash' ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$trashed = $this->service->get_repository()->findPaginated(
-				array(
-					'status'   => 'trashed',
-					'per_page' => 1000,
-				)
-			);
-			foreach ( $trashed['items'] as $item ) {
-				$this->service->delete_short_url( (int) $item['id'] );
-			}
-			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied' ) );
+			// Every trashed link, in batches, and the count of what went (#2337).
+			$deleted = $this->service->empty_trash();
+			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=emptied&count=' . $deleted ) );
 			exit;
 		}
 	}
@@ -232,11 +251,15 @@ class UrlShortenerAdminPage {
 		}
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified above.
-		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ) );
+		$url   = esc_url_raw( wp_unslash( $_POST['target_url'] ?? '' ), UrlShortenerService::DESTINATION_SCHEMES );
 		$title = \FreeFormCertificate\Core\RequestInput::get_post_string( 'title' );
 
 		if ( empty( $url ) ) {
 			wp_send_json_error( array( 'message' => __( 'URL is required.', 'ffcertificate' ) ) );
+		}
+		// One list of destinations with the generator's shorten action (#2337).
+		if ( ! UrlShortenerService::is_allowed_destination( $url ) ) {
+			wp_send_json_error( array( 'message' => __( 'A short URL can send to https, http, ftp, ftps, sftp, ssh, mailto, tel or sms addresses only.', 'ffcertificate' ) ) );
 		}
 
 		if ( $this->service->update_short_url( $id, $url, $title ) ) {
@@ -262,24 +285,47 @@ class UrlShortenerAdminPage {
 		$order   = strtoupper( RequestInput::get_get_key( 'order', 'DESC' ) );
 		$status  = RequestInput::get_get_key( 'status', 'all' );
 
-		$per_page = 20;
-		$result   = $this->service->get_repository()->findPaginated(
-			array(
-				'per_page' => $per_page,
-				'page'     => $page,
-				'orderby'  => $orderby,
-				'order'    => $order,
-				'search'   => $search,
-				'status'   => $status,
-			)
-		);
+		// Retired codes are an administrator's view, read only when asked for (#2337).
+		$can_see_retired = self::can_see_retired();
+		if ( 'retired' === $status && ! $can_see_retired ) {
+			$status = 'all';
+		}
+		$retired_count = $can_see_retired ? $this->service->get_repository()->countRetired() : 0;
+		$count         = RequestInput::get_get_int( 'count', 0 );
 
-		$items       = $result['items'];
-		$total       = $result['total'];
+		$per_page = 20;
+		if ( 'retired' === $status ) {
+			$items = $this->service->get_repository()->findRetiredPaginated( $search, $page, $per_page );
+			$total = $this->service->get_repository()->countRetired( $search );
+		} else {
+			$result = $this->service->get_repository()->findPaginated(
+				array(
+					'per_page' => $per_page,
+					'page'     => $page,
+					'orderby'  => $orderby,
+					'order'    => $order,
+					'search'   => $search,
+					'status'   => $status,
+				)
+			);
+			$items  = $result['items'];
+			$total  = $result['total'];
+		}
+
 		$total_pages = (int) ceil( $total / $per_page );
 		$stats       = $this->service->get_stats();
 		$msg         = RequestInput::get_get_key( 'msg' );
 
 		include FFC_PLUGIN_DIR . 'templates/admin/url-shortener/short-urls-page.php';
+	}
+
+	/**
+	 * Whether the current user may list retired codes: WordPress
+	 * administrators only (#2337).
+	 *
+	 * @return bool
+	 */
+	public static function can_see_retired(): bool {
+		return current_user_can( 'manage_options' );
 	}
 }

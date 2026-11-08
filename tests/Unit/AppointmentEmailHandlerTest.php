@@ -192,6 +192,31 @@ class AppointmentEmailHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Test Calendar', $this->last_mail['subject'] );
 	}
 
+	public function test_booking_confirmation_names_the_session(): void {
+		$cal = $this->makeCalendar( array( 'sessions' => '[{"id":1,"name":"Room A"},{"id":2,"name":"Room B"}]' ) );
+
+		$this->handler->send_booking_confirmation( $this->makeAppointment( array( 'session_id' => 2 ) ), $cal );
+		$this->assertStringContainsString( 'Session:', $this->last_mail['body'] );
+		$this->assertStringContainsString( 'Room B', $this->last_mail['body'] );
+
+		$this->handler->send_booking_confirmation( $this->makeAppointment(), $cal );
+		$this->assertStringNotContainsString( 'Session:', $this->last_mail['body'] );
+		$this->assertStringNotContainsString( '{{session_block}}', $this->last_mail['body'] );
+	}
+
+	public function test_booking_confirmation_names_the_session_with_the_calendars_label(): void {
+		$cal = $this->makeCalendar(
+			array(
+				'sessions'      => '[{"id":2,"name":"Room B"}]',
+				'session_label' => 'Room',
+			)
+		);
+
+		$this->handler->send_booking_confirmation( $this->makeAppointment( array( 'session_id' => 2 ) ), $cal );
+		$this->assertStringContainsString( 'Room:</strong> Room B', $this->last_mail['body'] );
+		$this->assertStringNotContainsString( 'Session:', $this->last_mail['body'] );
+	}
+
 	public function test_booking_confirmation_uses_custom_editable_body_when_set(): void {
 		$cal = $this->makeCalendar(
 			array(

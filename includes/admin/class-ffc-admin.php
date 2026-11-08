@@ -239,7 +239,6 @@ class Admin {
 		?>
 		<div class="wrap ffc-admin-page ffc-page-submissions">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Submissions', 'ffcertificate' ); ?></h1>
-			<div class="ffc-admin-top-actions">
 				<?php
                 // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters for export button.
 				$export_status   = RequestInput::get_get_key( 'status', 'publish' );
@@ -272,16 +271,15 @@ class Admin {
 					)
 				);
 				?>
-			</div>
 			<hr class="wp-header-end">
-			<form method="GET">
+			<?php // The list top (#2486): views, the filter card, then the bulk bar the table draws. ?>
+			<form method="GET" class="ffc-list">
 				<input type="hidden" name="post_type" value="ffc_form">
 				<input type="hidden" name="page" value="ffc-submissions">
 				<?php
 				$table->views();
-				$table->search_box( __( 'Search', 'ffcertificate' ), 's' );
+				$table->render_filters();
 				?>
-				<?php echo \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_certificates_pii' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value. ?>
 				<div class="ffc-table-responsive">
 					<?php $table->display(); ?>
 				</div>
@@ -389,6 +387,11 @@ class Admin {
 	 */
 	private function display_admin_notices(): void {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display-only URL parameters from admin redirects.
+		$migration_notice = SettingsNotice::take( 'migration' );
+		if ( null !== $migration_notice ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'error' === $migration_notice['type'] ? 'error' : 'updated', esc_html( $migration_notice['message'] ) );
+		}
+
 		$msg = RequestInput::get_get_key( 'msg' );
 		if ( '' === $msg ) {
 			return;
@@ -423,17 +426,17 @@ class Admin {
 				$type = 'error';
 				break;
 			case 'quiz_regraded':
-				$text = __( 'Grades changed and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed.', 'ffcertificate' );
+				$text = __( 'Grades amended and recorded in the activity log. The participant is e-mailed only when the result changes between passed and not passed.', 'ffcertificate' );
 				break;
 			case 'quiz_regrade_no_reason':
-				$text = __( 'Say why the grade changes: the reason is required.', 'ffcertificate' );
+				$text = __( 'Say why the grades are amended: the reason is required.', 'ffcertificate' );
 				$type = 'error';
 				break;
 			case 'answer_corrected':
-				$text = __( 'Answer corrected and recorded in the activity log. The certificate shows it the next time it is generated.', 'ffcertificate' );
+				$text = __( 'Answer amended and recorded in the activity log. The certificate shows it the next time it is generated.', 'ffcertificate' );
 				break;
 			case 'answer_no_reason':
-				$text = __( 'Say why the answer changes: the reason is required.', 'ffcertificate' );
+				$text = __( 'Say why the answer is amended: the reason is required.', 'ffcertificate' );
 				$type = 'error';
 				break;
 			case 'answer_unchanged':
@@ -441,28 +444,17 @@ class Admin {
 				$type = 'error';
 				break;
 			case 'answer_not_correctable':
-				$text = __( 'That answer cannot be corrected here. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' );
+				$text = __( 'That answer cannot be amended here. CPF/RF and e-mail are changed through identity resolution.', 'ffcertificate' );
 				$type = 'error';
 				break;
 			case 'answer_not_found':
 			case 'answer_not_saved':
-				$text = __( 'The answer could not be corrected. Reload the submission and try again.', 'ffcertificate' );
+				$text = __( 'The answer could not be amended. Reload the submission and try again.', 'ffcertificate' );
 				$type = 'error';
 				break;
 			case 'quiz_grade_incomplete':
 				$text = __( 'Give every open answer a grade.', 'ffcertificate' );
 				$type = 'error';
-				break;
-			case 'migration_success':
-				$migrated       = RequestInput::get_get_int( 'migrated' );
-				$migration_name = isset( $_GET['migration_name'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['migration_name'] ) ) ) : __( 'Migration', 'ffcertificate' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-				/* translators: 1: migration name, 2: number of records migrated */
-				$text = sprintf( __( '%1$s: %2$d records migrated successfully.', 'ffcertificate' ), $migration_name, $migrated );
-				break;
-			case 'migration_error':
-				$error_msg = isset( $_GET['error_msg'] ) ? sanitize_text_field( urldecode( wp_unslash( $_GET['error_msg'] ) ) ) : __( 'Unknown error', 'ffcertificate' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized via sanitize_text_field().
-				$text      = __( 'Migration Error: ', 'ffcertificate' ) . $error_msg;
-				$type      = 'error';
 				break;
 			case 'move_invalid':
 				$text = __( 'Move failed: source or target form is missing or invalid.', 'ffcertificate' );
@@ -647,28 +639,30 @@ class Admin {
 		// Run migration.
 		$result = $this->migration_manager->run_migration( $migration_key );
 
+		// The result text stays on the server (#2338): the URL names the
+		// area only, so a crafted link cannot put words on this screen.
+		$redirect_url = add_query_arg(
+			array(
+				'post_type' => 'ffc_form',
+				'page'      => 'ffc-submissions',
+			),
+			admin_url( 'edit.php' )
+		);
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg(
-				array(
-					'post_type' => 'ffc_form',
-					'page'      => 'ffc-submissions',
-					'msg'       => 'migration_error',
-					'error_msg' => rawurlencode( $result->get_error_message() ),
-				),
-				admin_url( 'edit.php' )
+			$redirect_url = SettingsNotice::add(
+				$redirect_url,
+				'migration',
+				'error',
+				__( 'Migration Error: ', 'ffcertificate' ) . $result->get_error_message()
 			);
 		} else {
-			$migrated = isset( $result['migrated'] ) ? $result['migrated'] : 0;
-
-			$redirect_url = add_query_arg(
-				array(
-					'post_type'      => 'ffc_form',
-					'page'           => 'ffc-submissions',
-					'msg'            => 'migration_success',
-					'migration_name' => rawurlencode( $migration['name'] ),
-					'migrated'       => $migrated,
-				),
-				admin_url( 'edit.php' )
+			$migrated     = isset( $result['migrated'] ) ? (int) $result['migrated'] : 0;
+			$redirect_url = SettingsNotice::add(
+				$redirect_url,
+				'migration',
+				'success',
+				/* translators: 1: migration name, 2: number of records migrated */
+				sprintf( __( '%1$s: %2$d records migrated successfully.', 'ffcertificate' ), (string) $migration['name'], $migrated )
 			);
 		}
 

@@ -1,19 +1,7 @@
 /**
- * Email Model box (Settings → SMTP).
- * Two-column layout: guided fields on the left, live preview on the right.
+ * Email Model box (Settings → Email Model): the guided fields, with the live
+ * preview in the screen's side column (#2486).
  */
-.ffc-email-model-layout {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--ffc-spacing-3xl);
-	align-items: flex-start;
-}
-
-.ffc-email-model-form {
-	flex: 1 1 420px;
-	min-width: 300px;
-}
-
 .ffc-email-model-group {
 	border: 1px solid var(--ffc-border-light);
 	border-radius: var(--ffc-radius-sm);
@@ -56,27 +44,10 @@
 	margin-top: var(--ffc-spacing-xl);
 }
 
-.ffc-email-model-preview {
-	flex: 1 1 340px;
-	min-width: 300px;
-	position: sticky;
-	top: 40px;
-}
-
-.ffc-email-model-preview h4 {
-	margin: 0 0 var(--ffc-spacing-sm);
-}
-
 .ffc-email-model-preview-frame {
 	width: 100%;
 	height: 460px;
 	border: 1px solid var(--ffc-border-light);
 	border-radius: var(--ffc-radius-sm);
 	background: var(--ffc-bg-card);
-}
-
-@media screen and (max-width: 782px) {
-	.ffc-email-model-preview {
-		position: static;
-	}
 }

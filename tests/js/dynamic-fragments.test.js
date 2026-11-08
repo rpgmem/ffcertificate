@@ -9,7 +9,7 @@
 //      the DOM with fresh captcha, nonces, user data, and geofence config.
 //
 // Sprint F of #170.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 // Stash the original XMLHttpRequest so tests can restore it.
@@ -87,23 +87,25 @@ describe('ffc-dynamic-fragments — early returns', () => {
 		expect(MockXHR.lastInstance.url).toBe('/fallback');
 	});
 
-	it('posts the security-block count, which is not the form count', () => {
+	it('posts one context per security block, which is not one per form', () => {
 		// #1063. The server cannot derive this: the block rendered by
 		// [ffc_self_scheduling] belongs to no form, so the page below is one
-		// form id and two blocks.
+		// form id and two blocks. Each block names its own context (#2339),
+		// in DOM order, so each challenge is bound to the form it sits in.
 		installXHRMock();
 		document.body.innerHTML = `
 			<div class="ffc-form-wrapper" id="ffc-form-42">
-				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+				<div class="ffc-security-container" data-ffc-captcha-context="form:42"><div class="ffc-captcha-row"></div></div>
 			</div>
 			<div class="ffc-booking-form">
-				<div class="ffc-security-container"><div class="ffc-captcha-row"></div></div>
+				<div class="ffc-security-container" data-ffc-captcha-context="booking"><div class="ffc-captcha-row"></div></div>
 			</div>
 		`;
 		window.ffcDynamic = { ajaxUrl: '/x' };
 		loadScript('assets/js/ffc-dynamic-fragments.js');
 		expect(MockXHR.lastInstance.payload).toContain('form_ids%5B%5D=42');
-		expect(MockXHR.lastInstance.payload).toContain('blocks=2');
+		expect(MockXHR.lastInstance.payload).toContain('contexts%5B%5D=form%3A42&contexts%5B%5D=booking');
+		expect(MockXHR.lastInstance.payload).not.toContain('blocks=');
 	});
 
 	it('collects form_ids from ffc-form-* wrappers into the payload', () => {
@@ -167,6 +169,23 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('new-label');
 		expect(document.querySelector('input[name="ffc_captcha_hash"]').value).toBe('new-hash');
 		expect(document.querySelector('input[name="ffc_captcha_ans"]').value).toBe('');
+	});
+
+	it('refreshes the honeypot stamp, adding it to a block cached without one', () => {
+		// #2339: a cached page carries the render time of whenever it was
+		// cached; every block takes the fresh stamp, and a block cached
+		// before the stamp existed gets the field.
+		setupAndDeliver(
+			`<div class="ffc-form-wrapper" id="ffc-form-7">
+				<div class="ffc-security-container"><input type="hidden" name="ffc_hp_ts" value="old" /></div>
+				${securityBlock('l', 'h', '1')}
+			</div>`,
+			{ success: true, data: { honeypot: '123.abc' } }
+		);
+		const stamps = document.querySelectorAll('.ffc-security-container input[name="ffc_hp_ts"]');
+		expect(stamps.length).toBe(2);
+		expect(stamps[0].value).toBe('123.abc');
+		expect(stamps[1].value).toBe('123.abc');
 	});
 
 	it('updates the default captcha when no per-form captchas matched', () => {
@@ -354,6 +373,65 @@ describe('ffc-dynamic-fragments — applyFragments via XHR onload', () => {
 		xhr.responseText = 'not-json{';
 		// Should not throw.
 		expect(() => { if (typeof xhr.onload === 'function') xhr.onload(); }).not.toThrow();
+	});
+
+	describe('a request that fails (#2344)', () => {
+		function boot() {
+			window.FFC = window.FFC || {};
+			window.FFC.Preflight = { ready: vi.fn() };
+			document.body.innerHTML = '<div class="ffc-form-wrapper" id="ffc-form-1"><div class="ffc-captcha-row"><span class="ffc-captcha-label-text">server</span></div></div>';
+			window.ffcDynamic = { ajaxUrl: '/x' };
+			vi.useFakeTimers();
+			installXHRMock();
+			loadScript('assets/js/ffc-dynamic-fragments.js');
+			return window.FFC.Preflight.ready;
+		}
+		afterEach(() => {
+			vi.useRealTimers();
+			delete window.FFC.Preflight;
+		});
+
+		it('sets a 5 s timeout on the request', () => {
+			boot();
+			expect(MockXHR.lastInstance.timeout).toBe(5000);
+		});
+
+		it('is retried once after 2 s, and a retry that works applies the values', () => {
+			const ready = boot();
+			MockXHR.lastInstance.deliver({}, 500);
+			expect(MockXHR.sendCount).toBe(1);
+			vi.advanceTimersByTime(1999);
+			expect(MockXHR.sendCount).toBe(1);
+			vi.advanceTimersByTime(1);
+			expect(MockXHR.sendCount).toBe(2);
+			expect(ready).not.toHaveBeenCalled();
+			MockXHR.lastInstance.deliver({ success: true, data: { captcha: { provider: 'math', new_label: 'fresh', new_hash: 'h' } } });
+			expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('fresh');
+			expect(ready).toHaveBeenCalledWith('fragments');
+		});
+
+		it('after a second failure keeps the server-rendered values and lets the form go on', () => {
+			const ready = boot();
+			MockXHR.lastInstance.ontimeout();
+			vi.advanceTimersByTime(2000);
+			MockXHR.lastInstance.onerror();
+			vi.advanceTimersByTime(10000);
+			// Never a third request, and the watchdog is told to stand down.
+			expect(MockXHR.sendCount).toBe(2);
+			expect(ready).toHaveBeenCalledTimes(1);
+			expect(ready).toHaveBeenCalledWith('fragments');
+			expect(document.querySelector('.ffc-captcha-label-text').textContent).toBe('server');
+		});
+
+		it('counts an unsuccessful answer and a broken body as failures too', () => {
+			boot();
+			MockXHR.lastInstance.deliver({ success: false });
+			vi.advanceTimersByTime(2000);
+			expect(MockXHR.sendCount).toBe(2);
+			MockXHR.lastInstance.responseText = 'not-json{';
+			MockXHR.lastInstance.onload();
+			expect(window.FFC.Preflight.ready).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	it('refreshes the ffc_ajax / ffcCalendar / ffcAudience nonces and hidden nonce fields', () => {

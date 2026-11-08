@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace FreeFormCertificate\Admin;
 
 use FreeFormCertificate\UserDashboard\CapabilityCatalog;
+use FreeFormCertificate\UserDashboard\CapabilityManager;
 use FreeFormCertificate\UserDashboard\RoleRegistrar;
 use FreeFormCertificate\Core\RequestInput;
 
@@ -45,6 +46,7 @@ final class RoleCapabilityEditor {
 	 */
 	public static function init(): void {
 		add_action( 'wp_ajax_ffc_set_role_cap', array( __CLASS__, 'ajax_set_role_cap' ) );
+		add_action( 'wp_ajax_ffc_restore_role_default', array( __CLASS__, 'ajax_restore_role_default' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 	}
 
@@ -59,27 +61,85 @@ final class RoleCapabilityEditor {
 			return;
 		}
 		$tab = RequestInput::get_get_key( 'tab' );
-		if ( 'user_access' !== $tab ) {
+		if ( 'user_access' !== $tab || ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
 		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-user-permissions' );
-		wp_enqueue_script( 'ffc-role-editor', FFC_PLUGIN_URL . "assets/js/ffc-role-editor{$s}.js", array(), FFC_VERSION, true );
+		// The restore confirmation is the plugin's dialog, in ffc-core.
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
+		wp_enqueue_script( 'ffc-role-editor', FFC_PLUGIN_URL . "assets/js/ffc-role-editor{$s}.js", array( 'ffc-core' ), FFC_VERSION, true );
+		$roles = array();
+		foreach ( self::editable_roles() as $role ) {
+			$roles[ $role['slug'] ] = array(
+				'label' => $role['label'],
+				'users' => $role['users'],
+			);
+		}
 		wp_localize_script(
 			'ffc-role-editor',
 			'ffcRoleEditor',
 			array(
-				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'ffc_set_role_cap' ),
-				'roleCaps' => self::role_caps_map(),
-				'i18n'     => array(
-					'error' => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
-					'saved' => __( 'Saved', 'ffcertificate' ),
-				),
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'nonce'        => wp_create_nonce( 'ffc_set_role_cap' ),
+				'roleCaps'     => self::role_caps_map(),
+				'roleDefaults' => self::role_defaults_map(),
+				'roles'        => $roles,
+				'i18n'         => self::strings(),
 			)
 		);
+	}
+
+	/**
+	 * Strings for the editor script.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function strings(): array {
+		return array(
+			'error'        => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
+			'saved'        => __( 'Saved', 'ffcertificate' ),
+			'tagAdded'     => __( 'Added to default', 'ffcertificate' ),
+			'tagRemoved'   => __( 'Removed from default', 'ffcertificate' ),
+			/* translators: 1: number of capabilities added, 2: number removed */
+			'diffSummary'  => __( '%1$d added, %2$d removed.', 'ffcertificate' ),
+			/* translators: 1: role name, 2: number of users holding the role */
+			'restoreIntro' => __( '%1$s goes back to the plugin\'s definition (users holding it: %2$d):', 'ffcertificate' ),
+			/* translators: %s: capability name */
+			'comesBack'    => __( '%s comes back', 'ffcertificate' ),
+			/* translators: %s: capability name */
+			'isRemoved'    => __( '%s is removed', 'ffcertificate' ),
+			/* translators: %s: capability name */
+			'grantTitle'   => __( 'Grant "%s"?', 'ffcertificate' ),
+			/* translators: 1: number of people holding the role, 2: role name */
+			'grantIntro'   => __( '%1$d people hold %2$s. Each of them will be able to:', 'ffcertificate' ),
+			'grantAgree'   => __( 'Grant', 'ffcertificate' ),
+			'dialog'       => array(
+				'seconds' => \FreeFormCertificate\Core\ConfirmCountdown::NONE,
+				'title'   => __( 'Restore the default capabilities?', 'ffcertificate' ),
+				'logged'  => __( 'Recorded in the activity log.', 'ffcertificate' ),
+				'agree'   => __( 'Restore', 'ffcertificate' ),
+				'cancel'  => __( 'Cancel', 'ffcertificate' ),
+			),
+		);
+	}
+
+	/**
+	 * Map of FFC role slug → the cataloged caps its shipped definition grants,
+	 * for the roles the plugin defines; the others have no default to differ
+	 * from.
+	 *
+	 * @return array<string, list<string>>
+	 */
+	public static function role_defaults_map(): array {
+		$catalog = CapabilityCatalog::all_slugs();
+		$map     = array();
+		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
+			$map[ (string) $slug ] = array_values( array_intersect( $def['caps'], $catalog ) );
+		}
+		return $map;
 	}
 
 	/**
@@ -148,12 +208,32 @@ final class RoleCapabilityEditor {
 	}
 
 	/**
+	 * Why someone without manage_options cannot edit a role (#2340): shown
+	 * in place of the editor, and as the message of a refused request.
+	 *
+	 * @return string Plain text.
+	 */
+	public static function admin_only_message(): string {
+		return __( 'Only administrators can edit roles, because a role change reaches everyone who holds it. Ask an administrator, or change a single person\'s capabilities on their profile.', 'ffcertificate' );
+	}
+
+	/**
 	 * Render the editor (included from the User Access tab view, after the
 	 * settings form so it is not part of that form's submit).
 	 *
 	 * @return void
 	 */
 	public static function render(): void {
+		// A role change reaches everyone holding the role, so only an
+		// administrator edits one; anyone else is told why (#2340).
+		if ( ! current_user_can( 'manage_options' ) ) {
+			echo '<div class="card">';
+			echo '<h2 class="ffc-icon-shield">' . esc_html__( 'FFC Roles & Capabilities', 'ffcertificate' ) . '</h2>';
+			\FreeFormCertificate\Core\AdminNotice::callout( 'error', esc_html( self::admin_only_message() ) );
+			echo '</div>';
+			return;
+		}
+
 		$roles = self::editable_roles();
 
 		// Its own card, like every section of a Settings tab (#1631); it sits
@@ -204,6 +284,20 @@ final class RoleCapabilityEditor {
 		);
 		echo '</div>';
 
+		// Filled by the script for a role that differs from its shipped
+		// definition; a role with no changes shows nothing (#2340).
+		echo '<div class="ffc-role-diff" role="status" hidden>';
+		echo '<p><strong>' . esc_html__( 'This role differs from its default:', 'ffcertificate' ) . '</strong> <span class="ffc-role-diff-count"></span> ' . esc_html__( 'These changes stay when the plugin updates.', 'ffcertificate' ) . '</p>';
+		\FreeFormCertificate\Core\Button::render(
+			array(
+				'label'    => __( 'Restore role default', 'ffcertificate' ),
+				'category' => 'caution',
+				'icon'     => 'restore',
+				'class'    => 'ffc-role-restore',
+			)
+		);
+		echo '</div>';
+
 		self::render_catalog_grid( $granted );
 
 		echo '</div></div>';
@@ -244,6 +338,7 @@ final class RoleCapabilityEditor {
 						'id'          => 'ffc_role_cap_' . $slug,
 						'checked'     => $on,
 						'label'       => '',
+						'aria_label'  => (string) $meta['label'],
 						'input_class' => 'ffc-role-cap',
 						'data'        => array( 'ffc-cap-slug' => (string) $slug ),
 					)
@@ -252,12 +347,13 @@ final class RoleCapabilityEditor {
 				$desc          = (string) $meta['description'];
 				$surface_badge = CapabilityCatalog::surface_badge_html( $meta );
 				$rows         .= sprintf(
-					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s">'
+					'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-tier="%7$s" data-ffc-confirm="%9$s">'
 						. '<div class="ffc-cap-row-toggle">%3$s</div>'
-						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>'
+						. '<div class="ffc-cap-row-text"><span class="ffc-cap-row-name">%4$s%6$s</span>%8$s'
 						. '<span class="ffc-cap-row-desc">%5$s</span>'
 						. '<span class="ffc-cap-slug">%2$s</span></div>'
-						. '<span class="ffc-cap-savestate" data-ffc-savestate aria-live="polite"></span>'
+						. '<span class="ffc-role-cap-side"><span class="ffc-role-diff-tag" hidden></span>'
+						. '<span class="ffc-cap-savestate" data-ffc-savestate aria-live="polite"></span></span>'
 						. '</div>',
 					esc_attr( strtolower( $label . ' ' . $slug ) ),
 					esc_attr( (string) $slug ),
@@ -265,7 +361,9 @@ final class RoleCapabilityEditor {
 					esc_html( $label ),
 					esc_html( $desc ),
 					$surface_badge,
-					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) )
+					esc_attr( CapabilityCatalog::cap_tier( (string) $slug ) ),
+					CapabilityCatalog::tier_chip( (string) $slug ),
+					CapabilityCatalog::needs_grant_confirmation( (string) $slug ) ? '1' : '0'
 				);
 			}
 
@@ -300,7 +398,7 @@ final class RoleCapabilityEditor {
 		check_ajax_referer( 'ffc_set_role_cap', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'forbidden' ), 403 );
+			wp_send_json_error( array( 'message' => self::admin_only_message() ), 403 );
 		}
 
 		$role_slug = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
@@ -325,6 +423,16 @@ final class RoleCapabilityEditor {
 		} else {
 			$role->remove_cap( $cap );
 		}
+		// Kept as an override so the next request does not undo it (#2340).
+		RoleRegistrar::record_override( $role_slug, $cap, $grant );
+		self::log_activity(
+			'role_capability_changed',
+			array(
+				'role'    => $role_slug,
+				'cap'     => $cap,
+				'granted' => $grant ? 1 : 0,
+			)
+		);
 
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(
@@ -345,5 +453,84 @@ final class RoleCapabilityEditor {
 				'granted' => $grant,
 			)
 		);
+	}
+
+	/**
+	 * AJAX: put a role back to its shipped definition (#2340).
+	 *
+	 * Only the cataloged capabilities move: one the definition grants and the
+	 * role lacks is added, one the role holds and the definition does not is
+	 * removed. `read` and anything outside the catalog stay as they are. The
+	 * operator's recorded changes to the role are then forgotten.
+	 *
+	 * @return void
+	 */
+	public static function ajax_restore_role_default(): void {
+		check_ajax_referer( 'ffc_set_role_cap', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => self::admin_only_message() ), 403 );
+		}
+
+		$role_slug = sanitize_key( RequestInput::get_post_string( 'role' ) );
+		$defaults  = self::role_defaults_map();
+		if ( ! isset( $defaults[ $role_slug ] ) || ! array_key_exists( $role_slug, RoleRegistrar::ffc_managed_role_labels() ) ) {
+			wp_send_json_error( array( 'message' => 'role_has_no_default' ), 400 );
+		}
+
+		$role = get_role( $role_slug );
+		if ( null === $role ) {
+			wp_send_json_error( array( 'message' => 'role_not_found' ), 404 );
+		}
+
+		$restored = array();
+		$removed  = array();
+		foreach ( CapabilityCatalog::all_slugs() as $cap ) {
+			$shipped = in_array( $cap, $defaults[ $role_slug ], true );
+			$held    = ! empty( $role->capabilities[ $cap ] );
+			if ( $shipped && ! $held ) {
+				$role->add_cap( $cap, true );
+				$restored[] = $cap;
+			} elseif ( ! $shipped && $held ) {
+				$role->remove_cap( $cap );
+				$removed[] = $cap;
+			}
+		}
+		RoleRegistrar::clear_overrides( $role_slug );
+		self::log_activity(
+			'role_default_restored',
+			array(
+				'role'     => $role_slug,
+				'restored' => $restored,
+				'removed'  => $removed,
+			)
+		);
+
+		wp_send_json_success(
+			array(
+				'role'     => $role_slug,
+				'caps'     => self::role_caps_map()[ $role_slug ] ?? array(),
+				'restored' => $restored,
+				'removed'  => $removed,
+			)
+		);
+	}
+
+	/**
+	 * Record a role change in the activity log.
+	 *
+	 * Best effort: the role has already changed, so a log that cannot be
+	 * written must not turn the answer into an error.
+	 *
+	 * @param string               $action  Activity-log action.
+	 * @param array<string, mixed> $context Details.
+	 * @return void
+	 */
+	private static function log_activity( string $action, array $context ): void {
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log( $action, \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING, $context, get_current_user_id() );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
 	}
 }

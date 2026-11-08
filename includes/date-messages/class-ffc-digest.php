@@ -28,6 +28,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  * manager, and a run that already carries it sends nothing, so a duplicated
  * event cannot repeat the e-mail. A run that reached nobody sends no digest.
  *
+ * FINAL NUMBERS, OR NONE YET (#2336). A run still open a day later -- a batch
+ * that is being retried -- waits another hour, up to MAX_WAITS, rather than
+ * reporting a run in flight. And `digest_sent_at` is written only when at
+ * least one manager's copy went out: a digest every send refused is tried
+ * again on the same bounded schedule.
+ *
  * NAMES ARE PII, SO THEY FOLLOW THE CAPABILITY, NOT THE RULE. The detailed
  * mode lists who received the message -- by display name only, never the
  * address or the date -- and only to a manager who may see that on screen
@@ -56,6 +62,12 @@ final class Digest {
 	public const NAMES_LIMIT = 200;
 
 	/**
+	 * Times a digest waits an hour for its run to close, or for a send that
+	 * failed, before it gives up (#2336).
+	 */
+	public const MAX_WAITS = 12;
+
+	/**
 	 * Schedule the digest of a run that just started, when its rule asks for one.
 	 *
 	 * @param int  $run_id Run.
@@ -76,11 +88,17 @@ final class Digest {
 	 * Send a run's digest to its rule's managers.
 	 *
 	 * @param int $run_id Run.
+	 * @param int $waits  Hours this digest already waited (#2336).
 	 * @return void
 	 */
-	public static function send( int $run_id ): void {
+	public static function send( int $run_id, int $waits = 0 ): void {
 		$run = DeliveryLog::get_run( $run_id );
 		if ( null === $run || self::int( $run['digest_sent_at'] ?? 0 ) > 0 ) {
+			return;
+		}
+
+		// A run still open is not reported yet, within a bound (#2336).
+		if ( self::int( $run['finished_at'] ?? 0 ) <= 0 && self::wait( $run_id, $waits ) ) {
 			return;
 		}
 
@@ -90,7 +108,7 @@ final class Digest {
 		}
 
 		$counts = array();
-		foreach ( array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed' ) as $counter ) {
+		foreach ( array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'listed' ) as $counter ) {
 			$counts[ $counter ] = self::int( $run[ $counter ] ?? 0 );
 		}
 		if ( 0 === array_sum( $counts ) ) {
@@ -102,16 +120,19 @@ final class Digest {
 		$counts['forced'] = self::int( $run['forced'] ?? 0 );
 
 		$detailed = 'detailed' === $rule->digest_mode;
-		$names    = $detailed ? self::recipient_names( $run_id ) : array();
-		$from     = is_string( $run['target_from'] ?? null ) ? $run['target_from'] : '';
-		$to       = is_string( $run['target_to'] ?? null ) ? $run['target_to'] : '';
-		$subject  = sprintf(
+		// A rule with personal e-mails off reports whose date it was (#2336).
+		$summary_only = ! $rule->send_to_user;
+		$names        = $detailed ? self::recipient_names( $run_id, $summary_only ? DeliveryLog::counted_channel( $run_id, 'listed' ) : 'user' ) : array();
+		$from         = is_string( $run['target_from'] ?? null ) ? $run['target_from'] : '';
+		$to           = is_string( $run['target_to'] ?? null ) ? $run['target_to'] : '';
+		$subject      = sprintf(
 			/* translators: 1: site name, 2: rule name */
 			__( '[%1$s] Date Messages summary: %2$s', 'ffcertificate' ),
 			(string) get_bloginfo( 'name' ),
 			$rule->name
 		);
 
+		$delivered = false;
 		foreach ( $rule->digest_user_ids as $user_id ) {
 			$user = get_userdata( $user_id );
 			if ( false === $user || ! is_email( $user->user_email ) || ! self::may_receive( $user ) ) {
@@ -121,21 +142,46 @@ final class Digest {
 			$may_see_names = $detailed && ( user_can( $user, 'manage_options' ) || user_can( $user, DateMessagesAdminPage::PII_CAP ) );
 			$body          = self::body(
 				array(
-					'rule_name'   => $rule->name,
-					'trigger'     => is_string( $run['trigger_kind'] ?? null ) ? $run['trigger_kind'] : 'cron',
-					'target_from' => $from,
-					'target_to'   => $to,
-					'counts'      => $counts,
-					'names'       => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
-					'names_limit' => self::NAMES_LIMIT,
-					'screen_url'  => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=upcoming' ),
+					'rule_name'    => $rule->name,
+					'trigger'      => is_string( $run['trigger_kind'] ?? null ) ? $run['trigger_kind'] : 'cron',
+					'target_from'  => $from,
+					'target_to'    => $to,
+					'counts'       => $counts,
+					'names'        => $may_see_names ? array_map( array( \FreeFormCertificate\Core\DocumentFormatter::class, 'mask_name' ), $names ) : null,
+					'names_limit'  => self::NAMES_LIMIT,
+					'summary_only' => $summary_only,
+					// The run's own record, where its numbers are (#2336).
+					'screen_url'   => admin_url( 'admin.php?page=' . DateMessagesAdminPage::MENU_SLUG . '&tab=history' ),
 				)
 			);
 
-			SchedulingMailer::send( $user->user_email, $subject, $body, array(), true, EmailSource::DATE_MESSAGES );
+			$delivered = SchedulingMailer::send( $user->user_email, $subject, $body, array(), true, EmailSource::DATE_MESSAGES ) || $delivered;
 		}
 
-		DeliveryLog::mark_digest_sent( $run_id );
+		// Only a digest that reached someone is done; one every send refused
+		// is tried again later (#2336).
+		if ( $delivered || ! self::wait( $run_id, $waits ) ) {
+			DeliveryLog::mark_digest_sent( $run_id );
+		}
+	}
+
+	/**
+	 * Queue this digest again in an hour, unless it already waited MAX_WAITS
+	 * times.
+	 *
+	 * @param int $run_id Run.
+	 * @param int $waits  Hours already waited.
+	 * @return bool Whether it was queued.
+	 */
+	private static function wait( int $run_id, int $waits ): bool {
+		if ( $waits >= self::MAX_WAITS ) {
+			return false;
+		}
+		$args = array( $run_id, $waits + 1 );
+		if ( false === wp_next_scheduled( self::HOOK, $args ) ) {
+			wp_schedule_single_event( time() + HOUR_IN_SECONDS, self::HOOK, $args );
+		}
+		return true;
 	}
 
 	/**
@@ -172,12 +218,13 @@ final class Digest {
 	}
 
 	/**
-	 * Display names of the people a run delivered to.
+	 * Display names of the people a run delivered to, or listed.
 	 *
-	 * @param int $run_id Run.
+	 * @param int    $run_id  Run.
+	 * @param string $channel `user` for deliveries; a run's listed channel for a summary-only rule.
 	 * @return array<int, string>
 	 */
-	private static function recipient_names( int $run_id ): array {
+	private static function recipient_names( int $run_id, string $channel = 'user' ): array {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Joins the plugin's log to core wp_users for display names; annotated per line because wp_users is a core table. A digest reads the live log, never a cache.
@@ -187,7 +234,7 @@ final class Digest {
 				DateMessagesActivator::log_table(),
 				$wpdb->users,
 				$run_id,
-				'user',
+				$channel,
 				self::NAMES_LIMIT
 			)
 		);

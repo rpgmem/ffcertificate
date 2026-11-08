@@ -27,6 +27,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Geofence {
 
 	/**
+	 * When an operator opened the form early (Unix timestamp, #2341).
+	 * It applies to the day it was pressed on only; see {@see self::with_early_open()}.
+	 */
+	public const EARLY_OPEN_META = '_ffc_csv_public_start_opened_at';
+
+	/**
 	 * Resolve a per-phase `datetime_hide_mode_*` value from a geofence config
 	 * array, falling back to the legacy single `datetime_hide_mode` when the
 	 * new phase key is absent (forms saved before #159 S1 only have the legacy
@@ -282,6 +288,16 @@ class Geofence {
 			);
 		}
 
+		if ( empty( self::gps_areas( $config ) ) ) {
+			self::log_access_denied( $context, 'no_areas_defined' );
+
+			return array(
+				'allowed' => false,
+				'reason'  => 'no_areas_defined',
+				'message' => self::no_area_message(),
+			);
+		}
+
 		$gps = $use_gps
 			? GpsReading::decide(
 				self::gps_areas( $config ),
@@ -331,6 +347,15 @@ class Geofence {
 			'reason'  => $reason,
 			'message' => $message,
 		);
+	}
+
+	/**
+	 * What a visitor reads when a form's location restriction has no area.
+	 *
+	 * @return string
+	 */
+	private static function no_area_message(): string {
+		return __( 'This form cannot be used right now: its location restriction has no valid area. Please let the site\'s administrator know.', 'ffcertificate' );
 	}
 
 	/**
@@ -489,10 +514,13 @@ class Geofence {
 		// Parse areas.
 		$areas = self::parse_areas( self::resolve_areas_text( $config, 'geo_area_source', 'geo_area_location_ids', 'geo_areas' ) );
 
+		// The location restriction is on and names no valid area: refuse
+		// (#2339). Passing it meant a deleted location or a mistyped area
+		// silently lifted the restriction the operator asked for.
 		if ( empty( $areas ) ) {
 			return array(
-				'valid'   => true, // No areas defined = no restriction.
-				'message' => '',
+				'valid'   => false,
+				'message' => self::no_area_message(),
 				'details' => array( 'reason' => 'no_areas_defined' ),
 			);
 		}
@@ -657,6 +685,7 @@ class Geofence {
 		if ( empty( $config ) || ! is_array( $config ) ) {
 			return null;
 		}
+		$config = self::with_early_open( $form_id, $config );
 
 		$date_start = isset( $config['date_start'] ) ? trim( (string) $config['date_start'] ) : '';
 		if ( '' === $date_start ) {
@@ -733,7 +762,51 @@ class Geofence {
 			return null;
 		}
 
-		return self::normalize_config( $config );
+		return self::normalize_config( self::with_early_open( $form_id, $config ) );
+	}
+
+	/**
+	 * A form's geofence config with today's early opening applied (#2341).
+	 *
+	 * An operator's "Start Form Now" is stored as the moment it was pressed
+	 * ({@see self::EARLY_OPEN_META}), not written into `time_start`, so it
+	 * moves only the day it was pressed on: on a multi-day daily form every
+	 * later day still opens at its scheduled time. Every reader that decides
+	 * or shows whether the form is open reads the config through here.
+	 *
+	 * @param int                  $form_id Form ID.
+	 * @param array<string, mixed> $config  Stored geofence config.
+	 * @return array<string, mixed>
+	 */
+	public static function with_early_open( int $form_id, array $config ): array {
+		$opened = self::early_open_today( $form_id );
+		if ( null === $opened ) {
+			return $config;
+		}
+		$time = wp_date( 'H:i', $opened );
+		if ( ! is_string( $time ) ) {
+			return $config;
+		}
+		$scheduled = isset( $config['time_start'] ) && is_string( $config['time_start'] ) ? trim( $config['time_start'] ) : '';
+		if ( '' === $scheduled || substr( $scheduled, 0, 5 ) > $time ) {
+			$config['time_start'] = $time;
+		}
+		return $config;
+	}
+
+	/**
+	 * When the form was opened early, if that was today in the site timezone.
+	 *
+	 * @param int $form_id Form ID.
+	 * @return int|null Unix timestamp, or null when it was not opened early today.
+	 */
+	public static function early_open_today( int $form_id ): ?int {
+		$raw = get_post_meta( $form_id, self::EARLY_OPEN_META, true );
+		if ( ! is_numeric( $raw ) || (int) $raw <= 0 ) {
+			return null;
+		}
+		$opened = (int) $raw;
+		return wp_date( 'Y-m-d', $opened ) === wp_date( 'Y-m-d', time() ) ? $opened : null;
 	}
 
 	/**

@@ -22,6 +22,9 @@ class CapabilityManagerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 		// Several methods this class reaches are deprecated (#2089) and emit
 		// the notice; stub it so each test chooses the branch rather than
 		// inheriting it from an earlier class.
@@ -58,6 +61,7 @@ class CapabilityManagerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -1667,16 +1671,18 @@ class CapabilityManagerTest extends TestCase {
 	}
 
 	/**
-	 * Staff, for a bulk operation that must never rewrite an account (#2242):
-	 * a WordPress administrator, or anyone holding a `_pii` capability.
+	 * Staff, for a bulk operation that must never rewrite an account (#2242,
+	 * #2340): a WordPress administrator, or anyone holding a `_pii` or an
+	 * `ffc_manage_` capability.
 	 */
-	public function test_is_staff_account_reads_admin_and_pii_capabilities(): void {
+	public function test_is_staff_account_reads_admin_pii_and_manage_capabilities(): void {
 		$held = array(
 			1 => array( 'manage_options' ),
 			2 => array( 'ffc_view_reregistration_pii' ),
 			3 => array( 'ffc_view_settings_pii' ),
 			4 => array( 'ffc_view_reregistration', 'ffc_manage_reregistration' ),
 			5 => array(),
+			6 => array( 'ffc_view_reregistration', 'ffc_view_own_certificates' ),
 		);
 		Functions\when( 'user_can' )->alias( static fn( $user_id, $cap ) => in_array( $cap, $held[ (int) $user_id ] ?? array(), true ) );
 		Functions\when( 'get_userdata' )->alias( static fn( $user_id ) => (object) array( 'allcaps' => array_fill_keys( $held[ (int) $user_id ] ?? array(), true ) ) );
@@ -1684,8 +1690,9 @@ class CapabilityManagerTest extends TestCase {
 		$this->assertTrue( CapabilityManager::is_staff_account( 1 ) );
 		$this->assertTrue( CapabilityManager::is_staff_account( 2 ) );
 		$this->assertTrue( CapabilityManager::is_staff_account( 3 ), 'Any module\'s PII tier counts, not only reregistration\'s.' );
-		$this->assertFalse( CapabilityManager::is_staff_account( 4 ), 'An operator without a PII cap is an ordinary member.' );
+		$this->assertTrue( CapabilityManager::is_staff_account( 4 ), 'A manage cap is staff, however it was granted.' );
 		$this->assertFalse( CapabilityManager::is_staff_account( 5 ) );
+		$this->assertFalse( CapabilityManager::is_staff_account( 6 ), 'View caps alone are an ordinary member.' );
 		$this->assertFalse( CapabilityManager::is_staff_account( 0 ) );
 	}
 
@@ -1696,5 +1703,52 @@ class CapabilityManagerTest extends TestCase {
 		$pii         = array_filter( CapabilityManager::get_all_capabilities(), static fn( $c ) => str_ends_with( $c, '_pii' ) );
 		$this->assertNotEmpty( $pii );
 		$this->assertNotEmpty( array_intersect( $pii, $definitions['ffc_administrator']['caps'] ), 'FFC Administrator holds a PII cap.' );
+	}
+
+	public function test_an_ffc_role_at_operator_tier_or_above_is_staff(): void {
+		$roles = array(
+			1 => array( 'ffc_administrator' ),
+			2 => array( 'ffc_reregistration_operator' ),
+			3 => array( 'subscriber', 'ffc_appointments_manager' ),
+			4 => array( 'ffc_audiences_admin' ),
+			5 => array( 'ffc_reregistration_viewer' ),
+			6 => array( 'ffc_end_user' ),
+			7 => array( 'ffc_readonly' ),
+			8 => array( 'shop_manager' ),
+		);
+		Functions\when( 'user_can' )->justReturn( false );
+		Functions\when( 'get_userdata' )->alias(
+			static fn( $user_id ) => (object) array(
+				'roles'   => $roles[ (int) $user_id ] ?? array(),
+				'allcaps' => array(),
+			)
+		);
+
+		foreach ( array( 1, 2, 3, 4 ) as $id ) {
+			$this->assertTrue( CapabilityManager::is_staff_account( $id ), implode( ',', $roles[ $id ] ) . ' is staff.' );
+		}
+		foreach ( array( 5, 6, 7, 8 ) as $id ) {
+			$this->assertFalse( CapabilityManager::is_staff_account( $id ), implode( ',', $roles[ $id ] ) . ' is not staff.' );
+		}
+	}
+
+	public function test_every_shipped_tier_from_operator_up_is_staff(): void {
+		// The rule reads the slug; the tier is read here off the label, an
+		// independent spelling, so a slug that drifts from its tier fails.
+		Functions\when( 'user_can' )->justReturn( false );
+		$staff = 0;
+		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
+			Functions\when( 'get_userdata' )->justReturn(
+				(object) array(
+					'roles'   => array( $slug ),
+					'allcaps' => array(),
+				)
+			);
+			$expected = 'ffc_administrator' === $slug || (bool) preg_match( '/ - (Operator|Manager|Administrator)$/', $def['label'] );
+			$this->assertSame( $expected, CapabilityManager::is_staff_account( 9 ), $slug );
+			$staff += $expected ? 1 : 0;
+		}
+		$this->assertGreaterThan( 0, $staff, 'No shipped role read as staff.' );
+		$this->assertLessThan( count( CapabilityManager::module_roles_definition() ), $staff, 'Every shipped role read as staff.' );
 	}
 }

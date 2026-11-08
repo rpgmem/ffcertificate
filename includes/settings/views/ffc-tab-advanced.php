@@ -31,7 +31,12 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 		<span class="ffc-text-info ffc-icon-info"><?php esc_html_e( 'When enabled, actions like submission creation, data access, and settings changes are logged.', 'ffcertificate' ); ?></span>
 	</p>
 
-		<?php $ffcertificate_log_on = (int) $ffcertificate_get_option( 'enable_activity_log' ) === 1; ?>
+		<?php
+		$ffcertificate_log_on = \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled();
+		// Switching the audit trail off, its audit items and how long it keeps
+		// entries need the Danger Zone capability (#2338, #2340).
+		$ffcertificate_dangerzone = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
+		?>
 		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
@@ -42,15 +47,19 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 						<?php
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[enable_activity_log]',
-								'id'      => 'enable_activity_log',
-								'checked' => $ffcertificate_log_on,
-								'label'   => __( 'Track activities for audit trail', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'enable_activity_log' ),
+								'name'     => 'ffc_settings[enable_activity_log]',
+								'id'       => 'enable_activity_log',
+								'checked'  => $ffcertificate_log_on,
+								'disabled' => ! $ffcertificate_dangerzone,
+								'label'    => __( 'Track activities for audit trail', 'ffcertificate' ),
+								'data'     => array( 'ffc-autosave-key' => 'enable_activity_log' ),
 							)
 						);
 						?>
 						<p class="description">
+							<?php if ( ! $ffcertificate_dangerzone ) : ?>
+								<span class="ffc-icon-lock"><?php esc_html_e( 'Switching the activity log or an audit item off, and changing its retention, needs the Danger Zone capability.', 'ffcertificate' ); ?></span><br>
+							<?php endif; ?>
 							<?php esc_html_e( 'Logs submission creation, data access, settings changes, and security events.', 'ffcertificate' ); ?><br>
 							<span class="ffc-text-success ffc-icon-success"><?php esc_html_e( 'Includes user ID, IP address, and timestamp for LGPD compliance.', 'ffcertificate' ); ?></span>
 							<?php if ( $ffcertificate_log_on ) : ?>
@@ -71,15 +80,13 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 			</tbody>
-			<tbody class="ffc-collapsed-target<?php echo $ffcertificate_log_on ? '' : ' ffc-collapsed'; ?>"
-				data-ffc-master="enable_activity_log"
-				aria-hidden="<?php echo $ffcertificate_log_on ? 'false' : 'true'; ?>">
+			<tbody>
 				<tr>
 					<th scope="row">
 						<label for="activity_log_retention_days"><?php esc_html_e( 'Log Retention (days)', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'activity_log_retention_days', 90 ) ); ?>" min="0" max="365" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required>
+						<input type="number" name="ffc_settings[activity_log_retention_days]" id="activity_log_retention_days" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::DAYS_MAX ); ?>" class="small-text" data-ffc-autosave-key="activity_log_retention_days" required<?php echo $ffcertificate_dangerzone ? '' : ' disabled'; ?>>
 						<p class="description">
 							<?php esc_html_e( 'Automatically delete activity logs older than this many days. Set to 0 to keep logs indefinitely.', 'ffcertificate' ); ?><br>
 							<?php esc_html_e( 'Cleanup runs daily via scheduled cron task.', 'ffcertificate' ); ?>
@@ -87,9 +94,21 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 					</td>
 				</tr>
 				<tr>
+					<th scope="row">
+						<label for="activity_log_max_records"><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></label>
+					</th>
+					<td>
+						<input type="number" name="ffc_settings[activity_log_max_records]" id="activity_log_max_records" value="<?php echo esc_attr( (string) \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records() ); ?>" min="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MIN ); ?>" max="<?php echo esc_attr( (string) \FreeFormCertificate\Core\ActivityLogRetention::RECORDS_MAX ); ?>" class="regular-text" data-ffc-autosave-key="activity_log_max_records" required<?php echo $ffcertificate_dangerzone ? '' : ' disabled'; ?>>
+						<p class="description">
+							<?php esc_html_e( 'The daily cleanup also deletes the oldest entries beyond this number. 100,000 entries take about 60 MB.', 'ffcertificate' ); ?>
+						</p>
+					</td>
+				</tr>
+				<tr>
 					<th scope="row"><?php esc_html_e( 'Minimum log level', 'ffcertificate' ); ?></th>
 					<td>
 						<?php $ffcertificate_log_min = \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level(); ?>
+						<div class="ffc-disabled-target" data-ffc-master="enable_activity_log">
 						<table class="ffc-loglevel-table" role="radiogroup" aria-label="<?php esc_attr_e( 'Minimum log level', 'ffcertificate' ); ?>">
 							<tbody>
 								<?php
@@ -104,7 +123,7 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 									<tr class="ffc-loglevel-row">
 										<td>
 											<label class="ffc-loglevel-label">
-												<input type="radio" name="ffc_settings[activity_log_min_level]" value="<?php echo esc_attr( $ffcertificate_lvl ); ?>" <?php checked( $ffcertificate_log_min, $ffcertificate_lvl ); ?> data-ffc-autosave-key="activity_log_min_level">
+												<input type="radio" name="ffc_settings[activity_log_min_level]" value="<?php echo esc_attr( $ffcertificate_lvl ); ?>" <?php checked( $ffcertificate_log_min, $ffcertificate_lvl ); ?> data-ffc-autosave-key="activity_log_min_level"<?php echo $ffcertificate_log_on ? '' : ' disabled'; ?>>
 												<span class="ffc-loglevel-name"><?php echo esc_html( $ffcertificate_lvl_label ); ?></span>
 											</label>
 										</td>
@@ -114,44 +133,16 @@ $ffcertificate_get_option = \Closure::fromCallable( array( $settings, 'get_optio
 								?>
 							</tbody>
 						</table>
-						<p class="description"><?php esc_html_e( 'Records the selected level and every more-severe one below it (highlighted green); rows above are ignored. Default: Debug — log everything.', 'ffcertificate' ); ?></p>
-					</td>
-				</tr>
-				<tr>
-					<th scope="row"><?php esc_html_e( 'Log categories', 'ffcertificate' ); ?></th>
-					<td>
-						<?php
-						$ffcertificate_log_cats = array(
-							'submissions'   => __( 'Submissions', 'ffcertificate' ),
-							'scheduling'    => __( 'Scheduling', 'ffcertificate' ),
-							'public_access' => __( 'Public Operator Access', 'ffcertificate' ),
-							'users'         => __( 'Users & Privacy', 'ffcertificate' ),
-							'recruitment'   => __( 'Recruitment', 'ffcertificate' ),
-							'migrations'    => __( 'Migrations', 'ffcertificate' ),
-							'system'        => __( 'System & Security', 'ffcertificate' ),
-						);
-						foreach ( $ffcertificate_log_cats as $ffcertificate_cat_key => $ffcertificate_cat_label ) :
-							?>
-							<div class="ffc-mb-2xs">
-								<?php
-								\FreeFormCertificate\Admin\AdminUI::render_toggle(
-									array(
-										'name'    => 'ffc_settings[activity_log_cat_' . $ffcertificate_cat_key . ']',
-										'id'      => 'activity_log_cat_' . $ffcertificate_cat_key,
-										'checked' => \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( $ffcertificate_cat_key ),
-										'label'   => $ffcertificate_cat_label,
-										'data'    => array( 'ffc-autosave-key' => 'activity_log_cat_' . $ffcertificate_cat_key ),
-									)
-								);
-								?>
-							</div>
-							<?php
-						endforeach;
-						?>
-						<p class="description"><?php esc_html_e( 'Uncheck a category to stop logging its events. All on by default.', 'ffcertificate' ); ?></p>
+						</div>
+						<p class="description"><?php esc_html_e( 'Applies to the secondary items: records the selected level and every more-severe one below it (highlighted green). The audit items are recorded whatever the level. Default: Debug — log everything.', 'ffcertificate' ); ?></p>
 					</td>
 				</tr>
 			</tbody>
+		</table>
+
+		<?php require __DIR__ . '/ffc-activity-log-items.php'; ?>
+
+		<table class="form-table" role="presentation">
 			<tbody>
 				<tr>
 					<th scope="row">
@@ -580,6 +571,20 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<strong><?php echo esc_html( $ffc_kh_label ); ?>.</strong>
 				<?php esc_html_e( 'Your active secret material is not safe. Fix it, but choose the right path:', 'ffcertificate' ); ?>
 			</p>
+			<?php if ( ! empty( $ffc_kh['salt_empty'] ) ) : ?>
+				<p>
+					<?php
+					echo wp_kses(
+						sprintf(
+							/* translators: %s: the FFC_HASH_SALT constant name. */
+							__( '%s is defined but empty, so every search hash is computed with no salt. Changing it re-hashes nothing on its own: plan it like a key rotation.', 'ffcertificate' ),
+							'<code>FFC_HASH_SALT</code>'
+						),
+						array( 'code' => array() )
+					);
+					?>
+				</p>
+			<?php endif; ?>
 			<ul class="ffc-list-disc">
 				<li><?php esc_html_e( 'New install (no data yet): generate fresh secret keys and paste them into wp-config.php.', 'ffcertificate' ); ?></li>
 				<li>
@@ -662,6 +667,30 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<td>
 					<code><?php echo esc_html( isset( $ffc_kh['fingerprint'] ) ? (string) $ffc_kh['fingerprint'] : '' ); ?></code>
 					<p class="description"><?php esc_html_e( 'A non-reversible fingerprint of the active encryption key. It changes if the underlying secret changes — use it to confirm a rotation without exposing the key.', 'ffcertificate' ); ?></p>
+				</td>
+			</tr>
+			<?php
+			$ffc_kh_v1       = isset( $ffc_kh['legacy_v1_reads'] ) && is_array( $ffc_kh['legacy_v1_reads'] ) ? $ffc_kh['legacy_v1_reads'] : array();
+			$ffc_kh_v1_count = (int) ( $ffc_kh_v1['count'] ?? 0 );
+			?>
+			<tr>
+				<th scope="row"><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></th>
+				<td>
+					<?php if ( 0 === $ffc_kh_v1_count ) : ?>
+						<?php esc_html_e( 'None recorded.', 'ffcertificate' ); ?>
+					<?php else : ?>
+						<?php
+						echo esc_html(
+							sprintf(
+								/* translators: 1: number of requests, 2: date and time of the last one. */
+								_n( '%1$s request read a value in the old format without authentication; the last on %2$s.', '%1$s requests read a value in the old format without authentication; the last on %2$s.', $ffc_kh_v1_count, 'ffcertificate' ),
+								number_format_i18n( $ffc_kh_v1_count ),
+								\FreeFormCertificate\Core\DateFormatter::format_datetime( (int) ( $ffc_kh_v1['last'] ?? 0 ) )
+							)
+						);
+						?>
+					<?php endif; ?>
+					<p class="description"><?php esc_html_e( 'The oldest encrypted values carry no integrity check. They are still read, and each request that reads one is counted here; once nothing has been counted for a long while, the old format can be refused.', 'ffcertificate' ); ?></p>
 				</td>
 			</tr>
 			<?php if ( ! empty( $ffc_kh['rekey_in_progress'] ) ) : ?>
@@ -794,7 +823,6 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 		<div class="ffc-key-suggest-widget" data-ffc-const="<?php echo esc_attr( $ffc_widget['const'] ); ?>">
 			<p class="ffc-mb-2xs"><code><?php echo esc_html( $ffc_widget['const'] ); ?></code></p>
 			<p>
-				<label class="screen-reader-text"><?php echo esc_html( $ffc_widget['label'] ); ?></label>
 				<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
 					aria-label="<?php echo esc_attr( $ffc_widget['label'] ); ?>"
 					spellcheck="false" autocomplete="off"></textarea>
@@ -866,7 +894,6 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 			<div class="ffc-key-suggest-widget" data-ffc-const="FFC_ENCRYPTION_KEY">
 				<p class="ffc-mb-2xs"><code>FFC_ENCRYPTION_KEY</code> <span class="description"><?php esc_html_e( '(new)', 'ffcertificate' ); ?></span></p>
 				<p>
-					<label class="screen-reader-text"><?php esc_html_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?></label>
 					<textarea class="ffc-key-suggest-input large-text code" readonly rows="8"
 						aria-label="<?php esc_attr_e( 'Suggested new FFC_ENCRYPTION_KEY define for wp-config.php', 'ffcertificate' ); ?>"
 						spellcheck="false" autocomplete="off"></textarea>
@@ -911,13 +938,16 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 				<td>
 					<?php
 					$ffcertificate_delete_on_uninstall = '1' === (string) ( $ffcertificate_get_option( 'delete_data_on_uninstall', '0' ) );
+					// Arming the purge is a Danger Zone action (#2343): an
+					// account without that capability sees the state, not the switch.
 					\FreeFormCertificate\Admin\AdminUI::render_toggle(
 						array(
-							'name'    => 'ffc_settings[delete_data_on_uninstall]',
-							'id'      => 'ffc_delete_data_on_uninstall',
-							'checked' => $ffcertificate_delete_on_uninstall,
-							'label'   => __( 'Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin', 'ffcertificate' ),
-							'data'    => array( 'ffc-autosave-key' => 'delete_data_on_uninstall' ),
+							'name'     => 'ffc_settings[delete_data_on_uninstall]',
+							'id'       => 'ffc_delete_data_on_uninstall',
+							'checked'  => $ffcertificate_delete_on_uninstall,
+							'disabled' => ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' ),
+							'label'    => __( 'Drop all tables, options, custom posts, roles, capabilities and transients when the plugin is deleted via the WordPress admin', 'ffcertificate' ),
+							'data'     => array( 'ffc-autosave-key' => 'delete_data_on_uninstall' ),
 						)
 					);
 					?>
@@ -932,6 +962,16 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 	<form method="post" id="ffc-danger-zone-form">
 		<?php wp_nonce_field( 'ffc_delete_all_data', 'ffc_critical_nonce' ); ?>
 		<input type="hidden" name="ffc_delete_all_data" value="1">
+		<?php
+		// Without the capability the controls render disabled with the
+		// reason, rather than as a button whose submit is silently ignored
+		// (#2338).
+		$ffcertificate_dz_delete = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
+		if ( ! $ffcertificate_dz_delete ) :
+			?>
+			<p class="description ffc-icon-lock"><?php esc_html_e( 'Deleting data needs the Danger Zone capability, which this account does not hold.', 'ffcertificate' ); ?></p>
+		<?php endif; ?>
+		<fieldset class="ffc-readonly-lock"<?php echo $ffcertificate_dz_delete ? '' : ' disabled'; ?>>
 
 		<table class="form-table" role="presentation">
 			<tbody>
@@ -940,25 +980,36 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						<label for="ffc_delete_target"><?php esc_html_e( 'Delete Submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
-						<select name="delete_target" id="ffc_delete_target" class="regular-text">
-							<option value="all"><?php esc_html_e( 'Delete All Submissions (All Forms)', 'ffcertificate' ); ?></option>
+						<?php
+						$ffcertificate_dz_counts = $ffcertificate_dz_delete ? \FreeFormCertificate\Admin\SettingsSaveHandler::danger_zone_counts() : array();
+						$ffcertificate_dz_forms  = get_posts(
+							array(
+								'post_type'      => 'ffc_form',
+								'posts_per_page' => -1,
+								'post_status'    => 'publish',
+							)
+						);
+						// The target is chosen, never defaulted; each option says
+						// how many submissions it removes (#2338).
+						?>
+						<select name="delete_target" id="ffc_delete_target" class="regular-text" required>
+							<option value=""><?php esc_html_e( '— Choose what to delete —', 'ffcertificate' ); ?></option>
 							<?php
-							$ffcertificate_forms = get_posts(
-								array(
-									'post_type'      => 'ffc_form',
-									'posts_per_page' => -1,
-									'post_status'    => 'publish',
-								)
-							);
-							if ( ! empty( $ffcertificate_forms ) ) :
-								foreach ( $ffcertificate_forms as $ffcertificate_f ) :
-									?>
-									<option value="<?php echo esc_attr( (string) $ffcertificate_f->ID ); ?>">
-										<?php echo esc_html( $ffcertificate_f->post_title ); ?>
-									</option>
-									<?php
-								endforeach;
-							endif;
+							$ffcertificate_dz_total = array_sum( $ffcertificate_dz_counts );
+							$ffcertificate_dz_all   = __( 'Delete All Submissions (All Forms)', 'ffcertificate' );
+							?>
+							<option value="all" data-label="<?php echo esc_attr( $ffcertificate_dz_all ); ?>" data-count-label="<?php echo esc_attr( number_format_i18n( $ffcertificate_dz_total ) ); ?>">
+								<?php echo esc_html( $ffcertificate_dz_all . ' — ' . number_format_i18n( $ffcertificate_dz_total ) ); ?>
+							</option>
+							<?php
+							foreach ( $ffcertificate_dz_forms as $ffcertificate_f ) :
+								$ffcertificate_f_count = (int) ( $ffcertificate_dz_counts[ (int) $ffcertificate_f->ID ] ?? 0 );
+								?>
+								<option value="<?php echo esc_attr( (string) $ffcertificate_f->ID ); ?>" data-label="<?php echo esc_attr( $ffcertificate_f->post_title ); ?>" data-count-label="<?php echo esc_attr( number_format_i18n( $ffcertificate_f_count ) ); ?>">
+									<?php echo esc_html( $ffcertificate_f->post_title . ' — ' . number_format_i18n( $ffcertificate_f_count ) ); ?>
+								</option>
+								<?php
+							endforeach;
 							?>
 						</select>
 
@@ -983,15 +1034,29 @@ $ffc_kh_label = $ffc_kh_labels[ $ffc_kh_status ] ?? $ffc_kh_status;
 						</div>
 
 						<div class="ffc-mt-2xl">
-							<?php // Written out rather than through AdminUI::button(): the helper refuses event-handler attributes, and this confirm() is the action's last guard. ?>
-							<button type="submit" class="ffc-btn ffc-btn-danger ffc-icon-delete" onclick="return confirm('<?php echo esc_js( __( 'Are you absolutely sure?\n\nThis action CANNOT be undone!\n\nAll selected data will be permanently deleted.', 'ffcertificate' ) ); ?>');">
-								<?php esc_html_e( 'Delete Data Permanently', 'ffcertificate' ); ?>
-							</button>
+							<input type="hidden" name="ffc_delete_confirm" id="ffc_delete_confirm" value="">
+							<?php
+							// The dialog (ffc-danger-zone.js) names the target and its
+							// count, asks for the typed word and counts down; the server
+							// refuses a submit without the word (#2338).
+							\FreeFormCertificate\Admin\AdminUI::render_button(
+								array(
+									'label'    => __( 'Delete Data Permanently', 'ffcertificate' ),
+									'category' => 'danger',
+									'icon'     => 'delete',
+									'type'     => 'submit',
+									'id'       => 'ffc-danger-zone-delete',
+									'disabled' => true,
+								)
+							);
+							?>
+							<p class="description"><?php esc_html_e( 'The button unlocks once a target is chosen. A confirmation shows how many submissions will be deleted and asks you to type a word.', 'ffcertificate' ); ?></p>
 						</div>
 					</td>
 				</tr>
 			</tbody>
 		</table>
+		</fieldset>
 	</form>
 </div>
 

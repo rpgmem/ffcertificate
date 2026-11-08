@@ -31,6 +31,57 @@ jQuery(document).ready(function($) {
         }, 2000);
     });
 
+    // ========================================
+    // Amend an answer on its own row (#2354, #2356)
+    // ========================================
+    // One editor, printed hidden; a pencil moves it under its answer, names
+    // the answer in the hidden field and fills in the current value.
+    var $editor = $('#ffc-correct-inline');
+
+    // The editor's inputs post through the correction form, or through the
+    // grading form when the answer is an open one awaiting grading: then the
+    // amendment rides the grading save (#2356).
+    var $inputs = $('#ffc-correct-field, #ffc-correct-value, #ffc-correct-reason');
+    var $gradeSave = $('.ffc-grade-save');
+    var gradeLabel = $gradeSave.text();
+
+    function rideGrading(on) {
+        $inputs.attr('form', on ? 'ffc-grade-form' : 'ffc-correct-form');
+        $editor.find('.ffc-amend-own').prop('hidden', on);
+        $editor.find('.ffc-amend-with-grade').prop('hidden', !on);
+        if ($gradeSave.attr('data-label-amend')) {
+            $gradeSave.text(on ? $gradeSave.attr('data-label-amend') : gradeLabel);
+        }
+    }
+
+    function closeCorrection() {
+        var $open = $('.ffc-correct-open[aria-expanded="true"]');
+        $editor.prop('hidden', true);
+        $('#ffc-correct-field').val('');
+        rideGrading(false);
+        $open.attr('aria-expanded', 'false');
+        return $open;
+    }
+
+    $('.ffc-correct-open').on('click', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        closeCorrection();
+        $btn.closest('.ffc-facts__value').append($editor);
+        $('#ffc-correct-field').val($btn.attr('data-field'));
+        $('#ffc-correct-value').val($btn.attr('data-value'));
+        $('#ffc-correct-reason').val('');
+        rideGrading('ffc-grade-form' === $btn.attr('data-form'));
+        $editor.prop('hidden', false);
+        $btn.attr('aria-expanded', 'true');
+        $('#ffc-correct-value').trigger('focus');
+    });
+
+    $('.ffc-correct-cancel').on('click', function(e) {
+        e.preventDefault();
+        closeCorrection().trigger('focus');
+    });
+
     // Reveal PII (#739 §3.3) is handled by the shared ffc-pii-reveal.js.
 
     // ========================================

@@ -303,6 +303,58 @@ class BatchedCsvExportTest extends TestCase {
 		}
 	}
 
+	/**
+	 * #2341 — a job is driven only by the source that started it: the type
+	 * the request names must be the stored job's.
+	 */
+	public function test_batch_refuses_a_job_of_another_type(): void {
+		$this->store['ffct_job-1'] = array(
+			'type'      => 'other',
+			'filters'   => array(),
+			'context'   => array(),
+			'cursor'    => PHP_INT_MAX,
+			'processed' => 0,
+			'total'     => 2,
+			'file'      => $this->tmp_base . '/other.csv',
+			'filename'  => 'other.csv',
+			'user_id'   => 1,
+		);
+		$_POST['job_id'] = 'job-1';
+
+		$captured = null;
+		try {
+			$this->engine()->handle_batch( $this->make_source( array( array( 'id' => 1, 'v' => 'x' ) ), 1 ) );
+		} catch ( JsonHalt $e ) {
+			$captured = $e;
+		}
+		unset( $_POST['job_id'] );
+
+		$this->assertSame( 'error', $captured->kind );
+		$this->assertSame( PHP_INT_MAX, $this->store['ffct_job-1']['cursor'], 'The job was not advanced.' );
+	}
+
+	public function test_download_refuses_a_job_of_another_type(): void {
+		$file = $this->tmp_base . '/other-dl.csv';
+		file_put_contents( $file, "A;B\n" );
+		$this->store['ffct_job-1'] = array(
+			'type'     => 'other',
+			'file'     => $file,
+			'filename' => 'x.csv',
+			'user_id'  => 1,
+		);
+		$_GET['job_id'] = 'job-1';
+
+		try {
+			$this->engine()->handle_download( $this->make_source( array(), 0 ) );
+			$this->fail( 'expected wp_die' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'wp_die', $e->getMessage() );
+		} finally {
+			unset( $_GET['job_id'] );
+		}
+		$this->assertFileExists( $file, 'Nothing was delivered.' );
+	}
+
 	// ==================================================================
 	// handle_download()
 	// ==================================================================
@@ -321,6 +373,7 @@ class BatchedCsvExportTest extends TestCase {
 
 	public function test_download_dies_when_file_missing(): void {
 		$this->store['ffct_job-1'] = array(
+			'type'     => 'fake',
 			'file'     => '/no/such/ffc-file.csv',
 			'filename' => 'x.csv',
 			'user_id'  => 1,

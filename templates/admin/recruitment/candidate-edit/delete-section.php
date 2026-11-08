@@ -27,8 +27,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-delete">' . esc_html__( 'Hard-delete candidate', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 
 if ( $classification_count > 0 ) {
@@ -37,7 +35,7 @@ if ( $classification_count > 0 ) {
 		esc_html__( 'Blocked: this candidate is referenced by %d classification(s). Delete those first (or leave them — historical records survive).', 'ffcertificate' ),
 		(int) $classification_count
 	) . '</p>';
-	echo '</div></div>';
+	echo '</div>';
 	return;
 }
 
@@ -91,4 +89,4 @@ echo '<p class="submit">';
 echo '</p>';
 echo '</form>';
 
-echo '</div></div>';
+echo '</div>';

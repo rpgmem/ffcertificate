@@ -163,7 +163,62 @@ class RateLimitPersistenceTest extends TestCase {
 		$result = RateLimiter::check_ip_limit( '198.51.100.7' );
 		$this->assertFalse( $result['allowed'] );
 		$this->assertSame( 'ip_hour_limit', $result['reason'] );
-		$this->assertSame( 3, RateCounter::get( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.7' ) ) . '_hour' ) );
+		$this->assertSame( 3, RateCounter::get( RateCounter::windowed( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '198.51.100.7' ) ) . '_hour', HOUR_IN_SECONDS ) ) );
+	}
+
+	public function test_failed_captchas_spend_the_address_budget(): void {
+		// Guessing the challenge used to cost nothing (#2339).
+		$this->configure(
+			array(
+				'ip' => array(
+					'enabled'          => true,
+					'max_per_hour'     => 2,
+					'max_per_day'      => 1000,
+					'cooldown_seconds' => 0,
+				),
+			)
+		);
+		$_SERVER['REMOTE_ADDR'] = '198.51.100.8';
+
+		\FreeFormCertificate\Security\RateLimitChecker::record_captcha_failure( array( 'form_id' => '7' ) );
+		\FreeFormCertificate\Security\RateLimitChecker::record_captcha_failure( array( 'form_id' => '7' ) );
+
+		$this->assertSame( 'ip_hour_limit', RateLimiter::check_ip_limit( '198.51.100.8', 7 )['reason'] ?? null );
+		$this->assertTrue( RateLimiter::check_ip_limit( '198.51.100.8', 8 )['allowed'], 'Another form keeps its own budget.' );
+		unset( $_SERVER['REMOTE_ADDR'] );
+	}
+
+	/**
+	 * @dataProvider unresolved_policies
+	 */
+	public function test_an_unresolved_address_follows_the_administrator_choice( string $policy, bool $limited ): void {
+		// Every caller whose address cannot be read arrives as 0.0.0.0 and
+		// shared one count; letting them through is now a choice (#2339).
+		$this->configure(
+			array(
+				'ip' => array(
+					'enabled'               => true,
+					'max_per_hour'          => 1,
+					'max_per_day'           => 1000,
+					'cooldown_seconds'      => 0,
+					'submission_unresolved' => $policy,
+				),
+			)
+		);
+
+		RateLimiter::record_attempt( 'ip', \FreeFormCertificate\Core\ClientIpResolver::UNKNOWN );
+
+		$this->assertSame( ! $limited, RateLimiter::check_ip_limit( \FreeFormCertificate\Core\ClientIpResolver::UNKNOWN )['allowed'] );
+	}
+
+	/**
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public static function unresolved_policies(): array {
+		return array(
+			'count together' => array( 'share', true ),
+			'let through'    => array( 'allow', false ),
+		);
 	}
 
 	public function test_ip_cooldown_holds_across_requests(): void {

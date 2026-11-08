@@ -113,8 +113,11 @@ class TabTemplates extends SettingsTab {
 	 * @return void
 	 */
 	private function render_current_assignments(): void {
-		$can_reregistration = Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' );
-		$can_scheduling     = Capabilities::current_user_can_admin_or( 'ffc_view_audiences' );
+		// A row whose module is off would link to a screen that is gone (#2338).
+		$can_reregistration = \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'reregistration' )
+			&& Capabilities::current_user_can_admin_or( 'ffc_view_reregistration' );
+		$can_scheduling     = \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'self_scheduling' )
+			&& Capabilities::current_user_can_admin_or( 'ffc_view_audiences' );
 
 		if ( ! $can_reregistration && ! $can_scheduling ) {
 			return;
@@ -253,6 +256,11 @@ class TabTemplates extends SettingsTab {
 		</p>
 		</div>
 
+		<?php
+		// The receipt and record kinds belong to modules that can be off
+		// (#2338); their cards go with them.
+		if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'self_scheduling' ) ) :
+			?>
 		<div class="card">
 		<h2 class="ffc-icon-calendar"><?php esc_html_e( 'Appointment receipts', 'ffcertificate' ); ?></h2>
 		<p>
@@ -282,7 +290,9 @@ class TabTemplates extends SettingsTab {
 			</span>
 		</p>
 		</div>
+		<?php endif; ?>
 
+		<?php if ( \FreeFormCertificate\Settings\SettingsReader::module_enabled( 'reregistration' ) ) : ?>
 		<div class="card">
 		<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Records (reregistration)', 'ffcertificate' ); ?></h2>
 		<p>
@@ -312,6 +322,7 @@ class TabTemplates extends SettingsTab {
 			</span>
 		</p>
 		</div>
+		<?php endif; ?>
 		</div><!-- .ffc-settings-wrap -->
 		<?php
 	}

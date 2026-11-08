@@ -203,7 +203,7 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function request( array $fields ): array {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'form:1' );
 
 		return array(
 			'action'           => 'ffc_submit_form',
@@ -211,6 +211,7 @@ class FormProcessorRequiredPresenceOrderTest extends TestCase {
 			'form_id'          => 1,
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		) + $fields;
 	}
 

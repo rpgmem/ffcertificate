@@ -55,6 +55,9 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		global $wpdb;
 		$wpdb             = Mockery::mock( 'wpdb' );
@@ -93,6 +96,7 @@ final class AudienceMembershipCapabilityTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		Mockery::close();
 		parent::tearDown();

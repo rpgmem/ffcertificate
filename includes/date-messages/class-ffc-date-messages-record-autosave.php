@@ -105,9 +105,9 @@ class DateMessagesRecordAutosave {
 			return $changed;
 		}
 
-		// Activating an announcement with a future send time arms its send,
-		// which takes the right to send, as it does in the editor.
-		if ( DateMessagesAdminPage::schedules_a_send( $changed, $rule ) && ! DateMessagesAdminPage::can_send() ) {
+		// Activating a rule decides who is sent to, which takes the right to
+		// send, as it does in the editor (#2336).
+		if ( DateMessagesAdminPage::needs_send_cap( $changed, $rule ) && ! DateMessagesAdminPage::can_send() ) {
 			return new \WP_Error( 'ffc_record_not_saved', DateMessagesAdminPage::send_refusal() );
 		}
 

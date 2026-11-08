@@ -210,6 +210,30 @@ class SelfSchedulingShortcodeTest extends TestCase {
 	// enqueue_assets() — full enqueue path
 	// ==================================================================
 
+	public function test_a_calendar_rendered_outside_the_post_body_enqueues_once(): void {
+		// An archive, a widget area, a block template part (#2344).
+		Functions\when( 'is_singular' )->justReturn( false );
+		Functions\when( 'is_page' )->justReturn( false );
+		global $post;
+		$post = null;
+
+		$scripts = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function ( $handle ) use ( &$scripts ) {
+			$scripts[] = $handle;
+		} );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+
+		$shortcode = new SelfSchedulingShortcode();
+		$this->assertFalse( $shortcode->enqueue_on_render( false, 'ffc_self_scheduling' ) );
+		$this->assertContains( 'ffc-calendar-frontend', $scripts );
+
+		$scripts = array();
+		$shortcode->enqueue_on_render( false, 'ffc_self_scheduling' );
+		$shortcode->enqueue_on_render( false, 'gallery' );
+		$shortcode->enqueue_assets();
+		$this->assertSame( array(), $scripts, 'Enqueued once per request, whatever asks again.' );
+	}
+
 	public function test_enqueue_assets_enqueues_when_shortcode_present(): void {
 		Functions\when( 'is_singular' )->justReturn( true );
 		Functions\when( 'has_shortcode' )->justReturn( true );
@@ -314,6 +338,32 @@ class SelfSchedulingShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-self-scheduling-form', $result );
 		// Calendar config JSON is emitted.
 		$this->assertStringContainsString( 'ffc-calendar-config-42', $result );
+	}
+
+	public function test_render_calendar_without_the_panel_prints_no_wrapper(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar() )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringNotContainsString( 'ffc-event-list-panel', $result );
+		$this->assertStringNotContainsString( 'ffc-calendar-wrapper', $result );
+		$this->assertStringContainsString( '"showPanel":false', $result );
+	}
+
+	public function test_render_calendar_prints_the_free_slots_panel_beside_the_month(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar( array( 'show_event_list' => '1', 'event_list_position' => 'side' ) ) )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( 'class="ffc-shortcode ffc-calendar-wrapper ffc-has-event-list ffc-event-list-side"', $result );
+		$this->assertSame( 1, substr_count( $result, 'id="ffc-event-list-panel"' ) );
+		$this->assertStringContainsString( 'Free Slots', $result );
+		$this->assertStringContainsString( '"showPanel":true', $result );
+		// The panel is the calendar's sibling inside the wrapper, after it.
+		$this->assertGreaterThan( strpos( $result, 'data-calendar-id="42"' ), strpos( $result, 'id="ffc-event-list-panel"' ) );
+		$this->assertStringEndsWith( '<!-- .ffc-calendar-wrapper -->', trim( preg_replace( '#<script type="application/json".*?</script>#s', '', $result ) ) );
+	}
+
+	public function test_render_calendar_prints_the_free_slots_panel_below_the_month(): void {
+		$result = $this->shortcode_with_calendar( $this->make_calendar( array( 'show_event_list' => '1', 'event_list_position' => 'below' ) ) )->render_calendar( array( 'id' => 100 ) );
+
+		$this->assertStringContainsString( 'ffc-event-list-below', $result );
 	}
 
 	public function test_render_calendar_shows_approval_notice_when_required(): void {

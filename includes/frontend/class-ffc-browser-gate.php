@@ -79,7 +79,7 @@ class BrowserGate {
 		return Notice::render(
 			'warning',
 			'warning',
-			__( 'This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate.', 'ffcertificate' ),
+			__( 'This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your document.', 'ffcertificate' ),
 			__( 'JavaScript is off', 'ffcertificate' ),
 			array( 'hook' => self::NOSCRIPT_HOOK )
 		);
@@ -159,14 +159,14 @@ class BrowserGate {
 			'browsersOther'        => __( 'Chrome, Firefox, Edge or Safari', 'ffcertificate' ),
 			'inAppTitle'           => __( 'Open this page in your browser', 'ffcertificate' ),
 			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
-			'inAppBody'            => __( 'You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s.', 'ffcertificate' ),
+			'inAppBody'            => __( 'You are viewing this page inside an app, where your location and the document download often fail. Open it in %s.', 'ffcertificate' ),
 			'inAppHowIos'          => __( 'Tap the menu (••• or the share icon) and choose "Open in Safari" or "Open in browser".', 'ffcertificate' ),
 			'inAppHowAndroid'      => __( 'Or tap the menu (⋮) and choose "Open in browser".', 'ffcertificate' ),
 			'openInChrome'         => __( 'Open in Chrome', 'ffcertificate' ),
 			'continueAnyway'       => __( 'Continue anyway', 'ffcertificate' ),
 			'browserFeaturesTitle' => __( 'This browser cannot run the form', 'ffcertificate' ),
 			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
-			'browserFeaturesBody'  => __( 'This browser is missing features the form needs to issue your certificate. Open this page in %s.', 'ffcertificate' ),
+			'browserFeaturesBody'  => __( 'This browser is missing features the form needs to issue your document. Open this page in %s.', 'ffcertificate' ),
 		);
 	}
 

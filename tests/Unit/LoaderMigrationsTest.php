@@ -209,6 +209,7 @@ class LoaderMigrationsTest extends TestCase {
 			'activity log' => array( 'ensure_activity_log_export_cap_granted', 'ffc_activity_log_export_cap_v1', 'ffc_view_activity_log', 'ffc_export_activity_log', true ),
 			'url shortener export' => array( 'ensure_url_shortener_export_cap_granted', 'ffc_url_shortener_export_cap_v1', 'ffc_manage_url_shortener', 'ffc_export_url_shortener', true ),
 			'date messages send' => array( 'ensure_date_messages_send_cap_granted', 'ffc_date_messages_send_cap_v1', 'ffc_manage_date_messages', 'ffc_send_date_messages', true ),
+			'date messages delete' => array( 'ensure_date_messages_delete_cap_granted', 'ffc_date_messages_delete_cap_v1', 'ffc_manage_date_messages', 'ffc_delete_date_messages', true ),
 			'reregistration pii'   => array( 'ensure_reregistration_pii_cap_granted', 'ffc_reregistration_pii_cap_v1', 'ffc_manage_reregistration', 'ffc_view_reregistration_pii', true ),
 			'audiences pii'        => array( 'ensure_audiences_pii_cap_granted', 'ffc_audiences_pii_cap_v1', 'ffc_manage_audiences', 'ffc_view_audiences_pii', true ),
 			'ip pii'               => array( 'ensure_ip_pii_caps_granted', 'ffc_ip_pii_caps_v1', 'ffc_view_activity_log', 'ffc_view_activity_log_pii', true ),
@@ -217,7 +218,100 @@ class LoaderMigrationsTest extends TestCase {
 	}
 
 	// ==================================================================
+	// run_capability_migrations() — where and how often they run (#2340)
+	// ==================================================================
+
+	/**
+	 * Stub the request context and the lock store.
+	 *
+	 * @param bool $admin Whether the request is in wp-admin.
+	 */
+	private function context( bool $admin ): void {
+		Functions\when( 'is_admin' )->justReturn( $admin );
+		Functions\when( 'wp_doing_cron' )->justReturn( false );
+		Functions\when( 'add_option' )->alias(
+			function ( $key, $value ) {
+				if ( array_key_exists( $key, $this->options ) ) {
+					return false;
+				}
+				$this->options[ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			function ( $key ) {
+				unset( $this->options[ $key ] );
+				return true;
+			}
+		);
+		// Everything else is already migrated, so only the probe migration runs.
+		foreach ( array_column( self::migration_method_provider(), 1 ) as $flag ) {
+			$this->options[ $flag ] = '1';
+		}
+		foreach ( array( 'ffc_admin_caps_version_v6', 'ffc_admin_role_assigned_v2', 'ffc_rbac_caps_renamed_v1', 'ffc_rbac_roles_renamed_v1', 'ffc_false_ffc_caps_stripped_v1', 'ffc_email_templates_cap_v1', 'ffc_identities_cap_v1', 'ffc_identity_verbs_cap_v1', 'ffc_grade_cap_v1' ) as $flag ) {
+			$this->options[ $flag ] = defined( 'FFC_VERSION' ) && 'ffc_admin_caps_version_v6' === $flag ? FFC_VERSION : '1';
+		}
+		unset( $this->options['ffc_delete_caps_granted_v1'] );
+	}
+
+	public function test_capability_migrations_never_run_in_a_front_end_request(): void {
+		$this->context( false );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertArrayNotHasKey( 'ffc_delete_certificates', $role->capabilities );
+		$this->assertArrayNotHasKey( 'ffc_delete_caps_granted_v1', $this->options );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options );
+	}
+
+	public function test_capability_migrations_run_in_wp_admin_and_release_the_lock(): void {
+		$this->context( true );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertTrue( $role->capabilities['ffc_delete_certificates'] ?? false );
+		$this->assertSame( '1', $this->options['ffc_delete_caps_granted_v1'] ?? null );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options, 'The lock is released after the run.' );
+	}
+
+	public function test_a_concurrent_request_skips_while_the_lock_is_held(): void {
+		$this->context( true );
+		$this->options[ Loader::CAPABILITY_MIGRATIONS_LOCK ] = (string) ( time() - 30 );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertArrayNotHasKey( 'ffc_delete_certificates', $role->capabilities );
+		$this->assertArrayHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options, 'Another request\'s lock is not released.' );
+	}
+
+	public function test_a_lock_left_by_a_request_that_died_is_taken_over(): void {
+		$this->context( true );
+		$this->options[ Loader::CAPABILITY_MIGRATIONS_LOCK ] = (string) ( time() - 3600 );
+		$role = $this->store_role( self::PROBE, array( 'ffc_manage_certificates' => true ) );
+
+		$this->invoke_private( new Loader(), 'run_capability_migrations' );
+
+		$this->assertTrue( $role->capabilities['ffc_delete_certificates'] ?? false );
+		$this->assertArrayNotHasKey( Loader::CAPABILITY_MIGRATIONS_LOCK, $this->options );
+	}
+
+	// ==================================================================
 	// ensure_role_tiers_applied() / ensure_module_role_labels_applied()
+	public function test_capability_migrations_wait_for_init_after_the_roles(): void {
+		// They register roles, whose labels call __(); before `init`,
+		// WordPress 6.7+ reports the translation as loaded too early (#2340).
+		$method = new \ReflectionMethod( Loader::class, 'init_plugin' );
+		$lines  = file( (string) $method->getFileName() );
+		$body   = implode( '', array_slice( (array) $lines, $method->getStartLine() - 1, $method->getEndLine() - $method->getStartLine() + 1 ) );
+
+		$this->assertStringContainsString( "add_action( 'init', array( \$this, 'run_capability_migrations' ), 2 );", $body );
+		$this->assertStringContainsString( "add_action( 'init', array( \$this, 'register_ffc_roles_safe' ), 1 );", $body );
+		$this->assertStringNotContainsString( '$this->run_capability_migrations()', $body, 'Not run on plugins_loaded.' );
+	}
+
 	// #1860: run from register_ffc_roles_safe() on init, after the seeds.
 	// ==================================================================
 

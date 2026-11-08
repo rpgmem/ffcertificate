@@ -107,7 +107,7 @@ class PiiExportTest extends TestCase {
 		// The activity log on, every level and category logged, no debug area
 		// on: get_option is stubbed so the branch does not depend on order.
 		Functions\when( 'get_option' )->alias(
-			static fn( $key, $default = false ) => 'ffc_settings' === $key ? array( 'enable_activity_log' => 1 ) : $default
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
 		);
 		Functions\when( 'apply_filters' )->returnArg( 2 );
 		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );

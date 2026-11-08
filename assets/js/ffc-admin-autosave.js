@@ -331,7 +331,12 @@
                 }
                 return false;
             }
-            window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
+            // The settings path posts to the URL the screen localized, so a
+            // screen that never received `ffc_ajax` does not fall back to a
+            // root-relative admin-ajax.php that a WordPress in a subdirectory
+            // does not have (#2503).
+            var request = config.request || (autosaveCfg && autosaveCfg.ajaxUrl ? { ajaxUrl: autosaveCfg.ajaxUrl } : undefined);
+            window.FFC.request(config.action || 'ffc_update_setting', payload, request)
                 .then(function (data) {
                     if (settle()) {
                         return;
@@ -362,6 +367,14 @@
                     return;
                 }
             }
+            // The mirror case (#2338): a toggle whose ON deletes data, such
+            // as submission auto-delete, asks before it saves.
+            if (config.confirmOn && $field.is(':checkbox') && $field.is(':checked')) {
+                if (!window.confirm(config.confirmOn)) {
+                    $field.prop('checked', false);
+                    return;
+                }
+            }
             scheduleSave();
         }
 
@@ -371,7 +384,7 @@
         // Confirm-on-disable toggles bind to `change` only — a checkbox fires
         // both `input` and `change`, and a double-bound confirm would prompt
         // twice per click.
-        var changeEvents = config.confirmOff ? 'change.ffcAutoSave' : 'change.ffcAutoSave input.ffcAutoSave';
+        var changeEvents = (config.confirmOff || config.confirmOn) ? 'change.ffcAutoSave' : 'change.ffcAutoSave input.ffcAutoSave';
         $changeSource.on(changeEvents, onChange);
 
         return {
@@ -509,6 +522,10 @@
             var confirmOff = $input.attr('data-ffc-confirm-off');
             if (confirmOff) {
                 config.confirmOff = confirmOff;
+            }
+            var confirmOn = $input.attr('data-ffc-confirm-on');
+            if (confirmOn) {
+                config.confirmOn = confirmOn;
             }
             if (isRadio) {
                 var $radios = $('[' + attr + '="' + key + '"]:radio');

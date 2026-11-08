@@ -21,6 +21,12 @@ class FrontendShortcodesTest extends TestCase {
 
 	private Shortcodes $shortcodes;
 
+	/** @var bool Whether the consumed-exception ledger holds every token (#2341). */
+	private bool $ledger_consumed = false;
+
+	/** @var mixed The `$wpdb` before the test, restored after it. */
+	private $previous_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -65,6 +71,18 @@ class FrontendShortcodesTest extends TestCase {
 		Functions\when( 'wp_salt' )->justReturn( 'test-nonce-salt' );
 		Functions\when( 'is_ssl' )->justReturn( false );
 		Functions\when( 'setcookie' )->justReturn( true );
+		Functions\when( 'headers_sent' )->justReturn( false );
+		Functions\when( 'home_url' )->justReturn( 'http://example.test' );
+		Functions\when( 'wp_parse_url' )->alias( static fn( $url, $part = -1 ) => parse_url( $url, $part ) );
+		// The consumed-exception ledger is read from the options table, not
+		// the options cache (#2341).
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		$this->ledger_consumed = false;
+		$wpdb                  = \Mockery::mock( 'wpdb' );
+		$wpdb->options         = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => vsprintf( str_replace( '%s', "'%s'", (string) $sql ), $args ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $sql ) => $this->ledger_consumed && false !== strpos( (string) $sql, 'ffc_sched_exc_used_' ) ? '1' : null );
+		$GLOBALS['wpdb'] = $wpdb;
 		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
 		// render_form() now reads RateLimiter::get_settings() unconditionally
 		// (to decide the LGPD device notice in the global-ON + form-OFF gap),
@@ -84,6 +102,7 @@ class FrontendShortcodesTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		unset( $_GET['token'], $_GET['ffc_invite'] );
 		$_COOKIE = array();
 		$this->reset_rate_limit_cache();
@@ -157,10 +176,10 @@ class FrontendShortcodesTest extends TestCase {
 	public function test_generate_security_fields_contains_honeypot_and_captcha(): void {
 		Functions\when( 'wp_rand' )->justReturn( 3 );
 
-		$html = $this->shortcodes->generate_security_fields();
+		$html = $this->shortcodes->generate_security_fields( 'verify' );
 
 		$this->assertStringContainsString( 'ffc-honeypot-field', $html );
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 		$this->assertStringContainsString( 'ffc_captcha_ans', $html );
 		$this->assertStringContainsString( 'ffc_captcha_hash', $html );
 
@@ -180,7 +199,7 @@ class FrontendShortcodesTest extends TestCase {
 		// rejected as a bot. The tempered-dot regex asserts the input sits
 		// inside a single <label>…</label> with no closing tag in between.
 		$this->assertMatchesRegularExpression(
-			'#<label[^>]*>(?:(?!</label>).)*name="ffc_honeypot_trap"(?:(?!</label>).)*</label>#s',
+			'#<label[^>]*>(?:(?!</label>).)*name="ffc_hp_x7"(?:(?!</label>).)*</label>#s',
 			$html,
 			'honeypot input must be inside its <label> for an accessible association'
 		);
@@ -370,7 +389,7 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'textarea', $html );
 		$this->assertStringContainsString( 'ffc-lgpd-consent', $html );
 		$this->assertStringContainsString( 'ffc-submit-btn', $html );
-		$this->assertStringContainsString( 'ffc_honeypot_trap', $html );
+		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 
 		// The Submit is a family button (#1880): primary with the check icon,
 		// full width, and `ffc-submit-btn` kept as the hook scripts read.
@@ -593,14 +612,30 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'Filling in as Ana Souza, for Workshop.', $html );
 	}
 
-	public function test_a_refused_invitation_shows_why_and_no_form(): void {
+	public function test_a_refused_invitation_on_an_invite_only_form_says_why_and_whom_to_ask(): void {
 		$_GET['ffc_invite'] = 'bad';
 		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'closed', 'The period to fill in this form has ended.' ) );
 
-		$html = $this->render_invite_form( false );
+		$html = $this->render_invite_form( true );
 
 		$this->assertStringContainsString( 'The period to fill in this form has ended.', $html );
+		$this->assertStringContainsString( 'contact whoever sent you the invitation', $html );
 		$this->assertStringNotContainsString( '<form', $html );
+	}
+
+	public function test_a_dead_invitation_on_an_open_form_shows_the_form_unfilled(): void {
+		// #2341: a form open to everyone does not need the link, so an old
+		// one shows the form as anyone else sees it, with a notice.
+		$_GET['ffc_invite'] = 'bad';
+		Filters\expectApplied( 'ffcertificate_form_invite' )->andReturn( new \WP_Error( 'invalid', 'This invitation link is not valid.' ) );
+
+		$html = $this->render_invite_form( false );
+
+		$this->assertStringContainsString( '<form', $html );
+		$this->assertStringContainsString( 'The invitation link is not needed', $html );
+		$this->assertStringNotContainsString( 'name="ffc_invite"', $html, 'The dead code is not posted.' );
+		$this->assertStringNotContainsString( 'readonly', $html, 'Nothing is filled in or locked.' );
+		$this->assertStringNotContainsString( 'not valid', $html );
 	}
 
 	public function test_an_invite_only_form_shows_nothing_without_an_invitation(): void {
@@ -869,14 +904,7 @@ class FrontendShortcodesTest extends TestCase {
 		$_COOKIE['ffc_exception_42'] = $token;
 
 		// Force the ledger to report ANY consumed-marker lookup as present.
-		Functions\when( 'get_option' )->alias(
-			function ( $key, $default = false ) {
-				if ( is_string( $key ) && 0 === strpos( $key, 'ffc_sched_exc_used_' ) ) {
-					return '1'; // marker present → consumed.
-				}
-				return array();
-			}
-		);
+		$this->ledger_consumed = true;
 
 		$html = $this->render_form_with();
 
@@ -972,7 +1000,7 @@ class FrontendShortcodesTest extends TestCase {
 	 * @return array<string, array<string, mixed>>
 	 */
 	private static function allowed_differences( array $baseline ): array {
-		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your certificate.</p></div></div>';
+		$noscript = '<div class="ffc-notice ffc-notice-warning" role="status" data-ffc-notice="noscript"><span class="ffc-notice-icon ffc-icon-warning" aria-hidden="true"></span><div class="ffc-notice-body"><strong class="ffc-notice-title">JavaScript is off</strong><p class="ffc-notice-text">This form needs JavaScript, which is turned off in this browser. Turn it on, or open this page in another browser, to get your document.</p></div></div>';
 
 		foreach ( $baseline as $name => $record ) {
 			$record['form'] = str_replace( '" autocomplete="off"', '" method="post" autocomplete="off"', (string) $record['form'] );

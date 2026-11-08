@@ -248,24 +248,33 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 				</tr>
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
+						<label for="cleanup_enabled"><?php esc_html_e( 'Auto-delete old submissions', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
+						$ffcertificate_cleanup_dz = \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings_dangerzone' );
 						\FreeFormCertificate\Admin\AdminUI::render_toggle(
 							array(
-								'name'    => 'ffc_settings[cleanup_enabled]',
-								'id'      => 'cleanup_enabled',
-								'checked' => (bool) $ffcertificate_get_option( 'cleanup_enabled', false ),
-								'label'   => __( 'Enable automatic deletion', 'ffcertificate' ),
-								'data'    => array( 'ffc-autosave-key' => 'cleanup_enabled' ),
+								'name'     => 'ffc_settings[cleanup_enabled]',
+								'id'       => 'cleanup_enabled',
+								'checked'  => (bool) $ffcertificate_get_option( 'cleanup_enabled', false ),
+								// Deleting data needs the Danger Zone capability (#2338).
+								'disabled' => ! $ffcertificate_cleanup_dz,
+								'label'    => __( 'Enable automatic deletion', 'ffcertificate' ),
+								'data'     => array(
+									'ffc-autosave-key' => 'cleanup_enabled',
+									'ffc-confirm-on'   => __( 'Turn on automatic deletion? On the next daily run, every published submission older than the window below is permanently deleted.', 'ffcertificate' ),
+								),
 							)
 						);
 						?>
 						<p class="ffc-cleanup-days-row">
 							<label for="cleanup_days"><?php esc_html_e( 'Delete after (days):', 'ffcertificate' ); ?></label>
-							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required>
+							<input type="number" name="ffc_settings[cleanup_days]" id="cleanup_days" value="<?php echo esc_attr( $ffcertificate_get_option( 'cleanup_days', 365 ) ); ?>" class="small-text" min="1" max="3650" data-ffc-autosave-key="cleanup_days" required<?php echo $ffcertificate_cleanup_dz ? '' : ' disabled'; ?>>
 						</p>
+						<?php if ( ! $ffcertificate_cleanup_dz ) : ?>
+							<p class="description ffc-icon-lock"><?php esc_html_e( 'Changing automatic deletion needs the Danger Zone capability.', 'ffcertificate' ); ?></p>
+						<?php endif; ?>
 						<p class="description">
 							<?php esc_html_e( 'When enabled, published submissions older than this many days are permanently deleted by the daily cleanup. Off by default — turning it on will delete existing submissions older than the window on the next run.', 'ffcertificate' ); ?>
 						</p>
@@ -274,7 +283,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 
 				<tr>
 					<th scope="row">
-						<label><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></label>
+						<label for="validate_rf_check_digit"><?php esc_html_e( 'RF check digit', 'ffcertificate' ); ?></label>
 					</th>
 					<td>
 						<?php
@@ -549,7 +558,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		<tbody>
 			<tr>
 				<th scope="row">
-					<label><?php esc_html_e( 'Fill the address from the CEP', 'ffcertificate' ); ?></label>
+					<label for="cep_lookup_enabled"><?php esc_html_e( 'Fill the address from the CEP', 'ffcertificate' ); ?></label>
 				</th>
 				<td>
 					<?php
@@ -564,7 +573,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 					);
 					?>
 					<p class="description">
-						<?php esc_html_e( 'On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 5. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider.', 'ffcertificate' ); ?>
+						<?php esc_html_e( 'On the reregistration form and the admin user screen, a CEP that passes the offline check is looked up and the address filled in. The search takes at least 3 seconds, on purpose, so the person sees what is about to change, and at most 6. Filled fields stay editable, number and complement are never touched, and a field the service returns empty keeps what was typed. If the CEP is not found or the services are down, nothing is blocked. Off by default: each CEP typed is sent to the provider.', 'ffcertificate' ); ?>
 					</p>
 				</td>
 			</tr>
@@ -621,7 +630,7 @@ $ffcertificate_show_divergence = $ffcertificate_date_diverges || $ffcertificate_
 		</tbody>
 	</table>
 	<p class="description ffc-icon-info">
-		<?php esc_html_e( 'No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form\'s lookups are limited per address. The visitor\'s browser never talks to these services.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'No key is needed. The server must reach viacep.com.br and brasilapi.com.br over HTTPS. Each CEP looked up is cached for 30 days, and the form\'s lookups are limited per IP address. The visitor\'s browser never talks to these services.', 'ffcertificate' ); ?>
 	</p>
 </div>
 

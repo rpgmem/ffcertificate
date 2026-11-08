@@ -80,6 +80,7 @@ final class Icons {
 		'skip'           => '<path d="M5 5l9 7-9 7zM18 5v14"/>',
 		'logout'         => '<path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 8l4 4-4 4M19 12H9"/>',
 		'eye'            => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+		'eye-off'        => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>',
 		'link'           => '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
 
 		// Status.
@@ -242,6 +243,7 @@ final class Icons {
 		'error'          => 'error',
 		'external'       => 'external',
 		'eye'            => 'eye',
+		'eye-off'        => 'eye-off',
 		'file'           => 'file',
 		'file-check'     => 'file-check',
 		'filter'         => 'filter',
@@ -515,16 +517,28 @@ final class Icons {
 	 * keeps it out of the accessibility tree the way the emoji it replaced
 	 * were not. Sizes are in `em` so the icon scales with the text beside it.
 	 *
+	 * Each drawing is written once (#2344): the classes that share an icon
+	 * share one rule setting `--ffc-icon-image`, which both mask properties
+	 * read, and an icon already on `:root` as a {@see self::MASKS} property
+	 * reads that one instead of repeating its data URI.
+	 *
 	 * @return string
 	 */
 	public static function stylesheet(): string {
 		$selectors = array();
-		$rules     = array();
+		$by_icon   = array();
 		foreach ( self::CLASSES as $class => $icon ) {
-			$selector    = '.ffc-icon-' . $class . '::before';
-			$selectors[] = $selector;
-			$url         = 'url("data:image/svg+xml,' . self::data_uri_body( $icon ) . '")';
-			$rules[]     = $selector . " {\n    -webkit-mask-image: " . $url . ";\n    mask-image: " . $url . ";\n}";
+			$selector           = '.ffc-icon-' . $class . '::before';
+			$selectors[]        = $selector;
+			$by_icon[ $icon ][] = $selector;
+		}
+
+		$rules = array();
+		foreach ( $by_icon as $icon => $icon_selectors ) {
+			$image   = in_array( $icon, self::MASKS, true )
+				? 'var(--ffc-icon-mask-' . $icon . ')'
+				: 'url("data:image/svg+xml,' . self::data_uri_body( $icon ) . '")';
+			$rules[] = implode( ",\n", $icon_selectors ) . " {\n    --ffc-icon-image: " . $image . ";\n}";
 		}
 
 		$base = implode( ",\n", $selectors ) . " {\n"
@@ -536,6 +550,8 @@ final class Icons {
 			. "    margin-right: 0.4em;\n"
 			. "    vertical-align: -0.2em;\n"
 			. "    background-color: var(--ffc-icon-tone, currentColor);\n"
+			. "    -webkit-mask-image: var(--ffc-icon-image);\n"
+			. "    mask-image: var(--ffc-icon-image);\n"
 			. "    -webkit-mask-repeat: no-repeat;\n"
 			. "    mask-repeat: no-repeat;\n"
 			. "    -webkit-mask-position: center;\n"

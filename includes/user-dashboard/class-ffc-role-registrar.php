@@ -25,7 +25,115 @@ if ( ! defined( 'ABSPATH' ) ) {
 class RoleRegistrar {
 
 	/**
-	 * Keep `ffc_administrator` on every WordPress administrator, continuously.
+	 * Option holding the operator's changes to the FFC roles (#2340): per role,
+	 * the capabilities added to and removed from its shipped definition.
+	 */
+	public const OVERRIDES_OPTION = 'ffc_role_cap_overrides';
+
+	/**
+	 * The operator's changes to the FFC roles, per role slug.
+	 *
+	 * @return array<string, array{added: array<int, string>, removed: array<int, string>}>
+	 */
+	public static function overrides(): array {
+		$stored = get_option( self::OVERRIDES_OPTION, array() );
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( $stored as $slug => $entry ) {
+			if ( ! is_string( $slug ) || ! is_array( $entry ) ) {
+				continue;
+			}
+			$out[ $slug ] = array(
+				'added'   => self::cap_list( $entry['added'] ?? array() ),
+				'removed' => self::cap_list( $entry['removed'] ?? array() ),
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * Record one change made in the role editor against the role's shipped
+	 * definition, so `register_module_roles()` honours it on every later
+	 * request (#2340).
+	 *
+	 * A capability put back where the definition has it, or taken off where
+	 * the definition never had it, cancels the earlier change rather than
+	 * adding a second one.
+	 *
+	 * @param string $slug  Role slug.
+	 * @param string $cap   Capability.
+	 * @param bool   $grant True when granted, false when removed.
+	 * @return void
+	 */
+	public static function record_override( string $slug, string $cap, bool $grant ): void {
+		$definition = CapabilityManager::module_roles_definition()[ $slug ]['caps'] ?? array();
+		$shipped    = in_array( $cap, $definition, true );
+		$all        = self::overrides();
+		$entry      = $all[ $slug ] ?? array(
+			'added'   => array(),
+			'removed' => array(),
+		);
+
+		$entry['added']   = array_values( array_diff( $entry['added'], array( $cap ) ) );
+		$entry['removed'] = array_values( array_diff( $entry['removed'], array( $cap ) ) );
+		if ( $grant && ! $shipped ) {
+			$entry['added'][] = $cap;
+		} elseif ( ! $grant && $shipped ) {
+			$entry['removed'][] = $cap;
+		}
+
+		if ( array() === $entry['added'] && array() === $entry['removed'] ) {
+			unset( $all[ $slug ] );
+		} else {
+			$all[ $slug ] = $entry;
+		}
+		update_option( self::OVERRIDES_OPTION, $all );
+	}
+
+	/**
+	 * Forget the operator's changes to one role, as "Restore role default"
+	 * does once it has put the shipped definition back.
+	 *
+	 * @param string $slug Role slug.
+	 * @return void
+	 */
+	public static function clear_overrides( string $slug ): void {
+		$all = self::overrides();
+		if ( ! isset( $all[ $slug ] ) ) {
+			return;
+		}
+		unset( $all[ $slug ] );
+		update_option( self::OVERRIDES_OPTION, $all );
+	}
+
+	/**
+	 * Whether the operator removed a capability from a role in the editor.
+	 *
+	 * @param string $slug Role slug.
+	 * @param string $cap  Capability.
+	 * @return bool
+	 */
+	private static function is_removed( string $slug, string $cap ): bool {
+		return in_array( $cap, self::overrides()[ $slug ]['removed'] ?? array(), true );
+	}
+
+	/**
+	 * A list of capability slugs, strings only, without repeats.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return array<int, string>
+	 */
+	private static function cap_list( $value ): array {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+		return array_values( array_unique( array_filter( $value, 'is_string' ) ) );
+	}
+
+	/**
+	 * Give `ffc_administrator` to every WordPress administrator, once each.
 	 *
 	 * #747 moved the admin tier off the native `administrator` role and onto
 	 * `ffc_administrator`: it back-filled the role onto every administrator and
@@ -64,8 +172,13 @@ class RoleRegistrar {
 	 * because the method is idempotent.
 	 *
 	 * **The re-entry is intentional and terminates.** `add_role()` fires
-	 * `add_user_role`, which calls this method again; the second pass sees the
-	 * role already present and returns.
+	 * `add_user_role`, which calls this method again; the second pass finds
+	 * the per-user flag already written and returns.
+	 *
+	 * **Once per user and site** (#2340). The flag is written when the role is
+	 * given, or when the administrator is found already holding it, so taking
+	 * `ffc_administrator` off an administrator holds through every later role
+	 * change.
 	 *
 	 * @since 6.26.0
 	 * @param int $user_id WordPress user ID.
@@ -83,7 +196,16 @@ class RoleRegistrar {
 		if ( ! in_array( 'administrator', $roles, true ) ) {
 			return;
 		}
+		// Once per user and site (#2340): an operator who took
+		// `ffc_administrator` off an administrator meant it, and the next
+		// role change must not put it back.
+		$flag   = self::admin_role_synced_key();
+		$synced = get_user_meta( $user->ID, $flag, true );
+		if ( is_scalar( $synced ) && '' !== (string) $synced ) {
+			return;
+		}
 		if ( in_array( 'ffc_administrator', $roles, true ) ) {
+			update_user_meta( $user->ID, $flag, '1' );
 			return;
 		}
 		// A role that was never registered cannot be assigned: `add_role()`
@@ -94,7 +216,24 @@ class RoleRegistrar {
 			return;
 		}
 
+		update_user_meta( $user->ID, $flag, '1' );
 		$user->add_role( 'ffc_administrator' );
+	}
+
+	/**
+	 * User-meta key recording that an administrator was given
+	 * `ffc_administrator` on this site. Roles are per site, so on a network
+	 * the key carries the site id; it keeps the `ffc_` prefix the uninstall
+	 * sweep removes.
+	 *
+	 * @return string
+	 */
+	public static function admin_role_synced_key(): string {
+		$key = 'ffc_admin_role_synced';
+		if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+			$key .= '_' . get_current_blog_id();
+		}
+		return $key;
 	}
 
 	/**
@@ -219,7 +358,8 @@ class RoleRegistrar {
 			if ( ! isset( $existing_role->capabilities['read'] ) ) {
 				$existing_role->add_cap( 'read', true );
 			}
-			if ( ! isset( $existing_role->capabilities['ffc_manage_recruitment'] ) ) {
+			// Unless the operator removed it in the role editor (#2340).
+			if ( ! isset( $existing_role->capabilities['ffc_manage_recruitment'] ) && ! self::is_removed( CapabilityManager::RECRUITMENT_MANAGER_ROLE, 'ffc_manage_recruitment' ) ) {
 				$existing_role->add_cap( 'ffc_manage_recruitment', true );
 			}
 			return;
@@ -272,23 +412,31 @@ class RoleRegistrar {
 	 * @return void
 	 */
 	public static function register_module_roles(): void {
+		$overrides = self::overrides();
 		foreach ( CapabilityManager::module_roles_definition() as $slug => $def ) {
+			// A capability the operator removed in the role editor stays
+			// removed (#2340); it used to be re-added on the next request.
+			$removed  = $overrides[ $slug ]['removed'] ?? array();
 			$existing = get_role( $slug );
 			if ( $existing ) {
 				if ( ! isset( $existing->capabilities['read'] ) ) {
 					$existing->add_cap( 'read', true );
 				}
 				foreach ( $def['caps'] as $cap ) {
-					if ( ! isset( $existing->capabilities[ $cap ] ) ) {
+					if ( ! isset( $existing->capabilities[ $cap ] ) && ! in_array( $cap, $removed, true ) ) {
 						$existing->add_cap( $cap, true );
 					}
 				}
 				continue;
 			}
 
+			// A role recreated after it was deleted keeps the operator's
+			// changes, both ways.
 			$caps_map = array( 'read' => true );
-			foreach ( $def['caps'] as $cap ) {
-				$caps_map[ $cap ] = true;
+			foreach ( array_merge( $def['caps'], $overrides[ $slug ]['added'] ?? array() ) as $cap ) {
+				if ( ! in_array( $cap, $removed, true ) ) {
+					$caps_map[ $cap ] = true;
+				}
 			}
 			add_role( $slug, $def['label'], $caps_map );
 		}

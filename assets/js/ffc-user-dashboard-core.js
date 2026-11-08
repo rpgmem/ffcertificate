@@ -24,7 +24,7 @@
     // Calendar), one per section (#1836). They are not a viewer setting:
     // the upcoming items lead, so they get the most room, and the
     // cancelled ones the least.
-    var SECTION_PAGE_SIZES = { upcoming: 5, past: 3, cancelled: 2 };
+    var SECTION_PAGE_SIZES = { upcoming: 5, past: 3, cancelled: 2, messagesCurrent: 3, messagesEarlier: 3 };
 
     // A pager past this many pages shows the first, the last and the
     // current page with its neighbours, and an ellipsis for the rest.

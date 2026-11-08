@@ -69,8 +69,10 @@
     width: 40px;
     height: 40px;
     border-radius: var(--ffc-radius-md);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    /* The plugin's blue, as on the active menu item (#2486); the accent
+       family stays for categories (chips, the waitlist status). */
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
 }
 
 .ffc-section__text {
@@ -191,17 +193,29 @@
 .ffc-boxed .card {
     background: var(--ffc-bg-card);
     border: 1px solid var(--ffc-border);
-    border-radius: var(--ffc-radius-sm);
+    /* The one card (#2486): the corners and the flat look of the
+       collapsible section, so a box reads the same on every screen. */
+    border-radius: var(--ffc-radius-lg);
     padding: var(--ffc-spacing-2xl);
     margin-bottom: var(--ffc-spacing-2xl);
     min-width: 255px;
-    max-width: 1500px;
-    box-shadow: var(--ffc-shadow-sm);
+    /* Core's `.card` stops at 520px; ours fills its column, whose width the
+       screen's grid sets (#2486). No cap of its own: a fixed one left a
+       strip of unused width on wide screens. */
+    max-width: none;
 }
 
 .ffc-settings-wrap .card:last-child,
 .ffc-boxed .card:last-child {
     margin-bottom: 0;
+}
+
+/* A card that closes its own <form> is not the end of the column when
+   another form follows: keep its gap, or a stack of one-card forms reads
+   as cards glued together. */
+.ffc-settings-wrap form:not(:last-child) > .card:last-child,
+.ffc-boxed form:not(:last-child) > .card:last-child {
+    margin-bottom: var(--ffc-spacing-2xl);
 }
 
 .ffc-settings-wrap .card h2,
@@ -211,7 +225,7 @@
     margin-bottom: var(--ffc-spacing-xl);
     padding-bottom: var(--ffc-spacing-md);
     border-bottom: 1px solid var(--ffc-border-light);
-    font-size: var(--ffc-font-size-xl);
+    font-size: var(--ffc-font-size-lg);
     font-weight: 600;
     color: var(--ffc-text);
 }
@@ -263,7 +277,7 @@
 }
 
 .ffc-vtabs__nav {
-    flex: 0 0 200px;
+    flex: 0 0 var(--ffc-admin-nav-width);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -323,7 +337,8 @@
     color: var(--ffc-primary);
 }
 
-/* Validation-error signalling — wired on in a later sprint. */
+/* A tab whose panel holds a save error, set by `ffc-vertical-tabs.js`; the
+   colour is for sight, and the tab's hidden error text says it (#2344). */
 .ffc-vtabs__tab.has-error {
     color: var(--ffc-danger);
 }
@@ -376,7 +391,11 @@
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
 }
 
-.ffc-vtabs__panel-title {
+/* `#poststuff h2` (WordPress, on every post editor) zeroes the margin and
+   resets the padding and size of any h2 in a meta box; the id is what lets
+   the panel title keep its own space under the line there. */
+.ffc-vtabs__panel-title,
+#poststuff .ffc-vtabs__panel-title {
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
@@ -442,6 +461,32 @@
     }
 }
 
+/* High contrast (#2344): forced colours drop the active tab's ground and
+   tint, which were all that set it apart, and paint even a transparent
+   border. The resting tabs keep an edge in the page colour, so the active
+   one's edge, in the selection colour, is the difference, on the side the
+   layout draws it: left beside the panel, below on a narrow screen. */
+@media (forced-colors: active) {
+    .ffc-vtabs__tab {
+        border-left-color: Canvas;
+    }
+
+    .ffc-vtabs__tab.is-active {
+        border-left-color: Highlight;
+        font-weight: 700;
+    }
+}
+
+@media (forced-colors: active) and (max-width: 782px) {
+    .ffc-vtabs__tab {
+        border-bottom-color: Canvas;
+    }
+
+    .ffc-vtabs__tab.is-active {
+        border-bottom-color: Highlight;
+    }
+}
+
 /* Icon-only button tooltip (#1923). An icon-only button has no visible
    label, so its `title` is drawn on hover AND on keyboard focus: a tooltip
    only a pointer can reach is a label a keyboard user does not have (WCAG
@@ -486,4 +531,414 @@
    between them (#2050). */
 .ffc-pii-reveal-bar {
     clear: both;
+}
+
+/* A saved secret (#2342): the screen says one is saved and never shows it.
+   The row holds the badge and its button, or the empty field and Cancel. */
+.ffc-admin-page .ffc-secret-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-admin-page .ffc-secret-row[hidden] {
+    display: none;
+}
+
+.ffc-admin-page .ffc-secret-saved {
+    background: var(--ffc-success-bg);
+    color: var(--ffc-success-text);
+    font-weight: 600;
+}
+
+.ffc-admin-page .ffc-secret-reason {
+    color: var(--ffc-text-muted);
+}
+
+/* A calendar's own names (#2358). The table sits inside a settings row, so
+   core's `.form-table th` and `.form-table td` reach its cells: a 200px
+   top-aligned header with 20px of padding, and 15px around each field.
+   Its cells take one padding and one vertical alignment, so a column's
+   heading, its fields and the state names line up. */
+table.ffc-calendar-names-table th,
+table.ffc-calendar-names-table td {
+    width: auto;
+    padding: var(--ffc-spacing-xs) var(--ffc-spacing-sm);
+    vertical-align: middle;
+    line-height: 1.4;
+}
+
+table.ffc-calendar-names-table th {
+    font-weight: 600;
+}
+
+/* The table fits the field column whatever its width (#2486): fixed
+   layout, each field filling its cell, and the singular above the plural,
+   so the editor panel beside the side column never scrolls sideways. */
+table.ffc-calendar-names-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+table.ffc-calendar-names-table thead th:first-child {
+    width: 28%;
+}
+
+table.ffc-calendar-names-table input[type="text"] {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+}
+
+table.ffc-calendar-names-table .ffc-calendar-names-cell + .ffc-calendar-names-cell {
+    margin-top: var(--ffc-spacing-2xs);
+}
+
+/* ==========================================================================
+   EDITORS IN VERTICAL TABS (#1761, #2362)
+   An editor draws the vertical-tab component above inside a box of its
+   own, with a side column for Save and a summary. Shared by the audience
+   calendar and audience editors, the attendance screen, the reregistration
+   campaign and the recruitment candidate, so it lives here rather than in
+   one module's sheet. The component's negative margins fit a metabox's
+   inset, which this box does not have.
+   ========================================================================== */
+
+.ffc-editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
+    align-items: start;
+    margin-top: var(--ffc-spacing-xl);
+}
+
+.ffc-editor__main {
+    min-width: 0;
+}
+
+/* The menu and the open panel are two cards side by side, with no box
+   around both (#2486): the box drew a second border round every card the
+   panel held. Inside a metabox (the post editors) the component keeps its
+   inset look; only `.ffc-boxed` screens take this one. */
+.ffc-boxed .ffc-editor__tabs {
+    gap: var(--ffc-admin-gap);
+    margin: var(--ffc-spacing-xl) 0 0;
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav,
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__panels {
+    background: var(--ffc-bg-card);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-3xs);
+    padding: var(--ffc-spacing-xs);
+    /* The menu stays in view while the page scrolls, as the side column
+       does (#2486). */
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
+}
+
+.ffc-boxed .ffc-editor__tabs > .ffc-vtabs__panels {
+    padding: var(--ffc-spacing-xl) var(--ffc-spacing-2xl) var(--ffc-spacing-2xl);
+    /* A table wider than the card scrolls inside it instead of running
+       under the side column; several were sized for the wider box this
+       layout replaced. */
+    overflow-x: auto;
+}
+
+/* A list table in a panel sizes its columns to their content: core's
+   `.fixed` split the panel into equal columns, too narrow for an action
+   button or a status badge at this width. */
+.ffc-boxed .ffc-editor__tabs table.widefat.fixed {
+    table-layout: auto;
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab {
+    border: 0;
+    border-radius: var(--ffc-radius-md);
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab:hover {
+    background: var(--ffc-bg-alt);
+}
+
+.ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
+    font-weight: 600;
+    box-shadow: inset 3px 0 0 var(--ffc-primary);
+}
+
+/* Narrow screens: the menu card wraps its items into rows above the panel. */
+@media screen and (max-width: 782px) {
+    .ffc-boxed .ffc-editor__tabs > .ffc-vtabs__nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+        box-shadow: inset 0 -3px 0 var(--ffc-primary);
+    }
+}
+
+/* Forced colours drop the ground and the inset bar, so the active item
+   gets a real border in the selection colour. */
+@media (forced-colors: active) {
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab {
+        border: 1px solid Canvas;
+    }
+
+    .ffc-boxed .ffc-editor__tabs .ffc-vtabs__tab.is-active {
+        border-color: Highlight;
+        font-weight: 700;
+    }
+}
+
+.ffc-editor .ffc-editor__tabs {
+    margin-top: 0;
+}
+
+.ffc-editor__side .card {
+    min-width: 0;
+}
+
+/* The side column stays in view while the panel scrolls (#2486). */
+.ffc-editor__side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
+}
+
+/* The first card of each column lines up with the other column (#2486);
+   WordPress's `.card` gives it a top margin of its own. */
+.ffc-editor__main > .card:first-child,
+.ffc-editor__side > .card:first-child {
+    margin-top: 0;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-editor {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-editor__side {
+        position: static;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+/* ==========================================================================
+   LIST TOP (#2486)
+   Every FFC list draws the same top, modelled on Short URLs: the actions
+   beside the title, the filters in one card with a label on every field, a
+   bulk bar holding the bulk actions, "Reveal this page" and the pagination,
+   and the row's actions as buttons.
+   ========================================================================== */
+
+.ffc-list-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ffc-spacing-sm) var(--ffc-spacing-md);
+    margin: 0 0 var(--ffc-spacing-md);
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border: 1px solid var(--ffc-border);
+    border-radius: var(--ffc-radius-lg);
+    background: var(--ffc-bg-card);
+    color: var(--ffc-text);
+}
+
+.ffc-list-filters__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-3xs);
+    min-width: 0;
+}
+
+.ffc-list-filters__label {
+    color: var(--ffc-text-muted);
+    font-size: var(--ffc-font-size-xs);
+    font-weight: 600;
+}
+
+.ffc-list-filters__range {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+}
+
+.ffc-list-filters__field select,
+.ffc-list-filters__field input {
+    margin: 0;
+}
+
+/* Room for the arrow beside the longest short option ("All statuses"). */
+.ffc-list-filters__field select {
+    min-width: 11em;
+}
+
+/* The card keeps the stat row's distance from the header when a screen has
+   no stat row (#2498); after one, the two margins collapse into one. */
+.wp-header-end ~ form.ffc-list:first-of-type > .ffc-list-filters {
+    margin-top: var(--ffc-spacing-lg);
+}
+
+/* Filter and Clear close the card on the right. */
+.ffc-list-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-left: auto;
+}
+
+/* The views (Published, Trash…) as pills with their count, instead of
+   links joined by "|". */
+.ffc-list .subsubsub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-3xs);
+    float: none;
+    margin: 0 0 var(--ffc-spacing-sm);
+}
+
+/* WordPress prints the " |" separator as text inside each item, so the
+   item's own text is set to nothing and the link carries the size: a
+   literal by necessity, not a step of the scale. */
+.ffc-list .subsubsub li {
+    font-size: 0;
+}
+
+.ffc-list .subsubsub a {
+    display: inline-block;
+    padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+    border-radius: var(--ffc-radius-pill);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-sm);
+    text-decoration: none;
+}
+
+.ffc-list .subsubsub a:hover {
+    background: var(--ffc-bg-alt);
+}
+
+.ffc-list .subsubsub a.current {
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
+    font-weight: 600;
+}
+
+.ffc-list .subsubsub .count {
+    color: var(--ffc-text-muted);
+}
+
+/* "Reveal this page" sits in the bulk bar, beside Apply. */
+.ffc-list .tablenav .ffc-pii-reveal-bar {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    margin: 0;
+}
+
+.ffc-list .tablenav .ffc-pii-reveal-bar .description {
+    font-size: var(--ffc-font-size-xs);
+}
+
+/* A row's actions: buttons on one line when they fit, wrapping with an
+   even gap when they do not. */
+.ffc-row-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+}
+
+/* A note in place of a button ("Has bookings, kept") sits on the buttons'
+   middle line. */
+.ffc-row-buttons > .description {
+    align-self: center;
+}
+
+@media (forced-colors: active) {
+    .ffc-list .subsubsub a.current {
+        border: 1px solid Highlight;
+    }
+}
+
+/* ==========================================================================
+   MODULE DASHBOARD (#2486)
+   The page a module menu opens on: stat cards, one card per section with
+   what it holds and the buttons that open it, and the side column of what
+   needs action. Same grid and side width as the editor.
+   ========================================================================== */
+
+.ffc-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
+    align-items: start;
+}
+
+.ffc-dashboard__sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(20em, 1fr));
+    gap: var(--ffc-spacing-lg);
+    min-width: 0;
+}
+
+/* Inside the grid a card takes its track: no width floor of its own, and no
+   top margin (core's `.card` has one), so both columns start level. */
+.ffc-boxed .ffc-dashboard .card {
+    margin-top: 0;
+    min-width: 0;
+}
+
+.ffc-boxed .ffc-dashboard__sections > .card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+.ffc-dashboard__figures {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-2xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: 0;
+    list-style: none;
+}
+
+.ffc-dashboard__figures li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.ffc-dashboard__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    margin-top: auto;
+}
+
+@media screen and (max-width: 960px) {
+    .ffc-dashboard {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

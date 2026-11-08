@@ -37,10 +37,22 @@ class DateMessagesActivator {
 	use DatabaseHelperTrait;
 
 	/**
-	 * Schema version option, written after the chain completes. Listed in
-	 * `uninstall.php`.
+	 * Revision of the schema steps this class runs on a request (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
 	 */
-	public const SCHEMA_OPTION = 'ffc_date_messages_schema_version';
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_date_messages_schema_version';
 
 	/**
 	 * Marker that the `audience_id` → `audience_ids` move is done (#1648).
@@ -64,6 +76,13 @@ class DateMessagesActivator {
 	 * back, the same way the appearance and audience moves are.
 	 */
 	public const ANNOUNCEMENTS_OPTION = 'ffc_date_messages_announcements_migrated';
+
+	/**
+	 * Marker for the #2336 send-scope move: the runs table counts the people
+	 * a summary-only rule listed, and the deliveries of every announcement
+	 * carry its one fixed occurrence key. Listed in `uninstall.php`.
+	 */
+	public const SEND_SCOPE_OPTION = 'ffc_date_messages_send_scope_migrated';
 
 	/**
 	 * Rules table.
@@ -108,15 +127,16 @@ class DateMessagesActivator {
 
 	/**
 	 * Heal the schema on an install that was never re-activated (#1311),
-	 * gated on `FFC_VERSION` (#1231) and recorded after the body; then run
+	 * gated on {@see self::SCHEMA_REVISION} (#1231, #2430) and recorded after
+	 * the body; then run
 	 * the audience move once, on its own marker, whatever the version.
 	 *
 	 * @return void
 	 */
 	public static function maybe_migrate(): void {
-		if ( get_option( self::SCHEMA_OPTION, '' ) !== FFC_VERSION ) {
+		if ( get_option( self::SCHEMA_REVISION_OPTION, '' ) !== self::SCHEMA_REVISION ) {
 			self::create_tables();
-			update_option( self::SCHEMA_OPTION, FFC_VERSION );
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		}
 
 		if ( '1' !== (string) get_option( self::AUDIENCE_IDS_OPTION, '' ) ) {
@@ -129,6 +149,65 @@ class DateMessagesActivator {
 
 		if ( '1' !== (string) get_option( self::ANNOUNCEMENTS_OPTION, '' ) ) {
 			self::migrate_announcements();
+		}
+
+		if ( '1' !== (string) get_option( self::SEND_SCOPE_OPTION, '' ) ) {
+			self::migrate_send_scope();
+		}
+	}
+
+	/**
+	 * The #2336 move: add the `listed` counter to the runs table, then give
+	 * the deliveries of every announcement its one fixed occurrence key. The
+	 * marker is written only when both are done, so a failure is retried.
+	 *
+	 * The counter is what a rule with personal e-mails off reports: it runs
+	 * for its managers' summary only, and counts the people whose date it is.
+	 *
+	 * An announcement was deduplicated by the day it went out, so
+	 * sending it again on another day reached everyone a second time; from
+	 * now on it is deduplicated once per rule, and the deliveries already
+	 * logged must count for that. A person it reached on two days already
+	 * holds two rows: the second cannot take the key and keeps its day, which
+	 * changes nothing, since the first now answers for both.
+	 *
+	 * @return void
+	 */
+	public static function migrate_send_scope(): void {
+		global $wpdb;
+		$rules = self::rules_table();
+		$runs  = self::runs_table();
+		$log   = self::log_table();
+		if ( ! self::table_exists( $rules ) || ! self::table_exists( $runs ) || ! self::table_exists( $log ) || ! self::column_exists( $rules, 'kind' ) ) {
+			return;
+		}
+
+		self::add_columns_if_missing(
+			$runs,
+			array(
+				'listed' => array(
+					'type'  => 'INT(10) UNSIGNED NOT NULL DEFAULT 0',
+					'after' => 'forced',
+				),
+			)
+		);
+		if ( ! self::column_exists( $runs, 'listed' ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own tables; a one-shot move of the delivery keys.
+		$moved = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE IGNORE %i l INNER JOIN %i r ON r.id = l.rule_id SET l.occurrence_key = %s WHERE r.kind = %s AND l.channel = %s',
+				$log,
+				$rules,
+				Rule::ANNOUNCEMENT_OCCURRENCE,
+				Rule::KIND_ANNOUNCEMENT,
+				'user'
+			)
+		);
+		if ( false !== $moved ) {
+			update_option( self::SEND_SCOPE_OPTION, '1' );
 		}
 	}
 
@@ -335,6 +414,7 @@ class DateMessagesActivator {
             out_of_audience int(10) unsigned NOT NULL DEFAULT 0,
             failed int(10) unsigned NOT NULL DEFAULT 0,
             forced int(10) unsigned NOT NULL DEFAULT 0,
+            listed int(10) unsigned NOT NULL DEFAULT 0,
             created_by bigint(20) unsigned DEFAULT NULL,
             PRIMARY KEY  (id),
             KEY idx_rule (rule_id),

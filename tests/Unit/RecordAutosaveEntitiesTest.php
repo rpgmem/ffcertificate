@@ -286,6 +286,40 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		);
 	}
 
+	public function test_the_environment_registers_its_status_switch(): void {
+		AudienceRecordAutosave::register();
+
+		$environment = $this->registered( 'audience_environment' );
+		$this->assertSame( 'ffc_manage_audiences', $environment['cap'] );
+		$this->assertSame(
+			array(
+				'status' => array(
+					'type' => 'map',
+					'map'  => array(
+						1 => 'active',
+						0 => 'inactive',
+					),
+				),
+			),
+			$environment['fields']
+		);
+	}
+
+	public function test_an_environment_status_is_a_one_column_update(): void {
+		$this->assertTrue( AudienceRecordAutosave::save_environment( 6, 'status', 'inactive' ) );
+
+		$writes = $this->updates_of( 'wp_ffc_audience_environments' );
+		$this->assertCount( 1, $writes );
+		$this->assertSame( array( 'status' => 'inactive' ), $writes[0]['data'] );
+		$this->assertSame( array( 'id' => 6 ), $writes[0]['where'] );
+	}
+
+	public function test_a_failed_environment_write_is_an_error(): void {
+		$this->update_results = array( false );
+
+		$this->assertInstanceOf( \WP_Error::class, AudienceRecordAutosave::save_environment( 6, 'status', 'active' ) );
+	}
+
 	public function test_the_booking_registers_its_attendance_and_post_event_fields(): void {
 		AudienceRecordAutosave::register();
 
@@ -333,9 +367,11 @@ class RecordAutosaveEntitiesTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'ffc-attendance-rule-summary'      => 'As saved, 3 of the 4 booked day(s) are required.',
-				'ffc-attendance-post-event-status' => 'Its calendar names no form, so this booking invites nobody.',
-				'ffc-post-event-no-page'           => '',
+				'ffc-attendance-rule-summary'       => 'As saved, 3 of the 4 booked day(s) are required.',
+				'ffc-attendance-summary-rule'       => 'As saved, 3 of the 4 booked day(s) are required.',
+				'ffc-attendance-post-event-status'  => 'Its calendar names no form, so this booking invites nobody.',
+				'ffc-attendance-summary-post-event' => 'Its calendar names no form, so this booking invites nobody.',
+				'ffc-post-event-no-page'            => '',
 			),
 			AudienceRecordAutosave::booking_fragments( 5 )
 		);
@@ -758,6 +794,18 @@ class RecordAutosaveEntitiesTest extends TestCase {
 		$this->assertSame( DateMessagesAdminPage::send_refusal(), $result->get_error_message() );
 		$this->assertSame( array(), $this->updates );
 		$this->assertSame( array(), $this->scheduled );
+	}
+
+	public function test_switching_a_dated_rule_on_needs_the_right_to_send(): void {
+		// Activating any rule decides who is sent to (#2336).
+		$this->store_rule();
+		$this->rows['wp_ffc_date_message_rules:6']['is_active'] = '0';
+
+		$result = DateMessagesRecordAutosave::save( 6, 'is_active', 1 );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $result->get_error_message() );
+		$this->assertSame( array(), $this->updates );
 	}
 
 	public function test_switching_an_announcement_off_clears_its_send(): void {

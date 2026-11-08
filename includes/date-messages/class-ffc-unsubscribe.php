@@ -29,6 +29,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * A GET NEVER CHANGES ANYTHING. Mail scanners and link previewers fetch every
  * URL in a message, so the link opens a confirmation page and only its POST,
  * carrying the same token plus a nonce, records the choice.
+ *
+ * ONE-CLICK, PER RFC 8058 (#2336). Every message also carries the link in a
+ * `List-Unsubscribe` header with `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
+ * so a mail client can offer its own unsubscribe button. The client POSTs
+ * `List-Unsubscribe=One-Click` to the link and sends no nonce, so that POST is
+ * accepted on the token alone -- which is what the token is for, and a link
+ * scanner, which only GETs, still changes nothing.
  */
 final class Unsubscribe {
 
@@ -88,6 +95,21 @@ final class Unsubscribe {
 	}
 
 	/**
+	 * The two headers that make a bulk message one-click unsubscribable
+	 * (RFC 8058, #2336).
+	 *
+	 * @param int    $user_id  Account.
+	 * @param string $category One of OptOutCategory::all().
+	 * @return array<int, string>
+	 */
+	public static function headers( int $user_id, string $category = OptOutCategory::PERSONAL ): array {
+		return array(
+			'List-Unsubscribe: <' . self::url( $user_id, $category ) . '>',
+			'List-Unsubscribe-Post: List-Unsubscribe=One-Click',
+		);
+	}
+
+	/**
 	 * Whether a token belongs to an account.
 	 *
 	 * @param int    $user_id Account.
@@ -105,6 +127,11 @@ final class Unsubscribe {
 	 * @return void
 	 */
 	public static function handle(): void {
+		if ( 'One-Click' === RequestInput::get_post_string( 'List-Unsubscribe' ) ) {
+			self::handle_one_click();
+			return;
+		}
+
 		$is_post  = RequestInput::has_post( 't' );
 		$user_id  = $is_post ? RequestInput::get_post_int( 'u' ) : RequestInput::get_get_int( 'u' );
 		$token    = $is_post ? RequestInput::get_post_string( 't' ) : RequestInput::get_get_string( 't' );
@@ -132,10 +159,31 @@ final class Unsubscribe {
 			: __( 'Done. You will no longer receive date messages. You can turn them back on in your dashboard profile.', 'ffcertificate' );
 
 		wp_die(
-			esc_html( $done ),
+			'<p>' . esc_html( $done ) . '</p>' . self::profile_link(), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the text is escaped here and profile_link() escapes its own.
 			esc_html( $title ),
 			array( 'response' => 200 )
 		);
+	}
+
+	/**
+	 * A mail client's one-click POST (RFC 8058): the account, token and
+	 * category ride in the link's query, the body says only
+	 * `List-Unsubscribe=One-Click`, and there is no page to show.
+	 *
+	 * @return void
+	 */
+	private static function handle_one_click(): void {
+		$user_id  = RequestInput::get_get_int( 'u' );
+		$token    = RequestInput::get_get_string( 't' );
+		$raw      = RequestInput::get_get_string( 'c' );
+		$category = '' === $raw ? OptOutCategory::PERSONAL : $raw;
+
+		if ( ! OptOutCategory::has( $category ) || ! self::verify( $user_id, $token, $category ) || false === get_userdata( $user_id ) ) {
+			wp_die( esc_html__( 'This unsubscribe link is not valid.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+
+		OptOut::set( $user_id, false, $category );
+		wp_die( esc_html__( 'Unsubscribed.', 'ffcertificate' ), '', array( 'response' => 200 ) );
 	}
 
 	/**
@@ -151,7 +199,13 @@ final class Unsubscribe {
 			? __( 'Stop receiving announcements from this site at this account?', 'ffcertificate' )
 			: __( 'Stop receiving date messages, such as birthday greetings, at this account?', 'ffcertificate' );
 
+		// The page is reached without signing in, so it names the account
+		// masked, enough to recognise it and no more.
+		$user    = get_userdata( $user_id );
+		$account = false === $user ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_email( (string) $user->user_email );
+
 		return '<p>' . esc_html( $question ) . '</p>'
+			. ( '' === $account ? '' : '<p>' . esc_html( sprintf( /* translators: %s: masked e-mail address */ __( 'Account: %s', 'ffcertificate' ), $account ) ) . '</p>' )
 			. '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'
 			. '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">'
 			. '<input type="hidden" name="u" value="' . esc_attr( (string) $user_id ) . '">'
@@ -159,7 +213,19 @@ final class Unsubscribe {
 			. '<input type="hidden" name="c" value="' . esc_attr( $category ) . '">'
 			. wp_nonce_field( self::nonce_action( $user_id, $category ), '_wpnonce', true, false )
 			. '<p><button type="submit" class="button button-primary">' . esc_html__( 'Unsubscribe', 'ffcertificate' ) . '</button></p>'
-			. '</form>';
+			. '</form>'
+			. self::profile_link();
+	}
+
+	/**
+	 * A link to the dashboard profile, where the same preference is shown
+	 * and can be turned back on.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	private static function profile_link(): string {
+		$url = \FreeFormCertificate\Core\PasswordInvite::dashboard_url();
+		return '<p><a href="' . esc_url( $url ) . '">' . esc_html__( 'Manage your e-mail preferences in your dashboard profile', 'ffcertificate' ) . '</a></p>';
 	}
 
 	/**

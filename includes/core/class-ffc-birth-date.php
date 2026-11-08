@@ -89,6 +89,10 @@ final class BirthDate {
 	/**
 	 * Age in whole years on a given day.
 	 *
+	 * Someone born on 29 February is measured as born on the 28th (#2336), in
+	 * every year, so the age turns on the same day the birthday message goes
+	 * out ({@see \FreeFormCertificate\DateMessages\BirthdaySource::month_days_for()}).
+	 *
 	 * @param string             $iso   Canonical `Y-m-d`.
 	 * @param \DateTimeImmutable $today The day to measure on (site timezone).
 	 * @return int|null Null when the value is not a date.
@@ -97,6 +101,10 @@ final class BirthDate {
 		$iso = self::normalize( $iso );
 		if ( null === $iso ) {
 			return null;
+		}
+
+		if ( '02-29' === substr( $iso, 5 ) ) {
+			$iso = substr( $iso, 0, 5 ) . '02-28';
 		}
 
 		$birth = \DateTimeImmutable::createFromFormat( '!Y-m-d', $iso, $today->getTimezone() );

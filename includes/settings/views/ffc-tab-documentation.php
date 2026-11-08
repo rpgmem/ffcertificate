@@ -513,6 +513,23 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 		}
 	}
 };
+
+// The Quick Navigation prints in the screen's side column (#2486), through
+// TabDocumentation::render_side(), which includes this view for that part.
+if ( isset( $ffc_doc_part ) && 'side' === $ffc_doc_part ) {
+	?>
+<!-- Quick Navigation — the search box and the section tree, grouped as
+	collapsible functional areas (#697). -->
+<div class="card ffc-doc-toc ffc-doc-toc--tree">
+	<h3 id="ffc-doc-nav" class="ffc-icon-search"><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
+	<p>
+		<input type="search" id="ffc-doc-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search documentation…', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search documentation', 'ffcertificate' ); ?>">
+	</p>
+	<?php $ffc_render_doc_nav( $ffc_doc_tree, 0 ); ?>
+</div>
+	<?php
+	return;
+}
 ?>
 
 <div class="ffc-settings-wrap">
@@ -553,21 +570,9 @@ $ffc_require_doc_pages = static function ( array $ffc_nodes ) use ( &$ffc_requir
 	</p>
 </div>
 
-<!-- Quick Navigation — the search box and the section tree, grouped as
-	collapsible functional areas (#697). On a wide screen it is a sticky
-	column beside the topics rather than a bar over them. -->
-<div class="ffc-doc-layout">
-<div class="card ffc-doc-toc ffc-doc-toc--tree">
-	<h3 id="ffc-doc-nav" class="ffc-icon-search"><?php esc_html_e( 'Quick Navigation', 'ffcertificate' ); ?></h3>
-	<p>
-		<input type="search" id="ffc-doc-search" class="regular-text" placeholder="<?php esc_attr_e( 'Search documentation…', 'ffcertificate' ); ?>" aria-label="<?php esc_attr_e( 'Search documentation', 'ffcertificate' ); ?>">
-	</p>
-	<?php $ffc_render_doc_nav( $ffc_doc_tree, 0 ); ?>
-</div>
-
 <div class="ffc-doc-topics">
 <?php $ffc_require_doc_pages( $ffc_doc_tree ); ?>
 </div>
-</div><!-- .ffc-doc-layout -->
+
 
 </div><!-- .ffc-settings-wrap -->

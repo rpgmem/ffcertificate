@@ -58,6 +58,8 @@ class AdminUserColumnsTest extends TestCase {
 		} );
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->justReturn( 'test_nonce_123' );
 		Functions\when( 'add_query_arg' )->alias( function ( $args, $url ) {
 			return $url . '?' . http_build_query( $args );
@@ -148,6 +150,17 @@ class AdminUserColumnsTest extends TestCase {
 		$this->assertSame( 'ffc_appointments', $keys[ $posts_index + 2 ] );
 		$this->assertSame( 'ffc_notices', $keys[ $posts_index + 3 ] );
 		$this->assertSame( 'ffc_user_actions', $keys[ $posts_index + 4 ] );
+		$this->assertSame( 'Recruitment notices', $result['ffc_notices'], 'The column says which notices (#2340).' );
+	}
+
+	public function test_the_user_actions_column_is_absent_without_the_capability(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$result = AdminUserColumns::add_custom_columns( array( 'posts' => 'Posts' ) );
+
+		// It holds only "View as user", so it is not drawn empty (#2340).
+		$this->assertArrayNotHasKey( 'ffc_user_actions', $result );
+		$this->assertArrayHasKey( 'ffc_notices', $result );
 	}
 
 	public function test_add_custom_columns_preserves_existing(): void {
@@ -258,7 +271,8 @@ class AdminUserColumnsTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-view-as-user', $output );
 		$this->assertStringContainsString( 'button', $output );
-		$this->assertStringContainsString( 'Login as User', $output );
+		$this->assertStringContainsString( '>View as user<span class="screen-reader-text"> (opens in a new tab)</span></a>', $output );
+		$this->assertStringContainsString( 'target="_blank" rel="noopener"', $output );
 		$this->assertStringContainsString( 'ffc_view_as_user=42', $output );
 		$this->assertStringContainsString( 'test_nonce_123', $output );
 	}
@@ -342,8 +356,7 @@ class AdminUserColumnsTest extends TestCase {
 
 		$output = AdminUserColumns::render_custom_column( '', 'ffc_notices', 42 );
 
-		$this->assertStringContainsString( '<strong>4</strong>', $output );
-		$this->assertStringContainsString( 'notices', $output );
+		$this->assertStringContainsString( '<strong>4</strong> recruitment notices', $output );
 	}
 
 	// ==================================================================

@@ -218,6 +218,14 @@ class ReregistrationAdmin {
 		// The campaign's toggles save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
+		// The campaign editor is drawn in vertical tabs (#2362).
+		\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+
+		// The global field list uses the audience tab's editor (#2502).
+		if ( false !== strpos( $hook, self::CUSTOM_FIELDS_SLUG ) && class_exists( '\FreeFormCertificate\Audience\AudienceLoader' ) ) {
+			\FreeFormCertificate\Audience\AudienceLoader::enqueue_field_editor();
+		}
+
 		wp_enqueue_script(
 			'ffc-reregistration-admin',
 			FFC_PLUGIN_URL . "assets/js/ffc-reregistration-admin{$s}.js",
@@ -247,7 +255,6 @@ class ReregistrationAdmin {
 					'exportProgress'      => __( 'Exporting %1$d/%2$d…', 'ffcertificate' ),
 					'exportDone'          => __( 'Done!', 'ffcertificate' ),
 					'exportError'         => __( 'An error occurred.', 'ffcertificate' ),
-					'confirmDelete'       => __( 'Are you sure you want to delete this reregistration? This will also delete all submissions.', 'ffcertificate' ),
 					'confirmApprove'      => __( 'Approve selected submissions?', 'ffcertificate' ),
 					'reviewRejectTitle'   => __( 'Reject submission', 'ffcertificate' ),
 					'reviewReturnTitle'   => __( 'Return to draft', 'ffcertificate' ),

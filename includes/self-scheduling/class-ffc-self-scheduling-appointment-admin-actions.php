@@ -96,18 +96,24 @@ class AppointmentAdminActions {
 		$start    = (string) $appointment['start_time'];
 		$capacity = WaitlistPromoter::slot_capacity( $calendar, $date, $start );
 
-		$this->appointments->begin_transaction();
+		// Without a transaction the recount below locks nothing, so the slot
+		// could fill between the count and the confirmation.
+		if ( ! $this->appointments->begin_transaction() ) {
+			return new \WP_Error( 'confirmation_failed', __( 'Failed to confirm appointment.', 'ffcertificate' ) );
+		}
 		try {
 			// The pending row is one of the active rows the count reads, so
 			// the slot holds it while the active rows number at most
 			// $capacity, which is what a limit of $capacity + 1 asks.
-			if ( $capacity <= 0 || ! $this->appointments->isSlotAvailable( (int) $appointment['calendar_id'], $date, $start, $capacity + 1, true ) ) {
+			// A session counts its own places (#2405).
+			$session = \FreeFormCertificate\SelfScheduling\CalendarSessions::scope_of_appointment( $calendar, $appointment );
+			if ( $capacity <= 0 || ! $this->appointments->isSlotAvailable( (int) $appointment['calendar_id'], $date, $start, $capacity + 1, true, $session ) ) {
 				$this->appointments->rollback();
 				return new \WP_Error( 'slot_full', __( 'The slot is already full, so the appointment cannot be confirmed.', 'ffcertificate' ) );
 			}
 			$changed = $this->appointments->confirmPending( $appointment_id, $actor );
 			$this->appointments->commit();
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			$this->appointments->rollback();
 			return new \WP_Error( 'confirmation_failed', __( 'Failed to confirm appointment.', 'ffcertificate' ) );
 		}
@@ -206,6 +212,73 @@ class AppointmentAdminActions {
 			}
 		}
 		return $result;
+	}
+
+	/**
+	 * The statuses an appointment may be deleted permanently from (#2340):
+	 * the ones that are over. A pending, confirmed or waitlisted one is
+	 * cancelled first, which notifies the person.
+	 */
+	public const DELETABLE_STATUSES = array( 'cancelled', 'completed', 'no_show' );
+
+	/**
+	 * Whether an appointment row may be deleted permanently.
+	 *
+	 * @param array<string, mixed> $appointment Appointment row.
+	 * @return bool
+	 */
+	public static function is_deletable( array $appointment ): bool {
+		return in_array( (string) ( $appointment['status'] ?? '' ), self::DELETABLE_STATUSES, true );
+	}
+
+	/**
+	 * Delete appointments permanently (#2340), skipping any that is not over.
+	 *
+	 * Each run writes one Danger Zone entry naming what it deleted; nothing is
+	 * logged when nothing was deleted. The caller checks
+	 * `ffc_delete_appointments` and the nonce.
+	 *
+	 * @param array<int, int|string> $ids   Appointment IDs.
+	 * @param int                    $actor User deleting.
+	 * @return array{deleted: int, skipped: int}
+	 */
+	public function delete_permanently( array $ids, int $actor ): array {
+		$deletable = array();
+		$calendars = array();
+		$skipped   = 0;
+		foreach ( array_unique( array_filter( array_map( 'intval', $ids ) ) ) as $id ) {
+			$appointment = $this->appointments->findById( $id );
+			if ( ! is_array( $appointment ) || ! self::is_deletable( $appointment ) ) {
+				++$skipped;
+				continue;
+			}
+			$deletable[] = $id;
+			$calendar    = (int) ( $appointment['calendar_id'] ?? 0 );
+			if ( $calendar > 0 ) {
+				$calendars[ $calendar ] = true;
+			}
+		}
+
+		$deleted  = array() === $deletable ? 0 : $this->appointments->deleteByIds( $deletable );
+		$skipped += count( $deletable ) - $deleted;
+
+		if ( $deleted > 0 ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'appointment_deleted',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'count'           => $deleted,
+					'appointment_ids' => $deletable,
+					'calendar_ids'    => array_keys( $calendars ),
+				),
+				$actor
+			);
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'skipped' => $skipped,
+		);
 	}
 
 	/**

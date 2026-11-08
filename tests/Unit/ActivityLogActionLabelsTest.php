@@ -104,23 +104,27 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	/**
-	 * Action keys named in `ActivityLog::category_for_action()`'s map. An
-	 * action explicitly categorised there is one the plugin knows about, even
-	 * if this guard cannot see where it is written.
+	 * Action keys named in `ActivityLogItems::ACTIONS`. An action explicitly
+	 * assigned to an item there is one the plugin knows about, even if this
+	 * guard cannot see where it is written.
 	 *
 	 * @return array<int, string>
 	 */
 	private static function categorised_actions(): array {
-		$source = (string) file_get_contents( self::root() . '/' . self::ACTIVITY_LOG );
+		$actions = array_keys( \FreeFormCertificate\Core\ActivityLogItems::ACTIONS );
+		self::assertNotEmpty( $actions, 'ActivityLogItems::ACTIONS is empty; the item map moved.' );
 
-		$block = explode( '$by_action = array(', $source );
-		self::assertCount( 2, $block, 'ActivityLog::category_for_action() no longer declares $by_action.' );
-
-		$block = explode( ');', $block[1] )[0];
-		preg_match_all( "/'([a-z0-9_]+)'\s*=>/", $block, $m );
-
-		return $m[1];
+		return $actions;
 	}
+
+	/**
+	 * Reveal types that write no audit row, each with its reason (#2340).
+	 *
+	 * @var array<string, string>
+	 */
+	private const UNLOGGED_REVEAL_TYPES = array(
+		'activity_log' => 'The reader is on the activity log itself: each reveal would add a row to the screen being read.',
+	);
 
 	/**
 	 * Audit actions the PII reveal endpoint writes, one per reveal type (#1820).
@@ -181,7 +185,7 @@ final class ActivityLogActionLabelsTest extends TestCase {
 	}
 
 	public function test_every_known_action_has_a_translated_label(): void {
-		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions(), array_values( self::reveal_audit_actions() ) ) );
+		$known    = array_unique( array_merge( self::written_actions(), self::categorised_actions(), array_values( array_filter( self::reveal_audit_actions() ) ) ) );
 		$labelled = self::labelled_actions();
 
 		sort( $known );
@@ -207,6 +211,10 @@ final class ActivityLogActionLabelsTest extends TestCase {
 
 		$missing = array();
 		foreach ( self::reveal_audit_actions() as $type => $action ) {
+			if ( isset( self::UNLOGGED_REVEAL_TYPES[ $type ] ) ) {
+				$this->assertSame( '', $action, $type . ' is listed as not logged, yet audits under ' . $action . '.' );
+				continue;
+			}
 			if ( '' === $action || ! in_array( $action, $labelled, true ) ) {
 				$missing[] = $type . ' => ' . ( '' === $action ? '(no audit_action)' : $action );
 			}

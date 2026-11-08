@@ -26,8 +26,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-echo '<div class="card">';
-echo '<h2 class="ffc-icon-building">' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</h2>';
 echo '<div>';
 echo '<p>' . esc_html__( 'Adjutancies referenced by CSV imports must be attached to the notice via this section.', 'ffcertificate' ) . '</p>';
 if ( ! $editable ) {
@@ -77,4 +75,4 @@ if ( $editable && ! empty( $detached_objects ) ) {
 // from the data-notice / data-adjutancy attributes already on the
 // form and the detach link.
 
-echo '</div></div>';
+echo '</div>';

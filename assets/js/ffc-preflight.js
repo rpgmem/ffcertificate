@@ -341,6 +341,10 @@
 	 * when there is one, and the button. The form is hidden behind it until
 	 * the visitor fixes the setting and reloads, or presses the button.
 	 *
+	 * A warning (cookies, GPS denied) interrupts as an alert. The GPS prompt
+	 * only explains what the browser is about to ask, so it passes
+	 * `{ polite: true }` and is announced as a status (#2339).
+	 *
 	 * @param {jQuery}   wrapper      Form or content wrapper.
 	 * @param {string}   hook         `preflight-cookies` | `preflight-gps`
 	 * @param {string}   title        Banner title.
@@ -348,16 +352,21 @@
 	 * @param {string}   instructions How-to for this platform; may be empty.
 	 * @param {string}   ctaLabel     Button label.
 	 * @param {Function} onCta        Called after the banner is removed.
+	 * @param {object}   [options]    `polite`: announce as a status, not an alert.
 	 */
-	function banner(wrapper, hook, title, body, instructions, ctaLabel, onCta) {
-		var button = document.createElement('button');
-		button.type = 'button';
-		button.className = 'ffc-preflight-try-anyway';
-		button.textContent = ctaLabel;
+	function banner(wrapper, hook, title, body, instructions, ctaLabel, onCta, options) {
+		var polite = !!(options && options.polite);
+		// The button family (#2339): going on to the form is a neutral step.
+		var button = window.FFC.button({
+			label: ctaLabel,
+			category: 'neutral',
+			icon: 'chevron-right',
+			className: 'ffc-preflight-try-anyway'
+		});
 
 		var notice = window.FFC.notice('warning', 'warning', [body, instructions], title, {
-			role: 'alert',
-			live: 'assertive',
+			role: polite ? 'status' : 'alert',
+			live: polite ? 'polite' : 'assertive',
 			hook: hook,
 			children: [button]
 		});
@@ -366,11 +375,63 @@
 				notice.parentNode.removeChild(notice);
 			}
 			onCta();
+			focusAfter(wrapper);
 		});
 		wrapper.find('.ffc-submission-form, .ffc-form').hide();
 		// One banner per hook: a second one replaces the first.
 		wrapper.find('[data-ffc-notice="' + hook + '"]').remove();
 		wrapper.prepend(notice);
+	}
+
+	/**
+	 * Whether an element is shown: neither it nor an ancestor up to the
+	 * wrapper is hidden by `hidden` or an inline `display: none`, which is
+	 * how this script and jQuery's `.hide()` hide things.
+	 *
+	 * @param {Element} el
+	 * @param {Element} root
+	 * @returns {boolean}
+	 */
+	function shown(el, root) {
+		for (var node = el; node && node !== root.parentNode; node = node.parentNode) {
+			if (node.nodeType === 1 && (node.hidden || 'none' === node.style.display)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Put the focus somewhere sensible once a banner's button removed it
+	 * (#2339): the button of whatever notice the next step drew, else the
+	 * form's first field, else the wrapper itself. Left alone, the focus
+	 * falls to the page's top and a keyboard or screen-reader visitor has
+	 * to find the form again.
+	 *
+	 * @param {jQuery} wrapper
+	 */
+	function focusAfter(wrapper) {
+		var root = wrapper && wrapper[0];
+		if (!root || !root.querySelector) {
+			return;
+		}
+
+		var candidates = root.querySelectorAll(
+			'[data-ffc-notice] button, [data-ffc-notice] a[href], ' +
+			'.ffc-submission-form input:not([type="hidden"]), .ffc-submission-form select, .ffc-submission-form textarea, ' +
+			'.ffc-form input:not([type="hidden"]), .ffc-form select, .ffc-form textarea'
+		);
+		for (var i = 0; i < candidates.length; i++) {
+			if (!candidates[i].disabled && shown(candidates[i], root)) {
+				candidates[i].focus();
+				return;
+			}
+		}
+
+		if (!root.hasAttribute('tabindex')) {
+			root.setAttribute('tabindex', '-1');
+		}
+		root.focus();
 	}
 
 	/**
@@ -632,7 +693,10 @@
 	 * they are, with the menu instructions still on screen.
 	 */
 	function openInChrome() {
-		var url = window.location.href.replace(/^https?:\/{2}/, '');
+		// Host, path and query only: the fragment is the visitor's to edit,
+		// and a crafted one could carry its own intent parameters (#2344).
+		var loc = window.location;
+		var url = loc.host + loc.pathname + loc.search;
 		try {
 			window.location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
 		} catch (e) {
@@ -681,7 +745,7 @@
 				hideBehind(ctx, window.FFC.notice(
 					'warning',
 					'monitor',
-					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your certificate. Open this page in %s.').replace('%s', list),
+					ctx.text('browserFeaturesBody', 'This browser is missing features the form needs to issue your document. Open this page in %s.').replace('%s', list),
 					ctx.text('browserFeaturesTitle', 'This browser cannot run the form'),
 					{ role: 'alert', live: 'assertive', hook: 'preflight-browser' }
 				));
@@ -722,7 +786,7 @@
 			var notice = window.FFC.notice(
 				'warning',
 				'phone',
-				[ctx.text('inAppBody', 'You are viewing this page inside an app, where your location and the certificate download often fail. Open it in %s.').replace('%s', list), how],
+				[ctx.text('inAppBody', 'You are viewing this page inside an app, where your location and the document download often fail. Open it in %s.').replace('%s', list), how],
 				ctx.text('inAppTitle', 'Open this page in your browser'),
 				{ role: 'alert', live: 'assertive', hook: 'preflight-browser', children: [actions] }
 			);
@@ -817,6 +881,7 @@
 		secureContext: secureContext,
 		geoPermission: geoPermission,
 		banner: banner,
+		focusAfter: focusAfter,
 		cookiesWork: cookiesWork,
 		missingFeatures: missingFeatures,
 	};

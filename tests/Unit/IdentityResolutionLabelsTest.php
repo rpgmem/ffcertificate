@@ -93,9 +93,13 @@ class IdentityResolutionLabelsTest extends TestCase {
 		$this->assertSame( 'The corrected number', IdentityResolutionLabels::corrected_label( 'phone_hash' ), 'A wrong name is worse than no name.' );
 	}
 
-	public function test_the_chip_class_keeps_only_letters(): void {
-		$this->assertSame( 'ffc-identity-chip-mechanical', IdentityResolutionLabels::chip_class( IdentityQueue::TIER_MECHANICAL ) );
-		$this->assertSame( 'ffc-identity-chip-scriptalert', IdentityResolutionLabels::chip_class( '"><script>alert(1)' ) );
+	public function test_each_tier_has_an_icon_and_a_tone_and_the_heading_spells_both(): void {
+		foreach ( array( IdentityQueue::TIER_MECHANICAL, IdentityQueue::TIER_SHARED, IdentityQueue::TIER_ISOLATED, IdentityQueue::TIER_MAILBOX, IdentityQueue::TIER_DECISION ) as $tier ) {
+			$look = IdentityResolutionLabels::tier_look( $tier );
+			$this->assertSame( 'ffc-icon-' . $look['icon'] . ' ffc-icon-tone-' . $look['tone'], $look['heading'], $tier );
+			$this->assertContains( $look['tone'], array( 'success', 'info', 'danger', 'neutral', 'warning' ), $tier );
+		}
+		$this->assertSame( 'danger', IdentityResolutionLabels::tier_look( IdentityQueue::TIER_ISOLATED )['tone'], 'A number to correct is the red one.' );
 	}
 
 	public function test_every_tier_has_its_own_label_and_note(): void {

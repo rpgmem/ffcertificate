@@ -55,7 +55,7 @@ jQuery(function ($) {
 		var font = fontStacks[v.body_font_family] || fontStacks.system || 'sans-serif';
 		var maxW = intVal(v.body_max_width, 600);
 		var header = v.header_logo_url
-			? '<img src="' + esc(v.header_logo_url) + '" alt="" width="' + intVal(v.header_logo_max_width, 180) +
+			? '<img src="' + esc(v.header_logo_url) + '" alt="' + esc(cfg.siteName || '') + '" width="' + intVal(v.header_logo_max_width, 180) +
 				'" style="display:inline-block;max-width:' + intVal(v.header_logo_max_width, 180) + 'px;height:auto;">'
 			: '<span style="font-size:22px;font-weight:600;color:' + esc(v.header_text_color) + ';">' + esc(cfg.siteName || '') + '</span>';
 		var footer = resolveFooter(v.footer_text);
@@ -64,13 +64,20 @@ jQuery(function ($) {
 			'<p style="margin:0 0 12px;">' + esc(cfg.sampleBody || 'This is how your emails will look.') + '</p>' +
 			'<p style="margin:0;"><a href="#">' + esc(cfg.sampleLink || 'A sample link') + '</a></p>';
 
-		return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' +
-			'body{margin:0;padding:0;} .ffc-email-body a{color:' + esc(v.body_link_color) + ';}' +
+		// Mirrors layout.php's <head>, its mobile rule included, so the
+		// narrow preview reflows the card the way a phone does.
+		return '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+			'<meta name="viewport" content="width=device-width, initial-scale=1">' +
+			'<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><style>' +
+			'body{margin:0;padding:0;} table{border-collapse:collapse;}' +
+			'img{border:0;outline:none;text-decoration:none;max-width:100%;height:auto;}' +
+			'.ffc-email-body a{color:' + esc(v.body_link_color) + ';}' +
+			'@media only screen and (max-width:' + (maxW + 40) + 'px){.ffc-email-card{width:100% !important;}}' +
 			'</style></head>' +
 			'<body style="margin:0;padding:0;background-color:' + esc(v.wrapper_bg) + ';font-family:' + font + ';">' +
 			'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:' + esc(v.wrapper_bg) +
 				';padding:' + intVal(v.wrapper_padding, 32) + 'px 0;"><tr><td align="center">' +
-			'<table role="presentation" width="' + maxW + '" cellpadding="0" cellspacing="0" style="width:' + maxW +
+			'<table role="presentation" class="ffc-email-card" width="' + maxW + '" cellpadding="0" cellspacing="0" style="width:' + maxW +
 				'px;max-width:100%;background-color:' + esc(v.body_bg) + ';border-radius:' + intVal(v.wrapper_border_radius, 6) + 'px;overflow:hidden;">' +
 			'<tr><td align="' + esc(v.header_alignment) + '" style="background-color:' + esc(v.header_bg) + ';color:' + esc(v.header_text_color) +
 				';padding:' + intVal(v.header_padding, 24) + 'px;font-family:' + font + ';">' + header + '</td></tr>' +
@@ -84,7 +91,8 @@ jQuery(function ($) {
 	}
 
 	function refreshPreview() {
-		var frame = $box.find('.ffc-email-model-preview-frame').get(0);
+		// The preview sits in the screen's side column, outside the box (#2486).
+		var frame = $('.ffc-email-model-preview-frame').get(0);
 		if (frame) {
 			frame.srcdoc = buildPreview(collect());
 		}

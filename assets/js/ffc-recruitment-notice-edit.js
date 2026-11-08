@@ -277,6 +277,14 @@
 
 	document.addEventListener('change', function (e) {
 		if (e.target && e.target.classList && e.target.classList.contains('ffc-cls-bulk-cb')) { ffcRecruitmentSyncSelectAll(); }
+		// The header box, delegated instead of an inline handler (#2486).
+		if (e.target && e.target.id === 'ffc-cls-bulk-all') { window.ffcRecruitmentClsToggleAll(e.target); }
+	});
+
+	// Row actions, delegated instead of an inline handler (#2486).
+	document.addEventListener('click', function (e) {
+		var btn = e.target && e.target.closest ? e.target.closest('button[data-cls-action]') : null;
+		if (btn && !btn.disabled) { window.ffcRecruitmentClsAct(btn); }
 	});
 
 	window.ffcRecruitmentBulkCall = function () {

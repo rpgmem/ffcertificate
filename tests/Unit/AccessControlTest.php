@@ -23,6 +23,17 @@ class AccessControlTest extends TestCase {
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'wp_doing_ajax' )->justReturn( false );
+
+		// The protected-role check reads the role table (#2338); chosen
+		// here, so no test inherits another's.
+		$roles        = new \stdClass();
+		$roles->roles = array(
+			'administrator' => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'site_owner'    => array( 'capabilities' => array( 'manage_options' => true ) ),
+			'editor'        => array( 'capabilities' => array( 'edit_posts' => true ) ),
+			'ffc_end_user'  => array( 'capabilities' => array( 'read' => true ) ),
+		);
+		Functions\when( 'wp_roles' )->justReturn( $roles );
 	}
 
 	protected function tearDown(): void {
@@ -415,5 +426,37 @@ class AccessControlTest extends TestCase {
 		$defaults = AccessControl::get_default_settings();
 
 		$this->assertSame( 'https://example.com/dashboard', $defaults['redirect_url'] );
+	}
+
+	// ==================================================================
+	// Protected roles (#2338)
+	// ==================================================================
+
+	public function test_administrator_and_option_managers_are_protected(): void {
+		$this->assertSame( array( 'administrator', 'site_owner' ), AccessControl::protected_roles() );
+		$this->assertSame( array( 'editor', 'ffc_end_user' ), AccessControl::blockable( array( 'administrator', 'editor', 'site_owner', 'ffc_end_user' ) ) );
+	}
+
+	/**
+	 * A stored list that names `administrator` (saved before the guard, or
+	 * written directly) still never locks one out.
+	 */
+	public function test_a_stored_administrator_entry_never_blocks(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'block_wp_admin'    => true,
+				'bypass_for_admins' => false,
+				'blocked_roles'     => array( 'administrator', 'ffc_end_user' ),
+			)
+		);
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$user        = \Mockery::mock( 'WP_User' );
+		$user->roles = array( 'administrator' );
+		Functions\when( 'wp_get_current_user' )->justReturn( $user );
+		Functions\expect( 'wp_safe_redirect' )->never();
+
+		AccessControl::block_wp_admin();
+
+		$this->addToAssertionCount( 1 );
 	}
 }

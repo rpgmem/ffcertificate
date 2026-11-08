@@ -47,11 +47,11 @@ class ActivityLogSubscriber {
 		// Settings hooks.
 		add_action( 'ffcertificate_settings_saved', array( $this, 'on_settings_saved' ), 10, 1 );
 
-		// Daily cron: automatic log cleanup (v4.6.9).
+		// Daily cron: automatic log cleanup (v4.6.9), and the follow-up run
+		// that finishes one its budget cut short (#2340). Never on a page
+		// load: a large log would delete in the request of whoever visited.
 		add_action( 'ffc_daily_cleanup', array( $this, 'on_daily_cleanup' ) );
-
-		// Fallback: run cleanup on admin visit when WP-Cron misses the schedule.
-		add_action( 'admin_init', array( $this, 'maybe_run_cleanup_fallback' ) );
+		add_action( \FreeFormCertificate\Core\ActivityLogQuery::CLEANUP_CONTINUE_HOOK, array( $this, 'on_daily_cleanup' ) );
 	}
 
 	/**
@@ -184,7 +184,11 @@ class ActivityLogSubscriber {
 				'cancelled_by'   => $cancelled_by,
 				'reason'         => $reason,
 			),
-			$appointment_id
+			// 4th argument is the actor, as in on_appointment_created(): the
+			// appointment id named whichever user held that id, or was
+			// refused by `fk_ffc_activity_log_user` (#2340). A guest who
+			// cancels through their link has no account, so 0.
+			(int) ( $cancelled_by ?? 0 )
 		);
 	}
 
@@ -269,27 +273,5 @@ class ActivityLogSubscriber {
 		}
 
 		\FreeFormCertificate\Core\ActivityLogQuery::run_cleanup();
-		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
-	}
-
-	/**
-	 * Fallback cleanup when WP-Cron misses the daily schedule.
-	 *
-	 * On shared hosting WP-Cron only fires on site visits. If no visit
-	 * happens for days the cleanup never runs. This method piggybacks on
-	 * any admin page load — a cheap transient check gates execution so it
-	 * runs at most once per day.
-	 */
-	public function maybe_run_cleanup_fallback(): void {
-		if ( \get_transient( 'ffc_last_log_cleanup' ) ) {
-			return;
-		}
-
-		if ( ! class_exists( '\FreeFormCertificate\Core\ActivityLog' ) ) {
-			return;
-		}
-
-		\FreeFormCertificate\Core\ActivityLogQuery::run_cleanup();
-		\set_transient( 'ffc_last_log_cleanup', time(), DAY_IN_SECONDS );
 	}
 }

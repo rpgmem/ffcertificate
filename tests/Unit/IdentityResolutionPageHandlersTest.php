@@ -632,17 +632,10 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 		$this->assertSame( 0, $this->page()->resolved_since( 0 ) );
 	}
 
-	public function test_resolved_since_is_zero_when_the_bound_cannot_be_formatted(): void {
-		Functions\when( 'wp_date' )->justReturn( false );
-
-		$this->assertSame( 0, $this->page()->resolved_since( 1700000000 ) );
-	}
-
 	public function test_resolved_since_counts_each_verb_for_this_operator_from_the_bound(): void {
 		global $wpdb;
 		$previous = $wpdb;
 
-		Functions\when( 'wp_date' )->justReturn( '2026-10-01 09:00:00' );
 		Functions\when( 'wp_parse_args' )->alias(
 			static function ( $args, $defaults ) {
 				return array_merge( $defaults, $args );
@@ -671,7 +664,7 @@ class IdentityResolutionPageHandlersTest extends TestCase {
 			$this->assertContains( 'action = ' . $action, $prepared, 'Each resolving verb is counted on its own.' );
 		}
 		$this->assertContains( 'user_id = 7', $prepared, 'Only this operator\'s work shrinks this operator\'s list.' );
-		$this->assertContains( 'created_at >= 2026-10-01 09:00:00', $prepared );
+		$this->assertContains( 'created_at >= 1700000000', $prepared, 'The bound is the instant the queue was read (#2340).' );
 	}
 
 	public function test_queue_records_what_the_held_list_says_about_itself(): void {

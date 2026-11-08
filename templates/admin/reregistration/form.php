@@ -18,18 +18,66 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 // phpcs:disable WordPress.WP.GlobalVariablesOverride.Prohibited -- Template variables scoped to this file (the include runs in the including renderer method scope).
 ?>
-		<h1><?php echo esc_html( $title ); ?></h1>
-		<a href="<?php echo esc_url( $back_url ); ?>">&larr; <?php esc_html_e( 'Back to Reregistrations', 'ffcertificate' ); ?></a>
+		<h1 class="wp-heading-inline"><?php echo esc_html( $title ); ?></h1>
+		<?php
+		\FreeFormCertificate\Admin\AdminUI::render_button(
+			array(
+				'label' => __( 'Back to Reregistrations', 'ffcertificate' ),
+				'icon'  => 'chevron-left',
+				'href'  => $back_url,
+			)
+		);
+		?>
+		<hr class="wp-header-end">
 
 		<?php \FreeFormCertificate\Core\AdminNotice::settings_errors( 'ffc_reregistration' ); ?>
 
-		<form method="post" action="" class="ffc-form">
+		<?php
+		/*
+		 * The editor layout the calendar screens use (#2362): vertical tabs,
+		 * with Save and a summary in a side column. One `<form>` wraps the
+		 * Campaign and Email notifications panels, so a save posts both; the
+		 * Import and Invitations panels sit after it because their buttons
+		 * must not submit the campaign. The Save button names the form, since
+		 * it sits in the side column outside it.
+		 */
+		$ffc_rereg_tabs = array(
+			array(
+				'key'   => 'campaign',
+				'label' => __( 'Campaign', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-user-check',
+			),
+			array(
+				'key'   => 'notifications',
+				'label' => __( 'Email Notifications', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-email',
+			),
+		);
+		if ( $id > 0 ) {
+			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\Reregistration\ReregistrationImportAjaxHandler::CAPABILITY ) ) {
+				$ffc_rereg_tabs[] = array(
+					'key'   => 'import',
+					'label' => __( 'Import answers', 'ffcertificate' ),
+					'icon'  => 'ffc-icon-upload',
+				);
+			}
+			$ffc_rereg_tabs[] = array(
+				'key'   => 'invitations',
+				'label' => __( 'Invitations', 'ffcertificate' ),
+				'icon'  => 'ffc-icon-send',
+			);
+		}
+		$ffc_rereg_active = \FreeFormCertificate\Audience\AudienceEditorTabs::active( array_column( $ffc_rereg_tabs, 'key' ), 'campaign' );
+		?>
+		<div class="ffc-editor">
+		<div class="ffc-editor__main">
+		<?php \FreeFormCertificate\Admin\AdminUI::vertical_tabs_open( $ffc_rereg_tabs, $ffc_rereg_active, extra_class: 'ffc-editor__tabs' ); ?>
+		<form method="post" action="" class="ffc-form" id="ffc-rereg-form">
 			<?php wp_nonce_field( 'save_reregistration', 'ffc_reregistration_nonce' ); ?>
 			<input type="hidden" name="reregistration_id" value="<?php echo esc_attr( (string) $id ); ?>">
 			<input type="hidden" name="ffc_action" value="save_reregistration">
 
-			<div class="card">
-			<h2 class="ffc-icon-user-check"><?php esc_html_e( 'Campaign', 'ffcertificate' ); ?></h2>
+			<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $ffc_rereg_tabs[0], $ffc_rereg_active ); ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row"><label for="rereg_title"><?php esc_html_e( 'Title', 'ffcertificate' ); ?> <span class="ffc-required" aria-hidden="true">*</span></label></th>
@@ -78,23 +126,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</td>
 				</tr>
 			</tbody></table>
+			<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 
-			<p class="description" id="ffc-affected-users">
-				<?php
-				if ( $id > 0 ) {
-					$affected = ReregistrationRepository::get_affected_user_ids_for_reregistration( $id );
-					printf(
-						'<strong>%s</strong> %s',
-						esc_html__( 'Affected users:', 'ffcertificate' ),
-						esc_html( (string) count( $affected ) )
-					);
-				}
-				?>
-			</p>
-			</div>
-
-			<div class="card">
-			<h2 class="ffc-icon-email"><?php esc_html_e( 'Email Notifications', 'ffcertificate' ); ?></h2>
+			<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $ffc_rereg_tabs[1], $ffc_rereg_active ); ?>
 			<table class="form-table" role="presentation"><tbody>
 				<tr>
 					<th scope="row"><?php esc_html_e( 'Messages', 'ffcertificate' ); ?></th>
@@ -155,47 +189,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</td>
 				</tr>
 			</tbody></table>
-			</div>
-
-			<?php
-			$ffc_rereg_save = $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' );
-			\FreeFormCertificate\Admin\AdminUI::render_save_button(
-				$ffc_rereg_save,
-				array(
-					'icon'  => $id > 0 ? 'save' : 'plus',
-					'value' => $ffc_rereg_save,
-				)
-			);
-			?>
+			<?php \FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close(); ?>
 		</form>
 
 		<?php
 		/*
-		 * Manual invitation (#1190). OUTSIDE the `<form>` on purpose: a
-		 * `<button>` inside it would submit the form, and this one saves
-		 * nothing -- it sends email. It only appears on a campaign that already
-		 * exists, because only then are there submissions to invite.
+		 * Import (#1214) and manual invitation (#1190) panels. OUTSIDE the
+		 * `<form>` on purpose: their buttons would otherwise submit the
+		 * campaign, and these save nothing. Only on a campaign that exists,
+		 * because only then are there audiences to import into and
+		 * submissions to invite.
 		 */
-		if ( $id > 0 ) :
-			?>
-			<?php
-			/*
-			 * Import panel (#1214). Same two reasons as the box below: outside
-			 * the `<form>` because its buttons would otherwise save the
-			 * campaign, and only on one that exists because an import needs an
-			 * audience the campaign already reaches.
-			 */
-			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( \FreeFormCertificate\Reregistration\ReregistrationImportAjaxHandler::CAPABILITY ) ) {
+		foreach ( array_slice( $ffc_rereg_tabs, 2 ) as $ffc_rereg_tab ) :
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_open( $ffc_rereg_tab, $ffc_rereg_active );
+			if ( 'import' === $ffc_rereg_tab['key'] ) :
 				include FFC_PLUGIN_DIR . 'templates/admin/reregistration/import-panel.php';
-			}
-			?>
-
-		<div class="card ffc-rereg-invite-box">
-			<h2 class="ffc-icon-send"><?php esc_html_e( 'Invitations', 'ffcertificate' ); ?></h2>
-			<div class="inside">
-				<p class="description">
-					<?php esc_html_e( 'Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
-				</p>
+			else :
+				?>
+		<div class="ffc-rereg-invite-box">
+			<p class="description">
+				<?php esc_html_e( 'Sends the invitation now, without waiting for the daily run, to whoever has not received one yet. Pressing it twice sends nothing the second time. If the deadline was extended, it also reaches everyone who has not finished.', 'ffcertificate' ); ?>
+			</p>
 				<?php
 				\FreeFormCertificate\Admin\AdminUI::render_button(
 					array(
@@ -208,10 +222,44 @@ if ( ! defined( 'ABSPATH' ) ) {
 					)
 				);
 				?>
-				<span class="ffc-rereg-invite-msg" aria-live="polite"></span>
-			</div>
+			<span class="ffc-rereg-invite-msg" aria-live="polite"></span>
 		</div>
-			<?php
-		endif;
+				<?php
+			endif;
+			\FreeFormCertificate\Admin\AdminUI::vertical_tab_panel_close();
+		endforeach;
+		\FreeFormCertificate\Admin\AdminUI::vertical_tabs_close();
 		?>
+		</div>
+		<div class="ffc-editor__side">
+			<div class="card">
+				<h2 class="ffc-icon-save"><?php esc_html_e( 'Save', 'ffcertificate' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Campaign and Email Notifications are saved together.', 'ffcertificate' ); ?></p>
+				<?php
+				$ffc_rereg_save = $id > 0 ? __( 'Update Reregistration', 'ffcertificate' ) : __( 'Create Reregistration', 'ffcertificate' );
+				\FreeFormCertificate\Admin\AdminUI::render_save_button(
+					$ffc_rereg_save,
+					array(
+						'icon'  => $id > 0 ? 'save' : 'plus',
+						'value' => $ffc_rereg_save,
+						'attrs' => array( 'form' => 'ffc-rereg-form' ),
+					)
+				);
+				?>
+			</div>
+			<?php if ( $item ) : ?>
+			<div class="card">
+				<h2 class="ffc-icon-clipboard"><?php esc_html_e( 'Summary', 'ffcertificate' ); ?></h2>
+				<dl class="ffc-facts">
+					<dt class="ffc-facts__label"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></dt>
+					<dd class="ffc-facts__value"><?php echo esc_html( ReregistrationRepository::get_status_label( (string) $item->status ) ); ?></dd>
+					<dt class="ffc-facts__label"><?php esc_html_e( 'Period', 'ffcertificate' ); ?></dt>
+					<dd class="ffc-facts__value"><?php echo esc_html( \FreeFormCertificate\Core\DateFormatter::format_date( (int) strtotime( (string) $item->start_date ) ) . ' – ' . \FreeFormCertificate\Core\DateFormatter::format_date( (int) strtotime( (string) $item->end_date ) ) ); ?></dd>
+					<dt class="ffc-facts__label"><?php esc_html_e( 'Affected users', 'ffcertificate' ); ?></dt>
+					<dd class="ffc-facts__value" id="ffc-affected-users"><?php echo esc_html( (string) count( ReregistrationRepository::get_affected_user_ids_for_reregistration( $id ) ) ); ?></dd>
+				</dl>
+			</div>
+			<?php endif; ?>
+		</div>
+		</div>
 		<?php

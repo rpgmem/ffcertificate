@@ -96,7 +96,7 @@ class WaitlistPromoterTest extends TestCase {
 		Functions\when( 'do_action' )->justReturn( null );
 
 		$this->calendarRepo->shouldReceive( 'findById' )->with( 1 )->andReturn( $this->calendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->andReturn( array( 'id' => 42 ) );
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->with( 42, false )->once()->andReturn( 1 );
@@ -133,9 +133,9 @@ class WaitlistPromoterTest extends TestCase {
 		);
 
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
-		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->with( 1, '2032-09-03', '08:00:00', 2, true )->andReturn( true );
-		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->with( 1, '2032-09-03', '08:00:00', true )->andReturn( array( 'id' => 7 ) );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->with( 1, '2032-09-03', '08:00:00', 2, true, null )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->with( 1, '2032-09-03', '08:00:00', true, null )->andReturn( array( 'id' => 7 ) );
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->with( 7, false )->once()->andReturn( 1 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
 		$this->appointmentRepo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'status' => 'confirmed' ) );
@@ -146,11 +146,42 @@ class WaitlistPromoterTest extends TestCase {
 		$this->assertContains( 'ffcertificate_self_scheduling_appointment_promoted_email', $fired );
 	}
 
+	public function test_promote_fills_a_freed_place_from_its_own_sessions_queue(): void {
+		$calendar             = $this->calendar();
+		$calendar['sessions'] = (string) json_encode( array( array( 'id' => 1, 'name' => 'A' ), array( 'id' => 2, 'name' => 'B' ) ) );
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $calendar );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->with( 1, '2032-09-03', '08:00:00', 2, true, 2 )->once()->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->with( 1, '2032-09-03', '08:00:00', true, 2 )->once()->andReturn( null );
+		$this->appointmentRepo->shouldReceive( 'commit' )->once();
+
+		$this->assertNull( $this->promoter->promote( 1, '2032-09-03', '08:00:00', 2 ) );
+	}
+
+	public function test_promote_rolls_back_on_an_error(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andThrow( new \TypeError( 'bad row' ) );
+		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
+		$this->appointmentRepo->shouldReceive( 'commit' )->never();
+
+		$this->assertNull( $this->promoter->promote( 1, '2032-09-03', '08:00:00' ) );
+	}
+
+	public function test_promote_promotes_nobody_when_the_transaction_does_not_start(): void {
+		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar() );
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( false );
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->never();
+		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->never();
+
+		$this->assertNull( $this->promoter->promote( 1, '2032-09-03', '08:00:00' ) );
+	}
+
 	public function test_promote_keeps_pending_when_approval_required(): void {
 		Functions\when( 'do_action' )->justReturn( null );
 
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar( array( 'requires_approval' => 1 ) ) );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->andReturn( array( 'id' => 9 ) );
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->with( 9, true )->once()->andReturn( 1 );
@@ -162,7 +193,7 @@ class WaitlistPromoterTest extends TestCase {
 
 	public function test_promote_returns_null_when_slot_still_full(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( false );
 		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->never();
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->never();
@@ -173,7 +204,7 @@ class WaitlistPromoterTest extends TestCase {
 
 	public function test_a_slot_that_has_started_promotes_nobody(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->never();
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->never();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->andReturn( true )->never();
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->never();
 
 		$past = ( new \DateTimeImmutable( '-1 hour', new \DateTimeZone( 'America/Sao_Paulo' ) ) );
@@ -183,7 +214,7 @@ class WaitlistPromoterTest extends TestCase {
 
 	public function test_promote_returns_null_when_queue_empty(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->calendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->andReturn( null );
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->never();
@@ -206,9 +237,9 @@ class WaitlistPromoterTest extends TestCase {
 			)
 		);
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $calendar );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		// Capacity 40 comes from the block, not max_appointments_per_slot (2).
-		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->with( 1, '2032-09-03', '08:00:00', 40, true )->andReturn( true );
+		$this->appointmentRepo->shouldReceive( 'isSlotAvailable' )->with( 1, '2032-09-03', '08:00:00', 40, true, null )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'findOldestWaitlisted' )->andReturn( array( 'id' => 11 ) );
 		$this->appointmentRepo->shouldReceive( 'promoteFromWaitlist' )->with( 11, false )->once()->andReturn( 1 );
 		$this->appointmentRepo->shouldReceive( 'commit' )->once();
@@ -225,7 +256,7 @@ class WaitlistPromoterTest extends TestCase {
 			)
 		);
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $calendar );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->never();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->andReturn( true )->never();
 
 		$this->assertNull( $this->promoter->promote( 1, '2032-09-03', '08:00:00' ) );
 	}

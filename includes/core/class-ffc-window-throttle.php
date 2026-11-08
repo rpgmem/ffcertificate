@@ -71,16 +71,41 @@ final class WindowThrottle {
 			$caller = 'unresolved';
 		}
 
+		return self::take_for( $prefix, $caller, $cap, $window );
+	}
+
+	/**
+	 * Count `$weight` hits for a named caller and say whether they fit the cap.
+	 *
+	 * The caller is whatever identifies the budget: an address for the public
+	 * endpoints above, an account for a signed-in action such as revealing
+	 * personal data (#2340). It is hashed into the key. A request whose
+	 * weight would cross the cap is refused whole and counts nothing, so a
+	 * large request cannot spend the rest of the window on a refusal.
+	 *
+	 * @param string $prefix Transient prefix, `ffc_…`.
+	 * @param string $caller Who the budget belongs to.
+	 * @param int    $cap    Hits allowed per window; 0 disables the counter.
+	 * @param int    $window Window length in seconds, at least 1.
+	 * @param int    $weight Hits this request counts for, at least 1.
+	 * @return bool True when the hits are allowed.
+	 */
+	public static function take_for( string $prefix, string $caller, int $cap, int $window, int $weight = 1 ): bool {
+		if ( $cap <= 0 ) {
+			return true;
+		}
+
+		$weight = max( 1, $weight );
 		$window = max( 1, $window );
 		$key    = $prefix . substr( hash( 'sha256', $caller ), 0, 32 ) . '_' . (int) floor( time() / $window );
 		$count  = get_transient( $key );
 		$count  = is_numeric( $count ) ? (int) $count : 0;
 
-		if ( $count >= $cap ) {
+		if ( $count + $weight > $cap ) {
 			return false;
 		}
 
-		set_transient( $key, $count + 1, $window );
+		set_transient( $key, $count + $weight, $window );
 
 		return true;
 	}

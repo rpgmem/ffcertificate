@@ -36,6 +36,9 @@ class AdminClassTest extends TestCase {
 	/** @var list<string> Every read the list-page `$wpdb` double answered, rendered. */
 	private array $list_queries = array();
 
+	/** @var array<string, mixed> Transients written by the code under test. */
+	private array $notices = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -76,6 +79,13 @@ class AdminClassTest extends TestCase {
 		// (#1863); this viewer holds no certificates PII cap.
 		Functions\when( 'get_current_user_id' )->justReturn( 1 );
 		Functions\when( 'user_can' )->justReturn( false );
+		$this->notices = array();
+		Functions\when( 'set_transient' )->alias(
+			function ( $key, $value ) {
+				$this->notices[ $key ] = $value;
+				return true;
+			}
+		);
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
@@ -674,26 +684,52 @@ class AdminClassTest extends TestCase {
 		$this->assertSame( '', $html );
 	}
 
+	/**
+	 * Point the request at a stored migration notice.
+	 *
+	 * @param array{type: string, message: string} $notice Stored notice.
+	 */
+	private function stored_migration_notice( array $notice ): void {
+		$_GET['ffc_notice'] = 'migration';
+		Functions\when( 'get_transient' )->alias(
+			static fn( $key ) => 'ffc_notice_1_migration' === $key ? $notice : false
+		);
+		Functions\when( 'delete_transient' )->justReturn( true );
+	}
+
 	public function test_display_admin_notices_migration_success(): void {
-		$_GET['msg'] = 'migration_success';
-		$_GET['migrated'] = '42';
-		$_GET['migration_name'] = 'CPF';
+		unset( $_GET['msg'] );
+		$this->stored_migration_notice( array( 'type' => 'success', 'message' => 'CPF: 42 records migrated successfully.' ) );
 		list( $admin ) = $this->makeAdmin();
 		ob_start();
 		$this->call( $admin, 'display_admin_notices' );
 		$html = ob_get_clean();
-		$this->assertStringContainsString( 'migrated', $html );
+		unset( $_GET['ffc_notice'] );
+		$this->assertStringContainsString( 'CPF: 42 records migrated successfully.', $html );
+		$this->assertStringContainsString( 'notice-success', $html );
 	}
 
 	public function test_display_admin_notices_migration_error(): void {
-		$_GET['msg'] = 'migration_error';
-		$_GET['error_msg'] = 'boom';
+		unset( $_GET['msg'] );
+		$this->stored_migration_notice( array( 'type' => 'error', 'message' => 'Migration Error: boom' ) );
 		list( $admin ) = $this->makeAdmin();
 		ob_start();
 		$this->call( $admin, 'display_admin_notices' );
 		$html = ob_get_clean();
+		unset( $_GET['ffc_notice'] );
 		$this->assertStringContainsString( 'error', $html );
 		$this->assertStringContainsString( 'boom', $html );
+	}
+
+	public function test_display_admin_notices_ignores_migration_text_in_the_url(): void {
+		$_GET['msg']       = 'migration_error';
+		$_GET['error_msg'] = 'Call this number';
+		Functions\when( 'get_transient' )->justReturn( false );
+		list( $admin ) = $this->makeAdmin();
+		ob_start();
+		$this->call( $admin, 'display_admin_notices' );
+		$html = ob_get_clean();
+		$this->assertStringNotContainsString( 'Call this number', $html, 'A message carried by the URL must never be printed.' );
 	}
 
 	public function test_display_admin_notices_move_done_delegates(): void {
@@ -817,9 +853,11 @@ class AdminClassTest extends TestCase {
 			$this->assertSame( self::REDIRECTED, $e->getMessage() );
 		}
 
-		$this->assertSame( 'migration_success', $query_args->args['msg'] );
-		$this->assertSame( rawurlencode( 'CPF Migration' ), $query_args->args['migration_name'] );
-		$this->assertSame( 5, $query_args->args['migrated'] );
+		$this->assertArrayNotHasKey( 'migration_name', $query_args->args, 'The URL carries no result text.' );
+		$this->assertSame(
+			array( 'type' => 'success', 'message' => 'CPF Migration: 5 records migrated successfully.' ),
+			$this->notices['ffc_notice_1_migration'] ?? null
+		);
 	}
 
 	public function test_handle_migration_action_error_redirects(): void {
@@ -841,8 +879,11 @@ class AdminClassTest extends TestCase {
 			$this->assertSame( self::REDIRECTED, $e->getMessage() );
 		}
 
-		$this->assertSame( 'migration_error', $query_args->args['msg'] );
-		$this->assertSame( rawurlencode( 'failed' ), $query_args->args['error_msg'] );
+		$this->assertArrayNotHasKey( 'error_msg', $query_args->args, 'The URL carries no result text.' );
+		$this->assertSame(
+			array( 'type' => 'error', 'message' => 'Migration Error: failed' ),
+			$this->notices['ffc_notice_1_migration'] ?? null
+		);
 	}
 
 	/**
@@ -852,6 +893,9 @@ class AdminClassTest extends TestCase {
 	 */
 	private function use_list_wpdb(): void {
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, $args ) );
+		// The filter card (#2486) lists the forms and links Clear.
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'remove_query_arg' )->justReturn( 'admin.php?page=ffc-submissions' );
 		$this->list_queries = array();
 
 		$wpdb         = Mockery::mock( 'wpdb' );
@@ -927,7 +971,9 @@ class AdminClassTest extends TestCase {
 		$captured->args = array();
 		Functions\when( 'add_query_arg' )->alias(
 			static function ( $args ) use ( $captured ) {
-				$captured->args = $args;
+				if ( is_array( $args ) ) {
+					$captured->args = $args;
+				}
 				return '/?msg=test';
 			}
 		);

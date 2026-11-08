@@ -140,3 +140,88 @@ describe('ffc-self-scheduling-admin-appointments — batched CSV export (#772)',
 		expect(() => document.getElementById('ffc-appointments-export-btn').click()).not.toThrow();
 	});
 });
+
+describe('ffc-self-scheduling-admin-appointments — Delete permanently (#2340)', () => {
+	const DEL = 'https://x.test/admin.php?ffc_action=delete_permanently&appointment=9&_wpnonce=d';
+
+	beforeEach(() => {
+		window.ffcAppointmentsExport = {
+			deleteDialog: { title: 'Delete %d appointment(s) permanently?', agree: 'Delete %d permanently', intro: 'Cannot be restored.', cancel: 'Cancel', none: 'Select one.' },
+		};
+	});
+
+	afterEach(() => {
+		delete window.ffcAppointmentsExport;
+		delete window.FFC;
+	});
+
+	it('asks first and follows the link on agree', async () => {
+		document.body.innerHTML = '<a href="' + DEL + '" class="ffc-appointment-delete ffc-delete-link">Delete permanently</a>';
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)) };
+		delete window.location;
+		window.location = 'INITIAL';
+		loadScript(SCRIPT);
+
+		document.querySelector('.ffc-appointment-delete').click();
+		expect(window.location).toBe('INITIAL');
+		const opts = window.FFC.overrideConfirm.mock.calls[0][0];
+		expect(opts.strings.title).toBe('Delete 1 appointment(s) permanently?');
+		expect(opts.agreeCategory).toBe('danger');
+
+		await new Promise((r) => setTimeout(r, 0));
+		expect(window.location).toBe(DEL);
+	});
+
+	it('stays put when the dialog is cancelled', async () => {
+		document.body.innerHTML = '<a href="' + DEL + '" class="ffc-appointment-delete">Delete permanently</a>';
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(false)) };
+		delete window.location;
+		window.location = 'INITIAL';
+		loadScript(SCRIPT);
+
+		document.querySelector('.ffc-appointment-delete').click();
+		await new Promise((r) => setTimeout(r, 0));
+		expect(window.location).toBe('INITIAL');
+	});
+
+	function bulkForm(checked) {
+		document.body.innerHTML = `<form id="f">
+			<select id="bulk-action-selector-top" name="action"><option value="-1">-</option><option value="bulk_no_show">No-show</option><option value="bulk_delete_permanently">Delete</option></select>
+			<input type="submit" id="doaction" value="Apply">
+			<input type="checkbox" name="appointment[]" value="1"${checked > 0 ? ' checked' : ''}>
+			<input type="checkbox" name="appointment[]" value="2"${checked > 1 ? ' checked' : ''}>
+		</form>`;
+	}
+
+	it('names how many are selected and submits on agree', async () => {
+		bulkForm(2);
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)) };
+		loadScript(SCRIPT);
+		const form = document.getElementById('f');
+		const submit = vi.spyOn(form, 'submit').mockImplementation(() => {});
+		document.getElementById('bulk-action-selector-top').value = 'bulk_delete_permanently';
+
+		document.getElementById('doaction').click();
+		expect(window.FFC.overrideConfirm.mock.calls[0][0].strings.agree).toBe('Delete 2 permanently');
+		await new Promise((r) => setTimeout(r, 0));
+		expect(submit).toHaveBeenCalledTimes(1);
+	});
+
+	it('says to select one when nothing is checked, and leaves other bulk actions alone', () => {
+		bulkForm(0);
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)) };
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		loadScript(SCRIPT);
+		const select = document.getElementById('bulk-action-selector-top');
+
+		select.value = 'bulk_delete_permanently';
+		document.getElementById('doaction').click();
+		expect(alertSpy).toHaveBeenCalledWith('Select one.');
+		expect(window.FFC.overrideConfirm).not.toHaveBeenCalled();
+
+		select.value = 'bulk_no_show';
+		const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+		document.getElementById('doaction').dispatchEvent(ev);
+		expect(window.FFC.overrideConfirm).not.toHaveBeenCalled();
+	});
+});

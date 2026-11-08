@@ -355,6 +355,164 @@ describe('csv-download — download flow', () => {
 		expect(payload).not.toMatch(/(?:^|&)\d+=/);
 	});
 
+	// #2341 — "Download complete" waits for the file: its response sets a
+	// cookie naming the job; an error page loads into the frame instead.
+	describe('waiting for the file (#2341)', () => {
+		const JOB = 'abcd-1234';
+		const COOKIE = 'ffc_csv_delivered_' + JOB;
+
+		async function startDownload(postSpy, total) {
+			const responses = [
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: total } },
+				{ success: true, data: { processed: total, total: total, done: true } },
+			];
+			postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+			window.$('.ffc-btn-download-csv').trigger('click');
+			await vi.advanceTimersByTimeAsync(10);
+		}
+
+		afterEach(() => {
+			document.cookie = COOKIE + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+		});
+
+		it('keeps the overlay until the cookie arrives, then reports and counts the download', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				const iframe = document.querySelector('iframe[src*="ffc_export_download"]');
+				expect(iframe).not.toBeNull();
+				expect(iframe.hidden).toBe(true);
+				expect(iframe.getAttribute('style')).toBeNull();
+
+				await vi.advanceTimersByTimeAsync(5000);
+				// No cookie yet: still starting, nothing reported.
+				expect(window.$('.ffc-csv-progress-status').text()).not.toContain('Download complete!');
+				expect(window.$('.ffc-action-result').length).toBe(0);
+
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(500);
+				expect(window.$('.ffc-csv-progress-status').text()).toContain('Download complete!');
+				await vi.advanceTimersByTimeAsync(2000);
+
+				expect(document.querySelector('iframe[src*="ffc_export_download"]')).toBeNull();
+				const result = document.querySelector('.ffc-action-result');
+				expect(result).not.toBeNull();
+				expect(result.textContent).toContain('Download complete!');
+				expect(document.activeElement).toBe(result);
+				// The count shows the download the server just spent, without
+				// a second read (which the spent challenge would refuse).
+				expect(window.$('.ffc-info-summary').text()).toContain('1 of 100 used');
+				expect(document.cookie).not.toContain(COOKIE);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('disables the download with the quota reason once the last one is spent', async () => {
+			const postSpy = await reachInfoScreen();
+			window.$('.ffc-public-csv-download').data('ffc-last-info').csv.limit = 1;
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+				const $btn = window.$('.ffc-btn-download-csv');
+				expect($btn.prop('disabled')).toBe(true);
+				expect($btn.closest('.ffc-action-with-reason').length).toBe(1);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('shows the refusal page\'s text when the frame loads instead of a file', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				const iframe = document.querySelector('iframe[src*="ffc_export_download"]');
+				// jsdom loads nothing into the frame: stand in the page wp_die() prints.
+				Object.defineProperty(iframe, 'contentDocument', { value: { body: { textContent: ' Session mismatch. ' } } });
+				window.$(iframe).trigger('load');
+				await vi.advanceTimersByTimeAsync(10);
+				expect(window.$('.ffc-csv-progress-error').text()).toBe('Session mismatch.');
+				expect(window.$('.ffc-btn-download-csv').prop('disabled')).toBe(false);
+				expect(window.$('.ffc-action-result').length).toBe(0);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('a second download solves the fresh challenge the first start sent (#2341)', async () => {
+			document.body.innerHTML = `
+				<div class="ffc-public-csv-download">
+					<div class="ffc-verification-header">header</div>
+					<form>
+						<input type="text" name="form_id" value="42" />
+						<input type="text" name="hash" value="abc" />
+						<div class="ffc-security-container"><input name="ffc_captcha_ans" value="3" /><input name="ffc_captcha_hash" value="SPENT" /></div>
+						<button type="submit" class="ffc-submit-btn">Info</button>
+					</form>
+				</div>
+			`;
+			await loadAndReady();
+			const postSpy = vi.spyOn(window.$, 'ajax');
+			postSpy.mockImplementationOnce(() => postChain({ done: { success: true, data: defaultInfo() } }));
+			window.$('.ffc-public-csv-download form').trigger('submit');
+			await flush();
+			expect(document.querySelector('.ffc-csv-download-security')).toBeNull();
+
+			const fresh = '<div class="ffc-security-container"><input name="ffc_captcha_ans" value="" /><input name="ffc_captcha_hash" value="FRESH" /></div>';
+			const responses = [
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+				{ success: true, data: { job_id: JOB, nonce_batch: 'nb', total: 3, download_security: fresh } },
+				{ success: true, data: { processed: 3, total: 3, done: true } },
+			];
+			postSpy.mockImplementation(() => postChain({ done: responses.shift() }));
+			vi.useFakeTimers();
+			try {
+				window.$('.ffc-btn-download-csv').trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+
+				// The screen shows the fresh challenge above the actions.
+				const block = document.querySelector('.ffc-csv-download-security');
+				expect(block).not.toBeNull();
+				expect(block.nextElementSibling.classList.contains('ffc-info-actions')).toBe(true);
+				block.querySelector('input[name="ffc_captcha_ans"]').value = '9';
+
+				postSpy.mockClear();
+				window.$('.ffc-btn-download-csv').trigger('click');
+				await vi.advanceTimersByTimeAsync(10);
+				const start = postSpy.mock.calls.find((c) => String(c[0].data).indexOf('action=ffc_export_start') !== -1);
+				expect(start).toBeTruthy();
+				const payload = String(start[0].data);
+				expect(payload).toContain('ffc_captcha_hash=FRESH');
+				expect(payload).toContain('ffc_captcha_ans=9');
+				expect(payload).not.toContain('SPENT');
+				expect(payload).toContain('form_id=42');
+				document.cookie = COOKIE + '=1; path=/';
+				await vi.advanceTimersByTimeAsync(4000);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+
+		it('says the file did not arrive when nothing comes back in time', async () => {
+			const postSpy = await reachInfoScreen();
+			vi.useFakeTimers();
+			try {
+				await startDownload(postSpy, 3);
+				await vi.advanceTimersByTimeAsync(121000);
+				expect(window.$('.ffc-csv-progress-error').text()).toContain('did not arrive');
+			} finally {
+				vi.useRealTimers();
+			}
+		});
+	});
+
 	it('after completion, the cleanup timer hides the overlay, re-enables the button, and removes the iframe', async () => {
 		const postSpy = await reachInfoScreen();
 		const responses = [
@@ -505,6 +663,14 @@ describe('csv-download — cert preview', () => {
 
 		expect(window.FFCLayoutPreview.capture).toHaveBeenCalledWith('<div>John Doe</div>', 1123, 794);
 		expect(window.$('#ffc-preview-modal').length).toBe(1);
+		// #2341: a dialog by role, named by its title, in the Public Design host,
+		// with the focus on its close button.
+		const previewModal = document.getElementById('ffc-preview-modal');
+		expect(previewModal.getAttribute('role')).toBe('dialog');
+		expect(previewModal.getAttribute('aria-modal')).toBe('true');
+		expect(document.getElementById(previewModal.getAttribute('aria-labelledby')).textContent.length).toBeGreaterThan(0);
+		expect(previewModal.parentElement.classList.contains('ffc-shortcode')).toBe(true);
+		expect(document.activeElement).toBe(previewModal.querySelector('.ffc-preview-close'));
 		// #1881 — the handler rewrites the label while loading and back; the
 		// icon is a class on the button, so it survives both rewrites.
 		const $preview = window.$('.ffc-btn-cert-preview');
@@ -515,7 +681,7 @@ describe('csv-download — cert preview', () => {
 		expect(document.querySelector('#ffc-preview-iframe')).toBeNull();
 	});
 
-	it('alerts and keeps the modal closed when the page cannot be captured', async () => {
+	it('reports on the page and keeps the modal closed when the page cannot be captured', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: {
 				success: true,
@@ -528,12 +694,14 @@ describe('csv-download — cert preview', () => {
 		// A rejected capture walks a longer promise chain than flush() covers.
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
-		expect(alertSpy).toHaveBeenCalled();
+		// #2341: on the page, not an alert.
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result')).not.toBeNull();
 		expect(window.$('#ffc-preview-modal').length).toBe(0);
 		expect(window.$('.ffc-btn-cert-preview').prop('disabled')).toBe(false);
 	});
 
-	it('shows alert on preview failure', async () => {
+	it('shows the preview failure on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ done: { success: false, data: { message: 'No template' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -541,12 +709,13 @@ describe('csv-download — cert preview', () => {
 		window.$('.ffc-btn-cert-preview').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('No template');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('No template');
 		// Modal not opened.
 		expect(window.$('#ffc-preview-modal').length).toBe(0);
 	});
 
-	it('shows alert on preview network error', async () => {
+	it('shows a preview network error on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		postSpy.mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -554,7 +723,8 @@ describe('csv-download — cert preview', () => {
 		window.$('.ffc-btn-cert-preview').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Connection error.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Connection error.');
 	});
 
 	it('closes the modal on the close button click', async () => {
@@ -1083,6 +1253,30 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 		expect($btn.prop('disabled')).toBe(true);
 	});
 
+	it('renders postpone disabled with a focusable reason at the last minute of the day (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ extend_end_last_minute: true }));
+		const $btn = window.$('.ffc-btn-extend-end');
+		expect($btn.length).toBe(1);
+		expect($btn.prop('disabled')).toBe(true);
+		expect($btn.attr('title')).toBeUndefined();
+
+		const toggle = document.querySelector('.ffc-action-reason-toggle');
+		expect(toggle).not.toBeNull();
+		expect(toggle.disabled).toBe(false);
+		expect(toggle.classList.contains('ffc-icon-info')).toBe(true);
+		expect(toggle.getAttribute('aria-label')).toContain('Postpone close');
+		const note = document.getElementById(toggle.getAttribute('aria-controls'));
+		expect(note.getAttribute('role')).toBe('status');
+		expect(note.hidden).toBe(true);
+		expect(note.textContent).toContain('23:59');
+
+		toggle.click();
+		expect(note.hidden).toBe(false);
+		expect(toggle.getAttribute('aria-expanded')).toBe('true');
+		toggle.click();
+		expect(note.hidden).toBe(true);
+	});
+
 	// #1881 — the screen's buttons are the `.ffc-btn` family: each carries
 	// its category, its registry icon and the hook class its handler binds.
 	const FAMILY = [
@@ -1140,8 +1334,30 @@ describe('csv-info-screen — status messages + disabled button variants', () =>
 				const $btn = window.$(hook);
 				expectFamily($btn, category, icon);
 				expect($btn.prop('disabled')).toBe(true);
-				expect($btn.attr('title').length).toBeGreaterThan(0);
+				// #2341: the reason is behind the info button, never a title.
+				expect($btn.attr('title')).toBeUndefined();
+				const $pair = $btn.closest('.ffc-action-with-reason');
+				expect($pair.length).toBe(1);
+				const toggle = $pair.find('.ffc-action-reason-toggle')[0];
+				const note = document.getElementById(toggle.getAttribute('aria-controls'));
+				expect(note.textContent).toContain('administrator turned off');
 			});
+	});
+
+	it('gives a blocked download the status notice\'s reason behind the info button (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ download_blocked_reason: 'quota_exhausted' }));
+		const $btn = window.$('.ffc-btn-download-csv');
+		expect($btn.prop('disabled')).toBe(true);
+		const toggle = $btn.closest('.ffc-action-with-reason').find('.ffc-action-reason-toggle')[0];
+		const note = document.getElementById(toggle.getAttribute('aria-controls'));
+		expect(note.textContent).toContain('quota');
+	});
+
+	it('moves the focus to the new screen\'s heading after it renders (#2341)', async () => {
+		await renderInfoWith(infoWithStatus({ can_download: true }));
+		const heading = document.querySelector('.ffc-info-header h2');
+		expect(document.activeElement).toBe(heading);
+		expect(heading.getAttribute('tabindex')).toBe('-1');
 	});
 
 	it('renders the admin-disabled download button when csv_download_disabled_by_admin', async () => {
@@ -1205,19 +1421,29 @@ describe('csv-download — overlay helpers', () => {
 		csv.hideOverlay();
 	});
 
-	it('showError injects the error node and tears the overlay down after the 4s timer', async () => {
+	it('showError keeps the error on screen until it is closed, and gives the focus back', async () => {
 		const csv = await api();
+		const trigger = document.createElement('button');
+		document.body.appendChild(trigger);
+		trigger.focus();
 		csv.showOverlay('Working');
 		vi.useFakeTimers();
 		try {
 			csv.showError('Boom');
 			expect(window.$('.ffc-csv-progress-error').text()).toBe('Boom');
+			expect(window.$('.ffc-csv-progress-error').attr('role')).toBe('alert');
 			expect(window.$('.ffc-csv-progress-bar-fill').hasClass('ffc-csv-error')).toBe(true);
-			// The showError setTimeout(hideOverlay, 4000) fires the teardown.
-			vi.advanceTimersByTime(4001);
+			// A message that vanished after 4 s could go unread (#2344).
+			vi.advanceTimersByTime(10000);
+			expect(window.$('.ffc-csv-progress-overlay').length).toBe(1);
+			expect(document.activeElement).toBe(window.$('.ffc-csv-progress-close')[0]);
+			window.$('.ffc-csv-progress-close').trigger('click');
+			vi.advanceTimersByTime(400);
 			expect(window.$('.ffc-csv-progress-overlay').length).toBe(0);
+			expect(document.activeElement).toBe(trigger);
 		} finally {
 			vi.useRealTimers();
+			trigger.remove();
 		}
 	});
 

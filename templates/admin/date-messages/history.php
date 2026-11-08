@@ -70,9 +70,9 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 
 <p class="ffc-date-messages-history-filter">
 	<?php if ( $show_tests ) : ?>
-		<a href="<?php echo esc_url( add_query_arg( 'tests', 'hide', remove_query_arg( 'paged' ) ) ); ?>"><?php esc_html_e( 'Hide test sends', 'ffcertificate' ); ?></a>
+		<a class="ffc-icon-eye-off" href="<?php echo esc_url( add_query_arg( 'tests', 'hide', remove_query_arg( 'paged' ) ) ); ?>"><?php esc_html_e( 'Hide test sends', 'ffcertificate' ); ?></a>
 	<?php else : ?>
-		<a href="<?php echo esc_url( remove_query_arg( array( 'tests', 'paged' ) ) ); ?>"><?php esc_html_e( 'Show test sends', 'ffcertificate' ); ?></a>
+		<a class="ffc-icon-eye" href="<?php echo esc_url( remove_query_arg( array( 'tests', 'paged' ) ) ); ?>"><?php esc_html_e( 'Show test sends', 'ffcertificate' ); ?></a>
 	<?php endif; ?>
 </p>
 
@@ -92,6 +92,7 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 				<th scope="col"><?php esc_html_e( 'No valid e-mail', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Outside the audience', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Failed', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Listed for the summary only', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Status', 'ffcertificate' ); ?></th>
 			</tr>
 		</thead>
@@ -140,7 +141,7 @@ $ffc_dm_int = static fn( $v ): int => is_numeric( $v ) ? (int) $v : 0;
 						echo esc_html( DateFormatter::format_wallclock_date( $ffc_dm_from ) . ( $ffc_dm_to !== $ffc_dm_from ? ' – ' . DateFormatter::format_wallclock_date( $ffc_dm_to ) : '' ) );
 						?>
 					</td>
-					<?php foreach ( array( 'sent', 'forced', 'opted_out', 'no_email', 'out_of_audience', 'failed' ) as $ffc_dm_counter ) : ?>
+					<?php foreach ( array( 'sent', 'forced', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'listed' ) as $ffc_dm_counter ) : ?>
 						<td><?php echo esc_html( number_format_i18n( $ffc_dm_int( $ffc_dm_run[ $ffc_dm_counter ] ?? 0 ) ) ); ?></td>
 					<?php endforeach; ?>
 					<td><?php echo esc_html( $ffc_dm_int( $ffc_dm_run['finished_at'] ?? 0 ) > 0 ? __( 'Finished', 'ffcertificate' ) : __( 'Running', 'ffcertificate' ) ); ?></td>

@@ -220,6 +220,39 @@ class SecurityServiceTest extends TestCase {
 		$this->assertTrue($result);
 	}
 
+	/**
+	 * #2339: the token is bound to the form it was issued for, and a check
+	 * under another context neither passes nor spends it.
+	 */
+	public function test_a_math_token_is_refused_on_another_form(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'form:1' );
+		$answer    = (string) $challenge['answer'];
+
+		$this->assertFalse( SecurityService::peek_simple_captcha( $answer, $challenge['hash'], 'form:2' ) );
+		$this->assertFalse( SecurityService::peek_simple_captcha( $answer, $challenge['hash'] ) );
+		$this->assertTrue( SecurityService::peek_simple_captcha( $answer, $challenge['hash'], 'form:1' ) );
+		$this->assertTrue( SecurityService::verify_simple_captcha( $answer, $challenge['hash'], 'form:1' ) );
+	}
+
+	public function test_the_security_gate_checks_the_context_it_is_given(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'verify' );
+		$data      = array(
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+		);
+
+		$this->assertIsString( SecurityService::peek_security_fields( $data, 'public_csv' ) );
+		$this->assertTrue( SecurityService::validate_security_fields( $data, 'verify' ) );
+	}
+
+	public function test_with_fresh_challenge_issues_for_the_rejecting_surface(): void {
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'x' ), 'booking' );
+
+		$this->assertSame( 'math', $payload['provider'] );
+		$this->assertNotEmpty( $payload['new_hash'] );
+	}
+
 	public function test_verify_simple_captcha_wrong_answer_returns_false(): void {
 		$captcha = SecurityService::generate_simple_captcha();
 
@@ -269,9 +302,10 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertTrue($result);
 	}
@@ -283,12 +317,13 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => 'bot-filled-this',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
-		$this->assertStringContainsString('Honeypot', $result);
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $result );
 	}
 
 	public function test_validate_security_fields_missing_captcha_ans_returns_error_string(): void {
@@ -297,9 +332,10 @@ class SecurityServiceTest extends TestCase {
 		$data = [
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('security question', $result);
@@ -311,9 +347,10 @@ class SecurityServiceTest extends TestCase {
 		$data = [
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) $captcha['answer'],
+			'ffc_hp_ts'         => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('security question', $result);
@@ -326,9 +363,10 @@ class SecurityServiceTest extends TestCase {
 			'ffc_honeypot_trap' => '',
 			'ffc_captcha_ans'   => (string) ($captcha['answer'] + 1),
 			'ffc_captcha_hash'  => $captcha['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		];
 
-		$result = SecurityService::validate_security_fields($data);
+		$result = SecurityService::validate_security_fields($data, '');
 
 		$this->assertIsString($result);
 		$this->assertStringContainsString('math answer is incorrect', $result);
@@ -348,6 +386,89 @@ class SecurityServiceTest extends TestCase {
 		$this->assertFalse( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ) );
 	}
 
+	public function test_a_wrong_answer_spends_the_token(): void {
+		// One token could be tried against every answer while a wrong one
+		// left it live (#2339).
+		$captcha = $this->issueCaptcha();
+		$answer  = (string) $captcha['answer'];
+
+		$this->assertFalse( SecurityService::verify_simple_captcha( (string) ( (int) $answer + 1 ), $captcha['hash'] ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( $answer, $captcha['hash'] ), 'The right answer on a spent token is refused.' );
+	}
+
+	public function test_a_forged_token_writes_nothing_to_the_ledger(): void {
+		$this->stubChallengeInfrastructure();
+		$writes = 0;
+		Functions\when( 'set_transient' )->alias(
+			function () use ( &$writes ): bool {
+				++$writes;
+				return true;
+			}
+		);
+
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', 'not-a-token' ) );
+		$this->assertFalse( SecurityService::verify_simple_captcha( '5', ( time() - 1 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 ) ) );
+		$this->assertSame( 0, $writes );
+	}
+
+	public function test_a_failed_gate_announces_the_failure(): void {
+		$captcha = $this->issueCaptcha();
+		$fired   = array();
+		Functions\when( 'do_action' )->alias(
+			function ( $hook, ...$args ) use ( &$fired ) {
+				$fired[] = $hook;
+			}
+		);
+		Functions\when( 'get_option' )->justReturn( array() );
+
+		$result = SecurityService::validate_security_fields(
+			array(
+				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
+				'ffc_captcha_hash' => $captcha['hash'],
+				'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+			), ''
+		);
+
+		$this->assertIsString( $result );
+		$this->assertContains( 'ffcertificate_captcha_failed', $fired );
+	}
+
+	/**
+	 * A failed captcha is a secondary activity-log entry naming the surface,
+	 * never the answer (#2340).
+	 */
+	public function test_a_failed_gate_writes_a_captcha_failed_entry(): void {
+		$captcha = $this->issueCaptcha();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $default
+		);
+
+		SecurityService::validate_security_fields(
+			array(
+				'ffc_captcha_ans'  => (string) ( (int) $captcha['answer'] + 1 ),
+				'ffc_captcha_hash' => $captcha['hash'],
+				'ffc_hp_ts'        => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+			),
+			'verify'
+		);
+
+		$entries = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$this->assertSame(
+			array(
+				array(
+					'action'  => 'captcha_failed',
+					'level'   => 'warning',
+					'context' => array( 'context' => 'verify' ),
+				),
+			),
+			$entries
+		);
+	}
+
 	public function test_verify_captcha_rejects_a_legacy_answer_only_digest(): void {
 		Functions\when( 'wp_hash' )->alias( function ( $data ) { return md5( $data ); } );
 		$this->stubChallengeInfrastructure();
@@ -362,6 +483,25 @@ class SecurityServiceTest extends TestCase {
 		$this->assertFalse( SecurityService::verify_simple_captcha( '5', $expired ) );
 	}
 
+	public function test_an_expired_math_token_is_told_it_expired(): void {
+		// #2339: "the answer is incorrect" sent people to re-check arithmetic
+		// that was right.
+		$this->stubChallengeInfrastructure();
+		$expired = ( time() - 1 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 );
+
+		$result = ( new \FreeFormCertificate\Core\Captcha\MathCaptcha() )->verify(
+			array(
+				'ffc_captcha_ans'  => '5',
+				'ffc_captcha_hash' => $expired,
+			)
+		);
+
+		$this->assertSame( 'The security question expired. Please answer the new one.', $result );
+		$this->assertTrue( SecurityService::simple_captcha_expired( $expired ) );
+		$this->assertFalse( SecurityService::simple_captcha_expired( ( time() + 600 ) . '.' . str_repeat( 'a', 16 ) . '.' . str_repeat( 'b', 64 ) ) );
+		$this->assertFalse( SecurityService::simple_captcha_expired( 'nodots' ) );
+	}
+
 	public function test_verify_captcha_rejects_a_malformed_token(): void {
 		$this->stubChallengeInfrastructure();
 
@@ -373,7 +513,7 @@ class SecurityServiceTest extends TestCase {
 	public function test_with_fresh_challenge_attaches_a_usable_token(): void {
 		$this->issueCaptcha();
 
-		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ) );
+		$payload = SecurityService::with_fresh_challenge( array( 'message' => 'rate limited' ), '' );
 
 		$this->assertSame( 'rate limited', $payload['message'] );
 		$this->assertTrue( $payload['refresh_captcha'] );
@@ -384,7 +524,7 @@ class SecurityServiceTest extends TestCase {
 		$this->issueCaptcha();
 
 		$payload = SecurityService::with_fresh_challenge(
-			array( 'message' => 'bad captcha', 'refresh_captcha' => true, 'new_hash' => 'already-there' )
+			array( 'message' => 'bad captcha', 'refresh_captcha' => true, 'new_hash' => 'already-there' ), ''
 		);
 
 		$this->assertSame( 'already-there', $payload['new_hash'] );

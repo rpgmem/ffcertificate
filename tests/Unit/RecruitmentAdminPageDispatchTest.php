@@ -102,6 +102,10 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		// LabelSorter takes the WordPress branch only when get_locale() exists, and
 		// whether it does depends on what ran earlier in the process: choose it here.
 		Functions\when( 'get_locale' )->justReturn( 'en_US' );
+		// The dashboard counts from today, in the site timezone.
+		Functions\when( 'wp_date' )->justReturn( '2026-11-07' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
 
 		$this->granted = array();
 		Functions\when( 'current_user_can' )->alias(
@@ -166,6 +170,12 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 				return 0;
 			}
 		);
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			static function ( $query ) use ( $recruitment_only ) {
+				$recruitment_only( $query );
+				return null;
+			}
+		);
 
 		return $wpdb;
 	}
@@ -182,20 +192,26 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 	}
 
 	/**
-	 * The heading the real renderer opens a tab's screen with.
+	 * The title a section page opens with (#2486).
 	 *
-	 * @param string $icon  Registry icon class of the tab.
-	 * @param string $label Tab label.
+	 * @param string $label Page label.
 	 * @return string
 	 */
-	private function tab_heading( string $icon, string $label ): string {
-		return '<div class="card"><h2 class="' . $icon . '">' . $label . '</h2>';
+	private function page_title( string $label ): string {
+		return '<h1 class="wp-heading-inline">' . $label . '</h1>';
 	}
 
-	/** The notices tab's screen opened, in the panel the router named. */
-	private function assertNoticesTab( string $out ): void {
-		$this->assertStringContainsString( 'id="ffc-recruitment-tabpanel-notices"', $out );
-		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-megaphone', 'Notices' ), $out );
+	/** The dashboard opened: its wrap and its section cards. */
+	private function assertDashboard( string $out ): void {
+		$this->assertStringContainsString( 'id="ffc-recruitment-dashboard"', $out );
+		$this->assertStringContainsString( $this->page_title( 'Recruitment' ), $out );
+		$this->assertStringContainsString( 'class="ffc-dashboard"', $out );
+	}
+
+	/** The Notices page opened. */
+	private function assertNoticesPage( string $out ): void {
+		$this->assertStringContainsString( 'id="ffc-recruitment-notices"', $out );
+		$this->assertStringContainsString( $this->page_title( 'Notices' ), $out );
 	}
 
 	// ------------------------------------------------------------------
@@ -210,7 +226,7 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		$out = $this->render();
 
-		$this->assertNoticesTab( $out );
+		$this->assertDashboard( $out );
 		$this->assertTrue( RecruitmentAdminPage::can_view() );
 	}
 
@@ -265,7 +281,7 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		$this->assertStringContainsString( 'Saved.', $out );
 		// The real notice edit page, reached with no id.
 		$this->assertStringContainsString( 'Notice not found.', $out );
-		$this->assertStringNotContainsString( 'ffc-recruitment-tabpanel-', $out, 'An edit screen replaces the tab strip.' );
+		$this->assertStringNotContainsString( 'wp-heading-inline', $out, 'An edit screen draws its own title, not a section page.' );
 	}
 
 	public function test_render_page_edit_candidate_and_adjutancy_and_reason_screens(): void {
@@ -295,12 +311,15 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		// A view-only user's crafted delete link reaches the dispatcher, which
 		// refuses it without the delete cap: no redirect, and the tab renders.
 		$this->granted = array( 'ffc_view_recruitment' );
-		$_GET          = array( 'action' => 'delete-notice' );
+		$_GET          = array(
+			'action' => 'delete-notice',
+			'tab'    => 'notices',
+		);
 
 		$out = $this->render();
 
 		$this->assertSame( array(), $this->redirects );
-		$this->assertNoticesTab( $out );
+		$this->assertNoticesPage( $out );
 		$this->assertStringContainsString( 'ffc-recruitment-admin', $out );
 	}
 
@@ -323,11 +342,40 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		);
 	}
 
-	public function test_render_page_defaults_to_notices_tab(): void {
+	public function test_render_page_defaults_to_the_dashboard(): void {
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array();
 
-		$this->assertNoticesTab( $this->render() );
+		$out = $this->render();
+
+		$this->assertDashboard( $out );
+		// A view-only user reads the counts and opens the sections; nothing
+		// offers to create a notice.
+		$this->assertStringContainsString( 'Open notices', $out );
+		$this->assertStringNotContainsString( 'data-ffc-dialog-open', $out );
+		// Reasons and Settings have their own view caps.
+		$this->assertStringNotContainsString( 'Open reasons', $out );
+		$this->assertStringNotContainsString( 'Open settings', $out );
+	}
+
+	public function test_the_dashboard_offers_new_notice_to_a_manager(): void {
+		$this->granted = array( 'ffc_view_recruitment', 'ffc_manage_recruitment' );
+		$_GET          = array();
+
+		$out = $this->render();
+
+		$this->assertStringContainsString( 'data-ffc-dialog-open="ffc-new-notice-dialog"', $out );
+		$this->assertStringContainsString( 'id="ffc-new-notice-dialog"', $out, 'the dialog the button opens is on the page' );
+	}
+
+	public function test_render_page_renders_the_notices_page(): void {
+		$this->granted = array( 'ffc_view_recruitment' );
+		$_GET          = array( 'tab' => 'notices' );
+
+		$out = $this->render();
+
+		$this->assertNoticesPage( $out );
+		$this->assertStringNotContainsString( 'ffc-settings-tabs__nav', $out, 'no vertical menu: the WordPress submenu holds the sections' );
 	}
 
 	public function test_render_page_renders_adjutancies_and_candidates_tabs(): void {
@@ -335,23 +383,23 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		$_GET = array( 'tab' => 'adjutancies' );
 		$out  = $this->render();
-		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-building', 'Adjutancies' ), $out );
+		$this->assertStringContainsString( $this->page_title( 'Adjutancies' ), $out );
 
 		$_GET = array( 'tab' => 'candidates' );
 		$out  = $this->render();
-		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-id', 'Candidates' ), $out );
+		$this->assertStringContainsString( $this->page_title( 'Candidates' ), $out );
 	}
 
 	public function test_render_page_settings_tab_needs_settings_view_cap(): void {
 		// Holds the page view cap but NOT the settings view cap → the router
-		// downgrades the settings tab back to notices.
+		// sends the settings page back to the dashboard.
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array( 'tab' => 'settings' );
 
 		$out = $this->render();
 
-		$this->assertNoticesTab( $out );
-		$this->assertStringNotContainsString( $this->tab_heading( 'ffc-icon-settings', 'Settings' ), $out );
+		$this->assertDashboard( $out );
+		$this->assertStringNotContainsString( $this->page_title( 'Settings' ), $out );
 	}
 
 	public function test_render_page_settings_tab_renders_with_settings_view_cap(): void {
@@ -360,8 +408,8 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		$out = $this->render();
 
-		$this->assertStringContainsString( 'id="ffc-recruitment-tabpanel-settings"', $out );
-		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-settings', 'Settings' ), $out );
+		$this->assertStringContainsString( 'id="ffc-recruitment-settings"', $out );
+		$this->assertStringContainsString( $this->page_title( 'Settings' ), $out );
 	}
 
 	public function test_render_page_reasons_tab_needs_reasons_cap(): void {
@@ -370,8 +418,8 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		$out = $this->render();
 
-		$this->assertNoticesTab( $out );
-		$this->assertStringNotContainsString( $this->tab_heading( 'ffc-icon-clipboard', 'Reasons' ), $out );
+		$this->assertDashboard( $out );
+		$this->assertStringNotContainsString( $this->page_title( 'Reasons' ), $out );
 	}
 
 	public function test_render_page_reasons_tab_renders_with_reasons_view_cap(): void {
@@ -380,14 +428,14 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 
 		$out = $this->render();
 
-		$this->assertStringContainsString( $this->tab_heading( 'ffc-icon-clipboard', 'Reasons' ), $out );
+		$this->assertStringContainsString( $this->page_title( 'Reasons' ), $out );
 	}
 
-	public function test_render_page_unknown_tab_falls_back_to_notices(): void {
+	public function test_render_page_unknown_tab_falls_back_to_the_dashboard(): void {
 		$this->granted = array( 'ffc_view_recruitment' );
 		$_GET          = array( 'tab' => 'bogus' );
 
-		$this->assertNoticesTab( $this->render() );
+		$this->assertDashboard( $this->render() );
 	}
 
 	// ------------------------------------------------------------------
@@ -464,7 +512,7 @@ class RecruitmentAdminPageDispatchTest extends TestCase {
 		RecruitmentAdminPage::register_menu();
 
 		$this->assertSame( 1, $menuCalls, 'one top-level menu' );
-		$this->assertSame( 5, $submenuCalls, 'five per-tab submenus' );
+		$this->assertSame( 6, $submenuCalls, 'the dashboard and five section pages' );
 		$this->assertTrue( $filterAdded, 'submenu_file highlight filter wired' );
 		// The auto-generated duplicate first row was cleared.
 		$this->assertSame( array(), $submenu[ RecruitmentAdminPage::PAGE_SLUG ] );

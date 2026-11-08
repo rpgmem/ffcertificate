@@ -127,7 +127,7 @@ class PreflightTelemetry {
 		// an object cache). Over the cap the request still succeeds -- the
 		// banner is telemetry, nothing the visitor should see fail -- but
 		// writes nothing.
-		$throttle_key = 'ffc_preflight_log_' . $ip_hash;
+		$throttle_key = RateCounter::windowed( 'ffc_preflight_log_' . $ip_hash, self::WINDOW_SECONDS );
 		if ( RateCounter::get( $throttle_key ) >= self::MAX_PER_WINDOW ) {
 			wp_send_json_success( array( 'logged' => false ) );
 		}

@@ -92,7 +92,7 @@ class PreflightStatsService {
 			return array_merge( $counts, $cached );
 		}
 
-		$date_from = gmdate( 'Y-m-d H:i:s', time() - max( 1, $days ) * DAY_IN_SECONDS );
+		$date_from = time() - max( 1, $days ) * DAY_IN_SECONDS;
 
 		$rows = \FreeFormCertificate\Core\ActivityLogQuery::get_activities(
 			array(

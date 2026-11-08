@@ -33,10 +33,12 @@ final class PiiReveal {
 	 * The button markup, or '' when the current user may not reveal the
 	 * module's personal data.
 	 *
-	 * @param string $pii_cap The module reveal cap.
+	 * @param string $pii_cap  The module reveal cap.
+	 * @param bool   $recorded Whether the reveal writes an activity-log entry;
+	 *                         false on the activity log itself (#2340).
 	 * @return string Escaped HTML.
 	 */
-	public static function page_button( string $pii_cap ): string {
+	public static function page_button( string $pii_cap, bool $recorded = true ): string {
 		if ( ! PiiAccessPolicy::can_reveal_any( $pii_cap ) ) {
 			return '';
 		}
@@ -48,7 +50,11 @@ final class PiiReveal {
 				'class' => 'ffc-reveal-pii-page',
 				'attrs' => array( 'data-nonce' => wp_create_nonce( 'ffc_reveal_pii_nonce' ) ),
 			)
-		) . ' <span class="description">' . esc_html__( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' ) . '</span></p>';
+		) . ' <span class="description">' . esc_html(
+			$recorded
+				? __( 'Shows every masked value listed here. The reveal is recorded in the activity log.', 'ffcertificate' )
+				: __( 'Shows every masked value listed here.', 'ffcertificate' )
+		) . '</span></p>';
 	}
 
 	/**
@@ -62,9 +68,13 @@ final class PiiReveal {
 	 *                                        endpoint reads, without the
 	 *                                        `data-` prefix (`field`,
 	 *                                        `nonce`, a record id).
+	 * @param bool                      $icon_only Draw the eye alone, the label
+	 *                                             becoming its accessible name:
+	 *                                             for a value in a table cell
+	 *                                             (#2498).
 	 * @return string Escaped HTML.
 	 */
-	public static function field_button( array $data ): string {
+	public static function field_button( array $data, bool $icon_only = false ): string {
 		$attrs = array();
 		foreach ( $data as $key => $value ) {
 			$attrs[ 'data-' . $key ] = (string) $value;
@@ -72,10 +82,11 @@ final class PiiReveal {
 
 		return Button::html(
 			array(
-				'label' => __( 'Reveal', 'ffcertificate' ),
-				'icon'  => 'eye',
-				'class' => 'ffc-reveal-pii',
-				'attrs' => $attrs,
+				'label'     => __( 'Reveal', 'ffcertificate' ),
+				'icon'      => 'eye',
+				'icon_only' => $icon_only,
+				'class'     => 'ffc-reveal-pii',
+				'attrs'     => $attrs,
 			)
 		);
 	}
@@ -90,6 +101,9 @@ final class PiiReveal {
 	 */
 	public static function enqueue_assets(): void {
 		$s = AssetHelper::asset_suffix();
+		// Registered first, so the dependency is never dropped for being
+		// unknown on a screen that enqueues before the registration hook (#2344).
+		AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-pii-reveal',
 			FFC_PLUGIN_URL . "assets/js/ffc-pii-reveal{$s}.js",
@@ -101,7 +115,10 @@ final class PiiReveal {
 			'ffc-pii-reveal',
 			'ffcPiiReveal',
 			array(
-				'reveal_error' => __( 'Unable to reveal this value.', 'ffcertificate' ),
+				'reveal_error'  => __( 'Unable to reveal this value.', 'ffcertificate' ),
+				'revealed'      => __( 'Value revealed.', 'ffcertificate' ),
+				/* translators: %d: number of values revealed. */
+				'page_revealed' => __( 'Values revealed: %d.', 'ffcertificate' ),
 			)
 		);
 	}

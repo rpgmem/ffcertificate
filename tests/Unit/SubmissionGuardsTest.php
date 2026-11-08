@@ -110,6 +110,7 @@ class SubmissionGuardsTest extends TestCase {
 		$this->queries         = array();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -293,7 +294,7 @@ class SubmissionGuardsTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'slow down',
 		);
-		$this->transients[ self::ip_hour_key( null ) ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( null ), HOUR_IN_SECONDS, 5 );
 
 		try {
 			( new IpRateLimitGuard() )->apply( $this->ctx() );
@@ -301,8 +302,10 @@ class SubmissionGuardsTest extends TestCase {
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['rate_limit'] );
-			$this->assertSame( 'slow down', $payload['message'] );
-			$this->assertSame( 3600, $payload['wait_seconds'] );
+			$this->assertStringStartsWith( 'slow down', $payload['message'] );
+			// What is left of the hour (#2339).
+			$this->assertGreaterThanOrEqual( 1, $payload['wait_seconds'] );
+			$this->assertLessThanOrEqual( 3600, $payload['wait_seconds'] );
 		}
 	}
 
@@ -310,13 +313,13 @@ class SubmissionGuardsTest extends TestCase {
 		$ctx = $this->ctx();
 		( new IpRateLimitGuard() )->apply( $ctx );
 		$this->assertFalse( $ctx->has_exception );
-		$this->assertContains( self::ip_hour_key( null ), $this->transient_reads, 'The limiter was consulted.' );
+		$this->assertNotEmpty( array_filter( $this->transient_reads, static fn( $k ) => \FreeFormCertificate\Tests\Support\WindowedCounter::matches( $k, self::ip_hour_key( null ) ) ), 'The limiter was consulted.' );
 		$this->assertCount( 1, $this->reads, 'The daily counter was read from the table.' );
 	}
 
 	public function test_ip_guard_skipped_on_exception_path(): void {
 		// A counter that would block, so only the skip lets the guard pass.
-		$this->transients[ self::ip_hour_key( null ) ] = 99;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( null ), HOUR_IN_SECONDS, 99 );
 		$ctx                                            = $this->ctx();
 		$ctx->has_exception                             = true;
 		( new IpRateLimitGuard() )->apply( $ctx );
@@ -355,7 +358,7 @@ class SubmissionGuardsTest extends TestCase {
 	// ===================== SecurityFieldsGuard =====================
 
 	public function test_security_guard_throws_with_new_captcha_on_failure(): void {
-		$_POST = array();
+		$_POST = \FreeFormCertificate\Tests\Support\HoneypotStamp::fields();
 
 		try {
 			( new SecurityFieldsGuard() )->apply( $this->ctx() );
@@ -373,15 +376,34 @@ class SubmissionGuardsTest extends TestCase {
 	}
 
 	public function test_security_guard_passes_when_valid(): void {
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'form:7' );
 		$_POST     = array(
+			'form_id'          => '7',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 		);
 
 		$this->assertNull( ( new SecurityFieldsGuard() )->apply( $this->ctx() ) );
 		$spent = array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_captcha_used_' ) );
 		$this->assertCount( 1, $spent, 'A valid answer spends its challenge.' );
+	}
+
+	public function test_security_guard_refuses_a_challenge_issued_for_another_form(): void {
+		$challenge = SecurityService::generate_simple_captcha( 'form:7' );
+		$_POST     = array(
+			'form_id'          => '8',
+			'ffc_captcha_ans'  => (string) $challenge['answer'],
+			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
+		);
+
+		try {
+			( new SecurityFieldsGuard() )->apply( $this->ctx() );
+			$this->fail( 'A challenge solved on form 7 must not pass on form 8.' );
+		} catch ( SubmissionRejected $e ) {
+			$this->assertStringContainsString( 'incorrect', $e->get_payload()['message'] );
+		}
 	}
 
 	// ===================== FormConfigResolver =====================
@@ -616,6 +638,36 @@ class SubmissionGuardsTest extends TestCase {
 		$this->assertNull( $ctx->device_signals );
 	}
 
+	public function test_device_resolver_keeps_every_signal_the_client_sends(): void {
+		// Four were dropped, two of them strong, so a strong minimum above
+		// four could never match (#2339).
+		$this->settings['device']                     = array( 'enabled' => true );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		$posted = array_fill_keys( RateLimitChecker::DEVICE_SIGNALS, str_repeat( 'b', 64 ) );
+		$_POST['ffc_device_signals'] = (string) json_encode( $posted );
+		$ctx                         = $this->ctx();
+
+		( new DeviceSignalsResolver() )->apply( $ctx );
+
+		$this->assertSame( RateLimitChecker::DEVICE_SIGNALS, array_keys( (array) $ctx->device_signals ) );
+	}
+
+	public function test_device_resolver_counts_a_submission_without_signals_as_the_shared_device(): void {
+		// No signals posted used to skip the device limit; every such
+		// submission is now one device per form (#2339).
+		$this->settings['device']                     = array( 'enabled' => true );
+		$this->post_meta['_ffc_device_limit_enabled'] = '1';
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
+		unset( $_POST['ffc_device_signals'] );
+		$ctx = $this->ctx();
+
+		( new DeviceSignalsResolver() )->apply( $ctx );
+
+		$this->assertSame( array( 'cookie' => RateLimitChecker::NO_SIGNALS_DEVICE ), $ctx->device_signals );
+		$this->assertFalse( $ctx->skip_device );
+	}
+
 	// ===================== GeofenceGuard =====================
 
 	/**
@@ -664,7 +716,7 @@ class SubmissionGuardsTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'limited',
 		);
-		$this->transients[ self::ip_hour_key( 0 ) ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, self::ip_hour_key( 0 ), HOUR_IN_SECONDS, 5 );
 		$before                                     = $this->transients;
 		$ctx                                        = $this->ctx();
 		$ctx->user_email                            = 'a@b.co';
@@ -673,7 +725,7 @@ class SubmissionGuardsTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$this->assertTrue( $e->get_payload()['rate_limit'] );
-			$this->assertSame( 'limited', $e->get_payload()['message'] );
+			$this->assertStringStartsWith( 'limited', $e->get_payload()['message'] );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
 		$this->assertSame( $before, $this->transients, 'Nor does it move a counter.' );
@@ -684,7 +736,7 @@ class SubmissionGuardsTest extends TestCase {
 		$ctx->user_email = 'a@b.co';
 		( new RateLimitGuard() )->apply( $ctx );
 		$this->assertSame( array( 'ip/day', 'email/day', 'email/month' ), $this->counter_rows() );
-		$this->assertSame( 1, $this->transients[ self::ip_hour_key( 0 ) ] ?? null, 'The hourly IP counter moved.' );
+		$this->assertSame( 1, \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, self::ip_hour_key( 0 ), HOUR_IN_SECONDS ), 'The hourly IP counter moved.' );
 	}
 
 	// ===================== AccessRestrictionGuard =====================
@@ -711,9 +763,8 @@ class SubmissionGuardsTest extends TestCase {
 		);
 		( new AccessRestrictionGuard() )->apply( $ctx );
 		$this->assertTrue( $ctx->restriction_result['is_ticket'] );
+		$this->assertTrue( $ctx->ticket_claim_open, 'The persister settles the claim.' );
 		$this->assertCount( 1, $this->queries, 'The ticket was claimed once.' );
-		$this->assertCount( 1, $this->meta_writes );
-		$this->assertSame( array( 7, '_ffc_form_config' ), array_slice( $this->meta_writes[0], 0, 2 ) );
-		$this->assertSame( 'XYZ', $this->meta_writes[0][2]['generated_codes_list'], 'The claimed ticket leaves the list.' );
+		$this->assertSame( array(), $this->meta_writes, 'The ticket stays listed until a submission is saved (#2341).' );
 	}
 }

@@ -99,6 +99,7 @@ class RateLimitGuardTest extends TestCase {
 		$this->inserts        = array();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'current_time' )->justReturn( '2027-01-15 08:00:00' );
@@ -235,7 +236,11 @@ class RateLimitGuardTest extends TestCase {
 			'max_per_hour' => 5,
 			'message'      => 'too many',
 		);
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) . '0' ) . '_hour' ] = 5;
+		// The key carries the hour's number: this hour and the next, so a run
+		// that crosses the hour still finds the counter.
+		foreach ( array( 0, HOUR_IN_SECONDS ) as $ahead ) {
+			$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) . '0' ) . '_hour_' . (int) floor( ( time() + $ahead ) / HOUR_IN_SECONDS ) ] = 5;
+		}
 
 		$ctx             = $this->ctx();
 		$ctx->user_email = 'a@b.co';
@@ -246,8 +251,10 @@ class RateLimitGuardTest extends TestCase {
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
 			$this->assertTrue( $payload['rate_limit'] );
-			$this->assertSame( 'too many', $payload['message'] );
-			$this->assertSame( 3600, $payload['wait_seconds'] );
+			$this->assertStringStartsWith( 'too many', $payload['message'] );
+			$this->assertGreaterThanOrEqual( 1, $payload['wait_seconds'] );
+			$this->assertLessThanOrEqual( 3600, $payload['wait_seconds'] );
+			$this->assertArrayHasKey( 'countdown', $payload, 'The form is told whether to count the wait down (#2339).' );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
 	}
@@ -265,7 +272,7 @@ class RateLimitGuardTest extends TestCase {
 			$this->fail( 'expected SubmissionRejected' );
 		} catch ( SubmissionRejected $e ) {
 			$payload = $e->get_payload();
-			$this->assertSame( 'IP blocked.', $payload['message'] );
+			$this->assertStringStartsWith( 'Submissions from this network are not accepted.', $payload['message'] );
 			$this->assertSame( 0, $payload['wait_seconds'] );
 		}
 		$this->assertSame( array(), $this->inserts, 'A denied submission records no attempt.' );
@@ -280,8 +287,8 @@ class RateLimitGuardTest extends TestCase {
 		$this->assertSame(
 			array(
 				array( 'ip/day', IpAddress::fingerprint( self::IP ) ),
-				array( 'email/day', hash( 'sha256', 'a@b.co' ) ),
-				array( 'email/month', hash( 'sha256', 'a@b.co' ) ),
+				array( 'email/day', \FreeFormCertificate\Core\Encryption::keyed_hash( 'a@b.co', 'rate_limit_email' ) ),
+				array( 'email/month', \FreeFormCertificate\Core\Encryption::keyed_hash( 'a@b.co', 'rate_limit_email' ) ),
 			),
 			$this->counter_rows(),
 			'IP and email are recorded; with no CPF, no CPF counter is written.'
@@ -297,12 +304,12 @@ class RateLimitGuardTest extends TestCase {
 		// device_signals null → no deferred hook.
 		( new RateLimitGuard() )->apply( $ctx );
 
-		$cpf = hash( 'sha256', Identifiers::CPF_A );
+		$cpf = \FreeFormCertificate\Core\Encryption::keyed_hash( Identifiers::CPF_A, 'rate_limit_cpf' );
 		$this->assertSame(
 			array(
 				array( 'ip/day', IpAddress::fingerprint( self::IP ) ),
-				array( 'email/day', hash( 'sha256', 'c@d.co' ) ),
-				array( 'email/month', hash( 'sha256', 'c@d.co' ) ),
+				array( 'email/day', \FreeFormCertificate\Core\Encryption::keyed_hash( 'c@d.co', 'rate_limit_email' ) ),
+				array( 'email/month', \FreeFormCertificate\Core\Encryption::keyed_hash( 'c@d.co', 'rate_limit_email' ) ),
 				array( 'cpf/day', $cpf ),
 				array( 'cpf/month', $cpf ),
 				array( 'cpf/hour', $cpf ),
@@ -377,7 +384,8 @@ class RateLimitGuardTest extends TestCase {
 		$this->assertCount( 1, $rows );
 		$this->assertSame( 99, $rows[0][1]['submission_id'] );
 		$this->assertSame( 7, $rows[0][1]['form_id'] );
-		$this->assertSame( 'abc', $rows[0][1]['sig_cookie'] );
+		// Stored keyed, never as the browser sent it (#2339).
+		$this->assertSame( \FreeFormCertificate\Core\Encryption::keyed_hash( 'abc', 'device_signal_cookie' ), $rows[0][1]['sig_cookie'] );
 	}
 
 	public function test_deferred_hook_skipped_when_skip_device(): void {

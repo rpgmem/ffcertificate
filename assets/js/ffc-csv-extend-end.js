@@ -17,21 +17,22 @@
 	function onExtendEndClick() {
 		var info = api.lastInfo();
 		// Compose the "current scheduled close" display from date-only +
-		// raw 24h time, so the modal always shows HH:MM regardless of the
-		// site's `time_format` setting (#243 Sprint 3 — fixes AM/PM display
-		// when site uses `g:i a`). Falls back to `end_date_formatted` for
-		// pre-#243 backends that don't return `current_date_end_formatted`.
+		// the stored wall time, printed in the plugin's time format like
+		// every other time on this screen (#2341). The raw HH:MM stays the
+		// time input's value and minimum. Falls back to
+		// `end_date_formatted` for backends without
+		// `current_date_end_formatted`.
 		var dateOnly    = info && info.status ? (info.status.current_date_end_formatted || '') : '';
 		var currentTime = info && info.status ? (info.status.current_time_end || '') : '';
 		var currentEnd  = (dateOnly && currentTime)
-			? (dateOnly + ' ' + currentTime)
+			? (dateOnly + ' ' + api.formatTime(currentTime))
 			: (info && info.status ? (info.status.end_date_formatted || '') : '');
 		showExtendEndModal(currentEnd, currentTime);
 	}
 
 	function showExtendEndModal(currentEnd, currentTime) {
 		// Clean up any prior modal.
-		$('.ffc-extend-end-modal').remove();
+		$('.ffc-csv-dialog-host').remove();
 
 		// Default the time picker to current_time_end + 30 min, clamped
 		// to 23:59. The user can edit freely; server validates.
@@ -73,11 +74,14 @@
 			+         esc(strings.postponeIrreversible || 'This action can only be performed once per form.')
 			+       '</strong></p>'
 			+       '<p class="ffc-open-early-warn-cache">'
-			+         esc(strings.openEarlyCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes.')
+			// Its own warning, about the close (#2341): open early's speaks of
+			// a form that has not started.
+			+         esc(strings.postponeCacheWarn || 'If your site uses page caching, some visitors may see the old close time until the cache refreshes. Ask them to reload if needed.')
 			+       '</p>'
 			+     '</div>'
 			// Cancel is neutral and takes the focus; Confirm is caution,
 			// because it moves the close the participants see (#1881).
+			+     '<div class="ffc-csv-action-security"></div>'
 			+     '<div class="ffc-open-early-actions">'
 			+       FFC.buttonHtml({ label: strings.cancel || 'Cancel', category: 'neutral', icon: 'cross', className: 'ffc-extend-end-cancel', attrs: { autofocus: true } })
 			+       FFC.buttonHtml({ label: strings.postponeConfirm || 'Confirm postponement', category: 'caution', icon: 'calendar-check', className: 'ffc-extend-end-confirm' })
@@ -85,7 +89,9 @@
 			+   '</div>'
 			+ '</div>';
 
-		var $modal = $(modalHtml).appendTo(document.body);
+		var $modal = $(modalHtml);
+		var close  = api.openDialog($modal);
+		api.mountActionSecurity($modal.find('.ffc-csv-action-security'));
 		var onKey = function (e) {
 			if (e.key === 'Escape') { closeModal(); }
 		};
@@ -93,7 +99,7 @@
 
 		function closeModal() {
 			$(document).off('keydown.ffcExtendEnd');
-			$modal.remove();
+			close();
 		}
 
 		// Client-side validation, in the field-message standard (#1844): the
@@ -123,14 +129,12 @@
 					|| 'Please enter a valid time (HH:MM).';
 			}
 			if (currentTime && value <= currentTime) {
-				return (strings.postponeBeforeCurrent || 'Time must be later than the current close (%s).').replace('%s', currentTime);
+				return (strings.postponeBeforeCurrent || 'Time must be later than the current close (%s).').replace('%s', api.formatTime(currentTime));
 			}
-			// "Now" comparison uses the JS clock — the server clock can drift
-			// slightly but the message is still accurate enough for UX.
-			var now    = new Date();
-			var nowStr = (now.getHours() < 10 ? '0' : '') + now.getHours()
-				+ ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
-			if (value <= nowStr) {
+			// "Now" is the site's wall time, not the browser's: an operator
+			// in another timezone would otherwise be refused a valid time
+			// (#2341). The server still decides.
+			if (value <= api.siteNow().hm) {
 				return strings.postponeBeforeNow || 'Time must be in the future.';
 			}
 			return null;
@@ -145,28 +149,30 @@
 				$input.focus();
 				return;
 			}
+			var payload = api.actionPayload($modal);
 			closeModal();
-			submitExtendEnd(newTime);
+			submitExtendEnd(newTime, payload);
 		});
 
 		setTimeout(function () { $modal.find('.ffc-extend-end-cancel').focus(); }, 0);
 	}
 
-	function submitExtendEnd(newTime) {
+	function submitExtendEnd(newTime, base) {
 		var $btn = api.$container.find('.ffc-btn-extend-end');
-		$btn.prop('disabled', true).text(strings.postponing || 'Postponing…');
+		$btn.prop('disabled', true).addClass('ffc-btn-loading').attr('aria-busy', 'true');
 
-		var payload = api.$form.serialize().replace(/(^|&)action=[^&]*/, '')
-			+ '&new_time_end=' + encodeURIComponent(newTime);
+		var payload = base + '&new_time_end=' + encodeURIComponent(newTime);
 
 		FFC.request('ffc_public_extend_end', payload)
 			.then(function (data) {
-				window.alert((data && data.message) || (strings.postponeSuccess || 'Close time postponed.'));
-				window.location.reload();
+				api.refreshActionSecurity({ data: data });
+				// On the page, with the state redrawn (#2341).
+				return api.reportResult('success', (data && data.message) || (strings.postponeSuccess || 'Close time postponed.'), true);
 			})
 			.catch(function (err) {
-				window.alert((err && err.fromServer && err.message) || strings.error || 'Action failed.');
-				$btn.prop('disabled', false).text(strings.postponeClose || 'Postpone close');
+				api.refreshActionSecurity(err);
+				$btn.prop('disabled', false).removeClass('ffc-btn-loading').removeAttr('aria-busy');
+				return api.reportResult('error', (err && err.fromServer && err.message) || strings.error || 'Action failed.', false);
 			});
 	}
 

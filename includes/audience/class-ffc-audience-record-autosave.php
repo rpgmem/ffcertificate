@@ -2,8 +2,8 @@
 /**
  * AudienceRecordAutosave
  *
- * Registers the audience calendar and the audience with the record autosave
- * (#1757), so their toggles save the moment they flip.
+ * Registers the audience calendar, the environment and the audience with the
+ * record autosave (#1757, #2498), so their toggles save the moment they flip.
  *
  * @package FreeFormCertificate\Audience
  * @since   6.40.0
@@ -39,6 +39,8 @@ class AudienceRecordAutosave {
 		'is_isolated',
 		'admin_bypass',
 		'post_event_attendees_only',
+		'allow_multi_day',
+		'allow_time_selection',
 	);
 
 	/**
@@ -98,6 +100,24 @@ class AudienceRecordAutosave {
 				'save'   => array( self::class, 'save_audience' ),
 			)
 		);
+		// The Environments list's on/off switch (#2498).
+		RecordAutosave::register(
+			'audience_environment',
+			array(
+				'cap'    => 'ffc_manage_audiences',
+				'fields' => array(
+					'status' => array(
+						'type' => 'map',
+						'map'  => array(
+							1 => 'active',
+							0 => 'inactive',
+						),
+					),
+				),
+				'exists' => static fn( int $id ): bool => null !== AudienceEnvironmentRepository::get_by_id( $id ),
+				'save'   => array( self::class, 'save_environment' ),
+			)
+		);
 		// The Attendance screen's rule and post-event cards (#2022). A booking
 		// is edited by the module's managers, the same capability its Save
 		// buttons checked.
@@ -145,6 +165,21 @@ class AudienceRecordAutosave {
 	public static function save_schedule( int $id, string $key, $value ) {
 		if ( ! AudienceScheduleRepository::update( $id, array( $key => $value ) ) ) {
 			return new \WP_Error( 'ffc_record_not_saved', __( 'The calendar could not be saved.', 'ffcertificate' ) );
+		}
+		return true;
+	}
+
+	/**
+	 * Save one environment column.
+	 *
+	 * @param int    $id    Environment id.
+	 * @param string $key   Column.
+	 * @param mixed  $value Typed value.
+	 * @return true|\WP_Error
+	 */
+	public static function save_environment( int $id, string $key, $value ) {
+		if ( ! AudienceEnvironmentRepository::update( $id, array( $key => $value ) ) ) {
+			return new \WP_Error( 'ffc_record_not_saved', __( 'The environment could not be saved.', 'ffcertificate' ) );
 		}
 		return true;
 	}

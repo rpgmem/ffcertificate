@@ -86,10 +86,12 @@ class AdminUserCapabilities {
 		// layout, slug chips, origin badges and search/preset toolbar.
 		\FreeFormCertificate\Core\AssetHelper::enqueue_common_style();
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-user-permissions' );
+		// Grant all asks through the plugin's dialog, in ffc-core (#2340).
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core' );
 		wp_enqueue_script(
 			'ffc-user-capabilities',
 			FFC_PLUGIN_URL . "assets/js/ffc-user-capabilities{$s}.js",
-			array(),
+			array( 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);
@@ -107,33 +109,45 @@ class AdminUserCapabilities {
 			$assigned = array_values( array_intersect( (array) $user->roles, array_keys( $presets ) ) );
 		}
 
-		$role_caps = array();
+		$role_caps   = array();
+		$role_labels = array();
 		foreach ( $presets as $slug => $def ) {
-			$role_caps[ $slug ] = $def['caps'];
+			$role_caps[ $slug ]   = $def['caps'];
+			$role_labels[ $slug ] = $def['label'];
 		}
 
 		wp_localize_script(
 			'ffc-user-capabilities',
 			'ffcUserPerms',
 			array(
-				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'ffc_toggle_user_role' ),
-				'userId'   => $target_id,
-				'roleCaps' => $role_caps,
-				'assigned' => $assigned,
-				'i18n'     => array(
-					'error'        => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
+				'ajaxUrl'    => admin_url( 'admin-ajax.php' ),
+				'nonce'      => wp_create_nonce( 'ffc_toggle_user_role' ),
+				'userId'     => $target_id,
+				'roleCaps'   => $role_caps,
+				'roleLabels' => $role_labels,
+				'assigned'   => $assigned,
+				'userName'   => $user instanceof \WP_User ? $user->display_name : '',
+				'i18n'       => array(
+					'error'         => __( 'Could not update the role. Please reload and try again.', 'ffcertificate' ),
 					// Reason-specific messages so a failure is diagnosable instead
 					// of always reading as a nonce problem.
-					'errNonce'     => __( 'Your session or security token expired. Reload the page and try again.', 'ffcertificate' ),
-					'errAdmin'     => __( 'This user is a WordPress administrator — only the FFC Administrator role can be assigned to them. Grant that role, or remove their WordPress administrator role first.', 'ffcertificate' ),
-					'errRole'      => __( 'That role cannot be assigned from this screen.', 'ffcertificate' ),
-					'errForbidden' => __( 'You do not have permission to change this user’s roles.', 'ffcertificate' ),
-					'errUser'      => __( 'User not found. Reload the page and try again.', 'ffcertificate' ),
-					'errNetwork'   => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
-					'user'         => __( 'User', 'ffcertificate' ),
-					'role'         => __( 'Role', 'ffcertificate' ),
-					'none'         => __( '—', 'ffcertificate' ),
+					'errNonce'      => __( 'Your session or security token expired. Reload the page and try again.', 'ffcertificate' ),
+					'errAdmin'      => __( 'This user is a WordPress administrator — only the FFC Administrator role can be assigned to them. Grant that role, or remove their WordPress administrator role first.', 'ffcertificate' ),
+					'errRole'       => __( 'That role cannot be assigned from this screen.', 'ffcertificate' ),
+					'errForbidden'  => __( 'You do not have permission to change this user’s roles.', 'ffcertificate' ),
+					'errUser'       => __( 'User not found. Reload the page and try again.', 'ffcertificate' ),
+					'errNetwork'    => __( 'Network error. Please check your connection and try again.', 'ffcertificate' ),
+					'user'          => __( 'User', 'ffcertificate' ),
+					'role'          => __( 'Role', 'ffcertificate' ),
+					'none'          => __( '—', 'ffcertificate' ),
+					/* translators: %s: role name, or a comma-separated list of role names */
+					'grantedBy'     => __( 'From the role %s. To remove it, change the role or edit the role itself.', 'ffcertificate' ),
+					/* translators: 1: number of capabilities, 2: the person's name */
+					'grantAllTitle' => __( 'Grant all %1$d capabilities to %2$s?', 'ffcertificate' ),
+					'grantAllIntro' => __( 'Some of them reach personal data or delete records:', 'ffcertificate' ),
+					/* translators: %d: number of capabilities */
+					'grantAllAgree' => __( 'Grant all %d', 'ffcertificate' ),
+					'cancel'        => __( 'Cancel', 'ffcertificate' ),
 				),
 			)
 		);
@@ -156,7 +170,13 @@ class AdminUserCapabilities {
 		// per-cap checkboxes are noise for them (and saving them could deny a
 		// role-level grant), but they still need to be granted or revoked that
 		// aggregator role. So render only the role presets for admins.
+		// Moved under the WordPress Role select by the script; it asks what a
+		// role change does to the FFC roles (#2340).
+		self::render_demotion_prompt( $user );
+
 		if ( user_can( $user->ID, 'manage_options' ) ) {
+			// No per-capability fields here, and no marker: the save then
+			// leaves this account's per-user grants as they are (#2340).
 			wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
 			echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
 			echo '<p class="description">' . esc_html__( 'This user is a WordPress administrator. Assign the FFC Administrator role to grant full plugin access — administrators are no longer given FFC capabilities automatically.', 'ffcertificate' ) . '</p>';
@@ -166,19 +186,31 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Only show for users with ffc_end_user role.
-		if ( ! in_array( 'ffc_end_user', $user->roles, true ) && ! self::has_any_ffc_capability( $user->ID ) ) {
+		// Shown for an end user, anyone holding an FFC role, and anyone with
+		// per-user FFC access (#2340): a module role used to hide the panel.
+		$ffc_roles = array_keys( \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels() );
+		if ( ! in_array( 'ffc_end_user', $user->roles, true )
+			&& array() === array_intersect( (array) $user->roles, $ffc_roles )
+			&& ! self::has_any_ffc_capability( $user->ID ) ) {
 			return;
 		}
 
-		// Add nonce.
+		// Add nonce, and the marker that says the per-capability fields and
+		// the audience checklist were drawn, so the save may read their absence
+		// as "unchecked" (#2340).
 		wp_nonce_field( 'ffc_user_capabilities', 'ffc_capabilities_nonce' );
+		echo '<input type="hidden" name="ffc_cap_fields_rendered" value="1">';
 
 		echo '<h2>' . esc_html__( 'FFC Permissions', 'ffcertificate' ) . '</h2>';
 		echo '<p class="description">' . esc_html__( 'Manage which FFC features this user can access. These are granted per user, on top of the role permissions.', 'ffcertificate' ) . '</p>';
 
 		echo '<div class="ffc-cap-panel">';
 		self::render_context_summary( $user );
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			esc_html__( 'The role buttons above save as soon as you click them. The capability switches below, like the rest of the profile, save with Update Profile.', 'ffcertificate' ),
+			array( 'classes' => array( 'ffc-cap-save-note' ) )
+		);
 		self::render_toolbar();
 		self::render_groups( $user );
 		echo '</div>';
@@ -353,8 +385,20 @@ class AdminUserCapabilities {
 			esc_attr__( 'Search permissions', 'ffcertificate' )
 		);
 		echo '<span class="ffc-cap-presets">';
-		printf( '<button type="button" class="button" data-ffc-preset="all">%s</button>', esc_html__( 'Grant all', 'ffcertificate' ) );
-		printf( '<button type="button" class="button" data-ffc-preset="none">%s</button>', esc_html__( 'Revoke all', 'ffcertificate' ) );
+		$presets = \FreeFormCertificate\Core\Button::html(
+			array(
+				'label' => __( 'Grant all', 'ffcertificate' ),
+				'icon'  => 'checkmark',
+				'attrs' => array( 'data-ffc-preset' => 'all' ),
+			)
+		) . \FreeFormCertificate\Core\Button::html(
+			array(
+				'label' => __( 'Revoke all', 'ffcertificate' ),
+				'icon'  => 'cross',
+				'attrs' => array( 'data-ffc-preset' => 'none' ),
+			)
+		);
+		echo $presets; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html() escapes every value.
 		echo '</span>';
 		echo '</div>';
 	}
@@ -393,7 +437,7 @@ class AdminUserCapabilities {
 				if ( 'none' !== $origin ) {
 					++$granted;
 				}
-				$rows .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin );
+				$rows .= self::render_cap_row( (string) $slug, $meta, (string) $group['key'], $granted_user, $origin, $by_role ? self::granting_roles( $user, (string) $slug ) : array() );
 			}
 
 			// Every group starts collapsed for easier navigation; the live
@@ -432,9 +476,10 @@ class AdminUserCapabilities {
 	 * @param string                $group_key    Owning group key (for JS preset/filter hooks).
 	 * @param bool                  $checked      Whether a user-level grant exists.
 	 * @param string                $origin       `user` | `role` | `none`.
+	 * @param array<int, string>    $roles        Names of the roles granting it, when `role`.
 	 * @return string Markup with every dynamic part escaped.
 	 */
-	private static function render_cap_row( string $slug, array $meta, string $group_key, bool $checked, string $origin ): string {
+	private static function render_cap_row( string $slug, array $meta, string $group_key, bool $checked, string $origin, array $roles = array() ): string {
 		$label         = isset( $meta['label'] ) ? (string) $meta['label'] : $slug;
 		$desc          = isset( $meta['description'] ) ? (string) $meta['description'] : '';
 		$surface_badge = \FreeFormCertificate\UserDashboard\CapabilityCatalog::surface_badge_html( $meta );
@@ -451,6 +496,7 @@ class AdminUserCapabilities {
 				'checked'     => $by_role ? true : $checked,
 				'disabled'    => $by_role,
 				'label'       => '',
+				'aria_label'  => $label,
 				'class'       => $by_role ? 'ffc-cap-toggle--byrole' : '',
 				'input_class' => 'ffc-cap-checkbox',
 				'data'        => array( 'ffc-cap-group' => $group_key ),
@@ -458,12 +504,13 @@ class AdminUserCapabilities {
 		);
 
 		return sprintf(
-			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s" data-ffc-tier="%11$s">'
+			'<div class="ffc-cap-row" data-ffc-cap-name="%1$s" data-ffc-cap-slug="%2$s" data-ffc-user-granted="%9$s" data-ffc-tier="%11$s" data-ffc-confirm="%15$s">'
 				. '<div class="ffc-cap-row-toggle">%3$s</div>'
 				. '<div class="ffc-cap-row-text">'
-				. '<span class="ffc-cap-row-name">%4$s%10$s</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
+				. '<span class="ffc-cap-row-name">%4$s%10$s</span>%12$s<span class="ffc-cap-role-tag" data-ffc-role-tag></span>'
 				. '<span class="ffc-cap-row-desc">%5$s</span>'
-				. '<span class="ffc-cap-slug">%2$s<button type="button" class="ffc-cap-copy" data-ffc-copy="%2$s" aria-label="%6$s" title="%6$s">⧉</button></span>'
+				. '<span class="ffc-cap-why" data-ffc-why%14$s>%13$s</span>'
+				. '<span class="ffc-cap-slug">%2$s%6$s</span>'
 				. '</div>'
 				. '<span class="ffc-cap-origin ffc-cap-origin--%7$s" data-ffc-origin>%8$s</span>'
 				. '</div>',
@@ -472,13 +519,63 @@ class AdminUserCapabilities {
 			$toggle,
 			esc_html( $label ),
 			esc_html( $desc ),
-			esc_attr__( 'Copy slug', 'ffcertificate' ),
+			\FreeFormCertificate\Core\Button::html(
+				array(
+					/* translators: %s: capability slug */
+					'label'     => sprintf( __( 'Copy %s', 'ffcertificate' ), $slug ),
+					'icon'      => 'copy',
+					'icon_only' => true,
+					'class'     => 'ffc-cap-copy',
+					'attrs'     => array( 'data-ffc-copy' => $slug ),
+				)
+			),
 			esc_attr( $origin ),
 			esc_html( self::origin_label( $origin ) ),
 			$checked ? '1' : '0',
 			$surface_badge,
-			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) )
+			esc_attr( \FreeFormCertificate\UserDashboard\CapabilityCatalog::cap_tier( $slug ) ),
+			\FreeFormCertificate\UserDashboard\CapabilityCatalog::tier_chip( $slug ),
+			esc_html( self::granted_by_text( $roles ) ),
+			array() === $roles ? ' hidden' : '',
+			\FreeFormCertificate\UserDashboard\CapabilityCatalog::needs_grant_confirmation( $slug ) ? '1' : '0'
 		);
+	}
+
+	/**
+	 * Why a role-granted switch cannot be turned off here (#2340).
+	 *
+	 * @param array<int, string> $roles Names of the roles granting the capability.
+	 * @return string Plain text, empty when no role grants it.
+	 */
+	public static function granted_by_text( array $roles ): string {
+		if ( array() === $roles ) {
+			return '';
+		}
+		return sprintf(
+			/* translators: %s: role name, or a comma-separated list of role names */
+			__( 'From the role %s. To remove it, change the role or edit the role itself.', 'ffcertificate' ),
+			implode( ', ', $roles )
+		);
+	}
+
+	/**
+	 * The names of the user's roles that grant a capability.
+	 *
+	 * @param \WP_User $user User being edited.
+	 * @param string   $slug Capability slug.
+	 * @return list<string>
+	 */
+	private static function granting_roles( \WP_User $user, string $slug ): array {
+		// The same source as the lock itself (user_role_caps_union()), so the
+		// row never names a role that does not lock it.
+		$presets = self::ffc_preset_roles();
+		$names   = array();
+		foreach ( (array) $user->roles as $role_slug ) {
+			if ( isset( $presets[ $role_slug ] ) && in_array( $slug, $presets[ $role_slug ]['caps'], true ) ) {
+				$names[] = (string) $presets[ $role_slug ]['label'];
+			}
+		}
+		return $names;
 	}
 
 	/**
@@ -632,6 +729,14 @@ class AdminUserCapabilities {
 			return;
 		}
 
+		// Only a form that drew the per-capability fields may clear them. A
+		// WordPress administrator's profile shows the role presets alone, and
+		// reading the missing boxes as "unchecked" stripped every per-user
+		// grant and audience membership the account held (#2340).
+		if ( '1' !== \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_cap_fields_rendered' ) ) {
+			return;
+		}
+
 		// Iterate exactly the capabilities the form rendered (the catalog),
 		// so a cap that has no checkbox is never silently stripped on save.
 		// The catalog is asserted to equal UserManager::get_all_capabilities()
@@ -644,10 +749,19 @@ class AdminUserCapabilities {
 			return;
 		}
 
-		// Process each capability.
+		// Process each capability, noting what really changes for the audit.
+		$granted = array();
+		$revoked = array();
 		foreach ( $all_capabilities as $cap ) {
 			$field_name = 'ffc_cap_' . $cap;
 			$grant      = isset( $_POST[ $field_name ] ) && '1' === $_POST[ $field_name ];
+			$held       = ! empty( $user->caps[ $cap ] );
+
+			if ( $grant && ! $held ) {
+				$granted[] = $cap;
+			} elseif ( ! $grant && isset( $user->caps[ $cap ] ) ) {
+				$revoked[] = $cap;
+			}
 
 			if ( $grant ) {
 				$user->add_cap( $cap, true );
@@ -672,6 +786,17 @@ class AdminUserCapabilities {
 			}
 		}
 		self::sync_audience_membership( $user_id, $submitted_audiences );
+
+		if ( array() !== $granted || array() !== $revoked ) {
+			self::log_permission_change(
+				'user_capabilities_changed',
+				array(
+					'target_user_id' => $user_id,
+					'granted'        => $granted,
+					'revoked'        => $revoked,
+				)
+			);
+		}
 
 		// Log the change.
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -734,6 +859,17 @@ class AdminUserCapabilities {
 			\FreeFormCertificate\Audience\AudienceWriter::remove_member( (int) $audience_id, $user_id );
 		}
 
+		if ( ! empty( $to_add ) || ! empty( $to_remove ) ) {
+			self::log_permission_change(
+				'user_audiences_changed',
+				array(
+					'target_user_id' => $user_id,
+					'added'          => array_map( 'intval', array_values( $to_add ) ),
+					'removed'        => array_map( 'intval', array_values( $to_remove ) ),
+				)
+			);
+		}
+
 		if ( ( ! empty( $to_add ) || ! empty( $to_remove ) ) && class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_user_manager(
 				'Admin updated user audience membership',
@@ -775,6 +911,16 @@ class AdminUserCapabilities {
 			wp_send_json_error( array( 'message' => 'user_not_found' ), 404 );
 		}
 
+		// Changing someone's roles needs the right over THAT account (#2340):
+		// `manage_options` alone does not say the editor may promote or edit
+		// this user, and on a network the account must belong to this site.
+		if ( ! current_user_can( 'promote_user', $user_id ) || ! current_user_can( 'edit_user', $user_id ) ) {
+			wp_send_json_error( array( 'message' => 'cannot_edit_user' ), 403 );
+		}
+		if ( is_multisite() && ! is_user_member_of_blog( $user_id ) ) {
+			wp_send_json_error( array( 'message' => 'user_not_on_site' ), 403 );
+		}
+
 		// Administrators are managed only through the aggregator role: since
 		// #739 they no longer receive FFC caps automatically, so
 		// `ffc_administrator` must be assignable to them — but no partial FFC
@@ -789,10 +935,21 @@ class AdminUserCapabilities {
 			wp_send_json_error( array( 'message' => 'role_not_assignable' ), 400 );
 		}
 
+		$had = in_array( $role, (array) $user->roles, true );
 		if ( $assign ) {
 			$user->add_role( $role );
 		} else {
 			$user->remove_role( $role );
+		}
+		if ( $had !== $assign ) {
+			self::log_permission_change(
+				'user_role_changed',
+				array(
+					'target_user_id' => $user_id,
+					'role'           => $role,
+					'assigned'       => $assign ? 1 : 0,
+				)
+			);
 		}
 
 		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
@@ -835,6 +992,113 @@ class AdminUserCapabilities {
 		}
 		$presets                             = array_keys( self::ffc_preset_roles() );
 		self::$ffc_role_snapshot[ $user_id ] = array_values( array_intersect( (array) $user->roles, $presets ) );
+
+		// "Remove FFC roles" chosen under a changed WordPress role (#2340):
+		// the FFC roles core's single-role save drops are then left dropped.
+		if ( self::removal_chosen( $user ) ) {
+			self::$ffc_role_removal[ $user_id ]  = array_values( array_intersect( self::$ffc_role_snapshot[ $user_id ], self::ffc_role_slugs() ) );
+			self::$ffc_role_snapshot[ $user_id ] = array_values( array_diff( self::$ffc_role_snapshot[ $user_id ], self::$ffc_role_removal[ $user_id ] ) );
+		}
+	}
+
+	/**
+	 * Name of the profile-form field that carries the choice.
+	 */
+	public const DEMOTION_FIELD = 'ffc_demote_ffc_roles';
+
+	/**
+	 * FFC roles to take off on this save, by user, set by the snapshot.
+	 *
+	 * @var array<int, list<string>>
+	 */
+	private static array $ffc_role_removal = array();
+
+	/**
+	 * The plugin's own role slugs, the ones "Remove FFC roles" takes off.
+	 * FFC End User is not one of them: it is what a person's own
+	 * certificates and bookings hang on, not a staff role.
+	 *
+	 * @return list<string>
+	 */
+	private static function ffc_role_slugs(): array {
+		$slugs = array_keys( \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels() );
+		return array_values( array_diff( array_map( 'strval', $slugs ), array( 'ffc_end_user' ) ) );
+	}
+
+	/**
+	 * Whether this save asks to take the FFC roles off: the choice is
+	 * "remove", the WordPress role really changes, and the editor may
+	 * promote this account. Core has already checked the profile form's
+	 * nonce (`update-user_{id}`) before these hooks fire.
+	 *
+	 * @param \WP_User $user Account being saved.
+	 * @return bool
+	 */
+	private static function removal_chosen( \WP_User $user ): bool {
+		if ( 'remove' !== RequestInput::get_post_string( self::DEMOTION_FIELD ) ) {
+			return false;
+		}
+		$role = sanitize_key( RequestInput::get_post_string( 'role' ) );
+		if ( '' === $role || in_array( $role, (array) $user->roles, true ) ) {
+			return false;
+		}
+		return current_user_can( 'promote_user', $user->ID );
+	}
+
+	/**
+	 * Print the prompt the script moves under the WordPress Role select: the
+	 * FFC roles the account holds and whether a role change keeps them.
+	 * Hidden until the select changes; "Keep" is chosen by default, so a
+	 * save without the script changes nothing.
+	 *
+	 * @param \WP_User $user Account on screen.
+	 * @return void
+	 */
+	private static function render_demotion_prompt( \WP_User $user ): void {
+		if ( ! current_user_can( 'promote_user', $user->ID ) ) {
+			return;
+		}
+		$labels = \FreeFormCertificate\UserDashboard\RoleRegistrar::ffc_managed_role_labels();
+		$held   = array_values( array_intersect( (array) $user->roles, self::ffc_role_slugs() ) );
+		if ( array() === $held ) {
+			return;
+		}
+
+		$chips = '';
+		foreach ( $held as $slug ) {
+			$chips .= '<span class="ffc-cap-chip">' . esc_html( (string) ( $labels[ $slug ] ?? $slug ) ) . '</span> ';
+		}
+		ob_start();
+		AdminUI::render_segmented(
+			array(
+				'name'    => self::DEMOTION_FIELD,
+				'legend'  => __( 'FFC roles', 'ffcertificate' ),
+				'options' => array(
+					'keep'   => __( 'Keep FFC roles', 'ffcertificate' ),
+					'remove' => __( 'Remove FFC roles', 'ffcertificate' ),
+				),
+				'value'   => 'keep',
+				'size'    => 'sm',
+			)
+		);
+		$control = (string) ob_get_clean();
+
+		$message = '<p><strong>' . esc_html(
+			sprintf(
+				/* translators: %s: the user's display name */
+				__( '%s also holds FFC roles:', 'ffcertificate' ),
+				$user->display_name
+			)
+		) . '</strong> ' . $chips . '</p>'
+			. '<p>' . esc_html__( 'Changing the WordPress role does not change them. What should happen to them?', 'ffcertificate' ) . '</p>';
+
+		// The control sits under the notice, not in it: a notice's message
+		// goes through wp_kses_post(), which would strip the radios.
+		echo '<div class="ffc-demote-prompt" hidden>';
+		\FreeFormCertificate\Core\AdminNotice::callout( 'warning', $message, array( 'role' => 'status' ) );
+		echo $control; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- AdminUI::render_segmented() escapes its own markup.
+		echo '<p class="description">' . esc_html__( 'Applied when you click Update User, and recorded in the activity log.', 'ffcertificate' ) . '</p>';
+		echo '</div>';
 	}
 
 	/**
@@ -852,6 +1116,9 @@ class AdminUserCapabilities {
 	 * @return void
 	 */
 	public static function restore_ffc_roles( int $user_id ): void {
+		if ( isset( self::$ffc_role_removal[ $user_id ] ) ) {
+			self::finish_role_removal( $user_id );
+		}
 		if ( ! isset( self::$ffc_role_snapshot[ $user_id ] ) ) {
 			return;
 		}
@@ -872,6 +1139,51 @@ class AdminUserCapabilities {
 				$user->add_role( $role );
 			}
 		}
+	}
+
+	/**
+	 * Write a Permissions entry to the activity log (#2340): who changed
+	 * whose access, and what. Best effort: the access has already changed,
+	 * so a log that cannot be written must not fail the save.
+	 *
+	 * @param string               $action  Activity-log action.
+	 * @param array<string, mixed> $context Target and change.
+	 * @return void
+	 */
+	private static function log_permission_change( string $action, array $context ): void {
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log( $action, \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING, $context, get_current_user_id() );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
+	}
+
+	/**
+	 * Take off the FFC roles the editor chose to remove with a role change
+	 * (#2340), whichever survived core's save, and record it.
+	 *
+	 * @param int $user_id User that was saved.
+	 * @return void
+	 */
+	private static function finish_role_removal( int $user_id ): void {
+		$roles = self::$ffc_role_removal[ $user_id ];
+		unset( self::$ffc_role_removal[ $user_id ] );
+		$user = get_userdata( $user_id );
+		if ( ! $user instanceof \WP_User || array() === $roles ) {
+			return;
+		}
+		foreach ( $roles as $role ) {
+			if ( in_array( $role, (array) $user->roles, true ) ) {
+				$user->remove_role( $role );
+			}
+		}
+		self::log_permission_change(
+			'user_ffc_roles_removed',
+			array(
+				'target_user_id' => $user_id,
+				'roles'          => $roles,
+			)
+		);
 	}
 
 	/**

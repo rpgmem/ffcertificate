@@ -83,9 +83,12 @@ final class MessageBuilder {
 	 * @param array{user_id: int, email: string, name: string} $recipient Who.
 	 * @param \DateTimeImmutable                               $target    The day of the date.
 	 * @param \DateTimeImmutable                               $today     Today (site timezone).
+	 * @param array<string, string>                            $overrides Token name => plain value, applied last: the dashboard's
+	 *                                                                    Messages tab masks what a viewer may not see and points
+	 *                                                                    the unsubscribe link at the tab's preferences (#2503).
 	 * @return array{subject: string, body: string}
 	 */
-	public static function build( Rule $rule, DateSourceInterface $source, array $recipient, \DateTimeImmutable $target, \DateTimeImmutable $today ): array {
+	public static function build( Rule $rule, DateSourceInterface $source, array $recipient, \DateTimeImmutable $target, \DateTimeImmutable $today, array $overrides = array() ): array {
 		// Core's own field, read through the account rather than as a meta
 		// key: the plugin neither writes nor owns it.
 		$user  = get_userdata( $recipient['user_id'] );
@@ -103,7 +106,8 @@ final class MessageBuilder {
 				'dashboard_url'   => PasswordInvite::dashboard_url(),
 				'unsubscribe_url' => Unsubscribe::url( $recipient['user_id'], $rule->opt_out_category() ),
 			),
-			$source->tokens( $recipient['user_id'], $target )
+			$source->tokens( $recipient['user_id'], $target ),
+			$overrides
 		);
 
 		return self::render( $rule->subject, $rule->body, $tokens );

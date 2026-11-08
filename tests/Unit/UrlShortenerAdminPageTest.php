@@ -64,7 +64,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	protected function tearDown(): void {
 		unset( $_POST['nonce'], $_POST['target_url'], $_POST['title'], $_POST['id'] );
-		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'] );
+		unset( $_GET['page'], $_GET['ffc_action'], $_GET['_wpnonce'], $_GET['id'], $_GET['paged'], $_GET['orderby'], $_GET['order'], $_GET['status'], $_GET['s'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -77,6 +77,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$_POST['nonce']      = 'valid';
 		$_POST['id']         = '7';
 		$_POST['target_url'] = 'https://example.com/new';
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
 		$_POST['title']      = 'Updated';
 
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
@@ -105,6 +106,30 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$this->assertSame( 'https://example.com/new', $sent['target_url'] );
 	}
 
+
+	public function test_ajax_edit_refuses_a_scheme_outside_the_shared_list(): void {
+		$_POST['nonce']      = 'valid';
+		$_POST['id']         = '7';
+		$_POST['target_url'] = 'irc://chat.example.com/room';
+		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_parse_url' )->alias( static fn( $u, $c = -1 ) => parse_url( $u, $c ) );
+		// esc_url_raw() with the shared list empties a scheme outside it.
+		Functions\when( 'esc_url_raw' )->alias( static fn( $u, $p = null ) => is_array( $p ) && ! in_array( strtolower( (string) parse_url( $u, PHP_URL_SCHEME ) ), $p, true ) ? '' : $u );
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findById' )->with( 7 )->andReturn( array( 'id' => 7, 'post_id' => null ) );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldNotReceive( 'update_short_url' );
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data ) {
+				throw new \RuntimeException( (string) $data['message'] );
+			}
+		);
+
+		$this->expectException( \RuntimeException::class );
+		$this->page->ajax_edit_short_url();
+	}
 	public function test_ajax_edit_rejects_post_linked(): void {
 		$_POST['nonce']      = 'valid';
 		$_POST['id']         = '8';
@@ -208,8 +233,15 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 	public function test_handle_actions_read_only_user_cannot_write(): void {
 		// GAP B 3-state: a user without ffc_manage_url_shortener (and not admin)
-		// reaches the page (view cap) but the GET-link write actions no-op.
+		// reaches the page (view cap) but cannot run a write action, and the
+		// refusal says why instead of reloading the list (#2337).
 		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'esc_html__' )->returnArg();
+		Functions\when( 'wp_die' )->alias(
+			static function ( $message ) {
+				throw new \RuntimeException( (string) $message );
+			}
+		);
 		$_GET['page']       = 'ffc-short-urls';
 		$_GET['ffc_action'] = 'trash';
 		$_GET['id']         = '5';
@@ -217,7 +249,100 @@ class UrlShortenerAdminPageTest extends TestCase {
 
 		$this->service->shouldNotReceive( 'trash_short_url' );
 
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'You do not have permission to change short URLs.' );
 		$this->page->handle_actions();
+	}
+
+	public function test_a_viewer_gets_no_write_controls_in_the_list(): void {
+		$_GET['status'] = 'all';
+		// Unfiltered: a search another test left behind would draw Clear.
+		unset( $_GET['s'] );
+		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( 'get_permalink' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
+		// The view capability only.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_view_url_shortener' === $cap );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findPaginated' )->andReturn(
+			array(
+				'items' => array(
+					array( 'id' => 3, 'short_code' => 'abc123', 'target_url' => 'https://example.com/', 'post_id' => null, 'title' => 'T', 'click_count' => 1, 'status' => 'active' ),
+				),
+				'total' => 1,
+			)
+		);
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_short_url' )->andReturn( 'https://example.com/go/abc123' );
+		$this->service->shouldReceive( 'get_stats' )->andReturn( array( 'total_links' => 1, 'active_links' => 1, 'total_clicks' => 1, 'trashed_links' => 0 ) );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-show-qr-modal', $html, 'A viewer still sees the QR.' );
+		$this->assertStringContainsString( 'ffc-shorturl-code', $html, 'And copies the link with a button.' );
+		$this->assertStringNotContainsString( 'ffc-control-toggle', $html );
+		$this->assertStringNotContainsString( 'ffc-edit-shorturl', $html );
+		$this->assertStringNotContainsString( 'ffc_action=trash', $html );
+		$this->assertStringContainsString( 'for="ffc-shorturl-search"', $html, 'The filters are labelled.' );
+	}
+
+	/**
+	 * The list top (#2486): the filter card, the count bar, the short link
+	 * fitting its column, the switch beside the state, the actions as buttons.
+	 */
+	public function test_the_list_follows_the_list_top(): void {
+		$_GET['status'] = 'all';
+		// Unfiltered: a search another test left behind would draw Clear.
+		unset( $_GET['s'] );
+		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'checked' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( 'get_permalink' )->justReturn( '' );
+		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
+		Functions\when( 'current_user_can' )->justReturn( true );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldReceive( 'findPaginated' )->andReturn(
+			array(
+				'items' => array(
+					array( 'id' => 3, 'short_code' => 'abc123', 'target_url' => 'https://example.com/', 'post_id' => null, 'title' => 'T', 'click_count' => 1, 'status' => 'active' ),
+				),
+				'total' => 1,
+			)
+		);
+		$repo->shouldReceive( 'countRetired' )->andReturn( 0 );
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+		$this->service->shouldReceive( 'get_short_url' )->andReturn( 'https://example.com/go/abc123' );
+		$this->service->shouldReceive( 'get_stats' )->andReturn( array( 'total_links' => 1, 'active_links' => 1, 'total_clicks' => 1, 'trashed_links' => 0 ) );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( '<form method="get" class="ffc-list ffc-shorturl-filter">', $html );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-shorturl-status-filter">', $html );
+		$this->assertStringNotContainsString( '>Clear</a>', $html, 'nothing to clear on the unfiltered list' );
+		$this->assertMatchesRegularExpression( '#<div class="tablenav top">.*<span class="displaying-num">\s*1 link\s*</span>#s', $html );
+		// The label drops the scheme; the copy, the title and the name keep it.
+		$this->assertMatchesRegularExpression( '#data-url="https://example.com/go/abc123" title="https://example.com/go/abc123"[^>]*>example.com/go/abc123</button>#', $html );
+		// The switch sits in the Status cell, before the badge it updates.
+		$this->assertMatchesRegularExpression( '#<td class="ffc-shorturl-status-cell">.*ffc-control-toggle.*id="ffc-short-url-status-3"#s', $html );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-row-buttons">\s*<button[^>]*ffc-edit-shorturl#', $html );
 	}
 
 	public function test_handle_actions_trash_calls_service(): void {
@@ -320,20 +445,16 @@ class UrlShortenerAdminPageTest extends TestCase {
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 
-		$repo = Mockery::mock( 'FreeFormCertificate\UrlShortener\UrlShortenerRepository' );
-		$repo->shouldReceive( 'findPaginated' )->once()->andReturn(
-			array( 'items' => array( array( 'id' => 1 ), array( 'id' => 2 ) ) )
-		);
-		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
-		$this->service->shouldReceive( 'delete_short_url' )->with( 1 )->once();
-		$this->service->shouldReceive( 'delete_short_url' )->with( 2 )->once();
+		// The service empties it in batches and says how many went (#2337).
+		$this->service->shouldReceive( 'empty_trash' )->once()->andReturn( 3 );
 		Functions\when( 'wp_safe_redirect' )->alias(
-			static function () {
-				throw new \RuntimeException( 'redirected' );
+			static function ( $url ) {
+				throw new \RuntimeException( $url );
 			}
 		);
 
 		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessage( 'admin.php?page=ffc-short-urls&msg=emptied&count=3' );
 		$this->page->handle_actions();
 	}
 
@@ -520,6 +641,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
 		// The header now renders a Settings shortcut gated on the settings
 		// view cap (Capabilities::current_user_can_admin_or); grant it so the
 		// link branch renders.
@@ -532,6 +654,7 @@ class UrlShortenerAdminPageTest extends TestCase {
 				'total' => 0,
 			)
 		);
+		$repo->shouldReceive( 'countRetired' )->with()->once()->andReturn( 37 );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_stats' )->once()->andReturn(
 			array(
@@ -547,6 +670,96 @@ class UrlShortenerAdminPageTest extends TestCase {
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'wrap', $html );
+		$this->assertStringContainsString( 'value="retired"', $html, 'An administrator is offered the retired view.' );
+		$this->assertStringContainsString( 'Retired (37)', $html );
+	}
+
+	/**
+	 * Stubs the template's output helpers for a render.
+	 */
+	private function stub_render_helpers(): void {
+		foreach ( array( 'number_format_i18n', 'esc_html', 'esc_html_e', 'esc_html__', 'esc_attr', 'esc_attr_e', 'esc_url', 'esc_url_raw', 'wp_nonce_url', 'admin_url' ) as $fn ) {
+			Functions\when( $fn )->returnArg();
+		}
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'add_query_arg' )->justReturn( 'https://example.com/x' );
+		Functions\when( 'paginate_links' )->justReturn( '' );
+		Functions\when( '_n' )->alias( static fn( $one, $many, $n ) => 1 === (int) $n ? $one : $many );
+		$this->service->shouldReceive( 'get_stats' )->andReturn(
+			array(
+				'total_links'   => 0,
+				'active_links'  => 0,
+				'total_clicks'  => 0,
+				'trashed_links' => 0,
+			)
+		);
+	}
+
+	public function test_the_retired_view_lists_retired_codes_for_an_administrator(): void {
+		$_GET['status'] = 'retired';
+		$_GET['s']      = 'formacao';
+		$this->stub_render_helpers();
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_date' )->justReturn( '04/11/2026 14:32' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => $default );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldNotReceive( 'findPaginated' );
+		$repo->shouldReceive( 'countRetired' )->with()->once()->andReturn( 1 );
+		$repo->shouldReceive( 'countRetired' )->with( 'formacao' )->once()->andReturn( 1 );
+		$repo->shouldReceive( 'findRetiredPaginated' )->with( 'formacao', 1, 20 )->once()->andReturn(
+			array(
+				array(
+					'id'           => '1',
+					'short_code'   => 'k7Qm2',
+					'short_url_id' => '4',
+					'post_id'      => '12',
+					'title'        => 'Formacao 2026',
+					'target_url'   => 'https://example.com/formacao/',
+					'reason'       => 'regenerated',
+					'retired_at'   => '1793800000',
+				),
+			)
+		);
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ffc-shorturl-retired-code">k7Qm2', $html );
+		$this->assertStringContainsString( 'Replaced by Regenerate', $html );
+		$this->assertStringContainsString( 'https://example.com/formacao/', $html );
+		$this->assertStringContainsString( 'never issued again', $html );
+		$this->assertStringNotContainsString( 'ffc-stats', $html, 'The retired view draws no stat cards.' );
+	}
+
+	public function test_the_retired_view_is_not_offered_to_others(): void {
+		$_GET['status'] = 'retired';
+		$this->stub_render_helpers();
+		// Manages short URLs, is not a WordPress administrator.
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'manage_options' !== $cap );
+
+		$repo = Mockery::mock( UrlShortenerRepository::class );
+		$repo->shouldNotReceive( 'countRetired' );
+		$repo->shouldNotReceive( 'findRetiredPaginated' );
+		$repo->shouldReceive( 'findPaginated' )->once()->with(
+			Mockery::on( static fn( $args ) => 'all' === $args['status'] )
+		)->andReturn(
+			array(
+				'items' => array(),
+				'total' => 0,
+			)
+		);
+		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
+
+		ob_start();
+		$this->page->render_page();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( 'value="retired"', $html );
 	}
 
 	public function test_handle_actions_delete_without_delete_cap_dies(): void {

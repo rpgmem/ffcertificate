@@ -454,7 +454,7 @@ class FormEditorPublicCsvDownloadMetabox {
 								<span class="ffc-csv-audit-card-hint"><?php esc_html_e( 'Wrong CPF + wrong CAPTCHA + other errors.', 'ffcertificate' ); ?></span>
 							</div>
 						</div>
-						<?php if ( $ffc_audit_summary['count'] >= \FreeFormCertificate\Frontend\PublicCsvDownload::DOWNLOAD_LOG_MAX ) : ?>
+						<?php if ( ! empty( $ffc_audit_summary['full'] ) ) : ?>
 							<p class="description">
 								<?php
 								echo esc_html(
@@ -566,11 +566,23 @@ class FormEditorPublicCsvDownloadMetabox {
 			$status_label = __( 'Set a start date in the Geolocation & Date/Time metabox to enable this action.', 'ffcertificate' );
 			$status_kind  = 'warning';
 		} elseif ( '' !== $opened_at ) {
-			$status_label = sprintf(
-				/* translators: %s: original time_start value (HH:MM). */
-				__( 'Already started early once for this form (was %s). Edit time_start manually below if you need to advance further.', 'ffcertificate' ),
-				'' !== $opened_frm ? $opened_frm : '—'
-			);
+			// Today's opening moves today only (#2341); a later day opens at
+			// its scheduled time.
+			$opened_ts = (int) $opened_at;
+			if ( null !== \FreeFormCertificate\Security\Geofence::early_open_today( $post->ID ) ) {
+				$status_label = sprintf(
+					/* translators: 1: time the form was opened (HH:MM), 2: its scheduled start (HH:MM). */
+					__( 'Opened early today at %1$s (scheduled for %2$s). Later days open at their scheduled time.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\DateFormatter::format_time( $opened_ts ),
+					'' !== $opened_frm ? $opened_frm : '—'
+				);
+			} else {
+				$status_label = sprintf(
+					/* translators: %s: date and time the form was opened early. */
+					__( 'Opened early on %s. It applied to that day only; saving the form makes early start available again.', 'ffcertificate' ),
+					\FreeFormCertificate\Core\DateFormatter::format_datetime( $opened_ts )
+				);
+			}
 			$status_kind = 'info';
 		} elseif ( null !== $end_ts && $end_ts <= $now ) {
 			$status_label = __( 'This form has already ended — early-start no longer applies.', 'ffcertificate' );

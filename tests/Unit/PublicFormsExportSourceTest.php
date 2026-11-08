@@ -139,10 +139,13 @@ class PublicFormsExportSourceTest extends TestCase {
 		CaptchaProvider::reset();
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
+		// The screen's read pool counts an anonymous caller (#2341).
+		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
 		// Also what Debug::is_enabled() would read; every option is unset here.
@@ -154,6 +157,16 @@ class PublicFormsExportSourceTest extends TestCase {
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
 		Functions\when( 'wp_cache_delete' )->justReturn( true );
+		Functions\when( 'metadata_exists' )->alias( fn( $type, $id, $key ) => isset( $this->post_meta[ (int) $id ][ $key ] ) );
+		Functions\when( 'add_post_meta' )->alias(
+			function ( $id, $key, $value ) {
+				if ( isset( $this->post_meta[ (int) $id ][ $key ] ) ) {
+					return false;
+				}
+				$this->post_meta[ (int) $id ][ $key ] = $value;
+				return 1;
+			}
+		);
 		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 3 === (int) $id || self::FORM === (int) $id ? 'My Form' : '' );
 
 		$this->post_meta   = array();
@@ -287,11 +300,41 @@ class PublicFormsExportSourceTest extends TestCase {
 				);
 			}
 		);
+		// The read pool's day counter (#2341): no row yet, so it inserts one.
+		$wpdb->shouldReceive( 'get_row' )->andReturnUsing(
+			function ( $sql ) {
+				$sql = (string) $sql;
+				if ( 0 === strpos( $sql, 'SELECT id,count FROM `wp_ffc_rate_limits`' ) ) {
+					return null;
+				}
+				$this->fail( 'Unexpected get_row(): ' . $sql );
+			}
+		);
+		$wpdb->shouldReceive( 'insert' )->andReturn( 1 );
+		// A refusal's log line and its trim; and the quota's conditional
+		// UPDATE (#2341), played against the post meta store.
+		$wpdb->postmeta = 'wp_postmeta';
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			function ( $sql ) {
+				if ( 1 === preg_match( "/^UPDATE `wp_postmeta` SET meta_value .* WHERE post_id = (\\d+) AND meta_key = '([^']+)' AND CAST\\(meta_value AS UNSIGNED\\) < (\\d+)$/", (string) $sql, $m ) ) {
+					$current = $this->post_meta[ (int) $m[1] ][ $m[2] ] ?? null;
+					if ( null === $current || (int) $current >= (int) $m[3] ) {
+						return 0;
+					}
+					$this->post_meta[ (int) $m[1] ][ $m[2] ] = (int) $current + 1;
+					return 1;
+				}
+				return 1;
+			}
+		);
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			function ( $sql ) {
 				$sql = (string) $sql;
 				if ( 0 === strpos( $sql, 'SELECT count FROM `wp_ffc_rate_limits`' ) ) {
 					return null;
+				}
+				if ( 0 === strpos( $sql, 'SELECT COUNT(*) FROM `wp_ffc_rate_limit_logs`' ) ) {
+					return '1';
 				}
 				if ( false !== strpos( $sql, 'INFORMATION_SCHEMA.COLUMNS' ) ) {
 					return $this->edited ? '1' : '0';
@@ -374,9 +417,10 @@ class PublicFormsExportSourceTest extends TestCase {
 	 * A solved math challenge, posted as the form posts it.
 	 */
 	private function post_solved_captcha(): void {
-		$captcha                     = SecurityService::generate_simple_captcha();
+		$captcha                     = SecurityService::generate_simple_captcha( 'public_csv' );
 		$_POST['ffc_captcha_ans']    = (string) $captcha['answer'];
 		$_POST['ffc_captcha_hash']   = $captcha['hash'];
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$this->nonces[ PublicCsvDownload::NONCE_ACTION ] = 'page-nonce';
 		$_POST['_ffc_pcd_nonce']     = 'page-nonce';
 	}
@@ -435,19 +479,15 @@ class PublicFormsExportSourceTest extends TestCase {
 
 	public function test_authorize_start_rejects_when_rate_limited(): void {
 		// The hour counter of this address is at the default limit of 5.
-		$this->transients[ 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour' ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( IpAddress::fingerprint( self::IP ) ) . '_hour', HOUR_IN_SECONDS, 5 );
 		$this->post_start_gate();
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
 
-		$this->assertSame(
-			array(
-				'message'    => 'Limit reached. Please wait 1 hour.',
-				'rate_limit' => true,
-			),
-			$payload,
-			'A denial carries its own message (#2153).'
-		);
+		$this->assertSame( array( 'message', 'rate_limit' ), array_keys( $payload ), 'A denial carries its own message (#2153).' );
+		$this->assertTrue( $payload['rate_limit'] );
+		// The real time left of the hour (#2339).
+		$this->assertMatchesRegularExpression( '/^Limit reached\. Please wait \d+ (second|seconds|minute|minutes|hour)\./', $payload['message'] );
 	}
 
 	public function test_authorize_start_rejects_on_bad_nonce(): void {
@@ -465,7 +505,7 @@ class PublicFormsExportSourceTest extends TestCase {
 
 		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
 
-		$this->assertSame( 'Security Error: Request blocked (Honeypot).', $payload['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $payload['message'] );
 		$this->assertTrue( $payload['refresh_captcha'], 'A fresh challenge rides on the refusal.' );
 		$this->assertNotEmpty( $payload['new_hash'] );
 	}
@@ -509,7 +549,7 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->assertSame( '', $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ] ?? '', 'No quota is spent.' );
 	}
 
-	public function test_authorize_start_bumps_quota_on_success(): void {
+	public function test_authorize_start_passes_without_spending_the_quota(): void {
 		$this->public_form( array( PublicCsvDownload::META_COUNT => 4 ) );
 		$this->post_start_gate();
 
@@ -517,7 +557,28 @@ class PublicFormsExportSourceTest extends TestCase {
 		$this->source->authorize_start();
 
 		$this->assertSame( array(), $this->json_errors );
-		$this->assertSame( 5, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'quota incremented from 4 → 5' );
+		$this->assertSame( 4, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The quota is spent at delivery, not at the start (#2341).' );
+	}
+
+	/**
+	 * #2341 — the export start counts in the screen's read pool, and over it
+	 * refuses before it charges the quota.
+	 */
+	public function test_authorize_start_counts_in_the_read_pool_and_refuses_over_it(): void {
+		$base = 'ffc_rate_read_' . md5( IpAddress::fingerprint( self::IP ) . '|' . PublicCsvDownload::RATE_ENDPOINT ) . '_minute';
+		$this->public_form( array( PublicCsvDownload::META_COUNT => 4 ) );
+		$this->post_start_gate();
+
+		$this->source->authorize_start();
+		$this->assertSame( 1, \FreeFormCertificate\Tests\Support\WindowedCounter::read( $this->transients, $base, MINUTE_IN_SECONDS ) );
+
+		$max = \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS[ PublicCsvDownload::RATE_ENDPOINT ]['max_per_minute'];
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, $base, MINUTE_IN_SECONDS, $max );
+		$this->post_start_gate();
+
+		$payload = $this->json_error_of( fn() => $this->source->authorize_start() );
+		$this->assertMatchesRegularExpression( '/^Too many requests\./', is_array( $payload ) ? (string) $payload['message'] : (string) $payload );
+		$this->assertSame( 4, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'Neither start charged anything.' );
 	}
 
 	// ==================================================================
@@ -714,8 +775,18 @@ class PublicFormsExportSourceTest extends TestCase {
 	// ==================================================================
 
 	public function test_extra_start_response_returns_batch_nonce(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		Functions\when( 'esc_html_e' )->echoArg();
+		Functions\when( 'esc_attr_e' )->echoArg();
 		$extra = $this->source->extra_start_response( 'job-1', array() );
 		$this->assertSame( 'nonce-ffc_public_csv_batch_job-1', $extra['nonce_batch'] );
+		// #2341 — a fresh challenge for the next download from the screen,
+		// bound to the download's own context.
+		$this->assertStringContainsString( 'ffc_captcha_hash', $extra['download_security'] );
+		$hash = array();
+		preg_match( '/name="ffc_captcha_hash"[^>]*value="([^"]+)"/', $extra['download_security'], $hash );
+		$this->assertNotEmpty( $hash );
 	}
 
 	public function test_on_complete_fires_completed_action(): void {
@@ -746,17 +817,82 @@ class PublicFormsExportSourceTest extends TestCase {
 	}
 
 	public function test_on_before_download_writes_delivery_audit_row(): void {
+		$this->post_types[ self::FORM ]                                    = 'ffc_form';
 		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_CPF_MODE ] = 'voluntary';
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $fallback = false ) => 'ffc_settings' === $key ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : $fallback
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
 		$this->source->on_before_download(
-			array( 'form_id' => self::FORM, 'cpf_digits' => Identifiers::CPF_A )
+			array(
+				'form_id'    => self::FORM,
+				'cpf_digits' => Identifiers::CPF_A,
+				'processed'  => 12,
+			)
 		);
+
+		// The file carries personal data in clear: a PII-access entry (#2341).
+		$contexts = \FreeFormCertificate\Tests\Support\ActivityLogBuffer::contexts();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		$exported = array_values( array_filter( $contexts, static fn( $row ) => 'pii_exported' === $row['action'] ) );
+		$this->assertCount( 1, $exported );
+		$this->assertSame( 'public_csv', $exported[0]['context']['export'] );
+		$this->assertSame( 12, $exported[0]['context']['rows'] );
+		$this->assertSame( self::FORM, $exported[0]['context']['form_id'] );
 
 		$log = $this->audit_log();
 		$this->assertCount( 1, $log );
 		$this->assertSame( 'voluntary', $log[0]['mode'] );
 		$this->assertSame( 'download_delivered', $log[0]['result'] );
+		$this->assertSame( 1, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ], 'The first delivery spends the first download (#2341).' );
 		$this->assertSame( Identifiers::CPF_A, Encryption::decrypt( $log[0]['cpf_encrypted'] ) );
 		$this->assertSame( self::IP, Encryption::decrypt( $log[0]['ip_encrypted'] ) );
+	}
+
+	/**
+	 * #2341 — the delivery tells the page the file was sent through a cookie
+	 * named for the job. A job id is reduced to the characters a UUID has,
+	 * and the cookie is never attempted once output has begun.
+	 */
+	public function test_on_before_download_names_the_delivered_cookie_after_the_job(): void {
+		$this->post_types[ self::FORM ] = 'ffc_form';
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::stub_functions();
+		Functions\when( 'get_current_user_id' )->justReturn( 0 );
+		Functions\when( 'is_ssl' )->justReturn( true );
+		Functions\when( 'home_url' )->justReturn( 'https://example.test' );
+		$_GET['job_id'] = 'ABCD-1234"; x';
+
+		$method = new \ReflectionMethod( PublicFormsExportSource::class, 'send_delivered_cookie' );
+		$method->setAccessible( true );
+		$this->source->on_before_download( array( 'form_id' => self::FORM, 'cpf_digits' => '' ) );
+		unset( $_GET['job_id'] );
+		\FreeFormCertificate\Tests\Support\ActivityLogBuffer::reset();
+
+		$this->assertSame( 'ffc_csv_delivered_', PublicFormsExportSource::DELIVERED_COOKIE_PREFIX );
+		$this->assertSame( 'download_delivered', $this->audit_log()[0]['result'], 'The cookie follows the delivery, it never replaces it.' );
+		// Under PHPUnit the output has begun, so the call must return quietly
+		// instead of raising "headers already sent".
+		$this->assertTrue( headers_sent() );
+		$this->assertNull( $method->invoke( null, 'abcd-1234' ) );
+	}
+
+	/**
+	 * #2341 — a job delivered after the quota was spent by another is
+	 * refused at delivery, and nothing is recorded as delivered.
+	 */
+	public function test_on_before_download_refuses_when_the_quota_is_spent(): void {
+		$this->post_types[ self::FORM ]                                    = 'ffc_form';
+		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_LIMIT ]    = 3;
+		$this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ]    = 3;
+
+		$message = $this->die_message_of( fn() => $this->source->on_before_download( array( 'form_id' => self::FORM, 'cpf_digits' => '' ) ) );
+
+		$this->assertStringContainsString( 'maximum number of downloads (3)', $message );
+		$this->assertSame( 3, $this->post_meta[ self::FORM ][ PublicCsvDownload::META_COUNT ] );
+		$this->assertSame( array(), $this->audit_log() );
 	}
 }

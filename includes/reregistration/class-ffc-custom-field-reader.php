@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 6.12.0
  *
- * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, source_audience_id?: string, source_audience_name?: string}
+ * @phpstan-type CustomFieldRow \stdClass&object{id: string, audience_id: string, field_key: string, field_label: string, field_type: string, field_group: string, field_source: string, field_profile_key: string|null, field_mask: string|null, is_sensitive: string, field_options: string|null, validation_rules: string|null, sort_order: string, is_required: string, is_active: string, created_at: string, updated_at: string, overrides_field_id?: string|null, is_hidden?: string, source_audience_id?: int|string, source_audience_name?: string, definition_audience_id?: int, override_id?: int}
  */
 class CustomFieldReader {
 	use \FreeFormCertificate\Core\StaticRepositoryTrait;
@@ -195,47 +195,222 @@ class CustomFieldReader {
 	}
 
 	/**
-	 * Get fields for an audience including inherited fields from parent audiences.
+	 * The columns an audience may change on a field it inherits (#2502).
 	 *
-	 * Walks up the hierarchy and collects all fields, ordered by hierarchy level
-	 * (parent fields first, then child fields), each group sorted by sort_order.
+	 * Everything else -- the key, the type, the sensitivity, the profile
+	 * binding, the mask and the source -- follows the field the change
+	 * points at, because answers are stored by key, read by type and
+	 * encrypted by sensitivity (#2242).
 	 *
-	 * @param int  $audience_id Audience ID.
+	 * @var list<string>
+	 */
+	public const OVERRIDABLE_COLUMNS = array(
+		'field_label',
+		'field_group',
+		'field_options',
+		'validation_rules',
+		'sort_order',
+		'is_required',
+		'is_active',
+	);
+
+	/**
+	 * Get fields for an audience including inherited fields: the global list,
+	 * then every parent audience, then the audience itself (#2502).
+	 *
+	 * Hidden fields are left out; see {@see self::resolve()} for how the
+	 * levels combine.
+	 *
+	 * @param int  $audience_id Audience ID; 0 reads the global list alone.
 	 * @param bool $active_only Only return active fields.
 	 * @return list<CustomFieldRow> Fields with added 'source_audience_id' and 'source_audience_name' properties.
 	 */
 	public static function get_by_audience_with_parents( int $audience_id, bool $active_only = true ): array {
-		$audience = AudienceReader::get_by_id( $audience_id );
-		if ( ! $audience ) {
+		$fields = array();
+		foreach ( self::resolve( $audience_id, $active_only ) as $field ) {
+			// Inactive rows were not read when $active_only: a change is
+			// always active, so the SQL filter is the whole filter.
+			if ( ! empty( $field->is_hidden ) ) {
+				continue;
+			}
+			$fields[] = $field;
+		}
+		return $fields;
+	}
+
+	/**
+	 * The fields an audience asks, level by level: global, then each parent
+	 * from the top, then the audience itself (#2502). Hidden fields are
+	 * included, flagged by `is_hidden`; inactive ones too.
+	 *
+	 * Per `field_key`, a row is one of three things:
+	 *
+	 *  - **a definition** -- no `overrides_field_id`. The first level that
+	 *    defines a key owns it, and its id is the id answers are stored under.
+	 *  - **a change** -- `overrides_field_id` names the definition. Its
+	 *    {@see self::OVERRIDABLE_COLUMNS} replace the inherited ones and the
+	 *    field keeps the definition's id, so a person answering in two
+	 *    audiences answers one field. With `is_hidden` it removes the field
+	 *    from that audience and the ones below it instead.
+	 *  - **an older copy** -- a definition of a key a level above already
+	 *    defines. Every audience received its own copy of the standard
+	 *    fields before #2502, each with its own id and its own answers, so a
+	 *    copy is kept beside the field it repeats, exactly as this method
+	 *    returned it before. {@see self::get_for_audiences()} picks one.
+	 *
+	 * Each field carries `source_audience_id` / `source_audience_name` (the
+	 * level its current values come from; 0 and '' for the global list),
+	 * `definition_audience_id` (the level that owns its key) and
+	 * `override_id` (the id of the change row, 0 when there is none).
+	 *
+	 * The order is the definition's level, then `sort_order`, then id: the
+	 * global fields first, then each parent's own, as before.
+	 *
+	 * A change row is always active -- an audience that stops asking a field
+	 * hides it ({@see CustomFieldWriter::update_override()}) -- so reading
+	 * active rows only drops an inactive definition and every change to it,
+	 * and never a change on its own.
+	 *
+	 * @param int  $audience_id Audience ID; 0 reads the global list alone.
+	 * @param bool $active_only Read active rows only.
+	 * @return list<CustomFieldRow>
+	 */
+	public static function resolve( int $audience_id, bool $active_only = false ): array {
+		$levels = self::levels( $audience_id );
+		if ( empty( $levels ) ) {
 			return array();
 		}
 
-		// Collect audience IDs from bottom to top (child → parent).
-		$audience_chain = array();
-		$current        = $audience;
-		while ( $current ) {
-			$audience_chain[] = $current;
-			if ( ! empty( $current->parent_id ) ) {
-				$current = AudienceReader::get_by_id( (int) $current->parent_id );
-			} else {
-				$current = null;
+		$resolved = array();
+		$rank     = array();
+		$copies   = array();
+		$sequence = 0;
+
+		foreach ( $levels as $depth => $level ) {
+			foreach ( self::get_by_audience( $level['id'], $active_only ) as $row ) {
+				$key     = (string) ( $row->field_key ?? '' );
+				$base    = $resolved[ $key ] ?? null;
+				$pointer = (int) ( $row->overrides_field_id ?? 0 );
+
+				if ( $pointer > 0 ) {
+					// A change whose field is not inherited here -- deleted, or
+					// defined in a branch this audience is not under -- changes
+					// nothing.
+					if ( null === $base || (int) $base->id !== $pointer ) {
+						continue;
+					}
+					$field = clone $base;
+					if ( ! empty( $row->is_hidden ) ) {
+						$field->is_hidden = '1';
+					} else {
+						foreach ( self::OVERRIDABLE_COLUMNS as $column ) {
+							$field->{$column} = $row->{$column} ?? null;
+						}
+						$field->is_hidden = '0';
+						$rank[ $key ][1]  = (int) ( $row->sort_order ?? 0 );
+					}
+					$field->override_id          = (int) $row->id;
+					$field->source_audience_id   = $level['id'];
+					$field->source_audience_name = $level['name'];
+					$resolved[ $key ]            = $field;
+					continue;
+				}
+
+				$row->is_hidden              = '0';
+				$row->override_id            = 0;
+				$row->source_audience_id     = $level['id'];
+				$row->source_audience_name   = $level['name'];
+				$row->definition_audience_id = $level['id'];
+
+				if ( null !== $base ) {
+					$copies[] = array( array( $depth, (int) ( $row->sort_order ?? 0 ), $sequence++ ), $row );
+					continue;
+				}
+
+				$resolved[ $key ] = $row;
+				$rank[ $key ]     = array( $depth, (int) ( $row->sort_order ?? 0 ), $sequence++ );
 			}
 		}
 
-		// Reverse to get top-down order (parent → child).
-		$audience_chain = array_reverse( $audience_chain );
+		$entries = $copies;
+		foreach ( $resolved as $key => $field ) {
+			$entries[] = array( $rank[ $key ], $field );
+		}
+		usort(
+			$entries,
+			static function ( array $a, array $b ): int {
+				return $a[0] <=> $b[0];
+			}
+		);
 
-		$all_fields = array();
-		foreach ( $audience_chain as $aud ) {
-			$fields = self::get_by_audience( (int) $aud->id, $active_only );
-			foreach ( $fields as $field ) {
-				$field->source_audience_id   = (int) $aud->id;
-				$field->source_audience_name = $aud->name;
-				$all_fields[]                = $field;
+		/**
+		 * Rows of this table with the properties added above.
+		 *
+		 * @var list<CustomFieldRow>
+		 */
+		return array_column( $entries, 1 );
+	}
+
+	/**
+	 * The levels an audience inherits from, top-down: the global list, each
+	 * parent from the top, then the audience. Empty for an audience that
+	 * does not exist.
+	 *
+	 * @param int $audience_id Audience ID; 0 for the global list alone.
+	 * @return list<array{id: int, name: string}>
+	 */
+	public static function levels( int $audience_id ): array {
+		$chain = array();
+		if ( $audience_id > 0 ) {
+			$current = AudienceReader::get_by_id( $audience_id );
+			if ( ! $current ) {
+				return array();
+			}
+			$seen = array();
+			while ( $current && ! isset( $seen[ (int) $current->id ] ) ) {
+				$seen[ (int) $current->id ] = true;
+				$chain[]                    = array(
+					'id'   => (int) $current->id,
+					'name' => (string) $current->name,
+				);
+				$current                    = ! empty( $current->parent_id ) ? AudienceReader::get_by_id( (int) $current->parent_id ) : null;
 			}
 		}
+		$chain[] = array(
+			'id'   => 0,
+			'name' => '',
+		);
+		return array_reverse( $chain );
+	}
 
-		return $all_fields;
+	/**
+	 * What each audience keeps of its own on the field list (#2502), for the
+	 * global page's "Changed in audiences" card: its changes to inherited
+	 * fields, the fields it hides, and the fields it defines itself.
+	 *
+	 * @return array<int, array{changed: int, hidden: int, own: int}> Audience id => counts; audiences with none are absent.
+	 */
+	public static function level_counts(): array {
+		$wpdb = self::db();
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT audience_id, SUM( overrides_field_id IS NOT NULL AND is_hidden = 0 ) AS changed, SUM( is_hidden = 1 ) AS hidden, SUM( overrides_field_id IS NULL ) AS own FROM %i WHERE audience_id > 0 GROUP BY audience_id',
+				self::get_table_name()
+			),
+			ARRAY_A
+		);
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( ! is_numeric( $row['audience_id'] ?? null ) ) {
+				continue;
+			}
+			$out[ (int) $row['audience_id'] ] = array(
+				'changed' => is_numeric( $row['changed'] ?? null ) ? (int) $row['changed'] : 0,
+				'hidden'  => is_numeric( $row['hidden'] ?? null ) ? (int) $row['hidden'] : 0,
+				'own'     => is_numeric( $row['own'] ?? null ) ? (int) $row['own'] : 0,
+			);
+		}
+		return $out;
 	}
 
 	/**
@@ -515,7 +690,9 @@ class CustomFieldReader {
 		 *
 		 * @var array<string, mixed> $data
 		 */
-		return $data;
+		// Answers under an audience's former copy of a field read as the
+		// field's own until the migration rewrites them (#2502).
+		return CustomFieldAnswerMerge::converge( $user_id, $data )['data'];
 	}
 
 	/**
@@ -696,7 +873,8 @@ class CustomFieldReader {
 	 * @return array<string, bool> Map of `field_key => true` for O(1) lookup.
 	 */
 	public static function existing_field_keys_for_audience( int $audience_id ): array {
-		if ( $audience_id <= 0 ) {
+		// 0 is the global list (#2502).
+		if ( $audience_id < 0 ) {
 			return array();
 		}
 		global $wpdb;
@@ -903,11 +1081,16 @@ class CustomFieldReader {
 			);
 		}
 
-		if ( ! $answered && $id > 0 ) {
+		// The ids folded into this field still hold answers until the
+		// migration rewrites them (#2502).
+		foreach ( $id > 0 ? array_merge( array( $id ), CustomFieldAnswerMerge::old_ids_of( $id ) ) : array() as $stored_id ) {
+			if ( $answered ) {
+				break;
+			}
 			$users    = get_users(
 				array(
 					'meta_key'     => self::USER_META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_key -- Run only when the editor renders a field or a locked property changes; one row is enough.
-					'meta_value'   => '"field_' . $id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
+					'meta_value'   => '"field_' . $stored_id . '";', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_query_meta_value -- Same lookup as the meta key above, capped at one row.
 					'meta_compare' => 'LIKE',
 					'number'       => 1,
 					'fields'       => 'ID',

@@ -129,6 +129,10 @@ class AudienceAdminCalendarTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The list tops (#2498): labelled filters and a count.
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -498,8 +502,8 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertStringContainsString( 'Public Cal', $output );
 		$this->assertStringContainsString( 'Private Cal', $output );
 		$this->assertStringContainsString( 'Public', $output );
-		$this->assertStringContainsString( 'Deactivate', $output ); // active calendar.
-		$this->assertStringContainsString( 'Delete', $output );     // inactive calendar.
+		$this->assertStringContainsString( 'name="ffc_audience_schedule_active_', $output ); // the Status switch (#2498).
+		$this->assertStringContainsString( 'Delete', $output );                            // inactive calendar.
 	}
 
 	public function test_render_list_prints_each_calendars_shortcode_with_a_copy_button(): void {
@@ -518,7 +522,7 @@ class AudienceAdminCalendarTest extends TestCase {
 		$this->assertLessThan( strpos( $output, 'class="column-visibility"' ), strpos( $output, 'class="column-shortcode"' ), 'the shortcode follows the name' );
 		$this->assertMatchesRegularExpression(
 			'#<td class="column-shortcode">\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id=&quot;7&quot;\]</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;7&quot;\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			. '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode" aria-label="Copy shortcode" title="Copy shortcode" data-shortcode="\[ffc_audience schedule_id=&quot;7&quot;\]"#',
 			$output
 		);
 	}
@@ -533,7 +537,43 @@ class AudienceAdminCalendarTest extends TestCase {
 	}
 
 	/**
-	 * Row actions by tier (#1769): Edit / Deactivate need
+	 * The list top (#2498): the filters narrow the rows, the count follows
+	 * them and Clear appears only while one is applied.
+	 */
+	public function test_the_list_filters_by_status_visibility_and_name(): void {
+		Functions\when( 'admin_url' )->returnArg();
+		$this->schedule( array( 'id' => 1, 'name' => 'Rooms north', 'visibility' => 'public', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 2, 'name' => 'Rooms south', 'visibility' => 'private', 'status' => 'active' ) );
+		$this->schedule( array( 'id' => 3, 'name' => 'Labs', 'visibility' => 'public', 'status' => 'inactive' ) );
+
+		$render = function ( array $get ): string {
+			$_GET = array( 'page' => 'ffc-scheduling-calendars' ) + $get;
+			ob_start();
+			( new AudienceAdminCalendar( 'ffc-scheduling' ) )->render_page();
+			return (string) ob_get_clean();
+		};
+
+		$all = $render( array() );
+		$this->assertStringContainsString( '3 calendars', $all );
+		$this->assertStringNotContainsString( 'Clear</a>', $all );
+		$this->assertStringContainsString( '<label class="ffc-list-filters__label" for="ffc-calendar-status-filter">Status</label>', $all );
+
+		$active = $render( array( 'status' => 'active' ) );
+		$this->assertStringContainsString( '2 calendars', $active );
+		$this->assertStringNotContainsString( 'Labs', $active );
+		$this->assertStringContainsString( 'Clear</a>', $active );
+
+		$named = $render( array( 's' => 'south', 'visibility' => 'private' ) );
+		$this->assertMatchesRegularExpression( '/>\s*1 calendar\s*</', $named );
+		$this->assertStringContainsString( 'Rooms south', $named );
+		$this->assertStringNotContainsString( 'Rooms north', $named );
+
+		// A value outside the list is ignored rather than passed to the query.
+		$this->assertStringContainsString( '3 calendars', $render( array( 'status' => 'archived' ) ) );
+	}
+
+	/**
+	 * Row actions by tier (#1769): Edit and the Status switch (#2498) need
 	 * `ffc_manage_audiences`, Delete needs `ffc_delete_audiences`.
 	 *
 	 * @return array<string, array{0: list<string>, 1: bool, 2: bool}>
@@ -559,7 +599,7 @@ class AudienceAdminCalendarTest extends TestCase {
 	 * @dataProvider row_action_tiers
 	 *
 	 * @param list<string> $caps       Capabilities held.
-	 * @param bool         $can_manage Whether Edit / Deactivate render.
+	 * @param bool         $can_manage Whether Edit and the Status switch render.
 	 * @param bool         $can_delete Whether Delete renders.
 	 */
 	public function test_row_actions_render_only_for_the_cap_their_handler_checks( array $caps, bool $can_manage, bool $can_delete ): void {
@@ -574,8 +614,8 @@ class AudienceAdminCalendarTest extends TestCase {
 
 		$this->assertStringContainsString( 'Active Cal', $output, 'The rows render for every tier.' );
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
-		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'name="ffc_audience_schedule_active_' ) );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete</a>' ) );
 	}
 
 	// ==================================================================
@@ -652,6 +692,9 @@ class AudienceAdminCalendarTest extends TestCase {
 		// #1761: a boxed screen of vertical tabs, each panel titled with its
 		// icon, and the Save and Shortcode cards beside them.
 		$this->assertStringContainsString( 'ffc-page-scheduling-calendars ffc-boxed', $output );
+		// #2486: Back is a button beside the title, not a link under it.
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">[^<]*</h1>\s*<a [^>]*class="ffc-btn[^"]*ffc-icon-chevron-left[^"]*"[^>]*>[^<]*Back to Calendars#', $output );
+		$this->assertStringNotContainsString( '&larr; Back to Calendars', $output );
 		preg_match_all( '/<section id="ffc-tabpanel-([a-z-]+)"/', $output, $panels );
 		$this->assertSame( array( 'general', 'notifications', 'event-list', 'post-event', 'environments', 'user-access', 'closed-dates' ), $panels[1] );
 		preg_match_all( '/<a href="#ffc-tab-([a-z-]+)" id="ffc-tabnav-\1"/', $output, $nav );
@@ -660,12 +703,12 @@ class AudienceAdminCalendarTest extends TestCase {
 			$this->assertStringContainsString( '<h2 class="ffc-vtabs__panel-title"><span class="ffc-vtabs__icon ffc-icon-' . $title . '</h2>', $output );
 		}
 		$this->assertStringContainsString( '<section id="ffc-tabpanel-general" class="ffc-vtabs__panel is-active"', $output, 'General opens first' );
-		$this->assertMatchesRegularExpression( '/<div class="ffc-aud-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-save">Save<\/h2>/', $output );
+		$this->assertMatchesRegularExpression( '/<div class="ffc-editor__side">\s*<div class="card">\s*<h2 class="ffc-icon-save">Save<\/h2>/', $output );
 		$this->assertStringContainsString( '<h2 class="ffc-icon-code">Shortcode</h2>', $output );
 		// The card draws the list column's cell, copy button included (#1814).
 		$this->assertMatchesRegularExpression(
 			'#<h2 class="ffc-icon-code">Shortcode</h2>\s*<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">\[ffc_audience schedule_id="5"\]</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]" title="Copy shortcode" aria-label="Copy shortcode">#',
+			. '<button type="button" class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-copy ffc-copy-shortcode" aria-label="Copy shortcode" title="Copy shortcode" data-shortcode="\[ffc_audience schedule_id="5"\]"#',
 			$output
 		);
 
@@ -818,14 +861,18 @@ class AudienceAdminCalendarTest extends TestCase {
 	// handle_actions() — deactivate / delete
 	// ==================================================================
 
-	public function test_handle_actions_deactivates_calendar(): void {
+	/**
+	 * The Status switch saves through the record autosave (#2498), so the
+	 * list's old `action=deactivate` link has no handler left to act on it.
+	 */
+	public function test_handle_actions_no_longer_deactivates_from_a_link(): void {
 		$_GET = array( 'page' => 'ffc-scheduling-calendars', 'action' => 'deactivate', 'id' => '5', '_wpnonce' => 'n' );
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
 		Functions\when( 'admin_url' )->returnArg();
 
 		$page = new AudienceAdminCalendar( 'ffc-scheduling' );
-		$this->assertStringContainsString( 'message=deactivated', $this->redirect_of( $page ) );
-		$this->assertSame( array( array( 'update', self::SCHEDULE_TABLE, array( 'status' => 'inactive' ), array( 'id' => 5 ) ) ), $this->writes );
+		$page->handle_actions();
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_deletes_inactive_calendar(): void {
@@ -1149,8 +1196,9 @@ class AudienceAdminCalendarTest extends TestCase {
 		$output = (string) ob_get_clean();
 
 		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
-		// The switch spans every calendar, so it names the view with the default label.
-		$this->assertMatchesRegularExpression( '/<ul class="subsubsub">.*href="admin\.php\?page=ffc-scheduling-calendars" class="current" aria-current="page">Calendars<\/a> \|.*href="admin\.php\?page=ffc-scheduling-calendars&view=environments">Environments<\/a>/s', $output );
+		// The second view is a button beside the title (#2498), named with the default label.
+		$this->assertMatchesRegularExpression( '/<h1 class="wp-heading-inline">Audience Calendars<\/h1>.*<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments" class="ffc-btn ffc-btn-neutral ffc-icon-building">Environments<\/a>.*<hr class="wp-header-end">/s', $output );
+		$this->assertStringNotContainsString( 'subsubsub', $output );
 		$this->assertMatchesRegularExpression( '/<td class="column-environments">\s*<a href="admin\.php\?page=ffc-scheduling-calendars&view=environments&schedule_id=4">3<\/a>/', $output );
 		$this->assertStringNotContainsString( 'ffc-environments-table', $output );
 	}
@@ -1186,7 +1234,7 @@ class AudienceAdminCalendarTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ">', $output );
 		$this->assertStringContainsString( 'ffc-environments-table', $output );
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments" class="current" aria-current="page">Environments</a>', $output );
+		$this->assertStringContainsString( '<a href="admin.php?page=ffc-scheduling-calendars" class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">Calendars</a>', $output );
 		$this->assertSame( 1, substr_count( $output, 'class="wrap' ), 'one wrap: the view prints none of its own' );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
 	}
@@ -1209,7 +1257,8 @@ class AudienceAdminCalendarTest extends TestCase {
 
 		$this->assertStringContainsString( '<div class="wrap ffc-admin-page ffc-page-scheduling-calendars ffc-boxed">', $output );
 		$this->assertStringContainsString( 'name="ffc_action" value="save_environment"', $output );
-		$this->assertStringContainsString( 'href="admin.php?page=ffc-scheduling-calendars&view=environments">&larr;', $output, 'Back goes to the view' );
+		// Back is a button beside the title (#2486), and it goes to the view.
+		$this->assertStringContainsString( '<a href="admin.php?page=ffc-scheduling-calendars&view=environments" class="ffc-btn ffc-btn-neutral ffc-icon-chevron-left">', $output, 'Back goes to the view' );
 		$this->assertStringNotContainsString( 'schedule_name', $output, 'the calendar form is not drawn' );
 	}
 

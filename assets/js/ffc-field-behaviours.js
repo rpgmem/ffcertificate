@@ -9,7 +9,7 @@
  *   types a document the same way (#1920)
  * - dependent selects (`.ffc-dependent-select` → a hidden JSON input)
  * - the dual-post toggle (the accumulation fields follow `acumulo_cargos`)
- * - format checks (`cpf`, `email`, `phone`, `custom_regex`) and the CPF and RF
+ * - format checks (`cpf`, `email`, `phone`, `url`, `custom_regex`) and the CPF and RF
  *   validators every screen shares
  * - the address lookup by CEP (#2234), when Settings → General turns it on
  *
@@ -312,9 +312,9 @@
      * An empty value is fine here; requiredness is the caller's question.
      *
      * @param {string} value
-     * @param {string} format   cpf | rf | cep | email | phone | custom_regex
+     * @param {string} format   cpf | rf | cep | email | phone | url | custom_regex
      * @param {Object} strings  invalidCpf, invalidRf, invalidCep, cepRepeated, cepWrongUf,
-     *                          invalidEmail, invalidPhone, invalidFormat
+     *                          invalidEmail, invalidPhone, invalidUrl, invalidFormat
      * @param {Object} [regex]  {pattern, message} for custom_regex
      * @param {Object} [context] {uf} -- the form's UF, for the CEP check
      * @return {string}
@@ -345,6 +345,11 @@
         }
         if (format === 'email') {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? '' : (S.invalidEmail || 'Invalid email.');
+        }
+        // A web address with a dot in its host; the scheme may be left out
+        // (#2368). The server still decides what it accepts.
+        if (format === 'url') {
+            return /^(https?:\/\/)?[^\s\/?#.]+(\.[^\s\/?#.]+)+([\/?#]\S*)?$/i.test(val) ? '' : (S.invalidUrl || 'Invalid web address.');
         }
         if (format === 'phone') {
             return /^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$/.test(val.replace(/\s+/g, '')) ? '' : (S.invalidPhone || 'Invalid phone number.');
@@ -470,8 +475,11 @@
         });
 
         var $progress = $('<span class="ffc-cep-progress" aria-hidden="true" hidden><span class="ffc-cep-progress-bar"></span></span>');
-        var $status = $('<span class="ffc-cep-status" role="status" aria-live="polite"></span>');
+        var statusId = 'ffc-cep-status-' + Math.random().toString(36).slice(2, 10);
+        var $status = $('<span class="ffc-cep-status" role="status" aria-live="polite"></span>').attr('id', statusId);
         $cep.after($progress, $status);
+        // The status describes the CEP field, so a screen reader reads it there.
+        $cep.attr('aria-describedby', (($cep.attr('aria-describedby') || '') + ' ' + statusId).trim());
 
         var token = 0;
         var looked = String($cep.val() || '').replace('-', '');
@@ -499,8 +507,10 @@
             setTimeout(function () {
                 $(result.filled).removeClass('ffc-cep-filled');
             }, CEP_HIGHLIGHT_MS);
+            // Move on to the number only while the person is still on the
+            // CEP: after three seconds they may have gone elsewhere.
             var $number = fieldControl($container, 'endereco_numero');
-            if ($number.length) {
+            if ($number.length && document.activeElement === $cep[0]) {
                 $number.trigger('focus');
             }
         }
@@ -509,6 +519,7 @@
             var ticket = ++token;
             var started = Date.now();
             var notFound = S.notFound || 'CEP not found. Correct the CEP or fill in the address manually.';
+            var unavailable = S.unavailable || 'The address service did not answer. Fill in the address manually.';
 
             lockAddress($address, true);
             $cep.attr('aria-busy', 'true');
@@ -537,10 +548,18 @@
                     // The one early release: there is nothing to wait for.
                     finish(ticket, notFound);
                 } else {
-                    later(function () { finish(ticket, notFound); });
+                    // The service was down or refused: the CEP may be right.
+                    later(function () { finish(ticket, unavailable); });
                 }
-            }).fail(function () {
-                later(function () { finish(ticket, notFound); });
+            }).fail(function (xhr) {
+                var data = xhr && xhr.responseJSON && xhr.responseJSON.data;
+                if (xhr && xhr.status === 429) {
+                    var wait = data && data.retryAfter ? parseInt(data.retryAfter, 10) : 0;
+                    var tooMany = (S.tooMany || 'Too many lookups. Try again in %d s or fill in the address manually.').replace('%d', String(wait > 0 ? wait : 60));
+                    later(function () { finish(ticket, tooMany); });
+                    return;
+                }
+                later(function () { finish(ticket, unavailable); });
             });
         }
 

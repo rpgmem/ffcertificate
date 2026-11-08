@@ -290,7 +290,7 @@ class VerificationSplitParityTest extends TestCase {
 	/**
 	 * The legacy result with a reregistration's answers removed.
 	 *
-	 * The one intended divergence since the split (#2242): public
+	 * The intended divergences since the split. The first (#2242): public
 	 * verification confirms a reregistration record from its basics and no
 	 * longer carries the decrypted answers in `data`, which only the Record
 	 * download used. Every other key, and every read, still has to match.
@@ -301,6 +301,19 @@ class VerificationSplitParityTest extends TestCase {
 	private static function without_rereg_answers( array $result ): array {
 		if ( 'reregistration' === ( $result['type'] ?? '' ) ) {
 			$result['data'] = array();
+		}
+		// The second (#2405, #2413): an appointment names its session and the
+		// calendar's word for one, after its calendar.
+		if ( 'appointment' === ( $result['type'] ?? '' ) && is_array( $result['data'] ?? null ) && array_key_exists( 'calendar_title', $result['data'] ) ) {
+			$data = array();
+			foreach ( $result['data'] as $key => $value ) {
+				$data[ $key ] = $value;
+				if ( 'calendar_title' === $key ) {
+					$data['session_name']  = '';
+					$data['session_label'] = '';
+				}
+			}
+			$result['data'] = $data;
 		}
 		return $result;
 	}

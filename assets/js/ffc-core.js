@@ -378,8 +378,14 @@
             // resolves `window.ffc_ajax.nonce` every read (6.6.2 fix),
             // so the inner send() below picks up a mid-flight refresh.
             var self = this;
+            // The stale-nonce retry sends the nonce the server handed back,
+            // and keeps its own flag, so the caller's options are never
+            // written to (#2344).
+            var refreshedNonce = '';
+            var nonceRetried = false;
             function resolveNonce() {
-                return options.nonce
+                return refreshedNonce
+                    || options.nonce
                     || (data && typeof data === 'object' && data.nonce)
                     || self.config.nonce
                     || '';
@@ -443,7 +449,7 @@
                                 // and ffc-dynamic-fragments silently
                                 // failing on restrictive networks.
                                 if (
-                                    !options._ffcNonceRetried
+                                    !nonceRetried
                                     && err.data
                                     && err.data.refresh_nonce
                                     && err.data.new_nonce
@@ -454,7 +460,8 @@
                                     if (typeof console !== 'undefined' && console.warn) {
                                         console.warn('[FFC] Stale nonce auto-recovered; retrying ' + action);
                                     }
-                                    options._ffcNonceRetried = true;
+                                    nonceRetried = true;
+                                    refreshedNonce = String(err.data.new_nonce);
                                     send();
                                     return;
                                 }
@@ -490,6 +497,17 @@
                             err.xhr = xhr;
                             if (xhr && xhr.responseJSON && xhr.responseJSON.data) {
                                 err.data = xhr.responseJSON.data;
+                                // An HTTP error that carries the plugin's
+                                // own message (a 429 from a rate limit, a
+                                // 403 from a refused hash) is the server
+                                // speaking, not the network failing (#2341).
+                                var bodyMsg = typeof err.data === 'string'
+                                    ? err.data
+                                    : err.data.message;
+                                if (typeof bodyMsg === 'string' && bodyMsg !== '') {
+                                    err.message = bodyMsg;
+                                    err.fromServer = true;
+                                }
                             }
                             reject(err);
                         });
@@ -823,6 +841,112 @@
         },
 
         /**
+         * Move up / Move down buttons beside each drag handle of a list
+         * (#2344), so a list that reorders by drag reorders by keyboard too.
+         *
+         * `ensure()` adds the pair after every handle in `root` that has
+         * none, and is safe to call again; rows added or removed later are
+         * picked up on their own, by a mutation observer. A click
+         * swaps the row with its neighbour, keeps the focus on the button
+         * the visitor pressed, and fires `ffc:reordered` on the list, so a
+         * caller that tracks the order can refresh it. The first row's Up
+         * and the last row's Down are disabled.
+         *
+         * @param {Object} cfg
+         * @param {string} cfg.list    Selector of the element whose children are the rows.
+         * @param {string} cfg.item    Selector of a row.
+         * @param {string} cfg.handle  Selector of a row's drag handle.
+         * @return {{ensure: function(Element|jQuery=): void}}
+         */
+        reorder: function(cfg) {
+            var self = this;
+            // One binding per list: a screen that initialises twice reuses it.
+            self._reorders = self._reorders || {};
+            if (self._reorders[cfg.list]) {
+                self._reorders[cfg.list].ensure(document);
+                return self._reorders[cfg.list];
+            }
+            var strings = (window.ffcCoreConfig && window.ffcCoreConfig.strings) || {};
+            var $ = window.jQuery;
+            function rowsOf($list) {
+                return $list.children(cfg.item);
+            }
+            function refresh($list) {
+                var $rows = rowsOf($list);
+                $rows.each(function(i) {
+                    var $pair = $(this).find('.ffc-reorder').first();
+                    $pair.find('.ffc-reorder-up').prop('disabled', i === 0);
+                    $pair.find('.ffc-reorder-down').prop('disabled', i === $rows.length - 1);
+                });
+            }
+            function ensure(root) {
+                $(root || document).find(cfg.list).addBack(cfg.list).each(function() {
+                    var $list = $(this);
+                    rowsOf($list).each(function() {
+                        var $handle = $(this).find(cfg.handle).first();
+                        if (!$handle.length || $handle.next('.ffc-reorder').length) {
+                            return;
+                        }
+                        var pair = document.createElement('span');
+                        pair.className = 'ffc-reorder';
+                        pair.appendChild(self.button({ label: strings.moveUp || 'Move up', category: 'neutral', icon: 'chevron-up', iconOnly: true, className: 'ffc-reorder-up' }));
+                        pair.appendChild(self.button({ label: strings.moveDown || 'Move down', category: 'neutral', icon: 'chevron-down', iconOnly: true, className: 'ffc-reorder-down' }));
+                        $handle.after(pair);
+                    });
+                    refresh($list);
+                });
+            }
+            $(document).off('click.ffcReorder' + cfg.list).on('click.ffcReorder' + cfg.list, cfg.list + ' .ffc-reorder-up, ' + cfg.list + ' .ffc-reorder-down', function(e) {
+                e.preventDefault();
+                var $btn = $(this);
+                var $row = $btn.closest(cfg.item);
+                var $list = $row.parent();
+                if (!$list.is(cfg.list)) {
+                    return;
+                }
+                var up = $btn.hasClass('ffc-reorder-up');
+                var $other = up ? $row.prevAll(cfg.item).first() : $row.nextAll(cfg.item).first();
+                if (!$other.length) {
+                    return;
+                }
+                if (up) {
+                    $row.insertBefore($other);
+                } else {
+                    $row.insertAfter($other);
+                }
+                refresh($list);
+                // The pressed button may now be disabled (row at an end): keep
+                // the focus on the row's other button then, never on the body.
+                var target = $btn.prop('disabled') ? $row.find(up ? '.ffc-reorder-down' : '.ffc-reorder-up').first() : $btn;
+                target.trigger('focus');
+                $list.trigger('ffc:reordered');
+            });
+            $(document).on('sortupdate', cfg.list, function(e) {
+                if (e.target === this) {
+                    refresh($(this));
+                }
+            });
+            // Rows the screen adds (a new field, a cloned option) and rows it
+            // removes keep their buttons and their end states right.
+            if (typeof window.MutationObserver === 'function' && document.body) {
+                var pending = false;
+                new window.MutationObserver(function() {
+                    if (pending) {
+                        return;
+                    }
+                    pending = true;
+                    setTimeout(function() {
+                        pending = false;
+                        ensure(document);
+                    }, 0);
+                }).observe(document.body, { childList: true, subtree: true });
+            }
+            ensure(document);
+            self._reorders[cfg.list] = { ensure: ensure };
+            return self._reorders[cfg.list];
+        },
+
+        /**
          * Build a system notice (#1842): the JS twin of `Core\Notice::render()`,
          * printing the same markup, so no script hand-writes it.
          *
@@ -961,6 +1085,9 @@
          * @param {Object}   [options.reasonField] Ask why (#2243): `{label, hint, min, max}`. The
          *                   confirm then also waits for a reason of that length, and the
          *                   promise resolves with the reason instead of `true`.
+         * @param {Object}   [options.matchField] A word to type before confirming (#2338):
+         *                   `{label, word}`. The confirm waits until the field holds exactly that word.
+         * @param {string}   [options.agreeIcon] Registry icon of the confirm; `checkmark` by default.
          * @param {Object}   [options.choiceField] A choice to make before confirming (#2243):
          *                   `{legend, value, options: [{value, label}]}`, drawn as the segmented
          *                   control. The promise then resolves with `{choice, reason}`.
@@ -1058,6 +1185,27 @@
                 body.appendChild(group);
             }
 
+            var match = null;
+            var matchWord = '';
+            if (opts.matchField && opts.matchField.word) {
+                matchWord = String(opts.matchField.word);
+                var matchGroup = document.createElement('div');
+                matchGroup.className = 'ffc-form-group ffc-override-match';
+                var matchLabel = document.createElement('label');
+                matchLabel.setAttribute('for', uid + '-match');
+                matchLabel.textContent = String(opts.matchField.label || '');
+                match = document.createElement('input');
+                match.type = 'text';
+                match.id = uid + '-match';
+                match.required = true;
+                match.setAttribute('autocomplete', 'off');
+                match.setAttribute('autocapitalize', 'characters');
+                match.setAttribute('spellcheck', 'false');
+                matchGroup.appendChild(matchLabel);
+                matchGroup.appendChild(match);
+                body.appendChild(matchGroup);
+            }
+
             var choices = [];
             if (opts.choiceField && opts.choiceField.options) {
                 var choiceSet = document.createElement('fieldset');
@@ -1106,7 +1254,7 @@
             var agree = core.button({
                 label: words.agree,
                 category: opts.agreeCategory || 'primary',
-                icon: 'checkmark',
+                icon: opts.agreeIcon || 'checkmark',
                 attrs: { 'data-ffc-override': 'agree' }
             });
             footer.appendChild(cancel);
@@ -1133,8 +1281,12 @@
                     return !field || (length >= reasonMin && (reasonMax === 0 || length <= reasonMax));
                 }
 
+                function matchOk() {
+                    return !match || match.value.trim() === matchWord;
+                }
+
                 function label() {
-                    var blocked = left > 0 || !reasonOk();
+                    var blocked = left > 0 || !reasonOk() || !matchOk();
                     agree.textContent = left > 0 ? words.agreeIn.replace('%d', left) : words.agree;
                     agree.disabled = blocked;
                     agree.setAttribute('aria-disabled', blocked ? 'true' : 'false');
@@ -1168,7 +1320,11 @@
                     if (e.key !== 'Tab') {
                         return;
                     }
-                    var focusable = choices.concat([field, cancel, agree]).filter(function(el) { return el && !el.disabled; });
+                    // A radio group is one tab stop, the checked radio (the
+                    // first when none is): listing every radio made the trap
+                    // miss a checked second one and let the focus out.
+                    var stop = choices.filter(function(radio) { return radio.checked; })[0] || choices[0];
+                    var focusable = [stop, field, match, cancel, agree].filter(function(el) { return el && !el.disabled; });
                     var first = focusable[0];
                     var last = focusable[focusable.length - 1];
                     if (focusable.indexOf(document.activeElement) === -1) {
@@ -1203,11 +1359,23 @@
                 if (field) {
                     field.addEventListener('input', label);
                 }
+                if (match) {
+                    match.addEventListener('input', label);
+                }
                 document.addEventListener('keydown', onKey, true);
 
                 label();
+                // The region is in the document before it is filled, or a
+                // screen reader may not announce the first sentence.
+                function say(text) {
+                    setTimeout(function() {
+                        if (!done) {
+                            live.textContent = text;
+                        }
+                    }, 100);
+                }
                 if (left > 0) {
-                    live.textContent = words.countdownStart.replace('%d', left);
+                    say(words.countdownStart.replace('%d', left));
                     timer = setInterval(function() {
                         left -= 1;
                         label();
@@ -1218,10 +1386,12 @@
                         }
                     }, 1000);
                 } else {
-                    live.textContent = words.countdownEnd;
+                    say(words.countdownEnd);
                 }
 
-                (field || cancel).focus();
+                // Cancel first, as the description says: the safe answer
+                // is the one a stray Enter gives.
+                cancel.focus();
             });
         },
 
@@ -1435,8 +1605,13 @@
         jQuery(document).on('click', '.ffc-copy-link[data-ffc-copy-target]', function(e) {
             e.preventDefault();
             var $btn    = jQuery(this);
-            var $source = jQuery($btn.data('ffc-copy-target'));
-            if (!$source.length) { return; }
+            // Only an element id: jQuery() builds markup from a string that
+            // starts with "<", and the attribute can come from post content (#2344).
+            var target = String($btn.attr('data-ffc-copy-target') || '');
+            if (!/^#[A-Za-z][\w-]*$/.test(target)) { return; }
+            var node = document.getElementById(target.slice(1));
+            if (!node) { return; }
+            var $source = jQuery(node);
             var text = $source.val();
             var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
             var copiedText = strings.copied || 'Copied!';
@@ -1463,6 +1638,37 @@
                 }
             }
         });
+    }
+
+    /**
+     * Honour "reduce motion" (#2344): the slides, fades and scrolls the
+     * plugin's scripts run through jQuery jump to their end state instead,
+     * with their callbacks run as before. `jQuery.fx.off` is page-wide, so
+     * it follows the reader's own setting both ways, and is only ever
+     * switched back on if this script switched it off.
+     */
+    function applyReducedMotion($, query) {
+        if (query.matches) {
+            if (!$.fx.off) {
+                $.fx.off = true;
+                window.FFC._motionOff = true;
+            }
+        } else if (window.FFC._motionOff) {
+            $.fx.off = false;
+            window.FFC._motionOff = false;
+        }
+    }
+    if (typeof jQuery !== 'undefined' && jQuery.fx && typeof window.matchMedia === 'function') {
+        var motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+        if (motionQuery) {
+            applyReducedMotion(jQuery, motionQuery);
+            var onMotionChange = function() { applyReducedMotion(jQuery, motionQuery); };
+            if (typeof motionQuery.addEventListener === 'function') {
+                motionQuery.addEventListener('change', onMotionChange);
+            } else if (typeof motionQuery.addListener === 'function') {
+                motionQuery.addListener(onMotionChange);
+            }
+        }
     }
 
     /**

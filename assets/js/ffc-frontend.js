@@ -16,7 +16,9 @@
 
 (function($) {
     'use strict';
-    window.ffcUtils = window.FFC.Frontend.Masks;
+    // window.ffcUtils is published once, by ffc-frontend-helpers.js, with
+    // both the legacy and the Masks names (#2344); overwriting it here with
+    // the namespace dropped the validators and the UI helpers.
 
     /**
      * 6.6.4 follow-up (#361 Sprint 1) — browser-environment diagnostic
@@ -621,10 +623,21 @@
                     // flag); the legacy code read it via xhr.responseJSON,
                     // which FFC.request doesn't surface for connection
                     // errors. Server-issued protocol errors carry err.data.
-                    if (err && err.data && err.data.rate_limit) {
+                    // The countdown shows only when the server says so and
+                    // knows the wait (#2339); otherwise the refusal reads
+                    // like any other and the button comes back at once.
+                    if (err && err.data && err.data.rate_limit && false !== err.data.countdown && (parseInt(err.data.wait_seconds, 10) || 0) > 0) {
                         // The helper holds the button until the wait ends
                         // and then restores this label (#1846).
                         FFC.Frontend.RateLimit.show(err.data.message, err.data.wait_seconds, $form, originalBtnText);
+                        return;
+                    }
+                    // A 429 arrives on the transport's failure path, so it is
+                    // not `fromServer`; without the countdown it still reads
+                    // as the server's refusal, not a connection error.
+                    if (err && err.data && err.data.rate_limit) {
+                        FFC.Frontend.UI.showFormError($form, err.data.message || ffc_ajax.strings.error || 'Error occurred');
+                        $submitBtn.prop('disabled', false).text(originalBtnText);
                         return;
                     }
                     if (err && err.fromServer) {

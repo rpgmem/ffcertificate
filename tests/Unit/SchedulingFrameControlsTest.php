@@ -71,6 +71,10 @@ class SchedulingFrameControlsTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( static function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( static function ( $text ) { echo $text; } );
+		// The list tops (#2498): labelled filters and a count.
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
@@ -282,29 +286,34 @@ class SchedulingFrameControlsTest extends TestCase {
 			array(
 				'a href=' . $page . '&action=new&schedule_id=1',
 				'a href=https://example.com/wp-admin/admin.php?page=ffc-scheduling-calendars',
-				'a href=' . $page,
 				'form method=get',
 				'input name=page type=hidden value=ffc-scheduling-calendars',
 				'input name=view type=hidden value=environments',
-				'select name=schedule_id',
+				'select id=ffc-environment-calendar-filter name=schedule_id',
 				'option value=',
 				'option value=1',
 				'option value=2',
-				'button name=filter type=submit value=Filter',
+				'select id=ffc-environment-status-filter name=status',
+				'option value=',
+				'option value=active',
+				'option value=inactive',
+				'button type=submit',
+				'a href=' . $page,
 				'a href=' . $page . '&action=edit&id=4',
-				'button data-shortcode=[ffc_audience schedule_id= type=button',
+				'button data-copied=Copied! data-shortcode=[ffc_audience schedule_id= type=button',
+				'input checked=checked data-ffc-autosave-record=audience_environment:4 data-ffc-autosave-record-key=status data-ffc-status-off=Inactive data-ffc-status-on=Active data-ffc-status-target=ffc-environment-status-4 id=ffc-audience-environment-active-4 name=ffc_audience_environment_active_4 type=checkbox value=1',
 				'a href=' . $page . '&action=edit&id=4',
-				'a href=' . $page . '&action=deactivate&id=4&_wpnonce=nonce-deactivate_environment_4 onclick=return confirm(\' Are you sure you want to deactivate this environments? \');',
 				'a href=' . $page . '&action=edit&id=5',
-				'button data-shortcode=[ffc_audience schedule_id= type=button',
+				'button data-copied=Copied! data-shortcode=[ffc_audience schedule_id= type=button',
+				'input data-ffc-autosave-record=audience_environment:5 data-ffc-autosave-record-key=status data-ffc-status-off=Inactive data-ffc-status-on=Active data-ffc-status-target=ffc-environment-status-5 id=ffc-audience-environment-active-5 name=ffc_audience_environment_active_5 type=checkbox value=1',
 				'a href=' . $page . '&action=edit&id=5',
-				'a href=' . $page . '&action=delete&id=5&_wpnonce=nonce-delete_environment_5 onclick=return confirm(\' Are you sure you want to permanently delete this environments? \');',
+				'a data-confirm=Are you sure you want to permanently delete this environments? href=' . $page . '&action=delete&id=5&_wpnonce=nonce-delete_environment_5',
 			),
 			ControlInventory::of( $html )
 		);
 
-		// The filter sits in the table navigation, as on every other list.
-		$this->assertMatchesRegularExpression( '/<div class="tablenav top">\s*<form method="get">/', $html );
+		// The filter sits in the list-top card (#2498), as on every other list.
+		$this->assertMatchesRegularExpression( '/<form method="get" class="ffc-list">\s*<input type="hidden" name="page" value="ffc-scheduling-calendars">\s*<input type="hidden" name="view" value="environments">\s*<div class="ffc-list-filters">/', $html );
 		$this->assertStringNotContainsString( 'ffc-filter-form', $html );
 		$this->assertStringNotContainsString( 'action=edit&id=6', $html, 'the list is filtered to the calendar' );
 	}

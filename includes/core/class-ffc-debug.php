@@ -215,13 +215,11 @@ class Debug {
 	 * not anonymisation. `wp_salt( 'auth' )` is stable across requests, so two
 	 * entries from one visitor still correlate, which is what a debug log needs.
 	 *
-	 * Three private copies of an IP hash already exist -- `ClientIpResolver` and
-	 * `IpGeolocation` truncate an UNSALTED `sha256` to 16, and
-	 * `PublicFormsExportSource` fences a job with an unsalted `sha1`. They are not
-	 * unified here on purpose: the first two share this weakness and are their own
-	 * decision, and the third compares against a value already stored in
-	 * in-flight jobs, so changing it would break them on deploy. Recorded rather
-	 * than silently made a fourth (#1441).
+	 * `ClientIpResolver` and `IpGeolocation` keep their own copy, 16 hex
+	 * characters of `Encryption::keyed_hash()` since #2109, and the per-address
+	 * counters use `IpAddress::fingerprint()`. This one stays separate because a
+	 * debug log is read by whoever reads `debug.log`, and its hash should not be
+	 * one an operator can match against a counter or a rate-limit row.
 	 *
 	 * @param string $ip Client address.
 	 * @return string Salted, truncated hash, or '' for an empty address.

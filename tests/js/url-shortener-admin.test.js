@@ -28,11 +28,11 @@ beforeEach(() => {
 	window.ffcUrlShortener = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		nonce: 'url-nonce',
+		downloads: ['pdf', 'zip', 'xlsx'],
 		i18n: {
+			download: 'Ends in %s.',
 			copied: 'Copied!',
 			copyFailed: 'Copy failed',
-			confirm: 'Generate a new short code?',
-			regenerated: 'Regenerated!',
 			error: 'Error',
 		},
 	};
@@ -226,11 +226,24 @@ describe('url-shortener — QR download', () => {
 // ----------------------------------------------------------------------
 
 describe('url-shortener — regenerate', () => {
-	function mountRegenBtn() {
+	function mountRegenBtn(confirmMsg = 'Generate a new short code?') {
 		document.body.innerHTML = `
-			<button class="ffc-regenerate-shorturl" data-post-id="55">Regen</button>
+			<button class="ffc-regenerate-shorturl" data-post-id="55" data-ffc-confirm="${confirmMsg}">Regen</button>
 		`;
 	}
+
+	it('posts without asking when the button carries no confirmation (Generate, Reactivate)', async () => {
+		mountRegenBtn('');
+		await loadAdmin();
+		const confirmSpy = vi.spyOn(window, 'confirm');
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
+
+		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalled();
+	});
 
 	it('bails when the user cancels the confirm()', async () => {
 		mountRegenBtn();
@@ -259,13 +272,13 @@ describe('url-shortener — regenerate', () => {
 			value: stubLocation,
 		});
 
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { message: 'Short URL regenerated. The old code is retired.' } } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
 		await flush();
 
 		expect(stubLocation.reload).toHaveBeenCalled();
-		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Regenerated!', 'success', 2000);
+		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Short URL regenerated. The old code is retired.', 'success', 2000);
 
 		Object.defineProperty(window, 'location', {
 			configurable: true,
@@ -315,9 +328,11 @@ describe('url-shortener — QR modal', () => {
 				<p class="ffc-qr-modal__url"></p>
 				<button class="ffc-copy-shorturl">Copy</button>
 				<button class="ffc-download-qr" data-format="png">DL</button>
-				<img class="ffc-qr-modal__img" />
-				<div class="ffc-qr-modal__spinner"></div>
-				<div class="ffc-qr-modal__preview"></div>
+				<div class="ffc-qr-modal__preview">
+					<div class="ffc-qr-modal__spinner"></div>
+					<img class="ffc-qr-modal__img" />
+					<p class="ffc-qr-modal__error" hidden></p>
+				</div>
 				<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-qr-modal__close" aria-label="Close"></button>
 				<div class="ffc-qr-modal__backdrop"></div>
 			</div>
@@ -350,7 +365,39 @@ describe('url-shortener — QR modal', () => {
 		window.$('.ffc-show-qr-modal').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-qr-modal .ffc-qr-modal__preview').text()).toBe('Not allowed');
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__error').text()).toBe('Not allowed');
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__error').prop('hidden')).toBe(false);
+	});
+
+	it('keeps the preview markup after an error, so the next opening works (#2337)', async () => {
+		mountQrModalTrigger();
+		await loadAdmin();
+		const post = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Not allowed' } } }));
+		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
+
+		post.mockImplementation(() => postChain({ done: { success: true, data: { data: 'PG5n', mime: 'image/png' } } }));
+		window.$('.ffc-qr-modal__close').trigger('click');
+		window.$('.ffc-show-qr-modal').trigger('click');
+		await flush();
+
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__img').attr('src')).toBe('data:image/png;base64,PG5n');
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__error').prop('hidden')).toBe(true);
+	});
+
+	it('takes the focus in and gives it back to the opener on close (#2337)', async () => {
+		mountQrModalTrigger();
+		await loadAdmin();
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		const opener = window.$('.ffc-show-qr-modal')[0];
+		opener.focus();
+		window.$(opener).trigger('click');
+		await flush();
+		expect(document.activeElement).toBe(window.$('.ffc-qr-modal__close')[0]);
+
+		window.$('.ffc-qr-modal__close').trigger('click');
+		await flush();
+		expect(document.activeElement).toBe(opener);
 	});
 
 	it('renders the network error in the preview pane', async () => {
@@ -361,7 +408,7 @@ describe('url-shortener — QR modal', () => {
 		window.$('.ffc-show-qr-modal').trigger('click');
 		await flush();
 
-		expect(window.$('#ffc-qr-modal .ffc-qr-modal__preview').text()).toBe('Failed to load QR Code');
+		expect(window.$('#ffc-qr-modal .ffc-qr-modal__error').text()).toBe('Failed to load QR Code');
 	});
 
 	it('close button hides the modal', async () => {
@@ -417,6 +464,7 @@ describe('url-shortener — edit modal', () => {
 				<form id="ffc-edit-short-url">
 					<input type="hidden" name="id" value="" />
 					<input id="ffc-edit-target" name="target_url" value="" />
+					<p id="ffc-edit-destination-warning" hidden></p>
 					<input id="ffc-edit-title" name="title" value="" />
 					<input type="hidden" id="ffc_edit_short_url_nonce" value="edit-nonce" />
 					<button type="submit">Save</button>
@@ -437,6 +485,40 @@ describe('url-shortener — edit modal', () => {
 		expect(window.$('#ffc-edit-modal input[name="id"]').val()).toBe('7');
 		expect(window.$('#ffc-edit-target').val()).toBe('https://example.com/old');
 		expect(window.$('#ffc-edit-title').val()).toBe('Old title');
+	});
+
+	it('warns while a destination that downloads a file is typed, and never blocks it (#2337)', async () => {
+		mountEditModal();
+		await loadAdmin();
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+
+		window.$('#ffc-edit-target').val('https://example.com/Edital.PDF?v=1').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Ends in .pdf.');
+
+		window.$('#ffc-edit-target').val('https://example.com/get?file=a.pdf').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+
+		window.$('#ffc-edit-target').val('https://files.example.com').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(true);
+	});
+
+	it('warns, softly, about a scheme a phone may not follow out of a redirect (#2337)', async () => {
+		window.ffcUrlShortener.recommended = ['https', 'http'];
+		window.ffcUrlShortener.i18n.scheme = 'Scheme %s.';
+		mountEditModal();
+		await loadAdmin();
+		window.$('.ffc-edit-shorturl').trigger('click');
+		await flush();
+
+		window.$('#ffc-edit-target').val('mailto:contato@example.com').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Scheme mailto:.');
+
+		window.$('#ffc-edit-target').val('ftp://files.example.com/a.zip').trigger('input');
+		expect(window.$('#ffc-edit-destination-warning').text()).toBe('Scheme ftp:. Ends in .zip.');
 	});
 
 	it('POSTs ffc_edit_short_url with id+target+title and reloads on success', async () => {

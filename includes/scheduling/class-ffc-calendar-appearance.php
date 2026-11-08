@@ -103,10 +103,23 @@ final class CalendarAppearance {
 	public const BOOKING_PLURAL = 'booking_plural';
 
 	/**
-	 * Every name a day cell can carry: an available day's (none by default),
-	 * the closed states' and the booking badge's two forms.
+	 * A personal calendar's word for a session, in the singular and the
+	 * plural (#2420): not a day state, but a name with the same inheritance,
+	 * so it is stored and read beside the others.
 	 */
-	public const CELL_NAMES = array( self::AVAILABLE, ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED, self::BOOKING_SINGULAR, self::BOOKING_PLURAL );
+	public const SESSION_SINGULAR = 'session_singular';
+
+	/**
+	 * See {@see self::SESSION_SINGULAR}.
+	 */
+	public const SESSION_PLURAL = 'session_plural';
+
+	/**
+	 * Every name a day cell can carry: an available day's (none by default),
+	 * the closed states' and the booking badge's two forms; then the session
+	 * word's two forms, which share the storage and the inheritance.
+	 */
+	public const CELL_NAMES = array( self::AVAILABLE, ClosedDateKind::HOLIDAY, ClosedDateKind::OPTIONAL, self::CLOSED, self::BOOKING_SINGULAR, self::BOOKING_PLURAL, self::SESSION_SINGULAR, self::SESSION_PLURAL );
 
 	/**
 	 * Every state, in the order the legend and the card list them.
@@ -156,6 +169,10 @@ final class CalendarAppearance {
 				return __( 'booking', 'ffcertificate' );
 			case self::BOOKING_PLURAL:
 				return __( 'bookings', 'ffcertificate' );
+			case self::SESSION_SINGULAR:
+				return __( 'Session', 'ffcertificate' );
+			case self::SESSION_PLURAL:
+				return __( 'Sessions', 'ffcertificate' );
 			default:
 				return self::default_legend( $state );
 		}

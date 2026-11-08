@@ -191,7 +191,7 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 		$cols = $this->table->get_columns();
 
 		$this->assertSame(
-			array( 'cb', 'name', 'user_id', 'phone', 'created_at' ),
+			array( 'cb', 'name', 'user_id', 'phone', 'created_at', 'actions' ),
 			array_keys( $cols )
 		);
 	}
@@ -276,8 +276,11 @@ class RecruitmentCandidatesListTableTest extends TestCase {
 
 		$this->assertStringContainsString( 'Jane Doe', $out );
 		$this->assertStringContainsString( 'action=edit-candidate', $out );
+
+		$out = $this->call_protected( 'column_actions', array( array( 'id' => 11, 'name' => 'Jane Doe' ) ) );
+		$this->assertStringContainsString( 'action=edit-candidate', $out );
 		$this->assertStringContainsString( 'action=delete-candidate', $out );
-		$this->assertStringContainsString( 'submitdelete', $out );
+		$this->assertStringContainsString( 'ffc-btn-danger', $out );
 	}
 
 	// ------------------------------------------------------------------

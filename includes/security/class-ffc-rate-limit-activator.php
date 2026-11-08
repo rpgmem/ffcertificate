@@ -26,10 +26,24 @@ class RateLimitActivator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
-	 * Schema version stored in `ffc_rate_limit_db_version` once the tables
+	 * Schema revision stored in `ffc_rate_limit_db_version` once the tables
 	 * are current; maybe_create_tables() skips the body when they match.
 	 */
-	public const DB_VERSION = '1.3.0';
+	public const SCHEMA_REVISION = '1.6.0';
+
+	/**
+	 * Option holding the revision last applied (#2430). Listed in
+	 * `uninstall.php`.
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_rate_limit_db_version';
+
+	/**
+	 * The last row of each table written before e-mail and CPF identifiers
+	 * were keyed (#2343): the rows the "Rate Limit: Keyed Identifiers"
+	 * migration deletes. Recorded once, the first time this version's
+	 * schema runs; a fresh install records zero, so it has nothing to clean.
+	 */
+	public const KEYED_CUTOVER_OPTION = 'ffc_rate_limit_keyed_cutover';
 
 	/**
 	 * Create tables.
@@ -39,6 +53,7 @@ class RateLimitActivator {
 	public static function create_tables(): bool {
 		global $wpdb;
 
+		$previous        = (string) get_option( self::SCHEMA_REVISION_OPTION, '' );
 		$charset_collate = $wpdb->get_charset_collate();
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -150,8 +165,74 @@ class RateLimitActivator {
 
 		dbDelta( $sql_signals );
 
-		update_option( 'ffc_rate_limit_db_version', self::DB_VERSION );
+		self::record_keyed_cutover();
+
+		if ( '' !== $previous && version_compare( $previous, '1.5.0', '<' ) ) {
+			self::reset_unenforced_wait_hours();
+		}
+		if ( '' !== $previous && version_compare( $previous, '1.6.0', '<' ) ) {
+			self::drop_unkeyed_device_data();
+		}
+
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
 		return true;
+	}
+
+	/**
+	 * Remove what was stored before device signals were keyed, once (#2339).
+	 *
+	 * The signal rows hold bare browser hashes, which no keyed reading will
+	 * match again, so they are deleted rather than left to count nothing:
+	 * every device starts afresh, as the e-mail and CPF/RF counters did when
+	 * their identifiers were keyed (#2343). The log's user-agent column is
+	 * emptied, since nothing writes or reads it any more.
+	 *
+	 * @return void
+	 */
+	private static function drop_unkeyed_device_data(): void {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->prefix . 'ffc_device_signals' ) );
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET user_agent = NULL WHERE user_agent IS NOT NULL', $wpdb->prefix . 'ffc_rate_limit_logs' ) );
+	}
+
+	/**
+	 * Set the stored e-mail interval to off, once (#2339).
+	 *
+	 * `email.wait_hours` was saved as 24 by every Save of the Rate Limit tab
+	 * and never enforced. Enforcing it now would suddenly allow one
+	 * submission per e-mail per day on every such site, so the value nobody
+	 * chose becomes 0 and the limit starts only when an administrator sets it.
+	 *
+	 * @return void
+	 */
+	private static function reset_unenforced_wait_hours(): void {
+		$stored = get_option( 'ffc_rate_limit_settings', array() );
+		if ( ! is_array( $stored ) || ! isset( $stored['email'] ) || ! is_array( $stored['email'] ) || ! array_key_exists( 'wait_hours', $stored['email'] ) ) {
+			return;
+		}
+
+		$stored['email']['wait_hours'] = 0;
+		update_option( 'ffc_rate_limit_settings', $stored );
+	}
+
+	/**
+	 * Record, once, the last row id of the counter and log tables, so the
+	 * rows hashed before identifiers were keyed can be told apart from the
+	 * ones after (#2343): both are 64 hex characters.
+	 *
+	 * @return void
+	 */
+	private static function record_keyed_cutover(): void {
+		if ( false !== get_option( self::KEYED_CUTOVER_OPTION, false ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$cutover = array();
+		foreach ( array( 'ffc_rate_limits', 'ffc_rate_limit_logs' ) as $suffix ) {
+			$cutover[ $suffix ] = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', $wpdb->prefix . $suffix ) );
+		}
+		add_option( self::KEYED_CUTOVER_OPTION, $cutover, '', false );
 	}
 
 	/**
@@ -160,8 +241,8 @@ class RateLimitActivator {
 	 * upgrades that don't fire register_activation_hook.
 	 */
 	public static function maybe_create_tables(): void {
-		$stored = get_option( 'ffc_rate_limit_db_version', '' );
-		if ( self::DB_VERSION === $stored ) {
+		$stored = get_option( self::SCHEMA_REVISION_OPTION, '' );
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
 		self::create_tables();
@@ -206,7 +287,7 @@ class RateLimitActivator {
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_logs ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_signals ) );
 
-		delete_option( 'ffc_rate_limit_db_version' );
+		delete_option( self::SCHEMA_REVISION_OPTION );
 		return true;
 	}
 }

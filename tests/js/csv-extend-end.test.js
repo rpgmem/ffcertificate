@@ -127,7 +127,7 @@ beforeEach(() => {
 			postponeInvalidFormat: 'Please enter a valid time (HH:MM).',
 			postponeBeforeCurrent: 'Time must be later than the current close (%s).',
 			postponeBeforeNow: 'Time must be in the future.',
-			extendEndDisabledTip: 'Postpone Close disabled',
+			extendEndDisabledReason: 'The administrator turned off Postpone close for this form.',
 		},
 	};
 	window.$.fx.off = true;
@@ -321,7 +321,7 @@ describe('csv extend-end — submit', () => {
 		vi.setSystemTime(new Date('2026-06-10T08:00:00'));
 	});
 
-	it('POSTs ffc_public_extend_end on a valid confirm and reloads on success', async () => {
+	it('POSTs ffc_public_extend_end, redraws the screen and reports on the page', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -329,28 +329,31 @@ describe('csv extend-end — submit', () => {
 		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
 		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: stub });
 
-		postSpy.mockImplementation(() => postChain({ done: {
-			success: true,
-			data: { message: 'Close time postponed.' },
-		} }));
+		const actionAnswer = postChain({ done: { success: true, data: { message: 'Close time postponed.' } } });
+		postSpy.mockImplementation((url, data) => (String(data).includes('ffc_public_extend_end') ? actionAnswer : postChain({ done: { success: true, data: { form_title: 'My Form', submission_count: 0, restrictions: {}, datetime: { has_dates: false, has_times: false }, geolocation: { enabled: false }, quiz: null, csv: { count: 0, limit: 1 }, status: { has_end_date: true } } } })));
 
 		window.$('.ffc-btn-extend-end').trigger('click');
 		await flush();
 		window.$('.ffc-extend-end-input').val('19:30');
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
+		await flush();
 
-		const lastPayload = postSpy.mock.calls[postSpy.mock.calls.length - 1][1];
-		expect(lastPayload).toContain('action=ffc_public_extend_end');
-		expect(lastPayload).toContain('new_time_end=19%3A30');
-		expect(lastPayload).not.toContain('action=ffc_public_csv_info');
-		expect(alertSpy).toHaveBeenCalledWith('Close time postponed.');
-		expect(stub.reload).toHaveBeenCalled();
+		const actionPayload = postSpy.mock.calls.map((c) => String(c[1])).find((p) => p.includes('action=ffc_public_extend_end'));
+		expect(actionPayload).toContain('new_time_end=19%3A30');
+		expect(actionPayload).not.toContain('action=ffc_public_csv_info');
+		// #2341: on the page, after a fresh read, with no alert or reload.
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(stub.reload).not.toHaveBeenCalled();
+		const notice = document.querySelector('.ffc-action-result');
+		expect(notice.textContent).toContain('Close time postponed.');
+		expect(document.activeElement).toBe(notice);
+		expect(window.$('.ffc-btn-extend-end').length).toBe(0);
 
 		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
 	});
 
-	it('alerts the server message and re-enables the button on failure', async () => {
+	it('shows the server refusal on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -365,11 +368,12 @@ describe('csv extend-end — submit', () => {
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already postponed.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Already postponed.');
 		expect(window.$('.ffc-btn-extend-end').prop('disabled')).toBe(false);
 	});
 
-	it('alerts a generic error and re-enables the button on network failure', async () => {
+	it('reports a network error on the page and re-enables the button', async () => {
 		const postSpy = await reachInfoScreen();
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -381,7 +385,69 @@ describe('csv extend-end — submit', () => {
 		window.$('.ffc-extend-end-confirm').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.querySelector('.ffc-action-result').textContent).toContain('Error');
 		expect(window.$('.ffc-btn-extend-end').prop('disabled')).toBe(false);
+	});
+});
+
+// ----------------------------------------------------------------------
+// #2341 — the screen's "now" is the site's, in the plugin's formats
+// ----------------------------------------------------------------------
+
+describe('csv screen — the site clock (#2341)', () => {
+	// 2026-06-06 15:00 UTC; the site is at UTC-3, so its wall time is 12:00.
+	const INSTANT = Date.UTC(2026, 5, 6, 15, 0, 0);
+	const CLOCK = { now: INSTANT / 1000, offset: -3 * 3600, today: '06/06/2026', time_format: 'H:i' };
+
+	async function openModal(infoOverride) {
+		await reachInfoScreen(infoOverride);
+		window.$('.ffc-btn-extend-end').trigger('click');
+		await flush();
+	}
+
+	it('reads the site wall time from the server clock, whatever the browser clock says', async () => {
+		mountContainer();
+		await loadAndReady();
+		const api = window.FFCCsv;
+		const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(INSTANT + 7 * 3600 * 1000);
+		// The browser runs seven hours ahead; the gap is kept at setClock.
+		api.setClock(CLOCK);
+		nowSpy.mockReturnValue(INSTANT + 7 * 3600 * 1000 + 5 * 60 * 1000);
+		expect(api.siteNow()).toEqual({ hm: '12:05', today: '06/06/2026' });
+	});
+
+	it('prints a wall time in the plugin\'s time format', async () => {
+		mountContainer();
+		await loadAndReady();
+		const api = window.FFCCsv;
+		api.setClock(Object.assign({}, CLOCK, { time_format: 'g:i a' }));
+		expect(api.formatTime('18:05')).toBe('6:05 pm');
+		expect(api.formatTime('00:30')).toBe('12:30 am');
+		api.setClock(Object.assign({}, CLOCK, { time_format: 'H\\hi' }));
+		expect(api.formatTime('09:07')).toBe('09h07');
+		api.setClock(null);
+		expect(api.formatTime('09:07')).toBe('09:07');
+	});
+
+	it('checks "in the future" against the site clock, not the browser\'s', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(INSTANT);
+		await openModal(infoWithExtendEnd({
+			clock: CLOCK,
+			status: { current_time_end: '08:00', current_date_end_formatted: '2026-06-06' },
+		}));
+		window.$('.ffc-extend-end-input').val('11:30');
+		window.$('.ffc-extend-end-confirm').trigger('click');
+		expect(window.$('.ffc-extend-end-modal .ffc-field-message').text()).toContain('future');
+	});
+
+	it('shows the current close in the plugin\'s time format', async () => {
+		await openModal(infoWithExtendEnd({
+			clock: Object.assign({}, CLOCK, { time_format: 'g:i a' }),
+			status: { current_time_end: '18:00', current_date_end_formatted: '31/12/2026' },
+		}));
+		expect(window.$('.ffc-open-early-times').text()).toContain('31/12/2026 6:00 pm');
+		// The input keeps the raw value the browser's time picker reads.
+		expect(window.$('.ffc-extend-end-input').attr('min')).toBe('18:00');
 	});
 });

@@ -88,6 +88,10 @@ class AdminActivityLogPageTest extends TestCase {
 		Functions\when('sanitize_key')->alias(static fn($v) => strtolower((string) $v));
 		Functions\when('wp_unslash')->returnArg();
 		Functions\when('admin_url')->returnArg();
+		// The count and the generic summary pluralise; every test chooses
+		// these rather than inheriting an earlier test's stub.
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => (string) $n);
 	}
 
 	protected function tearDown(): void {
@@ -168,6 +172,9 @@ class AdminActivityLogPageTest extends TestCase {
 				$this->ran[] = array( 'get_col', (string) $sql );
 				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT action FROM %i' ) ) {
 					return array( 'submission_created' );
+				}
+				if ( false !== strpos( (string) $sql, 'SELECT DISTINCT user_id FROM %i' ) ) {
+					return array();
 				}
 				$this->fail( 'Unexpected get_col(): ' . $sql );
 			}
@@ -287,10 +294,13 @@ class AdminActivityLogPageTest extends TestCase {
 	// ==================================================================
 
 	public function test_render_page_includes_view_when_enabled(): void {
-		$this->stub_settings(array('enable_activity_log' => 1));
+		$this->stub_settings(\FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS);
 		$this->install_empty_log();
 		// No filter in the request; nothing cached, so every read reaches the table.
 		$_GET = array();
+		Functions\when('sanitize_text_field')->returnArg();
+		Functions\when('current_user_can')->justReturn(false);
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
 		Functions\when('wp_parse_args')->alias(static fn($args, $defaults) => array_merge($defaults, $args));
 		Functions\when('get_transient')->justReturn(false);
 		$cached = array();
@@ -314,8 +324,14 @@ class AdminActivityLogPageTest extends TestCase {
 		$page->render_page();
 		$output = ob_get_clean();
 
-		// The view renders the empty-state message and the wrap heading.
-		$this->assertStringContainsString('No activity logs found.', $output);
+		// Nothing filtered and nothing recorded: the "nothing yet" state,
+		// never "no matches" (#2340).
+		$this->assertStringContainsString('Nothing has been recorded yet.', $output);
+		$this->assertStringNotContainsString('No entries match these filters.', $output);
+		// The system entry heads the user filter; without the export
+		// capability there is no Export button (#2340).
+		$this->assertStringContainsString('value="system"', $output);
+		$this->assertStringNotContainsString('ffc-activitylog-export-btn', $output);
 		$this->assertStringContainsString('Activity Log', $output);
 		// The distinct action reaches the filter, labelled.
 		$this->assertStringContainsString('value="submission_created"', $output);
@@ -365,6 +381,134 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertSame('error', $args['level']);
 		$this->assertSame('submission_created', $args['action']);
 		$this->assertSame('foo', $args['search']);
+	}
+
+	public function test_build_query_args_reads_the_user_filter(): void {
+		Functions\when('sanitize_text_field')->returnArg();
+		$this->assertSame('system', AdminActivityLogPage::build_query_args(['user' => 'system'])['user_id']);
+		$this->assertSame('42', AdminActivityLogPage::build_query_args(['user' => '42'])['user_id']);
+		// Neither an id nor the system: no filter at all.
+		$this->assertArrayNotHasKey('user_id', AdminActivityLogPage::build_query_args(['user' => 'admin']));
+		$this->assertArrayNotHasKey('user_id', AdminActivityLogPage::build_query_args(['user' => '0']));
+	}
+
+	public function test_build_query_args_keeps_only_valid_dates(): void {
+		Functions\when('sanitize_text_field')->returnArg();
+		$args = AdminActivityLogPage::build_query_args(['date_from' => '2026-11-01', 'date_to' => '2026-02-30']);
+		$this->assertSame('2026-11-01', $args['date_from']);
+		$this->assertArrayNotHasKey('date_to', $args, 'A date that does not exist is dropped, not passed on.');
+		$this->assertArrayNotHasKey('date_from', AdminActivityLogPage::build_query_args(['date_from' => "'; DROP"]));
+	}
+
+	public function test_has_filters_tells_a_narrowed_query_from_the_whole_log(): void {
+		$this->assertFalse(AdminActivityLogPage::has_filters(['limit' => 50, 'offset' => 0, 'orderby' => 'created_at', 'order' => 'DESC']));
+		foreach (['level' => 'info', 'action' => 'x', 'search' => 'bob', 'user_id' => 'system', 'date_from' => '2026-11-01', 'date_to' => '2026-11-06'] as $key => $value) {
+			$this->assertTrue(AdminActivityLogPage::has_filters([$key => $value]), $key);
+		}
+	}
+
+	public function test_empty_state_without_filters_says_nothing_is_recorded_yet(): void {
+		$html = AdminActivityLogPage::render_empty_html(false);
+		$this->assertStringContainsString('Nothing has been recorded yet.', $html);
+		$this->assertStringNotContainsString('ffc-log-clear', $html);
+	}
+
+	public function test_empty_state_with_filters_offers_clear_filters(): void {
+		$html = AdminActivityLogPage::render_empty_html(true);
+		$this->assertStringContainsString('No entries match these filters.', $html);
+		$this->assertStringContainsString('ffc-log-clear', $html);
+		$this->assertStringContainsString('admin.php?page=ffc-settings&tab=activity_log', $html);
+		// An in-content callout, not a core notice common.js would move.
+		$this->assertStringNotContainsString('class="notice', $html);
+	}
+
+	public function test_count_text_is_plural_aware(): void {
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => number_format((float) $n));
+		$this->assertSame('1 entry', AdminActivityLogPage::count_text(1));
+		$this->assertSame('1,280 entries', AdminActivityLogPage::count_text(1280));
+	}
+
+	public function test_user_options_put_the_system_first_and_sort_accounts_by_label(): void {
+		Functions\when('get_transient')->justReturn(array(3, 9));
+		Functions\when('get_locale')->justReturn('en_US');
+		Functions\when('get_userdata')->alias(static function ($id) {
+			if (9 !== $id) {
+				return false;
+			}
+			$u = new \stdClass();
+			$u->display_name = 'Ana Souza';
+			$u->user_login   = 'ana.souza';
+			return $u;
+		});
+
+		$options = AdminActivityLogPage::user_options();
+
+		$this->assertSame(array('system', 9, 3), array_keys($options));
+		$this->assertSame('System / Anonymous', $options['system']);
+		$this->assertSame('Ana Souza (ana.souza)', $options[9]);
+		$this->assertSame('User #3 (deleted)', $options[3], 'An account deleted since keeps a label.');
+	}
+
+	public function test_sorted_actions_follow_their_labels(): void {
+		Functions\when('get_locale')->justReturn('en_US');
+		$sorted = AdminActivityLogPage::sorted_actions(array('submission_created', 'attendance_recorded'));
+		$this->assertSame(array('attendance_recorded', 'submission_created'), $sorted);
+	}
+
+	public function test_context_summary_lists_top_level_values_by_name(): void {
+		$html = AdminActivityLogPage::render_context_summary(array('booking_id' => 5, 'method' => 'manual', 'notify' => true));
+		$this->assertSame('<dl class="ffc-log-summary-dl"><dt>Booking id</dt><dd>5</dd><dt>Method</dt><dd>manual</dd><dt>Notify</dt><dd>Yes</dd></dl>', $html);
+	}
+
+	public function test_context_summary_leaves_nested_and_extra_values_to_the_details(): void {
+		Functions\when('_n')->alias(static fn($one, $many, $n) => 1 === $n ? $one : $many);
+		Functions\when('number_format_i18n')->alias(static fn($n) => (string) $n);
+		$context = array('changes' => array('a' => 1));
+		for ($i = 1; $i <= 8; $i++) {
+			$context['k' . $i] = 'v' . $i;
+		}
+
+		$html = (string) AdminActivityLogPage::render_context_summary($context);
+
+		$this->assertSame(AdminActivityLogPage::SUMMARY_ITEMS, substr_count($html, '<dt>'));
+		$this->assertStringNotContainsString('Changes', $html, 'A nested value is not summarised.');
+		$this->assertStringContainsString('3 more values in the details.', $html, 'The nested one and the two past the limit.');
+	}
+
+	public function test_context_summary_cuts_a_long_value(): void {
+		$html = (string) AdminActivityLogPage::render_context_summary(array('reason' => str_repeat('é', 200)));
+		$this->assertStringContainsString(str_repeat('é', AdminActivityLogPage::SUMMARY_VALUE_CHARS - 1) . '…</dd>', $html);
+	}
+
+	public function test_context_summary_is_null_when_nothing_is_scalar(): void {
+		$this->assertNull(AdminActivityLogPage::render_context_summary(array()));
+		$this->assertNull(AdminActivityLogPage::render_context_summary(array('ids' => array(1, 2), 'empty' => '')));
+	}
+
+	public function test_bounded_json_keeps_a_short_record_and_cuts_a_long_one(): void {
+		$this->assertSame('{"a":1}', AdminActivityLogPage::bounded_json('{"a":1}'));
+		$long = str_repeat('x', AdminActivityLogPage::DETAILS_MAX_BYTES + 100);
+		$cut  = AdminActivityLogPage::bounded_json($long);
+		$this->assertStringStartsWith(str_repeat('x', AdminActivityLogPage::DETAILS_MAX_BYTES) . "\n…", $cut);
+		$this->assertStringEndsWith('the CSV export has the full details.', $cut);
+	}
+
+	public function test_a_row_without_its_own_summary_gets_the_masked_generic_one(): void {
+		$this->stub_date_formatting();
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_create_nonce')->justReturn('n');
+		Functions\when('is_email')->alias(static fn($v) => false !== filter_var($v, FILTER_VALIDATE_EMAIL));
+
+		$html = AdminActivityLogPage::render_rows_html(array(array(
+			'id' => 1, 'created_at' => 1762430000, 'level' => 'info', 'action' => 'privacy_data_erased',
+			'user_id' => null, 'user_ip' => '', 'context' => array('email' => 'ana@example.org', 'rows' => 3),
+		)));
+
+		$this->assertStringContainsString('<dt>Rows</dt><dd>3</dd>', $html);
+		$this->assertStringNotContainsString('ana@example.org</dd>', $html, 'The summary shows the masked value.');
 	}
 
 	public function test_build_query_args_clamps_paged_to_minimum_one(): void {
@@ -439,6 +583,74 @@ class AdminActivityLogPageTest extends TestCase {
 		$this->assertStringNotContainsString('198.51.100.7', $html, 'an address in the details is masked whatever its key');
 		$this->assertStringNotContainsString('192.0.2.1', $html);
 		$this->assertStringContainsString('42', $html);
+	}
+
+	public function test_personal_data_in_the_details_is_masked_behind_a_reveal(): void {
+		$this->stub_date_formatting();
+		Functions\when('is_email')->alias(static fn($e) => false !== filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : false);
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_create_nonce')->justReturn('nonce-123');
+		Functions\when('user_can')->alias(static fn($uid, $cap) => 'ffc_view_activity_log_pii' === $cap);
+
+		$html = AdminActivityLogPage::render_rows_html([
+			[
+				'id'         => 78,
+				'created_at' => '2026-01-01 00:00:00',
+				'level'      => 'info',
+				'action'     => 'privacy_data_erased',
+				'user_id'    => 0,
+				'user_ip'    => '',
+				'context'    => ['requester' => 'ana.souza@example.org', 'cpf' => '51817842080', 'records' => 3],
+			],
+		]);
+
+		$this->assertStringNotContainsString('ana.souza@example.org', $html, 'an e-mail is masked whatever its key');
+		$this->assertStringNotContainsString('51817842080', $html, 'a CPF is masked by its key');
+		$this->assertStringContainsString('data-field="context"', $html, 'the details carry a Reveal');
+		$this->assertStringContainsString('"records": 3', $html);
+	}
+
+	public function test_details_with_nothing_personal_get_no_reveal(): void {
+		$this->stub_date_formatting();
+		Functions\when('get_userdata')->justReturn(false);
+		Functions\when('wp_json_encode')->alias(static fn($v, $f = 0) => json_encode($v, $f));
+		Functions\when('esc_html_e')->alias(function ($t) { echo $t; });
+		Functions\when('wp_create_nonce')->justReturn('nonce-123');
+		Functions\when('user_can')->alias(static fn($uid, $cap) => 'ffc_view_activity_log_pii' === $cap);
+
+		$html = AdminActivityLogPage::render_rows_html([
+			[
+				'id'         => 79,
+				'created_at' => '2026-01-01 00:00:00',
+				'level'      => 'info',
+				'action'     => 'settings_changed',
+				'user_id'    => 0,
+				'user_ip'    => '',
+				'context'    => ['setting' => 'dark_mode'],
+			],
+		]);
+
+		$this->assertStringNotContainsString('ffc-reveal-pii', $html);
+	}
+
+	public function test_mask_personal_data_reads_values_and_keys(): void {
+		Functions\when('is_email')->alias(static fn($e) => false !== filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : false);
+		$masked = AdminActivityLogPage::mask_personal_data(
+			array(
+				'who'    => 'ana@example.org',
+				'nested' => array( 'rf' => '5181780', 'phone' => '11987654321' ),
+				'count'  => 4,
+				'note'   => 'plain text',
+			)
+		);
+
+		$this->assertNotSame( 'ana@example.org', $masked['who'] );
+		$this->assertNotSame( '5181780', $masked['nested']['rf'] );
+		$this->assertNotSame( '11987654321', $masked['nested']['phone'] );
+		$this->assertSame( 4, $masked['count'] );
+		$this->assertSame( 'plain text', $masked['note'] );
 	}
 
 	public function test_render_rows_html_renders_deleted_user_and_anonymous(): void {

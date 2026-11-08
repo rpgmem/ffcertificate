@@ -24,6 +24,10 @@
 	// The short URL the code carries: created on a download, or picked with
 	// "Use this"; valid while `key` matches the content it was made for.
 	var shortUrl = { code: '', key: '' };
+	// What each type held when its example was filled in (#2365): while the
+	// fields still say exactly that, nobody chose the content, so the code
+	// carries it directly and no short URL is created on a download.
+	var examples = {};
 	// What had the focus when the saved overlay opened, to give it back.
 	var savedOpener = null;
 	// What the operator asked for, kept while a circular address locks the switch.
@@ -51,7 +55,19 @@
 			this.hidden = $(this).attr('data-ffc-qr-type') !== type;
 		});
 		showWifiEnterprise($form);
+		showEventUntil($form);
 		showShort($form);
+		$('#ffc-qr-vcf').prop('hidden', type !== 'vcard');
+	}
+
+	/**
+	 * Show "Link valid until" only for the calendar file: the other event
+	 * modes carry no link that could expire.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function showEventUntil($form) {
+		$form.find('[data-ffc-qr-event-until]').prop('hidden', String($form.find('#ffc-qr-event-mode').val() || '') !== 'ics');
 	}
 
 	/**
@@ -82,6 +98,10 @@
 				this.hidden = false;
 			}
 		});
+		var $download = $form.find('#ffc-qr-short-download');
+		$download.prop('hidden', !on || !$download.attr('data-ffc-download'));
+		var $scheme = $form.find('#ffc-qr-short-scheme');
+		$scheme.prop('hidden', !on || !$scheme.attr('data-ffc-scheme'));
 		// A hidden title must not hold up constraint validation (#1850).
 		window.FFC.setRequiredWithin($form.find('[data-ffc-qr-short-on]'), on);
 	}
@@ -99,6 +119,90 @@
 			fields[String($(this).attr('data-ffc-qr-field'))] = String($(this).val() || '');
 		});
 		return JSON.stringify([type, fields, String($form.find('#ffc-qr-short-title').val() || '').trim()]);
+	}
+
+	/**
+	 * The active type's fields, without the short URL title.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {string}
+	 */
+	function fieldsKey($form) {
+		var parsed = JSON.parse(contentKey($form));
+		return JSON.stringify([parsed[0], parsed[1]]);
+	}
+
+	/**
+	 * Whether the active type still holds the example it was opened with.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {boolean}
+	 */
+	function isExample($form) {
+		return examples[activeType($form)] === fieldsKey($form);
+	}
+
+	/**
+	 * Fill the active type's fields with its example when they are all
+	 * empty, so the preview draws at once (#2365). A type the user has
+	 * already typed into keeps what they typed.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function fillExample($form) {
+		var type = activeType($form);
+		var example = (cfg.examples || {})[type];
+		if (!example || Object.prototype.hasOwnProperty.call(examples, type)) {
+			return;
+		}
+		var empty = true;
+		$form.find('[data-ffc-qr-field^="' + type + ':"]').each(function () {
+			if (this.type === 'checkbox' ? this.checked : (this.tagName !== 'SELECT' && String($(this).val() || '').trim() !== '')) {
+				empty = false;
+			}
+		});
+		if (!empty) {
+			return;
+		}
+		Object.keys(example).forEach(function (key) {
+			$form.find('[data-ffc-qr-field="' + type + ':' + key + '"]').val(String(example[key]));
+		});
+		examples[type] = fieldsKey($form);
+		$form.find('#ffc-qr-network').trigger('change.ffcQrPrefix');
+		showWifiEnterprise($form);
+	}
+
+	/**
+	 * The content fields take the plugin's shared behaviours (#2368): the
+	 * phone and CEP masks, the e-mail, phone, URL and CEP checks, and, on the
+	 * vCard, the CEP lookup that fills the street, the city and the state.
+	 * Wired once per form, since the shared functions bind directly on the
+	 * elements.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 */
+	function wireFields($form) {
+		var fields = window.FFC && window.FFC.Fields;
+		if (!fields || $form.attr('data-ffc-qr-wired')) {
+			return;
+		}
+		$form.attr('data-ffc-qr-wired', '1');
+		fields.initMasks($form);
+		fields.initCepLookup($form.find('[data-ffc-qr-type="vcard"]'));
+		$form.on('input change', 'tr[data-format]:not([data-format=""]) input', function (e) {
+			var format = $(this).closest('tr').attr('data-format');
+			if (format === 'email' && e.type === 'change') {
+				// The plugin stores an address trimmed and in lower case.
+				this.value = String(this.value || '').trim().toLowerCase();
+			}
+			var message = fields.formatError(this.value, format, i18n);
+			if (!message) {
+				window.FFC.clearFieldMessage(this);
+			} else if (e.type === 'change') {
+				// Said once the person leaves the field, not at every keystroke.
+				window.FFC.fieldMessage(this, 'error', message);
+			}
+		});
 	}
 
 	/**
@@ -152,7 +256,7 @@
 				shortUrl = { code: '', key: '' };
 				showSaved(null);
 			}
-			request.short = wantShort ? '1' : '';
+			request.short = wantShort && !isExample($form) ? '1' : '';
 			request.short_code = shortUrl.code;
 		}
 		return request;
@@ -168,12 +272,22 @@
 	function showShortState($form, state) {
 		var $switch = $form.find('#ffc-qr-short');
 		var circular = !!(state && state.circular);
-		// A non-web address (ftp, ssh...) cannot sit behind an HTTP redirect.
+		// An address outside the destination list cannot sit behind a short URL.
 		var direct = !!(state && state.direct);
 		var locked = circular || direct;
 		$switch.prop('disabled', locked).prop('checked', locked ? false : wantShort);
 		$form.find('#ffc-qr-short-circular').prop('hidden', !circular);
 		$form.find('#ffc-qr-short-direct').prop('hidden', !direct);
+		// A destination that downloads a file is warned about, never refused (#2337).
+		var download = (state && state.download) || '';
+		$form.find('#ffc-qr-short-download')
+			.text(download ? fill(i18n.download || '', ['.' + download]) : '')
+			.attr('data-ffc-download', download);
+		// A scheme beyond http(s) is allowed, with a soft warning (#2337).
+		var scheme = (state && state.scheme) || '';
+		$form.find('#ffc-qr-short-scheme')
+			.text(scheme ? fill(i18n.scheme || '', [scheme + ':']) : '')
+			.attr('data-ffc-scheme', scheme);
 		showShort($form);
 
 		var duplicates = (state && state.example && state.duplicates) || [];
@@ -212,7 +326,7 @@
 	 */
 	function ensureShort($form) {
 		var state = current && current.short;
-		if (!state || state.circular || !state.example || !wantShort) {
+		if (!state || state.circular || !state.example || !wantShort || isExample($form)) {
 			return Promise.resolve();
 		}
 		var $status = $('#ffc-qr-generator-status');
@@ -322,27 +436,20 @@
 	}
 
 	/**
-	 * One status line: the most serious problem, or "readable".
+	 * Every scan problem at once, or "readable" (the shared list plus a dense
+	 * code).
 	 *
 	 * @param {jQuery} $out   Status element.
 	 * @param {Object} data   Response data.
+	 * @param {string} margin The margin field's value.
 	 */
-	function showStatus($out, data) {
-		var checks = data.checks || {};
+	function showStatus($out, data, margin) {
 		var usage = data.usage || {};
-		if (checks.inverted) {
-			window.FFC.status($out, 'error', i18n.inverted || '');
-		} else if (checks.transparent) {
-			window.FFC.status($out, 'warning', i18n.transparent || '');
-		} else if (checks.caption_contrast === false) {
-			window.FFC.status($out, 'warning', i18n.captionContrast || '');
-		} else if (checks.low_contrast) {
-			window.FFC.status($out, 'warning', fill(i18n.lowContrast, [checks.min_ratio]));
-		} else if (usage.dense) {
-			window.FFC.status($out, 'warning', fill(i18n.dense, [usage.version]));
-		} else {
-			window.FFC.status($out, 'success', i18n.ok || '');
+		var list = window.FFC.QrDesign.problems(data.checks || {}, margin, i18n);
+		if (usage.dense) {
+			list.push({ state: 'warning', text: fill(i18n.dense, [usage.version]) });
 		}
+		window.FFC.QrDesign.showProblems($out, list, i18n);
 	}
 
 	/**
@@ -370,8 +477,9 @@
 				$usage.text(usage.forced
 					? fill(i18n.usageForced, [usage.percent, usage.remaining])
 					: fill(i18n.usage, [usage.percent, usage.remaining, usage.level]));
-				showStatus($status, data);
+				showStatus($status, data, String($form.find('#qr_default_margin').val() || ''));
 				$buttons.prop('disabled', false);
+				$('#ffc-qr-vcf').prop('disabled', !data.payload);
 			})
 			.catch(function (err) {
 				if (mine !== sequence) {
@@ -381,6 +489,7 @@
 				$preview.empty();
 				$usage.text('');
 				$buttons.prop('disabled', true);
+				$('#ffc-qr-vcf').prop('disabled', true);
 				window.FFC.status($status, 'error', errorMessage(err));
 			});
 	}
@@ -394,6 +503,23 @@
 	 */
 	function filename($form, ext) {
 		return 'qr-' + activeType($form) + '-' + new Date().toISOString().slice(0, 10) + '.' + ext;
+	}
+
+	/**
+	 * The .vcf file name: the prefix and the contact's name, in ASCII.
+	 *
+	 * @param {jQuery} $form Generator form.
+	 * @returns {string}
+	 */
+	function vcfName($form) {
+		var name = [$form.find('[data-ffc-qr-field="vcard:first_name"]').val(), $form.find('[data-ffc-qr-field="vcard:last_name"]').val()]
+			.join(' ')
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '');
+		return (i18n.vcfName || 'contact') + (name ? '-' + name : '') + '.vcf';
 	}
 
 	/**
@@ -490,17 +616,21 @@
 		$form.on('submit', function (e) { e.preventDefault(); });
 		$form.on('change', 'input[name="type"]', function () {
 			showType($form);
+			fillExample($form);
 			refresh($form);
 		});
 		$form.on('change input', '[data-ffc-qr-field], [data-ffc-qr-design], #qr_default_margin, #qr_default_error_level', function () {
 			schedule($form);
 		});
 		// Social: show the chosen network's prefix before the user name.
-		$form.on('change', '#ffc-qr-network', function () {
+		$form.on('change change.ffcQrPrefix', '#ffc-qr-network', function () {
 			$('#ffc-qr-social-prefix').text(String($(this).find('option:selected').attr('data-ffc-qr-prefix') || ''));
 		});
 		$form.on('change', '[data-ffc-qr-field="wifi:security"]', function () {
 			showWifiEnterprise($form);
+		});
+		$form.on('change', '#ffc-qr-event-mode', function () {
+			showEventUntil($form);
 		});
 
 		// Size applies to the PNG only: an SVG has no pixels to choose.
@@ -534,6 +664,14 @@
 					})
 					.catch(function () { window.FFC.status('#ffc-qr-generator-status', 'error', i18n.error || ''); });
 			}).catch(function () {});
+		});
+		// The card the code carries, as a file (#2374): the payload the server
+		// drew, so the file and the code can never disagree.
+		$('#ffc-qr-vcf').on('click', function () {
+			if (!current || !current.payload || activeType($form) !== 'vcard') {
+				return;
+			}
+			window.FFC.QrRaster.download(window.FFC.QrRaster.encode(String(current.payload)), vcfName($form), 'text/vcard;charset=utf-8');
 		});
 		$('#ffc-qr-print').on('click', function () {
 			if (!current || !current.svg) {
@@ -599,11 +737,15 @@
 				});
 		});
 
+		examples = {};
+		wireFields($form);
 		showType($form);
+		fillExample($form);
+		refresh($form);
 	}
 
 	window.FFC = window.FFC || {};
-	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print, ensureShort: ensureShort, errorMessage: errorMessage };
+	window.FFC.QrGenerator = { init: init, collect: collect, refresh: refresh, fill: fill, apply: apply, remember: remember, print: print, ensureShort: ensureShort, errorMessage: errorMessage, isExample: isExample };
 
 	$(init);
 })(jQuery);

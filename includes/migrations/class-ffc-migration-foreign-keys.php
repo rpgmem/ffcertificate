@@ -12,11 +12,11 @@
  * this is the *only* code path that creates these FKs. They are absent on a
  * fresh install until this runs; it is not a spent one-off migration.
  *
- * **Covered set = a deliberate subset, not every `user_id` column.** The seven
- * tables here mirror the tables `UserCleanup` anonymises on `deleted_user`
- * (submissions, appointments, audience members/booking-users/schedule-perms,
- * user-profiles) plus the `activity_log` audit table (FK-only — the audit trail
- * is intentionally not app-nulled). Other user-linked tables enforce integrity
+ * **Covered set = a deliberate subset, not every `user_id` column.** The nine
+ * tables here mirror the tables `UserCleanup` handles on `deleted_user`
+ * (submissions, appointments, attendance, audience members/booking-users/
+ * schedule-perms/form-invites, user-profiles) plus the `activity_log` audit
+ * table. Other user-linked tables enforce integrity
  * at the app layer only: recruitment by design (a candidate is not a WP user
  * until promotion). `ffc_reregistration_submissions` and the custom-field value
  * tables carry a `user_id` covered by *neither* layer — tracked as a separate
@@ -25,6 +25,18 @@
  * Requires InnoDB on all involved tables. A MyISAM table skips its FK with a
  * warning; the activation guard (`Activator::maybe_add_foreign_keys`) then keeps
  * retrying until every FK exists rather than pinning an incomplete version.
+ *
+ * **Orphans follow the table's rule (#2343).** A row whose `user_id` names no
+ * account would make the constraint fail. On a SET NULL table the link is
+ * cleared; on a CASCADE table the row is deleted, because those tables declare
+ * `user_id NOT NULL` -- nulling there errors in strict mode and writes nothing
+ * otherwise, so the constraint never went in and the version never pinned.
+ *
+ * **Names carry the table prefix (#2343).** Constraint names are unique per
+ * database, so two installs sharing one database collided on the bare name.
+ * Presence is read from what the constraint does -- a key on `user_id` that
+ * references this install's users table -- so an install that already has the
+ * old bare name is complete and is not given a second constraint.
  *
  * @package FreeFormCertificate\Migrations
  * @since 4.9.7
@@ -47,6 +59,75 @@ class MigrationForeignKeys {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
+	 * Table suffix => [constraint base name, ON DELETE action].
+	 *
+	 * SET NULL keeps a record and drops the link; CASCADE deletes a pure
+	 * relationship with the person.
+	 *
+	 * @var array<string, array{0: string, 1: 'SET NULL'|'CASCADE'}>
+	 */
+	private const CONSTRAINTS = array(
+		'ffc_submissions'                   => array( 'fk_ffc_submissions_user', 'SET NULL' ),
+		'ffc_self_scheduling_appointments'  => array( 'fk_ffc_appointments_user', 'SET NULL' ),
+		'ffc_activity_log'                  => array( 'fk_ffc_activity_log_user', 'SET NULL' ),
+		'ffc_audience_attendance'           => array( 'fk_ffc_attendance_user', 'SET NULL' ),
+		'ffc_audience_members'              => array( 'fk_ffc_audience_members_user', 'CASCADE' ),
+		'ffc_audience_booking_users'        => array( 'fk_ffc_booking_users_user', 'CASCADE' ),
+		'ffc_audience_schedule_permissions' => array( 'fk_ffc_schedule_perms_user', 'CASCADE' ),
+		'ffc_user_profiles'                 => array( 'fk_ffc_user_profiles_user', 'CASCADE' ),
+		'ffc_audience_form_invites'         => array( 'fk_ffc_form_invites_user', 'CASCADE' ),
+	);
+
+	/**
+	 * The constraint name for this install: the table prefix, then the base
+	 * name, cut to MySQL's 64-character identifier limit.
+	 *
+	 * @param string $base Base name.
+	 * @return string
+	 */
+	private static function constraint_name( string $base ): string {
+		global $wpdb;
+		return substr( $wpdb->prefix . $base, 0, 64 );
+	}
+
+	/**
+	 * This install's tables that carry a `user_id` key referencing its users
+	 * table, whatever the constraint is called.
+	 *
+	 * @return array<string, string> Table => constraint name.
+	 */
+	private static function installed_constraints(): array {
+		global $wpdb;
+
+		$tables = array();
+		foreach ( array_keys( self::CONSTRAINTS ) as $suffix ) {
+			$tables[] = $wpdb->prefix . $suffix;
+		}
+		$placeholders = implode( ',', array_fill( 0, count( $tables ), '%s' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders is a list of %s, one per table spread into the arguments, so every value is bound.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT TABLE_NAME, CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+             WHERE TABLE_SCHEMA = %s AND COLUMN_NAME = 'user_id' AND REFERENCED_TABLE_NAME = %s
+             AND TABLE_NAME IN ({$placeholders})",
+				DB_NAME,
+				$wpdb->users,
+				...$tables
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		$installed = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			if ( is_object( $row ) && isset( $row->TABLE_NAME, $row->CONSTRAINT_NAME ) ) {
+				$installed[ (string) $row->TABLE_NAME ] = (string) $row->CONSTRAINT_NAME;
+			}
+		}
+		return $installed;
+	}
+
+	/**
 	 * Run the migration
 	 *
 	 * @return array<string, mixed> Result with success status and details
@@ -60,22 +141,16 @@ class MigrationForeignKeys {
 			'errors'  => array(),
 		);
 
-		// Tables that should SET NULL on user deletion (preserve audit trail).
-		$set_null_tables = array(
-			$wpdb->prefix . 'ffc_submissions'         => 'fk_ffc_submissions_user',
-			$wpdb->prefix . 'ffc_self_scheduling_appointments' => 'fk_ffc_appointments_user',
-			$wpdb->prefix . 'ffc_activity_log'        => 'fk_ffc_activity_log_user',
-			$wpdb->prefix . 'ffc_audience_attendance' => 'fk_ffc_attendance_user',
-		);
-
-		// Tables that should CASCADE delete (no audit value).
-		$cascade_tables = array(
-			$wpdb->prefix . 'ffc_audience_members'       => 'fk_ffc_audience_members_user',
-			$wpdb->prefix . 'ffc_audience_booking_users' => 'fk_ffc_booking_users_user',
-			$wpdb->prefix . 'ffc_audience_schedule_permissions' => 'fk_ffc_schedule_perms_user',
-			$wpdb->prefix . 'ffc_user_profiles'          => 'fk_ffc_user_profiles_user',
-			$wpdb->prefix . 'ffc_audience_form_invites'  => 'fk_ffc_form_invites_user',
-		);
+		$set_null_tables = array();
+		$cascade_tables  = array();
+		foreach ( self::CONSTRAINTS as $suffix => $definition ) {
+			$table = $wpdb->prefix . $suffix;
+			if ( 'SET NULL' === $definition[1] ) {
+				$set_null_tables[ $table ] = self::constraint_name( $definition[0] );
+			} else {
+				$cascade_tables[ $table ] = self::constraint_name( $definition[0] );
+			}
+		}
 
 		// Check wp_users engine first.
 		$users_engine = self::get_table_engine( $wpdb->users );
@@ -165,19 +240,9 @@ class MigrationForeignKeys {
 			);
 		}
 
-		// Check if FK already exists.
-		$existing = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
-             AND CONSTRAINT_NAME = %s AND CONSTRAINT_TYPE = 'FOREIGN KEY'",
-				DB_NAME,
-				$table,
-				$constraint_name
-			)
-		);
-
-		if ( ! empty( $existing ) ) {
+		// Check if the key already exists, under this name or the bare one an
+		// older release used.
+		if ( isset( self::installed_constraints()[ $table ] ) ) {
 			return array(
 				'status'  => 'skipped',
 				'message' => 'FK already exists',
@@ -192,14 +257,26 @@ class MigrationForeignKeys {
 			}
 		}
 
-		// Clean up orphaned references (user_id values that don't exist in wp_users).
-		$wpdb->query(
-			$wpdb->prepare(
-				'UPDATE %i SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM %i)',
-				$table,
-				$wpdb->users
-			)
-		);
+		// Clean up orphaned references (user_id values that don't exist in
+		// wp_users) the way the constraint itself will treat them: cleared on a
+		// SET NULL table, deleted on a CASCADE one, whose user_id is NOT NULL.
+		if ( 'CASCADE' === $on_delete ) {
+			$wpdb->query(
+				$wpdb->prepare(
+					'DELETE FROM %i WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM %i)',
+					$table,
+					$wpdb->users
+				)
+			);
+		} else {
+			$wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET user_id = NULL WHERE user_id IS NOT NULL AND user_id NOT IN (SELECT ID FROM %i)',
+					$table,
+					$wpdb->users
+				)
+			);
+		}
 
 		// Add the FK constraint.
 		// $on_delete is a validated SQL keyword ('SET NULL' or 'CASCADE') from hardcoded arrays in run().
@@ -281,32 +358,12 @@ class MigrationForeignKeys {
 	 * @return array<string, mixed> Status information
 	 */
 	public static function get_status(): array {
-		global $wpdb;
+		$installed = self::installed_constraints();
 
-		$all_constraints = array(
-			'fk_ffc_submissions_user',
-			'fk_ffc_appointments_user',
-			'fk_ffc_activity_log_user',
-			'fk_ffc_attendance_user',
-			'fk_ffc_audience_members_user',
-			'fk_ffc_booking_users_user',
-			'fk_ffc_schedule_perms_user',
-			'fk_ffc_user_profiles_user',
-			'fk_ffc_form_invites_user',
-		);
-
-		$existing = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE TABLE_SCHEMA = %s AND CONSTRAINT_TYPE = 'FOREIGN KEY'
-             AND CONSTRAINT_NAME LIKE %s",
-				DB_NAME,
-				'fk_ffc_%'
-			)
-		);
-
-		$existing_count = count( $existing );
-		$total          = count( $all_constraints );
+		$existing = array_values( $installed );
+		sort( $existing );
+		$existing_count = count( $installed );
+		$total          = count( self::CONSTRAINTS );
 
 		return array(
 			'available'            => true,

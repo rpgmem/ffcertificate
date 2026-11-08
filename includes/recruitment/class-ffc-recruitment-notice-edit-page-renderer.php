@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Recruitment;
 
+use FreeFormCertificate\Core\Button;
 use FreeFormCertificate\Core\DateFormatter;
 use FreeFormCertificate\Core\RequestInput;
 
@@ -801,23 +802,18 @@ final class RecruitmentNoticeEditPageRenderer {
 
 		echo '<table class="widefat striped"><thead><tr>';
 		if ( $with_actions ) {
-			echo '<th class="ffc-rec-col-checkbox"><input type="checkbox" id="ffc-cls-bulk-all" onclick="ffcRecruitmentClsToggleAll(this);" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
+			echo '<th class="ffc-rec-col-checkbox"><input type="checkbox" id="ffc-cls-bulk-all" title="' . esc_attr__( 'Select all waiting rows on this page', 'ffcertificate' ) . '"></th>';
 		}
+		// Candidate carries the adjutancy and the subscription, and Status the
+		// call, so the table fits the editor panel (#2486).
 		echo '<th>' . esc_html__( 'Rank', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Candidate', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Adjutancy', 'ffcertificate' ) . '</th>';
-		echo '<th>' . esc_html__( 'Subscription', 'ffcertificate' ) . '</th>';
 		echo '<th>' . esc_html__( 'Score', 'ffcertificate' ) . '</th>';
 		if ( $is_preview_tab ) {
 			echo '<th>' . esc_html__( 'Preliminary status', 'ffcertificate' ) . '</th>';
 			echo '<th>' . esc_html__( 'Reason', 'ffcertificate' ) . '</th>';
 		} else {
 			echo '<th>' . esc_html__( 'Status', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Date to assume', 'ffcertificate' ) . '</th>';
-			echo '<th>' . esc_html__( 'Called on', 'ffcertificate' ) . '</th>';
-			if ( $show_callers ) {
-				echo '<th>' . esc_html__( 'Called by', 'ffcertificate' ) . '</th>';
-			}
 		}
 		if ( $with_actions ) {
 			echo '<th>' . esc_html__( 'Actions', 'ffcertificate' ) . '</th>';
@@ -851,12 +847,10 @@ final class RecruitmentNoticeEditPageRenderer {
 			if ( $with_actions && ( $no_email[ (int) $row->candidate_id ] ?? false ) ) {
 				echo ' <span class="ffc-icon-warning ffc-icon-tone-warning ffc-rec-ml-half">' . esc_html__( 'No email — contact manually', 'ffcertificate' ) . '</span>';
 			}
-			echo '</td>';
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-			echo '<td>' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . '</td>';
 			$is_pcd = $pcd_map[ (int) $row->id ] ?? false;
-			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-			echo '<td>' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</td>';
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- both helpers return escaped HTML.
+			echo '<span class="ffc-cls-meta">' . RecruitmentAdminPage::adjutancy_badge( RecruitmentAdjutancyReader::get_by_id( (int) $row->adjutancy_id ) ) . ' ' . RecruitmentPublicShortcodeRenderer::render_subscription_badge( $is_pcd ) . '</span>';
+			echo '</td>';
 			echo '<td>' . esc_html( (string) $row->score ) . '</td>';
 			if ( $is_preview_tab ) {
 				$current_preview = isset( $row->preview_status ) ? (string) $row->preview_status : 'empty';
@@ -866,14 +860,32 @@ final class RecruitmentNoticeEditPageRenderer {
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
 				echo '<td>' . self::render_preview_reason_select( (int) $row->id, $current_preview, $current_reason, $reasons, $can_mark ) . '</td>';
 			} else {
-				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
-				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status ) . '</td>';
 				$active = $active_calls[ (int) $row->id ] ?? null;
-				echo '<td>' . esc_html( null === $active ? '—' : self::assume_label( $active['date'], $active['time'] ) ) . '</td>';
-				echo '<td>' . esc_html( null === $active ? '—' : DateFormatter::format_datetime( $active['called_at'] ) ) . '</td>';
-				if ( $show_callers ) {
-					echo '<td>' . esc_html( null === $active ? '—' : self::user_label( $callers, $active['created_by'] ) ) . '</td>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper returns escaped HTML.
+				echo '<td>' . RecruitmentAdminPage::classification_status_badge( (string) $row->status );
+				if ( null !== $active ) {
+					echo '<span class="ffc-cls-meta">' . esc_html(
+						sprintf(
+							/* translators: %s: date and time the candidate is to assume */
+							__( 'To assume: %s', 'ffcertificate' ),
+							self::assume_label( $active['date'], $active['time'] )
+						)
+					) . '</span>';
+					$called = $show_callers
+						? sprintf(
+							/* translators: 1: date and time of the call, 2: user name */
+							__( 'Called %1$s by %2$s', 'ffcertificate' ),
+							DateFormatter::format_datetime( $active['called_at'] ),
+							self::user_label( $callers, $active['created_by'] )
+						)
+						: sprintf(
+							/* translators: %s: date and time of the call */
+							__( 'Called %s', 'ffcertificate' ),
+							DateFormatter::format_datetime( $active['called_at'] )
+						);
+					echo '<span class="ffc-cls-meta">' . esc_html( $called ) . '</span>';
 				}
+				echo '</td>';
 			}
 			if ( $with_actions ) {
 				$call    = $active_calls[ (int) $row->id ] ?? null;
@@ -885,7 +897,7 @@ final class RecruitmentNoticeEditPageRenderer {
 					null !== $call && ( $can_manage || get_current_user_id() === $call['created_by'] )
 				);
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_classification_actions returns escaped HTML.
-				echo '<td>' . $actions . '</td>';
+				echo '<td class="ffc-cls-actions">' . $actions . '</td>';
 			}
 			echo '</tr>';
 		}
@@ -961,6 +973,8 @@ final class RecruitmentNoticeEditPageRenderer {
 	public static function render_calls_section( object $notice ): void {
 		$calls = RecruitmentCallReader::get_for_notice( (int) $notice->id );
 		if ( empty( $calls ) ) {
+			// The tab is always there (#2370), so an empty record says so.
+			echo '<p>' . esc_html__( 'No call has been made on this notice yet.', 'ffcertificate' ) . '</p>';
 			return;
 		}
 		$total        = count( $calls );
@@ -983,8 +997,6 @@ final class RecruitmentNoticeEditPageRenderer {
 			$users = self::user_names( $ids );
 		}
 
-		echo '<div class="card">';
-		echo '<h2 class="ffc-icon-user-call">' . esc_html__( 'Calls', 'ffcertificate' ) . '</h2>';
 		self::render_export_button( (int) $notice->id, 'calls' );
 		echo '<p class="description">' . esc_html(
 			$show_callers
@@ -1027,7 +1039,13 @@ final class RecruitmentNoticeEditPageRenderer {
 			echo wp_kses_post(
 				(string) paginate_links(
 					array(
-						'base'      => add_query_arg( 'ffc_calls_paged', '%#%', remove_query_arg( 'ffc_calls_paged' ) ),
+						'base'      => add_query_arg(
+							array(
+								'ffc_calls_paged' => '%#%',
+								'tab_section'     => 'calls',
+							),
+							remove_query_arg( 'ffc_calls_paged' )
+						),
 						'format'    => '',
 						'prev_text' => '&laquo;',
 						'next_text' => '&raquo;',
@@ -1038,7 +1056,33 @@ final class RecruitmentNoticeEditPageRenderer {
 			);
 			echo '</div></div>';
 		}
-		echo '</div>';
+	}
+
+	/**
+	 * The notice at a glance, beside the tabs (#2370): its status, how many
+	 * adjutancies it takes, the rows of each list and the calls made.
+	 *
+	 * @param object $notice Notice row.
+	 * @phpstan-param NoticeRow $notice
+	 * @return void
+	 */
+	public static function render_summary( object $notice ): void {
+		$id = (int) $notice->id;
+
+		echo '<div class="card"><h2 class="ffc-icon-clipboard">' . esc_html__( 'Summary', 'ffcertificate' ) . '</h2><dl class="ffc-facts">';
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- notice_status_badge() returns escaped HTML.
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Status', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . RecruitmentAdminPage::notice_status_badge( (string) $notice->status ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Adjutancies', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) count( RecruitmentNoticeAdjutancyRepository::get_adjutancy_ids_for_notice( $id ) ) ) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Classifications', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html(
+			sprintf(
+				/* translators: 1: rows of the definitive list, 2: rows of the preliminary list */
+				__( '%1$d definitive · %2$d preliminary', 'ffcertificate' ),
+				RecruitmentClassificationRepository::count_for_notice_list( $id, 'definitive' ),
+				RecruitmentClassificationRepository::count_for_notice_list( $id, 'preview' )
+			)
+		) . '</dd>';
+		echo '<dt class="ffc-facts__label">' . esc_html__( 'Calls', 'ffcertificate' ) . '</dt><dd class="ffc-facts__value">' . esc_html( (string) RecruitmentCallReader::count_for_notice( $id ) ) . '</dd>';
+		echo '</dl></div>';
 	}
 
 	/**
@@ -1223,14 +1267,14 @@ final class RecruitmentNoticeEditPageRenderer {
 			case 'called':
 				$out .= self::cls_button( $id, 'accepted', __( 'Mark accepted', 'ffcertificate' ), 'neutral', 'checkmark' );
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
-				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
-				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark no-show', 'ffcertificate' ), 'neutral', 'flag' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrawn', 'ffcertificate' ), 'neutral', 'user-minus' );
 				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'accepted':
 				$out .= self::cls_button( $id, 'hired', __( 'Mark hired', 'ffcertificate' ), 'neutral', 'user-check' );
-				$out .= self::cls_button( $id, 'not_shown', __( 'Mark not_shown', 'ffcertificate' ), 'neutral', 'flag' );
-				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrew', 'ffcertificate' ), 'neutral', 'user-minus' );
+				$out .= self::cls_button( $id, 'not_shown', __( 'Mark no-show', 'ffcertificate' ), 'neutral', 'flag' );
+				$out .= self::cls_button( $id, 'withdrew', __( 'Mark withdrawn', 'ffcertificate' ), 'neutral', 'user-minus' );
 				$out .= $can_end ? self::cls_button( $id, 'cancel', __( 'Cancel call', 'ffcertificate' ), 'caution', 'cross', $call_id ) : '';
 				break;
 			case 'not_shown':
@@ -1251,13 +1295,11 @@ final class RecruitmentNoticeEditPageRenderer {
 	}
 
 	/**
-	 * Render a single action button. `data-action` drives the inline
-	 * fetch handler in render_classification_actions_script(); each
-	 * action maps to either a /call POST (status='empty' → 'called')
-	 * or a /status PATCH (every other transition).
-	 *
-	 * Written by hand with the family's classes (#1904): `Core\Button`
-	 * refuses the inline handler the row relies on.
+	 * Render a single action button: icon only, the label as its name and
+	 * tip, so a row's actions sit on one line in the editor panel (#2486).
+	 * `data-cls-action` drives the delegated click handler in
+	 * ffc-recruitment-notice-edit.js; each action maps to either a /call POST
+	 * (status='empty' → 'called') or a /status PATCH (every other transition).
 	 *
 	 * @param int    $id       Classification ID.
 	 * @param string $action   Action key.
@@ -1268,14 +1310,19 @@ final class RecruitmentNoticeEditPageRenderer {
 	 * @return string
 	 */
 	private static function cls_button( int $id, string $action, string $label, string $category, string $icon, int $call_id = 0 ): string {
-		return sprintf(
-			'<button type="button" class="ffc-btn ffc-btn-%s ffc-icon-%s ffc-rec-mr-quarter" data-cls-id="%d" data-cls-action="%s"%s onclick="ffcRecruitmentClsAct(this);">%s</button>',
-			esc_attr( $category ),
-			esc_attr( $icon ),
-			$id,
-			esc_attr( $action ),
-			$call_id > 0 ? ' data-call-id="' . esc_attr( (string) $call_id ) . '"' : '',
-			esc_html( $label )
+		return Button::html(
+			array(
+				'label'     => $label,
+				'category'  => $category,
+				'icon'      => $icon,
+				'icon_only' => true,
+				'class'     => 'ffc-cls-action',
+				'attrs'     => array(
+					'data-cls-id'     => (string) $id,
+					'data-cls-action' => $action,
+					'data-call-id'    => $call_id > 0 ? (string) $call_id : null,
+				),
+			)
 		);
 	}
 

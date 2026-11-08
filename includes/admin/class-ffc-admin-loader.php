@@ -117,6 +117,7 @@ class AdminLoader {
 		AdminMenuIcons::init();
 		DeviceThresholdUpgradeNotice::init();
 		CaptchaModeNotice::init();
+		CreatedPagesNotice::init();
 		EncryptionKeyHealthNotice::init();
 		HtmlRefsNotice::init();
 		SettingsAjaxEndpoint::init();
@@ -127,6 +128,8 @@ class AdminLoader {
 		// register from their own modules; it is wired here with its siblings.
 		\FreeFormCertificate\Core\RecordAutosave::init();
 		LocationsAjaxEndpoint::init();
+		// The live contrast check of Settings → Public Design (#2341).
+		PublicDesignCheckEndpoint::init();
 		CacheActionsAjaxEndpoint::init();
 		FormFeaturesAjaxEndpoint::init();
 		MigrationActionsAjaxEndpoint::init();

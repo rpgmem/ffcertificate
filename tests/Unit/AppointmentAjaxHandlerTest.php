@@ -36,6 +36,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		// Translation stubs
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 
@@ -120,6 +121,8 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		// Create a mock AppointmentHandler
 		$this->handler = Mockery::mock( AppointmentHandler::class );
+		// A calendar without sessions answers its slots directly (#2405).
+		$this->handler->shouldReceive( 'day_sessions' )->andReturn( array() )->byDefault();
 		$this->handler->shouldReceive( 'get_appointment_repository' )->andReturn(
 			Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' )
 		)->byDefault();
@@ -194,7 +197,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$reflection = new \ReflectionMethod( \FreeFormCertificate\Core\SecurityService::class, 'issue_token' );
 		$reflection->setAccessible( true );
 
-		return (string) $reflection->invoke( null, (string) $answer, time() + 600 );
+		return (string) $reflection->invoke( null, (string) $answer, time() + 600, \FreeFormCertificate\Core\Captcha\CaptchaContext::BOOKING );
 	}
 
 	/**
@@ -223,13 +226,42 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertStringContainsString( 'Invalid parameters', $error['message'] );
 	}
 
+	public function test_get_available_slots_lists_the_sessions_first_on_a_calendar_with_them(): void {
+		$_POST['nonce']       = 'valid';
+		$_POST['calendar_id'] = '1';
+		$_POST['date']        = '2026-03-15';
+
+		$sessions = array( array( 'id' => 1, 'name' => 'Room A', 'free' => 3, 'slots' => 2 ) );
+		$this->handler->shouldReceive( 'day_sessions' )->once()->with( 1, '2026-03-15' )->andReturn( $sessions );
+		$this->handler->shouldReceive( 'get_available_slots' )->never();
+
+		$this->callAjax( 'ajax_get_available_slots' );
+
+		$this->assertSame( $sessions, $this->firstResponse( 'success' )['sessions'] );
+	}
+
+	public function test_get_available_slots_reads_the_chosen_session(): void {
+		$_POST['nonce']       = 'valid';
+		$_POST['calendar_id'] = '1';
+		$_POST['date']        = '2026-03-15';
+		$_POST['session_id']  = '2';
+
+		$this->handler->shouldReceive( 'day_sessions' )->never();
+		$this->handler->shouldReceive( 'get_available_slots' )->once()->with( 1, '2026-03-15', 2 )->andReturn( array() );
+
+		$this->callAjax( 'ajax_get_available_slots' );
+
+		$this->assertSame( array(), $this->firstResponse( 'success' )['slots'] );
+		unset( $_POST['session_id'] );
+	}
+
 	public function test_get_available_slots_wp_error_sends_error(): void {
 		$_POST['nonce'] = 'valid';
 		$_POST['calendar_id'] = '1';
 		$_POST['date'] = '2026-03-15';
 
 		$this->handler->shouldReceive( 'get_available_slots' )
-			->with( 1, '2026-03-15' )
+			->with( 1, '2026-03-15', 0 )
 			->andReturn( new \WP_Error( 'calendar_inactive', 'Calendar is inactive' ) );
 
 		$this->callAjax( 'ajax_get_available_slots' );
@@ -250,7 +282,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		);
 
 		$this->handler->shouldReceive( 'get_available_slots' )
-			->with( 1, '2026-03-15' )
+			->with( 1, '2026-03-15', 0 )
 			->andReturn( $slots );
 
 		$this->callAjax( 'ajax_get_available_slots' );
@@ -269,7 +301,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->handler->shouldReceive( 'get_available_slots' )->once()->andReturn( array() );
 
 		$this->callAjax( 'ajax_get_available_slots' );
-		$minute = array_values( array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_rate_read_' ) && '_minute' === substr( $k, -7 ) ) );
+		$minute = array_values( array_filter( array_keys( $this->transients ), static fn( $k ) => 0 === strpos( $k, 'ffc_rate_read_' ) && 1 === preg_match( '/_minute_\d+$/', $k ) ) );
 		$this->assertCount( 1, $minute, 'The read was counted against the public read pool (#2244).' );
 
 		$this->transients[ $minute[0] ] = 60; // The default per-minute cap.
@@ -335,6 +367,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		// Provide valid captcha so security check passes
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		// calendar_id, date, time missing
 
 		$this->callAjax( 'ajax_book_appointment' );
@@ -348,11 +381,12 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['nonce']            = 'valid';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_POST['calendar_id']      = '1';
 		$_POST['date']             = '2026-03-15';
 		$_POST['time']             = '09:00';
 		$_SERVER['REMOTE_ADDR']    = '203.0.113.9';
-		$this->transients[ 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) ) . '_hour' ] = 5;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( '203.0.113.9' ) ) . '_hour', HOUR_IN_SECONDS, 5 );
 		$this->handler->shouldNotReceive( 'process_appointment' );
 
 		$this->callAjax( 'ajax_book_appointment' );
@@ -368,6 +402,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['ffc_honeypot_trap'] = 'bot-value';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_POST['calendar_id'] = '1';
 		$_POST['date'] = '2026-03-15';
 		$_POST['time'] = '09:00';
@@ -376,7 +411,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 
 		$error = $this->firstResponse( 'error' );
 		$this->assertNotNull( $error );
-		$this->assertStringContainsString( 'Honeypot', $error['message'] );
+		$this->assertSame( \FreeFormCertificate\Core\Honeypot::refusal(), $error['message'] );
 	}
 
 	public function test_book_appointment_wp_error_from_handler(): void {
@@ -390,13 +425,18 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent'] = '1';
 		$_POST['ffc_captcha_ans'] = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['HTTP_USER_AGENT'] = 'TestAgent';
 
+		$_POST['session_id'] = '2';
 		$this->handler->shouldReceive( 'process_appointment' )
 			->once()
+			// The chosen session reaches the booking (#2405).
+			->with( Mockery::on( static fn( array $data ): bool => 2 === $data['session_id'] ) )
 			->andReturn( new \WP_Error( 'slot_full', 'Slot is full' ) );
 
 		$this->callAjax( 'ajax_book_appointment' );
+		unset( $_POST['session_id'] );
 
 		$error = $this->firstResponse( 'error' );
 		$this->assertNotNull( $error );
@@ -415,6 +455,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['REMOTE_ADDR']    = '127.0.0.1';
 		Functions\when( 'is_user_logged_in' )->justReturn( true );
 		Functions\when( 'get_current_user_id' )->justReturn( 5 );
@@ -457,6 +498,7 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$_POST['consent']          = '1';
 		$_POST['ffc_captcha_ans']  = '7';
 		$_POST['ffc_captcha_hash'] = $this->makeCaptchaHash( 7 );
+		$_POST['ffc_hp_ts'] = \FreeFormCertificate\Tests\Support\HoneypotStamp::value();
 		$_SERVER['REMOTE_ADDR']    = '127.0.0.1';
 
 		$apptRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
@@ -556,6 +598,40 @@ class AppointmentAjaxHandlerTest extends TestCase {
 		$this->assertNotNull( $success );
 		$this->assertArrayHasKey( 'counts', $success );
 		$this->assertArrayHasKey( 'holidays', $success );
+		$this->assertArrayNotHasKey( 'panel', $success, 'A calendar without the panel computes none.' );
+	}
+
+	public function test_get_month_bookings_adds_the_free_slots_panel_when_the_calendar_shows_it(): void {
+		$_POST['nonce']       = 'valid';
+		$_POST['calendar_id'] = '1';
+		$_POST['year']        = '2026';
+		$_POST['month']       = '3';
+
+		$calendar = array( 'id' => 1, 'visibility' => 'public', 'show_event_list' => '1' );
+		$calRepo  = Mockery::mock( 'FreeFormCertificate\\Repositories\\CalendarRepository' );
+		$calRepo->shouldReceive( 'findById' )->andReturn( $calendar );
+		$this->handler->shouldReceive( 'get_calendar_repository' )->andReturn( $calRepo );
+		$this->handler->shouldReceive( 'is_hidden_from_visitor' )->andReturn( false );
+
+		$appointmentRepo = Mockery::mock( 'FreeFormCertificate\Repositories\AppointmentRepository' );
+		$appointmentRepo->shouldReceive( 'getBookingCountsByDateRange' )->andReturn( array() );
+		$blockedRepo = Mockery::mock( 'FreeFormCertificate\Repositories\BlockedDateRepository' );
+		$blockedRepo->shouldReceive( 'getBlockedDatesInRange' )->andReturn( array() );
+		$this->handler->shouldReceive( 'get_appointment_repository' )->andReturn( $appointmentRepo );
+		$this->handler->shouldReceive( 'get_blocked_date_repository' )->andReturn( $blockedRepo );
+
+		$this->handler->shouldReceive( 'month_panel' )->once()->with( $calendar, 1, '2026-03-01', '2026-03-31' )->andReturn(
+			array(
+				'days' => array( '2026-03-16' => array( 'free' => 3, 'slots' => 2 ) ),
+				'mine' => array(),
+			)
+		);
+
+		$this->callAjax( 'ajax_get_month_bookings' );
+
+		$success = $this->firstResponse( 'success' );
+		$this->assertSame( array( 'free' => 3, 'slots' => 2 ), (array) $success['panel']['days']->{'2026-03-16'} );
+		$this->assertSame( array(), $success['panel']['mine'] );
 	}
 
 	/** The calendar the month read loads, visible to this visitor. */

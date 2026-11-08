@@ -33,6 +33,8 @@ class DynamicFragmentsTest extends TestCase {
 		Monkey\setUp();
 
 		Functions\when( '__' )->returnArg();
+		// The honeypot stamp the response carries is signed (#2339).
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'add_action' )->justReturn( true );
@@ -160,12 +162,54 @@ class DynamicFragmentsTest extends TestCase {
 	 * Stub the WP functions every `handle()` path touches.
 	 */
 	private function stubWordPress(): void {
+		// The honeypot stamp the response carries is signed (#2339).
+		Functions\when( 'wp_salt' )->justReturn( 'test-salt' );
 		Functions\when( 'wp_create_nonce' )->justReturn( 'n' );
 		Functions\when( 'is_user_logged_in' )->justReturn( false );
 		Functions\when( 'absint' )->alias( fn( $v ) => abs( (int) $v ) );
 		Functions\when( 'wp_unslash' )->returnArg();
-		// `form_ids` also drives the geofence branch further down.
+		// `form_ids` also drives the geofence branch further down, which
+		// reads only a published form (#2341).
 		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'get_post_type' )->justReturn( 'ffc_form' );
+		Functions\when( 'get_post_status' )->justReturn( 'publish' );
+	}
+
+	/**
+	 * #2341 — the geofence of a draft, a private, pending, future or
+	 * trashed form, or of a post that is not a form, is never read for an
+	 * anonymous caller: only a published form's.
+	 */
+	public function test_handle_reads_the_geofence_of_published_forms_only(): void {
+		$this->mockProvider( array( 'provider' => 'math', 'new_label' => 'a', 'new_hash' => 'a-hash' ) );
+		$this->stubWordPress();
+
+		$posts = array(
+			1 => array( 'ffc_form', 'publish' ),
+			2 => array( 'ffc_form', 'draft' ),
+			3 => array( 'ffc_form', 'private' ),
+			4 => array( 'ffc_form', 'pending' ),
+			5 => array( 'ffc_form', 'future' ),
+			6 => array( 'ffc_form', 'trash' ),
+			7 => array( 'page', 'publish' ),
+		);
+		Functions\when( 'get_post_type' )->alias( fn( $id ) => $posts[ (int) $id ][0] ?? false );
+		Functions\when( 'get_post_status' )->alias( fn( $id ) => $posts[ (int) $id ][1] ?? false );
+		$read = array();
+		Functions\when( 'get_post_meta' )->alias(
+			function ( $id ) use ( &$read ) {
+				$read[ (int) $id ] = true;
+				return '';
+			}
+		);
+
+		$_POST['form_ids'] = array_map( 'strval', array_keys( $posts ) );
+
+		$this->callHandle( new DynamicFragments() );
+
+		unset( $_POST['form_ids'] );
+
+		$this->assertSame( array( 1 ), array_keys( $read ) );
 	}
 
 	public function test_handle_issues_one_challenge_per_security_block(): void {
@@ -181,12 +225,12 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7', '8' );
-		$_POST['blocks']   = '2';
+		$_POST['contexts'] = array( 'form:7', 'form:8' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$data = $this->json_responses[0]['data'];
 
@@ -215,12 +259,12 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7' );
-		$_POST['blocks']   = '2';
+		$_POST['contexts'] = array( 'form:7', 'booking' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$data = $this->json_responses[0]['data'];
 
@@ -236,14 +280,40 @@ class DynamicFragmentsTest extends TestCase {
 		$this->stubWordPress();
 
 		$_POST['form_ids'] = array( '7' );
-		$_POST['blocks']   = '1';
+		$_POST['contexts'] = array( 'form:7' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['form_ids'], $_POST['blocks'] );
+		unset( $_POST['form_ids'], $_POST['contexts'] );
 
 		$this->assertArrayNotHasKey( 'captchas', $this->json_responses[0]['data'] );
+	}
+
+	/**
+	 * Each challenge is bound to what its block names (#2339), and a name
+	 * that is not a context falls to '', which no verifier asks for.
+	 */
+	public function test_handle_binds_each_challenge_to_its_block_context(): void {
+		$provider = Mockery::mock( '\FreeFormCertificate\Core\Captcha\CaptchaProviderInterface' );
+		$seen     = array();
+		$provider->shouldReceive( 'challenge_payload' )->andReturnUsing(
+			function ( string $context = '' ) use ( &$seen ) {
+				$seen[] = $context;
+				return array( 'provider' => 'math', 'new_label' => $context, 'new_hash' => 'h' . count( $seen ) );
+			}
+		);
+		self::use_strategy( $provider );
+		$this->stubWordPress();
+
+		$_POST['contexts'] = array( 'form:7', 'public_csv', 'form:7|x', array( 'nested' ) );
+
+		$fragments = new DynamicFragments();
+		$this->callHandle( $fragments );
+
+		unset( $_POST['contexts'] );
+
+		$this->assertSame( array( 'form:7', 'form:7', 'public_csv', '', '' ), $seen, 'The default challenge takes the first block\'s context, then one per block.' );
 	}
 
 	/**
@@ -264,12 +334,12 @@ class DynamicFragmentsTest extends TestCase {
 
 		$this->stubWordPress();
 
-		$_POST['blocks'] = '5000';
+		$_POST['contexts'] = array_fill( 0, 5000, 'verify' );
 
 		$fragments = new DynamicFragments();
 		$this->callHandle( $fragments );
 
-		unset( $_POST['blocks'] );
+		unset( $_POST['contexts'] );
 
 		$this->assertCount( 20, $this->json_responses[0]['data']['captchas'] );
 		$this->assertSame( 21, $calls, 'One default challenge plus the capped list — never 5000.' );

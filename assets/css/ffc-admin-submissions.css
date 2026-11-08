@@ -19,6 +19,12 @@
     margin-bottom: var(--ffc-spacing-2xs);
 }
 
+/* A row a bulk action is processing, until the server answers: the script
+   sets the state, the sheet draws it (written inline until #2486). */
+.ffc-page-submissions tr.is-busy {
+    opacity: 0.55;
+}
+
 /* ==========================================================================
    DATA PREVIEW - EMPTY STATES
    ========================================================================== */
@@ -66,14 +72,6 @@
 
 .ffc-table-responsive table.wp-list-table .column-actions {
     width: 22em;
-}
-
-/* The buttons sit on one line when they fit and wrap with an even gap when
-   they do not (a trashed row has four). */
-.ffc-submission-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--ffc-spacing-xs);
 }
 
 .ffc-table-responsive table.wp-list-table {
@@ -253,22 +251,6 @@
     gap: var(--ffc-spacing-sm);
     padding: var(--ffc-spacing-lg) var(--ffc-spacing-xl);
     border-top: 1px solid var(--ffc-border);
-}
-
-/* ==========================================================================
-   ADMIN TOP ACTIONS - MODERN
-   ========================================================================== */
-
-.ffc-admin-top-actions {
-    display: flex;
-    gap: var(--ffc-spacing-lg);
-    align-items: center;
-    margin-bottom: var(--ffc-spacing-xl);
-    flex-wrap: wrap;
-}
-
-.ffc-admin-top-actions form {
-    display: inline-block;
 }
 
 /* ==========================================================================

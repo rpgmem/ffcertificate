@@ -108,6 +108,7 @@ class CalendarRestControllerTest extends TestCase {
 		});
 
 		Functions\when( '__' )->returnArg();
+		Functions\when( '_n' )->alias( static fn ( $single, $plural, $n ) => 1 === (int) $n ? $single : $plural );
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'rest_ensure_response' )->alias( function( $data ) { return $data; } );
@@ -367,8 +368,7 @@ class CalendarRestControllerTest extends TestCase {
 			'max_per_minute' => 0,
 			'max_per_hour'   => 1,
 		);
-		$key                      = 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_hour';
-		$this->transients[ $key ] = 1;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_hour', HOUR_IN_SECONDS, 1 );
 	}
 
 	/**
@@ -382,8 +382,7 @@ class CalendarRestControllerTest extends TestCase {
 			'max_per_minute' => 1,
 			'max_per_hour'   => 0,
 		);
-		$key                      = 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_minute';
-		$this->transients[ $key ] = 1;
+		\FreeFormCertificate\Tests\Support\WindowedCounter::seed( $this->transients, 'ffc_rate_read_' . md5( IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ) . '_minute', MINUTE_IN_SECONDS, 1 );
 	}
 
 	/**
@@ -413,7 +412,8 @@ class CalendarRestControllerTest extends TestCase {
 		$this->assertSame( 'read', $logs[0]['type'] );
 		$this->assertSame( 'blocked', $logs[0]['action'] );
 		$this->assertSame( $reason, $logs[0]['reason'] );
-		$this->assertSame( hash( 'sha256', RequestInput::get_user_ip() . '|' . $endpoint_key ), $logs[0]['identifier'] );
+		// The address enters as its keyed fingerprint, never hashed bare (#2342).
+		$this->assertSame( hash( 'sha256', \FreeFormCertificate\Core\IpAddress::fingerprint( RequestInput::get_user_ip() ) . '|' . $endpoint_key ), $logs[0]['identifier'] );
 	}
 
 	/**
@@ -479,10 +479,13 @@ class CalendarRestControllerTest extends TestCase {
 
 		$this->assertInstanceOf( \WP_Error::class, $result );
 		$this->assertSame( 'rate_limit_exceeded', $result->get_error_code() );
-		$this->assertSame( 'Slow down, wait 1 hour.', $result->get_error_message() );
+		// What is left of the hour (#2339), and how much of the limit was used. A run that
+		// lands on the hour boundary reads a full hour, so the unit includes "hour" (#2344).
+		$this->assertMatchesRegularExpression( '/^Slow down, wait \d+ (second|seconds|minute|minutes|hour)\. You have used 1 of 1\.$/', $result->get_error_message() );
 		$data = $result->get_error_data();
 		$this->assertSame( 429, $data['status'] );
-		$this->assertSame( 3600, $data['headers']['Retry-After'] );
+		$this->assertGreaterThanOrEqual( 1, $data['headers']['Retry-After'] );
+		$this->assertLessThanOrEqual( 3600, $data['headers']['Retry-After'] );
 		$this->assert_blocked_read_logged( 'calendar_list', 'read_hour_limit' );
 		$this->assertSame( array(), $this->calendar_queries(), 'A blocked read never reaches the repository.' );
 	}

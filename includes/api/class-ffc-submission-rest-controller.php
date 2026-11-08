@@ -27,6 +27,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SubmissionRestController {
 
 	/**
+	 * Largest page `GET /submissions` returns, as `GET /forms` does (#2342).
+	 */
+	public const MAX_PER_PAGE = 100;
+
+	/**
+	 * Page size when `per_page` is omitted.
+	 */
+	public const DEFAULT_PER_PAGE = 20;
+
+	/**
 	 * API namespace
 	 *
 	 * @var non-falsy-string
@@ -66,15 +76,17 @@ class SubmissionRestController {
 				'args'                => array(
 					'page'     => array(
 						'default'           => 1,
-						'sanitize_callback' => 'absint',
+						'sanitize_callback' => static fn( $value ): int => max( 1, (int) $value ),
 					),
 					'per_page' => array(
-						'default'           => 20,
-						'sanitize_callback' => 'absint',
+						'default'           => self::DEFAULT_PER_PAGE,
+						'sanitize_callback' => static fn( $value ): int => min( self::MAX_PER_PAGE, max( 1, (int) $value ) ),
 					),
+					// A certificate or a quiz attempt; the trash is not listed (#2342).
 					'status'   => array(
-						'default'           => 'publish',
-						'sanitize_callback' => 'sanitize_text_field',
+						'default' => \FreeFormCertificate\Core\SubmissionStatus::PUBLISH,
+						'type'    => 'string',
+						'enum'    => array_merge( array( \FreeFormCertificate\Core\SubmissionStatus::PUBLISH ), \FreeFormCertificate\Core\SubmissionStatus::UNPASSED_QUIZ ),
 					),
 					'search'   => array(
 						'default'           => '',
@@ -115,7 +127,7 @@ class SubmissionRestController {
 		// POST /verify - Verify certificate by auth code.
 		//
 		// Public-by-design — the certificate verification page
-		// (`/validate-certificate/`) lets anyone confirm a cert by typing
+		// (the `valid` page) lets anyone confirm a cert by typing
 		// in the auth code printed on it. Auth-gating this would defeat
 		// the verification feature's whole point. The handler defends
 		// with: auth-code length validation, hash_equals comparison
@@ -154,7 +166,7 @@ class SubmissionRestController {
 			if ( ! $this->submission_repository ) {
 				return new \WP_Error(
 					'repository_not_found',
-					'Submission repository not available',
+					__( 'Submission repository not available', 'ffcertificate' ),
 					array( 'status' => 500 )
 				);
 			}
@@ -198,15 +210,17 @@ class SubmissionRestController {
 				}
 
 				$submissions[] = array(
-					'id'              => (int) $item['id'],
-					'form_id'         => (int) $item['form_id'],
-					'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
-					'submission_date' => $item['submission_date'],
-					'status'          => $item['status'],
-					'email'           => $pii['email'],
-					'cpf'             => $pii['cpf'],
-					'rf'              => $pii['rf'],
-					'data'            => $pii['data'],
+					'id'                  => (int) $item['id'],
+					'form_id'             => (int) $item['form_id'],
+					'auth_code'           => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $item['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+					// @removal 6.46.0 -- `submission_date` as raw unix seconds; `submission_date_iso` replaces it (#2342).
+					'submission_date'     => $item['submission_date'],
+					'submission_date_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $item['submission_date'] ),
+					'status'              => $item['status'],
+					'email'               => $pii['email'],
+					'cpf'                 => $pii['cpf'],
+					'rf'                  => $pii['rf'],
+					'data'                => $pii['data'],
 				);
 			}
 
@@ -233,7 +247,11 @@ class SubmissionRestController {
 				'per_page'     => $per_page,
 			);
 
-			return rest_ensure_response( $response );
+			$rest_response = rest_ensure_response( $response );
+			$rest_response->header( 'X-WP-Total', (string) $result['total'] );
+			$rest_response->header( 'X-WP-TotalPages', (string) $result['pages'] );
+
+			return $rest_response;
 
 		} catch ( \Exception $e ) {
 			$this->log_rest_error( 'get_submissions', $e );
@@ -259,7 +277,7 @@ class SubmissionRestController {
 			if ( ! $this->submission_repository ) {
 				return new \WP_Error(
 					'repository_not_found',
-					'Submission repository not available',
+					__( 'Submission repository not available', 'ffcertificate' ),
 					array( 'status' => 500 )
 				);
 			}
@@ -269,7 +287,7 @@ class SubmissionRestController {
 			if ( ! $submission ) {
 				return new \WP_Error(
 					'submission_not_found',
-					'Submission not found',
+					__( 'Submission not found', 'ffcertificate' ),
 					array( 'status' => 404 )
 				);
 			}
@@ -283,7 +301,7 @@ class SubmissionRestController {
 			$data = $this->decrypt_submission_data( $submission, $data );
 
 			$form       = get_post( (int) $submission['form_id'] );
-			$form_title = $form ? $form->post_title : 'Unknown Form';
+			$form_title = $form ? $form->post_title : __( 'Unknown Form', 'ffcertificate' );
 
 			// Decrypt individual fields, falling back to plaintext columns.
 			$email = \FreeFormCertificate\Core\Encryption::decrypt_field( $submission, 'email' );
@@ -303,16 +321,18 @@ class SubmissionRestController {
 			}
 
 			$response = array(
-				'id'              => (int) $submission['id'],
-				'form_id'         => (int) $submission['form_id'],
-				'form_title'      => $form_title,
-				'auth_code'       => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
-				'submission_date' => $submission['submission_date'],
-				'status'          => $submission['status'],
-				'email'           => $pii['email'],
-				'cpf'             => $pii['cpf'],
-				'rf'              => $pii['rf'],
-				'data'            => $pii['data'],
+				'id'                  => (int) $submission['id'],
+				'form_id'             => (int) $submission['form_id'],
+				'form_title'          => $form_title,
+				'auth_code'           => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $submission['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
+				// @removal 6.46.0 -- `submission_date` as raw unix seconds; `submission_date_iso` replaces it (#2342).
+				'submission_date'     => $submission['submission_date'],
+				'submission_date_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $submission['submission_date'] ),
+				'status'              => $submission['status'],
+				'email'               => $pii['email'],
+				'cpf'                 => $pii['cpf'],
+				'rf'                  => $pii['rf'],
+				'data'                => $pii['data'],
 			);
 
 			return rest_ensure_response( $response );
@@ -355,7 +375,7 @@ class SubmissionRestController {
 			if ( ! $this->submission_repository ) {
 				return new \WP_Error(
 					'repository_not_found',
-					'Submission repository not available',
+					__( 'Submission repository not available', 'ffcertificate' ),
 					array( 'status' => 500 )
 				);
 			}
@@ -366,7 +386,7 @@ class SubmissionRestController {
 			if ( ! $submission || \FreeFormCertificate\Core\SubmissionStatus::is_unpassed_quiz( $submission ) ) {
 				return new \WP_Error(
 					'certificate_not_found',
-					'Certificate not found. Please check the authentication code.',
+					__( 'Certificate not found. Please check the authentication code.', 'ffcertificate' ),
 					array( 'status' => 404 )
 				);
 			}
@@ -379,8 +399,10 @@ class SubmissionRestController {
 					'certificate_deleted',
 					\FreeFormCertificate\Frontend\VerificationHandler::revoked_message( $revoked_at ),
 					array(
-						'status'     => 410,
-						'revoked_at' => $revoked_at > 0 ? $revoked_at : null,
+						'status'         => 410,
+						// @removal 6.46.0 -- `revoked_at` as unix seconds; `revoked_at_iso` replaces it (#2342).
+						'revoked_at'     => $revoked_at > 0 ? $revoked_at : null,
+						'revoked_at_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $revoked_at ),
 					)
 				);
 			}
@@ -393,24 +415,26 @@ class SubmissionRestController {
 			$data = $this->decrypt_submission_data( $submission, $data );
 
 			$form       = get_post( (int) $submission['form_id'] );
-			$form_title = $form ? $form->post_title : 'Unknown Form';
+			$form_title = $form ? $form->post_title : __( 'Unknown Form', 'ffcertificate' );
 
 			$response = array(
 				'valid'       => true,
 				'auth_code'   => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'certificate' => array(
-					'id'              => (int) $submission['id'],
-					'form_id'         => (int) $submission['form_id'],
-					'form_title'      => $form_title,
-					'submission_date' => $submission['submission_date'],
-					'status'          => $submission['status'],
+					'id'                  => (int) $submission['id'],
+					'form_id'             => (int) $submission['form_id'],
+					'form_title'          => $form_title,
+					// @removal 6.46.0 -- `submission_date` as raw unix seconds; `submission_date_iso` replaces it (#2342).
+					'submission_date'     => $submission['submission_date'],
+					'submission_date_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $submission['submission_date'] ),
+					'status'              => $submission['status'],
 					// #838 S3 — this endpoint is public: the decrypted `data` blob
 					// must be masked per-key (cpf/rf/rg/email) before returning it,
 					// matching the /valid page renderer. Skipping this leaked the
 					// full form-collected PII to any caller with a valid auth code.
 					// #1861 — and the keys the public verification page hides
 					// (the one-use ticket among them) never leave here either.
-					'data'            => $this->mask_data_pii( array_diff_key( $data, array_flip( \FreeFormCertificate\Frontend\VerificationResponseRenderer::SKIP_FIELDS ) ) ),
+					'data'                => $this->mask_data_pii( array_diff_key( $data, array_flip( \FreeFormCertificate\Frontend\VerificationResponseRenderer::SKIP_FIELDS ) ) ),
 				),
 				'message'     => __( 'Certificate is valid and authentic.', 'ffcertificate' ),
 			);
@@ -561,7 +585,7 @@ class SubmissionRestController {
 	 * @param \Exception $e       The exception.
 	 */
 	private function log_rest_error( string $context, \Exception $e ): void {
-		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_rest_api(
 				"REST API error: {$context}",
 				array(

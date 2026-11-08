@@ -160,7 +160,8 @@ class AppointmentReader extends AbstractRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function findByEmail( string $email, ?int $limit = null, int $offset = 0 ): array {
-		// Use Encryption::hash without normalization to match SubmissionHandler convention.
+		// The same normalised, salted hash every writer stores, so a lookup by e-mail
+		// matches however the address was typed.
 		$email_hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $email );
 		if ( null === $email_hash ) {
 			return array();
@@ -337,14 +338,15 @@ class AppointmentReader extends AbstractRepository {
 	/**
 	 * Check if slot is available
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date.
-	 * @param string $start_time Start time.
-	 * @param int    $max_per_slot Max per slot.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date.
+	 * @param string   $start_time Start time.
+	 * @param int      $max_per_slot Max per slot.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session counted alone (#2405); null or 0 counts the whole calendar.
 	 * @return bool
 	 */
-	public function isSlotAvailable( int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false ): bool {
+	public function isSlotAvailable( int $calendar_id, string $date, string $start_time, int $max_per_slot = 1, bool $use_lock = false, ?int $session_id = null ): bool {
 		$lock_clause = $use_lock ? ' FOR UPDATE' : '';
 
 		$count = $this->wpdb->get_var(
@@ -353,11 +355,14 @@ class AppointmentReader extends AbstractRepository {
                  WHERE calendar_id = %d
                  AND appointment_date = %s
                  AND start_time = %s
-                 AND status IN ('confirmed', 'pending'){$lock_clause}",
+                 AND status IN ('confirmed', 'pending')
+                 AND ( %d = 0 OR session_id = %d ){$lock_clause}",
 				$this->table,
 				$calendar_id,
 				$date,
-				$start_time
+				$start_time,
+				(int) $session_id,
+				(int) $session_id
 			)
 		);
 
@@ -372,13 +377,14 @@ class AppointmentReader extends AbstractRepository {
 	 * `waitlist_capacity` (queue length) and to tell the front-end whether the
 	 * queue has room.
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date in Y-m-d.
-	 * @param string $start_time Slot start time.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date in Y-m-d.
+	 * @param string   $start_time Slot start time.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session counted alone (#2405); null or 0 counts the whole calendar.
 	 * @return int
 	 */
-	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): int {
+	public function countWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false, ?int $session_id = null ): int {
 		$lock_clause = $use_lock ? ' FOR UPDATE' : '';
 
 		$count = $this->wpdb->get_var(
@@ -387,11 +393,14 @@ class AppointmentReader extends AbstractRepository {
                  WHERE calendar_id = %d
                  AND appointment_date = %s
                  AND start_time = %s
-                 AND status = 'waitlist'{$lock_clause}",
+                 AND status = 'waitlist'
+                 AND ( %d = 0 OR session_id = %d ){$lock_clause}",
 				$this->table,
 				$calendar_id,
 				$date,
-				$start_time
+				$start_time,
+				(int) $session_id,
+				(int) $session_id
 			)
 		);
 
@@ -436,13 +445,14 @@ class AppointmentReader extends AbstractRepository {
 	 * spot frees up. Pass `$use_lock` from inside a transaction so the promoted
 	 * row is locked against a concurrent booking/promotion.
 	 *
-	 * @param int    $calendar_id Calendar ID.
-	 * @param string $date Date in Y-m-d.
-	 * @param string $start_time Slot start time.
-	 * @param bool   $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int      $calendar_id Calendar ID.
+	 * @param string   $date Date in Y-m-d.
+	 * @param string   $start_time Slot start time.
+	 * @param bool     $use_lock Use FOR UPDATE lock (requires active transaction).
+	 * @param int|null $session_id The session read alone (#2405); null or 0 reads the whole calendar.
 	 * @return array<string, mixed>|null
 	 */
-	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false ): ?array {
+	public function findOldestWaitlisted( int $calendar_id, string $date, string $start_time, bool $use_lock = false, ?int $session_id = null ): ?array {
 		$lock_clause = $use_lock ? ' FOR UPDATE' : '';
 
 		$row = $this->wpdb->get_row(
@@ -452,12 +462,15 @@ class AppointmentReader extends AbstractRepository {
                  AND appointment_date = %s
                  AND start_time = %s
                  AND status = 'waitlist'
+                 AND ( %d = 0 OR session_id = %d )
                  ORDER BY id ASC
                  LIMIT 1{$lock_clause}",
 				$this->table,
 				$calendar_id,
 				$date,
-				$start_time
+				$start_time,
+				(int) $session_id,
+				(int) $session_id
 			),
 			ARRAY_A
 		);

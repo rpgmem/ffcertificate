@@ -294,7 +294,7 @@ class SchemaWrittenColumnTest extends TestCase {
 			) )
 			. "\nThe write is gated on the column existing at every consumer, so nothing"
 			. ' fails -- the value is dropped in silence. Declare it in the CREATE and'
-			. ' bump that table\'s DB_VERSION, or through add_column_if_missing().'
+			. ' bump that table\'s SCHEMA_REVISION, or through add_column_if_missing().'
 		);
 	}
 

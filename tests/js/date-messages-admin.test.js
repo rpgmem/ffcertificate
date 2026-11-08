@@ -20,9 +20,9 @@ const notice = window.FFC.notice;
 
 function installSendDom() {
 	document.body.innerHTML = `
-		<form id="ffc-dm-send-form" data-ffc-confirm="Send?">
+		<form id="ffc-dm-send-form">
 			<div class="ffc-dm-preview" data-ffc-dm-preview="saved">
-				<select class="ffc-dm-rule"><option value="7" selected>R</option></select>
+				<select class="ffc-dm-rule"><option value="7" data-ffc-dm-kind="dated" data-ffc-dm-summary-only="0" selected>R</option></select>
 				<input class="ffc-dm-from" value="2026-10-01">
 				<input class="ffc-dm-to" value="2026-10-02">
 				<button type="button" class="ffc-dm-preview-button">Preview</button>
@@ -66,7 +66,7 @@ beforeEach(() => {
 		testAction: 'ffc_date_messages_test_send',
 		testNonce: 'tn',
 		decisions: { will_send: 'Will receive', opted_out: 'Opted out' },
-		strings: { loading: 'Working', failed: 'Failed', truncated: 'Truncated', none: 'Nobody' },
+		strings: { loading: 'Working', failed: 'Failed', truncated: 'Truncated', none: 'Nobody', noneAnnounce: 'Nobody left', columns: ['Name', 'E-mail', 'Date', 'Status'] },
 	};
 });
 
@@ -109,6 +109,55 @@ describe('ffc-date-messages-admin', () => {
 		expect(document.querySelector('.ffc-dm-preview-result').textContent).toContain('Truncated');
 	});
 
+	it('heads the list of people with its columns (#2336)', async () => {
+		installSendDom();
+		request.mockResolvedValue({
+			totals: { will_send: 1 },
+			rows: [{ name: 'A***', email: 'a***@x.org', date: '2026-10-01', decision: 'will_send' }],
+			pii: true,
+		});
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+
+		const heads = Array.from(document.querySelectorAll('.ffc-dm-preview-result thead th')).map((th) => th.textContent);
+		expect(heads).toEqual(['Name', 'E-mail', 'Date', 'Status']);
+		expect(document.querySelector('.ffc-dm-preview-result thead th').getAttribute('scope')).toBe('col');
+	});
+
+	it('says an announcement has nobody left to reach, not that nobody falls on the dates (#2336)', async () => {
+		installSendDom();
+		document.querySelector('.ffc-dm-rule option').setAttribute('data-ffc-dm-kind', 'announcement');
+		request.mockResolvedValue({ totals: { will_send: 0 }, rows: [], pii: true });
+		await loadOnReady();
+
+		window.$('.ffc-dm-preview-button').trigger('click');
+		await flush();
+
+		const text = document.querySelector('.ffc-dm-preview-result').textContent;
+		expect(text).toContain('Nobody left');
+		expect(text).not.toContain('Nobody falls');
+	});
+
+	it('marks the button busy while it waits, and clears it after (#2336)', async () => {
+		installSendDom();
+		let resolve;
+		request.mockReturnValue(new Promise((r) => { resolve = r; }));
+		await loadOnReady();
+
+		const $button = window.$('.ffc-dm-preview-button');
+		$button.trigger('click');
+		expect($button.hasClass('ffc-btn-loading')).toBe(true);
+		expect($button.prop('disabled')).toBe(true);
+
+		resolve({ totals: {}, rows: [], pii: false });
+		await flush();
+		await flush();
+		expect($button.hasClass('ffc-btn-loading')).toBe(false);
+		expect($button.prop('disabled')).toBe(false);
+	});
+
 	it('posts the unsaved editor fields, and only them, for the preview', async () => {
 		installEditorDom();
 		request.mockResolvedValue({ totals: {}, rows: [], pii: true });
@@ -145,15 +194,56 @@ describe('ffc-date-messages-admin', () => {
 	});
 
 	it('asks before submitting a form that carries a confirmation', async () => {
-		installSendDom();
+		document.body.innerHTML = '<form id="other" data-ffc-confirm="Delete?"></form>';
 		await loadOnReady();
 		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
 		const event = window.$.Event('submit');
-		window.$('#ffc-dm-send-form').trigger(event);
+		window.$('#other').trigger(event);
 
-		expect(confirm).toHaveBeenCalledWith('Send?');
+		expect(confirm).toHaveBeenCalledWith('Delete?');
 		expect(event.isDefaultPrevented()).toBe(true);
+		confirm.mockRestore();
+	});
+
+	it('asks to send now with the rule, the dates and the count the preview gives (#2336)', async () => {
+		installSendDom();
+		window.ffcDateMessages.strings.confirmSend = 'Send "%1$s" for %2$s to %3$s people?';
+		request.mockResolvedValue({ totals: { will_send: 12 } });
+		await loadOnReady();
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const form = document.getElementById('ffc-dm-send-form');
+		const submit = vi.spyOn(form, 'submit').mockImplementation(() => {});
+
+		const event = window.$.Event('submit');
+		window.$(form).trigger(event);
+		await flush();
+
+		expect(event.isDefaultPrevented()).toBe(true);
+		expect(request.mock.calls[0][0]).toBe('ffc_date_messages_preview');
+		expect(request.mock.calls[0][1]).toEqual({ rule_id: '7', from: '2026-10-01', to: '2026-10-02' });
+		expect(confirm).toHaveBeenCalledWith('Send "R" for 2026-10-01 – 2026-10-02 to 12 people?');
+		expect(submit).not.toHaveBeenCalled();
+
+		confirm.mockReturnValue(true);
+		window.$(form).trigger(window.$.Event('submit'));
+		await flush();
+		expect(submit).toHaveBeenCalledTimes(1);
+		confirm.mockRestore();
+	});
+
+	it('says a summary-only rule e-mails nobody', async () => {
+		installSendDom();
+		window.$('.ffc-dm-rule option').attr('data-ffc-dm-summary-only', '1');
+		window.ffcDateMessages.strings.confirmSummary = 'Run "%1$s" for %2$s; summary of %3$s.';
+		request.mockResolvedValue({ totals: { will_send: 4 } });
+		await loadOnReady();
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+		window.$('#ffc-dm-send-form').trigger(window.$.Event('submit'));
+		await flush();
+
+		expect(confirm).toHaveBeenCalledWith('Run "R" for 2026-10-01 – 2026-10-02; summary of 4.');
 		confirm.mockRestore();
 	});
 
@@ -276,12 +366,20 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_announcement_body');
 
-		// A subject the operator typed is left alone.
+		// An edited text is replaced only when the operator says so (#2336).
+		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
 		window.$('#ffc-dm-subject').val('Mine');
 		window.$('#ffc_dm_body').val('mine');
 		window.$('#ffc-dm-kind').val('dated').trigger('change');
+		expect(confirm).toHaveBeenCalledTimes(1);
 		expect(window.$('#ffc-dm-subject').val()).toBe('Mine');
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
+
+		confirm.mockReturnValue(true);
+		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		expect(window.$('#ffc-dm-subject').val()).toBe('Site: announcement');
+		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
+		confirm.mockRestore();
 		delete window.ffcDateMessageDefaults;
 	});
 
@@ -327,5 +425,49 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(false);
 		window.$('.ffc-dm-rule').val('1').trigger('change');
 		expect(window.$('[data-ffc-dm-dated-only]').prop('hidden')).toBe(true);
+	});
+
+	it('keeps the "This rule" card in step with the form before it is saved (#2498)', async () => {
+		document.body.innerHTML = `
+			<form id="ffc-dm-rule-form">
+				<select id="ffc-dm-kind"><option value="dated" selected>By date</option><option value="announcement">Announcement</option></select>
+				<select id="ffc-dm-source"><option value="birthday" selected>Birthday</option></select>
+				<input id="ffc-dm-offset" value="0">
+				<input id="ffc-dm-send-at" value="">
+				<div class="ffc-transfer-list"></div>
+				<input type="checkbox" id="ffc-dm-digest-enabled">
+				<select id="ffc-dm-digest-mode"><option value="summary" selected>Counts only</option></select>
+				<div class="card ffc-dm-facts">
+					<dd data-ffc-dm-fact="kind"></dd><dd data-ffc-dm-fact="source"></dd>
+					<dd data-ffc-dm-fact="offset"></dd><dd data-ffc-dm-fact="send-at"></dd>
+					<dd data-ffc-dm-fact="audiences"></dd><dd data-ffc-dm-fact="digest"></dd>
+				</div>
+			</form>
+		`;
+		window.ffcDateMessages.strings.facts = {
+			onDate: 'On the date', dayBefore: '%d day before', daysBefore: '%d days before', dayAfter: '%d day after', daysAfter: '%d days after',
+			atTime: 'At the time', byHand: 'By hand', everyone: 'Everyone', audience: '%d audience', audiences: '%d audiences', off: 'Off',
+		};
+		await loadOnReady();
+		const fact = (k) => window.$(`[data-ffc-dm-fact="${k}"]`).text();
+
+		expect([fact('kind'), fact('source'), fact('offset'), fact('send-at'), fact('audiences'), fact('digest')])
+			.toEqual(['By date', 'Birthday', 'On the date', 'By hand', 'Everyone', 'Off']);
+
+		window.$('#ffc-dm-offset').val('-1').trigger('input');
+		expect(fact('offset')).toBe('1 day before');
+		window.$('#ffc-dm-offset').val('7').trigger('input');
+		expect(fact('offset')).toBe('7 days after');
+
+		window.$('#ffc-dm-send-at').val('2026-12-01T09:00').trigger('change');
+		expect(fact('send-at')).toBe('At the time');
+
+		const $list = window.$('.ffc-transfer-list');
+		$list.append('<input type="hidden" name="rule[audience_ids][]" value="3"><input type="hidden" name="rule[audience_ids][]" value="4">');
+		$list.trigger('ffc:transfer-list-change', [[3, 4]]);
+		expect(fact('audiences')).toBe('2 audiences');
+
+		window.$('#ffc-dm-digest-enabled').prop('checked', true).trigger('change');
+		expect(fact('digest')).toBe('Counts only');
 	});
 });

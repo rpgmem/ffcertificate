@@ -218,41 +218,39 @@ class RestControllerTest extends TestCase {
 		$this->assertSame( array(), $out->get_headers() );
 	}
 
-	public function test_rate_limit_headers_skipped_when_ip_limiting_disabled(): void {
-		Functions\when( 'get_option' )->alias( function ( $key ) {
-			return 'ffc_rate_limit_settings' === $key ? array( 'ip' => array( 'enabled' => false ) ) : array();
-		} );
-		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
+	public function test_a_429_carries_its_wait_as_a_retry_after_header(): void {
+		// The guard's wait used to land in the JSON body only (#2342).
+		$response = new class(
+			array(
+				'code' => 'rate_limit_exceeded',
+				'data' => array(
+					'status'  => 429,
+					'headers' => array( 'Retry-After' => 42 ),
+				),
+			),
+			429
+		) extends \WP_REST_Response {
+			public function header( $key, $value ): void {
+				$this->headers[ $key ] = $value;
+			}
+		};
+		$request  = Mockery::mock( 'WP_REST_Request' );
+		$request->shouldReceive( 'get_route' )->andReturn( '/ffc/v1/calendars/3/slots' );
 
-		$response = new \WP_REST_Response( array(), 200 );
+		$out = ( new RestController() )->add_rate_limit_headers( $response, null, $request );
+
+		$this->assertSame( '42', $out->get_headers()['Retry-After'] ?? null );
+	}
+
+	public function test_a_successful_response_names_no_pool(): void {
+		// The X-RateLimit-* pair reported the web form's address pool, which
+		// no ffc/v1 route counts against (#2342).
+		$response = new \WP_REST_Response( array( 'ok' => true ), 200 );
 		$request  = Mockery::mock( 'WP_REST_Request' );
 		$request->shouldReceive( 'get_route' )->andReturn( '/ffc/v1/forms' );
 
 		$out = ( new RestController() )->add_rate_limit_headers( $response, null, $request );
 
 		$this->assertSame( array(), $out->get_headers() );
-	}
-
-	public function test_rate_limit_headers_set_when_enabled(): void {
-		Functions\when( 'get_option' )->alias( function ( $key ) {
-			return 'ffc_rate_limit_settings' === $key
-				? array( 'ip' => array( 'enabled' => true, 'max_per_hour' => 5 ) )
-				: array();
-		} );
-		Functions\when( 'get_transient' )->justReturn( 2 ); // 2 requests already spent this hour.
-		$_SERVER['REMOTE_ADDR'] = '203.0.113.7';
-
-		$headers  = array();
-		$response = Mockery::mock( 'WP_REST_Response' );
-		$response->shouldReceive( 'header' )->andReturnUsing( function ( $key, $value ) use ( &$headers ) {
-			$headers[ $key ] = $value;
-		} );
-		$request = Mockery::mock( 'WP_REST_Request' );
-		$request->shouldReceive( 'get_route' )->andReturn( '/ffc/v1/forms' );
-
-		( new RestController() )->add_rate_limit_headers( $response, null, $request );
-
-		$this->assertSame( '5', $headers['X-RateLimit-Limit'] );
-		$this->assertSame( '3', $headers['X-RateLimit-Remaining'] );
 	}
 }

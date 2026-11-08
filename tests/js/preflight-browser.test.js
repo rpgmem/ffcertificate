@@ -94,6 +94,22 @@ describe('browser step (#2030)', () => {
 		expect(window.sessionStorage.getItem('ffc_inapp_continue')).toBe('1');
 	});
 
+	it('opens Chrome with the host, path and query, never the fragment', () => {
+		useUa('androidInstagram');
+		const original = window.location;
+		const loc = { host: 'site.test', pathname: '/form/', search: '?a=1', hash: '#Intent;package=evil;end', href: 'https://site.test/form/?a=1#Intent;package=evil;end', protocol: 'https:', hostname: 'site.test' };
+		Object.defineProperty(window, 'location', { configurable: true, writable: true, value: loc });
+		try {
+			const $w = mountForm();
+			window.FFC.Preflight.run(['browser'], context($w));
+			notice($w).find('.ffc-preflight-open-browser').trigger('click');
+			// A crafted fragment cannot add intent parameters (#2344).
+			expect(loc.href).toBe('intent://site.test/form/?a=1#Intent;scheme=https;package=com.android.chrome;end');
+		} finally {
+			Object.defineProperty(window, 'location', { configurable: true, writable: true, value: original });
+		}
+	});
+
 	it('does not stop again a visitor who continued in this session', () => {
 		useUa('androidInstagram');
 		window.sessionStorage.setItem('ffc_inapp_continue', '1');

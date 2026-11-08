@@ -66,7 +66,27 @@ class SettingsTabControlsTest extends TestCase {
 		$src = self::source( 'includes/settings/views/ffc-tab-smtp.php' );
 
 		$this->assertStringContainsString( '$ffcertificate_mail_queue = \FreeFormCertificate\Integrations\MailQueue::is_active();', $src );
-		$this->assertStringContainsString( '<fieldset id="smtp-mode-options"<?php disabled( $ffcertificate_mail_queue ); ?>>', $src );
+		$this->assertStringContainsString( '<fieldset id="smtp-mode-options" aria-labelledby="smtp-mode-label"<?php disabled( $ffcertificate_mail_queue ); ?>>', $src );
+		$this->assertStringContainsString( '<span id="smtp-mode-label">', $src, 'The radio group is named by its row header.' );
 		$this->assertStringContainsString( 'Total Mail Queue is active and manages email delivery', $src );
+	}
+
+	public function test_the_smtp_password_never_returns_to_the_browser(): void {
+		$src = self::source( 'includes/settings/views/ffc-tab-smtp.php' );
+
+		// The stored value reaches the view only to ask whether one is saved.
+		$this->assertSame( 1, substr_count( $src, "\$ffcertificate_get_option( 'smtp_pass' )" ), 'The view must read the stored password only to compute its state.' );
+		$this->assertStringContainsString( 'SmtpPassword::state(', $src );
+		$this->assertMatchesRegularExpression( '/<input type="password" name="ffc_settings\\[smtp_pass\\]" id="smtp_pass" value=""/', $src, 'The password field always starts empty.' );
+		// The field is offered only to those who may change it.
+		$this->assertStringContainsString( "current_user_can_admin_or( 'ffc_manage_settings_smtp' )", $src );
+		// Whitespace-tolerant: the array alignment moves when a key is added.
+		$this->assertMatchesRegularExpression( "/'id'\\s+=> 'ffc-smtp-pass-change'/", $src );
+		$this->assertMatchesRegularExpression( "/'id'\\s+=> 'ffc-smtp-pass-cancel'/", $src );
+		// A button's icon is the registry name, without the class prefix:
+		// 'ffc-icon-key' draws nothing (#2354).
+		$this->assertMatchesRegularExpression( "/'icon'\\s+=> 'key'/", $src );
+		$this->assertMatchesRegularExpression( "/'icon'\\s+=> 'cross'/", $src );
+		$this->assertStringNotContainsString( "=> 'ffc-icon-", $src );
 	}
 }

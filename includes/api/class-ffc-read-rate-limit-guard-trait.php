@@ -27,11 +27,6 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\API;
 
-use FreeFormCertificate\Core\RequestInput;
-use FreeFormCertificate\Security\RateLimiter;
-use FreeFormCertificate\Security\RateLimitChecker;
-use FreeFormCertificate\Security\RateLimitLogger;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -47,18 +42,9 @@ trait ReadRateLimitGuardTrait {
 	 * the counter); returns a `WP_Error` 429 with `Retry-After`
 	 * header data otherwise.
 	 *
-	 * Resolution order matches the existing plugin convention:
-	 *   1. `settings['read']['respect_whitelist']` — when on AND the
-	 *      caller IP is in `settings['whitelist']['ips']`, bypass.
-	 *   2. `settings['read']['bypass_logged_in']` — when on AND the
-	 *      caller is `is_user_logged_in()`, bypass.
-	 *   3. `RateLimiter::check_read_limit()` — check counters.
-	 *      Block → log via `RateLimitLogger`, return 429.
-	 *      Allow → `record_read_attempt()`, return null.
-	 *
-	 * An endpoint that must hold for everyone (#2243) passes
-	 * `$count_logged_in`: a logged-in caller is then counted, by account
-	 * rather than by address, instead of bypassing.
+	 * The resolution (whitelist, logged-in bypass, check, log, record) is
+	 * {@see \FreeFormCertificate\Security\ReadRateGuard::check()}, which
+	 * the public CSV endpoints call directly (#2341).
 	 *
 	 * @since 6.6.2
 	 * @param string $endpoint_key    Endpoint identifier matching the
@@ -68,52 +54,6 @@ trait ReadRateLimitGuardTrait {
 	 * @return \WP_Error|null
 	 */
 	protected function guard_read( string $endpoint_key, bool $count_logged_in = false ): ?\WP_Error {
-		$ip       = RequestInput::get_user_ip();
-		$settings = RateLimiter::get_settings();
-		$read     = is_array( $settings['read'] ?? null ) ? $settings['read'] : array();
-
-		// Bypass 1 — IP whitelist.
-		if ( ! empty( $read['respect_whitelist'] ) && RateLimitChecker::is_ip_whitelisted( $ip ) ) {
-			return null;
-		}
-
-		// Bypass 2 — logged-in users (staff / kiosks signed in to WP),
-		// unless the endpoint counts them, by account.
-		$user_id = 0;
-		if ( is_user_logged_in() ) {
-			if ( ! $count_logged_in ) {
-				if ( ! empty( $read['bypass_logged_in'] ) ) {
-					return null;
-				}
-			} else {
-				$user_id = (int) get_current_user_id();
-			}
-		}
-
-		$result = RateLimiter::check_read_limit( $ip, $endpoint_key, $user_id );
-
-		if ( ! $result['allowed'] ) {
-			$identifier = $ip . '|' . $endpoint_key;
-			$reason     = isset( $result['reason'] ) ? (string) $result['reason'] : 'read_limit';
-
-			RateLimitLogger::log_attempt( 'read', $identifier, 'blocked', $reason, null );
-
-			$wait    = isset( $result['wait_seconds'] ) ? (int) $result['wait_seconds'] : 60;
-			$message = $result['message'];
-
-			return new \WP_Error(
-				'rate_limit_exceeded',
-				$message,
-				array(
-					'status'  => 429,
-					'headers' => array(
-						'Retry-After' => max( 1, $wait ),
-					),
-				)
-			);
-		}
-
-		RateLimiter::record_read_attempt( $ip, $endpoint_key, $user_id );
-		return null;
+		return \FreeFormCertificate\Security\ReadRateGuard::check( $endpoint_key, $count_logged_in );
 	}
 }

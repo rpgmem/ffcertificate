@@ -102,6 +102,21 @@ abstract class SettingsTab {
 	abstract public function render();
 
 	/**
+	 * Render what the tab shows in the screen's side column (#2486).
+	 *
+	 * The side column is reserved on every Settings tab; a tab with a widget
+	 * (a live preview, the documentation's navigation) prints it here. The
+	 * column is drawn outside the read-only lock, so a widget must not carry
+	 * a control that saves. Prints nothing by default, and the column then
+	 * stays empty.
+	 *
+	 * @since 6.44.0
+	 * @return void
+	 */
+	public function render_side(): void {
+	}
+
+	/**
 	 * Get tab ID
 	 *
 	 * @return string
@@ -330,6 +345,7 @@ abstract class SettingsTab {
 			'ffcAdminAutosave',
 			array(
 				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);

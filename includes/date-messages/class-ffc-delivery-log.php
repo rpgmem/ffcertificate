@@ -35,7 +35,7 @@ class DeliveryLog {
 	/**
 	 * Counter columns a run carries.
 	 */
-	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced' );
+	public const COUNTERS = array( 'sent', 'opted_out', 'no_email', 'out_of_audience', 'failed', 'forced', 'listed' );
 
 	/**
 	 * Days the history keeps a run and its deliveries (#1647).
@@ -204,6 +204,36 @@ class DeliveryLog {
 	}
 
 	/**
+	 * What the runs started since `$since` delivered, test sends left out:
+	 * the e-mails sent and failed, and how many runs had a failure.
+	 *
+	 * @param int $since Unix time.
+	 * @return array{sent: int, failed: int, failed_runs: int}
+	 */
+	public static function totals_since( int $since ): array {
+		$wpdb = self::db();
+		/**
+		 * One row of sums; COALESCE makes each a number even with no run.
+		 *
+		 * @var array{sent: numeric-string, failed: numeric-string, failed_runs: numeric-string}|null $row
+		 */
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT COALESCE(SUM(sent), 0) AS sent, COALESCE(SUM(failed), 0) AS failed, COALESCE(SUM(failed > 0), 0) AS failed_runs FROM %i WHERE started_at >= %d AND trigger_kind <> %s',
+				DateMessagesActivator::runs_table(),
+				$since,
+				self::TRIGGER_TEST
+			),
+			ARRAY_A
+		);
+		return array(
+			'sent'        => null === $row ? 0 : (int) $row['sent'],
+			'failed'      => null === $row ? 0 : (int) $row['failed'],
+			'failed_runs' => null === $row ? 0 : (int) $row['failed_runs'],
+		);
+	}
+
+	/**
 	 * How many runs are stored.
 	 *
 	 * @param bool $include_tests Whether test sends are counted.
@@ -313,6 +343,54 @@ class DeliveryLog {
 	}
 
 	/**
+	 * Count one decision about one person in one run, once (#2336).
+	 *
+	 * A batch that fires twice -- a retry after a request died, or a duplicated
+	 * event -- meets the same people again. A send is already deduplicated by
+	 * its claim; the other decisions are too, by a row in the log whose channel
+	 * names the decision and the run, so the second pass inserts nothing and
+	 * bumps nothing. Those rows are never read as deliveries: every reader of
+	 * the log asks for the `user` channel.
+	 *
+	 * @param int    $run_id     Run.
+	 * @param int    $rule_id    Rule.
+	 * @param int    $user_id    Person.
+	 * @param string $occurrence Target day, `Y-m-d`.
+	 * @param string $counter    One of COUNTERS.
+	 * @return void
+	 */
+	public static function count_once( int $run_id, int $rule_id, int $user_id, string $occurrence, string $counter ): void {
+		$codes = array(
+			'opted_out'       => 'o',
+			'no_email'        => 'n',
+			'out_of_audience' => 'a',
+			'failed'          => 'f',
+			'listed'          => 'l',
+		);
+		if ( ! isset( $codes[ $counter ] ) ) {
+			self::bump( $run_id, $counter );
+			return;
+		}
+		// `x`, the decision and the run: at most 20 characters, the column's width.
+		if ( self::claim( $run_id, $rule_id, $user_id, $occurrence, 'x' . $codes[ $counter ] . $run_id ) ) {
+			self::bump( $run_id, $counter );
+		}
+	}
+
+	/**
+	 * The channel {@see self::count_once()} records a counted decision under,
+	 * for the run's own readers: the summary-only digest lists the people its
+	 * `listed` rows name (#2336).
+	 *
+	 * @param int    $run_id  Run.
+	 * @param string $counter `listed`.
+	 * @return string
+	 */
+	public static function counted_channel( int $run_id, string $counter ): string {
+		return 'listed' === $counter ? 'xl' . $run_id : '';
+	}
+
+	/**
 	 * Release a claim whose send was refused before it left the plugin, so a
 	 * later run may try again.
 	 *
@@ -333,6 +411,44 @@ class DeliveryLog {
 			),
 			array( '%d', '%d', '%s', '%s' )
 		);
+	}
+
+	/**
+	 * What one person was sent, newest first (#2503).
+	 *
+	 * Only `user` rows: a failed send releases its claim, so the row is gone,
+	 * and the counted decisions live under their own channels. Read live: the
+	 * person's Messages tab must show a send the moment it is logged.
+	 *
+	 * @param int $user_id Person.
+	 * @param int $limit   Most rows to read.
+	 * @return array<int, array{rule_id: int, occurrence_key: string, sent_at: int}>
+	 */
+	public static function deliveries_for_user( int $user_id, int $limit ): array {
+		if ( $user_id <= 0 || $limit <= 0 ) {
+			return array();
+		}
+		$wpdb = self::db();
+		$sql  = $wpdb->prepare(
+			'SELECT rule_id, occurrence_key, sent_at FROM %i WHERE user_id = %d AND channel = %s ORDER BY sent_at DESC, id DESC LIMIT %d',
+			DateMessagesActivator::log_table(),
+			$user_id,
+			'user',
+			$limit
+		);
+		if ( null === $sql ) {
+			return array();
+		}
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'rule_id'        => is_numeric( $row['rule_id'] ?? null ) ? (int) $row['rule_id'] : 0,
+				'occurrence_key' => is_scalar( $row['occurrence_key'] ?? null ) ? (string) $row['occurrence_key'] : '',
+				'sent_at'        => is_numeric( $row['sent_at'] ?? null ) ? (int) $row['sent_at'] : 0,
+			);
+		}
+		return $out;
 	}
 
 	/**

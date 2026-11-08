@@ -100,8 +100,24 @@ class AudienceCheckinWindowWriter {
 		}
 
 		$inserted = $wpdb->insert( AudienceCheckinWindowReader::get_table_name(), $data, $format );
+		if ( false === $inserted ) {
+			return 0;
+		}
+		$id = (int) $wpdb->insert_id;
 
-		return false === $inserted ? 0 : (int) $wpdb->insert_id;
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'checkin_window_opened',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array(
+				'window_id'  => $id,
+				'booking_id' => $booking_id,
+				'date'       => $date,
+				'closes_at'  => $closes_at,
+			),
+			$opened_by ?? 0
+		);
+
+		return $id;
 	}
 
 	/**
@@ -152,6 +168,19 @@ class AudienceCheckinWindowWriter {
 				)
 			);
 
-		return is_int( $updated ) && $updated > 0;
+		if ( ! is_int( $updated ) || $updated <= 0 ) {
+			return false;
+		}
+
+		// A window that closes by itself at its end writes nothing: only a
+		// close somebody asked for is an event (#2340).
+		\FreeFormCertificate\Core\ActivityLog::log(
+			'checkin_window_closed',
+			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+			array( 'window_id' => $id ),
+			$closed_by ?? 0
+		);
+
+		return true;
 	}
 }

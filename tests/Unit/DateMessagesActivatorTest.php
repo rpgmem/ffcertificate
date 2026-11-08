@@ -90,7 +90,7 @@ class DateMessagesActivatorTest extends TestCase {
 
 	public function test_maybe_migrate_is_a_no_op_on_the_current_version(): void {
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION ), true ) ? '1' : FFC_VERSION
+			static fn( $name ) => in_array( $name, array( DateMessagesActivator::AUDIENCE_IDS_OPTION, DateMessagesActivator::APPEARANCE_OPTION, DateMessagesActivator::ANNOUNCEMENTS_OPTION, DateMessagesActivator::SEND_SCOPE_OPTION ), true ) ? '1' : DateMessagesActivator::SCHEMA_REVISION
 		);
 		Functions\expect( 'update_option' )->never();
 		$this->wpdb->shouldReceive( 'get_var' )->never();
@@ -103,11 +103,46 @@ class DateMessagesActivatorTest extends TestCase {
 	public function test_maybe_migrate_heals_and_then_records_the_version(): void {
 		Functions\when( 'get_option' )->justReturn( '6.0.0' );
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
-		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SCHEMA_OPTION, FFC_VERSION );
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SCHEMA_REVISION_OPTION, DateMessagesActivator::SCHEMA_REVISION );
 
 		DateMessagesActivator::maybe_migrate();
 
 		$this->assertCount( 3, $this->deltas );
+	}
+
+	// ------------------------------------------------------------------
+	// An announcement deduplicated once per rule (#2336)
+	// ------------------------------------------------------------------
+
+	public function test_announcement_deliveries_take_the_fixed_key_and_mark_it_done(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => substr( (string) $q, (int) strrpos( (string) $q, '|' ) + 1 ) );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'kind' ) ) );
+		$queries = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $q ) use ( &$queries ) {
+				$queries[] = (string) $q;
+				return 4;
+			}
+		);
+		Functions\expect( 'update_option' )->once()->with( DateMessagesActivator::SEND_SCOPE_OPTION, '1' );
+
+		DateMessagesActivator::migrate_send_scope();
+
+		$this->assertSame(
+			array( 'UPDATE IGNORE %i l INNER JOIN %i r ON r.id = l.rule_id SET l.occurrence_key = %s WHERE r.kind = %s AND l.channel = %s|wp_ffc_date_message_log,wp_ffc_date_message_rules,once,announcement,user' ),
+			$queries
+		);
+	}
+
+	public function test_a_failed_key_move_is_tried_again(): void {
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnUsing( static fn( $q ) => substr( (string) $q, (int) strrpos( (string) $q, '|' ) + 1 ) );
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( array( (object) array( 'Field' => 'kind' ) ) );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( false );
+		Functions\expect( 'update_option' )->never();
+
+		DateMessagesActivator::migrate_send_scope();
 	}
 
 	// ------------------------------------------------------------------
@@ -191,7 +226,7 @@ class DateMessagesActivatorTest extends TestCase {
 		// The testes case (#1648): `develop` keeps FFC_VERSION, so the schema
 		// option already matches and only the move's own marker is missing.
 		Functions\when( 'get_option' )->alias(
-			static fn( $name ) => DateMessagesActivator::SCHEMA_OPTION === $name ? FFC_VERSION : ''
+			static fn( $name ) => DateMessagesActivator::SCHEMA_REVISION_OPTION === $name ? DateMessagesActivator::SCHEMA_REVISION : ''
 		);
 		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 'wp_ffc_date_message_rules' );
 		$this->wpdb->shouldReceive( 'esc_like' )->andReturnArg( 0 );

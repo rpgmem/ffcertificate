@@ -12,11 +12,19 @@
 (function () {
 	'use strict';
 
+	/** How long one request may take, and the wait before the one retry. */
+	var TIMEOUT_MS = 5000;
+	var RETRY_MS = 2000;
+
 	/**
-	 * Tell the boot watchdog the refresh is done (#2030). Only a refresh that
-	 * applied, or one with nothing to do, reports: a failed one leaves the
-	 * form on a nonce that may already be stale, which is what the watchdog
-	 * is there to say.
+	 * Tell the boot watchdog the refresh is done (#2030).
+	 *
+	 * A refresh that failed twice reports too (#2344): the form then keeps
+	 * the values the server rendered, which are valid unless the page came
+	 * from a cache. Nothing is bypassed by that, because the server still
+	 * checks the nonce, the captcha and every guard on submit, and refuses a
+	 * stale nonce with a "page expired" message. Not reporting removed the
+	 * form for good on one lost request, even when its values were fine.
 	 */
 	function reportReady() {
 		if (window.FFC && window.FFC.Preflight) {
@@ -71,32 +79,74 @@
 			payload += '&form_ids%5B%5D=' + encodeURIComponent(formIds[fi]);
 		}
 
-		// How many challenges to ask for. The server cannot work this out:
-		// it only ever sees form ids, and the security blocks rendered by
-		// [ffc_self_scheduling] and [ffc_csv_download] belong to no form.
-		// Counting forms there is what let two blocks share one token (#1063).
-		payload += '&blocks=' + securityBlocks().length;
+		// One challenge per security block, each bound to what its block names
+		// (#2339). The server cannot work this out: it only ever sees form ids,
+		// and the security blocks rendered by [ffc_self_scheduling] and
+		// [ffc_csv_download] belong to no form. Counting forms there is what
+		// let two blocks share one token (#1063).
+		var blocks = securityBlocks();
+		for (var bi = 0; bi < blocks.length; bi++) {
+			payload += '&contexts%5B%5D=' + encodeURIComponent(blocks[bi].getAttribute('data-ffc-captcha-context') || '');
+		}
+
+		send(ajaxUrl, payload, 0);
+	}
+
+	/**
+	 * One request, with a timeout, retried once after a pause.
+	 *
+	 * @param {string} ajaxUrl
+	 * @param {string} payload
+	 * @param {number} attempt 0 for the first request, 1 for the retry.
+	 */
+	function send(ajaxUrl, payload, attempt) {
+		var settled = false;
+		function failed() {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			if (attempt === 0) {
+				setTimeout(function () {
+					send(ajaxUrl, payload, 1);
+				}, RETRY_MS);
+				return;
+			}
+			// Twice: keep the server-rendered values and let the form go on.
+			reportReady();
+		}
 
 		var xhr = new XMLHttpRequest();
 		xhr.open('POST', ajaxUrl, true);
 		xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+		xhr.timeout = TIMEOUT_MS;
 
 		xhr.onload = function () {
-			if (xhr.status !== 200) {
+			if (settled) {
 				return;
 			}
-
-			try {
-				var response = JSON.parse(xhr.responseText);
-				if (!response.success || !response.data) {
-					return;
-				}
-				applyFragments(response.data);
-				reportReady();
-			} catch (e) {
-				// Silent fail — the page still works with the server-rendered values
+			if (xhr.status !== 200) {
+				failed();
+				return;
 			}
+			var response;
+			try {
+				response = JSON.parse(xhr.responseText);
+			} catch (e) {
+				failed();
+				return;
+			}
+			if (!response || !response.success || !response.data) {
+				failed();
+				return;
+			}
+			settled = true;
+			applyFragments(response.data);
+			reportReady();
 		};
+		xhr.onerror = failed;
+		xhr.ontimeout = failed;
+		xhr.onabort = failed;
 
 		xhr.send(payload);
 	}
@@ -182,15 +232,31 @@
 		// --- Captchas ---
 		// One challenge per security block, taken from the list the server
 		// minted for the count sent above — position i for block i, in the
-		// order `securityBlocks()` returns. The payloads are interchangeable
-		// (a challenge is not bound to a form), so the only property that
-		// matters is that no two blocks read the same entry: since #1054 the
+		// order `securityBlocks()` returns, each issued for the context its
+		// block named (#2339), so no two blocks read the same entry: since #1054 the
 		// token is single-use, and a shared one means whoever submits first
 		// spends the other's (#1056, #1063).
 		//
 		// `data.captcha` remains the fallback — for the single-block page,
 		// where the server sends no list, and for any block past the end of
 		// one, which a page that grew a block after the request would hit.
+		// The honeypot's render-time stamp (#2339): every block takes the
+		// fresh one, and a block cached before the stamp existed gets the
+		// field, so its submission is not refused for lacking it.
+		if (typeof data.honeypot === 'string' && data.honeypot) {
+			var stampBlocks = document.querySelectorAll('.ffc-security-container');
+			for (i = 0; i < stampBlocks.length; i++) {
+				var stamp = stampBlocks[i].querySelector('input[name="ffc_hp_ts"]');
+				if (!stamp) {
+					stamp = document.createElement('input');
+					stamp.type = 'hidden';
+					stamp.name = 'ffc_hp_ts';
+					stampBlocks[i].appendChild(stamp);
+				}
+				stamp.value = data.honeypot;
+			}
+		}
+
 		if (data.captcha || data.captchas) {
 			var blocks = securityBlocks();
 			var minted = Array.isArray(data.captchas) ? data.captchas : null;

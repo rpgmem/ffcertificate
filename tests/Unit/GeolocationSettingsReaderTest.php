@@ -132,7 +132,7 @@ class GeolocationSettingsReaderTest extends TestCase {
 
 	public function test_ip_api_service_default_and_value(): void {
 		$this->stub_option( array() );
-		$this->assertSame( 'ip-api', GeolocationSettingsReader::ip_api_service() );
+		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service(), 'The HTTPS service is the default (#2339).' );
 
 		$this->stub_option( array( 'ip_api_service' => 'ipinfo' ) );
 		$this->assertSame( 'ipinfo', GeolocationSettingsReader::ip_api_service() );
@@ -168,6 +168,15 @@ class GeolocationSettingsReaderTest extends TestCase {
 
 		$this->stub_option( array( 'ip_cache_ttl' => '1800' ) );
 		$this->assertSame( 1800, GeolocationSettingsReader::ip_cache_ttl() );
+	}
+
+	public function test_cache_ttls_are_clamped_on_read(): void {
+		// A value written outside the tab, or before a bound moved, still
+		// lands in range (#2339).
+		$this->stub_option( array( 'ip_cache_ttl' => 30, 'gps_cache_ttl' => 99999 ) );
+
+		$this->assertSame( 300, GeolocationSettingsReader::ip_cache_ttl() );
+		$this->assertSame( 3600, GeolocationSettingsReader::gps_cache_ttl() );
 	}
 
 	public function test_gps_cache_ttl_default_and_value(): void {

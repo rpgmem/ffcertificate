@@ -105,6 +105,9 @@ class IdentityMergeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityMerge' );
 
@@ -152,13 +155,13 @@ class IdentityMergeTest extends TestCase {
 		// Every `ffc_*` table this class knows exists.
 		$wpdb->shouldReceive( 'get_var' )->andReturnUsing(
 			static function ( $prepared ) {
-				return $prepared['args'][0] ?? null;
+				return ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 			}
 		);
 
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$owner = (int) ( $prepared['args'][1] ?? 0 );
 
 				return array_values(
@@ -203,7 +206,7 @@ class IdentityMergeTest extends TestCase {
 		$wpdb->shouldReceive( 'query' )->andReturnUsing(
 			function ( $sql ) {
 				if ( is_array( $sql ) ) {
-					$table = (string) ( $sql['args'][0] ?? '' );
+					$table = stripslashes( (string) ( $sql['args'][0] ?? '' ) );
 
 					$this->deletes[] = $table;
 
@@ -228,6 +231,7 @@ class IdentityMergeTest extends TestCase {
 	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

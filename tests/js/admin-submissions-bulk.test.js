@@ -127,8 +127,11 @@ describe('Submissions bulk — form interception', () => {
 		dispatchSubmit();
 		await Promise.resolve(); await Promise.resolve();
 
-		// Row still in the DOM.
+		// Row still in the DOM, no longer busy, checkbox usable again.
 		expect(document.querySelector('#row-1')).not.toBeNull();
+		expect(document.querySelector('#row-1').classList.contains('is-busy')).toBe(false);
+		expect(document.querySelector('#row-1').getAttribute('style')).toBeNull();
+		expect(document.querySelector('#row-1 input[type="checkbox"]').disabled).toBe(false);
 		expect(notifySpy).toHaveBeenCalledWith('DB conflict', 'error');
 	});
 

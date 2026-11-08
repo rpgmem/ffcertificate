@@ -26,11 +26,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class BulkIssueActivator {
 
-	/** Schema version of the two tables. Bump it when a column changes. */
-	public const DB_VERSION = '1';
+	/** Schema revision of the two tables. Bump it when a column changes (#2430). */
+	public const SCHEMA_REVISION = '1';
 
-	/** Option holding the schema version that was last created. */
-	public const DB_VERSION_OPTION = 'ffc_bulk_issue_db_version';
+	/** Option holding the schema revision that was last created. */
+	public const SCHEMA_REVISION_OPTION = 'ffc_bulk_issue_db_version';
 
 	/**
 	 * Table name of the import jobs.
@@ -62,12 +62,12 @@ class BulkIssueActivator {
 	 * @return void
 	 */
 	public static function maybe_create_tables(): void {
-		if ( self::DB_VERSION === get_option( self::DB_VERSION_OPTION, '' ) ) {
+		if ( self::SCHEMA_REVISION === get_option( self::SCHEMA_REVISION_OPTION, '' ) ) {
 			return;
 		}
 
 		self::create_tables();
-		update_option( self::DB_VERSION_OPTION, self::DB_VERSION, true );
+		update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION, true );
 	}
 
 	/**

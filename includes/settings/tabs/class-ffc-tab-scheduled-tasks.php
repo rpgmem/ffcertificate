@@ -106,21 +106,11 @@ class TabScheduledTasks extends SettingsTab {
 	 * Render.
 	 */
 	public function render(): void {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
-		if ( isset( $_POST['ffc_save_cron_times'] ) ) {
-			check_admin_referer( 'ffc_cron_times_nonce' );
-			// The page opens on `ffc_view_settings`; changing when a task runs
-			// takes `ffc_manage_settings`. The disabled fieldset a view-only
-			// user sees is only a UI affordance, so the save is gated here.
-			if ( \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
-				$invalid = ScheduledTasks::save_times( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_cron_times' ) );
-				\FreeFormCertificate\Core\AdminNotice::render(
-					array() === $invalid ? 'success' : 'warning',
-					array() === $invalid
-						? esc_html__( 'Times saved. Changed tasks were moved to their new time.', 'ffcertificate' )
-						: esc_html__( 'Times saved, except the ones that were not a valid time of day.', 'ffcertificate' )
-				);
-			}
+		// The save runs on admin_init and redirects here with the result
+		// (SettingsActionHandler::handle_cron_times_save(), #2338).
+		$notice = \FreeFormCertificate\Admin\SettingsNotice::take( 'cron_times' );
+		if ( null !== $notice ) {
+			\FreeFormCertificate\Core\AdminNotice::render( 'error' === $notice['type'] ? 'warning' : 'success', esc_html( $notice['message'] ) );
 		}
 
 		$view_file = $this->view_path( 'ffc-tab-scheduled-tasks.php' );

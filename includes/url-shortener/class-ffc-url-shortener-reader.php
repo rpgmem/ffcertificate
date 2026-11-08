@@ -53,8 +53,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     title: string|null,
  *     click_count: numeric-string|null,
  *     created_by: numeric-string|null,
- *     created_at: string,
- *     updated_at: string,
+ *     created_at: numeric-string,
+ *     updated_at: numeric-string,
  *     status: string|null,
  * }
  * @phpstan-type ShortUrlCleanupRow array{
@@ -71,6 +71,16 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     is_trashed: numeric-string,
  * }
  * @phpstan-type BackfillCandidateRow array{ ID: numeric-string, post_title: string }
+ * @phpstan-type RetiredCodeRow array{
+ *     id: numeric-string,
+ *     short_code: string,
+ *     short_url_id: numeric-string|null,
+ *     post_id: numeric-string|null,
+ *     title: string|null,
+ *     target_url: string,
+ *     reason: string,
+ *     retired_at: numeric-string,
+ * }
  */
 class UrlShortenerReader extends AbstractRepository {
 
@@ -93,6 +103,51 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
+	 * The keys, other than `id_*`, this group caches a short URL under:
+	 * prefix => column. Read by every class that writes the group, so a
+	 * disabled, trashed or deleted short URL stops redirecting at once (#2343).
+	 *
+	 * @var array<string, string>
+	 */
+	public const LOOKUP_CACHE_KEYS = array(
+		'code_' => 'short_code',
+		'post_' => 'post_id',
+	);
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return self::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
+	 * The columns a short URL is read with (#2337): every column but
+	 * `qr_cache`, a base64 PNG of several kilobytes that only the QR handler
+	 * reads, through {@see self::findQrCacheByShortCode()}. Selecting it on
+	 * every redirect, page of the list and export batch carried it into the
+	 * object cache and the CSV job for nothing. The list matches
+	 * `ShortUrlRow`, and `UrlShortenerRepositoryTest` holds it to the
+	 * table's `CREATE TABLE`, minus `qr_cache`.
+	 */
+	public const ROW_COLUMNS = 'id, short_code, target_url, post_id, title, click_count, created_by, created_at, updated_at, status';
+
+	/**
+	 * What the object cache holds for a code nobody has (#2337), so a bot
+	 * walking random codes does not reach the database on every request.
+	 */
+	private const MISSING = 'missing';
+
+	/**
+	 * How long a missing code is remembered, in seconds. Short, because the
+	 * first insert under the code clears it anyway; the bound is for a cache
+	 * that misses that clear.
+	 */
+	private const MISSING_TTL = 60;
+
+	/**
 	 * Find a short URL record by its short code.
 	 *
 	 * @param string $code The short code (e.g. "abc123").
@@ -107,11 +162,14 @@ class UrlShortenerReader extends AbstractRepository {
 		 * while the read below was typed. That is the #1072 finding, applied
 		 * here only now because this file was invisible to the ruler (#1087).
 		 *
-		 * @var ShortUrlRow|false $cached
+		 * @var ShortUrlRow|string|false $cached
 		 */
 		$cached = $this->get_cache( $cache_key );
 
-		if ( false !== $cached ) {
+		if ( self::MISSING === $cached ) {
+			return null;
+		}
+		if ( is_array( $cached ) ) {
 			return $cached;
 		}
 
@@ -124,19 +182,28 @@ class UrlShortenerReader extends AbstractRepository {
 		 * @var ShortUrlRow|null $result
 		 */
 		$result = $this->wpdb->get_row(
-			$this->wpdb->prepare( 'SELECT * FROM %i WHERE short_code = %s', $this->table, $code ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+			$this->wpdb->prepare( 'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE short_code = %s', $this->table, $code ),
 			ARRAY_A
 		);
 
 		if ( $result ) {
 			$this->set_cache( $cache_key, $result );
+		} else {
+			// Remembered briefly; an insert under the code clears it (#2337).
+			wp_cache_set( $cache_key, self::MISSING, $this->cache_group, self::MISSING_TTL );
 		}
 
 		return $result;
 	}
 
 	/**
-	 * Find a short URL record by post ID.
+	 * The post's short URL, in any state (#2337).
+	 *
+	 * A disabled or trashed link is still the post's link: answering only
+	 * active rows is what let a save, the editor or the backfill give the
+	 * post a second one. Where a post already has several (left by that
+	 * defect), the active one wins, then the newest.
 	 *
 	 * @param int $post_id WordPress post ID.
 	 * @return ShortUrlRow|null
@@ -166,7 +233,8 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$result = $this->wpdb->get_row(
 			$this->wpdb->prepare(
-				'SELECT * FROM %i WHERE post_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE post_id = %d ORDER BY status = %s DESC, id DESC LIMIT 1',
 				$this->table,
 				$post_id,
 				'active'
@@ -203,7 +271,8 @@ class UrlShortenerReader extends AbstractRepository {
 		 */
 		$rows = $this->wpdb->get_results(
 			$this->wpdb->prepare(
-				'SELECT * FROM %i WHERE target_url = %s AND status <> %s ORDER BY id DESC LIMIT %d',
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE target_url = %s AND status <> %s ORDER BY id DESC LIMIT %d',
 				$this->table,
 				$target_url,
 				'trashed',
@@ -231,6 +300,130 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		return $count > 0;
+	}
+
+	/**
+	 * Whether a code was retired and may never be issued again (#2337).
+	 *
+	 * Compared under the column's collation, like {@see codeExists()}, so a
+	 * code retired in one case also blocks it in another wherever the key
+	 * would.
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	public function codeRetired( string $code ): bool {
+		$count = (int) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE short_code = %s',
+				$this->retired_table(),
+				$code
+			)
+		);
+
+		return $count > 0;
+	}
+
+	/**
+	 * Count the retired codes matching a search (#2337).
+	 *
+	 * @param string $search Search term (code, title or destination); '' for all.
+	 * @return int
+	 */
+	public function countRetired( string $search = '' ): int {
+		if ( '' === $search ) {
+			return (int) $this->wpdb->get_var(
+				$this->wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->retired_table() )
+			);
+		}
+
+		$like = '%' . $this->wpdb->esc_like( $search ) . '%';
+		return (int) $this->wpdb->get_var(
+			$this->wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s',
+				$this->retired_table(),
+				$like,
+				$like,
+				$like
+			)
+		);
+	}
+
+	/**
+	 * A page of retired codes, most recently retired first (#2337).
+	 *
+	 * @param string $search   Search term (code, title or destination); '' for all.
+	 * @param int    $page     Page, from 1.
+	 * @param int    $per_page Rows per page.
+	 * @return array<int, RetiredCodeRow>
+	 */
+	public function findRetiredPaginated( string $search, int $page, int $per_page ): array {
+		$per_page = max( 1, $per_page );
+		$offset   = ( max( 1, $page ) - 1 ) * $per_page;
+
+		if ( '' === $search ) {
+			$sql = $this->wpdb->prepare(
+				'SELECT id, short_code, short_url_id, post_id, title, target_url, reason, retired_at FROM %i ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d',
+				$this->retired_table(),
+				$per_page,
+				$offset
+			);
+		} else {
+			$like = '%' . $this->wpdb->esc_like( $search ) . '%';
+			$sql  = $this->wpdb->prepare(
+				'SELECT id, short_code, short_url_id, post_id, title, target_url, reason, retired_at FROM %i WHERE short_code LIKE %s OR title LIKE %s OR target_url LIKE %s ORDER BY retired_at DESC, id DESC LIMIT %d OFFSET %d',
+				$this->retired_table(),
+				$like,
+				$like,
+				$like,
+				$per_page,
+				$offset
+			);
+		}
+
+		/**
+		 * The shape is read off UrlShortenerActivator::create_retired_table().
+		 *
+		 * @var list<RetiredCodeRow>|null $rows
+		 */
+		$rows = $this->wpdb->get_results( $sql, ARRAY_A );
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * The oldest trashed links, a batch at a time, for Empty Trash (#2337).
+	 *
+	 * @param int $limit Rows per batch.
+	 * @return array<int, ShortUrlRow>
+	 */
+	public function findTrashedBatch( int $limit ): array {
+		/**
+		 * Same assertion as findByShortCode(), for a list of rows.
+		 *
+		 * @var list<ShortUrlRow>|null $rows
+		 */
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- ROW_COLUMNS is a class constant, a fixed column list.
+				'SELECT ' . self::ROW_COLUMNS . ' FROM %i WHERE status = %s ORDER BY id ASC LIMIT %d',
+				$this->table,
+				'trashed',
+				max( 1, $limit )
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : array();
+	}
+
+	/**
+	 * The retired codes table.
+	 *
+	 * @return string
+	 */
+	private function retired_table(): string {
+		return $this->wpdb->prefix . 'ffc_short_url_retired';
 	}
 
 	/**
@@ -298,7 +491,7 @@ class UrlShortenerReader extends AbstractRepository {
 		);
 
 		// Build items query.
-		$items_query = "SELECT * FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
+		$items_query = 'SELECT ' . self::ROW_COLUMNS . " FROM %i {$where_sql} ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d";
 		$items_args  = array_merge( array( $this->table ), $where_values, array( $per_page, $offset ) );
 
 		/**
@@ -393,7 +586,7 @@ class UrlShortenerReader extends AbstractRepository {
 	public function findByCursor( array $filters, int $cursor, int $size ): array {
 		list( $where_sql, $where_values ) = $this->build_export_where( $filters );
 
-		$query = "SELECT * FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
+		$query = 'SELECT ' . self::ROW_COLUMNS . " FROM %i {$where_sql} AND id < %d ORDER BY id DESC LIMIT %d";
 		$args  = array_merge( array( $this->table ), $where_values, array( $cursor, $size ) );
 
 		/**
@@ -414,8 +607,10 @@ class UrlShortenerReader extends AbstractRepository {
 	}
 
 	/**
-	 * Count published posts of the given post types that do NOT yet have an
-	 * active short URL — the number of rows the backfill would create.
+	 * Count published posts of the given post types that have no short URL
+	 * in any state — the number of rows the backfill would create. A disabled
+	 * or trashed link is still the post's link, so the backfill never gives
+	 * a post a second one (#2337).
 	 *
 	 * @param array<string> $post_types Post types to consider.
 	 * @return int
@@ -430,13 +625,13 @@ class UrlShortenerReader extends AbstractRepository {
 
 		$sql = "SELECT COUNT(*)
 			FROM %i p
-			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			LEFT JOIN %i s ON s.post_id = p.ID
 			WHERE p.post_status = 'publish'
 				AND p.post_type IN ( {$placeholders} )
 				AND s.id IS NULL";
 
 		$args = array_merge(
-			array( $this->wpdb->posts, $this->table, 'active' ),
+			array( $this->wpdb->posts, $this->table ),
 			$post_types
 		);
 
@@ -448,7 +643,7 @@ class UrlShortenerReader extends AbstractRepository {
 
 	/**
 	 * Keyset page of published posts of the given post types that have no
-	 * active short URL yet, newest first (`ID DESC`), bounded by `id < $cursor`.
+	 * short URL in any state yet (#2337), newest first (`ID DESC`), bounded by `id < $cursor`.
 	 * Keyset (not LIMIT/OFFSET) so paging stays stable while the batch inserts
 	 * new short URLs mid-run. Used by the settings-tab backfill.
 	 *
@@ -467,7 +662,7 @@ class UrlShortenerReader extends AbstractRepository {
 
 		$sql = "SELECT p.ID, p.post_title
 			FROM %i p
-			LEFT JOIN %i s ON s.post_id = p.ID AND s.status = %s
+			LEFT JOIN %i s ON s.post_id = p.ID
 			WHERE p.post_status = 'publish'
 				AND p.post_type IN ( {$placeholders} )
 				AND s.id IS NULL
@@ -476,7 +671,7 @@ class UrlShortenerReader extends AbstractRepository {
 			LIMIT %d";
 
 		$args = array_merge(
-			array( $this->wpdb->posts, $this->table, 'active' ),
+			array( $this->wpdb->posts, $this->table ),
 			$post_types,
 			array( $cursor, $size )
 		);
@@ -515,8 +710,10 @@ class UrlShortenerReader extends AbstractRepository {
 	public function find_cleanup_candidates( array $criteria, int $never_clicked_days ): array {
 		$days = max( 0, $never_clicked_days );
 
+		// `created_at` is an instant (#2337): compared with a cutoff in UTC
+		// seconds, never with the database session's clock.
 		$orphan_expr  = '( s.post_id IS NOT NULL AND p.ID IS NULL )';
-		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < ( NOW() - INTERVAL %d DAY ) )';
+		$nevclk_expr  = '( s.click_count = 0 AND s.created_at < %d )';
 		$trashed_expr = "( s.status = 'trashed' )";
 
 		$where = array();
@@ -544,9 +741,10 @@ class UrlShortenerReader extends AbstractRepository {
 			WHERE " . implode( ' OR ', $where ) . '
 			ORDER BY s.id ASC';
 
-		$args = array( $days, $this->table, $this->wpdb->posts );
+		$cutoff = time() - $days * DAY_IN_SECONDS;
+		$args   = array( $cutoff, $this->table, $this->wpdb->posts );
 		if ( ! empty( $criteria['never_clicked'] ) ) {
-			$args[] = $days;
+			$args[] = $cutoff;
 		}
 
 		/**

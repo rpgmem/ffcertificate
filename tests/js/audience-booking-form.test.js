@@ -36,6 +36,8 @@ beforeAll(() => {
 			editMoveNote: 'Change the date, hours, space or description.',
 			editStartedNote: 'This booking has started.',
 			timeout: 'Timed out.',
+			wholeDayNote: 'Whole day.',
+			wholeDaysNote: 'Whole days.',
 		},
 	};
 	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: 'n', strings: {} };
@@ -879,5 +881,97 @@ describe('ffc-audience-booking-form — editing a booking (#2243)', () => {
 		expect(window.$('#booking-move-date-group').prop('hidden')).toBe(true);
 		expect(window.$('#booking-start-time').prop('disabled')).toBe(false);
 		expect(window.$('#ffc-booking-submit').text()).toBe('Check Conflicts');
+	});
+});
+
+// The booking shape a calendar sets (#2404): several days and the choice of
+// time can each be switched off, per calendar, and the form follows the
+// calendar the chosen space belongs to.
+describe('ffc-audience-booking-form — the booking shape of a calendar (#2404)', () => {
+	const rangeLabel = () => window.$('input[name="booking_span"][value="range"]').closest('label');
+	const weeklyLabel = () => window.$('input[name="booking_span"][value="weekly"]').closest('label');
+	const note = () => window.$('#booking-whole-day-note');
+
+	function shape(schedule) {
+		api.state.config.schedules = [
+			Object.assign({ id: 1, name: 'Sched A', environments: [{ id: 10, name: 'Env A' }] }, schedule),
+			{ id: 2, name: 'Sched B', environments: [{ id: 20, name: 'Env B' }] },
+		];
+	}
+
+	it('offers every shape when the calendar says nothing', () => {
+		api.openBookingModal('2099-06-10', 10);
+
+		expect(rangeLabel().prop('hidden')).toBe(false);
+		expect(window.$('#booking-all-day-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-time-row').prop('hidden')).toBe(false);
+		expect(note().prop('hidden')).toBe(true);
+	});
+
+	it('hides several days and keeps weekly when the calendar books one day only', () => {
+		shape({ allowMultiDay: false });
+		api.openBookingModal('2099-06-10', 10);
+
+		expect(rangeLabel().prop('hidden')).toBe(true);
+		expect(weeklyLabel().prop('hidden')).toBe(false);
+	});
+
+	it('falls back to one day when another space turns several days off', () => {
+		shape({ allowMultiDay: false });
+		api.openBookingModal('2099-06-10', 20);
+		window.$('input[name="booking_span"][value="range"]').prop('checked', true);
+		api.setRangeOptions(true);
+
+		window.$('#booking-environment-id').val('10');
+		api.applyBookingShape();
+
+		expect(api.isRange()).toBe(false);
+		expect(window.$('#booking-end-date-group').prop('hidden')).toBe(true);
+	});
+
+	it('books the whole day, with a note, when the calendar takes no time choice', () => {
+		shape({ allowTimeSelection: false });
+		api.openBookingModal('2099-06-10', 10);
+
+		expect(window.$('#booking-all-day-group').prop('hidden')).toBe(true);
+		expect(window.$('#booking-all-day').prop('checked')).toBe(true);
+		expect(window.$('#booking-time-row').prop('hidden')).toBe(true);
+		expect(note().prop('hidden')).toBe(false);
+		expect(note().text()).toBe('Whole day.');
+	});
+
+	it('says whole days over a range, without a time mode', () => {
+		shape({ allowTimeSelection: false });
+		api.openBookingModal('2099-06-10', 10);
+		window.$('input[name="booking_span"][value="range"]').prop('checked', true);
+		api.setRangeOptions(true);
+
+		expect(note().text()).toBe('Whole days.');
+		expect(window.$('#booking-range-options .ffc-booking-choices').prop('hidden')).toBe(true);
+	});
+
+	it('gives the hours back when the space changes to a calendar that has them', () => {
+		shape({ allowTimeSelection: false });
+		api.openBookingModal('2099-06-10', 10);
+
+		window.$('#booking-environment-id').val('20');
+		api.applyBookingShape();
+
+		expect(window.$('#booking-all-day').prop('checked')).toBe(false);
+		expect(window.$('#booking-all-day-group').prop('hidden')).toBe(false);
+		expect(window.$('#booking-time-row').prop('hidden')).toBe(false);
+		expect(note().prop('hidden')).toBe(true);
+	});
+
+	it('keeps the span of a booking being edited, whatever the shape', () => {
+		shape({ allowMultiDay: false });
+		api.state.config.today = '2026-06-01';
+		api.openEditModal({
+			id: '7', environment_id: '10', booking_date: '2026-06-10', end_date: '2026-06-12',
+			time_mode: 'span', start_time: '09:00:00', end_time: '17:00:00', is_all_day: 0,
+			description: 'A three-day workshop booked earlier',
+		});
+
+		expect(api.isRange()).toBe(true);
 	});
 });

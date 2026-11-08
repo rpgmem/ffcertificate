@@ -28,6 +28,7 @@ class Deactivator {
 	public static function deactivate(): void {
 		// Clear scheduled cron tasks.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
 		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
@@ -43,6 +44,10 @@ class Deactivator {
 		wp_unschedule_hook( 'ffc_reregistration_invitation_batch' );
 		wp_unschedule_hook( 'ffc_recruitment_account_link_batch' );
 		wp_unschedule_hook( 'ffc_audience_notification_batch' );
+		// The one-shot submission pipeline and its pre-#1248 name (#2343): a
+		// pending event would otherwise fire into code that is not loaded.
+		wp_unschedule_hook( \FreeFormCertificate\Submissions\SubmissionHandler::ASYNC_PIPELINE_HOOK );
+		wp_unschedule_hook( 'ffcertificate_process_submission_hook' );
 		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
 		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();
@@ -85,6 +90,7 @@ class Deactivator {
 
 		// 3. Clear scheduled CRON tasks.
 		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+		wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 		// #1248's internal hook, which replaced the one above in the scheduling.

@@ -29,9 +29,28 @@ class UrlShortenerService {
 	private UrlShortenerRepository $repository;
 
 	/**
-	 * Base62 character set for short code generation.
+	 * Characters a generated code is drawn from: upper and lower case and
+	 * digits (#2337).
+	 *
+	 * `short_code` has a binary collation, so `AbC` and `abc` are two codes
+	 * ({@see UrlShortenerActivator::SHORT_CODE_COLUMN}).
 	 */
-	private const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	public const CHARSET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+	/**
+	 * The longest code the `short_code` column holds.
+	 */
+	public const MAX_CODE_LENGTH = 10;
+
+	/**
+	 * Inserts tried when another request takes the drawn code first.
+	 */
+	private const INSERT_ATTEMPTS = 3;
+
+	/**
+	 * Trashed links deleted per query by Empty Trash.
+	 */
+	private const EMPTY_TRASH_BATCH = 200;
 
 	/**
 	 * Constructor.
@@ -62,7 +81,7 @@ class UrlShortenerService {
 	 * @return array{success: bool, data?: array<string, mixed>, error?: string}
 	 */
 	public function create_short_url( string $target_url, string $title = '', ?int $post_id = null ): array {
-		$target_url = esc_url_raw( $target_url );
+		$target_url = esc_url_raw( $target_url, self::DESTINATION_SCHEMES );
 
 		if ( empty( $target_url ) ) {
 			return array(
@@ -82,11 +101,10 @@ class UrlShortenerService {
 			}
 		}
 
-		$code = $this->generate_unique_code();
-		$now  = current_time( 'mysql' );
-
+		// Instants, in UTC seconds (#2337, Category A).
+		$now  = time();
 		$data = array(
-			'short_code'  => $code,
+			'short_code'  => '',
 			'target_url'  => $target_url,
 			'post_id'     => $post_id,
 			'title'       => sanitize_text_field( $title ),
@@ -97,7 +115,20 @@ class UrlShortenerService {
 			'status'      => 'active',
 		);
 
-		$id = $this->repository->insert( $data );
+		// The UNIQUE key is the real check: a code free when drawn can be
+		// taken by another request before the insert, so a refused insert
+		// draws again, a bounded number of times (#2337).
+		$id = false;
+		for ( $attempt = 0; $attempt < self::INSERT_ATTEMPTS && ! $id; $attempt++ ) {
+			$data['short_code'] = $this->generate_unique_code();
+			if ( '' === $data['short_code'] ) {
+				break;
+			}
+			$id = $this->repository->insert( $data );
+			if ( ! $id && ! $this->code_taken( $data['short_code'] ) ) {
+				break; // Refused for another reason; drawing again will not help.
+			}
+		}
 
 		if ( ! $id ) {
 			return array(
@@ -122,33 +153,44 @@ class UrlShortenerService {
 	}
 
 	/**
-	 * Generate a unique short code.
+	 * Generate a code that is neither in use nor retired.
+	 *
+	 * Ten draws at a length, then one character longer, never past the
+	 * column (#2337).
 	 *
 	 * @param int $length Code length (default from settings).
-	 * @return string
+	 * @return string The code, or '' when none was found up to the column's width.
 	 */
 	public function generate_unique_code( int $length = 0 ): string {
 		if ( $length <= 0 ) {
 			$length = $this->get_code_length();
 		}
 
-		$charset      = self::CHARSET;
-		$charset_len  = strlen( $charset );
-		$max_attempts = 10;
+		$last = strlen( self::CHARSET ) - 1;
+		for ( ; $length <= self::MAX_CODE_LENGTH; $length++ ) {
+			for ( $attempt = 0; $attempt < 10; $attempt++ ) {
+				$code = '';
+				for ( $i = 0; $i < $length; $i++ ) {
+					$code .= self::CHARSET[ random_int( 0, $last ) ];
+				}
 
-		for ( $attempt = 0; $attempt < $max_attempts; $attempt++ ) {
-			$code = '';
-			for ( $i = 0; $i < $length; $i++ ) {
-				$code .= $charset[ random_int( 0, $charset_len - 1 ) ];
-			}
-
-			if ( ! $this->repository->codeExists( $code ) ) {
-				return $code;
+				if ( ! $this->code_taken( $code ) ) {
+					return $code;
+				}
 			}
 		}
 
-		// Fallback: increase length by 1 on collision.
-		return $this->generate_unique_code( $length + 1 );
+		return '';
+	}
+
+	/**
+	 * Whether a code is in use or retired, so it cannot be issued.
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	private function code_taken( string $code ): bool {
+		return $this->repository->codeExists( $code ) || $this->repository->codeRetired( $code );
 	}
 
 	/**
@@ -223,6 +265,41 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Prefixes the site used before the current one (#2337).
+	 *
+	 * A request under one of them that names a known code is sent on to the
+	 * current prefix, so a link or QR printed before a prefix change keeps
+	 * working.
+	 *
+	 * @return array<int, string>
+	 */
+	public function get_previous_prefixes(): array {
+		return self::previous_prefixes_from( $this->get_settings() );
+	}
+
+	/**
+	 * The previous prefixes a settings array holds, cleaned, without the
+	 * current one.
+	 *
+	 * @param array<string, mixed> $settings `ffc_settings`.
+	 * @return array<int, string>
+	 */
+	public static function previous_prefixes_from( array $settings ): array {
+		$stored = $settings['url_shortener_previous_prefixes'] ?? array();
+		if ( ! is_array( $stored ) ) {
+			return array();
+		}
+
+		$current = sanitize_title( (string) ( $settings['url_shortener_prefix'] ?? 'go' ) );
+		return array_values(
+			array_filter(
+				array_unique( array_map( 'sanitize_title', array_map( 'strval', $stored ) ) ),
+				static fn( string $prefix ): bool => '' !== $prefix && $prefix !== $current
+			)
+		);
+	}
+
+	/**
 	 * Get the configured code length.
 	 *
 	 * @return int
@@ -230,7 +307,7 @@ class UrlShortenerService {
 	public function get_code_length(): int {
 		$settings = $this->get_settings();
 		$length   = (int) ( $settings['url_shortener_code_length'] ?? 6 );
-		return max( 4, min( 10, $length ) );
+		return max( 4, min( self::MAX_CODE_LENGTH, $length ) );
 	}
 
 	/**
@@ -312,6 +389,70 @@ class UrlShortenerService {
 	}
 
 	/**
+	 * Schemes a short URL may send to (#2337, decided in the session): the
+	 * QR generator's web schemes plus mailto, tel and sms. Never
+	 * `javascript:`, `data:` or `file:`. One list for the generator's shorten
+	 * action, the list's edit action, creation and the redirect itself.
+	 */
+	public const DESTINATION_SCHEMES = array( ...\FreeFormCertificate\Generators\QrPayload::URL_SCHEMES, 'mailto', 'tel', 'sms' );
+
+	/**
+	 * The schemes a phone follows reliably out of an HTTP redirect. Any other
+	 * accepted scheme gets a warning, never a refusal.
+	 */
+	public const RECOMMENDED_SCHEMES = array( 'https', 'http' );
+
+	/**
+	 * Whether a short URL may send to an address: one of DESTINATION_SCHEMES.
+	 *
+	 * @param string $url Address.
+	 * @return bool
+	 */
+	public static function is_allowed_destination( string $url ): bool {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		return is_string( $scheme ) && in_array( strtolower( $scheme ), self::DESTINATION_SCHEMES, true )
+			&& '' !== esc_url_raw( $url, self::DESTINATION_SCHEMES );
+	}
+
+	/**
+	 * The scheme of an accepted address that a phone may not follow out of a
+	 * redirect, or '' for http(s) (#2337).
+	 *
+	 * @param string $url Address.
+	 * @return string
+	 */
+	public static function scheme_warning( string $url ): string {
+		$scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$scheme = is_string( $scheme ) ? strtolower( $scheme ) : '';
+		return in_array( $scheme, self::DESTINATION_SCHEMES, true ) && ! in_array( $scheme, self::RECOMMENDED_SCHEMES, true ) ? $scheme : '';
+	}
+
+	/**
+	 * File extensions whose address makes a browser download a file instead
+	 * of showing a page (#2337). Only the path is read: nothing is fetched.
+	 */
+	public const DOWNLOAD_EXTENSIONS = array( 'pdf', 'zip', 'rar', '7z', 'gz', 'tar', 'exe', 'msi', 'dmg', 'apk', 'iso', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp', 'csv', 'rtf', 'epub' );
+
+	/**
+	 * The extension of an address that downloads a file, or '' (#2337).
+	 *
+	 * Read off the path alone, without a request, so a page that happens to
+	 * serve a file under a clean path is not noticed. The warning this feeds
+	 * never blocks a save.
+	 *
+	 * @param string $url Address.
+	 * @return string The extension, lowercase and without the dot.
+	 */
+	public static function download_extension( string $url ): string {
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '';
+		}
+		$extension = strtolower( (string) pathinfo( $path, PATHINFO_EXTENSION ) );
+		return in_array( $extension, self::DOWNLOAD_EXTENSIONS, true ) ? $extension : '';
+	}
+
+	/**
 	 * Resolve the effective destination of a short URL record.
 	 *
 	 * For **post-linked** short URLs (`post_id` set) the destination is derived
@@ -351,24 +492,51 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function update_short_url( int $id, string $target_url, string $title ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
-				'target_url' => esc_url_raw( $target_url ),
+				'target_url' => esc_url_raw( $target_url, self::DESTINATION_SCHEMES ),
 				'title'      => sanitize_text_field( $title ),
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
 
 	/**
-	 * Delete a short URL by ID.
+	 * Delete a short URL by ID and retire its code for good (#2337).
 	 *
 	 * @param int $id Record ID.
 	 * @return bool
 	 */
 	public function delete_short_url( int $id ): bool {
-		return (bool) $this->repository->delete( $id );
+		$record = $this->repository->findById( $id );
+		return is_array( $record ) && $this->repository->retireAndDelete( $record, 'deleted' );
+	}
+
+	/**
+	 * Delete every trashed link, retiring each code (#2337).
+	 *
+	 * Batch by batch until the trash is empty, or until a batch deletes
+	 * nothing: the loop stops on what it changed, never on what it read,
+	 * so a row that cannot be deleted cannot keep it running.
+	 *
+	 * @return int Links actually deleted.
+	 */
+	public function empty_trash(): int {
+		$deleted = 0;
+		do {
+			$batch = $this->repository->findTrashedBatch( self::EMPTY_TRASH_BATCH );
+			$full  = count( $batch ) === self::EMPTY_TRASH_BATCH;
+			$done  = 0;
+			foreach ( $batch as $row ) {
+				if ( $this->repository->retireAndDelete( $row, 'deleted' ) ) {
+					++$done;
+				}
+			}
+			$deleted += $done;
+		} while ( $done > 0 && $full );
+
+		return $deleted;
 	}
 
 	/**
@@ -378,11 +546,11 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function trash_short_url( int $id ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => 'trashed',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}
@@ -394,12 +562,68 @@ class UrlShortenerService {
 	 * @return bool
 	 */
 	public function restore_short_url( int $id ): bool {
-		return (bool) $this->repository->update(
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => 'disabled',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
+		);
+	}
+
+	/**
+	 * Bring a disabled or trashed link back as active, same code (#2337).
+	 *
+	 * Its clicks and every printed QR keep working, which is why the meta
+	 * box offers this instead of a new code when a post's link is off.
+	 *
+	 * @param int $id Record ID.
+	 * @return bool
+	 */
+	public function reactivate_short_url( int $id ): bool {
+		return false !== $this->repository->update(
+			$id,
+			array(
+				'status'     => 'active',
+				'updated_at' => time(),
+			)
+		);
+	}
+
+	/**
+	 * Give a link a new code in place and retire the old one (#2337).
+	 *
+	 * The same row takes the code, so clicks, title and target carry over and
+	 * nothing goes to the trash. The old code stops answering at once and is
+	 * never issued again. A code another request takes first is drawn again.
+	 *
+	 * @param array<string, mixed> $record The link row.
+	 * @return array{success: bool, data?: array<string, mixed>, error?: string}
+	 */
+	public function regenerate_code( array $record ): array {
+		for ( $attempt = 0; $attempt < self::INSERT_ATTEMPTS; $attempt++ ) {
+			$code = $this->generate_unique_code();
+			if ( '' === $code ) {
+				break;
+			}
+			if ( $this->repository->swapCode( $record, $code ) ) {
+				$fresh = $this->repository->findById( (int) $record['id'] );
+				if ( is_array( $fresh ) ) {
+					return array(
+						'success' => true,
+						'data'    => $fresh,
+					);
+				}
+				break;
+			}
+			if ( ! $this->code_taken( $code ) ) {
+				break; // Refused for another reason; drawing again will not help.
+			}
+		}
+
+		return array(
+			'success' => false,
+			'error'   => __( 'Could not generate a new short code. The short URL is unchanged.', 'ffcertificate' ),
 		);
 	}
 
@@ -418,11 +642,13 @@ class UrlShortenerService {
 			return false;
 		}
 
-		return (bool) $this->repository->update(
+		// 0 rows changed means the link was already in that state, which is
+		// what was asked: only a database error is a failure (#2337).
+		return false !== $this->repository->update(
 			$id,
 			array(
 				'status'     => $active ? 'active' : 'disabled',
-				'updated_at' => current_time( 'mysql' ),
+				'updated_at' => time(),
 			)
 		);
 	}

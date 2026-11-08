@@ -133,17 +133,18 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'appointments', $this->source->type() );
 	}
 
-	public function test_get_fixed_headers_has_27_columns(): void {
+	public function test_get_fixed_headers_has_28_columns(): void {
 		$headers = $this->invoke( 'get_fixed_headers' );
-		$this->assertCount( 27, $headers );
+		$this->assertCount( 28, $headers );
 		$this->assertSame( 'ID', $headers[0] );
 		$this->assertSame( 'Calendar', $headers[1] );
 		$this->assertSame( 'User Agent', $headers[26] );
+		$this->assertSame( 'Session', $headers[27], 'Last, so the columns before it keep their place (#2405).' );
 	}
 
 	public function test_header_merges_fixed_and_dynamic(): void {
 		$header = $this->source->header( array(), array( 'dynamic_keys' => array( 'ramal', 'setor' ) ) );
-		$this->assertCount( 29, $header ); // 27 fixed + 2 dynamic.
+		$this->assertCount( 30, $header ); // 28 fixed + 2 dynamic.
 		$this->assertSame( 'ID', $header[0] );
 	}
 
@@ -163,7 +164,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'j***@example.com', $result[5] );
 		$this->assertSame( '***-**34', $result[6] );
 		$this->assertSame( '203.0.***.***', $result[25] );
-		$this->assertSame( '42', $result[27], 'A column that is not personal stays.' );
+		$this->assertSame( '42', $result[28], 'A column that is not personal stays.' );
 	}
 
 	public function test_format_row_layout_and_pii(): void {
@@ -171,7 +172,7 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 
 		$result = $this->source->format_row( $this->sample_row(), array( 'dynamic_keys' => array( 'ramal', 'setor' ), 'pii' => true ) );
 
-		$this->assertCount( 29, $result ); // 27 fixed + 2 dynamic.
+		$this->assertCount( 30, $result ); // 28 fixed + 2 dynamic.
 		$this->assertSame( 7, $result[0] );
 		$this->assertSame( 'Room A', $result[1] );
 		$this->assertSame( 3, $result[2] );
@@ -182,8 +183,9 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'Confirmed', $result[10] );
 		$this->assertSame( '203.0.113.5', $result[25] ); // User IP column.
 		// Dynamic columns appended in key order.
-		$this->assertSame( '42', $result[27] );
-		$this->assertSame( 'TI', $result[28] );
+		$this->assertSame( '', $result[27], 'No session.' );
+		$this->assertSame( '42', $result[28] );
+		$this->assertSame( 'TI', $result[29] );
 	}
 
 	public function test_format_row_unknown_status_passthrough(): void {
@@ -192,6 +194,21 @@ class AppointmentExportSourceTest extends BatchedExportSourceContractTestCase {
 		$row['status'] = 'weird';
 		$result        = $this->source->format_row( $row, array( 'dynamic_keys' => array(), 'pii' => true ) );
 		$this->assertSame( 'weird', $result[10] );
+	}
+
+	public function test_format_row_names_the_session(): void {
+		$this->calendars->shouldReceive( 'findById' )->with( 3 )->andReturn(
+			array(
+				'title'    => 'Room A',
+				'sessions' => '[{"id":2,"name":"Morning"},{"id":3,"name":"Afternoon"}]',
+			)
+		);
+		$row               = $this->sample_row();
+		$row['session_id'] = '3';
+
+		$result = $this->source->format_row( $row, array( 'dynamic_keys' => array(), 'pii' => true ) );
+
+		$this->assertSame( 'Afternoon', $result[27] );
 	}
 
 	public function test_format_row_deleted_calendar_shows_placeholder(): void {

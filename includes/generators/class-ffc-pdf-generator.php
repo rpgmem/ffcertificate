@@ -425,6 +425,10 @@ class PdfGenerator {
 			'email'                  => $email,
 			'cpf_rf'                 => $cpf_rf,
 			'calendar_title'         => $calendar['title'] ?? __( 'N/A', 'ffcertificate' ),
+			// The appointment's session (#2405); '' when it has none.
+			'session_name'           => \FreeFormCertificate\SelfScheduling\CalendarSessions::name_of_appointment( $calendar, $appointment ),
+			// The calendar's word for a session (#2413).
+			'session_label'          => \FreeFormCertificate\SelfScheduling\CalendarSessions::label( $calendar ),
 			'appointment_date'       => $formatted_date,
 			'appointment_time'       => $formatted_time,
 			'appointment_end'        => $formatted_end,
@@ -495,7 +499,8 @@ class PdfGenerator {
 		$filename = (string) apply_filters( 'ffcertificate_appointment_receipt_filename', $filename, $calendar_id, $validation_code, $appointment );
 
 		// Allow background image customization via filter.
-		$bg_image = apply_filters( 'ffcertificate_appointment_receipt_bg_image', '', $appointment, $calendar );
+		// A filter can return anything, so the URL is cleaned before it reaches the page (#2344).
+		$bg_image = esc_url_raw( (string) apply_filters( 'ffcertificate_appointment_receipt_bg_image', '', $appointment, $calendar ) );
 
 		return array(
 			'html'       => $html,

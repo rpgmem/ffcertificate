@@ -139,6 +139,7 @@ class AdminLoaderTest extends TestCase {
 			'AdminMenuIcons'                        => array( 'action', 'admin_enqueue_scripts', Admin\AdminMenuIcons::class . '::print_css' ),
 			'DeviceThresholdUpgradeNotice'          => array( 'action', 'admin_notices', Admin\DeviceThresholdUpgradeNotice::class . '::maybe_render' ),
 			'CaptchaModeNotice'                     => array( 'action', 'admin_notices', Admin\CaptchaModeNotice::class . '::maybe_render' ),
+			'CreatedPagesNotice'                    => array( 'action', 'admin_notices', Admin\CreatedPagesNotice::class . '::maybe_render' ),
 			'EncryptionKeyHealthNotice'             => array( 'action', 'admin_notices', Admin\EncryptionKeyHealthNotice::class . '::maybe_render' ),
 			'HtmlRefsNotice'                        => array( 'action', 'admin_notices', Admin\HtmlRefsNotice::class . '::maybe_render' ),
 			'SettingsAjaxEndpoint'                  => array( 'action', 'wp_ajax_' . Admin\SettingsAjaxEndpoint::AJAX_ACTION, Admin\SettingsAjaxEndpoint::class . '::handle' ),
@@ -148,6 +149,7 @@ class AdminLoaderTest extends TestCase {
 			// The record autosave endpoint lives in Core (#1757).
 			'RecordAutosave'                        => array( 'action', 'wp_ajax_' . RecordAutosave::AJAX_ACTION, RecordAutosave::class . '::handle' ),
 			'LocationsAjaxEndpoint'                 => array( 'action', 'wp_ajax_' . Admin\LocationsAjaxEndpoint::ACTION_SAVE, Admin\LocationsAjaxEndpoint::class . '::handle_save' ),
+			'PublicDesignCheckEndpoint'             => array( 'action', 'wp_ajax_' . Admin\PublicDesignCheckEndpoint::ACTION, Admin\PublicDesignCheckEndpoint::class . '::handle' ),
 			'CacheActionsAjaxEndpoint'              => array( 'action', 'wp_ajax_' . Admin\CacheActionsAjaxEndpoint::ACTION_CLEAR, Admin\CacheActionsAjaxEndpoint::class . '::handle_clear' ),
 			'FormFeaturesAjaxEndpoint'              => array( 'action', 'wp_ajax_' . Admin\FormFeaturesAjaxEndpoint::AJAX_ACTION, Admin\FormFeaturesAjaxEndpoint::class . '::handle' ),
 			'MigrationActionsAjaxEndpoint'          => array( 'action', 'wp_ajax_' . Admin\MigrationActionsAjaxEndpoint::AJAX_ACTION, Admin\MigrationActionsAjaxEndpoint::class . '::handle' ),

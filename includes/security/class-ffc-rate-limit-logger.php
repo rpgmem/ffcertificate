@@ -33,19 +33,35 @@ final class RateLimitLogger {
 	 * @param int|null $form_id Form ID.
 	 */
 	public static function log_attempt( string $type, string $identifier, string $action, string $reason, ?int $form_id ): void {
+		// A block also reaches the activity log (#2340), under its own switch:
+		// which limit fired, why and on which form. The identifier stays out;
+		// it is the person, and the table below keeps it keyed.
+		if ( 'blocked' === $action ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				'rate_limit_blocked',
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+				array(
+					'limit'   => $type,
+					'reason'  => $reason,
+					'form_id' => $form_id,
+				)
+			);
+		}
+
 		$s = RateLimitChecker::get_settings();
-		if ( ! $s['logging']['enabled'] || ( ! $s['logging']['log_allowed'] && 'allowed' === $action ) ) {
+		// Allowed and blocked attempts each have their own switch (#2339);
+		// a near miss ('suppressed') and a whitelisted pass follow logging alone.
+		if ( ! $s['logging']['enabled']
+			|| ( empty( $s['logging']['log_allowed'] ) && 'allowed' === $action )
+			|| ( empty( $s['logging']['log_blocked'] ) && 'blocked' === $action ) ) {
 			return;
 		}
 
-		// Nothing is stored in the clear (#2109). An address — the identifier of
-		// the `ip`, `blacklist` and `whitelist` rows — becomes its fingerprint,
-		// so the statistics still group by caller; any other identifier its
-		// sha256 hash. The request address itself is kept only encrypted, for
-		// the masked list of top blocked addresses.
-		$stored_identifier = in_array( $type, array( 'ip', 'blacklist', 'whitelist' ), true )
-			? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier )
-			: hash( 'sha256', (string) $identifier );
+		// Nothing is stored in the clear (#2109, #2343): the identifier is keyed
+		// exactly as the counter table keys it, so the two tables agree. The
+		// request address itself is kept only encrypted, for the masked list
+		// of top blocked addresses.
+		$stored_identifier = RateLimitRepository::storage_identifier( $type, (string) $identifier );
 
 		global $wpdb;
 		$wpdb->insert(
@@ -61,11 +77,12 @@ final class RateLimitLogger {
 				// Encrypted, or not kept at all when encryption is unavailable;
 				// the plaintext `ip_address` column is no longer written.
 				'ip_address_encrypted' => \FreeFormCertificate\Core\Encryption::encrypt( \FreeFormCertificate\Core\RequestInput::get_user_ip() ),
-				'user_agent'           => substr( isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '', 0, 255 ),
 				'current_count'        => 0,
 				'max_allowed'          => 0,
 			),
-			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%d', '%d' )
+			// No user agent (#2339): it identified the visitor's browser and
+			// nothing on the log screen reads it.
+			array( '%s', '%s', '%d', '%s', '%s', '%s', '%d', '%d' )
 		);
 
 		self::cleanup_old_logs();
@@ -92,7 +109,9 @@ final class RateLimitLogger {
 	 */
 	public static function cleanup_expired(): int {
 		global $wpdb;
-		$deleted = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < NOW()', $wpdb->prefix . 'ffc_rate_limits' ) );
+		// Every window column is written in UTC by PHP, so it is compared with
+		// PHP's UTC clock, never the database's `NOW()` (#2339).
+		$deleted = (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE window_end < %s', $wpdb->prefix . 'ffc_rate_limits', gmdate( 'Y-m-d H:i:s' ) ) );
 
 		$d = RateLimitChecker::get_settings()['device'];
 		if ( ! empty( $d['retention_days'] ) ) {

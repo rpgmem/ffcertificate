@@ -28,7 +28,7 @@ use PHPUnit\Framework\TestCase;
  * reason inline — the point is that the decision is taken deliberately rather
  * than arrived at by a copy-paste.
  *
- * What it cannot see: keys built at runtime (`'activity_log_cat_' . $cat`, the
+ * What it cannot see: keys built at runtime (`ActivityLogItems::setting_key( $item )`, the
  * SMTP loop's `$ffcertificate_key`). Those are unique by construction — each
  * loop lives in one file — and `test_the_scan_recognises_every_occurrence`
  * fails loudly if a fourth shape appears, so the scan can never quietly stop

@@ -25,9 +25,42 @@ class Activator {
 	use \FreeFormCertificate\Core\DatabaseHelperTrait;
 
 	/**
-	 * Activate.
+	 * Revision of the schema steps this class runs on a request -- the core schema, the `idx_created` indexes and the user foreign keys (#2430). Bump
+	 * it in the PR that adds or changes a table, a column or an index, so an
+	 * install on the same `FFC_VERSION` (the testes site, between releases)
+	 * runs them too. `SchemaRevisionRegisterTest` fails a schema change that
+	 * does not.
+	 *
+	 * @var string
 	 */
-	public static function activate(): void {
+	public const SCHEMA_REVISION = '1';
+
+	/**
+	 * Option holding the revision last applied. Listed in `uninstall.php`.
+	 *
+	 * @var string
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_core_schema_version';
+
+	/**
+	 * Activate.
+	 *
+	 * Network activation is refused (#2343): every table, option and role is
+	 * per site, and so is the uninstall, so a network-wide activation would
+	 * create the schema on the main site only and leave every other site with
+	 * a plugin that is "active" and has no tables. Activate it per site.
+	 *
+	 * @param bool $network_wide Whether WordPress is activating the plugin for the whole network.
+	 */
+	public static function activate( bool $network_wide = false ): void {
+		if ( $network_wide && function_exists( 'is_multisite' ) && is_multisite() ) {
+			wp_die(
+				esc_html__( 'Free Form Certificate cannot be network activated. Activate it on each site that uses it, from that site\'s Plugins screen.', 'ffcertificate' ),
+				esc_html__( 'Plugin activation refused', 'ffcertificate' ),
+				array( 'back_link' => true )
+			);
+		}
+
 		self::seed_fresh_install_settings();
 		self::create_submissions_table();
 		self::create_activity_log_table();
@@ -367,9 +400,33 @@ class Activator {
 	}
 
 	/**
+	 * Bring the core schema up to this release on an install that was updated
+	 * in place rather than activated (#2343).
+	 *
+	 * An update does not fire the activation hook, so everything only
+	 * `activate()` did -- creating the submissions table, the `auth_code`
+	 * UNIQUE upgrade, the composite indexes and the user foreign keys -- never
+	 * reached an upgraded install. Gated on {@see self::SCHEMA_REVISION}
+	 * (#2430), so it runs once per revision, between releases too, and never
+	 * per request.
+	 *
+	 * @return void
+	 */
+	public static function maybe_upgrade_schema(): void {
+		if ( self::SCHEMA_REVISION !== get_option( self::SCHEMA_REVISION_OPTION, '' ) ) {
+			self::create_submissions_table();
+			self::upgrade_auth_code_unique_constraints();
+			self::add_composite_indexes();
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION, true );
+		}
+
+		self::maybe_add_foreign_keys( true );
+	}
+
+	/**
 	 * Idempotently add `idx_created` indexes to FFC custom tables that
 	 * order/filter on `created_at` but did not declare the index in
-	 * their CREATE TABLE statement. Runs once per `FFC_VERSION`.
+	 * their CREATE TABLE statement. Runs once per {@see self::SCHEMA_REVISION}.
 	 *
 	 * Concrete benefit:
 	 *   - `ffc_recruitment_candidate.created_at`: every admin candidate
@@ -395,7 +452,7 @@ class Activator {
 	public static function maybe_add_perf_indexes(): void {
 		$stored = get_option( 'ffc_perf_indexes_db_version', '' );
 
-		if ( FFC_VERSION === $stored ) {
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
 
@@ -412,7 +469,7 @@ class Activator {
 			}
 		}
 
-		update_option( 'ffc_perf_indexes_db_version', FFC_VERSION, true );
+		update_option( 'ffc_perf_indexes_db_version', self::SCHEMA_REVISION, true );
 	}
 
 	/**
@@ -773,13 +830,26 @@ class Activator {
 	 *
 	 * @since 4.9.7
 	 * @since 6.18.0 Flag-guarded via the `ffc_foreign_keys_db_version` option.
+	 *
+	 * @param bool $from_request Whether the call comes from a request rather than activation.
 	 */
-	public static function maybe_add_foreign_keys(): void {
-		if ( FFC_VERSION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
+	public static function maybe_add_foreign_keys( bool $from_request = false ): void {
+		if ( self::SCHEMA_REVISION === get_option( 'ffc_foreign_keys_db_version', '' ) ) {
 			return;
 		}
 		if ( ! class_exists( '\FreeFormCertificate\Migrations\MigrationForeignKeys' ) ) {
 			return;
+		}
+
+		// From a request (an update applied in place, #2343) one attempt per
+		// revision is enough: an install that cannot take a key (MyISAM) would
+		// otherwise query information_schema on every page. Activation keeps
+		// retrying regardless, as it always did.
+		if ( $from_request ) {
+			if ( self::SCHEMA_REVISION === get_option( 'ffc_foreign_keys_attempted_version', '' ) ) {
+				return;
+			}
+			update_option( 'ffc_foreign_keys_attempted_version', self::SCHEMA_REVISION, true );
 		}
 
 		\FreeFormCertificate\Migrations\MigrationForeignKeys::run();
@@ -788,7 +858,7 @@ class Activator {
 		// table missing this pass) leave the flag unset so the next activation retries.
 		$status = \FreeFormCertificate\Migrations\MigrationForeignKeys::get_status();
 		if ( ! empty( $status['is_complete'] ) ) {
-			update_option( 'ffc_foreign_keys_db_version', FFC_VERSION, true );
+			update_option( 'ffc_foreign_keys_db_version', self::SCHEMA_REVISION, true );
 		}
 	}
 
@@ -806,29 +876,13 @@ class Activator {
 	 * Create verification page.
 	 */
 	private static function create_verification_page(): void {
-		$existing_page = get_page_by_path( 'valid' );
-
-		if ( $existing_page ) {
-			update_option( 'ffc_verification_page_id', $existing_page->ID );
-			return;
-		}
-
-		$page_data = array(
-			'post_title'     => 'Certificate Verification',
-			'post_content'   => '[ffc_verification]',
-			'post_status'    => 'publish',
-			'post_type'      => 'page',
-			'post_name'      => 'valid',
-			'post_author'    => 1,
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
+		$page_id = \FreeFormCertificate\Core\ManagedPages::ensure(
+			'valid',
+			__( 'Certificate Verification', 'ffcertificate' ),
+			'[ffc_verification]'
 		);
-
-		$page_id = wp_insert_post( $page_data, true );
-
-		if ( ! is_wp_error( $page_id ) ) {
+		if ( $page_id > 0 ) {
 			update_option( 'ffc_verification_page_id', $page_id );
-			update_post_meta( $page_id, '_ffc_managed_page', '1' );
 		}
 	}
 
@@ -875,7 +929,10 @@ class Activator {
 			$old_index_names = array();
 
 			foreach ( $indexes as $idx ) {
-				if ( (int) 0 === $idx->Non_unique ) {
+				// `$wpdb` hands every column back as a string, so the comparison is
+				// on the cast value; comparing the raw "0" to an int never matched
+				// and rebuilt the index on every run (#2343).
+				if ( 0 === (int) $idx->Non_unique ) {
 					$has_unique = true;
 				} else {
 					$old_index_names[] = $idx->Key_name;
@@ -886,8 +943,11 @@ class Activator {
 				continue;
 			}
 
-			// Remove duplicate auth_codes (keep the most recent) before adding constraint.
-			$wpdb->query(
+			// Remove duplicate auth_codes (keep the most recent) before adding
+			// constraint. The rows removed are counted and logged (#2343): a
+			// duplicate is a certificate whose code verified another, and an
+			// operator asking where one went needs to find this.
+			$removed = $wpdb->query(
 				$wpdb->prepare(
 					"DELETE t1 FROM %i t1
                      INNER JOIN %i t2
@@ -903,6 +963,16 @@ class Activator {
 					$column
 				)
 			);
+			if ( is_int( $removed ) && $removed > 0 && class_exists( '\\FreeFormCertificate\\Core\\ActivityLog' ) ) {
+				\FreeFormCertificate\Core\ActivityLog::log(
+					'auth_code_duplicates_removed',
+					\FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING,
+					array(
+						'table'   => $table,
+						'removed' => $removed,
+					)
+				);
+			}
 
 			// Drop old non-unique indexes.
 			foreach ( array_unique( $old_index_names ) as $name ) {

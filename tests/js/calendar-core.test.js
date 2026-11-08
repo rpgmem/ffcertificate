@@ -319,6 +319,29 @@ describe('FFCCalendarCore accessors + destroy', () => {
 		inst.destroy();
 		expect(window.$('#cal').children().length).toBe(0);
 	});
+
+	it('destroy removes only its own handlers, not a page script\'s on the same container (#2344)', () => {
+		const inst = build();
+		const own = vi.fn();
+		window.$('#cal').on('click', own);
+		inst.destroy();
+		window.$('#cal').trigger('click');
+		expect(own).toHaveBeenCalledTimes(1);
+		expect(window.$('#cal').data('ffcCalendarCore')).toBeUndefined();
+	});
+
+	it('a second calendar on the same container replaces the first, so a click is answered once (#2344)', () => {
+		const first = vi.fn();
+		const second = vi.fn();
+		build({ onDayClick: first });
+		build({ onDayClick: second });
+		const $day = window.$('#cal .ffc-day:not(.ffc-disabled):not(.ffc-other-month)').first();
+		expect($day.length).toBe(1);
+		$day.trigger('click');
+		expect(first).not.toHaveBeenCalled();
+		expect(second).toHaveBeenCalledTimes(1);
+		expect(window.$('#cal .ffc-calendar-core').length).toBe(1);
+	});
 });
 
 // ----------------------------------------------------------------------

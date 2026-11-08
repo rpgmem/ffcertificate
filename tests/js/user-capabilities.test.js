@@ -24,7 +24,7 @@ function panelMarkup() {
 			<div class="ffc-cap-group-body">
 				<div class="ffc-cap-row" data-ffc-cap-name="view own certificates ffc_view_own_certificates" data-ffc-cap-slug="ffc_view_own_certificates">
 					<input type="checkbox" class="ffc-cap-checkbox" checked>
-					<button type="button" class="ffc-cap-copy" data-ffc-copy="ffc_view_own_certificates">C</button>
+					<button type="button" class="ffc-btn ffc-btn-icon ffc-icon-copy ffc-cap-copy" data-ffc-copy="ffc_view_own_certificates" aria-label="Copy ffc_view_own_certificates"></button>
 				</div>
 				<div class="ffc-cap-row" data-ffc-cap-name="download own certificates ffc_download_own_certificates" data-ffc-cap-slug="ffc_download_own_certificates">
 					<input type="checkbox" class="ffc-cap-checkbox">
@@ -132,7 +132,7 @@ describe('collapse', () => {
 });
 
 describe('copy slug', () => {
-	it('writes the slug to the clipboard and shows a confirmation glyph', () => {
+	it('writes the slug to the clipboard and turns the icon into a check mark', () => {
 		setup();
 		const writeText = vi.fn();
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -141,7 +141,9 @@ describe('copy slug', () => {
 		btn.click();
 
 		expect(writeText).toHaveBeenCalledWith('ffc_view_own_certificates');
-		expect(btn.textContent).toBe('✓');
+		expect(btn.classList.contains('ffc-icon-checkmark')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-copy')).toBe(false);
+		expect(btn.getAttribute('aria-label')).toBe('Copy ffc_view_own_certificates');
 	});
 });
 
@@ -186,7 +188,7 @@ function rolePanelMarkup() {
 function capRow(slug, userGranted) {
 	return `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}" data-ffc-user-granted="${userGranted ? '1' : '0'}">
 		<label class="ffc-control-toggle"><input type="checkbox" class="ffc-cap-checkbox"${userGranted ? ' checked' : ''}><span class="ffc-control-toggle-track"></span></label>
-		<div><span class="ffc-cap-row-name">${slug}</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span></div>
+		<div><span class="ffc-cap-row-name">${slug}</span><span class="ffc-cap-role-tag" data-ffc-role-tag></span><span class="ffc-cap-why" data-ffc-why hidden></span></div>
 		<span class="ffc-cap-origin" data-ffc-origin>—</span>
 	</div>`;
 }
@@ -408,17 +410,17 @@ describe('role presets', () => {
 });
 
 describe('copy slug timeout + edge cases', () => {
-	it('restores the original glyph after the timeout', () => {
+	it('restores the copy icon after the timeout', () => {
 		vi.useFakeTimers();
 		setup();
 		const writeText = vi.fn();
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 		const btn = document.querySelector('.ffc-cap-copy');
-		const original = btn.textContent;
 		btn.click();
-		expect(btn.textContent).toBe('✓');
+		expect(btn.classList.contains('ffc-icon-checkmark')).toBe(true);
 		vi.advanceTimersByTime(900);
-		expect(btn.textContent).toBe(original);
+		expect(btn.classList.contains('ffc-icon-copy')).toBe(true);
+		expect(btn.classList.contains('ffc-icon-checkmark')).toBe(false);
 		vi.useRealTimers();
 	});
 });
@@ -487,5 +489,119 @@ describe('init guard / refreshRow no-checkbox', () => {
 		} finally {
 			if (desc) { Object.defineProperty(document, 'readyState', desc); }
 		}
+	});
+});
+
+// The prompt under the WordPress Role select (#2340).
+describe('demotion prompt', () => {
+	function mount() {
+		window.ffcUserPerms = {};
+		document.body.innerHTML = `
+			<table><tr><td>
+				<select id="role"><option value="subscriber" selected>Subscriber</option><option value="editor">Editor</option></select>
+			</td></tr></table>
+			<div class="ffc-demote-prompt" hidden>
+				<input type="radio" name="ffc_demote_ffc_roles" value="keep" checked>
+				<input type="radio" name="ffc_demote_ffc_roles" value="remove">
+			</div>`;
+		window.ffcUserPermissionsInit();
+		return {
+			prompt: document.querySelector('.ffc-demote-prompt'),
+			select: document.getElementById('role'),
+			radio: (v) => document.querySelector(`input[value="${v}"]`),
+		};
+	}
+
+	it('moves under the Role select and stays hidden until it changes', () => {
+		const { prompt, select } = mount();
+		expect(select.nextElementSibling).toBe(prompt);
+		expect(prompt.hidden).toBe(true);
+		select.value = 'editor';
+		select.dispatchEvent(new Event('change'));
+		expect(prompt.hidden).toBe(false);
+	});
+
+	it('puts the choice back on Keep when the role is changed back', () => {
+		const { prompt, select, radio } = mount();
+		select.value = 'editor';
+		select.dispatchEvent(new Event('change'));
+		radio('remove').checked = true;
+		select.value = 'subscriber';
+		select.dispatchEvent(new Event('change'));
+		expect(prompt.hidden).toBe(true);
+		expect(radio('keep').checked).toBe(true);
+	});
+
+	it('binds once', () => {
+		const { prompt, select } = mount();
+		window.ffcUserPermissionsInit();
+		expect(select.nextElementSibling).toBe(prompt);
+		expect(document.querySelectorAll('.ffc-demote-prompt').length).toBe(1);
+	});
+});
+
+describe('why a switch is locked, and Grant all (#2340)', () => {
+	afterEach(() => {
+		delete window.ffcUserPerms;
+		delete window.FFC;
+	});
+
+	it('names the role that grants a locked capability, and follows role changes', async () => {
+		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true }) }));
+		roleSetup(fetchMock, { grantedBy: 'From the role %s. To remove it, change the role.' });
+		window.ffcUserPerms.roleLabels = { ffc_end_user: 'FFC End User', ffc_recruitment_manager: 'FFC Recruitment - Manager' };
+		window.ffcUserPermissionsInit();
+
+		document.querySelector('[data-ffc-role="ffc_recruitment_manager"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		const whyC = document.querySelector('[data-ffc-cap-slug="cap_c"] [data-ffc-why]');
+		expect(whyC.hidden).toBe(false);
+		expect(whyC.textContent).toBe('From the role FFC Recruitment - Manager. To remove it, change the role.');
+		const whyA = document.querySelector('[data-ffc-cap-slug="cap_a"] [data-ffc-why]');
+		expect(whyA.textContent).toBe('From the role FFC End User. To remove it, change the role.');
+	});
+
+	function grantAllPanel() {
+		window.ffcUserPerms = {
+			userName: 'Ana Souza',
+			roleCaps: {},
+			assigned: [],
+			i18n: { grantAllTitle: 'Grant all %1$d capabilities to %2$s?', grantAllIntro: 'Some reach personal data:', grantAllAgree: 'Grant all %d', cancel: 'Cancel' },
+		};
+		document.body.innerHTML = `<div class="ffc-cap-panel">
+			<button type="button" data-ffc-preset="all">all</button>
+			<section class="ffc-cap-group"><span class="ffc-cap-count">0</span>
+				<div class="ffc-cap-row" data-ffc-cap-slug="ffc_view_x" data-ffc-confirm="0"><input type="checkbox" class="ffc-cap-checkbox"><span class="ffc-cap-row-name">View x</span><span data-ffc-origin></span></div>
+				<div class="ffc-cap-row" data-ffc-cap-slug="ffc_purge_x" data-ffc-confirm="1"><input type="checkbox" class="ffc-cap-checkbox"><span class="ffc-cap-row-name">Purge x</span><span data-ffc-origin></span></div>
+			</section></div>`;
+	}
+
+	it('asks first, naming the powerful capabilities, and grants on agree', async () => {
+		grantAllPanel();
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)) };
+		window.ffcUserPermissionsInit();
+
+		document.querySelector('[data-ffc-preset="all"]').click();
+		const opts = window.FFC.overrideConfirm.mock.calls[0][0];
+		expect(opts.strings.title).toBe('Grant all 2 capabilities to Ana Souza?');
+		expect(opts.strings.agree).toBe('Grant all 2');
+		expect(opts.strings.seconds).toBe(0);
+		expect(opts.reasons).toEqual(['Purge x']);
+		expect(document.querySelector('[data-ffc-cap-slug="ffc_purge_x"] .ffc-cap-checkbox').checked).toBe(false);
+
+		await new Promise((r) => setTimeout(r, 0));
+		expect(document.querySelector('[data-ffc-cap-slug="ffc_purge_x"] .ffc-cap-checkbox').checked).toBe(true);
+		expect(document.querySelector('[data-ffc-cap-slug="ffc_view_x"] .ffc-cap-checkbox').checked).toBe(true);
+	});
+
+	it('changes nothing when the dialog is cancelled', async () => {
+		grantAllPanel();
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(false)) };
+		window.ffcUserPermissionsInit();
+
+		document.querySelector('[data-ffc-preset="all"]').click();
+		await new Promise((r) => setTimeout(r, 0));
+		expect(document.querySelectorAll('.ffc-cap-checkbox:checked').length).toBe(0);
 	});
 });

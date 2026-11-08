@@ -109,6 +109,13 @@ class DateMessagesAdminPageTest extends TestCase {
 	private array $user_audiences = array();
 
 	/**
+	 * Membership reads made in one test (#2336: one for the whole list).
+	 *
+	 * @var int
+	 */
+	private int $membership_reads = 0;
+
+	/**
 	 * Stored preferences JSON by user id.
 	 *
 	 * @var array<int, string>
@@ -184,7 +191,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->post_backup = $_POST ?? array();
 		$_POST             = array();
 		$_GET              = array();
-		$this->caps        = array( 'ffc_manage_date_messages', 'ffc_send_date_messages' );
+		$this->caps        = array( 'ffc_manage_date_messages', 'ffc_send_date_messages', 'ffc_delete_date_messages' );
 		$this->outcome     = null;
 
 		Functions\when( '__' )->returnArg();
@@ -248,6 +255,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->audiences      = array();
 		$this->members        = array();
 		$this->user_audiences = array();
+		$this->membership_reads = 0;
 		$this->preferences    = array();
 		$this->due            = null;
 		$this->queried_days   = array();
@@ -296,6 +304,19 @@ class DateMessagesAdminPageTest extends TestCase {
 				}
 				if ( false !== strpos( (string) $sql, 'WHERE id = %d' ) && self::RUNS === $bound[0] ) {
 					return $this->runs[ (int) $bound[1] ] ?? null;
+				}
+				if ( false !== strpos( (string) $sql, 'COALESCE(SUM(sent)' ) && self::RUNS === $bound[0] ) {
+					// The dashboard totals (#2486): runs since the bound time, tests left out.
+					$totals = array( 'sent' => 0, 'failed' => 0, 'failed_runs' => 0 );
+					foreach ( $this->runs as $run ) {
+						if ( (int) ( $run['started_at'] ?? 0 ) < (int) $bound[1] || $bound[2] === ( $run['trigger_kind'] ?? '' ) ) {
+							continue;
+						}
+						$totals['sent']        += (int) ( $run['sent'] ?? 0 );
+						$totals['failed']      += (int) ( $run['failed'] ?? 0 );
+						$totals['failed_runs'] += (int) ( $run['failed'] ?? 0 ) > 0 ? 1 : 0;
+					}
+					return $totals;
 				}
 				$this->fail( 'Unexpected get_row(): ' . $sql );
 			}
@@ -431,11 +452,33 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 			return $rows;
 		}
+		if ( self::MEMBERS === ( $bound[0] ?? null ) && false !== strpos( $sql, 'SELECT user_id, audience_id FROM %i' ) ) {
+			// AudienceReader::memberships_among(): the audiences, then the users.
+			++$this->membership_reads;
+			preg_match( '/audience_id IN \(([^)]*)\)/', $sql, $m );
+			$audience_count = substr_count( $m[1], '%d' );
+			$audience_ids   = array_slice( $bound, 1, $audience_count );
+			$user_ids       = array_map( 'intval', array_slice( $bound, 1 + $audience_count ) );
+			$rows           = array();
+			foreach ( $audience_ids as $audience_id ) {
+				foreach ( $this->members[ (int) $audience_id ] ?? array() as $user_id ) {
+					if ( in_array( (int) $user_id, $user_ids, true ) ) {
+						$rows[] = array(
+							'user_id'     => (string) $user_id,
+							'audience_id' => (string) $audience_id,
+						);
+					}
+				}
+			}
+			return $rows;
+		}
 		if ( self::AUDIENCES === ( $bound[0] ?? null ) && false !== strpos( $sql, 'SELECT a.* FROM %i a' ) ) {
 			return $this->user_audiences[ (int) $bound[2] ] ?? array();
 		}
 		if ( self::RUNS === ( $bound[0] ?? null ) && false !== strpos( $sql, 'ORDER BY id DESC' ) ) {
-			return array();
+			// The history page asks for a page of runs; the dashboard (#2486)
+			// asks for its latest ones and is answered from the stored runs.
+			return false !== strpos( $sql, 'trigger_kind <> %s' ) ? array_reverse( array_values( $this->runs ) ) : array();
 		}
 		$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
 	}
@@ -576,6 +619,15 @@ class DateMessagesAdminPageTest extends TestCase {
 			}
 		);
 
+		$submenus = array();
+		Functions\when( 'add_submenu_page' )->alias(
+			static function ( ...$args ) use ( &$submenus ) {
+				$submenus[] = array( $args[3], $args[4] );
+				return 'hook';
+			}
+		);
+		Functions\when( 'add_filter' )->justReturn( true );
+
 		$this->caps = array( 'ffc_manage_date_messages' );
 		( new DateMessagesAdminPage() )->register_menu();
 		$this->caps = array( 'ffc_view_date_messages' );
@@ -589,6 +641,53 @@ class DateMessagesAdminPageTest extends TestCase {
 			$registered,
 			'A top-level menu in the FFC block.'
 		);
+		// The dashboard on the bare slug, then a page per section (#2486);
+		// Upcoming dates names people and needs the PII capability.
+		$this->assertSame(
+			array(
+				array( 'ffc_view_date_messages', 'ffc-date-messages' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=rules' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=send' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=history' ),
+				array( 'ffc_view_date_messages', 'ffc-date-messages&tab=settings' ),
+			),
+			array_slice( $submenus, 5 )
+		);
+	}
+
+	public function test_the_dashboard_sums_the_last_runs_and_flags_failures(): void {
+		$this->caps = array( 'ffc_view_date_messages', 'ffc_manage_date_messages' );
+		$this->store_rule( $this->rule() );
+		$this->runs[1] = array( 'id' => 1, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 3600, 'sent' => 9, 'failed' => 0 );
+		$this->runs[2] = array( 'id' => 2, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 1800, 'sent' => 4, 'failed' => 2 );
+		$this->runs[3] = array( 'id' => 3, 'rule_id' => 1, 'trigger_kind' => 'cron', 'started_at' => time() - 40 * DAY_IN_SECONDS, 'sent' => 50, 'failed' => 7 );
+
+		$html = $this->render_screen( array() );
+
+		$this->assertMatchesRegularExpression( '#ffc-stat-card__value">13</span><span class="ffc-stat-card__label">E-mails sent in the last 30 days#', $html, 'runs older than the window are left out' );
+		$this->assertMatchesRegularExpression( '#ffc-icon-badge-danger ffc-icon-warning" aria-hidden="true"></span><span class="ffc-stat-card__value">2</span>#', $html, 'failures wear the danger tone' );
+		$this->assertStringContainsString( '<span>Runs with failures in the last 30 days</span><span>1</span>', $html );
+		$this->assertStringContainsString( '4 sent, 2 failed', $html, 'the latest runs say what failed' );
+		$this->assertStringContainsString( 'Add rule', $html, 'a manager can add a rule from the dashboard' );
+	}
+
+	public function test_the_submenu_lights_the_open_section(): void {
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		$_GET = array( 'page' => 'ffc-date-messages' );
+		$this->assertSame( 'ffc-date-messages', DateMessagesAdminPage::highlight_section( 'x' ), 'the dashboard' );
+		$_GET = array(
+			'page' => 'ffc-date-messages',
+			'tab'  => 'history',
+		);
+		$this->assertSame( 'ffc-date-messages&tab=history', DateMessagesAdminPage::highlight_section( 'x' ) );
+		$_GET = array(
+			'page' => 'ffc-date-messages',
+			'rule' => '4',
+		);
+		$this->assertSame( 'ffc-date-messages&tab=rules', DateMessagesAdminPage::highlight_section( 'x' ), 'the rule editor belongs to Rules' );
+		$_GET = array( 'page' => 'other' );
+		$this->assertSame( 'x', DateMessagesAdminPage::highlight_section( 'x' ) );
+		$_GET = array();
 	}
 
 	public function test_a_new_rule_is_saved_with_its_body_filtered(): void {
@@ -750,9 +849,10 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->assertSame( array( 1, 3 ), array_column( $out['rows'], 'user_id' ) );
 		$this->assertSame( 'opted_out', $out['rows'][1]['decision'], 'An opt-out stays listed, flagged.' );
-		$this->assertTrue( $out['truncated'] );
+		$this->assertFalse( $out['truncated'], 'People outside the audience no longer fill the row limit (#2336).' );
 		$audience_queries = array_filter( $this->prepared, static fn( array $p ): bool => self::MEMBERS === ( $p[1] ?? null ) );
-		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2 ), 'The preview reads the members of the audience asked for.' );
+		// The audience asked for, then only that page's candidates (#2336).
+		$this->assertSame( array( 9 ), array_slice( array_values( $audience_queries )[0], 2, 1 ), 'The preview reads the members of the audience asked for.' );
 	}
 
 	public function test_a_manager_who_cannot_send_may_not_arm_an_announcement(): void {
@@ -774,11 +874,62 @@ class DateMessagesAdminPageTest extends TestCase {
 		$_POST['rule']            = $this->posted();
 		$_POST['rule']['kind']    = Rule::KIND_ANNOUNCEMENT;
 		$_POST['rule']['send_at'] = '';
+		// Saved inactive: activating it would take the right to send (#2336).
+		unset( $_POST['rule']['is_active'] );
 
 		$this->call( 'handle_save' );
 
 		$this->assertCount( 1, $this->writes_to( self::RULES ) );
 		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	/**
+	 * Activating a rule of any kind, and forcing it past opt-outs, take the
+	 * right to send (#2336); editing a rule already active does not.
+	 */
+	public function test_activating_or_forcing_a_rule_takes_the_right_to_send(): void {
+		$this->caps    = array( 'ffc_manage_date_messages' );
+		$_POST['rule'] = $this->posted();
+		$this->call( 'handle_save' );
+		$this->assertSame( array(), $this->writes, 'A new active dated rule is refused.' );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
+
+		$_POST['rule'] = $this->posted();
+		unset( $_POST['rule']['is_active'] );
+		// Only an announcement can be forced; a dated rule always respects.
+		$_POST['rule']['kind']          = Rule::KIND_ANNOUNCEMENT;
+		$_POST['rule']['force_opt_out'] = '1';
+		$this->call( 'handle_save' );
+		$this->assertSame( array(), $this->writes, 'Forcing past opt-outs is refused.' );
+	}
+
+	public function test_a_manager_who_cannot_send_may_edit_a_rule_already_active(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->store_rule( $this->rule( array( 'is_active' => '1' ) ) );
+		$_POST['rule']       = $this->posted();
+		$_POST['rule']['id'] = '3';
+
+		$this->call( 'handle_save' );
+
+		$this->assertSame( 'success', $this->outcome['type'] );
+	}
+
+	public function test_a_manager_who_cannot_send_may_not_copy_a_forced_rule(): void {
+		$this->caps = array( 'ffc_manage_date_messages' );
+		$this->store_rule(
+			$this->rule(
+				array(
+					'kind'            => Rule::KIND_ANNOUNCEMENT,
+					'respect_opt_out' => '0',
+				)
+			)
+		);
+		$_POST['rule_id'] = '3';
+
+		$this->call( 'handle_duplicate' );
+
+		$this->assertSame( array(), $this->writes_to( self::RULES ) );
+		$this->assertSame( DateMessagesAdminPage::send_refusal(), $this->outcome['message'] );
 	}
 
 	public function test_saving_a_rule_that_was_deleted_meanwhile_fails(): void {
@@ -789,6 +940,20 @@ class DateMessagesAdminPageTest extends TestCase {
 
 		$this->assertSame( array(), $this->writes );
 		$this->assertSame( 'error', $this->outcome['type'] );
+	}
+
+	public function test_delete_takes_its_own_capability(): void {
+		// Managing rules no longer includes deleting them (#2336).
+		$this->caps       = array( 'ffc_manage_date_messages' );
+		$_POST['rule_id'] = '3';
+
+		try {
+			$this->call( 'handle_delete' );
+			$this->fail( 'A manager without the delete capability reached the writer.' );
+		} catch ( \DomainException $e ) {
+			$this->assertSame( 'You do not have permission to do this.', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_delete_checks_a_nonce_keyed_to_the_rule(): void {
@@ -847,6 +1012,8 @@ class DateMessagesAdminPageTest extends TestCase {
 			'from'    => '2026-10-01',
 			'to'      => '2026-10-07',
 		);
+		// The first batch primes the page's accounts (#2336).
+		Functions\when( 'cache_users' )->justReturn( null );
 
 		$this->call( 'handle_send_now' );
 
@@ -922,6 +1089,8 @@ class DateMessagesAdminPageTest extends TestCase {
 				'body'    => 'ANNOUNCE',
 			),
 		);
+		// The rule editor's "This rule" card strings (#2498).
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $a ) => 'nonce-' . $a );
 		$media     = 0;
 		Functions\when( 'wp_enqueue_media' )->alias(
@@ -1193,14 +1362,22 @@ class DateMessagesAdminPageTest extends TestCase {
 	}
 
 	public function test_upcoming_rows_name_the_offered_audiences_a_person_belongs_to(): void {
-		$this->user_audiences[7] = array( self::audience( 1, 'Schools' ), self::audience( 9, 'Hidden' ), self::audience( 2, 'Teachers' ) );
-		$method = new \ReflectionMethod( DateMessagesAdminPage::class, 'with_audience_names' );
+		// Person 7 is in Schools, its sub-audience Teachers, and an audience
+		// the filter does not offer; person 8 in none.
+		$this->audiences = array( self::audience( 1, 'Schools' ), self::audience( 2, 'Teachers', 1 ), self::audience( 9, 'Hidden' ) );
+		$this->members   = array(
+			1 => array( 7 ),
+			2 => array( 7 ),
+			9 => array( 7 ),
+		);
+		$method          = new \ReflectionMethod( DateMessagesAdminPage::class, 'with_audience_names' );
 		$method->setAccessible( true );
 
-		$rows = $method->invoke( null, array( array( 'user_id' => 7 ), array( 'user_id' => 8 ) ), array( 1 => 'Schools', 2 => '— Teachers' ) );
+		$rows = $method->invoke( null, array( array( 'user_id' => 7 ), array( 'user_id' => 8 ) ), array( 1 => 'Schools (1)', 2 => '— Teachers (1)' ) );
 
-		$this->assertSame( 'Schools, Teachers', $rows[0]['audiences'] );
+		$this->assertSame( 'Schools, Teachers', $rows[0]['audiences'], 'Plain names, sub-audiences included, nothing the filter does not offer.' );
 		$this->assertSame( '', $rows[1]['audiences'] );
+		$this->assertSame( 1, $this->membership_reads, 'One membership read for the whole list, not one per row.' );
 		$this->assertSame( array( array( 'user_id' => 7 ) ), $method->invoke( null, array( array( 'user_id' => 7 ) ), array() ), 'nothing offered: the rows are untouched' );
 	}
 
@@ -1276,14 +1453,64 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'The daily run is not scheduled.', $html );
 		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
 		$this->assertStringNotContainsString( 'tab=upcoming', $html, 'the upcoming tab needs the PII capability' );
+		$this->assertStringNotContainsString( 'tab=scheduled_tasks', $html, 'the Scheduled Tasks button is only for who can open that screen (#2336)' );
+
+		$this->caps[] = 'ffc_view_settings';
+		$html         = $this->render_screen( array( 'tab' => 'settings' ) );
+		$this->assertStringContainsString( 'tab=scheduled_tasks', $html );
 	}
 
-	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_rules(): void {
+	public function test_an_unknown_tab_and_the_upcoming_tab_without_pii_fall_back_to_the_dashboard(): void {
 		$html = $this->render_screen( array( 'tab' => 'upcoming' ), 'not an array' );
 
-		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
+		$this->assertStringContainsString( 'id="ffc-date-messages-dashboard"', $html, 'The dashboard is the page shown (#2486).' );
 		$this->assertStringContainsString( 'Add rule', $html );
+		$this->assertStringNotContainsString( 'tab=upcoming', $html, 'no upcoming card without the PII capability' );
 		$this->assertStringNotContainsString( 'class="notice', $html, 'a non-array outcome is no outcome' );
+	}
+
+	public function test_the_dashboard_counts_the_rules_and_the_last_runs(): void {
+		$this->caps = array( 'ffc_view_date_messages' );
+		$this->store_rule( $this->rule() );
+
+		$html = $this->render_screen( array() );
+
+		$this->assertStringContainsString( 'id="ffc-date-messages-dashboard"', $html );
+		$this->assertStringContainsString( '<h1 class="wp-heading-inline">Date Messages</h1>', $html );
+		$this->assertStringContainsString( 'class="ffc-dashboard"', $html );
+		$this->assertStringContainsString( 'tab=rules', $html, 'the Rules card opens the rules page' );
+		$this->assertStringContainsString( 'Nothing has run yet.', $html );
+		$this->assertStringContainsString( 'The daily run is not scheduled', $html, 'a missing daily run needs attention' );
+		$this->assertStringNotContainsString( 'Add rule', $html, 'a view-only operator gets no add button' );
+		$this->assertStringNotContainsString( 'ffc-settings-tabs__nav', $html, 'no vertical menu: the WordPress submenu holds the sections' );
+	}
+
+	/**
+	 * The rule editor follows the admin layout (#2498): a tab per part of the
+	 * rule inside one form, and a side column whose first card holds the
+	 * Active switch and Save, then the "This rule" summary.
+	 */
+	public function test_the_rule_editor_is_tabs_and_a_side_column_in_one_form(): void {
+		Functions\when( 'wp_editor' )->justReturn( null );
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'esc_attr_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'checked' )->justReturn( '' );
+		$html = $this->render_screen( array( 'rule' => '0' ) );
+
+		preg_match_all( '/id="ffc-tabnav-([a-z]+)"/', $html, $tabs );
+		$this->assertSame( array( 'rule', 'message', 'appearance', 'sending', 'summary', 'check' ), $tabs[1] );
+		$this->assertStringNotContainsString( 'ffc-sections', $html, 'no stacked sections any more' );
+
+		$form = substr( $html, (int) strpos( $html, '<form' ), (int) strpos( $html, '</form>' ) - (int) strpos( $html, '<form' ) );
+		$side = (int) strpos( $form, 'ffc-editor__side' );
+		$this->assertGreaterThan( 0, $side, 'the side column is inside the form, so its switch and Save post with it' );
+		$this->assertGreaterThan( $side, (int) strpos( $form, 'name="rule[is_active]"' ), 'the Active switch sits in the side column' );
+		$this->assertGreaterThan( (int) strpos( $form, 'name="rule[is_active]"' ), (int) strpos( $form, 'Save rule' ), 'Save follows the switch in the first card' );
+		$this->assertGreaterThan( (int) strpos( $form, 'Save rule' ), (int) strpos( $form, 'This rule' ), 'the summary is the second card' );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="kind">By date<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="offset">On the date itself<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="audiences">Everyone<', $html );
+		$this->assertStringContainsString( 'data-ffc-dm-fact="digest">Off<', $html );
 	}
 
 	public function test_opening_a_rule_that_no_longer_exists_lands_on_the_list_with_an_error(): void {
@@ -1295,7 +1522,7 @@ class DateMessagesAdminPageTest extends TestCase {
 		);
 
 		$this->assertStringContainsString( '<div class="notice notice-error"><span class="ffc-admin-notice-icon ffc-icon-error ffc-icon-tone-danger" aria-hidden="true"></span>That rule no longer exists.</div>', $html );
-		$this->assertStringContainsString( 'aria-labelledby="ffc-date-messages-tabnav-rules"', $html );
+		$this->assertStringContainsString( 'id="ffc-date-messages-rules"', $html, 'The rules page is the one shown.' );
 	}
 
 	public function test_the_history_tab_reads_a_page_of_runs(): void {
@@ -1357,6 +1584,15 @@ class DateMessagesAdminPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-type="date_messages_person" data-field="name" data-submission-id="42"', $html );
 		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
 		$this->assertCount( 7, $this->queried_days, 'Seven days were read.' );
+		$this->assertStringNotContainsString( 'onchange', $html, 'Choosing a rule changes nothing until Filter is pressed (#2336).' );
+	}
+
+	public function test_a_toggle_row_has_one_label_the_toggle_s_own(): void {
+		$form = (string) file_get_contents( dirname( __DIR__, 2 ) . '/templates/admin/date-messages/rule-form.php' );
+
+		foreach ( array( 'ffc-dm-is-active', 'ffc-dm-send-to-user', 'ffc-dm-digest-enabled' ) as $id ) {
+			$this->assertStringNotContainsString( '<label for="' . $id . '"', $form, $id . ': render_toggle() prints the label; a second one in the row header is a duplicate (#2336).' );
+		}
 	}
 
 	/**

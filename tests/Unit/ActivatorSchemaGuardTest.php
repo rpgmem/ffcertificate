@@ -10,7 +10,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Every activator chain `Loader` calls on `plugins_loaded` probes the schema at
- * most once per `FFC_VERSION` (#1231).
+ * most once per value of its gate (#1231): the module's schema revision where
+ * it has one (#2430), `FFC_VERSION` where it still has not.
  *
  * WHAT WAS WRONG
  *
@@ -20,7 +21,7 @@ use PHPUnit\Framework\TestCase;
  * anonymous frontend included -- on an install where there was nothing to
  * migrate.
  *
- * WHY THE GUARD IS `FFC_VERSION` AND NOT A ONE-SHOT MARKER
+ * WHY THE GUARD IS A REVISION OR A VERSION AND NOT A ONE-SHOT MARKER
  *
  * These calls exist because an in-place plugin update does NOT fire
  * `register_activation_hook`. The property to preserve is "the schema heals
@@ -244,6 +245,23 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * @param string $stored   The value the option already holds.
 	 * @return int
 	 */
+	/**
+	 * The value an established install holds in a chain's option: the class's
+	 * own schema revision when that option is its revision option (#2430),
+	 * the plugin version for the gates that still follow it.
+	 *
+	 * @param string $class  The activator class.
+	 * @param string $option The option.
+	 * @return string
+	 */
+	private static function current( string $class, string $option ): string {
+		$revision_option = $class . '::SCHEMA_REVISION_OPTION';
+		if ( defined( $revision_option ) && constant( $revision_option ) === $option ) {
+			return (string) constant( $class . '::SCHEMA_REVISION' );
+		}
+		return FFC_VERSION;
+	}
+
 	private function run_chain( string $class, string $method, string $option, string $stored ): int {
 		$this->queries = 0;
 
@@ -253,17 +271,15 @@ class ActivatorSchemaGuardTest extends TestCase {
 		// install -- the case this test measures -- they have already run.
 		// Without that, the audience chain enters a repository whose `db()` is
 		// typed `: wpdb`, and the anonymous double here does not satisfy it.
-		// The audience columns' revision gate (#1918) is current on an
-		// established install: it answers its own constant, which is what
-		// "already run" means for it.
+		// Every schema revision gate (#2430) is current on an established
+		// install: each answers its own constant, read from the activators.
+		$revisions = \FreeFormCertificate\Tests\Support\SchemaRevisions::current_options();
 		Functions\when( 'get_option' )->alias(
-			static function ( string $key, $default_value = false ) use ( $option, $stored ) {
+			static function ( string $key, $default_value = false ) use ( $option, $stored, $revisions ) {
 				if ( $key === $option ) {
 					return $stored;
 				}
-				return \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION_OPTION === $key
-					? \FreeFormCertificate\Audience\AudienceActivator::SCHEMA_REVISION
-					: '1';
+				return $revisions[ $key ] ?? '1';
 			}
 		);
 		Functions\when( 'update_option' )->justReturn( true );
@@ -290,11 +306,11 @@ class ActivatorSchemaGuardTest extends TestCase {
 			sprintf( '%s::%s() did not probe the schema even without the guard — the measurement is broken, not the chain.', $class, $method )
 		);
 
-		$guarded = $this->run_chain( $class, $method, $option, FFC_VERSION );
+		$guarded = $this->run_chain( $class, $method, $option, self::current( $class, $option ) );
 		$this->assertSame(
 			0,
 			$guarded,
-			sprintf( '%s::%s() probed the schema with the option already at FFC_VERSION (%d queries).', $class, $method, $guarded )
+			sprintf( '%s::%s() probed the schema with the option already current (%d queries).', $class, $method, $guarded )
 		);
 	}
 
@@ -312,7 +328,7 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * @param string $option The version option.
 	 */
 	public function test_a_version_bump_rearms_the_chain( string $class, string $method, string $option ): void {
-		$after_bump = $this->run_chain( $class, $method, $option, FFC_VERSION . '-previous' );
+		$after_bump = $this->run_chain( $class, $method, $option, self::current( $class, $option ) . '-previous' );
 
 		$this->assertGreaterThan(
 			0,
@@ -343,6 +359,14 @@ class ActivatorSchemaGuardTest extends TestCase {
 	 * caller was `Activator::activate()`, and plugin activation is not something
 	 * an in-place update or an rsync deploy performs. Fresh installs had them;
 	 * every upgraded install did not.
+	 *
+	 * **It follows the creating METHOD, not the class (#2343).** The first
+	 * version accepted a table whenever its class's name appeared in Loader,
+	 * so `AudienceActivator` -- named there for its `maybe_migrate()` -- passed
+	 * for twelve tables while that method created three; the self-scheduling
+	 * tables and `ffc_submissions` were the same. The scan now indexes every
+	 * method, follows the static calls from what Loader names, and asks whether
+	 * the method holding each `CREATE TABLE` is among those reached.
 	 *
 	 * **The rule is about the TABLE, not the class**, and that distinction is
 	 * what lets it block at zero with no allowlist. `MigrationDynamicReregFields`
@@ -375,6 +399,12 @@ class ActivatorSchemaGuardTest extends TestCase {
 		$this->assertNotEmpty( $statements, 'No CREATE TABLE statement was found — the collector is broken.' );
 		$this->assertNotSame( '', $loader, 'Could not read the Loader — the reachability half did not run.' );
 
+		$methods = self::method_index( $root . '/includes' );
+		$this->assertArrayHasKey( 'Activator::activate', $methods, 'The method index lost the activator — the scan collapsed.' );
+
+		$reached = self::reached_from( self::loader_entries( $loader ), $methods );
+		$this->assertArrayHasKey( 'ActivityLog::create_table', $reached, 'A delegation Loader is known to reach was not followed — the call graph collapsed.' );
+
 		$reachable = array();
 		$declared  = array();
 
@@ -386,13 +416,12 @@ class ActivatorSchemaGuardTest extends TestCase {
 
 			$declared[ $table ] = true;
 
-			$source = (string) file_get_contents( $statement['file'] );
-			if ( 1 !== preg_match( '/^class\s+(\w+)/m', $source, $m ) ) {
-				continue;
-			}
-
-			if ( false !== strpos( $loader, $m[1] ) ) {
-				$reachable[ $table ] = true;
+			foreach ( array_keys( $reached ) as $method ) {
+				$span = $methods[ $method ];
+				if ( $span['file'] === $statement['file'] && $statement['line'] >= $span['start'] && $statement['line'] <= $span['end'] ) {
+					$reachable[ $table ] = true;
+					break;
+				}
 			}
 		}
 
@@ -404,8 +433,155 @@ class ActivatorSchemaGuardTest extends TestCase {
 		$this->assertSame(
 			array(),
 			$orphans,
-			'These tables are declared only by classes nothing calls at runtime, so they reach a fresh install and no upgraded one. Wire the declaring activator into Loader behind a version gate, as ReregistrationActivator and UserDashboardActivator are.'
+			'These tables are created only by methods nothing calls at runtime, so they reach a fresh install and no upgraded one. Call the creating method from the module\'s version-gated maybe_migrate(), as AudienceActivator and SelfSchedulingActivator do.'
 		);
+	}
+
+	/**
+	 * Every method under `includes/`, by `ShortClass::method`, with its line
+	 * span and the static calls it makes (`self::`, `static::` and a named
+	 * class, resolved to the class's short name).
+	 *
+	 * @param string $dir Directory to scan.
+	 * @return array<string, array{file: string, start: int, end: int, calls: list<string>}>
+	 */
+	private static function method_index( string $dir ): array {
+		$methods  = array();
+		$iterator = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ) );
+
+		foreach ( $iterator as $file ) {
+			if ( 'php' !== $file->getExtension() ) {
+				continue;
+			}
+			$path   = $file->getPathname();
+			$tokens = token_get_all( (string) file_get_contents( $path ) );
+			$count  = count( $tokens );
+			$class  = null;
+			$depth  = 0;
+			$open   = null;
+			$level  = 0;
+			$line   = 1;
+
+			for ( $i = 0; $i < $count; $i++ ) {
+				$token = $tokens[ $i ];
+				if ( is_array( $token ) ) {
+					$line = $token[2];
+				}
+
+				if ( is_array( $token ) && in_array( $token[0], array( T_CLASS, T_TRAIT ), true ) ) {
+					$class = self::next_name( $tokens, $i );
+				}
+
+				if ( is_array( $token ) && T_FUNCTION === $token[0] && null !== $class && null === $open ) {
+					$name = self::next_name( $tokens, $i );
+					if ( null !== $name ) {
+						$open             = $class . '::' . $name;
+						$level            = $depth;
+						$methods[ $open ] = array(
+							'file'  => $path,
+							'start' => $line,
+							'end'   => PHP_INT_MAX,
+							'calls' => array(),
+						);
+					}
+				}
+
+				if ( '{' === $token || ( is_array( $token ) && in_array( $token[0], array( T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES ), true ) ) ) {
+					++$depth;
+				} elseif ( '}' === $token ) {
+					--$depth;
+					if ( null !== $open && $depth === $level ) {
+						$methods[ $open ]['end'] = $line;
+						$open                    = null;
+					}
+				}
+
+				if ( null !== $open && is_array( $token ) && in_array( $token[0], array( T_STRING, T_STATIC, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED ), true )
+					&& isset( $tokens[ $i + 1 ], $tokens[ $i + 2 ] ) && is_array( $tokens[ $i + 1 ] ) && T_DOUBLE_COLON === $tokens[ $i + 1 ][0]
+					&& is_array( $tokens[ $i + 2 ] ) && T_STRING === $tokens[ $i + 2 ][0] ) {
+					$target                      = in_array( strtolower( $token[1] ), array( 'self', 'static' ), true ) ? $class : self::short( $token[1] );
+					$methods[ $open ]['calls'][] = $target . '::' . $tokens[ $i + 2 ][1];
+				}
+			}
+		}
+
+		return $methods;
+	}
+
+	/**
+	 * The next identifier after token `$i`, or null at an opening parenthesis
+	 * or brace (an anonymous function or class).
+	 *
+	 * @param array<int, mixed> $tokens Tokens.
+	 * @param int               $i      Index.
+	 * @return string|null
+	 */
+	private static function next_name( array $tokens, int $i ): ?string {
+		$count = count( $tokens );
+		for ( $j = $i + 1; $j < $count; $j++ ) {
+			if ( '(' === $tokens[ $j ] || '{' === $tokens[ $j ] ) {
+				return null;
+			}
+			if ( is_array( $tokens[ $j ] ) && T_STRING === $tokens[ $j ][0] ) {
+				return $tokens[ $j ][1];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The short name of a possibly qualified class name.
+	 *
+	 * @param string $name Class name.
+	 * @return string
+	 */
+	private static function short( string $name ): string {
+		$parts = explode( '\\', $name );
+		return (string) end( $parts );
+	}
+
+	/**
+	 * The methods Loader names: a static call, or a `[ X::class, 'method' ]` callback.
+	 *
+	 * @param string $loader Loader source.
+	 * @return list<string>
+	 */
+	private static function loader_entries( string $loader ): array {
+		$entries = array();
+		if ( preg_match_all( '/([A-Za-z_\\\\]+)::([a-z_]+)\s*\(/', $loader, $calls, PREG_SET_ORDER ) ) {
+			foreach ( $calls as $call ) {
+				$entries[] = self::short( $call[1] ) . '::' . $call[2];
+			}
+		}
+		if ( preg_match_all( "/array\(\s*([A-Za-z_\\\\]+)::class\s*,\s*'([a-z_]+)'/", $loader, $callbacks, PREG_SET_ORDER ) ) {
+			foreach ( $callbacks as $callback ) {
+				$entries[] = self::short( $callback[1] ) . '::' . $callback[2];
+			}
+		}
+		return $entries;
+	}
+
+	/**
+	 * Every method reached from the entries, following static calls.
+	 *
+	 * @param list<string>                                                                    $entries Entry methods.
+	 * @param array<string, array{file: string, start: int, end: int, calls: list<string>}> $methods Method index.
+	 * @return array<string, true>
+	 */
+	private static function reached_from( array $entries, array $methods ): array {
+		$reached = array();
+		$queue   = $entries;
+		while ( array() !== $queue ) {
+			$method = (string) array_pop( $queue );
+			if ( isset( $reached[ $method ] ) || ! isset( $methods[ $method ] ) ) {
+				continue;
+			}
+			$reached[ $method ] = true;
+			foreach ( $methods[ $method ]['calls'] as $call ) {
+				$queue[] = $call;
+			}
+		}
+		return $reached;
 	}
 
 	public function test_every_guard_option_is_declared_in_the_uninstall_manifest(): void {

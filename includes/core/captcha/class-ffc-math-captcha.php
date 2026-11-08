@@ -60,10 +60,11 @@ class MathCaptcha implements CaptchaProviderInterface {
 	/**
 	 * {@inheritDoc}
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return string Escaped HTML.
 	 */
-	public function render_fields(): string {
-		$challenge = SecurityService::generate_simple_captcha();
+	public function render_fields( string $context = '' ): string {
+		$challenge = SecurityService::generate_simple_captcha( $context );
 
 		++self::$instances;
 
@@ -95,30 +96,33 @@ class MathCaptcha implements CaptchaProviderInterface {
 	 * {@inheritDoc}
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function verify( array $request ) {
-		return $this->check( $request, true );
+	public function verify( array $request, string $context = '' ) {
+		return $this->check( $request, $context, true );
 	}
 
 	/**
 	 * {@inheritDoc}
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @return true|string
 	 */
-	public function peek( array $request ) {
-		return $this->check( $request, false );
+	public function peek( array $request, string $context = '' ) {
+		return $this->check( $request, $context, false );
 	}
 
 	/**
 	 * Shared body of {@see verify()} and {@see peek()}.
 	 *
 	 * @param array<string, mixed> $request Request data.
+	 * @param string               $context Context the caller expects.
 	 * @param bool                 $consume Whether to spend the challenge.
 	 * @return true|string
 	 */
-	private function check( array $request, bool $consume ) {
+	private function check( array $request, string $context, bool $consume ) {
 		if ( ! isset( $request['ffc_captcha_ans'] ) || ! isset( $request['ffc_captcha_hash'] ) ) {
 			return \__( 'Error: Please answer the security question.', 'ffcertificate' );
 		}
@@ -127,10 +131,13 @@ class MathCaptcha implements CaptchaProviderInterface {
 		$token  = (string) $request['ffc_captcha_hash'];
 
 		$ok = $consume
-			? SecurityService::verify_simple_captcha( $answer, $token )
-			: SecurityService::peek_simple_captcha( $answer, $token );
+			? SecurityService::verify_simple_captcha( $answer, $token, $context )
+			: SecurityService::peek_simple_captcha( $answer, $token, $context );
 
 		if ( ! $ok ) {
+			if ( SecurityService::simple_captcha_expired( $token ) ) {
+				return \__( 'The security question expired. Please answer the new one.', 'ffcertificate' );
+			}
 			return \__( 'Error: The math answer is incorrect.', 'ffcertificate' );
 		}
 
@@ -144,10 +151,11 @@ class MathCaptcha implements CaptchaProviderInterface {
 	 * since long before this contract existed; `provider` is additive, so a
 	 * client that only knows the old keys keeps working.
 	 *
+	 * @param string $context What the challenge is issued for.
 	 * @return array<string, mixed>
 	 */
-	public function challenge_payload(): array {
-		$challenge = SecurityService::generate_simple_captcha();
+	public function challenge_payload( string $context = '' ): array {
+		$challenge = SecurityService::generate_simple_captcha( $context );
 
 		return array(
 			'provider'  => self::ID,

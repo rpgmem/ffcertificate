@@ -125,14 +125,20 @@ class GeofenceGeolocationTest extends TestCase {
 	/**
 	 * When geo_areas is empty, validation returns valid with 'no_areas_defined'.
 	 */
-	public function test_geolocation_valid_when_no_areas_defined(): void {
+	/**
+	 * #2339: a location restriction that names no valid area refuses. It
+	 * used to pass, so a deleted location or a mistyped area silently
+	 * lifted the restriction.
+	 */
+	public function test_geolocation_refuses_when_no_areas_defined(): void {
 		Functions\when( '__' )->returnArg();
 
 		$config = array( 'geo_areas' => '' );
 		$result = Geofence::validate_geolocation( $config );
 
-		$this->assertTrue( $result['valid'] );
+		$this->assertFalse( $result['valid'] );
 		$this->assertSame( 'no_areas_defined', $result['details']['reason'] );
+		$this->assertStringContainsString( 'no valid area', $result['message'] );
 	}
 
 	/**
@@ -318,6 +324,10 @@ class GeofenceGeolocationTest extends TestCase {
 				return $thing instanceof \WP_Error;
 			}
 		);
+
+		// No lookup failed a moment ago, so the service is asked (#2339).
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$requests        = new \stdClass();
 		$requests->calls = array();

@@ -23,8 +23,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * The screen an operator configures date messages on (#1538).
  *
- * Four tabs on one page: the rules (list and editor), a manual send over a
- * range, the history of runs, and the daily send time. Every write is an
+ * A dashboard, then one page per section (#2486): the rules (list and
+ * editor), a manual send over a range, the history of runs, the upcoming
+ * dates (only with the personal-data capability), and the schedule. Every
+ * write is an
  * `admin_post` action carrying a nonce and checked against the manage
  * capability; the page itself only needs the view capability, and renders
  * read-only for an operator who holds nothing more.
@@ -74,6 +76,12 @@ final class DateMessagesAdminPage {
 	public const SEND_CAP = 'ffc_send_date_messages';
 
 	/**
+	 * Capability to delete a rule (#2336), split out of managing rules like
+	 * every delete cap.
+	 */
+	public const DELETE_CAP = 'ffc_delete_date_messages';
+
+	/**
 	 * `admin_post` actions. Each nonce action equals its `admin_post`
 	 * action, keyed per rule where the action names one.
 	 */
@@ -91,6 +99,12 @@ final class DateMessagesAdminPage {
 	 * Runs per history page.
 	 */
 	public const HISTORY_PER_PAGE = 20;
+
+	/** Days the dashboard counts deliveries over. */
+	public const DASHBOARD_DAYS = 30;
+
+	/** Runs the dashboard's side column lists. */
+	private const DASHBOARD_RUNS = 3;
 
 	/**
 	 * Transient prefix carrying one outcome from a write back to the screen,
@@ -160,6 +174,15 @@ final class DateMessagesAdminPage {
 	}
 
 	/**
+	 * Whether the current user may delete a rule (#2336).
+	 *
+	 * @return bool
+	 */
+	public static function can_delete(): bool {
+		return Capabilities::current_user_can_admin_or( self::DELETE_CAP );
+	}
+
+	/**
 	 * Whether the current user may see recipients by name.
 	 *
 	 * @return bool
@@ -192,6 +215,76 @@ final class DateMessagesAdminPage {
 			// Shortener (26.4) to keep the FFC block contiguous.
 			26.5
 		);
+
+		// The dashboard on the bare slug, then one page per section on
+		// `&tab=…` (#2486). WordPress adds a duplicate first row for a menu
+		// with a callback; the dashboard entry replaces it.
+		global $submenu;
+		if ( isset( $submenu[ self::MENU_SLUG ] ) ) {
+			$submenu[ self::MENU_SLUG ] = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Replacing the auto-generated duplicate row is the canonical pattern.
+		}
+		$pages = array( 'dashboard' => __( 'Dashboard', 'ffcertificate' ) ) + self::section_labels();
+		foreach ( $pages as $tab => $label ) {
+			add_submenu_page(
+				self::MENU_SLUG,
+				$label,
+				$label,
+				$cap,
+				'dashboard' === $tab ? self::MENU_SLUG : self::MENU_SLUG . '&tab=' . $tab,
+				array( $this, 'render_page' )
+			);
+		}
+		add_filter( 'submenu_file', array( self::class, 'highlight_section' ) );
+	}
+
+	/**
+	 * The section pages after the dashboard, in menu order. Upcoming dates
+	 * names people, so it is listed only to who may see them.
+	 *
+	 * @return array<string, string> Slug => label.
+	 */
+	public static function section_labels(): array {
+		$labels = array(
+			'rules'    => __( 'Rules', 'ffcertificate' ),
+			'send'     => __( 'Send now', 'ffcertificate' ),
+			'history'  => __( 'History', 'ffcertificate' ),
+			'upcoming' => __( 'Upcoming dates', 'ffcertificate' ),
+			'settings' => __( 'Settings', 'ffcertificate' ),
+		);
+		if ( ! self::can_view_pii() ) {
+			unset( $labels['upcoming'] );
+		}
+		return $labels;
+	}
+
+	/**
+	 * The address of a section page, or of the dashboard for `dashboard`.
+	 *
+	 * @param string $tab Section slug.
+	 * @return string
+	 */
+	public static function section_url( string $tab ): string {
+		$args = array( 'page' => self::MENU_SLUG );
+		if ( 'dashboard' !== $tab ) {
+			$args['tab'] = $tab;
+		}
+		return add_query_arg( $args, admin_url( 'admin.php' ) );
+	}
+
+	/**
+	 * Highlight the submenu row of the open section: WordPress compares the
+	 * `?page=` value alone, so every section would light the dashboard row.
+	 * The rule editor belongs to Rules.
+	 *
+	 * @param string|null $submenu_file The submenu file WordPress resolved.
+	 * @return string|null
+	 */
+	public static function highlight_section( $submenu_file ) {
+		if ( self::MENU_SLUG !== RequestInput::get_get_key( 'page' ) ) {
+			return $submenu_file;
+		}
+		$tab = RequestInput::has_get( 'rule' ) ? 'rules' : RequestInput::get_get_key( 'tab' );
+		return in_array( $tab, self::TABS, true ) ? self::MENU_SLUG . '&tab=' . $tab : self::MENU_SLUG;
 	}
 
 	/**
@@ -210,6 +303,11 @@ final class DateMessagesAdminPage {
 		// The vertical tab layout lives in ffc-admin-settings.css, as it does
 		// for Recruitment; its other rules are scoped and stay dormant here.
 		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-admin-settings' );
+
+		// The rule editor's tabs (#2498), the script the other editors use.
+		if ( RequestInput::has_get( 'rule' ) ) {
+			\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+		}
 
 		// The body appearance card (#1660) picks an image from the Media
 		// Library and its colours with the picker the Email Model uses.
@@ -237,11 +335,45 @@ final class DateMessagesAdminPage {
 				'decimal'       => self::decimal_point(),
 				'decisions'     => self::decision_labels(),
 				'strings'       => array(
-					'loading'   => __( 'Working…', 'ffcertificate' ),
-					'failed'    => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
-					'truncated' => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
-					'none'      => __( 'Nobody falls on these dates.', 'ffcertificate' ),
-					'forced'    => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
+					'loading'        => __( 'Working…', 'ffcertificate' ),
+					'failed'         => __( 'The request failed. Reload the page and try again.', 'ffcertificate' ),
+					'truncated'      => __( 'Only the first rows are listed; the totals count everyone.', 'ffcertificate' ),
+					'none'           => __( 'Nobody falls on these dates.', 'ffcertificate' ),
+					'noneAnnounce'   => __( 'Nobody in the rule\'s audiences is left to reach: everyone has received it or opted out.', 'ffcertificate' ),
+					'columns'        => array(
+						__( 'Name', 'ffcertificate' ),
+						__( 'E-mail', 'ffcertificate' ),
+						__( 'Date', 'ffcertificate' ),
+						__( 'Status', 'ffcertificate' ),
+					),
+					'forced'         => __( 'Forced past the opt-out (included in the total above)', 'ffcertificate' ),
+					'kindReplace'    => __( 'Replace the subject and the message with the default text of this kind? Your changes will be lost.', 'ffcertificate' ),
+					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
+					'confirmSend'    => __( 'Send "%1$s" for %2$s to %3$s people?', 'ffcertificate' ),
+					/* translators: 1: rule name, 2: the dates, or "today", 3: number of people */
+					'confirmSummary' => __( 'Run "%1$s" for %2$s? Personal e-mails are off: nobody is e-mailed, and its managers receive the summary of the %3$s people whose date it is.', 'ffcertificate' ),
+					'today'          => __( 'today', 'ffcertificate' ),
+					// The rule editor's "This rule" card (#2498); the same
+					// sentences the template renders first.
+					'facts'          => array(
+						'onDate'     => __( 'On the date itself', 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'dayBefore'  => _n( '%d day before the date', '%d days before the date', 1, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'daysBefore' => _n( '%d day before the date', '%d days before the date', 2, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'dayAfter'   => _n( '%d day after the date', '%d days after the date', 1, 'ffcertificate' ),
+						/* translators: %d: number of days */
+						'daysAfter'  => _n( '%d day after the date', '%d days after the date', 2, 'ffcertificate' ),
+						'atTime'     => __( 'Once, at the time set in Sending', 'ffcertificate' ),
+						'byHand'     => __( 'By hand, with Send now', 'ffcertificate' ),
+						'everyone'   => __( 'Everyone', 'ffcertificate' ),
+						/* translators: %d: number of audiences */
+						'audience'   => _n( '%d audience', '%d audiences', 1, 'ffcertificate' ),
+						/* translators: %d: number of audiences */
+						'audiences'  => _n( '%d audience', '%d audiences', 2, 'ffcertificate' ),
+						'off'        => __( 'Off', 'ffcertificate' ),
+					),
 				),
 			)
 		);
@@ -257,6 +389,21 @@ final class DateMessagesAdminPage {
 		// The rule's toggles and appearance save per record (#1757).
 		\FreeFormCertificate\Core\RecordAutosave::enqueue();
 
+		// The Settings page's dashboard controls save as they change, through
+		// the settings endpoint (#2503); the page has no form to clobber them.
+		if ( 'settings' === RequestInput::get_get_key( 'tab' ) ) {
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-core', 'ffc-admin-autosave' );
+			wp_localize_script(
+				'ffc-admin-autosave',
+				'ffcAdminAutosave',
+				array(
+					'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
+				)
+			);
+		}
+
 		// One default per kind; the editor switches between them with the kind
 		// selector (ffc-date-messages-admin.js), so both are supplied.
 		$defaults     = MessageBuilder::defaults();
@@ -268,10 +415,12 @@ final class DateMessagesAdminPage {
 			'ffcEmailRestoreDefaults',
 			array(
 				'date_message_body'              => array(
+					'subject' => $defaults['subject'],
 					'body'    => $defaults['body'],
 					'confirm' => $confirm,
 				),
 				'date_message_announcement_body' => array(
+					'subject' => $announcement['subject'],
 					'body'    => $announcement['body'],
 					'confirm' => $confirm,
 				),
@@ -324,10 +473,11 @@ final class DateMessagesAdminPage {
 			wp_die( esc_html__( 'You do not have permission to view this page.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
-		$tab = RequestInput::get_get_key( 'tab', 'rules' );
-		$tab = in_array( $tab, self::TABS, true ) ? $tab : 'rules';
+		// No (or an unknown) `tab` opens the dashboard (#2486).
+		$tab = RequestInput::get_get_key( 'tab', 'dashboard' );
+		$tab = in_array( $tab, self::TABS, true ) ? $tab : 'dashboard';
 		if ( 'upcoming' === $tab && ! self::can_view_pii() ) {
-			$tab = 'rules';
+			$tab = 'dashboard';
 		}
 
 		$outcome    = $this->take_outcome();
@@ -340,7 +490,8 @@ final class DateMessagesAdminPage {
 		$editing    = null;
 		$draft      = array();
 
-		if ( 'rules' === $tab && RequestInput::has_get( 'rule' ) ) {
+		// `rule` opens the editor, whatever page the link came from.
+		if ( RequestInput::has_get( 'rule' ) ) {
 			$rule_id = RequestInput::get_get_int( 'rule' );
 			$editing = $rule_id > 0 ? RuleReader::get_by_id( $rule_id ) : null;
 			$draft   = is_array( $outcome['draft'] ?? null ) ? $outcome['draft'] : array();
@@ -390,8 +541,40 @@ final class DateMessagesAdminPage {
 		$next_run    = wp_next_scheduled( DateMessagesCron::CRON_HOOK );
 		$queue_ready = class_exists( \FreeFormCertificate\Integrations\MailQueue::class ) && \FreeFormCertificate\Integrations\MailQueue::is_active();
 		$today       = Runner::today();
+		$dashboard   = 'dashboard' === $tab ? self::dashboard( $rules ) : array();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/date-messages/page.php';
+	}
+
+	/**
+	 * The dashboard figures: the rules by kind and state, and what the runs
+	 * of the last 30 days delivered (#2486). Counts only, nothing personal.
+	 *
+	 * @param array<int, Rule> $rules Every rule.
+	 * @return array{dated: int, announcements: int, active: int, inactive: int, sent: int, failed: int, failed_runs: int, recent: array<int, array<string, mixed>>}
+	 */
+	public static function dashboard( array $rules ): array {
+		$out = array(
+			'dated'         => 0,
+			'announcements' => 0,
+			'active'        => 0,
+			'inactive'      => 0,
+		);
+		foreach ( $rules as $rule ) {
+			if ( $rule->is_announcement() ) {
+				++$out['announcements'];
+			} else {
+				++$out['dated'];
+			}
+			if ( $rule->is_active ) {
+				++$out['active'];
+			} else {
+				++$out['inactive'];
+			}
+		}
+		$totals        = DeliveryLog::totals_since( time() - self::DASHBOARD_DAYS * DAY_IN_SECONDS );
+		$out['recent'] = DeliveryLog::recent_runs( self::DASHBOARD_RUNS, 0, false );
+		return $out + $totals;
 	}
 
 	/**
@@ -464,9 +647,10 @@ final class DateMessagesAdminPage {
 
 		$previous = $id > 0 ? RuleReader::get_by_id( $id ) : null;
 
-		// Scheduling an announcement is sending it later, so it takes the
-		// right to send: a manager without it may edit the rule, not arm it.
-		if ( self::schedules_a_send( $rule, $previous ) && ! self::can_send() ) {
+		// Activating a rule, forcing it past opt-outs and scheduling an
+		// announcement all decide who is sent to, so they take the right to
+		// send (#1949, #2336): a manager without it may edit the rule, not arm it.
+		if ( self::needs_send_cap( $rule, $previous ) && ! self::can_send() ) {
 			$this->finish( 'error', self::send_refusal(), array( 'rule' => $id > 0 ? $id : 0 ), $data );
 		}
 
@@ -540,13 +724,30 @@ final class DateMessagesAdminPage {
 	}
 
 	/**
-	 * Why a save that would schedule a send is refused to a manager who may
-	 * not send.
+	 * Whether storing the rule decides who is sent to, which takes the right
+	 * to send (#2336): it activates the rule, forces it past opt-outs, or
+	 * schedules an announcement. Each is judged against the rule before the
+	 * save, so editing a rule already active, or already forcing, needs no
+	 * more than managing it.
+	 *
+	 * @param Rule      $rule     The rule as it will be stored.
+	 * @param Rule|null $previous The rule before the save, null for a new one.
+	 * @return bool
+	 */
+	public static function needs_send_cap( Rule $rule, ?Rule $previous ): bool {
+		$activates = $rule->is_active && ( null === $previous || ! $previous->is_active );
+		$forces    = ! $rule->respect_opt_out && ( null === $previous || $previous->respect_opt_out );
+		return $activates || $forces || self::schedules_a_send( $rule, $previous );
+	}
+
+	/**
+	 * Why a save that would decide who is sent to is refused to a manager who
+	 * may not send.
 	 *
 	 * @return string
 	 */
 	public static function send_refusal(): string {
-		return __( 'Saving this would schedule the announcement to be sent, and your account cannot send messages. Leave it inactive or without a send time, or ask someone who can send.', 'ffcertificate' );
+		return __( 'Activating a rule, sending it past opt-outs or scheduling an announcement decides who receives messages, and your account cannot send them. Save it inactive and respecting opt-outs, or ask someone who can send.', 'ffcertificate' );
 	}
 
 	/**
@@ -556,7 +757,10 @@ final class DateMessagesAdminPage {
 	 */
 	public function handle_delete(): void {
 		$id = RequestInput::get_post_int( 'rule_id' );
-		$this->guard( self::DELETE_ACTION . '_' . $id );
+		if ( ! self::can_delete() ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		}
+		check_admin_referer( self::DELETE_ACTION . '_' . $id );
 
 		if ( $id <= 0 || ! RuleWriter::delete( $id ) ) {
 			$this->finish( 'error', __( 'The rule could not be deleted.', 'ffcertificate' ) );
@@ -578,6 +782,12 @@ final class DateMessagesAdminPage {
 		$rule = $id > 0 ? RuleReader::get_by_id( $id ) : null;
 		if ( null === $rule ) {
 			$this->finish( 'error', __( 'That rule no longer exists.', 'ffcertificate' ) );
+		}
+
+		// A copy of a rule sent past opt-outs would carry that choice, which
+		// takes the right to send (#2336); the copy itself starts inactive.
+		if ( ! $rule->respect_opt_out && ! self::can_send() ) {
+			$this->finish( 'error', self::send_refusal() );
 		}
 
 		$data         = $rule->to_columns();
@@ -672,8 +882,9 @@ final class DateMessagesAdminPage {
 	/**
 	 * Why a manual send's range is refused for this rule, or '' when it is fine.
 	 *
-	 * An announcement is delivered once per day it is sent, so a range that
-	 * spans more than one day would send it to everyone once for each day.
+	 * An announcement has no date: it goes out on the one day it is sent,
+	 * and reaches each person once per rule (#2336), so a range of days
+	 * means nothing for it.
 	 *
 	 * @param Rule               $rule The rule.
 	 * @param \DateTimeImmutable $from First day.
@@ -859,11 +1070,23 @@ final class DateMessagesAdminPage {
 		if ( array() === $offered || ! class_exists( \FreeFormCertificate\Audience\AudienceReader::class ) ) {
 			return $rows;
 		}
+		// One query for every row, sub-audiences included: the offered list
+		// is the tree, so a membership of a sub-audience names that one.
+		$memberships = \FreeFormCertificate\Audience\AudienceReader::memberships_among(
+			array_keys( $offered ),
+			array_map( static fn( array $row ): int => (int) ( $row['user_id'] ?? 0 ), $rows )
+		);
+		// The offered labels carry an indent and a member count; the row
+		// names the audience plainly, so the names come from one more read.
+		$plain = array();
+		foreach ( \FreeFormCertificate\Audience\AudienceReader::get_all() as $audience ) {
+			$plain[ (int) $audience->id ] = (string) $audience->name;
+		}
 		foreach ( $rows as $i => $row ) {
 			$names = array();
-			foreach ( \FreeFormCertificate\Audience\AudienceReader::get_user_audiences( (int) ( $row['user_id'] ?? 0 ) ) as $audience ) {
-				if ( isset( $offered[ (int) $audience->id ] ) ) {
-					$names[] = (string) $audience->name;
+			foreach ( array_keys( $offered ) as $audience_id ) {
+				if ( isset( $plain[ (int) $audience_id ] ) && in_array( (int) $audience_id, $memberships[ (int) ( $row['user_id'] ?? 0 ) ] ?? array(), true ) ) {
+					$names[] = $plain[ (int) $audience_id ];
 				}
 			}
 			$rows[ $i ]['audiences'] = implode( ', ', $names );
@@ -922,13 +1145,11 @@ final class DateMessagesAdminPage {
 		$rows      = array();
 		$truncated = false;
 		if ( $rule instanceof Rule ) {
-			$found     = RecipientPreview::collect( $rule, $from, $to, true );
+			// Outside the audiences is left out before the row limit, so a
+			// narrow filter over a large site still lists everyone in it.
+			$found     = RecipientPreview::collect( $rule, $from, $to, true, true );
 			$truncated = $found['truncated'];
-			foreach ( $found['rows'] as $row ) {
-				if ( RecipientResolver::OUT_OF_AUDIENCE !== $row['decision'] ) {
-					$rows[] = $row;
-				}
-			}
+			$rows      = $found['rows'];
 		}
 
 		return array(
@@ -1013,6 +1234,11 @@ final class DateMessagesAdminPage {
 			self::OUTCOME_TTL
 		);
 
+		// Back to the rules unless the caller names a page: the bare slug is
+		// the dashboard (#2486).
+		if ( ! isset( $args['tab'] ) && ! isset( $args['rule'] ) ) {
+			$args['tab'] = 'rules';
+		}
 		wp_safe_redirect( add_query_arg( array_merge( array( 'page' => self::MENU_SLUG ), $args ), admin_url( 'admin.php' ) ) );
 		exit;
 	}

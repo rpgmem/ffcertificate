@@ -128,7 +128,7 @@ final class CssClassEmissionTest extends TestCase {
 			'literal attribute'           => array( 'ffc-status-badge', 'literal' ),
 			'jQuery class API'            => array( 'ffc-collapsed', 'literal' ),
 			'selector inside a string'    => array( 'ffc-timeslot-full', 'literal' ),
-			'echo embedded in attribute'  => array( 'ffc-audience-status-active', 'prefix' ),
+			'echo embedded in attribute'  => array( 'ffc-audience-status-cancelled', 'prefix' ),
 			'printf placeholder'          => array( 'ffc-cap-origin--user', 'prefix' ),
 			'concatenation at str end'    => array( 'ffc-dashboard-status-confirmed', 'prefix' ),
 			'PHP interpolation'           => array( 'ffc-verification-status-cancelled', 'prefix' ),

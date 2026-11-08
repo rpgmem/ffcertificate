@@ -64,12 +64,14 @@ class TabActivityLog extends SettingsTab {
 	}
 
 	/**
-	 * Manage cap: the audit-log export cap. Used only to decide the Settings
-	 * read-only fieldset lock — keeping it off `ffc_manage_settings` means the
-	 * log's export/filter controls are never disabled for a legitimate viewer.
+	 * Manage cap: the view cap itself. It decides only the Settings read-only
+	 * fieldset lock, and this tab saves nothing: its controls are filters, a
+	 * search and the reveal, which a viewer may use (#2340). The export
+	 * button is drawn only for `ffc_export_activity_log`, and its endpoints
+	 * check that cap themselves.
 	 */
 	public function get_manage_cap(): string {
-		return 'ffc_export_activity_log';
+		return 'ffc_view_activity_log';
 	}
 
 	/**

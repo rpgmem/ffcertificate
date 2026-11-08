@@ -95,9 +95,7 @@ class VerificationResponseRenderer {
 	 *   - Context: the matching `schedule_override_created` row from
 	 *     `ffc_activity_log` for this submission. The `ts` field is
 	 *     Category A unix UTC int (per CLAUDE.md) and renders via
-	 *     `DateFormatter::format_datetime()` — NOT from the activity
-	 *     log's `created_at` DATETIME column (housekeeping per the
-	 *     "Category A exception" subsection).
+	 *     `DateFormatter::format_datetime()`.
 	 *
 	 * Returns the array consumed by the template, with already-formatted
 	 * "before" / "after" range strings + the i18n-friendly operator
@@ -263,6 +261,13 @@ class VerificationResponseRenderer {
 			$html .= '<div class="ffc-detail-row">';
 			$html .= '<span class="ffc-detail-label">' . esc_html__( 'Event:', 'ffcertificate' ) . '</span>';
 			$html .= '<span class="ffc-detail-value">' . esc_html( $data['calendar_title'] ) . '</span>';
+			$html .= '</div>';
+		}
+
+		if ( ! empty( $data['session_name'] ) ) {
+			$html .= '<div class="ffc-detail-row">';
+			$html .= '<span class="ffc-detail-label">' . esc_html( ! empty( $data['session_label'] ) ? (string) $data['session_label'] : __( 'Session', 'ffcertificate' ) ) . ':</span>';
+			$html .= '<span class="ffc-detail-value">' . esc_html( (string) $data['session_name'] ) . '</span>';
 			$html .= '</div>';
 		}
 

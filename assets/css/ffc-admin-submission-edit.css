@@ -13,8 +13,8 @@
  */
 .ffc-edit-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: var(--ffc-spacing-xl);
+    grid-template-columns: minmax(0, 1fr) var(--ffc-admin-side-width);
+    gap: var(--ffc-admin-gap);
     align-items: start;
     margin-top: var(--ffc-spacing-lg);
 }
@@ -25,6 +25,14 @@
     flex-direction: column;
     gap: var(--ffc-spacing-lg);
     min-width: 0;
+}
+
+/* The side column stays in view while the record scrolls (#2486). */
+.ffc-edit-side {
+    position: sticky;
+    top: var(--ffc-admin-side-top);
+    max-height: var(--ffc-admin-side-max-height);
+    overflow-y: auto;
 }
 
 .ffc-edit-card {
@@ -116,8 +124,37 @@
     overflow-wrap: anywhere;
 }
 
-/* Quiz grading card (#1732): one open answer per block. */
-.ffc-grade-question + .ffc-grade-question {
+/*
+ * Grading inside "Form answers" (#2356): the summary above the answers, each
+ * open answer quoted with its points field, the save at the foot.
+ */
+.ffc-grade-summary {
+    margin-top: 0;
+}
+
+.ffc-answer-tag {
+    display: inline-block;
+    margin-left: var(--ffc-spacing-2xs);
+    padding: 0 var(--ffc-spacing-xs);
+    border-radius: var(--ffc-radius-pill);
+    background: var(--ffc-gray-100);
+    color: var(--ffc-text);
+    font-size: var(--ffc-font-size-2xs);
+    font-weight: 600;
+}
+
+/* Its ground is its only boundary, which forced colours remove. */
+@media (forced-colors: active) {
+    .ffc-answer-tag {
+        border: 1px solid CanvasText;
+    }
+}
+
+.ffc-grade-points {
+    margin: 0;
+}
+
+.ffc-grade-footer {
     margin-top: var(--ffc-spacing-md);
     padding-top: var(--ffc-spacing-md);
     border-top: 1px solid var(--ffc-border-light);
@@ -148,6 +185,12 @@
 @media (max-width: 960px) {
     .ffc-edit-layout {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ffc-edit-side {
+        position: static;
+        max-height: none;
+        overflow: visible;
     }
 }
 
@@ -317,4 +360,40 @@
     .ffc-user-search-results .ffc-search-result-item {
         transition: none;
     }
+}
+
+/*
+ * An answer is amended on its own row (#2354): the value and its pencil
+ * share a line, and the editor the pencil opens sits under the value.
+ */
+.ffc-answer-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--ffc-spacing-sm);
+}
+
+.ffc-answer-value {
+    min-width: 0;
+}
+
+.ffc-answer-row .ffc-correct-open {
+    flex: none;
+}
+
+.ffc-correct-inline {
+    margin-top: var(--ffc-spacing-sm);
+    padding: var(--ffc-spacing-md);
+    border: 1px dashed var(--ffc-border);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-gray-50);
+}
+
+.ffc-correct-inline[hidden],
+.ffc-correct-inline [hidden] {
+    display: none;
+}
+
+.ffc-correct-inline p:first-of-type {
+    margin-top: 0;
 }

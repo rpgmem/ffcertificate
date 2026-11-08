@@ -42,8 +42,10 @@ beforeEach(() => {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		i18n: {
 			working: 'Generating…',
-			done: 'Done.',
-			createdSuffix: 'short URLs created.',
+			createdNone: 'Done. None needed.',
+			createdOne: 'Done. 1 short URL created.',
+			createdMany: 'Done. %d short URLs created.',
+			saveFirst: 'Save first.',
 			error: 'An error occurred.',
 		},
 	};
@@ -127,9 +129,36 @@ describe('url-shortener settings — backfill', () => {
 		expect(request.mock.calls[0][2].nonce).toBe('bf-nonce');
 		expect(request.mock.calls[1][1].cursor).toBe(8);
 
-		const status = window.$('#ffc-url-shortener-backfill-status').text();
-		expect(status).toContain('Done.');
-		expect(status).toContain('5'); // 2 + 3 created.
+		// 2 + 3 created, in the plural wording.
+		expect(window.$('#ffc-url-shortener-backfill-status').text()).toBe('Done. 5 short URLs created.');
+		expect(window.$('#ffc-url-shortener-backfill').prop('disabled')).toBe(false);
+	});
+
+	it('words the result by its count', async () => {
+		await loadSettings();
+		const internal = window.ffcUrlShortenerSettingsInternal;
+
+		expect(internal.doneMessage(0)).toBe('Done. None needed.');
+		expect(internal.doneMessage(1)).toBe('Done. 1 short URL created.');
+		expect(internal.doneMessage(7)).toBe('Done. 7 short URLs created.');
+	});
+
+	it('asks to save first when the ticked post types changed, and sends nothing', async () => {
+		document.body.innerHTML = `
+			<input type="checkbox" class="ffc-shorten-type" value="post" checked>
+			<input type="checkbox" class="ffc-shorten-type" value="page">
+			<input type="hidden" id="ffc_url_shortener_backfill_nonce" value="bf-nonce">
+			<button id="ffc-url-shortener-backfill">Generate</button>
+			<span id="ffc-url-shortener-backfill-status"></span>`;
+		await loadSettings();
+		const request = installFFC([{ resolve: { created: 0, done: true } }]);
+
+		window.$('.ffc-shorten-type[value="page"]').prop('checked', true);
+		window.$('#ffc-url-shortener-backfill').trigger('click');
+		await flush();
+
+		expect(request).not.toHaveBeenCalled();
+		expect(window.$('#ffc-url-shortener-backfill-status').text()).toBe('Save first.');
 		expect(window.$('#ffc-url-shortener-backfill').prop('disabled')).toBe(false);
 	});
 

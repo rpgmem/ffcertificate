@@ -129,7 +129,7 @@ final class ReregistrationImportMessages {
 				break;
 
 			case 'rereg_import_staff_account':
-				$body = __( 'Matches a staff account (an administrator, or someone who can see personal data). An import never changes a staff account; they update their own profile in wp-admin.', 'ffcertificate' );
+				$body = __( 'Matches a staff account (an administrator, a module role from Operator up, or someone who can see personal data or manage a module). An import never changes a staff account; they update their own profile in wp-admin.', 'ffcertificate' );
 				break;
 
 			case 'rereg_import_already_submitted':

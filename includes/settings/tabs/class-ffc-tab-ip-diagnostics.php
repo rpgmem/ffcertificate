@@ -89,6 +89,8 @@ class TabIpDiagnostics extends SettingsTab {
 
 		echo '<div class="ffc-settings-wrap ffc-ip-diagnostics">';
 		$this->render_recommendation();
+		$this->render_forged_header_warning();
+		$this->render_direct_behind_proxy_warning( $diag );
 		echo '<div class="card">';
 		$this->render_diagnostics_section( $diag );
 		echo '</div><div class="card">';
@@ -165,6 +167,81 @@ class TabIpDiagnostics extends SettingsTab {
 	}
 
 	/**
+	 * Warn when the site's own traffic carried a header the legacy strategy
+	 * trusted and the secure one would not (#2339).
+	 *
+	 * The administrator's own visit to this tab shows one request; this is
+	 * the evidence from every other one, counted by `IpHeaderDivergence`.
+	 * Shown under the legacy strategy only, which is where that header
+	 * decides the address.
+	 *
+	 * @return void
+	 */
+	private function render_forged_header_warning(): void {
+		if ( IpDiagnosticsSettingsReader::STRATEGY_LEGACY !== IpDiagnosticsSettingsReader::strategy() ) {
+			return;
+		}
+
+		$tally = \FreeFormCertificate\Core\IpHeaderDivergence::tally();
+		if ( null === $tally ) {
+			return;
+		}
+
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html(
+				sprintf(
+					/* translators: 1: number of requests, 2: date and time of the latest one */
+					_n(
+						'%1$d request in the last 7 days named its address in a forwarded header that differs from its connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below.',
+						'%1$d requests in the last 7 days named their address in a forwarded header that differs from their connection (latest: %2$s). Under the Legacy strategy that header decides the address the rate limits and the geofence see, and anybody can send it. Switch to Secure below.',
+						$tally['count'],
+						'ffcertificate'
+					),
+					$tally['count'],
+					\FreeFormCertificate\Core\DateFormatter::format_datetime( $tally['last'] )
+				)
+			),
+			array(
+				'icon'  => 'warning',
+				'title' => __( 'Forwarded headers on real traffic:', 'ffcertificate' ),
+			)
+		);
+	}
+
+	/**
+	 * Explain the Direct mode when this request came through a proxy (#2339).
+	 *
+	 * Direct ignores every forwarded header, so behind a load balancer or
+	 * Cloudflare every visitor reads as the proxy's address and they all share
+	 * one rate-limit count. Shown only under the secure strategy, where Direct
+	 * applies.
+	 *
+	 * @param array<string, mixed> $d Diagnostics from {@see self::diagnostics()}.
+	 * @return void
+	 */
+	private function render_direct_behind_proxy_warning( array $d ): void {
+		if ( IpDiagnosticsSettingsReader::STRATEGY_SECURE !== IpDiagnosticsSettingsReader::strategy()
+			|| IpDiagnosticsSettingsReader::PROXY_DIRECT !== IpDiagnosticsSettingsReader::trusted_proxy_mode() ) {
+			return;
+		}
+
+		$headers = is_array( $d['headers'] ?? null ) ? $d['headers'] : array();
+		if ( '' === ( $headers['X-Forwarded-For'] ?? '' ) && '' === ( $headers['CF-Connecting-IP'] ?? '' ) ) {
+			return;
+		}
+
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'warning',
+			esc_html__( 'This request arrived through a proxy, and the Direct mode ignores the header that names the visitor. Every visitor therefore reads as the proxy\'s address and shares one rate-limit count. Choose Auto or Cloudflare below, unless the proxy is not yours.', 'ffcertificate' ),
+			array(
+				'icon'  => 'warning',
+				'title' => __( 'Direct mode behind a proxy:', 'ffcertificate' ),
+			)
+		);
+	}
+
+	/**
 	 * Persist the config into this tab's own option (never `ffc_settings`).
 	 */
 	private function save_settings(): void {
@@ -201,6 +278,7 @@ class TabIpDiagnostics extends SettingsTab {
 			'trusted_proxy_mode' => $proxy_mode,
 			'custom_proxies'     => implode( "\n", $custom ),
 			'shadow_logging'     => isset( $_POST['ffc_ip_shadow_logging'] ) ? 1 : 0,
+			'private_peer_proxy' => isset( $_POST['ffc_ip_private_peer_proxy'] ) ? 1 : 0,
 		);
 
 		update_option( self::OPTION_KEY, $settings, false );
@@ -229,20 +307,13 @@ class TabIpDiagnostics extends SettingsTab {
 	}
 
 	/**
-	 * Shape-validate a CIDR / literal IP.
+	 * Whether an entry may be trusted as a proxy: an address, or a range no
+	 * wider than /8 (IPv4) or /16 (IPv6) — #2339.
 	 *
 	 * @param string $cidr Candidate entry.
 	 */
 	private function is_valid_cidr( string $cidr ): bool {
-		if ( strpos( $cidr, '/' ) === false ) {
-			return (bool) filter_var( $cidr, FILTER_VALIDATE_IP );
-		}
-		list( $ip, $bits ) = explode( '/', $cidr, 2 );
-		if ( ! filter_var( $ip, FILTER_VALIDATE_IP ) || ! ctype_digit( $bits ) ) {
-			return false;
-		}
-		$max = filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ? 128 : 32;
-		return (int) $bits >= 0 && (int) $bits <= $max;
+		return \FreeFormCertificate\Core\IpAddress::is_trustable_range( $cidr );
 	}
 
 	/**
@@ -306,6 +377,9 @@ class TabIpDiagnostics extends SettingsTab {
 			ClientIpResolver::VERDICT_CLOUDFLARE,
 			ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY,
 		);
+		if ( ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY === $verdict && ! ClientIpResolver::trusts_private_peer() ) {
+			return '';
+		}
 		if ( in_array( $verdict, $cf_verdicts, true ) && '' !== ( $headers['CF-Connecting-IP'] ?? '' ) ) {
 			return 'CF-Connecting-IP';
 		}
@@ -482,8 +556,14 @@ class TabIpDiagnostics extends SettingsTab {
 		if ( ClientIpResolver::VERDICT_CLOUDFLARE_VIA_PROXY !== $verdict ) {
 			return '';
 		}
+		if ( ! ClientIpResolver::trusts_private_peer() ) {
+			return '<p class="description">' . esc_html__(
+				'Cloudflare appears to be in front of this site, reaching PHP through a private address. The Secure strategy reads CF-Connecting-IP through a private address only once you confirm below that a load balancer or Cloudflare sits in front: on an intranet the private address is the visitor\'s own computer, which can send that header too.',
+				'ffcertificate'
+			) . '</p>';
+		}
 		return '<p class="description">' . esc_html__(
-			'Cloudflare is in front of this site, reaching PHP through your host\'s reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP automatically — no extra configuration is needed. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)',
+			'Cloudflare is in front of this site, reaching PHP through your host\'s reverse proxy. With the Secure strategy the real client IP is taken from CF-Connecting-IP. (Advanced: to also trust a non-Cloudflare proxy, add its address under Custom below.)',
 			'ffcertificate'
 		) . '</p>';
 	}
@@ -658,7 +738,23 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<br>';
 		$this->echo_radio( 'ffc_ip_trusted_proxy_mode', IpDiagnosticsSettingsReader::PROXY_DIRECT, $proxy_mode, __( 'Direct — ignore every forwarded header', 'ffcertificate' ) );
 		echo '</fieldset>';
-		echo '<p class="description">' . esc_html__( 'Applies when the secure strategy is active.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Applies when the secure strategy is active. Direct behind a proxy or Cloudflare: every visitor arrives from the proxy\'s address, so they all share one address and one rate-limit count.', 'ffcertificate' ) . '</p>';
+		echo '</td></tr>';
+
+		// A private connection address is a host load balancer on managed
+		// hosting and the visitor's own computer on an intranet, and no
+		// request tells the two apart, so the operator says which (#2339).
+		echo '<tr><th scope="row">' . esc_html__( 'Load balancer in front', 'ffcertificate' ) . '</th><td>';
+		\FreeFormCertificate\Admin\AdminUI::render_toggle(
+			array(
+				'name'    => 'ffc_ip_private_peer_proxy',
+				'id'      => 'ffc_ip_private_peer_proxy',
+				'value'   => '1',
+				'checked' => IpDiagnosticsSettingsReader::private_peer_is_proxy(),
+				'label'   => __( 'Every request reaches this site through my host\'s load balancer or Cloudflare', 'ffcertificate' ),
+			)
+		);
+		echo '<p class="description">' . esc_html__( 'On: when the connection comes from a private address, the Secure strategy takes the visitor from Cloudflare\'s header. Off: a private address is the visitor, which is right on an intranet, where visitors could otherwise send that header themselves. The Cloudflare mode above implies On.', 'ffcertificate' ) . '</p>';
 		echo '</td></tr>';
 
 		// Custom CIDRs: read only in the Custom mode
@@ -668,7 +764,7 @@ class TabIpDiagnostics extends SettingsTab {
 		echo '<tr class="' . esc_attr( $custom_row_class ) . '" data-ffc-master="ffc_ip_trusted_proxy_mode" data-ffc-master-value="' . esc_attr( IpDiagnosticsSettingsReader::PROXY_CUSTOM ) . '">';
 		echo '<th scope="row">' . esc_html__( 'Custom proxy CIDRs', 'ffcertificate' ) . '</th><td>';
 		echo '<textarea name="ffc_ip_custom_proxies" rows="4" cols="40" class="large-text code" placeholder="10.0.0.0/8">' . esc_textarea( $custom ) . '</textarea>';
-		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'One CIDR or IP per line, no wider than /8 for IPv4 or /16 for IPv6: a wider range is not saved, because it would trust a slice of the internet no proxy owns. Used only with the Custom mode above.', 'ffcertificate' ) . '</p>';
 		// (#920 ①) Steer admins away from the common mistake of pasting the
 		// Cloudflare ranges here — they are detected and refreshed automatically.
 		\FreeFormCertificate\Core\AdminNotice::callout(
@@ -739,12 +835,38 @@ class TabIpDiagnostics extends SettingsTab {
 	}
 
 	/**
+	 * The guide's opening line, true to the settings in force (#2339).
+	 *
+	 * It used to say that the Auto/Direct mode plus device fingerprinting
+	 * already protect the site, whether or not either was on. Each half is
+	 * true only when its setting is: an address nobody can forge needs the
+	 * Secure strategy in the Auto or Direct mode, and a second signal needs
+	 * the device limit.
+	 *
+	 * @return string Plain text.
+	 */
+	private function cloudflare_guide_intro(): string {
+		$secure = IpDiagnosticsSettingsReader::STRATEGY_SECURE === IpDiagnosticsSettingsReader::strategy()
+			&& in_array( IpDiagnosticsSettingsReader::trusted_proxy_mode(), array( IpDiagnosticsSettingsReader::PROXY_AUTO, IpDiagnosticsSettingsReader::PROXY_DIRECT ), true );
+		$device = ! empty( \FreeFormCertificate\Settings\RateLimitSettingsReader::effective()['device']['enabled'] );
+
+		if ( $secure && $device ) {
+			return __( 'No CDN was detected. Cloudflare is optional: the Secure strategy already reads the connection address, which a visitor cannot forge, and the device limit adds a second signal. Cloudflare adds bot protection on the free plan.', 'ffcertificate' );
+		}
+		if ( $secure ) {
+			return __( 'No CDN was detected. The Secure strategy already reads the connection address, which a visitor cannot forge. The device limit (Settings → Rate Limit) is off, so the address is the only signal; Cloudflare adds bot protection on the free plan.', 'ffcertificate' );
+		}
+
+		return __( 'No CDN was detected, and the Legacy strategy takes the address from headers a visitor can forge. Switch to Secure above for an address nobody can forge; Cloudflare adds bot protection on the free plan.', 'ffcertificate' );
+	}
+
+	/**
 	 * Render the "how to put Cloudflare in front" guide (verdict = direct).
 	 */
 	private function render_cloudflare_guide(): void {
 		$this->render_section_header(
 			__( 'Optional: put Cloudflare in front of this site', 'ffcertificate' ),
-			__( 'No CDN was detected. Cloudflare is optional — the Auto/Direct mode plus device fingerprinting already protects you — but it gives an unspoofable client IP for free.', 'ffcertificate' ),
+			$this->cloudflare_guide_intro(),
 			'ffc-icon-cloud'
 		);
 

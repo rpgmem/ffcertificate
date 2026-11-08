@@ -153,7 +153,7 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 
 		$this->post_backup = $_POST ?? array();
 
-		$challenge = SecurityService::generate_simple_captcha();
+		$challenge = SecurityService::generate_simple_captcha( 'form:1' );
 
 		$_POST = array(
 			'action'           => 'ffc_submit_form',
@@ -163,6 +163,7 @@ class FormProcessorGeofenceBeforeRateLimitTest extends TestCase {
 			'email'            => 'user@example.org',
 			'ffc_captcha_ans'  => (string) $challenge['answer'],
 			'ffc_captcha_hash' => $challenge['hash'],
+			'ffc_hp_ts' => \FreeFormCertificate\Tests\Support\HoneypotStamp::value(),
 			// A precise, fresh reading in Rio de Janeiro: far outside the area.
 			'ffc_geo_lat'      => '-22.9068',
 			'ffc_geo_lng'      => '-43.1729',

@@ -86,6 +86,13 @@ class Frontend {
 	 */
 	private function register_hooks(): void {
 		add_action( 'wp_enqueue_scripts', array( $this, 'frontend_assets' ) );
+		// The fallback for a shortcode the post body does not carry (#2344):
+		// a widget, a block template part, a reusable block, a theme's
+		// do_shortcode(), or an archive whose first post is not the one with
+		// the form. Priority 10, two args: the tag is all it reads, and it
+		// returns the short-circuit value untouched; the attributes name
+		// the form whose geofence config the page needs.
+		add_filter( 'pre_do_shortcode_tag', array( $this, 'enqueue_on_render' ), 10, 3 );
 
 		// #836 (P2) — keep the certificate-verification page out of search indexes.
 		add_filter( 'wp_robots', array( $this, 'verification_page_robots' ) );
@@ -104,6 +111,7 @@ class Frontend {
 
 		// The device test's one server request (#2064).
 		DeviceCheck::init();
+		PersonalPageCache::init();
 	}
 
 	/**
@@ -138,7 +146,20 @@ class Frontend {
 	}
 
 	/**
-	 * Enqueue frontend CSS and JavaScript assets.
+	 * The shortcodes whose assets this request already enqueued, by tag.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $assets_done = array();
+
+	/**
+	 * How many levels of synced patterns inside synced patterns are read.
+	 */
+	private const PATTERN_DEPTH = 3;
+
+	/**
+	 * Enqueue frontend CSS and JavaScript assets for the shortcodes the
+	 * post body carries.
 	 */
 	public function frontend_assets(): void {
 		global $post;
@@ -147,10 +168,125 @@ class Frontend {
 			return;
 		}
 
-		$has_form         = has_shortcode( $post->post_content, 'ffc_form' );
-		$has_verification = has_shortcode( $post->post_content, 'ffc_verification' );
-		$has_csv_download = has_shortcode( $post->post_content, 'ffc_csv_download' );
-		$has_geofence     = has_shortcode( $post->post_content, GeofenceContent::SHORTCODE );
+		$content = self::page_content( $post );
+		$flags   = array();
+		foreach ( array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE ) as $tag ) {
+			$flags[ $tag ] = ! isset( $this->assets_done[ $tag ] ) && has_shortcode( $content, $tag );
+		}
+		$this->enqueue_for( $flags );
+	}
+
+	/**
+	 * The post body, followed by the bodies of the synced patterns it embeds (#2341).
+	 *
+	 * A synced pattern (`core/block`) is its own post: its shortcode is not in
+	 * the page's body, so `has_shortcode()` alone missed it and the stylesheet
+	 * arrived late, with the late styles. Patterns nest, so the walk follows
+	 * them up to {@see self::PATTERN_DEPTH} levels and reads each one once.
+	 *
+	 * @param \WP_Post $post The queried post.
+	 * @return string
+	 */
+	private static function page_content( \WP_Post $post ): string {
+		$content = (string) $post->post_content;
+		if ( ! function_exists( 'parse_blocks' ) || false === strpos( $content, '<!-- wp:block' ) ) {
+			return $content;
+		}
+
+		$seen  = array();
+		$queue = array( $content );
+		for ( $depth = 0; $depth < self::PATTERN_DEPTH && array() !== $queue; $depth++ ) {
+			$next = array();
+			foreach ( $queue as $body ) {
+				foreach ( self::pattern_refs( parse_blocks( $body ) ) as $ref ) {
+					if ( isset( $seen[ $ref ] ) ) {
+						continue;
+					}
+					$seen[ $ref ] = true;
+					$pattern      = get_post( $ref );
+					if ( $pattern instanceof \WP_Post && 'wp_block' === $pattern->post_type && 'publish' === $pattern->post_status ) {
+						$content .= "\n" . $pattern->post_content;
+						$next[]   = (string) $pattern->post_content;
+					}
+				}
+			}
+			$queue = $next;
+		}
+
+		return $content;
+	}
+
+	/**
+	 * The ids of the synced patterns a block tree embeds, at any depth.
+	 *
+	 * @param array<array-key, mixed> $blocks Parsed blocks.
+	 * @return array<int, int>
+	 */
+	private static function pattern_refs( array $blocks ): array {
+		$refs = array();
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+			if ( 'core/block' === ( $block['blockName'] ?? '' ) && is_array( $block['attrs'] ?? null ) && isset( $block['attrs']['ref'] ) && is_numeric( $block['attrs']['ref'] ) ) {
+				$refs[] = (int) $block['attrs']['ref'];
+			}
+			if ( ! empty( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
+				$refs = array_merge( $refs, self::pattern_refs( $block['innerBlocks'] ) );
+			}
+		}
+		return array_values( array_filter( $refs ) );
+	}
+
+	/**
+	 * Enqueue a shortcode's assets as it renders, when the post body did not
+	 * carry it (#2344). A script enqueued here prints in the footer and a
+	 * stylesheet with the late styles, which WordPress does on its own.
+	 *
+	 * @param false|string                $short_circuit The value `pre_do_shortcode_tag` passes on; returned unchanged.
+	 * @param string                      $tag           The shortcode about to render.
+	 * @param array<string, mixed>|string $attr          Its attributes.
+	 * @return false|string
+	 */
+	public function enqueue_on_render( $short_circuit, $tag, $attr = array() ) {
+		$tags = array( 'ffc_form', 'ffc_verification', 'ffc_csv_download', GeofenceContent::SHORTCODE );
+		// A further form on a page whose assets already loaded may need a
+		// script the first did not (#2341).
+		if ( false === $short_circuit && 'ffc_form' === $tag && isset( $this->assets_done[ $tag ] ) && is_array( $attr ) && isset( $attr['id'] ) && absint( $attr['id'] ) > 0 ) {
+			$this->enqueue_form_features( array( absint( $attr['id'] ) ) );
+		}
+		if ( false === $short_circuit && in_array( $tag, $tags, true ) && ! isset( $this->assets_done[ $tag ] ) ) {
+			$flags         = array_fill_keys( $tags, false );
+			$flags[ $tag ] = true;
+			// The form a shortcode outside the body names, for its geofence config.
+			$form_id = 'ffc_form' === $tag && is_array( $attr ) && isset( $attr['id'] ) ? absint( $attr['id'] ) : 0;
+			$this->enqueue_for( $flags, $form_id > 0 ? array( $form_id ) : array() );
+		}
+		return $short_circuit;
+	}
+
+	/**
+	 * Enqueue the assets of the shortcodes flagged true.
+	 *
+	 * @param array<string, bool> $flags    Shortcode tag => whether to enqueue it.
+	 * @param array<int, int>     $form_ids Forms rendered outside the post body.
+	 * @return void
+	 */
+	private function enqueue_for( array $flags, array $form_ids = array() ): void {
+		global $post;
+		$page_id       = is_a( $post, 'WP_Post' ) ? (int) $post->ID : 0;
+		$page_form_ids = array_merge( $form_ids, is_a( $post, 'WP_Post' ) ? self::form_ids_in( self::page_content( $post ) ) : array() );
+
+		foreach ( $flags as $tag => $on ) {
+			if ( $on ) {
+				$this->assets_done[ $tag ] = true;
+			}
+		}
+
+		$has_form         = ! empty( $flags['ffc_form'] );
+		$has_verification = ! empty( $flags['ffc_verification'] );
+		$has_csv_download = ! empty( $flags['ffc_csv_download'] );
+		$has_geofence     = ! empty( $flags[ GeofenceContent::SHORTCODE ] );
 		$has_base_assets  = $has_form || $has_verification || $has_csv_download;
 
 		if ( $has_geofence ) {
@@ -169,14 +305,17 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-frontend-css' );
 			// Shared CSV progress-overlay modal styles (#786) — the base
 			// .ffc-csv-progress-* rules moved here from ffc-frontend.css so the
-			// admin exports render the identical modal; loaded on both surfaces.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+			// admin exports render the identical modal. Only the CSV screen
+			// shows it (#2341).
+			if ( $has_csv_download ) {
+				\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-progress-overlay' );
+			}
 
 			// Dynamic fragments: refresh captcha + nonces on cached pages so
 			// LiteSpeed/Varnish visitors don't submit with a stale nonce. The
 			// CSV download shortcode also renders a WP nonce + captcha, so it
 			// needs this refresh too.
-			wp_enqueue_script( 'ffc-dynamic-fragments' );
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-dynamic-fragments' );
 
 			// 6.3.10: friendly "already submitted" notice. Pure client-side
 			// hint backed by localStorage; reads `ffc_submitted_forms` and,
@@ -203,11 +342,6 @@ class Frontend {
 						),
 					)
 				);
-
-				// Clears a quiz's answers when the participant leaves the
-				// window, on the forms that ask for it (#1731). No dependency:
-				// it reads the form's markup, which carries its own strings.
-				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
 
 				wp_enqueue_script( 'ffc-already-submitted-notice', FFC_PLUGIN_URL . "assets/js/ffc-already-submitted-notice{$s}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true );
 				wp_localize_script(
@@ -236,12 +370,14 @@ class Frontend {
 			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-preflight' );
 			wp_enqueue_script( 'ffc-frontend-js', FFC_PLUGIN_URL . "assets/js/ffc-frontend{$s}.js", array( 'jquery', 'ffc-core', 'ffc-pdf-generator', 'ffc-rate-limit', 'ffc-preflight' ), FFC_VERSION, true );
 
-			// The geofence core and its validation modules; the geofence config
-			// localize stays on 'ffc-geofence-frontend'.
-			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend', 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
+			// The geofence core runs the visitor pre-flight on every form, and
+			// carries the config localize; its date/GPS modules load only for
+			// a form that restricts by date or location (#2341).
+			\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-frontend' );
+			$this->enqueue_form_features( $page_form_ids );
 
 			// Pass geofence configurations to frontend.
-			$this->localize_geofence_config();
+			$this->localize_geofence_config( $form_ids );
 
 			// Device fingerprint signals collector (only when globally enabled).
 			//
@@ -296,7 +432,6 @@ class Frontend {
 						'connectionError'        => __( 'Connection error.', 'ffcertificate' ),
 						'enterCode'              => __( 'Please enter the code.', 'ffcertificate' ),
 						'generatingCertificate'  => __( 'Generating certificate in the background, please wait 10 seconds and check your downloads folder...', 'ffcertificate' ),
-						'idMustHaveDigits'       => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
 						'invalidToken'           => __( 'Invalid token.', 'ffcertificate' ),
 						'generating'             => __( 'Generating...', 'ffcertificate' ),
 						'downloadAgain'          => __( 'Download Again', 'ffcertificate' ),
@@ -313,8 +448,6 @@ class Frontend {
 
 						// Validation (CPF/RF).
 						'rfInvalid'              => __( 'Invalid RF', 'ffcertificate' ),
-						'cpfInvalid'             => __( 'Invalid CPF', 'ffcertificate' ),
-						'enterValidCpfRf'        => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
 
 						// Success/Error Messages.
 						'success'                => __( 'Success!', 'ffcertificate' ),
@@ -372,7 +505,7 @@ class Frontend {
 						// 6.6.2 (Sprint 4) — pre-submission warnings: don't-close + offline.
 						'pdfDontCloseTab'        => __( 'Please do not close this tab until the PDF appears.', 'ffcertificate' ),
 						'offlineMessage'         => __( 'You appear to be offline. Reconnect to the internet and try again.', 'ffcertificate' ),
-					),
+					) + self::cpf_validation_strings(),
 				)
 			);
 		}
@@ -429,21 +562,23 @@ class Frontend {
 				'ffc-csv-download',
 				'ffc_csv_download',
 				array(
-					'ajax_url'       => admin_url( 'admin-ajax.php' ),
-					'min_display_ms' => 1500,
+					'ajax_url'                => admin_url( 'admin-ajax.php' ),
+					'min_display_ms'          => 1500,
+					// The cookie the file's response sets, which the screen
+					// waits for before it says the download is complete (#2341).
+					'delivered_cookie_prefix' => PublicFormsExportSource::DELIVERED_COOKIE_PREFIX,
 					// The browser check before the form (#2030), as on a
-					// certificate form: the same switch and strings.
-					'preflight'      => array(
-						'browserCheck' => BrowserGate::settings()['browserCheck'],
-						'strings'      => BrowserGate::strings(),
+					// certificate form, in this page's own words: it
+					// downloads a file, it issues nothing (#2341).
+					'preflight'               => BrowserGate::script_config( PublicCsvDownload::preflight_strings() ) + array(
 						// The page a visitor was stopped on, for the
 						// pre-flight telemetry (#2040).
-						'telemetry'    => array(
+						'telemetry' => array(
 							'type' => 'csv_download',
-							'id'   => (int) $post->ID,
+							'id'   => $page_id,
 						),
 					),
-					'strings'        => array(
+					'strings'                 => array(
 						// Progress overlay.
 						'validating'                     => __( 'Validating access…', 'ffcertificate' ),
 						/* translators: %d is the total number of records */
@@ -452,6 +587,7 @@ class Frontend {
 						'exporting'                      => __( 'Exporting %1$d / %2$d…', 'ffcertificate' ),
 						'downloading'                    => __( 'Starting download…', 'ffcertificate' ),
 						'complete'                       => __( 'Download complete!', 'ffcertificate' ),
+						'downloadNotStarted'             => __( 'The file did not arrive. Try the download again.', 'ffcertificate' ),
 						'error'                          => __( 'Error', 'ffcertificate' ),
 						'downloadCsv'                    => __( 'Download CSV', 'ffcertificate' ),
 						'timeout'                        => __( 'Export timed out. Please try again.', 'ffcertificate' ),
@@ -523,10 +659,10 @@ class Frontend {
 						// the admin explicitly turned the sub-feature off
 						// (master is on but the per-feature toggle is off).
 						// See `*_disabled_by_admin` flags in the info builder.
-						'csvDownloadDisabledTip'         => __( 'CSV download disabled', 'ffcertificate' ),
-						'startEarlyDisabledTip'          => __( 'Start Form Early disabled', 'ffcertificate' ),
-						'extendEndDisabledTip'           => __( 'Postpone Close disabled', 'ffcertificate' ),
-						'certPreviewDisabledTip'         => __( 'Certificate Preview disabled', 'ffcertificate' ),
+						'csvDownloadDisabledReason'      => __( 'The administrator turned off the CSV download for this form.', 'ffcertificate' ),
+						'startEarlyDisabledReason'       => __( 'The administrator turned off Start Form Now for this form.', 'ffcertificate' ),
+						'extendEndDisabledReason'        => __( 'The administrator turned off Postpone close for this form.', 'ffcertificate' ),
+						'certPreviewDisabledReason'      => __( 'The administrator turned off Preview Certificate for this form.', 'ffcertificate' ),
 						/* translators: %s is the formatted start date */
 						'beforeStartMsg'                 => __( 'The form collection has not started yet. It will begin on %s.', 'ffcertificate' ),
 
@@ -546,6 +682,8 @@ class Frontend {
 						'openEarlyNewLabel'              => __( 'New start will be:', 'ffcertificate' ),
 						'openEarlyNewNow'                => __( 'now', 'ffcertificate' ),
 						'openEarlyIrreversible'          => __( 'This cannot be undone from this page.', 'ffcertificate' ),
+						'postponeCacheWarn'              => __( 'If your site uses page caching, some visitors may see the old close time until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
+						'scheduleExceptionModeLegend'    => __( 'What changes', 'ffcertificate' ),
 						'openEarlyCacheWarn'             => __( 'If your site uses page caching (Cloudflare, W3 Total Cache, etc.), some visitors may see the old "not yet started" state until the cache refreshes. Ask them to reload if needed.', 'ffcertificate' ),
 						'cancel'                         => __( 'Cancel', 'ffcertificate' ),
 						'openEarlyConfirm'               => __( 'Confirm and start form', 'ffcertificate' ),
@@ -554,6 +692,9 @@ class Frontend {
 						// Postpone close (6.5.12).
 						'postponeClose'                  => __( 'Postpone close', 'ffcertificate' ),
 						'postponeCloseTooltip'           => __( 'Move the form\'s close time later within the same day. One-shot per form.', 'ffcertificate' ),
+						'postponeLastMinute'             => __( 'Postpone close is unavailable: the form already closes at 23:59, the last minute of the day.', 'ffcertificate' ),
+						/* translators: %s: the name of an unavailable action, e.g. "Postpone close". */
+						'whyUnavailable'                 => __( 'Why is %s unavailable?', 'ffcertificate' ),
 						'postponeCloseTitle'             => __( 'Postpone form close?', 'ffcertificate' ),
 						'postponeCloseBody'              => __( 'Pick a new close time within the same day. This action is one-shot — once confirmed it cannot be repeated from this page.', 'ffcertificate' ),
 						'postponeCurrentLabel'           => __( 'Current scheduled close:', 'ffcertificate' ),
@@ -587,24 +728,27 @@ class Frontend {
 						/* translators: %1$s and %2$s are HH:MM bounds of the form's open window */
 						'scheduleExceptionOutOfWindow'   => __( 'Range must stay within %1$s–%2$s.', 'ffcertificate' ),
 						'scheduleExceptionNoChange'      => __( 'Override matches the baseline — nothing to do.', 'ffcertificate' ),
-
-						// CPF / RF input validation messages. These ALSO
-						// live in `ffc_ajax.strings` for pages that load
-						// `ffc-frontend-js`; ffc-frontend-helpers.js reads
-						// from whichever object is present. Duplication is
-						// intentional pre-tech-debt cleanup (#243 Sprint 4):
-						// the proper fix is to extract these into a shared
-						// `ffc_common_strings` object localized on every
-						// page that loads ffc-frontend-helpers.js, so each
-						// shortcode-specific localize doesn't have to copy
-						// the validation strings. Tracking issue: TBD.
-						'cpfInvalid'                     => __( 'Invalid CPF', 'ffcertificate' ),
-						'enterValidCpfRf'                => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
-						'idMustHaveDigits'               => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
-					),
+					) + self::cpf_validation_strings(),
 				)
 			);
 		}
+	}
+
+	/**
+	 * The CPF / RF validation messages `ffc-frontend-helpers.js` reads.
+	 *
+	 * The helpers read them from whichever localized object the page carries
+	 * (`ffc_ajax` on a form, `ffc_csv_download` on the CSV screen), so both
+	 * merge this one list instead of each keeping a copy (#2341).
+	 *
+	 * @return array<string, string>
+	 */
+	private static function cpf_validation_strings(): array {
+		return array(
+			'cpfInvalid'       => __( 'Invalid CPF', 'ffcertificate' ),
+			'enterValidCpfRf'  => __( 'Enter a valid CPF (11 digits) or RF (7 digits)', 'ffcertificate' ),
+			'idMustHaveDigits' => __( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', 'ffcertificate' ),
+		);
 	}
 
 	/**
@@ -645,7 +789,66 @@ class Frontend {
 		);
 
 		if ( ! $has_base_assets ) {
-			$this->localize_geofence_config();
+			$this->localize_geofence_config( array(), true );
+		}
+	}
+
+	/**
+	 * The ids of the forms a content's `[ffc_form]` shortcodes name.
+	 *
+	 * Pre-6.6.8 used a hand-rolled regex that only matched a double- or
+	 * single-quoted `id`, and missed `[ffc_form id=42]` and a shortcode with
+	 * further attributes; the form then rendered as if no geofence existed.
+	 * `get_shortcode_regex()` and `shortcode_parse_atts()` accept every form
+	 * WordPress's own parser does.
+	 *
+	 * @param string $content Content to scan.
+	 * @return array<int, int>
+	 */
+	private static function form_ids_in( string $content ): array {
+		$form_ids = array();
+		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
+		if ( '' !== $content && preg_match_all( '/' . $pattern . '/', $content, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				// Group 3 holds the raw attribute string.
+				$atts = shortcode_parse_atts( isset( $match[3] ) ? (string) $match[3] : '' );
+				$id   = isset( $atts['id'] ) ? (int) $atts['id'] : 0;
+				if ( $id > 0 ) {
+					$form_ids[] = $id;
+				}
+			}
+		}
+		return $form_ids;
+	}
+
+	/**
+	 * Enqueue the scripts only some forms need, for the forms given (#2341).
+	 *
+	 * The quiz "leave the window" script loads for a quiz form that clears
+	 * answers on leave, and the geofence date/GPS modules for a form whose
+	 * date/time or location restriction is on. The geofence core stays on
+	 * every form, because it runs the visitor pre-flight. Enqueuing twice is
+	 * harmless, so a form rendered outside the body calls this again.
+	 *
+	 * @param array<int, int> $form_ids Form ids.
+	 * @return void
+	 */
+	private function enqueue_form_features( array $form_ids ): void {
+		$s = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		foreach ( array_unique( $form_ids ) as $form_id ) {
+			$config = get_post_meta( $form_id, '_ffc_form_config', true );
+			$config = is_array( $config ) ? $config : array();
+			if ( \FreeFormCertificate\Core\QuizLeaveLevel::OFF !== \FreeFormCertificate\Core\QuizLeaveLevel::of( $config ) ) {
+				// Clears a quiz's answers when the participant leaves the
+				// window (#1731). It reads the form's markup, which carries
+				// its own strings.
+				wp_enqueue_script( 'ffc-quiz-leave', FFC_PLUGIN_URL . "assets/js/ffc-quiz-leave{$s}.js", array(), FFC_VERSION, true );
+			}
+
+			$geofence = \FreeFormCertificate\Security\Geofence::get_form_config( $form_id );
+			if ( null !== $geofence && ( ! empty( $geofence['datetime_enabled'] ) || ! empty( $geofence['geo_enabled'] ) ) ) {
+				\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-geofence-datetime', 'ffc-geofence-gps', 'ffc-geofence-permission' );
+			}
 		}
 	}
 
@@ -653,50 +856,19 @@ class Frontend {
 	 * Localize geofence configuration for frontend
 	 *
 	 * @since 3.0.0
+	 *
+	 * @param array<int, int> $extra_ids        Forms rendered outside the post body (#2344).
+	 * @param bool            $geofence_content Whether an [ffc_geofence] is on the page.
 	 */
-	private function localize_geofence_config(): void {
+	private function localize_geofence_config( array $extra_ids = array(), bool $geofence_content = false ): void {
 		global $post;
 
-		if ( ! is_a( $post, 'WP_Post' ) ) {
-			return;
-		}
-
-		// Find all form IDs in post content.
-		//
-		// Pre-6.6.8 used a hand-rolled regex that ONLY matched
-		// `[ffc_form id="42"]` (double-quoted) and `[ffc_form id='42']`
-		// (single-quoted). It silently missed two WP-valid formats that
-		// are common in the wild:
-		// `[ffc_form id=42]` (quotes are optional in shortcode atts) and
-		// `[ffc_form id="42" class="extra"]` (additional attributes).
-		// When the regex missed, `wp_localize_script` was never called
-		// for that form, so the JS geofence layer never received its
-		// config, never validated the datetime window, and the form
-		// rendered as if no geofence existed. Users would set
-		// "hide before start" in admin and still see the form on the
-		// public page.
-		//
-		// Fix: use `get_shortcode_regex(['ffc_form'])`, the canonical
-		// WP helper, then parse atts via `shortcode_parse_atts()` which
-		// handles all the quoting variants WP's own parser accepts.
-		$form_ids = array();
-		$pattern  = get_shortcode_regex( array( 'ffc_form' ) );
-		if ( preg_match_all( '/' . $pattern . '/', $post->post_content, $matches, PREG_SET_ORDER ) ) {
-			foreach ( $matches as $match ) {
-				// $match[3] holds the raw attribute string in WP's
-				// get_shortcode_regex layout (group 3).
-				$atts_raw = isset( $match[3] ) ? (string) $match[3] : '';
-				$atts     = shortcode_parse_atts( $atts_raw );
-				$id       = isset( $atts['id'] ) ? (int) $atts['id'] : 0;
-				if ( $id > 0 ) {
-					$form_ids[] = $id;
-				}
-			}
-		}
+		$content  = is_a( $post, 'WP_Post' ) ? self::page_content( $post ) : '';
+		$form_ids = array_merge( $extra_ids, self::form_ids_in( $content ) );
 
 		// A page with only [ffc_geofence] still needs the shared strings
 		// below: the content script reads them through the same object.
-		if ( empty( $form_ids ) && ! has_shortcode( $post->post_content, GeofenceContent::SHORTCODE ) ) {
+		if ( empty( $form_ids ) && ! $geofence_content && ! has_shortcode( $content, GeofenceContent::SHORTCODE ) ) {
 			return;
 		}
 
@@ -760,9 +932,9 @@ class Frontend {
 				'safariTimeout'             => __( 'Location request timed out. On Safari/iOS, ensure Location Services is enabled in Settings > Privacy & Security > Location Services.', 'ffcertificate' ),
 
 				// DateTime messages.
-				'formNotYetAvailable'       => __( 'This form is not yet available.', 'ffcertificate' ),
-				'formNoLongerAvailable'     => __( 'This form is no longer available.', 'ffcertificate' ),
-				'formOnlyDuringHours'       => __( 'This form is only available during specific hours.', 'ffcertificate' ),
+				'formNotYetAvailable'       => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'before' ),
+				'formNoLongerAvailable'     => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'after' ),
+				'formOnlyDuringHours'       => \FreeFormCertificate\Security\GeofenceWindowMessages::default_message( 'during' ),
 
 				// 6.6.4 Sprint 2 — cookie pre-flight banner.
 				'cookieBlockedTitle'        => __( 'Cookies blocked', 'ffcertificate' ),

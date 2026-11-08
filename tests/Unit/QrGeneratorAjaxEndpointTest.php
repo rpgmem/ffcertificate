@@ -252,7 +252,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertSame( 100, $data['usage']['percent'] );
 		$this->assertSame( 0, $data['usage']['remaining'] );
 		$this->assertSame( 1400 - 1268, $data['usage']['over'], 'H holds 1268 plain characters.' );
-		$this->assertSame( 'This content is about 132 characters too long for error correction H. Shorten it, or lower the level.', $data['message'] );
+		$this->assertSame( 'This content is about 132 bytes too long for error correction H (a plain letter is one byte, an accented one two). Shorten it, or lower the level.', $data['message'] );
 	}
 
 	/**
@@ -268,7 +268,9 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$repo->shouldReceive( 'findByShortCode' )->andReturn( $by_code );
 		$this->service->shouldReceive( 'get_repository' )->andReturn( $repo );
 		$this->service->shouldReceive( 'get_short_url' )->andReturnUsing( static fn( $code ) => 'https://site.test/go/' . $code );
-		Functions\when( 'mysql2date' )->alias( static fn( $format, $date ) => substr( (string) $date, 0, 10 ) );
+		// `created_at` is an instant (#2337); the stub prints its UTC date.
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts ) => gmdate( 'Y-m-d', (int) $ts ) );
+		Functions\when( 'wp_timezone' )->justReturn( new \DateTimeZone( 'UTC' ) );
 		return $repo;
 	}
 
@@ -277,7 +279,7 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		'short_code'  => 'old111',
 		'target_url'  => 'https://example.com/page',
 		'title'       => 'Flyer 2025',
-		'created_at'  => '2025-03-01 10:00:00',
+		'created_at'  => '1740823200', // 2025-03-01 10:00:00 UTC.
 		'click_count' => '42',
 		'status'      => 'active',
 	);
@@ -314,6 +316,22 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 			$data['short']['duplicates'][0]
 		);
 		$this->assertArrayNotHasKey( 'drawn', $data['short'] );
+	}
+
+	public function test_a_destination_that_downloads_a_file_is_flagged_not_refused(): void {
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array() );
+
+		$this->short_post( array( 'fields' => array( 'url' => 'example.com/files/Edital-2026.PDF?v=2' ) ) );
+		list( $kind, $data ) = $this->run_handler( 'handle_generate' );
+
+		$this->assertSame( 'success', $kind );
+		$this->assertSame( 'pdf', $data['short']['download'], 'Read off the path, case-insensitively, with the query ignored (#2337).' );
+
+		$this->short_post();
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( '', $data['short']['download'], 'A page is not flagged.' );
 	}
 
 	public function test_generate_draws_a_held_code_only_while_it_sends_to_this_destination(): void {
@@ -405,23 +423,33 @@ class QrGeneratorAjaxEndpointTest extends TestCase {
 		$this->assertStringContainsString( 'cannot be shortened again', $data['message'] );
 	}
 
-	public function test_a_non_web_address_is_drawn_as_is_and_cannot_be_shortened(): void {
-		// A short URL is an HTTP redirect; a browser does not reliably follow
-		// it into ssh:// or ftp:// (#1596).
-		$this->service->shouldNotReceive( 'code_from_short_url' );
-		$this->service->shouldNotReceive( 'get_repository' );
-		$this->service->shouldNotReceive( 'create_short_url' );
+	public function test_a_scheme_beyond_http_is_shortened_with_a_warning(): void {
+		// Decided in the session (#2337): ftp, ssh and the rest of the shared
+		// list may sit behind a short URL; a phone may not follow the redirect
+		// into them (#1596), so the state carries a warning, never a lock.
+		$this->service->shouldReceive( 'code_from_short_url' )->andReturn( '' );
+		$this->service->shouldReceive( 'get_example_short_url' )->andReturn( 'https://site.test/go/Ab3dEf' );
+		$this->repository( array() );
 
 		$this->short_post( array( 'fields' => array( 'url' => 'ssh://user@server.example.com' ) ) );
 		list( , $data ) = $this->run_handler( 'handle_generate' );
-		$this->assertSame( 'ssh://user@server.example.com', $data['payload'] );
-		$this->assertTrue( $data['short']['direct'] );
-		$this->assertFalse( $data['short']['example'] );
+		$this->assertSame( 'https://site.test/go/Ab3dEf', $data['payload'] );
+		$this->assertFalse( $data['short']['direct'] );
+		$this->assertSame( 'ssh', $data['short']['scheme'] );
+
+		$this->short_post();
+		list( , $data ) = $this->run_handler( 'handle_generate' );
+		$this->assertSame( '', $data['short']['scheme'], 'https carries no warning.' );
 
 		$this->short_post( array( 'fields' => array( 'url' => 'ftp://files.example.com/a.pdf' ), 'title' => 'File' ) );
-		list( $kind, $data ) = $this->run_handler( 'handle_shorten' );
-		$this->assertSame( 'error:400', $kind );
-		$this->assertStringContainsString( 'Only http and https', $data['message'] );
+		$this->service->shouldReceive( 'create_short_url' )->once()->with( 'ftp://files.example.com/a.pdf', 'File' )->andReturn(
+			array(
+				'success' => true,
+				'data'    => array( 'short_code' => 'Ftp123' ),
+			)
+		);
+		list( $kind ) = $this->run_handler( 'handle_shorten' );
+		$this->assertSame( 'success', $kind );
 	}
 
 	public function test_a_duplicate_needs_the_acknowledgement(): void {

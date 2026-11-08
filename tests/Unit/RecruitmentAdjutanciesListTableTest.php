@@ -192,7 +192,7 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 		$cols = $this->table->get_columns();
 
 		$this->assertSame(
-			array( 'cb', 'slug', 'name', 'color', 'usage', 'created_at' ),
+			array( 'cb', 'slug', 'name', 'color', 'usage', 'created_at', 'actions' ),
 			array_keys( $cols )
 		);
 	}
@@ -262,8 +262,11 @@ class RecruitmentAdjutanciesListTableTest extends TestCase {
 
 		$this->assertStringContainsString( 'alpha-adj', $out );
 		$this->assertStringContainsString( 'action=edit-adjutancy', $out );
+
+		$out = $this->call_protected( 'column_actions', array( array( 'id' => 8, 'slug' => 'alpha-adj' ) ) );
+		$this->assertStringContainsString( 'action=edit-adjutancy', $out );
 		$this->assertStringContainsString( 'action=delete-adjutancy', $out );
-		$this->assertStringContainsString( 'submitdelete', $out );
+		$this->assertStringContainsString( 'ffc-btn-danger', $out );
 	}
 
 	// ------------------------------------------------------------------

@@ -321,7 +321,7 @@ class CalendarRestController {
 			$slots               = $appointment_handler->get_available_slots( $calendar_id, $date );
 
 			if ( is_wp_error( $slots ) ) {
-				return $slots;
+				return \FreeFormCertificate\SelfScheduling\AppointmentHandler::rest_error( $slots );
 			}
 
 			return rest_ensure_response(
@@ -350,7 +350,7 @@ class CalendarRestController {
 	 * @param \Exception $e       The exception.
 	 */
 	private function log_rest_error( string $context, \Exception $e ): void {
-		if ( class_exists( '\FreeFormCertificate\Core\Utils' ) ) {
+		if ( class_exists( '\FreeFormCertificate\Core\Debug' ) ) {
 			\FreeFormCertificate\Core\Debug::log_rest_api(
 				"REST API error: {$context}",
 				array(

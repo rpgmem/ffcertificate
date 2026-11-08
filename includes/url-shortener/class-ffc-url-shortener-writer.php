@@ -50,6 +50,15 @@ class UrlShortenerWriter extends AbstractRepository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return UrlShortenerReader::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Increment the click counter for a short URL.
 	 *
 	 * Uses a lightweight UPDATE without cache invalidation since
@@ -94,10 +103,36 @@ class UrlShortenerWriter extends AbstractRepository {
 			array( '%s' ),
 			array( '%s' )
 		);
-		if ( false === $result ) {
-			return false;
-		}
-		$this->clear_cache();
-		return true;
+		// No cache to clear: the cached rows are read without `qr_cache`
+		// (UrlShortenerReader::ROW_COLUMNS), and flushing the group here was,
+		// without `flush_group`, flushing the whole site cache (#2337).
+		return false !== $result;
+	}
+
+	/**
+	 * Record a code as retired, so it is never issued again (#2337).
+	 *
+	 * `INSERT IGNORE`: a code already retired stays retired with its first
+	 * record, and that counts as success.
+	 *
+	 * @param array<string, mixed> $row    The link as it was: short_code, id, post_id, title, target_url.
+	 * @param string               $reason `regenerated` or `deleted`.
+	 * @param int                  $now    Unix time of the retirement.
+	 * @return bool False only on a database error.
+	 */
+	public function retireCode( array $row, string $reason, int $now ): bool {
+		$sql = $this->wpdb->prepare(
+			'INSERT IGNORE INTO %i (short_code, short_url_id, post_id, title, target_url, reason, retired_at) VALUES (%s, %d, NULLIF(%d, 0), %s, %s, %s, %d)',
+			$this->wpdb->prefix . 'ffc_short_url_retired',
+			(string) ( $row['short_code'] ?? '' ),
+			(int) ( $row['id'] ?? 0 ),
+			(int) ( $row['post_id'] ?? 0 ),
+			(string) ( $row['title'] ?? '' ),
+			(string) ( $row['target_url'] ?? '' ),
+			$reason,
+			$now
+		);
+
+		return is_string( $sql ) && false !== $this->wpdb->query( $sql );
 	}
 }

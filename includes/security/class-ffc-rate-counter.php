@@ -43,6 +43,13 @@ final class RateCounter {
 	/**
 	 * Add one to a counter and (re)arm its expiry.
 	 *
+	 * Not atomic, and written down because it cannot be made so here
+	 * (#2339): WordPress has no atomic increment for a transient, and without
+	 * a persistent object cache a transient is an option row read and then
+	 * written. Two hits landing together can count once. A cap is therefore a
+	 * bound that can be exceeded by the few requests that race at its edge,
+	 * never one that can be stepped around by repeating them.
+	 *
 	 * @param string $key Counter key (`ffc_` prefixed).
 	 * @param int    $ttl Lifetime in seconds.
 	 * @return int The new value.
@@ -51,6 +58,21 @@ final class RateCounter {
 		$next = self::get( $key ) + 1;
 		set_transient( $key, $next, $ttl );
 		return $next;
+	}
+
+	/**
+	 * A counter key for the current fixed window of `$seconds`.
+	 *
+	 * The window number is part of the key, the way `WindowThrottle` does
+	 * it (#2339). A key without one re-armed its expiry on every hit, so a
+	 * caller who kept coming back inside the window was never released.
+	 *
+	 * @param string $key     Counter key (`ffc_` prefixed), without a window.
+	 * @param int    $seconds Window length in seconds.
+	 * @return string
+	 */
+	public static function windowed( string $key, int $seconds ): string {
+		return $key . '_' . (int) floor( time() / max( 1, $seconds ) );
 	}
 
 	/**

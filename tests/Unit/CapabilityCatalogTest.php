@@ -157,9 +157,11 @@ class CapabilityCatalogTest extends TestCase {
 		}
 		$this->assertSame(
 			array(
+				// Groups render by label: Audience Calendars sorts before
+				// Personal Calendars - Bookings.
+				'ffc_bypass_audiences'            => 'frontend',
 				'ffc_bypass_appointments'         => 'frontend',
 				'ffc_bypass_appointment_capacity' => 'frontend',
-				'ffc_bypass_audiences'            => 'frontend',
 				'ffc_view_forms_api'              => 'api',
 				'ffc_submit_forms_api'            => 'api',
 			),
@@ -242,9 +244,46 @@ class CapabilityCatalogTest extends TestCase {
 	}
 
 	public function test_every_cataloged_cap_resolves_a_known_tier(): void {
-		$known = array( 'view', 'reveal', 'book', 'submit', 'test', 'cancel', 'download', 'call', 'export', 'import', 'edit', 'manage', 'bypass', 'delete' );
+		$known = array( 'view', 'reveal', 'book', 'submit', 'test', 'cancel', 'download', 'call', 'checkin', 'grade', 'send', 'export', 'import', 'edit', 'manage', 'bypass', 'delete', 'purge', 'merge', 'split' );
 		foreach ( CapabilityCatalog::all_slugs() as $slug ) {
 			$this->assertContains( CapabilityCatalog::cap_tier( $slug ), $known, $slug . ' resolved an unknown tier.' );
 		}
+	}
+
+	public function test_every_catalog_verb_has_a_tier_of_its_own(): void {
+		// A verb the catalog uses must not fall back to `view`, the faintest
+		// tier: `ffc_purge_appointments` read as a viewer's cap (#2340).
+		foreach ( CapabilityCatalog::all_slugs() as $slug ) {
+			$verb = explode( '_', $slug )[1] ?? '';
+			if ( 'view' === $verb ) {
+				continue;
+			}
+			$this->assertNotSame( 'view', CapabilityCatalog::cap_tier( $slug ), $slug . ' falls back to the view tier.' );
+		}
+		foreach ( array( 'purge', 'merge', 'split', 'send', 'checkin', 'grade' ) as $verb ) {
+			$this->assertSame( $verb, CapabilityCatalog::cap_tier( 'ffc_' . $verb . '_things' ) );
+		}
+	}
+
+	public function test_granting_asks_first_for_personal_data_destruction_and_the_activity_log(): void {
+		// An export sits in the Personal data band: it takes records out in bulk.
+		foreach ( array( 'ffc_view_certificates_pii', 'ffc_export_certificates', 'ffc_delete_certificates', 'ffc_purge_appointments', 'ffc_merge_identities', 'ffc_view_activity_log', 'ffc_export_activity_log' ) as $slug ) {
+			$this->assertTrue( CapabilityCatalog::needs_grant_confirmation( $slug ), $slug );
+		}
+		foreach ( array( 'ffc_view_certificates', 'ffc_manage_certificates', 'ffc_bypass_appointments', 'ffc_book_appointments' ) as $slug ) {
+			$this->assertFalse( CapabilityCatalog::needs_grant_confirmation( $slug ), $slug );
+		}
+	}
+
+	public function test_the_tier_is_written_out_beside_the_name(): void {
+		Functions\when( 'esc_attr' )->returnArg();
+		Functions\when( 'esc_html' )->returnArg();
+		$this->assertSame( '<span class="ffc-cap-tier ffc-cap-tier-destroy">Destructive</span>', CapabilityCatalog::tier_chip( 'ffc_purge_appointments' ) );
+		$this->assertSame( '<span class="ffc-cap-tier ffc-cap-tier-data">Personal data</span>', CapabilityCatalog::tier_chip( 'ffc_view_certificates_pii' ) );
+		$this->assertSame( '<span class="ffc-cap-tier ffc-cap-tier-read">Read</span>', CapabilityCatalog::tier_chip( 'ffc_view_forms' ) );
+		$this->assertSame( 'override', CapabilityCatalog::tier_band( 'bypass' )['band'] );
+		$this->assertSame( 'act', CapabilityCatalog::tier_band( 'checkin' )['band'] );
+		$this->assertSame( 'change', CapabilityCatalog::tier_band( 'manage' )['band'] );
+		$this->assertSame( 'read', CapabilityCatalog::tier_band( 'unknown' )['band'], 'An unknown tier reads as the safest band.' );
 	}
 }

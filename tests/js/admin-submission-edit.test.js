@@ -382,3 +382,115 @@ describe('Consent section', () => {
 		expect(details.hasAttribute('style')).toBe(false);
 	});
 });
+
+// An answer is corrected on its own row (#2354).
+describe('answer correction on its row', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<dl class="ffc-facts">
+				<dt>Full Name</dt>
+				<dd class="ffc-facts__value" id="row-name"><div class="ffc-answer-row"><span>Ana Silv</span>
+					<button type="button" class="ffc-correct-open" data-field="name" data-value="Ana Silv" aria-expanded="false">p</button></div></dd>
+				<dt>School</dt>
+				<dd class="ffc-facts__value" id="row-school"><div class="ffc-answer-row"><span>North</span>
+					<button type="button" class="ffc-correct-open" data-field="school" data-value="North" aria-expanded="false">p</button></div></dd>
+			</dl>
+			<div id="ffc-correct-inline" hidden>
+				<input type="hidden" id="ffc-correct-field" value="">
+				<textarea id="ffc-correct-value"></textarea>
+				<textarea id="ffc-correct-reason"></textarea>
+				<button type="button" class="ffc-correct-cancel">Cancel</button>
+			</div>`;
+		await loadOnReady();
+	});
+
+	it('opens under the row, names the answer and fills in its value', () => {
+		const pencil = document.querySelector('[data-field="school"]');
+		pencil.click();
+
+		const editor = document.getElementById('ffc-correct-inline');
+		expect(editor.hidden).toBe(false);
+		expect(editor.parentElement.id).toBe('row-school');
+		expect(document.getElementById('ffc-correct-field').value).toBe('school');
+		expect(document.getElementById('ffc-correct-value').value).toBe('North');
+		expect(pencil.getAttribute('aria-expanded')).toBe('true');
+		expect(document.activeElement.id).toBe('ffc-correct-value');
+	});
+
+	it('moves to another row and clears the reason', () => {
+		document.querySelector('[data-field="school"]').click();
+		document.getElementById('ffc-correct-reason').value = 'half a reason';
+		document.querySelector('[data-field="name"]').click();
+
+		expect(document.getElementById('ffc-correct-inline').parentElement.id).toBe('row-name');
+		expect(document.getElementById('ffc-correct-field').value).toBe('name');
+		expect(document.getElementById('ffc-correct-value').value).toBe('Ana Silv');
+		expect(document.getElementById('ffc-correct-reason').value).toBe('');
+		expect(document.querySelector('[data-field="school"]').getAttribute('aria-expanded')).toBe('false');
+	});
+
+	it('cancel hides the editor, empties the answer and returns focus to the pencil', () => {
+		const pencil = document.querySelector('[data-field="name"]');
+		pencil.click();
+		document.querySelector('.ffc-correct-cancel').click();
+
+		expect(document.getElementById('ffc-correct-inline').hidden).toBe(true);
+		expect(document.getElementById('ffc-correct-field').value).toBe('');
+		expect(pencil.getAttribute('aria-expanded')).toBe('false');
+		expect(document.activeElement).toBe(pencil);
+	});
+});
+
+// An open answer awaiting grading is amended with the grades (#2356).
+describe('amending an open answer while it waits for grading', () => {
+	beforeEach(async () => {
+		document.body.innerHTML = `
+			<dl class="ffc-facts">
+				<dt>Name</dt>
+				<dd class="ffc-facts__value" id="row-name"><div class="ffc-answer-row"><span>Ana</span>
+					<button type="button" class="ffc-correct-open" data-field="name" data-value="Ana" data-form="ffc-correct-form" aria-expanded="false">p</button></div></dd>
+				<dt>Essay</dt>
+				<dd class="ffc-facts__value" id="row-essay"><div class="ffc-answer-row"><span>Because.</span>
+					<button type="button" class="ffc-correct-open" data-field="essay" data-value="Because." data-form="ffc-grade-form" aria-expanded="false">p</button></div></dd>
+			</dl>
+			<div id="ffc-correct-inline" hidden>
+				<input type="hidden" id="ffc-correct-field" form="ffc-correct-form" value="">
+				<textarea id="ffc-correct-value" form="ffc-correct-form"></textarea>
+				<textarea id="ffc-correct-reason" form="ffc-correct-form"></textarea>
+				<button type="submit" class="ffc-amend-own" form="ffc-correct-form">Amend answer</button>
+				<button type="button" class="ffc-correct-cancel">Cancel</button>
+				<p class="ffc-amend-with-grade" hidden>Saved with the grades.</p>
+			</div>
+			<button type="submit" class="ffc-grade-save" form="ffc-grade-form" data-label-amend="Save the amendment and grades">Save grades</button>`;
+		await loadOnReady();
+	});
+
+	const formOf = (id) => document.getElementById(id).getAttribute('form');
+
+	it('moves the editor inputs onto the grading form and relabels its save', () => {
+		document.querySelector('[data-field="essay"]').click();
+
+		expect(['ffc-correct-field', 'ffc-correct-value', 'ffc-correct-reason'].map(formOf)).toEqual(['ffc-grade-form', 'ffc-grade-form', 'ffc-grade-form']);
+		expect(document.querySelector('.ffc-amend-own').hidden).toBe(true);
+		expect(document.querySelector('.ffc-amend-with-grade').hidden).toBe(false);
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save the amendment and grades');
+	});
+
+	it('keeps any other answer on its own save', () => {
+		document.querySelector('[data-field="essay"]').click();
+		document.querySelector('[data-field="name"]').click();
+
+		expect(formOf('ffc-correct-value')).toBe('ffc-correct-form');
+		expect(document.querySelector('.ffc-amend-own').hidden).toBe(false);
+		expect(document.querySelector('.ffc-amend-with-grade').hidden).toBe(true);
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save grades');
+	});
+
+	it('cancel restores the correction form and the grading label', () => {
+		document.querySelector('[data-field="essay"]').click();
+		document.querySelector('.ffc-correct-cancel').click();
+
+		expect(formOf('ffc-correct-reason')).toBe('ffc-correct-form');
+		expect(document.querySelector('.ffc-grade-save').textContent).toBe('Save grades');
+	});
+});

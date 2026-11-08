@@ -57,6 +57,10 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		Functions\when( 'wp_unslash' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => strtolower( (string) $v ) );
+		// The date column is an instant shown in the site's timezone (#2340).
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'America/Sao_Paulo' ) );
+		Functions\when( 'get_option' )->justReturn( '' );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts, $tz = null ) => ( new \DateTimeImmutable( '@' . $ts ) )->setTimezone( $tz ?? new \DateTimeZone( 'UTC' ) )->format( $format ) );
 
 		$this->source = new ActivityLogExportSource();
 	}
@@ -92,7 +96,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 	private function sample_row(): array {
 		return array(
 			'id'         => 7,
-			'created_at' => '2026-01-15 10:30:00',
+			'created_at' => '1768473000',
 			'level'      => 'error',
 			'action'     => 'submission_created',
 			'user_id'    => 3,
@@ -132,7 +136,7 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 
 		$result = $this->source->format_row( $this->sample_row(), array( 'pii' => true ) );
 
-		$this->assertSame( '2026-01-15 10:30:00', $result[0] );
+		$this->assertSame( '15/01/2026 07:30', $result[0], 'The instant is shown in the site\'s timezone, in the site\'s format.' );
 		$this->assertSame( 'ERROR', $result[1] );
 		$this->assertSame( 'Submission Created', $result[2] );
 		$this->assertSame( 'Jane Doe (jane)', $result[3] );
@@ -196,6 +200,18 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertSame( 'error', $filters['level'] );
 		$this->assertSame( 'submission_created', $filters['action'] );
 		$this->assertSame( 'needle', $filters['search'] );
+	}
+
+	public function test_sanitize_filters_reads_the_user_and_date_filters(): void {
+		$_POST['log_user']  = 'system';
+		$_POST['date_from'] = '2026-11-01';
+		$_POST['date_to']   = '2026-11-31';
+
+		$filters = $this->source->sanitize_filters();
+		$this->assertSame( 'system', $filters['user_id'] );
+		$this->assertSame( '2026-11-01', $filters['date_from'] );
+		$this->assertArrayNotHasKey( 'date_to', $filters, 'A date that does not exist is dropped.' );
+		$this->assertArrayNotHasKey( 'limit', $filters, 'Paging is the engine\'s, not a filter.' );
 	}
 
 	/**
@@ -309,6 +325,24 @@ class ActivityLogExportSourceTest extends BatchedExportSourceContractTestCase {
 		$this->assertStringContainsString( '198.51.***.***', $result[5] );
 		$this->assertStringNotContainsString( '198.51.100.7', $result[5] );
 		$this->assertStringContainsString( '"form_id":42', $result[5] );
+	}
+
+	public function test_a_masked_export_masks_emails_and_documents_too(): void {
+		Functions\when( 'get_userdata' )->justReturn( false );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'is_email' )->alias( static fn( $e ) => false !== filter_var( $e, FILTER_VALIDATE_EMAIL ) ? $e : false );
+		$row            = $this->sample_row();
+		$row['context'] = array(
+			'requester' => 'ana@example.org',
+			'cpf'       => '51817842080',
+		);
+
+		$masked = $this->source->format_row( $row, array( 'pii' => false ) );
+		$clear  = $this->source->format_row( $row, array( 'pii' => true ) );
+
+		$this->assertStringNotContainsString( 'ana@example.org', $masked[5] );
+		$this->assertStringNotContainsString( '51817842080', $masked[5] );
+		$this->assertStringContainsString( 'ana@example.org', $clear[5], 'an export with the reveal cap stays in clear' );
 	}
 
 	public function test_filename_is_dated(): void {

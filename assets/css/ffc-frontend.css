@@ -1260,26 +1260,10 @@ details.ffc-consent-description > p {
     margin: var(--ffc-spacing-2xs) 0;
 }
 
-/* 6.6.4 — the "try anyway" CTA of the pre-flight banners (cookies / GPS),
-   so permissive users can proceed. The banner itself is a warning
-   `.ffc-notice` (#1842). */
+/* The "try anyway" CTA of the pre-flight banners (cookies / GPS) is a
+   neutral `.ffc-btn` (#2339); only its place in the banner is set here. */
 .ffc-preflight-try-anyway {
-    display: inline-block;
     margin-top: var(--ffc-spacing-md);
-    padding: var(--ffc-spacing-sm) var(--ffc-spacing-xl);
-    background: transparent;
-    color: var(--ffc-warning-text);
-    border: 1px solid var(--ffc-warning-border);
-    border-radius: var(--ffc-radius-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s ease;
-}
-
-.ffc-preflight-try-anyway:hover,
-.ffc-preflight-try-anyway:focus {
-    background: var(--ffc-warning);
-    color: var(--ffc-text-on-warning);
 }
 
 /* "Continue anyway" of the browser step's in-app block (#2030): discreet on
@@ -1435,6 +1419,7 @@ details.ffc-consent-description > p {
     gap: var(--ffc-spacing-lg);
     margin-top: var(--ffc-spacing-3xl);
     flex-wrap: wrap;
+    align-items: flex-start;
     width: 100%;
     box-sizing: border-box;
 }
@@ -1444,6 +1429,71 @@ details.ffc-consent-description > p {
 .ffc-public-csv-download .ffc-info-actions .ffc-btn {
     flex: 1;
     min-width: 160px;
+}
+
+/* A disabled action with its reason beside it (#2341): the pair takes the
+   button's place in the row, the info button keeps its own square, and the
+   reason opens below on its own line. */
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-xs);
+    min-width: 160px;
+}
+
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason .ffc-btn-icon {
+    flex: 0 0 auto;
+    align-self: stretch;
+    height: auto;
+    min-width: 0;
+    aspect-ratio: 1;
+}
+
+/* The reason opens on its own line, under the pair. */
+.ffc-public-csv-download .ffc-info-actions .ffc-action-with-reason > .ffc-btn:first-child {
+    flex: 1;
+}
+
+.ffc-public-csv-download .ffc-action-reason {
+    flex-basis: 100%;
+    font-size: var(--ffc-font-size-sm);
+    color: var(--ffc-text-muted);
+}
+
+/* The schedule exception's choice and times (#2341): the two modes are one
+   fieldset, the two times share a row with a gap and wrap on a phone. */
+.ffc-schedule-exception-modes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ffc-spacing-xs);
+    margin: 0 0 var(--ffc-spacing-lg);
+    padding: 0;
+    border: 0;
+}
+
+.ffc-schedule-exception-modes legend {
+    margin-bottom: var(--ffc-spacing-xs);
+    padding: 0;
+    font-weight: 600;
+}
+
+.ffc-schedule-exception-times {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ffc-spacing-lg);
+    margin-bottom: var(--ffc-spacing-lg);
+}
+
+.ffc-schedule-exception-times label {
+    display: flex;
+    align-items: center;
+    gap: var(--ffc-spacing-xs);
+    font-weight: 600;
+}
+
+.ffc-schedule-exception-times .ffc-input {
+    width: auto;
 }
 
 /* ────────────────────────────────────────────────────────────
@@ -1538,7 +1588,8 @@ details.ffc-consent-description > p {
 
 .ffc-public-csv-download .ffc-info-table .ffc-info-table-dash {
     text-align: right;
-    color: var(--ffc-border);
+    /* Read as text, so the hint colour (4.5:1), not the border's 3:1 (#2341). */
+    color: var(--ffc-text-muted);
 }
 
 .ffc-public-csv-download .ffc-info-schedule-ref-note {

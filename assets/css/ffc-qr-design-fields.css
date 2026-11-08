@@ -71,8 +71,8 @@
 
 .ffc-qr-tile__input:checked + .ffc-qr-tile__face {
     border-color: var(--ffc-primary);
-    background: var(--ffc-accent-bg);
-    color: var(--ffc-accent-text);
+    background: var(--ffc-primary-light);
+    color: var(--ffc-primary-hover);
     box-shadow: 0 0 0 1px var(--ffc-primary);
 }
 
@@ -104,12 +104,6 @@
     font-weight: 600;
 }
 
-.ffc-qr-field__check {
-    display: flex;
-    align-items: center;
-    gap: var(--ffc-spacing-xs);
-}
-
 /* A colour: the native picker beside its hex value. */
 .ffc-qr-color {
     display: inline-flex;
@@ -134,4 +128,18 @@
     max-width: 64px;
     max-height: 64px;
     margin-bottom: var(--ffc-spacing-xs);
+}
+
+/* Several scan problems show together (#2337): the status line keeps its
+   heading and wraps the list below it, in the line's own tone. */
+.ffc-status:has(> .ffc-qr-checks-list) {
+    flex-wrap: wrap;
+}
+
+.ffc-qr-checks-list {
+    flex-basis: 100%;
+    margin: var(--ffc-spacing-2xs) 0 0;
+    padding-left: var(--ffc-spacing-lg);
+    list-style: disc;
+    font-weight: 400;
 }

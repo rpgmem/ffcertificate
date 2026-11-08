@@ -69,6 +69,31 @@ describe('FFCDashboard.audienceJoin.load', () => {
 		expect(section.querySelector('.ffc-audience-limit-msg').textContent).toContain('5'); // {max} replaced
 	});
 
+	it('draws the administrator\'s text under the limit, and nothing when there is none (#2509)', async () => {
+		mockAjaxSuccess({
+			parents: [{ id: 1, name: 'Adults', color: '#aa0000', joinable: true, is_member: false }],
+			max_groups: 5,
+			joined_count: 0,
+			note: '<p>Ask <a href="https://example.org/rh">HR</a>.</p>',
+		});
+		audienceJoin().load();
+		await flushPromises();
+		const note = document.querySelector('#ffc-audience-join-section .ffc-audience-join-note');
+		expect(note).not.toBeNull();
+		expect(note.previousElementSibling.classList.contains('ffc-audience-limit-msg')).toBe(true);
+		expect(note.querySelector('a').getAttribute('href')).toBe('https://example.org/rh');
+
+		mockAjaxSuccess({
+			parents: [{ id: 1, name: 'Adults', color: '#aa0000', joinable: true, is_member: false }],
+			max_groups: 5,
+			joined_count: 0,
+			note: '',
+		});
+		audienceJoin().load();
+		await flushPromises();
+		expect(document.querySelector('#ffc-audience-join-section .ffc-audience-join-note')).toBeNull();
+	});
+
 	it('renders a Join button on a non-member joinable group', async () => {
 		mockAjaxSuccess({
 			parents: [{ id: 42, name: 'Beta', color: '#00aa00', joinable: true, is_member: false }],

@@ -63,7 +63,10 @@ class CsvDownloadAuditLog {
 	 * window — consumers use `access_success` / `failed_access` instead.
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * `full` says that failures or records reached their own cap, so older
+	 * rows of that kind roll off (#2341).
+	 *
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, full: bool, url: string|null}
 	 */
 	public static function get_summary( int $form_id ): array {
 		$log   = get_post_meta( $form_id, PublicCsvDownload::META_DOWNLOAD_LOG, true );
@@ -90,6 +93,7 @@ class CsvDownloadAuditLog {
 		$delivery_tags  = array( 'download_delivered', 'action_early_open', 'action_postpone_close' );
 		$access_success = 0;
 		$failed_access  = 0;
+		$failure_rows   = 0;
 		foreach ( $log as $entry ) {
 			$result = is_array( $entry ) && isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			if ( in_array( $result, $access_success_tags, true ) ) {
@@ -97,9 +101,12 @@ class CsvDownloadAuditLog {
 			} elseif ( in_array( $result, $delivery_tags, true ) ) {
 				continue;
 			} else {
-				++$failed_access;
+				// A row folds every repeat of one failure (#2341).
+				$failed_access += self::times( is_array( $entry ) ? $entry : array() );
+				++$failure_rows;
 			}
 		}
+		$record_rows = $count - $failure_rows;
 
 		$download_success = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
 
@@ -119,8 +126,110 @@ class CsvDownloadAuditLog {
 			'access_success'   => $access_success,
 			'download_success' => $download_success,
 			'failed_access'    => $failed_access,
+			'full'             => $failure_rows >= PublicCsvDownload::DOWNLOAD_LOG_MAX || $record_rows >= PublicCsvDownload::DOWNLOAD_LOG_MAX,
 			'url'              => $url,
 		);
+	}
+
+	/**
+	 * Results that record something that happened (a CPF gate passed, a
+	 * file delivered, an operator action). Every other result is a
+	 * failure, an unknown future tag included, so a refusal can never be
+	 * filed among the records.
+	 */
+	private const RECORD_TAGS = array( 'success', 'audit_pass', 'voluntary', 'download_delivered', 'action_early_open', 'action_postpone_close' );
+
+	/**
+	 * Whether a result is a failure.
+	 *
+	 * @param string $result Outcome tag.
+	 * @return bool
+	 */
+	public static function is_failure( string $result ): bool {
+		return ! in_array( $result, self::RECORD_TAGS, true );
+	}
+
+	/**
+	 * How many attempts an entry stands for: a folded failure carries its
+	 * count, any other entry one.
+	 *
+	 * @param array<mixed> $entry Log entry.
+	 * @return int
+	 */
+	public static function times( array $entry ): int {
+		return isset( $entry['count'] ) && is_numeric( $entry['count'] ) ? max( 1, (int) $entry['count'] ) : 1;
+	}
+
+	/**
+	 * Add an entry to the log (#2341).
+	 *
+	 * A failure repeating one already logged (the same result, gate mode
+	 * and address fingerprint) is folded into that row: its count grows,
+	 * its time becomes the last attempt's, and `first_ts` keeps the first.
+	 * The row moves to the end, so the log stays in order of last attempt.
+	 * Failures and records are then capped apart, each at `$max`, so a
+	 * stream of bad requests can only push out older failures and never a
+	 * delivery.
+	 *
+	 * @param array<mixed>         $log   The stored log.
+	 * @param array<string, mixed> $entry The new entry; `ip_fp` is the key.
+	 * @param int                  $max   Rows kept of each kind.
+	 * @return array<int, mixed> The log to store.
+	 */
+	public static function append( array $log, array $entry, int $max ): array {
+		$log    = array_values( $log );
+		$result = (string) ( $entry['result'] ?? '' );
+
+		if ( self::is_failure( $result ) && '' !== (string) ( $entry['ip_fp'] ?? '' ) ) {
+			for ( $i = count( $log ) - 1; $i >= 0; $i-- ) {
+				$row = $log[ $i ];
+				if ( ! is_array( $row )
+					|| (string) ( $row['result'] ?? '' ) !== $result
+					|| (string) ( $row['mode'] ?? '' ) !== (string) ( $entry['mode'] ?? '' )
+					|| (string) ( $row['ip_fp'] ?? '' ) !== (string) $entry['ip_fp'] ) {
+					continue;
+				}
+				$entry['first_ts'] = isset( $row['first_ts'] ) ? (int) $row['first_ts'] : (int) ( $row['ts'] ?? $entry['ts'] ?? 0 );
+				$entry['count']    = self::times( $row ) + 1;
+				if ( '' === (string) ( $entry['cpf_encrypted'] ?? '' ) && '' !== (string) ( $row['cpf_encrypted'] ?? '' ) ) {
+					$entry['cpf_encrypted'] = $row['cpf_encrypted'];
+				}
+				array_splice( $log, $i, 1 );
+				break;
+			}
+		}
+
+		$log[] = $entry;
+
+		// Cap each kind apart, dropping its oldest rows.
+		$failures = 0;
+		$records  = 0;
+		foreach ( $log as $row ) {
+			if ( is_array( $row ) && self::is_failure( (string) ( $row['result'] ?? '' ) ) ) {
+				++$failures;
+			} else {
+				++$records;
+			}
+		}
+		$drop_failures = max( 0, $failures - $max );
+		$drop_records  = max( 0, $records - $max );
+		if ( 0 === $drop_failures && 0 === $drop_records ) {
+			return $log;
+		}
+		$kept = array();
+		foreach ( $log as $row ) {
+			$failure = is_array( $row ) && self::is_failure( (string) ( $row['result'] ?? '' ) );
+			if ( $failure && $drop_failures > 0 ) {
+				--$drop_failures;
+				continue;
+			}
+			if ( ! $failure && $drop_records > 0 ) {
+				--$drop_records;
+				continue;
+			}
+			$kept[] = $row;
+		}
+		return $kept;
 	}
 
 	/**

@@ -637,6 +637,9 @@ class AudienceShortcodeTest extends TestCase {
 		$this->assertSame('below', $config['eventListPosition']);
 		$this->assertSame(30, $config['schedules'][0]['futureDaysLimit']);
 		$this->assertNull($config['schedules'][1]['futureDaysLimit']);
+		// A calendar stored before #2404 offers both booking shapes.
+		$this->assertTrue($config['schedules'][0]['allowMultiDay']);
+		$this->assertTrue($config['schedules'][0]['allowTimeSelection']);
 		$this->assertSame('#3788d8', $config['schedules'][0]['environments'][0]['color'], 'A missing colour falls back to the default.');
 		$this->assertSame(array('Lab'), array_column($config['schedules'][1]['environments'], 'name'), 'Only the active environments are listed.');
 		$this->assertSame('#ff0000', $config['schedules'][1]['environments'][0]['color']);

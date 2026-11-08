@@ -53,23 +53,6 @@ class ActivityLog {
 	const LEVEL_DEBUG   = 'debug';
 
 	/**
-	 * Category keys used by the granular log filter (settings:
-	 * `activity_log_cat_<key>`). Each event maps to exactly one via
-	 * {@see self::category_for_action()}.
-	 *
-	 * @var array<int, string>
-	 */
-	const CATEGORIES = array(
-		'submissions',
-		'scheduling',
-		'public_access',
-		'users',
-		'recruitment',
-		'migrations',
-		'system',
-	);
-
-	/**
 	 * Numeric severity rank for a level (higher = more severe). Used by the
 	 * configurable minimum-level filter.
 	 *
@@ -88,85 +71,6 @@ class ActivityLog {
 			default:
 				return 1;
 		}
-	}
-
-	/**
-	 * Map an action key to its filter category (one of {@see self::CATEGORIES}).
-	 * Unknown / submission-adjacent actions fall back to `submissions`.
-	 *
-	 * @param string $action Action key.
-	 * @return string Category key.
-	 */
-	public static function category_for_action( string $action ): string {
-		if ( 0 === strpos( $action, 'recruitment_' ) ) {
-			return 'recruitment';
-		}
-		if ( 0 === strpos( $action, 'appointment_' ) ) {
-			return 'scheduling';
-		}
-
-		$by_action = array(
-			// Identity resolution (#1368) -- a write over stored PII, so it sits
-			// with the other data-access lines rather than with settings.
-			'identity_rf_repaired'               => 'data_access',
-			'identity_records_relinked'          => 'data_access',
-			'identity_records_split'             => 'data_access',
-			'identity_accounts_merged'           => 'data_access',
-			'identity_orphans_adopted'           => 'data_access',
-			// Accepting a finding as unresolvable writes nobody's data, but it
-			// is a decision ABOUT stored PII and belongs where its siblings are
-			// read; the fallback would file it under `submissions` (#1532).
-			'identity_accepted_unresolvable'     => 'data_access',
-			'identity_acceptance_withdrawn'      => 'data_access',
-			'migration_foreign_keys'             => 'migrations',
-			'activity_log_clear_plaintext_batch' => 'migrations',
-			'cpf_rf_split_unknown_length'        => 'migrations',
-			'cpf_rf_split_migration_batch'       => 'migrations',
-			'legacy_columns_dropped'             => 'migrations',
-			'email_hash_rehash_migration_batch'  => 'migrations',
-
-			'schedule_override_created'          => 'public_access',
-			'operator_ip_bypass'                 => 'public_access',
-			'preflight_blocked'                  => 'public_access',
-			'early_open_executed'                => 'public_access',
-			'end_postponed'                      => 'public_access',
-			'csv_downloaded'                     => 'public_access',
-
-			'capabilities_granted'               => 'users',
-			'password_changed'                   => 'users',
-			'profile_updated'                    => 'users',
-			'user_profile_read_full'             => 'users',
-			'user_data_anonymized'               => 'users',
-			'user_email_changed'                 => 'users',
-			'privacy_data_erased'                => 'users',
-			'privacy_request_created'            => 'users',
-			// A sensitive profile field revealed on the user-edit screen (#1863).
-			'user_profile_pii_revealed'          => 'users',
-
-			// A CSV export with personal data in clear, and a person revealed
-			// on Date Messages' upcoming dates (#1863): disclosures with no
-			// prefix of their own, which would fall back to `submissions`.
-			'pii_exported'                       => 'data_access',
-			'date_messages_pii_revealed'         => 'data_access',
-			// A client address revealed on the activity log or the Rate
-			// Limit tab (#2109).
-			'activity_log_ip_revealed'           => 'data_access',
-			'rate_limit_ip_revealed'             => 'data_access',
-
-			// An audience screen's account-email reveal (#1824) sits with the
-			// appointment reveals; without a prefix of its own it would fall
-			// back to `submissions`.
-			'audience_account_email_revealed'    => 'scheduling',
-			// A booking confirmed over the calendar's rules (#1859).
-			'audience_booking_override'          => 'scheduling',
-
-			'settings_changed'                   => 'system',
-			'access_denied'                      => 'system',
-			'ip_geolocation_debug'               => 'system',
-			'tickets_purged_expired'             => 'system',
-		);
-
-		return $by_action[ $action ] ?? 'submissions';
 	}
 
 	/**
@@ -214,13 +118,12 @@ class ActivityLog {
 	 * @return bool Success
 	 */
 	public static function log( string $action, string $level = self::LEVEL_INFO, array $context = array(), int $user_id = 0, int $submission_id = 0 ): bool {
-		// CRITICAL: Check admin settings FIRST (before temporary flag).
-		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
+		// Logging switched off for a bulk operation: nothing to read.
+		if ( self::$logging_disabled ) {
 			return false;
 		}
 
-		// Check if logging is temporarily disabled (bulk operations).
-		if ( self::$logging_disabled ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_enabled() ) {
 			return false;
 		}
 
@@ -230,12 +133,15 @@ class ActivityLog {
 			$level = self::LEVEL_INFO;
 		}
 
-		// Granular filters: minimum level + per-category enable. Both default
-		// to "log everything", so existing installs are unaffected until tuned.
-		if ( self::level_rank( $level ) < self::level_rank( \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level() ) ) {
+		// What is recorded is decided per item (#2340). An audit item is
+		// written whatever the minimum level, so raising the level never
+		// hides who saw or deleted data; a secondary item is filtered by it.
+		$item = ActivityLogItems::for_action( $action );
+		if ( ! ActivityLogItems::is_audit( $item )
+			&& self::level_rank( $level ) < self::level_rank( \FreeFormCertificate\Settings\SettingsReader::activity_log_min_level() ) ) {
 			return false;
 		}
-		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_category_enabled( self::category_for_action( $action ) ) ) {
+		if ( ! \FreeFormCertificate\Settings\SettingsReader::activity_log_item_enabled( $item ) ) {
 			return false;
 		}
 
@@ -265,6 +171,19 @@ class ActivityLog {
 			}
 		}
 
+		// A context left in clear never carries an address (#2340): with no
+		// key, or a failed encryption, each address in it is replaced by a
+		// keyed fingerprint, which still tells two entries from one address
+		// apart and cannot be read back. The row's own address follows the
+		// same rule below.
+		if ( null === $context_encrypted ) {
+			$scrubbed = self::fingerprint_addresses( $context );
+			if ( $scrubbed !== $context ) {
+				$scrubbed_json  = wp_json_encode( $scrubbed );
+				$context_for_db = $scrubbed_json ? $scrubbed_json : '';
+			}
+		}
+
 		// The client IP is personal data and is never stored in clear (#1574):
 		// it goes into `user_ip_encrypted`, and an IP that cannot be encrypted
 		// is not stored at all rather than written in plaintext. The legacy
@@ -285,7 +204,7 @@ class ActivityLog {
 			'user_id'           => absint( $user_id ),
 			'user_ip_encrypted' => $ip_encrypted,
 			'submission_id'     => absint( $submission_id ),
-			'created_at'        => current_time( 'mysql' ),
+			'created_at'        => time(),
 		);
 
 		// Add to write buffer.
@@ -325,9 +244,30 @@ class ActivityLog {
 	}
 
 	/**
-	 * Flush the write buffer to database using a single multi-row INSERT
+	 * A context with every address replaced by a keyed fingerprint.
 	 *
-	 * Called automatically on shutdown or when buffer reaches threshold.
+	 * @param array<mixed> $context Context, or a value inside it.
+	 * @return array<mixed>
+	 */
+	private static function fingerprint_addresses( array $context ): array {
+		foreach ( $context as $key => $value ) {
+			if ( is_array( $value ) ) {
+				$context[ $key ] = self::fingerprint_addresses( $value );
+			} elseif ( is_string( $key ) && in_array( $key, SensitiveFieldRegistry::PAYLOAD_ONLY_KEYS, true ) && is_string( $value ) && '' !== $value ) {
+				$context[ $key ] = 'fp:' . substr( \FreeFormCertificate\Core\Encryption::keyed_hash( $value, 'activity_log_ip' ), 0, 16 );
+			}
+		}
+		return $context;
+	}
+
+	/**
+	 * Flush the write buffer to the database, one INSERT per entry.
+	 *
+	 * Called automatically on shutdown or when the buffer reaches its
+	 * threshold. Each entry is its own INSERT because the columns written
+	 * vary per entry (an encrypted address or context is written only when
+	 * there is one) and a user id of 0 must reach the foreign key as NULL;
+	 * the buffer already spares the request a write per log call.
 	 *
 	 * @since 4.6.9
 	 * @return int Number of rows inserted
@@ -352,6 +292,7 @@ class ActivityLog {
 		$has_submission_id     = in_array( 'submission_id', $columns, true );
 		$has_context_encrypted = in_array( 'context_encrypted', $columns, true );
 		$has_ip_encrypted      = in_array( 'user_ip_encrypted', $columns, true );
+		$instants              = self::stores_instants();
 
 		$count              = count( self::$write_buffer );
 		$entries            = self::$write_buffer;
@@ -368,14 +309,18 @@ class ActivityLog {
 			// the format when the value is NULL and writes a literal NULL.
 			$user_id_for_db = $entry['user_id'] > 0 ? $entry['user_id'] : null;
 
+			// Until the column holds instants (#2340) an entry is written in
+			// the site's wall clock, as the column still expects, read when the
+			// buffer is flushed: the same request that logged the entry.
+			$created_at = is_int( $entry['created_at'] ) ? $entry['created_at'] : time();
 			$row_data   = array(
 				'action'     => $entry['action'],
 				'level'      => $entry['level'],
 				'context'    => $entry['context'],
 				'user_id'    => $user_id_for_db,
-				'created_at' => $entry['created_at'],
+				'created_at' => $instants ? $created_at : current_time( 'mysql' ),
 			);
-			$row_format = array( '%s', '%s', '%s', '%d', '%s' );
+			$row_format = array( '%s', '%s', '%s', '%d', $instants ? '%d' : '%s' );
 
 			if ( $has_submission_id ) {
 				$row_data['submission_id'] = $entry['submission_id'];
@@ -428,8 +373,29 @@ class ActivityLog {
 	 * stored there and nowhere else; `user_ip` stays declared only because
 	 * rows written before it still hold a plaintext address until the
 	 * "Activity Log: Encrypt Client IPs" migration clears it.
+	 *
+	 * 2.5.0 (#2340): `created_at` stores UTC seconds instead of the site's
+	 * wall clock. See {@see ActivityLogInstants}.
 	 */
-	private const DB_VERSION = '2.4.0';
+	public const SCHEMA_REVISION = '2.5.0';
+
+	/**
+	 * First revision whose `created_at` stores instants (#2340).
+	 */
+	public const INSTANTS_REVISION = '2.5.0';
+
+	/**
+	 * Whether `created_at` stores instants, as far as this request knows.
+	 *
+	 * @var bool|null
+	 */
+	private static $stores_instants = null;
+
+	/**
+	 * Option holding the revision last applied (#2430). Listed in
+	 * `uninstall.php`.
+	 */
+	public const SCHEMA_REVISION_OPTION = 'ffc_activity_log_db_version';
 
 	/**
 	 * Create activity log table
@@ -443,12 +409,21 @@ class ActivityLog {
 	 * dbDelta is idempotent — letting it run on every call lets it heal
 	 * legacy schemas without breaking fresh installs.
 	 *
-	 * @return bool Success
+	 * 2.5.0 (#2340): the creation times are converted to instants FIRST, and
+	 * while they are not -- another request holds the lock, or this is a
+	 * front-end request -- `dbDelta` does not run: given the BIGINT column
+	 * this statement declares, it would `ALTER` the DATETIME in place, which
+	 * the server converts to a number like `20261106103000`.
+	 *
+	 * @return bool Whether the schema is complete, the creation times included.
 	 */
 	public static function create_table(): bool {
 		global $wpdb;
-		$table_name      = $wpdb->prefix . 'ffc_activity_log';
-		$charset_collate = $wpdb->get_charset_collate();
+		// A revision past the conversion needs no reading of the column.
+		$instants              = self::stores_instants() || ActivityLogInstants::migrate();
+		self::$stores_instants = $instants;
+		$table_name            = $wpdb->prefix . 'ffc_activity_log';
+		$charset_collate       = $wpdb->get_charset_collate();
 
 		$sql = "CREATE TABLE {$table_name} (
             id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -460,7 +435,7 @@ class ActivityLog {
             submission_id bigint(20) unsigned DEFAULT NULL,
             user_ip varchar(100),
             user_ip_encrypted text,
-            created_at datetime NOT NULL,
+            created_at bigint(20) unsigned NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
             KEY action (action),
             KEY level (level),
@@ -470,8 +445,10 @@ class ActivityLog {
             KEY user_ip (user_ip)
         ) {$charset_collate};";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
+		if ( $instants ) {
+			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+			dbDelta( $sql );
+		}
 
 		// BOTH AFTER `dbDelta`, because they are the half `dbDelta` demonstrably
 		// does not do -- it never drops a column, and it did not reconcile the
@@ -480,7 +457,33 @@ class ActivityLog {
 		self::drop_dead_legacy_columns();
 		self::relax_legacy_not_null();
 
-		return true;
+		return $instants;
+	}
+
+	/**
+	 * Whether `created_at` stores UTC seconds (#2340).
+	 *
+	 * Known for certain once this request healed the table; otherwise read
+	 * from the revision the healing last recorded, which it records only
+	 * once the column is converted.
+	 *
+	 * @return bool
+	 */
+	public static function stores_instants(): bool {
+		if ( null === self::$stores_instants ) {
+			$stored                = get_option( self::SCHEMA_REVISION_OPTION, '' );
+			self::$stores_instants = is_string( $stored ) && '' !== $stored && version_compare( $stored, self::INSTANTS_REVISION, '>=' );
+		}
+		return self::$stores_instants;
+	}
+
+	/**
+	 * Forget what this request knows of the column, for tests.
+	 *
+	 * @return void
+	 */
+	public static function reset_instants_cache(): void {
+		self::$stores_instants = null;
 	}
 
 	/**
@@ -653,12 +656,13 @@ class ActivityLog {
 	 * — covers in-place plugin upgrades that don't fire register_activation_hook.
 	 */
 	public static function maybe_create_table(): void {
-		$stored = get_option( 'ffc_activity_log_db_version', '' );
-		if ( self::DB_VERSION === $stored ) {
+		$stored = get_option( self::SCHEMA_REVISION_OPTION, '' );
+		if ( self::SCHEMA_REVISION === $stored ) {
 			return;
 		}
-		self::create_table();
-		update_option( 'ffc_activity_log_db_version', self::DB_VERSION );
+		if ( self::create_table() ) {
+			update_option( self::SCHEMA_REVISION_OPTION, self::SCHEMA_REVISION );
+		}
 	}
 
 	/**
@@ -841,8 +845,11 @@ class ActivityLog {
 			'capabilities_granted',
 			self::LEVEL_INFO,
 			array(
-				'context'      => $context,
-				'capabilities' => $capabilities,
+				'context'        => $context,
+				'capabilities'   => $capabilities,
+				// The account that received them; the row's user is who
+				// granted them, or 0 for a grant no one made by hand (#2340).
+				'target_user_id' => $user_id,
 			),
 			get_current_user_id() > 0 ? get_current_user_id() : 0,
 			0

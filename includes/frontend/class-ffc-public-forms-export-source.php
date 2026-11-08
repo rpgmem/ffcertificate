@@ -27,6 +27,7 @@ use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Frontend\Csv\PublicCsvRowFormatter;
 use FreeFormCertificate\Repositories\SubmissionRepository;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\ReadRateGuard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -43,6 +44,14 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * Stable source type routed by the dispatcher / registry.
 	 */
 	public const TYPE = 'public_forms';
+
+	/**
+	 * Prefix of the cookie that tells the page a job's file was sent; the
+	 * job id follows it (#2341).
+	 *
+	 * @var string
+	 */
+	public const DELIVERED_COOKIE_PREFIX = 'ffc_csv_delivered_';
 
 	/**
 	 * Repository.
@@ -104,6 +113,16 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 				);
 			}
 		}
+		// The screen's read pool, which counts the call (#2341).
+		$rate_error = ReadRateGuard::check( PublicCsvDownload::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error(
+				array(
+					'message'    => $rate_error->get_error_message(),
+					'rate_limit' => true,
+				)
+			);
+		}
 
 		// 2. Page nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), PublicCsvDownload::NONCE_ACTION ) ) {
@@ -111,32 +130,32 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 		}
 
 		// 3. Honeypot + CAPTCHA.
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 		if ( true !== $security_check ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 4. Form id + access hash present.
 		$form_id     = $this->request_form_id();
 		$posted_hash = RequestInput::get_post_string( 'hash' );
 		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 5. Form-access + CPF-gate business rules.
 		$validator = new PublicCsvDownload();
 		$error     = $validator->validate_form_access( $form_id, $posted_hash );
 		if ( null !== $error ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 		$cpf_error = $validator->validate_cpf_requirement( $form_id, RequestInput::get_post_string( 'cpf' ) );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
-		// 6. Increment the download quota BEFORE generating (race-safe).
-		$count = (int) get_post_meta( $form_id, PublicCsvDownload::META_COUNT, true );
-		update_post_meta( $form_id, PublicCsvDownload::META_COUNT, $count + 1 );
+		// The quota is checked above and spent at delivery (#2341), so an
+		// export with no records, or one that is never downloaded, costs
+		// nothing.
 	}
 
 	/**
@@ -309,7 +328,13 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 	 * @return array<string, mixed>
 	 */
 	public function extra_start_response( string $job_id, array $job ): array {
-		return array( 'nonce_batch' => wp_create_nonce( 'ffc_public_csv_batch_' . $job_id ) );
+		return array(
+			'nonce_batch'       => wp_create_nonce( 'ffc_public_csv_batch_' . $job_id ),
+			// The start spent the screen's challenge (#2341): a fresh one
+			// for the next download from the same screen, which the
+			// operator solves there instead of going back to the form.
+			'download_security' => \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ),
+		);
 	}
 
 	/**
@@ -344,11 +369,59 @@ class PublicFormsExportSource implements BatchedExportSourceInterface {
 			return;
 		}
 		$audit_validator = new CsvDownloadValidator();
+		// The download is spent here, when the file is delivered (#2341),
+		// and atomically: a second job racing for the last download of the
+		// quota is refused.
+		if ( ! $audit_validator->claim_download( $form_id ) ) {
+			wp_die(
+				esc_html(
+					sprintf(
+						/* translators: %d is the configured download limit */
+						__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
+						CsvDownloadValidator::download_limit( $form_id )
+					)
+				)
+			);
+		}
 		$audit_validator->record_download_log_entry(
 			$form_id,
 			(string) get_post_meta( $form_id, '_ffc_csv_public_cpf_mode', true ),
 			isset( $job['cpf_digits'] ) ? (string) $job['cpf_digits'] : '',
 			'download_delivered'
+		);
+		// The file carries CPF, e-mail and RF in clear (#2341): the delivery
+		// is a PII-access audit entry, as on the download without JavaScript.
+		\FreeFormCertificate\Core\PiiExport::log( PublicCsvDownload::PII_EXPORT_TYPE, (int) ( $job['processed'] ?? 0 ), array( 'form_id' => $form_id ) );
+		self::send_delivered_cookie( RequestInput::get_get_string( 'job_id' ) );
+	}
+
+	/**
+	 * Tell the page the file is on its way (#2341).
+	 *
+	 * The file arrives in a hidden frame, which fires no event for an
+	 * attachment, so the screen said "Download complete" on a timer. The
+	 * cookie travels with the file's own response, and the screen waits for
+	 * it. It carries no data, only that this job's file was sent, so a
+	 * script may read it (`httponly` off) and it expires in two minutes.
+	 *
+	 * @param string $job_id The job being delivered.
+	 * @return void
+	 */
+	private static function send_delivered_cookie( string $job_id ): void {
+		$job_id = (string) preg_replace( '/[^a-f0-9-]/', '', strtolower( $job_id ) );
+		if ( '' === $job_id || headers_sent() ) {
+			return;
+		}
+		setcookie(
+			self::DELIVERED_COOKIE_PREFIX . $job_id,
+			'1',
+			array(
+				'expires'  => time() + 2 * MINUTE_IN_SECONDS,
+				'path'     => '/',
+				'secure'   => is_ssl() || 0 === strpos( (string) home_url(), 'https://' ),
+				'httponly' => false,
+				'samesite' => 'Lax',
+			)
 		);
 	}
 

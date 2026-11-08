@@ -56,6 +56,9 @@ class DateMessagesRunnerTest extends TestCase {
 	/** @var bool What `wp_mail()` reports. */
 	private bool $mail_result = true;
 
+	/** @var string 'throw' makes `wp_mail()` throw (#2336). */
+	private string $mail_mode = '';
+
 	/** @var bool Whether the run INSERT succeeds. */
 	private bool $insert_ok = true;
 
@@ -79,6 +82,21 @@ class DateMessagesRunnerTest extends TestCase {
 
 	/** @var list<array<int, mixed>> Continuations scheduled: list of args. */
 	private array $scheduled = array();
+
+	/** @var list<array<int, mixed>> Retries of a batch scheduled: list of args (#2336). */
+	private array $retries = array();
+
+	/** @var list<array<int, mixed>> Daily starts queued: rule id and target (#2336). */
+	private array $starts = array();
+
+	/** @var list<array<int, mixed>> Retries removed once their batch completed. */
+	private array $unscheduled = array();
+
+	/** @var list<array<int, mixed>> Counted-once notes: run, rule, user, occurrence, channel (#2336). */
+	private array $notes = array();
+
+	/** @var array<string, true> Notes already in the log, by channel and user. */
+	private array $noted = array();
 
 	/** @var list<string> Order in which the observable steps happened. */
 	private array $events = array();
@@ -112,6 +130,7 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->members      = array();
 		$this->claim_result = 1;
 		$this->mail_result  = true;
+		$this->mail_mode    = '';
 		$this->insert_ok    = true;
 		$this->settings     = array();
 		$this->bumps        = array();
@@ -120,6 +139,11 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->released     = array();
 		$this->inserts      = array();
 		$this->scheduled    = array();
+		$this->retries      = array();
+		$this->starts       = array();
+		$this->unscheduled  = array();
+		$this->notes        = array();
+		$this->noted        = array();
 		$this->events       = array();
 		$this->source_reads = 0;
 		$this->mailed       = array();
@@ -162,19 +186,37 @@ class DateMessagesRunnerTest extends TestCase {
 		Functions\when( 'wp_mail' )->alias(
 			function ( $to, $subject, $body, $headers = array() ) {
 				$this->mailed[] = array( $to, $subject, $body, $headers );
+				$this->events[] = 'mail';
+				if ( 'throw' === $this->mail_mode ) {
+					throw new \RuntimeException( 'mailer failed' );
+				}
 				return $this->mail_result;
 			}
 		);
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
 		Functions\when( 'wp_schedule_single_event' )->alias(
 			function ( $ts, $hook, $args ) {
 				$this->events[] = 'schedule:' . $hook;
-				if ( Runner::BATCH_HOOK === $hook ) {
+				if ( Runner::BATCH_HOOK === $hook && 4 === count( $args ) ) {
+					// A retry of the batch itself, queued before it sends (#2336).
+					$this->retries[] = $args;
+				} elseif ( Runner::BATCH_HOOK === $hook ) {
 					$this->scheduled[] = $args;
+				} elseif ( Runner::START_HOOK === $hook ) {
+					$this->starts[] = $args;
 				}
 				return true;
 			}
 		);
+		Functions\when( 'wp_next_scheduled' )->alias(
+			fn( $hook, $args = array() ) => Runner::BATCH_HOOK === $hook && in_array( $args, $this->retries, true ) ? 1234 : false
+		);
+		Functions\when( 'wp_unschedule_event' )->alias(
+			function ( $ts, $hook, $args ) {
+				$this->unscheduled[] = $args;
+				return true;
+			}
+		);
+		Functions\when( 'cache_users' )->justReturn( null );
 
 		$this->install_wpdb();
 	}
@@ -221,7 +263,7 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $q ) {
-				if ( false !== strpos( $q['sql'], 'FROM wp_users u INNER JOIN wp_usermeta m' ) ) {
+				if ( false !== strpos( $q['sql'], 'FROM wp_users u INNER JOIN wp_usermeta m' ) || false !== strpos( $q['sql'], 'FROM wp_users WHERE ID > %d' ) ) {
 					++$this->source_reads;
 					return $this->candidates;
 				}
@@ -253,7 +295,13 @@ class DateMessagesRunnerTest extends TestCase {
 					return array_map( 'strval', array_values( array_intersect( $this->delivered, array_slice( $q['args'], 4 ) ) ) );
 				}
 				if ( 0 === strpos( $q['sql'], 'SELECT DISTINCT user_id FROM %i WHERE audience_id IN' ) ) {
-					return $this->members;
+					// One audience bound, then the candidates (members_among)
+					// or the cursor and the page size (member_page).
+					$rest = array_map( 'intval', array_slice( $q['args'], 2 ) );
+					if ( false !== strpos( $q['sql'], 'user_id > %d' ) ) {
+						return array_slice( array_values( array_filter( $this->members, static fn( $m ): bool => (int) $m > $rest[0] ) ), 0, $rest[1] );
+					}
+					return array_values( array_filter( $this->members, static fn( $m ): bool => in_array( (int) $m, $rest, true ) ) );
 				}
 				if ( 0 === strpos( $q['sql'], 'SELECT id FROM %i WHERE started_at < %d' ) ) {
 					$this->events[] = 'purge';
@@ -278,6 +326,16 @@ class DateMessagesRunnerTest extends TestCase {
 					return 1;
 				}
 				if ( 0 === strpos( $q['sql'], 'INSERT IGNORE INTO %i (run_id, rule_id, user_id, occurrence_key, channel, sent_at)' ) ) {
+					if ( 'user' !== $q['args'][5] ) {
+						// A decision counted once per run (#2336).
+						$this->notes[] = array_slice( $q['args'], 1, 5 );
+						$key           = $q['args'][5] . ':' . $q['args'][3];
+						if ( isset( $this->noted[ $key ] ) ) {
+							return 0;
+						}
+						$this->noted[ $key ] = true;
+						return 1;
+					}
 					$this->claims[] = array_slice( $q['args'], 0, 6 );
 					return $this->claim_result;
 				}
@@ -418,6 +476,9 @@ class DateMessagesRunnerTest extends TestCase {
 		$this->assertStringContainsString( '<p>Hi User 1</p>', $this->mailed[0][2] );
 		$this->assertContains( 'Content-Type: text/html; charset=UTF-8', $this->mailed[0][3] );
 		$this->assertContains( 'X-TMQ-Source-Key: plugin:ffcertificate_date_messages', $this->mailed[0][3] );
+		// One-click unsubscribe, RFC 8058 (#2336).
+		$this->assertContains( 'List-Unsubscribe-Post: List-Unsubscribe=One-Click', $this->mailed[0][3] );
+		$this->assertCount( 1, preg_grep( '/^List-Unsubscribe: <https:\/\/example\.org\/wp-admin\/admin-post\.php\?/', $this->mailed[0][3] ) );
 		$this->assertSame( array( 7 ), $this->finished );
 		$this->assertSame(
 			array(
@@ -463,6 +524,101 @@ class DateMessagesRunnerTest extends TestCase {
 		);
 		$this->assertSame( array( 7 ), $this->finished );
 		$this->assertSame( array( 'failed' => 1 ), $this->bumps );
+	}
+
+	/**
+	 * What follows a batch is queued before it sends anything, and so is a
+	 * retry of the batch, removed once the batch completes (#2336).
+	 */
+	public function test_the_next_batch_and_a_retry_are_queued_before_the_first_send(): void {
+		$this->one_sendable_candidate();
+		$this->run['target_to'] = '2026-10-11';
+
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$order = array_values( array_filter( $this->events, static fn( string $e ): bool => 'mail' === $e || 0 === strpos( $e, 'schedule:' ) ) );
+		$this->assertSame( array( 'schedule:' . Runner::BATCH_HOOK, 'schedule:' . Runner::BATCH_HOOK, 'mail' ), $order );
+		$this->assertSame( array( array( 7, '2026-10-11', 0 ) ), $this->scheduled );
+		$this->assertSame( array( array( 7, '2026-10-10', 0, 1 ) ), $this->retries );
+		$this->assertSame( array( array( 7, '2026-10-10', 0, 1 ) ), $this->unscheduled, 'A completed batch removes its retry.' );
+	}
+
+	public function test_a_batch_that_runs_twice_counts_each_decision_once(): void {
+		$this->store_rule();
+		$this->candidates  = array( $this->candidate( 1 ), $this->candidate( 2, '' ) );
+		$this->preferences = array( 1 => '{"notify_date_messages":false}' );
+
+		Runner::process( 7, '2026-10-10', 0 );
+		// The retry of a request that died after counting: the same page again.
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame(
+			array(
+				'opted_out' => 1,
+				'no_email'  => 1,
+			),
+			$this->bumps
+		);
+		$this->assertSame( array( 7, 3, 1, '2026-10-10', 'xo7' ), $this->notes[0] );
+		$this->assertSame( array( 7, 3, 2, '2026-10-10', 'xn7' ), $this->notes[1] );
+	}
+
+	public function test_a_message_that_throws_is_one_failure_and_the_batch_goes_on(): void {
+		$this->store_rule();
+		$this->candidates = array( $this->candidate( 1 ), $this->candidate( 2 ) );
+		$this->mail_mode  = 'throw';
+
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$this->assertCount( 2, $this->mailed, 'The second person is still reached after the first throws.' );
+		$this->assertCount( 2, $this->released, 'Each claim is released.' );
+		$this->assertSame( array( 'failed' => 2 ), $this->bumps );
+		$this->assertSame( array( 7 ), $this->finished );
+	}
+
+	public function test_a_batch_retried_too_often_queues_no_further_retry(): void {
+		$this->one_sendable_candidate();
+
+		Runner::process( 7, '2026-10-10', 0, 3 );
+
+		$this->assertSame( array(), $this->retries );
+		$this->assertCount( 1, $this->mailed );
+		$this->assertSame( array( 7 ), $this->finished );
+	}
+
+	/**
+	 * An announcement reaches a person once per rule, whatever day it is sent
+	 * again (#2336): its claim carries the rule's one fixed key, not the day.
+	 */
+	public function test_an_announcement_claims_its_one_fixed_occurrence(): void {
+		$this->store_rule(
+			array(
+				'kind'   => 'announcement',
+				'source' => 'announcement',
+			)
+		);
+		$this->candidates = array( $this->candidate( 1 ) );
+
+		Runner::process( 7, '2026-10-10', 0 );
+
+		$this->assertSame( array( array( 'wp_ffc_date_message_log', 7, 3, 1, 'once', 'user' ) ), $this->claims );
+	}
+
+	/**
+	 * With personal e-mails off a rule sends nobody anything and lists, once
+	 * per person and run, whose date it is, for its summary (#2336).
+	 */
+	public function test_a_rule_with_personal_emails_off_lists_without_sending(): void {
+		$this->store_rule( array( 'send_to_user' => '0' ) );
+		$this->candidates = array( $this->candidate( 1 ) );
+
+		Runner::process( 7, '2026-10-10', 0 );
+		Runner::process( 7, '2026-10-10', 0, 1 );
+
+		$this->assertSame( array(), $this->mailed );
+		$this->assertSame( array(), $this->claims, 'Nothing is claimed as a delivery.' );
+		$this->assertSame( array( 'listed' => 1 ), $this->bumps );
+		$this->assertSame( array( 7, 3, 1, '2026-10-10', 'xl7' ), $this->notes[0] );
 	}
 
 	public function test_an_unfinished_day_continues_from_the_cursor(): void {
@@ -566,8 +722,24 @@ class DateMessagesRunnerTest extends TestCase {
 		// The run INSERT fails, so each start stops before processing.
 		$this->insert_ok = false;
 
-		$today = Runner::today()->format( 'Y-m-d' );
+		// The clock is read on both sides of the call: a run that crosses
+		// midnight targets either day, never a third (CLAUDE.md clock rule).
+		$before = Runner::today()->format( 'Y-m-d' );
 		Runner::run_daily();
+		$after = Runner::today()->format( 'Y-m-d' );
+		$today = isset( $this->starts[1][1] ) && $after === $this->starts[1][1] ? $after : $before;
+
+		// One start event per rule, not every first batch in this request
+		// (#2336): one rule that fails cannot stop the next.
+		$week = gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) );
+		$this->assertContains( $today, array( $before, $after ) );
+		// Rule 5 has personal e-mails off and still starts: it runs for its
+		// managers' summary only (#2336).
+		$this->assertSame( array( array( 3, $week ), array( 4, $today ), array( 5, $today ) ), $this->starts );
+		$this->assertSame( array(), $this->inserts, 'Nothing is opened before its own event fires.' );
+		foreach ( $this->rules_by_start() as $rule_id => $target ) {
+			Runner::process_start( $rule_id, $target );
+		}
 
 		$runs = array();
 		foreach ( $this->inserts as $data ) {
@@ -579,11 +751,44 @@ class DateMessagesRunnerTest extends TestCase {
 				// people a day late (#1598).
 				3 => array( 'cron', gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ), gmdate( 'Y-m-d', strtotime( $today . ' +7 days' ) ) ),
 				4 => array( 'cron', $today, $today ),
+				5 => array( 'cron', $today, $today ),
 			),
 			$runs,
-			'A rule that does not e-mail the person opens no run.'
+			'A rule that does not e-mail the person still opens a run, for its summary.'
 		);
 		$this->assertSame( 1, count( array_keys( $this->events, 'purge', true ) ), 'The history is pruned once.' );
+	}
+
+	/**
+	 * The queued starts, with the rule rows they will read.
+	 *
+	 * @return array<int, string> Rule id => target day.
+	 */
+	private function rules_by_start(): array {
+		$out = array();
+		foreach ( $this->active as $row ) {
+			$this->rules[ (int) $row['id'] ] = $row;
+		}
+		foreach ( $this->starts as $args ) {
+			$out[ (int) $args[0] ] = (string) $args[1];
+		}
+		return $out;
+	}
+
+	public function test_a_start_judges_the_rule_as_it_is_when_it_fires(): void {
+		// Deactivated after the daily job queued it: nothing opens.
+		$this->rules[3] = $this->rule_row( array( 'is_active' => '0' ) );
+		Runner::process_start( 3, '2026-10-10' );
+		$this->rules[4] = $this->rule_row(
+			array(
+				'id'   => '4',
+				'kind' => 'announcement',
+			)
+		);
+		Runner::process_start( 4, '2026-10-10' );
+		Runner::process_start( 99, '2026-10-10' );
+
+		$this->assertSame( array(), $this->inserts );
 	}
 
 	public function test_the_daily_job_sends_nothing_while_emails_are_disabled_but_still_prunes(): void {

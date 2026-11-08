@@ -51,6 +51,13 @@ beforeEach(() => {
 							<option value="">All</option>
 							<option value="submission_created">Submission Created</option>
 						</select>
+						<select id="filter-by-user" name="log_user">
+							<option value="">All Users</option>
+							<option value="system">System / Anonymous</option>
+							<option value="7">Ana</option>
+						</select>
+						<input type="date" id="filter-date-from" name="date_from" value="">
+						<input type="date" id="filter-date-to" name="date_to" value="">
 						<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-filter">Filter</button>
 						<a href="?page=ffc-settings&tab=activity_log" class="ffc-btn ffc-btn-neutral ffc-icon-eraser ffc-log-clear">Clear Filters</a>
 					</form>
@@ -60,11 +67,11 @@ beforeEach(() => {
 						<input type="search" id="ffc-log-search" name="s" value="bob">
 						<button type="submit" class="ffc-btn ffc-btn-neutral ffc-icon-search">Search</button>
 					</form>
-					<button type="button" id="ffc-activitylog-export-btn" class="ffc-btn ffc-btn-neutral ffc-icon-download"
-						data-level="info" data-log_action="" data-s="bob">Export CSV</button>
+					<button type="button" id="ffc-activitylog-export-btn" class="ffc-btn ffc-btn-neutral ffc-icon-download">Export CSV</button>
 					<span id="ffc-activitylog-export-progress" style="display:none;"></span>
 				</div>
 			</div>
+			<div class="ffc-log-meta"><span class="ffc-log-count">3 entries</span></div>
 			<div id="ffc-activity-log-table">
 				<table class="wp-list-table">
 					<thead><tr><th>Date</th></tr></thead>
@@ -102,6 +109,9 @@ describe('Activity Log — AJAX filter form', () => {
 		expect(requestSpy).toHaveBeenCalledWith('ffc_activity_log_fetch', {
 			level:      'info',
 			log_action: '',
+			log_user:   '',
+			date_from:  '',
+			date_to:    '',
 			search:     'bob',
 			paged:      1,
 			nonce:      'log-nonce',
@@ -183,6 +193,76 @@ describe('Activity Log — Clear Filters', () => {
 	});
 });
 
+describe('Activity Log — count, Clear Filters and empty states (#2340)', () => {
+	it('sends the user and date filters and shows Clear Filters while one is set', async () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({
+			is_empty: false, table_html: '<tr></tr>', pagination_html: '', total_logs: 2, current_page: 1, count_text: '2 entries',
+		});
+		window.$('#filter-by-level').val('');
+		window.$('#ffc-log-search').val('');
+		window.$('#filter-by-user').val('7');
+		window.$('#filter-date-from').val('2026-11-01');
+
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(requestSpy).toHaveBeenCalledWith('ffc_activity_log_fetch', expect.objectContaining({
+			log_user: '7', date_from: '2026-11-01', date_to: '',
+		}));
+		expect(window.$('.tablenav.top .alignleft .ffc-log-clear').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-log-meta').prop('hidden')).toBe(false);
+		expect(window.$('.ffc-log-count').text()).toBe('2 entries');
+	});
+
+	it('hides Clear Filters when nothing is filtered', async () => {
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({
+			is_empty: false, table_html: '<tr></tr>', pagination_html: '', total_logs: 1, current_page: 1,
+		});
+		window.$('#filter-by-level').val('');
+		window.$('#ffc-log-search').val('');
+
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(window.$('.tablenav.top .alignleft .ffc-log-clear').prop('hidden')).toBe(true);
+	});
+
+	it('renders the server empty state and hides the count line', async () => {
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({
+			is_empty: true, total_logs: 0, current_page: 1,
+			empty_html: '<div class="ffc-callout">No entries match these filters. <a href="#" class="ffc-log-clear">Clear Filters</a></div>',
+		});
+
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(window.$('#ffc-activity-log-table').text()).toContain('No entries match these filters.');
+		expect(window.$('.ffc-log-meta').prop('hidden')).toBe(true);
+	});
+
+	it('the Clear Filters link inside the empty state resets and refetches', async () => {
+		const requestSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({
+			is_empty: true, total_logs: 0, current_page: 1,
+			empty_html: '<div class="ffc-callout"><a href="#" class="ffc-log-clear">Clear Filters</a></div>',
+		});
+		window.$('#filter-by-user').val('system');
+		document.querySelector('.tablenav.top .alignleft form')
+			.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+		await Promise.resolve(); await Promise.resolve();
+
+		window.$('#ffc-activity-log-table a.ffc-log-clear').trigger('click');
+		await Promise.resolve(); await Promise.resolve();
+
+		expect(requestSpy).toHaveBeenLastCalledWith('ffc_activity_log_fetch', expect.objectContaining({
+			level: '', log_user: '', date_from: '', date_to: '', search: '',
+		}));
+		expect(window.$('#filter-by-user').val()).toBe('');
+	});
+});
+
 describe('Activity Log — Export CSV (batched engine #772)', () => {
 	afterEach(() => {
 		delete window.FFCBatchedExport;
@@ -199,11 +279,27 @@ describe('Activity Log — Export CSV (batched engine #772)', () => {
 		expect(arg.type).toBe('activity_log');
 		expect(arg.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
 		expect(arg.nonce).toBe('export-nonce');
-		expect(arg.startData).toEqual({ level: 'info', log_action: '', s: 'bob' });
+		expect(arg.startData).toEqual({ level: 'info', log_action: '', log_user: '', date_from: '', date_to: '', s: 'bob' });
 		// Progress is now driven by the shared overlay (#786): the caller passes
 		// overlay:true + the button, not per-call callbacks.
 		expect(arg.overlay).toBe(true);
 		expect(arg.button).toBeTruthy();
+	});
+
+	it('reads the filters on screen at click time, not the ones the page loaded with (#2340)', () => {
+		const runSpy = vi.fn();
+		window.FFCBatchedExport = { run: runSpy };
+
+		window.$('#filter-by-level').val('warning');
+		window.$('#filter-by-user').val('system');
+		window.$('#filter-date-from').val('2026-11-01');
+		window.$('#filter-date-to').val('2026-11-06');
+		window.$('#ffc-log-search').val('');
+		window.$('#ffc-activitylog-export-btn').trigger('click');
+
+		expect(runSpy.mock.calls[0][0].startData).toEqual({
+			level: 'warning', log_action: '', log_user: 'system', date_from: '2026-11-01', date_to: '2026-11-06', s: '',
+		});
 	});
 
 	it('is a no-op when the batched-export driver is unavailable', () => {

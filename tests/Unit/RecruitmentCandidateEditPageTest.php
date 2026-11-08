@@ -348,15 +348,17 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 
 		$html = $this->capture_output( array( RecruitmentCandidateEditPage::class, 'render' ) );
 
-		// Screen header + the five section cards (#1631).
-		$this->assertStringContainsString( '<h1>Edit candidate — Jane Doe</h1>', $html );
-		$this->assertSame( 5, substr_count( $html, '<div class="card"><h2 class="ffc-icon-' ) );
+		// Screen header, the five sections as vertical tabs and the summary
+		// beside them (#2363).
+		$this->assertStringContainsString( 'Edit candidate — Jane Doe</h1>', $html );
+		$this->assertSame( 5, substr_count( $html, '<section id="ffc-tabpanel-' ) );
+		$this->assertSame( array( 'general', 'sensitive', 'classifications', 'history', 'delete' ), array_column( RecruitmentCandidateEditPage::tabs(), 'key' ) );
+		$this->assertMatchesRegularExpression( '/id="ffc-tabnav-general" class="ffc-vtabs__tab is-active"/', $html, 'General opens by default.' );
+		$this->assertStringNotContainsString( '<div class="card"><h2 class="ffc-icon-id"', $html, 'No stacked section cards left.' );
 		$this->assertStringNotContainsString( 'postbox', $html );
-		$this->assertStringContainsString( 'General', $html );
-		$this->assertStringContainsString( 'Sensitive data (admin only)', $html );
-		$this->assertStringContainsString( 'Classifications + call history', $html );
-		$this->assertStringContainsString( 'History', $html );
-		$this->assertStringContainsString( 'Hard-delete candidate', $html );
+		$side = substr( $html, (int) strpos( $html, 'ffc-editor__side' ) );
+		$this->assertStringContainsString( '<h2 class="ffc-icon-clipboard">Summary</h2>', $side );
+		$this->assertStringContainsString( '<dt class="ffc-facts__label">Calls</dt><dd class="ffc-facts__value">0</dd>', $side );
 
 		// General form fields + nonce.
 		$this->assertStringContainsString( 'name="name"', $html );
@@ -516,6 +518,9 @@ class RecruitmentCandidateEditPageTest extends TestCase {
 		$this->assertStringNotContainsString( 'Call #5', $html );
 		// Delete blocked branch (count_for_candidate > 0).
 		$this->assertStringContainsString( 'Blocked:', $html );
+		// #2486: the blocked branch closed one div too many, which shut the
+		// editor grid early and sent the summary below the form.
+		$this->assertSame( substr_count( $html, '<div' ), substr_count( $html, '</div>' ), 'Every div the candidate screen opens is closed once.' );
 	}
 
 	public function test_general_section_offers_the_reveal_tier_a_reveal_that_enables_the_email(): void {

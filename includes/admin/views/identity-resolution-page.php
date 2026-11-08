@@ -38,6 +38,7 @@
 // runs -- and PHPStan cannot see it, because `phpstan.neon.dist` excludes
 // `includes/admin/views` as markup. `ViewClassImportTest` is what watches
 // this list now.
+use FreeFormCertificate\Admin\AdminUI;
 use FreeFormCertificate\Admin\IdentityResolutionScreen;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -139,8 +140,21 @@ $ffc_identity_ack = static function ( $subject, $correction_preview = false ) us
 };
 
 ?>
-<div class="wrap ffc-admin-page ffc-page-identities">
-	<h1><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h1>
+<div class="wrap ffc-admin-page ffc-page-identities ffc-boxed">
+	<h1 class="wp-heading-inline"><?php esc_html_e( 'Identity Resolution', 'ffcertificate' ); ?></h1>
+	<?php if ( '' !== $ffc_identity_export_url && $ffc_identity_screen->remaining > 0 ) : ?>
+		<?php
+		AdminUI::render_button(
+			array(
+				'label' => __( 'Export CSV', 'ffcertificate' ),
+				'icon'  => 'download',
+				'class' => 'ffc-identity-export',
+				'href'  => $ffc_identity_export_url,
+			)
+		);
+		?>
+	<?php endif; ?>
+	<hr class="wp-header-end">
 
 	<?php if ( is_array( $ffc_identity_outcome ) && ! empty( $ffc_identity_outcome['text'] ) ) : ?>
 		<?php
@@ -151,11 +165,29 @@ $ffc_identity_ack = static function ( $subject, $correction_preview = false ) us
 		?>
 	<?php endif; ?>
 
-	<p class="description">
-		<?php esc_html_e( 'Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan.', 'ffcertificate' ); ?>
-	</p>
+<?php require FFC_PLUGIN_DIR . 'templates/admin/identity/stats.php'; ?>
 
+	<?php
+	// THE SIDE COLUMN COMES FIRST IN THE DOCUMENT (#2498), and the grid puts it
+	// on the right. What the scan read is what every finding below is read
+	// against, so it is what a screen reader and a narrow screen reach first --
+	// and it keeps the coverage outside the empty-queue branch by construction,
+	// which `test_the_scan_coverage_is_stated_before_the_empty_branch` holds.
+	?>
+	<div class="ffc-editor ffc-identity-layout">
+		<aside class="ffc-editor__side">
 <?php require FFC_PLUGIN_DIR . 'templates/admin/identity/coverage.php'; ?>
+			<div class="card ffc-identity-guide">
+				<h2 class="ffc-icon-info"><?php esc_html_e( 'Reading this screen', 'ffcertificate' ); ?></h2>
+				<p class="description">
+					<?php esc_html_e( 'Accounts and stored numbers that do not agree with each other, sorted by how much of the answer is already known. The check digits are what sort them: they can say a number is wrong, and never what the right one is. Identifiers are shown as a hash prefix — the values are decrypted in memory to be checked and none of them leaves the scan.', 'ffcertificate' ); ?>
+				</p>
+				<p class="description">
+					<?php esc_html_e( 'A category holding nothing does not appear — not here, and not below.', 'ffcertificate' ); ?>
+				</p>
+			</div>
+		</aside>
+		<div class="ffc-editor__main">
 
 <?php require FFC_PLUGIN_DIR . 'templates/admin/identity/summary.php'; ?>
 
@@ -168,6 +200,9 @@ $ffc_identity_ack = static function ( $subject, $correction_preview = false ) us
 <?php require FFC_PLUGIN_DIR . 'templates/admin/identity/panel-accepted.php'; ?>
 
 <?php require FFC_PLUGIN_DIR . 'templates/admin/identity/panel-orphans.php'; ?>
+
+		</div>
+	</div>
 
 <?php require FFC_PLUGIN_DIR . 'templates/admin/identity/dialog.php'; ?>
 </div>

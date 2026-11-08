@@ -177,7 +177,7 @@ class RecruitmentNoticesListTableTest extends TestCase {
 		$cols = $this->table->get_columns();
 
 		$this->assertSame(
-			array( 'cb', 'code', 'name', 'status', 'reopened', 'adjutancies', 'created_at' ),
+			array( 'cb', 'code', 'name', 'status', 'reopened', 'adjutancies', 'created_at', 'actions' ),
 			array_keys( $cols )
 		);
 	}
@@ -336,20 +336,24 @@ class RecruitmentNoticesListTableTest extends TestCase {
 	// ------------------------------------------------------------------
 
 	public function test_column_code_renders_edit_and_delete_row_actions(): void {
-		$out = $this->call_protected( 'column_code', array( array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => 'draft' ) ) );
+		$row = array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => 'draft' );
+		$out = $this->call_protected( 'column_code', array( $row ) );
 
 		$this->assertStringContainsString( 'EDITAL-5', $out );
 		$this->assertStringContainsString( 'action=edit-notice', $out );
-		$this->assertStringContainsString( 'action=delete-notice', $out );
-		$this->assertStringContainsString( 'submitdelete', $out );
-		$this->assertStringContainsString( 'row-actions', $out );
+		$this->assertStringNotContainsString( 'row-actions', $out, 'the actions left the hover links (#2486)' );
+
+		$out = $this->call_protected( 'column_actions', array( $row ) );
+		$this->assertStringStartsWith( '<div class="ffc-row-buttons">', $out );
+		$this->assertStringContainsString( 'action=edit-notice', $out );
+		$this->assertMatchesRegularExpression( '/<a href="[^"]*action=delete-notice[^"]*" class="ffc-btn ffc-btn-danger ffc-icon-delete" data-ffc-confirm/', $out );
 	}
 
 	/**
 	 * @dataProvider provider_published_statuses
 	 */
 	public function test_column_code_offers_no_delete_on_a_published_notice( string $status ): void {
-		$out = $this->call_protected( 'column_code', array( array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => $status ) ) );
+		$out = $this->call_protected( 'column_actions', array( array( 'id' => 5, 'code' => 'EDITAL-5', 'status' => $status ) ) );
 
 		$this->assertStringContainsString( 'action=edit-notice', $out );
 		$this->assertStringNotContainsString( 'action=delete-notice', $out, 'Only a draft is deletable (#2245).' );

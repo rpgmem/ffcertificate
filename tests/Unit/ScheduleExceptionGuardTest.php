@@ -30,6 +30,9 @@ class ScheduleExceptionGuardTest extends TestCase {
 	/** The consumed-ledger option names that read as spent. */
 	private array $spent = array();
 
+	/** @var mixed The `$wpdb` before the test, restored after it. */
+	private $previous_wpdb;
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -42,6 +45,13 @@ class ScheduleExceptionGuardTest extends TestCase {
 		Functions\when( 'get_option' )->alias(
 			fn( $name, $fallback = false ) => in_array( $name, $this->spent, true ) ? '1' : $fallback
 		);
+		// The ledger is read from the options table, not its cache (#2341).
+		$this->previous_wpdb = $GLOBALS['wpdb'] ?? null;
+		$wpdb                = \Mockery::mock( 'wpdb' );
+		$wpdb->options       = 'wp_options';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => (string) ( $args[0] ?? '' ) );
+		$wpdb->shouldReceive( 'get_var' )->andReturnUsing( fn( $name ) => in_array( $name, $this->spent, true ) ? '1' : null );
+		$GLOBALS['wpdb'] = $wpdb;
 		Functions\when( 'absint' )->alias(
 			static function ( $value ) {
 				return abs( (int) $value );
@@ -50,6 +60,7 @@ class ScheduleExceptionGuardTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		$GLOBALS['wpdb'] = $this->previous_wpdb;
 		unset( $_POST['ffc_schedule_exception_token'], $_POST['form_id'] );
 		Monkey\tearDown();
 		parent::tearDown();

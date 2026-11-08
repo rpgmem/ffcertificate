@@ -245,6 +245,8 @@ class UserAppointmentsRestController {
 					'id'                   => (int) $appointment['id'],
 					'calendar_id'          => (int) ( $appointment['calendar_id'] ?? 0 ),
 					'calendar_title'       => $calendar_title,
+					// The session the appointment was booked in (#2405), or ''.
+					'session_name'         => is_array( $calendar ) ? \FreeFormCertificate\SelfScheduling\CalendarSessions::name_of_appointment( $calendar, $appointment ) : '',
 					'appointment_date'     => $date_formatted,
 					'appointment_date_raw' => $appointment['appointment_date'] ?? '',
 					'start_time'           => $time_formatted,

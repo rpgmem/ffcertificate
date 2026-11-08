@@ -124,9 +124,31 @@ describe( 'moving between screenshots', () => {
 
 	it( 'resets the zoom when it moves', () => {
 		key( '+' );
-		key( 'ArrowRight' );
+		viewer().querySelector( '.ffc-shots-next' ).click();
 
 		expect( shown().transform ).toContain( 'scale(1)' );
+	} );
+} );
+
+describe( 'icons and announcements', () => {
+	it( 'draws the registry icons it is given', () => {
+		load( modal, { icons: { close: '<svg class="ffc-svg-icon"></svg>' } } );
+		click( links()[ 0 ] );
+
+		expect( viewer().querySelector( '.ffc-shots-close svg.ffc-svg-icon' ) ).not.toBeNull();
+		expect( viewer().querySelector( '.ffc-shots-next' ).textContent ).toBe( '' );
+	} );
+
+	it( 'announces the counter and the caption once, from one live region', () => {
+		load( modal );
+		click( links()[ 1 ] );
+
+		const bar = viewer().querySelector( '.ffc-shots-bar' );
+		expect( bar.getAttribute( 'aria-live' ) ).toBe( 'polite' );
+		expect( bar.getAttribute( 'aria-atomic' ) ).toBe( 'true' );
+		expect( viewer().querySelectorAll( '[aria-live]' ) ).toHaveLength( 1 );
+		expect( viewer().querySelector( '.ffc-shots-img' ).getAttribute( 'alt' ) ).toBe( '' );
+		expect( shown().caption ).toBe( 'Retention' );
 	} );
 } );
 
@@ -172,6 +194,19 @@ describe( 'zoom', () => {
 
 		stage.dispatchEvent( new WheelEvent( 'wheel', { deltaY: 100, cancelable: true } ) );
 		expect( shown().transform ).toContain( 'scale(1)' );
+	} );
+
+	it( 'moves an enlarged image with the arrow keys instead of changing screenshot', () => {
+		key( '+' );
+		key( 'ArrowRight' );
+		key( 'ArrowDown' );
+
+		expect( shown().src ).toBe( 'https://img/1.png' );
+		expect( shown().transform ).toContain( 'translate(-40px, -40px)' );
+
+		key( 'ArrowLeft' );
+		key( 'ArrowUp' );
+		expect( shown().transform ).toContain( 'translate(0px, 0px)' );
 	} );
 
 	it( 'drags an enlarged image instead of changing screenshot', () => {

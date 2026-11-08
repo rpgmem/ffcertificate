@@ -161,4 +161,25 @@ class AnswerCorrectionHandlerTest extends TestCase {
 		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_certificates' === $cap );
 		$this->assertTrue( AnswerCorrectionHandler::current_user_can_correct() );
 	}
+
+	public function test_a_grader_may_amend_open_answers_only(): void {
+		$fields = array(
+			array( 'name' => 'name', 'type' => 'text' ),
+			array(
+				'name'        => 'essay',
+				'type'        => 'textarea',
+				'quiz_scored' => '1',
+				'quiz_text'   => 'manual',
+				'quiz_points' => '4',
+			),
+		);
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_grade_certificates' === $cap );
+
+		$this->assertTrue( AnswerCorrectionHandler::current_user_can_amend( 'essay', $fields ), 'A grader amends the answer they grade (#2356).' );
+		$this->assertFalse( AnswerCorrectionHandler::current_user_can_amend( 'name', $fields ), 'Any other answer needs the manager capability.' );
+		$this->assertFalse( AnswerCorrectionHandler::current_user_can_amend( 'auth_code', $fields ), 'The identity of the certificate is never amended.' );
+
+		Functions\when( 'current_user_can' )->alias( static fn( $cap ) => 'ffc_manage_certificates' === $cap );
+		$this->assertTrue( AnswerCorrectionHandler::current_user_can_amend( 'name', $fields ) );
+	}
 }

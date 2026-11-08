@@ -75,6 +75,8 @@ class UninstallUserMetaSweepTest extends TestCase {
 			'EXTENDED_META_PREFIX . sanitize_key( $key ) — the dynamic reregistration half, whose field names live in the database.',
 		'includes/migrations/strategies/class-ffc-identity-normalization-migration-strategy.php' =>
 			'PROFILE_META_PREFIX . <field key>, pinned in the class and charged against UserManager::EXTENDED_META_PREFIX by IdentityNormalizationTargetsTest — so the prefix this register vouches for is itself proven to be the one the profile writes under.',
+		'includes/user-dashboard/class-ffc-role-registrar.php'                          =>
+			'admin_role_synced_key(): the literal `ffc_admin_role_synced`, with the site id appended on a network; RoleRegistrarTest pins both shapes.',
 		'includes/migrations/strategies/class-ffc-key-rotation-remaining-migration-strategy.php' =>
 			'Keys are the literals of profile_meta_map(), which pins them to the UserProfileFieldMap entries a test already compares it against.',
 	);

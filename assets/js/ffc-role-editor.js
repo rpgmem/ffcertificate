@@ -6,6 +6,11 @@
  * Toggling a capability persists immediately (per-toggle AJAX, WP_Role
  * add_cap/remove_cap) — a global, retroactive change for every user with the
  * role. Pure DOM (no jQuery); reuses the .ffc-cap-* card markup/styles.
+ * A role that differs from its shipped definition shows a bar with
+ * "Restore role default" and a tag on each changed row (#2340); the restore
+ * asks first through the plugin's dialog (`FFC.overrideConfirm`), and so
+ * does granting a capability that reaches personal data, destroys records
+ * or opens the activity log.
  *
  * @since 6.9.0
  * @package FreeFormCertificate\Admin
@@ -16,8 +21,109 @@
 
 	var CFG = window.ffcRoleEditor || {};
 	var roleCaps = CFG.roleCaps || {};
+	var roleDefaults = CFG.roleDefaults || {};
 	var i18n = CFG.i18n || {};
 	var current = '';
+
+	// Fill `%s`, `%d` and `%1$s` / `%2$d` placeholders in order.
+	function fill(text, values) {
+		var i = 0;
+		return String(text || '').replace(/%(\d+)\$[sd]|%[sd]/g, function (whole, position) {
+			var index = position ? parseInt(position, 10) - 1 : i++;
+			return values[index] !== undefined ? String(values[index]) : whole;
+		});
+	}
+
+	// How the selected role differs from its shipped definition (#2340):
+	// null for a role the plugin does not define.
+	function diffOf(slug) {
+		if (!Object.prototype.hasOwnProperty.call(roleDefaults, slug)) {
+			return null;
+		}
+		var held = roleCaps[slug] || [];
+		var shipped = roleDefaults[slug] || [];
+		return {
+			added: held.filter(function (c) { return shipped.indexOf(c) === -1; }),
+			removed: shipped.filter(function (c) { return held.indexOf(c) === -1; })
+		};
+	}
+
+	function capName(panel, slug) {
+		var name = panel.querySelector('.ffc-cap-row[data-ffc-cap-slug="' + slug + '"] .ffc-cap-row-name');
+		return name && name.firstChild ? String(name.firstChild.textContent).trim() : slug;
+	}
+
+	// The bar above the list and the tag on each changed row.
+	function renderDiff(panel) {
+		var diff = diffOf(current);
+		var added = diff ? diff.added : [];
+		var removed = diff ? diff.removed : [];
+		panel.querySelectorAll('.ffc-cap-row').forEach(function (row) {
+			var tag = row.querySelector('.ffc-role-diff-tag');
+			if (!tag) { return; }
+			var slug = row.getAttribute('data-ffc-cap-slug');
+			var kind = added.indexOf(slug) !== -1 ? 'added' : (removed.indexOf(slug) !== -1 ? 'removed' : '');
+			tag.className = 'ffc-role-diff-tag' + (kind ? ' ffc-role-diff-tag--' + kind : '');
+			tag.textContent = kind === 'added' ? (i18n.tagAdded || '') : (kind === 'removed' ? (i18n.tagRemoved || '') : '');
+			tag.hidden = kind === '';
+		});
+		var bar = panel.querySelector('.ffc-role-diff');
+		if (!bar) { return; }
+		var changed = added.length + removed.length > 0;
+		bar.hidden = !changed;
+		var count = bar.querySelector('.ffc-role-diff-count');
+		if (count) {
+			count.textContent = changed ? fill(i18n.diffSummary, [added.length, removed.length]) : '';
+		}
+	}
+
+	function restore(panel, button) {
+		var diff = diffOf(current);
+		if (!diff || !window.FFC || typeof window.FFC.overrideConfirm !== 'function') {
+			return;
+		}
+		var role = (CFG.roles || {})[current] || {};
+		var reasons = [];
+		diff.removed.forEach(function (c) { reasons.push(fill(i18n.comesBack, [capName(panel, c)])); });
+		diff.added.forEach(function (c) { reasons.push(fill(i18n.isRemoved, [capName(panel, c)])); });
+		var strings = {};
+		var base = i18n.dialog || {};
+		Object.keys(base).forEach(function (k) { strings[k] = base[k]; });
+		strings.intro = fill(i18n.restoreIntro, [role.label || current, role.users || 0]);
+		var slug = current;
+		window.FFC.overrideConfirm({
+			strings: strings,
+			reasons: reasons,
+			agreeCategory: 'caution',
+			agreeIcon: 'restore'
+		}).then(function (agreed) {
+			if (!agreed) { return; }
+			button.disabled = true;
+			var body = new URLSearchParams();
+			body.append('action', 'ffc_restore_role_default');
+			body.append('nonce', CFG.nonce || '');
+			body.append('role', slug);
+			return fetch(CFG.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: body.toString()
+			})
+				.then(function (r) { return r.json(); })
+				.then(function (res) {
+					button.disabled = false;
+					if (!res || !res.success || !res.data) {
+						window.alert(i18n.error || 'Error');
+						return;
+					}
+					roleCaps[slug] = Array.isArray(res.data.caps) ? res.data.caps : [];
+					if (current === slug) { applyRole(panel, slug); }
+				});
+		}).catch(function () {
+			button.disabled = false;
+			window.alert(i18n.error || 'Error');
+		});
+	}
 
 	function countGroup(group) {
 		var n = group.querySelectorAll('.ffc-role-cap:checked').length;
@@ -44,6 +150,7 @@
 			if (state) { state.textContent = ''; }
 		});
 		refreshCounts(panel);
+		renderDiff(panel);
 	}
 
 	function showState(row, text) {
@@ -90,12 +197,41 @@
 				showState(row, i18n.saved || 'Saved');
 				var group = cb.closest('.ffc-cap-group');
 				if (group) { countGroup(group); }
+				renderDiff(panel);
 			})
 			.catch(function () {
 				cb.disabled = false;
 				cb.checked = !grant;
 				window.alert(i18n.error || 'Error');
 			});
+	}
+
+	// Granting a capability that reaches personal data, destroys records or
+	// opens the activity log asks first, naming who it reaches (#2340).
+	// Everything else, and every removal, saves at once.
+	function needsConfirm(cb) {
+		var row = cb.closest('.ffc-cap-row');
+		return !!(cb.checked && row && row.getAttribute('data-ffc-confirm') === '1'
+			&& window.FFC && typeof window.FFC.overrideConfirm === 'function');
+	}
+
+	function confirmGrant(panel, cb) {
+		var row = cb.closest('.ffc-cap-row');
+		var slug = row.getAttribute('data-ffc-cap-slug');
+		var role = (CFG.roles || {})[current] || {};
+		var desc = row.querySelector('.ffc-cap-row-desc');
+		var strings = {};
+		var base = i18n.dialog || {};
+		Object.keys(base).forEach(function (k) { strings[k] = base[k]; });
+		strings.title = fill(i18n.grantTitle, [capName(panel, slug)]);
+		strings.intro = fill(i18n.grantIntro, [role.users || 0, role.label || current]);
+		strings.agree = i18n.grantAgree || strings.agree;
+		return window.FFC.overrideConfirm({
+			strings: strings,
+			reasons: desc ? [String(desc.textContent).trim()] : [],
+			agreeCategory: 'caution',
+			agreeIcon: 'checkmark'
+		}).then(function (agreed) { return !!agreed; }, function () { return false; });
 	}
 
 	function setCollapsed(group, collapsed) {
@@ -128,6 +264,7 @@
 
 		CFG = window.ffcRoleEditor || {};
 		roleCaps = CFG.roleCaps || {};
+		roleDefaults = CFG.roleDefaults || {};
 		i18n = CFG.i18n || {};
 
 		var select = panel.querySelector('.ffc-role-select');
@@ -140,7 +277,18 @@
 
 		panel.querySelectorAll('.ffc-role-cap').forEach(function (cb) {
 			cb.addEventListener('change', function () {
-				if (CFG.ajaxUrl) { persist(panel, cb); }
+				if (!CFG.ajaxUrl) { return; }
+				if (!needsConfirm(cb)) {
+					persist(panel, cb);
+					return;
+				}
+				confirmGrant(panel, cb).then(function (agreed) {
+					if (agreed) {
+						persist(panel, cb);
+					} else {
+						cb.checked = false;
+					}
+				});
 			});
 		});
 
@@ -152,6 +300,12 @@
 				}
 			});
 		});
+
+		var restoreBtn = panel.querySelector('.ffc-role-restore');
+		if (restoreBtn) {
+			restoreBtn.addEventListener('click', function () { restore(panel, restoreBtn); });
+		}
+		renderDiff(panel);
 
 		var search = panel.querySelector('.ffc-cap-search');
 		if (search) {

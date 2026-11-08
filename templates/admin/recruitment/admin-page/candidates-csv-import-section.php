@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 RecruitmentAdminPageRenderer::open_section_card( 'ffc-icon-upload', __( 'Import candidates (CSV)', 'ffcertificate' ) );
 
 if ( empty( $eligible ) ) {
-	echo '<p>' . esc_html__( 'No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Notices tab) or move an existing one back to `preliminary` (allowed only when zero calls have been issued).', 'ffcertificate' ) . '</p>';
+	echo '<p>' . esc_html__( 'No notices in `draft` or `preliminary` status are available for CSV import. Create a notice (Recruitment → Notices) or move an existing one back to `preliminary` (allowed only when zero calls have been issued).', 'ffcertificate' ) . '</p>';
 	echo '</div>';
 	return;
 }

@@ -367,6 +367,10 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 		if ( str_contains( $sql, 'FROM wp_ffc_reregistration_import_staging WHERE job_id' ) ) {
 			return $this->staged;
 		}
+		// The global list every audience inherits (#2502): empty here.
+		if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 0 AND is_active = 1' ) ) {
+			return array();
+		}
 		if ( str_contains( $sql, 'FROM wp_ffc_custom_fields WHERE audience_id = 7 AND is_active = 1' ) ) {
 			// Cloned: the reader decorates each row it returns.
 			return array_map( static fn( object $f ) => clone $f, $this->fields );
@@ -677,6 +681,31 @@ class ReregistrationImportStagingServiceTest extends TestCase {
 
 		$this->assertSame( array( 0 => 'cpf' ), $map['mapped'] );
 		$this->assertSame( array( 'CPF' ), $map['ignored'] );
+	}
+
+	/**
+	 * The blank file (#2506) is the import's own header: every column maps,
+	 * none is missing, and a display-only field that holds no answer is left
+	 * out unless the import requires its column.
+	 */
+	public function test_the_template_header_is_what_the_import_maps(): void {
+		$this->with_campaign(
+			array(
+				$this->field( 'nome_completo', 'Full name', true ),
+				$this->field( 'cpf', 'CPF', true ),
+				$this->field( 'aviso', 'Read this', false, 'acknowledgment' ),
+				$this->field( 'termo_ciencia', 'I agree', true, 'acknowledgment' ),
+				$this->field( 'sindicato', 'Union' ),
+			)
+		);
+
+		$header = ReregistrationImportStagingService::template_header( 7 );
+		$this->assertSame( array( 'nome_completo', 'cpf', 'termo_ciencia', 'sindicato' ), $header );
+
+		$map = ReregistrationImportStagingService::map_header( $header, 7 );
+		$this->assertSame( $header, array_values( $map['mapped'] ) );
+		$this->assertSame( array(), $map['ignored'] );
+		$this->assertSame( array(), $map['missing_required'] );
 	}
 
 	public function test_required_field_without_a_column_is_reported_by_the_map(): void {

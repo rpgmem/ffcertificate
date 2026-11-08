@@ -7,7 +7,84 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-## [6.43.0] (2026-10-31)
+## [6.44.0] (2026-11-08)
+
+### Added
+
+- **Personal Calendars: sessions** (#2405). A Sessions tab names parallel services on the same days and hours. A day lists its sessions and their free places; places, waitlist and daily limit count per session. The Appointments list, every e-mail (`{{session_name}}`, `{{session_block}}`), the receipt and PDF, verification, the CSV and the dashboard name the session, and a deleted session keeps its name.
+- **Scheduling: a word for "session"** (#2413, #2420). Calendar Colors and Labels sets a general singular and plural, and each personal calendar's Names tab may set its own ("Room" / "Rooms"), used by the booking step, receipt, PDF, e-mails, verification and `{{session_label}}`.
+- **Personal Calendars: a free slots panel** (#2405). Off by default, beside or below the month: each day with its free places, the holidays and a signed-in visitor's own bookings, never who booked.
+- **Audience Calendars: each calendar sets the shape of its bookings** (#2404). Two switches, both on by default: bookings of several days, and choosing the time (off: every booking takes the whole day). The form follows them, the server enforces both, a bypass included, and an all-day booking may cover several days.
+- **Short URLs: a deleted code is retired for good, and a dead link gets a page** (#2337). Deleting a link, emptying the Trash and the cleanup record its code, which is never issued again, so a printed link or QR code cannot start pointing elsewhere ("Retired" in the status filter). An unknown, disabled or retired code answers with its own page (410, or 404), a previous prefix forwards to the current one, and HEAD requests and link previews no longer count as clicks.
+- **Short URLs: one list of destinations** (#2337). Generator, edit, creation and the redirect accept https, http, ftp, ftps, sftp, ssh, mailto, tel and sms, never javascript:, data: or file:; a non-web scheme or a file download gets a warning that never blocks the save.
+- **Roles and users: the role editor shows how a role differs from its default and restores it, and a WordPress role change asks whether the FFC roles stay** (#2340). Both, and every role edit, are recorded in the Activity Log.
+- **Activity Log: new items** (#2340). A user's FFC roles, capabilities and audiences changed on their profile; a change to a setting that deletes or suppresses data (recorded before the log goes off); and, off by default, attendance and check-in windows, rate-limit blocks and failed captchas, other settings changes (keys, never values) and scheduled tasks that ended in a fatal error.
+- **Reregistration: one list of fields every audience inherits** (#2502). Reregistration → Custom Fields edits it; an audience may Customize, Hide or add a field, and Back to inherited undoes it. On update each audience's copy becomes inheritance, its change or a hidden field, and the answers move onto the inherited field (Settings → Data Migrations).
+- **User dashboard: Messages tab** (#2503). What Date Messages sent each person: current announcements, which also open the dashboard as notices for 2–15 days, and earlier messages; the two message preferences move there from Profile.
+- **Reregistration: a CSV template on the Import answers tab** (#2506), with the chosen audience's header, so the file loads as it is.
+- **Audience Calendars: a "Text for users" under Join Groups** (#2509), shown on the dashboard below the group limit.
+- **Forms API: ISO 8601 dates** (#2342). Each date gains an `_iso` twin with the site's offset; the raw fields are deprecated, removal in 6.46.0.
+
+### Changed
+
+- **Admin: one layout for every screen** (#2486, #2498). Module dashboards open Recruitment, Date Messages, Scheduling and Certificates, each section a page in the WordPress submenu. Editors and settings are a vertical menu card, the open panel and a sticky side column (300 px, with Save, a summary and the previews); content takes the width left. Nine lists share one list top: labelled filters in a card, a count, row actions as buttons and an on/off switch in Status.
+- **Admin: editors in vertical tabs with a summary** (#2360, #2362, #2363, #2370, #2498). The attendance screen, the reregistration campaign, the recruitment candidate and notice, and the Date Messages rule editor.
+- **Submission edit: one card for answers, corrections and grading** (#2354, #2356). A pencil beside each answer opens its correction in place; a grader may amend open answers, and an amendment made while grading is saved first.
+- **QR Code Generator** (#2337, #2365, #2368, #2372, #2374). Each type opens with example content and draws at once; phones, e-mails and websites take the plugin's masks and checks; a vCard gains department, role, number and neighbourhood, fills its address from the CEP and downloads as a .vcf. Every scan problem shows at once, a margin of 0 included.
+- ⚠ **Short URLs: 302 by default, and a stored 301 moves to 302 once** (#2337). A browser keeps a 301 for good, so turning a link off or changing it never reached earlier visitors and their clicks went uncounted; 301 can still be chosen afterwards.
+- **Short URLs: the link follows its post** (#2337). A disabled or trashed link stays the post's, and opening the editor no longer creates one. The editor box offers Generate, Reactivate (same code and QR) and Regenerate (new code, same clicks, old one retired) without a reload; trashing a post disables its link and deleting it retires the code. Creation and change times are instants.
+- ⚠ **Date Messages: deleting a rule takes `ffc_delete_date_messages`** (#2336). Every current holder of `ffc_manage_date_messages` receives it on upgrade; an integration that deletes rules on the manage capability must check the new one.
+- **Date Messages: who may send, and what a send does** (#2336). Activating or forcing a rule takes Send date messages; an announcement reaches each person once per rule; Send now confirms with the dates and the head count; the editor offers each kind its own default and placeholders. Date messages carry one-click unsubscribe (RFC 8058), and every e-mail declares its language and shows its first line in the inbox preview.
+- ⚠ **The Activity Log is on by default, with audit items that are always recorded** (#2340). Access to personal data, the Danger Zone and permissions switch off only with the Danger Zone capability; the rest is off. On update the log turns on and each category passes its state on.
+- ⚠ **Activity Log: entry times are instants, shown in the site's timezone** (#2340). `created_at` moves to UTC seconds and existing rows are converted, daylight saving included, the first time wp-admin loads. A query reading the column directly must read seconds.
+- **Activity Log: the screen** (#2340). User and date filters, which Export follows; Reveal for the page; each entry's first values shown masked; retention runs from the scheduled tasks only, 5,000 entries at a time.
+- ⚠ **Roles: `ffc_administrator` is given to an administrator once, and the capability migrations run in wp-admin, cron or WP-CLI, after `init`, one request at a time** (#2340). Taking the role off an administrator now holds.
+- **Capabilities read as what they do** (#2340). Groups take the module names, each capability says what it adds and its band (Read, Act, Personal data, Change, Override, Destructive), granting a powerful one names who would get it, and only administrators see the role editor. "Login as User" reads "View as user". `ffc_delete_appointments` now gates Delete permanently for appointments that are over.
+- ⚠ **Start Form Early applies to the day it is pressed only** (#2341). It no longer rewrites `time_start`, so a multi-day daily form opens at its scheduled time on every later day.
+- **Public Operator Access: the screen tells the truth** (#2341). It offers only what the server accepts, says why an action is unavailable, shows each result as a notice on the page instead of an alert and a reload, reads the site's clock, keeps the focus inside its dialogs, reports when a download arrived and allows a second one.
+- **Public front end** (#2341). An invitation link that no longer works no longer blocks an open form; a shortcode in a synced pattern is found, and scripts load only where their feature is on; refusals say whom to contact and reach only their own visitor; the page a form is on is found without searching post content; the Public Design contrast warning measures as the colours are picked.
+- **Schema: every module heals on its own revision, and a change without a bump fails CI** (#2430). Core, recruitment, reregistration, user dashboard and date messages no longer wait for a plugin version, which `develop` keeps for a whole batch.
+- **Settings** (#2338, #2513). A disabled module takes its tabs and links with it; the Danger Zone delete starts with no target, shows each count and confirms with a typed word and a 15-second countdown; the section list takes the arrow keys; the Scheduled Tasks save redirects; an all-on audit section starts closed.
+- **CI and assets** (#2344, #2515). Every tested script counts toward JS coverage and a missing `.min` fails the build; the icon stylesheet drops from 86 KB to 49 KB; no source map is referenced; Dependabot PRs opened against `main` are moved to `develop` before auto-merge.
+
+### Security
+
+- ⚠ **Reprints: a CPF/RF typed by someone else returns no certificate code, on the API or a passed quiz, and its link is e-mailed at most once a day** (#2342).
+- ⚠ **SMTP password: encrypted at rest and never sent back to the browser** (#2342). The SMTP tab shows "Password saved" and a Change password button; a plaintext one is encrypted on the next admin visit.
+- **Updater: a release is offered only with a SHA-256 digest, a github.com download and a version tag** (#2342), and an unreachable GitHub is retried on a backoff instead of on every admin page.
+- ⚠ **Settings: destructive settings need the Danger Zone capability** (#2338). Auto-delete, the uninstall wipe and the activity log's switch, items and retention need `ffc_manage_settings_dangerzone`, and render disabled with the reason without it. Administrators can no longer be blocked from wp-admin.
+- **Settings: results no longer travel in the URL, and apply runs only what was previewed** (#2338). A crafted link could print any message on three screens; maintenance tools refuse an apply whose criteria changed after the preview, and every destructive run is logged.
+- ⚠ **Roles: a capability removed in the role editor stays removed, and changing someone's roles needs the right over that account** (#2340).
+- **Activity Log and reveals** (#2340). Personal values in an entry's details are masked on the tab and in the CSV, and an address is never stored in clear; revealing is limited to 2,000 values per account every 15 minutes.
+- ⚠ **Public CSV: every request is counted, and operator actions need their own captcha** (#2341). Reads share one pool (10/minute, 100/hour) and Open early, Postpone close and Schedule exception a tighter one (5/minute, 30/hour), on the Rate Limit tab; until now nothing stopped a hash being guessed. Those three actions show the active challenge, bound to their context, so a proof solved for the download no longer changes the form.
+- **Public CSV: the log, the quota and the hash** (#2341). Failures fold into one row and can no longer push a delivery out; the quota is spent at delivery, so a refused export costs nothing; every download is a PII-access entry; the hash leaves the address bar and may arrive by POST.
+- **Public pages and tickets** (#2341). A page with a schedule exception or an invitation is not cached, the exception cookie is Secure behind a TLS proxy, a dropped download deletes its file, and a failed save no longer burns a form ticket.
+- **Personal data: erasure, exports, retention and uninstall** (#2343). Erasure reaches device signals, rate-limit rows, date-message links and log addresses and no longer says "anonymized"; exports are decrypted and labelled; rate-limit identifiers are keyed hashes; export and import files are swept daily; a full uninstall removes every `ffc_` option and transient.
+- **Front end: four script sinks closed** (#2344).
+- **Dev toolchain: `minimatch` forced to 11.0.1 or later** (#2334). Nothing that ships changes.
+
+### Fixed
+
+- ⚠ **Rate limits and captcha: no more bypasses** (#2339). An allowlisted e-mail or CPF/RF lifts only the e-mail and CPF/RF limits; a submission without device signals counts as one shared device; a wrong math answer spends its token; a failed captcha counts against the address.
+- ⚠ **Captcha: a solved challenge is bound to its form** (#2339). A challenge signed for one form, the verification page, the public CSV or the booking form is refused anywhere else; challenges issued before the update stop working.
+- ⚠ **IP Diagnostics: a private connection address is trusted as a proxy only on your word** (#2339), with the new Load balancer in front toggle or the Cloudflare mode; the tab counts forged headers on real traffic.
+- ⚠ **Geofence: a form with no valid area refuses, and a location in use cannot be deleted** (#2339). Such a form used to pass everyone.
+- ⚠ **Rate limits: device signals stored keyed, no user agent in the log** (#2339). Signals recorded before the update are deleted, so every device starts afresh.
+- **Rate limits: every limit and setting works** (#2339). The e-mail and CPF/RF period limits always read 0 and now block; counters roll over with their window and the daily cleanup runs; refusals give the real wait; IP geolocation goes out over HTTPS only.
+- **Captcha, honeypot, pre-flight and key health** (#2339). The trap field has a neutral name and a form posted under 3 seconds is refused; a network over the challenge cap is told how long to wait; pre-flight and GPS are accessible; Encryption Key Health reports an empty salt and every read of the old format.
+- **Settings: saving one tab no longer changes another** (#2338). Save on Advanced, SMTP or Cache turned off auto-delete, the RF check digit and the CEP lookup; a cleared number keeps its stored value; the activity log gains a record limit (100,000 by default).
+- **Data Migrations and key rotation: a run that cannot progress stops, and a rotation never completes with rows left behind** (#2338). Rows that fail are listed and can be tried again.
+- **Date Messages: a run survives a request that dies** (#2336). The next batch is queued before a batch sends, a message that throws counts as failed, and 29 February counts as the 28th.
+- **Short URLs: codes, cache and schema** (#2337). Upper and lower case are two codes; a code never grows past ten characters; Empty Trash removes every trashed link; a short URL matches only at the home path; the module's schema steps run on its own revision, so an install between releases gets them.
+- **Forms API: correct statuses, consent, staff access and limits** (#2342). Errors answer 400/403/404/409 instead of 500, `"consent": false` is not consent, `GET /submissions` bounds its page, a 429 sends `Retry-After`, and the `X-RateLimit-*` headers are gone.
+- **CEP and integrations** (#2342). An outage or a throttled lookup no longer reads as a wrong CEP, a cached CEP spends no quota, an RF of any length keeps its mask, and a pt_BR site reads the upgrade notice in Portuguese.
+- **Schema, cache and transactions** (#2343, #2345). Foreign keys are complete and updated installs get every table; network activation is refused; the weekly-series index is created; a write clears every cached key of its row; a booking transaction never stays open.
+- **Privacy texts and activation pages** (#2343). The suggested policy and both readmes name every data the plugin keeps and sends; the created pages take translated titles.
+- **Accessibility and robustness** (#2344). Tab menus and drag-only lists work by keyboard; the CSV export dialog is a named modal whose error stays; reveals and status lines are announced and "reduce motion" is honoured; a hidden section no longer blocks the save; a form on a cached page or in a block template keeps working.
+- **Activity Log: entries name the right person and record** (#2340).
+- **Admin details** (#2354, #2358, #2486, #2503, #2511). Icon buttons on the SMTP tab draw, the calendar names table lines up, the recruitment summaries sit beside their editors, a cancelled booking keeps its View button, autosave works on a WordPress in a subdirectory, and the form builder stays aligned.
+
+## [6.43.0] (2026-10-31) — `9eb8032d`
 
 ### Added
 

@@ -77,6 +77,9 @@ class IdentityRepairTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRepair' );
 
@@ -129,7 +132,7 @@ class IdentityRepairTest extends TestCase {
 					return $this->ciphers[ $hash ] ?? null;
 				}
 
-				$table = $prepared['args'][0] ?? null;
+				$table = ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null );
 
 				return in_array( $table, $this->absent, true ) ? null : $table;
 			}
@@ -141,7 +144,7 @@ class IdentityRepairTest extends TestCase {
 		// lookup with nothing, which every refusal reads as "already repaired".
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$hash  = (string) ( $prepared['args'][2] ?? '' );
 
 				return $this->rows[ $table ][ $hash ] ?? array();
@@ -176,6 +179,7 @@ class IdentityRepairTest extends TestCase {
 	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

@@ -74,6 +74,24 @@ describe('FFC.Admin.autoSaveField', () => {
 		});
 	});
 
+	it('posts to the admin-ajax URL the screen localized, with its nonce (#2503)', () => {
+		// A WordPress in a subdirectory has no root /wp-admin/admin-ajax.php,
+		// and a screen without ffc_ajax would otherwise post there.
+		window.ffcAdminAutosave = { nonce: 'settings-nonce', ajaxUrl: '/wp/wp-admin/admin-ajax.php', strings: {} };
+		try {
+			document.body.innerHTML = '<input type="checkbox" id="t" />';
+			const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+			window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'date_messages_hide_disabled_rules', debounce: 0 });
+			window.$('#t').prop('checked', true).trigger('change');
+			vi.advanceTimersByTime(1);
+
+			expect(postSpy.mock.calls[0][0]).toBe('/wp/wp-admin/admin-ajax.php');
+			expect(postSpy.mock.calls[0][1]).toMatchObject({ key: 'date_messages_hide_disabled_rules', nonce: 'settings-nonce' });
+		} finally {
+			delete window.ffcAdminAutosave;
+		}
+	});
+
 	it('renders the saving → saved badge transition on success', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({
@@ -708,6 +726,60 @@ describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
 
 		expect(spy).toHaveBeenCalledTimes(1);
 		expect(spy.mock.calls[0][1].confirmOff).toBe('Disable Recruitment?');
+		spy.mockRestore();
+	});
+});
+
+describe('FFC.Admin.autoSaveField — confirmOn gate (#2338)', () => {
+	it('declining the prompt when turning ON reverts the toggle and cancels the save', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(confirmSpy).toHaveBeenCalledWith('Delete old data?');
+		expect(window.$('#t').is(':checked')).toBe(false);
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it('turning it OFF never prompts', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
+
+		window.$('#t').prop('checked', false).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('0');
+	});
+
+	it('accepting the prompt when turning ON saves', () => {
+		document.body.innerHTML = '<input type="checkbox" id="t" />';
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
+
+		window.$('#t').prop('checked', true).trigger('change');
+		vi.advanceTimersByTime(400);
+
+		expect(postSpy).toHaveBeenCalledTimes(1);
+		expect(postSpy.mock.calls[0][1].value).toBe('1');
+	});
+
+	it('bootAutoSaveFields reads data-ffc-confirm-on into config.confirmOn', () => {
+		document.body.innerHTML =
+			'<input type="checkbox" data-ffc-autosave-key="cleanup_enabled" data-ffc-confirm-on="Delete old data?">';
+		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
+
+		window.FFC.Admin.bootAutoSaveFields();
+
+		expect(spy.mock.calls[0][1].confirmOn).toBe('Delete old data?');
 		spy.mockRestore();
 	});
 });

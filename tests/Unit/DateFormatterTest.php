@@ -478,4 +478,25 @@ class DateFormatterTest extends TestCase {
 		$this->assertFalse( DateFormatter::is_valid_date( '18/08/2026' ) );
 		$this->assertFalse( DateFormatter::is_valid_date( '' ) );
 	}
+
+	public function test_iso8601_carries_the_site_offset_for_both_kinds_of_column(): void {
+		// The REST responses mixed unix seconds, site-local DATETIMEs with no
+		// offset and integers (#2342); each now has an ISO 8601 twin.
+		$tz = new \DateTimeZone( 'America/Sao_Paulo' );
+		Functions\when( 'wp_timezone' )->justReturn( $tz );
+		Functions\when( 'wp_date' )->alias(
+			static fn( $format, $ts = null ) => ( new \DateTimeImmutable( '@' . (int) $ts ) )->setTimezone( $tz )->format( $format )
+		);
+
+		// 2026-11-02T09:00:00Z, an instant (Category A), as int and as the numeric string wpdb returns.
+		$this->assertSame( '2026-11-02T06:00:00-03:00', DateFormatter::iso8601( 1793610000 ) );
+		$this->assertSame( '2026-11-02T06:00:00-03:00', DateFormatter::iso8601( '1793610000' ) );
+		// A DATETIME `current_time( 'mysql' )` wrote is site-local, not UTC.
+		$this->assertSame( '2026-11-02T06:00:00-03:00', DateFormatter::iso8601( '2026-11-02 06:00:00' ) );
+
+		$this->assertNull( DateFormatter::iso8601( null ) );
+		$this->assertNull( DateFormatter::iso8601( '' ) );
+		$this->assertNull( DateFormatter::iso8601( 0 ) );
+		$this->assertNull( DateFormatter::iso8601( 'not a date' ) );
+	}
 }

@@ -137,6 +137,12 @@ class TabGeneralTest extends TestCase {
 		// The module-settings jump list moved from this view into the
 		// settings nav itself (Settings::render_module_settings_links()).
 		$this->assertStringNotContainsString( 'ffc-module-settings-index', $output );
+
+		// Each switch's row label names its control (#2338).
+		foreach ( array( 'cleanup_enabled', 'validate_rf_check_digit', 'cep_lookup_enabled' ) as $ffc_id ) {
+			$this->assertStringContainsString( '<label for="' . $ffc_id . '">', $output );
+			$this->assertStringContainsString( 'id="' . $ffc_id . '"', $output );
+		}
 	}
 
 	// ==================================================================

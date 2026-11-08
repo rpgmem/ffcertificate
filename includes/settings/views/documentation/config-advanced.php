@@ -20,10 +20,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<h4><?php esc_html_e( 'Activity log', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'An audit trail (useful for LGPD). When it is off, debug logging is also disabled.', 'ffcertificate' ); ?></p>
 	<ul>
-		<li><strong><?php esc_html_e( 'Enable activity log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'master switch.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Retention (days)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'auto-delete entries older than this (default 90; 0 keeps them indefinitely).', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Minimum level', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'debug / info / warning / error.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Categories', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'per-area toggles (submissions, scheduling, public access, users, recruitment, migrations, system).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Enable activity log', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'master switch, on by default on fresh installs and after the update.', 'ffcertificate' ); ?> <?php esc_html_e( 'Switching it or an audit item off, and changing the retention or the record limit, needs the Danger Zone capability, so the audit trail cannot be switched off or shortened without it. Each such change is itself recorded, before it takes effect.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Retention (days)', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'auto-delete entries older than this (default 90, at most 3,650; 0 keeps them indefinitely).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Max records', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the daily cleanup also deletes the oldest entries beyond this number (default 100,000, about 60 MB; from 1,000 to 1,000,000). It deletes up to 100,000 entries a run, in steps of 5,000, and carries on a minute later when more are past a limit; it runs from the scheduled tasks only, never when someone opens a page.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Minimum level', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'debug / info / warning / error. It filters the secondary items only; the audit items are recorded whatever the level.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Audit items', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'on by default: access to personal data (reveals, unmasked exports, identity tools), the Danger Zone and maintenance (deletions, cleanups, migrations and key rotation, settings that delete or suppress data) and permissions (role and user changes).', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Secondary items', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'off by default, one toggle each: users, certificates, personal and audience calendars, attendance and check-in, reregistration and recruitment, public access and security, rate-limit blocks and failed captchas, settings changed outside the Danger Zone (named, never their values), scheduled tasks that ended in an error, and system errors.', 'ffcertificate' ); ?> <?php esc_html_e( 'While the log is off the items and the minimum level are greyed out, because they have no effect then.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'After the update', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the log is switched on, and each former category passes its state to the items it split into: a category that was on, with the log on, leaves its items on.', 'ffcertificate' ); ?></li>
 	</ul>
 
 	<h4><?php esc_html_e( 'Public CSV Sync Export Limit', 'ffcertificate' ); ?></h4>
@@ -31,9 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Certificate editor', 'ffcertificate' ); ?></h4>
 	<p class="description"><?php esc_html_e( 'The colour theme of the certificate HTML editor is on the General tab, next to Dark Mode.', 'ffcertificate' ); ?> <a href="#config-general"><?php esc_html_e( 'See General.', 'ffcertificate' ); ?></a></p>
-	<ul>
-		<li><strong><?php esc_html_e( 'Required certificate tags', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'one {{tag}} per line; the form editor refuses to save a certificate layout that is missing any of them. {{auth_code}} is always required (and injected if absent) so every certificate stays verifiable.', 'ffcertificate' ); ?></li>
-	</ul>
+	<p class="description"><?php esc_html_e( 'The tags and fields a certificate requires are set in Settings → Certificates → Required data.', 'ffcertificate' ); ?> <a href="#feature-certificates"><?php esc_html_e( 'See Certificates & Forms.', 'ffcertificate' ); ?></a></p>
 
 	<h4><?php esc_html_e( 'Debug toggles', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'A set of per-area debug switches, grouped Client (frontend, geofence, QR, browser environment), Server/Processing (form processor, PDF, email, encryption, REST, user manager) and Admin/Operational (admin, personal calendars, audience calendars, migrations, activity log). All default off — turn one on only while diagnosing, since it increases logging.', 'ffcertificate' ); ?></p>
@@ -45,8 +46,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'CPF/RF and e-mail are encrypted at rest. By default FFC derives its encryption key and search-hash salt from your WordPress secret keys (SECURE_AUTH_KEY, LOGGED_IN_KEY, NONCE_KEY). This panel reports whether that secret material is strong, and lets you optionally decouple FFC from the WordPress salts.', 'ffcertificate' ); ?></p>
 	<ul>
 		<li><strong><?php esc_html_e( 'Status', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'ok / weak / placeholder / missing, taken across the secrets that actually feed the key + salt.', 'ffcertificate' ); ?></li>
-		<li><strong><?php esc_html_e( 'Key / salt source', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the WordPress keys, or the FFC constants once decoupled.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Key / salt source', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'the WordPress keys, or the FFC constants once decoupled. An FFC_HASH_SALT defined as empty is used as it is, so it reads as a missing secret.', 'ffcertificate' ); ?></li>
 		<li><strong><?php esc_html_e( 'Active key fingerprint', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'a non-reversible fingerprint (the key itself is never displayed) so you can confirm which key is live and detect a rotation.', 'ffcertificate' ); ?></li>
+		<li><strong><?php esc_html_e( 'Unauthenticated (legacy) reads', 'ffcertificate' ); ?></strong> — <?php esc_html_e( 'how many requests read a value stored in the oldest format, which carries no integrity check, and when the last did. Once nothing has been counted for a long while, that format can be refused.', 'ffcertificate' ); ?></li>
 	</ul>
 
 	<p>
@@ -80,7 +82,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<?php ob_start(); ?>
 		<p>
-			<?php esc_html_e( 'Two destructive tools live here: "Delete all plugin data on uninstall" (when on, deleting the plugin drops its tables, options, roles/capabilities and transients — off by default), and a "Delete submissions" action (all, or for one form, with an option to reset the ID counter). Both are irreversible.', 'ffcertificate' ); ?>
+			<?php esc_html_e( 'Two destructive tools live here, both irreversible and both reserved to accounts holding ffc_manage_settings_dangerzone. "Delete all plugin data on uninstall" is off by default; when on, deleting the plugin drops its tables, options, transients, forms, calendars, certificate templates, roles and capabilities, the export temp folder, and the verification and dashboard pages it created, unless someone edited them. An account whose only role was the plugin\'s receives the site\'s default role. The "Delete submissions" action deletes all submissions, or those of one form, with an option to reset the ID counter. It starts with no target chosen and shows how many submissions each target holds; the confirmation names the target and its count, asks for a typed word and counts down 15 seconds, and the deletion is recorded in the Activity Log.', 'ffcertificate' ); ?>
 		</p>
 	<?php
 	\FreeFormCertificate\Core\AdminNotice::callout(

@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<h4><?php esc_html_e( 'Named-location registry', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional "default for GPS" / "default for IP" flags — a new form auto-selects the defaults. Editing a location updates every form that references it.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A location a form reads from cannot be deleted: the screen names the forms that use it, so you can choose another area for them first. A location with a radius under 100 m is flagged, because a phone\'s GPS indoors is often 20 to 100 m off and a position from Wi-Fi or the IP address far more.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'IP geolocation API', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Backend IP validation needs an external lookup service. It is off by default; the per-form IP toggle stays disabled until you enable it here.', 'ffcertificate' ); ?></p>
@@ -33,12 +34,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</thead>
 		<tbody>
-			<tr><td><strong><?php esc_html_e( 'Primary service', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'ip-api.com (free, ~45 requests/min, no key) or ipinfo.io (needs an API key).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Primary service', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'ipinfo.io (the default, HTTPS on its free tier; a free key raises the limit) or ip-api.com, which serves HTTPS only on its paid plan and is asked only when the ffc_ipapi_use_https filter says the site has one. Visitor addresses are never sent in clear text.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><strong><?php esc_html_e( 'Service cascade', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'If the primary provider fails, try the other one.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><strong><?php esc_html_e( 'IP cache + TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Cache lookups (TTL 300–3600s) to save API calls.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><strong><?php esc_html_e( 'GPS cache TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How long the browser remembers a GPS fix (60–3600s, default 600).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'IP cache + TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Cache lookups (TTL 300–3600s) to save API calls. The cache key is a keyed hash and the cache holds no address. A failed lookup is not repeated for 5 minutes.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'GPS cache TTL', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How long a GPS reading may be reused before the browser is asked again (60–3600s, default 600). A form that caches the check keeps only a note that it passed, never the position.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Accepted error', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'How many times an area\'s radius a reading\'s margin of error may reach and still count as inside (1 to 3, default 1.5).', 'ffcertificate' ); ?></td></tr>
+			<tr><td><strong><?php esc_html_e( 'Low-precision notice', 'ffcertificate' ); ?></strong></td><td><?php esc_html_e( 'Above this many times the radius (0.1 to 1, default 0.5), an accepted reading opens the form with a notice of its error in metres. It changes no decision.', 'ffcertificate' ); ?></td></tr>
 		</tbody>
 	</table>
+
+	<p><strong><?php esc_html_e( 'Privacy:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'the browser reads the GPS position and sends it with the submission; the server checks it against the form\'s areas and discards it, without storing or logging it. The position is what the browser reports, and a browser can report any values, so pair the GPS check with the IP check where a forged reading matters.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Fallback behavior', 'ffcertificate' ); ?></h4>
 	<p><?php esc_html_e( 'Decide what happens when location cannot be determined:', 'ffcertificate' ); ?></p>

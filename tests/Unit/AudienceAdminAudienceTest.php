@@ -10,6 +10,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Audience\AudienceAccountEmail;
 use FreeFormCertificate\Audience\AudienceAdminAudience;
+use FreeFormCertificate\Audience\AudienceAdminAudienceRenderer;
 use FreeFormCertificate\Reregistration\ReregistrationStandardFieldsSeeder;
 
 /**
@@ -67,6 +68,9 @@ class AudienceAdminAudienceTest extends TestCase {
 	/** @var int The id the next insert reports. */
 	private int $next_insert_id = 1;
 
+	/** @var array<int, list<array<string, mixed>>> Field rows by audience id (0 = the global list); empty draws no row. */
+	private array $field_rows = array();
+
 	/** @var list<array{0: int, 1: string}> Every user_can() call, as [user id, capability]. */
 	private array $user_can_calls = array();
 
@@ -110,6 +114,10 @@ class AudienceAdminAudienceTest extends TestCase {
 		Functions\when( 'esc_textarea' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'esc_attr_e' )->alias( function ( $text ) { echo $text; } );
+		// The list tops (#2498): labelled filters and a count.
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
 		Functions\when( 'absint' )->alias( function ( $v ) { return abs( (int) $v ); } );
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'wp_unslash' )->returnArg();
@@ -274,9 +282,20 @@ class AudienceAdminAudienceTest extends TestCase {
 			return array_column( ReregistrationStandardFieldsSeeder::get_standard_fields_definition(), 'field_key' );
 		}
 		if ( 'get_results' === $method && self::FIELDS === $table && false !== strpos( $text, 'ORDER BY sort_order ASC, id ASC' ) ) {
-			// The fields are listed without one being drawn: the rows are
-			// render_custom_field_row()'s, tested on their own below.
-			return array();
+			// Unless a test set field rows, the fields are listed without one
+			// being drawn: the rows are render_custom_field_row()'s, tested on
+			// their own below.
+			return array_map( static fn( $r ) => (object) $r, $this->field_rows[ (int) ( $args[0] ?? -1 ) ] ?? array() );
+		}
+		if ( 'get_row' === $method && self::FIELDS === $table && 'SELECT * FROM %i WHERE id = %d' === $text ) {
+			foreach ( $this->field_rows as $rows ) {
+				foreach ( $rows as $row ) {
+					if ( (int) $row['id'] === (int) $args[0] ) {
+						return (object) $row;
+					}
+				}
+			}
+			return null;
 		}
 		$this->fail( "Unexpected {$method}(): {$text} with " . var_export( $bound, true ) );
 	}
@@ -480,11 +499,11 @@ class AudienceAdminAudienceTest extends TestCase {
 
 		$this->assertStringContainsString( 'Parent Aud', $output );
 		$this->assertStringContainsString( 'Child Aud', $output );
-		// Parent has children: total (10) shown alongside direct (4).
-		$this->assertStringContainsString( '(10)', $output );
-		// Active parent shows Deactivate; inactive child shows Delete.
-		$this->assertStringContainsString( 'Deactivate', $output );
-		$this->assertStringContainsString( 'Delete', $output );
+		// Parent has children: the total (10) says what it counts (#2498).
+		$this->assertStringContainsString( '10 with the groups below', $output );
+		// Each row's status is a switch; the inactive child offers Delete.
+		$this->assertSame( 2, substr_count( $output, 'name="ffc_audience_active_' ) );
+		$this->assertStringContainsString( 'Delete</a>', $output );
 
 		// Once a booking names the child, its row offers no Delete (#2243).
 		$this->booked_audiences = array( 2 );
@@ -545,8 +564,8 @@ class AudienceAdminAudienceTest extends TestCase {
 		// `ffc_view_audiences`.
 		$this->assertSame( 2, substr_count( $output, 'Members</a>' ) );
 		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'Edit</a>' ) );
-		$this->assertSame( $can_manage, str_contains( $output, 'Deactivate' ) );
-		$this->assertSame( $can_delete, str_contains( $output, 'Delete' ) );
+		$this->assertSame( $can_manage ? 2 : 0, substr_count( $output, 'name="ffc_audience_active_' ), 'the Status switch (#2498)' );
+		$this->assertSame( $can_delete, str_contains( $output, 'Delete</a>' ) );
 	}
 
 	// ==================================================================
@@ -586,6 +605,11 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( 2, substr_count( $output, '<div class="card">' ) );
 		$this->assertSame( substr_count( $output, '<section' ), substr_count( $output, '</section>' ), 'every panel is closed' );
 		$this->assertSame( substr_count( $output, '<div' ), substr_count( $output, '</div>' ), 'every box is closed' );
+		// #2486: the editor grid with no side card, so the side column stays
+		// empty, and Back is a button beside the title.
+		$this->assertStringContainsString( '<div class="ffc-editor">', $output );
+		$this->assertStringNotContainsString( 'ffc-editor__side', $output );
+		$this->assertMatchesRegularExpression( '#<h1 class="wp-heading-inline">[^<]*</h1>\s*<a [^>]*class="ffc-btn[^"]*ffc-icon-chevron-left[^"]*"[^>]*>[^<]*Back to Audiences#', $output );
 		// The seeder found every standard field stored and wrote nothing.
 		$this->assertSame( array(), $this->writes );
 	}
@@ -602,6 +626,49 @@ class AudienceAdminAudienceTest extends TestCase {
 		$output = ob_get_clean();
 
 		$this->assertStringContainsString( 'Read-only', $output );
+	}
+
+	/**
+	 * An audience's tab draws what it asks, level by level (#2502): an
+	 * inherited field is one line with Customize and Hide, a field it hid has
+	 * Show again, its change is edited in place with Back to inherited, and its
+	 * own field is edited as before.
+	 */
+	public function test_custom_fields_section_draws_each_field_by_where_it_comes_from(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'selected' )->justReturn( '' );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v ) => json_encode( $v ) );
+		Functions\when( 'get_users' )->justReturn( array() );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		$this->audience( 5, array( 'name' => 'Kitchen' ) );
+		$row = static fn( array $r ) => array_merge(
+			array( 'audience_id' => 0, 'overrides_field_id' => null, 'field_label' => 'L', 'field_type' => 'text', 'field_group' => '', 'field_source' => 'custom', 'field_profile_key' => null, 'field_mask' => null, 'is_sensitive' => '0', 'field_options' => null, 'validation_rules' => null, 'sort_order' => '0', 'is_required' => '0', 'is_active' => '1', 'is_hidden' => '0' ),
+			$r
+		);
+		$this->field_rows = array(
+			0 => array(
+				$row( array( 'id' => 1, 'field_key' => 'sindicato', 'field_label' => 'Union' ) ),
+				$row( array( 'id' => 2, 'field_key' => 'email', 'field_label' => 'E-mail' ) ),
+				$row( array( 'id' => 3, 'field_key' => 'turno', 'field_label' => 'Shift' ) ),
+			),
+			5 => array(
+				$row( array( 'id' => 20, 'audience_id' => 5, 'overrides_field_id' => '2', 'field_key' => 'email', 'is_hidden' => '1' ) ),
+				$row( array( 'id' => 30, 'audience_id' => 5, 'overrides_field_id' => '3', 'field_key' => 'turno', 'field_label' => 'Kitchen shift' ) ),
+				$row( array( 'id' => 40, 'audience_id' => 5, 'field_key' => 'certificado', 'field_label' => 'Food handler' ) ),
+			),
+		);
+
+		ob_start();
+		\FreeFormCertificate\Audience\AudienceAdminAudienceRenderer::render_custom_fields_section( 5 );
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '#<div class="ffc-inherited-field-row" data-field-id="1">.*?Global.*?Union.*?data-ffc-inheritance="customize" data-field-id="1".*?data-ffc-inheritance="hide" data-field-id="1"#s', $output );
+		$this->assertMatchesRegularExpression( '#<div class="ffc-inherited-field-row ffc-field-inactive" data-field-id="2">.*?Hidden here.*?data-ffc-inheritance="show" data-field-id="20"#s', $output, 'Show again undoes the hiding row.' );
+		$this->assertMatchesRegularExpression( '#data-field-id="30" data-field-source="custom" data-override="1">.*?Changed here.*?value="Kitchen shift".*?data-ffc-inheritance="revert" data-field-id="30"#s', $output );
+		$this->assertMatchesRegularExpression( '#data-field-id="40" data-field-source="custom">.*?Only here.*?value="Food handler"#s', $output );
+		$this->assertStringNotContainsString( 'data-field-id="30" data-field-source="custom" data-override="1">\n\t\t\t<div class="ffc-field-handle"', $output, 'A change has no drag handle.' );
+		$this->assertMatchesRegularExpression( '#Asks</dt>\s*<dd class="ffc-facts__value">3</dd>#', $output );
+		$this->assertMatchesRegularExpression( '#Hidden here</dt>\s*<dd class="ffc-facts__value">1</dd>#', $output );
 	}
 
 	public function test_render_custom_field_row_custom_select_field(): void {
@@ -1282,11 +1349,43 @@ class AudienceAdminAudienceTest extends TestCase {
 		$this->assertSame( array(), $this->writes, 'no member is removed' );
 	}
 
+	/**
+	 * Filtering keeps a match's parents, so the match still reads under its
+	 * group, and counts the matches only (#2498).
+	 */
+	public function test_the_filtered_tree_keeps_each_match_under_its_parents(): void {
+		$grandchild = (object) array( 'id' => 3, 'name' => 'Kitchen night', 'status' => 'inactive', 'children' => array() );
+		$child      = (object) array( 'id' => 2, 'name' => 'Kitchen', 'status' => 'active', 'children' => array( $grandchild ) );
+		$parent     = (object) array( 'id' => 1, 'name' => 'Staff', 'status' => 'active', 'children' => array( $child ) );
+		$other      = (object) array( 'id' => 4, 'name' => 'Teachers', 'status' => 'active', 'children' => array() );
+
+		$matches = 0;
+		$tree    = AudienceAdminAudienceRenderer::filter_tree( array( $parent, $other ), 'inactive', '', $matches );
+		$this->assertSame( 1, $matches );
+		$this->assertCount( 1, $tree, 'Teachers holds no match' );
+		$this->assertSame( 'Staff', $tree[0]->name );
+		$this->assertSame( 'Kitchen night', $tree[0]->children[0]->children[0]->name );
+		$this->assertCount( 1, $parent->children, 'the source tree is not changed' );
+
+		$matches = 0;
+		$tree    = AudienceAdminAudienceRenderer::filter_tree( array( $parent, $other ), '', 'KITCHEN', $matches );
+		$this->assertSame( 2, $matches, 'the search ignores case' );
+		$this->assertCount( 1, $tree );
+
+		$matches = 0;
+		$this->assertSame( array(), AudienceAdminAudienceRenderer::filter_tree( array( $parent ), 'active', 'nobody', $matches ) );
+		$this->assertSame( 0, $matches );
+	}
+
 	// ==================================================================
 	// handle_actions() — deactivate / delete
 	// ==================================================================
 
-	public function test_handle_actions_deactivates_audience(): void {
+	/**
+	 * The Status switch saves through the record autosave (#2498), so the
+	 * list's old `action=deactivate` link has no handler left to act on it.
+	 */
+	public function test_handle_actions_no_longer_deactivates_from_a_link(): void {
 		$_GET = array(
 			'action'   => 'deactivate',
 			'id'       => '5',
@@ -1294,13 +1393,11 @@ class AudienceAdminAudienceTest extends TestCase {
 			'_wpnonce' => 'n',
 		);
 		Functions\when( 'wp_verify_nonce' )->justReturn( 1 );
+		Functions\when( 'admin_url' )->returnArg();
 		$this->audience( 5 );
 
-		$this->assertStringContainsString( 'message=deactivated', $this->handleUntilRedirect() );
-		$this->assertSame(
-			array( array( 'update', self::AUDIENCES, array( 'status' => 'inactive' ), array( 'id' => 5 ) ) ),
-			$this->writes
-		);
+		( new AudienceAdminAudience( 'ffc-scheduling' ) )->handle_actions();
+		$this->assertSame( array(), $this->writes );
 	}
 
 	public function test_handle_actions_deletes_inactive_audience(): void {

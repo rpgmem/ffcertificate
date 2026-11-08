@@ -40,6 +40,7 @@ if ( ! $ffcertificate_purge ) {
 	// Cron-only cleanup: leave data + structure untouched but clear
 	// scheduled events that point at code about to be removed.
 	wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
+	wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 	wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
 	wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 	// #1248's internal hook, which replaced the one above in the scheduling.
@@ -73,6 +74,7 @@ if ( ! $ffcertificate_purge ) {
 	wp_unschedule_hook( 'ffc_date_messages_batch' );
 	wp_unschedule_hook( 'ffc_date_messages_digest' );
 	wp_unschedule_hook( 'ffc_date_messages_announce' );
+	wp_unschedule_hook( 'ffc_date_messages_start' );
 	return;
 }
 
@@ -160,6 +162,7 @@ $ffcertificate_tables = array(
 	$wpdb->prefix . 'ffc_device_signals',
 	// URL Shortener.
 	$wpdb->prefix . 'ffc_short_urls',
+	$wpdb->prefix . 'ffc_short_url_retired',
 	// Date messages (#1538).
 	$wpdb->prefix . 'ffc_date_message_rules',
 	$wpdb->prefix . 'ffc_date_message_runs',
@@ -201,7 +204,11 @@ $ffcertificate_options = array(
 	'ffc_geolocation_settings',
 	'ffc_rate_limit_settings',
 	'ffc_captcha_mode_notice_dismissed',
+	'ffc_created_pages',
+	'ffc_created_pages_notice_dismissed',
 	'ffc_rate_limit_db_version',
+	'ffc_rate_limit_keyed_cutover',
+	'ffc_encryption_v1_reads',
 	'ffc_bulk_issue_db_version',
 	'ffc_user_access_settings',
 	'ffc_global_holidays',
@@ -224,6 +231,8 @@ $ffcertificate_options = array(
 	// Written by MigrationForeignKeys since 6.18.0, i.e. after the audit that
 	// added its five siblings here — so it was the only one left behind.
 	'ffc_foreign_keys_db_version',
+	'ffc_foreign_keys_attempted_version',
+	'ffc_core_schema_version',
 	'ffc_perf_indexes_db_version',
 	'ffc_submissions_db_version',
 	// Version gates of the activator chains `Loader` runs on `plugins_loaded`,
@@ -236,6 +245,9 @@ $ffcertificate_options = array(
 	// The audience columns' own revision gate, which heals a column added
 	// between releases on installs that keep the same FFC_VERSION (#1918).
 	'ffc_audience_schema_revision',
+	// The same revision gate for the self-scheduling columns (#2405).
+	'ffc_self_scheduling_schema_revision',
+	'ffc_url_shortener_schema_revision',
 	'ffc_url_shortener_schema_version',
 	// The two chains #1311 added, which had no runtime caller at all until then.
 	'ffc_reregistration_schema_version',
@@ -246,7 +258,9 @@ $ffcertificate_options = array(
 	'ffc_date_messages_audience_ids_migrated',
 	'ffc_date_messages_appearance_migrated',
 	'ffc_date_messages_announcements_migrated',
+	'ffc_date_messages_send_scope_migrated',
 	'ffc_date_messages_send_cap_v1',
+	'ffc_date_messages_delete_cap_v1',
 	// Per-feature migration completion markers (audited gap).
 	'ffc_sibling_instants_unix_migrated',
 	'ffc_submission_date_unix_migrated',
@@ -257,6 +271,7 @@ $ffcertificate_options = array(
 	'ffc_aud_multiple_audiences_color',
 	'ffc_aud_private_display_mode',
 	'ffc_aud_scheduling_message',
+	'ffc_aud_self_join_note',
 	'ffc_aud_visibility_message',
 	// Self-scheduling module options (audited gap).
 	'ffc_ss_business_hours_booking_message',
@@ -281,6 +296,16 @@ $ffcertificate_options = array(
 	// -- that gate compares what ACTIVATION writes -- but it is declared here
 	// because this list is the enforced manifest of the whole footprint.
 	'ffc_identity_accepted',
+	// Operator changes to the FFC roles made in the role editor (#2340).
+	// Written only when a role is edited, so the fresh-install gate never
+	// sees it.
+	'ffc_role_cap_overrides',
+	// Lock of the one-shot capability migrations (#2340): present only while
+	// a request runs them, or left behind by one that died.
+	'ffc_capability_migrations_lock',
+	// Lock of the activity log's creation-time conversion (#2340): present
+	// only while a request converts the column, or left behind by one that died.
+	'ffc_activity_log_instants_lock',
 	// Cursor of the card that names accounts promoted from a candidacy without
 	// one (#1480). Written only when that card is run, so the fresh-install gate
 	// never sees it -- that gate compares what ACTIVATION writes.
@@ -293,6 +318,9 @@ $ffcertificate_options = array(
 	'ffc_name_parts_backfill_state',
 	// The PCD-per-notice cursor (#2245), written only when that card runs.
 	'ffc_recruitment_pcd_per_notice_state',
+	// Accounts the certificate-capability card found able already (#2338),
+	// written only when that card runs.
+	'ffc_certificate_capability_backfill_resolved',
 	// When each recurring task last ran (#1538), written only when one runs --
 	// never by activation, so the fresh-install gate does not see it.
 	'ffc_cron_heartbeats',
@@ -304,6 +332,8 @@ $ffcertificate_options = array(
 	// flags below, which that request deletes; they stay listed for an install
 	// removed before it ran.
 	'ffc_rereg_fields_version',
+	'ffc_custom_fields_id_map',
+	'ffc_custom_field_answers_cursor',
 	// Flag of the one-shot "Estado" → "Union" relabel of the seeded `sindicato`
 	// fields.
 	'ffc_union_label_relabelled',
@@ -368,12 +398,27 @@ $ffcertificate_options = array(
 	'ffc_settings_split_caps_v1',
 	'ffc_taxonomy_caps_renamed_v1',
 	'ffc_url_shortener_export_cap_v1',
+	'ffc_url_shortener_redirect_302_v1',
 	'ffc_url_shortener_rewrite_version',
 );
 
 foreach ( $ffcertificate_options as $ffcertificate_option ) {
 	delete_option( $ffcertificate_option );
 }
+
+// Every other `ffc_` option, by prefix (#2343). The list above names the ones
+// written through a constant or a variable, which no static scan sees; the
+// sweep catches a key a future release forgets to add there, the way user
+// meta has always been swept. `esc_like()` is load-bearing on the
+// underscore, as it is on the table and user-meta sweeps.
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time sweep over the plugin's own options by prefix; WordPress has no API to delete options by prefix.
+$wpdb->query(
+	$wpdb->prepare(
+		'DELETE FROM %i WHERE option_name LIKE %s',
+		$wpdb->options,
+		$wpdb->esc_like( 'ffc_' ) . '%'
+	)
+);
 
 // ──────────────────────────────────────
 // 3. Delete transients
@@ -389,6 +434,10 @@ delete_transient( 'ffc_activity_stats_90' );
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time wildcard delete; bounded by table scope, no user input.
 $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_ffc\\_%' OR option_name LIKE '\\_transient\\_\\_ffc\\_%' OR option_name LIKE '\\_transient\\_timeout\\_\\_ffc\\_%'" );
 
+// Site transients are stored under their own prefix (#2343).
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Uninstall-time wildcard delete; bounded by table scope, no user input.
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_site\\_transient\\_ffc\\_%' OR option_name LIKE '\\_site\\_transient\\_timeout\\_ffc\\_%'" );
+
 // ──────────────────────────────────────
 // 4. Clear scheduled cron hooks
 // ──────────────────────────────────────
@@ -398,6 +447,7 @@ wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
 // #1248's internal hook, which replaced the one above in the scheduling.
 // The old one stays: an event scheduled the old way may still be pending.
 wp_unschedule_hook( 'ffc_process_submission_async' );
+wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
 wp_clear_scheduled_hook( 'ffcertificate_warm_cache_hook' );
 wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
 wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
@@ -422,6 +472,7 @@ wp_clear_scheduled_hook( 'ffc_date_messages_daily' );
 wp_unschedule_hook( 'ffc_date_messages_batch' );
 wp_unschedule_hook( 'ffc_date_messages_digest' );
 wp_unschedule_hook( 'ffc_date_messages_announce' );
+wp_unschedule_hook( 'ffc_date_messages_start' );
 
 // Clear legacy cron hooks from pre-4.6.15 versions.
 wp_clear_scheduled_hook( 'ffc_daily_cleanup_hook' );
@@ -431,10 +482,11 @@ wp_clear_scheduled_hook( 'ffc_warm_cache_hook' );
 // ──────────────────────────────────────
 // 5. Delete all FFC custom posts (CPTs)
 // ──────────────────────────────────────
-// Both CPTs registered by the plugin — `ffc_form` (certificate forms)
-// and `ffc_self_scheduling` (self-scheduling calendars). wp_delete_post
-// with force=true also clears each post's post_meta + revisions.
-foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
+// Every CPT registered by the plugin — `ffc_form` (certificate forms),
+// `ffc_self_scheduling` (self-scheduling calendars) and `ffc_cert_template`
+// (the certificate template pool, #2343). wp_delete_post with force=true also
+// clears each post's post_meta + revisions.
+foreach ( array( 'ffc_form', 'ffc_self_scheduling', 'ffc_cert_template' ) as $ffcertificate_cpt ) {
 	$ffcertificate_post_ids = get_posts(
 		array(
 			'post_type'      => $ffcertificate_cpt,
@@ -448,6 +500,27 @@ foreach ( array( 'ffc_form', 'ffc_self_scheduling' ) as $ffcertificate_cpt ) {
 		foreach ( $ffcertificate_post_ids as $ffcertificate_post_id ) {
 			wp_delete_post( $ffcertificate_post_id, true );
 		}
+	}
+}
+
+// The verification and dashboard pages the activation created (#2343), only
+// while they are still what it created: the `_ffc_managed_page` marker and a
+// body that is nothing but the plugin's shortcode. A page someone edited is
+// theirs now and stays. Block markup around the shortcode does not count as
+// an edit -- the block editor wraps it on the first save.
+$ffcertificate_managed_pages = get_posts(
+	array(
+		'post_type'      => 'page',
+		'post_status'    => 'any',
+		'posts_per_page' => -1,
+		'meta_key'       => '_ffc_managed_page', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- Uninstall-time lookup of at most two pages.
+		'meta_value'     => '1', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- Uninstall-time lookup of at most two pages.
+	)
+);
+foreach ( $ffcertificate_managed_pages as $ffcertificate_page ) {
+	$ffcertificate_body = trim( (string) preg_replace( '/<!--\s*\/?wp:[^>]*-->/', '', (string) $ffcertificate_page->post_content ) );
+	if ( in_array( $ffcertificate_body, array( '[ffc_verification]', '[user_dashboard_personal]' ), true ) ) {
+		wp_delete_post( (int) $ffcertificate_page->ID, true );
 	}
 }
 
@@ -618,8 +691,11 @@ $ffcertificate_user_ids = $wpdb->get_col(
 	)
 );
 
+$ffcertificate_default_role = (string) get_option( 'default_role', 'subscriber' );
+
 foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
-	$ffcertificate_user = new WP_User( (int) $ffcertificate_uid );
+	$ffcertificate_user         = new WP_User( (int) $ffcertificate_uid );
+	$ffcertificate_was_end_user = isset( $ffcertificate_user->caps['ffc_end_user'] );
 
 	// `array_keys()` snapshots before the loop: `remove_cap()` rebuilds
 	// `$user->caps`, so iterating it directly would mutate what is being read.
@@ -631,6 +707,13 @@ foreach ( $ffcertificate_user_ids as $ffcertificate_uid ) {
 
 	foreach ( $ffcertificate_legacy_caps as $ffcertificate_cap ) {
 		$ffcertificate_user->remove_cap( $ffcertificate_cap );
+	}
+
+	// An account whose only role was `ffc_end_user` is left with none, which
+	// WordPress shows as "No role for this site" and lets do nothing. It gets
+	// the site's default role, as a new registration would (#2343).
+	if ( $ffcertificate_was_end_user && array() === $ffcertificate_user->roles && '' !== $ffcertificate_default_role && null !== get_role( $ffcertificate_default_role ) ) {
+		$ffcertificate_user->set_role( $ffcertificate_default_role );
 	}
 }
 
@@ -675,5 +758,28 @@ foreach ( array_keys( $ffcertificate_roles->roles ) as $ffcertificate_role_slug 
 		if ( isset( $ffcertificate_role->capabilities[ $ffcertificate_cap ] ) ) {
 			$ffcertificate_role->remove_cap( $ffcertificate_cap );
 		}
+	}
+}
+
+// ──────────────────────────────────────
+// Batched CSV export temp directory (#2343)
+// ──────────────────────────────────────
+// Exports stage a file under `uploads/ffc-tmp` that can hold decrypted
+// personal data. Each is deleted after its download and swept daily, but the
+// directory, with its `.htaccess` and any file an abandoned job left, stayed
+// behind a full uninstall. Only the files the plugin writes there are removed,
+// and the directory only once it is empty.
+$ffcertificate_upload = wp_upload_dir( null, false );
+$ffcertificate_tmp    = trailingslashit( (string) ( $ffcertificate_upload['basedir'] ?? '' ) ) . 'ffc-tmp';
+if ( is_dir( $ffcertificate_tmp ) ) {
+	foreach ( (array) glob( $ffcertificate_tmp . '/{*.csv,.htaccess,index.php}', GLOB_BRACE ) as $ffcertificate_tmp_file ) {
+		if ( is_string( $ffcertificate_tmp_file ) && is_file( $ffcertificate_tmp_file ) ) {
+			wp_delete_file( $ffcertificate_tmp_file );
+		}
+	}
+	$ffcertificate_left = scandir( $ffcertificate_tmp );
+	if ( is_array( $ffcertificate_left ) && array() === array_diff( $ffcertificate_left, array( '.', '..' ) ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Removes the plugin's own emptied temp directory on uninstall; WP_Filesystem would need credentials on a path with no user present.
+		rmdir( $ffcertificate_tmp );
 	}
 }

@@ -28,7 +28,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><code>[ffc_form id="123"]</code></td>
 				<td>
 					<?php esc_html_e( 'Displays the certificate issuance form.', 'ffcertificate' ); ?><br>
-					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Replace "123" with your Form ID from the "All Forms" list.', 'ffcertificate' ); ?>
+					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Replace "123" with your Form ID from the "All Forms" list.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'URL parameter:', 'ffcertificate' ); ?></strong> <code>?ffc_invite=</code> <?php esc_html_e( '(an invitation code from an audience booking: the form fills in and locks the invitee\'s name and e-mail. On a form that is not invite-only, a code that no longer resolves shows the normal form with a notice).', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>
@@ -36,14 +37,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td>
 					<?php esc_html_e( 'Displays the public verification page.', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Users can validate certificates by entering the authentication code.', 'ffcertificate' ); ?><br>
-					<?php esc_html_e( 'With ?ffc_device_check=1 in the address it shows the "Test my device" checks instead; the page links there from its footer.', 'ffcertificate' ); ?>
+					<?php esc_html_e( 'With ?ffc_device_check=1 in the address it shows the "Test my device" checks instead; the page links there from its footer.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'URL parameter:', 'ffcertificate' ); ?></strong> <code>?token=</code> <?php esc_html_e( '(the magic link sent with a certificate: the page shows that certificate and its download instead of the verification form).', 'ffcertificate' ); ?>
 				</td>
 			</tr>
 			<tr>
 				<td><code>[ffc_csv_download]</code></td>
 				<td>
-					<?php esc_html_e( 'Displays a public page where trusted operators can download the submissions CSV, trigger Start Form Early, and Postpone Close for a specific form — all gated by a Form ID and an access hash.', 'ffcertificate' ); ?><br>
+					<?php esc_html_e( 'Displays Public Operator Access: a public page where trusted operators see a form\'s status and, for that form, download the submissions CSV, trigger Start Form Early, Postpone Close and create a schedule exception — all gated by a Form ID and an access hash.', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Usage:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'Enable "Public Operator Access" (formerly "Public CSV Download") on the form editor to generate a hash, then share the page URL together with the Form ID and hash (e.g. ?form_id=123&hash=...). CSV downloads are only released after the form end date has passed and are capped by the per-form quota configured in the form editor; Start Form Early and Postpone Close have their own eligibility windows configured per form.', 'ffcertificate' ); ?><br>
+					<strong><?php esc_html_e( 'Schedule exception:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'While the form is open, the operator sets other start and end times, inside the form\'s open window, for one participant\'s submission. The participant\'s form must be opened in the same browser within 30 minutes, and the first submission spends it. It is turned on per form.', 'ffcertificate' ); ?><br>
 					<strong><?php esc_html_e( 'Optional attribute:', 'ffcertificate' ); ?></strong> <code>title="Download attendees"</code>
 				</td>
 			</tr>
@@ -108,4 +111,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</tbody>
 	</table>
+	<p class="description"><?php esc_html_e( 'Activation creates two pages when none exists at their address: Certificate Verification at /valid, holding [ffc_verification], and My Dashboard at /dashboard, holding [user_dashboard_personal]. Their titles follow the site language, the account that activated the plugin is their author, and a notice at the top of the admin names them, with a link to edit each, until it is dismissed.', 'ffcertificate' ); ?></p>
 </div>

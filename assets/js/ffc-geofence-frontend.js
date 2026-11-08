@@ -185,8 +185,13 @@
          */
         processGeoOrShow: function(formWrapper, config) {
             if (config.geo && config.geo.enabled) {
-                if (config.geo.gpsEnabled) {
+                if (config.geo.gpsEnabled && typeof this.validateGeolocation === 'function') {
                     this.validateGeolocation(formWrapper, config.geo);
+                } else if (config.geo.gpsEnabled) {
+                    // GPS module not on this (cached) page: the server's
+                    // check of the submission decides (#2341).
+                    this.showForm(formWrapper);
+                    this.debug('GPS module not loaded, showing form');
                 } else if (config.geo.ipEnabled) {
                     this.showForm(formWrapper);
                     this.debug('IP-only validation (backend), showing form');
@@ -380,7 +385,9 @@
                 this.updateLoadingMessage(formWrapper, message);
                 return;
             }
-            const html = '<div class="ffc-geofence-loading-msg"><div class="ffc-spinner"></div><p>' + this.escapeHtml(message) + '</p></div>';
+            // A status region, so each new message is announced without
+            // interrupting; the spinner itself says nothing (#2339).
+            const html = '<div class="ffc-geofence-loading-msg" role="status" aria-live="polite"><div class="ffc-spinner" aria-hidden="true"></div><p>' + this.escapeHtml(message) + '</p></div>';
             formWrapper.prepend(html);
         },
 
@@ -452,8 +459,12 @@
     window.FFC.Preflight.register('datetime', {
         // The server's timestamp is trusted; a bypassed window arrives
         // disabled.
+        // The module loads only for a form that restricts by date (#2341);
+        // a cached page whose form gained one since leaves the check to
+        // the server, which refuses a submission outside the window.
         applies: function(ctx) {
-            return !!(ctx.config.datetime && ctx.config.datetime.enabled);
+            return !!(ctx.config.datetime && ctx.config.datetime.enabled)
+                && typeof FFCGeofence.validateDateTime === 'function';
         },
         run: function(ctx, next) {
             const result = FFCGeofence.validateDateTime(ctx.config.datetime);

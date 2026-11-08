@@ -28,6 +28,11 @@ class AudienceLoaderTest extends TestCase {
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).
 		Functions\when( 'wp_register_script' )->justReturn( false );
+		// The loader is a singleton: its once-per-request flag would carry
+		// one test's enqueue into the next (#2344).
+		$done = new \ReflectionProperty( AudienceLoader::class, 'frontend_assets_done' );
+		$done->setAccessible( true );
+		$done->setValue( AudienceLoader::get_instance(), false );
 
 		Functions\when('__')->returnArg();
 		Functions\when('esc_html__')->returnArg();
@@ -221,6 +226,21 @@ class AudienceLoaderTest extends TestCase {
 		$loader->enqueue_frontend_assets();
 	}
 
+	public function test_a_calendar_rendered_outside_the_post_body_enqueues_once(): void {
+		global $post;
+		$post = null; // A widget area or a block template part (#2344).
+
+		$loader = AudienceLoader::get_instance();
+		Functions\expect('wp_enqueue_script')->once();
+		Functions\when('wp_enqueue_style')->justReturn(null);
+
+		$this->assertFalse( $loader->enqueue_frontend_on_render( false, 'ffc_audience' ) );
+		// A second calendar, another tag, or an output already replaced: nothing more.
+		$loader->enqueue_frontend_on_render( false, 'ffc_audience' );
+		$loader->enqueue_frontend_on_render( false, 'gallery' );
+		$this->assertSame( 'x', $loader->enqueue_frontend_on_render( 'x', 'ffc_audience' ) );
+	}
+
 	public function test_enqueue_frontend_assets_enqueues_when_shortcode_present(): void {
 		global $post;
 		$post = (object) ['post_content' => '[ffc_audience]'];
@@ -299,7 +319,7 @@ class AudienceLoaderTest extends TestCase {
 		$this->assertContains('ffc-division-sector-editor', $log['scripts']);
 		$this->assertContains('ffc-custom-fields-admin', $log['scripts']);
 		$this->assertNotContains('ffc-batched-export', $log['scripts']);
-		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
+		$this->assertSame(array('ffcDivisionSectorEditor', 'ffcFieldEditor', 'ffcAudienceAdmin', 'ffcAdminAutosave', 'ffcRecordAutosave'), $log['localized']);
 	}
 
 	public function test_enqueue_admin_assets_on_the_calendars_page_loads_the_shortcode_copy(): void {

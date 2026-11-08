@@ -1,8 +1,10 @@
 <?php
 /**
- * Template: Identity Resolution — coverage strips.
+ * Template: Identity Resolution — what the scan read, in the side column.
  *
- * What each scan read, one strip per identifier column.
+ * One block per identifier column, then when the queue was read, the control
+ * that reads it again, and what has been resolved since (#2498: these were a
+ * strip per column across the top, each with its own copy of the control).
  *
  * Included from `includes/admin/views/identity-resolution-page.php`, inside
  * `IdentityResolutionPage::render_page()`, so the page's `$ffc_identity_*`
@@ -51,6 +53,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	// A HELD LIST THAT LOST ITS READINGS, AND THE READING ACROSS BOTH COLUMNS
 	// THE EMPTY-QUEUE BRANCHES NEED, ARE `IdentityResolutionScreen`'s to decide.
 
+	?>
+	<div class="card ffc-identity-reading">
+	<h2 class="ffc-icon-sync"><?php esc_html_e( 'Last scan', 'ffcertificate' ); ?></h2>
+	<?php
 	foreach ( $ffc_identity_screen->strips as $ffc_identity_strip ) :
 		$ffc_identity_examined   = $ffc_identity_strip['examined'];
 		$ffc_identity_unreadable = $ffc_identity_strip['unreadable'];
@@ -131,32 +137,54 @@ if ( ! defined( 'ABSPATH' ) ) {
 				· <?php esc_html_e( 'a check returned a full page', 'ffcertificate' ); ?>
 			<?php endif; ?>
 		</p>
-		<?php if ( $ffc_identity_taken_at > 0 ) : ?>
-			<div class="ffc-identity-scan-when">
-				<span>
-					<?php
-					printf(
-						/* translators: %s: when the queue was read, as a date and time. */
-						esc_html__( 'Read at %s and held still while you work it', 'ffcertificate' ),
-						esc_html( DateFormatter::format_datetime( $ffc_identity_taken_at ) )
-					);
-					?>
-				</span>
-				<?php // A form, because reading again is a POST — which is also why it cannot sit inside the paragraph above: a form is not phrasing content, and nesting it in a `<p>` closes the paragraph early. ?>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
-					<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
-					<?php
-					AdminUI::render_button(
-						array(
-							'label' => __( 'Read the queue again', 'ffcertificate' ),
-							'icon'  => 'sync',
-							'type'  => 'submit',
-						)
-					);
-					?>
-				</form>
-			</div>
-		<?php endif; ?>
 	</div>
 	<?php endforeach; ?>
+	<?php if ( $ffc_identity_taken_at > 0 ) : ?>
+		<div class="ffc-identity-scan-when">
+			<span>
+				<?php
+				printf(
+					/* translators: %s: when the queue was read, as a date and time. */
+					esc_html__( 'Read at %s and held still while you work it', 'ffcertificate' ),
+					esc_html( DateFormatter::format_datetime( $ffc_identity_taken_at ) )
+				);
+				?>
+			</span>
+			<?php // A form, because reading again is a POST — which is also why it cannot sit inside the paragraph above: a form is not phrasing content, and nesting it in a `<p>` closes the paragraph early. ?>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<?php wp_nonce_field( IdentityResolutionPage::RESCAN_NONCE ); ?>
+				<input type="hidden" name="action" value="<?php echo esc_attr( IdentityResolutionPage::RESCAN_ACTION ); ?>">
+				<?php
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Read the queue again', 'ffcertificate' ),
+						'icon'  => 'sync',
+						'type'  => 'submit',
+					)
+				);
+				?>
+			</form>
+		</div>
+	<?php endif; ?>
+	<?php
+	// WHAT HAS BEEN DONE, BESIDE WHAT IS LEFT, AND BOTH FROM THE SAME INSTANT.
+	//
+	// The window is the held queue's own: the counts above are of the list
+	// taken at `$ffc_identity_taken_at`, so the only number that can sit beside
+	// them honestly is one measured from there. Reading the queue again resets
+	// the two together, which is the gesture that begins a new round. Zero is
+	// not rendered -- an operator who has resolved nothing yet does not need to
+	// be told so.
+	?>
+	<?php if ( $ffc_identity_resolved > 0 ) : ?>
+		<p class="ffc-identity-reading-done">
+			<?php
+			printf(
+				/* translators: %s: how many findings this operator has resolved since the queue was read. */
+				esc_html( _n( '%s resolved since this queue was read', '%s resolved since this queue was read', $ffc_identity_resolved, 'ffcertificate' ) ),
+				esc_html( number_format_i18n( $ffc_identity_resolved ) )
+			);
+			?>
+		</p>
+	<?php endif; ?>
+	</div>

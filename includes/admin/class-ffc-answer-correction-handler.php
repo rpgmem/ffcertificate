@@ -8,6 +8,12 @@
  * This is the one audited way to change an answer: a manager names the
  * field, the new value and why, and the change goes to the activity log.
  *
+ * The screen calls it an amendment (#2356): "grading" gives points, and
+ * "amending" changes an answer or a grade already given. A grader may
+ * amend the open answers they grade; every other answer needs a manager.
+ * The class, the action and the stored keys keep the older word: they are
+ * identifiers and a stored value, not text anyone reads.
+ *
  * The identity of the certificate stays out of reach: CPF/RF and e-mail
  * carry hashes and indexes and belong to identity resolution, and the auth
  * code, ticket and fill date are what make a certificate verifiable.
@@ -101,6 +107,42 @@ class AnswerCorrectionHandler {
 	}
 
 	/**
+	 * Whether the current user may amend this answer of this form (#2356).
+	 *
+	 * A manager amends any answer this action may change. A grader amends
+	 * only the open answers they grade: a question the form scores by hand.
+	 *
+	 * @param string                           $key    Data key of the answer.
+	 * @param array<int, array<string, mixed>> $fields The form's fields.
+	 * @return bool
+	 */
+	public static function current_user_can_amend( string $key, array $fields ): bool {
+		if ( ! self::is_correctable( $key ) ) {
+			return false;
+		}
+		if ( self::current_user_can_correct() ) {
+			return true;
+		}
+		return QuizGradingHandler::current_user_can_grade() && self::is_open_question( $key, $fields );
+	}
+
+	/**
+	 * Whether a key names a question the form scores by hand.
+	 *
+	 * @param string                           $key    Data key.
+	 * @param array<int, array<string, mixed>> $fields The form's fields.
+	 * @return bool
+	 */
+	public static function is_open_question( string $key, array $fields ): bool {
+		foreach ( $fields as $field ) {
+			if ( ArrayValue::string( $field, 'name' ) === $key ) {
+				return \FreeFormCertificate\Core\QuizQuestion::is_manual( $field );
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Whether a key is an answer this action may change.
 	 *
 	 * @param string $key Data key.
@@ -117,18 +159,31 @@ class AnswerCorrectionHandler {
 		$id = RequestInput::get_post_int( 'submission_id' );
 		check_admin_referer( self::nonce_action( $id ) );
 
-		if ( ! self::current_user_can_correct() ) {
-			wp_die( esc_html__( 'You do not have permission to correct answers.', 'ffcertificate' ), '', array( 'response' => 403 ) );
+		$field = sanitize_key( RequestInput::get_post_string( 'ffc_correct_field' ) );
+		if ( ! self::current_user_can_amend( $field, $this->form_fields( $id ) ) ) {
+			wp_die( esc_html__( 'You do not have permission to amend this answer.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
 		$msg = $this->correct(
 			$id,
-			sanitize_key( RequestInput::get_post_string( 'ffc_correct_field' ) ),
+			$field,
 			RequestInput::get_post_string( 'ffc_correct_value' ),
 			RequestInput::get_post_string( 'ffc_correct_reason' )
 		);
 		wp_safe_redirect( admin_url( 'edit.php?post_type=ffc_form&page=ffc-submissions&msg=' . rawurlencode( $msg ) ) );
 		exit;
+	}
+
+	/**
+	 * The fields of the form a submission belongs to.
+	 *
+	 * @param int $id Submission ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function form_fields( int $id ): array {
+		$sub    = $this->submission_handler->get_submission( $id );
+		$fields = is_array( $sub ) ? get_post_meta( ArrayValue::int( $sub, 'form_id', 0 ), '_ffc_form_fields', true ) : array();
+		return is_array( $fields ) ? array_values( array_filter( $fields, 'is_array' ) ) : array();
 	}
 
 	/**

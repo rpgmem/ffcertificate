@@ -56,7 +56,7 @@ class RateLimitGuard {
 			}
 		}
 
-		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_all( $ip, $email, $cpf, $ctx->form_id, $ctx->device_signals, $ctx->skip_device );
+		$rate_check = \FreeFormCertificate\Security\RateLimiter::check_all( $ip, $email, $cpf, $ctx->form_id, $ctx->device_signals, $ctx->skip_device, $ctx->skip_ip );
 
 		if ( ! $rate_check['allowed'] ) {
 			throw new SubmissionRejected(
@@ -64,12 +64,18 @@ class RateLimitGuard {
 					'message'      => $rate_check['message'],
 					'rate_limit'   => true,
 					'wait_seconds' => $rate_check['wait_seconds'] ?? 0,
+					// The form counts the wait down only when the
+					// administrator lets it show (#2339).
+					'countdown'    => ( new \FreeFormCertificate\Security\RateLimitSupport() )->countdown_on(),
 				)
 			);
 		}
 
-		// Record attempt.
-		\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip, $ctx->form_id );
+		// Record attempt. The address is not counted for a caller that
+		// bypasses it, or its server would fill the web form's pool (#2342).
+		if ( ! $ctx->skip_ip ) {
+			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'ip', $ip, $ctx->form_id );
+		}
 		\FreeFormCertificate\Security\RateLimiter::record_attempt( 'email', $email, $ctx->form_id );
 		if ( $cpf ) {
 			\FreeFormCertificate\Security\RateLimiter::record_attempt( 'cpf', \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $ctx->form_id );

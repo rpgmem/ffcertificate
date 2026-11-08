@@ -63,7 +63,6 @@ final class InlineStyleTest extends TestCase {
 
 	private const SELF_CONTAINED = 'the PDF generator draws its overlay, error box and rasterising container itself: it also runs on the standalone appointment receipt, which loads no plugin stylesheet';
 
-	private const TRANSIENT_STATE = 'a busy state set and cleared around one request (the row or link being processed), never the resting state anyone reads';
 
 	private const SCROLL_LOCK = 'scroll lock on the host document\'s body while a modal is open; the body belongs to the theme, so no sheet of ours should style it';
 
@@ -76,6 +75,8 @@ final class InlineStyleTest extends TestCase {
 	private const GENERATED = 'generated on purpose from settings or the icon registry (menu mask, recruitment badge palette, public design, holiday colours), attached to the sheet it extends';
 
 	private const OPTION_FILTER = 'the initial hidden state of a reason <option> the script filters, and the very state it reads back (`style.display === "none"`)';
+
+	private const INACTIVE_PAGE = 'the page a dead short URL answers with (#2337) is a whole document of its own, outside the theme by decision so it renders the same on every site, with no plugin stylesheet';
 
 	private const RECEIPT_PAGE = 'the standalone printable appointment receipt carries its own <style>: it is a whole document, printed, with no plugin stylesheet';
 
@@ -94,16 +95,6 @@ final class InlineStyleTest extends TestCase {
 		),
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
-		),
-		'assets/js/ffc-admin-submissions-bulk.js' => array(
-			'.css(): .css("opacity", "0.55"' => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", ""'     => array( 1, self::TRANSIENT_STATE ),
-		),
-		'assets/js/ffc-audience-admin.js' => array(
-			'.css(): .css("pointer-events", "none"' => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", "0.5"'         => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("pointer-events", ""'     => array( 1, self::TRANSIENT_STATE ),
-			'.css(): .css("opacity", ""'            => array( 1, self::TRANSIENT_STATE ),
 		),
 		'assets/js/ffc-audience-bookings.js' => array(
 			'style=: style="border-left: 4px solid' => array( 1, self::OPERATOR_COLOUR ),
@@ -278,9 +269,6 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="width:794px;height:1123px;padding:60px;box-sizing:border-box;font-fami' => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="text-align:center;color:#0073aa'                                        => array( 1, self::PDF_DOCUMENT ),
 		),
-		'includes/reregistration/class-ffc-reregistration-custom-fields-page.php' => array(
-			'style=: style="--ffc-color:<?php echo esc_attr( $audience->color ); ?>' => array( 1, self::OPERATOR_COLOUR ),
-		),
 		'includes/scheduling/class-ffc-calendar-appearance.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( $handle' => array( 1, self::GENERATED ),
 		),
@@ -288,6 +276,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 20px 0;'                                    => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0 0 5px 0; font-weight: bold; color: #666;' => array( 2, self::EMAIL_BODY ),
 			'style=: style="margin: 0; color: #333;'                            => array( 2, self::EMAIL_BODY ),
+			'style=: style="margin: 0 0 10px 0;'                                => array( 1, self::EMAIL_BODY ),
 		),
 		'includes/self-scheduling/class-ffc-self-scheduling-appointment-receipt-handler.php' => array(
 			'<style>: <style' => array( 1, self::RECEIPT_PAGE ),
@@ -352,6 +341,9 @@ final class InlineStyleTest extends TestCase {
 		),
 		'templates/admin/url-shortener/short-urls-page.php' => array(
 			'style=: style="display:none;' => array( 3, self::INITIAL_STATE ),
+		),
+		'templates/url-shortener/inactive-link.php' => array(
+			'<style>: <style' => array( 1, self::INACTIVE_PAGE ),
 		),
 	);
 

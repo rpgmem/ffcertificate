@@ -128,4 +128,47 @@ class TabDocumentationTest extends TestCase {
 		Functions\when( 'get_option' )->justReturn( array() );
 		$this->assertSame( 'x', $this->tab->get_option( 'missing_key', 'x' ) );
 	}
+
+	/**
+	 * The view prints the Quick Navigation for the side part only (#2486):
+	 * render_side() asks for it, render() never draws it.
+	 */
+	public function test_render_side_asks_the_view_for_its_side_part(): void {
+		$this->tmp_dir = sys_get_temp_dir() . '/ffc_test_views_doc_side_' . getmypid();
+		if ( ! is_dir( $this->tmp_dir ) ) {
+			mkdir( $this->tmp_dir, 0777, true );
+		}
+		file_put_contents(
+			$this->tmp_dir . '/ffc-tab-documentation.php',
+			'<?php echo ( isset( $ffc_doc_part ) && "side" === $ffc_doc_part ) ? "nav" : "topics";'
+		);
+		$tab = $this->tab_with_views_in( $this->tmp_dir );
+
+		ob_start();
+		$tab->render_side();
+		$side = ob_get_clean();
+		ob_start();
+		$tab->render();
+		$main = ob_get_clean();
+
+		$this->assertSame( 'nav', $side );
+		$this->assertSame( 'topics', $main );
+	}
+
+	/**
+	 * The real view: its side part is the navigation card and nothing else.
+	 */
+	public function test_the_view_side_part_is_the_navigation_card(): void {
+		$src = (string) file_get_contents( dirname( __DIR__, 2 ) . '/includes/settings/views/ffc-tab-documentation.php' );
+
+		$side_start = strpos( $src, "'side' === \$ffc_doc_part" );
+		$this->assertNotFalse( $side_start, 'The view no longer has a side part.' );
+		$side = substr( $src, $side_start, strpos( $src, 'return;', $side_start ) - $side_start );
+		$rest = substr( $src, strpos( $src, 'return;', $side_start ) );
+
+		$this->assertStringContainsString( 'class="card ffc-doc-toc ffc-doc-toc--tree"', $side );
+		$this->assertStringContainsString( 'id="ffc-doc-search"', $side );
+		$this->assertStringNotContainsString( 'ffc-doc-toc', $rest, 'The navigation is drawn twice.' );
+		$this->assertStringContainsString( '<div class="ffc-doc-topics">', $rest );
+	}
 }

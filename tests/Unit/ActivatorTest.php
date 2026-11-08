@@ -28,6 +28,14 @@ class ActivatorTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
+		// The activity-log column conversion runs only in wp-admin, a cron
+		// run or WP-CLI, behind function_exists() guards; this test chooses
+		// "none of them" rather than inheriting an earlier test's stub.
+		Functions\when( 'is_admin' )->justReturn( false );
+		Functions\when( 'wp_doing_cron' )->justReturn( false );
 
 		global $wpdb;
 		$wpdb = Mockery::mock( 'wpdb' )->makePartial();
@@ -76,6 +84,8 @@ class ActivatorTest extends TestCase {
 
 		// i18n stubs
 		Functions\when( '__' )->returnArg();
+		// The page the activation creates is authored by the activating account (#2343).
+		Functions\when( 'get_current_user_id' )->justReturn( 7 );
 		Functions\when( 'esc_html__' )->returnArg();
 
 		// Default WP function stubs
@@ -105,6 +115,7 @@ class ActivatorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -219,9 +230,11 @@ class ActivatorTest extends TestCase {
 		Functions\when( 'get_page_by_path' )->justReturn( null );
 
 		$inserted = false;
-		Functions\when( 'wp_insert_post' )->alias( function ( $data ) use ( &$inserted ) {
+		$author   = null;
+		Functions\when( 'wp_insert_post' )->alias( function ( $data ) use ( &$inserted, &$author ) {
 			if ( isset( $data['post_name'] ) && $data['post_name'] === 'valid' ) {
 				$inserted = true;
+				$author   = $data['post_author'] ?? null;
 			}
 			return 42;
 		} );
@@ -229,10 +242,12 @@ class ActivatorTest extends TestCase {
 		Activator::activate();
 
 		$this->assertTrue( $inserted, 'Should insert verification page when it does not exist' );
+		$this->assertSame( 7, $author, 'The page is authored by the activating account, not by user 1 (#2343).' );
 	}
 
 	public function test_activate_uses_existing_verification_page(): void {
-		$existing_page = (object) [ 'ID' => 99 ];
+		$existing_page     = new \WP_Post();
+		$existing_page->ID = 99;
 		Functions\when( 'get_page_by_path' )->alias( function ( $path ) use ( $existing_page ) {
 			if ( $path === 'valid' || $path === 'dashboard' ) {
 				return $existing_page;

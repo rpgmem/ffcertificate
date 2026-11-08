@@ -151,10 +151,12 @@ class RateLimitCheckerTest extends TestCase {
 		);
 	}
 
-	public function test_whitelisted_identifiers_skip_every_limit(): void {
+	public function test_a_whitelisted_identity_skips_only_the_identity_limits(): void {
+		// The e-mail and CPF/RF are what the visitor typed, so allowlisting
+		// them lifts the limits on that identity and never the address limit
+		// (#2339): an IP limit that refuses still refuses.
 		$this->configure(
 			array(
-				// Every limit would refuse, so only the whitelist can let these through.
 				'ip'        => array( 'max_per_hour' => 0 ),
 				'whitelist' => array(
 					'emails'        => array( 'boss@example.org' ),
@@ -164,11 +166,37 @@ class RateLimitCheckerTest extends TestCase {
 			)
 		);
 
+		$this->assertSame( 'ip_hour_limit', RateLimitChecker::check_all( '203.0.113.9', 'boss@example.org' )['reason'] ?? null );
+		$this->assertSame( 'ip_hour_limit', RateLimitChecker::check_all( '203.0.113.9', 'teacher@school.test' )['reason'] ?? null );
+		$this->assertSame( 'ip_hour_limit', RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org', '204.569.420-84' )['reason'] ?? null );
+		$this->assertNotContains( array( 'whitelist', 'whitelisted', 'In whitelist' ), $this->logged );
+	}
+
+	public function test_a_whitelisted_identity_lifts_its_own_limits(): void {
+		// The e-mail limit would refuse (every day is over 0); the allowlist lifts it.
+		$this->configure(
+			array(
+				'ip'        => array( 'enabled' => false ),
+				'email'     => array( 'max_per_day' => 0 ),
+				'whitelist' => array( 'emails' => array( 'boss@example.org' ) ),
+			)
+		);
+
 		$this->assertTrue( RateLimitChecker::check_all( '203.0.113.9', 'boss@example.org' )['allowed'] );
-		$this->assertTrue( RateLimitChecker::check_all( '203.0.113.9', 'teacher@school.test' )['allowed'] );
-		$this->assertTrue( RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org', '204.569.420-84' )['allowed'] );
-		$this->assertSame( array_fill( 0, 3, array( 'whitelist', 'whitelisted', 'In whitelist' ) ), $this->logged );
-		$this->assertFalse( RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org' )['allowed'], 'not whitelisted: the IP limit refuses' );
+		$this->assertFalse( RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org' )['allowed'], 'not allowlisted: the e-mail limit refuses' );
+	}
+
+	public function test_a_whitelisted_address_skips_every_limit(): void {
+		$this->configure(
+			array(
+				'ip'        => array( 'max_per_hour' => 0 ),
+				'email'     => array( 'max_per_day' => 0 ),
+				'whitelist' => array( 'ips' => array( '203.0.113.9' ) ),
+			)
+		);
+
+		$this->assertTrue( RateLimitChecker::check_all( '203.0.113.9', 'nobody@example.org' )['allowed'] );
+		$this->assertSame( array( array( 'whitelist', 'whitelisted', 'In whitelist' ) ), $this->logged );
 	}
 
 	public function test_ip_lists_match_by_range_and_by_canonical_address(): void {
@@ -253,7 +281,9 @@ class RateLimitCheckerTest extends TestCase {
 		$result = RateLimitChecker::check_all( '203.0.113.9' );
 
 		$this->assertSame( 'global_minute_limit', $result['reason'] );
-		$this->assertSame( 60, $result['wait_seconds'] );
+		// What is left of the minute (#2339).
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 60, $result['wait_seconds'] );
 		$this->assertSame( array( array( 'global', 'blocked', 'global_minute_limit' ) ), $this->logged );
 	}
 
@@ -273,7 +303,8 @@ class RateLimitCheckerTest extends TestCase {
 		$result = RateLimitChecker::check_all( '203.0.113.9' );
 
 		$this->assertSame( 'global_hour_limit', $result['reason'] );
-		$this->assertSame( 3600, $result['wait_seconds'] );
+		$this->assertGreaterThanOrEqual( 1, $result['wait_seconds'] );
+		$this->assertLessThanOrEqual( 3600, $result['wait_seconds'] );
 	}
 
 	public function test_the_ip_limit_refusal_is_logged_against_the_ip(): void {
@@ -367,14 +398,11 @@ class RateLimitCheckerTest extends TestCase {
 		$this->assertSame( array( 'email:day', 'email:month', 'cpf:day', 'cpf:month', 'cpf:hour' ), $windows );
 	}
 
-	public function test_format_wait_time_picks_seconds_minutes_or_hours(): void {
-		$method = new \ReflectionMethod( RateLimitChecker::class, 'format_wait_time' );
-		$method->setAccessible( true );
-
-		$this->assertSame( '1 second', $method->invoke( null, 1 ) );
-		$this->assertSame( '45 seconds', $method->invoke( null, 45 ) );
-		$this->assertSame( '2 minutes', $method->invoke( null, 61 ) );
-		$this->assertSame( '2 hours', $method->invoke( null, 3601 ) );
+	public function test_wait_words_picks_seconds_minutes_or_hours(): void {
+		$this->assertSame( '1 second', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 1 ) );
+		$this->assertSame( '45 seconds', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 45 ) );
+		$this->assertSame( '2 minutes', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 61 ) );
+		$this->assertSame( '2 hours', \FreeFormCertificate\Security\RateLimitSupport::wait_words( 3601 ) );
 	}
 
 	public function test_a_read_limit_needs_a_well_formed_endpoint_entry(): void {

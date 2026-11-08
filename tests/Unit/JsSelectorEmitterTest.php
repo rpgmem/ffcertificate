@@ -48,6 +48,7 @@ class JsSelectorEmitterTest extends TestCase {
 	private const CORE_IDS = array(
 		'wpbody-content' => 'The wp-admin content container, emitted by `wp-admin/admin-header.php`.',
 		'title'          => 'The post editor\'s title field, emitted by `wp-admin/edit-form-advanced.php`.',
+		'role'           => 'The Role select of the user-edit screen, emitted by `wp-admin/user-edit.php`; the FFC demotion prompt sits under it (#2340).',
 	);
 
 	/**

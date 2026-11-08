@@ -128,7 +128,12 @@ final class AdminStylesheetTokensTest extends TestCase {
 		// background and its text per kind, in each theme. Their own tokens
 		// rather than the warning family's, because the light theme takes
 		// white text there and Scheduling settings may repaint them.
-		'ffc-common.css'                => 132,
+		//
+		// 132 -> 134 in #2498: the neutral button's ground and edge in the
+		// dark theme. There grey-100 is the striped row's ground and
+		// border-light the card's, so a neutral button vanished on both; the
+		// light theme keeps those two through var().
+		'ffc-common.css'                => 134,
 		'ffc-device-check.css'          => 0,
 		'ffc-code-editor-dark.css'      => 35,
 		// 12 -> 10 in #1881: the button loading state left with its two white

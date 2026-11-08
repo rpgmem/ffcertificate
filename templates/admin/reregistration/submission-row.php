@@ -37,7 +37,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 								'field'         => 'email',
 								'submission-id' => (string) $sub->id,
 								'nonce'         => $reveal_nonce,
-							)
+							),
+							true
 						);
 						echo $ffc_rereg_reveal_button; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- field_button() escapes every value.
 						?>
@@ -52,80 +53,81 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<td><?php echo esc_html( $submitted ); ?></td>
 			<td><?php echo esc_html( $reviewed ); ?></td>
 			<td>
-				<?php if ( 'submitted' === $sub->status && $can_edit ) : ?>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Approve', 'ffcertificate' ),
-							'icon'  => 'checkmark',
-							'href'  => $approve_url,
-						)
-					);
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label'    => __( 'Reject', 'ffcertificate' ),
-							'category' => 'caution',
-							'icon'     => 'cross',
-							'class'    => 'ffc-review-decision-btn',
-							'attrs'    => array(
-								'data-decision'      => 'reject',
-								'data-submission-id' => (string) $sub->id,
-							),
-						)
-					);
-					?>
-				<?php elseif ( 'pending' === $sub->status ) : ?>
-					<span class="description"><?php esc_html_e( 'Awaiting user', 'ffcertificate' ); ?></span>
-				<?php elseif ( ! empty( $sub->notes ) ) : ?>
-					<span class="description" title="<?php echo esc_attr( $sub->notes ); ?>"><?php esc_html_e( 'See notes', 'ffcertificate' ); ?></span>
-				<?php else : ?>
-					—
-				<?php endif; ?>
-				<?php if ( $can_return_to_draft && $can_edit ) : ?>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label'    => __( 'Return to Draft', 'ffcertificate' ),
-							'category' => 'caution',
-							'icon'     => 'restore',
-							'class'    => 'ffc-review-decision-btn',
-							'attrs'    => array(
-								'data-decision'      => 'return_to_draft',
-								'data-submission-id' => (string) $sub->id,
-								'title'              => __( 'Return to user for revision', 'ffcertificate' ),
-							),
-						)
-					);
-					?>
-				<?php endif; ?>
-				<?php if ( $can_reveal_pii ) : ?>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'View Details', 'ffcertificate' ),
-							'icon'  => 'eye',
-							'class' => 'ffc-view-details-btn',
-							'attrs' => array(
-								'data-submission-id' => (string) $sub->id,
-							),
-						)
-					);
-					?>
-				<?php endif; ?>
-				<?php if ( $can_generate_record && in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
-					<?php
-					\FreeFormCertificate\Admin\AdminUI::render_button(
-						array(
-							'label' => __( 'Record', 'ffcertificate' ),
-							'icon'  => 'file',
-							'class' => 'ffc-record-btn',
-							'attrs' => array(
-								'data-submission-id' => (string) $sub->id,
-							),
-						)
-					);
-					?>
-				<?php endif; ?>
+				<?php // The row's actions on one line when they fit (#2498). ?>
+				<div class="ffc-row-buttons">
+					<?php if ( 'submitted' === $sub->status && $can_edit ) : ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Approve', 'ffcertificate' ),
+								'icon'  => 'checkmark',
+								'href'  => $approve_url,
+							)
+						);
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Reject', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'cross',
+								'class'    => 'ffc-review-decision-btn',
+								'attrs'    => array(
+									'data-decision'      => 'reject',
+									'data-submission-id' => (string) $sub->id,
+								),
+							)
+						);
+						?>
+					<?php elseif ( 'pending' === $sub->status ) : ?>
+						<span class="description"><?php esc_html_e( 'Awaiting user', 'ffcertificate' ); ?></span>
+					<?php elseif ( ! empty( $sub->notes ) ) : ?>
+						<span class="description" title="<?php echo esc_attr( $sub->notes ); ?>"><?php esc_html_e( 'See notes', 'ffcertificate' ); ?></span>
+					<?php endif; ?>
+					<?php if ( $can_return_to_draft && $can_edit ) : ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label'    => __( 'Return to Draft', 'ffcertificate' ),
+								'category' => 'caution',
+								'icon'     => 'restore',
+								'class'    => 'ffc-review-decision-btn',
+								'attrs'    => array(
+									'data-decision'      => 'return_to_draft',
+									'data-submission-id' => (string) $sub->id,
+									'title'              => __( 'Return to user for revision', 'ffcertificate' ),
+								),
+							)
+						);
+						?>
+					<?php endif; ?>
+					<?php if ( $can_reveal_pii ) : ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'View Details', 'ffcertificate' ),
+								'icon'  => 'eye',
+								'class' => 'ffc-view-details-btn',
+								'attrs' => array(
+									'data-submission-id' => (string) $sub->id,
+								),
+							)
+						);
+						?>
+					<?php endif; ?>
+					<?php if ( $can_generate_record && in_array( $sub->status, array( 'submitted', 'approved' ), true ) ) : ?>
+						<?php
+						\FreeFormCertificate\Admin\AdminUI::render_button(
+							array(
+								'label' => __( 'Record', 'ffcertificate' ),
+								'icon'  => 'file',
+								'class' => 'ffc-record-btn',
+								'attrs' => array(
+									'data-submission-id' => (string) $sub->id,
+								),
+							)
+						);
+						?>
+					<?php endif; ?>
+				</div>
 			</td>
 		</tr>
 		<?php

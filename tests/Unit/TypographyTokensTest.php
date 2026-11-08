@@ -78,7 +78,7 @@ class TypographyTokensTest extends TestCase {
 		'ffc-reregistration-frontend.css'  => 0,
 		'ffc-url-shortener-admin.css'      => 0,
 		'ffc-qr-generator.css'             => 0,
-		'ffc-admin-components.css'         => 0,
+		'ffc-admin-components.css'         => 1,  // the list views hide WordPress's " |" separator text (#2486).
 		'ffc-qr-design-fields.css'         => 0,
 		'ffc-user-permissions.css'         => 0,
 		'ffc-working-hours.css'            => 0,
@@ -126,7 +126,7 @@ class TypographyTokensTest extends TestCase {
 		// The screenshot viewer (#1716) loads in core's modal without
 		// ffc-common, so it cannot read the scale; its glyph buttons are sized
 		// as glyph boxes.
-		'ffc-screenshots.css'              => 4,
+		'ffc-screenshots.css'              => 2,
 	);
 
 	/**

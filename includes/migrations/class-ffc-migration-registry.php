@@ -169,6 +169,16 @@ class MigrationRegistry {
 			'order'       => 11,
 		);
 
+		// #2502: the per-audience copies of the reregistration fields folded
+		// into the field every audience inherits; their answers follow.
+		$this->migrations['custom_field_answers'] = array(
+			'name'        => __( 'Reregistration: Move Answers to Inherited Fields', 'ffcertificate' ),
+			'description' => __( 'Audiences used to keep their own copy of each standard reregistration field, each with its own answers. The copies were folded into the field every audience now inherits; this moves the answers stored under a copy onto that field. Until it runs, the answers are read through the fold, so none is out of sight. When a person answered differently under two copies, the one kept is the value of their latest reregistration, otherwise the copy of the deepest audience they belong to.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-merge',
+			'batch_size'  => 200,
+			'order'       => 12,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),
@@ -217,6 +227,16 @@ class MigrationRegistry {
 			'description' => __( 'Encrypt the request address of rate limit log rows written before addresses were stored encrypted, clear the plaintext copy, and identify blocked addresses by a keyed fingerprint instead of the address. An address that cannot be encrypted is cleared all the same. The log keeps 30 days by default, so the plaintext would also leave on its own.', 'ffcertificate' ),
 			'icon'        => 'ffc-icon-encryption',
 			'batch_size'  => 200,
+			'order'       => 4,
+		);
+
+		// #2343: e-mail and CPF identifiers of the rate-limit tables were an
+		// unkeyed sha256, which a list of every CPF reverses; delete them.
+		$this->migrations['rate_limit_keyed_identifiers'] = array(
+			'name'        => __( 'Rate Limit: Keyed Identifiers', 'ffcertificate' ),
+			'description' => __( 'Delete the rate limit counters and log lines that identify an e-mail address or a CPF/RF by an unkeyed hash, which can be reversed by trying every CPF. New rows use a keyed hash. A hash cannot be re-keyed, so the old rows are deleted; they are short-lived anyway, and the counters they hold start again from zero once.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-encryption',
+			'batch_size'  => 500,
 			'order'       => 4,
 		);
 

@@ -65,6 +65,41 @@ class SettingsActionHandler {
 	}
 
 	/**
+	 * Save the Scheduled Tasks run times (#2338).
+	 *
+	 * Runs on `admin_init` and redirects, so the save happens before the tab
+	 * renders and a reload does not post the form again. The page opens on
+	 * `ffc_view_settings`; changing when a task runs takes
+	 * `ffc_manage_settings`, since the disabled fieldset a view-only account
+	 * sees is only a UI affordance.
+	 */
+	public function handle_cron_times_save(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verified below via check_admin_referer.
+		if ( ! isset( $_POST['ffc_save_cron_times'] ) ) {
+			return;
+		}
+		check_admin_referer( 'ffc_cron_times_nonce' );
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to change when tasks run.', 'ffcertificate' ) );
+		}
+
+		$invalid = \FreeFormCertificate\Core\ScheduledTasks::save_times( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'ffc_cron_times' ) );
+		$url     = add_query_arg(
+			array(
+				'page' => 'ffc-settings',
+				'tab'  => 'scheduled_tasks',
+			),
+			admin_url( 'admin.php' )
+		);
+		$url     = array() === $invalid
+			? SettingsNotice::add( $url, 'cron_times', 'success', __( 'Times saved. Changed tasks were moved to their new time.', 'ffcertificate' ) )
+			: SettingsNotice::add( $url, 'cron_times', 'error', __( 'Times saved, except the ones that were not a valid time of day.', 'ffcertificate' ) );
+
+		wp_safe_redirect( $url );
+		exit;
+	}
+
+	/**
 	 * Handle QR Code cache clearing
 	 */
 	public function handle_clear_qr_cache(): void {
@@ -74,6 +109,12 @@ class SettingsActionHandler {
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'ffc_clear_qr_cache' ) ) {
 			return;
+		}
+
+		// A nonce proves the request came from the screen, not that this user
+		// may change settings (#2338).
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
+			wp_die( esc_html__( 'You do not have permission to clear the QR Code cache.', 'ffcertificate' ), '', array( 'response' => 403 ) );
 		}
 
 		$cleared = ( new \FreeFormCertificate\Repositories\SubmissionRepository() )->clearQrCodeCache();
@@ -133,18 +174,17 @@ class SettingsActionHandler {
 		);
 
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg( 'migration_error', rawurlencode( $result->get_error_message() ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'migration', 'error', $result->get_error_message() );
 		} else {
-			$redirect_url = add_query_arg(
-				'migration_success',
-				rawurlencode(
-					sprintf(
-						/* translators: %d: number of accounts the re-armed walk will examine */
-						__( 'Walk re-armed: %d accounts will be examined again. Press "Run Migration" to start. Nothing already filled is overwritten.', 'ffcertificate' ),
-						(int) $result
-					)
-				),
-				$redirect_url
+			$redirect_url = SettingsNotice::add(
+				$redirect_url,
+				'migration',
+				'success',
+				sprintf(
+						/* translators: %d: number of records the re-armed walk will examine */
+					__( 'Walk re-armed: %d records will be examined again. Press "Run Migration" to start. Nothing already done is changed again.', 'ffcertificate' ),
+					(int) $result
+				)
 			);
 		}
 
@@ -188,18 +228,80 @@ class SettingsActionHandler {
 
 		// Add result message.
 		if ( is_wp_error( $result ) ) {
-			$redirect_url = add_query_arg( 'migration_error', rawurlencode( $result->get_error_message() ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'migration', 'error', $result->get_error_message() );
 		} else {
 			$message = sprintf(
 				/* translators: %d: number of records processed */
 				__( 'Migration executed: %d records processed.', 'ffcertificate' ),
 				isset( $result['processed'] ) ? $result['processed'] : 0
 			);
-			$redirect_url = add_query_arg( 'migration_success', rawurlencode( $message ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'migration', 'success', $message );
 		}
 
 		wp_safe_redirect( $redirect_url );
 		exit;
+	}
+
+	/**
+	 * Fingerprint of the parameters a maintenance preview ran with (#2338).
+	 *
+	 * Apply recomputes it from the parameters it is about to use, so a
+	 * window or a criterion changed after the preview (by autosave, another
+	 * tab or another operator) cannot apply what nobody previewed.
+	 *
+	 * @param array<string, mixed> $params Parameters the tool runs with.
+	 * @return string
+	 */
+	private static function preview_fingerprint( array $params ): string {
+		return hash( 'sha256', (string) wp_json_encode( $params ) );
+	}
+
+	/**
+	 * Whether the stored preview covers the parameters apply would use.
+	 *
+	 * A preview that no longer matches is spent: the operator runs a new
+	 * one, which is what they then confirm.
+	 *
+	 * @param string               $key    Preview transient key.
+	 * @param array<string, mixed> $params Parameters apply would run with.
+	 * @return string 'ok', 'missing' or 'changed'.
+	 */
+	private static function preview_matches( string $key, array $params ): string {
+		$stored = get_transient( $key );
+		if ( ! is_string( $stored ) || '' === $stored ) {
+			return 'missing';
+		}
+		if ( ! hash_equals( $stored, self::preview_fingerprint( $params ) ) ) {
+			delete_transient( $key );
+			return 'changed';
+		}
+		return 'ok';
+	}
+
+	/**
+	 * Refusal shown when apply's parameters differ from the preview's.
+	 *
+	 * @return string
+	 */
+	private static function preview_changed_message(): string {
+		return __( 'The settings changed after the preview. Run a new preview, check it, then apply.', 'ffcertificate' );
+	}
+
+	/**
+	 * Write the activity-log line of a maintenance action that changed data.
+	 *
+	 * @param string               $action  Action key.
+	 * @param array<string, mixed> $context What was run and what it changed.
+	 * @return void
+	 */
+	private static function log_maintenance( string $action, array $context ): void {
+		// Best effort: the data has already changed, so a log that cannot be
+		// written must not turn the result into an error notice.
+		try {
+			\FreeFormCertificate\Core\ActivityLog::log( $action, \FreeFormCertificate\Core\ActivityLog::LEVEL_WARNING, $context, get_current_user_id() );
+		} catch ( \Throwable $e ) {
+			unset( $e );
+		}
 	}
 
 	/**
@@ -261,12 +363,8 @@ class SettingsActionHandler {
 
 		switch ( $mode ) {
 			case 'save_days':
-				$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'obsolete_shortcode_days', 0 );
-				if ( $posted_days < 1 ) {
-					$posted_days = 1;
-				} elseif ( $posted_days > 3650 ) {
-					$posted_days = 3650;
-				}
+				// An emptied field keeps the stored window: 0 is not a value here.
+				$posted_days = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'obsolete_shortcode_days' ) ?? $current_days ) );
 
 				if ( ! is_array( $settings ) ) {
 					$settings = array();
@@ -274,23 +372,22 @@ class SettingsActionHandler {
 				$settings['obsolete_shortcode_days'] = $posted_days;
 				update_option( 'ffc_settings', $settings );
 
-				$redirect_url = add_query_arg(
-					'obsolete_cleanup_msg',
-					rawurlencode(
-						sprintf(
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'obsolete_cleanup',
+					'success',
+					sprintf(
 						/* translators: %d: grace window in days */
-							__( 'Grace window updated to %d days.', 'ffcertificate' ),
-							$posted_days
-						)
-					),
-					$redirect_url
+						__( 'Grace window updated to %d days.', 'ffcertificate' ),
+						$posted_days
+					)
 				);
 				break;
 
 			case 'preview':
 				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
 				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
-					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 					break;
 				}
 				try {
@@ -301,25 +398,26 @@ class SettingsActionHandler {
 						)
 					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-					set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
-					$redirect_url = add_query_arg( 'obsolete_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+					set_transient( $preview_ok_key, self::preview_fingerprint( array( 'days' => $current_days ) ), 5 * MINUTE_IN_SECONDS );
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 				} catch ( \Throwable $e ) {
-					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', $e->getMessage() );
 				}
 				break;
 
 			case 'apply':
-				if ( ! get_transient( $preview_ok_key ) ) {
-					$redirect_url = add_query_arg(
-						'obsolete_cleanup_error',
-						rawurlencode( __( 'Please run a preview first before removing shortcodes.', 'ffcertificate' ) ),
-						$redirect_url
-					);
+				$preview = self::preview_matches( $preview_ok_key, array( 'days' => $current_days ) );
+				if ( 'missing' === $preview ) {
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Please run a preview first before removing shortcodes.', 'ffcertificate' ) );
+					break;
+				}
+				if ( 'changed' === $preview ) {
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', self::preview_changed_message() );
 					break;
 				}
 				$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'obsolete_shortcode' );
 				if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
-					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 					break;
 				}
 				try {
@@ -331,20 +429,27 @@ class SettingsActionHandler {
 					);
 					set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 					delete_transient( $preview_ok_key );
-					$redirect_url = add_query_arg(
-						'obsolete_cleanup_msg',
-						rawurlencode(
-							sprintf(
+					self::log_maintenance(
+						'obsolete_shortcodes_removed',
+						array(
+							'days'               => $current_days,
+							'shortcodes_removed' => (int) $report['shortcodes_removed'],
+							'posts_affected'     => (int) $report['posts_affected'],
+						)
+					);
+					$redirect_url = SettingsNotice::add(
+						$redirect_url,
+						'obsolete_cleanup',
+						'success',
+						sprintf(
 							/* translators: 1: shortcodes removed, 2: posts affected */
-								__( 'Cleanup complete. Removed %1$d shortcode(s) from %2$d post(s).', 'ffcertificate' ),
-								(int) $report['shortcodes_removed'],
-								(int) $report['posts_affected']
-							)
-						),
-						$redirect_url
+							__( 'Cleanup complete. Removed %1$d shortcode(s) from %2$d post(s).', 'ffcertificate' ),
+							(int) $report['shortcodes_removed'],
+							(int) $report['posts_affected']
+						)
 					);
 				} catch ( \Throwable $e ) {
-					$redirect_url = add_query_arg( 'obsolete_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+					$redirect_url = SettingsNotice::add( $redirect_url, 'obsolete_cleanup', 'error', $e->getMessage() );
 				}
 				break;
 		}
@@ -357,7 +462,7 @@ class SettingsActionHandler {
 	 * Handle the Short URL Cleanup maintenance action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_url_cleanup_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the chosen criteria + grace window into
 	 *    `ffc_settings`, then run the {@see UrlShortenerCleaner} in dry-run and
 	 *    store the report + a "preview OK" flag so the apply button unlocks.
@@ -404,14 +509,15 @@ class SettingsActionHandler {
 
 		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'url_shortener_cleanup' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
-			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days = \FreeFormCertificate\Core\RequestInput::get_post_int( 'url_cleanup_days', 90 );
-			$days        = min( 3650, max( 1, $posted_days ) );
+			// An emptied field keeps the stored window rather than becoming 1.
+			$stored_days = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
+			$days        = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'url_cleanup_days' ) ?? $stored_days ) );
 			$orphaned    = empty( $_POST['url_cleanup_orphaned'] ) ? 0 : 1;
 			$never       = empty( $_POST['url_cleanup_never_clicked'] ) ? 0 : 1;
 			$trashed     = empty( $_POST['url_cleanup_trashed'] ) ? 0 : 1;
@@ -435,13 +541,24 @@ class SettingsActionHandler {
 					)
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
-				$redirect_url = add_query_arg( 'url_cleanup_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+				set_transient(
+					$preview_ok_key,
+					self::preview_fingerprint(
+						array(
+							'criteria' => array(
+								'orphaned'      => (bool) $orphaned,
+								'never_clicked' => (bool) $never,
+								'trashed'       => (bool) $trashed,
+							),
+							'days'     => $days,
+						)
+					),
+					5 * MINUTE_IN_SECONDS
+				);
+				$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 			} catch ( \Throwable $e ) {
-				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+				$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', $e->getMessage() );
 			}
-		} elseif ( ! get_transient( $preview_ok_key ) ) {
-			$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) ), $redirect_url );
 		} else {
 			$days     = isset( $settings['url_cleanup_days'] ) ? (int) $settings['url_cleanup_days'] : 90;
 			$criteria = array(
@@ -449,6 +566,23 @@ class SettingsActionHandler {
 				'never_clicked' => ! empty( $settings['url_cleanup_never_clicked'] ),
 				'trashed'       => ! empty( $settings['url_cleanup_trashed'] ),
 			);
+			$preview  = self::preview_matches(
+				$preview_ok_key,
+				array(
+					'criteria' => $criteria,
+					'days'     => $days,
+				)
+			);
+			if ( 'ok' !== $preview ) {
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'url_cleanup',
+					'error',
+					'missing' === $preview ? __( 'Please run a preview first before deleting short URLs.', 'ffcertificate' ) : self::preview_changed_message()
+				);
+				wp_safe_redirect( $redirect_url );
+				exit;
+			}
 			try {
 				$report = $tool->run(
 					array(
@@ -459,19 +593,26 @@ class SettingsActionHandler {
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 				delete_transient( $preview_ok_key );
-				$redirect_url = add_query_arg(
-					'url_cleanup_msg',
-					rawurlencode(
-						sprintf(
+				self::log_maintenance(
+					'short_urls_cleaned',
+					array(
+						'criteria' => array_keys( array_filter( $criteria ) ),
+						'days'     => $days,
+						'deleted'  => (int) $report['deleted'],
+					)
+				);
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'url_cleanup',
+					'success',
+					sprintf(
 						/* translators: %d: short URLs deleted */
-							__( 'Cleanup complete. Deleted %d short URL(s).', 'ffcertificate' ),
-							(int) $report['deleted']
-						)
-					),
-					$redirect_url
+						__( 'Cleanup complete. Deleted %d short URL(s).', 'ffcertificate' ),
+						(int) $report['deleted']
+					)
 				);
 			} catch ( \Throwable $e ) {
-				$redirect_url = add_query_arg( 'url_cleanup_error', rawurlencode( $e->getMessage() ), $redirect_url );
+				$redirect_url = SettingsNotice::add( $redirect_url, 'url_cleanup', 'error', $e->getMessage() );
 			}
 		}
 
@@ -484,7 +625,7 @@ class SettingsActionHandler {
 	 * action (Settings → Data Migrations).
 	 *
 	 * Two modes, each with its own nonce key (`ffc_pubaccess_<mode>`), all
-	 * requiring `ffc_manage_settings`:
+	 * requiring `ffc_manage_settings_dangerzone`:
 	 *  - `preview` (POST): persist the grace window into `ffc_settings`, then
 	 *    run the {@see PublicOperatorAccessDisabler} in dry-run and store the
 	 *    report + a "preview OK" flag so the apply button unlocks.
@@ -531,14 +672,15 @@ class SettingsActionHandler {
 
 		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'public_access_disabler' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
-			$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
 
 		if ( 'preview' === $mode ) {
-			$posted_days                            = \FreeFormCertificate\Core\RequestInput::get_post_int( 'public_access_disable_days', 90 );
-			$days                                   = min( 3650, max( 1, $posted_days ) );
+			// An emptied field keeps the stored window rather than becoming 1.
+			$stored_days                            = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$days                                   = min( 3650, max( 1, \FreeFormCertificate\Core\RequestInput::get_post_optional_int( 'public_access_disable_days' ) ?? $stored_days ) );
 			$settings['public_access_disable_days'] = $days;
 			update_option( 'ffc_settings', $settings );
 
@@ -550,15 +692,24 @@ class SettingsActionHandler {
 					)
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-				set_transient( $preview_ok_key, 1, 5 * MINUTE_IN_SECONDS );
-				$redirect_url = add_query_arg( 'pubaccess_msg', rawurlencode( __( 'Preview generated.', 'ffcertificate' ) ), $redirect_url );
+				set_transient( $preview_ok_key, self::preview_fingerprint( array( 'days' => $days ) ), 5 * MINUTE_IN_SECONDS );
+				$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'success', __( 'Preview generated.', 'ffcertificate' ) );
 			} catch ( \Throwable $e ) {
-				$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( $e->getMessage() ), $redirect_url );
+				$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', $e->getMessage() );
 			}
-		} elseif ( ! get_transient( $preview_ok_key ) ) {
-			$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( __( 'Please run a preview first before disabling access.', 'ffcertificate' ) ), $redirect_url );
 		} else {
-			$days = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$days    = isset( $settings['public_access_disable_days'] ) ? (int) $settings['public_access_disable_days'] : 90;
+			$preview = self::preview_matches( $preview_ok_key, array( 'days' => $days ) );
+			if ( 'ok' !== $preview ) {
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'pubaccess',
+					'error',
+					'missing' === $preview ? __( 'Please run a preview first before disabling access.', 'ffcertificate' ) : self::preview_changed_message()
+				);
+				wp_safe_redirect( $redirect_url );
+				exit;
+			}
 			try {
 				$report = $tool->run(
 					array(
@@ -568,19 +719,25 @@ class SettingsActionHandler {
 				);
 				set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
 				delete_transient( $preview_ok_key );
-				$redirect_url = add_query_arg(
-					'pubaccess_msg',
-					rawurlencode(
-						sprintf(
+				self::log_maintenance(
+					'public_access_bulk_disabled',
+					array(
+						'days'     => $days,
+						'disabled' => (int) $report['disabled'],
+					)
+				);
+				$redirect_url = SettingsNotice::add(
+					$redirect_url,
+					'pubaccess',
+					'success',
+					sprintf(
 						/* translators: %d: forms disabled */
-							__( 'Done. Disabled Public Operator Access on %d form(s).', 'ffcertificate' ),
-							(int) $report['disabled']
-						)
-					),
-					$redirect_url
+						__( 'Done. Disabled Public Operator Access on %d form(s).', 'ffcertificate' ),
+						(int) $report['disabled']
+					)
 				);
 			} catch ( \Throwable $e ) {
-				$redirect_url = add_query_arg( 'pubaccess_error', rawurlencode( $e->getMessage() ), $redirect_url );
+				$redirect_url = SettingsNotice::add( $redirect_url, 'pubaccess', 'error', $e->getMessage() );
 			}
 		}
 
@@ -642,7 +799,7 @@ class SettingsActionHandler {
 
 		$tool = \FreeFormCertificate\Maintenance\MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
 		if ( ! $tool instanceof \FreeFormCertificate\Maintenance\MaintenanceToolInterface ) {
-			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( __( 'Maintenance tool not available.', 'ffcertificate' ) ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'submission_audit', 'error', __( 'Maintenance tool not available.', 'ffcertificate' ) );
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
@@ -650,9 +807,9 @@ class SettingsActionHandler {
 		try {
 			$report = $tool->run( array() );
 			set_transient( $report_key, $report, 5 * MINUTE_IN_SECONDS );
-			$redirect_url = add_query_arg( 'submission_audit_msg', rawurlencode( __( 'Audit complete.', 'ffcertificate' ) ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'submission_audit', 'success', __( 'Audit complete.', 'ffcertificate' ) );
 		} catch ( \Throwable $e ) {
-			$redirect_url = add_query_arg( 'submission_audit_error', rawurlencode( $e->getMessage() ), $redirect_url );
+			$redirect_url = SettingsNotice::add( $redirect_url, 'submission_audit', 'error', $e->getMessage() );
 		}
 
 		wp_safe_redirect( $redirect_url );

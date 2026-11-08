@@ -245,4 +245,15 @@
     $(document).on('click', '#ffc-rereg-import-check', check);
     $(document).on('click', '#ffc-rereg-import-apply', apply);
     $(document).on('change', '#ffc-rereg-import-file, #ffc-rereg-import-audience', dropJob);
+
+    // The template link follows the chosen audience (#2506): its columns are
+    // that audience's fields.
+    $(document).on('change', '#ffc-rereg-import-audience', function () {
+        var $link = $('.ffc-rereg-import-template');
+        var href = $link.attr('href');
+        if (!href) return;
+        var url = new URL(href, window.location.href);
+        url.searchParams.set('audience_id', String($(this).val()));
+        $link.attr('href', url.toString());
+    });
 })(jQuery);

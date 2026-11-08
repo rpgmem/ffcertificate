@@ -92,6 +92,13 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 	private array $calendar_title_cache = array();
 
 	/**
+	 * Calendar rows by id, loaded with the titles (#2405).
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	private array $calendar_cache = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param AppointmentRepository $appointment_repository Appointment repository.
@@ -407,6 +414,8 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			__( 'Reminder Sent At', 'ffcertificate' ),
 			__( 'User IP', 'ffcertificate' ),
 			__( 'User Agent', 'ffcertificate' ),
+			// Last, so the columns before it keep their place (#2405).
+			__( 'Session', 'ffcertificate' ),
 		);
 	}
 
@@ -487,6 +496,7 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			! empty( $row['reminder_sent_at'] ) ? \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $row['reminder_sent_at'] ) : '',
 			$user_ip,
 			$row['user_agent'] ?? '',
+			$this->session_name_cached( $row ),
 		);
 
 		// Dynamic columns (custom_data fields).
@@ -514,7 +524,24 @@ class AppointmentExportSource implements BatchedExportSourceInterface {
 			$calendar = $this->calendar_repository->findById( $calendar_id );
 
 			$this->calendar_title_cache[ $calendar_id ] = $calendar['title'] ?? __( '(Deleted)', 'ffcertificate' );
+			$this->calendar_cache[ $calendar_id ]       = is_array( $calendar ) ? $calendar : array();
 		}
 		return $this->calendar_title_cache[ $calendar_id ];
+	}
+
+	/**
+	 * The name of a row's session (#2405), read from the calendar the title
+	 * cache already loaded; '' for an appointment without one.
+	 *
+	 * @param array<string, mixed> $row Appointment row.
+	 * @return string
+	 */
+	private function session_name_cached( array $row ): string {
+		$calendar_id = (int) ( $row['calendar_id'] ?? 0 );
+		if ( $calendar_id < 1 ) {
+			return '';
+		}
+		$this->get_calendar_title_cached( $calendar_id );
+		return CalendarSessions::name_of_appointment( $this->calendar_cache[ $calendar_id ] ?? array(), $row );
 	}
 }

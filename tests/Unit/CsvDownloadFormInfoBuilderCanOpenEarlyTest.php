@@ -53,6 +53,10 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The page lookup keeps its answers in a transient (#2341): no
+		// answer kept, and the search below decides.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'get_the_title' )->justReturn( 'Form X' );
@@ -154,6 +158,26 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
 
 		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
 		$this->assertTrue( $info['status']['can_open_early'] );
+	}
+
+	/**
+	 * #2341 — the answer carries the site's clock, so the dialogs read the
+	 * site's wall time and formats instead of the browser's.
+	 */
+	public function test_info_carries_the_site_clock_and_formats(): void {
+		$this->window( array( 0, '13:00' ), array( 0, '14:00' ) );
+		$this->configure_form( 1 );
+		$this->options['time_format'] = 'g:i a';
+		$this->options['ffc_settings'] = array( 'time_format' => 'custom', 'time_format_custom' => 'G\hi' );
+
+		$before = time();
+		$clock  = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 )['clock'];
+
+		$this->assertGreaterThanOrEqual( $before, $clock['now'] );
+		$this->assertLessThanOrEqual( time(), $clock['now'] );
+		$this->assertSame( wp_timezone()->getOffset( new \DateTimeImmutable( '@' . $clock['now'] ) ), $clock['offset'] );
+		$this->assertSame( 'G\hi', $clock['time_format'], 'The plugin\'s time format, the one every other time on the screen uses.' );
+		$this->assertSame( \FreeFormCertificate\Core\DateFormatter::format_date( $clock['now'] ), $clock['today'], 'Today in the plugin\'s date format.' );
 	}
 
 	public function test_can_open_early_false_when_form_already_started(): void {
@@ -293,12 +317,48 @@ class CsvDownloadFormInfoBuilderCanOpenEarlyTest extends TestCase {
 		$this->window( array( 0, '11:00' ), array( 0, '13:00' ) ); // started, not ended.
 		$this->configure_form( 1 );
 		$this->meta_store[1]['_ffc_geofence_config']['date_end']   = $this->clock->day();
-		$this->meta_store[1]['_ffc_geofence_config']['time_end']   = '23:59';
+		$this->meta_store[1]['_ffc_geofence_config']['time_end']   = '22:00';
 		$this->meta_store[1]['_ffc_csv_public_extend_end_enabled']            = '1';
 
 		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
 		$this->assertTrue( $info['status']['can_extend_end'] );
-		$this->assertSame( '23:59', $info['status']['current_time_end'] );
+		$this->assertFalse( $info['status']['extend_end_last_minute'] );
+		$this->assertSame( '22:00', $info['status']['current_time_end'] );
+	}
+
+	public function test_a_form_closing_at_2359_shows_postpone_disabled_with_its_reason(): void {
+		// #2341: ExtendEndAction refuses `last_minute`; the screen draws the
+		// button disabled, with the reason, instead of offering it.
+		$this->window( array( 0, '11:00' ), array( 0, '13:00' ) );
+		$this->configure_form( 1 );
+		$this->meta_store[1]['_ffc_geofence_config']['date_end'] = $this->clock->day();
+		$this->meta_store[1]['_ffc_geofence_config']['time_end'] = '23:59';
+		$this->meta_store[1]['_ffc_csv_public_extend_end_enabled']          = '1';
+
+		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+		$this->assertFalse( $info['status']['can_extend_end'] );
+		$this->assertTrue( $info['status']['extend_end_last_minute'] );
+	}
+
+	public function test_schedule_exception_is_not_offered_without_a_close(): void {
+		// #2341: mirrors ScheduleExceptionAction's `no_window`; a form that
+		// started and has no close date read as open, so the button showed.
+		$this->window( array( 0, '11:00' ), null );
+		$this->configure_form( 1 );
+		$this->meta_store[1]['_ffc_geofence_config']['schedule_exception_enabled'] = '1';
+
+		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+		$this->assertFalse( $info['status']['can_schedule_exception'] );
+	}
+
+	public function test_open_early_is_not_offered_once_used(): void {
+		// #2341: mirrors EarlyOpenAction's `already_opened`.
+		$this->window( array( 0, '23:00' ), array( 0, '23:30' ) );
+		$this->configure_form( 1 );
+		$this->meta_store[1]['_ffc_csv_public_start_opened_at'] = (string) ( time() - DAY_IN_SECONDS );
+
+		$info = ( new CsvDownloadFormInfoBuilder() )->build_form_info( 1 );
+		$this->assertFalse( $info['status']['can_open_early'] );
 	}
 
 	public function test_can_extend_end_false_when_date_end_not_today(): void {

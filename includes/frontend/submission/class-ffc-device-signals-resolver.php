@@ -56,7 +56,11 @@ class DeviceSignalsResolver {
 						$decoded = json_decode( $raw_signals, true );
 						if ( is_array( $decoded ) ) {
 							$clean_signals = array();
-							foreach ( array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts' ) as $sig_key ) {
+							// Every signal the client sends (#2339): four were
+							// dropped here, `plugins` and `permissions` among
+							// them, which are strong, so a strong-signal minimum
+							// above four could never match.
+							foreach ( \FreeFormCertificate\Security\RateLimitChecker::DEVICE_SIGNALS as $sig_key ) {
 								if ( isset( $decoded[ $sig_key ] ) && is_string( $decoded[ $sig_key ] ) && preg_match( '/^[a-f0-9]{64}$/i', $decoded[ $sig_key ] ) ) {
 									$clean_signals[ $sig_key ] = strtolower( $decoded[ $sig_key ] );
 								}
@@ -66,6 +70,16 @@ class DeviceSignalsResolver {
 							}
 						}
 					}
+				}
+
+				// A submission that posts no signals (JavaScript off, or a
+				// client that strips the field) used to skip the device limit.
+				// All of them now count as one device per form, the
+				// maintainer's choice in #2339: the bypass closes, at the cost
+				// of the form's device cap being shared by every visitor
+				// without JavaScript.
+				if ( ! $skip_device && null === $device_signals ) {
+					$device_signals = array( 'cookie' => \FreeFormCertificate\Security\RateLimitChecker::NO_SIGNALS_DEVICE );
 				}
 			}
 		}

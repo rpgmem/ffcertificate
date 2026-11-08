@@ -30,6 +30,24 @@ class AdminAjax {
 	private const PAGE_REVEAL_LIMIT = 500;
 
 	/**
+	 * Values one account may reveal per window, single reveals and pages
+	 * together (#2340). Each value counts one, so a page counts what it names.
+	 * Far above what a person reads, and low enough to stop bulk extraction
+	 * through the reveal endpoints.
+	 */
+	private const REVEAL_CAP = 2000;
+
+	/**
+	 * Length of the reveal window, in seconds.
+	 */
+	private const REVEAL_WINDOW = 900;
+
+	/**
+	 * Transient prefix of the reveal budget.
+	 */
+	private const REVEAL_THROTTLE_PREFIX = 'ffc_pii_reveal_';
+
+	/**
 	 * Reveal type of an activity log entry's client address (#2109).
 	 */
 	public const REVEAL_ACTIVITY_LOG = 'activity_log';
@@ -97,11 +115,14 @@ class AdminAjax {
 				'pii_cap'      => \FreeFormCertificate\DateMessages\DateMessagesAdminPage::PII_CAP,
 				'audit_action' => 'date_messages_pii_revealed',
 			),
-			// The client address of an activity log entry (#2109).
+			// The client address and the details of an activity log entry
+			// (#2109). Not logged (#2340): the reader is on the log itself,
+			// so each reveal would add a row to the screen being read, and
+			// what is revealed is already a logged event. The cap is the gate.
 			self::REVEAL_ACTIVITY_LOG   => array(
 				'surface_cap'  => 'ffc_view_activity_log',
 				'pii_cap'      => 'ffc_view_activity_log_pii',
-				'audit_action' => 'activity_log_ip_revealed',
+				'audit_action' => '',
 			),
 			// A blocked address on the Rate Limit tab (#2109).
 			self::REVEAL_RATE_LIMIT_LOG => array(
@@ -133,7 +154,12 @@ class AdminAjax {
 		if ( \FreeFormCertificate\Audience\AudienceAccountEmail::REVEAL_TYPE === $type ) {
 			return 'email' === $field;
 		}
-		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
+		if ( self::REVEAL_ACTIVITY_LOG === $type ) {
+			// The entry's address, or its details with the personal data the
+			// screen masks (#2340).
+			return 'ip' === $field || 'context' === $field;
+		}
+		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {
 			return 'ip' === $field;
 		}
 		if ( 'submission' === $type ) {
@@ -203,10 +229,12 @@ class AdminAjax {
 
 		// An address with no owner: a log line is not a person's record, so
 		// the policy's owner tier never applies and the reveal is audited.
-		if ( self::REVEAL_ACTIVITY_LOG === $type || self::REVEAL_RATE_LIMIT_LOG === $type ) {
-			$ip = self::REVEAL_ACTIVITY_LOG === $type
-				? \FreeFormCertificate\Core\ActivityLogQuery::ip_of( $id )
-				: \FreeFormCertificate\Security\RateLimitStats::address_of( $id );
+		if ( self::REVEAL_ACTIVITY_LOG === $type ) {
+			$entry = \FreeFormCertificate\Core\ActivityLogQuery::entry_of( $id );
+			return null === $entry || ( '' === $entry['user_ip'] && array() === $entry['context'] ) ? null : $entry;
+		}
+		if ( self::REVEAL_RATE_LIMIT_LOG === $type ) {
+			$ip = \FreeFormCertificate\Security\RateLimitStats::address_of( $id );
 			return '' === $ip ? null : array( 'user_ip' => $ip );
 		}
 
@@ -280,6 +308,11 @@ class AdminAjax {
 				return \FreeFormCertificate\Core\DocumentFormatter::format_rf( (string) ( $record['rf'] ?? '' ) );
 			case 'ip':
 				return (string) ( $record['user_ip'] ?? '' );
+			case 'context':
+				// An activity-log entry's details in clear, laid out as the
+				// screen shows them (#2340).
+				$context = isset( $record['context'] ) && is_array( $record['context'] ) ? $record['context'] : array();
+				return array() === $context ? '' : (string) wp_json_encode( $context, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
 			case 'phone':
 				return (string) ( $record['phone'] ?? '' );
 			case 'name':
@@ -390,6 +423,8 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission.', 'ffcertificate' ) ), 403 );
 		}
 
+		$this->take_reveal_budget( 1 );
+
 		$id     = $this->get_post_int( 'submission_id' );
 		$field  = $this->get_post_param( 'field' );
 		$result = $this->reveal_one( $type, $id, $field );
@@ -397,21 +432,62 @@ class AdminAjax {
 			wp_send_json_error( array( 'message' => $result['message'] ?? '' ), $result['status'] );
 		}
 
-		// Every served reveal is audited (#1655); ActivityLog honours the
-		// Activity Log switch and its category, as every other entry does.
-		\FreeFormCertificate\Core\ActivityLog::log(
-			$config['audit_action'],
-			\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
-			array( 'field_key' => $field ),
-			get_current_user_id(),
-			$id
-		);
+		// Every served reveal is audited (#1655), except a type with no
+		// audit action (the activity log's own); ActivityLog honours the
+		// Activity Log switch and its item, as every other entry does.
+		// The record is named in the context by type and id (#2340): the
+		// `submission_id` column holds a submission, so an appointment or a
+		// profile id there named the wrong record.
+		if ( '' !== $config['audit_action'] ) {
+			\FreeFormCertificate\Core\ActivityLog::log(
+				$config['audit_action'],
+				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
+				array(
+					'field_key'   => $field,
+					'record_type' => $type,
+					'record_id'   => $id,
+				),
+				get_current_user_id(),
+				'submission' === $type ? $id : 0
+			);
+		}
 
 		wp_send_json_success(
 			array(
 				'field' => $field,
 				'value' => $result['value'],
 			)
+		);
+	}
+
+	/**
+	 * Spend `$values` of the current account's reveal budget, or refuse the
+	 * request with 429 and the seconds until the window ends (#2340).
+	 *
+	 * Counted per account, not per address: staff share office networks, and
+	 * the budget is the person's. It is spent before the records are read, so
+	 * a refused or failed attempt counts too, which also bounds probing.
+	 *
+	 * @param int $values Values the request asks for.
+	 * @return void
+	 */
+	private function take_reveal_budget( int $values ): void {
+		$caller = 'user:' . get_current_user_id();
+		if ( \FreeFormCertificate\Core\WindowThrottle::take_for( self::REVEAL_THROTTLE_PREFIX, $caller, self::REVEAL_CAP, self::REVEAL_WINDOW, $values ) ) {
+			return;
+		}
+
+		$wait = \FreeFormCertificate\Core\WindowThrottle::seconds_left( self::REVEAL_WINDOW );
+		wp_send_json_error(
+			array(
+				'message'    => sprintf(
+					/* translators: %d: minutes until more values can be revealed */
+					__( 'You have revealed many values in a short time. Try again in %d minutes.', 'ffcertificate' ),
+					(int) ceil( $wait / 60 )
+				),
+				'retryAfter' => $wait,
+			),
+			429
 		);
 	}
 
@@ -438,6 +514,7 @@ class AdminAjax {
 		if ( count( $items ) > self::PAGE_REVEAL_LIMIT ) {
 			wp_send_json_error( array( 'message' => __( 'Too many values to reveal at once.', 'ffcertificate' ) ), 400 );
 		}
+		$this->take_reveal_budget( count( $items ) );
 
 		$configs  = $this->pii_reveal_configs();
 		$values   = array();
@@ -474,13 +551,17 @@ class AdminAjax {
 		}
 
 		foreach ( $revealed as $type => $what ) {
+			if ( '' === $configs[ $type ]['audit_action'] ) {
+				continue;
+			}
 			\FreeFormCertificate\Core\ActivityLog::log(
 				$configs[ $type ]['audit_action'],
 				\FreeFormCertificate\Core\ActivityLog::LEVEL_INFO,
 				array(
-					'field_key'  => 'page',
-					'fields'     => array_values( $what['fields'] ),
-					'record_ids' => array_values( $what['ids'] ),
+					'field_key'   => 'page',
+					'record_type' => $type,
+					'fields'      => array_values( $what['fields'] ),
+					'record_ids'  => array_values( $what['ids'] ),
 				),
 				get_current_user_id(),
 				0

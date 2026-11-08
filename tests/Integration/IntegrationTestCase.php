@@ -149,9 +149,9 @@ abstract class IntegrationTestCase extends TestCase {
 		// These two re-run their dbDelta whenever the stored version differs,
 		// tables present or not. The versions are read from the code, so a
 		// bump there cannot leave this seed stale.
-		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::DB_VERSION;
-		$this->options['ffc_activity_log_db_version'] = ( new \ReflectionClassConstant( \FreeFormCertificate\Core\ActivityLog::class, 'DB_VERSION' ) )->getValue();
-		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::DB_VERSION;
+		$this->options['ffc_rate_limit_db_version']   = \FreeFormCertificate\Security\RateLimitActivator::SCHEMA_REVISION;
+		$this->options['ffc_activity_log_db_version'] = \FreeFormCertificate\Core\ActivityLog::SCHEMA_REVISION;
+		$this->options['ffc_bulk_issue_db_version']   = \FreeFormCertificate\Submissions\BulkIssueActivator::SCHEMA_REVISION;
 	}
 
 	protected function tearDown(): void {
@@ -384,6 +384,7 @@ abstract class IntegrationTestCase extends TestCase {
 				'ffc_activity_log_export_cap_v1',
 				'ffc_url_shortener_export_cap_v1',
 				'ffc_date_messages_send_cap_v1',
+				'ffc_date_messages_delete_cap_v1',
 				'ffc_module_role_labels_v1',
 				'ffc_export_caps_granted_v1',
 				'ffc_import_caps_granted_v1',

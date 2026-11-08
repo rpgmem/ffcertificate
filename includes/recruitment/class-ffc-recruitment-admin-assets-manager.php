@@ -154,6 +154,10 @@ final class RecruitmentAdminAssetsManager {
 			FFC_VERSION,
 			true
 		);
+		// The candidate (#2363) and notice (#2370) editors are drawn in vertical tabs.
+		if ( in_array( \FreeFormCertificate\Core\RequestInput::get_get_key( 'action' ), array( 'edit-candidate', 'edit-notice' ), true ) ) {
+			\FreeFormCertificate\Admin\AdminUI::enqueue_vertical_tabs();
+		}
 		wp_localize_script(
 			'ffc-recruitment-candidate-edit',
 			'ffcRecruitmentCandidateEdit',
@@ -308,6 +312,7 @@ final class RecruitmentAdminAssetsManager {
 			'ffcAdminAutosave',
 			array(
 				'nonce'   => wp_create_nonce( \FreeFormCertificate\Admin\SettingsAjaxEndpoint::AJAX_ACTION ),
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'strings' => \FreeFormCertificate\Admin\AdminUI::autosave_strings(),
 			)
 		);
@@ -322,11 +327,18 @@ final class RecruitmentAdminAssetsManager {
 			array(
 				'restRoot'            => esc_url_raw( rest_url( 'ffcertificate/v1/recruitment/' ) ),
 				'nonce'               => wp_create_nonce( 'wp_rest' ),
+				// Where a create dialog lands once the record exists, by the
+				// name its form carries in `data-ffc-create-open` (#2486). The
+				// address lives here, never in the markup the script reads.
+				'openUrls'            => array(
+					'notice' => admin_url( 'admin.php?page=' . RecruitmentAdminPage::PAGE_SLUG . '&action=edit-notice' ),
+				),
 				'confirmModalStrings' => array(
 					'closeLabel'   => __( 'Close', 'ffcertificate' ),
 					'cancelLabel'  => __( 'Cancel', 'ffcertificate' ),
 					'defaultTitle' => __( 'Confirm action', 'ffcertificate' ),
 					'defaultCta'   => __( 'Confirm', 'ffcertificate' ),
+					'createFailed' => __( 'The record was not created. Check the fields and try again.', 'ffcertificate' ),
 				),
 			)
 		);

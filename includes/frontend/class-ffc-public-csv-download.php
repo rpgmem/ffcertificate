@@ -42,6 +42,7 @@ use FreeFormCertificate\Frontend\Csv\CsvDownloadFlash;
 
 use FreeFormCertificate\Security\Geofence;
 use FreeFormCertificate\Security\RateLimiter;
+use FreeFormCertificate\Security\ReadRateGuard;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -66,6 +67,23 @@ class PublicCsvDownload {
 	const META_DOWNLOAD_LOG   = '_ffc_csv_public_download_log';
 	const DOWNLOAD_LOG_MAX    = 100;
 	const FLASH_TRANSIENT_TTL = 60; // Seconds.
+
+	/**
+	 * Read pool of the screen's form details, preview, download and export
+	 * start (#2341): the IP limit above it is fed by submissions only, so on
+	 * its own it never stopped a caller of these endpoints.
+	 */
+	const RATE_ENDPOINT = 'public_csv';
+
+	/**
+	 * Read pool of the three operator actions.
+	 */
+	const RATE_ENDPOINT_ACTIONS = 'public_csv_actions';
+
+	/**
+	 * The export name a public download's PII-access entry carries (#2341).
+	 */
+	const PII_EXPORT_TYPE = 'public_csv';
 
 	const EXPORT_LOG_ACTION = 'ffc_export_csv_public_download_log';
 	const EXPORT_LOG_NONCE  = 'ffc_export_csv_public_download_log';
@@ -153,6 +171,24 @@ class PublicCsvDownload {
 	// ──────────────────────────────────────────────────────────────.
 
 	/**
+	 * The browser step's strings on this screen, which downloads a file and
+	 * issues nothing (#2341). Merged over the form's by
+	 * `BrowserGate::script_config()`.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function preflight_strings(): array {
+		return array(
+			'secureRequired'       => __( 'This page requires a secure connection (HTTPS). Please contact the site administrator.', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'inAppBody'            => __( 'You are viewing this page inside an app, where downloading the file often fails. Open it in %s.', 'ffcertificate' ),
+			'browserFeaturesTitle' => __( 'This browser cannot run this page', 'ffcertificate' ),
+			/* translators: %s: a list of browsers, such as "Safari, Chrome, Firefox or Edge". */
+			'browserFeaturesBody'  => __( 'This browser is missing features this page needs to download the file. Open this page in %s.', 'ffcertificate' ),
+		);
+	}
+
+	/**
 	 * Render the public download form.
 	 *
 	 * @param array<string, mixed>|string $atts Shortcode attributes.
@@ -161,18 +197,26 @@ class PublicCsvDownload {
 	public function render_shortcode( $atts = array() ): string {
 		$atts = shortcode_atts(
 			array(
-				'title' => __( 'Download form submissions (CSV)', 'ffcertificate' ),
+				'title' => __( 'Public Operator Access', 'ffcertificate' ),
 			),
 			is_array( $atts ) ? $atts : array(),
 			self::SHORTCODE
 		);
 
 		$flash         = $this->get_flash_message();
-		$shortcodes    = new Shortcodes();
-		$security_html = $shortcodes->generate_security_fields();
+		$security_html = \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 
+		// The link may carry the form and the hash in the query or, so the
+		// hash stays out of the address bar and of logs, as a POST (#2341).
+		// The page script removes a query hash from the address bar.
 		$prefill_form_id = RequestInput::get_get_int( 'form_id' );
 		$prefill_hash    = RequestInput::get_get_string( 'hash' );
+		if ( '' === $prefill_hash ) {
+			$prefill_hash = RequestInput::get_post_string( 'hash' );
+		}
+		if ( 0 === $prefill_form_id ) {
+			$prefill_form_id = RequestInput::get_post_int( 'form_id' );
+		}
 
 		// CPF gate mode is per-form. We can't read it without a known form_id;
 		// when prefilled, honour that form's setting. Otherwise render the
@@ -191,7 +235,7 @@ class PublicCsvDownload {
 		<div class="ffc-shortcode ffc-verification-container ffc-verification-manual ffc-public-csv-download">
 			<div class="ffc-verification-header">
 				<h2><?php echo esc_html( $atts['title'] ); ?></h2>
-				<p><?php esc_html_e( 'Enter the Form ID and the access hash to download the submissions CSV.', 'ffcertificate' ); ?></p>
+				<p><?php esc_html_e( 'Enter the Form ID and the access hash to see the form\'s status and, where the form allows it, start it early, postpone its close, create a schedule exception or download its submissions (CSV).', 'ffcertificate' ); ?></p>
 			</div>
 
 			<?php if ( $flash ) : ?>
@@ -279,7 +323,7 @@ class PublicCsvDownload {
 
 				<div class="ffc-no-js-security">
 					<?php
-					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside generate_security_fields().
+					// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside render_security_fields().
 					echo $security_html;
 					?>
 				</div>
@@ -330,6 +374,10 @@ class PublicCsvDownload {
 				$this->fail_redirect( $rate_check['message'] );
 			}
 		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			$this->fail_redirect( $rate_error->get_error_message() );
+		}
 
 		// 2. Nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
@@ -354,7 +402,7 @@ class PublicCsvDownload {
 		 * authorizes. The AJAX path splits those across two requests and
 		 * therefore only peeks on the first — see `ajax_info()`.
 		 */
-		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 		if ( true !== $security_check ) {
 			if ( $form_id > 0 ) {
 				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
@@ -381,9 +429,25 @@ class PublicCsvDownload {
 			$this->fail_redirect( $cpf_error );
 		}
 
-		// 10. Increment BEFORE streaming to avoid race conditions under rapid retries.
-		$count = (int) get_post_meta( $form_id, self::META_COUNT, true );
-		update_post_meta( $form_id, self::META_COUNT, $count + 1 );
+		// 10. The row cap first, then the quota (#2341): a CSV that is
+		// refused for its size must not spend a download, and the quota is
+		// claimed in one statement, so two requests racing for the last
+		// download cannot both get it.
+		$exporter = new PublicCsvExporter();
+		$rows     = $exporter->rows_within_sync_limit( $form_id, 'publish' );
+		if ( null === $rows ) {
+			return;
+		}
+		if ( ! $this->validator->claim_download( $form_id ) ) {
+			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
+			$this->fail_redirect(
+				sprintf(
+					/* translators: %d is the configured download limit */
+					__( 'The maximum number of downloads (%d) for this form has been reached.', 'ffcertificate' ),
+					CsvDownloadValidator::download_limit( $form_id )
+				)
+			);
+		}
 
 		// 10b. Record an explicit delivery row in the audit ring buffer
 		// (post-#241). The pre-existing `success` / `audit_pass` /
@@ -403,6 +467,11 @@ class PublicCsvDownload {
 			'download_delivered'
 		);
 
+		// 10b'. The file carries CPF, e-mail and RF in clear, behind the
+		// access hash: the public CSV is the one export that does, so every
+		// delivery is a PII-access audit entry (#2341).
+		\FreeFormCertificate\Core\PiiExport::log( self::PII_EXPORT_TYPE, $rows, array( 'form_id' => $form_id ) );
+
 		// 10c. Mirror the delivery into the global Activity Log (the
 		// ring-buffer above is per-form; this gives a site-wide audit trail).
 		\FreeFormCertificate\Core\ActivityLog::log(
@@ -412,7 +481,6 @@ class PublicCsvDownload {
 		);
 
 		// 11. Stream the CSV. This exits the request.
-		$exporter = new PublicCsvExporter();
 		$exporter->stream_form_csv( $form_id, 'publish' );
 	}
 
@@ -440,6 +508,10 @@ class PublicCsvDownload {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ) );
 			}
 		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		}
 
 		// 2. Nonce.
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
@@ -464,34 +536,39 @@ class PublicCsvDownload {
 		 * later, the very answer the visitor was just told was correct —
 		 * the regression single-use tokens introduced in 6.23.0.
 		 */
-		$security_check = \FreeFormCertificate\Core\SecurityService::peek_security_fields( $_POST );
+		$security_check = \FreeFormCertificate\Core\SecurityService::peek_security_fields( $_POST, \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV );
 		if ( true !== $security_check ) {
 			if ( $form_id > 0 ) {
 				$this->validator->record_download_log_entry( $form_id, 'captcha', '', 'fail_captcha' );
 			}
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 5. Form-id / hash presence.
 		if ( $form_id <= 0 || '' === $posted_hash ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => __( 'Please inform both the Form ID and the Access Hash.', 'ffcertificate' ) ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 6–7. Hash-only validation (form exists, feature enabled, hash matches).
 		$error = $this->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $error ) {
 			$this->validator->record_download_log_entry( $form_id, 'access', '', 'fail_other' );
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
 		// 7b. CPF gate (per-form opt-in, no-op when mode = 'none').
 		$cpf_input = RequestInput::get_post_string( 'cpf' );
 		$cpf_error = $this->validate_cpf_requirement( $form_id, $cpf_input );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ) ) );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV ) );
 		}
 
-		wp_send_json_success( $this->form_info_builder->build_form_info( $form_id ) );
+		$info = $this->form_info_builder->build_form_info( $form_id );
+		// The operator actions' own challenge (#2341): each dialog shows it
+		// and the action spends it, so it is never the one this screen
+		// peeked at, which the download spends.
+		$info['action_security'] = \FreeFormCertificate\Core\SecurityService::render_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION );
+		wp_send_json_success( $info );
 	}
 
 	// ──────────────────────────────────────────────────────────────.
@@ -504,6 +581,11 @@ class PublicCsvDownload {
 	 * Only available before the form start date (before collection begins).
 	 */
 	public function ajax_cert_preview(): void {
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		}
+
 		if ( ! wp_verify_nonce( RequestInput::get_post_string( '_ffc_pcd_nonce' ), self::NONCE_ACTION ) ) {
 			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'ffcertificate' ) ) );
 		}
@@ -616,10 +698,15 @@ class PublicCsvDownload {
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
@@ -678,16 +765,22 @@ class PublicCsvDownload {
 				'not_started_yet'     => __( 'The form has not started yet — wait until it opens before postponing the close.', 'ffcertificate' ),
 				'already_ended'       => __( 'This form has already ended.', 'ffcertificate' ),
 				'already_postponed'   => __( 'This form\'s close has already been postponed once.', 'ffcertificate' ),
+				'last_minute'         => __( 'The form already closes at 23:59, the last minute of the day.', 'ffcertificate' ),
 				'bad_time_format'     => __( 'Please pick a valid time (HH:MM).', 'ffcertificate' ),
 				'not_extending'       => __( 'The new close time must be later than the current one.', 'ffcertificate' ),
 				'past_now'            => __( 'The new close time must be in the future.', 'ffcertificate' ),
 				'out_of_day'          => __( 'The new close time must stay within the same day.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
@@ -744,32 +837,45 @@ class PublicCsvDownload {
 				'no_change'                   => __( 'The override is identical to the baseline — nothing to do.', 'ffcertificate' ),
 			);
 			$message  = $messages[ $reason ];
+			// The guard spent the action's challenge (#2341): the next try
+			// needs the fresh one.
 			wp_send_json_error(
-				array(
-					'reason'  => $reason,
-					'message' => $message,
+				\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+					array(
+						'reason'  => $reason,
+						'message' => $message,
+					),
+					\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 				),
 				409
 			);
 		}
 
+		// The dialog stays on screen, so the next action takes a fresh
+		// challenge from this answer (#2341).
 		wp_send_json_success(
-			array(
-				'message'  => __( 'Schedule exception staged. Open the participant form in the next tab.', 'ffcertificate' ),
-				'token'    => $result['token'],
-				'form_url' => $result['form_url'],
+			\FreeFormCertificate\Core\SecurityService::with_fresh_challenge(
+				array(
+					'message'  => __( 'Schedule exception staged. Open the participant form in the next tab.', 'ffcertificate' ),
+					'token'    => $result['token'],
+					'form_url' => $result['form_url'],
+				),
+				\FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION
 			)
 		);
 	}
 
 	/**
 	 * The checks every public CSV action runs before its own, in this order
-	 * (#2241): the address's rate limit, the form's access hash, then the
-	 * CPF. The CPF answer says whether a CPF is authorised on the form, so a
-	 * caller without the hash must never reach it: the three actions used to
-	 * check the CPF first, which let anyone holding a page nonce probe CPFs
-	 * against a form, unthrottled. The CPF check stays silent because each
-	 * action writes its own audit row.
+	 * (#2241): the address's rate limits, the action's challenge (#2341), the
+	 * form's access hash, then the CPF. The challenge is spent here, so every
+	 * refusal after it carries a fresh one for the dialog.
+	 *
+	 * The CPF answer says whether a CPF is authorised on the form, so a caller
+	 * without the hash must never reach it: the three actions used to check
+	 * the CPF first, which let anyone holding a page nonce probe CPFs against
+	 * a form, unthrottled. A CPF that passes writes no row, because each
+	 * action writes its own; a CPF that fails is recorded (#2341).
 	 *
 	 * @param int    $form_id     Form ID.
 	 * @param string $posted_hash Access hash.
@@ -782,15 +888,25 @@ class PublicCsvDownload {
 				wp_send_json_error( array( 'message' => $rate_check['message'] ), 429 );
 			}
 		}
+		$rate_error = ReadRateGuard::check( self::RATE_ENDPOINT_ACTIONS );
+		if ( null !== $rate_error ) {
+			wp_send_json_error( array( 'message' => $rate_error->get_error_message() ), 429 );
+		}
+
+		$context        = \FreeFormCertificate\Core\Captcha\CaptchaContext::PUBLIC_CSV_ACTION;
+		$security_check = \FreeFormCertificate\Core\SecurityService::validate_security_fields( $_POST, $context ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the page nonce is checked by each action before it calls this guard.
+		if ( true !== $security_check ) {
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => (string) $security_check ), $context ), 403 );
+		}
 
 		$hash_error = $this->validator->validate_hash_only( $form_id, $posted_hash );
 		if ( null !== $hash_error ) {
-			wp_send_json_error( array( 'message' => $hash_error ), 403 );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $hash_error ), $context ), 403 );
 		}
 
 		$cpf_error = $this->validator->validate_cpf_requirement( $form_id, $cpf_input, true );
 		if ( null !== $cpf_error ) {
-			wp_send_json_error( array( 'message' => $cpf_error ), 403 );
+			wp_send_json_error( \FreeFormCertificate\Core\SecurityService::with_fresh_challenge( array( 'message' => $cpf_error ), $context ), 403 );
 		}
 	}
 
@@ -893,7 +1009,7 @@ class PublicCsvDownload {
 	 * metabox reads it).
 	 *
 	 * @param int $form_id Form ID.
-	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, url: string|null}
+	 * @return array{count: int, access_success: int, download_success: int, failed_access: int, full: bool, url: string|null}
 	 */
 	public static function get_audit_log_summary( int $form_id ): array {
 		// Thin public delegator. The implementation lives in

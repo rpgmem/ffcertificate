@@ -257,6 +257,109 @@ class FrontendTest extends TestCase {
 		$this->assertNotContains( 'jspdf', $enqueued_scripts );
 	}
 
+	/**
+	 * Render the page assets for a body and the stored meta of its forms.
+	 *
+	 * @param string                              $content Post body.
+	 * @param array<int, array<string, mixed>>     $meta    form id => meta key => value.
+	 * @return array{scripts: array<int, string>, styles: array<int, string>}
+	 */
+	private function assets_for( string $content, array $meta = array() ): array {
+		global $post;
+		$post               = Mockery::mock( 'WP_Post' );
+		$post->ID           = 1;
+		$post->post_content = $content;
+
+		Functions\when( 'has_shortcode' )->alias( static fn( $c, $tag ) => false !== strpos( (string) $c, '[' . $tag ) );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $id ][ $key ] ?? '' );
+		$scripts = array();
+		$styles  = array();
+		Functions\when( 'wp_enqueue_script' )->alias(
+			static function ( $handle ) use ( &$scripts ) {
+				$scripts[] = $handle;
+			}
+		);
+		Functions\when( 'wp_enqueue_style' )->alias(
+			static function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
+
+		( new Frontend( $this->makeSubmissionHandlerMock() ) )->frontend_assets();
+
+		return array(
+			'scripts' => $scripts,
+			'styles'  => $styles,
+		);
+	}
+
+	public function test_a_plain_form_loads_no_quiz_geofence_module_or_progress_overlay(): void {
+		// #2341: scripts load only where their feature is on.
+		$assets = $this->assets_for( '[ffc_form id="42"]' );
+
+		$this->assertContains( 'ffc-geofence-frontend', $assets['scripts'], 'The core runs the pre-flight on every form.' );
+		$this->assertNotContains( 'ffc-quiz-leave', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-geofence-datetime', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-geofence-gps', $assets['scripts'] );
+		$this->assertNotContains( 'ffc-progress-overlay', $assets['styles'] );
+	}
+
+	public function test_a_form_with_its_features_on_loads_their_scripts(): void {
+		$assets = $this->assets_for(
+			'[ffc_form id=42]',
+			array(
+				42 => array(
+					'_ffc_form_config'     => array(
+						'quiz_enabled'     => '1',
+						'quiz_reset_on_leave' => '1',
+					),
+					'_ffc_geofence_config' => array( 'datetime_enabled' => '1' ),
+				),
+			)
+		);
+
+		$this->assertContains( 'ffc-quiz-leave', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-datetime', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-gps', $assets['scripts'] );
+		$this->assertContains( 'ffc-geofence-permission', $assets['scripts'] );
+	}
+
+	public function test_the_csv_screen_loads_the_progress_overlay(): void {
+		$this->assertContains( 'ffc-progress-overlay', $this->assets_for( '[ffc_csv_download]' )['styles'] );
+	}
+
+	public function test_a_shortcode_inside_a_synced_pattern_is_found(): void {
+		// #2341: a synced pattern is its own post, so its shortcode is not
+		// in the page body.
+		Functions\when( 'parse_blocks' )->alias(
+			static fn( $content ) => false !== strpos( (string) $content, 'wp:block' )
+				? array(
+					array(
+						'blockName'   => 'core/group',
+						'attrs'       => array(),
+						'innerBlocks' => array(
+							array(
+								'blockName'   => 'core/block',
+								'attrs'       => array( 'ref' => 77 ),
+								'innerBlocks' => array(),
+							),
+						),
+					),
+				)
+				: array()
+		);
+		$pattern               = Mockery::mock( 'WP_Post' );
+		$pattern->post_type    = 'wp_block';
+		$pattern->post_status  = 'publish';
+		$pattern->post_content = '[ffc_form id="42"]';
+		Functions\when( 'get_post' )->alias( static fn( $id ) => 77 === (int) $id ? $pattern : null );
+
+		$assets = $this->assets_for( '<!-- wp:group --><!-- wp:block {"ref":77} /--><!-- /wp:group -->' );
+
+		$this->assertContains( 'ffc-frontend-js', $assets['scripts'] );
+		$this->assertContains( 'ffc-frontend-css', $assets['styles'] );
+	}
+
 	// ==================================================================
 	// frontend_assets() — post with ffc_verification shortcode
 	// ==================================================================
@@ -327,6 +430,55 @@ class FrontendTest extends TestCase {
 	}
 
 	// ==================================================================
+	// enqueue_on_render() — a shortcode outside the post body (#2344)
+	// ==================================================================
+
+	public function test_a_form_rendered_outside_the_post_body_enqueues_its_assets(): void {
+		global $post;
+		$post = null; // An archive, a widget area, a block template part.
+
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
+			$enqueued[] = func_get_arg( 0 );
+		} );
+		$localized = array();
+		Functions\when( 'wp_localize_script' )->alias( function ( $handle, $name, $data ) use ( &$localized ) {
+			$localized[ $name ] = $data;
+		} );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+
+		$this->assertFalse( $frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '7' ) ), 'The short-circuit value passes through.' );
+		$this->assertContains( 'ffc-frontend-js', $enqueued );
+		$this->assertArrayHasKey( 7, $localized['ffcGeofenceConfig'], 'The form the shortcode names gets its config.' );
+
+		// A second form on the same page does not enqueue again.
+		$enqueued = array();
+		$frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '8' ) );
+		$this->assertSame( array(), $enqueued );
+	}
+
+	public function test_render_time_fallback_skips_what_the_post_body_already_enqueued_and_other_tags(): void {
+		global $post;
+		$post = Mockery::mock( 'WP_Post' );
+		$post->post_content = '[ffc_form id="42"]';
+		Functions\when( 'has_shortcode' )->alias( static fn ( $content, $tag ) => 'ffc_form' === $tag && false !== strpos( (string) $content, '[ffc_form' ) );
+
+		$frontend = new Frontend( $this->makeSubmissionHandlerMock() );
+		$frontend->frontend_assets();
+
+		$enqueued = array();
+		Functions\when( 'wp_enqueue_script' )->alias( function () use ( &$enqueued ) {
+			$enqueued[] = func_get_arg( 0 );
+		} );
+		$frontend->enqueue_on_render( false, 'ffc_form', array( 'id' => '42' ) );
+		$frontend->enqueue_on_render( false, 'gallery', array() );
+		// Another filter already replaced the output: nothing renders, nothing loads.
+		$this->assertSame( 'x', $frontend->enqueue_on_render( 'x', 'ffc_verification', array() ) );
+		$this->assertSame( array(), $enqueued );
+	}
+
+	// ==================================================================
 	// frontend_assets() — geofence config localized
 	// ==================================================================
 
@@ -352,6 +504,9 @@ class FrontendTest extends TestCase {
 		$this->assertArrayHasKey( 'ajax_url', $localized['ffc_ajax'] );
 		$this->assertArrayHasKey( 'nonce', $localized['ffc_ajax'] );
 		$this->assertArrayHasKey( 'strings', $localized['ffc_ajax'] );
+		foreach ( array( 'cpfInvalid', 'enterValidCpfRf', 'idMustHaveDigits' ) as $key ) {
+			$this->assertArrayHasKey( $key, $localized['ffc_ajax']['strings'], "The form carries the shared CPF/RF message {$key}." );
+		}
 
 		// Geofence config should be localized
 		$this->assertArrayHasKey( 'ffcGeofenceConfig', $localized );
@@ -559,5 +714,17 @@ class FrontendTest extends TestCase {
 		$this->assertContains( 'ffc-preflight', $deps['ffc-csv-download'] );
 		$this->assertTrue( $localized['ffc_csv_download']['preflight']['browserCheck'] );
 		$this->assertArrayHasKey( 'inAppTitle', $localized['ffc_csv_download']['preflight']['strings'] );
+		// #2341 — this page downloads a file; it issues nothing.
+		$gate = $localized['ffc_csv_download']['preflight']['strings'];
+		$this->assertStringContainsString( 'download the file', $gate['browserFeaturesBody'] );
+		$this->assertStringContainsString( 'this page', $gate['browserFeaturesTitle'] );
+		// #2341 — the CPF/RF messages ffc-frontend-helpers.js reads come
+		// from one list, so the CSV screen carries the same three.
+		$strings = $localized['ffc_csv_download']['strings'];
+		$this->assertSame( 'Invalid CPF', $strings['cpfInvalid'] );
+		$this->assertSame( 'Enter a valid CPF (11 digits) or RF (7 digits)', $strings['enterValidCpfRf'] );
+		$this->assertSame( 'The ID must have exactly 7 digits (RF) or 11 digits (CPF).', $strings['idMustHaveDigits'] );
+		$this->assertStringNotContainsString( 'certificate', implode( ' ', $gate ) );
+		$this->assertSame( 'csv_download', $localized['ffc_csv_download']['preflight']['telemetry']['type'] );
 	}
 }

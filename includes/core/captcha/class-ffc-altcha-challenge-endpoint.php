@@ -21,6 +21,7 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Core\Captcha;
 
+use FreeFormCertificate\Core\RequestInput;
 use FreeFormCertificate\Core\WindowThrottle;
 use FreeFormCertificate\Settings\RateLimitSettingsReader;
 
@@ -78,14 +79,40 @@ class AltchaChallengeEndpoint {
 		\nocache_headers();
 
 		if ( ! self::allow_mint() ) {
-			\status_header( 429 );
-			\wp_send_json(
-				array( 'error' => \__( 'Too many requests. Please wait.', 'ffcertificate' ) ),
-				429
-			);
+			self::refuse( WindowThrottle::seconds_left( CaptchaSettings::mint_window() ) );
 		}
 
-		\wp_send_json( AltchaCaptcha::create_challenge() );
+		// The context names the form the widget sits in. Read from the client,
+		// which is safe for issuing: the verifier names the context it expects.
+		\wp_send_json( AltchaCaptcha::create_challenge( CaptchaContext::sanitize( RequestInput::get_get_string( 'context' ) ) ) );
+	}
+
+	/**
+	 * Refuse a mint over the cap, saying when the next one is allowed.
+	 *
+	 * The wait travels twice (#2339): as `Retry-After`, the header a client
+	 * reads, and as `retryAfter` in the body beside the `error` the widget
+	 * expects. The widget only throws on a refusal, so it is the plugin's
+	 * glue (`ffc-captcha.js`) that reads the header and tells the visitor how
+	 * long to wait, instead of asking for a reload, which would ask for one
+	 * more challenge and be refused again.
+	 *
+	 * @param int $seconds Seconds until the caller's window ends.
+	 * @return void
+	 */
+	private static function refuse( int $seconds ): void {
+		$seconds = max( 1, $seconds );
+		if ( ! \headers_sent() ) {
+			\header( 'Retry-After: ' . $seconds );
+		}
+		\status_header( 429 );
+		\wp_send_json(
+			array(
+				'error'      => \__( 'Too many verification requests from this network. Please wait before trying again.', 'ffcertificate' ),
+				'retryAfter' => $seconds,
+			),
+			429
+		);
 	}
 
 	/**

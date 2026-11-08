@@ -823,17 +823,25 @@ class AdminUI {
 	 * @return void
 	 */
 	public static function render_shortcode_copy( string $shortcode ): void {
-		$label = __( 'Copy shortcode', 'ffcertificate' );
+		// The family's icon-only button (#2344): its size, focus ring and
+		// forced-colours contour, where a bare button had none of them.
+		$button = \FreeFormCertificate\Core\Button::html(
+			array(
+				'label'     => __( 'Copy shortcode', 'ffcertificate' ),
+				'category'  => 'neutral',
+				'icon'      => 'copy',
+				'icon_only' => true,
+				'class'     => 'ffc-copy-shortcode',
+				'attrs'     => array(
+					'data-shortcode' => $shortcode,
+					'data-copied'    => __( 'Copied!', 'ffcertificate' ),
+				),
+			)
+		);
 		printf(
-			'<span class="ffc-shortcode-cell">'
-			. '<code class="ffc-shortcode-code">%1$s</code>'
-			. '<button type="button" class="ffc-copy-shortcode" data-shortcode="%2$s" title="%3$s" aria-label="%3$s">'
-			. '<span class="ffc-icon-copy" aria-hidden="true"></span>'
-			. '</button>'
-			. '</span>',
+			'<span class="ffc-shortcode-cell"><code class="ffc-shortcode-code">%1$s</code>%2$s</span>',
 			esc_html( $shortcode ),
-			esc_attr( $shortcode ),
-			esc_attr( $label )
+			$button // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Button::html() escapes every attribute it prints.
 		);
 	}
 

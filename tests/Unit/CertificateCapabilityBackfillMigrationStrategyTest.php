@@ -40,6 +40,9 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	/** @var array<int, int> Accounts the batch announced a grant for. */
 	private array $announced = array();
 
+	/** @var array<string, mixed> Options the strategy read and wrote. */
+	private array $options = array();
+
 	/** @var array{0: bool, 1: mixed} Whether `$wpdb` was set, and its value. */
 	private array $wpdb_backup = array( false, null );
 
@@ -83,6 +86,17 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 		Functions\when( 'user_can' )->justReturn( false );
 		Functions\when( 'wp_roles' )->justReturn( null );
 
+		// The resolved register (#2338): empty unless a test stores one, and
+		// every write is kept so a test can read what the batch recorded.
+		$this->options = array();
+		Functions\when( 'get_option' )->alias( fn( $name, $fallback = false ) => $this->options[ $name ] ?? $fallback );
+		Functions\when( 'update_option' )->alias(
+			function ( $name, $value ) {
+				$this->options[ $name ] = $value;
+				return true;
+			}
+		);
+
 		$this->strategy = new CertificateCapabilityBackfillMigrationStrategy();
 	}
 
@@ -103,8 +117,9 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	 * 100% while 72 accounts were missing from the index.
 	 */
 	public function test_pending_is_read_from_the_data_every_time(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 40 );
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7', '9', '11' ) );
+		// Total, then the pending COUNT: one query each, never the ids (#2338).
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnValues( array( 40, 3 ) );
+		$this->wpdb->shouldNotReceive( 'get_col' );
 
 		$status = $this->strategy->calculate_status( 'certificate_capability_backfill', array() );
 
@@ -115,8 +130,7 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 	}
 
 	public function test_no_affected_account_reads_as_complete(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->andReturn( 40 );
-		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$this->wpdb->shouldReceive( 'get_var' )->andReturnValues( array( 40, 0 ) );
 
 		$status = $this->strategy->calculate_status( 'certificate_capability_backfill', array() );
 
@@ -155,6 +169,8 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 					$this->announced[] = (int) $user_id;
 				}
 			);
+		// The grant took: the account can read it now.
+		Functions\when( 'user_can' )->alias( fn( $user_id ) => in_array( (int) $user_id, $this->announced, true ) );
 
 		$result = $this->strategy->execute( 'certificate_capability_backfill', array( 'batch_size' => 100 ) );
 
@@ -298,6 +314,8 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 					$this->announced[] = (int) $user_id;
 				}
 			);
+		// The grant took: the account can read it now.
+		Functions\when( 'user_can' )->alias( fn( $user_id ) => in_array( (int) $user_id, $this->announced, true ) );
 
 		$result = $this->strategy->execute( 'certificate_capability_backfill', array(), 0 );
 
@@ -348,5 +366,44 @@ class CertificateCapabilityBackfillMigrationStrategyTest extends TestCase {
 			$haystack,
 			'A role that does not grant it must not narrow the pending set.'
 		);
+	}
+
+	/**
+	 * An account the query counts and `user_can()` already answers yes for
+	 * (a filter, a capability mapped elsewhere) is recorded, and the count
+	 * and the next batch leave it out, so the card cannot stay pending on
+	 * it for ever (#2338).
+	 */
+	public function test_an_account_able_already_is_recorded_and_left_out(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7' ) );
+		Functions\when( 'user_can' )->justReturn( true );
+
+		$result = $this->strategy->execute( 'certificate_capability_backfill', array(), 0 );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertSame( array( 7 ), $this->options[ CertificateCapabilityBackfillMigrationStrategy::RESOLVED_OPTION ] );
+
+		$this->statements = array();
+		$this->bound      = array();
+		$this->strategy->calculate_status( 'certificate_capability_backfill', array() );
+
+		$pending = (string) end( $this->statements );
+		$this->assertStringContainsString( 'NOT IN (%d)', $pending );
+		$this->assertContains( 7, end( $this->bound ) );
+	}
+
+	/**
+	 * A grant whose listener never ran is not progress: it is an error the
+	 * runner shows, and the account stays pending.
+	 */
+	public function test_a_grant_that_did_not_take_is_an_error_not_progress(): void {
+		$this->wpdb->shouldReceive( 'get_col' )->andReturn( array( '7' ) );
+
+		$result = $this->strategy->execute( 'certificate_capability_backfill', array(), 0 );
+
+		$this->assertSame( 0, $result['processed'] );
+		$this->assertFalse( $result['success'] );
+		$this->assertCount( 1, $result['errors'] );
+		$this->assertSame( array(), $this->options[ CertificateCapabilityBackfillMigrationStrategy::RESOLVED_OPTION ] );
 	}
 }

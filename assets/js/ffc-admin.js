@@ -217,7 +217,8 @@
                 preparing: strings.exportPreparing,
                 exporting: strings.exportProgress,
                 downloading: strings.exportDone,
-                error: strings.error,
+                // Not `strings.error`, which reads "Error: " for inline use:
+                // the export's own localised default says what failed (#2344).
                 connectionError: strings.connectionError
             },
             startData: startData
@@ -341,6 +342,52 @@
             $master.on('input', sync);
         }
         sync();
+    });
+
+    // =========================================================================
+    // Toggle-gated sub-options that stay visible but grey out (#2340).
+    //
+    // Markup contract: `.ffc-disabled-target[data-ffc-master="<id>"]`. While
+    // the master checkbox is off every control inside is disabled, because it
+    // has no effect then; a control carrying `data-ffc-locked` stays disabled
+    // whatever the master says (the server locked it, e.g. for want of a
+    // capability). A section summary carrying `data-ffc-item-count` keeps its
+    // "N of M on" chip in step with its toggles.
+    // =========================================================================
+    $('.ffc-disabled-target').each(function() {
+        var $target  = $(this);
+        var masterId = $target.data('ffc-master');
+        var $master  = masterId ? $('#' + masterId) : $();
+        if (!$master.length) { return; }
+
+        function sync() {
+            var on = $master.is(':checked');
+            $target.find('input, select, textarea').each(function() {
+                var $input = $(this);
+                if ($input.is('[data-ffc-locked]')) { return; }
+                $input.prop('disabled', !on);
+            });
+            $target.toggleClass('is-off', !on);
+        }
+
+        $master.on('change', sync);
+        sync();
+    });
+
+    $('[data-ffc-item-count]').each(function() {
+        var $section = $(this);
+        var $chip    = $section.find('.ffc-section__chip[data-ffc-count-template]').first();
+        if (!$chip.length) { return; }
+        var template = String($chip.data('ffc-count-template'));
+
+        function recount() {
+            var $toggles = $section.find('input[type="checkbox"]');
+            var on       = $toggles.filter(':checked').length;
+            $chip.text(template.replace('%1$d', on).replace('%2$d', $toggles.length));
+            $chip.toggleClass('is-on', on > 0);
+        }
+
+        $section.on('change', 'input[type="checkbox"]', recount);
     });
 
     // =========================================================================

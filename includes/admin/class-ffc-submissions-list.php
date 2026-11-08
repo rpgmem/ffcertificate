@@ -211,7 +211,7 @@ class SubmissionsList extends \WP_List_Table {
 	 * @return string
 	 */
 	private function render_actions( array $item ): string {
-		return '<div class="ffc-submission-actions">' . $this->action_buttons( $item ) . '</div>';
+		return '<div class="ffc-row-buttons">' . $this->action_buttons( $item ) . '</div>';
 	}
 
 	/**
@@ -717,16 +717,33 @@ class SubmissionsList extends \WP_List_Table {
 	}
 
 	/**
-	 * Display filters above the table
+	 * The bulk bar's extra control (#2486): "Reveal this page", beside Apply.
 	 *
-	 * @param string $which Position (top or bottom).
+	 * The filters left this bar for their own card, {@see self::render_filters()}.
+	 *
+	 * @param string $which Top or bottom.
 	 * @return void
 	 */
 	protected function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
 			return;
 		}
+		$reveal = \FreeFormCertificate\Core\PiiReveal::page_button( 'ffc_view_certificates_pii' );
+		if ( '' !== $reveal ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- page_button() escapes every value.
+			echo '<div class="alignleft actions">' . $reveal . '</div>';
+		}
+	}
 
+	/**
+	 * The filter card (#2486): the forms, the search and Filter / Clear.
+	 *
+	 * The forms are a checklist in a dialog, since several can be picked; the
+	 * card shows how many are, and the dialog's Apply submits the same form.
+	 *
+	 * @return void
+	 */
+	public function render_filters(): void {
 		// Get all forms ordered by ID descending (newest first).
 		$forms = get_posts(
 			array(
@@ -738,11 +755,7 @@ class SubmissionsList extends \WP_List_Table {
 			)
 		);
 
-		if ( empty( $forms ) ) {
-			return;
-		}
-
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameter for form selection.
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- Display filter parameters.
 		$selected_form_ids = array();
 		if ( ! empty( $_GET['filter_form_id'] ) ) {
 			if ( is_array( $_GET['filter_form_id'] ) ) {
@@ -752,34 +765,65 @@ class SubmissionsList extends \WP_List_Table {
 			}
 		}
         // phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$search  = \FreeFormCertificate\Core\RequestInput::get_get_string( 's' );
+		$status  = \FreeFormCertificate\Core\RequestInput::get_get_key( 'status' );
+		$orderby = \FreeFormCertificate\Core\RequestInput::get_get_key( 'orderby' );
+		$order   = \FreeFormCertificate\Core\RequestInput::get_get_key( 'order' );
 
 		$filter_count = count( $selected_form_ids );
-		$btn_label    = $filter_count > 0
-			/* translators: %d: number of selected filters */
-			? sprintf( __( 'Filter (%d)', 'ffcertificate' ), $filter_count )
-			: __( 'Filter', 'ffcertificate' );
-
+		$forms_label  = $filter_count > 0
+			/* translators: %d: number of forms picked in the filter */
+			? sprintf( _n( '%d form', '%d forms', $filter_count, 'ffcertificate' ), $filter_count )
+			: __( 'All forms', 'ffcertificate' );
 		?>
-		<div class="alignleft actions ffc-filter-actions">
-			<?php
-			AdminUI::render_button(
-				array(
-					'label' => $btn_label,
-					'icon'  => 'filter',
-					'id'    => 'ffc-open-filter-overlay',
-				)
-			);
-			if ( $filter_count > 0 ) {
+		<div class="ffc-list-filters">
+			<?php if ( '' !== $status ) : ?>
+				<input type="hidden" name="status" value="<?php echo esc_attr( $status ); ?>">
+			<?php endif; ?>
+			<?php if ( '' !== $orderby ) : ?>
+				<input type="hidden" name="orderby" value="<?php echo esc_attr( $orderby ); ?>">
+				<input type="hidden" name="order" value="<?php echo esc_attr( $order ); ?>">
+			<?php endif; ?>
+			<?php if ( ! empty( $forms ) ) : ?>
+			<div class="ffc-list-filters__field">
+				<span class="ffc-list-filters__label" id="ffc-filter-forms-label"><?php esc_html_e( 'Forms', 'ffcertificate' ); ?></span>
+				<?php
 				AdminUI::render_button(
 					array(
-						'label' => __( 'Clear Filter', 'ffcertificate' ),
-						'icon'  => 'eraser',
-						'href'  => remove_query_arg( 'filter_form_id' ),
+						'label' => $forms_label,
+						'icon'  => 'filter',
+						'id'    => 'ffc-open-filter-overlay',
+						'attrs' => array( 'aria-describedby' => 'ffc-filter-forms-label' ),
 					)
 				);
-			}
-			?>
-
+				?>
+			</div>
+			<?php endif; ?>
+			<div class="ffc-list-filters__field">
+				<label class="ffc-list-filters__label" for="ffc-submissions-search"><?php esc_html_e( 'Search', 'ffcertificate' ); ?></label>
+				<input type="search" id="ffc-submissions-search" name="s" class="regular-text" value="<?php echo esc_attr( $search ); ?>">
+			</div>
+			<div class="ffc-list-filters__actions">
+				<?php
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Filter', 'ffcertificate' ),
+						'icon'  => 'filter',
+						'type'  => 'submit',
+					)
+				);
+				if ( $filter_count > 0 || '' !== $search ) {
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Clear', 'ffcertificate' ),
+							'icon'  => 'eraser',
+							'href'  => remove_query_arg( array( 'filter_form_id', 's', 'paged' ) ),
+						)
+					);
+				}
+				?>
+			</div>
+			<?php if ( ! empty( $forms ) ) : ?>
 			<!-- Filter Overlay -->
 			<div id="ffc-filter-overlay" class="ffc-filter-overlay" style="display: none;">
 				<div class="ffc-filter-overlay-backdrop"></div>
@@ -831,8 +875,8 @@ class SubmissionsList extends \WP_List_Table {
 					</div>
 				</div>
 			</div>
+			<?php endif; ?>
 		</div>
-
 		<?php
 		// Filter overlay logic in ffc-admin.js.
 	}

@@ -59,6 +59,9 @@ class IdentityScopedRepairTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The code under test is audited by default (#2340); this test is not
+		// about the log, so nothing is written.
+		\FreeFormCertificate\Core\ActivityLog::disable_logging();
 
 		class_exists( '\FreeFormCertificate\Maintenance\IdentityRepair' );
 
@@ -87,7 +90,7 @@ class IdentityScopedRepairTest extends TestCase {
 			static function ( $prepared ) {
 				$sql = (string) ( $prepared['sql'] ?? '' );
 
-				return 0 === strpos( $sql, 'SELECT' ) ? null : ( $prepared['args'][0] ?? null );
+				return 0 === strpos( $sql, 'SELECT' ) ? null : ( ( isset( $prepared['args'][0] ) ? stripslashes( (string) $prepared['args'][0] ) : null ) );
 			}
 		);
 
@@ -100,7 +103,7 @@ class IdentityScopedRepairTest extends TestCase {
 		$wpdb->shouldReceive( 'get_results' )->andReturnUsing(
 			function ( $prepared ) {
 				$sql   = (string) ( $prepared['sql'] ?? '' );
-				$table = (string) ( $prepared['args'][0] ?? '' );
+				$table = stripslashes( (string) ( $prepared['args'][0] ?? '' ) );
 				$hash  = (string) ( $prepared['args'][2] ?? '' );
 				$rows  = array();
 
@@ -145,6 +148,7 @@ class IdentityScopedRepairTest extends TestCase {
 	 */
 	protected function tearDown(): void {
 		unset( $GLOBALS['wpdb'] );
+		\FreeFormCertificate\Core\ActivityLog::enable_logging();
 		Monkey\tearDown();
 		parent::tearDown();
 	}

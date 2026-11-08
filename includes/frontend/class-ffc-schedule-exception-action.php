@@ -78,9 +78,9 @@ final class ScheduleExceptionAction {
 		}
 
 		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		if ( ! is_array( $geofence ) ) {
-			$geofence = array();
-		}
+		// The window an exception must sit in includes today's early
+		// opening (#2341).
+		$geofence = is_array( $geofence ) ? \FreeFormCertificate\Security\Geofence::with_early_open( $form_id, $geofence ) : array();
 
 		// Per-form opt-IN. Empty / '0' reads as off so legacy forms see
 		// zero behaviour change until admin flips the Sprint-2 toggle.
@@ -158,9 +158,9 @@ final class ScheduleExceptionAction {
 		}
 
 		$geofence = get_post_meta( $form_id, '_ffc_geofence_config', true );
-		if ( ! is_array( $geofence ) ) {
-			$geofence = array();
-		}
+		// The window an exception must sit in includes today's early
+		// opening (#2341).
+		$geofence = is_array( $geofence ) ? \FreeFormCertificate\Security\Geofence::with_early_open( $form_id, $geofence ) : array();
 
 		$baseline_start = self::resolve_baseline( $geofence, 'start' );
 		$baseline_end   = self::resolve_baseline( $geofence, 'end' );
@@ -184,10 +184,10 @@ final class ScheduleExceptionAction {
 		$end_value   = '' === $end_override ? null : $end_override;
 
 		// Twin representations of the operator CPF for the Sprint 6 audit
-		// trail: hash for cryptographic identity, masked for human-readable
+		// trail: keyed hash for identity (#2339), masked for human-readable
 		// rendering. Both are derived from the same plaintext; neither
 		// reveals the full document number to readers of the audit log.
-		$operator_cpf_hash   = '' === $cpf_digits ? '' : hash( 'sha256', $cpf_digits );
+		$operator_cpf_hash   = '' === $cpf_digits ? '' : \FreeFormCertificate\Core\Encryption::keyed_hash( $cpf_digits, 'schedule_exception_cpf' );
 		$operator_cpf_masked = '' === $cpf_digits ? '' : \FreeFormCertificate\Core\DocumentFormatter::mask_cpf( $cpf_digits );
 
 		$token = ScheduleExceptionSession::create(

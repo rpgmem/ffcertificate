@@ -47,6 +47,34 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		$this->assertContains( 'ffc_trusted_proxies', $hooks );
 		$this->assertContains( 'ffc_cloudflare_ip_ranges', $hooks );
 		$this->assertContains( 'ffc_ip_shadow_logging', $hooks );
+		$this->assertContains( 'ffc_ip_trust_private_peer', $hooks );
+	}
+
+	/**
+	 * #2339: a private peer is trusted only on the operator's word — the
+	 * toggle, or the Cloudflare mode, which says the same thing.
+	 *
+	 * @dataProvider private_peer_cases
+	 *
+	 * @param array<string, mixed> $option   Stored settings.
+	 * @param bool                 $expected Whether a private peer is trusted.
+	 */
+	public function test_a_private_peer_is_trusted_only_when_the_operator_says_so( array $option, bool $expected ): void {
+		$this->with_option( $option );
+		$this->assertSame( $expected, IpResolverSettingsBridge::filter_trust_private_peer( false ) );
+	}
+
+	/**
+	 * @return array<string, array{array<string, mixed>, bool}>
+	 */
+	public static function private_peer_cases(): array {
+		return array(
+			'nothing stored'        => array( array(), false ),
+			'auto, toggle off'      => array( array( 'trusted_proxy_mode' => 'auto' ), false ),
+			'auto, toggle on'       => array( array( 'trusted_proxy_mode' => 'auto', 'private_peer_proxy' => 1 ), true ),
+			'cloudflare mode'       => array( array( 'trusted_proxy_mode' => 'cloudflare' ), true ),
+			'direct, toggle off'    => array( array( 'trusted_proxy_mode' => 'direct' ), false ),
+		);
 	}
 
 	public function test_filter_mode_returns_stored_strategy(): void {
@@ -68,6 +96,16 @@ class IpResolverSettingsBridgeTest extends TestCase {
 		);
 		$out = IpResolverSettingsBridge::filter_trusted_proxies( array( '10.0.0.0/8' ) );
 		$this->assertSame( array( '10.0.0.0/8', '192.0.2.0/24', '198.51.100.0/24' ), $out );
+	}
+
+	public function test_a_custom_range_stored_wider_than_the_floor_is_not_trusted(): void {
+		$this->with_option(
+			array(
+				'trusted_proxy_mode' => 'custom',
+				'custom_proxies'     => "0.0.0.0/0\n192.0.2.0/24",
+			)
+		);
+		$this->assertSame( array( '192.0.2.0/24' ), IpResolverSettingsBridge::filter_trusted_proxies( array() ) );
 	}
 
 	public function test_non_custom_mode_leaves_trusted_proxies_untouched(): void {

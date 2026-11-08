@@ -88,6 +88,10 @@ class UserAudienceRestControllerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The page lookup keeps its answers in a transient (#2341): no
+		// answer kept, and the search below decides.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$this->registered_routes = [];
 
@@ -108,6 +112,8 @@ class UserAudienceRestControllerTest extends TestCase {
 			fn( $key, $default = false ) => array_key_exists( $key, $this->options ) ? $this->options[ $key ] : $default
 		);
 		Functions\when( 'wp_parse_args' )->alias( static fn( $args, $defaults ) => array_merge( $defaults, (array) $args ) );
+		// The administrator's text under "Join Groups" (#2509), filtered on the way out.
+		Functions\when( 'wp_kses_post' )->alias( static fn( $html ) => str_replace( '<script>', '', (string) $html ) );
 		Functions\when( 'sanitize_sql_orderby' )->returnArg();
 		Functions\when( 'wp_cache_get' )->justReturn( false );
 		Functions\when( 'wp_cache_set' )->justReturn( true );
@@ -1187,6 +1193,19 @@ class UserAudienceRestControllerTest extends TestCase {
 			->get_joinable_groups( $this->make_request() );
 
 		$this->assertSame( 5, $result['max_groups'] );
+		$this->assertSame( '', $result['note'], 'No text written, none shown.' );
+	}
+
+	public function test_get_joinable_groups_carries_the_administrators_text_filtered(): void {
+		Functions\when( 'get_current_user_id' )->justReturn( 5 );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$this->options['ffc_aud_self_join_note'] = '  <p>Ask <a href="https://example.org/rh">HR</a>.</p><script>  ';
+		$this->audience( 1, 'Solo', null, true, array( 'color' => '#333' ) );
+
+		$result = ( new UserAudienceRestController( 'ffc/v1' ) )
+			->get_joinable_groups( $this->make_request() );
+
+		$this->assertSame( '<p>Ask <a href="https://example.org/rh">HR</a>.</p>', $result['note'] );
 	}
 
 	/**

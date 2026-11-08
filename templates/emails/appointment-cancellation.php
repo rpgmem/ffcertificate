@@ -22,6 +22,7 @@ return array(
 		. '<p style="margin: 0 0 15px 0;">' . __( 'Your appointment has been cancelled.', 'ffcertificate' ) . '</p>'
 		. '<div style="background: #fdecea; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #b3261e;">'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Calendar:', 'ffcertificate' ) . '</strong> {{calendar_title}}</p>'
+		. '{{session_block}}'
 		. '<p style="margin: 0 0 10px 0;"><strong>' . __( 'Date:', 'ffcertificate' ) . '</strong> {{appointment_date}}</p>'
 		. '<p style="margin: 0;"><strong>' . __( 'Time:', 'ffcertificate' ) . '</strong> {{appointment_time}}</p>'
 		. '</div>'

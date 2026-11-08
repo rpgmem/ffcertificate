@@ -12,9 +12,13 @@
  * Markup contracts handled here:
  *
  *   - `form[data-ffc-create-endpoint="<path>"]` — on submit, POST the
- *     form's FormData to `<restRoot><path>`. Reload on success
- *     (response carries an `id`); alert on failure with the server's
- *     message (or the raw body as a fallback).
+ *     form's FormData to `<restRoot><path>`. Reload on success (response
+ *     carries an `id`), or open the address `openUrls[data-ffc-create-open]`
+ *     names, with the new id;
+ *     on failure show the server's message in the form's error line.
+ *
+ *   - `[data-ffc-dialog-open="<id>"]` / `[data-ffc-dialog-close]` — show
+ *     and hide a create dialog (#2486).
  *
  *   - `input[data-ffc-color-endpoint="<entity>"][data-ffc-entity-id="<id>"]`
  *     — on `change`, PATCH `{ color: <new value> }` to
@@ -58,12 +62,86 @@
     };
 
     /**
+     * Create dialogs (#2486): `[data-ffc-dialog-open="<id>"]` shows the
+     * overlay with that id, `[data-ffc-dialog-close]` (or Escape) hides it,
+     * and focus stays inside while it is open and returns to the trigger.
+     */
+    var dialogState = { el: null, trigger: null };
+
+    function focusables(el) {
+        return el.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled])');
+    }
+
+    function closeDialog() {
+        var el = dialogState.el;
+        if (!el) { return; }
+        el.hidden = true;
+        var trigger = dialogState.trigger;
+        dialogState.el = null;
+        dialogState.trigger = null;
+        if (trigger && typeof trigger.focus === 'function') { trigger.focus(); }
+    }
+
+    function openDialog(el, trigger) {
+        closeDialog();
+        el.hidden = false;
+        dialogState.el = el;
+        dialogState.trigger = trigger || null;
+        var error = el.querySelector('.ffc-create-dialog__error');
+        if (error) { error.hidden = true; error.textContent = ''; }
+        var first = el.querySelector('input:not([type="hidden"]), select, textarea');
+        if (first) { first.focus(); }
+    }
+
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        if (!target || typeof target.closest !== 'function') { return; }
+        var opener = target.closest('[data-ffc-dialog-open]');
+        if (opener) {
+            var dialog = document.getElementById(opener.getAttribute('data-ffc-dialog-open'));
+            if (dialog) {
+                event.preventDefault();
+                openDialog(dialog, opener);
+            }
+            return;
+        }
+        if (target.closest('[data-ffc-dialog-close]') || (dialogState.el && target === dialogState.el)) {
+            event.preventDefault();
+            closeDialog();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        var el = dialogState.el;
+        if (!el) { return; }
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeDialog();
+            return;
+        }
+        if (event.key !== 'Tab') { return; }
+        var items = focusables(el);
+        if (!items.length) { return; }
+        var first = items[0];
+        var last = items[items.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    });
+
+    /**
      * Delegated submit handler for `form[data-ffc-create-endpoint]`.
      *
      * The PHP renderer marks each "create X" form with the REST path
      * to post against (e.g. `data-ffc-create-endpoint="notices"`).
-     * On a successful POST the page reloads so the new entity shows
-     * up in the list table above the form.
+     * On a successful POST the page reloads so the new entity shows up in
+     * the list, or opens the editor `data-ffc-create-open` names (an entry
+     * of the localized `openUrls`) on the new id. A refusal shows the
+     * server's message inside the form.
      */
     document.addEventListener('submit', function (event) {
         var form = event.target;
@@ -75,16 +153,36 @@
         var endpoint = form.getAttribute('data-ffc-create-endpoint');
         if (!endpoint) { return; }
 
+        var submit = form.querySelector('[type="submit"]');
+        if (submit) { submit.disabled = true; }
+
         window.ffcRecruitmentAdmin.fetch(endpoint, {
             method: 'POST',
             body: new FormData(form)
         }).then(function (res) {
             var body = res && res.body;
             if (body && body.id) {
-                window.location.reload();
+                // The form names where to land; the address comes from the
+                // localized config, never from the markup.
+                var urls = window.ffcRecruitmentAdmin.openUrls || {};
+                var base = urls[form.getAttribute('data-ffc-create-open')];
+                if (typeof base === 'string' && base !== '') {
+                    window.location.href = base + '&notice_id=' + encodeURIComponent(String(parseInt(body.id, 10)));
+                } else {
+                    window.location.reload();
+                }
                 return;
             }
-            window.alert((body && body.message) ? body.message : JSON.stringify(body));
+            if (submit) { submit.disabled = false; }
+            var strings = window.ffcRecruitmentAdmin.confirmModalStrings || {};
+            var message = (body && body.message) ? body.message : (strings.createFailed || 'The record was not created.');
+            var error = form.querySelector('.ffc-create-dialog__error');
+            if (error) {
+                error.textContent = message;
+                error.hidden = false;
+            } else {
+                window.alert(message);
+            }
         });
     });
 

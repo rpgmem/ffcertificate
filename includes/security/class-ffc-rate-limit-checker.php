@@ -44,6 +44,20 @@ final class RateLimitChecker {
 	public const STRONG_SIGNALS = array( 'canvas', 'webgl', 'audio', 'fonts', 'plugins', 'permissions' );
 
 	/**
+	 * Every device signal the client sends and a submission stores, in the
+	 * order of the `sig_*` columns.
+	 */
+	/**
+	 * The device id every submission without signals shares (#2339), so they
+	 * count as one device per form. Shaped like a signal (64 hex) and kept
+	 * whatever signals are enabled, or turning the cookie signal off would
+	 * reopen the bypass.
+	 */
+	public const NO_SIGNALS_DEVICE = '0000000000000000000000000000000000000000000000000000000000000000';
+
+	public const DEVICE_SIGNALS = array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' );
+
+	/**
 	 * Cached settings for the current request
 	 *
 	 * @since 4.6.13
@@ -60,17 +74,17 @@ final class RateLimitChecker {
 	 * @var array<string, array{enabled: bool, max_per_minute: int, max_per_hour: int}>
 	 */
 	public const READ_ENDPOINT_DEFAULTS = array(
-		'calendar_slots'    => array(
+		'calendar_slots'     => array(
 			'enabled'        => true,
 			'max_per_minute' => 60,
 			'max_per_hour'   => 1000,
 		),
-		'calendar_list'     => array(
+		'calendar_list'      => array(
 			'enabled'        => true,
 			'max_per_minute' => 30,
 			'max_per_hour'   => 500,
 		),
-		'calendar_detail'   => array(
+		'calendar_detail'    => array(
 			'enabled'        => true,
 			'max_per_minute' => 60,
 			'max_per_hour'   => 1000,
@@ -78,10 +92,26 @@ final class RateLimitChecker {
 		// The audience calendar's month read: one request per month
 		// navigated, so these leave a person untouched and stop a loop.
 		// Counted for logged-in callers too, by account.
-		'audience_bookings' => array(
+		'audience_bookings'  => array(
 			'enabled'        => true,
 			'max_per_minute' => 30,
 			'max_per_hour'   => 500,
+		),
+		// The public CSV screen (#2341): its info read, the certificate
+		// preview, the no-JS download and the batched export's start. An
+		// operator makes a handful per visit; a hash guessed by brute force
+		// makes thousands.
+		'public_csv'         => array(
+			'enabled'        => true,
+			'max_per_minute' => 10,
+			'max_per_hour'   => 100,
+		),
+		// Its three operator actions: open early, postpone the close and
+		// the schedule exception. Each changes the form, so tighter still.
+		'public_csv_actions' => array(
+			'enabled'        => true,
+			'max_per_minute' => 5,
+			'max_per_hour'   => 30,
 		),
 	);
 
@@ -94,90 +124,9 @@ final class RateLimitChecker {
 		if ( null !== self::$settings_cache ) {
 			return self::$settings_cache;
 		}
-		$defaults             = array(
-			'ip'        => array(
-				'enabled'          => true,
-				'max_per_hour'     => 5,
-				'max_per_day'      => 20,
-				'cooldown_seconds' => 60,
-				'apply_to'         => 'all',
-				'message'          => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
-			),
-			'email'     => array(
-				'enabled'        => true,
-				'max_per_day'    => 3,
-				'max_per_week'   => 10,
-				'max_per_month'  => 30,
-				'wait_hours'     => 24,
-				'apply_to'       => 'all',
-				'message'        => __( 'You already have {count} certificates.', 'ffcertificate' ),
-				'check_database' => true,
-			),
-			'cpf'       => array(
-				'enabled'         => false,
-				'max_per_month'   => 5,
-				'max_per_year'    => 50,
-				'block_threshold' => 3,
-				'block_hours'     => 1,
-				'block_duration'  => 24,
-				'apply_to'        => 'all',
-				'message'         => __( 'CPF/RF limit reached.', 'ffcertificate' ),
-				'check_database'  => true,
-			),
-			'global'    => array(
-				'enabled'        => false,
-				'max_per_minute' => 100,
-				'max_per_hour'   => 1000,
-				'message'        => __( 'System unavailable.', 'ffcertificate' ),
-			),
-			'device'    => array(
-				'enabled'                   => false,
-				'max_per_form'              => 1,
-				// 6.3.2: bumped from 5 to 7 to keep the same ~55% match-ratio
-				// against the new 13-signal palette (was 5/9 ≈ 55%, now 7/13 ≈ 54%).
-				// Existing installs keep their saved value; this default only
-				// applies to fresh installs that have never persisted the array.
-				'match_threshold'           => 7,
-				// 6.7.8: two-tier match. On top of `match_threshold` (total
-				// signals matched), a fuzzy block additionally requires at
-				// least this many STRONG_SIGNALS to match — so matching only
-				// weak signals (identical across same-model fleets) can no
-				// longer trigger a false block. 0 disables the strong tier
-				// (legacy behavior). Capped at count(STRONG_SIGNALS) = 6.
-				'match_strong_min'          => 2,
-				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
-				'bypass_logged_in_managers' => true,
-				'bypass_whitelist_signals'  => array(),
-				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
-				'retention_days'            => 90,
-				'log_blocks'                => true,
-			),
-			'whitelist' => array(
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'blacklist' => array(
-				'ips'           => array(),
-				'emails'        => array(),
-				'email_domains' => array(),
-				'cpfs'          => array(),
-			),
-			'logging'   => array(
-				'enabled'        => true,
-				'log_allowed'    => false,
-				'log_blocked'    => true,
-				'retention_days' => 30,
-				'max_logs'       => 10000,
-			),
-			'ui'        => array(
-				'show_remaining'  => true,
-				'show_wait_time'  => true,
-				'countdown_timer' => true,
-			),
-		);
-		self::$settings_cache = wp_parse_args( get_option( \FreeFormCertificate\Settings\RateLimitSettingsReader::OPTION_KEY, $defaults ), $defaults );
+		// One declaration of the defaults, merged recursively (#2339): see
+		// RateLimitSettingsReader::effective().
+		self::$settings_cache = \FreeFormCertificate\Settings\RateLimitSettingsReader::effective();
 		return self::$settings_cache;
 	}
 
@@ -190,9 +139,10 @@ final class RateLimitChecker {
 	 * @param int|null                   $form_id Form ID.
 	 * @param array<string, string>|null $device_signals Device fingerprint hashes (cookie, ua, screen, ...).
 	 * @param bool                       $skip_device Set true to bypass the device fingerprint check (e.g. for managers).
+	 * @param bool                       $skip_ip     Set true to bypass the per-address check, for an authenticated API caller whose requests share one server address (#2342).
 	 * @return RateLimitVerdict
 	 */
-	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false ): array {
+	public static function check_all( string $ip, ?string $email = null, ?string $cpf = null, ?int $form_id = null, ?array $device_signals = null, bool $skip_device = false, bool $skip_ip = false ): array {
 		$s = self::get_settings();
 
 		$bl = self::check_blacklist( $ip, $email, $cpf );
@@ -200,9 +150,14 @@ final class RateLimitChecker {
 			RateLimitLogger::log_attempt( 'blacklist', $ip, 'blocked', $bl['reason'] ?? '', $form_id );
 			return $bl; }
 
-		if ( self::is_whitelisted( $ip, $email, $cpf ) ) {
+		// An allowlisted ADDRESS skips every check: the address is what the
+		// server saw. An allowlisted e-mail or CPF/RF is only what the visitor
+		// typed, so it skips the limits on that identity and nothing else --
+		// never the address, device or global limits (#2339).
+		if ( self::is_ip_whitelisted( $ip ) ) {
 			RateLimitLogger::log_attempt( 'whitelist', $ip, 'whitelisted', 'In whitelist', $form_id );
 			return array( 'allowed' => true ); }
+		$identity_whitelisted = self::is_identity_whitelisted( $email, $cpf );
 
 		if ( ! $skip_device && ! empty( $s['device']['enabled'] ) && $form_id && is_array( $device_signals ) ) {
 			$d = self::check_device_limit( $form_id, $device_signals );
@@ -223,21 +178,21 @@ final class RateLimitChecker {
 				return $g; }
 		}
 
-		if ( $s['ip']['enabled'] && self::applies_to_form( $s['ip']['apply_to'], $form_id ) ) {
+		if ( ! $skip_ip && $s['ip']['enabled'] && self::applies_to_form( $s['ip']['apply_to'], $form_id ) ) {
 			$i = self::check_ip_limit( $ip, $form_id );
 			if ( ! $i['allowed'] ) {
 				RateLimitLogger::log_attempt( 'ip', $ip, 'blocked', $i['reason'] ?? '', $form_id );
 				return $i; }
 		}
 
-		if ( $email && $s['email']['enabled'] && self::applies_to_form( $s['email']['apply_to'], $form_id ) ) {
+		if ( ! $identity_whitelisted && $email && $s['email']['enabled'] && self::applies_to_form( $s['email']['apply_to'], $form_id ) ) {
 			$e = self::check_email_limit( $email, $form_id );
 			if ( ! $e['allowed'] ) {
 				RateLimitLogger::log_attempt( 'email', $email, 'blocked', $e['reason'] ?? '', $form_id );
 				return $e; }
 		}
 
-		if ( $cpf && $s['cpf']['enabled'] && self::applies_to_form( $s['cpf']['apply_to'], $form_id ) ) {
+		if ( ! $identity_whitelisted && $cpf && $s['cpf']['enabled'] && self::applies_to_form( $s['cpf']['apply_to'], $form_id ) ) {
 			$c = self::check_cpf_limit( $cpf, $form_id );
 			if ( ! $c['allowed'] ) {
 				RateLimitLogger::log_attempt( 'cpf', $cpf, 'blocked', $c['reason'] ?? '', $form_id );
@@ -294,21 +249,23 @@ final class RateLimitChecker {
 		$mk = 'ffc_rate_global_minute_' . floor( time() / 60 );
 		$mc = RateCounter::get( $mk );
 		if ( $mc >= $s['max_per_minute'] ) {
+			$wait = RateLimitSupport::window_left( MINUTE_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'global_minute_limit',
-				'message'      => $s['message'],
-				'wait_seconds' => 60,
+				'message'      => ( new RateLimitSupport() )->format_message( $s['message'], array( 'wait' => $wait ) ),
+				'wait_seconds' => $wait,
 			);
 		}
 
 		$hc = RateLimitRepository::get_count_from_db( 'global', 'system', 'hour', null );
 		if ( $hc >= $s['max_per_hour'] ) {
+			$wait = RateLimitSupport::window_left( HOUR_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'global_hour_limit',
-				'message'      => $s['message'],
-				'wait_seconds' => 3600,
+				'message'      => ( new RateLimitSupport() )->format_message( $s['message'], array( 'wait' => $wait ) ),
+				'wait_seconds' => $wait,
 			);
 		}
 
@@ -427,7 +384,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed'      => false,
 				/* translators: %s: formatted wait time */
-				'message'      => sprintf( __( 'Too many verification attempts. Please wait %s.', 'ffcertificate' ), self::format_wait_time( $wait_seconds ) ),
+				'message'      => sprintf( __( 'Too many verification attempts. Please wait %s.', 'ffcertificate' ), RateLimitSupport::wait_words( $wait_seconds ) ),
 				'wait_seconds' => $wait_seconds,
 			);
 		}
@@ -456,27 +413,27 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Format wait time.
+	 * Count a captcha that did not verify against the caller's address
+	 * (#2339), the way a submission is counted, so guessing the challenge
+	 * spends the same per-address budget as submitting.
 	 *
-	 * @param int $seconds Seconds.
-	 * @return string
+	 * Listens on `ffcertificate_captcha_failed`. Off when the IP limit is off.
+	 *
+	 * @param mixed $data Form data the challenge came with.
+	 * @return void
 	 */
-	private static function format_wait_time( int $seconds ): string {
-		if ( $seconds < 60 ) {
-			/* translators: %d: number of seconds */
-			return sprintf( _n( '%d second', '%d seconds', $seconds, 'ffcertificate' ), $seconds );
+	public static function record_captcha_failure( $data = array() ): void {
+		if ( empty( self::get_settings()['ip']['enabled'] ) ) {
+			return;
 		}
-
-		$minutes = (int) ceil( $seconds / 60 );
-		if ( $minutes < 60 ) {
-			/* translators: %d: number of minutes */
-			return sprintf( _n( '%d minute', '%d minutes', $minutes, 'ffcertificate' ), $minutes );
+		$ip = \FreeFormCertificate\Core\RequestInput::get_user_ip();
+		if ( '' === $ip ) {
+			return;
 		}
-
-		$hours = (int) ceil( $minutes / 60 );
-		/* translators: %d: number of hours */
-		return sprintf( _n( '%d hour', '%d hours', $hours, 'ffcertificate' ), $hours );
+		$form_id = is_array( $data ) && isset( $data['form_id'] ) && is_numeric( $data['form_id'] ) ? (int) $data['form_id'] : 0;
+		self::record_attempt( 'ip', $ip, $form_id > 0 ? $form_id : null );
 	}
+
 	/**
 	 * Record attempt.
 	 *
@@ -489,7 +446,7 @@ final class RateLimitChecker {
 
 		if ( 'ip' === $type ) {
 			// Transients, so the counters persist without an object cache (#1861).
-			RateCounter::increment( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', 3600 );
+			RateCounter::increment( RateCounter::windowed( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_hour', HOUR_IN_SECONDS ), HOUR_IN_SECONDS );
 			RateCounter::put( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) . $form_id ) . '_last', time(), max( 1, (int) $s['ip']['cooldown_seconds'] ) );
 		}
 
@@ -522,7 +479,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed' => false,
 				'reason'  => 'ip_blacklisted',
-				'message' => __( 'IP blocked.', 'ffcertificate' ),
+				'message' => __( 'Submissions from this network are not accepted. If you think this is a mistake, contact the site administrator.', 'ffcertificate' ),
 			);
 		}
 
@@ -531,7 +488,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed' => false,
 					'reason'  => 'email_blacklisted',
-					'message' => __( 'Email blocked.', 'ffcertificate' ),
+					'message' => __( 'This e-mail address is not accepted. Use another address, or contact the site administrator.', 'ffcertificate' ),
 				);
 			}
 			$at_part = strrchr( $email, '@' );
@@ -540,7 +497,7 @@ final class RateLimitChecker {
 				return array(
 					'allowed' => false,
 					'reason'  => 'domain_blacklisted',
-					'message' => __( 'Domain blocked.', 'ffcertificate' ),
+					'message' => __( 'E-mail addresses from this domain are not accepted. Use another address, or contact the site administrator.', 'ffcertificate' ),
 				);
 			}
 		}
@@ -549,7 +506,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed' => false,
 				'reason'  => 'cpf_blacklisted',
-				'message' => __( 'CPF blocked.', 'ffcertificate' ),
+				'message' => __( 'This CPF/RF is not accepted. If you think this is a mistake, contact the site administrator.', 'ffcertificate' ),
 			);
 		}
 
@@ -557,37 +514,29 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Check whether whitelisted.
+	 * Whether the e-mail or the CPF/RF the visitor typed is allowlisted.
 	 *
-	 * @param string      $ip Ip.
-	 * @param string|null $email Email address.
-	 * @param string|null $cpf Cpf.
+	 * Self-declared, so it lifts only the limits on that identity (#2339).
+	 *
+	 * @param string|null $email E-mail address.
+	 * @param string|null $cpf   CPF/RF.
 	 * @return bool
 	 */
-	private static function is_whitelisted( string $ip, ?string $email, ?string $cpf ): bool {
-		$s  = self::get_settings();
-		$wl = $s['whitelist'];
-
-		if ( \FreeFormCertificate\Core\IpAddress::in_any( $ip, (array) $wl['ips'] ) ) {
-			return true;
-		}
+	private static function is_identity_whitelisted( ?string $email, ?string $cpf ): bool {
+		$wl = self::get_settings()['whitelist'];
 
 		if ( $email ) {
-			if ( in_array( $email, $wl['emails'], true ) ) {
+			if ( in_array( $email, (array) $wl['emails'], true ) ) {
 				return true;
 			}
 			$at_part = strrchr( $email, '@' );
 			$d       = substr( $at_part ? $at_part : '', 1 );
-			if ( in_array( '*@' . $d, $wl['email_domains'], true ) ) {
+			if ( in_array( '*@' . $d, (array) $wl['email_domains'], true ) ) {
 				return true;
 			}
 		}
 
-		if ( $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), $wl['cpfs'], true ) ) {
-			return true;
-		}
-
-		return false;
+		return $cpf && in_array( \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $cpf ), (array) $wl['cpfs'], true );
 	}
 
 	/**
@@ -623,7 +572,7 @@ final class RateLimitChecker {
 			return array(
 				'allowed'      => false,
 				/* translators: %s: formatted wait time */
-				'message'      => sprintf( __( 'Too many attempts. Please wait %s.', 'ffcertificate' ), self::format_wait_time( $wait ) ),
+				'message'      => sprintf( __( 'Too many attempts. Please wait %s.', 'ffcertificate' ), RateLimitSupport::wait_words( $wait ) ),
 				'wait_seconds' => $wait,
 			);
 		}
@@ -682,25 +631,39 @@ final class RateLimitChecker {
 		$message  = (string) ( $s['read']['message'] ?? __( 'Too many requests. Please wait {time}.', 'ffcertificate' ) );
 
 		if ( $max_min > 0 ) {
-			$mc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute' );
+			$mc = RateCounter::get( RateCounter::windowed( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_minute', MINUTE_IN_SECONDS ) );
 			if ( $mc >= $max_min ) {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_minute_limit',
-					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 minute', 'ffcertificate' ) ) ),
-					'wait_seconds' => 60,
+					'message'      => ( new RateLimitSupport() )->format_message(
+						$message,
+						array(
+							'count' => $mc,
+							'max'   => $max_min,
+							'wait'  => RateLimitSupport::window_left( MINUTE_IN_SECONDS ),
+						)
+					),
+					'wait_seconds' => RateLimitSupport::window_left( MINUTE_IN_SECONDS ),
 				);
 			}
 		}
 
 		if ( $max_hour > 0 ) {
-			$hc = RateCounter::get( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour' );
+			$hc = RateCounter::get( RateCounter::windowed( 'ffc_rate_read_' . md5( self::read_subject( $ip, $user_id ) . '|' . $endpoint_key ) . '_hour', HOUR_IN_SECONDS ) );
 			if ( $hc >= $max_hour ) {
 				return array(
 					'allowed'      => false,
 					'reason'       => 'read_hour_limit',
-					'message'      => ( new RateLimitSupport() )->format_message( $message, array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
-					'wait_seconds' => 3600,
+					'message'      => ( new RateLimitSupport() )->format_message(
+						$message,
+						array(
+							'count' => $hc,
+							'max'   => $max_hour,
+							'wait'  => RateLimitSupport::window_left( HOUR_IN_SECONDS ),
+						)
+					),
+					'wait_seconds' => RateLimitSupport::window_left( HOUR_IN_SECONDS ),
 				);
 			}
 		}
@@ -724,8 +687,8 @@ final class RateLimitChecker {
 	public static function record_read_attempt( string $ip, string $endpoint_key, int $user_id = 0 ): void {
 		$identifier = self::read_subject( $ip, $user_id ) . '|' . $endpoint_key;
 
-		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_minute', 60 );
-		RateCounter::increment( 'ffc_rate_read_' . md5( $identifier ) . '_hour', 3600 );
+		RateCounter::increment( RateCounter::windowed( 'ffc_rate_read_' . md5( $identifier ) . '_minute', MINUTE_IN_SECONDS ), MINUTE_IN_SECONDS );
+		RateCounter::increment( RateCounter::windowed( 'ffc_rate_read_' . md5( $identifier ) . '_hour', HOUR_IN_SECONDS ), HOUR_IN_SECONDS );
 
 		// Persist the day counter too so the admin "rate-limit log" tab
 		// surfaces read activity alongside the other types. `record_attempt`
@@ -748,10 +711,9 @@ final class RateLimitChecker {
 	}
 
 	/**
-	 * Public IP-only whitelist check. The internal `is_whitelisted()`
-	 * accepts email + CPF too; this thin wrapper exposes just the IP
-	 * branch for consumers that only have an IP to test (the read
-	 * trait, future webhook handlers, etc.). Issue #259.
+	 * Whether the address is allowlisted. An allowlisted address skips
+	 * every check; `check_all()` and the read trait both ask it (#259,
+	 * #2339).
 	 *
 	 * @since 6.6.2
 	 * @param string $ip Client IP.

@@ -122,6 +122,43 @@ class CsvExporter {
 			}
 		}
 
-		return $reclaimed;
+		return $reclaimed + self::sweep_temp_files_by_age();
+	}
+
+	/**
+	 * Delete export temp files older than a day, whatever their job's state
+	 * (#2343).
+	 *
+	 * The sweep above finds a file through its job's transient, and that
+	 * misses two cases: WordPress deletes expired transients on its own, and
+	 * with a persistent object cache a transient never reaches `wp_options`
+	 * at all. Either way the file outlived its job and held decrypted personal
+	 * data with nothing pointing at it. A job finishes in minutes, so a day is
+	 * far past any live one.
+	 *
+	 * @return int Number of files deleted.
+	 */
+	public static function sweep_temp_files_by_age(): int {
+		$upload = wp_upload_dir( null, false );
+		$dir    = trailingslashit( $upload['basedir'] ) . 'ffc-tmp';
+		if ( ! is_dir( $dir ) ) {
+			return 0;
+		}
+
+		$files = glob( $dir . '/*.csv' );
+		if ( ! is_array( $files ) ) {
+			return 0;
+		}
+
+		$cutoff  = time() - DAY_IN_SECONDS;
+		$deleted = 0;
+		foreach ( $files as $file ) {
+			$modified = filemtime( $file );
+			if ( false !== $modified && $modified < $cutoff ) {
+				wp_delete_file( $file );
+				++$deleted;
+			}
+		}
+		return $deleted;
 	}
 }

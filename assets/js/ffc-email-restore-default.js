@@ -4,7 +4,9 @@
  * Any `<button class="ffc-email-restore-default" data-editor="<id>"
  * data-default-key="<key>">` restores its wp_editor's content (after a confirm)
  * to the default supplied via wp_localize_script as
- * `ffcEmailRestoreDefaults[<key>] = { body, confirm }`. Works in both TinyMCE
+ * `ffcEmailRestoreDefaults[<key>] = { body, confirm, subject? }`. A button that
+ * also names its subject field (`data-subject="<input id>"`) restores the
+ * subject too, when the default carries one. Works in both TinyMCE
  * (Visual) and plain-textarea (Text) modes. Selector-guarded, so it no-ops on
  * screens without such a button. Reused across the recruitment and
  * self-scheduling template editors (#662).
@@ -16,8 +18,11 @@ jQuery(function ($) {
 
 	$('.ffc-email-restore-default').on('click', function () {
 		var $btn = $(this);
-		var editorId = String($btn.data('editor') || '');
-		var key = String($btn.data('default-key') || '');
+		// Read at click time through attr(): .data() caches the first value,
+		// and a screen may change the key after load (the Date Messages kind
+		// selector does, #2336).
+		var editorId = String($btn.attr('data-editor') || '');
+		var key = String($btn.attr('data-default-key') || '');
 		var entry = cfg[key] || {};
 		var body = typeof entry.body === 'string' ? entry.body : '';
 		var confirmMsg = entry.confirm || '';
@@ -37,6 +42,11 @@ jQuery(function ($) {
 			editor.save();
 		} else {
 			$('#' + editorId).val(body);
+		}
+
+		var subjectId = String($btn.attr('data-subject') || '');
+		if (subjectId && typeof entry.subject === 'string') {
+			$('#' + subjectId).val(entry.subject).trigger('input');
 		}
 	});
 });

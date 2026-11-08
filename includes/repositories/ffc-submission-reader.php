@@ -105,6 +105,27 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * The keys, other than `id_*`, this group caches a submission under:
+	 * prefix => column. Read by every class that writes the group, so a write
+	 * clears the copies verification reads (#2343).
+	 *
+	 * @var array<string, string>
+	 */
+	public const LOOKUP_CACHE_KEYS = array(
+		'auth_'  => 'auth_code',
+		'token_' => 'magic_token',
+	);
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return self::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Get allowed order columns.
 	 *
 	 * @return array<int, string>
@@ -532,6 +553,31 @@ class SubmissionReader extends AbstractRepository {
 	}
 
 	/**
+	 * How many rows each form holds, every status included (#2338).
+	 *
+	 * What a Danger Zone delete of that form removes, which is every row,
+	 * trash and quiz attempts too.
+	 *
+	 * @return array<int, int> Row count by form ID.
+	 */
+	public function countAllByForm(): array {
+		$rows = $this->wpdb->get_results(
+			$this->wpdb->prepare( 'SELECT form_id, COUNT(*) AS total FROM %i GROUP BY form_id', $this->table ),
+			ARRAY_A
+		);
+
+		$counts = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$form_id = $row['form_id'] ?? null;
+			$total   = $row['total'] ?? null;
+			if ( is_numeric( $form_id ) && is_numeric( $total ) ) {
+				$counts[ (int) $form_id ] = (int) $total;
+			}
+		}
+		return $counts;
+	}
+
+	/**
 	 * Count total matching rows for export progress reporting.
 	 *
 	 * @since 5.0.0
@@ -594,6 +640,11 @@ class SubmissionReader extends AbstractRepository {
 
 		$args = wp_parse_args( $args, $defaults );
 
+		// A page below 1 is a negative OFFSET and a size of 0 a division by
+		// zero; whatever the caller passed, read a real page (#2342).
+		$args['page']     = max( 1, (int) $args['page'] );
+		$args['per_page'] = max( 1, (int) $args['per_page'] );
+
 		$where = array( $this->wpdb->prepare( 'status = %s', $args['status'] ) );
 
 		if ( ! empty( $args['form_ids'] ) && is_array( $args['form_ids'] ) ) {
@@ -651,11 +702,11 @@ class SubmissionReader extends AbstractRepository {
 		 *
 		 * @phpstan-ignore argument.type
 		 */
-		$total = $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
+		$total = (int) $this->wpdb->get_var( $this->wpdb->prepare( "SELECT COUNT(*) FROM %i {$where_clause}", $this->table ) );
 
 		return array(
 			'items' => $items,
-			'total' => (int) $total,
+			'total' => $total,
 			'pages' => ceil( $total / $args['per_page'] ),
 		);
 	}

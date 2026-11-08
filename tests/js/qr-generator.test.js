@@ -23,6 +23,8 @@ function mount() {
 				<input type="checkbox" id="ffc-qr-short" checked>
 				<p id="ffc-qr-short-circular" hidden></p>
 				<p id="ffc-qr-short-direct" hidden></p>
+				<p id="ffc-qr-short-download" hidden></p>
+				<p id="ffc-qr-short-scheme" hidden></p>
 				<div data-ffc-qr-short-on><input id="ffc-qr-short-title" value="" required></div>
 				<div data-ffc-qr-short-on id="ffc-qr-short-duplicates" hidden><ul id="ffc-qr-short-duplicate-list"></ul><input type="checkbox" id="ffc-qr-short-ack"></div>
 				<div id="ffc-qr-short-result-row" hidden><button type="button" id="ffc-qr-short-result"></button><span id="ffc-qr-short-copied"></span></div>
@@ -40,7 +42,7 @@ function mount() {
 			<select id="qr_default_error_level"><option value="M" selected>M</option><option value="Q">Q</option></select>
 			<div id="ffc-qr-generator-preview"></div>
 			<p id="ffc-qr-generator-usage"></p>
-			<p id="ffc-qr-generator-status"></p>
+			<div id="ffc-qr-generator-status"></div>
 			<select id="ffc-qr-format"><option value="png" selected>PNG</option><option value="svg">SVG</option></select>
 			<select id="ffc-qr-png-width"><option value="2000" selected>2000</option></select>
 			<button type="button" id="ffc-qr-download" disabled>Download</button>
@@ -67,7 +69,7 @@ beforeAll(() => {
 		shortenNonce: 'short-nonce',
 		remember: 'ffc_qr_remember',
 		rememberNonce: 'remember-nonce',
-		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed', saved: 'Saved %s' },
+		i18n: { usage: '%1$d%% full, %2$d more at %3$s', usageForced: '%1$d%% full, %2$d more at H (logo)', dense: 'Dense (version %d)', lowContrast: 'Low (%s:1)', inverted: 'Inverted', captionContrast: 'Caption', ok: 'Readable', error: 'Failed', reset: 'Reset done', untitled: '(none)', duplicateMeta: 'on %1$s, %2$d clicks', useThis: 'Use this', download: 'Ends in %s.', scheme: 'Scheme %s.', titleRequired: 'Title needed', acknowledge: 'Tick the box', copied: 'Copied', copyFailed: 'Copy failed', saved: 'Saved %s' },
 	};
 	window.ffcQrDesign = { i18n: {} };
 	if (!window.FFC || !window.FFC.request) { loadScript('assets/js/ffc-core.js'); }
@@ -148,6 +150,7 @@ describe('ffc-qr-generator.js', () => {
 	it('switching type shows its fields and redraws', async () => {
 		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 
 		window.$('input[value="wifi"]').prop('checked', true).trigger('change');
 		await flush();
@@ -155,6 +158,33 @@ describe('ffc-qr-generator.js', () => {
 		expect(window.$('[data-ffc-qr-type="wifi"]').prop('hidden')).toBe(false);
 		expect(window.$('[data-ffc-qr-type="url"]').prop('hidden')).toBe(true);
 		expect(spy.mock.calls[0][1].type).toBe('wifi');
+	});
+
+	it('lists a dense code together with the design problems', async () => {
+		const both = Object.assign({}, OK, { checks: Object.assign({}, OK.checks, { low_contrast: true, min_ratio: 2 }), usage: Object.assign({}, OK.usage, { version: 14, dense: true }) });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: both } }));
+
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		const items = window.$('#ffc-qr-generator-status li').map(function () { return window.$(this).text(); }).get();
+		expect(items).toHaveLength(2);
+		expect(items[1]).toBe('Dense (version 14)');
+	});
+
+	it('shows "Link valid until" only for the calendar-file mode', () => {
+		window.$('#ffc-qr-generator').append(
+			'<select id="ffc-qr-event-mode" data-ffc-qr-field="event:mode"><option value="vevent" selected>e</option><option value="ics">ics</option></select>'
+			+ '<table><tr data-ffc-qr-event-until hidden><td><input data-ffc-qr-field="event:until"></td></tr></table>'
+		);
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+		window.FFC.QrGenerator.init();
+		const $row = window.$('[data-ffc-qr-event-until]');
+
+		expect($row.prop('hidden')).toBe(true);
+		window.$('#ffc-qr-event-mode').val('ics').trigger('change');
+		expect($row.prop('hidden')).toBe(false);
+		window.$('#ffc-qr-event-mode').val('vevent').trigger('change');
+		expect($row.prop('hidden')).toBe(true);
 	});
 
 	it('shows the Enterprise sign-in rows only for an Enterprise network', () => {
@@ -475,6 +505,28 @@ describe('ffc-qr-generator.js', () => {
 		expect(spy.mock.calls.some((c) => c[1].action === 'ffc_qr_shorten')).toBe(false);
 	});
 
+	it('warns about a destination that downloads a file while the switch is on (#2337)', async () => {
+		server({ circular: false, direct: false, code: '', url: '', example: true, duplicates: [], download: 'pdf' });
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-short-download').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-download').text()).toBe('Ends in .pdf.');
+
+		window.$('#ffc-qr-short').prop('checked', false).trigger('change');
+		expect(window.$('#ffc-qr-short-download').prop('hidden')).toBe(true, 'No short URL, no warning.');
+	});
+
+	it('warns, softly, about a scheme beyond http(s) while the switch is on (#2337)', async () => {
+		server({ circular: false, direct: false, code: '', url: '', example: true, duplicates: [], download: '', scheme: 'ssh' });
+		window.FFC.QrGenerator.init();
+		await window.FFC.QrGenerator.refresh(window.$('#ffc-qr-generator'));
+
+		expect(window.$('#ffc-qr-short').prop('disabled')).toBe(false);
+		expect(window.$('#ffc-qr-short-scheme').prop('hidden')).toBe(false);
+		expect(window.$('#ffc-qr-short-scheme').text()).toBe('Scheme ssh:.');
+	});
+
 	it('a non-web address locks the switch off, says why, and the download creates nothing', async () => {
 		const spy = server({ circular: false, direct: true, code: '', url: '', example: false, duplicates: [] });
 		vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
@@ -534,6 +586,7 @@ describe('ffc-qr-generator.js', () => {
 		window.$('#ffc-qr-url').val('example.org').trigger('input');
 
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 		vi.advanceTimersByTime(400);
 
 		expect(spy).not.toHaveBeenCalled();
@@ -549,6 +602,7 @@ describe('ffc-qr-generator.js', () => {
 		vi.useFakeTimers();
 		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
 		window.FFC.QrGenerator.init();
+		spy.mockClear();
 
 		window.$('#ffc-qr-url').val('example.org').trigger('input');
 		expect(spy).not.toHaveBeenCalled();
@@ -611,6 +665,8 @@ describe('ffc-qr-generator.js', () => {
 				: { success: true, data: OK },
 		}));
 		window.FFC.QrGenerator.init();
+		await flush();
+		spy.mockClear();
 
 		window.$('#ffc-qr-design-reset').trigger('click');
 		await flush();
@@ -691,5 +747,157 @@ describe('ffc-qr-generator.js', () => {
 		// The radios keep their own values: only the checked one moved.
 		expect($form.find('[data-ffc-qr-design="qr_design_dots"]').map(function () { return this.value; }).get()).toEqual(['square', 'dots']);
 		expect($form.find('[data-ffc-qr-hex-for]').val()).toBe('#abcdef');
+	});
+
+	describe('example content (#2365)', () => {
+		beforeEach(() => {
+			window.ffcQrGenerator.examples = { url: { url: 'https://site.test/' } };
+			window.$('#ffc-qr-url').val('');
+		});
+		afterEach(() => {
+			delete window.ffcQrGenerator.examples;
+		});
+
+		it('fills an empty type with its example and draws it at once, with no short URL', async () => {
+			const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-url').val()).toBe('https://site.test/');
+			expect(spy).toHaveBeenCalledTimes(1);
+			expect(spy.mock.calls[0][1]).toMatchObject({ type: 'url', fields: { url: 'https://site.test/' }, short: '' });
+			expect(window.FFC.QrGenerator.isExample(window.$('#ffc-qr-generator'))).toBe(true);
+		});
+
+		it('a changed field asks for the short URL again', async () => {
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			window.$('#ffc-qr-url').val('https://site.test/news');
+			const $form = window.$('#ffc-qr-generator');
+			expect(window.FFC.QrGenerator.isExample($form)).toBe(false);
+			expect(window.FFC.QrGenerator.collect($form).short).toBe('1');
+		});
+
+		it('a download of the example creates no short URL', async () => {
+			const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: Object.assign({}, OK, { short: { example: true } }) } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+			spy.mockClear();
+
+			await window.FFC.QrGenerator.ensureShort(window.$('#ffc-qr-generator'));
+
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it('a type the user already typed into keeps what they typed', async () => {
+			window.$('#ffc-qr-url').val('mine.test');
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-url').val()).toBe('mine.test');
+			expect(window.FFC.QrGenerator.isExample(window.$('#ffc-qr-generator'))).toBe(false);
+		});
+	});
+
+	describe('field masks and checks (#2368)', () => {
+		beforeAll(() => {
+			if (!window.FFC.Fields) { loadScript('assets/js/ffc-field-behaviours.js'); }
+		});
+
+		function mountFields() {
+			document.body.innerHTML = `
+				<form id="ffc-qr-generator">
+					<input type="radio" name="type" value="phone" checked>
+					<table data-ffc-qr-type="phone"><tr data-format="phone"><td><input id="phone" data-mask="phone" data-ffc-qr-field="phone:phone"></td></tr></table>
+					<table data-ffc-qr-type="email" hidden><tr data-format="email"><td><input id="email" type="email" data-ffc-qr-field="email:email"></td></tr></table>
+					<table data-ffc-qr-type="vcard" hidden>
+						<tr data-field-key="website" data-format="url"><td><input id="site" data-ffc-qr-field="vcard:website"></td></tr>
+						<tr data-field-key="cep" data-format="cep"><td><input id="cep" data-mask="cep" data-ffc-qr-field="vcard:postcode"></td></tr>
+					</table>
+				</form>
+				<div id="ffc-qr-generator-preview"></div><span id="ffc-qr-generator-usage"></span><div id="ffc-qr-generator-status"></div>`;
+			window.$(document).off();
+		}
+
+		it('types the phone and the postal code through the shared masks', () => {
+			mountFields();
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('#phone').val('11987654321').trigger('input');
+			window.$('#cep').val('01310100').trigger('input');
+
+			expect(window.$('#phone').val()).toBe('(11) 98765-4321');
+			expect(window.$('#cep').val()).toBe('01310-100');
+		});
+
+		it('says a broken value under its field when the person leaves it, and lower-cases an address', () => {
+			mountFields();
+			window.ffcQrGenerator.i18n.invalidEmail = 'Bad e-mail';
+			window.ffcQrGenerator.i18n.invalidUrl = 'Bad address';
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('#email').val(' Ana@Site.TEST ').trigger('change');
+			expect(window.$('#email').val()).toBe('ana@site.test');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+
+			window.$('#site').val('nodot').trigger('input');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+			window.$('#site').trigger('change');
+			expect(document.querySelector('.ffc-field-message').textContent).toContain('Bad address');
+
+			window.$('#site').val('site.test').trigger('input');
+			expect(document.querySelector('.ffc-field-message')).toBeNull();
+		});
+	});
+
+	describe('the .vcf download (#2374)', () => {
+		function mountVcard() {
+			document.body.innerHTML = `
+				<form id="ffc-qr-generator">
+					<input type="radio" name="type" value="url">
+					<input type="radio" name="type" value="vcard" checked>
+					<table data-ffc-qr-type="vcard">
+						<tr><td><input data-ffc-qr-field="vcard:first_name" value="Ana Clara"></td></tr>
+						<tr><td><input data-ffc-qr-field="vcard:last_name" value="Lima Gonçalves"></td></tr>
+					</table>
+				</form>
+				<div id="ffc-qr-generator-preview"></div><span id="ffc-qr-generator-usage"></span><div id="ffc-qr-generator-status"></div>
+				<button id="ffc-qr-download" disabled></button><button id="ffc-qr-print" disabled></button>
+				<button id="ffc-qr-vcf" disabled hidden></button>`;
+			window.$(document).off();
+		}
+
+		it('shows on the vCard type and saves the payload the code carries', async () => {
+			mountVcard();
+			const card = 'BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ana Clara Lima Gonçalves\r\nEND:VCARD';
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: Object.assign({}, OK, { payload: card }) } }));
+			const download = vi.spyOn(window.FFC.QrRaster, 'download').mockImplementation(() => {});
+			window.FFC.QrGenerator.init();
+			await flush();
+
+			expect(window.$('#ffc-qr-vcf').prop('hidden')).toBe(false);
+			expect(window.$('#ffc-qr-vcf').prop('disabled')).toBe(false);
+			window.$('#ffc-qr-vcf').trigger('click');
+
+			expect(download).toHaveBeenCalledTimes(1);
+			const [data, name, mime] = download.mock.calls[0];
+			expect(new TextDecoder().decode(Uint8Array.from(atob(data), (c) => c.charCodeAt(0)))).toBe(card);
+			expect(name).toBe('contact-ana-clara-lima-goncalves.vcf');
+			expect(mime).toBe('text/vcard;charset=utf-8');
+		});
+
+		it('hides on any other type', () => {
+			mountVcard();
+			vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: OK } }));
+			window.FFC.QrGenerator.init();
+
+			window.$('input[value="url"]').prop('checked', true).trigger('change');
+			expect(window.$('#ffc-qr-vcf').prop('hidden')).toBe(true);
+		});
 	});
 });

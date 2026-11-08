@@ -103,15 +103,8 @@ $ffc_qr_name      = static fn( string $key ): string => 'ffc_settings[' . $key .
 		<?php esc_html_e( 'Shapes and colours of the QR codes the plugin draws. Applies only where it is switched on below; elsewhere the plain black-and-white code is kept.', 'ffcertificate' ); ?>
 	</p>
 
-	<div class="ffc-qr-design-layout">
-		<div class="ffc-sections">
-			<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
-		</div>
-
-		<div class="ffc-qr-design-preview">
-			<div id="ffc-qr-design-preview" class="ffc-qr-design-preview__image" aria-hidden="true"></div>
-			<p id="ffc-qr-design-checks" class="ffc-qr-design-preview__checks ffc-status" role="status" aria-live="polite" hidden></p>
-		</div>
+	<div class="ffc-sections">
+		<?php require FFC_PLUGIN_DIR . 'templates/admin/qr/design-fields.php'; ?>
 	</div>
 </div>
 

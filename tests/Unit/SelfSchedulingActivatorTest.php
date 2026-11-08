@@ -231,6 +231,79 @@ class SelfSchedulingActivatorTest extends TestCase {
 	}
 
 	// ==================================================================
+	// maybe_heal_columns() — the panel columns between releases (#2405)
+	// ==================================================================
+
+	/**
+	 * Run the migration with the version gate already passed, so only the
+	 * revision-gated heal can act, and return the ALTERs it issued.
+	 *
+	 * @param string $revision  The revision option's stored value.
+	 * @param bool   $has_cols  Whether `SHOW COLUMNS` finds the columns.
+	 * @param array  $written   Receives the options written.
+	 * @return list<string>
+	 */
+	private function heal( string $revision, bool $has_cols, array &$written ): array {
+		Functions\when( 'get_option' )->alias(
+			static fn( string $name, $default = '' ) => SelfSchedulingActivator::SCHEMA_REVISION_OPTION === $name ? $revision : FFC_VERSION
+		);
+		Functions\when( 'update_option' )->alias(
+			static function ( string $name, $value ) use ( &$written ): bool {
+				$written[ $name ] = $value;
+				return true;
+			}
+		);
+		$this->wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$this->wpdb->shouldReceive( 'get_results' )->andReturn( $has_cols ? array( (object) array( 'Field' => 'x' ) ) : array() );
+
+		$alters = array();
+		$this->wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $query ) use ( &$alters ) {
+				$alters[] = (string) $query;
+				return 1;
+			}
+		);
+
+		SelfSchedulingActivator::maybe_migrate();
+
+		return array_values( array_filter( $alters, static fn( string $q ): bool => false !== stripos( $q, 'ALTER TABLE' ) ) );
+	}
+
+	public function test_the_heal_adds_the_panel_and_session_columns_on_an_install_with_the_same_version(): void {
+		$written = array();
+		$alters  = $this->heal( '', false, $written );
+
+		$this->assertCount( 7, $alters );
+		$this->assertStringContainsString( 'show_event_list', $alters[0] );
+		$this->assertStringContainsString( 'event_list_position', $alters[1] );
+		// The sessions (#2405): the calendar's list, the appointment's session
+		// and the index availability is counted by.
+		$this->assertStringContainsString( "ADD COLUMN 'sessions' longtext DEFAULT NULL AFTER 'custom_slots'", $alters[2] );
+		// The calendar's own word for a session (#2413), singular and plural.
+		$this->assertStringContainsString( "ADD COLUMN 'session_label' varchar(100) DEFAULT NULL AFTER 'sessions'", $alters[3] );
+		$this->assertStringContainsString( "ADD COLUMN 'session_label_plural' varchar(100) DEFAULT NULL AFTER 'session_label'", $alters[4] );
+		$this->assertStringContainsString( "'wp_ffc_self_scheduling_appointments' ADD COLUMN 'session_id' bigint(20) unsigned DEFAULT NULL AFTER 'calendar_id'", $alters[5] );
+		$this->assertStringContainsString( "ADD INDEX 'idx_calendar_session_datetime' (calendar_id, session_id, appointment_date, start_time)", $alters[6] );
+		$this->assertArrayNotHasKey( SelfSchedulingActivator::SCHEMA_REVISION_OPTION, $written, 'An ALTER that did not take is tried again on the next request.' );
+	}
+
+	public function test_the_heal_records_its_revision_once_the_columns_are_there(): void {
+		$written = array();
+		$alters  = $this->heal( '', true, $written );
+
+		$this->assertSame( array(), $alters, 'Columns already there are not added again.' );
+		$this->assertSame( SelfSchedulingActivator::SCHEMA_REVISION, $written[ SelfSchedulingActivator::SCHEMA_REVISION_OPTION ] ?? null );
+	}
+
+	public function test_the_heal_does_nothing_at_the_current_revision(): void {
+		$written = array();
+		$alters  = $this->heal( SelfSchedulingActivator::SCHEMA_REVISION, false, $written );
+
+		$this->assertSame( array(), $alters );
+		$this->assertSame( array(), $written );
+	}
+
+	// ==================================================================
 	// maybe_migrate() — runs when tables exist
 	// ==================================================================
 
@@ -266,26 +339,25 @@ class SelfSchedulingActivatorTest extends TestCase {
 	// maybe_migrate() — skips when tables missing
 	// ==================================================================
 
-	public function test_maybe_migrate_skips_when_tables_missing(): void {
-		// Neither appointments nor calendars table exists
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function ( $query ) {
-				if ( stripos( $query, 'SHOW TABLES LIKE' ) !== false ) {
-					return null;
-				}
-				return null;
-			} );
+	public function test_maybe_migrate_creates_every_missing_table(): void {
+		// An install updated in place, never activated: no table exists, and
+		// maybe_migrate() is the only runtime path that can create them (#2343).
+		$this->wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$this->wpdb->shouldReceive( 'query' )->andReturn( 1 );
 
-		$query_called = false;
-		$this->wpdb->shouldReceive( 'query' )
-			->andReturnUsing( function () use ( &$query_called ) {
-				$query_called = true;
-				return 1;
-			} );
+		$created = array();
+		Functions\when( 'dbDelta' )->alias(
+			function ( $sql ) use ( &$created ) {
+				if ( preg_match( '/CREATE TABLE\s+(\S+)/', (string) $sql, $m ) ) {
+					$created[] = $m[1];
+				}
+				return array();
+			}
+		);
 
 		SelfSchedulingActivator::maybe_migrate();
 
-		$this->assertFalse( $query_called, 'No ALTER TABLE queries should run when tables do not exist' );
+		$this->assertCount( 3, array_unique( $created ), 'Every table the module declares is created when it is missing.' );
 	}
 
 	// ==================================================================

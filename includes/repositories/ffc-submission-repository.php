@@ -95,6 +95,15 @@ class SubmissionRepository extends AbstractRepository {
 	}
 
 	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return SubmissionReader::LOOKUP_CACHE_KEYS;
+	}
+
+	/**
 	 * Get allowed order columns.
 	 *
 	 * @return array<int, string>
@@ -270,6 +279,15 @@ class SubmissionRepository extends AbstractRepository {
 	 */
 	public function countLiveByForm( int $form_id ): int {
 		return $this->reader->countLiveByForm( $form_id );
+	}
+
+	/**
+	 * How many rows each form holds, every status included (#2338).
+	 *
+	 * @return array<int, int> Row count by form ID.
+	 */
+	public function countAllByForm(): array {
+		return $this->reader->countAllByForm();
 	}
 
 	/**

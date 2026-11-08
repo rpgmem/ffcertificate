@@ -3,21 +3,15 @@
  * Recruitment Admin Page
  *
  * Top-level wp-admin menu (sibling of Audience and Reregistration; see
- * {@see RecruitmentAdminPage::register_menu()}). Renders four tabs
- * server-side:
+ * {@see RecruitmentAdminPage::register_menu()}). A dashboard opens the
+ * menu, then one full-width page per section (#2486):
  *
- *   - Notices       — list with status badges + create form.
- *   - Adjutancies   — list + create form + delete (gated).
- *   - Candidates    — search by CPF/RF (lookup-only MVP).
- *   - Settings      — points the admin at the existing Settings tab
- *                     where the email templates + public tuning live.
- *
- * This is a deliberate MVP: full polish (status-change modals, 15s
- * countdown for promote-preview, CSV upload UI, bulk-call UI, candidate
- * detail with decrypted-field reveal toggle) is tracked as a follow-up.
- * The REST surface (sprint 9.1) already supports every operation; the
- * admin UI here is sufficient to drive a production-grade recruitment
- * cycle from the wp-admin without falling back to curl/Postman.
+ *   - Dashboard     — counts, one card per section, what needs attention.
+ *   - Notices       — list with status badges; New notice opens a dialog.
+ *   - Adjutancies   — list; New adjutancy opens a dialog.
+ *   - Reasons       — list; New reason opens a dialog.
+ *   - Candidates    — list + the CSV import.
+ *   - Settings      — e-mail template and public shortcode tuning.
  *
  * Form submissions go to the same REST endpoints via fetch() in a tiny
  * inline script; nonces use `wp_create_nonce('wp_rest')` so the REST
@@ -222,17 +216,43 @@ final class RecruitmentAdminPage {
 
 		// WP auto-creates a duplicate "Recruitment" first submenu when
 		// add_menu_page also registers a callback. Replace that auto-row
-		// with explicit per-tab submenus below — same parent page, but
-		// each link carries `&tab=…` so the existing render_page()
-		// dispatcher lands on the right section.
+		// with explicit per-page submenus below — same parent page, the
+		// dashboard on the bare slug and each list on `&tab=…`, so the
+		// render_page() dispatcher lands on the right page (#2486).
 		global $submenu;
 		if ( isset( $submenu[ self::PAGE_SLUG ] ) ) {
 			$submenu[ self::PAGE_SLUG ] = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Replacing the auto-generated duplicate row is the canonical pattern.
 		}
-		// Notices pinned first (landing tab), Settings pinned last; the data
-		// tabs in between read A→Z by translated label. Kept in sync with the
-		// in-page tab bar in RecruitmentAdminPageRenderer::render_tabs().
-		$tabs = LabelSorter::sort(
+		$pages = array( 'dashboard' => __( 'Dashboard', 'ffcertificate' ) ) + self::section_labels();
+		foreach ( $pages as $tab => $label ) {
+			// Settings carries its own view cap; the data pages open read-only
+			// under the recruitment view cap (writes stay manage-gated). Each
+			// names the manage cap when the user holds it without the view one.
+			$tab_cap = ( 'settings' === $tab ) ? self::settings_menu_capability() : $menu_cap;
+			add_submenu_page(
+				self::PAGE_SLUG,
+				$label,
+				$label,
+				$tab_cap,
+				'dashboard' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
+				array( self::class, 'render_page' )
+			);
+		}
+
+		// Highlight the submenu row that matches the open `?tab=` — WP only
+		// sees the `?page=` value (`ffc-recruitment`) and would otherwise
+		// keep the dashboard highlighted on every page.
+		add_filter( 'submenu_file', array( self::class, 'highlight_active_tab' ) );
+	}
+
+	/**
+	 * The section pages after the dashboard, in menu order: Notices first,
+	 * Settings last, the data pages between them A→Z by translated label.
+	 *
+	 * @return array<string, string> Slug => label.
+	 */
+	public static function section_labels(): array {
+		return LabelSorter::sort(
 			array(
 				'notices'     => __( 'Notices', 'ffcertificate' ),
 				'adjutancies' => __( 'Adjutancies', 'ffcertificate' ),
@@ -246,36 +266,31 @@ final class RecruitmentAdminPage {
 			array( 'notices' ),
 			array( 'settings' )
 		);
-		foreach ( $tabs as $tab => $label ) {
-			// Settings tab carries its own view cap; the data tabs open read-only
-			// under the recruitment view cap (writes stay manage-gated). Each
-			// names the manage cap when the user holds it without the view one.
-			$tab_cap = ( 'settings' === $tab ) ? self::settings_menu_capability() : $menu_cap;
-			add_submenu_page(
-				self::PAGE_SLUG,
-				$label,
-				$label,
-				$tab_cap,
-				'notices' === $tab ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab,
-				array( self::class, 'render_page' )
-			);
-		}
+	}
 
-		// Highlight the submenu row that matches the open `?tab=` — WP only
-		// sees the `?page=` value (`ffc-recruitment`) and would otherwise
-		// keep "Notices" highlighted on every tab.
-		add_filter( 'submenu_file', array( self::class, 'highlight_active_tab' ) );
+	/**
+	 * The address of a section page, or of the dashboard for `dashboard`.
+	 *
+	 * @param string $tab Section slug.
+	 * @return string
+	 */
+	public static function section_url( string $tab ): string {
+		$args = array( 'page' => self::PAGE_SLUG );
+		if ( 'dashboard' !== $tab ) {
+			$args['tab'] = $tab;
+		}
+		return add_query_arg( $args, admin_url( 'admin.php' ) );
 	}
 
 	/**
 	 * Map the current `?tab=` onto its submenu slug so the wp-admin sidebar
 	 * highlights the open recruitment tab.
 	 *
-	 * The tab submenus register slugs of the form `ffc-recruitment&tab=<tab>`
-	 * (with `notices` as the bare `ffc-recruitment`), but WordPress decides
+	 * The section submenus register slugs of the form `ffc-recruitment&tab=<tab>`
+	 * (with the dashboard as the bare `ffc-recruitment`), but WordPress decides
 	 * which row is "current" from the `?page=` request var alone — which is
 	 * always `ffc-recruitment`. Without this `submenu_file` override the
-	 * Notices row stays highlighted no matter which tab is open.
+	 * dashboard row stays highlighted no matter which page is open.
 	 *
 	 * @param string|null $submenu_file The submenu file WP resolved.
 	 * @return string|null
@@ -285,16 +300,16 @@ final class RecruitmentAdminPage {
 		if ( self::PAGE_SLUG !== $page ) {
 			return $submenu_file;
 		}
-		$tab = RequestInput::get_get_key( 'tab', 'notices' );
-		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
-			$tab = 'notices';
+		$tab = RequestInput::get_get_key( 'tab' );
+		if ( ! array_key_exists( $tab, self::section_labels() ) ) {
+			return self::PAGE_SLUG;
 		}
-		return ( 'notices' === $tab ) ? self::PAGE_SLUG : self::PAGE_SLUG . '&tab=' . $tab;
+		return self::PAGE_SLUG . '&tab=' . $tab;
 	}
 
 	/**
-	 * Top-level page renderer. Dispatches by `?tab=` to the tab-specific
-	 * partial. Defaults to `notices`.
+	 * Top-level page renderer. Dispatches by `?tab=` to the section page;
+	 * no (or an unknown) `tab` opens the dashboard.
 	 *
 	 * @return void
 	 */
@@ -347,40 +362,38 @@ final class RecruitmentAdminPage {
 			RecruitmentAdminActions::dispatch( $action );
 		}
 
-		$tab = RequestInput::get_get_key( 'tab', 'notices' );
-		if ( ! in_array( $tab, array( 'notices', 'adjutancies', 'reasons', 'candidates', 'settings' ), true ) ) {
-			$tab = 'notices';
+		$tab = RequestInput::get_get_key( 'tab' );
+		if ( ! array_key_exists( $tab, self::section_labels() ) ) {
+			$tab = 'dashboard';
 		}
-		// 3-state: the Settings tab needs its own view cap (view only) — the umbrella
+		// 3-state: Settings needs its own view cap (view only) — the umbrella
 		// alone (held by a plain Recruitment Manager) is not enough.
 		if ( 'settings' === $tab && ! self::can_view_settings() ) {
-			$tab = 'notices';
+			$tab = 'dashboard';
 		}
-		// 3-state (GAP I): the Reasons tab is carved out the same way — its own
+		// 3-state (GAP I): Reasons is carved out the same way — its own
 		// view/manage caps, not the page-level `ffc_view_recruitment`.
 		if ( 'reasons' === $tab && ! self::can_view_reasons() ) {
-			$tab = 'notices';
+			$tab = 'dashboard';
 		}
 
-		// `ffc-settings-wrap` is the layout class of the vertical-tab screens: it
-		// gives each tab's `.card` boxes the same look as Settings and Date
-		// Messages. The edit screens above keep their own chrome.
-		echo '<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-settings-wrap">';
-		echo '<h1>' . esc_html__( 'Recruitment', 'ffcertificate' ) . '</h1>';
+		// One page per section, full width (#2486): the title with its
+		// actions, then the section. `ffc-boxed` styles the section cards
+		// (the CSV import, the settings boxes, the dashboard).
+		printf(
+			'<div class="wrap ffc-admin-page ffc-page-recruitment ffc-recruitment-admin ffc-boxed" id="ffc-recruitment-%s">',
+			esc_attr( $tab )
+		);
+		RecruitmentAdminPageRenderer::render_header( $tab );
 		$msg = RequestInput::get_get_key( 'ffc_msg' );
 		if ( '' !== $msg ) {
 			RecruitmentAdminPageRenderer::render_flash_notice( $msg );
 		}
 
-		echo '<div class="ffc-settings-tabs">';
-		RecruitmentAdminPageRenderer::render_tabs( $tab );
-
-		printf(
-			'<div id="ffc-recruitment-tabpanel-%1$s" class="ffc-settings-tabs__panel" role="tabpanel" aria-labelledby="ffc-recruitment-tabnav-%1$s" tabindex="0">',
-			esc_attr( $tab )
-		);
-
 		switch ( $tab ) {
+			case 'notices':
+				RecruitmentAdminPageRenderer::render_notices_tab();
+				break;
 			case 'adjutancies':
 				RecruitmentAdminPageRenderer::render_adjutancies_tab();
 				break;
@@ -394,12 +407,10 @@ final class RecruitmentAdminPage {
 				RecruitmentAdminPageRenderer::render_settings_tab();
 				break;
 			default:
-				RecruitmentAdminPageRenderer::render_notices_tab();
+				RecruitmentDashboard::render();
 				break;
 		}
 
-		echo '</div>'; // .ffc-settings-tabs__panel
-		echo '</div>'; // .ffc-settings-tabs
 		echo '</div>'; // .wrap
 	}
 

@@ -21,15 +21,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Mirrors {@see SettingsReader} but scoped to the rate-limit option group.
  *
- * IMPORTANT — defaults ownership:
- *   The canonical (deeply nested) defaults for this option group live in
- *   {@see \FreeFormCertificate\Security\RateLimitChecker::get_settings()}
- *   (which merges them via `wp_parse_args`) and the admin tab merges them
- *   recursively in {@see \FreeFormCertificate\Settings\Tabs\TabRateLimit}.
- *   This reader intentionally does NOT merge any defaults — `all()` returns
- *   the raw stored array (exactly like `get_option( KEY, array() )`),
- *   matching the ad-hoc consumer in the REST controller that read the
- *   stored array directly and applied inline `?? N` per-leaf fallbacks.
+ * Defaults ownership: {@see self::defaults()} is the one declaration of the
+ * nested defaults, and {@see self::effective()} merges the stored option over
+ * them recursively. The runtime ({@see \FreeFormCertificate\Security\RateLimitChecker::get_settings()})
+ * and the admin tab both read `effective()`, so the screen shows the values
+ * the runtime uses (#2339). They were declared twice and merged two ways:
+ * the runtime's shallow `wp_parse_args` let a partially saved group
+ * (`ip => ['enabled' => true]`) drop `max_per_hour` and refuse every
+ * submission, while the tab rendered the defaults. `all()` still returns the
+ * raw stored array for the readers that apply their own per-leaf fallback.
  */
 final class RateLimitSettingsReader {
 
@@ -99,6 +99,212 @@ final class RateLimitSettingsReader {
 	}
 
 	/**
+	 * The defaults of every rate-limit setting, nested by group.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function defaults(): array {
+		return array(
+			'ip'        => array(
+				'enabled'                     => true,
+				'max_per_hour'                => 5,
+				'max_per_day'                 => 20,
+				'cooldown_seconds'            => 60,
+				'apply_to'                    => 'all',
+				'message'                     => __( 'Limit reached. Please wait {time}.', 'ffcertificate' ),
+				// Challenges the ALTCHA endpoint issues per address per
+				// window (#1111). Lives in the IP group because that is
+				// what it limits, and next to the submission cap an
+				// administrator raises for the same NAT reason. 0 = no cap.
+				'captcha_max_per_window'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_CAP_DEFAULT,
+				'captcha_window_seconds'      => \FreeFormCertificate\Core\Captcha\CaptchaSettings::MINT_WINDOW_DEFAULT,
+				// Device-test requests per address per window (#2064), the
+				// same per-address shape as the captcha cap. 0 = no cap.
+				'device_check_max_per_window' => self::DEVICE_CHECK_CAP_DEFAULT,
+				'device_check_window_seconds' => self::DEVICE_CHECK_WINDOW_DEFAULT,
+				// What each throttle does with a caller the resolver could
+				// not read (#2106): let it through, or count it with every
+				// other unresolved caller.
+				'submission_unresolved'       => self::UNRESOLVED_SHARE,
+				'captcha_unresolved'          => self::UNRESOLVED_ALLOW,
+				'device_check_unresolved'     => self::UNRESOLVED_ALLOW,
+			),
+			'email'     => array(
+				'enabled'        => true,
+				'max_per_day'    => 3,
+				'max_per_week'   => 10,
+				'max_per_month'  => 30,
+				// Least hours between two submissions with one e-mail (#2339).
+				// 0 is off: it was stored as 24 for years and never enforced.
+				'wait_hours'     => 0,
+				'apply_to'       => 'all',
+				'message'        => __( 'You already have {count} certificates.', 'ffcertificate' ),
+				'check_database' => true,
+			),
+			'cpf'       => array(
+				'enabled'         => false,
+				'max_per_month'   => 5,
+				'max_per_year'    => 50,
+				'block_threshold' => 3,
+				'block_hours'     => 1,
+				'block_duration'  => 24,
+				'apply_to'        => 'all',
+				'message'         => __( 'CPF/RF limit reached.', 'ffcertificate' ),
+				'check_database'  => true,
+			),
+			'global'    => array(
+				'enabled'        => false,
+				'max_per_minute' => 100,
+				'max_per_hour'   => 1000,
+				'message'        => __( 'System unavailable.', 'ffcertificate' ),
+			),
+			'device'    => array(
+				'enabled'                   => false,
+				'max_per_form'              => 1,
+				// About half of the signals: 7 of 13 (6.3.2).
+				'match_threshold'           => 7,
+				// A fuzzy block also needs this many STRONG_SIGNALS to match,
+				// so weak signals shared by a fleet of one model never block
+				// (6.7.8). 0 turns the strong tier off.
+				'match_strong_min'          => 2,
+				'signals_enabled'           => array( 'cookie', 'ua', 'screen', 'tz', 'concurrency', 'memory', 'canvas', 'audio', 'webgl', 'fonts', 'plugins', 'permissions', 'mediaqueries', 'math' ),
+				'bypass_logged_in_managers' => true,
+				'bypass_whitelist_signals'  => array(),
+				'message'                   => __( 'Multiple submissions detected from this device. Please contact the organizer.', 'ffcertificate' ),
+				'retention_days'            => 90,
+				'log_blocks'                => true,
+			),
+			'whitelist' => array(
+				// UI visibility flag — when false the rate-limit settings
+				// page collapses the Whitelist card to declutter; the
+				// lists themselves still apply at runtime if populated.
+				// Defaults true so existing installs see no UI change.
+				'enabled'       => true,
+				'ips'           => array(),
+				'emails'        => array(),
+				'email_domains' => array(),
+				'cpfs'          => array(),
+			),
+			'blacklist' => array(
+				// UI visibility flag — see whitelist['enabled'] above.
+				'enabled'       => true,
+				'ips'           => array(),
+				'emails'        => array(),
+				'email_domains' => array(),
+				'cpfs'          => array(),
+			),
+			'logging'   => array(
+				'enabled'        => true,
+				'log_allowed'    => false,
+				'log_blocked'    => true,
+				'retention_days' => 30,
+				'max_logs'       => 10000,
+			),
+			'ui'        => array(
+				'show_remaining'  => true,
+				'show_wait_time'  => true,
+				'countdown_timer' => true,
+			),
+			'read'      => array(
+				'respect_whitelist' => true,
+				'bypass_logged_in'  => true,
+				'message'           => __( 'Too many requests. Please wait {time}.', 'ffcertificate' ),
+				// Per-endpoint thresholds (#259), owned by the checker so
+				// an endpoint never saved here still reads its default.
+				'endpoints'         => \FreeFormCertificate\Security\RateLimitChecker::READ_ENDPOINT_DEFAULTS,
+			),
+		);
+	}
+
+	/**
+	 * The stored settings merged over the defaults, recursively.
+	 *
+	 * A group or a map recurses, so a partially stored group keeps every
+	 * default leaf it does not set; a list (the signals enabled, the
+	 * whitelisted addresses) is replaced as a whole, because merging a
+	 * shorter stored list over a longer default one by index would put back
+	 * entries the administrator removed.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function effective(): array {
+		return self::merge( self::defaults(), self::all() );
+	}
+
+	/**
+	 * How many of the given signals are strong.
+	 *
+	 * @param array<mixed> $signals Signal names.
+	 * @return int
+	 */
+	public static function strong_signals_in( array $signals ): int {
+		return count( array_intersect( \FreeFormCertificate\Security\RateLimitChecker::STRONG_SIGNALS, array_map( 'strval', $signals ) ) );
+	}
+
+	/**
+	 * Why a strong-signal minimum cannot be stored with the signals enabled
+	 * now, or null when it can. A minimum above the strong signals enabled
+	 * never matches, and the device limit silently fell back to the cookie
+	 * alone (#2339).
+	 *
+	 * @param mixed $min Minimum to store.
+	 * @return string|null
+	 */
+	public static function strong_min_error( $min ): ?string {
+		$signals = self::effective()['device']['signals_enabled'] ?? array();
+		return self::strong_min_conflict( (int) $min, is_array( $signals ) ? $signals : array() );
+	}
+
+	/**
+	 * Why a set of enabled signals cannot be stored with the strong-signal
+	 * minimum stored now, or null when it can.
+	 *
+	 * @param mixed $signals Signal names to store.
+	 * @return string|null
+	 */
+	public static function signals_error( $signals ): ?string {
+		return self::strong_min_conflict( (int) ( self::effective()['device']['match_strong_min'] ?? 0 ), is_array( $signals ) ? $signals : array() );
+	}
+
+	/**
+	 * The refusal for a minimum and a signal set that cannot match together.
+	 *
+	 * @param int          $min     Strong-signal minimum.
+	 * @param array<mixed> $signals Enabled signals.
+	 * @return string|null
+	 */
+	public static function strong_min_conflict( int $min, array $signals ): ?string {
+		$strong = self::strong_signals_in( $signals );
+		if ( $min <= $strong ) {
+			return null;
+		}
+		return sprintf(
+			/* translators: 1: strong-signal minimum, 2: strong signals enabled */
+			__( 'The strong-signal minimum (%1$d) is above the strong signals enabled (%2$d), so no device could ever match. Lower the minimum or enable more strong signals.', 'ffcertificate' ),
+			$min,
+			$strong
+		);
+	}
+
+	/**
+	 * Merge stored values over defaults: maps recurse, lists replace.
+	 *
+	 * @param array<mixed> $defaults Defaults.
+	 * @param array<mixed> $stored   Stored values.
+	 * @return array<mixed>
+	 */
+	private static function merge( array $defaults, array $stored ): array {
+		foreach ( $stored as $key => $value ) {
+			if ( is_array( $value ) && isset( $defaults[ $key ] ) && is_array( $defaults[ $key ] ) && array() !== $defaults[ $key ] && ! array_is_list( $defaults[ $key ] ) ) {
+				$defaults[ $key ] = self::merge( $defaults[ $key ], $value );
+				continue;
+			}
+			$defaults[ $key ] = $value;
+		}
+		return $defaults;
+	}
+
+	/**
 	 * Return the raw `ffc_rate_limit_settings` array — no defaults merge.
 	 *
 	 * Behaves exactly like `get_option( self::OPTION_KEY, array() )`,
@@ -165,11 +371,24 @@ final class RateLimitSettingsReader {
 	/**
 	 * A stored policy for an unresolved address, or the default.
 	 *
-	 * @param mixed $value Stored or posted value.
+	 * @param mixed  $value    Stored or posted value.
+	 * @param string $fallback Policy for anything else.
 	 * @return string One of {@see self::UNRESOLVED_POLICIES}.
 	 */
-	public static function clamp_unresolved_policy( $value ): string {
-		return in_array( $value, self::UNRESOLVED_POLICIES, true ) ? (string) $value : self::UNRESOLVED_ALLOW;
+	public static function clamp_unresolved_policy( $value, string $fallback = self::UNRESOLVED_ALLOW ): string {
+		return in_array( $value, self::UNRESOLVED_POLICIES, true ) ? (string) $value : $fallback;
+	}
+
+	/**
+	 * Whether the per-address submission limit counts unresolved callers
+	 * together (#2339). Defaults to counting them, which is what the limit
+	 * always did: every unresolved caller reads as one address. An intranet
+	 * of private addresses is the case for letting them through.
+	 *
+	 * @return bool
+	 */
+	public static function submission_counts_unresolved(): bool {
+		return self::UNRESOLVED_SHARE === self::clamp_unresolved_policy( self::ip()['submission_unresolved'] ?? null, self::UNRESOLVED_SHARE );
 	}
 
 	/**

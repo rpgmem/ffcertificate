@@ -20,11 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 	<p><?php esc_html_e( 'The Recruitment module manages public-tender candidate queues: import classified candidates, publish the ranking, and record call-ups (convocations). It lives under the top-level "Recruitment" admin menu.', 'ffcertificate' ); ?></p>
 
-	<h4><?php esc_html_e( 'Admin tabs', 'ffcertificate' ); ?></h4>
+	<h4><?php esc_html_e( 'Admin pages', 'ffcertificate' ); ?></h4>
+	<p><?php esc_html_e( 'The menu opens on a dashboard: the open notices, the candidates, the calls awaiting an answer and the presentations of the next seven days, one card per section, and on the side the next presentations and the calls whose presentation date has passed. Each section below has its own page; New notice, beside the title, suggests the next code from the latest notice and opens the new draft.', 'ffcertificate' ); ?></p>
 	<table class="widefat striped">
 		<thead>
 			<tr>
-				<th scope="col"><?php esc_html_e( 'Tab', 'ffcertificate' ); ?></th>
+				<th scope="col"><?php esc_html_e( 'Page', 'ffcertificate' ); ?></th>
 				<th scope="col"><?php esc_html_e( 'Purpose', 'ffcertificate' ); ?></th>
 			</tr>
 		</thead>
@@ -84,8 +85,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p><?php esc_html_e( 'A candidate is shared by every notice and is recognised by CPF, then by RF. Before anything is written, each line is compared with the candidate it matches. A line whose CPF belongs to one candidate and whose RF belongs to another refuses the whole file. A line whose name, CPF, RF or e-mail differs from the stored candidate is listed, and the import waits for confirmation: confirming attaches the line to that candidate and keeps the stored data. An import never overwrites a stored name or identifier; it only fills in one the candidate lacks. To correct a candidate, edit it on its own screen.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'Only a draft notice can be deleted, and its imported lists and adjutancy links go with it. A published notice is closed instead, so its calls and its history stay.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'A candidate linked to an account reads their own data unmasked, so a link is a grant of access. Nobody can link a candidate to their own account. Without the PII capability, a candidate can only be linked to the account that carries its own CPF, RF or e-mail. Every link and unlink is recorded in the activity log and in the candidate\'s history.', 'ffcertificate' ); ?></p>
+	<p><?php esc_html_e( 'A candidate\'s edit screen shows its sections as tabs: General, Sensitive data, Classifications, History and Permanent deletion, each with its own save. Beside them a summary names the linked account and counts the classifications, the calls and the latest activity.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The REST API edits a candidate under the edit screen\'s rules: name, phone and notes for the manage capability, the e-mail only for whoever may reveal it, CPF and RF never, and every change logged. Every reveal of a CPF, RF or e-mail is logged; there is no setting to turn that off. The PCD filter of the public list exists only when the notice shows the PCD column, and the candidate\'s own API answer carries the score only when the notice shows it, never the staff fields of a call.', 'ffcertificate' ); ?></p>
 
+	<p><?php esc_html_e( 'The notice screen shows its sections as tabs: Classifications, which opens first, Calls, General with the status below the notice\'s own fields, Adjutancies and Import candidates. Beside them sit the shortcode that shows the notice on the site and a summary of the status, the adjutancies, each list\'s rows and the calls.', 'ffcertificate' ); ?></p>
 	<p><?php esc_html_e( 'The notice screen opens to everyone who can view recruitment. A Viewer reads the lists. An Operator also calls candidates, records outcomes (accepted, not shown, hired, withdrew) and cancels or reopens the calls they made. The notice\'s name, public columns, status and adjutancies, the preliminary statuses, imports, deletion and undoing a decision stay with the Manager, who can also cancel any call.', 'ffcertificate' ); ?></p>
 
 	<h4><?php esc_html_e( 'Capabilities', 'ffcertificate' ); ?></h4>
@@ -102,7 +105,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tr><td><code>ffc_import_recruitment</code> / <code>ffc_call_recruitment</code></td><td><?php esc_html_e( 'import candidates / call candidates, record outcomes and cancel their own calls.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_delete_recruitment</code></td><td><?php esc_html_e( 'delete notices, candidates and adjutancies.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_reasons</code> / <code>ffc_manage_recruitment_reasons</code></td><td><?php esc_html_e( 'view / edit the reason catalog.', 'ffcertificate' ); ?></td></tr>
-			<tr><td><code>ffc_view_recruitment_settings</code> / <code>ffc_manage_recruitment_settings</code></td><td><?php esc_html_e( 'view / save the Settings tab.', 'ffcertificate' ); ?></td></tr>
+			<tr><td><code>ffc_view_recruitment_settings</code> / <code>ffc_manage_recruitment_settings</code></td><td><?php esc_html_e( 'view / save the Settings page.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_pii</code></td><td><?php esc_html_e( 'reveal unmasked CPF/RF/email — without it those columns stay masked.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_export_recruitment</code></td><td><?php esc_html_e( 'download a notice\'s definitive list and its calls as CSV. Held by the FFC Recruitment - Manager and Administrator roles.', 'ffcertificate' ); ?></td></tr>
 			<tr><td><code>ffc_view_recruitment_history</code></td><td><?php esc_html_e( 'see who made and who cancelled each call, on the definitive list and in the Calls record. Held by the FFC Recruitment - Administrator role and by WordPress administrators.', 'ffcertificate' ); ?></td></tr>

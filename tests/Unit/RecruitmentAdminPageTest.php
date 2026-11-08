@@ -45,6 +45,8 @@ class RecruitmentAdminPageTest extends TestCase {
 		class_exists( '\FreeFormCertificate\Recruitment\RecruitmentAdminPageRenderer' );
 
 		Functions\when( '__' )->returnArg();
+		// The section order is sorted by label; LabelSorter reads the locale.
+		Functions\when( 'get_locale' )->justReturn( 'en_US' );
 		Functions\when( 'esc_html__' )->returnArg();
 		Functions\when( 'esc_html' )->returnArg();
 		Functions\when( 'esc_attr' )->returnArg();
@@ -157,7 +159,7 @@ class RecruitmentAdminPageTest extends TestCase {
 		$_GET = array();
 	}
 
-	public function test_highlight_active_tab_defaults_to_notices_without_tab(): void {
+	public function test_highlight_active_tab_defaults_to_the_dashboard_without_tab(): void {
 		$_GET = array( 'page' => 'ffc-recruitment' );
 		$this->assertSame(
 			'ffc-recruitment',
@@ -178,7 +180,23 @@ class RecruitmentAdminPageTest extends TestCase {
 		$_GET = array();
 	}
 
-	public function test_highlight_active_tab_falls_back_to_notices_for_invalid_tab(): void {
+	public function test_next_code_after_counts_the_last_number_that_is_not_a_year(): void {
+		$this->assertSame( 'EDT-0006/2026', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( 'EDT-0005/2026' ) );
+		$this->assertSame( 'EDITAL-2026-02', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( 'EDITAL-2026-01' ) );
+		$this->assertSame( 'N10', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( 'N9' ) );
+		$this->assertSame( '', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( 'EDITAL-2026' ), 'only a year: nothing to count from' );
+		$this->assertSame( '', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( 'ABC' ) );
+		$this->assertSame( '', \FreeFormCertificate\Recruitment\RecruitmentNoticeReader::next_code_after( '' ), 'no notice yet' );
+	}
+
+	public function test_section_url_is_the_bare_page_for_the_dashboard(): void {
+		Functions\when( 'admin_url' )->alias( static fn( $p = '' ) => 'https://example.com/wp-admin/' . $p );
+		Functions\when( 'add_query_arg' )->alias( static fn( $args, $url ) => $url . '?' . http_build_query( $args ) );
+		$this->assertSame( 'https://example.com/wp-admin/admin.php?page=ffc-recruitment', RecruitmentAdminPage::section_url( 'dashboard' ) );
+		$this->assertSame( 'https://example.com/wp-admin/admin.php?page=ffc-recruitment&tab=notices', RecruitmentAdminPage::section_url( 'notices' ) );
+	}
+
+	public function test_highlight_active_tab_falls_back_to_the_dashboard_for_invalid_tab(): void {
 		$_GET = array(
 			'page' => 'ffc-recruitment',
 			'tab'  => 'bogus',

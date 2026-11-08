@@ -65,10 +65,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 				// Honeypot field (defense-in-depth — form already requires login).
 				?>
-				<div class="ffc-honeypot-field">
-					<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
-						<input type="text" name="ffc_honeypot_trap" value="" tabindex="-1" autocomplete="off">
-					</label>
+				<div class="ffc-rereg-honeypot">
+					<div class="ffc-honeypot-field" aria-hidden="true">
+						<label><?php esc_html_e( 'Do not fill this field if you are human:', 'ffcertificate' ); ?>
+							<input type="text" name="<?php echo esc_attr( \FreeFormCertificate\Core\Honeypot::TRAP_FIELD ); ?>" value="" tabindex="-1" autocomplete="off">
+						</label>
+					</div>
 				</div>
 
 				<div class="ffc-rereg-actions">

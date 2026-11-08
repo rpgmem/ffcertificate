@@ -42,6 +42,16 @@ class PiiRevealTest extends TestCase {
 		$this->assertStringStartsWith( '<p class="ffc-pii-reveal-bar">', $html );
 	}
 
+	public function test_a_page_whose_reveal_is_not_recorded_does_not_say_it_is(): void {
+		Functions\when( 'user_can' )->alias( static fn( $uid, $cap ) => 'ffc_view_activity_log_pii' === $cap );
+
+		$html = PiiReveal::page_button( 'ffc_view_activity_log_pii', false );
+
+		$this->assertStringContainsString( 'ffc-reveal-pii-page', $html );
+		$this->assertStringContainsString( 'Shows every masked value listed here.', $html );
+		$this->assertStringNotContainsString( 'recorded in the activity log', $html );
+	}
+
 	public function test_the_field_button_carries_the_hook_and_its_data(): void {
 		$html = PiiReveal::field_button(
 			array(
@@ -71,8 +81,11 @@ class PiiRevealTest extends TestCase {
 		$enqueued  = array();
 		$localized = array();
 		Functions\when( '__' )->returnArg();
+		// ffc-core goes through AssetRegistry, which registers it first (#2344);
+		// false is WordPress's answer for a handle already registered.
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		Functions\when( 'wp_enqueue_script' )->alias(
-			static function ( $handle, $src, $deps ) use ( &$enqueued ) {
+			static function ( $handle, $src = '', $deps = array() ) use ( &$enqueued ) {
 				$enqueued[ $handle ] = array( $src, $deps );
 			}
 		);
@@ -85,6 +98,7 @@ class PiiRevealTest extends TestCase {
 		PiiReveal::enqueue_assets();
 
 		$this->assertArrayHasKey( 'ffc-pii-reveal', $enqueued );
+		$this->assertArrayHasKey( 'ffc-core', $enqueued, 'Its dependency is enqueued through the registry.' );
 		$this->assertSame( array( 'jquery', 'ffc-core' ), $enqueued['ffc-pii-reveal'][1] );
 		$this->assertMatchesRegularExpression( '#assets/js/ffc-pii-reveal(\.min)?\.js$#', $enqueued['ffc-pii-reveal'][0] );
 		$this->assertSame( 'ffcPiiReveal', $localized['ffc-pii-reveal'][0] );

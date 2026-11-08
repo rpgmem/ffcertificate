@@ -35,7 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     context: string|null,
  *     user_id: numeric-string|null,
  *     user_ip: string|null,
- *     created_at: string,
+ *     created_at: numeric-string,
  *     context_encrypted?: string|null,
  *     user_ip_encrypted?: string|null
  * }
@@ -89,45 +89,7 @@ class ActivityLogQuery {
 
 		$args = wp_parse_args( $args, $defaults );
 
-		$where = array( '1=1' );
-
-		if ( $args['level'] ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $args, 'level' ) ) );
-		}
-		if ( $args['action'] ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $args, 'action' ) ) );
-		}
-		if ( is_array( $args['action_in'] ) && ! empty( $args['action_in'] ) ) {
-			// Sanitized + bounded — each value passes through
-			// sanitize_text_field and the SET is built from a fixed-count
-			// `%s` placeholder run that matches $sanitized one-for-one.
-			$sanitized    = array_values(
-				array_unique(
-					array_map(
-						static fn( $action ): string => sanitize_text_field( is_scalar( $action ) ? (string) $action : '' ),
-						$args['action_in']
-					)
-				)
-			);
-			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
-			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
-		}
-		if ( $args['user_id'] ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
-		}
-		if ( $args['date_from'] ) {
-			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
-		}
-		if ( $args['date_to'] ) {
-			$where[] = $wpdb->prepare( 'created_at <= %s', sanitize_text_field( $args['date_to'] ) );
-		}
-		if ( $args['search'] ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $args );
 
 		$allowed_orderby = array( 'id', 'action', 'level', 'user_id', 'created_at' );
 		$orderby         = in_array( $args['orderby'], $allowed_orderby, true ) ? $args['orderby'] : 'created_at';
@@ -170,20 +132,7 @@ class ActivityLogQuery {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'ffc_activity_log';
 
-		$where = array( '1=1' );
-
-		if ( ! empty( $filters['level'] ) ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( ArrayValue::string( $filters, 'level' ) ) );
-		}
-		if ( ! empty( $filters['action'] ) ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( ArrayValue::string( $filters, 'action' ) ) );
-		}
-		if ( ! empty( $filters['search'] ) ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( ArrayValue::string( $filters, 'search' ) ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $filters );
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -272,6 +221,55 @@ class ActivityLogQuery {
 	}
 
 	/**
+	 * Transient holding the accounts that appear in the log (#2340).
+	 */
+	private const USERS_CACHE_KEY = 'ffc_activity_log_distinct_users';
+
+	/**
+	 * Every account id that appears in the log, for the screen's user filter
+	 * (#2340). Cached like the action vocabulary: a new account appears in
+	 * the filter within the hour, which is what the filter needs.
+	 *
+	 * @return list<int>
+	 */
+	public static function distinct_users(): array {
+		$cached = \get_transient( self::USERS_CACHE_KEY );
+		if ( is_array( $cached ) ) {
+			return self::user_ids( $cached );
+		}
+
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT DISTINCT user_id FROM %i WHERE user_id IS NOT NULL AND user_id > 0 ORDER BY user_id ASC', $wpdb->prefix . 'ffc_activity_log' )
+		);
+		if ( ! is_array( $ids ) ) {
+			return array();
+		}
+
+		$list = self::user_ids( $ids );
+		\set_transient( self::USERS_CACHE_KEY, $list, self::ACTIONS_CACHE_TTL );
+
+		return $list;
+	}
+
+	/**
+	 * Positive account ids out of a stored or read list.
+	 *
+	 * @param array<mixed> $values Raw values.
+	 * @return list<int>
+	 */
+	private static function user_ids( array $values ): array {
+		$ids = array();
+		foreach ( $values as $value ) {
+			$id = is_numeric( $value ) ? (int) $value : 0;
+			if ( $id > 0 ) {
+				$ids[] = $id;
+			}
+		}
+		return $ids;
+	}
+
+	/**
 	 * Privacy / user-cleanup helper — `SET user_id = NULL` on every log
 	 * row that referenced the supplied wp_user, so the audit trail
 	 * survives a user deletion without leaking the orphaned numeric ID
@@ -308,6 +306,42 @@ class ActivityLogQuery {
 		$rows = $wpdb->query(
 			$wpdb->prepare(
 				'UPDATE %i SET user_id = NULL WHERE user_id = %d',
+				$table_name,
+				$user_id
+			)
+		);
+		return is_int( $rows ) ? $rows : 0;
+	}
+
+	/**
+	 * Erasure-request helper (#2343): what {@see self::redact_user_id()} does,
+	 * plus the person's own data on those rows -- the client address, in both
+	 * the encrypted column and the legacy plain one, and the encrypted context.
+	 *
+	 * The line itself stays: it is the audit record of what happened, and the
+	 * plain `context` is the operator-facing summary the log screen shows.
+	 * Account deletion keeps calling `redact_user_id()`, because deleting an
+	 * account is not an erasure request (CLAUDE.md "Security & PII
+	 * conventions").
+	 *
+	 * @param int $user_id WP user ID whose rows are erased.
+	 * @return int Number of log rows rewritten.
+	 */
+	public static function erase_user_data( int $user_id ): int {
+		global $wpdb;
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+
+		$exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+		if ( $exists !== $table_name ) {
+			return 0;
+		}
+
+		$rows = $wpdb->query(
+			$wpdb->prepare(
+				'UPDATE %i SET user_id = NULL, user_ip = NULL, user_ip_encrypted = NULL, context_encrypted = NULL WHERE user_id = %d',
 				$table_name,
 				$user_id
 			)
@@ -392,29 +426,7 @@ class ActivityLogQuery {
 
 		$args = wp_parse_args( $args, $defaults );
 
-		$where = array( '1=1' );
-
-		if ( $args['level'] ) {
-			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( $args['level'] ) );
-		}
-		if ( $args['action'] ) {
-			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $args['action'] ) );
-		}
-		if ( $args['user_id'] ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', absint( $args['user_id'] ) );
-		}
-		if ( $args['date_from'] ) {
-			$where[] = $wpdb->prepare( 'created_at >= %s', sanitize_text_field( $args['date_from'] ) );
-		}
-		if ( $args['date_to'] ) {
-			$where[] = $wpdb->prepare( 'created_at <= %s', sanitize_text_field( $args['date_to'] ) );
-		}
-		if ( $args['search'] ) {
-			$search  = '%' . $wpdb->esc_like( sanitize_text_field( $args['search'] ) ) . '%';
-			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $search, $search );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$where_clause = self::where_clause( $args );
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -422,6 +434,109 @@ class ActivityLogQuery {
 				$table_name
 			)
 		);
+	}
+
+	/**
+	 * Value of the user filter that selects the entries no account made:
+	 * the system, a cron run, an anonymous visitor (#2340).
+	 */
+	public const USER_SYSTEM = 'system';
+
+	/**
+	 * The WHERE clause of a filtered read, shared by the screen, its count
+	 * and the export, so the three cannot disagree about what a filter means.
+	 *
+	 * Filters: `level`, `action`, `action_in` (a list), `user_id` (an id, or
+	 * {@see self::USER_SYSTEM} for entries with no user), `date_from` /
+	 * `date_to` (see {@see self::instant()}) and `search`.
+	 *
+	 * @param array<string, mixed> $args Filters; missing or empty ones are ignored.
+	 * @return string Prepared conditions joined by AND, `1=1` when there are none.
+	 */
+	public static function where_clause( array $args ): string {
+		global $wpdb;
+		$where = array( '1=1' );
+
+		$level = ArrayValue::string( $args, 'level' );
+		if ( '' !== $level ) {
+			$where[] = $wpdb->prepare( 'level = %s', sanitize_key( $level ) );
+		}
+		$action = ArrayValue::string( $args, 'action' );
+		if ( '' !== $action ) {
+			$where[] = $wpdb->prepare( 'action = %s', sanitize_text_field( $action ) );
+		}
+		if ( isset( $args['action_in'] ) && is_array( $args['action_in'] ) && array() !== $args['action_in'] ) {
+			// Sanitized + bounded — each value passes through
+			// sanitize_text_field and the SET is built from a fixed-count
+			// `%s` placeholder run that matches $sanitized one-for-one.
+			$sanitized    = array_values(
+				array_unique(
+					array_map(
+						static fn( $item ): string => sanitize_text_field( is_scalar( $item ) ? (string) $item : '' ),
+						$args['action_in']
+					)
+				)
+			);
+			$placeholders = implode( ',', array_fill( 0, count( $sanitized ), '%s' ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $placeholders is a compile-time `%s,%s,...` string whose count matches $sanitized one-for-one; values are bound by wpdb->prepare.
+			$where[] = $wpdb->prepare( "action IN ({$placeholders})", $sanitized );
+		}
+		$user = $args['user_id'] ?? null;
+		if ( self::USER_SYSTEM === $user ) {
+			$where[] = 'user_id IS NULL';
+		} elseif ( is_numeric( $user ) && absint( $user ) > 0 ) {
+			$where[] = $wpdb->prepare( 'user_id = %d', absint( $user ) );
+		}
+		$date_from = self::instant( $args['date_from'] ?? null );
+		if ( null !== $date_from ) {
+			$where[] = $wpdb->prepare( 'created_at >= %d', $date_from );
+		}
+		$date_to = self::instant( $args['date_to'] ?? null, true );
+		if ( null !== $date_to ) {
+			$where[] = $wpdb->prepare( 'created_at <= %d', $date_to );
+		}
+		$search = ArrayValue::string( $args, 'search' );
+		if ( '' !== $search ) {
+			$like    = '%' . $wpdb->esc_like( sanitize_text_field( $search ) ) . '%';
+			$where[] = $wpdb->prepare( '(action LIKE %s OR context LIKE %s)', $like, $like );
+		}
+
+		return implode( ' AND ', $where );
+	}
+
+	/**
+	 * A date filter as UTC seconds (#2340), or null when there is none.
+	 *
+	 * `created_at` stores instants, so a bound is one too. Seconds are taken
+	 * as they are; a date or date-time string is read in the site's timezone,
+	 * which is what an operator typing a date means. A bare date that ends a
+	 * range takes in the whole of that day.
+	 *
+	 * @param mixed $value      Seconds, or a site-local `Y-m-d[ H:i:s]`.
+	 * @param bool  $end_of_day Whether a bare date stands for its last second.
+	 * @return int|null
+	 */
+	public static function instant( $value, bool $end_of_day = false ): ?int {
+		if ( is_int( $value ) ) {
+			return $value > 0 ? $value : null;
+		}
+		if ( ! is_string( $value ) || '' === trim( $value ) ) {
+			return null;
+		}
+		$value = trim( $value );
+		if ( ctype_digit( $value ) ) {
+			return (int) $value > 0 ? (int) $value : null;
+		}
+		try {
+			$moment = new \DateTimeImmutable( sanitize_text_field( $value ), wp_timezone() );
+			if ( $end_of_day && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+				$moment = $moment->setTime( 23, 59, 59 );
+			}
+			return $moment->getTimestamp();
+		} catch ( \Exception $e ) {
+			unset( $e );
+			return null;
+		}
 	}
 
 	/**
@@ -445,13 +560,12 @@ class ActivityLogQuery {
 		}
 
 		global $wpdb;
-		$table_name   = $wpdb->prefix . 'ffc_activity_log';
-		$date_from_ts = strtotime( "-{$days} days" );
-		$date_from    = gmdate( 'Y-m-d H:i:s', $date_from_ts ? $date_from_ts : time() );
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$date_from  = time() - max( 0, $days ) * DAY_IN_SECONDS;
 
 		$total = $wpdb->get_var(
 			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE created_at >= %s',
+				'SELECT COUNT(*) FROM %i WHERE created_at >= %d',
 				$table_name,
 				$date_from
 			)
@@ -459,7 +573,7 @@ class ActivityLogQuery {
 
 		$by_level = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT level, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY level',
+				'SELECT level, COUNT(*) as count FROM %i WHERE created_at >= %d GROUP BY level',
 				$table_name,
 				$date_from
 			),
@@ -468,7 +582,7 @@ class ActivityLogQuery {
 
 		$top_actions = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT action, COUNT(*) as count FROM %i WHERE created_at >= %s GROUP BY action ORDER BY count DESC LIMIT 10',
+				'SELECT action, COUNT(*) as count FROM %i WHERE created_at >= %d GROUP BY action ORDER BY count DESC LIMIT 10',
 				$table_name,
 				$date_from
 			),
@@ -477,7 +591,7 @@ class ActivityLogQuery {
 
 		$top_users = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT user_id, COUNT(*) as count FROM %i WHERE created_at >= %s AND user_id > 0 GROUP BY user_id ORDER BY count DESC LIMIT 10',
+				'SELECT user_id, COUNT(*) as count FROM %i WHERE created_at >= %d AND user_id > 0 GROUP BY user_id ORDER BY count DESC LIMIT 10',
 				$table_name,
 				$date_from
 			),
@@ -559,9 +673,21 @@ class ActivityLogQuery {
 	 * @return string The address, or '' when the entry or its address is missing.
 	 */
 	public static function ip_of( int $id ): string {
+		$entry = self::entry_of( $id );
+		return null === $entry ? '' : $entry['user_ip'];
+	}
+
+	/**
+	 * One entry's decrypted address and details, read once, for the audited
+	 * Reveal (#2340).
+	 *
+	 * @param int $id Log row id.
+	 * @return array{user_ip: string, context: array<string, mixed>}|null Null when the row is missing.
+	 */
+	public static function entry_of( int $id ): ?array {
 		global $wpdb;
 		if ( $id <= 0 ) {
-			return '';
+			return null;
 		}
 
 		/**
@@ -577,50 +703,171 @@ class ActivityLogQuery {
 			),
 			ARRAY_A
 		);
+		if ( ! is_array( $row ) ) {
+			return null;
+		}
 
-		return is_array( $row ) ? (string) self::resolve_ip( $row ) : '';
-	}
-
-	/**
-	 * Clean old logs
-	 *
-	 * @param int $days Keep logs from last N days (default: 90).
-	 * @return int Number of deleted rows
-	 */
-	public static function cleanup( int $days = 90 ): int {
-		global $wpdb;
-		$table_name     = $wpdb->prefix . 'ffc_activity_log';
-		$cutoff_date_ts = strtotime( "-{$days} days" );
-		$cutoff_date    = gmdate( 'Y-m-d H:i:s', $cutoff_date_ts ? $cutoff_date_ts : time() );
-
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				'DELETE FROM %i WHERE created_at < %s',
-				$table_name,
-				$cutoff_date
-			)
+		return array(
+			'user_ip' => (string) self::resolve_ip( $row ),
+			'context' => self::resolve_context( $row ),
 		);
-
-		delete_transient( 'ffc_activity_stats_7' );
-		delete_transient( 'ffc_activity_stats_30' );
-		delete_transient( 'ffc_activity_stats_90' );
-
-		return (int) $deleted;
 	}
 
 	/**
-	 * Run automatic log cleanup (called by daily cron)
+	 * Rows one retention statement deletes at most (#2340).
+	 */
+	public const CLEANUP_BATCH = 5000;
+
+	/**
+	 * Statements one cleanup run may issue, across both limits (#2340).
+	 *
+	 * 20 x 5,000 rows a run. A log larger than that past its limits is
+	 * finished by a follow-up run a minute later, so no request deletes an
+	 * unbounded number of rows.
+	 */
+	public const CLEANUP_BATCHES_PER_RUN = 20;
+
+	/**
+	 * Single event that carries on a cleanup the budget cut short (#2340).
+	 */
+	public const CLEANUP_CONTINUE_HOOK = 'ffc_activity_log_cleanup_continue';
+
+	/**
+	 * Delete the entries older than a number of days, in bounded statements.
+	 *
+	 * @param int $days    Keep the entries of the last N days.
+	 * @param int $batches Statements this call may issue.
+	 * @return array{deleted: int, batches: int, more: bool} Rows deleted, statements issued, and whether rows past the limit remain.
+	 */
+	public static function cleanup( int $days = 90, int $batches = self::CLEANUP_BATCHES_PER_RUN ): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$cutoff     = time() - max( 0, $days ) * DAY_IN_SECONDS;
+
+		return self::delete_in_batches(
+			(string) $wpdb->prepare( 'DELETE FROM %i WHERE created_at < %d ORDER BY id LIMIT %d', $table_name, $cutoff, self::CLEANUP_BATCH ),
+			$batches
+		);
+	}
+
+	/**
+	 * Run the cleanup: the retention window, then the record cap.
+	 *
+	 * Called by the daily cron and by its follow-up event, never by a page
+	 * load. When the budget of one run is spent with rows still past a
+	 * limit, a follow-up run is scheduled.
 	 *
 	 * @since 4.6.9
 	 * @return int Number of deleted rows
 	 */
 	public static function run_cleanup(): int {
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
+		$budget         = self::CLEANUP_BATCHES_PER_RUN;
 
-		if ( $retention_days <= 0 ) {
-			return 0;
+		$by_age = $retention_days > 0 ? self::cleanup( $retention_days, $budget ) : array(
+			'deleted' => 0,
+			'batches' => 0,
+			'more'    => false,
+		);
+		$by_cap = $by_age['more']
+			? array(
+				'deleted' => 0,
+				'batches' => 0,
+				'more'    => true,
+			)
+			: self::trim_to( \FreeFormCertificate\Settings\SettingsReader::activity_log_max_records(), $budget - $by_age['batches'] );
+
+		$deleted = $by_age['deleted'] + $by_cap['deleted'];
+		if ( $deleted > 0 ) {
+			self::forget_stats();
+		}
+		if ( ( $by_age['more'] || $by_cap['more'] ) && function_exists( 'wp_next_scheduled' ) && ! wp_next_scheduled( self::CLEANUP_CONTINUE_HOOK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::CLEANUP_CONTINUE_HOOK );
 		}
 
-		return self::cleanup( $retention_days );
+		return $deleted;
+	}
+
+	/**
+	 * Delete the oldest rows beyond a record cap (#2338), in bounded statements.
+	 *
+	 * @param int $max_records Rows to keep.
+	 * @param int $batches     Statements this call may issue.
+	 * @return array{deleted: int, batches: int, more: bool} Rows deleted, statements issued, and whether rows past the cap remain.
+	 */
+	public static function trim_to( int $max_records, int $batches = self::CLEANUP_BATCHES_PER_RUN ): array {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'ffc_activity_log';
+		$none       = array(
+			'deleted' => 0,
+			'batches' => 0,
+			'more'    => false,
+		);
+
+		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table_name ) );
+		if ( $max_records < 1 || $count <= $max_records ) {
+			return $none;
+		}
+
+		// The id of the newest row that falls outside the cap; it and every
+		// older row go.
+		$cutoff_id = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT id FROM %i ORDER BY id DESC LIMIT 1 OFFSET %d',
+				$table_name,
+				$max_records
+			)
+		);
+		if ( $cutoff_id < 1 ) {
+			return $none;
+		}
+
+		return self::delete_in_batches(
+			(string) $wpdb->prepare( 'DELETE FROM %i WHERE id <= %d ORDER BY id LIMIT %d', $table_name, $cutoff_id, self::CLEANUP_BATCH ),
+			$batches
+		);
+	}
+
+	/**
+	 * Run one DELETE statement until it deletes less than its limit or the
+	 * budget is spent.
+	 *
+	 * @param string $statement Prepared DELETE statement carrying its LIMIT.
+	 * @param int    $batches   Statements allowed.
+	 * @return array{deleted: int, batches: int, more: bool}
+	 */
+	private static function delete_in_batches( string $statement, int $batches ): array {
+		global $wpdb;
+		$deleted = 0;
+		$issued  = 0;
+		$more    = false;
+		while ( $issued < $batches ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $statement is the output of $wpdb->prepare() built by the two callers above.
+			$affected = $wpdb->query( $statement );
+			++$issued;
+			$affected = is_int( $affected ) ? $affected : 0;
+			$deleted += $affected;
+			$more     = self::CLEANUP_BATCH === $affected;
+			if ( ! $more ) {
+				break;
+			}
+		}
+
+		return array(
+			'deleted' => $deleted,
+			'batches' => $issued,
+			'more'    => $more,
+		);
+	}
+
+	/**
+	 * Drop the cached stats after rows left.
+	 *
+	 * @return void
+	 */
+	private static function forget_stats(): void {
+		delete_transient( 'ffc_activity_stats_7' );
+		delete_transient( 'ffc_activity_stats_30' );
+		delete_transient( 'ffc_activity_stats_90' );
 	}
 }

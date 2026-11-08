@@ -101,6 +101,9 @@ class Loader {
 		// The administrator's public design, printed after `ffc-common` on
 		// public pages (Settings → Public Design).
 		\FreeFormCertificate\Core\PublicDesign::init();
+		// The page each form or calendar is embedded on, kept as pages are
+		// saved, so the CSV screen does not search post content (#2341).
+		\FreeFormCertificate\Core\ShortcodePage::init();
 		$this->define_activation_hooks();
 	}
 
@@ -108,6 +111,11 @@ class Loader {
 	 * Initialize plugin.
 	 */
 	public function init_plugin(): void {
+		// Core schema an in-place update never received from activate(): the
+		// submissions table, its UNIQUE auth_code, composite indexes and the
+		// user foreign keys (#2343). Once per FFC_VERSION.
+		\FreeFormCertificate\Activator::maybe_upgrade_schema();
+
 		// Ensure submissions table schema is current (runs add_columns on version change).
 		\FreeFormCertificate\Activator::maybe_add_columns();
 
@@ -427,6 +435,9 @@ class Loader {
 		// Registered unconditionally — IP resolution and WP-Cron both run
 		// outside is_admin(), so this must not sit behind an admin-only gate.
 		\FreeFormCertificate\Settings\IpResolverSettingsBridge::init();
+		// Counts the requests whose forwarded header the legacy strategy
+		// trusted and the secure one would not (#2339), for IP Diagnostics.
+		\FreeFormCertificate\Core\IpHeaderDivergence::init();
 
 		// Saving a form purges the page caches that embed it. Wired here,
 		// explicitly, rather than by an `add_action( 'init', … )` at the
@@ -546,30 +557,23 @@ class Loader {
 		// `init` because it queries the form post type.
 		add_action( 'init', array( \FreeFormCertificate\Security\GeofenceWindowMessages::class, 'maybe_migrate' ), 20 );
 
-		$this->ensure_admin_capabilities();
-		$this->ensure_admin_role_assigned();
-		$this->ensure_taxonomy_renamed();
-		$this->ensure_delete_caps_granted();
-		$this->ensure_export_caps_granted();
-		$this->ensure_import_caps_granted();
-		$this->ensure_reasons_caps_wired();
-		$this->ensure_settings_split_caps_granted();
-		$this->ensure_email_templates_cap_granted();
-		$this->ensure_identities_cap_granted();
-		$this->ensure_identity_verbs_cap_granted();
-		$this->ensure_grade_cap_granted();
-		$this->ensure_reregistration_pii_cap_granted();
-		$this->ensure_audiences_pii_cap_granted();
-		$this->ensure_ip_pii_caps_granted();
-		$this->ensure_forms_api_submit_cap_granted();
+		// Carry the activity log's categories onto its items and switch the
+		// log on, once (#2340). A flag in `ffc_settings` makes every later
+		// request a read of the already-loaded option.
+		add_action( 'init', array( \FreeFormCertificate\Core\ActivityLogItems::class, 'maybe_migrate' ), 20 );
+
+		// Encrypt an SMTP password saved before it was encrypted at rest
+		// (#2342). `admin_init` so a front-end request never writes the
+		// option; no flag, because an encrypted value returns at once.
+		add_action( 'admin_init', array( \FreeFormCertificate\Integrations\SmtpPassword::class, 'maybe_encrypt_stored' ) );
+
 		$this->ensure_recruitment_email_migrated();
-		$this->ensure_activity_log_export_cap_granted();
-		$this->ensure_url_shortener_export_cap_granted();
-		$this->ensure_date_messages_send_cap_granted();
-		$this->ensure_rbac_caps_renamed();
-		$this->ensure_rbac_roles_renamed();
-		$this->ensure_false_ffc_caps_stripped();
-		$this->ensure_import_capability_granted();
+
+		// `init` priority 2, right after register_ffc_roles_safe() (init:1):
+		// several of these migrations register roles, whose labels call
+		// `__()`, and WordPress 6.7+ reports translations loaded before
+		// `init` (#2340). The roles they act on exist by then.
+		add_action( 'init', array( $this, 'run_capability_migrations' ), 2 );
 		$this->define_admin_hooks();
 		$this->init_rest_api();
 	}
@@ -708,6 +712,102 @@ class Loader {
 		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_role();
 		\FreeFormCertificate\UserDashboard\RoleRegistrar::register_module_roles();
 		update_option( $flag, '1', true );
+	}
+
+	/**
+	 * Option holding the capability migrations' lock (#2340).
+	 */
+	public const CAPABILITY_MIGRATIONS_LOCK = 'ffc_capability_migrations_lock';
+
+	/**
+	 * Seconds after which a lock left by a request that died is taken over.
+	 */
+	private const CAPABILITY_MIGRATIONS_LOCK_TTL = 600;
+
+	/**
+	 * Run the one-shot capability and role migrations (#2340).
+	 *
+	 * Each keeps its own completion flag and returns at once when it is set,
+	 * so on an up-to-date install this costs one option read per migration.
+	 * The work itself runs only in wp-admin, in a cron run or under WP-CLI,
+	 * never in a front-end request, and one request at a time: the first
+	 * request after an update takes the lock, and a concurrent one skips the
+	 * whole set rather than repeating it. A request that dies mid-way leaves
+	 * the later flags unset and its lock expires, so the next one resumes
+	 * where it stopped.
+	 *
+	 * @return void
+	 */
+	public function run_capability_migrations(): void {
+		if ( ! self::may_run_capability_migrations() ) {
+			return;
+		}
+		if ( ! self::take_capability_migrations_lock() ) {
+			return;
+		}
+		try {
+			$this->ensure_admin_capabilities();
+			$this->ensure_admin_role_assigned();
+			$this->ensure_taxonomy_renamed();
+			$this->ensure_delete_caps_granted();
+			$this->ensure_export_caps_granted();
+			$this->ensure_import_caps_granted();
+			$this->ensure_reasons_caps_wired();
+			$this->ensure_settings_split_caps_granted();
+			$this->ensure_email_templates_cap_granted();
+			$this->ensure_identities_cap_granted();
+			$this->ensure_identity_verbs_cap_granted();
+			$this->ensure_grade_cap_granted();
+			$this->ensure_reregistration_pii_cap_granted();
+			$this->ensure_audiences_pii_cap_granted();
+			$this->ensure_ip_pii_caps_granted();
+			$this->ensure_forms_api_submit_cap_granted();
+			$this->ensure_activity_log_export_cap_granted();
+			$this->ensure_url_shortener_export_cap_granted();
+			$this->ensure_date_messages_send_cap_granted();
+			$this->ensure_date_messages_delete_cap_granted();
+			$this->ensure_rbac_caps_renamed();
+			$this->ensure_rbac_roles_renamed();
+			$this->ensure_false_ffc_caps_stripped();
+			$this->ensure_import_capability_granted();
+		} finally {
+			delete_option( self::CAPABILITY_MIGRATIONS_LOCK );
+		}
+	}
+
+	/**
+	 * Whether this request may run the capability migrations: wp-admin
+	 * (admin-ajax included), a cron run or WP-CLI, never the front end.
+	 *
+	 * @return bool
+	 */
+	private static function may_run_capability_migrations(): bool {
+		return is_admin()
+			|| ( function_exists( 'wp_doing_cron' ) && wp_doing_cron() )
+			|| ( defined( 'WP_CLI' ) && WP_CLI );
+	}
+
+	/**
+	 * Take the capability migrations' lock, or say another request holds it.
+	 *
+	 * `add_option()` is atomic on its unique key, so of two requests that
+	 * arrive together only one creates the row. A lock older than its TTL
+	 * belongs to a request that died and is taken over.
+	 *
+	 * @return bool
+	 */
+	private static function take_capability_migrations_lock(): bool {
+		$now = time();
+		if ( add_option( self::CAPABILITY_MIGRATIONS_LOCK, (string) $now, '', false ) ) {
+			return true;
+		}
+		$stored = get_option( self::CAPABILITY_MIGRATIONS_LOCK, 0 );
+		$held   = is_numeric( $stored ) ? (int) $stored : 0;
+		if ( $held > 0 && $now - $held < self::CAPABILITY_MIGRATIONS_LOCK_TTL ) {
+			return false;
+		}
+		update_option( self::CAPABILITY_MIGRATIONS_LOCK, (string) $now, false );
+		return true;
 	}
 
 	/**
@@ -998,6 +1098,21 @@ class Loader {
 	}
 
 	/**
+	 * Seed `ffc_delete_date_messages` onto the current date-message managers
+	 * (#2336). Idempotent + version-flagged via `ffc_date_messages_delete_cap_v1`.
+	 */
+	private function ensure_date_messages_delete_cap_granted(): void {
+		$flag = 'ffc_date_messages_delete_cap_v1';
+		if ( '1' === get_option( $flag, '' ) ) {
+			return;
+		}
+		if ( class_exists( '\FreeFormCertificate\UserDashboard\CapabilityManager' ) ) {
+			\FreeFormCertificate\UserDashboard\CapabilityMigrator::migrate_date_messages_delete_cap_grant();
+		}
+		update_option( $flag, '1', true );
+	}
+
+	/**
 	 * One-time migration that seeds the granular `ffc_export_<domain>` caps
 	 * (GAP G) onto every user/role already holding the matching
 	 * `ffc_manage_<domain>` cap, preserving current bulk-export behavior when the
@@ -1252,6 +1367,34 @@ class Loader {
 			'ffc_daily_cleanup',
 			static function (): void {
 				\FreeFormCertificate\Frontend\ScheduleExceptionSession::cleanup_expired_consumed();
+			}
+		);
+		// #2341: a ticket's claim row outlives the ticket once the list no
+		// longer holds it. Daily is enough: a row is only reaped a day after
+		// its claim, and the default priority keeps it beside the jti reap.
+		add_action(
+			'ffc_daily_cleanup',
+			static function (): void {
+				\FreeFormCertificate\Frontend\AccessRestrictionChecker::reap_stale_claims();
+			}
+		);
+		// #2343: import staging holds cleartext identifiers until its TTL; the
+		// sweeps ran only at the next import. Same TTLs, so nothing is deleted
+		// that the next import would not; outside the module gates, because a
+		// module turned off must not keep its abandoned rows.
+		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Reregistration\ReregistrationImportStagingService::class, 'sweep_stale_jobs' ) );
+		add_action( 'ffc_daily_cleanup', array( \FreeFormCertificate\Recruitment\CsvStagingService::class, 'sweep_stale_jobs' ) );
+		// #2339: a captcha that does not verify counts against the caller's
+		// address, so guessing it spends the per-address budget. Fired from
+		// SecurityService, which sits in Core and cannot reach Security.
+		add_action( 'ffcertificate_captcha_failed', array( \FreeFormCertificate\Security\RateLimitChecker::class, 'record_captcha_failure' ) );
+		// #2339: expired rate-limit windows and device signals past their
+		// retention. The cleanup existed and nothing called it, so the counter
+		// table grew forever and device fingerprints were never let go.
+		add_action(
+			'ffc_daily_cleanup',
+			static function (): void {
+				\FreeFormCertificate\Security\RateLimitLogger::cleanup_expired();
 			}
 		);
 		// Module-specific cron callbacks are bound to their module toggle, so a

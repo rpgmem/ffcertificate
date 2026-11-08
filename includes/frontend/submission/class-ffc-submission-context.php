@@ -122,11 +122,29 @@ class SubmissionContext {
 	public bool $skip_device = false;
 
 	/**
+	 * Whether the per-address gate is bypassed: the authenticated Forms API,
+	 * whose calls all come from one server address (#2342).
+	 *
+	 * @var bool
+	 */
+	public bool $skip_ip = false;
+
+	/**
 	 * Result of the access-restriction check (whitelist/ticket/etc.).
 	 *
 	 * @var array<string, mixed>
 	 */
 	public array $restriction_result = array();
+
+	/**
+	 * Whether this request claimed a one-use ticket that no saved row holds
+	 * yet (#2341). Set by AccessRestrictionGuard; SubmissionPersister settles
+	 * it, consuming the ticket once a row is written and releasing the claim
+	 * when the request ends without one.
+	 *
+	 * @var bool
+	 */
+	public bool $ticket_claim_open = false;
 
 	/**
 	 * The invitation this submission answers (#1948), or null.

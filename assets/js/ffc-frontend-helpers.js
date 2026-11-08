@@ -662,11 +662,17 @@ $inputs.each(function() {
      * BACKWARD COMPATIBILITY (Legacy Support)
      * ==========================================================================
      */
+    // One object carrying both spellings (#2344): the legacy names below,
+    // and the Masks namespace's own names, which ffc-frontend.js once
+    // published by overwriting this object with the namespace.
     window.ffcUtils = {
         // Masks
         applyCpfRfMask: Masks.applyCpfRf,
         applyAuthCodeMask: Masks.applyAuthCode,
         applyTicketMask: Masks.applyTicket,
+        applyCpfRf: Masks.applyCpfRf,
+        applyAuthCode: Masks.applyAuthCode,
+        applyTicket: Masks.applyTicket,
         
         // Validation
         validateCPF: Validation.validateCPF,

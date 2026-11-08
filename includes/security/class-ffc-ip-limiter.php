@@ -60,24 +60,47 @@ class IpLimiter implements RateLimitStrategy {
 			return array( 'allowed' => true );
 		}
 
+		// A caller whose address could not be read is let through or counted
+		// with every other such caller, as the administrator chose (#2339).
+		if ( \FreeFormCertificate\Core\ClientIpResolver::UNKNOWN === $ip && ! \FreeFormCertificate\Settings\RateLimitSettingsReader::submission_counts_unresolved() ) {
+			return array( 'allowed' => true );
+		}
+
 		// Persistent with or without an object cache (#1861).
-		$hc = RateCounter::get( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour' );
+		$hc = RateCounter::get( RateCounter::windowed( 'ffc_rate_ip_' . md5( $who . $form_id ) . '_hour', HOUR_IN_SECONDS ) );
 		if ( $hc >= $s['max_per_hour'] ) {
+			$wait = RateLimitSupport::window_left( HOUR_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'ip_hour_limit',
-				'message'      => $this->support->format_message( $s['message'], array( 'time' => __( '1 hour', 'ffcertificate' ) ) ),
-				'wait_seconds' => 3600,
+				'message'      => $this->support->format_message(
+					$s['message'],
+					array(
+						'count' => $hc,
+						'max'   => (int) $s['max_per_hour'],
+						'wait'  => $wait,
+					)
+				),
+				'wait_seconds' => $wait,
 			);
 		}
 
+		// The day row's window starts at UTC midnight.
 		$dc = RateLimitRepository::get_count_from_db( 'ip', $ip, 'day', $form_id );
 		if ( $dc >= $s['max_per_day'] ) {
+			$wait = RateLimitSupport::window_left( DAY_IN_SECONDS );
 			return array(
 				'allowed'      => false,
 				'reason'       => 'ip_day_limit',
-				'message'      => $this->support->format_message( $s['message'], array( 'time' => __( '24 hours', 'ffcertificate' ) ) ),
-				'wait_seconds' => 86400,
+				'message'      => $this->support->format_message(
+					$s['message'],
+					array(
+						'count' => $dc,
+						'max'   => (int) $s['max_per_day'],
+						'wait'  => $wait,
+					)
+				),
+				'wait_seconds' => $wait,
 			);
 		}
 
@@ -87,10 +110,9 @@ class IpLimiter implements RateLimitStrategy {
 			return array(
 				'allowed'      => false,
 				'reason'       => 'ip_cooldown',
-				'message'      => sprintf(
-					/* translators: %d: number of seconds to wait */
-					__( 'Please wait %d seconds.', 'ffcertificate' ),
-					$w
+				'message'      => $this->support->format_message(
+					__( 'You submitted a moment ago. Please wait {time} before submitting again.', 'ffcertificate' ),
+					array( 'wait' => $w )
 				),
 				'wait_seconds' => $w,
 			);

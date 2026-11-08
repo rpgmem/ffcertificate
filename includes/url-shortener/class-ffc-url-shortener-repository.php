@@ -78,6 +78,15 @@ class UrlShortenerRepository extends AbstractRepository {
 		return 'ffc_short_urls';
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @return array<string, string>
+	 */
+	protected function alternate_cache_keys(): array {
+		return UrlShortenerReader::LOOKUP_CACHE_KEYS;
+	}
+
 	// ─────────────────────────────────────────────.
 	// Reads — delegate to UrlShortenerReader.
 	// ─────────────────────────────────────────────.
@@ -121,6 +130,48 @@ class UrlShortenerRepository extends AbstractRepository {
 	 */
 	public function codeExists( string $code ): bool {
 		return $this->reader->codeExists( $code );
+	}
+
+	/**
+	 * Whether a code was retired (see UrlShortenerReader::codeRetired).
+	 *
+	 * @param string $code Short code.
+	 * @return bool
+	 */
+	public function codeRetired( string $code ): bool {
+		return $this->reader->codeRetired( $code );
+	}
+
+	/**
+	 * Count retired codes (see UrlShortenerReader::countRetired).
+	 *
+	 * @param string $search Search term.
+	 * @return int
+	 */
+	public function countRetired( string $search = '' ): int {
+		return $this->reader->countRetired( $search );
+	}
+
+	/**
+	 * A page of retired codes (see UrlShortenerReader::findRetiredPaginated).
+	 *
+	 * @param string $search   Search term.
+	 * @param int    $page     Page, from 1.
+	 * @param int    $per_page Rows per page.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findRetiredPaginated( string $search, int $page, int $per_page ): array {
+		return $this->reader->findRetiredPaginated( $search, $page, $per_page );
+	}
+
+	/**
+	 * A batch of trashed links (see UrlShortenerReader::findTrashedBatch).
+	 *
+	 * @param int $limit Rows per batch.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findTrashedBatch( int $limit ): array {
+		return $this->reader->findTrashedBatch( $limit );
 	}
 
 	/**
@@ -234,5 +285,67 @@ class UrlShortenerRepository extends AbstractRepository {
 	 */
 	public function setQrCacheForShortCode( string $short_code, string $base64 ): bool {
 		return $this->writer->setQrCacheForShortCode( $short_code, $base64 );
+	}
+
+	/**
+	 * Delete a link and retire its code, both or neither (#2337).
+	 *
+	 * The code is recorded first, inside one transaction, so a code can
+	 * never be free again between the two writes.
+	 *
+	 * @param array<string, mixed> $row    The link row; needs id and short_code.
+	 * @param string               $reason Why it is retired (`deleted`).
+	 * @return bool True when the row was deleted and its code retired.
+	 */
+	public function retireAndDelete( array $row, string $reason ): bool {
+		$id = (int) ( $row['id'] ?? 0 );
+		if ( $id <= 0 || '' === (string) ( $row['short_code'] ?? '' ) ) {
+			return false;
+		}
+
+		$this->begin_transaction();
+		if ( ! $this->writer->retireCode( $row, $reason, time() ) || 1 !== (int) $this->delete( $id ) ) {
+			$this->rollback();
+			return false;
+		}
+		$this->commit();
+
+		return true;
+	}
+
+	/**
+	 * Give a link a new code and retire the old one, both or neither (#2337).
+	 *
+	 * The row keeps its id, clicks, title and target. The QR stored for the
+	 * old code is dropped with it. Lookups under the old and the new code
+	 * are cleared by update().
+	 *
+	 * @param array<string, mixed> $row      The link row; needs id and short_code.
+	 * @param string               $new_code The code it takes.
+	 * @return bool False when the new code was refused or a write failed; the link is then unchanged.
+	 */
+	public function swapCode( array $row, string $new_code ): bool {
+		$id = (int) ( $row['id'] ?? 0 );
+		if ( $id <= 0 || '' === (string) ( $row['short_code'] ?? '' ) || '' === $new_code ) {
+			return false;
+		}
+
+		$this->begin_transaction();
+		$changed = $this->writer->retireCode( $row, 'regenerated', time() )
+			&& 1 === (int) $this->update(
+				$id,
+				array(
+					'short_code' => $new_code,
+					'qr_cache'   => null,
+					'updated_at' => time(),
+				)
+			);
+		if ( ! $changed ) {
+			$this->rollback();
+			return false;
+		}
+		$this->commit();
+
+		return true;
 	}
 }

@@ -9,13 +9,15 @@
  *   UserDataRestController   – /user/* (coordinator → 6 sub-controllers)
  *   CalendarRestController   – /calendars, /calendars/{id}, /calendars/{id}/slots
  *   AppointmentRestController – /calendars/{id}/appointments, /appointments/{id}
+ *   CertificatesCalendarRestController – /certificates/calendar
+ *   OperatorCertificatesRestController – /operator/certificates, /operator/certificates/{id}/pdf
  *
  * Namespace: /wp-json/ffc/v1/
  *
  * @package FreeFormCertificate\API
  * @since 3.0.0
  * @version 3.3.0 - Added strict types and type hints
- * @version 4.6.1 - Refactored into coordinator + 5 sub-controllers
+ * @version 4.6.1 - Refactored into coordinator + sub-controllers
  */
 
 declare(strict_types=1);
@@ -69,14 +71,22 @@ class RestController {
 		// Suppress PHP notices/warnings in REST API responses to prevent JSON corruption.
 		add_action( 'rest_api_init', array( $this, 'suppress_rest_api_notices' ) );
 
-		// Add rate-limit headers to REST API responses.
+		// Send a refused request's wait as a Retry-After header.
 		add_filter( 'rest_post_dispatch', array( $this, 'add_rate_limit_headers' ), 10, 3 );
 	}
 
 	/**
-	 * Add standard rate-limit headers to REST API responses.
+	 * Send a refused request's wait as a real `Retry-After` header (#2342).
 	 *
-	 * Only applies to FFC endpoints (ffc/v1/*).
+	 * WordPress turns a `WP_Error` into a response whose `data` lands in the
+	 * JSON body, so the `headers` a guard put there never reached the client
+	 * as headers. A 429 from an FFC route now carries the wait it computed.
+	 *
+	 * The `X-RateLimit-*` pair this filter used to add reported the web form's
+	 * per-address pool on every route, although no `ffc/v1` route counts
+	 * against it: reads have their own pools, and the authenticated routes
+	 * count the account. A header that names the wrong pool is worse than
+	 * none, so it is gone.
 	 *
 	 * @since 5.2.0
 	 * @param \WP_REST_Response $response The response object.
@@ -85,27 +95,22 @@ class RestController {
 	 * @return \WP_REST_Response
 	 */
 	public function add_rate_limit_headers( $response, $server, $request ): \WP_REST_Response {
-		if ( strpos( $request->get_route(), '/ffc/v1/' ) === false ) {
+		if ( strpos( $request->get_route(), '/ffc/v1/' ) === false || 429 !== $response->get_status() ) {
 			return $response;
 		}
 
-		if ( ! class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
-			return $response;
+		$body = $response->get_data();
+		$data = is_array( $body ) && isset( $body['data'] ) && is_array( $body['data'] ) ? $body['data'] : array();
+		$wait = 0;
+		if ( isset( $data['headers']['Retry-After'] ) && is_numeric( $data['headers']['Retry-After'] ) ) {
+			$wait = (int) $data['headers']['Retry-After'];
+		} elseif ( isset( $data['wait_seconds'] ) && is_numeric( $data['wait_seconds'] ) ) {
+			$wait = (int) $data['wait_seconds'];
 		}
 
-		$ip          = \FreeFormCertificate\Core\RequestInput::get_user_ip();
-		$ip_settings = \FreeFormCertificate\Settings\RateLimitSettingsReader::ip();
-
-		if ( empty( $ip_settings['enabled'] ) ) {
-			return $response;
+		if ( $wait > 0 ) {
+			$response->header( 'Retry-After', (string) $wait );
 		}
-
-		$max_per_hour = (int) ( $ip_settings['max_per_hour'] ?? 5 );
-		$current      = \FreeFormCertificate\Security\RateCounter::get( 'ffc_rate_ip_' . md5( \FreeFormCertificate\Core\IpAddress::fingerprint( $ip ) ) . '_hour' );
-		$remaining    = max( 0, $max_per_hour - $current );
-
-		$response->header( 'X-RateLimit-Limit', (string) $max_per_hour );
-		$response->header( 'X-RateLimit-Remaining', (string) $remaining );
 
 		return $response;
 	}

@@ -407,4 +407,74 @@ class GeofenceLocationRegistryTest extends TestCase {
 
 		$this->assertSame( '', $result );
 	}
+
+	// ---------------------------------------------------------------
+	// forms_using() / delete_unused() / small_area_names() (#2339)
+	// ---------------------------------------------------------------
+
+	/**
+	 * Wire two forms: one reading the location through its GPS areas, one
+	 * through custom text that only mentions it.
+	 */
+	private function two_forms(): void {
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13 ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id ) {
+				$configs = array(
+					11 => array( 'geo_area_source' => 'locations', 'geo_area_location_ids' => array( 'loc_a' ) ),
+					12 => array( 'geo_area_source' => 'custom', 'geo_area_location_ids' => array( 'loc_a' ) ),
+					13 => array( 'geo_ip_area_source' => 'locations', 'geo_ip_area_location_ids' => array( 'loc_a', 'loc_b' ) ),
+				);
+				return $configs[ $id ] ?? '';
+			}
+		);
+		Functions\when( 'get_the_title' )->alias( static fn( $id ) => 11 === $id ? 'Workshop' : '' );
+	}
+
+	public function test_forms_using_reads_both_sides_and_only_the_registry_source(): void {
+		$this->two_forms();
+
+		$this->assertSame( array( 11 => 'Workshop', 13 => '#13' ), GeofenceLocationRegistry::forms_using( 'loc_a' ) );
+		$this->assertSame( array( 13 => '#13' ), GeofenceLocationRegistry::forms_using( 'loc_b' ) );
+		$this->assertSame( array(), GeofenceLocationRegistry::forms_using( '' ) );
+	}
+
+	public function test_a_location_in_use_is_not_deleted(): void {
+		$this->two_forms();
+		Functions\when( '__' )->returnArg();
+		$written = false;
+		Functions\when( 'update_option' )->alias(
+			static function () use ( &$written ) {
+				$written = true;
+				return true;
+			}
+		);
+
+		$result = GeofenceLocationRegistry::delete_unused( 'loc_a' );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_location_in_use', $result->get_error_code() );
+		$this->assertStringContainsString( 'Workshop', $result->get_error_message() );
+		$this->assertFalse( $written );
+	}
+
+	public function test_an_unused_location_is_deleted(): void {
+		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'get_option' )->justReturn( array( array( 'id' => 'loc_c', 'name' => 'C' ) ) );
+		Functions\when( 'update_option' )->justReturn( true );
+
+		$this->assertTrue( GeofenceLocationRegistry::delete_unused( 'loc_c' ) );
+	}
+
+	public function test_small_areas_are_named(): void {
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				array( 'id' => 'loc_a', 'name' => 'Room', 'radius' => 30 ),
+				array( 'id' => 'loc_b', 'name' => 'Campus', 'radius' => 800 ),
+				array( 'id' => 'loc_c', 'name' => '', 'radius' => 99.5 ),
+			)
+		);
+
+		$this->assertSame( array( 'Room', 'loc_c' ), GeofenceLocationRegistry::small_area_names() );
+	}
 }

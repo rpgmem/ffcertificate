@@ -43,6 +43,9 @@ class IpRateLimitGuard {
 						'message'      => $rate_check['message'],
 						'rate_limit'   => true,
 						'wait_seconds' => $rate_check['wait_seconds'] ?? 0,
+						// The form counts the wait down only when the
+						// administrator lets it show (#2339).
+						'countdown'    => ( new \FreeFormCertificate\Security\RateLimitSupport() )->countdown_on(),
 					)
 				);
 			}

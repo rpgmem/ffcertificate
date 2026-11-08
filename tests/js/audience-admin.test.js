@@ -392,8 +392,8 @@ describe('audience-admin — booking actions', () => {
 			<table>
 				<tr>
 					<td>
-						<a class="ffc-view-booking" data-booking-id="42" href="#">View</a> |
-						<a class="ffc-cancel-booking" data-booking-id="42" href="#">Cancel</a>
+						<button type="button" class="ffc-btn ffc-view-booking" data-booking-id="42">View</button>
+						<button type="button" class="ffc-btn ffc-cancel-booking" data-booking-id="42">Cancel</button>
 						<span class="ffc-booking-status-active">Active</span>
 					</td>
 				</tr>
@@ -583,6 +583,23 @@ describe('audience-admin — booking actions', () => {
 		expect(window.$('.ffc-booking-status-active').length).toBe(0);
 		expect(window.$('.ffc-booking-status-cancelled').text()).toBe('Cancelled');
 		expect(window.$('.ffc-cancel-booking').length).toBe(0);
+		// View, the button before Cancel, stays (#2486).
+		expect(window.$('.ffc-view-booking').length).toBe(1);
+	});
+
+	it('cancel: on success, the attendance button leaves with it', async () => {
+		mountBookings();
+		window.$('.ffc-cancel-booking').before('<a class="ffc-btn ffc-attendance-link" href="#attendance">Attendance</a>');
+		await reload();
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
+		vi.spyOn(window, 'prompt').mockReturnValue('Weather');
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
+
+		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
+
+		expect(window.$('.ffc-attendance-link').length).toBe(0);
+		expect(window.$('.ffc-view-booking').length).toBe(1);
 	});
 
 	it('cancel: on response.success=false alerts the server message', async () => {
@@ -597,8 +614,11 @@ describe('audience-admin — booking actions', () => {
 		await flush();
 
 		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
-		// Cancel link still present + visually restored.
+		// Cancel still present, enabled and no longer busy.
 		expect(window.$('.ffc-cancel-booking').length).toBe(1);
+		expect(window.$('.ffc-cancel-booking').prop('disabled')).toBe(false);
+		expect(window.$('.ffc-cancel-booking').hasClass('ffc-btn-loading')).toBe(false);
+		expect(window.$('.ffc-cancel-booking').attr('style')).toBeUndefined();
 	});
 
 	it('cancel: on network error, alerts the generic error', async () => {

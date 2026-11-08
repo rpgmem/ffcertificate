@@ -20,9 +20,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Only an active rule can be sent (#2336), so only active rules are offered.
+$ffc_dm_sendable = array_values( array_filter( $rules, static fn( $rule ): bool => $rule->is_active ) );
+
 // An announcement has no date to choose: the dates row starts hidden when the
 // first rule is one (#1949). The script follows the rule picker.
-$ffc_dm_first_ann = ! empty( $rules ) && array_values( $rules )[0]->is_announcement();
+$ffc_dm_first_ann = array() !== $ffc_dm_sendable && $ffc_dm_sendable[0]->is_announcement();
 ?>
 <p class="description">
 	<?php
@@ -45,10 +48,22 @@ $ffc_dm_first_ann = ! empty( $rules ) && array_values( $rules )[0]->is_announcem
 	?>
 <?php endif; ?>
 
+<?php if ( ! $can_send ) : ?>
+	<?php
+	// Explained, not just a missing button (#2336).
+	\FreeFormCertificate\Core\AdminNotice::callout(
+		'info',
+		esc_html__( 'Your account can preview who a rule would reach, but not send it: sending takes the "Send date messages" capability. Ask an administrator for it, or ask someone who holds it to send.', 'ffcertificate' )
+	);
+	?>
+<?php endif; ?>
+
 <?php if ( array() === $rules ) : ?>
 	<p><?php esc_html_e( 'No rules yet.', 'ffcertificate' ); ?></p>
+<?php elseif ( array() === $ffc_dm_sendable ) : ?>
+	<p><?php esc_html_e( 'No rule is active. Only an active rule can be sent: activate one on the Rules tab.', 'ffcertificate' ); ?></p>
 <?php else : ?>
-	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-send-form" data-ffc-confirm="<?php esc_attr_e( 'Send these messages now?', 'ffcertificate' ); ?>">
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ffc-dm-send-form">
 		<?php wp_nonce_field( DateMessagesAdminPage::SEND_ACTION ); ?>
 		<input type="hidden" name="action" value="<?php echo esc_attr( DateMessagesAdminPage::SEND_ACTION ); ?>">
 		<div class="ffc-dm-preview" data-ffc-dm-preview="saved">
@@ -57,8 +72,8 @@ $ffc_dm_first_ann = ! empty( $rules ) && array_values( $rules )[0]->is_announcem
 					<th scope="row"><label for="ffc-dm-send-rule"><?php esc_html_e( 'Rule', 'ffcertificate' ); ?></label></th>
 					<td>
 						<select id="ffc-dm-send-rule" name="rule_id" class="ffc-dm-rule">
-							<?php foreach ( $rules as $ffc_dm_rule ) : ?>
-								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" data-ffc-dm-kind="<?php echo esc_attr( $ffc_dm_rule->kind ); ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
+							<?php foreach ( $ffc_dm_sendable as $ffc_dm_rule ) : ?>
+								<option value="<?php echo esc_attr( (string) $ffc_dm_rule->id ); ?>" data-ffc-dm-kind="<?php echo esc_attr( $ffc_dm_rule->kind ); ?>" data-ffc-dm-summary-only="<?php echo $ffc_dm_rule->send_to_user ? '0' : '1'; ?>"><?php echo esc_html( $ffc_dm_rule->name ); ?></option>
 							<?php endforeach; ?>
 						</select>
 					</td>

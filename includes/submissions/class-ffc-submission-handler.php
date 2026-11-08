@@ -520,10 +520,7 @@ class SubmissionHandler {
 	 * @param array<string, mixed> $submission The row, as read before the change.
 	 */
 	public static function forget_cached_lookups( array $submission ): void {
-		foreach ( array(
-			'auth_'  => 'auth_code',
-			'token_' => 'magic_token',
-		) as $prefix => $column ) {
+		foreach ( \FreeFormCertificate\Repositories\SubmissionReader::LOOKUP_CACHE_KEYS as $prefix => $column ) {
 			$value = $submission[ $column ] ?? '';
 			if ( is_string( $value ) && '' !== $value ) {
 				wp_cache_delete( $prefix . $value, 'ffc_submissions' );

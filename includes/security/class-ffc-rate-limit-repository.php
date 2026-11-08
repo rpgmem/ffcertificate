@@ -31,7 +31,7 @@ final class RateLimitRepository {
 	 *
 	 * @var array{day: int, week: int, month: int, year: int}
 	 */
-	private const SUBMISSION_WINDOW_DAYS = array(
+	public const SUBMISSION_WINDOW_DAYS = array(
 		'day'   => 1,
 		'week'  => 7,
 		'month' => 30,
@@ -39,23 +39,98 @@ final class RateLimitRepository {
 	);
 
 	/**
-	 * Storage key for a rate-limit identifier on the `ffc_rate_limits` counter
-	 * table. A counter row only needs a stable equality key, so nothing is
-	 * stored in the clear: an address becomes its fingerprint, which counts
-	 * an IPv6 caller by its /64 and is keyed with the plugin's hash secret
-	 * (#2109), and any other identifier (email, CPF) its sha256 hash (#839).
-	 * Mirrors {@see RateLimitLogger::log_attempt()} on `ffc_rate_limit_logs`.
+	 * Identifier types whose value is a person's e-mail or document, stored
+	 * as a keyed hash (#2343).
+	 */
+	public const KEYED_TYPES = array( 'email', 'cpf', 'device' );
+
+	/**
+	 * Storage key for a rate-limit identifier, on the `ffc_rate_limits`
+	 * counter table and the `ffc_rate_limit_logs` log alike. A row only needs
+	 * a stable equality key, so nothing is stored in the clear:
 	 *
-	 * Applied on both the read (get_count / is_blocked) and write (increment /
-	 * block) sides so lookups stay consistent; a row written under an older
-	 * key simply misses and lapses after its window (a one-time reset at most).
+	 * - an address becomes its fingerprint, which counts an IPv6 caller by
+	 *   its /64 and is keyed with the plugin's hash secret (#2109);
+	 * - an e-mail or a CPF/RF its keyed hash (#2343). An unkeyed sha256 of a
+	 *   CPF is reversed by trying every CPF, about a billion of them; the key
+	 *   lives in `wp-config.php` and never in the database;
+	 * - anything else its sha256 hash (#839).
+	 *
+	 * Applied on the read and write sides alike so lookups stay consistent; a
+	 * row written under an older key simply misses and lapses after its
+	 * window (a one-time reset at most), and the "Rate Limit: Keyed
+	 * Identifiers" migration deletes the older e-mail and CPF rows.
 	 *
 	 * @param string $type       Identifier type ('ip' | 'email' | 'cpf' | …).
 	 * @param string $identifier Raw identifier.
-	 * @return string Address fingerprint, or a sha256 hash for any other identifier.
+	 * @return string
 	 */
-	private static function storage_identifier( string $type, string $identifier ): string {
-		return ( 'ip' === $type ) ? \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier ) : hash( 'sha256', $identifier );
+	public static function storage_identifier( string $type, string $identifier ): string {
+		if ( in_array( $type, array( 'ip', 'blacklist', 'whitelist' ), true ) ) {
+			return \FreeFormCertificate\Core\IpAddress::fingerprint( $identifier );
+		}
+		if ( in_array( $type, self::KEYED_TYPES, true ) ) {
+			return \FreeFormCertificate\Core\Encryption::keyed_hash( $identifier, 'rate_limit_' . $type );
+		}
+		return hash( 'sha256', $identifier );
+	}
+
+	/**
+	 * Delete the counters and the log lines kept for a person's identifiers,
+	 * for an erasure request (#2343).
+	 *
+	 * Both tables store an identifier only as {@see self::storage_identifier()}
+	 * makes it, which {@see RateLimitLogger::log_attempt()} mirrors, so the
+	 * raw values are turned into that key here and never reach a statement.
+	 * Each value is tried as given and as the limiter receives it (an address
+	 * lowercased, a CPF/RF as digits), because the limiter hashes what the
+	 * submission carried and the caller may hold a different spelling.
+	 *
+	 * @param string             $type   Identifier type, 'email' or 'cpf'.
+	 * @param array<int, string> $values Raw identifiers.
+	 * @return int Rows deleted across both tables.
+	 */
+	public static function erase_identifiers( string $type, array $values ): int {
+		global $wpdb;
+
+		$keys = array();
+		foreach ( $values as $value ) {
+			$value = trim( $value );
+			if ( '' === $value ) {
+				continue;
+			}
+			$variants = array(
+				$value,
+				'email' === $type
+					? \FreeFormCertificate\Core\DataSanitizer::normalize_email( $value )
+					: \FreeFormCertificate\Core\DataSanitizer::normalize_cpf_rf( $value ),
+			);
+			foreach ( $variants as $variant ) {
+				if ( '' !== $variant ) {
+					$keys[ self::storage_identifier( $type, $variant ) ] = true;
+				}
+			}
+		}
+		if ( array() === $keys ) {
+			return 0;
+		}
+
+		$deleted = 0;
+		foreach ( array( 'ffc_rate_limits', 'ffc_rate_limit_logs' ) as $table ) {
+			foreach ( array_keys( $keys ) as $key ) {
+				$rows     = $wpdb->delete(
+					$wpdb->prefix . $table,
+					array(
+						'type'       => $type,
+						'identifier' => $key,
+					),
+					array( '%s', '%s' )
+				);
+				$deleted += is_int( $rows ) ? $rows : 0;
+			}
+		}
+
+		return $deleted;
 	}
 
 	/**
@@ -79,6 +154,29 @@ final class RateLimitRepository {
 	}
 
 	/**
+	 * The attempts counted over the last `$hours` clock hours, this one
+	 * included (#2339): "block after N attempts in X hours" sums the hour
+	 * rows, where reading only the current hour's row reset the count on
+	 * every hour boundary whatever X said.
+	 *
+	 * @param string   $type       Type.
+	 * @param string   $identifier Identifier.
+	 * @param int      $hours      Hours, at least 1.
+	 * @param int|null $form_id    Form ID.
+	 * @return int
+	 */
+	public static function get_hourly_count_since( string $type, string $identifier, int $hours, ?int $form_id ): int {
+		global $wpdb;
+		$identifier  = self::storage_identifier( $type, $identifier );
+		$t           = $wpdb->prefix . 'ffc_rate_limits';
+		$since       = gmdate( 'Y-m-d H:00:00', time() - ( max( 1, $hours ) - 1 ) * HOUR_IN_SECONDS );
+		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $form_clause is pre-prepared via $wpdb->prepare().
+		$c = $wpdb->get_var( $wpdb->prepare( "SELECT SUM(count) FROM %i WHERE type=%s AND identifier=%s AND window_type='hour' AND is_blocked=0 $form_clause AND window_start>=%s", $t, $type, $identifier, $since ) );
+		return $c ? (int) $c : 0;
+	}
+
+	/**
 	 * Increment counter.
 	 *
 	 * @param string   $type Type.
@@ -98,15 +196,19 @@ final class RateLimitRepository {
 		$e = $wpdb->get_row( $wpdb->prepare( "SELECT id,count FROM %i WHERE type=%s AND identifier=%s AND window_type=%s $form_clause AND window_start=%s", $t, $type, $identifier, $window, $ws ) );
 
 		if ( $e ) {
-			$wpdb->update(
-				$t,
-				array(
-					'count'        => $e->count + 1,
-					'last_attempt' => current_time( 'mysql' ),
-				),
-				array( 'id' => $e->id ),
-				array( '%d', '%s' ),
-				array( '%d' )
+			// The increment happens in the database (#2339): adding one to the
+			// count read above lost every hit that landed between the read and
+			// the write. The first hit of a window still reads, then inserts;
+			// two of those racing can write two rows when `form_id` is NULL,
+			// which the unique key does not cover, and the read then takes the
+			// newest row, so the loss is at most the first hits of a window.
+			$wpdb->query(
+				$wpdb->prepare(
+					'UPDATE %i SET count = count + 1, last_attempt = %s WHERE id = %d',
+					$t,
+					gmdate( 'Y-m-d H:i:s' ),
+					(int) $e->id
+				)
 			);
 		} else {
 			$wpdb->insert(
@@ -119,7 +221,7 @@ final class RateLimitRepository {
 					'window_type'  => $window,
 					'window_start' => $ws,
 					'window_end'   => $we,
-					'last_attempt' => current_time( 'mysql' ),
+					'last_attempt' => gmdate( 'Y-m-d H:i:s' ),
 				),
 				array( '%s', '%s', '%d', '%d', '%s', '%s', '%s', '%s' )
 			);
@@ -142,45 +244,83 @@ final class RateLimitRepository {
 	 * @return int
 	 */
 	public static function get_submission_count( string $field, string $value, string $period, ?int $form_id ): int {
+		return (int) self::submission_aggregate( 'COUNT(*)', $field, $value, self::SUBMISSION_WINDOW_DAYS[ $period ], $form_id );
+	}
+
+	/**
+	 * When the oldest submission a period limit counts was made, so the
+	 * refusal can say when it stops counting (#2339): with the count at the
+	 * limit, that is when the next submission is allowed.
+	 *
+	 * @param string                      $field   'email' or 'cpf'.
+	 * @param string                      $value   Value as typed.
+	 * @param 'day'|'week'|'month'|'year' $period  Period.
+	 * @param int|null                    $form_id Form ID.
+	 * @return int|null Unix time, or null when nothing is counted.
+	 */
+	public static function oldest_submission_in( string $field, string $value, string $period, ?int $form_id ): ?int {
+		$oldest = self::submission_aggregate( 'MIN(submission_date)', $field, $value, self::SUBMISSION_WINDOW_DAYS[ $period ], $form_id );
+		return null === $oldest || '' === $oldest ? null : (int) $oldest;
+	}
+
+	/**
+	 * When the latest submission with this identifier was made, at any age:
+	 * the reference of the minimum interval between two submissions (#2339).
+	 *
+	 * @param string   $field   'email' or 'cpf'.
+	 * @param string   $value   Value as typed.
+	 * @param int|null $form_id Form ID.
+	 * @return int|null Unix time, or null when there is none.
+	 */
+	public static function latest_submission( string $field, string $value, ?int $form_id ): ?int {
+		$latest = self::submission_aggregate( 'MAX(submission_date)', $field, $value, 0, $form_id );
+		return null === $latest || '' === $latest ? null : (int) $latest;
+	}
+
+	/**
+	 * One aggregate over the submissions carrying this identifier.
+	 *
+	 * The value arrives as the visitor typed it, and the hash it is compared
+	 * against was written from the CANONICAL form (#1314): both branches
+	 * canonicalise first, through the registry, the single hash boundary
+	 * (#1313). `submission_date` is a unix instant since 6.6.0 (#249), so the
+	 * window is one too (#2339).
+	 *
+	 * @param string   $aggregate One of the three aggregates above.
+	 * @param string   $field     'email' or 'cpf'.
+	 * @param string   $value     Value as typed.
+	 * @param int      $days      Window in days; 0 for no window.
+	 * @param int|null $form_id   Form ID.
+	 * @return string|null The aggregate as the database returns it.
+	 */
+	private static function submission_aggregate( string $aggregate, string $field, string $value, int $days, ?int $form_id ): ?string {
 		global $wpdb;
 		$t  = $wpdb->prefix . 'ffc_submissions';
-		$dw = sprintf( 'AND submission_date >= DATE_SUB(NOW(), INTERVAL %d DAY)', self::SUBMISSION_WINDOW_DAYS[ $period ] );
+		$dw = $days > 0 ? sprintf( 'AND submission_date >= %d', time() - $days * DAY_IN_SECONDS ) : '';
 		$fw = $form_id ? $wpdb->prepare( 'AND form_id=%d', $form_id ) : '';
 
-		// The value arrives as the visitor typed it, and the hash it is
-		// compared against was written from the CANONICAL form (#1314). Hashing
-		// the raw address here meant an address typed with a capital letter
-		// matched nothing, so the per-address limit counted zero prior
-		// submissions for exactly the person it exists to stop. Both branches
-		// now canonicalise first; the configured one goes through the registry,
-		// which is the single hash boundary (#1313).
 		if ( 'email' === $field ) {
-			$email_hash = class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured()
+			$hash   = class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured()
 				? \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'email', $value )
 				: hash( 'sha256', \FreeFormCertificate\Core\DataSanitizer::normalize_email( $value ) );
-
-			if ( null === $email_hash ) {
-				return 0;
-			}
-
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $dw and $fw are pre-validated date window and form clauses.
-			return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE email_hash=%s $dw $fw", $t, $email_hash ) ) );
-		} elseif ( 'cpf' === $field ) {
-			if ( class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
-				$h  = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $value );
-				$hc = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $value ) ? 'rf_hash' : 'cpf_hash';
-
-				if ( null === $h ) {
-					return 0;
-				}
-
-				// Search the specific split column based on digit count.
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-				return intval( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$hc}=%s $dw $fw", $t, $h ) ) );
-			}
+			$column = 'email_hash';
+		} elseif ( 'cpf' === $field && class_exists( '\FreeFormCertificate\Core\Encryption' ) && \FreeFormCertificate\Core\Encryption::is_configured() ) {
+			$hash = \FreeFormCertificate\Core\SensitiveFieldRegistry::hash_identifier( 'cpf', $value );
+			// Search the split column the digit count names.
+			$column = 'rf' === \FreeFormCertificate\Core\DataSanitizer::classify_cpf_rf( $value ) ? 'rf_hash' : 'cpf_hash';
+		} else {
+			return null;
 		}
 
-		return 0;
+		if ( null === $hash ) {
+			return null;
+		}
+
+		$aggregate = in_array( $aggregate, array( 'COUNT(*)', 'MIN(submission_date)', 'MAX(submission_date)' ), true ) ? $aggregate : 'COUNT(*)';
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $aggregate is from a fixed list, $column from two literals, $dw an integer clause and $fw pre-prepared.
+		$result = $wpdb->get_var( $wpdb->prepare( "SELECT {$aggregate} FROM %i WHERE {$column}=%s $dw $fw", $t, $hash ) );
+
+		return null === $result ? null : (string) $result;
 	}
 
 	/**
@@ -192,12 +332,32 @@ final class RateLimitRepository {
 	 * @return bool
 	 */
 	public static function is_temporarily_blocked( string $type, string $identifier, ?int $form_id ): bool {
+		return null !== self::blocked_until( $type, $identifier, $form_id );
+	}
+
+	/**
+	 * When a temporary block on this identifier ends, so the refusal can say
+	 * how long is left of it (#2339).
+	 *
+	 * @param string   $type       Type.
+	 * @param string   $identifier Identifier.
+	 * @param int|null $form_id    Form ID.
+	 * @return int|null Unix time, or null when it is not blocked.
+	 */
+	public static function blocked_until( string $type, string $identifier, ?int $form_id ): ?int {
 		global $wpdb;
 		$identifier  = self::storage_identifier( $type, $identifier );
 		$t           = $wpdb->prefix . 'ffc_rate_limits';
 		$form_clause = $form_id ? $wpdb->prepare( 'AND form_id = %d', $form_id ) : 'AND form_id IS NULL';
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Pre-validated clauses from trusted internal logic.
-		return ! empty( $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>NOW() ORDER BY id DESC LIMIT 1", $t, $type, $identifier ) ) );
+		$until = $wpdb->get_var( $wpdb->prepare( "SELECT blocked_until FROM %i WHERE type=%s AND identifier=%s $form_clause AND is_blocked=1 AND blocked_until>%s ORDER BY id DESC LIMIT 1", $t, $type, $identifier, gmdate( 'Y-m-d H:i:s' ) ) );
+		if ( empty( $until ) ) {
+			return null;
+		}
+
+		// Written by gmdate(), so read back as UTC.
+		$ts = strtotime( (string) $until . ' UTC' );
+		return false === $ts ? null : $ts;
 	}
 
 	/**
@@ -221,9 +381,9 @@ final class RateLimitRepository {
 				'form_id'        => $form_id,
 				'count'          => 999,
 				'window_type'    => 'hour',
-				'window_start'   => current_time( 'mysql' ),
+				'window_start'   => gmdate( 'Y-m-d H:i:s' ),
 				'window_end'     => gmdate( 'Y-m-d H:i:s', $blocked_ts ),
-				'last_attempt'   => current_time( 'mysql' ),
+				'last_attempt'   => gmdate( 'Y-m-d H:i:s' ),
 				'is_blocked'     => 1,
 				'blocked_until'  => gmdate( 'Y-m-d H:i:s', $blocked_ts ),
 				'blocked_reason' => 'abuse',

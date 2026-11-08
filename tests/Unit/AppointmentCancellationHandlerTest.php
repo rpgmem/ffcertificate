@@ -46,6 +46,10 @@ class AppointmentCancellationHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The page lookup keeps its answers in a transient (#2341): no
+		// answer kept, and the search below decides.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		$this->rows        = array();
 		$this->reads       = array();

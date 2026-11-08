@@ -254,7 +254,8 @@ class AccessRestrictionCheckerTest extends TestCase {
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, '', 1 );
 
 		$this->assertFalse( $result['allowed'] );
-		$this->assertStringContainsString( 'blocked', $result['message'] );
+		$this->assertStringContainsString( 'cannot use this form', $result['message'] );
+		$this->assertStringContainsString( 'contact', $result['message'], 'It says whom to turn to (#2341).' );
 	}
 
 	public function test_all_restrictions_pass(): void {
@@ -287,7 +288,8 @@ class AccessRestrictionCheckerTest extends TestCase {
 		);
 
 		$this->mock_wpdb_claim( 1 ); // This caller wins the atomic claim.
-		Functions\when( 'update_post_meta' )->justReturn( true );
+		// #2341: the ticket leaves the list only once a submission is saved.
+		Functions\expect( 'update_post_meta' )->never();
 
 		$result = AccessRestrictionChecker::check( $config, Identifiers::CPF_A, 'TKT-001', 42 );
 
@@ -463,51 +465,170 @@ class AccessRestrictionCheckerTest extends TestCase {
 	}
 
 	/**
-	 * The sibling above stubs `get_post_meta` returning `array()`. The value it
-	 * actually returns when the meta row does not exist is `''`, and in PHP 8
-	 * assigning an offset on a string is fatal, not a notice — this test fails
-	 * with `TypeError: Cannot access offset of type string on string` against
-	 * the unguarded version.
-	 *
-	 * The path is NOT reachable in production (the caller only gets here after
-	 * `check()` read the same meta as an array), so this locks a latent shape
-	 * rather than fixing a live bug — #1087 says so in those words.
+	 * `get_post_meta` returns `''` when the meta row does not exist, and in
+	 * PHP 8 assigning an offset on a string is fatal (#1087). Nothing is
+	 * listed, so nothing is written either (#2341).
 	 */
 	public function test_consume_ticket_survives_an_absent_config_meta(): void {
 		Functions\when( 'get_post_meta' )->justReturn( '' );
-
-		$saved_config = null;
-		Functions\expect( 'update_post_meta' )
-			->once()
-			->with( 1, '_ffc_form_config', Mockery::on( function( $config ) use ( &$saved_config ) {
-				$saved_config = $config;
-				return true;
-			} ) )
-			->andReturn( true );
+		Functions\expect( 'update_post_meta' )->never();
 
 		AccessRestrictionChecker::consume_ticket( 1, 'ANYTHING' );
-
-		$this->assertSame( '', $saved_config['generated_codes_list'] );
 	}
 
 	public function test_consume_ticket_with_missing_config_key(): void {
-		$existing_config = array();  // No 'generated_codes_list'
-
-		Functions\when( 'get_post_meta' )->justReturn( $existing_config );
-
-		$saved_config = null;
-		Functions\expect( 'update_post_meta' )
-			->once()
-			->with( 1, '_ffc_form_config', Mockery::on( function( $config ) use ( &$saved_config ) {
-				$saved_config = $config;
-				return true;
-			} ) )
-			->andReturn( true );
+		Functions\when( 'get_post_meta' )->justReturn( array() );
+		Functions\expect( 'update_post_meta' )->never();
 
 		AccessRestrictionChecker::consume_ticket( 1, 'ANYTHING' );
+	}
 
-		// Should not crash — empty list, nothing to remove
-		$this->assertSame( '', $saved_config['generated_codes_list'] );
+	public function test_consume_ticket_matches_the_line_in_any_case_and_keeps_the_others(): void {
+		// #2341: check() matched `abc-1` against `ABC-1`, and consume compared
+		// the raw strings, so a ticket typed in lower case stayed listed.
+		Functions\when( 'get_post_meta' )->justReturn( array( 'generated_codes_list' => "ABC-1\n  def-2 \nGHI-3" ) );
+		$saved = null;
+		Functions\expect( 'update_post_meta' )->once()->andReturnUsing(
+			static function ( $id, $key, $config ) use ( &$saved ) {
+				$saved = $config;
+				return true;
+			}
+		);
+
+		AccessRestrictionChecker::consume_ticket( 3, ' Def-2' );
+
+		$this->assertSame( "ABC-1\nGHI-3", $saved['generated_codes_list'] );
+	}
+
+	public function test_consume_ticket_writes_the_config_as_it_is_now(): void {
+		// #2341: the config is re-read at consume time, so a setting the
+		// operator changed while the submission ran is not written back old.
+		Functions\when( 'get_post_meta' )->justReturn(
+			array(
+				'generated_codes_list' => "T-1\nT-2\nNEW-9",
+				'success_message'      => 'edited meanwhile',
+			)
+		);
+		$saved = null;
+		Functions\expect( 'update_post_meta' )->once()->andReturnUsing(
+			static function ( $id, $key, $config ) use ( &$saved ) {
+				$saved = $config;
+				return true;
+			}
+		);
+
+		AccessRestrictionChecker::consume_ticket( 3, 'T-1' );
+
+		$this->assertSame( "T-2\nNEW-9", $saved['generated_codes_list'] );
+		$this->assertSame( 'edited meanwhile', $saved['success_message'] );
+	}
+
+	public function test_consume_ticket_writes_nothing_when_the_ticket_is_not_listed(): void {
+		Functions\when( 'get_post_meta' )->justReturn( array( 'generated_codes_list' => 'T-2' ) );
+		Functions\expect( 'update_post_meta' )->never();
+
+		AccessRestrictionChecker::consume_ticket( 3, 'T-1' );
+	}
+
+	// ==================================================================
+	// release_ticket() / reap_stale_claims() (#2341)
+	// ==================================================================
+
+	public function test_release_ticket_deletes_the_claim_of_the_normalised_ticket(): void {
+		$deleted = array();
+		Functions\when( 'delete_option' )->alias(
+			static function ( $name ) use ( &$deleted ) {
+				$deleted[] = $name;
+				return true;
+			}
+		);
+
+		AccessRestrictionChecker::release_ticket( 42, ' tkt-001 ' );
+		AccessRestrictionChecker::release_ticket( 42, '   ' );
+
+		$this->assertSame( array( 'ffc_ticket_used_42_' . hash( 'sha256', 'TKT-001' ) ), $deleted );
+	}
+
+	public function test_a_released_claim_lets_the_ticket_be_claimed_again(): void {
+		// The claim and its release name the same row: the name the INSERT
+		// IGNORE wrote is the one release_ticket() deletes.
+		global $wpdb;
+		$rows                = array();
+		$wpdb                = Mockery::mock( 'wpdb' );
+		$wpdb->options       = 'wp_options';
+		$wpdb->rows_affected = 0;
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql, ...$args ) => $args[0] );
+		$wpdb->shouldReceive( 'query' )->andReturnUsing(
+			static function ( $name ) use ( $wpdb, &$rows ) {
+				$wpdb->rows_affected = isset( $rows[ $name ] ) ? 0 : 1;
+				$rows[ $name ]       = true;
+				return $wpdb->rows_affected;
+			}
+		);
+		Functions\when( 'delete_option' )->alias(
+			static function ( $name ) use ( &$rows ) {
+				unset( $rows[ $name ] );
+				return true;
+			}
+		);
+		$config = array(
+			'restrictions'         => array( 'ticket' => '1' ),
+			'generated_codes_list' => 'TKT-001',
+		);
+
+		$this->assertTrue( AccessRestrictionChecker::check( $config, '', 'TKT-001', 42 )['is_ticket'] );
+		AccessRestrictionChecker::release_ticket( 42, 'tkt-001' );
+		$this->assertTrue( AccessRestrictionChecker::check( $config, '', 'TKT-001', 42 )['is_ticket'] );
+	}
+
+	public function test_reap_deletes_old_claims_whose_ticket_left_the_list(): void {
+		global $wpdb;
+		$listed  = 'ffc_ticket_used_7_' . hash( 'sha256', 'STILL-HERE' );
+		$spent   = 'ffc_ticket_used_7_' . hash( 'sha256', 'SPENT' );
+		$gone    = 'ffc_ticket_used_8_' . hash( 'sha256', 'X' );
+		$deleted = array();
+
+		$wpdb          = Mockery::mock( 'wpdb' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$wpdb->shouldReceive( 'prepare' )->once()->andReturnUsing(
+			function ( $sql, $like, $cutoff, $limit ) {
+				$this->assertSame( 'ffc_ticket_used_%', $like );
+				$this->assertLessThanOrEqual( time() - DAY_IN_SECONDS, $cutoff );
+				$this->assertSame( 500, $limit );
+				return 'SQL';
+			}
+		);
+		$wpdb->shouldReceive( 'get_col' )->once()->andReturn( array( $listed, $spent, $gone, 'ffc_ticket_used_junk' ) );
+		$wpdb->shouldReceive( 'delete' )->andReturnUsing(
+			static function ( $table, $where ) use ( &$deleted ) {
+				$deleted[] = $where['option_name'];
+				return 1;
+			}
+		);
+		$reads = array();
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id ) use ( &$reads ) {
+				$reads[] = $id;
+				return 7 === $id ? array( 'generated_codes_list' => "other\n still-here " ) : '';
+			}
+		);
+
+		$this->assertSame( 2, AccessRestrictionChecker::reap_stale_claims() );
+		$this->assertSame( array( $spent, $gone ), $deleted, 'A listed ticket keeps its claim; a deleted form keeps none.' );
+		$this->assertSame( array( 7, 8 ), $reads, 'Each form is read once.' );
+	}
+
+	public function test_reap_reads_nothing_more_when_no_claim_is_old(): void {
+		global $wpdb;
+		$wpdb          = Mockery::mock( 'wpdb' );
+		$wpdb->options = 'wp_options';
+		$wpdb->shouldReceive( 'esc_like' )->andReturnUsing( static fn( $v ) => $v );
+		$wpdb->shouldReceive( 'prepare' )->andReturn( 'SQL' );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		$wpdb->shouldNotReceive( 'delete' );
+
+		$this->assertSame( 0, AccessRestrictionChecker::reap_stale_claims() );
 	}
 
 	// ==================================================================

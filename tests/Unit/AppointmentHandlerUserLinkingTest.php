@@ -353,7 +353,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 	/** Wire the transactional happy path, capturing the createAppointment payload. */
 	private function expect_successful_insert( int $new_id ): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->validator->shouldReceive( 'validate' )->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'createAppointment' )->once()
 			->with( Mockery::on( function ( $data ) {
@@ -472,7 +472,7 @@ class AppointmentHandlerUserLinkingTest extends TestCase {
 
 	public function test_a_refused_booking_creates_and_links_no_account(): void {
 		$this->calendarRepo->shouldReceive( 'findById' )->andReturn( $this->makeCalendar() );
-		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once();
+		$this->appointmentRepo->shouldReceive( 'begin_transaction' )->once()->andReturn( true );
 		$this->appointmentRepo->shouldReceive( 'rollback' )->once();
 		$this->validator->shouldReceive( 'validate' )->andReturn( new \WP_Error( 'slot_full', 'full' ) );
 		$this->appointmentRepo->shouldNotReceive( 'createAppointment' );

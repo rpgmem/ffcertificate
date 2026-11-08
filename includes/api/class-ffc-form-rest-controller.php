@@ -31,6 +31,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class FormRestController {
 
 	/**
+	 * Per-account limit on API submissions, a runaway guard (#2342).
+	 */
+	private const SUBMIT_RATE_ACTION   = 'forms_api_submit';
+	private const SUBMIT_RATE_PER_HOUR = 300;
+	private const SUBMIT_RATE_PER_DAY  = 2000;
+
+	/**
 	 * Maximum value accepted for the `per_page` query arg on
 	 * `GET /forms`. Larger requests are silently clamped to this
 	 * ceiling. Tuned to be large enough that no realistic site is
@@ -283,12 +290,15 @@ class FormRestController {
 			$response = array();
 			foreach ( $forms as $form ) {
 				$response[] = array(
-					'id'       => $form->ID,
-					'title'    => $form->post_title,
-					'status'   => $form->post_status,
-					'date'     => $form->post_date,
-					'modified' => $form->post_modified,
-					'link'     => get_permalink( $form->ID ),
+					'id'           => $form->ID,
+					'title'        => $form->post_title,
+					'status'       => $form->post_status,
+					// @removal 6.46.0 -- `date` / `modified` as site-local DATETIMEs with no offset; the `_iso` pair replaces them (#2342).
+					'date'         => $form->post_date,
+					'date_iso'     => \FreeFormCertificate\Core\DateFormatter::iso8601( $form->post_date ),
+					'modified'     => $form->post_modified,
+					'modified_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $form->post_modified ),
+					'link'         => get_permalink( $form->ID ),
 				);
 			}
 
@@ -388,12 +398,15 @@ class FormRestController {
 			// (public-by-design, returns id/title/fields with only the
 			// keys a renderer needs). See issue #139.
 			$response = array(
-				'id'       => $form->ID,
-				'title'    => $form->post_title,
-				'status'   => $form->post_status,
-				'date'     => $form->post_date,
-				'modified' => $form->post_modified,
-				'link'     => get_permalink( $form->ID ),
+				'id'           => $form->ID,
+				'title'        => $form->post_title,
+				'status'       => $form->post_status,
+				// @removal 6.46.0 -- `date` / `modified` as site-local DATETIMEs with no offset; the `_iso` pair replaces them (#2342).
+				'date'         => $form->post_date,
+				'date_iso'     => \FreeFormCertificate\Core\DateFormatter::iso8601( $form->post_date ),
+				'modified'     => $form->post_modified,
+				'modified_iso' => \FreeFormCertificate\Core\DateFormatter::iso8601( $form->post_modified ),
+				'link'         => get_permalink( $form->ID ),
 			);
 
 			return rest_ensure_response( $response );
@@ -556,8 +569,17 @@ class FormRestController {
 			unset( $params['auth_code'] );
 			$params['form_id'] = $form_id;
 
-			$ctx        = new SubmissionContext();
-			$ctx->input = $params;
+			// A runaway guard per account, as on the operator route (#2342).
+			if ( class_exists( '\FreeFormCertificate\Security\RateLimiter' ) ) {
+				$rate_check = \FreeFormCertificate\Security\RateLimiter::check_user_limit( get_current_user_id(), self::SUBMIT_RATE_ACTION, self::SUBMIT_RATE_PER_HOUR, self::SUBMIT_RATE_PER_DAY );
+				if ( ! $rate_check['allowed'] ) {
+					return new \WP_Error( 'rate_limit_exceeded', $rate_check['message'], array( 'status' => 429 ) );
+				}
+			}
+
+			$ctx          = new SubmissionContext();
+			$ctx->input   = $params;
+			$ctx->skip_ip = true;
 
 			$handler = new \FreeFormCertificate\Submissions\SubmissionHandler();
 			try {
@@ -566,6 +588,19 @@ class FormRestController {
 				}
 			} catch ( SubmissionRejected $rejected ) {
 				return $this->rejection_error( $rejected->get_payload() );
+			}
+
+			// A reprint for someone who is not the certificate's owner: its
+			// link went to the address stored on it, and the caller gets the
+			// same notice the web form shows, never the code (#2342).
+			if ( null !== $ctx->reprint_notice ) {
+				return rest_ensure_response(
+					array(
+						'success' => true,
+						'reprint' => true,
+						'message' => $ctx->reprint_notice,
+					)
+				);
 			}
 
 			$auth_code = isset( $ctx->submission_data['auth_code'] ) && is_scalar( $ctx->submission_data['auth_code'] )
@@ -577,7 +612,7 @@ class FormRestController {
 				'submission_id'  => $ctx->submission_id,
 				'auth_code'      => \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $auth_code, \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE ),
 				'message'        => __( 'Form submitted successfully', 'ffcertificate' ),
-				'validation_url' => home_url( '/validate-certificate/' ),
+				'validation_url' => \FreeFormCertificate\Generators\MagicLinkHelper::get_verification_page_url(),
 			);
 
 			return rest_ensure_response( $response );
@@ -597,11 +632,14 @@ class FormRestController {
 	 * form's order ({@see \FreeFormCertificate\Frontend\FormProcessor}).
 	 *
 	 * @param \FreeFormCertificate\Submissions\SubmissionHandler $handler Submission handler.
-	 * @return list<Submission\IpRateLimitGuard|Submission\FormConfigResolver|Submission\RequiredPresenceGuard|Submission\FieldSanitizer|Submission\InviteGuard|Submission\FieldRulesGuard|Submission\GeofenceGuard|Submission\RateLimitGuard|Submission\AccessRestrictionGuard|Submission\SubmissionPersister>
+	 * The per-address guard is left out (#2342): the route is authenticated,
+	 * an integration sends every request from one server address, and a
+	 * per-account limit in {@see submit_form()} takes its place.
+	 *
+	 * @return list<Submission\FormConfigResolver|Submission\RequiredPresenceGuard|Submission\FieldSanitizer|Submission\InviteGuard|Submission\FieldRulesGuard|Submission\GeofenceGuard|Submission\RateLimitGuard|Submission\AccessRestrictionGuard|Submission\SubmissionPersister>
 	 */
 	protected function submission_stages( \FreeFormCertificate\Submissions\SubmissionHandler $handler ): array {
 		return array(
-			new Submission\IpRateLimitGuard(),
 			new Submission\FormConfigResolver(),
 			new Submission\RequiredPresenceGuard(),
 			new Submission\FieldSanitizer(),

@@ -137,6 +137,7 @@ class SettingsActionHandlerTest extends TestCase {
 		);
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'get_current_user_id' )->justReturn( 7 );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
 		// Nothing stored: `ffc_settings` reads as an empty array, every other option as its default.
 		Functions\when( 'get_option' )->alias( static fn( $key, $default = false ) => 'ffc_settings' === $key ? array() : $default );
 		Functions\when( 'update_option' )->justReturn( true );
@@ -370,6 +371,25 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertSame( array(), $this->queries );
 	}
 
+	/**
+	 * A nonce proves the request came from the screen, not that the user
+	 * may change settings (#2338).
+	 */
+	public function test_clear_qr_cache_needs_the_settings_capability(): void {
+		$_GET['ffc_clear_qr_cache'] = '1';
+		$_GET['_wpnonce']           = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		try {
+			$this->handler->handle_clear_qr_cache();
+			$this->fail( 'Expected wp_die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		}
+		$this->assertSame( array(), $this->queries );
+	}
+
 	public function test_clear_qr_cache_success_redirects(): void {
 		$_GET['ffc_clear_qr_cache'] = '1';
 		$_GET['_wpnonce']           = 'ok';
@@ -420,7 +440,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url = $this->redirect_of( 'handle_migration_execution' );
 
 		$this->assertSame( array( 'execute:foo' ), $strategy->calls );
-		$this->assertStringContainsString( 'migration_success=Migration executed: 5 records processed.', $url );
+		$this->assertNotice( $url, 'migration', 'success', 'Migration executed: 5 records processed.' );
 	}
 
 	public function test_migration_wp_error_redirects(): void {
@@ -431,7 +451,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_migration_execution' );
 
-		$this->assertStringContainsString( 'migration_error=No strategy found for migration: foo', $url );
+		$this->assertNotice( $url, 'migration', 'error', 'No strategy found for migration: foo' );
 	}
 
 	// ==================================================================
@@ -493,7 +513,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$url = $this->redirect_of( 'handle_migration_rearm' );
 
 		$this->assertSame( array( 'rearm' ), $strategy->calls );
-		$this->assertStringContainsString( 'Walk re-armed: 12 accounts', $url );
+		$this->assertNotice( $url, 'migration', 'success', 'Walk re-armed: 12 records' );
 	}
 
 	public function test_rearm_wp_error_redirects(): void {
@@ -504,7 +524,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_migration_rearm' );
 
-		$this->assertStringContainsString( 'migration_error=No strategy found for migration: foo', $url );
+		$this->assertNotice( $url, 'migration', 'error', 'No strategy found for migration: foo' );
 	}
 
 	// ==================================================================
@@ -563,9 +583,9 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'success', 'Preview generated.' );
 		$this->assertTrue( $this->transients['ffc_obsolete_cleanup_report_7']['dry_run'] );
-		$this->assertSame( 1, $this->transients['ffc_obsolete_cleanup_preview_ok_7'] );
+		$this->assertSame( self::fingerprint( array( 'days' => 90 ) ), $this->transients['ffc_obsolete_cleanup_preview_ok_7'], 'The preview records what it ran with.' );
 	}
 
 	/**
@@ -582,7 +602,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_obsolete_apply_without_preview_redirects(): void {
@@ -593,18 +613,18 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Please run a preview first' );
 	}
 
 	public function test_obsolete_apply_with_preview_runs_tool(): void {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'days' => 90 ) );
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_msg=Cleanup complete. Removed 0 shortcode(s) from 0 post(s).', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'success', 'Cleanup complete. Removed 0 shortcode(s) from 0 post(s).' );
 		$this->assertFalse( $this->transients['ffc_obsolete_cleanup_report_7']['dry_run'] );
 	}
 
@@ -659,7 +679,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_url_cleanup_preview_runs_tool(): void {
@@ -671,11 +691,16 @@ class SettingsActionHandlerTest extends TestCase {
 		$_POST['url_cleanup_trashed']       = '1';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
 
-		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
+		$before = time() - 30 * DAY_IN_SECONDS;
+		$url    = $this->redirect_of( 'handle_url_shortener_cleanup' );
+		$after  = time() - 30 * DAY_IN_SECONDS;
 
-		$this->assertStringContainsString( 'url_cleanup_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Preview generated.' );
 		$this->assertCount( 1, $this->queries, 'One candidate query.' );
-		$this->assertStringContainsString( 'INTERVAL 30 DAY', $this->queries[0] );
+		// The 30-day window is a UTC-seconds cutoff on created_at (#2337).
+		$this->assertSame( 1, preg_match( '/s\.created_at < (\d+)/', $this->queries[0], $m ) );
+		$this->assertGreaterThanOrEqual( $before, (int) $m[1] );
+		$this->assertLessThanOrEqual( $after, (int) $m[1] );
 		$this->assertTrue( $this->transients['ffc_url_cleanup_report_7']['dry_run'] );
 	}
 
@@ -687,7 +712,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Please run a preview first' );
 		$this->assertSame( array(), $this->queries, 'Nothing is deleted without a preview.' );
 	}
 
@@ -695,7 +720,7 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_url_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']        = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'criteria' => array( 'orphaned' => true, 'never_clicked' => true, 'trashed' => true ), 'days' => 30 ) );
 		Functions\when( 'get_option' )->justReturn(
 			array(
 				'url_cleanup_days'          => 30,
@@ -707,7 +732,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_msg=Cleanup complete. Deleted 0 short URL(s).', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'success', 'Cleanup complete. Deleted 0 short URL(s).' );
 		$this->assertFalse( $this->transients['ffc_url_cleanup_report_7']['dry_run'] );
 	}
 
@@ -762,7 +787,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_pubaccess_preview_runs_tool(): void {
@@ -773,9 +798,21 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_msg=Preview generated.', $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Preview generated.' );
 		$this->assertSame( 45, $this->transients['ffc_pubaccess_report_7']['days'] );
 		$this->assertTrue( $this->transients['ffc_pubaccess_report_7']['dry_run'] );
+	}
+
+	public function test_pubaccess_preview_keeps_the_stored_window_when_emptied(): void {
+		$_REQUEST['ffc_pubaccess']           = 'preview';
+		$_REQUEST['_wpnonce']                = 'ok';
+		$_POST['public_access_disable_days'] = '';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 60 ) );
+
+		$this->redirect_of( 'handle_public_access_disabler' );
+
+		$this->assertSame( 60, $this->transients['ffc_pubaccess_report_7']['days'] );
 	}
 
 	public function test_pubaccess_apply_without_preview_redirects(): void {
@@ -786,7 +823,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Please run a preview first', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Please run a preview first' );
 		$this->assertSame( array(), $GLOBALS['ffc_test_wp_query_calls'], 'No form is even looked up without a preview.' );
 	}
 
@@ -794,12 +831,12 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_pubaccess'] = 'apply';
 		$_REQUEST['_wpnonce']      = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'days' => 60 ) );
 		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 60 ) );
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_msg=Done. Disabled Public Operator Access on 0 form(s).', $url );
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Done. Disabled Public Operator Access on 0 form(s).' );
 		$this->assertSame( 60, $this->transients['ffc_pubaccess_report_7']['days'] );
 		$this->assertFalse( $this->transients['ffc_pubaccess_report_7']['dry_run'] );
 	}
@@ -855,7 +892,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'submission_audit', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_submission_audit_scan_runs_tool(): void {
@@ -868,7 +905,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_msg=Audit complete.', $url );
+		$this->assertNotice( $url, 'submission_audit', 'success', 'Audit complete.' );
 		$this->assertNotSame( array(), $this->queries, 'The audit read the stores.' );
 		$this->assertSame( 0, $this->transients['ffc_submission_audit_report_7']['total'] );
 	}
@@ -1117,6 +1154,23 @@ class SettingsActionHandlerTest extends TestCase {
 		$this->assertSame( 1, $written['ffc_settings']['obsolete_shortcode_days'] );
 	}
 
+	/**
+	 * A cleared field keeps the stored window instead of becoming one day,
+	 * which would mark nearly every shortcode obsolete (#2338).
+	 */
+	public function test_obsolete_save_days_keeps_the_stored_window_when_emptied(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'save_days';
+		$_REQUEST['_wpnonce']             = 'ok';
+		$_POST['obsolete_shortcode_days'] = '';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'get_option' )->justReturn( array( 'obsolete_shortcode_days' => 200 ) );
+		$written = $this->capture_option_write();
+
+		$this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertSame( 200, $written['ffc_settings']['obsolete_shortcode_days'] );
+	}
+
 	public function test_obsolete_save_days_caps_at_ten_years_over_unreadable_settings(): void {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'save_days';
 		$_REQUEST['_wpnonce']             = 'ok';
@@ -1148,7 +1202,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Table is locked' );
 		$this->assertArrayNotHasKey( 'ffc_obsolete_cleanup_preview_ok_7', $this->transients );
 	}
 
@@ -1156,13 +1210,13 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'days' => 90 ) );
 		$GLOBALS['ffc_test_wp_query_queue'] = array( array( 10 ) );
 		$this->meta_failure                 = 'Table is locked';
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Table is locked' );
 		$this->assertStringNotContainsString( 'obsolete_cleanup_msg', $url );
 	}
 
@@ -1176,12 +1230,12 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']             = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'days' => 90 ) );
 		$this->mock_tool_registry_without_tools();
 
 		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
 
-		$this->assertStringContainsString( 'obsolete_cleanup_error=Maintenance tool not available.', $url );
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'Maintenance tool not available.' );
 	}
 
 	public function test_url_cleanup_preview_reports_a_tool_failure_over_unreadable_settings(): void {
@@ -1195,7 +1249,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Table is locked' );
 		$this->assertSame( 90, $written['ffc_settings']['url_cleanup_days'], 'the posted criteria are still saved' );
 	}
 
@@ -1203,13 +1257,13 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_url_cleanup'] = 'apply';
 		$_REQUEST['_wpnonce']        = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'criteria' => array( 'orphaned' => true, 'never_clicked' => false, 'trashed' => false ), 'days' => 90 ) );
 		Functions\when( 'get_option' )->justReturn( array( 'url_cleanup_orphaned' => 1 ) );
 		$this->db_failure = 'Table is locked';
 
 		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
 
-		$this->assertStringContainsString( 'url_cleanup_error=Table is locked', $url );
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'Table is locked' );
 	}
 
 	public function test_pubaccess_preview_reports_a_tool_failure_over_unreadable_settings(): void {
@@ -1224,7 +1278,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Table is locked' );
 		$this->assertSame( array( 'public_access_disable_days' => 3650 ), $written['ffc_settings'] );
 	}
 
@@ -1232,13 +1286,13 @@ class SettingsActionHandlerTest extends TestCase {
 		$_REQUEST['ffc_pubaccess'] = 'apply';
 		$_REQUEST['_wpnonce']      = 'ok';
 		Functions\when( 'wp_verify_nonce' )->justReturn( true );
-		Functions\when( 'get_transient' )->justReturn( 1 );
+		$this->previewed( array( 'days' => 90 ) );
 		$GLOBALS['ffc_test_wp_query_queue'] = array( array( 10 ) );
 		$this->meta_failure                 = 'Table is locked';
 
 		$url = $this->redirect_of( 'handle_public_access_disabler' );
 
-		$this->assertStringContainsString( 'pubaccess_error=Table is locked', $url );
+		$this->assertNotice( $url, 'pubaccess', 'error', 'Table is locked' );
 	}
 
 	public function test_submission_audit_scan_reports_a_tool_failure(): void {
@@ -1249,7 +1303,7 @@ class SettingsActionHandlerTest extends TestCase {
 
 		$url = $this->redirect_of( 'handle_submission_link_audit' );
 
-		$this->assertStringContainsString( 'submission_audit_error=Table is locked', $url );
+		$this->assertNotice( $url, 'submission_audit', 'error', 'Table is locked' );
 	}
 
 	public function test_submission_audit_export_is_gated_by_the_identity_audit_source(): void {
@@ -1273,5 +1327,219 @@ class SettingsActionHandlerTest extends TestCase {
 		}
 		$this->assertSame( array( IdentityAuditExportSource::NONCE ), $nonces );
 		$this->assertSame( array(), $this->queries, 'Nothing was read or streamed.' );
+	}
+
+	/**
+	 * The URL names the area, and the text waits on the server (#2338).
+	 *
+	 * @param string $url  Redirect URL.
+	 * @param string $area Notice area.
+	 * @param string $type 'success' or 'error'.
+	 * @param string $text Text the stored message contains.
+	 */
+	private function assertNotice( string $url, string $area, string $type, string $text ): void {
+		$this->assertStringContainsString( 'ffc_notice=' . $area, $url );
+		$this->assertStringNotContainsString( rawurlencode( $text ), $url, 'The text never travels in the URL.' );
+		$notice = $this->transients[ 'ffc_notice_7_' . $area ] ?? null;
+		$this->assertIsArray( $notice, "No notice was stored for {$area}." );
+		$this->assertSame( $type, $notice['type'] );
+		$this->assertStringContainsString( $text, $notice['message'] );
+	}
+
+	/** Empty ActivityLog's private write buffer. */
+	private function reset_activity_buffer(): void {
+		$ref = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$ref->setAccessible( true );
+		$ref->setValue( null, array() );
+	}
+
+	/**
+	 * Rows buffered by ActivityLog::log().
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function activity_buffer(): array {
+		$ref = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$ref->setAccessible( true );
+		$value = $ref->getValue();
+		return is_array( $value ) ? array_values( $value ) : array();
+	}
+
+	/**
+	 * The fingerprint a preview stores for the given parameters.
+	 *
+	 * @param array<string, mixed> $params Parameters.
+	 */
+	private static function fingerprint( array $params ): string {
+		return hash( 'sha256', (string) json_encode( $params ) );
+	}
+
+	/**
+	 * A preview ran with these parameters.
+	 *
+	 * @param array<string, mixed> $params Parameters.
+	 */
+	private function previewed( array $params ): void {
+		Functions\when( 'get_transient' )->justReturn( self::fingerprint( $params ) );
+	}
+
+	public function test_obsolete_apply_refuses_when_the_window_changed_after_the_preview(): void {
+		$_REQUEST['ffc_obsolete_cleanup'] = 'apply';
+		$_REQUEST['_wpnonce']             = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->previewed( array( 'days' => 30 ) );
+		$deleted = array();
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$url = $this->redirect_of( 'handle_obsolete_shortcode_cleanup' );
+
+		$this->assertNotice( $url, 'obsolete_cleanup', 'error', 'The settings changed after the preview.' );
+		$this->assertArrayNotHasKey( 'ffc_obsolete_cleanup_report_7', $this->transients, 'Nothing ran.' );
+		$this->assertContains( 'ffc_obsolete_cleanup_preview_ok_7', $deleted, 'The stale preview is spent.' );
+	}
+
+	public function test_url_cleanup_apply_refuses_when_the_criteria_changed_after_the_preview(): void {
+		$_REQUEST['ffc_url_cleanup'] = 'apply';
+		$_REQUEST['_wpnonce']        = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->previewed( array( 'criteria' => array( 'orphaned' => true, 'never_clicked' => false, 'trashed' => false ), 'days' => 90 ) );
+		Functions\when( 'get_option' )->justReturn(
+			array(
+				'url_cleanup_orphaned'      => 1,
+				'url_cleanup_never_clicked' => 1,
+			)
+		);
+
+		$url = $this->redirect_of( 'handle_url_shortener_cleanup' );
+
+		$this->assertNotice( $url, 'url_cleanup', 'error', 'The settings changed after the preview.' );
+		$this->assertArrayNotHasKey( 'ffc_url_cleanup_report_7', $this->transients );
+		$this->assertSame( array(), $this->queries, 'Nothing is deleted.' );
+	}
+
+	public function test_pubaccess_apply_refuses_when_the_window_changed_after_the_preview(): void {
+		$_REQUEST['ffc_pubaccess'] = 'apply';
+		$_REQUEST['_wpnonce']      = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->previewed( array( 'days' => 60 ) );
+		Functions\when( 'get_option' )->justReturn( array( 'public_access_disable_days' => 30 ) );
+
+		$url = $this->redirect_of( 'handle_public_access_disabler' );
+
+		$this->assertNotice( $url, 'pubaccess', 'error', 'The settings changed after the preview.' );
+		$this->assertSame( array(), $GLOBALS['ffc_test_wp_query_calls'], 'No form is looked up.' );
+	}
+
+	public function test_apply_writes_an_activity_log_line(): void {
+		$_REQUEST['ffc_pubaccess'] = 'apply';
+		$_REQUEST['_wpnonce']      = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->previewed( array( 'days' => 60 ) );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key
+				? array(
+					'public_access_disable_days' => 60,
+					'enable_activity_log'        => 1,
+				)
+				: $default
+		);
+		$this->reset_activity_buffer();
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		$this->empty_reads = true; // The log's sensitive-field lookup finds no custom fields.
+
+		$this->redirect_of( 'handle_public_access_disabler' );
+		$log = $this->activity_buffer();
+		$this->reset_activity_buffer();
+
+		$this->assertSame( 'public_access_bulk_disabled', $log[0]['action'] ?? null );
+		$this->assertSame( 7, $log[0]['user_id'] ?? null, 'The line names who ran it.' );
+		$this->assertStringContainsString( '"days":60', (string) ( $log[0]['context'] ?? '' ) );
+	}
+
+	public function test_a_log_that_cannot_be_written_keeps_the_success_notice(): void {
+		$_REQUEST['ffc_pubaccess'] = 'apply';
+		$_REQUEST['_wpnonce']      = 'ok';
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		$this->previewed( array( 'days' => 60 ) );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_settings' === $key
+				? array(
+					'public_access_disable_days' => 60,
+					'enable_activity_log'        => 1,
+				)
+				: $default
+		);
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		// The log's sensitive-field lookup reaches a store that answers with a failure.
+		$this->reset_activity_buffer();
+
+		$url = $this->redirect_of( 'handle_public_access_disabler' );
+		$this->reset_activity_buffer();
+
+		$this->assertNotice( $url, 'pubaccess', 'success', 'Done. Disabled Public Operator Access on 0 form(s).' );
+	}
+
+	public function test_cron_times_save_returns_without_its_post(): void {
+		Functions\expect( 'check_admin_referer' )->never();
+
+		$this->handler->handle_cron_times_save();
+
+		$this->assertSame( array(), $this->cap_checks );
+	}
+
+	public function test_cron_times_save_needs_the_manage_capability(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array( 'ffc_daily_cleanup' => '03:30' ),
+		);
+		$this->grant();
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		$writes = CallLog::record( 'update_option', true ); // expect()->never() cannot see past setUp's stub (#1699).
+
+		try {
+			$this->handler->handle_cron_times_save();
+			$this->fail( 'Expected wp_die.' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertSame( 'die', $e->getMessage() );
+		}
+		$_POST = array();
+
+		$this->assertSame( 0, $writes->count(), 'Nothing is saved without the capability.' );
+	}
+
+	public function test_cron_times_save_stores_them_and_redirects_with_the_result(): void {
+		$_POST = array(
+			'ffc_save_cron_times' => '1',
+			'ffc_cron_times'      => array(
+				'ffc_daily_cleanup'           => '03:30',
+				'ffc_cloudflare_cidr_refresh' => '25:00',
+			),
+		);
+		$this->grant( 'ffc_manage_settings' );
+		Functions\when( 'check_admin_referer' )->justReturn( 1 );
+		Functions\when( 'wp_next_scheduled' )->justReturn( false );
+		Functions\when( 'wp_clear_scheduled_hook' )->justReturn( 1 );
+		Functions\when( 'wp_schedule_event' )->justReturn( true );
+		$stored = null;
+		Functions\when( 'update_option' )->alias(
+			static function ( $name, $value ) use ( &$stored ) {
+				if ( 'ffc_cron_times' === $name || is_array( $value ) ) {
+					$stored = $value;
+				}
+				return true;
+			}
+		);
+
+		$url = $this->redirect_of( 'handle_cron_times_save' );
+		$_POST = array();
+
+		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $stored );
+		$this->assertStringContainsString( 'tab=scheduled_tasks', $url );
+		$this->assertNotice( $url, 'cron_times', 'error', 'Times saved, except the ones that were not a valid time of day.' );
 	}
 }

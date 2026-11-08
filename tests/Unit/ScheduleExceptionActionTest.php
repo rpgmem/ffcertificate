@@ -33,6 +33,10 @@ class ScheduleExceptionActionTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The page lookup keeps its answers in a transient (#2341): no
+		// answer kept, and the search below decides.
+		Functions\when( 'get_transient' )->justReturn( false );
+		Functions\when( 'set_transient' )->justReturn( true );
 
 		// WP helpers used by the action (or its callees, incl. the
 		// real Geofence::get_form_*_timestamp() helpers we exercise

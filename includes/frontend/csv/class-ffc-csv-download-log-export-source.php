@@ -98,7 +98,7 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 	 * @return array<int, string>
 	 */
 	public function header(): array {
-		return array( 'timestamp', 'ip', 'mode', 'cpf', 'result' );
+		return array( 'timestamp', 'ip', 'mode', 'cpf', 'result', 'attempts', 'first_seen' );
 	}
 
 	/**
@@ -143,8 +143,16 @@ class CsvDownloadLogExportSource implements SyncSourceInterface {
 			$res = isset( $entry['result'] ) ? (string) $entry['result'] : '';
 			$cpf = CsvDownloadAuditLog::decrypt_log_entry_cpf( $entry );
 
+			// A folded failure (#2341): how many attempts the row stands for
+			// and when the first one came; `timestamp` is the last.
+			$first = '';
+			if ( isset( $entry['first_ts'] ) ) {
+				$formatted = wp_date( 'Y-m-d H:i:s', (int) $entry['first_ts'] );
+				$first     = false === $formatted ? '' : $formatted;
+			}
+
 			++$rows;
-			yield array( $ts, (string) \FreeFormCertificate\Core\PiiExport::cell( 'ip', $ip, $clear ), $mod, (string) \FreeFormCertificate\Core\PiiExport::cell( 'cpf', $cpf, $clear ), $res );
+			yield array( $ts, (string) \FreeFormCertificate\Core\PiiExport::cell( 'ip', $ip, $clear ), $mod, (string) \FreeFormCertificate\Core\PiiExport::cell( 'cpf', $cpf, $clear ), $res, (string) CsvDownloadAuditLog::times( $entry ), $first );
 		}
 
 		if ( $clear && $rows > 0 ) {

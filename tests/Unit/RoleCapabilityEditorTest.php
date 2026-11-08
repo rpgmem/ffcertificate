@@ -5,6 +5,7 @@ namespace FreeFormCertificate\Tests\Unit;
 
 use Brain\Monkey;
 use Brain\Monkey\Functions;
+use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\RoleCapabilityEditor;
@@ -33,6 +34,13 @@ class RoleCapabilityEditorTest extends TestCase {
 
 	/** @var array<string, mixed> `$_GET` as an earlier test left it, restored afterwards. */
 	private array $get_backup = array();
+
+	/**
+	 * The stored role overrides, as the editor writes them.
+	 *
+	 * @var mixed
+	 */
+	private $overrides = array();
 
 	protected function setUp(): void {
 		parent::setUp();
@@ -162,6 +170,11 @@ class RoleCapabilityEditorTest extends TestCase {
 		$this->assertStringContainsString( 'ffc-role-editor', $output );
 		$this->assertStringContainsString( 'ffc-role-select', $output );
 		$this->assertStringContainsString( 'ffc-role-impact', $output );
+		// The difference bar starts hidden; the script shows it for a changed role.
+		$this->assertStringContainsString( '<div class="ffc-role-diff" role="status" hidden>', $output );
+		$this->assertMatchesRegularExpression( '/class="[^"]*ffc-btn-caution[^"]*ffc-icon-restore[^"]*ffc-role-restore|class="[^"]*ffc-role-restore[^"]*"/', $output );
+		$this->assertStringContainsString( 'ffc-icon-restore', $output );
+		$this->assertStringContainsString( '<span class="ffc-role-diff-tag" hidden></span>', $output );
 		$this->assertStringContainsString( 'data-ffc-cap-slug="ffc_view_recruitment_pii"', $output );
 		// A cap the first role grants renders checked.
 		$this->assertMatchesRegularExpression( '/ffc_role_cap_ffc_view_own_certificates[^>]*checked/', $output );
@@ -179,9 +192,24 @@ class RoleCapabilityEditorTest extends TestCase {
 	/**
 	 * @return array<string, mixed>
 	 */
-	private function run_ajax(): array {
+	private function run_ajax( string $method = 'ajax_set_role_cap', bool $log = false ): array {
 		$captured = array();
 		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		if ( ! is_array( $this->overrides ) || ! $log ) {
+			$this->overrides = array();
+		}
+		Functions\when( 'get_option' )->alias(
+			fn( $key, $default = false ) => 'ffc_settings' === $key
+				? ( $log ? \FreeFormCertificate\Tests\Support\ActivityLogBuffer::ENABLED_SETTINGS : array() )
+				: ( \FreeFormCertificate\UserDashboard\RoleRegistrar::OVERRIDES_OPTION === $key ? $this->overrides : $default )
+		);
+		Functions\when( 'update_option' )->alias(
+			function ( $key, $value ) {
+				$this->overrides = $value;
+				return true;
+			}
+		);
 		Functions\when( 'wp_send_json_success' )->alias(
 			static function ( $data = null ) use ( &$captured ) {
 				$captured = array( 'ok' => true, 'data' => $data );
@@ -195,13 +223,39 @@ class RoleCapabilityEditorTest extends TestCase {
 			}
 		);
 		try {
-			RoleCapabilityEditor::ajax_set_role_cap();
+			RoleCapabilityEditor::$method();
 		} catch ( \Exception $e ) {
 			if ( 'ffc_json_halt' !== $e->getMessage() ) {
 				throw $e;
 			}
 		}
 		return $captured;
+	}
+
+	public function test_render_tells_someone_without_manage_options_why_and_draws_no_editor(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		ob_start();
+		RoleCapabilityEditor::render();
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( 'Only administrators can edit roles', $output );
+		$this->assertStringNotContainsString( 'ffc-role-select', $output );
+		$this->assertStringNotContainsString( 'ffc-role-cap', $output );
+	}
+
+	public function test_a_powerful_row_asks_before_it_is_granted_and_every_toggle_has_a_name(): void {
+		Functions\when( 'get_role' )->alias(
+			fn( $slug ) => $this->fake_role( array( 'ffc_view_own_certificates' => true ) )
+		);
+
+		ob_start();
+		RoleCapabilityEditor::render();
+		$output = ob_get_clean();
+
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_recruitment_pii"[^>]*data-ffc-confirm="1"/', $output );
+		$this->assertMatchesRegularExpression( '/data-ffc-cap-slug="ffc_view_own_certificates"[^>]*data-ffc-confirm="0"/', $output );
+		$this->assertMatchesRegularExpression( '/id="ffc_role_cap_ffc_view_own_certificates"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*id="ffc_role_cap_ffc_view_own_certificates"/', $output );
 	}
 
 	public function test_ajax_grants_a_cataloged_cap_on_an_ffc_role(): void {
@@ -233,8 +287,164 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$this->assertTrue( $res['ok'] );
 		$this->assertSame( array( 'ffc_view_own_certificates' ), $role->removed );
+		// The end-user role ships no FFC capability, so nothing is recorded.
+		$this->assertSame( array(), $this->overrides );
 
 		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
+	}
+
+	public function test_ajax_records_a_removal_from_a_shipped_role(): void {
+		$definition = \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition();
+		$slug       = 'ffc_readonly';
+		$cap        = $definition[ $slug ]['caps'][0];
+		$role       = $this->fake_role( array( $cap => true ) );
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+
+		$_POST['role']  = $slug;
+		$_POST['cap']   = $cap;
+		$_POST['grant'] = '0';
+
+		$res = $this->run_ajax();
+
+		$this->assertTrue( $res['ok'] );
+		// Kept, so the next request does not grant it back.
+		$this->assertSame( array( $cap ), $this->overrides[ $slug ]['removed'] );
+
+		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
+	}
+
+	/**
+	 * Run a handler with the activity log on, and return its rows.
+	 *
+	 * @param string $method Handler.
+	 * @return array{0: array<string, mixed>, 1: list<array<string, mixed>>}
+	 */
+	private function run_logged( string $method ): array {
+		global $wpdb;
+		$saved        = $wpdb;
+		$wpdb         = Mockery::mock( 'wpdb' );
+		$wpdb->prefix = 'wp_';
+		$wpdb->shouldReceive( 'prepare' )->andReturnUsing( static fn( $sql ) => (string) $sql );
+		$wpdb->shouldReceive( 'get_var' )->andReturn( null );
+		$wpdb->shouldReceive( 'get_results' )->andReturn( array() );
+		$wpdb->shouldReceive( 'get_col' )->andReturn( array() );
+		Functions\when( 'do_action' )->justReturn( null );
+		Functions\when( 'add_action' )->justReturn( true );
+		Functions\when( 'current_time' )->justReturn( '2026-11-06 10:00:00' );
+		Functions\when( 'wp_json_encode' )->alias( 'json_encode' );
+		Functions\when( 'wp_cache_get' )->justReturn( false );
+		Functions\when( 'wp_cache_set' )->justReturn( true );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		$buffer = new \ReflectionProperty( \FreeFormCertificate\Core\ActivityLog::class, 'write_buffer' );
+		$buffer->setAccessible( true );
+		$buffer->setValue( null, array() );
+
+		$res = $this->run_ajax( $method, true );
+
+		$rows = array_values( (array) $buffer->getValue() );
+		$buffer->setValue( null, array() );
+		$wpdb = $saved;
+		return array( $res, $rows );
+	}
+
+	public function test_ajax_logs_a_role_capability_change(): void {
+		$role = $this->fake_role();
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+		$_POST['role']  = 'ffc_end_user';
+		$_POST['cap']   = 'ffc_view_own_certificates';
+		$_POST['grant'] = '1';
+
+		list( $res, $rows ) = $this->run_logged( 'ajax_set_role_cap' );
+		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
+
+		$this->assertTrue( $res['ok'] );
+		$this->assertSame( 'role_capability_changed', $rows[0]['action'] ?? null );
+		$this->assertSame( 3, $rows[0]['user_id'] ?? null );
+		$this->assertSame(
+			array( 'role' => 'ffc_end_user', 'cap' => 'ffc_view_own_certificates', 'granted' => 1 ),
+			json_decode( (string) $rows[0]['context'], true )
+		);
+	}
+
+	public function test_restore_puts_the_shipped_definition_back_and_forgets_the_changes(): void {
+		$slug     = 'ffc_readonly';
+		$shipped  = \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition()[ $slug ]['caps'];
+		$catalog  = \FreeFormCertificate\UserDashboard\CapabilityCatalog::all_slugs();
+		$extra    = current( array_diff( $catalog, $shipped ) );
+		$missing  = $shipped[0];
+		$held     = array_fill_keys( array_slice( $shipped, 1 ), true );
+		$held    += array(
+			'read'       => true,
+			'custom_cap' => true,
+			$extra       => true,
+		);
+		$role     = $this->fake_role( $held );
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+		$this->overrides = array(
+			$slug          => array( 'added' => array( $extra ), 'removed' => array( $missing ) ),
+			'ffc_x_viewer' => array( 'added' => array( 'a' ), 'removed' => array() ),
+		);
+		$_POST['role'] = $slug;
+
+		list( $res, $rows ) = $this->run_logged( 'ajax_restore_role_default' );
+		unset( $_POST['role'] );
+
+		$this->assertTrue( $res['ok'] );
+		$this->assertSame( array( $missing ), $res['data']['restored'] );
+		$this->assertSame( array( $extra ), $res['data']['removed'] );
+		$this->assertSame( array( $missing ), array_column( $role->added, 'cap' ) );
+		$this->assertSame( array( $extra ), $role->removed );
+		// read and a capability outside the catalog stay as they were.
+		$this->assertTrue( $role->capabilities['read'] );
+		$this->assertTrue( $role->capabilities['custom_cap'] );
+		$this->assertSame( array_values( array_intersect( $catalog, $shipped ) ), $res['data']['caps'] );
+		// Only this role's record is forgotten.
+		$this->assertArrayNotHasKey( $slug, $this->overrides );
+		$this->assertArrayHasKey( 'ffc_x_viewer', $this->overrides );
+		$this->assertSame( 'role_default_restored', $rows[0]['action'] ?? null );
+		$this->assertSame(
+			array( 'role' => $slug, 'restored' => array( $missing ), 'removed' => array( $extra ) ),
+			json_decode( (string) $rows[0]['context'], true )
+		);
+	}
+
+	public function test_restore_refuses_a_role_with_no_shipped_definition(): void {
+		$role = $this->fake_role( array( 'ffc_view_own_certificates' => true ) );
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+		$_POST['role'] = 'ffc_end_user';
+
+		$res = $this->run_ajax( 'ajax_restore_role_default' );
+		unset( $_POST['role'] );
+
+		$this->assertFalse( $res['ok'] );
+		$this->assertSame( 400, $res['code'] );
+		$this->assertSame( 'role_has_no_default', $res['data']['message'] );
+		$this->assertSame( array(), $role->removed );
+	}
+
+	public function test_restore_requires_manage_options(): void {
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$role = $this->fake_role( array( 'ffc_view_own_certificates' => true ) );
+		Functions\when( 'get_role' )->alias( fn( $s ) => $role );
+		$_POST['role'] = 'ffc_readonly';
+
+		$res = $this->run_ajax( 'ajax_restore_role_default' );
+		unset( $_POST['role'] );
+
+		$this->assertFalse( $res['ok'] );
+		$this->assertSame( 403, $res['code'] );
+		$this->assertSame( array(), $role->removed );
+		$this->assertSame( array(), $role->added );
+	}
+
+	public function test_restore_reports_a_missing_role(): void {
+		Functions\when( 'get_role' )->justReturn( null );
+		$_POST['role'] = 'ffc_readonly';
+
+		$res = $this->run_ajax( 'ajax_restore_role_default' );
+		unset( $_POST['role'] );
+
+		$this->assertSame( 404, $res['code'] );
 	}
 
 	public function test_ajax_rejects_non_ffc_role(): void {
@@ -277,7 +487,9 @@ class RoleCapabilityEditorTest extends TestCase {
 		$res = $this->run_ajax();
 
 		$this->assertFalse( $res['ok'] );
-		$this->assertSame( 'forbidden', $res['data']['message'] );
+		// The refusal says why, so the screen can show it (#2340).
+		$this->assertStringStartsWith( 'Only administrators can edit roles', $res['data']['message'] );
+		$this->assertSame( 403, $res['code'] );
 
 		unset( $_POST['role'], $_POST['cap'], $_POST['grant'] );
 	}
@@ -311,8 +523,9 @@ class RoleCapabilityEditorTest extends TestCase {
 
 		$this->assertSame(
 			array(
-				'wp_ajax_ffc_set_role_cap' => array( RoleCapabilityEditor::class, 'ajax_set_role_cap' ),
-				'admin_enqueue_scripts'    => array( RoleCapabilityEditor::class, 'enqueue' ),
+				'wp_ajax_ffc_set_role_cap'         => array( RoleCapabilityEditor::class, 'ajax_set_role_cap' ),
+				'wp_ajax_ffc_restore_role_default' => array( RoleCapabilityEditor::class, 'ajax_restore_role_default' ),
+				'admin_enqueue_scripts'            => array( RoleCapabilityEditor::class, 'enqueue' ),
 			),
 			$hooks
 		);
@@ -322,6 +535,8 @@ class RoleCapabilityEditorTest extends TestCase {
 		Functions\when( 'admin_url' )->returnArg();
 		Functions\when( 'wp_create_nonce' )->alias( static fn( $action ) => 'nonce-' . $action );
 		Functions\when( 'get_role' )->justReturn( null );
+		// ffc-core is registered from the shared map before it is enqueued.
+		Functions\when( 'wp_register_script' )->justReturn( false );
 		$assets = array();
 		Functions\when( 'wp_enqueue_style' )->alias(
 			static function ( $handle ) use ( &$assets ) {
@@ -350,7 +565,15 @@ class RoleCapabilityEditorTest extends TestCase {
 		RoleCapabilityEditor::enqueue( 'toplevel_page_ffc-settings' );
 		unset( $_GET['tab'] );
 
-		$this->assertSame( array( 'ffc-common', 'ffc-user-permissions', 'ffc-role-editor' ), $assets );
+		$this->assertSame( array( 'ffc-common', 'ffc-user-permissions', 'ffc-core', 'ffc-role-editor' ), $assets );
+		$this->assertSame(
+			array_keys( \FreeFormCertificate\UserDashboard\CapabilityManager::module_roles_definition() ),
+			array_keys( $localized['ffcRoleEditor']['roleDefaults'] ),
+			'every shipped role has a default to compare with'
+		);
+		$this->assertSame( array(), $localized['ffcRoleEditor']['roles'] );
+		// Restoring deletes nothing and can be redone by hand: no countdown.
+		$this->assertSame( \FreeFormCertificate\Core\ConfirmCountdown::NONE, $localized['ffcRoleEditor']['i18n']['dialog']['seconds'] );
 		$this->assertSame( 'nonce-ffc_set_role_cap', $localized['ffcRoleEditor']['nonce'] );
 		$this->assertSame( array(), $localized['ffcRoleEditor']['roleCaps'], 'a role missing on this install is left out of the map' );
 	}

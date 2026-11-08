@@ -45,9 +45,12 @@ class Shortcodes {
 	 * `templates/security-fields.php`, and the challenge inside it comes from
 	 * whichever provider is configured. Kept as a method because the public
 	 * CSV download shortcode renders through it.
+	 *
+	 * @param string $context What the challenge is issued for ({@see \FreeFormCertificate\Core\Captcha\CaptchaContext}).
+	 * @return string Escaped HTML.
 	 */
-	public function generate_security_fields(): string {
-		return SecurityService::render_security_fields();
+	public function generate_security_fields( string $context ): string {
+		return SecurityService::render_security_fields( $context );
 	}
 
 	/**
@@ -115,7 +118,7 @@ class Shortcodes {
 		);
 
 		// Render verification page using template.
-		$security_fields = $this->generate_security_fields();
+		$security_fields = $this->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::VERIFY );
 
 		ob_start();
 		include FFC_PLUGIN_DIR . 'templates/verification-page.php';
@@ -132,6 +135,8 @@ class Shortcodes {
 	 * @return string
 	 */
 	private function invite_refusal( int $form_id, string $message ): string {
+		// An invite-only form says whom to ask for a working link (#2341).
+		$message .= ' ' . __( 'For a new link, contact whoever sent you the invitation.', 'ffcertificate' );
 		return '<div class="ffc-shortcode ffc-form-wrapper" id="ffc-form-' . esc_attr( (string) $form_id ) . '">'
 			. \FreeFormCertificate\Core\Notice::render( 'warning', 'lock', $message, '', array( 'hook' => 'invite' ) )
 			. '</div>';
@@ -155,7 +160,8 @@ class Shortcodes {
 					'ip'      => \FreeFormCertificate\Core\RequestInput::get_user_ip(),
 				)
 			);
-			return '<p>' . esc_html__( 'Form not found.', 'ffcertificate' ) . '</p>';
+			// A notice inside the shortcode's root, in the Public Design (#2341).
+			return '<div class="ffc-shortcode">' . \FreeFormCertificate\Core\Notice::render( 'warning', 'warning', __( 'Form not found.', 'ffcertificate' ) ) . '</div>';
 		}
 
 		$form_post  = get_post( $form_id );
@@ -169,7 +175,7 @@ class Shortcodes {
 					'form_id' => $form_id,
 				)
 			);
-			return '<p>' . esc_html__( 'Form has no fields.', 'ffcertificate' ) . '</p>';
+			return '<div class="ffc-shortcode">' . \FreeFormCertificate\Core\Notice::render( 'warning', 'warning', __( 'Form has no fields.', 'ffcertificate' ) ) . '</div>';
 		}
 
 		\FreeFormCertificate\Core\Debug::log_frontend(
@@ -239,16 +245,24 @@ class Shortcodes {
 		// A personal invitation fills in and locks the person's name and
 		// e-mail (#1948); a form that admits invited people only shows nothing
 		// else to whoever arrives without one.
-		$invite      = null;
-		$invite_code = \FreeFormCertificate\Core\RequestInput::get_get_string( FormInvite::QUERY_VAR );
+		$invite       = null;
+		$stale_invite = false;
+		$invite_code  = \FreeFormCertificate\Core\RequestInput::get_get_string( FormInvite::QUERY_VAR );
+		$invite_only  = FormInvite::invite_only( is_array( $form_config ) ? $form_config : array() );
 		if ( '' !== $invite_code ) {
 			$resolved = FormInvite::resolve( $form_id, $invite_code );
 			if ( $resolved instanceof \WP_Error ) {
-				return $this->invite_refusal( $form_id, $resolved->get_error_message() );
+				if ( $invite_only ) {
+					return $this->invite_refusal( $form_id, $resolved->get_error_message() );
+				}
+				// A form open to everyone does not need the link (#2341): an
+				// old or broken one shows the form as anyone else sees it.
+				$stale_invite = true;
+			} else {
+				$invite = $resolved;
+				$fields = FormInvite::fill_fields( $fields, $invite );
 			}
-			$invite = $resolved;
-			$fields = FormInvite::fill_fields( $fields, $invite );
-		} elseif ( FormInvite::invite_only( is_array( $form_config ) ? $form_config : array() ) ) {
+		} elseif ( $invite_only ) {
 			return $this->invite_refusal( $form_id, __( 'This form is open by invitation only. Use the link in the e-mail you received.', 'ffcertificate' ) );
 		}
 
@@ -282,6 +296,16 @@ class Shortcodes {
 			}
 			if ( null !== $quiz_leave ) {
 				echo $this->quiz_leave_notice( $leave_level ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
+			}
+			if ( $stale_invite ) {
+				$stale_notice = \FreeFormCertificate\Core\Notice::render(
+					'info',
+					'info',
+					__( 'The invitation link is not needed — fill in and submit the form as usual.', 'ffcertificate' ),
+					'',
+					array( 'hook' => 'invite' )
+				);
+				echo $stale_notice; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value.
 			}
 			if ( null !== $invite ) {
 				$invite_notice = \FreeFormCertificate\Core\Notice::render(
@@ -326,7 +350,7 @@ class Shortcodes {
 
 				<?php
                 // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- generate_security_fields() escapes all output internally
-				echo $this->generate_security_fields();
+				echo $this->generate_security_fields( \FreeFormCertificate\Core\Captcha\CaptchaContext::form( $form_id ) );
 				?>
 
 				<?php

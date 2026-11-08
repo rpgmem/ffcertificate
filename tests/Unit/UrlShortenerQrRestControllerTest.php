@@ -106,6 +106,38 @@ class UrlShortenerQrRestControllerTest extends TestCase {
 		$this->assertSame( 404, $result->get_error_data()['status'] );
 	}
 
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public function provide_inactive_statuses(): array {
+		return array(
+			'disabled' => array( 'disabled' ),
+			'trashed'  => array( 'trashed' ),
+		);
+	}
+
+	/**
+	 * A link that does not redirect has no QR to hand out (#2337).
+	 *
+	 * @dataProvider provide_inactive_statuses
+	 */
+	public function test_get_qr_refuses_a_link_that_is_not_active( string $status ): void {
+		$this->repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn(
+			array(
+				'id'         => '1',
+				'short_code' => 'abc123',
+				'status'     => $status,
+			)
+		);
+		$this->service->shouldNotReceive( 'get_short_url' );
+
+		$result = $this->controller->get_qr( $this->request( array( 'code' => 'abc123' ) ) );
+
+		$this->assertInstanceOf( \WP_Error::class, $result );
+		$this->assertSame( 'ffc_short_url_inactive', $result->get_error_code() );
+		$this->assertSame( 410, $result->get_error_data()['status'] );
+	}
+
 	public function test_get_qr_png_returns_base64_payload(): void {
 		$this->repo->shouldReceive( 'findByShortCode' )->with( 'abc123' )->andReturn(
 			array( 'id' => 1, 'short_code' => 'abc123', 'status' => 'active' )

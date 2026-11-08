@@ -295,20 +295,6 @@
 	border: 1px solid var(--ffc-border);
 }
 
-.ffc-cap-copy {
-	border: 0;
-	background: none;
-	padding: 0;
-	cursor: pointer;
-	font-size: var(--ffc-font-size-xs);
-	line-height: 1;
-	color: var(--ffc-text-muted);
-}
-
-.ffc-cap-copy:hover {
-	color: var(--ffc-text);
-}
-
 /* ---- origin badge ---------------------------------------------------- */
 .ffc-cap-origin {
 	align-self: center;
@@ -470,6 +456,59 @@
 	max-width: 320px;
 }
 
+/* The prompt under the WordPress Role select (#2340). */
+.ffc-demote-prompt {
+	max-width: 640px;
+	margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-demote-prompt .ffc-cap-chip {
+	margin: var(--ffc-spacing-3xs) var(--ffc-spacing-2xs) var(--ffc-spacing-3xs) 0;
+}
+
+/* A role that differs from its shipped definition (#2340). */
+.ffc-role-diff {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	align-items: center;
+	justify-content: space-between;
+	margin: var(--ffc-spacing-lg) var(--ffc-spacing-xl) 0;
+	padding: var(--ffc-spacing-sm) var(--ffc-spacing-lg);
+	border-left: 4px solid var(--ffc-warning-border);
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-text);
+}
+
+.ffc-role-diff p {
+	margin: 0;
+}
+
+.ffc-role-cap-side {
+	display: flex;
+	gap: var(--ffc-spacing-sm);
+	align-items: center;
+	align-self: center;
+}
+
+.ffc-role-diff-tag {
+	padding: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+	border-radius: var(--ffc-radius-pill);
+	font-size: var(--ffc-font-size-2xs);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.ffc-role-diff-tag--added {
+	background: var(--ffc-success-bg);
+	color: var(--ffc-success-text);
+}
+
+.ffc-role-diff-tag--removed {
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+}
+
 .ffc-cap-savestate {
 	align-self: center;
 	min-width: 48px;
@@ -548,7 +587,51 @@
 .ffc-cap-row[data-ffc-tier="edit"]     { --ffc-tier-strength: 0.70; }
 .ffc-cap-row[data-ffc-tier="manage"]   { --ffc-tier-strength: 0.85; }
 .ffc-cap-row[data-ffc-tier="bypass"]   { --ffc-tier-strength: 0.85; }
+.ffc-cap-row[data-ffc-tier="checkin"]  { --ffc-tier-strength: 0.46; }
+.ffc-cap-row[data-ffc-tier="grade"]    { --ffc-tier-strength: 0.50; }
+.ffc-cap-row[data-ffc-tier="send"]     { --ffc-tier-strength: 0.58; }
 .ffc-cap-row[data-ffc-tier="delete"]   { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="purge"]    { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="merge"]    { --ffc-tier-strength: 1; }
+.ffc-cap-row[data-ffc-tier="split"]    { --ffc-tier-strength: 1; }
+
+/* Why a role-granted switch is locked (#2340). */
+.ffc-cap-why {
+	display: block;
+	margin-top: var(--ffc-spacing-2xs);
+	color: var(--ffc-warning-text);
+	font-size: var(--ffc-font-size-xs);
+}
+
+/* The tier in words beside the name, so it is not read from the accent's
+   strength alone (#2340). The destructive and override bands take a tone;
+   the rest stay neutral. */
+.ffc-cap-tier {
+	display: inline-block;
+	margin-left: var(--ffc-spacing-xs);
+	padding: 0 var(--ffc-spacing-xs);
+	border-radius: var(--ffc-radius-sm);
+	background: var(--ffc-gray-100);
+	color: var(--ffc-text-secondary);
+	font-size: var(--ffc-font-size-2xs);
+	font-weight: 600;
+	vertical-align: middle;
+}
+
+.ffc-cap-tier-data {
+	background: var(--ffc-info-bg);
+	color: var(--ffc-info-text);
+}
+
+.ffc-cap-tier-override {
+	background: var(--ffc-warning-bg);
+	color: var(--ffc-warning-text);
+}
+
+.ffc-cap-tier-destroy {
+	background: var(--ffc-danger-bg);
+	color: var(--ffc-danger-text);
+}
 
 /* ── Blocked-roles list (Settings → User Access) ─────────────────────────
    Groups the wp-admin block list so it reads as sections instead of one
@@ -607,7 +690,9 @@
     .ffc-cap-badge-surface--admin,
     .ffc-cap-badge-surface--api,
     .ffc-cap-badge-surface--frontend,
-    .ffc-cap-chip--muted {
+    .ffc-cap-chip--muted,
+    .ffc-role-diff-tag--added,
+    .ffc-role-diff-tag--removed {
         border: 1px solid CanvasText;
     }
 }
