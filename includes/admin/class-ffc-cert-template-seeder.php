@@ -76,8 +76,12 @@ class CertTemplateSeeder {
 	 * Version 9 refreshes the record default: the layout of #2227 never reached
 	 * an install that picked the pool's default, because no bump carried it, and
 	 * each e-mail now takes a full row (#2235).
+	 *
+	 * Version 10 adds {{schedule}} to the six certificate defaults: the default
+	 * Required data asks for it in every layout, so a form on a shipped model
+	 * could not be saved until an administrator added the tag (#2524).
 	 */
-	private const SEED_VERSION = 9;
+	private const SEED_VERSION = 10;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
