@@ -485,18 +485,6 @@ final class SettingsReader {
 		return self::get_bool( 'url_shortener_enabled', true );
 	}
 
-	/**
-	 * Whether auto-creation of short URLs is enabled. Defaults to true.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function url_shortener_auto_create_enabled(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return self::get_bool( 'url_shortener_auto_create', true );
-	}
-
 	// ──────────────────────────────────────────────────────────────.
 	// Feature-module on/off toggles (the "Modules" settings tab).
 	// ──────────────────────────────────────────────────────────────.

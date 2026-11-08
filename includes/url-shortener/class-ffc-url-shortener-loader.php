@@ -440,18 +440,4 @@ class UrlShortenerLoader {
 	 * countdown convention.
 	 */
 	public const INACTIVE_COUNTDOWN = 15;
-
-	/**
-	 * Register the short-URL rewrite rules and flush them.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function flush_rules(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$loader = new self();
-		$loader->register_rewrite_rules();
-		flush_rewrite_rules();
-	}
 }

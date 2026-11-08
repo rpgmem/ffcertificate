@@ -1,8 +1,8 @@
 // Tests for the untested helpers in `assets/js/ffc-core.js`:
 //   - log / error / warn console wrappers (debug gating)
-//   - getAjaxUrl / getNonce / getString accessors
+//   - getNonce / getString accessors
 //   - enableDebug / disableDebug
-//   - isModuleLoaded / registerModule / getModules
+//   - registerModule
 //   - ajax() (legacy callback helper)
 //   - toggleFields() (checkbox / select / radio, slide + invert paths)
 //   - the delegated [data-confirm] click guard (asked in FFC.confirmDialog)
@@ -68,9 +68,8 @@ describe('ffc-core.js — logging helpers', () => {
 });
 
 describe('ffc-core.js — accessors and module registry', () => {
-	it('exposes ajax url, live nonce, and translated strings', async () => {
+	it('exposes the live nonce and translated strings', async () => {
 		await load();
-		expect(window.FFC.getAjaxUrl()).toBe('/wp-admin/admin-ajax.php');
 		expect(window.FFC.getNonce()).toBe('core-nonce');
 		expect(window.FFC.getString('greeting')).toBe('Olá');
 		// Falls back to defaultValue, then to the key itself.
@@ -86,14 +85,12 @@ describe('ffc-core.js — accessors and module registry', () => {
 		expect(window.FFC.config.debug).toBe(false);
 	});
 
-	it('isModuleLoaded reflects presence; registerModule records into getModules', async () => {
+	it('registerModule records the module and its version', async () => {
 		await load();
-		expect(window.FFC.isModuleLoaded('NopeModule')).toBe(false);
 		window.FFC.registerModule('CoreHelpersTest', '9.9.9');
-		const found = window.FFC.getModules().find((m) => m.name === 'CoreHelpersTest');
+		const found = window.FFC._modules.find((m) => m.name === 'CoreHelpersTest');
 		expect(found).toBeTruthy();
 		expect(found.version).toBe('9.9.9');
-		expect(window.FFC.isModuleLoaded('getModules')).toBe(true);
 	});
 });
 

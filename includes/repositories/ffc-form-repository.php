@@ -125,19 +125,4 @@ class FormRepository extends AbstractRepository {
 
 		return ( is_array( $value ) && array() !== $value ) ? $value : false;
 	}
-
-	/**
-	 * Get form background
-	 *
-	 * @param int $form_id Form ID.
-	 * @return mixed
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function getBackground( int $form_id ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return \FreeFormCertificate\Core\FormBackground::url( $form_id );
-	}
 }

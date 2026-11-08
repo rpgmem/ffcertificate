@@ -116,23 +116,4 @@ class CaptchaProvider {
 
 		return self::$instances[ $id ];
 	}
-
-	/**
-	 * Whether the configured strategy needs the ALTCHA widget on the page.
-	 *
-	 * Nothing asks: the widget bundle is enqueued from
-	 * {@see AltchaCaptcha::render_fields()}, where the widget renders.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function needs_altcha_widget(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$id = self::resolve()->id();
-
-		return AltchaCaptcha::ID === $id || CompositeCaptcha::ID === $id;
-	}
 }

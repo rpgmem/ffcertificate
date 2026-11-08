@@ -243,39 +243,6 @@ class RecruitmentCandidateReader {
 	}
 
 	/**
-	 * Look up the first candidate matching a given email hash.
-	 *
-	 * `email_hash` is NOT enforced UNIQUE (see schema rationale in §3.4 of
-	 * the implementation plan: candidates may share an email address —
-	 * e.g. family members — so the unique key is CPF/RF). When multiple
-	 * candidates share the same email, the FIRST inserted is returned;
-	 * callers needing all matches should use a different query.
-	 *
-	 * @param string $email_hash Hash produced by `SensitiveFieldRegistry::hash_identifier()`.
-	 * @return CandidateRow|null
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_by_email_hash( string $email_hash ): ?object {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		/**
-		 * Cast wpdb result to typed shape.
-		 *
-		 * @var CandidateRow|null $result
-		 */
-		$result = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE email_hash = %s ORDER BY id ASC LIMIT 1', $table, $email_hash )
-		);
-
-		return $result ? $result : null;
-	}
-
-	/**
 	 * Get the candidate row for a logged-in WP user.
 	 *
 	 * Powers the candidate-self dashboard section ({@see GET /me/recruitment}).
@@ -393,72 +360,6 @@ class RecruitmentCandidateReader {
 		 * @var list<CandidateRow>|null $results
 		 */
 		return is_array( $results ) ? $results : array();
-	}
-
-	/**
-	 * Companion count for {@see self::get_paginated_for_adjutancy()}.
-	 *
-	 * @param string $name_search  Optional substring filter on name.
-	 * @param int    $adjutancy_id Adjutancy id.
-	 * @return int
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function count_paginated_for_adjutancy( string $name_search, int $adjutancy_id ): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb      = self::db();
-		$table     = self::get_table_name();
-		$cls_table = $wpdb->prefix . 'ffc_recruitment_classification';
-
-		$sql = '' !== $name_search
-			? 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d AND c.name LIKE %s'
-			: 'SELECT COUNT(DISTINCT c.id) FROM %i c INNER JOIN %i cls ON cls.candidate_id = c.id WHERE cls.adjutancy_id = %d';
-
-		$args = '' !== $name_search
-			? array( $table, $cls_table, $adjutancy_id, '%' . $wpdb->esc_like( $name_search ) . '%' )
-			: array( $table, $cls_table, $adjutancy_id );
-
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is one of two literals selected immediately above; both placeholders match $args.
-		$total = $wpdb->get_var( $wpdb->prepare( $sql, $args ) );
-
-		return null === $total ? 0 : (int) $total;
-	}
-
-	/**
-	 * Total candidate count, optionally filtered by `name` substring.
-	 *
-	 * Pairs with {@see self::get_paginated()} to drive the list table
-	 * pagination headers.
-	 *
-	 * @param string $name_search Optional substring filter on name.
-	 * @return int
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function count_paginated( string $name_search ): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_table_name();
-
-		if ( '' !== $name_search ) {
-			$total = $wpdb->get_var(
-				$wpdb->prepare(
-					'SELECT COUNT(*) FROM %i WHERE name LIKE %s',
-					$table,
-					'%' . $wpdb->esc_like( $name_search ) . '%'
-				)
-			);
-		} else {
-			$total = $wpdb->get_var(
-				$wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table )
-			);
-		}
-
-		return null === $total ? 0 : (int) $total;
 	}
 
 	/**

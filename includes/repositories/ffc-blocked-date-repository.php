@@ -62,29 +62,6 @@ class BlockedDateRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Get all global blocks (applies to all calendars)
-	 *
-	 * @return array<int, array<string, mixed>>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function getGlobalBlocks(): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$results = $this->wpdb->get_results(
-			$this->wpdb->prepare( 'SELECT * FROM %i WHERE calendar_id IS NULL ORDER BY start_date ASC', $this->table ),
-			ARRAY_A
-		);
-		/**
-		 * Cast wpdb result to expected shape.
-		 *
-		 * @var array<int, array<string, mixed>>
-		 */
-		return is_array( $results ) ? $results : array();
-	}
-
-	/**
 	 * Check if date is blocked for calendar
 	 *
 	 * @param int         $calendar_id Calendar ID.
@@ -361,40 +338,6 @@ class BlockedDateRepository extends AbstractRepository {
 	}
 
 	/**
-	 * Delete expired blocks
-	 *
-	 * Cleanup blocks that have ended.
-	 *
-	 * @param int $days_old Number of days past end date.
-	 * @return int|false Number of deleted rows
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function deleteExpiredBlocks( int $days_old = 30 ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cutoff_ts   = strtotime( "-{$days_old} days" );
-		$cutoff_date = gmdate( 'Y-m-d', $cutoff_ts ? $cutoff_ts : time() );
-
-		$sql = $this->wpdb->prepare(
-			"DELETE FROM %i
-             WHERE block_type != 'recurring'
-             AND end_date IS NOT NULL
-             AND end_date < %s",
-			$this->table,
-			$cutoff_date
-		);
-
-		if ( ! is_string( $sql ) ) {
-			return false;
-		}
-
-		$result = $this->wpdb->query( $sql );
-		return false === $result ? false : (int) $result;
-	}
-
-	/**
 	 * Check if date/time matches recurring pattern
 	 *
 	 * @param string               $date Date.
@@ -437,25 +380,5 @@ class BlockedDateRepository extends AbstractRepository {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Get upcoming blocks for a calendar
-	 *
-	 * @param int $calendar_id Calendar ID.
-	 * @param int $days Number of days to look ahead.
-	 * @return array<int, array<string, mixed>>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function getUpcomingBlocks( int $calendar_id, int $days = 30 ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$start_date = gmdate( 'Y-m-d' );
-		$end_ts     = strtotime( "+{$days} days" );
-		$end_date   = gmdate( 'Y-m-d', $end_ts ? $end_ts : time() );
-
-		return $this->getBlockedDatesInRange( $calendar_id, $start_date, $end_date );
 	}
 }

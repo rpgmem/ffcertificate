@@ -79,22 +79,6 @@ final class OptOut {
 	}
 
 	/**
-	 * Whether one person opted out of a category.
-	 *
-	 * @param int    $user_id  The person.
-	 * @param string $category One of OptOutCategory::all().
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function is_opted_out( int $user_id, string $category = OptOutCategory::PERSONAL ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return isset( self::among( array( $user_id ), $category )[ $user_id ] );
-	}
-
-	/**
 	 * Record the choice in one category, keeping every other preference.
 	 *
 	 * @param int    $user_id  The person.

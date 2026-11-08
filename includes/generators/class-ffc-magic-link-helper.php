@@ -107,31 +107,6 @@ class MagicLinkHelper {
 	}
 
 	/**
-	 * Get magic link from submission array
-	 *
-	 * Useful when you already have the submission data
-	 *
-	 * @param mixed       $submission Submission array with 'magic_token' key.
-	 * @param object|null $handler Submission handler (optional, for generating if missing).
-	 * @return string Complete magic link URL
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_magic_link_from_submission( $submission, ?object $handler = null ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$token = isset( $submission['magic_token'] ) ? $submission['magic_token'] : '';
-
-		// If no token and handler provided, try to generate (convert id to int - wpdb returns strings).
-		if ( empty( $token ) && $handler && ! empty( $submission['id'] ) ) {
-			$token = self::ensure_token( (int) $submission['id'], $handler );
-		}
-
-		return self::generate_magic_link( $token );
-	}
-
-	/**
 	 * Validate magic token format
 	 *
 	 * @param string $token Token to validate.
@@ -140,50 +115,6 @@ class MagicLinkHelper {
 	public static function is_valid_token( string $token ): bool {
 		// Accept both 32-char (certificate magic_token) and 64-char (appointment confirmation_token).
 		return ! empty( $token ) && preg_match( '/^[a-f0-9]{32}([a-f0-9]{32})?$/i', $token );
-	}
-
-	/**
-	 * Extract token from URL
-	 *
-	 * Supports both formats:
-	 * - /?ffc_magic=token
-	 * - /valid#token=token
-	 * - /valid?token=token
-	 *
-	 * @param string $url URL to parse.
-	 * @return string Token or empty string
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function extract_token_from_url( string $url ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		// Try query string parameters.
-		$query = wp_parse_url( $url, PHP_URL_QUERY );
-		if ( $query ) {
-			parse_str( $query, $params );
-
-			if ( isset( $params['ffc_magic'] ) && is_string( $params['ffc_magic'] ) ) {
-				return $params['ffc_magic'];
-			}
-
-			if ( isset( $params['token'] ) && is_string( $params['token'] ) ) {
-				return $params['token'];
-			}
-		}
-
-		// Try hash fragment.
-		$fragment = wp_parse_url( $url, PHP_URL_FRAGMENT );
-		if ( $fragment ) {
-			parse_str( $fragment, $params );
-
-			if ( isset( $params['token'] ) && is_string( $params['token'] ) ) {
-				return $params['token'];
-			}
-		}
-
-		return '';
 	}
 
 	/**
@@ -211,27 +142,5 @@ class MagicLinkHelper {
 		}
 
 		return '';
-	}
-
-	/**
-	 * Debug: Get info about a magic link
-	 *
-	 * @param string $token Magic token.
-	 * @return array<string, mixed> Debug information
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function debug_info( string $token ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return array(
-			'token'            => $token,
-			'token_valid'      => self::is_valid_token( $token ),
-			'token_length'     => strlen( $token ),
-			'verification_url' => self::get_verification_page_url(),
-			'magic_link'       => self::generate_magic_link( $token ),
-			'qr_code_url'      => self::get_magic_link_qr_code( $token ),
-		);
 	}
 }

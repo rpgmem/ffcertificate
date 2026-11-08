@@ -35,7 +35,6 @@ class Deactivator {
 		'ffcertificate_bulk_issue_purge',
 	);
 
-
 	/**
 	 * Deactivation hook logic.
 	 * Usually, we only flush rewrite rules here to avoid breaking permalinks.
@@ -70,79 +69,6 @@ class Deactivator {
 		\FreeFormCertificate\DateMessages\DateMessagesCron::unschedule();
 		\FreeFormCertificate\Submissions\FormCache::unschedule_cache_warming();
 
-		flush_rewrite_rules();
-	}
-
-	/**
-	 * Destructive Cleanup.
-	 * WARNING: This deletes all plugin data.
-	 * Ideally, this should be called from an uninstall.php file or a specific action.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function uninstall_cleanup(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( ! current_user_can( 'activate_plugins' ) ) {
-			return;
-		}
-
-		// Security check: Ensure this was a conscious post action with a nonce.
-		// Note: WordPress deactivation via the "Plugins" page doesn't send POST data by default.
-		if ( \FreeFormCertificate\Core\RequestInput::get_post_string( 'confirm_uninstall' ) !== 'yes' ) {
-			wp_die( esc_html__( 'Please confirm the uninstallation to proceed.', 'ffcertificate' ) );
-		}
-
-		global $wpdb;
-		$table_name = \FreeFormCertificate\Repositories\SubmissionRepository::get_submissions_table();
-
-		// 1. Drop the submissions table.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Drops the plugin's own ffc_* tables; WordPress has no API for them and there is nothing left to cache once they are gone.
-		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table_name ) );
-
-		// 2. Delete plugin options.
-		delete_option( 'ffc_db_version' );
-		delete_option( 'ffc_settings' );
-
-		// 3. Clear scheduled CRON tasks.
-		wp_clear_scheduled_hook( 'ffc_daily_cleanup' );
-		wp_unschedule_hook( 'ffc_activity_log_cleanup_continue' );
-		wp_clear_scheduled_hook( 'ffc_bulk_issue_purge' );
-		wp_clear_scheduled_hook( 'ffcertificate_process_submission_hook' );
-		// #1248's internal hook, which replaced the one above in the scheduling.
-		// The old one stays: an event scheduled the old way may still be pending.
-		wp_unschedule_hook( 'ffc_process_submission_async' );
-		wp_clear_scheduled_hook( 'ffc_self_scheduling_reminder_scan' );
-		wp_clear_scheduled_hook( 'ffc_self_scheduling_closeout' );
-		wp_clear_scheduled_hook( 'ffc_reregistration_expire' );
-		// The names these hooks had before #2323. The relay that moved their
-		// events is gone, so an install that skipped the releases carrying it
-		// may still hold one; clearing it costs nothing.
-		foreach ( self::LEGACY_CRON_HOOKS as $legacy_hook ) {
-			wp_clear_scheduled_hook( $legacy_hook );
-		}
-		\FreeFormCertificate\Admin\ExpiredTicketsCleanup::unschedule();
-		\FreeFormCertificate\Integrations\CloudflareCidrRefresh::unschedule();
-
-		// 4. Delete all Custom Post Type 'ffc_form' entries.
-		$args = array(
-			'post_type'      => 'ffc_form',
-			'posts_per_page' => -1,
-			'post_status'    => 'any', // Catch drafts, trashed, published, etc.
-			'fields'         => 'ids',
-		);
-
-		$forms = get_posts( $args );
-
-		if ( ! empty( $forms ) ) {
-			foreach ( $forms as $form_id ) {
-				// Set second parameter to true to bypass trash and delete permanently.
-				wp_delete_post( $form_id, true );
-			}
-		}
-
-		// Flush rewrite rules after removing the CPT.
 		flush_rewrite_rules();
 	}
 }

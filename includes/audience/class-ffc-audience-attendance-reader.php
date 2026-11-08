@@ -121,33 +121,6 @@ class AudienceAttendanceReader {
 	}
 
 	/**
-	 * Whether a person is already recorded present on one day of a booking.
-	 *
-	 * @param int    $booking_id Booking ID.
-	 * @param int    $user_id    User ID.
-	 * @param string $date       Day (Y-m-d).
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function is_present( int $booking_id, int $user_id, string $date ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb = self::db();
-
-		return null !== $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT id FROM %i WHERE booking_id = %d AND user_id = %d AND attendance_date = %s LIMIT 1',
-				self::get_table_name(),
-				$booking_id,
-				$user_id,
-				$date
-			)
-		);
-	}
-
-	/**
 	 * The attendance rows of one day of a booking.
 	 *
 	 * @param int    $booking_id Booking ID.

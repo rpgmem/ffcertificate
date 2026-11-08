@@ -12,7 +12,7 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	// ffc-core.js needs `window.ffc_ajax` (and friends) set for `getString`
-	// / `getAjaxUrl`. The actual values don't matter — just their presence.
+	// / the nonce. The actual values don't matter — just their presence.
 	window.ffc_ajax = {
 		ajax_url: '/wp-admin/admin-ajax.php',
 		nonce: 'test-nonce',
@@ -63,26 +63,13 @@ describe('FFC.getString', () => {
 	});
 });
 
-describe('FFC.getAjaxUrl / getNonce', () => {
-	it('returns the ajax_url from the localized object', () => {
-		expect(window.FFC.getAjaxUrl()).toBe('/wp-admin/admin-ajax.php');
-	});
+describe('FFC.getNonce', () => {
 
 	it('returns the nonce from the localized object', () => {
 		expect(window.FFC.getNonce()).toBe('test-nonce');
 	});
 });
 
-describe('FFC.isModuleLoaded', () => {
-	it('returns true when FFC.<module> exists', () => {
-		// FFC.Frontend was registered by ffc-frontend-helpers.js.
-		expect(window.FFC.isModuleLoaded('Frontend')).toBe(true);
-	});
-
-	it('returns false when the module is not registered', () => {
-		expect(window.FFC.isModuleLoaded('Nonexistent')).toBe(false);
-	});
-});
 
 // ----------------------------------------------------------------------
 // FFC.Frontend.Validation
@@ -148,30 +135,6 @@ describe('FFC.Frontend.Validation.validateRF', () => {
 	});
 });
 
-describe('FFC.Frontend.Validation.validateEmail', () => {
-	const V = () => window.FFC.Frontend.Validation;
-
-	it('accepts a well-formed email', () => {
-		expect(V().validateEmail('user@example.com')).toBe(true);
-		expect(V().validateEmail('first.last+tag@sub.domain.co')).toBe(true);
-	});
-
-	it('rejects emails missing the @ sign', () => {
-		expect(V().validateEmail('userexample.com')).toBe(false);
-	});
-
-	it('rejects emails missing the local part', () => {
-		expect(V().validateEmail('@example.com')).toBe(false);
-	});
-
-	it('rejects emails missing the TLD', () => {
-		expect(V().validateEmail('user@example')).toBe(false);
-	});
-
-	it('rejects emails with whitespace', () => {
-		expect(V().validateEmail('user @example.com')).toBe(false);
-	});
-});
 
 // ----------------------------------------------------------------------
 // FFC.Frontend.UI — DOM injection of error / success
