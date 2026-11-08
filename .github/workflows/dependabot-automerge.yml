@@ -14,6 +14,20 @@ jobs:
       - uses: dependabot/fetch-metadata@v3
         id: meta
 
+      # GitHub opens security updates against the default branch (main) and
+      # ignores target-branch. Every change reaches main through develop and
+      # the release PR, so move it there first: changing the base turns off
+      # auto-merge, which is why this runs before the step that enables it.
+      # Dependabot rebases the PR if it then conflicts with develop.
+      - name: Retarget a PR opened against main to develop
+        if: github.event.pull_request.base.ref == 'main'
+        run: |
+          gh pr edit "$PR_URL" --base develop
+          gh pr comment "$PR_URL" --body "Retargeted from \`main\` to \`develop\`: every change reaches \`main\` through \`develop\` and the release PR. GitHub opens Dependabot security updates against the default branch whatever \`target-branch\` says, so this workflow moves them."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Auto-merge patch and minor updates
         if: >-
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||

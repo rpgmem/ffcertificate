@@ -105,6 +105,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The Date Messages rule editor follows the editor layout** (#2498). Its six stacked sections are tabs of one form; the side column holds the Active switch and Save rule first, then "This rule", a summary of every tab that follows the form before it is saved.
 - **Audiences inherit the reregistration fields instead of copying them** (#2502). On update each audience's copy of a standard field becomes inheritance, its change, or a hidden field; the answers move onto the inherited field (Settings → Data Migrations), read through the fold until they do. New audiences get no copy.
 - Settings → Advanced: an activity-log audit section starts closed while all its items are on, and opens only when one is switched off (#2513).
+- **CI:** Dependabot PRs opened against `main` (security updates, which ignore `target-branch`) are moved to `develop` before auto-merge is turned on, so none merges into production unreleased (#2515).
 
 ### Security
 
