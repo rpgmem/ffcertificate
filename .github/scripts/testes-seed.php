@@ -824,6 +824,17 @@ function ffc_tseed_calendars( array $ctx ): array {
 	}
 	wp_set_current_user( $ctx['admin_id'] );
 
+	// The seed books on each person's behalf with their account already set,
+	// which a real booking never does without the person holding the booking
+	// capabilities, so the dashboard's Personal Calendar tab stayed hidden for
+	// every seeded owner (#2532). Grant them as the account creation would.
+	for ( $n = 0; $n < 33; $n++ ) {
+		$owner = (int) ( $ctx['user_ids'][ $people[ $n ]['email'] ] ?? 0 );
+		if ( $owner > 0 ) {
+			\FreeFormCertificate\UserDashboard\CapabilityManager::grant_appointment_capabilities( $owner );
+		}
+	}
+
 	// Walk part of them through the other statuses.
 	foreach ( $made as $k => $id ) {
 		switch ( $k % 6 ) {

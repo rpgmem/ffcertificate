@@ -11,7 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **QR Code settings: the design preview follows the form again** (#2520). Since it moved to the side column it sat outside the form, so no change redrew it and the first drawing ignored the saved design.
 - **pt_BR: the consent sentence reads "concordo com a Política de Privacidade", and the catalogue loses 70 zero-width spaces** (#2522). They were left by machine translation in front of words on 33 lines; a guard now refuses them in the catalogues, readmes and sources.
-- **Testes seed: the wipe never deletes an administrator** (#2532). It removed every `@example.test` account, the admin it acted as included when its address was in that domain.
+- **Testes seed: the wipe never deletes an administrator** (#2532). It removed every `@example.test` account, the admin it acted as included when its address was in that domain. Seeded booking owners also get the appointment capabilities, so their dashboard lists the bookings the seed gave them.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`
 
