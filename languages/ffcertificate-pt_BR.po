@@ -33744,3 +33744,15 @@ msgstr "%1$d usuários examinados; as respostas de %2$d foram movidas para os ca
 #: includes/settings/views/documentation/feature-audiences.php
 msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
 msgstr "Os públicos-alvo recebiam a própria cópia de cada campo padrão. Na atualização, a cópia idêntica ao que o público-alvo herda virou herança simples, a diferente virou alteração do público-alvo e a inativa oculta o campo ali; as respostas foram junto (Configurações → Migrações de Dados, \"Mover respostas para os campos herdados\"). A cópia com tipo, sensibilidade ou vínculo com o perfil diferente continua como \"Cópia própria\" quando alguém a respondeu, com suas respostas, e é perguntada no lugar da herdada; a que ninguém respondeu passa a herdar como as demais. Públicos-alvo novos não recebem cópia."
+
+#: templates/admin/audience/audience-tab.php
+msgid "Text for users"
+msgstr "Texto para os usuários"
+
+#: templates/admin/audience/audience-tab.php
+msgid "Shown under \"Join Groups\" on the Profile tab of the dashboard, below the line that states the limit: for example, what the groups are for or whom to ask. Basic HTML is allowed (links, bold, lists). Empty shows nothing."
+msgstr "Exibido abaixo de \"Participar de Grupos\" na aba Perfil do painel, logo abaixo da linha que informa o limite: por exemplo, para que servem os grupos ou a quem perguntar. HTML básico é permitido (links, negrito, listas). Vazio não exibe nada."
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
+msgstr "\"Texto para os usuários\", no mesmo card, aparece no painel abaixo de \"Participar de Grupos\", logo abaixo da linha que informa o limite: para que servem os grupos, como escolher, a quem perguntar. HTML básico é permitido (links, negrito, listas); vazio, nada é exibido."

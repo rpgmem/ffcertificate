@@ -271,6 +271,7 @@ $ffcertificate_options = array(
 	'ffc_aud_multiple_audiences_color',
 	'ffc_aud_private_display_mode',
 	'ffc_aud_scheduling_message',
+	'ffc_aud_self_join_note',
 	'ffc_aud_visibility_message',
 	// Self-scheduling module options (audited gap).
 	'ffc_ss_business_hours_booking_message',

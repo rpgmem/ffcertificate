@@ -2,7 +2,8 @@
 /**
  * Template: Audience admin settings — Audience tab (manage links + visibility settings + badge color).
  * In-scope: $display_mode, $visibility_message, $scheduling_message,
- * $multiple_audiences_color, $max_self_join_groups, $max_range_days, $this->menu_slug.
+ * $multiple_audiences_color, $max_self_join_groups, $self_join_note, $max_range_days,
+ * $this->menu_slug.
  *
  * Extracted verbatim from the matching AudienceAdminSettings method
  * (rpgmem/ffcertificate coverage hygiene); markup byte-identical. The
@@ -87,6 +88,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 										)
 									);
 									?>
+								</p>
+							</td>
+						</tr>
+						<tr>
+							<th scope="row">
+								<label for="ffc_aud_self_join_note"><?php esc_html_e( 'Text for users', 'ffcertificate' ); ?></label>
+							</th>
+							<td>
+								<textarea name="ffc_aud_self_join_note" id="ffc_aud_self_join_note" rows="3" class="large-text"><?php echo esc_textarea( is_string( $self_join_note ) ? $self_join_note : '' ); ?></textarea>
+								<p class="description">
+									<?php esc_html_e( 'Shown under "Join Groups" on the Profile tab of the dashboard, below the line that states the limit: for example, what the groups are for or whom to ask. Basic HTML is allowed (links, bold, lists). Empty shows nothing.', 'ffcertificate' ); ?>
 								</p>
 							</td>
 						</tr>
