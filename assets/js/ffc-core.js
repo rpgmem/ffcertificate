@@ -1874,7 +1874,8 @@
         console.warn('[FFC Core] jQuery not found. Some features may not work.');
     } else {
         jQuery(function($) {
-            window.FFC.showPendingNotice();
+            // The module itself, not window.FFC: a page or a test may replace the global.
+            core.showPendingNotice();
 
             // Delegated confirm dialog for destructive actions
             $(document).on('click', '[data-confirm]', function(e) {
