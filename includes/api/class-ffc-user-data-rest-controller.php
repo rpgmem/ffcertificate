@@ -10,6 +10,7 @@
  *   UserAudienceRestController         – GET  /user/audience-bookings, GET /user/joinable-groups, POST /user/audience-group/join|leave
  *   UserSummaryRestController          – GET  /user/summary
  *   UserReregistrationsRestController  – GET  /user/reregistrations
+ *   UserMessagesRestController         – GET  /user/messages
  *
  * @package FreeFormCertificate\API
  * @since 4.6.1
@@ -63,6 +64,7 @@ class UserDataRestController {
 			'audience'        => new UserAudienceRestController( $this->namespace ),
 			'summary'         => new UserSummaryRestController( $this->namespace ),
 			'reregistrations' => new UserReregistrationsRestController( $this->namespace ),
+			'messages'        => new UserMessagesRestController( $this->namespace ),
 		);
 
 		foreach ( $this->sub_controllers as $controller ) {

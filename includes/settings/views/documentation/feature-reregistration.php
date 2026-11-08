@@ -127,6 +127,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'A column matching no field is ignored and listed back to you. Working notes and columns that are none of the plugin\'s business do not have to be removed first.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'A required field with no column at all refuses the file immediately, naming the missing columns — every row would fail, so saying it once beats saying it five thousand times.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'CSV or TXT, up to 10 MB, UTF-8 (a byte-order mark is tolerated).', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( '"Download CSV template" gives the header for the audience chosen above: one column per field, named by its key, in the order the form asks them, required ones included and display-only ones left out. Fill one row per person and upload it as it is.', 'ffcertificate' ); ?></li>
 		</ul>
 
 		<h4><?php esc_html_e( 'Check first, then import', 'ffcertificate' ); ?></h4>

@@ -21816,8 +21816,6 @@ msgstr ""
 msgid "Date messages (birthdays and other dates)"
 msgstr ""
 
-msgid "Date messages (such as birthday greetings)"
-msgstr ""
 
 msgid "Date messages batch (one per batch)"
 msgstr ""
@@ -23069,7 +23067,7 @@ msgstr ""
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr ""
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
+msgid "Notification Preferences on the Profile tab: an \"Appointment reminder\" toggle, on until turned off"
 msgstr ""
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
@@ -23099,7 +23097,7 @@ msgstr ""
 msgid "Date-message tokens:"
 msgstr ""
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Schedule pages follow it in the submenu."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Settings pages follow it in the submenu."
 msgstr ""
 
 msgid "On, but silent until you create a rule."
@@ -23150,7 +23148,7 @@ msgstr ""
 msgid "Opting out"
 msgstr ""
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgid "On their dashboard, in the Messages tab, a person can turn off \"Date messages\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-date-messages.php
@@ -23877,7 +23875,7 @@ msgstr ""
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
 msgstr ""
 
-msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Settings page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
 msgstr ""
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
@@ -33661,6 +33659,155 @@ msgstr ""
 
 #: includes/settings/views/documentation/feature-audiences.php
 msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+#, php-format
+msgid "%d current announcement"
+msgid_plural "%d current announcements"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Also sent by e-mail"
+msgstr ""
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Announcements on the user dashboard"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Announcements sent in the last %d days"
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "Counted from the day the announcement was sent. Until then it opens the person's dashboard as a notice and heads their Messages tab; after that it is listed with the earlier messages."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Current"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date message"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date messages"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date messages, and announcements past that window"
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "Each person sees what they were sent in the Messages tab of their dashboard, built from the rule as it is now. Deleting a rule removes what it sent from every dashboard."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Earlier"
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "Hide from the dashboard"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "Loading messages..."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Message preferences"
+msgstr ""
+
+#: includes/api/class-ffc-user-messages-rest-controller.php
+msgid "Messages are not available."
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "Messages from disabled rules"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No current announcements."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No earlier messages."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No messages yet. Date messages and announcements sent to you will show here."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Off: new announcements are not e-mailed to you and do not show at the top of the dashboard."
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "On: what a disabled rule already sent leaves the Messages tab and the top of the dashboard, and comes back if the rule is enabled again. Off: it stays listed."
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "Read in Messages"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Received messages"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+#, php-format
+msgid "Sent on %s"
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "Show announcements at the top for"
+msgstr ""
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Such as birthday greetings."
+msgstr ""
+
+#: templates/admin/date-messages/settings.php
+msgid "User dashboard"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A Messages tab, when the Date Messages module is on: what the module sent them, in two groups that page three at a time. Current holds the announcements sent within the days chosen on Date Messages → Settings, and the tab shows how many; Earlier holds the date messages and the older announcements. Each message opens in place with Open and closes with Close, and is marked as also sent by e-mail. Beside the list, Message preferences holds the \"Date messages\" and \"Announcements from this site\" toggles, each of which opts them out, on until turned off."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The current announcements also open the dashboard as notices above the cards, at most three, each with \"Read in Messages\". A notice has no close button: it leaves when its days are over, and it is not shown to someone who turned announcements off, although the announcement stays in their Messages tab."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A message is built again from its rule each time the tab is read, so an edited rule shows its current text and a deleted rule leaves the tab. What a disabled rule sent stays, unless Date Messages → Settings hides it. A send that failed is not listed, and the delivery log, and so the tab, keeps one year. Viewing as a user, the e-mail address and the values the date supplies, such as an age, are masked, and the unsubscribe link in a message leads to the tab's preferences."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "On the user dashboard"
+msgstr ""
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Each person finds what they were sent in the Messages tab of their dashboard, built from the rule as it is now: an edited rule shows its current text, and deleting a rule removes what it sent from every dashboard. On the Settings page, \"Show announcements at the top for\" chooses 2, 5, 7, 10 or 15 days, 7 by default: for that long after it was sent an announcement opens the person's dashboard as a notice and heads the tab. \"Messages from disabled rules\" leaves what a disabled rule sent listed unless \"Hide from the dashboard\" is turned on. Both save as they change and need ffc_manage_date_messages."
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "Download CSV template"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "One column per field of the chosen audience, named by its key, in the order the form asks them. Fill one row per person."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-template-source.php
+msgid "This audience is not part of the campaign."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "\"Download CSV template\" gives the header for the audience chosen above: one column per field, named by its key, in the order the form asks them, required ones included and display-only ones left out. Fill one row per person and upload it as it is."
 msgstr ""
 
 #: templates/admin/audience/audience-tab.php

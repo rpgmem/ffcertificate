@@ -11,6 +11,7 @@
 return array(
 	'API>Audience',
 	'API>Core',
+	'API>DateMessages',
 	'API>Frontend',
 	'API>Generators',
 	'API>Repositories',
@@ -18,6 +19,7 @@ return array(
 	'API>Security',
 	'API>SelfScheduling',
 	'API>Services',
+	'API>Settings',
 	'API>Submissions',
 	'API>UserDashboard',
 	'Admin>Audience',
@@ -149,6 +151,7 @@ return array(
 	'Settings>Security',
 	'Shortcodes>Audience',
 	'Shortcodes>Core',
+	'Shortcodes>DateMessages',
 	'Shortcodes>Recruitment',
 	'Shortcodes>Reregistration',
 	'Shortcodes>Settings',

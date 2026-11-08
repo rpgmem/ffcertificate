@@ -74,6 +74,24 @@ describe('FFC.Admin.autoSaveField', () => {
 		});
 	});
 
+	it('posts to the admin-ajax URL the screen localized, with its nonce (#2503)', () => {
+		// A WordPress in a subdirectory has no root /wp-admin/admin-ajax.php,
+		// and a screen without ffc_ajax would otherwise post there.
+		window.ffcAdminAutosave = { nonce: 'settings-nonce', ajaxUrl: '/wp/wp-admin/admin-ajax.php', strings: {} };
+		try {
+			document.body.innerHTML = '<input type="checkbox" id="t" />';
+			const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
+			window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'date_messages_hide_disabled_rules', debounce: 0 });
+			window.$('#t').prop('checked', true).trigger('change');
+			vi.advanceTimersByTime(1);
+
+			expect(postSpy.mock.calls[0][0]).toBe('/wp/wp-admin/admin-ajax.php');
+			expect(postSpy.mock.calls[0][1]).toMatchObject({ key: 'date_messages_hide_disabled_rules', nonce: 'settings-nonce' });
+		} finally {
+			delete window.ffcAdminAutosave;
+		}
+	});
+
 	it('renders the saving → saved badge transition on success', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({

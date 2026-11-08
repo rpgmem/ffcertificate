@@ -70,6 +70,32 @@ class ReregistrationImportStagingService {
 	private const INSERT_CHUNK = 200;
 
 	/**
+	 * The header of a blank import file for one audience (#2506): the key of
+	 * every field {@see self::map_header()} places, in the order the form
+	 * asks them, so a file built on it maps every column and misses no
+	 * required one. A display-only field holds no answer and is left out,
+	 * unless it is required, because then the import refuses a file without
+	 * its column.
+	 *
+	 * @param int $audience_id Audience whose fields define the columns.
+	 * @return list<string>
+	 */
+	public static function template_header( int $audience_id ): array {
+		$header = array();
+		foreach ( CustomFieldReader::get_by_audience_with_parents( $audience_id, true ) as $field ) {
+			$key = (string) $field->field_key;
+			if ( '' === $key || in_array( $key, $header, true ) ) {
+				continue;
+			}
+			if ( in_array( (string) $field->field_type, CustomFieldReader::DISPLAY_ONLY_TYPES, true ) && empty( $field->is_required ) ) {
+				continue;
+			}
+			$header[] = $key;
+		}
+		return $header;
+	}
+
+	/**
 	 * Resolve a CSV header against one audience's field definitions.
 	 *
 	 * **Matching is exact, on `field_key` first and `field_label` second**,
