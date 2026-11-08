@@ -136,34 +136,41 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
-	it('prevents submit on approve when the user declines the confirm', async () => {
+	it('prevents submit on approve when the user declines the plugin dialog', async () => {
 		mountForm();
 		await reload();
 		window.$('select[name="bulk_action"]').val('approve');
 		window.$('input[name="submission_ids[]"]').prop('checked', true);
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
 		await flush();
 		expect(ev.isDefaultPrevented()).toBe(true);
 	});
 
-	it('lets approve through when the user accepts the confirm', async () => {
+	it('sends approve again, through the form, once the user accepts the plugin dialog', async () => {
 		mountForm();
 		await reload();
 		window.$('select[name="bulk_action"]').val('approve');
 		window.$('input[name="submission_ids[]"]').prop('checked', true);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
+		const form = document.getElementById('ffc-submissions-form');
+		const requestSubmit = vi.fn();
+		form.requestSubmit = requestSubmit;
 		const ev = window.$.Event('submit');
-		// Block jsdom's native submit (Not Implemented).
-		window.$('#ffc-submissions-form').on('submit', (e) => e.preventDefault());
 		window.$('#ffc-submissions-form').trigger(ev);
 		await flush();
-		// Our extra preventDefault doesn't count toward the assertion —
-		// the FIRST handler is the IIFE's, which only prevents on confirm=false.
-		// Since confirm returned true, the IIFE didn't preventDefault.
-		// (The native preventDefault later fires from the test guard.)
-		expect(vi.mocked(window.confirm)).toHaveBeenCalledWith('Approve?');
+
+		expect(ev.isDefaultPrevented()).toBe(true);
+		expect(confirmSpy.mock.calls[0][0].message).toBe('Approve?');
+		expect(requestSubmit).toHaveBeenCalledTimes(1);
+		expect(form.getAttribute('data-ffc-confirmed')).toBe('1');
+
+		// The replayed submit is let through, and spends the marker.
+		const again = window.$.Event('submit');
+		window.$('#ffc-submissions-form').trigger(again);
+		expect(again.isDefaultPrevented()).toBe(false);
+		expect(form.hasAttribute('data-ffc-confirmed')).toBe(false);
 	});
 
 	it('sends return_to_draft to the review modal with the selection (#2242)', async () => {
@@ -171,7 +178,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		await reload();
 		window.$('select[name="bulk_action"]').val('return_to_draft');
 		window.$('input[name="submission_ids[]"]').prop('checked', true);
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog');
 		const ev = window.$.Event('submit');
 		window.$('#ffc-submissions-form').trigger(ev);
 		await flush();
@@ -189,7 +196,7 @@ describe('rereg-admin — bulk-action submit gate', () => {
 		await reload();
 		window.$('select[name="bulk_action"]').val('export');
 		window.$('input[name="submission_ids[]"]').prop('checked', true);
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog');
 		window.$('#ffc-submissions-form').on('submit', (e) => e.preventDefault());
 		window.$('#ffc-submissions-form').trigger('submit');
 		await flush();
@@ -312,41 +319,47 @@ describe('rereg-admin — record PDF download', () => {
 		expect(btn.children.length).toBe(0);
 	});
 
-	it('on success but no window.ffcGeneratePDF: shows an alert', async () => {
+	it('on success but no window.ffcGeneratePDF: says it in a notice', async () => {
 		mountBtn();
 		await reload();
 		delete window.ffcGeneratePDF;
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { pdf_data: { template: 'x' } } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = vi.spyOn(window.FFC, 'adminNotice').mockImplementation(() => null);
 
 		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('PDF error');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'PDF error');
 	});
 
-	it('on response.success=false: alerts the server message', async () => {
+	it('on response.success=false: says the server message in a notice', async () => {
 		mountBtn();
 		await reload();
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Submission not found' } } }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = vi.spyOn(window.FFC, 'adminNotice').mockImplementation(() => null);
 
 		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Submission not found');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Submission not found');
 	});
 
-	it('on network failure: alerts the generic record-error string', async () => {
+	it('on network failure: says the generic record-error string in a notice', async () => {
 		mountBtn();
 		await reload();
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = vi.spyOn(window.FFC, 'adminNotice').mockImplementation(() => null);
 
 		window.$('.ffc-record-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('PDF error');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'PDF error');
 	});
 });
 
