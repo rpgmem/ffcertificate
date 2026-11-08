@@ -33809,3 +33809,15 @@ msgstr ""
 #: includes/settings/views/documentation/feature-reregistration.php
 msgid "\"Download CSV template\" gives the header for the audience chosen above: one column per field, named by its key, in the order the form asks them, required ones included and display-only ones left out. Fill one row per person and upload it as it is."
 msgstr ""
+
+#: templates/admin/audience/audience-tab.php
+msgid "Text for users"
+msgstr ""
+
+#: templates/admin/audience/audience-tab.php
+msgid "Shown under \"Join Groups\" on the Profile tab of the dashboard, below the line that states the limit: for example, what the groups are for or whom to ask. Basic HTML is allowed (links, bold, lists). Empty shows nothing."
+msgstr ""
+
+#: includes/settings/views/documentation/scheduling-audiences.php
+msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
+msgstr ""

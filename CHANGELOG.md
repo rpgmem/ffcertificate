@@ -28,6 +28,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A global list of reregistration fields every audience inherits** (#2502). Reregistration → Custom Fields edits it and lists where each audience changed, hid or added a field. An audience's tab shows where each field comes from; Customize changes one inherited field there (answers stay under the inherited field), Hide stops asking it, Back to inherited undoes the change.
 - **User dashboard: Messages tab** (#2503). What Date Messages sent each person, built from the rule as it is now: current announcements, which also open the dashboard as notices for 2–15 days, and earlier messages, three a page; the two message preferences move there from Profile. Date Messages → Settings chooses the days and whether disabled rules' messages stay.
 - **Reregistration: a CSV template on the Import answers tab** (#2506). "Download CSV template" gives the chosen audience's header, built from the fields the import maps, so the file loads as it is.
+- **Audience Calendars: a text for users under "Join Groups"** (#2509). Scheduling Settings → Audience Calendars → Self-Join gains "Text for users", shown on the dashboard below the group limit; basic HTML, empty shows nothing.
 
 ### Changed
 

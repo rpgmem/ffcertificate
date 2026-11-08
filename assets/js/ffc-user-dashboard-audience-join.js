@@ -64,6 +64,10 @@
             (s.joinGroupsDesc || 'Select up to {max} groups to participate in collective calendars.')
                 .replace('{max}', data.max_groups) +
             '</p>';
+        // The administrator's own text (#2509), filtered by the server.
+        if (data.note) {
+            html += '<div class="ffc-audience-join-note">' + data.note + '</div>';
+        }
 
         // Per-node model (#792): a node may carry BOTH a join/leave button
         // (its own `joinable`) AND a nested `children` list. Three shapes:

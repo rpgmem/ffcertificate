@@ -815,6 +815,7 @@ class AudienceAdminSettingsTest extends TestCase {
 			'ffc_aud_visibility_message'       => 'Log in',
 			'ffc_aud_scheduling_message'       => 'Book',
 			'ffc_aud_multiple_audiences_color' => ' #AABBCC ',
+			'ffc_aud_self_join_note'           => '<p>Ask <strong>HR</strong>.</p>',
 		);
 
 		$this->page()->handle_visibility_settings();
@@ -826,6 +827,7 @@ class AudienceAdminSettingsTest extends TestCase {
 				'ffc_aud_visibility_message'       => 'Log in',
 				'ffc_aud_scheduling_message'       => 'Book',
 				'ffc_aud_multiple_audiences_color' => '#aabbcc',
+				'ffc_aud_self_join_note'           => '<p>Ask <strong>HR</strong>.</p>',
 			),
 			$written->getArrayCopy()
 		);

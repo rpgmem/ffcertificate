@@ -284,6 +284,7 @@ class AudienceAdminSettings {
 		$scheduling_message       = get_option( 'ffc_aud_scheduling_message', __( 'To book on this calendar you need to be logged in. <a href="%login_url%">Log in</a> to continue.', 'ffcertificate' ) );
 		$multiple_audiences_color = get_option( 'ffc_aud_multiple_audiences_color', '' );
 		$max_self_join_groups     = AudienceSelfJoinLimit::get();
+		$self_join_note           = get_option( 'ffc_aud_self_join_note', '' );
 		$max_range_days           = AudienceBookingRules::max_range_days();
 
 		include FFC_PLUGIN_DIR . 'templates/admin/audience/audience-tab.php';
@@ -374,6 +375,10 @@ class AudienceAdminSettings {
 				''
 			);
 			update_option( 'ffc_aud_multiple_audiences_color', $ma_color );
+
+			// The text under "Join Groups" on the dashboard (#2509); empty
+			// shows nothing.
+			update_option( 'ffc_aud_self_join_note', self::rich_text_post( 'ffc_aud_self_join_note' ) );
 
 			// A cleared or non-numeric field is "not supplied", never a zero
 			// limit: keep what is stored (#1916).

@@ -1108,6 +1108,25 @@
     margin: 0 0 var(--ffc-spacing-xl) 0;
 }
 
+/* The administrator's text under the limit (#2509). */
+.ffc-audience-join-note {
+    margin: 0 0 var(--ffc-spacing-xl) 0;
+    padding: var(--ffc-spacing-md) var(--ffc-spacing-lg);
+    border-left: 3px solid var(--ffc-info);
+    border-radius: var(--ffc-radius-sm);
+    background: var(--ffc-info-bg);
+    color: var(--ffc-info-text);
+    font-size: var(--ffc-font-size-sm);
+}
+
+.ffc-audience-join-note > :first-child {
+    margin-top: 0;
+}
+
+.ffc-audience-join-note > :last-child {
+    margin-bottom: 0;
+}
+
 /* Parent group container */
 .ffc-audience-parent-group {
     margin-bottom: var(--ffc-spacing-xl);
