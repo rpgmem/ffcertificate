@@ -98,8 +98,9 @@ class ScheduledTasksTest extends TestCase {
 		$kept_block  = substr( $source, (int) $split, (int) $end_kept - (int) $split );
 		$purge_block = substr( $source, (int) $end_kept );
 
-		// The pre-#2323 names stay cleared for their deprecation cycle.
-		$hooks = array_merge( array_keys( ScheduledTasks::all() ), array_keys( ScheduledTasks::LEGACY_HOOKS ) );
+		// The pre-#2323 names stay cleared: an install that skipped the relay
+		// may still hold an event under one.
+		$hooks = array_merge( array_keys( ScheduledTasks::all() ), \FreeFormCertificate\Deactivator::LEGACY_CRON_HOOKS );
 		$this->assertNotSame( array(), $hooks, 'The register is empty -- the check did not run.' );
 
 		foreach ( $hooks as $hook ) {
@@ -190,8 +191,10 @@ class ScheduledTasksTest extends TestCase {
 	 */
 	private static function clear_call( string $hook ): string {
 		// A legacy name was recurring, like the hook it became.
-		$hook_now = ScheduledTasks::LEGACY_HOOKS[ $hook ] ?? $hook;
-		return ScheduledTasks::SINGLE === ScheduledTasks::all()[ $hook_now ]['recurrence']
+		if ( in_array( $hook, \FreeFormCertificate\Deactivator::LEGACY_CRON_HOOKS, true ) ) {
+			return "wp_clear_scheduled_hook( '{$hook}' )";
+		}
+		return ScheduledTasks::SINGLE === ScheduledTasks::all()[ $hook ]['recurrence']
 			? "wp_unschedule_hook( '{$hook}' )"
 			: "wp_clear_scheduled_hook( '{$hook}' )";
 	}
@@ -468,125 +471,5 @@ class ScheduledTasksTest extends TestCase {
 		$this->assertFalse( $this->writes[ ScheduledTasks::TIMES_OPTION ][1], 'Not autoloaded.' );
 		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' ), $cleared, 'Only a changed, scheduled task moves; a cleared one stays where it is.' );
 		$this->assertSame( array( 'ffc_daily_expired_tickets_cleanup' => array( '02:15', 'daily' ) ), $events );
-	}
-
-	// ------------------------------------------------------------------
-	// Pre-#2323 names
-	// ------------------------------------------------------------------
-
-	public function test_every_legacy_name_maps_to_a_registered_recurring_hook(): void {
-		$this->assertCount( 6, ScheduledTasks::LEGACY_HOOKS );
-		foreach ( ScheduledTasks::LEGACY_HOOKS as $old => $new ) {
-			$this->assertStringStartsWith( 'ffcertificate_', $old );
-			$this->assertStringStartsWith( 'ffc_', $new );
-			$this->assertArrayHasKey( $new, ScheduledTasks::all(), $new );
-			$this->assertNotSame( ScheduledTasks::SINGLE, ScheduledTasks::all()[ $new ]['recurrence'], $new );
-		}
-	}
-
-	/**
-	 * An event under an old name moves to the new one at the same time and
-	 * with the same recurrence; the stored heartbeat and chosen time follow.
-	 */
-	public function test_migration_moves_an_old_event_with_its_time_and_keys(): void {
-		$events = array(
-			'ffcertificate_daily_cleanup_hook'            => array( 1900000000, 'daily' ),
-			'ffcertificate_self_scheduling_reminder_scan' => array( 1900000500, 'hourly' ),
-		);
-		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][0] : false );
-		Functions\when( 'wp_get_schedule' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][1] : false );
-		Functions\when( 'wp_clear_scheduled_hook' )->alias(
-			static function ( $hook ) use ( &$events ) {
-				unset( $events[ $hook ] );
-				return 1;
-			}
-		);
-		Functions\when( 'wp_schedule_event' )->alias(
-			static function ( $ts, $recurrence, $hook ) use ( &$events ) {
-				$events[ $hook ] = array( $ts, $recurrence );
-				return true;
-			}
-		);
-		$this->stored = array( 'ffcertificate_daily_cleanup_hook' => 111 );
-		$this->times  = array( 'ffcertificate_daily_cleanup_hook' => '03:30' );
-
-		$this->assertSame( 2, ScheduledTasks::migrate_legacy_hooks() );
-
-		$this->assertSame(
-			array(
-				'ffc_daily_cleanup'                 => array( 1900000000, 'daily' ),
-				'ffc_self_scheduling_reminder_scan' => array( 1900000500, 'hourly' ),
-			),
-			$events
-		);
-		$this->assertSame( array( 'ffc_daily_cleanup' => 111 ), $this->stored );
-		$this->assertSame( array( 'ffc_daily_cleanup' => '03:30' ), $this->times );
-	}
-
-	public function test_migration_never_schedules_a_second_copy(): void {
-		$events = array(
-			'ffcertificate_bulk_issue_purge' => array( 1900000000, 'daily' ),
-			'ffc_bulk_issue_purge'           => array( 1900009999, 'daily' ),
-		);
-		Functions\when( 'wp_next_scheduled' )->alias( static fn( $hook ) => isset( $events[ $hook ] ) ? $events[ $hook ][0] : false );
-		Functions\when( 'wp_get_schedule' )->justReturn( 'daily' );
-		Functions\when( 'wp_clear_scheduled_hook' )->alias(
-			static function ( $hook ) use ( &$events ) {
-				unset( $events[ $hook ] );
-				return 1;
-			}
-		);
-		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_schedule_event', true );
-		$this->stored = array(
-			'ffcertificate_bulk_issue_purge' => 1,
-			'ffc_bulk_issue_purge'           => 2,
-		);
-
-		$this->assertSame( 1, ScheduledTasks::migrate_legacy_hooks() );
-
-		$this->assertSame( 0, $log->count() );
-		$this->assertSame( array( 'ffc_bulk_issue_purge' => array( 1900009999, 'daily' ) ), $events );
-		$this->assertSame( array( 'ffc_bulk_issue_purge' => 2 ), $this->stored, 'The value under the new name wins.' );
-	}
-
-	public function test_migration_with_nothing_left_writes_nothing(): void {
-		Functions\when( 'wp_next_scheduled' )->justReturn( false );
-		$log = \FreeFormCertificate\Tests\Support\CallLog::record( 'wp_clear_scheduled_hook', 0 );
-
-		$this->assertSame( 0, ScheduledTasks::migrate_legacy_hooks() );
-
-		$this->assertSame( 0, $log->count() );
-		$this->assertSame( array(), $this->writes );
-	}
-
-	/**
-	 * A callback a site attached to an old name still runs when the new hook
-	 * fires, through do_action_deprecated() naming the replacement.
-	 */
-	public function test_an_old_name_with_a_listener_is_relayed_as_deprecated(): void {
-		$callbacks = array();
-		Functions\when( 'add_action' )->alias(
-			static function ( $hook, $callback, $priority = 10 ) use ( &$callbacks ) {
-				if ( 998 === $priority ) {
-					$callbacks[ $hook ] = $callback;
-				}
-				return true;
-			}
-		);
-		Functions\when( 'has_action' )->alias( static fn( $hook ) => 'ffcertificate_daily_cleanup_hook' === $hook );
-		$relayed = array();
-		Functions\when( 'do_action_deprecated' )->alias(
-			static function ( $hook, $args, $version, $replacement ) use ( &$relayed ) {
-				$relayed[] = array( $hook, $args, $version, $replacement );
-			}
-		);
-
-		ScheduledTasks::init();
-
-		$this->assertSame( array_values( ScheduledTasks::LEGACY_HOOKS ), array_keys( $callbacks ) );
-		$callbacks['ffc_daily_cleanup']();
-		$callbacks['ffc_bulk_issue_purge']();
-
-		$this->assertSame( array( array( 'ffcertificate_daily_cleanup_hook', array(), '6.43.0', 'ffc_daily_cleanup' ) ), $relayed, 'Only the old name with a listener is relayed.' );
 	}
 }
