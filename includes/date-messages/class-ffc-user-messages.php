@@ -6,7 +6,7 @@
  * of their dashboard (#2503).
  *
  * @package FreeFormCertificate\DateMessages
- * @since   6.43.0
+ * @since   6.44.0
  */
 
 declare(strict_types=1);

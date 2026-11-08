@@ -11,7 +11,7 @@
  * locals are in scope.
  *
  * @package FreeFormCertificate\Admin
- * @since   6.45.0
+ * @since   6.44.0
  */
 
 use FreeFormCertificate\Admin\AdminUI;

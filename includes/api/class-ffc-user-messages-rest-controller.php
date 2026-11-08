@@ -6,7 +6,7 @@
  * owner, and their two message preferences (#2503).
  *
  * @package FreeFormCertificate\API
- * @since   6.43.0
+ * @since   6.44.0
  */
 
 declare(strict_types=1);
