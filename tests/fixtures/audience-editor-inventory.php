@@ -3,6 +3,7 @@
 return array(
 	'audience-edit-manage' => array(
 		'data:data-audience-id=5',
+		'data:data-confirm=Remove this member?',
 		'data:data-ffc-autosave-record-key=status',
 		'data:data-ffc-autosave-record=audience:5',
 		'data:data-field-id=11',

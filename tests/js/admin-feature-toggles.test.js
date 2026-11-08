@@ -173,6 +173,8 @@ describe('admin CSV export — batched flow', () => {
 		};
 		window.ajaxurl = '/wp-admin/admin-ajax.php';
 		setupExport();
+		// The screen's notice lands under its heading.
+		document.body.insertAdjacentHTML('afterbegin', '<div class="wrap"><h1>Forms</h1></div>');
 		// admin.js was already loaded by the prior suite; the delegated
 		// click handler is in place.
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -181,7 +183,10 @@ describe('admin CSV export — batched flow', () => {
 		window.$('#ffc-csv-export-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error: missing export nonce');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const notice = document.querySelector('.ffc-admin-notification');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.textContent).toContain('Error: missing export nonce');
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 

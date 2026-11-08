@@ -549,6 +549,7 @@ class AdminAssetsManager {
 				'html2canvasFailed'       => __( 'Error: html2canvas failed', 'ffcertificate' ),
 				/* translators: %s: value */
 				'confirmLoadTemplate'     => __( 'Load "%s"? This will replace your current certificate HTML.', 'ffcertificate' ),
+				'loadTemplate'            => __( 'Load', 'ffcertificate' ),
 				'dismiss'                 => __( 'Dismiss', 'ffcertificate' ),
 
 				// Copy-to-clipboard.
@@ -585,6 +586,9 @@ class AdminAssetsManager {
 				'templateCustomBadge'     => __( 'My template', 'ffcertificate' ),
 				/* translators: prompt asking for a name when saving the current layout as a reusable template */
 				'saveModelPrompt'         => __( 'Name for this template:', 'ffcertificate' ),
+				'saveModelTitle'          => __( 'Save as template', 'ffcertificate' ),
+				'saveModelQuestion'       => __( 'Save this layout and its background as a template you can load into other forms?', 'ffcertificate' ),
+				'saveModelConfirm'        => __( 'Save template', 'ffcertificate' ),
 				'templateSaved'           => __( 'Template saved!', 'ffcertificate' ),
 				'cancel'                  => __( 'Cancel', 'ffcertificate' ),
 				'loadingTemplate'         => __( 'Loading template...', 'ffcertificate' ),

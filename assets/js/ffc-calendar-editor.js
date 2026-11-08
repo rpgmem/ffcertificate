@@ -227,21 +227,26 @@
         removeWorkingHour: function(e) {
             e.preventDefault();
 
-            if (!confirm(ffcSelfSchedulingEditor.strings.confirmDelete)) {
-                return;
-            }
-
+            const editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
             const $row = $(e.currentTarget).closest('tr');
 
-            // Prevent removing the last row
+            // The last row cannot go, so say so before asking anything (#2535).
             if ($('#ffc-working-hours-list tr').length <= 1) {
-                var editorStrings = (typeof ffcSelfSchedulingEditor !== 'undefined' && ffcSelfSchedulingEditor.strings) ? ffcSelfSchedulingEditor.strings : {};
-                alert(editorStrings.lastWorkingHour || 'You must have at least one working hour configured.');
+                FFC.adminNotice('warning', editorStrings.lastWorkingHour || 'You must have at least one working hour configured.');
                 return;
             }
 
-            $row.fadeOut(300, function() {
-                $(this).remove();
+            return FFC.confirmDialog({
+                message: editorStrings.confirmDelete || 'Remove this working hour?',
+                category: 'danger',
+                icon: 'delete'
+            }).then(function(agreed) {
+                if (!agreed) {
+                    return;
+                }
+                $row.fadeOut(300, function() {
+                    $(this).remove();
+                });
             });
         },
 
@@ -313,6 +318,7 @@
                     if (!agreed) {
                         return;
                     }
+                    const label = $btn.text();
                     const busy = action === 'future' ? (strings.cancelling || 'Cancelling...') : (strings.deleting || 'Deleting...');
                     $btn.prop('disabled', true).text(busy);
 
@@ -322,16 +328,13 @@
                         { nonce: $('#ffc_cleanup_appointments_nonce').val() }
                     )
                         .then(function (data) {
-                            alert(data.message);
-                            location.reload();
+                            FFC.reloadWithNotice('success', data && data.message);
                         })
                         .catch(function (err) {
-                            if (err && err.fromServer) {
-                                alert(err.message || strings.errorDeleting || 'Error deleting appointments');
-                            } else {
-                                alert(strings.errorServer || 'Error communicating with server');
-                            }
-                            $btn.prop('disabled', false);
+                            FFC.adminNotice('danger', (err && err.fromServer)
+                                ? (err.message || strings.errorDeleting || 'Error deleting appointments')
+                                : (strings.errorServer || 'Error communicating with server'));
+                            $btn.prop('disabled', false).text(label);
                         });
                 });
             });
@@ -559,7 +562,7 @@
         // response body rather than on a successful envelope.
         function fail(err) {
             const fromBody = err && err.data && err.data.message;
-            alert(fromBody || (err && err.fromServer && err.message) || strings.errorServer || 'Error communicating with server');
+            FFC.adminNotice('danger', fromBody || (err && err.fromServer && err.message) || strings.errorServer || 'Error communicating with server');
         }
 
         function send(extra) {
@@ -579,8 +582,7 @@
             const $btn = $(this).prop('disabled', true);
             send().then(function(data) {
                 if (!data || !data.needs_confirm) {
-                    alert(data && data.message ? data.message : '');
-                    location.reload();
+                    FFC.reloadWithNotice('success', data && data.message);
                     return null;
                 }
                 return self.cleanupConfirm({
@@ -594,8 +596,7 @@
                         return null;
                     }
                     return send({ confirm: '1', expected: data.count }).then(function(done) {
-                        alert(done && done.message ? done.message : '');
-                        location.reload();
+                        FFC.reloadWithNotice('success', done && done.message);
                     });
                 });
             }).catch(fail).then(function() {
@@ -604,18 +605,25 @@
         });
 
         $box.on('click', '.ffc-block-delete', function() {
-            if (!window.confirm(strings.blockRemove || 'Remove this block?')) {
-                return;
-            }
-            const $btn = $(this).prop('disabled', true);
-            FFC.request('ffc_calendar_block_delete', { post_id: postId, block_id: $btn.data('block-id') }, { nonce: nonce })
-                .then(function() {
-                    location.reload();
-                })
-                .catch(function(err) {
-                    fail(err);
-                    $btn.prop('disabled', false);
-                });
+            const $btn = $(this);
+            return FFC.confirmDialog({
+                message: strings.blockRemove || 'Remove this block?',
+                category: 'danger',
+                icon: 'delete'
+            }).then(function(agreed) {
+                if (!agreed) {
+                    return null;
+                }
+                $btn.prop('disabled', true);
+                return FFC.request('ffc_calendar_block_delete', { post_id: postId, block_id: $btn.data('block-id') }, { nonce: nonce })
+                    .then(function() {
+                        location.reload();
+                    })
+                    .catch(function(err) {
+                        fail(err);
+                        $btn.prop('disabled', false);
+                    });
+            });
         });
     };
 

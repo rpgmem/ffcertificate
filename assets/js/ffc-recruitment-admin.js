@@ -181,7 +181,7 @@
                 error.textContent = message;
                 error.hidden = false;
             } else {
-                window.alert(message);
+                window.FFC.adminNotice('danger', message);
             }
         });
     });
@@ -224,7 +224,7 @@
                 }
                 return;
             }
-            window.alert((body && body.message) ? body.message : JSON.stringify(body));
+            window.FFC.adminNotice('danger', (body && body.message) ? body.message : JSON.stringify(body));
         });
     });
 

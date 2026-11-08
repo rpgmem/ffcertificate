@@ -113,9 +113,18 @@ jQuery(function ($) {
 	// Restore defaults (fills the fields; the user still clicks Save to persist).
 	$box.on('click', '.ffc-email-model-restore', function (e) {
 		e.preventDefault();
-		if (cfg.confirmRestore && !window.confirm(cfg.confirmRestore)) {
+		if (!cfg.confirmRestore) {
+			restoreDefaults();
 			return;
 		}
+		window.FFC.confirmDialog({ message: cfg.confirmRestore, category: 'caution', icon: 'restore' }).then(function (agreed) {
+			if (agreed) {
+				restoreDefaults();
+			}
+		});
+	});
+
+	function restoreDefaults() {
 		$box.find('[data-ffc-model-field]').each(function () {
 			var $f = $(this);
 			var key = $f.data('ffc-model-field');
@@ -129,7 +138,7 @@ jQuery(function ($) {
 			}
 		});
 		refreshPreview();
-	});
+	}
 
 	refreshPreview();
 });

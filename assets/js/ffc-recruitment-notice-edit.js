@@ -28,6 +28,11 @@
 	var noticesRoot = restRoot + 'notices/';
 	var classRoot = restRoot + 'classifications/';
 
+	// A refused request is said at the top of the screen (#2535).
+	function failNotice(body) {
+		window.FFC.adminNotice('danger', (body && body.message) ? body.message : JSON.stringify(body));
+	}
+
 	// -- Section 1: CSV import from the edit page -----------------------
 
 	window.ffcRecruitmentImportFromEdit = function (form) {
@@ -111,8 +116,8 @@
 		}).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { location.reload(); }
-				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); }
-			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); });
+				else { failNotice(o.body); }
+			}).catch(function (e) { window.FFC.adminNotice('danger', (strings.networkError || 'Network error:') + ' ' + e.message); });
 	};
 
 	// -- Section 3: attach / detach adjutancy ---------------------------
@@ -125,7 +130,7 @@
 		}).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { location.reload(); }
-				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); }
+				else { failNotice(o.body); }
 			});
 		return false;
 	};
@@ -138,7 +143,7 @@
 		}).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { location.reload(); }
-				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); }
+				else { failNotice(o.body); }
 			});
 		return false;
 	};
@@ -367,8 +372,7 @@
 							localStorage.setItem('ffcRecruitmentLastBulkDate', date);
 							localStorage.setItem('ffcRecruitmentLastBulkTime', time);
 						} catch (e) {}
-						ffcRecruitmentWarnUnreached(o.body);
-						location.reload();
+						ffcRecruitmentReloadAfterCall(o.body);
 					} else {
 						window.FFC.status(status, 'error', 'Error: ' + ((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)));
 					}
@@ -381,20 +385,23 @@
 	// Reused by the synchronous path and the ask-mode modal callback (#794).
 	// A call whose e-mail found no address on file (#2245): say so before the
 	// reload, so the operator knows to reach the candidate another way.
-	function ffcRecruitmentWarnUnreached(body) {
+	// The warning survives the reload as a notice on the reloaded page (#2535).
+	function ffcRecruitmentReloadAfterCall(body) {
 		var n = (body && Array.isArray(body.unreached)) ? body.unreached.length : 0;
 		if (n > 0 && strings.noEmailContactManually) {
-			alert(strings.noEmailContactManually.replace('{count}', String(n)));
+			window.FFC.reloadWithNotice('warning', strings.noEmailContactManually.replace('{count}', String(n)));
+			return;
 		}
+		location.reload();
 	}
 
 	function ffcRecruitmentDispatchCls(btn, url, init) {
 		btn.disabled = true;
 		fetch(url, init).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
-				if (o.status >= 200 && o.status < 300) { ffcRecruitmentWarnUnreached(o.body); location.reload(); }
-				else { alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body)); btn.disabled = false; }
-			}).catch(function (e) { alert((strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
+				if (o.status >= 200 && o.status < 300) { ffcRecruitmentReloadAfterCall(o.body); }
+				else { failNotice(o.body); btn.disabled = false; }
+			}).catch(function (e) { window.FFC.adminNotice('danger', (strings.networkError || 'Network error:') + ' ' + e.message); btn.disabled = false; });
 	}
 
 	// Whether a date and time to assume are already over, against the site
@@ -542,7 +549,7 @@
 		}).then(function (r) { return r.json().then(function (d) { return { status: r.status, body: d }; }); })
 			.then(function (o) {
 				if (o.status >= 200 && o.status < 300) { return; }
-				alert((o.body && o.body.message) ? o.body.message : JSON.stringify(o.body));
+				failNotice(o.body);
 			});
 	}
 

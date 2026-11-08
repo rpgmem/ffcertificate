@@ -720,9 +720,9 @@ class SelfSchedulingShortcode {
 										<?php
 										echo wp_kses_post(
 											sprintf(
-											/* translators: %s: value */
-												__( 'I agree to the collection and processing of my personal data in accordance with the <a href="%s" target="_blank">Privacy Policy</a> (LGPD).', 'ffcertificate' ),
-												esc_url( get_privacy_policy_url() )
+											/* translators: %s: "Privacy Policy", linked to the site's privacy page when it has one */
+												esc_html__( 'I agree to the collection and processing of my personal data in accordance with the %s (LGPD).', 'ffcertificate' ),
+												\FreeFormCertificate\Core\PrivacyPolicyLink::html()
 											)
 										);
 										?>

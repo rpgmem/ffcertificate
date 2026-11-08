@@ -137,8 +137,12 @@ final class AssetHelper {
 				FieldMessage::script_strings(),
 				array(
 					// The keyboard twin of a drag handle (#2344).
-					'moveUp'   => __( 'Move up', 'ffcertificate' ),
-					'moveDown' => __( 'Move down', 'ffcertificate' ),
+					'moveUp'       => __( 'Move up', 'ffcertificate' ),
+					'moveDown'     => __( 'Move down', 'ffcertificate' ),
+					// FFC.confirmDialog(), the replacement for confirm() (#2535).
+					'confirmTitle' => __( 'Are you sure?', 'ffcertificate' ),
+					'confirm'      => __( 'Confirm', 'ffcertificate' ),
+					'cancel'       => __( 'Cancel', 'ffcertificate' ),
 				)
 			),
 			'rfCheckDigit' => DocumentFormatter::rf_check_digit_enforced(),

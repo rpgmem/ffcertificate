@@ -38,6 +38,9 @@
 
     var fieldMessageCount = 0;
 
+    // The sessionStorage key of the notice reloadWithNotice() leaves for the next page.
+    var FLASH_KEY = 'ffc-pending-notice';
+
     /**
      * The message id for a control: `ffc-msg-` plus its id, else its name,
      * with anything an id cannot hold turned into a hyphen — the rule
@@ -1029,7 +1032,11 @@
          * @param {Object}   options.strings  `AudienceBookingRules::cancel_strings()`.
          * @param {boolean}  [options.series] The booking is a date of a weekly series: the
          *                   dialog asks whether the later dates go too.
+         * @param {Object}   [options.reasonField] Ask why inside the same dialog (#2534):
+         *                   `{label, hint, min, max}`, as `overrideConfirm()` takes it.
          * @return {Promise<boolean|Object>} True when the person agreed; `{choice}` for a series.
+         *                   With a reason field it is always `{choice, reason}`, `choice`
+         *                   being `this` for a single booking.
          */
         confirmRangeCancel: function(options) {
             var opts = options || {};
@@ -1059,7 +1066,182 @@
                 };
             }
 
-            return core.overrideConfirm(confirm);
+            if (!opts.reasonField) {
+                return core.overrideConfirm(confirm);
+            }
+            // The reason is typed in this dialog, not in a prompt() opened
+            // after it (#2534): one answer, one shape for either case.
+            confirm.reasonField = opts.reasonField;
+            return core.overrideConfirm(confirm).then(function(answer) {
+                if (!answer) {
+                    return false;
+                }
+                return typeof answer === 'object' ? answer : { choice: 'this', reason: String(answer) };
+            });
+        },
+
+        /**
+         * Ask a yes/no question in the plugin's dialog (#2535): the
+         * replacement for `window.confirm()`.
+         *
+         * It is `overrideConfirm()` with a plain message instead of the rule
+         * list and no countdown, so it shares the focus trap, Escape, the
+         * backdrop and the return of focus. Cancel takes the focus first. A
+         * `reasonField` turns it into the replacement for `prompt()`: the
+         * promise then resolves with the typed text.
+         *
+         * @param {Object}   options
+         * @param {string|string[]} options.message  The question; a newline starts a new paragraph.
+         * @param {string}   [options.title]         Dialog title; "Are you sure?" by default.
+         * @param {string}   [options.confirmLabel]  Label of the confirm button.
+         * @param {string}   [options.cancelLabel]   Label of the cancel button.
+         * @param {string}   [options.category]      Button category of the confirm: primary (default),
+         *                                           danger, caution, create or neutral.
+         * @param {string}   [options.icon]          Registry icon of the confirm; `checkmark` by default.
+         * @param {Object}   [options.reasonField]   `{label, hint, min, max}`, as overrideConfirm takes it.
+         * @return {Promise<boolean|string>} True (or the reason) when confirmed, false otherwise.
+         */
+        confirmDialog: function(options) {
+            var opts = options || {};
+            var s = (window.ffcCoreConfig && window.ffcCoreConfig.strings) || {};
+            return core.overrideConfirm({
+                message: opts.message === undefined ? '' : opts.message,
+                seconds: 0,
+                agreeCategory: opts.category || 'primary',
+                agreeIcon: opts.icon || 'checkmark',
+                reasonField: opts.reasonField || null,
+                strings: {
+                    title: opts.title || s.confirmTitle || 'Are you sure?',
+                    agree: opts.confirmLabel || s.confirm || 'Confirm',
+                    agreeIn: opts.confirmLabel || s.confirm || 'Confirm',
+                    cancel: opts.cancelLabel || s.cancel || 'Cancel',
+                    countdownStart: ' ',
+                    countdownEnd: ' ',
+                    seconds: 0
+                }
+            });
+        },
+
+        /**
+         * Say the outcome of an action in a host on the page (#2535): the
+         * replacement for `window.alert()`.
+         *
+         * The host's content is replaced by one notice: a danger one with
+         * `role="alert"` for an error, else a `role="status"` one in the tone
+         * given. Text lands through `textContent`, never as markup.
+         *
+         * @param {HTMLElement|jQuery|string} host  The host, or a selector for it.
+         * @param {string} tone     danger | warning | success | info.
+         * @param {string|string[]} message  What happened.
+         * @param {Object} [options]
+         * @param {string} [options.title] Bold title.
+         * @param {boolean} [options.focus] Move the focus to the notice, so it is
+         *                  seen and read where the action was far from the host.
+         * @return {HTMLElement|null} The notice.
+         */
+        say: function(host, tone, message, options) {
+            var opts = options || {};
+            var el = host && host.jquery ? host[0] : (typeof host === 'string' ? document.querySelector(host) : host);
+            if (!el || message === null || message === undefined || message === '') {
+                return null;
+            }
+            var danger = tone === 'danger' || tone === 'error';
+            var notice = this.notice(danger ? 'danger' : tone, '', message, opts.title || '', { role: danger ? 'alert' : 'status' });
+            while (el.firstChild) {
+                el.removeChild(el.firstChild);
+            }
+            el.appendChild(notice);
+            el.hidden = false;
+            if (opts.focus) {
+                notice.setAttribute('tabindex', '-1');
+                notice.focus();
+            }
+            return notice;
+        },
+
+        /**
+         * Say an outcome at the top of an admin screen (#2535), under its
+         * header: `#ffc-admin-status`, created on first use right after the
+         * `.wp-header-end` every FFC screen prints (or at the top of `.wrap`).
+         * The notice takes the focus, because the action that produced it is
+         * usually further down the screen.
+         *
+         * @param {string} tone     danger | warning | success | info.
+         * @param {string|string[]} message  What happened.
+         * @param {Object} [options] As `say()`; `focus` defaults to true.
+         * @return {HTMLElement|null} The notice.
+         */
+        adminNotice: function(tone, message, options) {
+            var opts = Object.assign({ focus: true }, options || {});
+            var host = document.getElementById('ffc-admin-status');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'ffc-admin-status';
+                host.className = 'ffc-admin-status';
+                host.setAttribute('aria-live', 'polite');
+                var anchor = document.querySelector('.wrap .wp-header-end');
+                var wrap = document.querySelector('.wrap');
+                if (anchor && anchor.parentNode) {
+                    anchor.parentNode.insertBefore(host, anchor.nextSibling);
+                } else if (wrap) {
+                    wrap.insertBefore(host, wrap.firstChild);
+                } else {
+                    document.body.insertBefore(host, document.body.firstChild);
+                }
+            }
+            return this.say(host, tone, message, opts);
+        },
+
+        /**
+         * Reload the screen and say an outcome on the reloaded page (#2535):
+         * the replacement for `alert(message); location.reload();`, where the
+         * alert was the only way the result survived the reload.
+         *
+         * The notice waits in `sessionStorage` and `adminNotice()` shows it
+         * once the next page of this tab is ready. Without storage the page
+         * still reloads, and what it shows is the result.
+         *
+         * @param {string} tone     danger | warning | success | info.
+         * @param {string} message  What happened.
+         * @return {void}
+         */
+        reloadWithNotice: function(tone, message) {
+            if (message) {
+                try {
+                    window.sessionStorage.setItem(FLASH_KEY, JSON.stringify({ tone: tone, message: String(message) }));
+                } catch (e) {
+                    // No storage: the reloaded page carries the result.
+                }
+            }
+            window.location.reload();
+        },
+
+        /**
+         * Show the notice `reloadWithNotice()` left for this page, once.
+         *
+         * @return {HTMLElement|null} The notice, if one was waiting.
+         */
+        showPendingNotice: function() {
+            var raw = null;
+            try {
+                raw = window.sessionStorage.getItem(FLASH_KEY);
+                window.sessionStorage.removeItem(FLASH_KEY);
+            } catch (e) {
+                return null;
+            }
+            if (!raw) {
+                return null;
+            }
+            var flash;
+            try {
+                flash = JSON.parse(raw);
+            } catch (e) {
+                return null;
+            }
+            if (!flash || typeof flash.message !== 'string') {
+                return null;
+            }
+            return this.adminNotice(String(flash.tone || 'info'), flash.message);
         },
 
         /**
@@ -1148,11 +1330,25 @@
                 item.textContent = text;
                 list.appendChild(item);
             });
-            body.appendChild(this.notice('warning', 'warning', words.logged, words.intro, {
-                role: 'note',
-                hook: 'override-reasons',
-                children: [list]
-            }));
+            if (typeof opts.message === 'string' || Array.isArray(opts.message)) {
+                // A plain question (confirmDialog, #2535): its sentences, no
+                // warning notice and no rule list.
+                (Array.isArray(opts.message) ? opts.message : String(opts.message).split(/\n\s*\n|\n/)).forEach(function(text) {
+                    if (String(text).trim() === '') {
+                        return;
+                    }
+                    var paragraph = document.createElement('p');
+                    paragraph.className = 'ffc-confirm-message';
+                    paragraph.textContent = String(text).trim();
+                    body.appendChild(paragraph);
+                });
+            } else {
+                body.appendChild(this.notice('warning', 'warning', words.logged, words.intro, {
+                    role: 'note',
+                    hook: 'override-reasons',
+                    children: [list]
+                }));
+            }
 
             var field = null;
             var reasonMin = 0;
@@ -1678,11 +1874,34 @@
         console.warn('[FFC Core] jQuery not found. Some features may not work.');
     } else {
         jQuery(function($) {
-            // Delegated confirm dialog for destructive actions
+            // The module itself, not window.FFC: a page or a test may replace the global.
+            core.showPendingNotice();
+
+            // Delegated confirm for destructive actions, in the plugin's dialog
+            // (#2535). A script that asks for its own element has already
+            // prevented the default by the time this runs, so it is left alone.
+            // On yes the click is replayed once, so a link follows its href and
+            // a submit button sends its form with its own name and value.
             $(document).on('click', '[data-confirm]', function(e) {
-                if (!confirm($(this).attr('data-confirm'))) {
-                    e.preventDefault();
+                var el = this;
+                if (e.isDefaultPrevented()) {
+                    return;
                 }
+                if (el.getAttribute('data-ffc-confirmed') === '1') {
+                    el.removeAttribute('data-ffc-confirmed');
+                    return;
+                }
+                e.preventDefault();
+                core.confirmDialog({
+                    message: el.getAttribute('data-confirm') || '',
+                    category: el.getAttribute('data-confirm-category') || 'danger',
+                    icon: el.getAttribute('data-confirm-icon') || 'delete'
+                }).then(function(agreed) {
+                    if (agreed) {
+                        el.setAttribute('data-ffc-confirmed', '1');
+                        el.click();
+                    }
+                });
             });
         });
     }

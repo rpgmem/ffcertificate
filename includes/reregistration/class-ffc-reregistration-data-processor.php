@@ -581,19 +581,13 @@ class ReregistrationDataProcessor {
 	}
 
 	/**
-	 * Robust "is this field empty" check that mirrors the repository
-	 * implementation.
+	 * Whether a posted value is empty: the validator's own check, so the
+	 * required test and the type check agree on what nothing looks like.
 	 *
 	 * @param mixed $value Value to check.
 	 * @return bool
 	 */
 	private static function is_empty_value( $value ): bool {
-		if ( null === $value || '' === $value || array() === $value ) {
-			return true;
-		}
-		if ( is_string( $value ) && ( '' === trim( $value ) || '[]' === $value ) ) {
-			return true;
-		}
-		return false;
+		return CustomFieldValidator::is_empty_value( $value );
 	}
 }

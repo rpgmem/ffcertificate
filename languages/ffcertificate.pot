@@ -4165,6 +4165,10 @@ msgstr ""
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
 msgstr ""
 
+#: includes/core/class-ffc-asset-helper.php:143
+msgid "Are you sure?"
+msgstr ""
+
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:146 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:306
 msgid "Confirm"
 msgstr ""
@@ -4245,6 +4249,10 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:440
 msgid "Connection error. Please try again."
+msgstr ""
+
+#: includes/frontend/class-ffc-frontend.php:570
+msgid "Complete the verification above before downloading again."
 msgstr ""
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222
@@ -9786,7 +9794,7 @@ msgstr ""
 #. %s: value
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:639
 #, php-format
-msgid "I agree to the collection and processing of my personal data in accordance with the <a href=\"%s\" target=\"_blank\">Privacy Policy</a> (LGPD)."
+msgid "I agree to the collection and processing of my personal data in accordance with the %s (LGPD)."
 msgstr ""
 
 #: includes/audience/class-ffc-audience-shortcode.php:402
@@ -13242,14 +13250,6 @@ msgstr ""
 
 #: includes/frontend/class-ffc-frontend.php:566 includes/frontend/class-ffc-public-csv-download.php:736
 msgid "Please pick valid times (HH:MM)."
-msgstr ""
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:165
-msgid "Please provide a reason for cancellation (minimum 5 characters):"
-msgstr ""
-
-#: includes/audience/class-ffc-audience-loader.php:413 includes/audience/class-ffc-audience-shortcode.php:793
-msgid "Please provide a reason for cancellation:"
 msgstr ""
 
 #: templates/emails/audience-cancellation.php:35
@@ -25733,11 +25733,11 @@ msgid "Add required data"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php
-msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule."
+msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field. {{schedule}} prints nothing on a form without an Event Schedule, and every shipped certificate model carries it."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
-msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it."
+msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only. {{schedule}} prints nothing on a form without an Event Schedule on the Time tab, and every shipped certificate model carries it. The table saves as you change it."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php
@@ -30441,6 +30441,10 @@ msgstr ""
 msgid "Sort descending."
 msgstr ""
 
+#: includes/settings/views/documentation/scheduling-audiences.php:81
+msgid "The reason of a cancellation, single or together, is typed in the confirmation itself; the list then marks the cancelled bookings and says what happened above it, without reloading the page. On the calendar a booking made, changed or cancelled is reported the same way, on the page."
+msgstr ""
+
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
 msgstr ""
@@ -30750,10 +30754,6 @@ msgstr ""
 msgid "Leave waitlist"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:208
-msgid "The reason needs at least 5 characters. Nothing was cancelled."
-msgstr ""
-
 #: includes/api/class-ffc-user-appointments-rest-controller.php:209
 msgid "This calendar does not take cancellations online. Contact the organiser to cancel."
 msgstr ""
@@ -30778,7 +30778,7 @@ msgid "A waitlisted appointment is labelled Waitlisted and offers Leave waitlist
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, a cancellation reason shorter than five characters is refused with a message instead of being dropped."
+msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, Cancel asks the reason in the plugin's dialog, whose button stays off until the reason holds five characters."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
@@ -33820,4 +33820,24 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "Cancel this appointment? The record stays, marked as cancelled."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "At least 5 characters."
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save as template"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save this layout and its background as a template you can load into other forms?"
+msgstr ""
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save template"
 msgstr ""

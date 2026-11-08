@@ -388,6 +388,8 @@ class FrontendShortcodesTest extends TestCase {
 		$this->assertStringContainsString( 'Full Name', $html );
 		$this->assertStringContainsString( 'textarea', $html );
 		$this->assertStringContainsString( 'ffc-lgpd-consent', $html );
+		// The consent links the site's privacy page (#2537).
+		$this->assertStringContainsString( '<a href="https://example.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>', $html );
 		$this->assertStringContainsString( 'ffc-submit-btn', $html );
 		$this->assertStringContainsString( 'ffc_hp_x7', $html );
 

@@ -200,11 +200,18 @@
 
         $(document).on('click.ffcFieldBuilder', '.ffc-remove-field', function(e) {
             e.preventDefault();
-            if (confirm(strings().confirmDeleteField || 'Remove this field?')) {
-                $(this).closest('.ffc-field-row').fadeOut(300, function() {
-                    $(this).remove();
-                });
-            }
+            var $row = $(this).closest('.ffc-field-row');
+            return window.FFC.confirmDialog({
+                message: strings().confirmDeleteField || 'Remove this field?',
+                category: 'danger',
+                icon: 'delete'
+            }).then(function(agreed) {
+                if (agreed) {
+                    $row.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                }
+            });
         });
 
         $container.on('click', '.ffc-choice-add', function(e) {

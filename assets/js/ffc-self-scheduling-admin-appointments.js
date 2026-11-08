@@ -4,10 +4,9 @@
  * batched CSV export.
  *
  * The `.ffc-appointment-cancel` links were extracted from an inline onclick in
- * views/appointments-list.php: each prompts for a cancellation reason (min 5
- * chars) and, when given, redirects to its nonce-signed `data-cancel-url` with
- * the reason appended; a shorter one is refused with its `data-too-short`
- * message.
+ * views/appointments-list.php: each asks for a cancellation reason (min 5
+ * chars) in the plugin's dialog and, when given, redirects to its nonce-signed
+ * `data-cancel-url` with the reason appended.
  *
  * The Export CSV button (#ffc-appointments-export-btn) drives the shared
  * window.FFCBatchedExport engine (#772) through the unified `ffc_export_*`
@@ -17,22 +16,32 @@
 (function () {
 	'use strict';
 
+	// The reason is asked in the plugin's dialog (#2535): a labelled field
+	// whose Confirm stays off until it holds five characters, so a short
+	// reason can no longer be sent and refused (#2244).
 	function onCancelClick(e) {
 		e.preventDefault();
-		var url    = this.getAttribute('data-cancel-url');
-		var prompt = this.getAttribute('data-prompt') || '';
-		var reason = window.prompt(prompt);
-		if (reason === null || !url) {
+		var url = this.getAttribute('data-cancel-url');
+		if (!url || !window.FFC || typeof window.FFC.confirmDialog !== 'function') {
 			return false;
 		}
-		// A reason under five characters used to drop the cancel in silence
-		// (#2244); say why nothing happened.
-		reason = reason.trim();
-		if (reason.length < 5) {
-			window.alert(this.getAttribute('data-too-short') || '');
-			return false;
-		}
-		window.location = url + '&reason=' + encodeURIComponent(reason);
+		var link = this;
+		window.FFC.confirmDialog({
+			message: link.getAttribute('data-question') || '',
+			title: link.getAttribute('data-title') || '',
+			confirmLabel: link.getAttribute('data-confirm-label') || '',
+			category: 'caution',
+			icon: 'cross',
+			reasonField: {
+				label: link.getAttribute('data-prompt') || '',
+				hint: link.getAttribute('data-hint') || '',
+				min: 5
+			}
+		}).then(function (reason) {
+			if (typeof reason === 'string' && reason.length >= 5) {
+				window.location = url + '&reason=' + encodeURIComponent(reason);
+			}
+		});
 		return false;
 	}
 
@@ -84,7 +93,9 @@
 				var count = form ? form.querySelectorAll('input[name="appointment[]"]:checked').length : 0;
 				if (count === 0) {
 					var d = (window.ffcAppointmentsExport || {}).deleteDialog || {};
-					window.alert(d.none || '');
+					if (window.FFC && typeof window.FFC.adminNotice === 'function') {
+						window.FFC.adminNotice('warning', d.none || '');
+					}
 					return;
 				}
 				confirmDelete(count).then(function (agreed) {

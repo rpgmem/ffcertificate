@@ -188,7 +188,7 @@ msgstr "Existem restrições de chave estrangeira %1$d de %2$d"
 #: includes/frontend/class-ffc-frontend.php:495
 #, php-format
 msgid "%1$d of %2$d used"
-msgstr "%1$d de%2$d usado"
+msgstr "%1$d de %2$d usado"
 
 #. 1: number of moved submissions, 2: target form title
 #: includes/admin/class-ffc-admin.php:457
@@ -685,7 +685,7 @@ msgstr "(página de validação pública). Veja"
 
 #: templates/admin/recruitment/notice-edit/general-section.php:42
 msgid "(read-only — codes are stable identifiers and cannot be changed after creation)"
-msgstr "(somente leitura — os códigos são identificadores estáveis ​​e não podem ser alterados após a criação)"
+msgstr "(somente leitura — os códigos são identificadores estáveis e não podem ser alterados após a criação)"
 
 #. %s — operator-supplied reason text
 #: includes/recruitment/class-ffc-recruitment-candidate-history-service.php:291
@@ -1602,7 +1602,7 @@ msgstr "Todos"
 #: includes/audience/class-ffc-audience-admin-bookings.php:137 includes/audience/class-ffc-audience-shortcode.php:270
 #, php-format
 msgid "All %s"
-msgstr "Todos os %s"
+msgstr "Exibir tudo (%s)"
 
 #: includes/admin/views/ffc-admin-activity-log.php:44
 msgid "All Actions"
@@ -1959,7 +1959,7 @@ msgstr "Deferir um recurso exige uma justificativa."
 
 #: includes/settings/views/ffc-tab-advanced.php:171
 msgid "Appearance options for the code-based editors used inside the plugin admin."
-msgstr "Opções de aparência para os editores de código usados ​​no painel de administração do plugin."
+msgstr "Opções de aparência para os editores de código usados no painel de administração do plugin."
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:296
 msgid "Append this query string to the page that contains the [ffc_csv_download] shortcode. Set \"CSV Download Page URL\" in Settings → General to make this a full URL instead."
@@ -3660,7 +3660,7 @@ msgstr "Certificado não encontrado"
 
 #: includes/settings/views/documentation/feature-certificates.php:35
 msgid "Certificate PDF layouts are managed as reusable, duplicable templates in the Document Templates hub — not edited inline per form only. The form editor selects which pool template it issues; the same pool also backs the reregistration record and the appointment receipt. Build or duplicate a layout once and reuse it across forms."
-msgstr "Os layouts de certificados em PDF são gerenciados como modelos reutilizáveis ​​e duplicáveis ​​no hub de Modelos de Documento — e não editados diretamente dentro de cada formulário individual. O editor de formulários seleciona qual modelo do repositório será emitido; esse mesmo repositório também serve de base para a ficha de renovação de cadastro e para o comprovante de agendamento. Crie ou duplique um layout uma única vez e reutilize-o em diversos formulários."
+msgstr "Os layouts de certificados em PDF são gerenciados como modelos reutilizáveis e duplicáveis no hub de Modelos de Documento — e não editados diretamente dentro de cada formulário individual. O editor de formulários seleciona qual modelo do repositório será emitido; esse mesmo repositório também serve de base para a ficha de renovação de cadastro e para o comprovante de agendamento. Crie ou duplique um layout uma única vez e reutilize-o em diversos formulários."
 
 #: includes/admin/class-ffc-admin-assets-manager.php:673 includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:147 includes/frontend/class-ffc-frontend.php:516
 msgid "Certificate Preview"
@@ -4099,7 +4099,7 @@ msgstr "Tags comuns:"
 
 #: includes/admin/class-ffc-form-editor-shortcode-metabox.php:48
 msgid "Common variables include {{auth_code}}, {{submission_date}}, and {{ticket}}."
-msgstr "As variáveis ​​comuns incluem {{auth_code}}, {{submission_date}} e {{ticket}}."
+msgstr "As variáveis comuns incluem {{auth_code}}, {{submission_date}} e {{ticket}}."
 
 #: includes/admin/class-ffc-settings.php:733
 msgid "Communication"
@@ -4162,6 +4162,10 @@ msgstr "Configurar recrutamento"
 #: templates/admin/settings/email-model-box.php:72
 msgid "Configure the single chrome (header, body, footer and outer container) that wraps every plugin email. The message content is injected into the body automatically."
 msgstr "Configure a estrutura única (cabeçalho, corpo, rodapé e contêiner externo) que envolve todos os e-mails do plugin. O conteúdo da mensagem é inserido automaticamente no corpo."
+
+#: includes/core/class-ffc-asset-helper.php:143
+msgid "Are you sure?"
+msgstr "Tem certeza?"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:146 includes/recruitment/class-ffc-recruitment-admin-assets-manager.php:306
 msgid "Confirm"
@@ -4245,6 +4249,10 @@ msgstr "Erro de conexão."
 #: includes/frontend/class-ffc-frontend.php:440
 msgid "Connection error. Please try again."
 msgstr "Erro de conexão. Tente novamente."
+
+#: includes/frontend/class-ffc-frontend.php:570
+msgid "Complete the verification above before downloading again."
+msgstr "Conclua a verificação acima antes de baixar novamente."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222
 msgid "Connection timeout. Please try again."
@@ -4773,7 +4781,7 @@ msgstr "Criar Recadastramento"
 
 #: includes/settings/views/documentation/config-geolocation.php:23
 msgid "Create reusable locations shared by every form. Each has a name, latitude, longitude, radius (meters) and optional \"default for GPS\" / \"default for IP\" flags — a new form auto-selects the defaults. Editing a location updates every form that references it."
-msgstr "Crie locais reutilizáveis ​​compartilhados por todos os formulários. Cada um possui nome, latitude, longitude, raio (em metros) e sinalizadores opcionais de \"padrão para GPS\" ou \"padrão para IP\" — um novo formulário seleciona automaticamente os padrões. A edição de um local atualiza todos os formulários que o referenciam."
+msgstr "Crie locais reutilizáveis compartilhados por todos os formulários. Cada um possui nome, latitude, longitude, raio (em metros) e sinalizadores opcionais de \"padrão para GPS\" ou \"padrão para IP\" — um novo formulário seleciona automaticamente os padrões. A edição de um local atualiza todos os formulários que o referenciam."
 
 #: includes/settings/views/ffc-tab-url-shortener.php:176
 msgid "Create short URLs for already-published posts of the saved shortened post types that do not have one yet. Runs in batches while this page stays open: leaving it stops the run, and running it again picks up the pages still missing one. This only creates the short URLs — turn on \"Expose\" above to publish them as shortlinks."
@@ -5362,7 +5370,7 @@ msgstr "Defina FFC_ENCRYPTION_KEY e FFC_HASH_SALT (com 32 ou mais caracteres cad
 
 #: includes/settings/views/documentation/feature-certificates.php:41
 msgid "Define reusable named locations for geofencing restrictions. Locations are shared across all forms and can be assigned as defaults."
-msgstr "Defina locais nomeados reutilizáveis ​​para restrições de geocerca. Os locais são compartilhados entre todos os formulários e podem ser definidos como padrões."
+msgstr "Defina locais nomeados reutilizáveis para restrições de geocerca. Os locais são compartilhados entre todos os formulários e podem ser definidos como padrões."
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:515
 msgid "Define the exact date/time blocks and how many vacancies each has. Each block is one bookable session."
@@ -5527,7 +5535,7 @@ msgstr "Excluído"
 
 #: includes/settings/views/documentation/operations-maintenance.php:36
 msgid "Deletes obsolete short URLs under three independently-selectable criteria: orphaned (the target post no longer exists), never clicked (and older than the grace window), and trashed. The preview breaks the matches down by reason."
-msgstr "Exclui URLs curtas obsoletas com base em três critérios selecionáveis ​​independentemente: órfãs (a publicação de destino não existe mais), nunca clicadas (e mais antigas que o período de tolerância) e excluídas. A pré-visualização divide as correspondências por motivo."
+msgstr "Exclui URLs curtas obsoletas com base em três critérios selecionáveis independentemente: órfãs (a publicação de destino não existe mais), nunca clicadas (e mais antigas que o período de tolerância) e excluídas. A pré-visualização divide as correspondências por motivo."
 
 #: includes/settings/views/documentation/reference-privacy.php:45
 msgid "Deleting a WordPress user is treated separately from an erasure request. The guiding rule is \"retain the record, drop the relationship\":"
@@ -6122,7 +6130,7 @@ msgstr "cada formulário pode ser alterado para \"Personalizado\" e utilizar seu
 
 #: includes/settings/views/documentation/scheduling-audiences.php:39
 msgid "Each schedule independently notifies affected users on booking and cancellation, and can attach an ICS calendar invite. Two opt-in admin toggles (off by default) also notify a recipient list (comma-separated; blank falls back to the site admin) on new bookings and cancellations."
-msgstr "Cada agenda notifica de forma independente os usuários afetados sobre reservas e cancelamentos, podendo anexar um convite de calendário no formato ICS. Duas opções configuráveis ​​pelo administrador (desativadas por padrão) também notificam uma lista de destinatários (separados por vírgula; se deixada em branco, a notificação é enviada ao administrador do site) sempre que ocorrerem novas reservas ou cancelamentos."
+msgstr "Cada agenda notifica de forma independente os usuários afetados sobre reservas e cancelamentos, podendo anexar um convite de calendário no formato ICS. Duas opções configuráveis pelo administrador (desativadas por padrão) também notificam uma lista de destinatários (separados por vírgula; se deixada em branco, a notificação é enviada ao administrador do site) sempre que ocorrerem novas reservas ou cancelamentos."
 
 #: includes/settings/views/documentation/document-templates-hub.php:25
 msgid "Each template carries a kind that marks what it is for. A Category column and filter in the hub let you find templates of one kind quickly:"
@@ -6386,7 +6394,7 @@ msgstr "Modelo de e-mail"
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:27
 msgid "Email templates and public shortcode tuning. Saved values populate the convocation email and the public shortcode cache/rate-limit/page-size knobs."
-msgstr "Modelos de e-mail e ajustes de shortcodes públicos. Os valores salvos são usados ​​no e-mail de convocação e nas configurações de cache, limite de taxa e tamanho da página dos shortcodes públicos."
+msgstr "Modelos de e-mail e ajustes de shortcodes públicos. Os valores salvos são usados no e-mail de convocação e nas configurações de cache, limite de taxa e tamanho da página dos shortcodes públicos."
 
 #: templates/admin/settings/email-body-hub.php:43 includes/settings/tabs/class-ffc-tab-email-texts.php:36 includes/settings/views/documentation/reference-emails.php:37
 msgid "Email texts"
@@ -8372,7 +8380,7 @@ msgstr "Estenda isso"
 
 #: includes/settings/views/documentation/developer-hooks-api.php:40
 msgid "Extend the trusted reverse-proxy CIDRs, or the Cloudflare edge ranges, the secure strategy honours when walking X-Forwarded-For / CF-Connecting-IP."
-msgstr "Amplie os CIDRs de proxy reverso confiáveis ​​ou as faixas de borda da Cloudflare; essa estratégia segura é respeitada ao processar os cabeçalhos X-Forwarded-For ou CF-Connecting-IP."
+msgstr "Amplie os CIDRs de proxy reverso confiáveis ou as faixas de borda da Cloudflare; essa estratégia segura é respeitada ao processar os cabeçalhos X-Forwarded-For ou CF-Connecting-IP."
 
 #: includes/admin/class-ffc-form-editor-public-csv-download-metabox.php:394
 msgid "Failed accesses"
@@ -9798,8 +9806,8 @@ msgstr "https://github.com/rpgmem/ffcertificate"
 #. %s: value
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:639
 #, php-format
-msgid "I agree to the collection and processing of my personal data in accordance with the <a href=\"%s\" target=\"_blank\">Privacy Policy</a> (LGPD)."
-msgstr "Concordo com a coleta e processamento dos meus dados pessoais de acordo com a <a href=\"%s\" target=\"_blank\">Política de Privacidade</a> (LGPD)."
+msgid "I agree to the collection and processing of my personal data in accordance with the %s (LGPD)."
+msgstr "Concordo com a coleta e processamento dos meus dados pessoais de acordo com a %s (LGPD)."
 
 #: includes/audience/class-ffc-audience-shortcode.php:402
 msgid "I am aware of the conflicts and want to proceed."
@@ -9817,7 +9825,7 @@ msgstr "Eu não tenho"
 #: includes/frontend/class-ffc-shortcodes.php:314
 #, php-format
 msgid "I have read and agree to the %s and authorize the storage of my personal data for certificate issuance."
-msgstr "Li e concordo com os %s e autorizo ​​o armazenamento dos meus dados pessoais para a emissão do certificado."
+msgstr "Li e concordo com a %s e autorizo o armazenamento dos meus dados pessoais para a emissão do certificado."
 
 #: includes/shortcodes/class-ffc-dashboard-asset-manager.php:177 includes/reregistration/class-ffc-record-generator.php:81 includes/reregistration/class-ffc-reregistration-field-options.php:186
 msgid "I hold"
@@ -9909,7 +9917,7 @@ msgstr "Candidatos a importar (CSV)"
 
 #: includes/migrations/class-ffc-migration-registry.php:100
 msgid "Import certificate layouts left in the plugin's html/ drop-folder into the reusable template pool (Certificate → Templates). Non-destructive and idempotent: shipped defaults are skipped and each file is imported once."
-msgstr "Importe os layouts de certificado presentes na pasta `html/` do plugin para o repositório de modelos reutilizáveis ​​(Certificado → Modelos). O processo é não destrutivo e idempotente: os modelos padrão fornecidos são ignorados e cada arquivo é importado apenas uma vez."
+msgstr "Importe os layouts de certificado presentes na pasta `html/` do plugin para o repositório de modelos reutilizáveis (Certificado → Modelos). O processo é não destrutivo e idempotente: os modelos padrão fornecidos são ignorados e cada arquivo é importado apenas uma vez."
 
 #. 1: number imported, 2: number skipped
 #: includes/audience/class-ffc-audience-admin-import.php:344 includes/audience/class-ffc-audience-admin-import.php:391
@@ -11163,7 +11171,7 @@ msgstr "Gerenciar configurações de SMTP / e-mail"
 
 #: includes/settings/views/documentation/feature-recruitment.php:35
 msgid "Manage the reusable reason labels for the preliminary list (e.g. granted / denied / appeal), and which preliminary statuses each applies to."
-msgstr "Gerencie os rótulos de motivo reutilizáveis ​​para a lista preliminar (por exemplo: deferido / indeferido / recurso) e a quais status preliminares cada um se aplica."
+msgstr "Gerencie os rótulos de motivo reutilizáveis para a lista preliminar (por exemplo: deferido / indeferido / recurso) e a quais status preliminares cada um se aplica."
 
 #: includes/user-dashboard/class-ffc-capability-catalog.php:325
 msgid "Manage user custom fields"
@@ -11199,7 +11207,7 @@ msgstr "Manualmente"
 
 #: includes/settings/views/documentation/feature-url-shortener.php:37
 msgid "Manually-created links can be edited (destination URL + title) from the list. Links created for a post/page are not editable — their destination automatically follows the page: if you change the post slug (or the site permalink structure), the short URL keeps redirecting to the current permalink."
-msgstr "Links criados manualmente podem ser editados (URL de destino + título) a partir da lista. Links criados para um post ou página não são editáveis ​​— o destino deles acompanha automaticamente a página: se você alterar o *slug* do post (ou a estrutura de *permalinks* do site), a URL curta continuará redirecionando para o *permalink* atual."
+msgstr "Links criados manualmente podem ser editados (URL de destino + título) a partir da lista. Links criados para um post ou página não são editáveis — o destino deles acompanha automaticamente a página: se você alterar o *slug* do post (ou a estrutura de *permalinks* do site), a URL curta continuará redirecionando para o *permalink* atual."
 
 #: includes/admin/class-ffc-admin-conditional-assets.php:200 includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:177 includes/audience/class-ffc-audience-shortcode.php:807
 msgid "March"
@@ -12172,7 +12180,7 @@ msgstr "Nenhum usuário do WordPress encontrado para essa pesquisa. Tente o ID n
 
 #: includes/recruitment/class-ffc-recruitment-error-messages.php:139
 msgid "No writable fields were supplied for this candidate update."
-msgstr "Não foram fornecidos campos editáveis ​​para esta atualização de candidato."
+msgstr "Não foram fornecidos campos editáveis para esta atualização de candidato."
 
 #: includes/reregistration/class-ffc-reregistration-custom-fields-page.php:120
 msgid "None"
@@ -13170,7 +13178,7 @@ msgstr "Selecione quais ações de operador este formulário possui (é possíve
 #: includes/recruitment/class-ffc-recruitment-candidate-history-service.php:205
 #, php-format
 msgid "PII revealed: %s."
-msgstr "Informações pessoais identificáveis ​​reveladas: %s."
+msgstr "Informações pessoais identificáveis reveladas: %s."
 
 #: includes/settings/views/documentation/feature-certificates.php:23
 msgid "Place a form on any page with the [ffc_form id=\"123\"] shortcode, then configure its fields, certificate PDF template and email in the form editor. See the Reference section for the details:"
@@ -13267,14 +13275,6 @@ msgstr "Por favor, selecione um horário válido posterior ao horário de fecham
 #: includes/frontend/class-ffc-frontend.php:566 includes/frontend/class-ffc-public-csv-download.php:736
 msgid "Please pick valid times (HH:MM)."
 msgstr "Por favor escolha horários válidos (HH:MM)."
-
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:165
-msgid "Please provide a reason for cancellation (minimum 5 characters):"
-msgstr "Por favor, indique o motivo do cancelamento (mínimo de 5 caracteres):"
-
-#: includes/audience/class-ffc-audience-loader.php:413 includes/audience/class-ffc-audience-shortcode.php:793
-msgid "Please provide a reason for cancellation:"
-msgstr "Por favor, informe o motivo do cancelamento:"
 
 #: templates/emails/audience-cancellation.php:35
 msgid "Please remove this event from your calendar."
@@ -13548,7 +13548,7 @@ msgstr "Pré-visualização das postagens afetadas"
 
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
-msgstr "Previa do Certificado"
+msgstr "Prévia do Certificado"
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:38
 msgid "Preview certificate"
@@ -13755,7 +13755,7 @@ msgstr "O Acesso Público de Operador não está habilitado para este formulári
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:48
 msgid "Public or private viewing/booking, with configurable messages when restricted."
-msgstr "Visualização/reserva pública ou privada, com mensagens configuráveis ​​quando o acesso for restrito."
+msgstr "Visualização/reserva pública ou privada, com mensagens configuráveis quando o acesso for restrito."
 
 #: templates/admin/recruitment/admin-page/settings-tab.php:79
 msgid "Public shortcode"
@@ -14358,7 +14358,7 @@ msgstr "Remover"
 
 #: includes/migrations/class-ffc-obsolete-shortcode-cleaner.php:65
 msgid "Remove [ffc_form] shortcodes from posts, pages and reusable blocks when they point to a form whose collection period ended more than the grace window ago."
-msgstr "Remova os shortcodes [ffc_form] de posts, páginas e blocos reutilizáveis ​​quando eles apontarem para um formulário cujo período de coleta terminou há mais tempo do que o período de tolerância."
+msgstr "Remova os shortcodes [ffc_form] de posts, páginas e blocos reutilizáveis quando eles apontarem para um formulário cujo período de coleta terminou há mais tempo do que o período de tolerância."
 
 #: templates/admin/reregistration/transfer-list.php:32
 msgid "Remove all"
@@ -14414,7 +14414,7 @@ msgstr "Removido"
 
 #: includes/settings/views/documentation/operations-maintenance.php:32
 msgid "Removes [ffc_form] shortcodes from posts, pages and reusable blocks when they point to a form whose collection period ended more than the grace window (days) ago. WordPress keeps a revision of every edited post for rollback."
-msgstr "Remove os shortcodes [ffc_form] de posts, páginas e blocos reutilizáveis ​​quando eles apontam para um formulário cujo período de coleta terminou há mais de um ano (em dias). O WordPress mantém uma revisão de cada post editado para fins de reversão."
+msgstr "Remove os shortcodes [ffc_form] de posts, páginas e blocos reutilizáveis quando eles apontam para um formulário cujo período de coleta terminou há mais de um ano (em dias). O WordPress mantém uma revisão de cada post editado para fins de reversão."
 
 #: includes/settings/views/documentation/config-modules.php:34
 msgid "Removes appointment self-booking and its admin screens."
@@ -15220,7 +15220,7 @@ msgstr "Salvando…"
 
 #: includes/settings/views/ffc-tab-migrations.php:318
 msgid "Scan published posts, pages and reusable blocks for embedded [ffc_form] shortcodes that point to forms whose end date is more than N days in the past, and remove those obsolete shortcodes from the content."
-msgstr "Analise as publicações, páginas e blocos reutilizáveis ​​em busca de shortcodes [ffc_form] incorporados que apontem para formulários cuja data de término seja superior a N dias no passado e remova esses shortcodes obsoletos do conteúdo."
+msgstr "Analise as publicações, páginas e blocos reutilizáveis em busca de shortcodes [ffc_form] incorporados que apontem para formulários cuja data de término seja superior a N dias no passado e remova esses shortcodes obsoletos do conteúdo."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:522
 msgid "Scenario"
@@ -15942,7 +15942,7 @@ msgstr "Em Configurações → Textos de e-mail, você pode editar o conteúdo d
 
 #: includes/settings/views/documentation/config-general.php:20
 msgid "Settings → General holds the plugin-wide basics."
-msgstr "Configurações → Geral contém as configurações básicas aplicáveis ​​a todo o plugin."
+msgstr "Configurações → Geral contém as configurações básicas aplicáveis a todo o plugin."
 
 #: includes/admin/class-ffc-form-editor-geofence-metabox.php:429
 msgid "Settings → Geolocation"
@@ -16050,7 +16050,7 @@ msgstr "Concluído. %d URLs curtas criadas."
 
 #: includes/url-shortener/class-ffc-url-shortener-admin-page.php:284
 msgid "Short URLs linked to a post or page are not editable — their destination follows the page."
-msgstr "URLs curtas vinculadas a um post ou página não são editáveis ​​— o destino delas acompanha a página."
+msgstr "URLs curtas vinculadas a um post ou página não são editáveis — o destino delas acompanha a página."
 
 #: includes/admin/class-ffc-form-list-columns.php:116 includes/audience/class-ffc-audience-admin-calendar.php:200 includes/settings/views/documentation/reference-shortcodes.php:22
 msgid "Shortcode"
@@ -16153,19 +16153,19 @@ msgstr "Mostrar quais respostas estavam corretas/incorretas"
 #: includes/settings/views/ffc-tab-migrations.php:497
 #, php-format
 msgid "Showing first %1$d of %2$d affected posts. The rest will still be processed on Apply."
-msgstr "Exibindo os primeiros %1$d de %2$d de posts afetados. Os demais ainda serão processados ​​após a Aplicar."
+msgstr "Exibindo os primeiros %1$d de %2$d de posts afetados. Os demais ainda serão processados após a Aplicar."
 
 #. 1: forms shown, 2: total candidates
 #: includes/settings/views/ffc-tab-migrations.php:873
 #, php-format
 msgid "Showing first %1$d of %2$d forms. All are processed on apply."
-msgstr "Exibindo os primeiros %1$d de %2$d formulários. Todos são processados ​​após a aplicação."
+msgstr "Exibindo os primeiros %1$d de %2$d formulários. Todos são processados após a aplicação."
 
 #. 1: rows shown, 2: total candidates
 #: includes/settings/views/ffc-tab-migrations.php:715
 #, php-format
 msgid "Showing first %1$d of %2$d matches. All matches are processed on delete."
-msgstr "Exibindo os primeiros %1$d de %2$d resultados. Todos os resultados são processados ​​ao serem excluídos."
+msgstr "Exibindo os primeiros %1$d de %2$d resultados. Todos os resultados são processados ao serem excluídos."
 
 #. %hours% is a placeholder token the admin can use in the message
 #: templates/admin/audience/self-scheduling-tab.php:143
@@ -16254,7 +16254,7 @@ msgstr "Tickets de uso único, listas de permissão/bloqueio, reimpressões limi
 #: includes/settings/views/ffc-tab-advanced.php:622
 #, php-format
 msgid "Site already storing data: do NOT edit the WordPress salts blindly — that re-derives the FFC key and makes existing encrypted records unreadable. Decouple instead by defining %s in wp-config.php, then plan a proper key rotation (S7b)."
-msgstr "Para um site que já armazena dados: NÃO edite as chaves de segurança (salts) do WordPress às ​​cegas — isso gera novamente a chave FFC e torna ilegíveis os registros criptografados existentes. Em vez disso, desacople a chave definindo %s no arquivo wp-config.php e, então, planeje uma rotação de chaves adequada (S7b)."
+msgstr "Para um site que já armazena dados: NÃO edite as chaves de segurança (salts) do WordPress às cegas — isso gera novamente a chave FFC e torna ilegíveis os registros criptografados existentes. Em vez disso, desacople a chave definindo %s no arquivo wp-config.php e, então, planeje uma rotação de chaves adequada (S7b)."
 
 #: includes/settings/tabs/class-ffc-tab-ip-diagnostics.php:491
 msgid "Situation"
@@ -16904,7 +16904,7 @@ msgstr "Sistema indisponível."
 
 #: includes/settings/views/documentation/feature-record.php:34
 msgid "System Variables"
-msgstr "Variáveis ​​do Sistema"
+msgstr "Variáveis do Sistema"
 
 #. %s: table name
 #: includes/migrations/class-ffc-migration-custom-fields-tables.php:115 includes/migrations/class-ffc-migration-custom-fields-tables.php:185 includes/migrations/class-ffc-migration-custom-fields-tables.php:250 includes/migrations/class-ffc-migration-self-scheduling-tables.php:133
@@ -17032,7 +17032,7 @@ msgstr "Variáveis/Tokens de Modelo"
 
 #: includes/settings/views/documentation/feature-record.php:31
 msgid "Template Variables:"
-msgstr "Variáveis ​​de Modelo:"
+msgstr "Variáveis de Modelo:"
 
 #: includes/admin/class-ffc-cert-template-receipt-settings.php:193 includes/settings/tabs/class-ffc-tab-reregistration.php:130
 msgid "Template:"
@@ -17113,7 +17113,7 @@ msgstr "O modo exclusivo ALTCHA não foi salvo: o widget se recusa a funcionar e
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:72
 msgid "The appointment receipt (comprovante) PDF draws from the shared certificate template pool — the same editable, duplicable templates managed in the Document Templates hub — rather than a single hardcoded layout. Two receipt defaults ship (Regular and Custom); the Scheduling → Settings → Receipt tab selects, per scheduling mode, which pool template each calendar type uses (falling back to the shipped default when unset)."
-msgstr "O PDF do comprovante de agendamento utiliza o conjunto compartilhado de modelos de certificado — os mesmos modelos editáveis ​​e duplicáveis ​​gerenciados no hub de Modelos de Documento — em vez de um layout único fixo no código. Dois modelos padrão de comprovante são fornecidos (Padrão e Personalizado); a aba Agendamento → Configurações → Comprovante permite selecionar, para cada modo de agendamento, qual modelo do conjunto será utilizado por cada tipo de calendário (recorrendo ao padrão fornecido caso nenhuma opção seja definida)."
+msgstr "O PDF do comprovante de agendamento utiliza o conjunto compartilhado de modelos de certificado — os mesmos modelos editáveis e duplicáveis gerenciados no hub de Modelos de Documento — em vez de um layout único fixo no código. Dois modelos padrão de comprovante são fornecidos (Padrão e Personalizado); a aba Agendamento → Configurações → Comprovante permite selecionar, para cada modo de agendamento, qual modelo do conjunto será utilizado por cada tipo de calendário (recorrendo ao padrão fornecido caso nenhuma opção seja definida)."
 
 #: includes/settings/views/documentation/developer-hooks-api.php:104
 msgid "The authenticated read slice of ffc/v1, gated by the ffc_view_forms_api capability (via a WordPress Application Password or a same-origin cookie):"
@@ -17408,7 +17408,7 @@ msgstr "O formulário de membro"
 
 #: includes/self-scheduling/class-ffc-self-scheduling-editor.php:887
 msgid "The message content (\"email body\") — the shared Email Model chrome (header/footer) is added automatically. Available variables:"
-msgstr "O conteúdo da mensagem (\"corpo do e-mail\") — a estrutura compartilhada do modelo de e-mail (cabeçalho/rodapé) é adicionada automaticamente. Variáveis ​​disponíveis:"
+msgstr "O conteúdo da mensagem (\"corpo do e-mail\") — a estrutura compartilhada do modelo de e-mail (cabeçalho/rodapé) é adicionada automaticamente. Variáveis disponíveis:"
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:28
 msgid "The mode locks to regular or custom once a calendar has bookings, so existing appointments never lose their slot definition."
@@ -17616,7 +17616,7 @@ msgstr "O período de submissão"
 
 #: includes/settings/views/documentation/config-cache.php:21
 msgid "The tab detects common external caches and reports whether the plugin stays compatible — nothing to configure here. It recognizes LiteSpeed Cache, WP Rocket, W3 Total Cache and WP Super Cache (page caches) and a Redis/persistent object cache."
-msgstr "A aba detecta caches externos comuns e informa se o plugin permanece compatível — não há nada para configurar aqui. Ela reconhece o LiteSpeed ​​Cache, WP Rocket, W3 Total Cache e WP Super Cache (caches de página), bem como o Redis/cache de objetos persistente."
+msgstr "A aba detecta caches externos comuns e informa se o plugin permanece compatível — não há nada para configurar aqui. Ela reconhece o LiteSpeed Cache, WP Rocket, W3 Total Cache e WP Super Cache (caches de página), bem como o Redis/cache de objetos persistente."
 
 #: includes/settings/tabs/class-ffc-tab-email-model.php:116
 msgid "The test email could not be sent. Check your SMTP settings and try again."
@@ -18767,7 +18767,7 @@ msgstr "Use a Navegação Rápida ao lado dos tópicos — ela espelha os menus 
 
 #: includes/settings/views/documentation/reference-tokens.php:18
 msgid "Use these variables in your PDF template (HTML editor). They will be automatically replaced with user data:"
-msgstr "Utilize estas variáveis ​​no seu modelo de PDF (editor HTML). Elas serão automaticamente substituídas pelos dados do usuário:"
+msgstr "Utilize estas variáveis no seu modelo de PDF (editor HTML). Elas serão automaticamente substituídas pelos dados do usuário:"
 
 #: includes/admin/class-ffc-admin-assets-manager.php:282 includes/admin/class-ffc-admin-assets-manager.php:567 includes/admin/class-ffc-admin-assets-manager.php:661
 msgid "Use this image"
@@ -19528,7 +19528,7 @@ msgstr "Quando"
 
 #: includes/settings/views/documentation/feature-quiz.php:19
 msgid "When a form uses quiz/evaluation mode, these additional variables are available in the PDF template:"
-msgstr "Quando um formulário utiliza o modo de questionário/avaliação, estas variáveis ​​adicionais ficam disponíveis no modelo PDF:"
+msgstr "Quando um formulário utiliza o modo de questionário/avaliação, estas variáveis adicionais ficam disponíveis no modelo PDF:"
 
 #: includes/settings/views/documentation/feature-reregistration.php:47
 msgid "When a reminder is sent again"
@@ -20306,7 +20306,7 @@ msgstr "Seu navegador não suporta geolocalização."
 #. what doesn't happen is matching against any allow-list.
 #: includes/frontend/class-ffc-public-csv-download.php:261
 msgid "Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."
-msgstr "Seu CPF é necessário para será registrado (criptografado) para auditoria deste formulário. Ele não será validado em nenhuma lista de permissões."
+msgstr "Seu CPF é necessário para rastreabilidade e fica registrado no log de auditoria deste formulário (criptografado). Ele não é conferido em nenhuma lista de permissões."
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:98
 msgid "This CPF/RF cannot use this form. If you think this is a mistake, contact whoever sent you the form."
@@ -25815,12 +25815,12 @@ msgid "Add required data"
 msgstr "Adicionar dado obrigatório"
 
 #: includes/settings/views/ffc-tab-certificates.php
-msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule."
-msgstr "Um nome aceita letras minúsculas, dígitos e sublinhados. O e-mail é sempre obrigatório no formulário: o certificado é enviado para ele. {{auth_code}} é sempre obrigatória no HTML do certificado: a verificação depende dela. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, não tem campo de formulário; {{schedule}} só é exigida de um formulário que tenha Cronograma do Evento."
+msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field. {{schedule}} prints nothing on a form without an Event Schedule, and every shipped certificate model carries it."
+msgstr "Um nome aceita letras minúsculas, dígitos e sublinhados. O e-mail é sempre obrigatório no formulário: o certificado é enviado para ele. {{auth_code}} é sempre obrigatória no HTML do certificado: a verificação depende dela. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, não tem campo de formulário. {{schedule}} não imprime nada num formulário sem Cronograma do Evento, e todos os modelos de certificado do plugin já a trazem."
 
 #: includes/settings/views/documentation/feature-certificates.php
-msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it."
-msgstr "O que um certificado exige é uma única tabela, Configurações → Certificados → Dados obrigatórios. Cada linha tem um nome, um rótulo, um tipo e dois interruptores. Obrigatório no formulário: um formulário novo já começa com o campo, e o editor de formulário o trava e recusa um formulário sem ele. Obrigatório no HTML do certificado: o editor de formulário se recusa a salvar um layout sem a {{etiqueta}}. Por padrão, name e cpf_rf são obrigatórios nos dois, email no formulário e {{auth_code}} e {{schedule}} no HTML. O email não pode sair do formulário e {{auth_code}} não pode sair do HTML. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, tem só o interruptor do HTML, e {{schedule}} só é exigida de um formulário com Cronograma do Evento na aba Horário. A tabela é salva à medida que você a altera."
+msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only. {{schedule}} prints nothing on a form without an Event Schedule on the Time tab, and every shipped certificate model carries it. The table saves as you change it."
+msgstr "O que um certificado exige é uma única tabela, Configurações → Certificados → Dados obrigatórios. Cada linha tem um nome, um rótulo, um tipo e dois interruptores. Obrigatório no formulário: um formulário novo já começa com o campo, e o editor de formulário o trava e recusa um formulário sem ele. Obrigatório no HTML do certificado: o editor de formulário se recusa a salvar um layout sem a {{etiqueta}}. Por padrão, name e cpf_rf são obrigatórios nos dois, email no formulário e {{auth_code}} e {{schedule}} no HTML. O email não pode sair do formulário e {{auth_code}} não pode sair do HTML. Uma etiqueta que o próprio plugin preenche, como {{schedule}}, tem só o interruptor do HTML. {{schedule}} não imprime nada num formulário sem Cronograma do Evento na aba Horário, e todos os modelos de certificado do plugin já a trazem. A tabela é salva à medida que você a altera."
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php
 msgid "A new form starts with every row of Settings → Certificates → Required data whose \"Required in the form\" switch is on, with the label and type given there. By default they are:"
@@ -30523,6 +30523,10 @@ msgstr "Ordenar em ordem crescente."
 msgid "Sort descending."
 msgstr "Ordenar em ordem decrescente."
 
+#: includes/settings/views/documentation/scheduling-audiences.php:81
+msgid "The reason of a cancellation, single or together, is typed in the confirmation itself; the list then marks the cancelled bookings and says what happened above it, without reloading the page. On the calendar a booking made, changed or cancelled is reported the same way, on the page."
+msgstr "O motivo de um cancelamento, individual ou em conjunto, é digitado na própria confirmação; a lista então marca as reservas canceladas e informa o que aconteceu acima dela, sem recarregar a página. No calendário, uma reserva feita, alterada ou cancelada é informada da mesma forma, na própria página."
+
 #: includes/settings/views/documentation/scheduling-audiences.php:80
 msgid "Within a day the latest time comes first. Click the ID, Date, Time, space, Description or Status header to sort by that column; a second click reverses it, and filtering or changing page keeps the sort."
 msgstr "Dentro de um dia, o horário mais tarde vem primeiro. Clique no cabeçalho ID, Data, Horário, espaço, Descrição ou Status para ordenar por essa coluna; um segundo clique inverte a ordem, e filtrar ou mudar de página mantém a ordenação."
@@ -30832,10 +30836,6 @@ msgstr "Sair da lista de espera"
 msgid "Leave waitlist"
 msgstr "Sair da lista de espera"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:208
-msgid "The reason needs at least 5 characters. Nothing was cancelled."
-msgstr "O motivo precisa de pelo menos 5 caracteres. Nada foi cancelado."
-
 #: includes/api/class-ffc-user-appointments-rest-controller.php:209
 msgid "This calendar does not take cancellations online. Contact the organiser to cancel."
 msgstr "Este calendário não aceita cancelamento on-line. Fale com o organizador para cancelar."
@@ -30860,8 +30860,8 @@ msgid "A waitlisted appointment is labelled Waitlisted and offers Leave waitlist
 msgstr "Um agendamento na lista de espera aparece como Na lista de espera e oferece Sair da lista de espera; um agendamento aberto que já não pode ser cancelado diz por quê: o calendário não aceita cancelamento on-line ou o prazo passou. O administrador segue a chave de bypass do calendário aqui como no próprio cancelamento."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, a cancellation reason shorter than five characters is refused with a message instead of being dropped."
-msgstr "O e-mail de cancelamento da pessoa traz o motivo que ela digitou, e a confirmação do link de cancelamento só promete e-mail quando o calendário envia um. Na lista de Agendamentos, um motivo de cancelamento com menos de cinco caracteres é recusado com uma mensagem, em vez de ser ignorado."
+msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, Cancel asks the reason in the plugin's dialog, whose button stays off until the reason holds five characters."
+msgstr "O e-mail de cancelamento da pessoa traz o motivo digitado, e a confirmação do link de cancelamento promete um e-mail só quando a agenda envia um. Na lista de Agendamentos, Cancelar pede o motivo na janela do plugin, cujo botão fica desativado até o motivo ter cinco caracteres."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
 msgid "The booking calendar works from the keyboard: each day is a named button, the arrow keys move a day or a week, Home and End go to the first and last day of the month, Enter or Space picks it, and the month arrows are labelled."
@@ -33903,3 +33903,23 @@ msgstr "Exibido abaixo de \"Participar de Grupos\" na aba Perfil do painel, logo
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
 msgstr "\"Texto para os usuários\", no mesmo card, aparece no painel abaixo de \"Participar de Grupos\", logo abaixo da linha que informa o limite: para que servem os grupos, como escolher, a quem perguntar. HTML básico é permitido (links, negrito, listas); vazio, nada é exibido."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "Cancel this appointment? The record stays, marked as cancelled."
+msgstr "Cancelar este agendamento? O registro fica, marcado como cancelado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "At least 5 characters."
+msgstr "Pelo menos 5 caracteres."
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save as template"
+msgstr "Salvar como modelo"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save this layout and its background as a template you can load into other forms?"
+msgstr "Salvar este layout e o fundo como um modelo que pode ser carregado em outros formulários?"
+
+#: includes/admin/class-ffc-admin-assets-manager.php
+msgid "Save template"
+msgstr "Salvar modelo"

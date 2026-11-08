@@ -113,7 +113,7 @@
 				.then(function (res) {
 					button.disabled = false;
 					if (!res || !res.success || !res.data) {
-						window.alert(i18n.error || 'Error');
+						window.FFC.adminNotice('danger', i18n.error || 'Error');
 						return;
 					}
 					roleCaps[slug] = Array.isArray(res.data.caps) ? res.data.caps : [];
@@ -121,7 +121,7 @@
 				});
 		}).catch(function () {
 			button.disabled = false;
-			window.alert(i18n.error || 'Error');
+			window.FFC.adminNotice('danger', i18n.error || 'Error');
 		});
 	}
 
@@ -184,7 +184,7 @@
 				cb.disabled = false;
 				if (!res || !res.success) {
 					cb.checked = !grant;
-					window.alert(i18n.error || 'Error');
+					window.FFC.adminNotice('danger', i18n.error || 'Error');
 					return;
 				}
 				// Keep the in-memory map in sync so switching away and back
@@ -202,7 +202,7 @@
 			.catch(function () {
 				cb.disabled = false;
 				cb.checked = !grant;
-				window.alert(i18n.error || 'Error');
+				window.FFC.adminNotice('danger', i18n.error || 'Error');
 			});
 	}
 

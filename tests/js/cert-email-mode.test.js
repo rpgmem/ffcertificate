@@ -3,7 +3,7 @@
 // The per-form certificate email Global/Custom toggle: flipping to Custom
 // reveals + seeds the subject/body from the global; flipping to Global clears
 // them (behind a confirm) and hides the fields. UI-only — nothing persisted.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
 const SCRIPT = 'assets/js/ffc-cert-email-mode.js';
@@ -37,13 +37,14 @@ beforeEach(() => {
 		body: '<p>GLOBAL BODY</p>',
 		confirmReset: 'Reset?',
 	};
-	window.confirm = () => true;
+	// The reset question is asked in the plugin's dialog (#2535).
+	window.FFC = { confirmDialog: vi.fn(() => Promise.resolve(true)) };
 });
 
 afterEach(() => {
 	delete window.ffcCertEmailGlobal;
 	delete window.tinymce;
-	delete window.confirm;
+	delete window.FFC;
 });
 
 describe('ffc-cert-email-mode', () => {
@@ -79,7 +80,9 @@ describe('ffc-cert-email-mode', () => {
 		await loadOnReady();
 
 		$()('#ffc_email_custom_mode').prop('checked', false).trigger('change');
+		await Promise.resolve();
 
+		expect(window.FFC.confirmDialog.mock.calls[0][0]).toMatchObject({ message: 'Reset?', category: 'caution' });
 		expect($()('input[name="ffc_config[email_subject]"]').val()).toBe('');
 		expect($()('#ffc_email_body').val()).toBe('');
 		expect($()('.ffc-cert-email-custom-fields').hasClass('ffc-hidden')).toBe(true);
@@ -88,10 +91,11 @@ describe('ffc-cert-email-mode', () => {
 
 	it('flip to Global is cancellable — reverts to Custom and keeps the text', async () => {
 		installDom({ checked: true, subject: 'custom subject', body: '<p>custom</p>' });
-		window.confirm = () => false;
+		window.FFC.confirmDialog = vi.fn(() => Promise.resolve(false));
 		await loadOnReady();
 
 		$()('#ffc_email_custom_mode').prop('checked', false).trigger('change');
+		await Promise.resolve();
 
 		expect($()('#ffc_email_custom_mode').is(':checked')).toBe(true);
 		expect($()('input[name="ffc_config[email_subject]"]').val()).toBe('custom subject');
@@ -121,6 +125,7 @@ describe('ffc-cert-email-mode', () => {
 
 		// Flip to Global: editor is cleared.
 		$()('#ffc_email_custom_mode').prop('checked', false).trigger('change');
+		await Promise.resolve();
 		expect(content).toBe('');
 	});
 });

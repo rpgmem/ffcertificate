@@ -5,6 +5,13 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// A failure is said in the plugin's notice (#2535), never in alert().
+function installNotice() {
+	window.FFC = window.FFC || {};
+	window.FFC.adminNotice = vi.fn();
+	return window.FFC.adminNotice;
+}
+
 function row(slug, checked) {
 	return `<div class="ffc-cap-row" data-ffc-cap-slug="${slug}" data-ffc-cap-name="${slug}">
 		<label class="ffc-control-toggle"><input type="checkbox" class="ffc-role-cap" data-ffc-cap-slug="${slug}"${checked ? ' checked' : ''}><span class="ffc-control-toggle-track"></span></label>
@@ -105,6 +112,7 @@ describe('persist toggle', () => {
 	it('reverts the toggle when the request fails', async () => {
 		const fetchMock = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: false }) }));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		setup(fetchMock);
 
 		const cb = document.querySelector('[data-ffc-cap-slug="cap_a"] .ffc-role-cap');
@@ -115,12 +123,14 @@ describe('persist toggle', () => {
 
 		// reverted back to checked (cap_a is granted by ffc_end_user)
 		expect(cb.checked).toBe(true);
-		expect(alertSpy).toHaveBeenCalledWith('Err');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Err');
 	});
 
-	it('reverts the toggle and alerts when the network request rejects', async () => {
+	it('reverts the toggle and says the error when the network request rejects', async () => {
 		const fetchMock = vi.fn(() => Promise.reject(new Error('offline')));
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const noticeSpy = installNotice();
 		setup(fetchMock);
 
 		const cb = document.querySelector('[data-ffc-cap-slug="cap_b"] .ffc-role-cap');
@@ -130,7 +140,8 @@ describe('persist toggle', () => {
 		await new Promise((r) => setTimeout(r, 0));
 		expect(cb.checked).toBe(false);
 		expect(cb.disabled).toBe(false);
-		expect(alertSpy).toHaveBeenCalledWith('Err');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(noticeSpy).toHaveBeenCalledWith('danger', 'Err');
 	});
 
 	it('removes the cap from the in-memory map when ungranting succeeds', async () => {

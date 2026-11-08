@@ -794,11 +794,11 @@
         function renderOverlayError(headline, body, onRetry) {
             var $overlay = $('#ffc-pdf-overlay');
             if (!$overlay.length) {
-                // No overlay open — fall back to alert() so the message
-                // still reaches the user (early-init failures take this
-                // path).
-                alert(headline + '\n\n' + body);
-                return;
+                // No overlay open yet (early-init failures take this path):
+                // open it to carry the error, where an alert() used to
+                // block the page (#2535).
+                showOverlay();
+                $overlay = $('#ffc-pdf-overlay');
             }
             var $content = $overlay.children().first();
             $content.empty();

@@ -163,7 +163,7 @@
                 if (window.FFC.Admin && typeof window.FFC.Admin.notify === 'function') {
                     window.FFC.Admin.notify(msg, 'error');
                 } else {
-                    window.alert(msg);
+                    window.FFC.adminNotice('danger', msg);
                 }
             });
     }

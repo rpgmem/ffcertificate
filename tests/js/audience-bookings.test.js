@@ -39,6 +39,7 @@ function dayModalFixture() {
 			<div class="ffc-day-modal-title"></div>
 			<button class="ffc-btn ffc-btn-neutral ffc-btn-icon ffc-icon-cross ffc-modal-close" aria-label="Close"></button>
 			<input type="checkbox" id="ffc-show-cancelled" />
+			<div id="ffc-day-status" aria-live="polite"></div>
 			<div id="ffc-day-bookings"></div>
 		</div>
 	`;
@@ -132,73 +133,99 @@ describe('ffc-audience-bookings — openDayModal', () => {
 });
 
 describe('ffc-audience-bookings — cancelBooking', () => {
-	it('bails without a REST call when the reason prompt is empty', () => {
-		const restSpy = vi.spyOn(window.FFC, 'rest');
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('   ');
+	const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+	const status = () => window.$('#ffc-day-status .ffc-notice');
+
+	it('asks the reason in the confirmation dialog, and opens no prompt (#2534)', () => {
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(false);
+		const promptSpy = vi.spyOn(window, 'prompt').mockImplementation(() => null);
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
+
+		expect(confirmSpy.mock.calls[0][0].reasonField).toEqual({ label: expect.any(String), min: 1 });
+		expect(promptSpy).not.toHaveBeenCalled();
+	});
+
+	it('bails without a REST call when the dialog is dismissed', async () => {
+		const restSpy = vi.spyOn(window.FFC, 'rest');
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(false);
+		api.loadDayBookings(DATE);
+		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
+		await tick();
 		expect(restSpy).not.toHaveBeenCalled();
 	});
 
-	it('DELETEs the booking and refreshes on a successful cancel', async () => {
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('Double booked');
+	it('DELETEs the booking with the reason typed in the dialog and says it on the panel', async () => {
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'Double booked' });
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
 
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking[data-id="1"]').trigger('click');
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
 
-		expect(restSpy).toHaveBeenCalled();
 		const [url, opts] = restSpy.mock.calls[0];
 		expect(url).toContain('/bookings/1');
 		expect(opts.method).toBe('DELETE');
-		expect(opts.data.reason).toBe('Double booked');
-		expect(alertSpy).toHaveBeenCalledWith('Booking cancelled.');
+		expect(opts.data).toEqual({ reason: 'Double booked', scope: 'this' });
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(status().hasClass('ffc-notice-success')).toBe(true);
+		expect(status().attr('role')).toBe('status');
+		expect(status().text()).toContain('Booking cancelled.');
 		expect(api.renderCalendar).toHaveBeenCalled();
 	});
 
 	it('sends the series scope the dialog chose and shows how many dates went (#2243)', async () => {
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'following', reason: '' });
-		vi.spyOn(window, 'prompt').mockReturnValue('Course ended');
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'following', reason: 'Course ended' });
 		const restSpy = vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true, cancelled: [1, 5], message: '2 dates of the series cancelled.' });
 
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking[data-id="1"]').trigger('click');
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
 
-		expect(restSpy.mock.calls[0][1].data.scope).toBe('following');
-		expect(alertSpy).toHaveBeenCalledWith('2 dates of the series cancelled.');
+		expect(restSpy.mock.calls[0][1].data).toEqual({ reason: 'Course ended', scope: 'following' });
+		expect(status().text()).toContain('2 dates of the series cancelled.');
 	});
 
-	it('alerts the server message when the cancel reports failure', async () => {
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('reason');
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+	it('shows the server message as an alert notice when the cancel reports failure', async () => {
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'reason' });
 		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: false, message: 'Nope' });
 
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
 
-		expect(alertSpy).toHaveBeenCalledWith('Nope');
+		expect(status().hasClass('ffc-notice-danger')).toBe(true);
+		expect(status().attr('role')).toBe('alert');
+		expect(status().text()).toContain('Nope');
 	});
 
-	it('alerts the generic error on a rejected cancel request', async () => {
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('reason');
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		vi.spyOn(window.FFC, 'rest').mockRejectedValue(new Error('net'));
+	it('shows the refusal the server explains, else the generic error, on a rejected request', async () => {
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'reason' });
+		const rest = vi.spyOn(window.FFC, 'rest').mockRejectedValue({ xhr: { responseJSON: { message: 'Too late to cancel.' } } });
 
 		api.loadDayBookings(DATE);
 		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await tick();
+		expect(status().text()).toContain('Too late to cancel.');
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		rest.mockRejectedValue(new Error('net'));
+		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
+		await tick();
+		expect(status().length).toBe(1);
+		expect(status().text()).toContain('Error');
+	});
+
+	it('clears a result said for another day when the panel opens again', async () => {
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'reason' });
+		vi.spyOn(window.FFC, 'rest').mockResolvedValue({ success: true });
+		api.loadDayBookings(DATE);
+		window.$('#ffc-day-bookings .ffc-cancel-booking').first().trigger('click');
+		await tick();
+		expect(status().length).toBe(1);
+
+		api.openDayModal(DATE);
+		expect(status().length).toBe(0);
 	});
 });
 

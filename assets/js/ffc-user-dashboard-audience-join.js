@@ -234,8 +234,15 @@
             .catch(function () { return ''; })
             .then(function (impact) {
                 var question = ffcDashboard.strings.confirmLeaveGroup || 'Leave this group?';
-                if (!confirm(impact ? impact + '\n\n' + question : question)) return;
-                sendLeave(groupId);
+                // The plugin's dialog, not confirm() (#2535).
+                return FFC.confirmDialog({
+                    message: impact ? [impact, question] : question,
+                    confirmLabel: ffcDashboard.strings.leaveGroup || 'Leave',
+                    category: 'caution',
+                    icon: 'cross'
+                }).then(function (agreed) {
+                    if (agreed) sendLeave(groupId);
+                });
             });
     }
 
@@ -283,7 +290,14 @@
         if (held.length === 1) {
             var msg = (s.confirmSwitchGroup || 'Leave "%1$s" and join "%2$s"?')
                 .replace('%1$s', held[0].name).replace('%2$s', toName);
-            if (confirm(msg)) switchGroup(held[0].id, toId);
+            FFC.confirmDialog({
+                message: msg,
+                confirmLabel: s.switchConfirm || 'Switch',
+                category: 'caution',
+                icon: 'switch'
+            }).then(function (agreed) {
+                if (agreed) switchGroup(held[0].id, toId);
+            });
             return;
         }
 
@@ -317,8 +331,17 @@
         if (keeps.length > 0) {
             msg += '\n\n' + keptLines(keeps).join('\n');
         }
-        if (!confirm(msg)) return;
+        FFC.confirmDialog({
+            message: msg,
+            confirmLabel: ffcDashboard.strings.leaveAllGroups || 'Leave all groups',
+            category: 'danger',
+            icon: 'cross'
+        }).then(function (agreed) {
+            if (agreed) sendLeaveAll();
+        });
+    }
 
+    function sendLeaveAll() {
         var $btn = $('.ffc-leave-all-groups-btn');
         $btn.prop('disabled', true).text(ffcDashboard.strings.saving || 'Saving...');
 

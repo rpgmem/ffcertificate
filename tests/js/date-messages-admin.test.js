@@ -58,7 +58,8 @@ beforeEach(() => {
 	window.$(document).off();
 	document.body.innerHTML = '';
 	request = vi.fn();
-	window.FFC = { request, notice };
+	// Questions are asked in the plugin's dialog (#2535); it answers no unless a test says otherwise.
+	window.FFC = { request, notice, confirmDialog: vi.fn(() => Promise.resolve(false)) };
 	window.ffcDateMessages = {
 		ajaxUrl: '/wp-admin/admin-ajax.php',
 		previewAction: 'ffc_date_messages_preview',
@@ -196,14 +197,29 @@ describe('ffc-date-messages-admin', () => {
 	it('asks before submitting a form that carries a confirmation', async () => {
 		document.body.innerHTML = '<form id="other" data-ffc-confirm="Delete?"></form>';
 		await loadOnReady();
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirm = window.FFC.confirmDialog;
+		const form = document.getElementById('other');
+		const requestSubmit = vi.fn();
+		form.requestSubmit = requestSubmit;
 
 		const event = window.$.Event('submit');
 		window.$('#other').trigger(event);
+		await flush();
 
-		expect(confirm).toHaveBeenCalledWith('Delete?');
+		expect(confirm.mock.calls[0][0]).toMatchObject({ message: 'Delete?', category: 'danger' });
 		expect(event.isDefaultPrevented()).toBe(true);
-		confirm.mockRestore();
+		expect(requestSubmit).not.toHaveBeenCalled();
+
+		// On yes the form is sent again, and that second submit is let through.
+		confirm.mockReturnValue(Promise.resolve(true));
+		window.$('#other').trigger(window.$.Event('submit'));
+		await flush();
+		expect(requestSubmit).toHaveBeenCalledTimes(1);
+		expect(form.getAttribute('data-ffc-confirmed')).toBe('1');
+		const again = window.$.Event('submit');
+		window.$('#other').trigger(again);
+		expect(again.isDefaultPrevented()).toBe(false);
+		expect(form.hasAttribute('data-ffc-confirmed')).toBe(false);
 	});
 
 	it('asks to send now with the rule, the dates and the count the preview gives (#2336)', async () => {
@@ -211,7 +227,7 @@ describe('ffc-date-messages-admin', () => {
 		window.ffcDateMessages.strings.confirmSend = 'Send "%1$s" for %2$s to %3$s people?';
 		request.mockResolvedValue({ totals: { will_send: 12 } });
 		await loadOnReady();
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirm = window.FFC.confirmDialog;
 		const form = document.getElementById('ffc-dm-send-form');
 		const submit = vi.spyOn(form, 'submit').mockImplementation(() => {});
 
@@ -222,14 +238,14 @@ describe('ffc-date-messages-admin', () => {
 		expect(event.isDefaultPrevented()).toBe(true);
 		expect(request.mock.calls[0][0]).toBe('ffc_date_messages_preview');
 		expect(request.mock.calls[0][1]).toEqual({ rule_id: '7', from: '2026-10-01', to: '2026-10-02' });
-		expect(confirm).toHaveBeenCalledWith('Send "R" for 2026-10-01 – 2026-10-02 to 12 people?');
+		expect(confirm.mock.calls[0][0].message).toBe('Send "R" for 2026-10-01 – 2026-10-02 to 12 people?');
 		expect(submit).not.toHaveBeenCalled();
 
-		confirm.mockReturnValue(true);
+		confirm.mockReturnValue(Promise.resolve(true));
 		window.$(form).trigger(window.$.Event('submit'));
 		await flush();
+		await flush();
 		expect(submit).toHaveBeenCalledTimes(1);
-		confirm.mockRestore();
 	});
 
 	it('says a summary-only rule e-mails nobody', async () => {
@@ -238,13 +254,12 @@ describe('ffc-date-messages-admin', () => {
 		window.ffcDateMessages.strings.confirmSummary = 'Run "%1$s" for %2$s; summary of %3$s.';
 		request.mockResolvedValue({ totals: { will_send: 4 } });
 		await loadOnReady();
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirm = window.FFC.confirmDialog;
 
 		window.$('#ffc-dm-send-form').trigger(window.$.Event('submit'));
 		await flush();
 
-		expect(confirm).toHaveBeenCalledWith('Run "R" for 2026-10-01 – 2026-10-02; summary of 4.');
-		confirm.mockRestore();
+		expect(confirm.mock.calls[0][0].message).toBe('Run "R" for 2026-10-01 – 2026-10-02; summary of 4.');
 	});
 
 	it('renders the message preview in a sandboxed frame and resizes it for a phone (#1660)', async () => {
@@ -367,19 +382,21 @@ describe('ffc-date-messages-admin', () => {
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_announcement_body');
 
 		// An edited text is replaced only when the operator says so (#2336).
-		const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirm = window.FFC.confirmDialog;
 		window.$('#ffc-dm-subject').val('Mine');
 		window.$('#ffc_dm_body').val('mine');
 		window.$('#ffc-dm-kind').val('dated').trigger('change');
+		await flush();
 		expect(confirm).toHaveBeenCalledTimes(1);
+		expect(confirm.mock.calls[0][0].category).toBe('caution');
 		expect(window.$('#ffc-dm-subject').val()).toBe('Mine');
 		expect(window.$('.ffc-email-restore-default').attr('data-default-key')).toBe('date_message_body');
 
-		confirm.mockReturnValue(true);
+		confirm.mockReturnValue(Promise.resolve(true));
 		window.$('#ffc-dm-kind').val('announcement').trigger('change');
+		await flush();
 		expect(window.$('#ffc-dm-subject').val()).toBe('Site: announcement');
 		expect(window.$('#ffc_dm_body').val()).toBe('announcement body');
-		confirm.mockRestore();
 		delete window.ffcDateMessageDefaults;
 	});
 

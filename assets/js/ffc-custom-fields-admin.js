@@ -200,10 +200,14 @@
 
         var confirmMsg = cfg().strings.confirmReplicate
             || 'Copy this audience\'s option lists to all child and grandchild audiences? This overwrites their current lists.';
-        if (!window.confirm(confirmMsg)) {
-            return;
-        }
+        return FFC.confirmDialog({ message: confirmMsg, category: 'caution', icon: 'replicate-down' }).then(function (agreed) {
+            if (agreed) {
+                replicate($btn, $status, audienceId);
+            }
+        });
+    }
 
+    function replicate($btn, $status, audienceId) {
         $btn.prop('disabled', true);
         FFC.status($status, 'busy', cfg().strings.saving || 'Saving...');
 
@@ -235,14 +239,18 @@
         var isNew = String(fieldId).indexOf('new_') === 0;
 
         if (source === 'standard') {
-            alert(cfg().strings.cannotDeleteStandard || 'Standard fields cannot be deleted. Deactivate instead.');
+            FFC.status($('#ffc-custom-fields-status'), 'warning', cfg().strings.cannotDeleteStandard || 'Standard fields cannot be deleted. Deactivate instead.');
             return;
         }
 
-        if (!confirm(cfg().strings.confirmDelete || 'Are you sure?')) {
-            return;
-        }
+        return FFC.confirmDialog({ message: cfg().strings.confirmDelete || 'Are you sure?', category: 'danger', icon: 'delete' }).then(function (agreed) {
+            if (agreed) {
+                removeField($row, fieldId, isNew);
+            }
+        });
+    }
 
+    function removeField($row, fieldId, isNew) {
         if (isNew) {
             // New unsaved field — just remove from DOM
             $row.fadeOut(200, function () { $(this).remove(); });
@@ -262,7 +270,7 @@
                 var msg = (err && err.fromServer && err.message)
                     || cfg().strings.error
                     || 'Error';
-                alert(msg);
+                FFC.status($('#ffc-custom-fields-status'), 'error', msg);
             });
     }
 
@@ -277,9 +285,15 @@
         if (!audienceId || !operation) {
             return;
         }
-        if (operation === 'revert' && !window.confirm(cfg().strings.confirmRevert || 'Discard this audience\'s changes to the field?')) {
-            return;
+        if (operation === 'revert' && $btn.attr('data-ffc-confirmed') !== '1') {
+            return FFC.confirmDialog({ message: cfg().strings.confirmRevert || 'Discard this audience\'s changes to the field?', category: 'caution', icon: 'restore' }).then(function (agreed) {
+                if (agreed) {
+                    $btn.attr('data-ffc-confirmed', '1');
+                    changeInheritance.call($btn[0]);
+                }
+            });
         }
+        $btn.removeAttr('data-ffc-confirmed');
         var $status = $('#ffc-custom-fields-status');
         $btn.prop('disabled', true);
         FFC.request(

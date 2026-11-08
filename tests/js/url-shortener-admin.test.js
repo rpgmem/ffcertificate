@@ -235,33 +235,35 @@ describe('url-shortener — regenerate', () => {
 	it('posts without asking when the button carries no confirmation (Generate, Reactivate)', async () => {
 		mountRegenBtn('');
 		await loadAdmin();
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog');
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 		await flush();
 
 		expect(confirmSpy).not.toHaveBeenCalled();
 		expect(postSpy).toHaveBeenCalled();
 	});
 
-	it('bails when the user cancels the confirm()', async () => {
+	it('bails when the user declines the plugin dialog', async () => {
 		mountRegenBtn();
 		await loadAdmin();
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const postSpy = vi.spyOn(window.$, 'post');
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
 		await flush();
+		await flush();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Generate a new short code?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Generate a new short code?', category: 'caution' });
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('POSTs ffc_regenerate_short_url and reloads the page on success', async () => {
 		mountRegenBtn();
 		await loadAdmin();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 
 		// Replace location with a stub before triggering reload.
 		const originalLocation = window.location;
@@ -275,6 +277,7 @@ describe('url-shortener — regenerate', () => {
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { message: 'Short URL regenerated. The old code is retired.' } } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 		await flush();
 
 		expect(stubLocation.reload).toHaveBeenCalled();
@@ -290,10 +293,11 @@ describe('url-shortener — regenerate', () => {
 	it('shows the server error toast when response.success=false', async () => {
 		mountRegenBtn();
 		await loadAdmin();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Quota exceeded' } } }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 		await flush();
 
 		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Quota exceeded', 'error', 8000);
@@ -302,10 +306,11 @@ describe('url-shortener — regenerate', () => {
 	it('shows the localised error on network failure', async () => {
 		mountRegenBtn();
 		await loadAdmin();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
 
 		window.$('.ffc-regenerate-shorturl').trigger('click');
+		await flush();
 		await flush();
 
 		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error', 'error', 8000);

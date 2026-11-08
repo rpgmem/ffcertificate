@@ -146,7 +146,7 @@ describe('ffc-geofence-admin — geo enable + method validation', () => {
 		expect(window.$('input[name="ffc_geofence[geo_gps_enabled]"]').is(':checked')).toBe(true);
 	});
 
-	it('alerts and reverts when the operator unchecks the last enabled method', async () => {
+	it('says why and reverts when the operator unchecks the last enabled method', async () => {
 		mountMetabox();
 		// Enable geo + GPS; IP off. Unchecking GPS would zero both methods.
 		window.$('input[name="ffc_geofence[geo_enabled]"]').prop('checked', true);
@@ -159,7 +159,11 @@ describe('ffc-geofence-admin — geo enable + method validation', () => {
 		const $gps = window.$('input[name="ffc_geofence[geo_gps_enabled]"]');
 		$gps.prop('checked', false).trigger('change');
 
-		expect(alertSpy).toHaveBeenCalledWith('Pick at least one method.');
+		expect(alertSpy).not.toHaveBeenCalled();
+		// Said beside the switches, in a live region (#2535).
+		const host = document.getElementById('ffc-geo-methods-notice');
+		expect(host.getAttribute('aria-live')).toBe('polite');
+		expect(host.textContent).toContain('Pick at least one method.');
 		// Revert: the handler re-checks the box.
 		expect($gps.is(':checked')).toBe(true);
 	});

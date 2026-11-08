@@ -389,6 +389,7 @@ describe('audience-admin — schedule → environment filter cascade', () => {
 describe('audience-admin — booking actions', () => {
 	function mountBookings() {
 		document.body.innerHTML = `
+			<div id="ffc-bookings-status" aria-live="polite"></div>
 			<table>
 				<tr>
 					<td>
@@ -557,24 +558,27 @@ describe('audience-admin — booking actions', () => {
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('cancel: bails when the user dismisses the reason prompt', async () => {
+	it('cancel: asks the reason in the confirmation dialog and sends it, with no prompt (#2534)', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue(null);
-		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({}));
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'Weather' });
+		const promptSpy = vi.spyOn(window, 'prompt').mockImplementation(() => null);
+		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-cancel-booking').trigger('click');
 		await flush();
 
-		expect(postSpy).not.toHaveBeenCalled();
+		expect(confirmSpy.mock.calls[0][0].reasonField).toEqual({ label: expect.any(String), min: 1 });
+		expect(promptSpy).not.toHaveBeenCalled();
+		const sent = postSpy.mock.calls[0][1];
+		expect(sent.reason).toBe('Weather');
+		expect(sent.scope).toBe('this');
 	});
 
 	it('cancel: on success, replaces status pill + removes the cancel link', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('Weather');
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'Weather' });
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-cancel-booking').trigger('click');
@@ -591,8 +595,7 @@ describe('audience-admin — booking actions', () => {
 		mountBookings();
 		window.$('.ffc-cancel-booking').before('<a class="ffc-btn ffc-attendance-link" href="#attendance">Attendance</a>');
 		await reload();
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('Weather');
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'Weather' });
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-cancel-booking').trigger('click');
@@ -602,18 +605,32 @@ describe('audience-admin — booking actions', () => {
 		expect(window.$('.ffc-view-booking').length).toBe(1);
 	});
 
-	it('cancel: on response.success=false alerts the server message', async () => {
+	it('cancel: on success, says it above the list', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('R');
-		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already cancelled' } } }));
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'Weather' });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-cancel-booking').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Already cancelled');
+		const $notice = window.$('#ffc-bookings-status .ffc-notice');
+		expect($notice.hasClass('ffc-notice-success')).toBe(true);
+		expect($notice.attr('role')).toBe('status');
+	});
+
+	it('cancel: on response.success=false shows the server message as an alert notice', async () => {
+		mountBookings();
+		await reload();
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'R' });
+		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already cancelled' } } }));
+		window.$('.ffc-cancel-booking').trigger('click');
+		await flush();
+
+		const $notice = window.$('#ffc-bookings-status .ffc-notice');
+		expect($notice.hasClass('ffc-notice-danger')).toBe(true);
+		expect($notice.attr('role')).toBe('alert');
+		expect($notice.text()).toContain('Already cancelled');
 		// Cancel still present, enabled and no longer busy.
 		expect(window.$('.ffc-cancel-booking').length).toBe(1);
 		expect(window.$('.ffc-cancel-booking').prop('disabled')).toBe(false);
@@ -621,18 +638,16 @@ describe('audience-admin — booking actions', () => {
 		expect(window.$('.ffc-cancel-booking').attr('style')).toBeUndefined();
 	});
 
-	it('cancel: on network error, alerts the generic error', async () => {
+	it('cancel: on network error, shows the generic error', async () => {
 		mountBookings();
 		await reload();
-		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue(true);
-		vi.spyOn(window, 'prompt').mockReturnValue('R');
+		vi.spyOn(window.FFC, 'confirmRangeCancel').mockResolvedValue({ choice: 'this', reason: 'R' });
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ fail: true }));
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
 		window.$('.ffc-cancel-booking').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Error');
+		expect(window.$('#ffc-bookings-status .ffc-notice').text()).toContain('Error');
 	});
 });
 
@@ -764,11 +779,14 @@ describe('audience-admin — calendar permissions', () => {
 		window.$('#ffc-permissions-table tbody').append(
 			'<tr data-user-id="9"><td><button class="ffc-remove-user-btn">x</button></td></tr>',
 		);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-remove-user-btn').trigger('click');
 		await flush();
+		await flush();
+
+		expect(dialog.mock.calls[0][0].category).toBe('danger');
 
 		expect(window.$('#ffc-permissions-table tbody tr[data-user-id="9"]').length).toBe(0);
 		expect(window.$('#ffc-no-permissions-row').length).toBe(1);
@@ -889,7 +907,7 @@ describe('audience-admin — residual branches', () => {
 		expect(window.$('#ffc-user-search-results').css('display')).toBe('none');
 	});
 
-	it('add user: alerts the error message and re-enables on a failed add', async () => {
+	it('add user: says the error on the screen and re-enables on a failed add', async () => {
 		mountPermissions();
 		await reload();
 		// Select user 6 first so selectedUserId is set.
@@ -903,7 +921,8 @@ describe('audience-admin — residual branches', () => {
 		window.$('#ffc-add-user-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cannot add');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('Cannot add');
 		expect(window.$('#ffc-add-user-btn').prop('disabled')).toBe(false);
 	});
 
@@ -1082,10 +1101,17 @@ describe('audience-admin — holiday edit row', () => {
 describe('audience-admin — bulk cancel', () => {
 	function mountList() {
 		document.body.innerHTML = `
+			<div id="ffc-bookings-status" aria-live="polite"></div>
 			<button type="button" id="ffc-bookings-bulk-cancel" disabled>Cancel selected</button>
 			<input type="checkbox" id="ffc-bookings-select-all">
-			<input type="checkbox" class="ffc-bookings-select" value="11">
-			<input type="checkbox" class="ffc-bookings-select" value="12">
+			<table>
+				<tr data-id="11"><td><input type="checkbox" class="ffc-bookings-select" value="11"></td>
+					<td><span class="ffc-booking-status-active">Active</span></td>
+					<td><a class="ffc-attendance-link" href="#a">Attendance</a><button type="button" class="ffc-cancel-booking">Cancel</button></td></tr>
+				<tr data-id="12"><td><input type="checkbox" class="ffc-bookings-select" value="12"></td>
+					<td><span class="ffc-booking-status-active">Active</span></td>
+					<td><button type="button" class="ffc-cancel-booking">Cancel</button></td></tr>
+			</table>
 		`;
 	}
 
@@ -1120,6 +1146,47 @@ describe('audience-admin — bulk cancel', () => {
 		expect(opts.reasonField.label).toBe('Cancel Reason');
 		expect(request.mock.calls[0][0]).toBe('ffc_audience_cancel_bookings');
 		expect(request.mock.calls[0][1]).toEqual({ booking_ids: ['11', '12'], reason: 'Building closed' });
+	});
+
+	it('updates the rows the server cancelled in place and says how many, with no reload (#2534)', async () => {
+		mountList();
+		await reload();
+		const $ = window.$;
+		vi.spyOn(window.FFC, 'overrideConfirm').mockResolvedValue('Building closed');
+		vi.spyOn(window.FFC, 'request').mockResolvedValue({ cancelled: [11], message: '1 of 2 bookings cancelled.' });
+		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+		$('#ffc-bookings-select-all').prop('checked', true).trigger('change');
+		$('#ffc-bookings-bulk-cancel').trigger('click');
+		await flush();
+
+		const $done = $('tr[data-id="11"]');
+		const $kept = $('tr[data-id="12"]');
+		expect($done.find('.ffc-booking-status-cancelled').length).toBe(1);
+		expect($done.find('.ffc-cancel-booking, .ffc-attendance-link, .ffc-bookings-select').length).toBe(0);
+		expect($kept.find('.ffc-booking-status-active').length).toBe(1);
+		expect($kept.find('.ffc-bookings-select').length).toBe(1);
+		expect($('#ffc-bookings-status .ffc-notice').text()).toContain('1 of 2 bookings cancelled.');
+		expect($('#ffc-bookings-select-all').prop('checked')).toBe(false);
+		expect($('#ffc-bookings-bulk-cancel').hasClass('ffc-btn-loading')).toBe(false);
+		expect(alertSpy).not.toHaveBeenCalled();
+	});
+
+	it('shows a refused bulk cancel as an alert notice and leaves the rows', async () => {
+		mountList();
+		await reload();
+		const $ = window.$;
+		vi.spyOn(window.FFC, 'overrideConfirm').mockResolvedValue('Building closed');
+		vi.spyOn(window.FFC, 'request').mockRejectedValue({ fromServer: true, message: 'Write the reason for the cancellation.' });
+
+		$('#ffc-bookings-select-all').prop('checked', true).trigger('change');
+		$('#ffc-bookings-bulk-cancel').trigger('click');
+		await flush();
+
+		const $notice = $('#ffc-bookings-status .ffc-notice');
+		expect($notice.attr('role')).toBe('alert');
+		expect($notice.text()).toContain('Write the reason for the cancellation.');
+		expect($('.ffc-booking-status-active').length).toBe(2);
 	});
 
 	it('sends nothing when the warning is dismissed', async () => {

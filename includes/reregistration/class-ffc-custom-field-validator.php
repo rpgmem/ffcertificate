@@ -374,6 +374,19 @@ class CustomFieldValidator {
 		if ( is_string( $value ) && ( '' === trim( $value ) || '[]' === $value ) ) {
 			return true;
 		}
+		// A dependent select posts its pair as JSON even when nothing was
+		// chosen: {"parent":"","child":""} is empty, not an invalid choice (#2530).
+		if ( is_string( $value ) && '{' === substr( ltrim( $value ), 0, 1 ) ) {
+			$decoded = json_decode( $value, true );
+			if ( is_array( $decoded ) && array() !== $decoded ) {
+				foreach ( $decoded as $part ) {
+					if ( '' !== $part && null !== $part ) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}
 		return false;
 	}
 

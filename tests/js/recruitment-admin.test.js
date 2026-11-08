@@ -58,6 +58,8 @@ beforeEach(() => {
 	window.location = { reload: reloadMock };
 
 	window.alert = vi.fn();
+	// The plugin's notice (#2535): ffc-core is a dependency of this script.
+	window.FFC = Object.assign(window.FFC || {}, { adminNotice: vi.fn() });
 });
 
 afterEach(() => {
@@ -139,7 +141,7 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 		expect(window.alert).not.toHaveBeenCalled();
 	});
 
-	it('alerts the server message on failure (no `id` in response)', async () => {
+	it('says the server message in a notice on failure (no `id` in response)', async () => {
 		fetchMock.mockReturnValue(mockJsonResponse({ message: 'Slug already exists' }, 422));
 
 		document.body.innerHTML = `
@@ -156,7 +158,8 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 		await new Promise((r) => setTimeout(r, 0));
 
 		expect(reloadMock).not.toHaveBeenCalled();
-		expect(window.alert).toHaveBeenCalledWith('Slug already exists');
+		expect(window.alert).not.toHaveBeenCalled();
+		expect(window.FFC.adminNotice).toHaveBeenCalledWith('danger', 'Slug already exists');
 	});
 
 	it('falls back to a generic message when the response has no message', async () => {
@@ -175,7 +178,8 @@ describe('ffc-recruitment-admin: create-form submit handler', () => {
 		await new Promise((r) => setTimeout(r, 0));
 
 		// The raw response is not shown to the operator.
-		expect(window.alert).toHaveBeenCalledWith('The record was not created.');
+		expect(window.alert).not.toHaveBeenCalled();
+		expect(window.FFC.adminNotice).toHaveBeenCalledWith('danger', 'The record was not created.');
 	});
 
 	it('shows a refusal inside the dialog and lets the form be sent again', async () => {
@@ -391,14 +395,15 @@ describe('ffc-recruitment-admin: color-picker change handler', () => {
 		expect(document.querySelector('[data-ffc-color-hex]').textContent).toBe('#123456');
 	});
 
-	it('alerts on failure when no `color` is returned', async () => {
+	it('says the failure in a notice when no `color` is returned', async () => {
 		fetchMock.mockReturnValue(mockJsonResponse({ message: 'Bad color' }, 422));
 
 		const input = mountPicker('reasons', 1);
 		input.dispatchEvent(new Event('change', { bubbles: true }));
 
 		await new Promise((r) => setTimeout(r, 0));
-		expect(window.alert).toHaveBeenCalledWith('Bad color');
+		expect(window.alert).not.toHaveBeenCalled();
+		expect(window.FFC.adminNotice).toHaveBeenCalledWith('danger', 'Bad color');
 	});
 
 	it('ignores change events on inputs without the data attributes', () => {

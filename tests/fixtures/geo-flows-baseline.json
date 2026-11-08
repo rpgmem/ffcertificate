@@ -70,13 +70,13 @@
 	"receipt|android|button|generator": {"generated":["booking.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|android|button|nogenerator": {"generated":[],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|android|page|generator": {"generated":["r.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
-	"receipt|android|page|nogenerator": {"generated":[],"alerts":["Generator missing."],"notices":[],"permissionQueries":0},
+	"receipt|android|page|nogenerator": {"generated":[],"alerts":[],"notices":[{"hook":"receipt-error","text":"Generator missing."}],"permissionQueries":0},
 	"receipt|desktop|auto|generator": {"generated":["booking.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|desktop|auto|nogenerator": {"generated":[],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|desktop|button|generator": {"generated":["booking.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|desktop|button|nogenerator": {"generated":[],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|desktop|page|generator": {"generated":["r.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
-	"receipt|desktop|page|nogenerator": {"generated":[],"alerts":["Generator missing."],"notices":[],"permissionQueries":0},
+	"receipt|desktop|page|nogenerator": {"generated":[],"alerts":[],"notices":[{"hook":"receipt-error","text":"Generator missing."}],"permissionQueries":0},
 	"receipt|iphoneInstagram|auto|generator": {"generated":[],"alerts":[],"notices":[{"hook":"preflight-browser","text":"Open this page in your browserYou are viewing this page inside an app, where your location and the document download often fail. Open it in Safari, Chrome, Firefox or Edge.Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\".Continue anyway"}],"permissionQueries":0},
 	"receipt|iphoneInstagram|auto|nogenerator": {"generated":[],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|iphoneInstagram|button|generator": {"generated":[],"alerts":[],"notices":[{"hook":"preflight-browser","text":"Open this page in your browserYou are viewing this page inside an app, where your location and the document download often fail. Open it in Safari, Chrome, Firefox or Edge.Tap the menu (••• or the share icon) and choose \"Open in Safari\" or \"Open in browser\".Continue anyway"}],"permissionQueries":0},
@@ -88,5 +88,5 @@
 	"receipt|iphone|button|generator": {"generated":["booking.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|iphone|button|nogenerator": {"generated":[],"alerts":[],"notices":[],"permissionQueries":0},
 	"receipt|iphone|page|generator": {"generated":["r.pdf"],"alerts":[],"notices":[],"permissionQueries":0},
-	"receipt|iphone|page|nogenerator": {"generated":[],"alerts":["Generator missing."],"notices":[],"permissionQueries":0}
+	"receipt|iphone|page|nogenerator": {"generated":[],"alerts":[],"notices":[{"hook":"receipt-error","text":"Generator missing."}],"permissionQueries":0}
 }
