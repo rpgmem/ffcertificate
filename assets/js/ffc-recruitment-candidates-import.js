@@ -50,7 +50,7 @@
 		var els = form.elements;
 		var nid = parseInt(els.namedItem('notice_id').value, 10);
 		if (!(nid > 0)) {
-			alert(strings.selectTarget || '');
+			window.FFC.status(document.getElementById('ffc-cand-csv-status'), 'error', strings.selectTarget || '');
 			return false;
 		}
 		var target = els.namedItem('list_target').value;

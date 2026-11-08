@@ -90,7 +90,8 @@ final class RecruitmentAdminAssetsManager {
 		wp_enqueue_script(
 			self::HANDLE_JS,
 			FFC_PLUGIN_URL . "assets/js/ffc-recruitment-admin{$s}.js",
-			array(),
+			// ffc-core: a refused request is said in the plugin's notice (#2535).
+			array( 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -33,18 +33,6 @@ return array(
 	'assets/js/ffc-email-restore-default.js' => array(
 		'confirm' => 1,
 	),
-	'assets/js/ffc-recruitment-admin.js' => array(
-		'alert' => 2,
-	),
-	'assets/js/ffc-recruitment-candidates-import.js' => array(
-		'alert' => 1,
-	),
-	'assets/js/ffc-recruitment-import-batched.js' => array(
-		'confirm' => 2,
-	),
-	'assets/js/ffc-recruitment-notice-edit.js' => array(
-		'alert' => 8,
-	),
 	'assets/js/ffc-reregistration-admin.js' => array(
 		'alert' => 2,
 		'confirm' => 1,

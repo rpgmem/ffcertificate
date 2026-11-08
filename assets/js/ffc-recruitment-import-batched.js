@@ -297,6 +297,25 @@
 	 * @param {HTMLElement|null} listEl   List to fill, when the screen has one.
 	 * @returns {Promise<boolean>} True when the operator confirmed.
 	 */
+	/**
+	 * Without the recruitment modal, ask in the core dialog (#2535).
+	 *
+	 * @param {string[]} lines One paragraph each.
+	 * @param {string}   cta   Label of the confirm button.
+	 * @returns {Promise<boolean>}
+	 */
+	function askInCoreDialog(lines, cta) {
+		if (!window.FFC || typeof window.FFC.confirmDialog !== 'function') {
+			return Promise.resolve(false);
+		}
+		return window.FFC.confirmDialog({
+			message: lines.filter(function (l) { return l !== ''; }),
+			confirmLabel: cta || '',
+			category: 'caution',
+			icon: 'upload'
+		}).then(function (agreed) { return agreed === true; });
+	}
+
 	function confirmIdentity(messages, listEl) {
 		var s = identityStrings();
 		if (listEl) {
@@ -314,7 +333,7 @@
 		var admin = window.ffcRecruitmentAdmin;
 		return new Promise(function (resolve) {
 			if (!admin || typeof admin.openConfirmModal !== 'function') {
-				resolve(window.confirm((s.body || '') + '\n\n' + shown.join('\n')));
+				resolve(askInCoreDialog([s.body || ''].concat(shown), s.cta));
 				return;
 			}
 			admin.openConfirmModal({
@@ -360,7 +379,7 @@
 		var admin = window.ffcRecruitmentAdmin;
 		return new Promise(function (resolve) {
 			if (!admin || typeof admin.openConfirmModal !== 'function') {
-				resolve(window.confirm((s.body || '') + '\n\n' + summary.join('\n')));
+				resolve(askInCoreDialog([s.body || ''].concat(summary), s.cta));
 				return;
 			}
 			admin.openConfirmModal({

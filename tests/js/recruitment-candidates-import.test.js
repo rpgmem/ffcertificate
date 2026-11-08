@@ -103,7 +103,7 @@ describe('ffcRecruitmentImportNoticeChanged', () => {
 });
 
 describe('ffcRecruitmentImportFromCandidates', () => {
-	it('alerts and aborts when no notice is selected', () => {
+	it('says it in the status line and aborts when no notice is selected', () => {
 		installForm('preliminary');
 		// Blank out the notice value.
 		select().value = '';
@@ -113,7 +113,8 @@ describe('ffcRecruitmentImportFromCandidates', () => {
 		const result = window.ffcRecruitmentImportFromCandidates(document.querySelector('form'));
 
 		expect(result).toBe(false);
-		expect(alertSpy).toHaveBeenCalledWith('SELECT');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-cand-csv-status').textContent).toContain('SELECT');
 	});
 
 	it('POSTs to the import endpoint for a preliminary target', () => {

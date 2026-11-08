@@ -175,6 +175,11 @@ final class NativeDialogRatchetTest extends TestCase {
 			'assets/js/ffc-admin-submissions-bulk.js',
 			'assets/js/ffc-admin.js',
 			'assets/js/ffc-cert-email-mode.js',
+			// The recruitment screens (#2535).
+			'assets/js/ffc-recruitment-admin.js',
+			'assets/js/ffc-recruitment-candidates-import.js',
+			'assets/js/ffc-recruitment-import-batched.js',
+			'assets/js/ffc-recruitment-notice-edit.js',
 		);
 		foreach ( $clear as $file ) {
 			$this->assertArrayNotHasKey( $file, $found, $file . ' opens a native dialog again.' );
