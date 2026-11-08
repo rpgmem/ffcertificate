@@ -33662,3 +33662,19 @@ msgstr ""
 #: includes/settings/views/documentation/feature-audiences.php
 msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
 msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "Download CSV template"
+msgstr ""
+
+#: templates/admin/reregistration/import-panel.php
+msgid "One column per field of the chosen audience, named by its key, in the order the form asks them. Fill one row per person."
+msgstr ""
+
+#: includes/reregistration/class-ffc-reregistration-import-template-source.php
+msgid "This audience is not part of the campaign."
+msgstr ""
+
+#: includes/settings/views/documentation/feature-reregistration.php
+msgid "\"Download CSV template\" gives the header for the audience chosen above: one column per field, named by its key, in the order the form asks them, required ones included and display-only ones left out. Fill one row per person and upload it as it is."
+msgstr ""

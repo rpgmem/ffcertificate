@@ -70,7 +70,7 @@ final class ReregistrationImportAjaxHandler {
 	private const PROMOTE_BATCH_SIZE = 25;
 
 	/**
-	 * Register the four actions.
+	 * Register the four actions and the template download.
 	 *
 	 * Called from {@see ReregistrationAdmin::init()}, which already runs on
 	 * every admin request — `admin-ajax.php` included, which `admin_menu` is
@@ -83,6 +83,23 @@ final class ReregistrationImportAjaxHandler {
 		add_action( 'wp_ajax_ffc_rereg_import_validate', array( $this, 'ajax_validate' ) );
 		add_action( 'wp_ajax_ffc_rereg_import_promote', array( $this, 'ajax_promote' ) );
 		add_action( 'wp_ajax_ffc_rereg_import_commit', array( $this, 'ajax_commit' ) );
+		// The blank file for one audience (#2506): a plain download link, so
+		// `admin_post`, not AJAX.
+		add_action( 'admin_post_' . ReregistrationImportTemplateSource::ACTION, array( $this, 'download_template' ) );
+	}
+
+	/**
+	 * Stream the blank import file of one audience of a campaign.
+	 *
+	 * @return void
+	 */
+	public function download_template(): void {
+		( new \FreeFormCertificate\Core\SyncCsvExport() )->handle(
+			new ReregistrationImportTemplateSource(
+				RequestInput::get_get_int( 'rereg_id' ),
+				RequestInput::get_get_int( 'audience_id' )
+			)
+		);
 	}
 
 	/**

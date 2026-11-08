@@ -26,6 +26,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Activity Log: a change to a setting that deletes or suppresses data is recorded** (#2340): auto-delete, the uninstall wipe, the log's switch, retention and audit items. Switching the log off is recorded before it takes effect. While the log is off its items are greyed out.
 - **Activity Log: four secondary items record what they named** (#2340): attendance and check-in windows, rate-limit blocks and failed captchas (never the address or identifier), settings changed outside the Danger Zone (the keys, never the values) and scheduled tasks that ended in a fatal error. Each is off by default.
 - **A global list of reregistration fields every audience inherits** (#2502). Reregistration → Custom Fields edits it and lists where each audience changed, hid or added a field. An audience's tab shows where each field comes from; Customize changes one inherited field there (answers stay under the inherited field), Hide stops asking it, Back to inherited undoes the change.
+- **Reregistration: a CSV template on the Import answers tab** (#2506). "Download CSV template" gives the chosen audience's header, built from the fields the import maps, so the file loads as it is.
 
 ### Changed
 

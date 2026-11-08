@@ -55,6 +55,7 @@ beforeEach(() => {
 					<button type="button" class="ffc-rereg-import-check" id="ffc-rereg-import-check" data-rereg-id="3">Check file</button>
 					<button type="button" class="ffc-rereg-import-apply" id="ffc-rereg-import-apply" disabled>Import</button>
 					<span class="ffc-rereg-import-status"></span>
+					<a class="ffc-btn ffc-rereg-import-template" href="/wp-admin/admin-post.php?action=ffc_rereg_import_template&rereg_id=3&audience_id=7&_wpnonce=n">Download CSV template</a>
 				</div>
 				<div class="ffc-rereg-import-report" hidden>
 					<ul class="ffc-rereg-import-counts"></ul>
@@ -300,5 +301,17 @@ describe('reregistration import — applying it', () => {
 
 		expect(status()).toBe('The server could not be reached.');
 		expect(document.getElementById('ffc-rereg-import-apply').disabled).toBe(false);
+	});
+
+	it('points the template link at the chosen audience (#2506)', () => {
+		const select = document.getElementById('ffc-rereg-import-audience');
+		select.value = '9';
+		window.jQuery(select).trigger('change');
+
+		const url = new URL(document.querySelector('.ffc-rereg-import-template').getAttribute('href'), 'http://localhost');
+		expect(url.searchParams.get('audience_id')).toBe('9');
+		expect(url.searchParams.get('rereg_id')).toBe('3');
+		expect(url.searchParams.get('_wpnonce')).toBe('n');
+		expect(url.searchParams.get('action')).toBe('ffc_rereg_import_template');
 	});
 });
