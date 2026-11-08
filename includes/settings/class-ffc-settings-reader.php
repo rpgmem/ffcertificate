@@ -602,19 +602,6 @@ final class SettingsReader {
 	}
 
 	/**
-	 * TTL of the retired form-settings cache. The setting left with the
-	 * cache, so this answers the old default.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function cache_expiration_seconds(): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return HOUR_IN_SECONDS;
-	}
-
-	/**
 	 * Number of days after which an obsolete shortcode reference
 	 * surfaces a warning in the admin notices stream.
 	 */

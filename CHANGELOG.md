@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- ⚠ **The form-settings cache and the submission lookups nothing called are gone** (#2552, #2241). `FormCache` keeps only the page-cache purges; its config, fields, background, complete, clear, warm and stats methods leave, with `SettingsReader::cache_expiration_seconds()`. `SubmissionReader` and `SubmissionRepository` lose `findByEmail`, `findByCpfRf`, `findByFormId` and `getForExport`, and the reader its identity audits, which live in `SubmissionIdentityAudit`. Read a form's settings with `get_post_meta()` or `FormRepository`.
+
 ## [6.44.1] (2026-11-08) — `513f0c4`
 
 ### Fixed
