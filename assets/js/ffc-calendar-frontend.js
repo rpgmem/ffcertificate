@@ -20,6 +20,7 @@
 
         selectedDate: null,
         selectedTime: null,
+        selectedTimeDisplay: null,
 
         /**
          * The session chosen on a calendar with sessions (#2405): {id, name}.
@@ -117,6 +118,8 @@
             $slot.addClass('is-selected').attr('aria-selected', 'true');
 
             this.selectedTime = time;
+            // The slot's own label, in the site's time format (#2526).
+            this.selectedTimeDisplay = String($slot.find('.ffc-timeslot-time').text() || time || '');
             // Whether the chosen slot is a waitlist join (full slot, queue open).
             this.selectedWaitlist = !!$slot.data('waitlist');
             this.showBookingForm();
@@ -152,6 +155,7 @@
             $('.ffc-timeslots-wrapper').show();
             $('.ffc-timeslot').removeClass('is-selected').attr('aria-selected', 'false');
             this.selectedTime = null;
+            this.selectedTimeDisplay = null;
 
             // Return focus to the trigger element
             if (this._triggerElement) {
@@ -680,7 +684,7 @@
             // Build appointment details
             var detailsHtml = '<div class="ffc-appointment-info">';
             detailsHtml += '<p><strong>' + ffcCalendar.strings.date + ':</strong> ' + self.formatDate(self.selectedDate) + '</p>';
-            detailsHtml += '<p><strong>' + ffcCalendar.strings.time + ':</strong> ' + (self.selectedTime || '') + '</p>';
+            detailsHtml += '<p><strong>' + esc(ffcCalendar.strings.time) + ':</strong> ' + esc(self.selectedTimeDisplay || self.selectedTime || '') + '</p>';
             if (self.selectedSession) {
                 detailsHtml += '<p><strong>' + esc(self.sessionStrings().session || 'Session') + ':</strong> ' + esc(self.selectedSession.name) + '</p>';
             }
@@ -800,6 +804,7 @@
             $('.ffc-timeslots-wrapper').show();
             $('.ffc-timeslot').removeClass('is-selected');
             this.selectedTime = null;
+            this.selectedTimeDisplay = null;
 
             // Restore modal title
             $('#ffc-self-scheduling-modal .ffc-modal-title').text(
@@ -839,6 +844,7 @@
             // Reset selections
             this.selectedDate = null;
             this.selectedTime = null;
+            this.selectedTimeDisplay = null;
             this.selectedSession = null;
             $('#ffc-session-step').prop('hidden', true).empty();
 

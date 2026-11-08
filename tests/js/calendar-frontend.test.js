@@ -263,6 +263,20 @@ describe('ffc-calendar-frontend.js — waitlist and e-mail notices (#1842)', () 
 		expect(notice.style.display).toBe('none');
 	});
 
+	it('shows the chosen time as the slot displays it, never the raw HH:MM:SS (#2526)', () => {
+		const ctl = window.ffcCalendarFrontend;
+		window.$.fn.animate = function () { return this; };
+		const $slot = window.$('<div class="ffc-timeslot" data-time="14:00:00"><span class="ffc-timeslot-time">14h00</span></div>').appendTo(document.body);
+		ctl.selectedDate = '2026-05-20';
+		ctl.selectTimeSlot($slot);
+		ctl.showConfirmation({ email_sent: false });
+
+		const info = window.$('.ffc-appointment-info').text();
+		expect(info).toContain('14h00');
+		expect(info).not.toContain('14:00:00');
+		$slot.remove();
+	});
+
 	it('reveals the e-mail notice only when the server says it was sent', () => {
 		const ctl = window.ffcCalendarFrontend;
 		window.$.fn.animate = function () { return this; };
