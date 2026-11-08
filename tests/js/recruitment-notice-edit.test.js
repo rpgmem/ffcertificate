@@ -765,14 +765,15 @@ describe('fetch resolution branches', () => {
 		expect(reloadSpy).toHaveBeenCalled();
 	});
 
-	it('snapshot promote alerts on non-2xx', async () => {
+	it('snapshot promote says on non-2xx', async () => {
 		document.body.innerHTML = '<button id="b" data-ffc-confirm-ok="1"></button>';
 		window.fetch = resolvingFetch(409, { message: 'conflict' });
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		loadScript(SCRIPT);
 		window.ffcRecruitmentSnapshotPromote(5, document.getElementById('b'));
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith('conflict');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('conflict');
 	});
 
 	it('attach adjutancy reloads on 2xx', async () => {
@@ -784,14 +785,15 @@ describe('fetch resolution branches', () => {
 		expect(reloadSpy).toHaveBeenCalled();
 	});
 
-	it('detach adjutancy alerts on non-2xx', async () => {
+	it('detach adjutancy says on non-2xx', async () => {
 		document.body.innerHTML = '<a data-notice="3" data-adjutancy="9">x</a>';
 		window.fetch = resolvingFetch(500, { message: 'boom' });
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		loadScript(SCRIPT);
 		window.ffcDetachAdjutancy(document.querySelector('a'));
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith('boom');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('boom');
 	});
 
 	it('definitive import reports OK and reloads on 2xx', async () => {
@@ -814,7 +816,7 @@ describe('fetch resolution branches', () => {
 		expect(reloadSpy).toHaveBeenCalled();
 	});
 
-	it('per-row status action alerts and re-enables on non-2xx', async () => {
+	it('per-row status action says and re-enables on non-2xx', async () => {
 		document.body.innerHTML = '<button data-cls-id="8" data-cls-action="accepted">A</button>';
 		window.fetch = resolvingFetch(422, { message: 'nope' });
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
@@ -822,7 +824,8 @@ describe('fetch resolution branches', () => {
 		const btn = document.querySelector('button');
 		window.ffcRecruitmentClsAct(btn);
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith('nope');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('nope');
 		expect(btn.disabled).toBe(false);
 	});
 
@@ -868,7 +871,7 @@ describe('fetch resolution branches', () => {
 		expect(reloadSpy).toHaveBeenCalled();
 	});
 
-	it('preview sync alerts on a non-2xx PATCH', async () => {
+	it('preview sync says on a non-2xx PATCH', async () => {
 		document.body.innerHTML = `
 			<table><tbody><tr data-cls-id="4"><td>
 				<select class="ffc-cls-preview-status"><option value="granted" selected>granted</option></select>
@@ -880,7 +883,8 @@ describe('fetch resolution branches', () => {
 		// granted is not reason-required (CFG) → PATCH fires.
 		document.querySelector('.ffc-cls-preview-reason').dispatchEvent(new Event('change'));
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith('bad');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('bad');
 	});
 
 	const rejectingFetch = (msg) => vi.fn(() => Promise.reject(new Error(msg)));
@@ -923,24 +927,26 @@ describe('fetch resolution branches', () => {
 		expect(document.getElementById('ffc-edit-csv-status').textContent).toContain('offline');
 	});
 
-	it('snapshot promote alerts the network error on rejection', async () => {
+	it('snapshot promote says the network error on rejection', async () => {
 		document.body.innerHTML = '<button id="b" data-ffc-confirm-ok="1"></button>';
 		window.fetch = rejectingFetch('down');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		loadScript(SCRIPT);
 		window.ffcRecruitmentSnapshotPromote(5, document.getElementById('b'));
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('down'));
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('down');
 	});
 
-	it('attach adjutancy alerts on a non-2xx response', async () => {
+	it('attach adjutancy says on a non-2xx response', async () => {
 		document.body.innerHTML = '<form data-notice="3"><select name="adjutancy_id"><option value="9" selected>9</option></select></form>';
 		window.fetch = resolvingFetch(409, { message: 'dup' });
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		loadScript(SCRIPT);
 		window.ffcAttachAdjutancy(document.querySelector('form'));
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith('dup');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('dup');
 	});
 
 	it('detach adjutancy reloads on 2xx', async () => {
@@ -960,7 +966,8 @@ describe('fetch resolution branches', () => {
 		const btn = document.querySelector('button');
 		window.ffcRecruitmentClsAct(btn);
 		await tick();
-		expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining('lost'));
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('lost');
 		expect(btn.disabled).toBe(false);
 	});
 

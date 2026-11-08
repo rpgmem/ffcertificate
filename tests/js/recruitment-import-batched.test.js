@@ -504,3 +504,41 @@ describe('ffcRecruitmentImportBatched — re-import comparison (#2245)', () => {
 		expect(send).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('confirm fallbacks without the recruitment modal (#2535)', () => {
+	let savedFFC;
+	beforeEach(() => {
+		savedFFC = window.FFC;
+		window.FFC = Object.assign({}, savedFFC || {});
+	});
+	afterEach(() => {
+		delete window.ffcRecruitmentAdmin;
+		window.FFC = savedFFC;
+	});
+
+	it('asks the identity question in the core dialog, never the browser confirm()', async () => {
+		delete window.ffcRecruitmentAdmin;
+		window.ffcRecruitmentImportIdentity = { body: 'Some lines differ.', cta: 'Import' };
+		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		window.FFC.confirmDialog = vi.fn(() => Promise.resolve(true));
+
+		await expect(window.ffcRecruitmentImportBatched.confirmIdentity(['Line 2: name differs'], null)).resolves.toBe(true);
+
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(window.FFC.confirmDialog.mock.calls[0][0]).toMatchObject({
+			message: ['Some lines differ.', 'Line 2: name differs'],
+			confirmLabel: 'Import',
+			category: 'caution',
+		});
+		confirmSpy.mockRestore();
+	});
+
+	it('answers no to the replace question when the dialog is declined or missing', async () => {
+		delete window.ffcRecruitmentAdmin;
+		window.FFC.confirmDialog = vi.fn(() => Promise.resolve(false));
+		await expect(window.ffcRecruitmentImportBatched.confirmDiff({ diff_summary: ['3 removed'] }, null)).resolves.toBe(false);
+
+		window.FFC.confirmDialog = undefined;
+		await expect(window.ffcRecruitmentImportBatched.confirmDiff({ diff_summary: ['3 removed'] }, null)).resolves.toBe(false);
+	});
+});
