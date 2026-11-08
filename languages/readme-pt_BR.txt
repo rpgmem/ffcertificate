@@ -272,8 +272,8 @@ O histórico completo de cada versão fica em [CHANGELOG.md](CHANGELOG.md), em i
 
 == Upgrade Notice ==
 
-= 6.44.0 =
-⚠ O registro de atividades liga com horários em UTC, ajustes destrutivos exigem a capacidade da Zona de Perigo, o captcha vale só para o seu formulário, URLs curtas usam 302 e excluir uma regra de mensagem exige capacidade própria. Novo: sessões nos calendários pessoais e a aba Mensagens.
+= 6.44.1 =
+Só correções. Nenhuma tela abre mais o alert, confirm ou prompt do navegador: perguntas e resultados usam os diálogos e avisos do plugin. Também: dias do calendário de público pelo teclado, consentimento sem link vazio, segundo download do CSV público, textos em pt_BR.
 
 Esta seção resume só a versão oferecida — o atualizador nunca oferece uma versão anterior. O que mudou em cada versão, e as issues de cada mudança, está em [CHANGELOG.md](CHANGELOG.md).
 

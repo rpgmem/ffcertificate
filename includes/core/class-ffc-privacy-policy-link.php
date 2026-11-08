@@ -3,7 +3,7 @@
  * The "Privacy Policy" words of a consent sentence.
  *
  * @package FreeFormCertificate\Core
- * @since   6.45.0
+ * @since   6.44.1
  */
 
 declare(strict_types=1);
