@@ -210,6 +210,14 @@
     margin-bottom: 0;
 }
 
+/* A card that closes its own <form> is not the end of the column when
+   another form follows: keep its gap, or a stack of one-card forms reads
+   as cards glued together. */
+.ffc-settings-wrap form:not(:last-child) > .card:last-child,
+.ffc-boxed form:not(:last-child) > .card:last-child {
+    margin-bottom: var(--ffc-spacing-2xl);
+}
+
 .ffc-settings-wrap .card h2,
 .ffc-settings-wrap .card > h3[id],
 .ffc-boxed .card h2 {
@@ -383,7 +391,11 @@
     padding: var(--ffc-spacing-2xs) var(--ffc-spacing-xl) var(--ffc-spacing-xl);
 }
 
-.ffc-vtabs__panel-title {
+/* `#poststuff h2` (WordPress, on every post editor) zeroes the margin and
+   resets the padding and size of any h2 in a meta box; the id is what lets
+   the panel title keep its own space under the line there. */
+.ffc-vtabs__panel-title,
+#poststuff .ffc-vtabs__panel-title {
     display: flex;
     align-items: center;
     gap: var(--ffc-spacing-sm);
