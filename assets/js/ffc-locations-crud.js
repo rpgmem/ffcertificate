@@ -7,7 +7,7 @@
  *   - blur on any .ffc-location-field input that's now non-empty.
  *   - change on the default GPS / default IP radios.
  *
- * Delete: click on .ffc-location-delete → confirm() → AJAX delete →
+ * Delete: click on .ffc-location-delete → FFC.confirmDialog() → AJAX delete →
  * row is removed from the DOM.
  *
  * Add: explicit "Add location" button reads the .ffc-location-new-field
@@ -84,9 +84,18 @@
     function deleteRow($row) {
         var id = $row.data('location-id');
         if (!id) { return; }
-        if (!window.confirm(strings.confirmDelete || 'Delete this location?')) {
-            return;
-        }
+        return FFC.confirmDialog({
+            message: strings.confirmDelete || 'Delete this location?',
+            category: 'danger',
+            icon: 'trash'
+        }).then(function (agreed) {
+            if (agreed) {
+                sendDelete($row, id);
+            }
+        });
+    }
+
+    function sendDelete($row, id) {
         var $b = badge($row);
         setBadge($b, 'saving', strings.deleting || 'Deleting…');
         FFC.request('ffc_location_delete', { id: id }, { nonce: nonces.delete })

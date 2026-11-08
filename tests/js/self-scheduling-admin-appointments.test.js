@@ -1,6 +1,6 @@
 // Tests for `assets/js/ffc-self-scheduling-admin-appointments.js` — the row
-// "Cancel" action on the admin appointments list (prompt for a reason, then
-// redirect to the nonce-signed cancel URL with the reason appended).
+// "Cancel" action on the admin appointments list (ask a reason in the plugin's
+// dialog, then redirect to the nonce-signed cancel URL with the reason appended).
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
@@ -8,63 +8,75 @@ const SCRIPT = 'assets/js/ffc-self-scheduling-admin-appointments.js';
 const URL = 'https://x.test/admin.php?ffc_action=cancel&appointment=7&_wpnonce=abc';
 
 let originalLocation;
-let originalPrompt;
 
 beforeEach(() => {
 	originalLocation = window.location;
-	originalPrompt   = window.prompt;
 	document.body.innerHTML =
 		'<a href="#" class="ffc-appointment-cancel delete-link" ' +
-		'data-cancel-url="' + URL + '" data-prompt="Reason?">Cancel</a>';
+		'data-cancel-url="' + URL + '" data-title="Cancel appointment" data-question="Cancel this?" ' +
+		'data-confirm-label="Cancel appointment" data-prompt="Reason" data-hint="At least 5.">Cancel</a>';
 });
 
 afterEach(() => {
 	window.location = originalLocation;
-	window.prompt   = originalPrompt;
+	delete window.FFC;
 	document.body.innerHTML = '';
 });
 
+// The reason is asked in the plugin's dialog (#2535); the stub answers as it would.
+function answer(value) {
+	window.FFC = { confirmDialog: vi.fn(() => Promise.resolve(value)) };
+	return window.FFC.confirmDialog;
+}
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
 describe('ffc-self-scheduling-admin-appointments', () => {
-	it('redirects with the encoded reason when prompt returns >= 5 chars', () => {
-		window.prompt = vi.fn(() => 'valid reason');
+	it('asks the reason in the plugin dialog, then redirects with it encoded', async () => {
+		const dialog = answer('valid reason');
 		delete window.location;
 		window.location = 'INITIAL';
 		loadScript(SCRIPT);
 
 		document.querySelector('.ffc-appointment-cancel').click();
 
-		expect(window.prompt).toHaveBeenCalledWith('Reason?');
+		const opts = dialog.mock.calls[0][0];
+		expect(opts.title).toBe('Cancel appointment');
+		expect(opts.message).toBe('Cancel this?');
+		expect(opts.confirmLabel).toBe('Cancel appointment');
+		expect(opts.category).toBe('caution');
+		expect(opts.reasonField).toEqual({ label: 'Reason', hint: 'At least 5.', min: 5 });
+		await settle();
 		expect(window.location).toBe(URL + '&reason=valid%20reason');
 	});
 
-	it('does not redirect when the reason is shorter than 5 chars, and says why', () => {
-		document.querySelector('.ffc-appointment-cancel').setAttribute('data-too-short', 'Too short.');
-		window.prompt = vi.fn(() => '  abc  ');
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+	it('does not redirect when the dialog is cancelled', async () => {
+		answer(false);
 		delete window.location;
 		window.location = 'INITIAL';
 		loadScript(SCRIPT);
 
 		document.querySelector('.ffc-appointment-cancel').click();
+		await settle();
 
 		expect(window.location).toBe('INITIAL');
-		expect(alertSpy).toHaveBeenCalledWith('Too short.');
-		alertSpy.mockRestore();
 	});
 
-	it('does not redirect when the prompt is cancelled (null)', () => {
-		window.prompt = vi.fn(() => null);
+	it('opens no native prompt and does nothing without the core dialog', async () => {
+		const promptSpy = vi.spyOn(window, 'prompt').mockImplementation(() => 'x');
 		delete window.location;
 		window.location = 'INITIAL';
 		loadScript(SCRIPT);
 
 		document.querySelector('.ffc-appointment-cancel').click();
+		await settle();
 
+		expect(promptSpy).not.toHaveBeenCalled();
 		expect(window.location).toBe('INITIAL');
+		promptSpy.mockRestore();
 	});
 
-	it('defers binding to DOMContentLoaded while the document is still loading', () => {
-		window.prompt = vi.fn(() => 'valid reason');
+	it('defers binding to DOMContentLoaded while the document is still loading', async () => {
+		answer('valid reason');
 		delete window.location;
 		window.location = 'INITIAL';
 		const readyStateSpy = vi
@@ -80,9 +92,9 @@ describe('ffc-self-scheduling-admin-appointments', () => {
 		dclCall[1]();
 
 		document.querySelector('.ffc-appointment-cancel').click();
+		await settle();
 		expect(window.location).toBe(URL + '&reason=valid%20reason');
 
-		readyStateSpy.mockRestore();
 		addSpy.mockRestore();
 	});
 });
@@ -209,14 +221,13 @@ describe('ffc-self-scheduling-admin-appointments — Delete permanently (#2340)'
 
 	it('says to select one when nothing is checked, and leaves other bulk actions alone', () => {
 		bulkForm(0);
-		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)) };
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		window.FFC = { overrideConfirm: vi.fn(() => Promise.resolve(true)), adminNotice: vi.fn() };
 		loadScript(SCRIPT);
 		const select = document.getElementById('bulk-action-selector-top');
 
 		select.value = 'bulk_delete_permanently';
 		document.getElementById('doaction').click();
-		expect(alertSpy).toHaveBeenCalledWith('Select one.');
+		expect(window.FFC.adminNotice).toHaveBeenCalledWith('warning', 'Select one.');
 		expect(window.FFC.overrideConfirm).not.toHaveBeenCalled();
 
 		select.value = 'bulk_no_show';

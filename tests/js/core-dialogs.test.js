@@ -162,3 +162,43 @@ describe('FFC.adminNotice', () => {
 		expect(document.activeElement).not.toBe(document.querySelector('#ffc-admin-status .ffc-notice'));
 	});
 });
+
+describe('FFC.reloadWithNotice / FFC.showPendingNotice', () => {
+	let reloadSpy;
+	beforeEach(() => {
+		window.sessionStorage.clear();
+		reloadSpy = vi.fn();
+		Object.defineProperty(window, 'location', {
+			configurable: true,
+			value: { ...window.location, reload: reloadSpy },
+		});
+	});
+
+	it('reloads and leaves the notice for the next page, which shows it once', () => {
+		window.FFC.reloadWithNotice('success', 'Deleted 3.');
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+
+		document.body.innerHTML = '<div class="wrap"><h1>Screen</h1><hr class="wp-header-end"></div>';
+		const notice = window.FFC.showPendingNotice();
+		expect(notice.classList.contains('ffc-notice-success')).toBe(true);
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('Deleted 3.');
+		expect(window.FFC.showPendingNotice()).toBeNull();
+	});
+
+	it('reloads without a message and leaves nothing behind', () => {
+		window.FFC.reloadWithNotice('success', '');
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+		expect(window.FFC.showPendingNotice()).toBeNull();
+	});
+
+	it('still reloads when storage refuses, and ignores a malformed entry', () => {
+		const setSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+		window.FFC.reloadWithNotice('success', 'x');
+		expect(reloadSpy).toHaveBeenCalledTimes(1);
+		setSpy.mockRestore();
+
+		window.sessionStorage.setItem('ffc-pending-notice', '{not json');
+		expect(window.FFC.showPendingNotice()).toBeNull();
+		expect(window.sessionStorage.getItem('ffc-pending-notice')).toBeNull();
+	});
+});

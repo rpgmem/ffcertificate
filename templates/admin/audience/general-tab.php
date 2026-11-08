@@ -159,7 +159,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 									?>
 									<a href="<?php echo esc_url( $delete_url ); ?>"
 										class="ffc-btn ffc-btn-danger ffc-icon-delete"
-										onclick="return confirm('<?php esc_attr_e( 'Remove this holiday?', 'ffcertificate' ); ?>');">
+										data-confirm="<?php esc_attr_e( 'Remove this holiday?', 'ffcertificate' ); ?>">
 										<?php esc_html_e( 'Delete', 'ffcertificate' ); ?>
 									</a>
 								</td>

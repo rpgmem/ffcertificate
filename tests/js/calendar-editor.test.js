@@ -148,32 +148,35 @@ describe('add working hour (#ffc-add-working-hour click)', () => {
 // ----------------------------------------------------------------------
 
 describe('remove working hour (.ffc-remove-hour click)', () => {
-	it('confirms before removing', () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-		// Add 2 rows so removal is allowed.
+	// The question is asked in the plugin's dialog (#2535).
+	const answer = (value) => vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(value));
+
+	it('asks in the plugin dialog, never the browser confirm(), and keeps the row on No', async () => {
+		const confirmSpy = vi.spyOn(window, 'confirm');
+		const dialog = answer(false);
 		document.getElementById('ffc-add-working-hour').click();
 		const before = document.querySelectorAll('#ffc-working-hours-list tr').length;
 		document.querySelector('.ffc-remove-hour').click();
-		const after = document.querySelectorAll('#ffc-working-hours-list tr').length;
-		expect(confirmSpy).toHaveBeenCalled();
-		// User declined → row count unchanged.
-		expect(after).toBe(before);
-		confirmSpy.mockRestore();
+		await Promise.resolve();
+		expect(confirmSpy).not.toHaveBeenCalled();
+		expect(dialog).toHaveBeenCalledTimes(1);
+		expect(dialog.mock.calls[0][0].category).toBe('danger');
+		expect(document.querySelectorAll('#ffc-working-hours-list tr').length).toBe(before);
 	});
 
-	it('blocks removal when only one row remains (with alert)', () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+	it('says on the screen that the last row stays, without asking', () => {
+		const dialog = answer(true);
 		const alertSpy = vi.spyOn(globalThis, 'alert').mockImplementation(() => {});
-		const before = document.querySelectorAll('#ffc-working-hours-list tr').length;
-		expect(before).toBe(1);
+		expect(document.querySelectorAll('#ffc-working-hours-list tr').length).toBe(1);
 		document.querySelector('.ffc-remove-hour').click();
-		expect(alertSpy).toHaveBeenCalled();
-		const after = document.querySelectorAll('#ffc-working-hours-list tr').length;
-		expect(after).toBe(1);
+		expect(dialog).not.toHaveBeenCalled();
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('at least one working hour');
+		expect(document.querySelectorAll('#ffc-working-hours-list tr').length).toBe(1);
 	});
 
 	it('fades out and removes the row when confirmed AND >1 rows exist', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answer(true);
 		document.getElementById('ffc-add-working-hour').click();
 		expect(document.querySelectorAll('#ffc-working-hours-list tr').length).toBe(2);
 		document.querySelectorAll('.ffc-remove-hour')[0].click();
@@ -431,7 +434,7 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		key('Escape');
 	});
 
-	it('alerts the server message and re-enables the button on a fromServer error', async () => {
+	it('says the server message on the screen and re-enables the button on a fromServer error', async () => {
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'request').mockRejectedValue({ fromServer: true, message: 'Boom' });
 		const $btn = window.$('.ffc-cleanup-btn[data-action="old"]');
@@ -439,34 +442,31 @@ describe('appointment cleanup (.ffc-cleanup-btn click)', () => {
 		part('confirm').click();
 		await flush();
 		await flush();
-		expect(alertSpy).toHaveBeenCalledWith('Boom');
+		expect(alertSpy).not.toHaveBeenCalled();
+		const notice = document.querySelector('#ffc-admin-status .ffc-notice');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.textContent).toContain('Boom');
 		expect($btn.prop('disabled')).toBe(false);
+		expect($btn.text()).toBe('Clean old');
 	});
 
-	it('alerts the returned message and reloads on a successful cleanup', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
-		const reloadSpy = vi.fn();
-		Object.defineProperty(window, 'location', {
-			configurable: true,
-			value: { ...window.location, reload: reloadSpy },
-		});
+	it('reloads on a successful cleanup and leaves the message for the reloaded page', async () => {
+		const flash = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
 		vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: 'Done' });
 		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
 		part('confirm').click();
 		await flush();
 		await flush();
-		expect(alertSpy).toHaveBeenCalledWith('Done');
-		expect(reloadSpy).toHaveBeenCalled();
+		expect(flash).toHaveBeenCalledWith('success', 'Done');
 	});
 
-	it('alerts the generic server-communication error on a network failure', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+	it('says the generic server-communication error on a network failure', async () => {
 		vi.spyOn(window.FFC, 'request').mockRejectedValue(new Error('net'));
 		window.$('.ffc-cleanup-btn[data-action="old"]').trigger('click');
 		part('confirm').click();
 		await flush();
 		await flush();
-		expect(alertSpy).toHaveBeenCalledWith('Error communicating with server');
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('Error communicating with server');
 	});
 });
 

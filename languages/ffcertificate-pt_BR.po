@@ -13276,10 +13276,6 @@ msgstr "Por favor, selecione um horário válido posterior ao horário de fecham
 msgid "Please pick valid times (HH:MM)."
 msgstr "Por favor escolha horários válidos (HH:MM)."
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:165
-msgid "Please provide a reason for cancellation (minimum 5 characters):"
-msgstr "Por favor, indique o motivo do cancelamento (mínimo de 5 caracteres):"
-
 #: templates/emails/audience-cancellation.php:35
 msgid "Please remove this event from your calendar."
 msgstr "Por favor, remova este evento do seu calendário."
@@ -30840,10 +30836,6 @@ msgstr "Sair da lista de espera"
 msgid "Leave waitlist"
 msgstr "Sair da lista de espera"
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:208
-msgid "The reason needs at least 5 characters. Nothing was cancelled."
-msgstr "O motivo precisa de pelo menos 5 caracteres. Nada foi cancelado."
-
 #: includes/api/class-ffc-user-appointments-rest-controller.php:209
 msgid "This calendar does not take cancellations online. Contact the organiser to cancel."
 msgstr "Este calendário não aceita cancelamento on-line. Fale com o organizador para cancelar."
@@ -30868,8 +30860,8 @@ msgid "A waitlisted appointment is labelled Waitlisted and offers Leave waitlist
 msgstr "Um agendamento na lista de espera aparece como Na lista de espera e oferece Sair da lista de espera; um agendamento aberto que já não pode ser cancelado diz por quê: o calendário não aceita cancelamento on-line ou o prazo passou. O administrador segue a chave de bypass do calendário aqui como no próprio cancelamento."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, a cancellation reason shorter than five characters is refused with a message instead of being dropped."
-msgstr "O e-mail de cancelamento da pessoa traz o motivo que ela digitou, e a confirmação do link de cancelamento só promete e-mail quando o calendário envia um. Na lista de Agendamentos, um motivo de cancelamento com menos de cinco caracteres é recusado com uma mensagem, em vez de ser ignorado."
+msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, Cancel asks the reason in the plugin's dialog, whose button stays off until the reason holds five characters."
+msgstr "O e-mail de cancelamento da pessoa traz o motivo digitado, e a confirmação do link de cancelamento promete um e-mail só quando a agenda envia um. Na lista de Agendamentos, Cancelar pede o motivo na janela do plugin, cujo botão fica desativado até o motivo ter cinco caracteres."
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
 msgid "The booking calendar works from the keyboard: each day is a named button, the arrow keys move a day or a week, Home and End go to the first and last day of the month, Enter or Space picks it, and the month arrows are labelled."
@@ -33911,3 +33903,11 @@ msgstr "Exibido abaixo de \"Participar de Grupos\" na aba Perfil do painel, logo
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
 msgstr "\"Texto para os usuários\", no mesmo card, aparece no painel abaixo de \"Participar de Grupos\", logo abaixo da linha que informa o limite: para que servem os grupos, como escolher, a quem perguntar. HTML básico é permitido (links, negrito, listas); vazio, nada é exibido."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "Cancel this appointment? The record stays, marked as cancelled."
+msgstr "Cancelar este agendamento? O registro fica, marcado como cancelado."
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "At least 5 characters."
+msgstr "Pelo menos 5 caracteres."
