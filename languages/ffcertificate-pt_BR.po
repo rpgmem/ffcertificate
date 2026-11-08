@@ -33875,6 +33875,7 @@ msgstr "No painel do usuário"
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "Each person finds what they were sent in the Messages tab of their dashboard, built from the rule as it is now: an edited rule shows its current text, and deleting a rule removes what it sent from every dashboard. On the Settings page, \"Show announcements at the top for\" chooses 2, 5, 7, 10 or 15 days, 7 by default: for that long after it was sent an announcement opens the person's dashboard as a notice and heads the tab. \"Messages from disabled rules\" leaves what a disabled rule sent listed unless \"Hide from the dashboard\" is turned on. Both save as they change and need ffc_manage_date_messages."
 msgstr "Cada pessoa encontra o que recebeu na aba Mensagens do próprio painel, montado a partir da regra como ela está agora: uma regra editada mostra o texto atual, e excluir uma regra remove o que ela enviou de todos os painéis. Na página Configurações, \"Mostrar comunicados no topo por\" escolhe 2, 5, 7, 10 ou 15 dias, 7 por padrão: durante esse tempo depois do envio, o comunicado abre o painel da pessoa como aviso e encabeça a aba. \"Mensagens de regras desativadas\" mantém listado o que uma regra desativada enviou, a não ser que \"Ocultar do painel\" esteja ligado. As duas opções salvam ao mudar e exigem ffc_manage_date_messages."
+
 #: templates/admin/reregistration/import-panel.php
 msgid "Download CSV template"
 msgstr "Baixar modelo CSV"
