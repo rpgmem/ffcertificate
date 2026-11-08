@@ -25733,11 +25733,11 @@ msgid "Add required data"
 msgstr ""
 
 #: includes/settings/views/ffc-tab-certificates.php
-msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule."
+msgid "A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field. {{schedule}} prints nothing on a form without an Event Schedule, and every shipped certificate model carries it."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-certificates.php
-msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only, and {{schedule}} is asked only of a form with an Event Schedule on the Time tab. The table saves as you change it."
+msgid "What a certificate requires is one table, Settings → Certificates → Required data. Each row has a name, a label, a type and two switches. Required in the form: a new form starts with the field, and the form editor locks it and refuses a form without it. Required in the certificate HTML: the form editor refuses to save a layout that lacks the {{tag}}. By default name and cpf_rf are required in both, email in the form and {{auth_code}} and {{schedule}} in the HTML. Email cannot leave the form and {{auth_code}} cannot leave the HTML. A tag the plugin fills in itself, such as {{schedule}}, has the HTML switch only. {{schedule}} prints nothing on a form without an Event Schedule on the Time tab, and every shipped certificate model carries it. The table saves as you change it."
 msgstr ""
 
 #: includes/settings/views/documentation/forms-dynamic-fields.php

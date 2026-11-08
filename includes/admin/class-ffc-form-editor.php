@@ -144,8 +144,8 @@ class FormEditor {
 		// and open the Layout tab with a banner when the certificate layout
 		// is missing any required {{tag}}. The server-side check in
 		// FormEditorSaveHandler is the backstop for JS-disabled clients.
-		// Same list the save handler checks, {{schedule}} included only
-		// when this form has an Event Schedule (#1741).
+		// Same list the save handler checks (#1741); every shipped
+		// certificate model carries {{schedule}}.
 		$required_tags = FormEditorSaveValidator::layout_required_tags();
 
 		wp_localize_script(

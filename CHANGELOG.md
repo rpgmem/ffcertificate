@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **QR Code settings: the design preview follows the form again** (#2520). Since it moved to the side column it sat outside the form, so no change redrew it and the first drawing ignored the saved design.
 - **pt_BR: the consent sentence reads "concordo com a Política de Privacidade", and the catalogue loses 70 zero-width spaces** (#2522). They were left by machine translation in front of words on 33 lines; a guard now refuses them in the catalogues, readmes and sources.
+- **Certificates: a form on a shipped certificate model can be saved again** (#2524). The default Required data asks for {{schedule}} in every layout and no shipped model carried it; the six models now do, under the course title (empty without an Event Schedule), and the seeder refreshes them.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`
 
