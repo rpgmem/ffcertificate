@@ -208,6 +208,24 @@ describe('ffc-qr-design.js', () => {
 		vi.useRealTimers();
 	});
 
+	it('follows the form when the preview sits outside it, in the side column (#2486)', async () => {
+		vi.useFakeTimers();
+		const $side = window.$('<aside><div id="ffc-qr-design-preview"></div><div id="ffc-qr-design-checks"></div></aside>');
+		window.$('#ffc-qr-design-preview, #ffc-qr-design-checks').remove();
+		window.$('body').append($side);
+		const spy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: { svg: '<svg id="side"></svg>', checks: {} } } }));
+
+		window.FFC.QrDesign.init();
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy.mock.calls[0][1]).toMatchObject({ design: { color: '#112233' }, margin: '3', error_level: 'Q' });
+
+		window.$('[data-ffc-qr-design="qr_design_color"]').val('#cc0000').trigger('input');
+		vi.advanceTimersByTime(300);
+		expect(spy).toHaveBeenCalledTimes(2);
+		expect(spy.mock.calls[1][1]).toMatchObject({ design: { color: '#cc0000' } });
+		vi.useRealTimers();
+	});
+
 	it('does nothing on a screen without the preview', () => {
 		document.body.innerHTML = '<form></form>';
 		const spy = vi.spyOn(window.$, 'post');

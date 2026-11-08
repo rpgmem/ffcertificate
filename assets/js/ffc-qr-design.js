@@ -222,7 +222,12 @@
 		if (!$preview.length || !window.FFC || !window.FFC.request) {
 			return;
 		}
-		var $root = $preview.closest('form');
+		// The preview sits in the screen's side column, outside the form
+		// (#2486), so the form is the one that holds the design fields.
+		var $root = $('[data-ffc-qr-design]').first().closest('form');
+		if (!$root.length) {
+			return;
+		}
 
 		$root.on('change input', '[data-ffc-qr-design], #qr_default_margin, #qr_default_error_level', function () {
 			clearTimeout(timer);
