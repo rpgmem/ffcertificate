@@ -567,6 +567,7 @@ class Frontend {
 						'timeout'                        => __( 'Export timed out. Please try again.', 'ffcertificate' ),
 						'noRecords'                      => __( 'No records found to export.', 'ffcertificate' ),
 						'connError'                      => __( 'Connection error. Please try again.', 'ffcertificate' ),
+						'verifyFirst'                    => __( 'Complete the verification above before downloading again.', 'ffcertificate' ),
 
 						// Info screen: headers.
 						'formDetails'                    => __( 'Form Details', 'ffcertificate' ),

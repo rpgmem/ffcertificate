@@ -22,8 +22,81 @@
 
 	// ── Download CSV (triggers existing export flow) ────────────
 
+	/**
+	 * Whether the challenge drawn for the next download has been answered
+	 * (#2539).
+	 *
+	 * A first download spends the page's challenge, and the info screen draws
+	 * a fresh one in `.ffc-csv-download-security`. The button stays enabled
+	 * beside it, so a click before it is solved used to reach the server,
+	 * which refused it with an error overlay and counted the attempt against
+	 * the address. No block means the page's own, already-solved challenge
+	 * travels: nothing to check.
+	 *
+	 * @return {jQuery|null} The control to focus when unanswered, else null.
+	 */
+	function unansweredChallenge() {
+		var $block = api.$container ? api.$container.find('.ffc-csv-download-security') : $();
+		if (!$block.length) {
+			return null;
+		}
+		var $widget = $block.find('altcha-widget');
+		if ($widget.length) {
+			return String($block.find('input[name="altcha"]').val() || '').trim() ? null : $widget.first();
+		}
+		var $answer = $block.find('input[name="ffc_captcha_ans"]');
+		if ($answer.length && !String($answer.val() || '').trim()) {
+			return $answer.first();
+		}
+		return null;
+	}
+
+	/**
+	 * Say, beside the challenge, that it comes first; and drop the line once
+	 * it is answered.
+	 *
+	 * @param {jQuery} $control The widget or the answer field.
+	 */
+	function askToVerifyFirst($control) {
+		var $block = api.$container.find('.ffc-csv-download-security');
+		var $line  = $block.find('.ffc-csv-verify-first');
+		if (!$line.length) {
+			$line = $('<p class="ffc-csv-verify-first ffc-field-message" role="alert"></p>');
+			$block.append($line);
+			// The ALTCHA widget's `statechange` does not bubble, so it is
+			// caught on the way down (as ffc-captcha.js does), and checked on
+			// the next tick: the widget announces the state before it writes
+			// the proof into its field.
+			var blockEl = $block[0];
+			var check = function () {
+				setTimeout(function () {
+					if (!unansweredChallenge()) {
+						$line.remove();
+						blockEl.removeEventListener('statechange', check, true);
+						$block.off('.ffcVerifyFirst');
+					}
+				}, 0);
+			};
+			blockEl.addEventListener('statechange', check, true);
+			$block.on('input.ffcVerifyFirst change.ffcVerifyFirst', check);
+		}
+		$line.text(strings.verifyFirst || 'Complete the verification above before downloading again.');
+		var target = $control[0];
+		var focusable = target && target.tagName === 'ALTCHA-WIDGET'
+			? (target.querySelector('input[type="checkbox"]') || target)
+			: target;
+		if (focusable && typeof focusable.focus === 'function') {
+			focusable.focus();
+		}
+	}
+
 	function onDownloadClick() {
 		var $dlBtn = $(this);
+		var $unanswered = unansweredChallenge();
+		if ($unanswered) {
+			askToVerifyFirst($unanswered);
+			return;
+		}
 		$dlBtn.prop('disabled', true).addClass('ffc-btn-loading');
 		api.showOverlay(strings.validating || 'Validating…');
 		startTime       = Date.now();

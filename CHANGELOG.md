@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Reregistration: a dependent select with nothing chosen is empty** (#2530). A required one now says it is required, instead of an invalid choice, and an optional one passes; its two selects are named by their labels and carry `required`.
 - **Testes seed: the wipe never deletes an administrator** (#2532). It removed every `@example.test` account, the admin it acted as included when its address was in that domain. Seeded booking owners also get the appointment capabilities, so their dashboard lists the bookings the seed gave them.
 - **Audience Calendars: the cancel reason is asked in the confirmation, and results show on the page** (#2534). No `prompt()` or `alert()` is left in booking or cancelling; the bulk cancel updates its rows without a reload. A ratchet freezes the other native dialogs per file, so no new one is added.
+- **Public CSV: a second download waits for its fresh verification** (#2539). A click before the new challenge was solved reached the server, came back as an export error and counted a failed captcha against the address; it now says beside the challenge that verification comes first and sends nothing.
 
 ## [6.44.0] (2026-11-08) — `1ad1601`
 

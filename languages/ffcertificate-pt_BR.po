@@ -4246,6 +4246,10 @@ msgstr "Erro de conexão."
 msgid "Connection error. Please try again."
 msgstr "Erro de conexão. Tente novamente."
 
+#: includes/frontend/class-ffc-frontend.php:570
+msgid "Complete the verification above before downloading again."
+msgstr "Conclua a verificação acima antes de baixar novamente."
+
 #: includes/self-scheduling/class-ffc-self-scheduling-shortcode.php:222
 msgid "Connection timeout. Please try again."
 msgstr "Tempo de conexão esgotado. Por favor, tente novamente."
