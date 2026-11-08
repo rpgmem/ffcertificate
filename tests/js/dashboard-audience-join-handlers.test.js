@@ -6,6 +6,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel, flushPromises } from './dashboard-fixtures.js';
 
+// FFC.confirmDialog() replaced window.confirm() (#2535): answer it, and read
+// back what it asked, joined the way confirm() used to show it.
+function answerDialogs(answer) {
+	return vi.spyOn(window.FFC, 'confirmDialog').mockImplementation(() => Promise.resolve(answer));
+}
+const asked = (spy) => spy.mock.calls.map((c) => [].concat(c[0].message).join('\n\n'));
+
 // What the dashboard's message region says: alerts left for it (#2246).
 const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
 afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
@@ -167,7 +174,7 @@ describe('audience-join — leaveGroup', () => {
 	}
 
 	it('asks what leaving takes out of the list before confirming', async () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 		const ajaxSpy = route((opts) => opts.success({ bookings: 2, message: 'You will no longer see 2 upcoming bookings.' }));
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
@@ -178,24 +185,24 @@ describe('audience-join — leaveGroup', () => {
 		expect(first.url).toBe('https://x.test/wp-json/ffc/v1/user/audience-group/leave-impact');
 		expect(first.method).toBe('GET');
 		expect(first.data).toEqual({ group_id: 9 });
-		expect(confirmSpy).toHaveBeenCalledWith('You will no longer see 2 upcoming bookings.\n\nLeave?');
+		expect(asked(confirmSpy)).toContain('You will no longer see 2 upcoming bookings.\n\nLeave?');
 		// Declined: no POST follows the question.
 		expect(ajaxSpy).toHaveBeenCalledTimes(1);
 	});
 
 	it('keeps the plain confirmation when nothing is lost or the question fails', async () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 		route((opts) => opts.error({}));
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
 		await flushPromises();
 		await flushPromises();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Leave?');
+		expect(asked(confirmSpy)).toContain('Leave?');
 	});
 
 	it('POSTs to /user/audience-group/leave and reloads the profile panel', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const ajaxSpy = route((opts) => opts.success({ bookings: 0, message: '' }), (opts) => opts.success({}));
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
@@ -209,7 +216,7 @@ describe('audience-join — leaveGroup', () => {
 	});
 
 	it('on error: alerts the server message and re-enables the button', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		route((opts) => opts.success({}), (opts) => opts.error({ responseJSON: { message: 'Not a member' } }));
 
 		window.$('.ffc-audience-leave-btn[data-id="9"]').trigger('click');
@@ -230,7 +237,7 @@ describe('audience-join — leaveGroup', () => {
 describe('audience-join — leaveAllGroups', () => {
 	it('bails when there are no groups to leave', async () => {
 		window.FFCDashboard.panels.profile.state.audience_groups = [];
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = answerDialogs(false);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
@@ -241,16 +248,16 @@ describe('audience-join — leaveAllGroups', () => {
 	});
 
 	it('asks for confirmation, substituting %d with the group count', async () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');
 		await flushPromises();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Confirm leave all 2?');
+		expect(asked(confirmSpy)).toContain('Confirm leave all 2?');
 	});
 
 	it('on confirm + success: POSTs leave-all and reloads the profile panel', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.success({});
 			return {};
@@ -267,7 +274,7 @@ describe('audience-join — leaveAllGroups', () => {
 	});
 
 	it('on error: alerts the message and re-enables the button', async () => {
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			opts.error({ responseJSON: { message: 'Server down' } });
 			return {};
@@ -294,7 +301,7 @@ describe('audience-join — viewAsUserId propagation', () => {
 
 	it('leaveGroup carries viewAsUserId on the question and the leave', async () => {
 		window.ffcDashboard.viewAsUserId = 21;
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation((opts) => {
 			if (opts.url.indexOf('leave-impact') !== -1) opts.success({});
 			return {};
@@ -311,7 +318,7 @@ describe('audience-join — viewAsUserId propagation', () => {
 
 	it('leaveAllGroups appends viewAsUserId', async () => {
 		window.ffcDashboard.viewAsUserId = 22;
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const ajaxSpy = vi.spyOn(window.$, 'ajax').mockImplementation(() => ({}));
 
 		window.$('.ffc-leave-all-groups-btn').trigger('click');

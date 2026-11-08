@@ -973,7 +973,7 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		expect(libs.save).toHaveBeenCalledWith('a.pdf');
 	});
 
-	it('falls back to alert() when the overlay is gone by the time an error arrives', async () => {
+	it('reopens the overlay to carry the error when it is gone by the time the error arrives, with no alert() (#2535)', async () => {
 		install('reject');
 		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		loadScript('assets/js/ffc-pdf-generator.js');
@@ -983,9 +983,10 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		overlay().remove();
 		await vi.advanceTimersByTimeAsync(2000);
 
-		expect(alertSpy).toHaveBeenCalledWith(
-			"Couldn't generate the certificate\n\nWe couldn't render the certificate. This usually clears up on a retry; if not, try a different browser."
-		);
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(overlay()).not.toBeNull();
+		expect(overlay().textContent).toContain("Couldn't generate the certificate");
+		expect(overlay().textContent).toContain('This usually clears up on a retry');
 	});
 
 	it('generates as soon as a slow image loads, without waiting for the timeout', async () => {

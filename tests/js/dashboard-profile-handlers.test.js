@@ -12,6 +12,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { installDashboardFixtures, loadDashboardCore, loadPanel } from './dashboard-fixtures.js';
 
+// FFC.confirmDialog() replaced window.confirm() (#2535): answer it, and read
+// back what it asked, joined the way confirm() used to show it.
+function answerDialogs(answer) {
+	return vi.spyOn(window.FFC, 'confirmDialog').mockImplementation(() => Promise.resolve(answer));
+}
+const asked = (spy) => spy.mock.calls.map((c) => [].concat(c[0].message).join('\n\n'));
+
 // What the dashboard's message region says: alerts left for it (#2246).
 const flashText = () => (document.getElementById('ffc-dashboard-flash') || { textContent: '' }).textContent;
 afterEach(() => { const el = document.getElementById('ffc-dashboard-flash'); if (el) el.remove(); });
@@ -359,7 +366,7 @@ describe('profile.privacyRequest', () => {
 
 	it('Export button POSTs without asking for confirmation', () => {
 		const spy = mockAjaxSuccess({ ok: true });
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const confirmSpy = answerDialogs(true);
 
 		// The LGPD section is rendered if the panel template includes it
 		// — render() emits it conditionally so the button may or may not
@@ -381,7 +388,7 @@ describe('profile.privacyRequest', () => {
 
 	it('Delete button asks for confirmation; cancels if user declines', () => {
 		const spy = mockAjax(() => ({}));
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		answerDialogs(false);
 
 		if (! document.querySelector('.ffc-lgpd-delete-btn')) {
 			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
@@ -394,9 +401,9 @@ describe('profile.privacyRequest', () => {
 		expect(spy).not.toHaveBeenCalled();
 	});
 
-	it('Delete button proceeds when confirmation is accepted', () => {
+	it('Delete button proceeds when confirmation is accepted', async () => {
 		const spy = mockAjaxSuccess({ ok: true });
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 
 		if (! document.querySelector('.ffc-lgpd-delete-btn')) {
 			document.getElementById('ffc-tabpanel-profile').insertAdjacentHTML(
@@ -405,6 +412,9 @@ describe('profile.privacyRequest', () => {
 			);
 		}
 		window.$('.ffc-lgpd-delete-btn').trigger('click');
+		// The dialog answers asynchronously (#2535).
+		await Promise.resolve();
+		await Promise.resolve();
 
 		expect(spy).toHaveBeenCalledOnce();
 		expect(JSON.parse(spy.mock.calls[0][0].data).type).toBe('remove_personal_data');

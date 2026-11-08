@@ -19,6 +19,13 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { loadScript } from './helpers.js';
 
+// FFC.confirmDialog() replaced window.confirm() (#2535): answer it, and read
+// back what it asked, joined the way confirm() used to show it.
+function answerDialogs(answer) {
+	return vi.spyOn(window.FFC, 'confirmDialog').mockImplementation(() => Promise.resolve(answer));
+}
+const asked = (spy) => spy.mock.calls.map((c) => [].concat(c[0].message).join('\n\n'));
+
 // FFC.request — the migration target — wraps jQuery.post() in a Promise.
 // Mock $.post and return a chain whose .done / .fail callback the
 // FFC.request internals invoke.
@@ -1090,13 +1097,15 @@ describe('rereg autosave', () => {
 		await mountForm();
 		window.$('[name="fields[name]"]').val('Bob').trigger('input');
 
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = answerDialogs(false);
 		window.$('.ffc-rereg-cancel-btn').trigger('click');
-		expect(confirmSpy).toHaveBeenCalledWith('Close the form? Changes not saved yet will be lost.');
+		expect(asked(confirmSpy)).toContain('Close the form? Changes not saved yet will be lost.');
 		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(1);
 
-		confirmSpy.mockReturnValue(true);
+		confirmSpy.mockResolvedValue(true);
 		window.$('.ffc-rereg-cancel-btn').trigger('click');
+		await Promise.resolve();
+		await Promise.resolve();
 		expect(window.$('#ffc-rereg-form-panel').children().length).toBe(0);
 		expect(leave()).toBe(false);
 
@@ -1107,7 +1116,7 @@ describe('rereg autosave', () => {
 
 	it('closes without asking when nothing changed', async () => {
 		await mountForm();
-		const confirmSpy = vi.spyOn(window, 'confirm');
+		const confirmSpy = answerDialogs(false);
 
 		window.$('.ffc-rereg-cancel-btn').trigger('click');
 
@@ -1308,19 +1317,19 @@ describe('rereg retract', () => {
 
 	it('asks first and sends nothing when the member declines', async () => {
 		mountBanner();
-		vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const dialogSpy = answerDialogs(false);
 		const postSpy = vi.spyOn(window.$, 'post');
 
 		window.$('.ffc-rereg-retract').trigger('click');
 		await flush();
 
-		expect(window.confirm).toHaveBeenCalled();
+		expect(dialogSpy).toHaveBeenCalled();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
 	it('posts the campaign and reloads on success', async () => {
 		mountBanner();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true, data: {} } }));
 		const original = window.location;
 		const stub = { reload: vi.fn(), href: '/', pathname: '/', hostname: '' };
@@ -1342,7 +1351,7 @@ describe('rereg retract', () => {
 
 	it('shows the server refusal under the banner and re-enables the button', async () => {
 		mountBanner();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		answerDialogs(true);
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: false, data: { message: 'Already reviewed.' } } }));
 
 		window.$('.ffc-rereg-retract').trigger('click');

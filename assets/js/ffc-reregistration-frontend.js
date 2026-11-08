@@ -64,9 +64,18 @@
     // The member takes back a submission nobody reviewed yet (#2242). The
     // banners are drawn by the server, so the page reloads to redraw them.
     function retract($btn) {
-        if (!window.confirm(S.retractConfirm || 'Retract your submission?')) {
-            return;
-        }
+        // The plugin's dialog, not confirm() (#2535).
+        FFC.confirmDialog({
+            message: S.retractConfirm || 'Retract your submission?',
+            confirmLabel: S.retract || 'Retract',
+            category: 'caution',
+            icon: 'restore'
+        }).then(function (agreed) {
+            if (agreed) sendRetract($btn);
+        });
+    }
+
+    function sendRetract($btn) {
         $btn.prop('disabled', true).addClass('ffc-btn-loading');
         FFC.request(
             'ffc_retract_reregistration',
@@ -485,14 +494,26 @@
 
     // Closing the form with changes not saved asks first (#2242).
     function initCancel($container) {
-        $container.on('click', '.ffc-rereg-cancel-btn', function () {
-            if (unsaved && !window.confirm(S.cancelConfirm || 'Close the form? Changes not saved yet will be lost.')) {
-                return;
-            }
+        function close() {
             clearAutosave();
             unsaved = false;
             $('#ffc-rereg-form-panel').slideUp(200, function () {
                 $(this).empty();
+            });
+        }
+        $container.on('click', '.ffc-rereg-cancel-btn', function () {
+            if (!unsaved) {
+                close();
+                return;
+            }
+            // The plugin's dialog, not confirm() (#2535).
+            FFC.confirmDialog({
+                message: S.cancelConfirm || 'Close the form? Changes not saved yet will be lost.',
+                confirmLabel: S.closeForm || 'Close the form',
+                category: 'caution',
+                icon: 'cross'
+            }).then(function (agreed) {
+                if (agreed) close();
             });
         });
     }
