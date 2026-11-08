@@ -313,9 +313,10 @@ class TabEmailTextsTest extends TestCase {
 
 		$suffix = AssetHelper::asset_suffix();
 		// The restore-default script goes through AssetRegistry: registered with
-		// its source and jquery dependency, then enqueued by handle, once.
+		// its source and its dependencies (ffc-core asks the question, #2535),
+		// then enqueued by handle, once.
 		$this->assertSame(
-			array( 'ffc-email-restore-default', FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js", array( 'jquery' ), FFC_VERSION, true ),
+			array( 'ffc-email-restore-default', FFC_PLUGIN_URL . "assets/js/ffc-email-restore-default{$suffix}.js", array( 'jquery', 'ffc-core' ), FFC_VERSION, true ),
 			$registered['ffc-email-restore-default'] ?? null
 		);
 		$this->assertSame(
