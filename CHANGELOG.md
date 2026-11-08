@@ -174,6 +174,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Recruitment: the notice summary sits beside the editor on a definitive notice** (#2486). The Import candidates tab closed one container too many once a notice left the preliminary stage, which pushed the side column below the page.
 - **Recruitment: the public notice page is one card, as wide as the user dashboard** (#2486). The list drew a second card inside the first and took the whole width of a full-width page; it now has the dashboard's width, margin and shadow.
 - **Autosave on a WordPress in a subdirectory** (#2503). A settings screen that received no `ffc_ajax` posted to a root `/wp-admin/admin-ajax.php`; the autosave now uses the URL each screen localizes.
+- Admin spacing: the form builder's Label and Tag inputs stay aligned when the tag shows its lock note, a vertical-tab title keeps its space under the line inside a post editor, and cards in consecutive one-card forms keep their gap (#2511).
 
 ## [6.43.0] (2026-10-31) — `9eb8032d`
 

@@ -43,7 +43,17 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: var(--ffc-spacing-xl);
-    align-items: end;
+    /* Top, not bottom: a note under one input (the locked tag) made that
+       item taller, and bottom alignment pushed its neighbours' inputs down
+       out of line with it. */
+    align-items: start;
+}
+
+/* The Required toggle has no label above it: drop it by the label's line and
+   the item gap, plus half the 10px between a 40px input and the 30px toggle,
+   so it stays level with the inputs beside it. */
+.ffc-field-row-grid > .ffc-flex-center {
+    margin-top: calc(1.4em + var(--ffc-spacing-xs) + var(--ffc-spacing-2xs));
 }
 
 .ffc-field-row-grid .ffc-grid-item { 
