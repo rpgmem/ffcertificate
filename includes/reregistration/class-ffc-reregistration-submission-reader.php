@@ -634,60 +634,6 @@ class ReregistrationSubmissionReader {
 	}
 
 	/**
-	 * Get submissions for CSV export.
-	 *
-	 * @param int                  $reregistration_id Reregistration ID.
-	 * @param array<string, mixed> $filters           Optional filters (status, search).
-	 * @return list<ReregistrationSubmissionRow>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_for_export( int $reregistration_id, array $filters = array() ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$filters['limit']  = 0;
-		$filters['offset'] = 0;
-		return self::get_by_reregistration( $reregistration_id, $filters );
-	}
-
-	/**
-	 * Stream submissions for CSV export in chunks of $chunk_size rows
-	 * to keep memory bounded for large reregistrations. Yields rows
-	 * one at a time so the caller can pipe into `Csv::writer->rows()`.
-	 *
-	 * @since 6.5.0
-	 * @param int                  $reregistration_id Reregistration ID.
-	 * @param array<string, mixed> $filters           Filters (status, search, orderby, order).
-	 * @param int                  $chunk_size        Rows per database round-trip.
-	 * @return \Generator<int, ReregistrationSubmissionRow>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function stream_for_export( int $reregistration_id, array $filters = array(), int $chunk_size = 500 ): \Generator {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$offset = 0;
-		while ( true ) {
-			$filters['limit']  = $chunk_size;
-			$filters['offset'] = $offset;
-			$rows              = self::get_by_reregistration( $reregistration_id, $filters );
-			if ( empty( $rows ) ) {
-				return;
-			}
-			foreach ( $rows as $row ) {
-				yield $row;
-			}
-			if ( count( $rows ) < $chunk_size ) {
-				return;
-			}
-			$offset += $chunk_size;
-		}
-	}
-
-
-	/**
 	 * Keyset page for the batched CSV export: submissions of one reregistration
 	 * with `s.id < $cursor`, newest first (`s.id DESC`), limited to `$size`, with
 	 * the user display-name + email joined (like {@see self::get_by_reregistration()}).

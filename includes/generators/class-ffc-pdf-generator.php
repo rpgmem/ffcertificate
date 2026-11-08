@@ -285,66 +285,6 @@ class PdfGenerator {
 	}
 
 	/**
-	 * Generate PDF data from form submission (for frontend)
-	 *
-	 * @param array<string, mixed> $submission_data Posted form data.
-	 * @param int                  $form_id Form ID.
-	 * @param int|null             $submission_date Submission instant (unix UTC seconds since 6.6.0).
-	 * @return array<string, mixed>|\WP_Error PDF data array
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public function generate_pdf_data_from_form( array $submission_data, int $form_id, ?int $submission_date = null ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		// Get form data.
-		$form_post = get_post( $form_id );
-		if ( ! $form_post ) {
-			return new WP_Error( 'form_not_found', __( 'Form not found.', 'ffcertificate' ) );
-		}
-
-		$form_title   = $form_post->post_title;
-		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
-		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
-
-		// Add formatted date.
-		if ( $submission_date ) {
-			$formatted_date               = \FreeFormCertificate\Core\DateFormatter::format_datetime( $submission_date, 'pdf' );
-			$submission_data['fill_date'] = $formatted_date;
-			$submission_data['date']      = $formatted_date;
-		}
-
-		$html = $this->html_renderer->generate_html( $submission_data, $form_title, $form_config, $submission_date );
-
-		// Get verification code.
-		$auth_code = isset( $submission_data['auth_code'] ) ? $submission_data['auth_code'] : '';
-
-		// 6.6.11 — standardized filename pattern (shared helper). See the
-		// sibling site in generate_pdf_data() for the full rationale.
-		$filename = \FreeFormCertificate\Core\FilenameHelper::build_pdf_filename( 'certificate', (int) $form_id, (string) $auth_code );
-
-		// Log generation.
-		\FreeFormCertificate\Core\Debug::log_pdf(
-			'PDF data generated from form',
-			array(
-				'form_id'      => $form_id,
-				'form_title'   => \FreeFormCertificate\Core\Utils::truncate( $form_title, 50 ),
-				'html_length'  => strlen( $html ),
-				'has_bg_image' => ! empty( $bg_image_url ),
-			)
-		);
-
-		return array(
-			'html'       => $html,
-			'filename'   => $filename,
-			'form_title' => $form_title,
-			'bg_image'   => $bg_image_url,
-			'bg_color'   => \FreeFormCertificate\Core\FormBackground::color( (int) $form_id ),
-		);
-	}
-
-	/**
 	 * Generate PDF data for appointment receipt
 	 *
 	 * Uses the same HTML→canvas→PDF pipeline as certificates.

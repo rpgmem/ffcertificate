@@ -326,74 +326,9 @@ class CalendarRepositoryTest extends TestCase {
 	// updateWorkingHours()
 	// ==================================================================
 
-	public function test_updateWorkingHours_encodes_and_updates(): void {
-		$working_hours = ['monday' => ['start' => '09:00', 'end' => '17:00']];
-
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->with(
-				'wp_ffc_self_scheduling_calendars',
-				Mockery::on( function ( $data ) use ( $working_hours ) {
-					return $data['working_hours'] === json_encode( $working_hours )
-						&& $data['updated_at'] === '2026-03-01 12:00:00'
-						&& $data['updated_by'] === 1;
-				} ),
-				['id' => 5]
-			)
-			->andReturn( 1 );
-
-		$result = $this->repo->updateWorkingHours( 5, $working_hours );
-
-		$this->assertSame( 1, $result );
-	}
-
-	public function test_updateWorkingHours_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->andReturn( false );
-
-		$result = $this->repo->updateWorkingHours( 5, ['monday' => []] );
-
-		$this->assertFalse( $result );
-	}
-
 	// ==================================================================
 	// updateEmailConfig()
 	// ==================================================================
-
-	public function test_updateEmailConfig_encodes_and_updates(): void {
-		$email_config = [
-			'send_user_confirmation' => 1,
-			'send_admin_notification' => 1,
-		];
-
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->with(
-				'wp_ffc_self_scheduling_calendars',
-				Mockery::on( function ( $data ) use ( $email_config ) {
-					return $data['email_config'] === json_encode( $email_config )
-						&& $data['updated_at'] === '2026-03-01 12:00:00'
-						&& $data['updated_by'] === 1;
-				} ),
-				['id' => 3]
-			)
-			->andReturn( 1 );
-
-		$result = $this->repo->updateEmailConfig( 3, $email_config );
-
-		$this->assertSame( 1, $result );
-	}
-
-	public function test_updateEmailConfig_returns_false_on_failure(): void {
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->andReturn( false );
-
-		$result = $this->repo->updateEmailConfig( 3, ['send_user_confirmation' => 1] );
-
-		$this->assertFalse( $result );
-	}
 
 	// ==================================================================
 	// updateStatus()
@@ -953,61 +888,6 @@ class CalendarRepositoryTest extends TestCase {
 	// ==================================================================
 	// Edge cases
 	// ==================================================================
-
-	public function test_updateWorkingHours_encodes_complex_schedule(): void {
-		$working_hours = [
-			'monday'    => ['start' => '08:00', 'end' => '12:00', 'break_start' => '10:00', 'break_end' => '10:30'],
-			'tuesday'   => ['start' => '09:00', 'end' => '17:00'],
-			'wednesday' => ['start' => '09:00', 'end' => '17:00'],
-			'thursday'  => ['start' => '09:00', 'end' => '17:00'],
-			'friday'    => ['start' => '09:00', 'end' => '13:00'],
-			'saturday'  => null,
-			'sunday'    => null,
-		];
-
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->with(
-				'wp_ffc_self_scheduling_calendars',
-				Mockery::on( function ( $data ) use ( $working_hours ) {
-					$decoded = json_decode( $data['working_hours'], true );
-					return $decoded === $working_hours;
-				} ),
-				['id' => 1]
-			)
-			->andReturn( 1 );
-
-		$result = $this->repo->updateWorkingHours( 1, $working_hours );
-
-		$this->assertSame( 1, $result );
-	}
-
-	public function test_updateEmailConfig_encodes_full_config(): void {
-		$email_config = [
-			'send_user_confirmation' => 1,
-			'send_admin_notification' => 1,
-			'send_approval_notification' => 1,
-			'send_cancellation_notification' => 1,
-			'send_reminder' => 1,
-			'reminder_hours_before' => 48,
-		];
-
-		$this->wpdb->shouldReceive( 'update' )
-			->once()
-			->with(
-				'wp_ffc_self_scheduling_calendars',
-				Mockery::on( function ( $data ) use ( $email_config ) {
-					$decoded = json_decode( $data['email_config'], true );
-					return $decoded === $email_config;
-				} ),
-				['id' => 2]
-			)
-			->andReturn( 1 );
-
-		$result = $this->repo->updateEmailConfig( 2, $email_config );
-
-		$this->assertSame( 1, $result );
-	}
 
 	public function test_createFromPost_default_email_config_structure(): void {
 		$this->wpdb->insert_id = 20;

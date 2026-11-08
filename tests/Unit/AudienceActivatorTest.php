@@ -264,80 +264,13 @@ class AudienceActivatorTest extends TestCase {
 	// drop_tables()
 	// ==================================================================
 
-	public function test_drop_tables_drops_all_twelve(): void {
-		$prepared_queries = [];
-		$this->wpdb->shouldReceive( 'prepare' )->andReturnUsing( function () use ( &$prepared_queries ) {
-			$args = func_get_args();
-			$prepared_queries[] = $args;
-			return 'PREPARED_QUERY';
-		} );
-		$this->wpdb->shouldReceive( 'query' )->with( 'PREPARED_QUERY' )->andReturn( 1 );
-
-		AudienceActivator::drop_tables();
-
-		$drop_queries = array_filter( $prepared_queries, function ( $args ) {
-			return stripos( $args[0], 'DROP TABLE IF EXISTS' ) !== false;
-		} );
-
-		$this->assertCount( 12, $drop_queries, 'Should prepare DROP TABLE for all 12 audience tables' );
-	}
-
 	// ==================================================================
 	// get_tables_status() — all exist
 	// ==================================================================
 
-	public function test_get_tables_status_all_exist(): void {
-		$call_count = 0;
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function ( $query ) use ( &$call_count ) {
-				$call_count++;
-				if ( stripos( $query, 'SHOW TABLES LIKE' ) !== false ) {
-					return preg_match( "/SHOW TABLES LIKE\s+'([^']+)'/", $query, $tm ) ? $tm[1] : 'existing_table';
-				}
-				// SELECT COUNT(*) queries — return a count
-				if ( stripos( $query, 'SELECT COUNT' ) !== false ) {
-					return '5';
-				}
-				return null;
-			} );
-
-		$status = AudienceActivator::get_tables_status();
-
-		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
-
-		foreach ( $status as $key => $info ) {
-			$this->assertTrue( $info['exists'], "Table '$key' should be reported as existing" );
-			$this->assertSame( 5, $info['count'], "Table '$key' should have count 5" );
-			$this->assertArrayHasKey( 'table', $info );
-		}
-
-		$this->assertArrayHasKey( 'schedules', $status );
-		$this->assertArrayHasKey( 'audiences', $status );
-		$this->assertArrayHasKey( 'bookings', $status );
-	}
-
 	// ==================================================================
 	// get_tables_status() — none exist
 	// ==================================================================
-
-	public function test_get_tables_status_none_exist(): void {
-		$this->wpdb->shouldReceive( 'get_var' )
-			->andReturnUsing( function ( $query ) {
-				if ( stripos( $query, 'SHOW TABLES LIKE' ) !== false ) {
-					return null;
-				}
-				return null;
-			} );
-
-		$status = AudienceActivator::get_tables_status();
-
-		$this->assertCount( 12, $status, 'Should return status for 12 tables' );
-
-		foreach ( $status as $key => $info ) {
-			$this->assertFalse( $info['exists'], "Table '$key' should be reported as not existing" );
-			$this->assertSame( 0, $info['count'], "Table '$key' should have count 0 when not existing" );
-		}
-	}
 
 	// ==================================================================
 	// maybe_migrate() — runs when tables exist

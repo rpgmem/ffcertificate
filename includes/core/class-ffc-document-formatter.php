@@ -928,19 +928,4 @@ class DocumentFormatter {
 		$parsed = self::parse_prefixed_code( $code );
 		return $parsed['code'];
 	}
-
-	/**
-	 * Clean identifier (CPF, RF, ticket) - uppercase alphanumeric only
-	 *
-	 * @param string $value Identifier to clean.
-	 * @return string Cleaned identifier
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function clean_identifier( string $value ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return strtoupper( preg_replace( '/[^a-zA-Z0-9]/', '', $value ) ?? '' );
-	}
 }

@@ -434,69 +434,6 @@ class AudienceCsvImporterTest extends TestCase {
 	// validate_csv()
 	// ==================================================================
 
-	public function test_validate_csv_nonexistent_file(): void {
-		$result = AudienceCsvImporter::validate_csv( '/nonexistent/file.csv', 'members' );
-
-		$this->assertFalse( $result['valid'] );
-		$this->assertNotEmpty( $result['errors'] );
-	}
-
-	public function test_validate_csv_empty_file(): void {
-		$path = $this->create_csv( '' );
-		$result = AudienceCsvImporter::validate_csv( $path, 'members' );
-
-		$this->assertFalse( $result['valid'] );
-		$this->assertNotEmpty( $result['errors'] );
-	}
-
-	public function test_validate_csv_members_missing_email_column(): void {
-		$path = $this->create_csv( "name,audience_id\nJohn,1\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'members' );
-
-		$this->assertFalse( $result['valid'] );
-		$this->assertStringContainsString( 'email', $result['errors'][0] );
-	}
-
-	public function test_validate_csv_members_valid(): void {
-		$path = $this->create_csv( "email,name,audience_id\ntest@example.com,Test User,1\ntest2@example.com,Test User 2,2\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'members' );
-
-		$this->assertTrue( $result['valid'] );
-		$this->assertSame( 2, $result['rows'] );
-		$this->assertEmpty( $result['errors'] );
-	}
-
-	public function test_validate_csv_audiences_missing_name_column(): void {
-		$path = $this->create_csv( "color,parent\n#ff0000,\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'audiences' );
-
-		$this->assertFalse( $result['valid'] );
-		$this->assertStringContainsString( 'name', $result['errors'][0] );
-	}
-
-	public function test_validate_csv_audiences_valid(): void {
-		$path = $this->create_csv( "name,color,parent\nGroup A,#3788d8,\nSub A1,#ff0000,Group A\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'audiences' );
-
-		$this->assertTrue( $result['valid'] );
-		$this->assertSame( 2, $result['rows'] );
-	}
-
-	public function test_validate_csv_skips_empty_rows(): void {
-		$path = $this->create_csv( "email,name\ntest@example.com,Test\n\n\ntest2@example.com,Test2\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'members' );
-
-		$this->assertTrue( $result['valid'] );
-		$this->assertSame( 2, $result['rows'], 'Empty rows should not be counted' );
-	}
-
-	public function test_validate_csv_normalizes_header_case(): void {
-		$path = $this->create_csv( "EMAIL,Name,AUDIENCE_ID\ntest@example.com,Test,1\n" );
-		$result = AudienceCsvImporter::validate_csv( $path, 'members' );
-
-		$this->assertTrue( $result['valid'], 'Header normalization should make EMAIL match email' );
-	}
-
 	// ==================================================================
 	// import_members()
 	// ==================================================================

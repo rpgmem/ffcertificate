@@ -185,7 +185,6 @@ class TabGeolocationTest extends TestCase {
 	// Inheritance
 	// ==================================================================
 
-
 	// ==================================================================
 	// get_default_settings() — via Reflection
 	// ==================================================================
@@ -500,18 +499,6 @@ class TabGeolocationTest extends TestCase {
 		$this->assertSame( 'block', $cases['position_unavailable'] );
 		$this->assertSame( 'block', $cases['timeout'] );
 		$this->assertSame( 'block', $cases['safety_timer'] );
-	}
-
-	public function test_cases_to_preset_round_trip_for_named_presets(): void {
-		$this->assertSame( 'tolerant', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'tolerant' ) ) );
-		$this->assertSame( 'hybrid', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'hybrid' ) ) );
-		$this->assertSame( 'strict', TabGeolocation::cases_to_preset( TabGeolocation::preset_to_cases( 'strict' ) ) );
-	}
-
-	public function test_cases_to_preset_returns_custom_for_mixed_matrix(): void {
-		$mixed = TabGeolocation::preset_to_cases( 'hybrid' );
-		$mixed['timeout'] = 'allow'; // any deviation makes it custom
-		$this->assertSame( 'custom', TabGeolocation::cases_to_preset( $mixed ) );
 	}
 
 	public function test_save_settings_defaults_invalid_service_to_ipinfo(): void {

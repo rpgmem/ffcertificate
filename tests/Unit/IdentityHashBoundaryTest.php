@@ -258,13 +258,24 @@ class IdentityHashBoundaryTest extends TestCase {
 	 * no entry in `NORMALIZERS` would store it under whatever spelling arrived
 	 * -- which is exactly the state #1313 found, reintroduced silently. An
 	 * empty scan fails rather than reads as clean (the #1071 / #1094 rule).
+	 * The hashed keys are read off the registry's own `FIELDS` here, since the
+	 * public accessor that listed them left in 6.45.0 (#2552).
 	 */
 	public function test_every_hashed_field_has_decided_its_canonical_form(): void {
 		$declared = SensitiveFieldRegistry::normalized_field_keys();
 
 		$this->assertNotEmpty( $declared, 'The normalizer map is empty — the scan collapsed.' );
 
-		$hashed = SensitiveFieldRegistry::hashed_field_keys();
+		$fields = ( new \ReflectionClassConstant( SensitiveFieldRegistry::class, 'FIELDS' ) )->getValue();
+		$hashed = array();
+		foreach ( $fields as $context_fields ) {
+			foreach ( $context_fields as $field_key => $spec ) {
+				if ( ! empty( $spec['hash_column'] ) ) {
+					$hashed[ $field_key ] = true;
+				}
+			}
+		}
+		$hashed = array_keys( $hashed );
 
 		$this->assertNotEmpty( $hashed, 'No hashed field was found in any context — the scan collapsed.' );
 

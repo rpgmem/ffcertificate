@@ -705,34 +705,6 @@ class AudienceBookingWriter {
 	}
 
 	/**
-	 * Remove an audience from a booking
-	 *
-	 * @param int $booking_id Booking ID.
-	 * @param int $audience_id Audience ID.
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function remove_booking_audience( int $booking_id, int $audience_id ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_booking_audiences_table_name();
-
-		$result = $wpdb->delete(
-			$table,
-			array(
-				'booking_id'  => $booking_id,
-				'audience_id' => $audience_id,
-			),
-			array( '%d', '%d' )
-		);
-
-		return false !== $result;
-	}
-
-	/**
 	 * Keep only the entries that are actually ids.
 	 *
 	 * The id arrays reach this class inside a caller-supplied `$data`, so
@@ -790,34 +762,6 @@ class AudienceBookingWriter {
 		$table = self::get_booking_users_table_name();
 
 		$result = $wpdb->insert(
-			$table,
-			array(
-				'booking_id' => $booking_id,
-				'user_id'    => $user_id,
-			),
-			array( '%d', '%d' )
-		);
-
-		return false !== $result;
-	}
-
-	/**
-	 * Remove a user from a booking
-	 *
-	 * @param int $booking_id Booking ID.
-	 * @param int $user_id User ID.
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function remove_booking_user( int $booking_id, int $user_id ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$wpdb  = self::db();
-		$table = self::get_booking_users_table_name();
-
-		$result = $wpdb->delete(
 			$table,
 			array(
 				'booking_id' => $booking_id,

@@ -174,15 +174,6 @@ class RecruitmentCandidateReaderTest extends TestCase {
 		$this->assertNull( RecruitmentCandidateReader::get_by_rf_hash( 'missing' ) );
 	}
 
-	public function test_get_by_email_hash_found_and_not_found(): void {
-		$row = $this->row( 10 );
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( $row );
-		$this->assertSame( $row, RecruitmentCandidateReader::get_by_email_hash( 'emailhash10' ) );
-
-		$this->wpdb->shouldReceive( 'get_row' )->once()->andReturn( null );
-		$this->assertNull( RecruitmentCandidateReader::get_by_email_hash( 'missing' ) );
-	}
-
 	// ------------------------------------------------------------------
 	// get_by_user_id
 	// ------------------------------------------------------------------
@@ -235,34 +226,9 @@ class RecruitmentCandidateReaderTest extends TestCase {
 		$this->assertSame( array(), RecruitmentCandidateReader::get_paginated_for_adjutancy( 'Carol', 3, 20, 0 ) );
 	}
 
-	public function test_count_paginated_for_adjutancy_without_name(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '4' );
-		$this->assertSame( 4, RecruitmentCandidateReader::count_paginated_for_adjutancy( '', 3 ) );
-	}
-
-	public function test_count_paginated_for_adjutancy_with_name_returns_zero_when_null(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
-		$this->assertSame( 0, RecruitmentCandidateReader::count_paginated_for_adjutancy( 'Dave', 3 ) );
-	}
-
 	// ------------------------------------------------------------------
 	// count_paginated (with and without name)
 	// ------------------------------------------------------------------
-
-	public function test_count_paginated_without_name(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '12' );
-		$this->assertSame( 12, RecruitmentCandidateReader::count_paginated( '' ) );
-	}
-
-	public function test_count_paginated_with_name(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( '3' );
-		$this->assertSame( 3, RecruitmentCandidateReader::count_paginated( 'Eve' ) );
-	}
-
-	public function test_count_paginated_returns_zero_when_null(): void {
-		$this->wpdb->shouldReceive( 'get_var' )->once()->andReturn( null );
-		$this->assertSame( 0, RecruitmentCandidateReader::count_paginated( '' ) );
-	}
 
 	// ------------------------------------------------------------------
 	// get_ids_by_email_hash

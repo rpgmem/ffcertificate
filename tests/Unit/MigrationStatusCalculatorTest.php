@@ -97,37 +97,9 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// Constructor tests
 	// ==================================================================
 
-	public function test_constructor_catches_strategy_initialization_errors(): void {
-		// The real constructor calls initialize_strategies(), which only
-		// passes the strategies through the filter; nothing is built yet.
-		$registry = Mockery::mock( 'FreeFormCertificate\Migrations\MigrationRegistry' );
-
-		$calculator = new MigrationStatusCalculator( $registry );
-
-		// The constructor should not throw — errors are caught
-		$this->assertIsArray( $calculator->get_strategies() );
-	}
-
 	// ==================================================================
 	// get_strategies tests
 	// ==================================================================
-
-	public function test_get_strategies_returns_array(): void {
-		$this->assertIsArray( $this->calculator->get_strategies() );
-	}
-
-	public function test_get_strategies_returns_empty_array_when_no_strategies(): void {
-		$this->assertSame( array(), $this->calculator->get_strategies() );
-	}
-
-	public function test_get_strategies_returns_injected_strategies(): void {
-		$this->injectStrategy( 'key_rotation' );
-
-		$strategies = $this->calculator->get_strategies();
-
-		$this->assertArrayHasKey( 'key_rotation', $strategies );
-		$this->assertSame( $this->strategy, $strategies['key_rotation'] );
-	}
 
 	// ==================================================================
 	// calculate tests
@@ -485,20 +457,6 @@ class MigrationStatusCalculatorTest extends TestCase {
 	// ==================================================================
 	// Multiple strategies tests
 	// ==================================================================
-
-	public function test_multiple_strategies_can_be_registered(): void {
-		$strategy_a = Mockery::mock( 'FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface' );
-		$strategy_b = Mockery::mock( 'FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface' );
-
-		$this->injectStrategy( 'migration_a', $strategy_a );
-		$this->injectStrategy( 'migration_b', $strategy_b );
-
-		$strategies = $this->calculator->get_strategies();
-
-		$this->assertCount( 2, $strategies );
-		$this->assertArrayHasKey( 'migration_a', $strategies );
-		$this->assertArrayHasKey( 'migration_b', $strategies );
-	}
 
 	public function test_calculate_routes_to_correct_strategy(): void {
 		$strategy_a = Mockery::mock( 'FreeFormCertificate\Migrations\Strategies\MigrationStrategyInterface' );

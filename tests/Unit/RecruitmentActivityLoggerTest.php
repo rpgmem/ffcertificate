@@ -109,14 +109,6 @@ class RecruitmentActivityLoggerTest extends TestCase {
 		$this->assertSame( 42, $context['inserted_count'] );
 	}
 
-	public function test_csv_import_failed_uses_warning_level(): void {
-		RecruitmentActivityLogger::csv_import_failed( 5, 'definitive', 7 );
-
-		$entry = $this->last_buffered_entry();
-		$this->assertSame( 'recruitment_csv_import_failed', $entry['action'] );
-		$this->assertSame( ActivityLog::LEVEL_WARNING, $entry['level'] );
-	}
-
 	public function test_notice_status_changed_omits_reason_when_null(): void {
 		RecruitmentActivityLogger::notice_status_changed( 5, 'draft', 'preliminary' );
 

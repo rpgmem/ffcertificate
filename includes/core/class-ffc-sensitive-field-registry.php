@@ -344,38 +344,6 @@ final class SensitiveFieldRegistry {
 	}
 
 	/**
-	 * Every field key that carries a lookup hash, across all contexts.
-	 *
-	 * The set the normalizer map must cover: a field whose value becomes a
-	 * searchable hash has to have decided what form it is searched in, or the
-	 * spelling that happened to arrive is the one stored (#1313).
-	 *
-	 * @since 6.26.0
-	 * @return list<string>
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function hashed_field_keys(): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$keys = array();
-
-		foreach ( self::FIELDS as $fields ) {
-			foreach ( $fields as $field_key => $spec ) {
-				if ( ! empty( $spec['hash_column'] ) ) {
-					$keys[ $field_key ] = true;
-				}
-			}
-		}
-
-		$out = array_keys( $keys );
-		sort( $out );
-
-		return $out;
-	}
-
-	/**
 	 * Logical keys whose plaintext must be removed from a row before insert
 	 * to avoid LGPD leaks.
 	 *

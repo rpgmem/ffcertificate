@@ -329,7 +329,6 @@ class SelfSchedulingActivator {
 		return $code;
 	}
 
-
 	/**
 	 * Run migrations on plugin load
 	 * This ensures migrations run even if plugin wasn't re-activated
@@ -738,30 +737,6 @@ class SelfSchedulingActivator {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
-	}
-
-	/**
-	 * Drop all self-scheduling tables (for uninstall)
-	 *
-	 * @return void
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function drop_tables(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		global $wpdb;
-
-		$tables = array(
-			$wpdb->prefix . 'ffc_self_scheduling_calendars',
-			$wpdb->prefix . 'ffc_self_scheduling_appointments',
-			$wpdb->prefix . 'ffc_self_scheduling_blocked_dates',
-		);
-
-		foreach ( $tables as $table ) {
-			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $table ) );
-		}
 	}
 
 	/**

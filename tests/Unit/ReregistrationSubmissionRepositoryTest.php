@@ -1394,19 +1394,6 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 	// get_for_export()
 	// ==================================================================
 
-	public function test_get_for_export_delegates_to_get_by_reregistration(): void {
-		$rows = array(
-			(object) array('id' => 1, 'status' => 'approved'),
-		);
-
-		$this->wpdb->shouldReceive('prepare')->once()->andReturn('QUERY');
-		$this->wpdb->shouldReceive('get_results')->once()->andReturn($rows);
-
-		$results = ReregistrationSubmissionReader::get_for_export(1);
-
-		$this->assertCount(1, $results);
-	}
-
 	// ==================================================================
 	// get_all_by_user()
 	// ==================================================================
@@ -1833,5 +1820,4 @@ class ReregistrationSubmissionRepositoryTest extends TestCase {
 
 		$this->assertSame(0, ReregistrationSubmissionWriter::mark_invited(array(101)));
 	}
-
 }
