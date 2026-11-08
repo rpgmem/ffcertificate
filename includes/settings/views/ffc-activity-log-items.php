@@ -56,7 +56,7 @@ $ffcertificate_items_groups = array(
 				}
 				$ffcertificate_total = count( $ffcertificate_section_items );
 				?>
-				<details class="ffc-section" data-ffc-item-count<?php echo $ffcertificate_is_audit ? ' open' : ''; ?>>
+				<details class="ffc-section" data-ffc-item-count<?php echo \FreeFormCertificate\Core\ActivityLogItems::section_starts_open( $ffcertificate_group, $ffcertificate_on_count, $ffcertificate_total ) ? ' open' : ''; ?>>
 					<summary class="ffc-section__summary">
 						<span class="ffc-section__text">
 							<span class="ffc-section__title"><?php echo esc_html( $ffcertificate_items_labels['sections'][ $ffcertificate_section ] ?? $ffcertificate_section ); ?></span>

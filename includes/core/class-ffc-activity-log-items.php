@@ -436,6 +436,20 @@ final class ActivityLogItems {
 	}
 
 	/**
+	 * Whether a section of the settings screen starts open: an audit section
+	 * with an item switched off, so the departure from the default shows.
+	 * A section at its default stays closed, and its chip says "N of N on".
+	 *
+	 * @param string $group {@see self::GROUP_AUDIT} or {@see self::GROUP_SECONDARY}.
+	 * @param int    $on    Items of the section switched on.
+	 * @param int    $total Items in the section.
+	 * @return bool
+	 */
+	public static function section_starts_open( string $group, int $on, int $total ): bool {
+		return self::GROUP_AUDIT === $group && $on < $total;
+	}
+
+	/**
 	 * Every item key of one group, in screen order.
 	 *
 	 * @param string $group {@see self::GROUP_AUDIT} or {@see self::GROUP_SECONDARY}.

@@ -226,4 +226,12 @@ class ActivityLogItemsTest extends TestCase {
 		ActivityLogItems::maybe_migrate();
 		$this->assertSame( array( 'ffc_settings' ), $writes, 'The second run writes nothing.' );
 	}
+
+	public function test_an_audit_section_opens_only_when_an_item_is_off(): void {
+		$this->assertFalse( ActivityLogItems::section_starts_open( ActivityLogItems::GROUP_AUDIT, 4, 4 ), 'All on, as by default: closed' );
+		$this->assertTrue( ActivityLogItems::section_starts_open( ActivityLogItems::GROUP_AUDIT, 3, 4 ), 'One off: open' );
+		$this->assertTrue( ActivityLogItems::section_starts_open( ActivityLogItems::GROUP_AUDIT, 0, 4 ), 'All off: open' );
+		$this->assertFalse( ActivityLogItems::section_starts_open( ActivityLogItems::GROUP_SECONDARY, 0, 4 ), 'Secondary stays closed' );
+		$this->assertFalse( ActivityLogItems::section_starts_open( ActivityLogItems::GROUP_SECONDARY, 2, 4 ), 'Secondary stays closed' );
+	}
 }
