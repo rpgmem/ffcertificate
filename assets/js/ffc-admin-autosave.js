@@ -331,7 +331,12 @@
                 }
                 return false;
             }
-            window.FFC.request(config.action || 'ffc_update_setting', payload, config.request)
+            // The settings path posts to the URL the screen localized, so a
+            // screen that never received `ffc_ajax` does not fall back to a
+            // root-relative admin-ajax.php that a WordPress in a subdirectory
+            // does not have (#2503).
+            var request = config.request || (autosaveCfg && autosaveCfg.ajaxUrl ? { ajaxUrl: autosaveCfg.ajaxUrl } : undefined);
+            window.FFC.request(config.action || 'ffc_update_setting', payload, request)
                 .then(function (data) {
                     if (settle()) {
                         return;

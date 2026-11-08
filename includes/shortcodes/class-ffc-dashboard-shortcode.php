@@ -88,6 +88,15 @@ class DashboardShortcode {
 		$can_view_appointments      = $tabs['appointments'];
 		$can_view_audience_bookings = $tabs['audience'];
 		$can_view_reregistrations   = $tabs['reregistrations'];
+		$can_view_messages          = $tabs['messages'];
+
+		// The Messages tab's current announcements (#2503): they open the
+		// dashboard as notices and give the tab its count. Built once here;
+		// the tab itself loads its list over REST.
+		$current_messages = array();
+		if ( $can_view_messages ) {
+			$current_messages = \FreeFormCertificate\DateMessages\UserMessages::for_user( (int) $user_id, (bool) $is_admin_viewing, time() )['current'];
+		}
 
 		// Recruitment tab — visible when the user has at least one
 		// classification across recruitment notices (joined via
@@ -120,6 +129,7 @@ class DashboardShortcode {
 			'audience'        => $can_view_audience_bookings,
 			'reregistrations' => $can_view_reregistrations,
 			'recruitment'     => $can_view_recruitment,
+			'messages'        => $can_view_messages,
 			'profile'         => true,
 		);
 		if ( empty( $visible[ $current_tab ] ) ) {
@@ -138,6 +148,7 @@ class DashboardShortcode {
 			}
 			echo wp_kses_post( self::render_redirect_message() );
 			echo wp_kses_post( self::render_reregistration_banners( $user_id ) );
+			echo self::render_message_notices( $current_messages, (int) $user_id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Notice::render() escapes every value; the actions are Button::html().
 
 			// Form panel for reregistration editing — always present when reregistrations tab is visible.
 			// Previously rendered inside render_reregistration_banners(), which could omit it.
@@ -215,6 +226,29 @@ class DashboardShortcode {
 					</button>
 				<?php endif; ?>
 
+				<?php if ( $can_view_messages ) : ?>
+					<button class="ffc-tab <?php echo esc_attr( 'messages' === $current_tab ? 'is-active' : '' ); ?>"
+							data-tab="messages"
+							role="tab"
+							id="ffc-tab-messages"
+							aria-selected="<?php echo esc_attr( 'messages' === $current_tab ? 'true' : 'false' ); ?>"
+							aria-controls="ffc-tabpanel-messages"
+							tabindex="<?php echo esc_attr( 'messages' === $current_tab ? '0' : '-1' ); ?>">
+						<span class="ffc-icon-email" aria-hidden="true"></span><?php esc_html_e( 'Messages', 'ffcertificate' ); ?>
+						<?php if ( array() !== $current_messages ) : ?>
+							<?php
+							$ffc_current_count = count( $current_messages );
+							$ffc_current_label = sprintf(
+								/* translators: %d: number of announcements */
+								_n( '%d current announcement', '%d current announcements', $ffc_current_count, 'ffcertificate' ),
+								$ffc_current_count
+							);
+							?>
+							<span class="ffc-tab-count" aria-label="<?php echo esc_attr( $ffc_current_label ); ?>"><?php echo esc_html( number_format_i18n( $ffc_current_count ) ); ?></span>
+						<?php endif; ?>
+					</button>
+				<?php endif; ?>
+
 				<button class="ffc-tab <?php echo esc_attr( 'profile' === $current_tab ? 'is-active' : '' ); ?>"
 						data-tab="profile"
 						role="tab"
@@ -285,6 +319,17 @@ class DashboardShortcode {
 					// of rows at most, no point in lazy-loading via REST).
 					echo wp_kses_post( $recruitment_html );
 					?>
+				</div>
+			<?php endif; ?>
+
+			<?php if ( $can_view_messages ) : ?>
+				<div class="ffc-tab-content <?php echo esc_attr( 'messages' === $current_tab ? 'is-active' : '' ); ?>"
+					id="ffc-tabpanel-messages"
+					role="tabpanel"
+					aria-labelledby="ffc-tab-messages">
+					<div class="ffc-loading" role="status">
+						<?php esc_html_e( 'Loading messages...', 'ffcertificate' ); ?>
+					</div>
 				</div>
 			<?php endif; ?>
 
@@ -433,6 +478,54 @@ class DashboardShortcode {
 				'hook' => 'admin-redirect',
 			)
 		);
+	}
+
+	/**
+	 * The current announcements, as notices above the dashboard (#2503).
+	 *
+	 * None when the person turned announcements off: the tab still lists
+	 * them, since they were sent. No dismiss button: a notice leaves when its
+	 * days are over.
+	 *
+	 * @param array<int, array<string, mixed>> $current The current group of UserMessages::for_user().
+	 * @param int                              $user_id Dashboard owner.
+	 * @return string
+	 */
+	private static function render_message_notices( array $current, int $user_id ): string {
+		$html = '';
+		foreach ( \FreeFormCertificate\DateMessages\UserMessages::notices( $current, $user_id ) as $message ) {
+			$html .= Notice::render(
+				'info',
+				'megaphone',
+				array(
+					is_string( $message['excerpt'] ?? null ) ? $message['excerpt'] : '',
+					sprintf(
+						/* translators: %s: date the announcement was sent */
+						__( 'Sent on %s', 'ffcertificate' ),
+						is_string( $message['sent'] ?? null ) ? $message['sent'] : ''
+					),
+				),
+				is_string( $message['subject'] ?? null ) ? $message['subject'] : '',
+				array(
+					'role'    => 'note',
+					'hook'    => 'date-message',
+					'classes' => array( 'ffc-message-notice' ),
+					'actions' => Button::html(
+						array(
+							'label'    => __( 'Read in Messages', 'ffcertificate' ),
+							'category' => 'neutral',
+							'icon'     => 'email',
+							'href'     => add_query_arg( 'tab', 'messages' ),
+							'attrs'    => array(
+								'data-ffc-open-tab' => 'messages',
+								'data-ffc-message'  => is_string( $message['key'] ?? null ) ? $message['key'] : '',
+							),
+						)
+					),
+				)
+			);
+		}
+		return $html;
 	}
 
 	/**

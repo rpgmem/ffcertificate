@@ -66,6 +66,12 @@ class DashboardShortcodeTest extends TestCase {
 	/** @var list<object> Classifications of those candidates. */
 	private array $classifications = array();
 
+	/** @var list<array<string, mixed>> Date-message rules (#2503). */
+	private array $date_message_rules = array();
+
+	/** @var list<array<string, mixed>> The user's date-message deliveries (#2503). */
+	private array $date_message_deliveries = array();
+
 	/** @var array<string, array<int, object>> Recruitment rows read by id, by table. */
 	private array $recruitment_rows = array();
 
@@ -248,6 +254,17 @@ class DashboardShortcodeTest extends TestCase {
 				}
 				if ( false !== strpos( $text, 'WHERE classification_id IN' ) ) {
 					// No call yet: every classification is waiting.
+					return array();
+				}
+				// The Messages tab's rules and deliveries (#2503).
+				if ( 'wp_ffc_date_message_rules' === ( $bound[1] ?? null ) ) {
+					return $this->date_message_rules;
+				}
+				if ( 'wp_ffc_date_message_log' === ( $bound[1] ?? null ) ) {
+					return $this->date_message_deliveries;
+				}
+				// OptOut::among(): nobody turned announcements off.
+				if ( false !== strpos( $text, 'SELECT user_id, preferences FROM %i' ) ) {
 					return array();
 				}
 				$this->fail( 'Unexpected get_results(): ' . $sql . ' with ' . var_export( $bound, true ) );
@@ -665,6 +682,102 @@ class DashboardShortcodeTest extends TestCase {
 		$this->assertStringNotContainsString( 'ffc-tab-recruitment', $output );
 		$this->assertStringContainsString( 'ffc-tab-audience', $output, 'A module left on keeps its tab.' );
 		$this->assertMatchesRegularExpression( '#class="ffc-tab is-active"\s+data-tab="audience"#', $output );
+	}
+
+	/**
+	 * The Messages tab (#2503): its module alone draws it, and a current
+	 * announcement opens the dashboard as a notice and gives the tab its count.
+	 */
+	public function test_render_draws_the_messages_tab_and_the_current_announcement(): void {
+		$this->wireFullRenderCollaborators( false );
+		$this->stubMessageRendering();
+		$this->date_message_rules      = array( $this->announcementRule( 4, 'Library closed on Friday', '<p>The library is closed on Friday.</p>' ) );
+		$this->date_message_deliveries = array(
+			array(
+				'rule_id'        => '4',
+				'occurrence_key' => 'once',
+				'sent_at'        => (string) ( time() - DAY_IN_SECONDS ),
+			),
+		);
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringContainsString( 'id="ffc-tab-messages"', $output );
+		$this->assertStringContainsString( 'id="ffc-tabpanel-messages"', $output );
+		$this->assertMatchesRegularExpression( '#<span class="ffc-tab-count" aria-label="1 current announcement">1</span>#', $output );
+		$this->assertStringContainsString( 'data-ffc-notice="date-message"', $output );
+		$this->assertStringContainsString( 'Library closed on Friday', $output );
+		$this->assertStringContainsString( 'data-ffc-open-tab="messages"', $output );
+		$this->assertStringNotContainsString( 'ffc-notice-dismiss', $output, 'A notice leaves when its days are over, not by a button.' );
+		$this->assertLessThan( strpos( $output, 'id="ffc-dashboard-summary"' ), strpos( $output, 'data-ffc-notice="date-message"' ), 'The notice sits above the cards.' );
+	}
+
+	public function test_render_omits_the_messages_tab_while_its_module_is_off(): void {
+		$this->wireFullRenderCollaborators( false );
+		$this->settings['module_date_messages_enabled'] = 0;
+		$this->date_message_deliveries                  = array(
+			array(
+				'rule_id'        => '4',
+				'occurrence_key' => 'once',
+				'sent_at'        => (string) time(),
+			),
+		);
+
+		$output = DashboardShortcode::render();
+
+		$this->assertStringNotContainsString( 'ffc-tab-messages', $output );
+		$this->assertStringNotContainsString( 'data-ffc-notice="date-message"', $output );
+	}
+
+	/**
+	 * The WordPress functions a message is built with.
+	 */
+	private function stubMessageRendering(): void {
+		Functions\when( 'wp_strip_all_tags' )->alias( static fn( $v ) => strip_tags( (string) $v ) );
+		Functions\when( 'wp_trim_words' )->alias( static fn( $v ) => (string) $v );
+		Functions\when( 'get_bloginfo' )->justReturn( 'SME' );
+		Functions\when( 'wp_timezone' )->alias( static fn() => new \DateTimeZone( 'UTC' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $f, $ts ) => gmdate( (string) $f, (int) $ts ) );
+		Functions\when( 'wp_salt' )->justReturn( 'salt' );
+		Functions\when( 'home_url' )->alias( static fn( $p = '' ) => 'https://example.com' . $p );
+		Functions\when( 'add_query_arg' )->alias(
+			static fn( $key, $value = null, $url = '' ) => is_array( $key ) ? $value . '?' . http_build_query( $key ) : $url . '?' . $key . '=' . $value
+		);
+		// MessageBuilder reads WordPress's own name fields off the account.
+		Functions\when( 'get_userdata' )->alias(
+			function ( $id ) {
+				$user             = $this->user( (int) $id, 'Member', 'member@example.org' );
+				$user->first_name = 'Member';
+				$user->last_name  = '';
+				return $user;
+			}
+		);
+	}
+
+	/**
+	 * A stored announcement rule.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function announcementRule( int $id, string $subject, string $body ): array {
+		return array(
+			'id'              => $id,
+			'name'            => 'Rule ' . $id,
+			'source'          => 'announcement',
+			'offset_days'     => 0,
+			'audience_ids'    => '[]',
+			'subject'         => $subject,
+			'body'            => $body,
+			'appearance'      => null,
+			'send_to_user'    => 1,
+			'digest_enabled'  => 0,
+			'digest_mode'     => 'summary',
+			'digest_user_ids' => '[]',
+			'is_active'       => 1,
+			'kind'            => 'announcement',
+			'send_at'         => 0,
+			'respect_opt_out' => 1,
+		);
 	}
 
 	/**

@@ -414,6 +414,44 @@ class DeliveryLog {
 	}
 
 	/**
+	 * What one person was sent, newest first (#2503).
+	 *
+	 * Only `user` rows: a failed send releases its claim, so the row is gone,
+	 * and the counted decisions live under their own channels. Read live: the
+	 * person's Messages tab must show a send the moment it is logged.
+	 *
+	 * @param int $user_id Person.
+	 * @param int $limit   Most rows to read.
+	 * @return array<int, array{rule_id: int, occurrence_key: string, sent_at: int}>
+	 */
+	public static function deliveries_for_user( int $user_id, int $limit ): array {
+		if ( $user_id <= 0 || $limit <= 0 ) {
+			return array();
+		}
+		$wpdb = self::db();
+		$sql  = $wpdb->prepare(
+			'SELECT rule_id, occurrence_key, sent_at FROM %i WHERE user_id = %d AND channel = %s ORDER BY sent_at DESC, id DESC LIMIT %d',
+			DateMessagesActivator::log_table(),
+			$user_id,
+			'user',
+			$limit
+		);
+		if ( null === $sql ) {
+			return array();
+		}
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		$out  = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$out[] = array(
+				'rule_id'        => is_numeric( $row['rule_id'] ?? null ) ? (int) $row['rule_id'] : 0,
+				'occurrence_key' => is_scalar( $row['occurrence_key'] ?? null ) ? (string) $row['occurrence_key'] : '',
+				'sent_at'        => is_numeric( $row['sent_at'] ?? null ) ? (int) $row['sent_at'] : 0,
+			);
+		}
+		return $out;
+	}
+
+	/**
 	 * The ids, among those given, already delivered for an occurrence.
 	 *
 	 * @param int             $rule_id    Rule.

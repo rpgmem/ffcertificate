@@ -21898,8 +21898,6 @@ msgstr "Mensagens por Data"
 msgid "Date messages (birthdays and other dates)"
 msgstr "Mensagens por data (aniversários e outras datas)"
 
-msgid "Date messages (such as birthday greetings)"
-msgstr "Mensagens por data (como felicitações de aniversário)"
 
 msgid "Date messages batch (one per batch)"
 msgstr "Lote de mensagens por data (um por lote)"
@@ -23151,8 +23149,8 @@ msgstr "Seus agendamentos de público-alvo e a aba Recrutamento com as suas conv
 msgid "A Profile tab, read from the plugin's own user profile, where they edit their display name, phone, department, organization, notes and birth date (stored encrypted, and the date Date Messages uses)"
 msgstr "Uma aba Perfil, lida do perfil de usuário do próprio plugin, onde edita nome de exibição, telefone, departamento, organização, observações e data de nascimento (armazenada criptografada e usada pelas Mensagens por Data)"
 
-msgid "Notification Preferences: an \"Appointment reminder\" toggle and, when the Date Messages module is on, a \"Date messages (such as birthday greetings)\" toggle and an \"Announcements from this site\" toggle, each of which opts them out; all are on until turned off"
-msgstr "Preferências de Notificação: uma chave \"Lembrete de agendamento\" e, quando o módulo Mensagens por Data está ativo, uma chave \"Mensagens por data (como felicitações de aniversário)\" e outra \"Comunicados deste site\", cada uma para deixar de receber aquele tipo; todas ficam ativas até serem desligadas"
+msgid "Notification Preferences on the Profile tab: an \"Appointment reminder\" toggle, on until turned off"
+msgstr "Preferências de Notificação na aba Perfil: uma chave \"Lembrete de agendamento\", ativa até ser desligada"
 
 msgid "Change Password, and Privacy & Data (LGPD) buttons to request an export or the deletion of their personal data"
 msgstr "Alterar a Senha e os botões de Privacidade e Dados (LGPD) para solicitar a exportação ou a exclusão dos seus dados pessoais"
@@ -23181,8 +23179,8 @@ msgstr "Cada regra de Mensagens por Data envia o seu próprio assunto e corpo, p
 msgid "Date-message tokens:"
 msgstr "Tokens das mensagens por data:"
 
-msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Schedule pages follow it in the submenu."
-msgstr "O Mensagens por Data envia um e-mail em uma data guardada no perfil de cada pessoa — hoje, o aniversário — ou, como comunicado, uma única vez a um público. Ele tem o seu próprio menu \"Mensagens por Data\", que abre num painel: as regras ativas, os e-mails enviados e com falha nos últimos 30 dias, a próxima execução diária, um card por seção e as últimas execuções. As páginas Regras, Enviar agora, Histórico, Próximas datas e Agendamento vêm em seguida no submenu."
+msgid "Date Messages sends an e-mail on a date stored in each person's profile — today, their birthday — or, as an announcement, once to an audience. It has its own top-level \"Date Messages\" menu, which opens on a dashboard: the active rules, the e-mails sent and failed in the last 30 days, the next daily run, one card per section, and the latest runs. The Rules, Send now, History, Upcoming dates and Settings pages follow it in the submenu."
+msgstr "O Mensagens por Data envia um e-mail em uma data guardada no perfil de cada pessoa — hoje, o aniversário — ou, como comunicado, uma única vez a um público. Ele tem o seu próprio menu \"Mensagens por Data\", que abre num painel: as regras ativas, os e-mails enviados e com falha nos últimos 30 dias, a próxima execução diária, um card por seção e as últimas execuções. As páginas Regras, Enviar agora, Histórico, Próximas datas e Configurações vêm em seguida no submenu."
 
 msgid "On, but silent until you create a rule."
 msgstr "Ativo, mas sem enviar nada até que você crie uma regra."
@@ -23232,8 +23230,8 @@ msgstr "Agendamento diário"
 msgid "Opting out"
 msgstr "Cancelar o recebimento"
 
-msgid "On their dashboard, under Notification Preferences, a person can turn off \"Date messages (such as birthday greetings)\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
-msgstr "No seu painel, em Preferências de Notificação, a pessoa pode desligar \"Mensagens por data (como felicitações de aniversário)\" e \"Comunicados deste site\". As duas são independentes: desligar uma não desliga a outra."
+msgid "On their dashboard, in the Messages tab, a person can turn off \"Date messages\" and \"Announcements from this site\". The two are separate: turning one off does not stop the other."
+msgstr "No seu painel, na aba Mensagens, a pessoa pode desligar \"Mensagens por data\" e \"Comunicados deste site\". As duas são independentes: desligar uma não desliga a outra."
 
 #: includes/settings/views/documentation/feature-date-messages.php
 msgid "An announcement sent to everyone still reaches people who turned announcements off when its rule is set to send it anyway. The history counts those sends as forced, so the choice is never silent."
@@ -23959,8 +23957,8 @@ msgstr "Configurações → Acesso do Usuário → \"Funções e Capacidades do 
 msgid "The All Forms list has a Features column with three switches per form — CSV (the public operator download), Quiz and Device limit. Each saves as soon as it is flipped, writes the same setting as the form editor, and is read-only for someone who cannot edit that form."
 msgstr "A lista Todos os Formulários tem uma coluna Recursos com três interruptores por formulário — CSV (o download público do operador), Quiz e Limite do dispositivo. Cada um salva assim que é acionado, grava a mesma configuração que o editor do formulário e fica somente leitura para quem não pode editar aquele formulário."
 
-msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Schedule page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
-msgstr "A execução diária envia todas as regras ativas uma vez por dia, só para as datas daquele dia, por padrão às 08:00 no fuso horário do site. A página Agendamento mostra o horário atual e a próxima execução; o horário em si é alterado em Configurações → Tarefas Agendadas, que exige a capacidade de gerenciar configurações (ffc_manage_settings) e também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
+msgid "The daily run sends every active rule once a day, for that day's dates only, at 08:00 in the site timezone by default. The Settings page shows the current time and the next run; the time itself is changed on Settings → Scheduled Tasks, which needs the settings-management capability (ffc_manage_settings) and also shows the server line that keeps scheduled tasks running on a quiet site."
+msgstr "A execução diária envia todas as regras ativas uma vez por dia, só para as datas daquele dia, por padrão às 08:00 no fuso horário do site. A página Configurações mostra o horário atual e a próxima execução; o horário em si é alterado em Configurações → Tarefas Agendadas, que exige a capacidade de gerenciar configurações (ffc_manage_settings) e também mostra a linha do servidor que mantém as tarefas agendadas rodando em um site com pouco tráfego."
 
 msgid "The person's name as stored; the first and last name from the WordPress profile (when empty, the first word of the name and the rest); and the two joined"
 msgstr "O nome da pessoa como armazenado; o nome e o sobrenome do perfil do WordPress (quando vazios, a primeira palavra do nome e o restante); e os dois unidos"
@@ -33745,6 +33743,138 @@ msgstr "%1$d usuários examinados; as respostas de %2$d foram movidas para os ca
 msgid "Audiences used to receive their own copy of each standard field. On the update, a copy identical to what the audience inherits became plain inheritance, a different one became the audience's change, and an inactive one hides the field there; the answers moved with them (Settings → Data Migrations, \"Move Answers to Inherited Fields\"). A copy whose type, sensitivity or profile binding differs stays as \"Own copy\" when somebody answered it, with its answers, and is asked in place of the inherited one; one nobody answered inherits like the rest. New audiences receive no copy."
 msgstr "Os públicos-alvo recebiam a própria cópia de cada campo padrão. Na atualização, a cópia idêntica ao que o público-alvo herda virou herança simples, a diferente virou alteração do público-alvo e a inativa oculta o campo ali; as respostas foram junto (Configurações → Migrações de Dados, \"Mover respostas para os campos herdados\"). A cópia com tipo, sensibilidade ou vínculo com o perfil diferente continua como \"Cópia própria\" quando alguém a respondeu, com suas respostas, e é perguntada no lugar da herdada; a que ninguém respondeu passa a herdar como as demais. Públicos-alvo novos não recebem cópia."
 
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+#, php-format
+msgid "%d current announcement"
+msgid_plural "%d current announcements"
+msgstr[0] "%d comunicado atual"
+msgstr[1] "%d comunicados atuais"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Also sent by e-mail"
+msgstr "Também enviada por e-mail"
+
+#: templates/admin/date-messages/dashboard.php
+msgid "Announcements on the user dashboard"
+msgstr "Comunicados no painel do usuário"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+#, php-format
+msgid "Announcements sent in the last %d days"
+msgstr "Comunicados enviados nos últimos %d dias"
+
+#: templates/admin/date-messages/settings.php
+msgid "Counted from the day the announcement was sent. Until then it opens the person's dashboard as a notice and heads their Messages tab; after that it is listed with the earlier messages."
+msgstr "Contado a partir do dia em que o comunicado foi enviado. Até lá, ele abre o painel da pessoa como aviso e encabeça a aba Mensagens; depois disso, passa a ser listado com as mensagens anteriores."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Current"
+msgstr "Atuais"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date message"
+msgstr "Mensagem por data"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date messages"
+msgstr "Mensagens por data"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Date messages, and announcements past that window"
+msgstr "Mensagens por data e comunicados fora desse prazo"
+
+#: templates/admin/date-messages/settings.php
+msgid "Each person sees what they were sent in the Messages tab of their dashboard, built from the rule as it is now. Deleting a rule removes what it sent from every dashboard."
+msgstr "Cada pessoa vê o que recebeu na aba Mensagens do próprio painel, montado a partir da regra como ela está agora. Excluir uma regra remove o que ela enviou de todos os painéis."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Earlier"
+msgstr "Anteriores"
+
+#: templates/admin/date-messages/settings.php
+msgid "Hide from the dashboard"
+msgstr "Ocultar do painel"
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "Loading messages..."
+msgstr "Carregando mensagens..."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Message preferences"
+msgstr "Preferências de mensagens"
+
+#: includes/api/class-ffc-user-messages-rest-controller.php
+msgid "Messages are not available."
+msgstr "As mensagens não estão disponíveis."
+
+#: templates/admin/date-messages/settings.php
+msgid "Messages from disabled rules"
+msgstr "Mensagens de regras desativadas"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No current announcements."
+msgstr "Nenhum comunicado atual."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No earlier messages."
+msgstr "Nenhuma mensagem anterior."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "No messages yet. Date messages and announcements sent to you will show here."
+msgstr "Nenhuma mensagem ainda. As mensagens por data e os comunicados enviados a você aparecerão aqui."
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Off: new announcements are not e-mailed to you and do not show at the top of the dashboard."
+msgstr "Desligado: novos comunicados não são enviados a você por e-mail nem aparecem no topo do painel."
+
+#: templates/admin/date-messages/settings.php
+msgid "On: what a disabled rule already sent leaves the Messages tab and the top of the dashboard, and comes back if the rule is enabled again. Off: it stays listed."
+msgstr "Ligado: o que uma regra desativada já enviou sai da aba Mensagens e do topo do painel, e volta se a regra for ativada de novo. Desligado: continua listado."
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+msgid "Read in Messages"
+msgstr "Ler em Mensagens"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Received messages"
+msgstr "Mensagens recebidas"
+
+#: includes/shortcodes/class-ffc-dashboard-shortcode.php
+#, php-format
+msgid "Sent on %s"
+msgstr "Enviado em %s"
+
+#: templates/admin/date-messages/settings.php
+msgid "Show announcements at the top for"
+msgstr "Mostrar comunicados no topo por"
+
+#: includes/shortcodes/class-ffc-dashboard-asset-manager.php
+msgid "Such as birthday greetings."
+msgstr "Como felicitações de aniversário."
+
+#: templates/admin/date-messages/settings.php
+msgid "User dashboard"
+msgstr "Painel do usuário"
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A Messages tab, when the Date Messages module is on: what the module sent them, in two groups that page three at a time. Current holds the announcements sent within the days chosen on Date Messages → Settings, and the tab shows how many; Earlier holds the date messages and the older announcements. Each message opens in place with Open and closes with Close, and is marked as also sent by e-mail. Beside the list, Message preferences holds the \"Date messages\" and \"Announcements from this site\" toggles, each of which opts them out, on until turned off."
+msgstr "Uma aba Mensagens, quando o módulo Mensagens por Data está ativo: o que o módulo enviou à pessoa, em dois grupos paginados de três em três. Atuais reúne os comunicados enviados dentro dos dias escolhidos em Mensagens por Data → Configurações, e a aba mostra quantos são; Anteriores reúne as mensagens por data e os comunicados mais antigos. Cada mensagem abre ali mesmo com Abrir e fecha com Fechar, e vem marcada como também enviada por e-mail. Ao lado da lista, Preferências de mensagens tem as chaves \"Mensagens por data\" e \"Comunicados deste site\", cada uma para deixar de receber aquele tipo, ativas até serem desligadas."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "The current announcements also open the dashboard as notices above the cards, at most three, each with \"Read in Messages\". A notice has no close button: it leaves when its days are over, and it is not shown to someone who turned announcements off, although the announcement stays in their Messages tab."
+msgstr "Os comunicados atuais também abrem o painel como avisos acima dos cartões, no máximo três, cada um com \"Ler em Mensagens\". O aviso não tem botão de fechar: ele sai quando os dias acabam, e não aparece para quem desligou os comunicados, embora o comunicado continue na aba Mensagens."
+
+#: includes/settings/views/documentation/feature-user-dashboard.php
+msgid "A message is built again from its rule each time the tab is read, so an edited rule shows its current text and a deleted rule leaves the tab. What a disabled rule sent stays, unless Date Messages → Settings hides it. A send that failed is not listed, and the delivery log, and so the tab, keeps one year. Viewing as a user, the e-mail address and the values the date supplies, such as an age, are masked, and the unsubscribe link in a message leads to the tab's preferences."
+msgstr "A mensagem é montada de novo a partir da regra sempre que a aba é lida, então uma regra editada mostra o texto atual e uma regra excluída sai da aba. O que uma regra desativada enviou continua, a não ser que Mensagens por Data → Configurações o oculte. Um envio que falhou não é listado, e o log de envios, e portanto a aba, guarda um ano. Ao ver como usuário, o endereço de e-mail e os valores que a data fornece, como a idade, aparecem mascarados, e o link de descadastro de uma mensagem leva às preferências da aba."
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "On the user dashboard"
+msgstr "No painel do usuário"
+
+#: includes/settings/views/documentation/feature-date-messages.php
+msgid "Each person finds what they were sent in the Messages tab of their dashboard, built from the rule as it is now: an edited rule shows its current text, and deleting a rule removes what it sent from every dashboard. On the Settings page, \"Show announcements at the top for\" chooses 2, 5, 7, 10 or 15 days, 7 by default: for that long after it was sent an announcement opens the person's dashboard as a notice and heads the tab. \"Messages from disabled rules\" leaves what a disabled rule sent listed unless \"Hide from the dashboard\" is turned on. Both save as they change and need ffc_manage_date_messages."
+msgstr "Cada pessoa encontra o que recebeu na aba Mensagens do próprio painel, montado a partir da regra como ela está agora: uma regra editada mostra o texto atual, e excluir uma regra remove o que ela enviou de todos os painéis. Na página Configurações, \"Mostrar comunicados no topo por\" escolhe 2, 5, 7, 10 ou 15 dias, 7 por padrão: durante esse tempo depois do envio, o comunicado abre o painel da pessoa como aviso e encabeça a aba. \"Mensagens de regras desativadas\" mantém listado o que uma regra desativada enviou, a não ser que \"Ocultar do painel\" esteja ligado. As duas opções salvam ao mudar e exigem ffc_manage_date_messages."
 #: templates/admin/reregistration/import-panel.php
 msgid "Download CSV template"
 msgstr "Baixar modelo CSV"
