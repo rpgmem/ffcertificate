@@ -27,7 +27,7 @@
 				var $btn = $('#ffc-download-pdf-btn');
 				var $line = $btn.siblings('.ffc-receipt-error');
 				if (!$line.length) {
-					$line = $('<p class="ffc-receipt-error" role="alert"></p>').insertAfter($btn);
+					$line = $('<p class="ffc-receipt-error" role="alert" data-ffc-notice="receipt-error"></p>').insertAfter($btn);
 				}
 				$line.text(data.errorMsg || '');
 				return;
