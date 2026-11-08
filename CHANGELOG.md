@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- ⚠ **Five finished one-shot migrations leave Settings → Migrations** (#2552, #2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. A site still showing records pending on one ran it before updating, as its card said since 6.43.0.
+
 ## [6.44.1] (2026-11-08) — `513f0c4`
 
 ### Fixed

@@ -82,7 +82,6 @@ return array(
 	'Maintenance>Repositories',
 	'Maintenance>Security',
 	'Maintenance>UrlShortener',
-	'Migrations>Admin',
 	'Migrations>Core',
 	'Migrations>Maintenance',
 	'Migrations>Recruitment',

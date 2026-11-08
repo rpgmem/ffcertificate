@@ -14,7 +14,6 @@ return array(
 	'AdminAssetsManagerTest.php' => 1,
 	'AdminClassTest.php' => 1,
 	'AdminUserColumnsTest.php' => 3,
-	'CpfRfSplitMigrationStrategyTest.php' => 1,
 	'CsvDownloadLogExportSourceTest.php' => 1,
 	'CsvDownloadValidatorTest.php' => 1,
 	'DashboardShortcodeTest.php' => 1,

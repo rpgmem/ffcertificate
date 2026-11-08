@@ -85,9 +85,8 @@ class MigrationManagerTest extends TestCase {
 		Functions\when( 'absint' )->alias( function( $val ) { return abs( intval( $val ) ); } );
 		Functions\when( 'get_current_user_id' )->justReturn( 0 );
 
-		// Create manager WITHOUT calling constructor to avoid loading
-		// CpfRfSplitMigrationStrategy which uses DatabaseHelperTrait
-		// (patchwork stream wrapper cannot parse the trait file)
+		// Create manager WITHOUT calling constructor, so it builds no registry
+		// or calculator of its own.
 		$this->ref = new \ReflectionClass( MigrationManager::class );
 		$this->manager = $this->ref->newInstanceWithoutConstructor();
 
@@ -114,15 +113,15 @@ class MigrationManagerTest extends TestCase {
 	// ==================================================================
 
 	public function test_get_migrations_delegates_to_registry(): void {
-		$expected = array( 'split_cpf_rf' => array( 'name' => 'Split CPF/RF' ) );
+		$expected = array( 'key_rotation' => array( 'name' => 'Encryption Key Rotation' ) );
 		$this->registry->shouldReceive( 'get_all_migrations' )->once()->andReturn( $expected );
 
 		$this->assertSame( $expected, $this->manager->get_migrations() );
 	}
 
 	public function test_is_migration_available_delegates(): void {
-		$this->registry->shouldReceive( 'is_available' )->with( 'split_cpf_rf' )->andReturn( true );
-		$this->assertTrue( $this->manager->is_migration_available( 'split_cpf_rf' ) );
+		$this->registry->shouldReceive( 'is_available' )->with( 'key_rotation' )->andReturn( true );
+		$this->assertTrue( $this->manager->is_migration_available( 'key_rotation' ) );
 	}
 
 	public function test_is_migration_available_returns_false_for_retired(): void {
@@ -132,17 +131,17 @@ class MigrationManagerTest extends TestCase {
 
 	public function test_get_migration_status_delegates(): void {
 		$status = array( 'is_complete' => false, 'percent' => 50, 'total' => 100, 'migrated' => 50, 'pending' => 50 );
-		$this->statusCalculator->shouldReceive( 'calculate' )->with( 'split_cpf_rf' )->andReturn( $status );
+		$this->statusCalculator->shouldReceive( 'calculate' )->with( 'key_rotation' )->andReturn( $status );
 
-		$result = $this->manager->get_migration_status( 'split_cpf_rf' );
+		$result = $this->manager->get_migration_status( 'key_rotation' );
 		$this->assertSame( $status, $result );
 	}
 
 	public function test_get_migration_delegates(): void {
-		$migration = array( 'name' => 'Split CPF/RF', 'batch_size' => 50 );
-		$this->registry->shouldReceive( 'get_migration' )->with( 'split_cpf_rf' )->andReturn( $migration );
+		$migration = array( 'name' => 'Encryption Key Rotation', 'batch_size' => 50 );
+		$this->registry->shouldReceive( 'get_migration' )->with( 'key_rotation' )->andReturn( $migration );
 
-		$this->assertSame( $migration, $this->manager->get_migration( 'split_cpf_rf' ) );
+		$this->assertSame( $migration, $this->manager->get_migration( 'key_rotation' ) );
 	}
 
 	public function test_get_migration_returns_null_for_retired(): void {
@@ -152,22 +151,22 @@ class MigrationManagerTest extends TestCase {
 	}
 
 	public function test_can_run_migration_delegates(): void {
-		$this->statusCalculator->shouldReceive( 'can_run' )->with( 'split_cpf_rf' )->andReturn( true );
-		$this->assertTrue( $this->manager->can_run_migration( 'split_cpf_rf' ) );
+		$this->statusCalculator->shouldReceive( 'can_run' )->with( 'key_rotation' )->andReturn( true );
+		$this->assertTrue( $this->manager->can_run_migration( 'key_rotation' ) );
 	}
 
 	public function test_run_migration_delegates(): void {
 		$result = array( 'success' => true, 'processed' => 50 );
-		$this->statusCalculator->shouldReceive( 'execute' )->with( 'split_cpf_rf', 3 )->andReturn( $result );
+		$this->statusCalculator->shouldReceive( 'execute' )->with( 'key_rotation', 3 )->andReturn( $result );
 
-		$this->assertSame( $result, $this->manager->run_migration( 'split_cpf_rf', 3 ) );
+		$this->assertSame( $result, $this->manager->run_migration( 'key_rotation', 3 ) );
 	}
 
 	public function test_run_migration_default_batch_zero(): void {
 		$result = array( 'success' => true, 'processed' => 50, 'has_more' => true );
-		$this->statusCalculator->shouldReceive( 'execute' )->with( 'split_cpf_rf', 0 )->andReturn( $result );
+		$this->statusCalculator->shouldReceive( 'execute' )->with( 'key_rotation', 0 )->andReturn( $result );
 
-		$this->assertSame( $result, $this->manager->run_migration( 'split_cpf_rf' ) );
+		$this->assertSame( $result, $this->manager->run_migration( 'key_rotation' ) );
 	}
 
 	public function test_rearm_migration_delegates(): void {
@@ -180,8 +179,8 @@ class MigrationManagerTest extends TestCase {
 		// The refusal is the calculator's, and this façade must not translate
 		// it: the handler shows the message to whoever pressed the button.
 		$error = new \WP_Error( 'migration_not_rearmable', 'nope' );
-		$this->statusCalculator->shouldReceive( 'rearm' )->with( 'split_cpf_rf' )->andReturn( $error );
+		$this->statusCalculator->shouldReceive( 'rearm' )->with( 'key_rotation' )->andReturn( $error );
 
-		$this->assertSame( $error, $this->manager->rearm_migration( 'split_cpf_rf' ) );
+		$this->assertSame( $error, $this->manager->rearm_migration( 'key_rotation' ) );
 	}
 }
