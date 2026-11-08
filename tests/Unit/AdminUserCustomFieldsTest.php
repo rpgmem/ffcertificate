@@ -1154,6 +1154,15 @@ class AdminUserCustomFieldsTest extends TestCase {
 		$this->assertStringContainsString('<option value="Sector B"  selected>', $html);
 		$this->assertStringContainsString('ffc-dep-groups', $html);
 		$this->assertStringNotContainsString('type="text"', $html);
+		// The template is shared with the reregistration form (#2530):
+		// a required field marks both selects.
+		$this->assertSame(2, substr_count($html, ' required>'));
+
+		$field->is_required = 0;
+		ob_start();
+		$ref->invokeArgs(null, [$field, 'ffc_cf_30', '']);
+		$optional = (string) ob_get_clean();
+		$this->assertStringNotContainsString(' required', $optional);
 	}
 
 	/**

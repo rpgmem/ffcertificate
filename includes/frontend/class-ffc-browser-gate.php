@@ -189,14 +189,18 @@ class BrowserGate {
 	 * What the request helper (`FFC.request`, in `ffc-core`) reads on a page
 	 * that loads no certificate form: the AJAX URL and the front-end nonce
 	 * the pre-flight telemetry is checked against. Localized onto
-	 * `ffc-core` as `ffc_ajax`, so the helper finds it at load.
+	 * `ffc-core` as `ffc_ajax`, so the helper finds it at load. It also
+	 * carries the PDF overlay's texts, which `ffc-pdf-generator.js` reads
+	 * from `ffc_ajax.strings` on the calendar, receipt and check-in pages.
 	 *
-	 * @return array{ajax_url: string, nonce: string}
+	 * @return array{ajax_url: string, nonce: string, strings: array<string, string>}
 	 */
 	public static function request_config(): array {
 		return array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
 			'nonce'    => wp_create_nonce( 'ffc_frontend_nonce' ),
+			// The PDF overlay reads its texts here on every page (#2526).
+			'strings'  => PdfOverlayStrings::all(),
 		);
 	}
 }

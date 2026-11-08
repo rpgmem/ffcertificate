@@ -659,8 +659,9 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = $this->renderInput( $field, json_encode( array( 'parent' => 'North', 'child' => 'N2' ) ) );
 
-		$this->assertStringContainsString( '<label>Region</label>', $html );
-		$this->assertStringContainsString( '<label>School</label>', $html );
+		$this->assertStringContainsString( '<label for="fid-parent">Region</label>', $html );
+		$this->assertStringContainsString( '<label for="fid-child">School</label>', $html );
+		$this->assertStringContainsString( '<select id="fid-parent" class="ffc-dep-parent">', $html, 'An optional pair carries no required.' );
 		$this->assertStringContainsString( "<option value=\"North\"  selected='selected'>North</option>", $html );
 		$this->assertStringContainsString( "<option value=\"N2\"  selected='selected'>N2</option>", $html );
 		$this->assertStringNotContainsString( 'value="S1"', $html, 'Only the chosen parent\'s children are listed.' );
@@ -676,9 +677,24 @@ class ReregistrationFormRendererTest extends TestCase {
 
 		$html = $this->renderInput( $field, '' );
 
-		$this->assertStringContainsString( '<label>Category</label>', $html );
-		$this->assertStringContainsString( '<label>Subcategory</label>', $html );
+		$this->assertStringContainsString( '<label for="fid-parent">Category</label>', $html );
+		$this->assertStringContainsString( '<label for="fid-child">Subcategory</label>', $html );
 		$this->assertStringNotContainsString( 'value="N1"', $html, 'No parent chosen, so no child is listed.' );
+	}
+
+	public function test_render_input_required_dependent_select_marks_both_selects_required(): void {
+		$this->stubRealSelectedAndChecked();
+		$field = $this->makeField( array(
+			'field_key'     => 'unit',
+			'field_type'    => 'dependent_select',
+			'field_options' => json_encode( array( 'groups' => array( 'North' => array( 'N1' ) ) ) ),
+		) );
+
+		$html = $this->renderInput( $field, '', true );
+
+		// #2530: each select is named by its label and stops an empty submit.
+		$this->assertStringContainsString( '<select id="fid-parent" class="ffc-dep-parent" required>', $html );
+		$this->assertStringContainsString( '<select id="fid-child" class="ffc-dep-child" required>', $html );
 	}
 
 	public function test_render_input_working_hours_renders_stored_rows(): void {

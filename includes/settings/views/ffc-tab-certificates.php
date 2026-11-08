@@ -217,7 +217,7 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 		?>
 	</p>
 	<p class="description">
-		<?php esc_html_e( 'A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field; {{schedule}} is asked only of a form that has an Event Schedule.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'A name takes lowercase letters, digits and underscores. Email is always required in the form: the certificate is sent to it. {{auth_code}} is always required in the certificate HTML: verification depends on it. A tag the plugin fills in itself, such as {{schedule}}, has no form field. {{schedule}} prints nothing on a form without an Event Schedule, and every shipped certificate model carries it.', 'ffcertificate' ); ?>
 	</p>
 </div>
 
