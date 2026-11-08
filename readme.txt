@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.4
-Stable tag: 6.44.0
+Stable tag: 6.44.1
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -283,8 +283,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.44.0 =
-⚠ The Activity Log turns on with UTC times, destructive settings need the Danger Zone capability, a captcha is bound to its form, short URLs default to 302 and deleting a date-message rule takes its own capability. New: sessions on personal calendars, a Messages tab.
+= 6.44.1 =
+Fixes only. No screen opens the browser's alert, confirm or prompt any more: questions and results use the plugin's own dialogs and notices. Also: audience calendar days by keyboard, consent without an empty link, a second public CSV download, pt_BR wording.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
