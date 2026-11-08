@@ -313,6 +313,40 @@ describe('ffc-audience-calendar — renderCalendar grid', () => {
 		expect(window.$('#ffc-calendar-days .ffc-day').length).toBe(42);
 	});
 
+	it('makes each day of the month a named button with one tab stop, and moves by keyboard (#2528)', async () => {
+		// June of next year: no day is past, whatever the clock reads.
+		const Y = new Date().getFullYear() + 1;
+		api.state.config = { schedules: [] };
+		api.state.currentDate = new Date(Y, 5, 1);
+		window.FFC.rest.mockResolvedValue({
+			bookings: [],
+			holidays: [{ holiday_date: Y + '-06-10', description: 'Feriado' }],
+			closed_weekdays: [],
+		});
+		api.renderCalendar();
+		await flush();
+
+		const $days = window.$('#ffc-calendar-days .ffc-day[data-ffc-focusable]');
+		expect($days.length).toBe(30);
+		expect(window.$('#ffc-calendar-days .ffc-day.ffc-other-month[role]').length).toBe(0);
+		expect($days.first().attr('role')).toBe('button');
+		expect($days.first().attr('aria-label')).toBe('1 June ' + Y);
+		expect($days.filter('[tabindex="0"]').length).toBe(1);
+		expect(window.$('.ffc-day[data-date="' + Y + '-06-10"]').attr('aria-disabled')).toBe('true');
+
+		const clicks = [];
+		window.$('#ffc-calendar-days').on('click', '.ffc-day', function () { clicks.push(window.$(this).data('date')); });
+		const $first = window.$('.ffc-day[data-date="' + Y + '-06-01"]');
+		$first.trigger(window.$.Event('keydown', { key: 'ArrowRight' }));
+		expect(window.$('.ffc-day[data-date="' + Y + '-06-02"]').attr('tabindex')).toBe('0');
+		expect($first.attr('tabindex')).toBe('-1');
+		expect(document.activeElement).toBe(window.$('.ffc-day[data-date="' + Y + '-06-02"]')[0]);
+
+		window.$('.ffc-day[data-date="' + Y + '-06-10"]').trigger(window.$.Event('keydown', { key: 'Enter' }));
+		window.$('.ffc-day[data-date="' + Y + '-06-11"]').trigger(window.$.Event('keydown', { key: ' ' }));
+		expect(clicks).toEqual([Y + '-06-11']);
+	});
+
 	it('marks holiday + closed days and renders their badges', async () => {
 		api.state.config = { schedules: [] };
 		api.state.currentDate = new Date(2026, 5, 1);
