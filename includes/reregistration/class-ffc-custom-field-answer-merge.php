@@ -5,7 +5,7 @@
  * Moves the answers stored under an audience's own copy of a field onto the
  * field every audience now inherits (#2502).
  *
- * @since   6.43.0
+ * @since   6.44.0
  * @package FreeFormCertificate\Reregistration
  */
 

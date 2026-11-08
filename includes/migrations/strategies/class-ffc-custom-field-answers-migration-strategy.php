@@ -14,7 +14,7 @@
  * changed (#1378); `processed` counts the rows that changed.
  *
  * @package FreeFormCertificate\Migrations\Strategies
- * @since 6.43.0
+ * @since 6.44.0
  */
 
 declare(strict_types=1);

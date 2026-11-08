@@ -272,8 +272,8 @@ O histórico completo de cada versão fica em [CHANGELOG.md](CHANGELOG.md), em i
 
 == Upgrade Notice ==
 
-= 6.43.0 =
-⚠ Quatro funções de Encryption foram removidas, a rota de PDF do operador exige ffc_view_certificates_pii e GET /candidates/{id} devolve pcd por classificação. Novo: séries semanais de público, presença e bloqueios no calendário pessoal, motivos de revisão no recadastramento, endereço pelo CEP.
+= 6.44.0 =
+⚠ O registro de atividades liga com horários em UTC, ajustes destrutivos exigem a capacidade da Zona de Perigo, o captcha vale só para o seu formulário, URLs curtas usam 302 e excluir uma regra de mensagem exige capacidade própria. Novo: sessões nos calendários pessoais e a aba Mensagens.
 
 Esta seção resume só a versão oferecida — o atualizador nunca oferece uma versão anterior. O que mudou em cada versão, e as issues de cada mudança, está em [CHANGELOG.md](CHANGELOG.md).
 

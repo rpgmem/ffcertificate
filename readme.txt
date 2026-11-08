@@ -3,7 +3,7 @@ Contributors: alexmeusburger
 Tags: certificate, form builder, pdf generation, verification, validation
 Requires at least: 6.8
 Tested up to: 7.1.4
-Stable tag: 6.43.0
+Stable tag: 6.44.0
 Requires PHP: 8.3
 License: AGPLv3 or later
 License URI: https://www.gnu.org/licenses/agpl-3.0.html
@@ -283,8 +283,8 @@ now CHANGELOG.md alone.
 
 == Upgrade Notice ==
 
-= 6.43.0 =
-⚠ Four Encryption helpers are removed, the operator PDF route needs ffc_view_certificates_pii, and GET /candidates/{id} returns pcd per classification. New: weekly audience series, personal-calendar attendance and blocked dates, reregistration review reasons, address from CEP.
+= 6.44.0 =
+⚠ The Activity Log turns on with UTC times, destructive settings need the Danger Zone capability, a captcha is bound to its form, short URLs default to 302 and deleting a date-message rule takes its own capability. New: sessions on personal calendars, a Messages tab.
 
 This section carries a short summary of the version being offered, and only
 that one — the updater never offers an older release, so an entry for one
