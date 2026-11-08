@@ -188,7 +188,7 @@ msgstr "Existem restrições de chave estrangeira %1$d de %2$d"
 #: includes/frontend/class-ffc-frontend.php:495
 #, php-format
 msgid "%1$d of %2$d used"
-msgstr "%1$d de%2$d usado"
+msgstr "%1$d de %2$d usado"
 
 #. 1: number of moved submissions, 2: target form title
 #: includes/admin/class-ffc-admin.php:457
@@ -1602,7 +1602,7 @@ msgstr "Todos"
 #: includes/audience/class-ffc-audience-admin-bookings.php:137 includes/audience/class-ffc-audience-shortcode.php:270
 #, php-format
 msgid "All %s"
-msgstr "Todos os %s"
+msgstr "Exibir tudo (%s)"
 
 #: includes/admin/views/ffc-admin-activity-log.php:44
 msgid "All Actions"
@@ -13548,7 +13548,7 @@ msgstr "Pré-visualização das postagens afetadas"
 
 #: includes/frontend/class-ffc-frontend.php:515
 msgid "Preview Certificate"
-msgstr "Previa do Certificado"
+msgstr "Prévia do Certificado"
 
 #: includes/settings/views/documentation/forms-public-operator-access.php:38
 msgid "Preview certificate"
@@ -20306,7 +20306,7 @@ msgstr "Seu navegador não suporta geolocalização."
 #. what doesn't happen is matching against any allow-list.
 #: includes/frontend/class-ffc-public-csv-download.php:261
 msgid "Your CPF is required for traceability and is recorded in this form's audit log (encrypted at rest). It is not validated against any allow-list."
-msgstr "Seu CPF é necessário para será registrado (criptografado) para auditoria deste formulário. Ele não será validado em nenhuma lista de permissões."
+msgstr "Seu CPF é necessário para rastreabilidade e fica registrado no log de auditoria deste formulário (criptografado). Ele não é conferido em nenhuma lista de permissões."
 
 #: includes/frontend/class-ffc-access-restriction-checker.php:98
 msgid "This CPF/RF cannot use this form. If you think this is a mistake, contact whoever sent you the form."
