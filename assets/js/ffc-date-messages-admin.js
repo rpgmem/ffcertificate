@@ -17,10 +17,27 @@ jQuery(function ($) {
 	var strings = cfg.strings || {};
 	var labels = cfg.decisions || {};
 
+	// Asked in the plugin's dialog (#2535); on yes the form is sent again,
+	// through the button that sent it, so its name and value still post.
 	$(document).on('submit', 'form[data-ffc-confirm]', function (e) {
-		if (!window.confirm(String($(this).data('ffc-confirm')))) {
-			e.preventDefault();
+		var form = this;
+		if (form.getAttribute('data-ffc-confirmed') === '1') {
+			form.removeAttribute('data-ffc-confirmed');
+			return;
 		}
+		e.preventDefault();
+		var submitter = e.originalEvent && e.originalEvent.submitter;
+		window.FFC.confirmDialog({ message: String($(form).data('ffc-confirm')), category: 'danger', icon: 'delete' }).then(function (agreed) {
+			if (!agreed) {
+				return;
+			}
+			form.setAttribute('data-ffc-confirmed', '1');
+			if (typeof form.requestSubmit === 'function') {
+				form.requestSubmit(submitter || undefined);
+			} else {
+				form.submit();
+			}
+		});
 	});
 
 	initAppearance();
@@ -148,11 +165,21 @@ jQuery(function ($) {
 			// edited text is the operator's work, replaced only when they say
 			// so (#2336).
 			var untouched = $subject.val() === from.subject && same(getBody(), from.body);
-			if (!untouched && !window.confirm(String(strings.kindReplace || 'Replace the subject and the message with the default text of this kind? Your changes will be lost.'))) {
+			if (untouched) {
+				$subject.val(to.subject);
+				setBody(to.body);
 				return;
 			}
-			$subject.val(to.subject);
-			setBody(to.body);
+			window.FFC.confirmDialog({
+				message: String(strings.kindReplace || 'Replace the subject and the message with the default text of this kind? Your changes will be lost.'),
+				category: 'caution',
+				icon: 'restore'
+			}).then(function (agreed) {
+				if (agreed) {
+					$subject.val(to.subject);
+					setBody(to.body);
+				}
+			});
 		});
 	}
 
@@ -282,10 +309,12 @@ jQuery(function ($) {
 				.replace('%1$s', name)
 				.replace('%2$s', range)
 				.replace('%3$s', null === count ? '?' : String(count));
-			if (window.confirm(text)) {
-				form.setAttribute('data-ffc-dm-confirmed', '1');
-				form.submit();
-			}
+			window.FFC.confirmDialog({ message: text, confirmLabel: strings.send || '', icon: 'send' }).then(function (agreed) {
+				if (agreed) {
+					form.setAttribute('data-ffc-dm-confirmed', '1');
+					form.submit();
+				}
+			});
 		}
 
 		window.FFC.request(cfg.previewAction, savedPayload($box), { nonce: cfg.previewNonce, ajaxUrl: cfg.ajaxUrl })

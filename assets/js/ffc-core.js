@@ -1877,11 +1877,31 @@
             // The module itself, not window.FFC: a page or a test may replace the global.
             core.showPendingNotice();
 
-            // Delegated confirm dialog for destructive actions
+            // Delegated confirm for destructive actions, in the plugin's dialog
+            // (#2535). A script that asks for its own element has already
+            // prevented the default by the time this runs, so it is left alone.
+            // On yes the click is replayed once, so a link follows its href and
+            // a submit button sends its form with its own name and value.
             $(document).on('click', '[data-confirm]', function(e) {
-                if (!confirm($(this).attr('data-confirm'))) {
-                    e.preventDefault();
+                var el = this;
+                if (e.isDefaultPrevented()) {
+                    return;
                 }
+                if (el.getAttribute('data-ffc-confirmed') === '1') {
+                    el.removeAttribute('data-ffc-confirmed');
+                    return;
+                }
+                e.preventDefault();
+                core.confirmDialog({
+                    message: el.getAttribute('data-confirm') || '',
+                    category: el.getAttribute('data-confirm-category') || 'danger',
+                    icon: el.getAttribute('data-confirm-icon') || 'delete'
+                }).then(function(agreed) {
+                    if (agreed) {
+                        el.setAttribute('data-ffc-confirmed', '1');
+                        el.click();
+                    }
+                });
             });
         });
     }

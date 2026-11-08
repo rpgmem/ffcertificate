@@ -134,7 +134,7 @@
 
     // A permanent delete asks first, in the plugin's dialog (#2535).
     function askToDelete(message, action, ids) {
-        return window.FFC.confirmDialog({ message: message, category: 'danger', icon: 'trash' }).then(function (agreed) {
+        return window.FFC.confirmDialog({ message: message, category: 'danger', icon: 'delete' }).then(function (agreed) {
             if (agreed) {
                 dispatch(action, ids);
             }

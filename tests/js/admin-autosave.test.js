@@ -675,41 +675,47 @@ describe('FFC.Admin.autoSaveField — extra branches', () => {
 // ----------------------------------------------------------------------
 
 describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
-	it('declining the prompt reverts the toggle and cancels the save', () => {
+	it('declining the dialog reverts the toggle and cancels the save', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_recruitment_enabled', confirmOff: 'Disable?' });
 
-		// User turns the toggle OFF → confirm fires; declined → revert, no save.
+		// User turns the toggle OFF → the plugin dialog asks; declined → revert, no save.
 		window.$('#t').prop('checked', false).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
-		expect(confirmSpy).toHaveBeenCalledWith('Disable?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Disable?', category: 'caution' });
 		expect(window.$('#t').is(':checked')).toBe(true);
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('accepting the prompt proceeds with the save', () => {
+	it('accepting the dialog proceeds with the save', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_recruitment_enabled', confirmOff: 'Disable?' });
 
 		window.$('#t').prop('checked', false).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
 		expect(postSpy).toHaveBeenCalledTimes(1);
 		expect(postSpy.mock.calls[0][1].value).toBe('0');
 	});
 
-	it('turning the toggle ON never prompts', () => {
+	it('turning the toggle ON never asks', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'module_x_enabled', confirmOff: 'Disable?' });
 
 		window.$('#t').prop('checked', true).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
 		expect(confirmSpy).not.toHaveBeenCalled();
@@ -717,7 +723,7 @@ describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
 		expect(postSpy.mock.calls[0][1].value).toBe('1');
 	});
 
-	it('bootAutoSaveFields reads data-ffc-confirm-off into config.confirmOff', () => {
+	it('bootAutoSaveFields reads data-ffc-confirm-off into config.confirmOff', async () => {
 		document.body.innerHTML =
 			'<input type="checkbox" data-ffc-autosave-key="module_recruitment_enabled" data-ffc-confirm-off="Disable Recruitment?">';
 		const spy = vi.spyOn(window.FFC.Admin, 'autoSaveField').mockImplementation(() => ({ destroy: () => {} }));
@@ -731,27 +737,31 @@ describe('FFC.Admin.autoSaveField — confirmOff gate', () => {
 });
 
 describe('FFC.Admin.autoSaveField — confirmOn gate (#2338)', () => {
-	it('declining the prompt when turning ON reverts the toggle and cancels the save', () => {
+	it('declining the dialog when turning ON reverts the toggle and cancels the save', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
 
 		window.$('#t').prop('checked', true).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
-		expect(confirmSpy).toHaveBeenCalledWith('Delete old data?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Delete old data?', category: 'caution' });
 		expect(window.$('#t').is(':checked')).toBe(false);
 		expect(postSpy).not.toHaveBeenCalled();
 	});
 
-	it('turning it OFF never prompts', () => {
+	it('turning it OFF never asks', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" checked />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
 
 		window.$('#t').prop('checked', false).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
 		expect(confirmSpy).not.toHaveBeenCalled();
@@ -759,13 +769,15 @@ describe('FFC.Admin.autoSaveField — confirmOn gate (#2338)', () => {
 		expect(postSpy.mock.calls[0][1].value).toBe('0');
 	});
 
-	it('accepting the prompt when turning ON saves', () => {
+	it('accepting the dialog when turning ON saves', async () => {
 		document.body.innerHTML = '<input type="checkbox" id="t" />';
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => makeChain(() => ({ success: true, data: {} })));
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		window.FFC.Admin.autoSaveField(window.$('#t'), { key: 'cleanup_enabled', confirmOn: 'Delete old data?' });
 
 		window.$('#t').prop('checked', true).trigger('change');
+		await Promise.resolve();
+		await Promise.resolve();
 		vi.advanceTimersByTime(400);
 
 		expect(postSpy).toHaveBeenCalledTimes(1);

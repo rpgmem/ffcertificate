@@ -94,7 +94,7 @@ jQuery(document).ready(function($) {
         return FFC.confirmDialog({
             message: $(this).data('confirm'),
             category: 'danger',
-            icon: 'cross'
+            icon: 'unlink'
         }).then(function(agreed) {
             if (!agreed) {
                 return;

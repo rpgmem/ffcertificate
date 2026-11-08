@@ -361,21 +361,22 @@
          * take a feature offline.
          */
         function onChange() {
-            if (config.confirmOff && $field.is(':checkbox') && !$field.is(':checked')) {
-                if (!window.confirm(config.confirmOff)) {
-                    $field.prop('checked', true);
-                    return;
-                }
-            }
+            var turningOff = $field.is(':checkbox') && !$field.is(':checked');
             // The mirror case (#2338): a toggle whose ON deletes data, such
             // as submission auto-delete, asks before it saves.
-            if (config.confirmOn && $field.is(':checkbox') && $field.is(':checked')) {
-                if (!window.confirm(config.confirmOn)) {
-                    $field.prop('checked', false);
-                    return;
-                }
+            var question = turningOff ? config.confirmOff : ($field.is(':checkbox') ? config.confirmOn : '');
+            if (!question) {
+                scheduleSave();
+                return;
             }
-            scheduleSave();
+            // Asked in the plugin's dialog (#2535); No puts the switch back.
+            window.FFC.confirmDialog({ message: question, category: 'caution', icon: turningOff ? 'cross' : 'checkmark' }).then(function (agreed) {
+                if (agreed) {
+                    scheduleSave();
+                } else {
+                    $field.prop('checked', turningOff);
+                }
+            });
         }
 
         // For multi-checkbox groups the change event must fire from any

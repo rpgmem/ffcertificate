@@ -98,7 +98,7 @@
 			var message = globals.confirmReset ||
 				'Discard this form’s custom email text and use the shared global default instead?';
 			var $box = $( this );
-			window.FFC.confirmDialog( { message: message, category: 'caution', icon: 'refresh' } ).then( function ( agreed ) {
+			window.FFC.confirmDialog( { message: message, category: 'caution', icon: 'restore' } ).then( function ( agreed ) {
 				if ( agreed ) {
 					showGlobal();
 				} else {

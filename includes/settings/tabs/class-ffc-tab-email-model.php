@@ -72,7 +72,7 @@ class TabEmailModel extends SettingsTab {
 		wp_enqueue_script(
 			'ffc-email-model',
 			FFC_PLUGIN_URL . "assets/js/ffc-email-model{$s}.js",
-			array( 'jquery', 'wp-color-picker' ),
+			array( 'jquery', 'wp-color-picker', 'ffc-core' ),
 			FFC_VERSION,
 			true
 		);

@@ -382,7 +382,7 @@
                 FFC.confirmDialog({
                     message: ffcDashboard.strings.confirmDeletion || 'Are you sure?',
                     category: 'danger',
-                    icon: 'trash'
+                    icon: 'delete'
                 }).then(function (agreed) {
                     if (agreed) privacyRequest('remove_personal_data');
                 });

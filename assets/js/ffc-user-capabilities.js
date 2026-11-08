@@ -167,13 +167,13 @@
 			.then(function (r) { return r.json(); })
 			.then(function (res) {
 				chip.disabled = false;
-				if (!res || !res.success) { window.alert(roleErrorMessage(res)); return; }
+				if (!res || !res.success) { window.FFC.adminNotice('danger', roleErrorMessage(res)); return; }
 				if (willAssign) { assigned.add(role); } else { assigned.delete(role); }
 				chip.classList.toggle('is-on', willAssign);
 				chip.setAttribute('aria-pressed', willAssign ? 'true' : 'false');
 				recompute(panel);
 			})
-			.catch(function () { chip.disabled = false; window.alert(i18n.errNetwork || i18n.error || 'Error'); });
+			.catch(function () { chip.disabled = false; window.FFC.adminNotice('danger', i18n.errNetwork || i18n.error || 'Error'); });
 	}
 
 	function applyPreset(panel, grant) {
