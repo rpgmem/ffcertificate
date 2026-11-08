@@ -493,6 +493,9 @@ class AudienceAdminBookingsRenderTest extends TestCase {
 		$this->assertStringContainsString( 'id="ffc-bookings-select-all"', $output );
 		$this->assertSame( 1, substr_count( $output, 'class="ffc-bookings-select"' ), 'A cancelled booking has nothing to tick.' );
 		$this->assertStringContainsString( 'value="101"', $output );
+		// A cancellation's result is said above the list, in a live region
+		// printed empty, where an alert() and a reload used to be (#2534).
+		$this->assertMatchesRegularExpression( '#<hr class="wp-header-end">\s*<div class="ffc-bookings-status" id="ffc-bookings-status" aria-live="polite"></div>#', $output );
 
 		$this->held_caps = array( 'ffc_view_audiences' );
 		ob_start();

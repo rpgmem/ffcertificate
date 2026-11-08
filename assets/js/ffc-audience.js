@@ -43,7 +43,7 @@
         bookingCreated: 'Booking created successfully!',
         bookingCancelled: 'Booking cancelled successfully.',
         confirmCancel: 'Are you sure you want to cancel this booking?',
-        cancelReason: 'Please provide a reason for cancellation:',
+        cancelReasonLabel: 'Cancel Reason',
         invalidTime: 'End time must be after start time.',
         selectAudience: 'Please select at least one audience.',
         selectUser: 'Please select at least one user.',
@@ -342,6 +342,30 @@
                     first.focus();
                 }
             });
+        },
+
+        /**
+         * Say the outcome of an action on the page, where an `alert()` used
+         * to block it (#2534).
+         *
+         * The host is printed empty with the markup and is a polite live
+         * region, so the notice put in it is announced. An error is a danger
+         * notice with `role="alert"`; anything else is a success.
+         *
+         * @param {string}  host    Selector of the host (`#ffc-audience-status`).
+         * @param {string}  tone    `danger` or `success`.
+         * @param {string}  message What happened.
+         */
+        announce: function(host, tone, message) {
+            var $host = $(host);
+            if (!$host.length || !message) {
+                return;
+            }
+            var danger = tone === 'danger';
+            $host
+                .empty()
+                .append(FFC.notice(danger ? 'danger' : 'success', '', String(message), '', { role: danger ? 'alert' : 'status' }))
+                .prop('hidden', false);
         },
 
         /**

@@ -443,7 +443,6 @@ class AudienceLoader {
 			'invalidTime'        => __( 'End time must be after start time.', 'ffcertificate' ),
 			'allEnvironments'    => __( 'All Environments', 'ffcertificate' ),
 			'environmentLabel'   => __( 'Environment', 'ffcertificate' ),
-			'cancelReason'       => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
 			'bookingCancelled'   => __( 'Booking cancelled successfully.', 'ffcertificate' ),
 			'bookingDetails'     => __( 'Booking Details', 'ffcertificate' ),
 			'date'               => __( 'Date', 'ffcertificate' ),

@@ -272,6 +272,8 @@ class AudienceShortcode {
 		?>
 		<div class="<?php echo esc_attr( $wrapper_class ); ?>">
 		<div class="ffc-shortcode ffc-audience-calendar" id="ffc-audience-calendar" data-config="<?php echo esc_attr( $config_json ? $config_json : '' ); ?>">
+			<!-- What a booking or a cancellation did (#2534): a live region, empty until then. -->
+			<div class="ffc-audience-status" id="ffc-audience-status" aria-live="polite"></div>
 			<!-- Header -->
 			<div class="ffc-calendar-header">
 				<div class="ffc-calendar-nav">
@@ -638,6 +640,7 @@ class AudienceShortcode {
 					?>
 				</div>
 				<div class="ffc-modal-body">
+					<div class="ffc-day-status" id="ffc-day-status" aria-live="polite"></div>
 					<div class="ffc-day-filter">
 						<label>
 							<input type="checkbox" id="ffc-show-cancelled">
@@ -1062,7 +1065,7 @@ class AudienceShortcode {
 						'bookingCancelled'       => __( 'Booking cancelled successfully.', 'ffcertificate' ),
 						'confirmCancel'          => __( 'Are you sure you want to cancel this booking?', 'ffcertificate' ),
 						'cancelConfirm'          => AudienceBookingRules::cancel_strings(),
-						'cancelReason'           => __( 'Please provide a reason for cancellation:', 'ffcertificate' ),
+						'cancelReasonLabel'      => __( 'Cancel Reason', 'ffcertificate' ),
 						'invalidTime'            => __( 'End time must be after start time.', 'ffcertificate' ),
 						'fillTimeFields'         => __( 'Please fill in the time fields.', 'ffcertificate' ),
 						'selectAudience'         => __( 'Please select at least one audience.', 'ffcertificate' ),
