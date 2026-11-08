@@ -63,7 +63,7 @@ describe('blocked dates tab', () => {
 	});
 
 	it('posts the block and reloads when nothing needed confirming', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const flash = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
 		const reqSpy = vi.spyOn(window.FFC, 'request').mockResolvedValue({ message: 'Blocked.' });
 
 		window.$('#ffc-block-add').trigger('click');
@@ -73,11 +73,12 @@ describe('blocked dates tab', () => {
 		expect(reqSpy.mock.calls[0][0]).toBe('ffc_calendar_block_add');
 		expect(reqSpy.mock.calls[0][1]).toMatchObject({ post_id: 20, block_type: 'full_day', start_date: '2032-05-20', reason: 'Flooding' });
 		expect(reqSpy.mock.calls[0][2]).toEqual({ nonce: 'blocks-nonce' });
-		expect(alertSpy).toHaveBeenCalledWith('Blocked.');
+		// The result survives the reload as a notice (#2535).
+		expect(flash).toHaveBeenCalledWith('success', 'Blocked.');
 	});
 
 	it('asks with the count in the cleanup dialog and resends with it on confirm', async () => {
-		vi.spyOn(window, 'alert').mockImplementation(() => {});
+		const flash = vi.spyOn(window.FFC, 'reloadWithNotice').mockImplementation(() => {});
 		const reqSpy = vi.spyOn(window.FFC, 'request')
 			.mockResolvedValueOnce({ needs_confirm: true, count: 3, notify: true, title: 'Clinic' })
 			.mockResolvedValueOnce({ message: 'Blocked. 3 appointments were cancelled.' });
@@ -94,6 +95,7 @@ describe('blocked dates tab', () => {
 
 		expect(reqSpy).toHaveBeenCalledTimes(2);
 		expect(reqSpy.mock.calls[1][1]).toMatchObject({ confirm: '1', expected: 3 });
+		expect(flash).toHaveBeenCalledWith('success', 'Blocked. 3 appointments were cancelled.');
 	});
 
 	it('sends nothing more when the dialog is dismissed', async () => {
@@ -111,7 +113,6 @@ describe('blocked dates tab', () => {
 	});
 
 	it('shows the refusal the server put in the response body', async () => {
-		const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 		const err = new Error('Connection error');
 		err.fromServer = false;
 		err.data = { message: 'The calendar already blocks this date or time.' };
@@ -120,18 +121,22 @@ describe('blocked dates tab', () => {
 		window.$('#ffc-block-add').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('The calendar already blocks this date or time.');
+		const notice = document.querySelector('#ffc-admin-status .ffc-notice');
+		expect(notice.getAttribute('role')).toBe('alert');
+		expect(notice.textContent).toContain('The calendar already blocks this date or time.');
 	});
 
 	it('removes a block only after the confirmation', async () => {
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValueOnce(Promise.resolve(false)).mockReturnValueOnce(Promise.resolve(true));
 		const reqSpy = vi.spyOn(window.FFC, 'request').mockReturnValue(new Promise(() => {}));
 
 		window.$('.ffc-block-delete').trigger('click');
+		await flush();
 		expect(reqSpy).not.toHaveBeenCalled();
 		window.$('.ffc-block-delete').trigger('click');
+		await flush();
 
-		expect(confirmSpy).toHaveBeenCalledWith('Remove this block?');
+		expect(dialog.mock.calls[0][0]).toMatchObject({ message: 'Remove this block?', category: 'danger' });
 		expect(reqSpy).toHaveBeenCalledWith('ffc_calendar_block_delete', { post_id: 20, block_id: 9 }, { nonce: 'blocks-nonce' });
 	});
 });

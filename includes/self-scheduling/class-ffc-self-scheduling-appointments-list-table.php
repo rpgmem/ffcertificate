@@ -230,9 +230,13 @@ class AppointmentsListTable extends \WP_List_Table {
 					'href'     => '#',
 					'class'    => 'ffc-appointment-cancel',
 					'attrs'    => array(
-						'data-cancel-url' => $cancel_url,
-						'data-prompt'     => __( 'Please provide a reason for cancellation (minimum 5 characters):', 'ffcertificate' ),
-						'data-too-short'  => __( 'The reason needs at least 5 characters. Nothing was cancelled.', 'ffcertificate' ),
+						'data-cancel-url'    => $cancel_url,
+						// The reason is asked in the plugin's dialog (#2535).
+						'data-title'         => __( 'Cancel appointment', 'ffcertificate' ),
+						'data-question'      => __( 'Cancel this appointment? The record stays, marked as cancelled.', 'ffcertificate' ),
+						'data-confirm-label' => __( 'Cancel appointment', 'ffcertificate' ),
+						'data-prompt'        => __( 'Cancellation reason', 'ffcertificate' ),
+						'data-hint'          => __( 'At least 5 characters.', 'ffcertificate' ),
 					),
 				)
 			);

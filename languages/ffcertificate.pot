@@ -13252,10 +13252,6 @@ msgstr ""
 msgid "Please pick valid times (HH:MM)."
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:165
-msgid "Please provide a reason for cancellation (minimum 5 characters):"
-msgstr ""
-
 #: templates/emails/audience-cancellation.php:35
 msgid "Please remove this event from your calendar."
 msgstr ""
@@ -30758,10 +30754,6 @@ msgstr ""
 msgid "Leave waitlist"
 msgstr ""
 
-#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php:208
-msgid "The reason needs at least 5 characters. Nothing was cancelled."
-msgstr ""
-
 #: includes/api/class-ffc-user-appointments-rest-controller.php:209
 msgid "This calendar does not take cancellations online. Contact the organiser to cancel."
 msgstr ""
@@ -30786,7 +30778,7 @@ msgid "A waitlisted appointment is labelled Waitlisted and offers Leave waitlist
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
-msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, a cancellation reason shorter than five characters is refused with a message instead of being dropped."
+msgid "The person's cancellation e-mail carries the reason they typed, and the cancellation link's confirmation promises an e-mail only when the calendar sends one. On the Appointments list, Cancel asks the reason in the plugin's dialog, whose button stays off until the reason holds five characters."
 msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:65
@@ -33828,4 +33820,12 @@ msgstr ""
 
 #: includes/settings/views/documentation/scheduling-audiences.php
 msgid "\"Text for users\", in the same card, is shown on the dashboard under \"Join Groups\", right below the line that states the cap: what the groups are for, how to choose, whom to ask. Basic HTML is allowed (links, bold, lists); left empty, nothing is shown."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "Cancel this appointment? The record stays, marked as cancelled."
+msgstr ""
+
+#: includes/self-scheduling/class-ffc-self-scheduling-appointments-list-table.php
+msgid "At least 5 characters."
 msgstr ""

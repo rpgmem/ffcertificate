@@ -159,11 +159,18 @@ final class NativeDialogRatchetTest extends TestCase {
 			'assets/js/ffc-reregistration-frontend.js',
 			'assets/js/ffc-self-scheduling-receipt.js',
 			'assets/js/ffc-pdf-generator.js',
+			// The scheduling screens (#2535).
+			'assets/js/ffc-calendar-editor.js',
+			'assets/js/ffc-self-scheduling-admin-appointments.js',
+			'assets/js/ffc-audience-admin.js',
+			'assets/js/ffc-geofence-admin.js',
+			'assets/js/ffc-locations-crud.js',
+			'includes/audience/class-ffc-audience-admin-audience-renderer.php',
+			'templates/admin/audience/general-tab.php',
 		);
 		foreach ( $clear as $file ) {
 			$this->assertArrayNotHasKey( $file, $found, $file . ' opens a native dialog again.' );
 		}
-		$this->assertArrayNotHasKey( 'prompt', $found['assets/js/ffc-audience-admin.js'] ?? array(), 'The admin cancellation asks its reason in a prompt() again.' );
 	}
 
 	/**

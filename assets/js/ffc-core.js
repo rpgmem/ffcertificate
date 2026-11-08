@@ -38,6 +38,9 @@
 
     var fieldMessageCount = 0;
 
+    // The sessionStorage key of the notice reloadWithNotice() leaves for the next page.
+    var FLASH_KEY = 'ffc-pending-notice';
+
     /**
      * The message id for a control: `ffc-msg-` plus its id, else its name,
      * with anything an id cannot hold turned into a hyphen — the rule
@@ -1190,6 +1193,58 @@
         },
 
         /**
+         * Reload the screen and say an outcome on the reloaded page (#2535):
+         * the replacement for `alert(message); location.reload();`, where the
+         * alert was the only way the result survived the reload.
+         *
+         * The notice waits in `sessionStorage` and `adminNotice()` shows it
+         * once the next page of this tab is ready. Without storage the page
+         * still reloads, and what it shows is the result.
+         *
+         * @param {string} tone     danger | warning | success | info.
+         * @param {string} message  What happened.
+         * @return {void}
+         */
+        reloadWithNotice: function(tone, message) {
+            if (message) {
+                try {
+                    window.sessionStorage.setItem(FLASH_KEY, JSON.stringify({ tone: tone, message: String(message) }));
+                } catch (e) {
+                    // No storage: the reloaded page carries the result.
+                }
+            }
+            window.location.reload();
+        },
+
+        /**
+         * Show the notice `reloadWithNotice()` left for this page, once.
+         *
+         * @return {HTMLElement|null} The notice, if one was waiting.
+         */
+        showPendingNotice: function() {
+            var raw = null;
+            try {
+                raw = window.sessionStorage.getItem(FLASH_KEY);
+                window.sessionStorage.removeItem(FLASH_KEY);
+            } catch (e) {
+                return null;
+            }
+            if (!raw) {
+                return null;
+            }
+            var flash;
+            try {
+                flash = JSON.parse(raw);
+            } catch (e) {
+                return null;
+            }
+            if (!flash || typeof flash.message !== 'string') {
+                return null;
+            }
+            return this.adminNotice(String(flash.tone || 'info'), flash.message);
+        },
+
+        /**
          * The override warning (#1859): one dialog listing every rule a
          * booking breaks, with an "I agree" button that stays disabled for a
          * countdown.
@@ -1819,6 +1874,8 @@
         console.warn('[FFC Core] jQuery not found. Some features may not work.');
     } else {
         jQuery(function($) {
+            window.FFC.showPendingNotice();
+
             // Delegated confirm dialog for destructive actions
             $(document).on('click', '[data-confirm]', function(e) {
                 if (!confirm($(this).attr('data-confirm'))) {

@@ -145,6 +145,24 @@ jQuery(document).ready(function($) {
         }
     }
 
+    // The live region that says why a method switch came back on: created
+    // once, right after the IP switch's row.
+    function geoMethodsNotice() {
+        var host = document.getElementById('ffc-geo-methods-notice');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'ffc-geo-methods-notice';
+            host.setAttribute('aria-live', 'polite');
+            var $anchor = $('input[name="ffc_geofence[geo_ip_enabled]"]').closest('td, p, div');
+            if ($anchor.length) {
+                $anchor.append(host);
+            } else {
+                document.body.appendChild(host);
+            }
+        }
+        return host;
+    }
+
     // Prevent unchecking both GPS and IP when geolocation is enabled - Using event delegation
     $(document).on('change', 'input[name="ffc_geofence[geo_gps_enabled]"], input[name="ffc_geofence[geo_ip_enabled]"]', function() {
         var geoEnabled = $('input[name="ffc_geofence[geo_enabled]"]').is(':checked');
@@ -152,8 +170,9 @@ jQuery(document).ready(function($) {
         var ipEnabled = $('input[name="ffc_geofence[geo_ip_enabled]"]').is(':checked');
 
         if (geoEnabled && !gpsEnabled && !ipEnabled) {
-            alert(ffc_geofence_admin.alert_message);
             $(this).prop('checked', true);
+            // Say why the switch came back on, beside the switches (#2535).
+            FFC.say(geoMethodsNotice(), 'warning', ffc_geofence_admin.alert_message);
         }
     });
 });

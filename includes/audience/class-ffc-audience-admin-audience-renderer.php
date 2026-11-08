@@ -1477,7 +1477,7 @@ final class AudienceAdminAudienceRenderer {
 									<td><?php echo AudienceAccountEmail::render( (int) $user_id, (string) $user->user_email ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render() escapes every value. ?></td>
 									<?php if ( $can_manage ) : ?>
 									<td class="column-actions">
-										<a href="<?php echo esc_url( $remove_url ); ?>" class="ffc-delete-link" onclick="return confirm('<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>');">
+										<a href="<?php echo esc_url( $remove_url ); ?>" class="ffc-delete-link" data-confirm="<?php esc_attr_e( 'Remove this member?', 'ffcertificate' ); ?>">
 											<?php esc_html_e( 'Remove', 'ffcertificate' ); ?>
 										</a>
 									</td>

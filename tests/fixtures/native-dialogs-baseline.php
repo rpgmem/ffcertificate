@@ -36,16 +36,8 @@ return array(
 		'alert' => 1,
 		'confirm' => 1,
 	),
-	'assets/js/ffc-audience-admin.js' => array(
-		'alert' => 1,
-		'confirm' => 1,
-	),
 	'assets/js/ffc-cache-actions.js' => array(
 		'confirm' => 1,
-	),
-	'assets/js/ffc-calendar-editor.js' => array(
-		'alert' => 7,
-		'confirm' => 2,
 	),
 	'assets/js/ffc-cert-email-mode.js' => array(
 		'confirm' => 1,
@@ -64,12 +56,6 @@ return array(
 		'confirm' => 1,
 	),
 	'assets/js/ffc-email-restore-default.js' => array(
-		'confirm' => 1,
-	),
-	'assets/js/ffc-geofence-admin.js' => array(
-		'alert' => 1,
-	),
-	'assets/js/ffc-locations-crud.js' => array(
 		'confirm' => 1,
 	),
 	'assets/js/ffc-recruitment-admin.js' => array(
@@ -91,23 +77,13 @@ return array(
 	'assets/js/ffc-role-editor.js' => array(
 		'alert' => 4,
 	),
-	'assets/js/ffc-self-scheduling-admin-appointments.js' => array(
-		'alert' => 2,
-		'prompt' => 1,
-	),
 	'assets/js/ffc-url-shortener-admin.js' => array(
 		'confirm' => 1,
 	),
 	'assets/js/ffc-user-capabilities.js' => array(
 		'alert' => 2,
 	),
-	'includes/audience/class-ffc-audience-admin-audience-renderer.php' => array(
-		'confirm' => 1,
-	),
 	'includes/settings/views/ffc-tab-cache.php' => array(
-		'confirm' => 1,
-	),
-	'templates/admin/audience/general-tab.php' => array(
 		'confirm' => 1,
 	),
 );

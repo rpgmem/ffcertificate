@@ -302,15 +302,16 @@ describe('locations-crud — saveRow on blur', () => {
 // ----------------------------------------------------------------------
 
 describe('locations-crud — deleteRow', () => {
-	it('bails when the user declines the confirm', async () => {
+	it('bails when the user declines the plugin dialog', async () => {
 		mountTable([{ id: 'loc_x', name: 'X', lat: 0, lng: 0, radius: 10, default_gps: false, default_ip: false }]);
 		await reload();
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(false));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-location-delete').trigger('click');
+		await new Promise((r) => setTimeout(r, 0));
 
-		expect(confirmSpy).toHaveBeenCalledWith('Delete?');
+		expect(confirmSpy.mock.calls[0][0]).toMatchObject({ message: 'Delete?', category: 'danger' });
 		expect(postSpy).not.toHaveBeenCalled();
 		// Row still in the DOM.
 		expect(window.$('.ffc-location-row').length).toBe(1);
@@ -324,12 +325,12 @@ describe('locations-crud — deleteRow', () => {
 			'<span class="ffc-autosave-badge" hidden></span></td></tr>'
 		);
 		await reload();
-		const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const confirmSpy = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		const postSpy = vi.spyOn(window.$, 'post').mockImplementation(() => ({}));
 
 		window.$('.ffc-location-row .ffc-location-delete').trigger('click');
 
-		// Early-returns before confirm() / AJAX because id is undefined.
+		// Early-returns before the dialog / AJAX because id is undefined.
 		expect(confirmSpy).not.toHaveBeenCalled();
 		expect(postSpy).not.toHaveBeenCalled();
 	});
@@ -337,7 +338,7 @@ describe('locations-crud — deleteRow', () => {
 	it('on success: removes the row from the DOM', async () => {
 		mountTable([{ id: 'loc_y', name: 'Y', lat: 0, lng: 0, radius: 10, default_gps: false, default_ip: false }]);
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => {
 			const chain = { done: () => chain, fail: () => chain };
 			chain.done = function (cb) { cb({ success: true, data: {} }); return chain; };
@@ -353,7 +354,7 @@ describe('locations-crud — deleteRow', () => {
 	it('on failure: shows the server error in the badge and keeps the row', async () => {
 		mountTable([{ id: 'loc_z', name: 'Z', lat: 0, lng: 0, radius: 10, default_gps: false, default_ip: false }]);
 		await reload();
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => {
 			const chain = { done: () => chain, fail: () => chain };
 			chain.done = function (cb) { cb({ success: false, data: { message: 'In use' } }); return chain; };

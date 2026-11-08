@@ -530,7 +530,7 @@
                     })
                     .catch(function(err) {
                         var msg = (err && err.fromServer) ? err.message : (strings.errorAddingUser || 'Error adding user.');
-                        alert(msg);
+                        FFC.adminNotice('danger', msg);
                         btn.prop('disabled', false);
                     });
             });
@@ -554,8 +554,20 @@
 
             // Remove user
             $(document).on('click', '.ffc-remove-user-btn', function() {
-                if (!confirm(strings.confirmRemoveUser || 'Remove this user\'s access?')) return;
-                var row = $(this).closest('tr');
+                var $btn = $(this);
+                return FFC.confirmDialog({
+                    message: strings.confirmRemoveUser || 'Remove this user\'s access?',
+                    category: 'danger',
+                    icon: 'cross'
+                }).then(function(agreed) {
+                    if (agreed) {
+                        removeUser($btn);
+                    }
+                });
+            });
+
+            function removeUser($btn) {
+                var row = $btn.closest('tr');
                 var userId = row.data('user-id');
 
                 FFC.request('ffc_audience_remove_user_permission', {
@@ -572,7 +584,7 @@
                         });
                     })
                     .catch(function() { /* silent */ });
-            });
+            }
 
         },
 

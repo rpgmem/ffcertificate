@@ -779,11 +779,14 @@ describe('audience-admin — calendar permissions', () => {
 		window.$('#ffc-permissions-table tbody').append(
 			'<tr data-user-id="9"><td><button class="ffc-remove-user-btn">x</button></td></tr>',
 		);
-		vi.spyOn(window, 'confirm').mockReturnValue(true);
+		const dialog = vi.spyOn(window.FFC, 'confirmDialog').mockReturnValue(Promise.resolve(true));
 		vi.spyOn(window.$, 'post').mockImplementation(() => postChain({ done: { success: true } }));
 
 		window.$('.ffc-remove-user-btn').trigger('click');
 		await flush();
+		await flush();
+
+		expect(dialog.mock.calls[0][0].category).toBe('danger');
 
 		expect(window.$('#ffc-permissions-table tbody tr[data-user-id="9"]').length).toBe(0);
 		expect(window.$('#ffc-no-permissions-row').length).toBe(1);
@@ -904,7 +907,7 @@ describe('audience-admin — residual branches', () => {
 		expect(window.$('#ffc-user-search-results').css('display')).toBe('none');
 	});
 
-	it('add user: alerts the error message and re-enables on a failed add', async () => {
+	it('add user: says the error on the screen and re-enables on a failed add', async () => {
 		mountPermissions();
 		await reload();
 		// Select user 6 first so selectedUserId is set.
@@ -918,7 +921,8 @@ describe('audience-admin — residual branches', () => {
 		window.$('#ffc-add-user-btn').trigger('click');
 		await flush();
 
-		expect(alertSpy).toHaveBeenCalledWith('Cannot add');
+		expect(alertSpy).not.toHaveBeenCalled();
+		expect(document.getElementById('ffc-admin-status').textContent).toContain('Cannot add');
 		expect(window.$('#ffc-add-user-btn').prop('disabled')).toBe(false);
 	});
 
