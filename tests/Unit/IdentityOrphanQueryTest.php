@@ -15,7 +15,7 @@ use FreeFormCertificate\Maintenance\IdentityOrphanQuery;
  * THE POPULATION IS WIDER THAN THE QUERY IT REPLACES, IN THREE DIRECTIONS,
  * AND EACH ONE IS DRIVEN HERE.
  *
- * `SubmissionReader::find_unlinked_with_matching_identity()` reads submissions
+ * `SubmissionIdentityAudit::find_unlinked_with_matching_identity()` reads submissions
  * only, CPF only, and — by construction — only orphans whose CPF already sits
  * on a LINKED submission. The third is the one that matters: an orphan nobody
  * can be matched to can never be returned by it, and that is precisely the

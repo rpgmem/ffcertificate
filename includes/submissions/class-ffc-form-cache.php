@@ -3,9 +3,10 @@
  * FormCache
  *
  * Page-cache purges for the pages that embed a form or a calendar. The
- * form-settings object cache this class was written for is deprecated
- * (#2241): it duplicated WordPress's own post-meta cache, its "Enable"
- * setting gated nothing, and only two readers ever used it.
+ * form-settings object cache this class was written for left in 6.45.0
+ * (#2241, #2552): it duplicated WordPress's own post-meta cache, so the
+ * class keeps a name that no longer describes it (CLAUDE.md "Form settings
+ * come from post meta").
  *
  * @version 3.3.0 - Added strict types and type hints
  * @version 3.2.0 - Migrated to namespace
@@ -22,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Page-cache purges for forms, plus the deprecated form-settings cache.
+ * Page-cache purges for forms.
  *
  * @since 2.9.1
  */
@@ -34,195 +35,6 @@ class FormCache {
 	 * deactivation and in both uninstall paths.
 	 */
 	public const WARM_HOOK = 'ffcertificate_warm_cache_hook';
-
-	const CACHE_GROUP = 'ffc_forms';
-
-	/**
-	 * Cache expiration. The setting left with the cache, so this answers the
-	 * old default.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_expiration(): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return HOUR_IN_SECONDS;
-	}
-
-	/**
-	 * Get form configuration with caching
-	 *
-	 * @param int $form_id Form ID.
-	 * @return array<string, mixed>|false Form config array or false if not found
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_form_config( int $form_id ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cache_key = 'config_' . $form_id;
-		$config    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-
-		if ( false === $config ) {
-			$config = get_post_meta( $form_id, '_ffc_form_config', true );
-
-			if ( $config && is_array( $config ) ) {
-				wp_cache_set( $cache_key, $config, self::CACHE_GROUP, self::get_expiration() );
-
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					\FreeFormCertificate\Core\Debug::log_form( 'Form config cache MISS', array( 'form_id' => $form_id ) );
-				}
-			} else {
-				return false;
-			}
-		} elseif ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				\FreeFormCertificate\Core\Debug::log_form( 'Form config cache HIT', array( 'form_id' => $form_id ) );
-		}
-
-		return $config;
-	}
-
-	/**
-	 * Get form fields with caching
-	 *
-	 * @param int $form_id Form ID.
-	 * @return array<int, array<string, mixed>>|false Form fields array or false if not found
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_form_fields( int $form_id ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cache_key = 'fields_' . $form_id;
-		$fields    = wp_cache_get( $cache_key, self::CACHE_GROUP );
-
-		if ( false === $fields ) {
-			$fields = get_post_meta( $form_id, '_ffc_form_fields', true );
-
-			if ( $fields && is_array( $fields ) ) {
-				wp_cache_set( $cache_key, $fields, self::CACHE_GROUP, self::get_expiration() );
-			} else {
-				return false;
-			}
-		}
-
-		return $fields;
-	}
-
-	/**
-	 * Get form background image with caching.
-	 *
-	 * @param int $form_id Form ID.
-	 * @return string Background image URL or empty string.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_form_background( int $form_id ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cache_key = 'bg_' . $form_id;
-		$bg        = wp_cache_get( $cache_key, self::CACHE_GROUP );
-
-		if ( false === $bg ) {
-			$bg = \FreeFormCertificate\Core\FormBackground::url( $form_id );
-
-			if ( $bg ) {
-				wp_cache_set( $cache_key, $bg, self::CACHE_GROUP, self::get_expiration() );
-			}
-		}
-
-		return $bg ? (string) $bg : '';  // Return empty string instead of false.
-	}
-
-	/**
-	 * Get complete form data
-	 *
-	 * @param int $form_id Form ID.
-	 * @return array<string, mixed> Complete form data
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_form_complete( int $form_id ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cache_key = 'complete_' . $form_id;
-		$data      = wp_cache_get( $cache_key, self::CACHE_GROUP );
-
-		if ( false === $data ) {
-			$data = array(
-				'config'     => self::get_form_config( $form_id ),
-				'fields'     => self::get_form_fields( $form_id ),
-				'background' => self::get_form_background( $form_id ),
-			);
-
-			wp_cache_set( $cache_key, $data, self::CACHE_GROUP, self::get_expiration() );
-		}
-
-		return $data;
-	}
-
-	/**
-	 * Get form post object with caching
-	 *
-	 * @param int $form_id Form ID.
-	 * @return \WP_Post|false Post object or false if not found
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_form_post( int $form_id ) {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$cache_key = 'post_' . $form_id;
-		$post      = wp_cache_get( $cache_key, self::CACHE_GROUP );
-
-		if ( false === $post ) {
-			$post = get_post( $form_id );
-
-			if ( $post && 'ffc_form' === $post->post_type ) {
-				wp_cache_set( $cache_key, $post, self::CACHE_GROUP, self::get_expiration() );
-			} else {
-				return false;
-			}
-		}
-
-		return $post;
-	}
-
-	/**
-	 * Clear cache for specific form.
-	 *
-	 * @param int $form_id Form ID.
-	 * @return bool True if any cache keys were cleared.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function clear_form_cache( int $form_id ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$keys = array(
-			'config_' . $form_id,
-			'fields_' . $form_id,
-			'bg_' . $form_id,
-			'complete_' . $form_id,
-			'post_' . $form_id,
-		);
-
-		$cleared = 0;
-		foreach ( $keys as $key ) {
-			if ( wp_cache_delete( $key, self::CACHE_GROUP ) ) {
-				++$cleared;
-			}
-		}
-
-		return $cleared > 0;
-	}
 
 	/**
 	 * Aggressive page-cache purge across the whole site — for one-shot
@@ -445,41 +257,6 @@ class FormCache {
 	}
 
 	/**
-	 * Clear all form caches
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function clear_all_cache(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_settings' ) ) {
-			return false;
-		}
-
-		// Only the plugin's own group: `wp_cache_flush()` empties the whole
-		// object cache, every other plugin's entries and, on a multisite with a
-		// persistent cache, every site's (#2241). Without group flushing the
-		// forms' keys are deleted one by one.
-		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
-			return wp_cache_flush_group( self::CACHE_GROUP );
-		}
-
-		$form_ids = get_posts(
-			array(
-				'post_type'      => 'ffc_form',
-				'post_status'    => 'any',
-				'posts_per_page' => -1,
-				'fields'         => 'ids',
-			)
-		);
-		foreach ( $form_ids as $form_id ) {
-			self::clear_form_cache( (int) $form_id );
-		}
-		return true;
-	}
-
-	/**
 	 * Sweep external page-cache purges across every published form.
 	 *
 	 * Called by the "Clear all cache" admin button so that, after the
@@ -512,128 +289,6 @@ class FormCache {
 	}
 
 	/**
-	 * Warm up cache for a form.
-	 *
-	 * @param int $form_id Form ID.
-	 * @return bool Always true.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function warm_cache( int $form_id ): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		self::get_form_complete( $form_id );
-		return true;
-	}
-
-	/**
-	 * Warm up cache for all forms.
-	 *
-	 * @param int $limit Maximum number of forms to warm.
-	 * @return int Number of forms warmed.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function warm_all_forms( int $limit = 50 ): int {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$args = array(
-			'post_type'      => 'ffc_form',
-			'posts_per_page' => $limit,
-			'post_status'    => 'publish',
-			'fields'         => 'ids',
-		);
-
-		$form_ids = get_posts( $args );
-		$warmed   = 0;
-
-		foreach ( $form_ids as $form_id ) {
-			if ( self::warm_cache( $form_id ) ) {
-				++$warmed;
-			}
-		}
-
-		return $warmed;
-	}
-
-	/**
-	 * Get cache statistics
-	 *
-	 * @return array<string, mixed> Cache statistics
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function get_stats(): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return array(
-			'enabled'    => wp_using_ext_object_cache(),
-			'backend'    => wp_using_ext_object_cache() ? 'external' : 'database',
-			'group'      => self::CACHE_GROUP,
-			'expiration' => self::get_expiration() . ' seconds',
-			'note'       => 'Detailed stats require Redis/Memcached with stats module',
-		);
-	}
-
-	/**
-	 * Check if form cache exists
-	 *
-	 * @param int $form_id Form ID.
-	 * @return array<string, bool> Cache status per key
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function check_form_cache_status( int $form_id ): array {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$keys = array(
-			'config'     => 'config_' . $form_id,
-			'fields'     => 'fields_' . $form_id,
-			'background' => 'bg_' . $form_id,
-			'complete'   => 'complete_' . $form_id,
-			'post'       => 'post_' . $form_id,
-		);
-
-		$status = array();
-
-		foreach ( $keys as $name => $cache_key ) {
-			$cached          = wp_cache_get( $cache_key, self::CACHE_GROUP );
-			$status[ $name ] = false !== $cached;
-		}
-
-		return $status;
-	}
-
-	/**
-	 * Get cache key for debugging.
-	 *
-	 * @param int    $form_id Form ID.
-	 * @param string $type    Cache type (config, fields, bg, complete, post).
-	 * @return string Cache key string.
-	 *
-	 * @deprecated 6.43.0 Nothing in the plugin calls it (#2089).
-	 * @removal    6.45.0
-	 */
-	public static function get_cache_key( int $form_id, string $type = 'config' ): string {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		$keys = array(
-			'config'     => 'config_' . $form_id,
-			'fields'     => 'fields_' . $form_id,
-			'bg'         => 'bg_' . $form_id,
-			'background' => 'bg_' . $form_id,
-			'complete'   => 'complete_' . $form_id,
-			'post'       => 'post_' . $form_id,
-		);
-
-		return isset( $keys[ $type ] ) ? $keys[ $type ] : $keys['config'];
-	}
-
-	/**
 	 * Register hooks for automatic cache invalidation
 	 */
 	public static function register_hooks(): void {
@@ -655,63 +310,6 @@ class FormCache {
 	}
 
 	/**
-	 * Whether the daily warming is wanted. Never, since the warming retired.
-	 *
-	 * @return bool
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function auto_warm_enabled(): bool {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		return false;
-	}
-
-	/**
-	 * Keep the daily event in step with the toggle (#1541).
-	 *
-	 * Called on every request from `Loader::init_plugin()`. The toggle is an
-	 * autosave field, so there is no save handler to hang this on, and a
-	 * reconciliation that runs every request also heals an event a migration
-	 * or a host lost. It costs one `wp_next_scheduled()` lookup in the
-	 * already-loaded cron array.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function sync_warming_schedule(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( self::auto_warm_enabled() ) {
-			self::schedule_cache_warming();
-			return;
-		}
-		if ( false !== wp_next_scheduled( self::WARM_HOOK ) ) {
-			self::unschedule_cache_warming();
-		}
-	}
-
-	/**
-	 * Cron callback. Re-checks the toggle, so an event left over from before
-	 * it was turned off warms nothing.
-	 *
-	 * @return void
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function run_scheduled_warming(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( self::auto_warm_enabled() ) {
-			self::warm_all_forms();
-		}
-	}
-
-	/**
 	 * Hook callback: Form saved. Purges the page caches that hold the pages
 	 * embedding the form.
 	 *
@@ -725,37 +323,6 @@ class FormCache {
 		}
 
 		self::purge_page_cache( $post_id, 'ffc_form' );
-	}
-
-	/**
-	 * Hook callback: Form deleted
-	 *
-	 * @param int      $post_id Post ID.
-	 * @param \WP_Post $post    Post object.
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function on_form_deleted( int $post_id, \WP_Post $post ): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( 'ffc_form' === $post->post_type ) {
-			self::clear_form_cache( $post_id );
-		}
-	}
-
-	/**
-	 * Schedule cache warming cron job
-	 *
-	 * @deprecated 6.43.0 The form-settings cache is retired: nothing reads it (#2241).
-	 * @removal    6.45.0
-	 */
-	public static function schedule_cache_warming(): void {
-		_deprecated_function( __METHOD__, '6.43.0' );
-
-		if ( ! wp_next_scheduled( self::WARM_HOOK ) ) {
-			wp_schedule_event( \FreeFormCertificate\Core\ScheduledTasks::first_run( self::WARM_HOOK, time() + HOUR_IN_SECONDS ), 'daily', self::WARM_HOOK );
-		}
 	}
 
 	/**
