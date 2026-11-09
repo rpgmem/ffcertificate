@@ -21,6 +21,10 @@ class SelfSchedulingShortcodeTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// Shared scripts are enqueued through AssetRegistry, which registers
 		// them first; false is WordPress's answer for a handle already
 		// registered, so nothing is localized twice (#1931).

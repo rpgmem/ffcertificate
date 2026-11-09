@@ -51,6 +51,10 @@
 
 		return waitForImages(host)
 			.then(function () {
+				// Fonts ready, as the PDF generator waits for them (#2569).
+				return window.FFCCertificateRender ? window.FFCCertificateRender.prepare(host) : undefined;
+			})
+			.then(function () {
 				return window.html2canvas(host, {
 					scale: 2,
 					width: width,
