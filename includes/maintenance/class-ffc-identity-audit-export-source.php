@@ -168,12 +168,21 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	private ?MaintenanceToolInterface $tool;
 
 	/**
+	 * Where the auditor is looked up when none is given (#2567).
+	 *
+	 * @var MaintenanceToolRegistry|null
+	 */
+	private ?MaintenanceToolRegistry $tools;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param MaintenanceToolInterface|null $tool Auditor (resolved from the registry when null).
+	 * @param MaintenanceToolInterface|null $tool  Auditor (resolved from the registry when null).
+	 * @param MaintenanceToolRegistry|null  $tools Registry to resolve it from; the default set when null.
 	 */
-	public function __construct( ?MaintenanceToolInterface $tool = null ) {
-		$this->tool = $tool;
+	public function __construct( ?MaintenanceToolInterface $tool = null, ?MaintenanceToolRegistry $tools = null ) {
+		$this->tool  = $tool;
+		$this->tools = $tools;
 	}
 
 	/**
@@ -253,7 +262,7 @@ class IdentityAuditExportSource implements SyncSourceInterface {
 	 * @phpstan-return iterable<array<int, mixed>>
 	 */
 	public function rows(): iterable {
-		$tool = $this->tool ?? MaintenanceToolRegistry::create_default()->get( 'submission_link_audit' );
+		$tool = $this->tool ?? ( $this->tools ?? MaintenanceToolRegistry::create_default() )->get( 'submission_link_audit' );
 
 		if ( ! $tool instanceof MaintenanceToolInterface ) {
 			// Through `note_row()`, never hand-counted: this row was written out
