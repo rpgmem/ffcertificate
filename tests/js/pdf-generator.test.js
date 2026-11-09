@@ -678,6 +678,35 @@ describe('ffc-pdf-generator.js — pipeline branches', () => {
 		expect(overlay()).toBeNull();
 	});
 
+	it('captures only once the certificate preparation resolves, on the wrapper it built (#2569)', async () => {
+		install('content');
+		window.ffc_ajax = { strings: {} };
+		let release;
+		const prepared = [];
+		window.FFCCertificateRender = {
+			prepare: (el) => {
+				prepared.push(el);
+				return new Promise((resolve) => { release = resolve; });
+			},
+		};
+		loadScript('assets/js/ffc-pdf-generator.js');
+
+		vi.useFakeTimers();
+		window.ffcGeneratePDF({ html: '<p>c</p>' });
+		await vi.advanceTimersByTimeAsync(2000);
+
+		expect(prepared).toHaveLength(1);
+		expect(prepared[0].classList.contains('ffc-pdf-wrapper')).toBe(true);
+		expect(libs.calls).toHaveLength(0);
+
+		release();
+		await vi.advanceTimersByTimeAsync(10);
+		expect(libs.calls).toHaveLength(1);
+		expect(libs.save).toHaveBeenCalled();
+
+		delete window.FFCCertificateRender;
+	});
+
 	it('revokes the blob URL a minute after the overlay goes, not before (#2344)', async () => {
 		install('content');
 		const revoke = vi.fn();

@@ -1524,6 +1524,7 @@
 .ffc-icon-tag::before,
 .ffc-icon-template-load::before,
 .ffc-icon-template-save::before,
+.ffc-icon-text::before,
 .ffc-icon-ticket::before,
 .ffc-icon-unlink::before,
 .ffc-icon-unlock::before,
@@ -1937,6 +1938,10 @@
     --ffc-icon-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l4 4v5'/%3E%3Cpath d='M8 3v5h7M19 15v6M16 18h6'/%3E%3C/svg%3E");
 }
 
+.ffc-icon-text::before {
+    --ffc-icon-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6h16M4 10h16M4 14h16M4 18h10'/%3E%3C/svg%3E");
+}
+
 .ffc-icon-ticket::before {
     --ffc-icon-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z'/%3E%3Cpath d='M14 7v2M14 11v2M14 15v2'/%3E%3C/svg%3E");
 }
@@ -2181,6 +2186,7 @@
     .ffc-icon-tag::before,
     .ffc-icon-template-load::before,
     .ffc-icon-template-save::before,
+    .ffc-icon-text::before,
     .ffc-icon-ticket::before,
     .ffc-icon-unlink::before,
     .ffc-icon-unlock::before,

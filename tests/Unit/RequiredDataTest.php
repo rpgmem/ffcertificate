@@ -34,6 +34,12 @@ class RequiredDataTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		Functions\when( '__' )->returnArg();
 		Functions\when( 'sanitize_text_field' )->returnArg();
 		Functions\when( 'sanitize_key' )->alias(

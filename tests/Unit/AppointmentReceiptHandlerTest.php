@@ -55,6 +55,11 @@ class AppointmentReceiptHandlerTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'wp_enqueue_style' )->justReturn( null );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// The form background and the receipt background are cleaned on read (#2344).
 		Functions\when( 'esc_url_raw' )->returnArg();
 
