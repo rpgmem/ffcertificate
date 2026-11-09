@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The REST notice buffer asks WordPress whether it is serving a REST request** (#2559). `RestController` calls `wp_is_serving_rest_request()` instead of reading `REST_REQUEST`. Two unreachable `function_exists()` guards are gone, and 13 tests that ran in their own process now share one.
+
 ### Removed
 
 - ⚠ **The legacy cron hook names and the per-audience field seed are gone** (#2552, #2323, #2502). A callback attached to an `ffcertificate_*` cron name no longer runs; attach it to the `ffc_*` name. `ReregistrationStandardFieldsSeeder::seed_for_audience()` is removed; call `seed_global()`.

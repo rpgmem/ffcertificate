@@ -320,6 +320,51 @@ if ( ! class_exists( 'WP_User' ) ) {
 	}
 }
 
+// Stub WP_User_Query for unit tests (#2559). The plugin builds one in the
+// user search, the identity search, the role editor's member count and the
+// user list's sort; without a declared class each test of those had to
+// overload or eval one in its own process. The answers are static so a test
+// can choose them, and reset() puts them back: a test that sets one resets
+// it, or the next test inherits it.
+if ( ! class_exists( 'WP_User_Query' ) ) {
+	class WP_User_Query {
+		/** @var array<int, mixed> What get_results() answers. */
+		public static $results = array();
+
+		/** @var callable|null Maps a query's arguments to get_total(); null answers 0. */
+		public static $total = null;
+
+		/** @var array<int, array<string, mixed>> Arguments of every query built since reset(). */
+		public static $queries = array();
+
+		public $query_vars    = array();
+		public $query_from    = '';
+		public $query_where   = '';
+		public $query_orderby = '';
+
+		public function __construct( $args = array() ) {
+			$this->query_vars = (array) $args;
+			if ( array() !== $this->query_vars ) {
+				self::$queries[] = $this->query_vars;
+			}
+		}
+
+		public function get_results() {
+			return self::$results;
+		}
+
+		public function get_total() {
+			return null === self::$total ? 0 : (int) call_user_func( self::$total, $this->query_vars );
+		}
+
+		public static function reset() {
+			self::$results = array();
+			self::$total   = null;
+			self::$queries = array();
+		}
+	}
+}
+
 // The activator classes call require_once ABSPATH . 'wp-admin/includes/upgrade.php',
 // so the file has to exist and declare dbDelta(). UpgradeStub is its only
 // writer (#1803); no test writes it.

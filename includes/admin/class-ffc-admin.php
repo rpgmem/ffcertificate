@@ -680,9 +680,7 @@ class Admin {
 	 * @since 5.4.1
 	 */
 	public function maybe_register_tinymce_placeholder_filter(): void {
-		if ( ! function_exists( 'get_current_screen' ) ) {
-			return;
-		}
+		// Hooked on admin_head, where wp-admin has loaded get_current_screen().
 		$screen = get_current_screen();
 		if ( ! $screen || 'ffc_form' !== $screen->post_type ) {
 			return;

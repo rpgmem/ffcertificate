@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use FreeFormCertificate\Admin\IdentitySearchAjaxEndpoint;
 use RuntimeException;
 use WP_User;
+use WP_User_Query;
 
 /**
  * The dialog says what the write would say (#1397 sprint 3).
@@ -65,6 +66,7 @@ class IdentitySearchAjaxEndpointTest extends TestCase {
 	 * Stand up the WordPress boundary and the `$wpdb` double.
 	 */
 	protected function setUp(): void {
+		\WP_User_Query::reset();
 		parent::setUp();
 		Monkey\setUp();
 		// The code under test is audited by default (#2340); this test is not
@@ -193,6 +195,7 @@ class IdentitySearchAjaxEndpointTest extends TestCase {
 	 * Tear down Brain\Monkey and the request.
 	 */
 	protected function tearDown(): void {
+		\WP_User_Query::reset();
 		$_POST = array();
 
 		unset( $GLOBALS['wpdb'] );
@@ -580,18 +583,12 @@ class IdentitySearchAjaxEndpointTest extends TestCase {
 	/**
 	 * An all-digits term is an account number as well as a search, and an
 	 * account found both ways is listed once.
-	 *
-	 * Its own process: the bootstrap does not declare `WP_User_Query`, so it is overloaded, which must not leak.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
 	 */
 	public function test_a_numeric_term_finds_the_account_by_id_and_by_search_once(): void {
 		$by_search_a = new WP_User( 42 );
 		$by_search_b = new WP_User( 77 );
 
-		$query = Mockery::mock( 'overload:WP_User_Query' );
-		$query->shouldReceive( 'get_results' )->andReturn( array( $by_search_a, $by_search_b, 'not a user' ) );
+		WP_User_Query::$results = array( $by_search_a, $by_search_b, 'not a user' );
 
 		$matching = new \ReflectionMethod( IdentitySearchAjaxEndpoint::class, 'matching' );
 		$matching->setAccessible( true );

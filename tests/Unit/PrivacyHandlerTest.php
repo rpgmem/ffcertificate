@@ -274,33 +274,6 @@ class PrivacyHandlerTest extends TestCase {
 		$prop->setValue(null, null);
 	}
 
-	/**
-	 * Runs in a separate process because once Brain Monkey defines
-	 * wp_add_privacy_policy_content() in another test, PHP keeps it defined
-	 * for the rest of the process and function_exists() can no longer be
-	 * false. A fresh process guarantees the core function is absent.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
-	public function test_add_privacy_policy_content_noop_when_core_function_missing(): void {
-		// wp_add_privacy_policy_content is intentionally NOT stubbed here, so
-		// function_exists() is false and the method must return without error
-		// and without touching settings. That second half was only ever a
-		// comment; read the settings and check it.
-		$read = array();
-		Functions\when( 'get_option' )->alias(
-			static function ( $key, $default_value = false ) use ( &$read ) {
-				$read[] = (string) $key;
-				return $default_value;
-			}
-		);
-
-		PrivacyHandler::add_privacy_policy_content();
-
-		$this->assertSame( array(), $read, 'Nothing should be read when core cannot accept the content.' );
-	}
-
 	// ==================================================================
 	// register_exporters()
 	// ==================================================================

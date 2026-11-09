@@ -48,10 +48,8 @@ class PrivacyHandler {
 	 * @return void
 	 */
 	public static function add_privacy_policy_content(): void {
-		if ( ! function_exists( 'wp_add_privacy_policy_content' ) ) {
-			return;
-		}
-
+		// Hooked on admin_init, after wp-admin has loaded plugin.php, which
+		// declares wp_add_privacy_policy_content().
 		$retention_days = \FreeFormCertificate\Settings\SettingsReader::activity_log_retention_days();
 		$cleanup_days   = \FreeFormCertificate\Settings\SettingsReader::get_bool( 'cleanup_enabled', false )
 			? max( 0, \FreeFormCertificate\Settings\SettingsReader::get_int( 'cleanup_days', 365 ) )
