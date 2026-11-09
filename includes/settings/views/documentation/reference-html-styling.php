@@ -163,6 +163,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<code>style="font-family: 'Great Vibes', cursive;"</code>.
 		<?php esc_html_e( 'The fonts stay on the site, under the uploads folder; nothing is fetched from another server when a certificate is drawn. Removing a font from the site makes certificates that name it fall back to the device’s fonts again.', 'ffcertificate' ); ?>
 	</p>
+	<p>
+		<?php esc_html_e( 'The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile.', 'ffcertificate' ); ?>
+	</p>
 
 	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
 	<p>

@@ -55,6 +55,62 @@ final class CertificateFonts {
 	);
 
 	/**
+	 * Fonts a template may name first without installing them: the ones that
+	 * come with Windows or macOS, which every template already relied on
+	 * before the Font Library, and the CSS generic families. Lowercase.
+	 *
+	 * A template that names one of these first is drawn in the device's own
+	 * copy, as it always was; only a name outside this list and outside the
+	 * installed families is reported as missing.
+	 */
+	private const SYSTEM_FONTS = array(
+		'arial',
+		'helvetica',
+		'helvetica neue',
+		'times new roman',
+		'times',
+		'georgia',
+		'courier new',
+		'courier',
+		'verdana',
+		'tahoma',
+		'trebuchet ms',
+		'segoe ui',
+		'calibri',
+		'cambria',
+		'palatino',
+		'palatino linotype',
+		'book antiqua',
+		'garamond',
+		'impact',
+		'comic sans ms',
+		'lucida console',
+		'lucida sans unicode',
+		'consolas',
+		'monaco',
+		'menlo',
+		'-apple-system',
+		'blinkmacsystemfont',
+		'serif',
+		'sans-serif',
+		'monospace',
+		'cursive',
+		'fantasy',
+		'system-ui',
+		'ui-serif',
+		'ui-sans-serif',
+		'ui-monospace',
+		'ui-rounded',
+		'emoji',
+		'math',
+		'fangsong',
+		'inherit',
+		'initial',
+		'unset',
+		'revert',
+	);
+
+	/**
 	 * Families read in this request, so the query runs once.
 	 *
 	 * @var list<array{name: string, css: string, faces: list<array{family: string, style: string, weight: string, src: list<string>, unicode_range: string}>}>|null
@@ -239,6 +295,144 @@ final class CertificateFonts {
 
 		$intro = esc_html__( 'No font is installed for certificates, so each one is drawn in whatever typeface the participant’s device has, and can look different on another device.', 'ffcertificate' );
 
+		$how = self::install_sentence();
+
+		return AdminNotice::callout_markup(
+			'warning',
+			'<p>' . $intro . '</p><p>' . $how . '</p>',
+			array(
+				'icon'    => 'text',
+				'classes' => array( 'ffc-certificate-fonts-notice', 'inline' ),
+			)
+		);
+	}
+
+	/**
+	 * The fonts a template asks for: the first name of every `font-family`
+	 * in its inline styles, and every `<font face>`, once each.
+	 *
+	 * Only the first name counts. The rest of a stack is the fallback, and
+	 * a fallback the device lacks is the point of having one.
+	 *
+	 * @param string $html Template HTML.
+	 * @return list<string> Names as the template spells them, in order of appearance.
+	 */
+	public static function requested( string $html ): array {
+		$stacks = array();
+
+		if ( preg_match_all( '/\\bstyle\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $styles, PREG_SET_ORDER ) ) {
+			foreach ( $styles as $style ) {
+				$css = html_entity_decode( ( $style[1] ?? '' ) . ( $style[2] ?? '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				if ( preg_match_all( '/(?:^|;)\\s*font-family\\s*:\\s*([^;]+)/i', $css, $declarations ) ) {
+					foreach ( $declarations[1] as $declaration ) {
+						$stacks[] = $declaration;
+					}
+				}
+			}
+		}
+
+		// `\s` rather than `\b` before `face`: an attribute is always preceded by whitespace, and the emoji guard reads a backslash followed by hex digits as a CSS escape.
+		if ( preg_match_all( '/<font\\b[^>]*\\sface\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $faces, PREG_SET_ORDER ) ) {
+			foreach ( $faces as $face ) {
+				$stacks[] = html_entity_decode( ( $face[1] ?? '' ) . ( $face[2] ?? '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+			}
+		}
+
+		$names = array();
+		foreach ( $stacks as $stack ) {
+			$name = trim( trim( explode( ',', $stack )[0] ), " \t\"'" );
+			$name = trim( (string) preg_replace( '/\\s*!important$/i', '', $name ), " \t\"'" );
+			if ( '' !== $name && ! isset( $names[ strtolower( $name ) ] ) ) {
+				$names[ strtolower( $name ) ] = $name;
+			}
+		}
+
+		return array_values( $names );
+	}
+
+	/**
+	 * The fonts a template asks for that this site cannot supply: not
+	 * installed through the Font Library and not a system font.
+	 *
+	 * @param string $html Template HTML.
+	 * @return list<string> Names as the template spells them.
+	 */
+	public static function missing( string $html ): array {
+		$requested = self::requested( $html );
+		if ( array() === $requested ) {
+			return array();
+		}
+
+		$available = array_flip( self::SYSTEM_FONTS );
+		foreach ( self::installed() as $family ) {
+			$first = self::face_name( $family['css'] );
+
+			$available[ strtolower( $family['name'] ) ] = true;
+			if ( '' !== $first ) {
+				$available[ strtolower( $first ) ] = true;
+			}
+		}
+
+		return array_values(
+			array_filter(
+				$requested,
+				static fn( string $name ): bool => ! isset( $available[ strtolower( $name ) ] )
+			)
+		);
+	}
+
+	/**
+	 * A warning naming the fonts a template asks for and this site lacks,
+	 * as callout markup, or '' when nothing is missing.
+	 *
+	 * @param string $html Template HTML.
+	 * @return string Escaped HTML.
+	 */
+	public static function missing_notice_html( string $html ): string {
+		$missing = self::missing( $html );
+		if ( array() === $missing ) {
+			return '';
+		}
+
+		$names = implode(
+			', ',
+			array_map( static fn( string $name ): string => '<strong>' . esc_html( $name ) . '</strong>', $missing )
+		);
+
+		return AdminNotice::callout_markup(
+			'warning',
+			'<p>' . sprintf(
+				/* translators: %s: comma-separated font names */
+				esc_html( _n( 'This template asks for %s, which is not installed on this site. Until it is, each device draws the text in the next font of its list, so the document can look different from one device to another.', 'This template asks for %s, which are not installed on this site. Until they are, each device draws the text in the next font of its list, so the document can look different from one device to another.', count( $missing ), 'ffcertificate' ) ),
+				$names
+			) . '</p><p>' . self::install_sentence() . '</p>',
+			array(
+				'icon'    => 'text',
+				'classes' => array( 'ffc-template-fonts-missing', 'inline' ),
+			)
+		);
+	}
+
+	/**
+	 * Print {@see self::missing_notice_html()}.
+	 *
+	 * @param string $html Template HTML.
+	 * @return void
+	 */
+	public static function render_missing_notice( string $html ): void {
+		$notice = self::missing_notice_html( $html );
+		if ( '' !== $notice ) {
+			echo wp_kses_post( $notice );
+		}
+	}
+
+	/**
+	 * How this site installs a font, as one escaped sentence, with a link
+	 * for a user who can reach the screen.
+	 *
+	 * @return string Escaped HTML.
+	 */
+	private static function install_sentence(): string {
 		$can   = current_user_can( 'edit_theme_options' );
 		$route = self::install_route();
 		if ( 'library' === $route ) {
@@ -261,14 +455,7 @@ final class CertificateFonts {
 			$how = esc_html__( 'This WordPress has no font screen for a classic theme. WordPress 7.0 adds Appearance → Fonts for every theme; update to install fonts there.', 'ffcertificate' );
 		}
 
-		return AdminNotice::callout_markup(
-			'warning',
-			'<p>' . $intro . '</p><p>' . $how . '</p>',
-			array(
-				'icon'    => 'text',
-				'classes' => array( 'ffc-certificate-fonts-notice', 'inline' ),
-			)
-		);
+		return $how;
 	}
 
 	/**

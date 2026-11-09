@@ -317,6 +317,27 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringNotContainsString( 'name="ffc_template_visible"', $html );
 	}
 
+	public function test_render_edit_metabox_warns_about_a_font_the_site_lacks(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === $number ? $single : $plural );
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
+		Functions\when( 'get_post_meta' )->justReturn( '<p style="font-family: Lobster, Georgia, serif">Body</p>' );
+
+		$html = $this->capture(
+			fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) )
+		);
+
+		$this->assertStringContainsString( 'ffc-template-fonts-missing', $html, 'A font the site lacks is named above the editor (#2573).' );
+		$this->assertStringContainsString( '<strong>Lobster</strong>', $html );
+		$this->assertLessThan( strpos( $html, 'name="ffc_template_html"' ), strpos( $html, 'ffc-template-fonts-missing' ) );
+	}
+
 	public function test_render_options_metabox_outputs_visibility_toggle(): void {
 		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
 		Functions\when( 'checked' )->justReturn( 'checked' );
