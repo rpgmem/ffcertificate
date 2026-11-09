@@ -23359,6 +23359,27 @@ msgstr "deixa o valor quebrar linha e o reduz até caber na altura, por isso dê
 msgid "A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:"
 msgstr "Um valor que já cabe não é alterado, e nenhum encolhe abaixo da metade do seu tamanho. Coloque a classe em um bloco, como div, parágrafo, título ou célula de tabela; em um span, a caixa é o elemento ao redor. Exemplo:"
 
+msgid "The default templates name these Google Fonts, each followed by the system font they used before, so they draw as they always did until the fonts are installed:"
+msgstr "Os modelos padrão citam estas fontes do Google, cada uma seguida da fonte do sistema que usavam antes, então saem como sempre até que as fontes sejam instaladas:"
+
+msgid "certificate titles."
+msgstr "títulos dos certificados."
+
+msgid "the participant’s name in certificates 1 and 3."
+msgstr "o nome do participante nos certificados 1 e 3."
+
+msgid "the name, the course and the italic lines of the classic certificates."
+msgstr "o nome, o curso e as linhas em itálico dos certificados clássicos."
+
+msgid "certificates 5 and 6."
+msgstr "certificados 5 e 6."
+
+msgid "the small text of the certificates, the record and the appointment receipts; it has Arial’s measurements, so nothing moves."
+msgstr "o texto miúdo dos certificados, da ficha e dos comprovantes de agendamento; tem as medidas da Arial, então nada sai do lugar."
+
+msgid "the verification code of the receipts; it has Courier New’s measurements."
+msgstr "o código de verificação dos comprovantes; tem as medidas da Courier New."
+
 msgid "The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile."
 msgstr "O editor de modelos e o layout do formulário avisam quando um modelo cita, como primeira fonte de uma lista, uma que não está instalada no site nem é uma fonte do sistema, como Arial, Georgia, Times New Roman ou Courier New. Só a primeira fonte conta: o restante da lista é o que o aparelho usa enquanto isso."
 
