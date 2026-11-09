@@ -10,6 +10,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - **Certificates can use the fonts installed through the WordPress Font Library** (#2569). Every page that draws a certificate loads them, the capture waits for them, and Settings → Certificates and the layout editor list them, or say how to install one while none is.
+- **A long name or course title can shrink to fit its box** (#2570). The template classes `ffc-fit` (one line, fits the width) and `ffc-fit-box` (wraps, fits the height) shrink the text before the capture, never below half its size, in the PDF and in the editor preview.
 
 ### Changed
 

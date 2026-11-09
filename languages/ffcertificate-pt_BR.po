@@ -23347,6 +23347,18 @@ msgstr "Mensagem por data (como aniversário)"
 msgid "Date-message e-mails are listed there too, but each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
 msgstr "Os e-mails de mensagens por data também aparecem ali, mas o assunto e o corpo de cada regra são editados na própria regra, na tela Mensagens por Data. A \"Mensagem de aniversário (padrão para novas regras)\" do hub só define o texto com que uma nova regra começa; as regras existentes mantêm o seu."
 
+msgid "A long name or course title can shrink to fit its box:"
+msgstr "Um nome ou título de curso longo pode encolher para caber na sua caixa:"
+
+msgid "keeps the value on one line and shrinks it until it fits the width, and"
+msgstr "mantém o valor em uma linha e o reduz até caber na largura, e"
+
+msgid "lets it wrap and shrinks it until it fits the height, so give that box a height."
+msgstr "deixa o valor quebrar linha e o reduz até caber na altura, por isso dê uma altura a essa caixa."
+
+msgid "A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:"
+msgstr "Um valor que já cabe não é alterado, e nenhum encolhe abaixo da metade do seu tamanho. Coloque a classe em um bloco, como div, parágrafo, título ou célula de tabela; em um span, a caixa é o elemento ao redor. Exemplo:"
+
 msgid "Images take"
 msgstr "Imagens aceitam"
 
