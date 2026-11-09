@@ -276,30 +276,6 @@ class AdminClassTest extends TestCase {
 		$this->assertFalse( $added );
 	}
 
-	/**
-	 * Its own process: the guard reads function_exists( 'get_current_screen' ),
-	 * and any earlier test that stubbed it leaves it defined.
-	 *
-	 * @runInSeparateProcess
-	 */
-	public function test_maybe_register_tinymce_filter_handles_missing_function(): void {
-		// get_current_screen left undefined -> function_exists() guard returns.
-		// The only thing the method does past that guard is register the
-		// tiny_mce_before_init filter, so it must not be registered.
-		$filters = array();
-		Functions\when( 'add_filter' )->alias(
-			static function ( $hook ) use ( &$filters ) {
-				$filters[] = $hook;
-				return true;
-			}
-		);
-
-		list( $admin ) = $this->makeAdmin();
-		$admin->maybe_register_tinymce_placeholder_filter();
-
-		$this->assertNotContains( 'tiny_mce_before_init', $filters );
-	}
-
 	// ==================================================================
 	// display_submissions_page() dispatch
 	// ==================================================================

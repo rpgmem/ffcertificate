@@ -103,6 +103,7 @@ class AdminAjaxTest extends TestCase {
 	private array $transients = array();
 
 	protected function setUp(): void {
+		\WP_User_Query::reset();
 		parent::setUp();
 		Monkey\setUp();
 
@@ -185,6 +186,7 @@ class AdminAjaxTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\WP_User_Query::reset();
 		ActivityLogBuffer::reset();
 		$_POST = $this->post_backup;
 		if ( $this->had_wpdb ) {
@@ -446,16 +448,10 @@ class AdminAjaxTest extends TestCase {
 		$ajax->search_user();
 	}
 
-	/**
-	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_search_user_finds_by_numeric_id(): void {
 		$this->setup_valid_search_user( '42' );
 		$this->account( 42, 'found@example.com', 'Found User' );
-		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
+		\WP_User_Query::$results = array();
 
 		$ajax = new AdminAjax();
 
@@ -471,19 +467,13 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
-	/**
-	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_search_user_finds_by_name_email(): void {
 		$this->setup_valid_search_user( 'jane' );
 
 		$user               = new \WP_User( 55 );
 		$user->display_name = 'Jane Doe';
 		$user->user_email   = 'jane@example.com';
-		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array( $user ) );
+		\WP_User_Query::$results = array( $user );
 
 		$ajax = new AdminAjax();
 
@@ -500,15 +490,9 @@ class AdminAjaxTest extends TestCase {
 		}
 	}
 
-	/**
-	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_search_user_returns_error_when_none_found(): void {
 		$this->setup_valid_search_user( 'nonexistent' );
-		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
+		\WP_User_Query::$results = array();
 
 		$ajax = new AdminAjax();
 
@@ -522,16 +506,10 @@ class AdminAjaxTest extends TestCase {
 		$this->assertSame( array(), $this->queries );
 	}
 
-	/**
-	 * Its own process: it overloads WP_User_Query, which the bootstrap does not declare.
-	 *
-	 * @runInSeparateProcess
-	 * @preserveGlobalState disabled
-	 */
 	public function test_search_user_falls_back_to_cpf_search(): void {
 		// A CPF, so the numeric-id lookup and the name search find nobody.
 		$this->setup_valid_search_user( Identifiers::CPF_A );
-		Mockery::mock( 'overload:WP_User_Query' )->shouldReceive( 'get_results' )->andReturn( array() );
+		\WP_User_Query::$results = array();
 
 		// A submission carries that CPF's hash, linked to account 77.
 		$this->identifier_owners[ 'cpf_hash=' . Encryption::hash( Identifiers::CPF_A ) ] = '77';

@@ -43,6 +43,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	private $overrides = array();
 
 	protected function setUp(): void {
+		\WP_User_Query::reset();
 		parent::setUp();
 		Monkey\setUp();
 		$this->get_backup = $_GET ?? array();
@@ -75,6 +76,7 @@ class RoleCapabilityEditorTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		\WP_User_Query::reset();
 		$_GET = $this->get_backup;
 		Monkey\tearDown();
 		parent::tearDown();
@@ -578,29 +580,15 @@ class RoleCapabilityEditorTest extends TestCase {
 		$this->assertSame( array(), $localized['ffcRoleEditor']['roleCaps'], 'a role missing on this install is left out of the map' );
 	}
 
-	/**
-	 * Its own process: it declares core's WP_User_Query, which the bootstrap does not.
-	 *
-	 * @runInSeparateProcess
-	 */
 	public function test_editable_roles_count_their_members(): void {
-		// Declared here, in this test's own process: core's query class with a fixed total.
-		// phpcs:ignore Squiz.PHP.Eval.Discouraged -- Declares a WordPress core class inside this test's own process.
-		eval(
-			'class WP_User_Query {
-				public $args;
-				public function __construct( $args ) { $this->args = $args; $GLOBALS["ffc_test_user_queries"][] = $args; }
-				public function get_total() { return "ffc_end_user" === $this->args["role"] ? 12 : 0; }
-			}'
-		);
-		$GLOBALS['ffc_test_user_queries'] = array();
+		\WP_User_Query::$total = static fn( array $args ): int => 'ffc_end_user' === $args['role'] ? 12 : 0;
 		Functions\when( 'get_role' )->alias( fn( $slug ) => $this->fake_role() );
 
 		$roles = array_column( RoleCapabilityEditor::editable_roles(), 'users', 'slug' );
 
 		$this->assertSame( 12, $roles['ffc_end_user'] );
-		$this->assertSame( 'ID', $GLOBALS['ffc_test_user_queries'][0]['fields'] );
-		$this->assertTrue( $GLOBALS['ffc_test_user_queries'][0]['count_total'] );
+		$this->assertSame( 'ID', \WP_User_Query::$queries[0]['fields'] );
+		$this->assertTrue( \WP_User_Query::$queries[0]['count_total'] );
 	}
 
 	public function test_render_says_so_when_no_ffc_role_is_registered(): void {
