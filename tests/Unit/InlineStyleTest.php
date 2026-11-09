@@ -218,6 +218,9 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="background:#f9f9f9; width:30%; font-weight: bold; border: 1px solid #d' => array( 1, self::EMAIL_BODY ),
 			'style=: style="border: 1px solid #ddd;'                                                => array( 1, self::EMAIL_BODY ),
 		),
+		'includes/core/class-ffc-certificate-fonts.php' => array(
+			'wp_add_inline_style: wp_add_inline_style( self::STYLE_HANDLE' => array( 1, self::GENERATED ),
+		),
 		'includes/core/class-ffc-public-design.php' => array(
 			'<style>: <style id="ffc-public-design"' => array( 1, self::GENERATED ),
 		),

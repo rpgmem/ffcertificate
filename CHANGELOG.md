@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Certificates can use the fonts installed through the WordPress Font Library** (#2569). Every page that draws a certificate loads them, the capture waits for them, and Settings → Certificates and the layout editor list them, or say how to install one while none is.
+
 ### Changed
 
 - **Integer request reads guard against arrays everywhere** (#2557). The last 43 direct `absint()` casts over `$_GET` / `$_POST` now read through `RequestInput`, so a posted array is treated as "not supplied" instead of as the id `1`. The two legacy Required data keys are declared, and both ratchets block at zero.
@@ -19,6 +23,11 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - ⚠ **Five finished one-shot migrations leave Settings → Migrations** (#2552, #2115): Split CPF/RF, Rehash Email Lookup Hashes, Activity Log: Clear Plaintext on Encrypted Rows, Import Legacy Certificate Templates and Rewrite html/ Image References. A site still showing records pending on one ran it before updating, as its card said since 6.43.0.
 - ⚠ **The form-settings cache and the submission lookups nothing called are gone** (#2552, #2241). `FormCache` keeps only the page-cache purges; its config, fields, background, complete, clear, warm and stats methods leave, with `SettingsReader::cache_expiration_seconds()`. `SubmissionReader` and `SubmissionRepository` lose `findByEmail`, `findByCpfRf`, `findByFormId` and `getForExport`, and the reader its identity audits, which live in `SubmissionIdentityAudit`. Read a form's settings with `get_post_meta()` or `FormRepository`.
 - ⚠ **Public methods nothing in the plugin called are gone** (#2552, #2089). 61 PHP methods across the repositories, readers, activators, settings, core and user-dashboard classes, and the JS `FFC.isModuleLoaded()`, `FFC.getAjaxUrl()`, `FFC.getModules()`, `FFC.Frontend.Validation.validateEmail()` and seven `FFCCalendarCore` setters and accessors. Each had warned since 6.43.0; #2552 lists them by class.
+
+### Fixed
+
+- **A certificate downloaded from the user dashboard or the booking page now applies the template helper classes** (#2569): those pages loaded the PDF generator without its stylesheet.
+
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
 

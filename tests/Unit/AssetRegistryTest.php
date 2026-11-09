@@ -31,6 +31,13 @@ class AssetRegistryTest extends TestCase {
 	/** @var list<callable> Callbacks added to `print_scripts_array`. */
 	private array $print_filters = array();
 
+	/**
+	 * Stylesheet handles enqueued.
+	 *
+	 * @var list<string>
+	 */
+	private array $styles = array();
+
 	protected function setUp(): void {
 		parent::setUp();
 		Monkey\setUp();
@@ -92,6 +99,17 @@ class AssetRegistryTest extends TestCase {
 		// reads the site locale to key the widget's i18n store.
 		Functions\when( 'get_locale' )->justReturn( 'pt_BR' );
 		Functions\when( '__' )->returnArg();
+
+		// A certificate renderer takes the certificate's styles with it
+		// (#2569); no Font Library here, so only the sheet is enqueued.
+		$styles = &$this->styles;
+		Functions\when( 'wp_enqueue_style' )->alias(
+			function ( $handle ) use ( &$styles ) {
+				$styles[] = $handle;
+			}
+		);
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 	}
 
 	protected function tearDown(): void {
@@ -363,7 +381,8 @@ class AssetRegistryTest extends TestCase {
 			'the admin script carries the export button driver'       => array( 'ffc-admin-js', array( 'jquery', 'ffc-core', 'ffc-batched-export' ) ),
 			'a hidden section takes its required fields with it'      => array( 'ffc-section-collapse', array( 'jquery', 'ffc-core' ) ),
 			'the field behaviours build on FFC'                       => array( 'ffc-field-behaviours', array( 'jquery', 'ffc-core' ) ),
-			'the PDF generator needs jQuery and FFC.Platform, and fetches the bundles itself' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core' ) ),
+			'the PDF generator needs jQuery and FFC.Platform, and fetches the bundles itself' => array( 'ffc-pdf-generator', array( 'jquery', 'ffc-core', 'ffc-certificate-render' ) ),
+			'the editor preview prepares the page the way the generator does' => array( 'ffc-layout-preview', array( 'html2canvas', 'ffc-certificate-render' ) ),
 			'the calendar core needs nothing of FFC'                  => array( 'ffc-calendar-core', array( 'jquery' ) ),
 			'the geofence modules extend the geofence core'           => array( 'ffc-geofence-gps', array( 'jquery', 'ffc-geofence-frontend' ) ),
 			'the URL shortener script calls FFC.request and the QR raster' => array( 'ffc-url-shortener-admin', array( 'jquery', 'ffc-core', 'ffc-admin-js', 'ffc-qr-raster' ) ),
@@ -413,6 +432,20 @@ class AssetRegistryTest extends TestCase {
 		$handles = array_column( $this->registered, 'handle' );
 		$this->assertSame( $handles, array_values( array_unique( $handles ) ) );
 		$this->assertCount( 1, $this->localizations( 'ffc-core' ), 'ffcCoreConfig is attached once, by the registration that succeeded.' );
+	}
+
+	public function test_a_certificate_renderer_takes_the_certificate_sheet_with_it(): void {
+		Functions\when( 'wp_enqueue_script' )->justReturn( null );
+
+		AssetRegistry::enqueue_scripts( 'ffc-core' );
+		$this->assertSame( array(), $this->styles, 'A script that draws no certificate takes no certificate styles.' );
+
+		AssetRegistry::enqueue_scripts( 'ffc-pdf-generator' );
+		$this->assertSame( array( 'ffc-pdf-core' ), $this->styles, 'The dashboard and the booking page loaded the generator without the sheet (#2569).' );
+
+		$this->styles = array();
+		AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
+		$this->assertSame( array( 'ffc-pdf-core' ), $this->styles );
 	}
 
 	public function test_enqueue_passes_a_handle_it_does_not_know_through_unregistered(): void {
