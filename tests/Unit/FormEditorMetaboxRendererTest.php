@@ -24,6 +24,12 @@ class FormEditorMetaboxRendererTest extends TestCase {
 		parent::setUp();
 		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// The layout box normalises the form's background colour on render; null falls back to white.
 		Functions\when( 'sanitize_hex_color' )->justReturn( null );
 		// The Bulk issue tab (#1967) is listed only for users who may import certificates.
