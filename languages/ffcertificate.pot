@@ -23277,6 +23277,27 @@ msgstr ""
 msgid "A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:"
 msgstr ""
 
+msgid "The default templates name these Google Fonts, each followed by the system font they used before, so they draw as they always did until the fonts are installed:"
+msgstr ""
+
+msgid "certificate titles."
+msgstr ""
+
+msgid "the participant’s name in certificates 1 and 3."
+msgstr ""
+
+msgid "the name, the course and the italic lines of the classic certificates."
+msgstr ""
+
+msgid "certificates 5 and 6."
+msgstr ""
+
+msgid "the small text of the certificates, the record and the appointment receipts; it has Arial’s measurements, so nothing moves."
+msgstr ""
+
+msgid "the verification code of the receipts; it has Courier New’s measurements."
+msgstr ""
+
 msgid "Images take"
 msgstr ""
 

@@ -80,8 +80,14 @@ class CertTemplateSeeder {
 	 * Version 10 adds {{schedule}} to the six certificate defaults: the default
 	 * Required data asks for it in every layout, so a form on a shipped model
 	 * could not be saved until an administrator added the tag (#2524).
+	 *
+	 * Version 11 puts an installable font in front of every stack of the nine
+	 * defaults (#2574): Cinzel, Great Vibes, EB Garamond, Montserrat, Arimo and
+	 * Cousine, each followed by the system font the default named before, so a
+	 * site that installs none renders as it did. The name of models 1, 3 and 5
+	 * takes `ffc-fit` (#2570), so a long one shrinks instead of wrapping.
 	 */
-	private const SEED_VERSION = 10;
+	private const SEED_VERSION = 11;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background

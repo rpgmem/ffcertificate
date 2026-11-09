@@ -163,6 +163,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<code>style="font-family: 'Great Vibes', cursive;"</code>.
 		<?php esc_html_e( 'The fonts stay on the site, under the uploads folder; nothing is fetched from another server when a certificate is drawn. Removing a font from the site makes certificates that name it fall back to the device’s fonts again.', 'ffcertificate' ); ?>
 	</p>
+	<p>
+		<?php esc_html_e( 'The default templates name these Google Fonts, each followed by the system font they used before, so they draw as they always did until the fonts are installed:', 'ffcertificate' ); ?>
+	</p>
+	<ul>
+		<li><strong>Cinzel</strong> &mdash; <?php esc_html_e( 'certificate titles.', 'ffcertificate' ); ?></li>
+		<li><strong>Great Vibes</strong> &mdash; <?php esc_html_e( 'the participant’s name in certificates 1 and 3.', 'ffcertificate' ); ?></li>
+		<li><strong>EB Garamond</strong> &mdash; <?php esc_html_e( 'the name, the course and the italic lines of the classic certificates.', 'ffcertificate' ); ?></li>
+		<li><strong>Montserrat</strong> &mdash; <?php esc_html_e( 'certificates 5 and 6.', 'ffcertificate' ); ?></li>
+		<li><strong>Arimo</strong> &mdash; <?php esc_html_e( 'the small text of the certificates, the record and the appointment receipts; it has Arial’s measurements, so nothing moves.', 'ffcertificate' ); ?></li>
+		<li><strong>Cousine</strong> &mdash; <?php esc_html_e( 'the verification code of the receipts; it has Courier New’s measurements.', 'ffcertificate' ); ?></li>
+	</ul>
 
 	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
 	<p>
