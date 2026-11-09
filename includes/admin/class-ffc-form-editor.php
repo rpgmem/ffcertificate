@@ -12,6 +12,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Admin;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -303,7 +305,7 @@ class FormEditor {
 			wp_send_json_error();
 		}
 
-		$qty   = isset( $_POST['qty'] ) ? absint( wp_unslash( $_POST['qty'] ) ) : 10;
+		$qty   = RequestInput::get_post_int( 'qty', 10 );
 		$codes = array();
 		for ( $i = 0; $i < $qty; $i++ ) {
 			$rnd     = strtoupper( bin2hex( random_bytes( 4 ) ) );
@@ -333,7 +335,7 @@ class FormEditor {
 		}
 
 		// Primary: DB-backed template pool, addressed by post id.
-		$template_id = isset( $_POST['template_id'] ) ? absint( wp_unslash( $_POST['template_id'] ) ) : 0;
+		$template_id = RequestInput::get_post_int( 'template_id' );
 		if ( $template_id > 0 ) {
 			$html = CertTemplateReader::get_html( $template_id );
 			if ( '' === $html ) {

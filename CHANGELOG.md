@@ -9,6 +9,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Integer request reads guard against arrays everywhere** (#2557). The last 43 direct `absint()` casts over `$_GET` / `$_POST` now read through `RequestInput`, so a posted array is treated as "not supplied" instead of as the id `1`. The two legacy Required data keys are declared, and both ratchets block at zero.
 - **The REST notice buffer asks WordPress whether it is serving a REST request** (#2559). `RestController` calls `wp_is_serving_rest_request()` instead of reading `REST_REQUEST`. Two unreachable `function_exists()` guards are gone, and 13 tests that ran in their own process now share one.
 
 ### Removed

@@ -1182,13 +1182,13 @@ class AudienceAdminCalendar {
 				return;
 			}
 
-			$id   = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
+			$id   = RequestInput::get_post_int( 'schedule_id' );
 			$data = array(
 				'name'                         => RequestInput::get_post_string( 'schedule_name' ),
 				'description'                  => isset( $_POST['schedule_description'] ) ? sanitize_textarea_field( wp_unslash( $_POST['schedule_description'] ) ) : '',
 				'environment_label'            => isset( $_POST['schedule_environment_label'] ) ? sanitize_text_field( wp_unslash( $_POST['schedule_environment_label'] ) ) : null,
 				'visibility'                   => 'public' === RequestInput::get_post_string( 'schedule_visibility', 'private' ) ? 'public' : 'private',
-				'future_days_limit'            => isset( $_POST['schedule_future_days'] ) && '' !== $_POST['schedule_future_days'] ? absint( $_POST['schedule_future_days'] ) : null,
+				'future_days_limit'            => RequestInput::get_post_optional_int( 'schedule_future_days' ),
 				'notify_on_booking'            => isset( $_POST['schedule_notify_booking'] ) ? 1 : 0,
 				'notify_on_cancellation'       => isset( $_POST['schedule_notify_cancel'] ) ? 1 : 0,
 				'notify_admin_on_booking'      => isset( $_POST['schedule_notify_admin_booking'] ) ? 1 : 0,
@@ -1236,7 +1236,7 @@ class AudienceAdminCalendar {
 			if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete calendars.', 'ffcertificate' ) );
 			}
-			$id = absint( $_GET['id'] );
+			$id = RequestInput::get_get_int( 'id' );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_schedule_' . $id ) ) {
 				$schedule = AudienceScheduleRepository::get_by_id( $id );
 				// A calendar that still has spaces or bookings stays, as a space
@@ -1260,7 +1260,7 @@ class AudienceAdminCalendar {
 				return;
 			}
 
-			$schedule_id  = isset( $_POST['schedule_id'] ) ? absint( $_POST['schedule_id'] ) : 0;
+			$schedule_id  = RequestInput::get_post_int( 'schedule_id' );
 			$holiday_date = RequestInput::get_post_string( 'holiday_date' );
 			$description  = RequestInput::get_post_string( 'holiday_description' );
 			$kind         = RequestInput::get_post_string( 'holiday_kind' );
@@ -1292,8 +1292,8 @@ class AudienceAdminCalendar {
 
 		// Handle delete holiday.
 		if ( isset( $_GET['delete_holiday'] ) && isset( $_GET['id'] ) ) {
-			$holiday_id  = absint( $_GET['delete_holiday'] );
-			$schedule_id = absint( $_GET['id'] );
+			$holiday_id  = RequestInput::get_get_int( 'delete_holiday' );
+			$schedule_id = RequestInput::get_get_int( 'id' );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_holiday_' . $holiday_id ) ) {
 				AudienceEnvironmentRepository::remove_holiday( $holiday_id );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-calendars&action=edit&id=' . $schedule_id . '&message=holiday_deleted' ) );

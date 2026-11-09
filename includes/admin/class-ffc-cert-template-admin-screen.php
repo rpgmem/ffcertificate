@@ -292,7 +292,7 @@ class CertTemplateAdminScreen {
 
 		check_ajax_referer( self::AJAX_TOGGLE_ACTION, 'nonce' );
 
-		$post_id = isset( $_POST['post_id'] ) ? absint( wp_unslash( $_POST['post_id'] ) ) : 0;
+		$post_id = RequestInput::get_post_int( 'post_id' );
 		$post    = $post_id > 0 ? get_post( $post_id ) : null;
 		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type ) {
 			wp_send_json_error( array( 'message' => __( 'Template not found.', 'ffcertificate' ) ), 404 );

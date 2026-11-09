@@ -316,6 +316,12 @@ class Settings {
 			// builds it from the two legacy keys, and until then the readers
 			// fall back to them, so nothing is required by an empty default.
 			'required_data'                     => array(),
+			// The two settings that table was built from, read only until
+			// it exists. Empty tags read as the historical defaults; absent
+			// fields read as the fields those tags require, so the field
+			// list has no stored default to declare.
+			'required_certificate_tags'         => '',
+			'required_form_fields'              => null,
 			'smtp_mode'                         => 'wp',
 			'smtp_host'                         => '',
 			'smtp_port'                         => 587,
