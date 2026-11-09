@@ -600,7 +600,7 @@ class ReregistrationAdmin {
 			return;
 		}
 
-		$id          = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$id          = RequestInput::get_post_int( 'reregistration_id' );
 		$prev_status = null;
 
 		if ( $id > 0 ) {
@@ -716,7 +716,7 @@ class ReregistrationAdmin {
 			wp_die( esc_html__( 'You do not have permission to delete reregistration campaigns.', 'ffcertificate' ) );
 		}
 
-		$id = absint( $_GET['id'] );
+		$id = RequestInput::get_get_int( 'id' );
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'delete_reregistration_' . $id ) ) {
 			return;
 		}

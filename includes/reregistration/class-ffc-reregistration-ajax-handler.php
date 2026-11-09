@@ -89,7 +89,7 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
-		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
+		$submission_id = RequestInput::get_post_int( 'submission_id' );
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
 		}
@@ -137,7 +137,7 @@ final class ReregistrationAjaxHandler {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'ffcertificate' ) ), 403 );
 		}
 
-		$submission_id = isset( $_POST['submission_id'] ) ? absint( $_POST['submission_id'] ) : 0;
+		$submission_id = RequestInput::get_post_int( 'submission_id' );
 		if ( ! $submission_id ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid submission.', 'ffcertificate' ) ) );
 		}

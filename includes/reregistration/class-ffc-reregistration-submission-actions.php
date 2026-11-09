@@ -34,7 +34,7 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		$sub_id   = absint( $_GET['sub_id'] );
+		$sub_id   = RequestInput::get_get_int( 'sub_id' );
 		$rereg_id = RequestInput::get_get_int( 'id' );
 
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_get_string( '_wpnonce' ), 'approve_submission_' . $sub_id ) ) {
@@ -154,7 +154,7 @@ class ReregistrationSubmissionActions {
 			return;
 		}
 
-		$rereg_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$rereg_id = RequestInput::get_post_int( 'reregistration_id' );
 		if ( ! wp_verify_nonce( \FreeFormCertificate\Core\RequestInput::get_post_string( 'ffc_bulk_nonce' ), 'bulk_submissions_' . $rereg_id ) ) {
 			return;
 		}

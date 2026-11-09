@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace FreeFormCertificate\Shortcodes;
 
+use FreeFormCertificate\Core\RequestInput;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -33,7 +35,7 @@ class DashboardViewMode {
 			return false;
 		}
 
-		$target_user_id = absint( wp_unslash( $_GET['ffc_view_as_user'] ?? 0 ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the nonce is verified on the next line.
+		$target_user_id = RequestInput::get_get_int( 'ffc_view_as_user' );
 		$nonce          = \FreeFormCertificate\Core\RequestInput::get_get_string( 'ffc_view_nonce' );
 
 		if ( ! wp_verify_nonce( $nonce, 'ffc_view_as_user_' . $target_user_id ) ) {
