@@ -331,7 +331,8 @@ final class CertificateFonts {
 			}
 		}
 
-		if ( preg_match_all( '/<font\\b[^>]*\\bface\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $faces, PREG_SET_ORDER ) ) {
+		// `\s` rather than `\b` before `face`: an attribute is always preceded by whitespace, and the emoji guard reads a backslash followed by hex digits as a CSS escape.
+		if ( preg_match_all( '/<font\\b[^>]*\\sface\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')/i', $html, $faces, PREG_SET_ORDER ) ) {
 			foreach ( $faces as $face ) {
 				$stacks[] = html_entity_decode( ( $face[1] ?? '' ) . ( $face[2] ?? '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 			}
