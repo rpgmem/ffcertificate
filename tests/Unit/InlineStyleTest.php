@@ -96,6 +96,10 @@ final class InlineStyleTest extends TestCase {
 		'assets/js/ffc-admin-migrations.js' => array(
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
 		),
+		'assets/js/ffc-certificate-render.js' => array(
+			'.style.x =: .style.fontSize = low + "px"'    => array( 2, self::RUNTIME_VALUE ),
+			'.style.x =: .style.fontSize = middle + "px"' => array( 1, self::RUNTIME_VALUE ),
+		),
 		'assets/js/ffc-audience-bookings.js' => array(
 			'style=: style="border-left: 4px solid' => array( 1, self::OPERATOR_COLOUR ),
 			'style=: style="background-color:'      => array( 1, self::OPERATOR_COLOUR ),
@@ -315,6 +319,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 20px; padding: 15px;'    => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="font-family: Arial, sans-serif;' => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="border: 2px solid #000;'         => array( 1, self::QUOTED_EXAMPLE ),
+			'style=: style="font-size: 30pt;'                => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="font-family:'                    => array( 1, self::QUOTED_EXAMPLE ),
 		),
 		'includes/settings/views/ffc-tab-migrations.php' => array(

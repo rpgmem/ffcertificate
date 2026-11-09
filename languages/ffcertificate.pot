@@ -23265,6 +23265,18 @@ msgstr ""
 msgid "Date-message e-mails are listed there too, but each rule's subject and body are edited on the rule itself, on the Date Messages screen. The hub's \"Birthday message (default for new rules)\" only sets the text a new rule starts from; existing rules keep their own."
 msgstr ""
 
+msgid "A long name or course title can shrink to fit its box:"
+msgstr ""
+
+msgid "keeps the value on one line and shrinks it until it fits the width, and"
+msgstr ""
+
+msgid "lets it wrap and shrinks it until it fits the height, so give that box a height."
+msgstr ""
+
+msgid "A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:"
+msgstr ""
+
 msgid "Images take"
 msgstr ""
 

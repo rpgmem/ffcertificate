@@ -174,4 +174,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<?php esc_html_e( 'Images take', 'ffcertificate' ); ?>
 		<code>ffc-responsive-logo</code> <?php esc_html_e( '(scales a logo down to fit) and', 'ffcertificate' ); ?> <code>ffc-full-width-img</code> <?php esc_html_e( '(spans the full width).', 'ffcertificate' ); ?>
 	</p>
+	<p>
+	<?php esc_html_e( 'A long name or course title can shrink to fit its box:', 'ffcertificate' ); ?>
+		<code>ffc-fit</code> <?php esc_html_e( 'keeps the value on one line and shrinks it until it fits the width, and', 'ffcertificate' ); ?>
+		<code>ffc-fit-box</code> <?php esc_html_e( 'lets it wrap and shrinks it until it fits the height, so give that box a height.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:', 'ffcertificate' ); ?>
+		<code>&lt;div class="ffc-fit" style="font-size: 30pt;"&gt;{{name}}&lt;/div&gt;</code>
+	</p>
 </div>
