@@ -17,7 +17,6 @@ return array(
 	'EncryptionKeyHealthNoticeTest.php' => 1,
 	'EncryptionTest.php' => 8,
 	'FormCacheThirdPartyPurgeTest.php' => 7,
-	'IdentityAuditExportSourceTest.php' => 1,
 	'IdentityIndexBackfillMigrationStrategyTest.php' => 1,
 	'KeyRotationMigrationStrategyTest.php' => 1,
 	'KeyRotationRemainingMigrationStrategyTest.php' => 1,
@@ -29,7 +28,6 @@ return array(
 	'ReprintDetectorTest.php' => 1,
 	'SelfSchedulingCPTTest.php' => 1,
 	'SelfSchedulingSaveHandlerTest.php' => 1,
-	'SettingsActionHandlerTest.php' => 5,
 	'SubmissionPersisterTest.php' => 1,
 	'UrlShortenerMetaBoxTest.php' => 1,
 );
