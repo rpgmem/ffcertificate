@@ -23298,6 +23298,15 @@ msgstr ""
 msgid "the verification code of the receipts; it has Courier New’s measurements."
 msgstr ""
 
+msgid "The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile."
+msgstr ""
+
+#. translators: %s: comma-separated font names
+msgid "This template asks for %s, which is not installed on this site. Until it is, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgid_plural "This template asks for %s, which are not installed on this site. Until they are, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Images take"
 msgstr ""
 

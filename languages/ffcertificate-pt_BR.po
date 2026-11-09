@@ -23380,6 +23380,15 @@ msgstr "o texto miúdo dos certificados, da ficha e dos comprovantes de agendame
 msgid "the verification code of the receipts; it has Courier New’s measurements."
 msgstr "o código de verificação dos comprovantes; tem as medidas da Courier New."
 
+msgid "The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile."
+msgstr "O editor de modelos e o layout do formulário avisam quando um modelo cita, como primeira fonte de uma lista, uma que não está instalada no site nem é uma fonte do sistema, como Arial, Georgia, Times New Roman ou Courier New. Só a primeira fonte conta: o restante da lista é o que o aparelho usa enquanto isso."
+
+#. translators: %s: comma-separated font names
+msgid "This template asks for %s, which is not installed on this site. Until it is, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgid_plural "This template asks for %s, which are not installed on this site. Until they are, each device draws the text in the next font of its list, so the document can look different from one device to another."
+msgstr[0] "Este modelo pede %s, que não está instalada neste site. Até que esteja, cada aparelho desenha o texto com a próxima fonte da lista, e o documento pode ficar diferente de um aparelho para outro."
+msgstr[1] "Este modelo pede %s, que não estão instaladas neste site. Até que estejam, cada aparelho desenha o texto com a próxima fonte da lista, e o documento pode ficar diferente de um aparelho para outro."
+
 msgid "Images take"
 msgstr "Imagens aceitam"
 

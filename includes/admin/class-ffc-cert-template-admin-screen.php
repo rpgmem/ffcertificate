@@ -794,6 +794,10 @@ class CertTemplateAdminScreen {
 			</div>
 			<?php
 		}
+
+		// The fonts this template names that the site lacks (#2573): saved
+		// HTML, so a font added in the editor is reported after the save.
+		\FreeFormCertificate\Core\CertificateFonts::render_missing_notice( $html );
 		?>
 		<label class="ffc-block-label" for="ffc_template_html"><strong>
 			<?php

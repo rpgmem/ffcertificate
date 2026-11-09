@@ -11,6 +11,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 - **Certificates can use the fonts installed through the WordPress Font Library** (#2569). Every page that draws a certificate loads them, the capture waits for them, and Settings → Certificates and the layout editor list them, or say how to install one while none is.
 - **A long name or course title can shrink to fit its box** (#2570). The template classes `ffc-fit` (one line, fits the width) and `ffc-fit-box` (wraps, fits the height) shrink the text before the capture, never below half its size, in the PDF and in the editor preview.
+- **The template editor and the form layout warn when a template names a font the site has not installed** (#2573), listing each one and how this site installs it. System fonts and generic families never warn, nor does a fallback.
 
 ### Changed
 

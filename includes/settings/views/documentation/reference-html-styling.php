@@ -174,6 +174,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<li><strong>Arimo</strong> &mdash; <?php esc_html_e( 'the small text of the certificates, the record and the appointment receipts; it has Arial’s measurements, so nothing moves.', 'ffcertificate' ); ?></li>
 		<li><strong>Cousine</strong> &mdash; <?php esc_html_e( 'the verification code of the receipts; it has Courier New’s measurements.', 'ffcertificate' ); ?></li>
 	</ul>
+	<p>
+		<?php esc_html_e( 'The template editor and the form layout warn when a template names, as the first font of a list, one that is neither installed on the site nor a system font such as Arial, Georgia, Times New Roman or Courier New. Only the first font counts: the rest of the list is what the device uses meanwhile.', 'ffcertificate' ); ?>
+	</p>
 
 	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
 	<p>
