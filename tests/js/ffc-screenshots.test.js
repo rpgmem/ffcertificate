@@ -206,7 +206,9 @@ describe( 'zoom', () => {
 
 		key( 'ArrowLeft' );
 		key( 'ArrowUp' );
-		expect( shown().transform ).toContain( 'translate(0px, 0px)' );
+		// `translate(0px, 0px)` or its shortest form, `translate(0px)`: jsdom 31
+		// serialises the second.
+		expect( shown().transform ).toMatch( /translate\(0px(, 0px)?\)/ );
 	} );
 
 	it( 'drags an enlarged image instead of changing screenshot', () => {

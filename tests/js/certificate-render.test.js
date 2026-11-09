@@ -18,6 +18,7 @@ describe('FFCCertificateRender.waitForFonts', () => {
 	afterEach(() => {
 		vi.useRealTimers();
 		delete document.fonts;
+		document.body.innerHTML = '';
 	});
 
 	it('resolves at once where the browser has no Font Loading API', async () => {
@@ -144,6 +145,11 @@ describe('FFCLayoutPreview runs the preparation before the capture', () => {
  * text at `basePx` measures `textAtBase` against a box of `box`.
  */
 function fitted(root, cls, basePx, axis, box, textAtBase) {
+	// A computed style is only resolved for a connected element, as in a
+	// browser: the capture always fits a page that is in the document.
+	if (!root.isConnected) {
+		document.body.appendChild(root);
+	}
 	const el = document.createElement('div');
 	el.className = cls;
 	el.style.fontSize = basePx + 'px';
@@ -164,6 +170,10 @@ describe('FFCCertificateRender.fit (#2570)', () => {
 	beforeEach(() => {
 		delete window.FFCCertificateRender;
 		loadScript('assets/js/ffc-certificate-render.js');
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = '';
 	});
 
 	it('shrinks a one-line value until it fits the width', () => {
@@ -224,6 +234,7 @@ describe('FFCCertificateRender.fit (#2570)', () => {
 		span.getBoundingClientRect = () => ({ width: 600 * parseFloat(span.style.fontSize) / 20 });
 		parent.appendChild(span);
 		root.appendChild(parent);
+		document.body.appendChild(root);
 
 		window.FFCCertificateRender.fit(root);
 
