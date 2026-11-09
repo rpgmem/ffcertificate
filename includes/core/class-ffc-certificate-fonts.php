@@ -183,9 +183,11 @@ final class CertificateFonts {
 			return;
 		}
 
+		// The handle is written out rather than read from STYLE_HANDLE: the
+		// stylesheet guards read a declaration off its literal handle.
 		// phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- No file: the handle only carries the inline rules below.
-		wp_register_style( self::STYLE_HANDLE, false, array(), null );
-		wp_enqueue_style( self::STYLE_HANDLE );
+		wp_register_style( 'ffc-certificate-fonts', false, array(), null );
+		wp_enqueue_style( 'ffc-certificate-fonts' );
 		wp_add_inline_style( self::STYLE_HANDLE, $css );
 	}
 

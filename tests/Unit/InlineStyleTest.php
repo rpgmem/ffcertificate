@@ -315,6 +315,7 @@ final class InlineStyleTest extends TestCase {
 			'style=: style="margin: 20px; padding: 15px;'    => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="font-family: Arial, sans-serif;' => array( 1, self::QUOTED_EXAMPLE ),
 			'style=: style="border: 2px solid #000;'         => array( 1, self::QUOTED_EXAMPLE ),
+			'style=: style="font-family:'                    => array( 1, self::QUOTED_EXAMPLE ),
 		),
 		'includes/settings/views/ffc-tab-migrations.php' => array(
 			'style=: style="width: <?php echo esc_attr( number_format( $ffcertificate_percent, 1 )' => array( 1, self::RUNTIME_VALUE ),
