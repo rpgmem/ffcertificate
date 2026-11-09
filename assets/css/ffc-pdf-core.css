@@ -284,6 +284,18 @@ body.wp-admin .ffc-pdf-temp-wrapper {
     width: 100% !important;
 }
 
+/* Shrink-to-fit (#2570). The capture script shrinks the font of a marked
+ * element until it fits, never below half its size. `ffc-fit` keeps the
+ * value on one line and fits the box's width; `ffc-fit-box` lets it wrap
+ * and fits the box's height, so that box needs a height of its own. */
+.ffc-fit {
+    white-space: nowrap !important;
+}
+
+.ffc-fit-box {
+    overflow-wrap: break-word !important;
+}
+
 /* ==========================================================================
    10. BUTTON LOADING STATE — moved
    `.ffc-btn-loading` is a state of the `.ffc-btn` family and lives with it

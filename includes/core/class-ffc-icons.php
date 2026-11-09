@@ -305,6 +305,7 @@ final class Icons {
 		'tag'            => 'tag',
 		'template-load'  => 'template-load',
 		'template-save'  => 'template-save',
+		'text'           => 'text',
 		'ticket'         => 'ticket',
 		'unlink'         => 'unlink',
 		'unlock'         => 'unlock',

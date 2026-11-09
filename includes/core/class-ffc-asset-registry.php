@@ -40,6 +40,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class AssetRegistry {
 
 	/**
+	 * The shared scripts that draw a certificate: the PDF generator and the
+	 * editor preview. Each takes the certificate's styles with it (#2569).
+	 */
+	private const CERTIFICATE_RENDERERS = array( 'ffc-pdf-generator', 'ffc-layout-preview' );
+
+	/**
 	 * The scripts more than one screen enqueues: handle => array( path, deps ).
 	 *
 	 * The path is relative to the plugin directory and carries no suffix;
@@ -94,8 +100,9 @@ final class AssetRegistry {
 		// The two bundles are not dependencies: the generator fetches them
 		// when a page is about to need them, from `ffcPdfLibraries` (#2241).
 		// A screen that wants them at load enqueues `html2canvas` and `jspdf`.
-		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core' ) ),
-		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas' ) ),
+		'ffc-certificate-render'    => array( 'assets/js/ffc-certificate-render', array() ),
+		'ffc-pdf-generator'         => array( 'assets/js/ffc-pdf-generator', array( 'jquery', 'ffc-core', 'ffc-certificate-render' ) ),
+		'ffc-layout-preview'        => array( 'assets/js/ffc-layout-preview', array( 'html2canvas', 'ffc-certificate-render' ) ),
 		'ffc-bulk-issue'            => array( 'assets/js/ffc-bulk-issue', array() ),
 		// The boot watchdog of the certificate form (#2030). No dependencies:
 		// it has to run when the scripts it watches did not load.
@@ -182,6 +189,16 @@ final class AssetRegistry {
 		foreach ( $handles as $handle ) {
 			self::register( $handle, $s );
 			\wp_enqueue_script( $handle );
+
+			// A script that draws a certificate takes the certificate's styles
+			// with it (#2569): the template utility classes and the fonts the
+			// site installed. The dashboard, the booking page and the receipt
+			// loaded the generator without the sheet, so a template class did
+			// nothing in a PDF downloaded there.
+			if ( in_array( $handle, self::CERTIFICATE_RENDERERS, true ) ) {
+				self::style( 'ffc-pdf-core', $s );
+				CertificateFonts::enqueue();
+			}
 		}
 	}
 

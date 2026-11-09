@@ -586,14 +586,22 @@
                     // ~14 MP image that can exceed 100 MB of RAM).
                     var canvasScale = platform.mobile() ? 1.5 : 2;
 
-                    html2canvas(element, {
-                        scale: canvasScale,
-                        width: a4WidthPx,
-                        height: a4HeightPx,
-                        useCORS: true,
-                        allowTaint: false,
-                        logging: false,
-                        backgroundColor: '#ffffff'
+                    // The fonts the template names are ready, or the wait ran
+                    // out (#2569): the step the editor preview runs too.
+                    var prepared = window.FFCCertificateRender
+                        ? window.FFCCertificateRender.prepare(element)
+                        : Promise.resolve();
+
+                    prepared.then(function () {
+                        return html2canvas(element, {
+                            scale: canvasScale,
+                            width: a4WidthPx,
+                            height: a4HeightPx,
+                            useCORS: true,
+                            allowTaint: false,
+                            logging: false,
+                            backgroundColor: '#ffffff'
+                        });
                     }).then(function(canvas) {
                         try {
                             var ctx = canvas.getContext('2d');

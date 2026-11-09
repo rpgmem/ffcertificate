@@ -24,6 +24,13 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		parent::setUp();
 		FormSubmissionCountWpdb::install();
 		Monkey\setUp();
+		// The certificate renderers take the site's Font Library fonts (#2569):
+		// a site with none, read the same way whatever ran before.
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		\FreeFormCertificate\Core\CertificateFonts::reset();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
 		// The colour field is normalised on render; null falls back to white.

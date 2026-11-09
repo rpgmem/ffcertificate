@@ -76,6 +76,7 @@ class IdentifierIdiomTest extends TestCase {
 		'includes/user-dashboard/class-ffc-user-creator.php'                        => 'Builds a login from the local part of an address; it is a username, never a lookup key.',
 		'includes/generators/class-ffc-qr-design.php'                               => 'Normalises a `#rrggbb` colour for the QR design (#1563); never an address.',
 		'includes/core/class-ffc-public-design.php'                                 => 'Normalises a `#rrggbb` colour for the public form design (#1677); never an address.',
+		'includes/core/class-ffc-certificate-fonts.php'                             => 'Normalises a font face\'s style and weight keyword for its `@font-face` rule (#2569); never an address.',
 	);
 
 	/**

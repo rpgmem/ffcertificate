@@ -149,6 +149,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</tbody>
 	</table>
 
+	<h4><?php esc_html_e( 'Certificate fonts:', 'ffcertificate' ); ?></h4>
+	<p>
+		<?php esc_html_e( 'A certificate is drawn in the participant’s browser, so a font the device does not have is replaced by another one, and the certificate can look different on another device. To use the same typeface everywhere, install the font through WordPress and name it in the template: the plugin loads every font installed on the site on the pages that draw a certificate, and waits for it before drawing.', 'ffcertificate' ); ?>
+	</p>
+	<ul>
+		<li><?php esc_html_e( 'WordPress 7.0 or later, any theme: Appearance → Fonts.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'Earlier versions with a block theme: Appearance → Editor → Styles → Typography.', 'ffcertificate' ); ?></li>
+		<li><?php esc_html_e( 'Earlier versions with a classic theme have no font screen; update WordPress to install fonts.', 'ffcertificate' ); ?></li>
+	</ul>
+	<p>
+		<?php esc_html_e( 'Settings → Certificates lists the fonts installed on the site with the exact value to write, for example', 'ffcertificate' ); ?>
+		<code>style="font-family: 'Great Vibes', cursive;"</code>.
+		<?php esc_html_e( 'The fonts stay on the site, under the uploads folder; nothing is fetched from another server when a certificate is drawn. Removing a font from the site makes certificates that name it fall back to the device’s fonts again.', 'ffcertificate' ); ?>
+	</p>
+
 	<h4><?php esc_html_e( 'Helper classes:', 'ffcertificate' ); ?></h4>
 	<p>
 	<?php esc_html_e( 'The PDF stylesheet ships alignment helpers for the certificate body:', 'ffcertificate' ); ?>
@@ -158,5 +173,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<p>
 	<?php esc_html_e( 'Images take', 'ffcertificate' ); ?>
 		<code>ffc-responsive-logo</code> <?php esc_html_e( '(scales a logo down to fit) and', 'ffcertificate' ); ?> <code>ffc-full-width-img</code> <?php esc_html_e( '(spans the full width).', 'ffcertificate' ); ?>
+	</p>
+	<p>
+	<?php esc_html_e( 'A long name or course title can shrink to fit its box:', 'ffcertificate' ); ?>
+		<code>ffc-fit</code> <?php esc_html_e( 'keeps the value on one line and shrinks it until it fits the width, and', 'ffcertificate' ); ?>
+		<code>ffc-fit-box</code> <?php esc_html_e( 'lets it wrap and shrinks it until it fits the height, so give that box a height.', 'ffcertificate' ); ?>
+		<?php esc_html_e( 'A value that already fits is untouched, and none shrinks below half its size. Put the class on a block, such as a div, paragraph, heading or table cell; on a span, the box is the element around it. Example:', 'ffcertificate' ); ?>
+		<code>&lt;div class="ffc-fit" style="font-size: 30pt;"&gt;{{name}}&lt;/div&gt;</code>
 	</p>
 </div>

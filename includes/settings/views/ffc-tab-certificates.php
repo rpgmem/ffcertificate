@@ -166,6 +166,11 @@ $ffcertificate_data_row = static function ( string $index, array $row, array $ty
 </div>
 
 <div class="card">
+	<h2 class="ffc-icon-text"><?php esc_html_e( 'Certificate fonts', 'ffcertificate' ); ?></h2>
+	<?php \FreeFormCertificate\Core\CertificateFonts::render_notice(); ?>
+</div>
+
+<div class="card">
 	<h2 class="ffc-icon-list"><?php esc_html_e( 'Required data', 'ffcertificate' ); ?></h2>
 	<p class="description">
 		<?php esc_html_e( 'What every certificate needs, in one table. Required in the form: a new form starts with the field, and in the form editor its name, type and required flag are locked; only the label can change. Required in the certificate HTML: every certificate layout must print the field through its name in braces, such as {{cpf_rf}}. Changes save as you make them.', 'ffcertificate' ); ?>

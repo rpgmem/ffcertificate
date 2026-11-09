@@ -586,6 +586,9 @@ class CertTemplateAdminScreen {
 			. '<title>' . esc_html( $title ) . '</title>'
 			. '<style>html,body{margin:0;padding:0;background:#e5e5e5;}'
 			. '.ffc-preview-canvas{background:#fff;margin:24px auto;max-width:1123px;box-shadow:0 2px 12px rgba(0,0,0,.25);}'
+			// The fonts the site installed, so a template that names one
+			// previews in it (#2569); built from validated names and URLs.
+			. \FreeFormCertificate\Core\CertificateFonts::css()
 			. '</style></head><body><div class="ffc-preview-canvas">' . $body . '</div></body></html>';
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Self-contained preview page: the title is esc_html'd and the body is the HtmlPolicy-sanitized template rendered through PdfHtmlRenderer (which wp_kses-filters every injected value); the frame is sandboxed script-less.
