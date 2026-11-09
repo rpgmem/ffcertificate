@@ -64,6 +64,7 @@ class CertificateFontsTest extends TestCase {
 		Functions\when( 'admin_url' )->alias( static fn( $path = '' ) => 'https://example.test/wp-admin/' . $path );
 		Functions\when( 'current_user_can' )->justReturn( true );
 		Functions\when( 'wp_is_block_theme' )->justReturn( false );
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $number ) => 1 === $number ? $single : $plural );
 	}
 
 	protected function tearDown(): void {
@@ -328,5 +329,95 @@ class CertificateFontsTest extends TestCase {
 		$this->assertStringNotContainsString( 'site-editor.php', $html );
 		$this->assertStringContainsString( 'An administrator can install a font in the Site Editor', $html );
 	}
-}
 
+	/**
+	 * Install one family with a usable face.
+	 *
+	 * @param int    $id    Post ID.
+	 * @param string $name  Title.
+	 * @param string $stack Stored fontFamily.
+	 */
+	private function installed_family( int $id, string $name, string $stack ): void {
+		$this->family( $id, $name, $stack );
+		$this->face(
+			$id,
+			array(
+				'fontFamily' => $name,
+				'src'        => 'https://example.test/wp-content/uploads/fonts/' . $id . '.woff2',
+			)
+		);
+	}
+
+	public function test_requested_reads_the_first_family_of_every_stack_once(): void {
+		$html = '<div style="font-family: Arial, Helvetica, sans-serif;color:#000">'
+			. '<p style="margin:0; font-family: \'Great Vibes\', Georgia, serif">a</p>'
+			. "<p style='font-family:\"EB Garamond\",serif'>b</p>"
+			. '<p style="font-family: &quot;Cinzel&quot;, Georgia, serif !important">c</p>'
+			. '<p style="font-family: great vibes, cursive">d</p>'
+			. '<font face="Cousine, monospace">e</font>'
+			. '<p style="font-size: 12pt">f</p></div>';
+
+		$this->assertSame(
+			array( 'Arial', 'Great Vibes', 'EB Garamond', 'Cinzel', 'Cousine' ),
+			CertificateFonts::requested( $html ),
+			'First names only, unquoted, entities decoded, one per name whatever its case.'
+		);
+	}
+
+	public function test_requested_ignores_text_that_only_mentions_a_font(): void {
+		$html = '<p>Use font-family: Lobster in the template.</p><p data-x="font-family: Lobster">x</p>';
+
+		$this->assertSame( array(), CertificateFonts::requested( $html ) );
+	}
+
+	public function test_system_fonts_generic_families_and_installed_fonts_are_not_missing(): void {
+		$this->installed_family( 7, 'Great Vibes', '"Great Vibes", cursive' );
+		$html = '<p style="font-family: Georgia, serif">a</p>'
+			. '<p style="font-family: \'Courier New\', monospace">b</p>'
+			. '<p style="font-family: sans-serif">c</p>'
+			. '<p style="font-family: \'GREAT VIBES\', Georgia, serif">d</p>';
+
+		$this->assertSame( array(), CertificateFonts::missing( $html ) );
+		$this->assertSame( '', CertificateFonts::missing_notice_html( $html ) );
+	}
+
+	public function test_an_installed_family_counts_by_the_first_name_of_its_stack(): void {
+		$this->installed_family( 7, 'Great Vibes Pro', '"Great Vibes", cursive' );
+
+		$this->assertSame( array(), CertificateFonts::missing( '<p style="font-family: \'Great Vibes\'">a</p>' ) );
+	}
+
+	public function test_a_font_neither_installed_nor_a_system_font_is_missing(): void {
+		$this->installed_family( 7, 'Cinzel', 'Cinzel, serif' );
+		$html = '<p style="font-family: Cinzel, Georgia, serif">a</p>'
+			. '<p style="font-family: \'EB Garamond\', Georgia, serif">b</p>'
+			. '<p style="font-family: \'EB Garamond\', Georgia, serif">c</p>'
+			. '<p style="font-family: Arimo, \'Missing Fallback\', sans-serif">d</p>';
+
+		$this->assertSame( array( 'EB Garamond', 'Arimo' ), CertificateFonts::missing( $html ), 'A missing fallback is never reported.' );
+	}
+
+	public function test_the_missing_notice_names_each_font_and_the_way_to_install_it(): void {
+		$one = CertificateFonts::missing_notice_html( '<p style="font-family: Lobster, cursive">a</p>' );
+
+		$this->assertStringContainsString( 'ffc-template-fonts-missing', $one );
+		$this->assertStringContainsString( '<strong>Lobster</strong>', $one );
+		$this->assertStringContainsString( 'which is not installed', $one );
+
+		$two = CertificateFonts::missing_notice_html( '<p style="font-family: Lobster">a</p><p style="font-family: Pacifico">b</p>' );
+		$this->assertStringContainsString( '<strong>Lobster</strong>, <strong>Pacifico</strong>', $two );
+		$this->assertStringContainsString( 'which are not installed', $two );
+
+		$file = ABSPATH . 'wp-admin/font-library.php';
+		$this->assertStringContainsString( file_exists( $file ) ? 'font-library.php' : 'update to install fonts', $two );
+	}
+
+	public function test_a_font_name_with_markup_is_escaped_in_the_notice(): void {
+		Functions\when( 'esc_html' )->alias( static fn( $text ) => htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ) );
+
+		$html = CertificateFonts::missing_notice_html( '<p style="font-family: &lt;b&gt;X">a</p>' );
+
+		$this->assertStringContainsString( '&lt;b&gt;X', $html );
+		$this->assertStringNotContainsString( '<b>X', $html );
+	}
+}
