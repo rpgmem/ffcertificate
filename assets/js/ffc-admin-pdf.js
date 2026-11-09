@@ -158,6 +158,32 @@
         });
     });
 
+    // A layout that is an earlier body of a default model is offered the
+    // current one (#2577). The button carries the pool id, so the update goes
+    // through the same Load path, confirmation included; nothing is saved
+    // until the form is.
+    $(document).on('click', '#ffc_update_default_layout_btn', function(e) {
+        e.preventDefault();
+        var $btn = $(this);
+        var templateId = $btn.data('template-id');
+        var templateName = String($btn.data('template-name') || '');
+        var strings = (typeof ffc_ajax !== 'undefined' && ffc_ajax.strings) ? ffc_ajax.strings : {};
+        var confirmMsg = strings.confirmUpdateLayout
+            ? strings.confirmUpdateLayout.replace('%s', templateName)
+            : 'Replace this layout with the current version of "' + templateName + '"?';
+
+        return window.FFC.confirmDialog({
+            message: confirmMsg,
+            confirmLabel: strings.updateLayout || '',
+            category: 'caution',
+            icon: 'template-load'
+        }).then(function(agreed) {
+            if (agreed) {
+                loadTemplateFile(templateId, templateName);
+            }
+        });
+    });
+
     // Load a certificate template into the layout editor.
     //
     // Primary path (#865): POST ffc_load_template with the DB pool post id

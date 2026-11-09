@@ -31,6 +31,9 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 		Functions\when( 'wp_is_block_theme' )->justReturn( false );
 		Functions\when( 'wp_kses_post' )->returnArg();
 		\FreeFormCertificate\Core\CertificateFonts::reset();
+		// A copy of an earlier default is offered the current one (#2577).
+		Functions\when( 'wp_kses' )->returnArg();
+		\FreeFormCertificate\Admin\DefaultLayoutVersions::reset();
 		// SettingsReader reads the required certificate tags (#1734).
 		Functions\when( 'get_option' )->justReturn( array() );
 		// The colour field is normalised on render; null falls back to white.
@@ -139,6 +142,18 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 
 		$this->assertStringNotContainsString( 'id="ffc_load_template_btn"', $html );
 		$this->assertStringContainsString( 'id="ffc_btn_preview"', $html, 'the other actions still render' );
+	}
+
+	public function test_a_layout_that_is_an_earlier_default_body_is_offered_the_current_one(): void {
+		Functions\when( 'get_posts' )->alias( static fn( $args ) => isset( $args['meta_key'] ) && '_ffc_default_slug' === $args['meta_key'] ? array( 7 ) : array() );
+		Functions\when( 'get_the_title' )->justReturn( 'Certificate model 4' );
+		$body = (string) file_get_contents( FFC_PLUGIN_DIR . 'templates/certificate-defaults/previous/default_certificate_4-6.44.1.html' );
+
+		$html = $this->render( array( 'pdf_layout' => $body ) );
+
+		$this->assertStringContainsString( 'id="ffc_update_default_layout_btn"', $html );
+		$this->assertStringContainsString( 'data-template-id="7"', $html );
+		$this->assertStringNotContainsString( 'ffc_update_default_layout_btn', $this->render( array( 'pdf_layout' => '<p>own layout</p>' ) ) );
 	}
 
 	/**

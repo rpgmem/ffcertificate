@@ -136,6 +136,8 @@ class FormEditorLayoutMetabox {
 					// The fonts a template can name, or how to install one (#2569).
 					\FreeFormCertificate\Core\CertificateFonts::render_notice();
 					\FreeFormCertificate\Core\CertificateFonts::render_missing_notice( (string) $layout );
+					// A copy of an earlier default model is offered the current one (#2577).
+					DefaultLayoutVersions::render_notice( (string) $layout );
 					?>
 					<div class="ffc-code-editor-wrapper">
 						<textarea name="ffc_config[pdf_layout]" id="ffc_pdf_layout" class="ffc-w100" rows="12"><?php echo esc_textarea( $layout ); ?></textarea>

@@ -33870,3 +33870,17 @@ msgstr "Configurações → Certificados lista as fontes instaladas no site com 
 #: includes/settings/views/documentation/reference-html-styling.php
 msgid "The fonts stay on the site, under the uploads folder; nothing is fetched from another server when a certificate is drawn. Removing a font from the site makes certificates that name it fall back to the device’s fonts again."
 msgstr "As fontes ficam no próprio site, na pasta de uploads; nada é buscado em outro servidor quando um certificado é desenhado. Remover uma fonte do site faz os certificados que a usam voltarem às fontes do aparelho."
+
+msgid "Update layout"
+msgstr "Atualizar layout"
+
+#. translators: %s: name of a default certificate model
+msgid "This layout is an earlier version of %s. The current version of that model may draw differently, for instance with other fonts. Updating replaces the HTML, the background and the page colour in the editor; nothing changes until you save the form."
+msgstr "Este layout é uma versão anterior de %s. A versão atual desse modelo pode sair diferente, por exemplo com outras fontes. Atualizar substitui o HTML, o fundo e a cor da página no editor; nada muda até você salvar o formulário."
+
+#. translators: %s: name of a default certificate model
+msgid "Replace this layout with the current version of \"%s\"? The editor changes now; the form changes when you save it."
+msgstr "Substituir este layout pela versão atual de \"%s\"? O editor muda agora; o formulário muda quando você salvá-lo."
+
+msgid "Loading a certificate model copies its HTML into the form, so when a release improves a default, forms that copied an earlier version keep it: certificates are regenerated from the form's layout, and changing it silently would change certificates already issued. The form's layout box says so instead, when the layout is an unedited copy of an earlier version, with an Update layout button that loads the current version into the editor. Nothing changes until the form is saved; an edited copy is never offered one."
+msgstr "Carregar um modelo de certificado copia o HTML dele para o formulário; por isso, quando uma versão do plugin melhora um modelo padrão, os formulários que copiaram uma versão anterior continuam com ela: os certificados são gerados de novo a partir do layout do formulário, e trocá-lo sem aviso mudaria certificados já emitidos. Em vez disso, a caixa de layout do formulário avisa quando o layout é uma cópia sem alterações de uma versão anterior, com um botão Atualizar layout que carrega a versão atual no editor. Nada muda até o formulário ser salvo; uma cópia editada nunca recebe a oferta."
