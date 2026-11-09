@@ -1165,3 +1165,59 @@ describe('ffc-admin-pdf.js — media frames', () => {
 		expect(window.FFC.Admin.notify).toHaveBeenCalledWith('Error: HTML textarea not found', 'error');
 	});
 });
+
+describe('ffc-admin-pdf.js — update an earlier default layout (#2577)', () => {
+	beforeEach(() => {
+		reset();
+		installFFC();
+		document.body.innerHTML =
+			'<textarea id="ffc_pdf_layout">old</textarea>' +
+			'<button id="ffc_update_default_layout_btn" data-template-id="9" data-template-name="Certificate model 1">Update layout</button>';
+		window.ffc_ajax = {
+			ajax_url: '/wp-admin/admin-ajax.php',
+			nonce: 'test-nonce',
+			strings: { confirmUpdateLayout: 'Replace with "%s"?', updateLayout: 'Update layout' },
+		};
+		loadScript('assets/js/ffc-code-editor-core.js');
+		loadScript('assets/js/ffc-admin-pdf.js');
+		window.$.post = vi.fn(() => {
+			const jqxhr = {
+				done(cb) {
+					cb({ success: true, data: { html: '<p>new</p>', bg_image: '', bg_color: '#ffffff' } });
+					return jqxhr;
+				},
+				fail() {
+					return jqxhr;
+				},
+			};
+			return jqxhr;
+		});
+	});
+
+	afterEach(reset);
+
+	it('asks first, naming the model, and loads the pool default by id when agreed', async () => {
+		const dialog = answer(true);
+
+		window.$('#ffc_update_default_layout_btn').trigger('click');
+		await settle();
+
+		expect(dialog).toHaveBeenCalledWith(expect.objectContaining({ message: 'Replace with "Certificate model 1"?', category: 'caution' }));
+		expect(window.$.post).toHaveBeenCalled();
+		window.$.post.mock.calls.forEach(([, data]) => {
+			expect(data.action).toBe('ffc_load_template');
+			expect(data.template_id).toBe(9);
+		});
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('<p>new</p>');
+	});
+
+	it('leaves the layout alone when the administrator declines', async () => {
+		answer(false);
+
+		window.$('#ffc_update_default_layout_btn').trigger('click');
+		await settle();
+
+		expect(window.$.post).not.toHaveBeenCalled();
+		expect(document.querySelector('#ffc_pdf_layout').value).toBe('old');
+	});
+});
