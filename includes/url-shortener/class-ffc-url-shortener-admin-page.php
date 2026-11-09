@@ -185,28 +185,28 @@ class UrlShortenerAdminPage {
 		}
 
 		if ( 'trash' === $action && isset( $_GET['id'] ) ) {
-			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . absint( $_GET['id'] ) ) ) {
+			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_trash_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->trash_short_url( absint( wp_unslash( $_GET['id'] ) ) );
+			$this->service->trash_short_url( RequestInput::get_get_int( 'id' ) );
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&msg=trashed' ) );
 			exit;
 		}
 
 		if ( 'restore' === $action && isset( $_GET['id'] ) ) {
-			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_restore_' . absint( $_GET['id'] ) ) ) {
+			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_restore_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->restore_short_url( absint( wp_unslash( $_GET['id'] ) ) );
+			$this->service->restore_short_url( RequestInput::get_get_int( 'id' ) );
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=restored' ) );
 			exit;
 		}
 
 		if ( 'delete' === $action && isset( $_GET['id'] ) ) {
-			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_delete_' . absint( $_GET['id'] ) ) ) {
+			if ( ! wp_verify_nonce( $nonce, 'ffc_short_url_delete_' . RequestInput::get_get_int( 'id' ) ) ) {
 				wp_die( esc_html__( 'Security check failed.', 'ffcertificate' ) );
 			}
-			$this->service->delete_short_url( absint( wp_unslash( $_GET['id'] ) ) );
+			$this->service->delete_short_url( RequestInput::get_get_int( 'id' ) );
 			wp_safe_redirect( admin_url( 'admin.php?page=ffc-short-urls&status=trashed&msg=deleted' ) );
 			exit;
 		}

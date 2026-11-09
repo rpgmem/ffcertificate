@@ -11,6 +11,4 @@
  */
 
 return array(
-	'required_certificate_tags',
-	'required_form_fields',
 );

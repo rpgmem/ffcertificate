@@ -121,12 +121,12 @@ class AudienceAdminAudience {
 				return;
 			}
 
-			$id   = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
+			$id   = RequestInput::get_post_int( 'audience_id' );
 			$data = array(
 				'name'            => RequestInput::get_post_string( 'audience_name' ),
 				// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Normalised by ColorValidator::normalize(), which returns the default for anything that is not a hex colour.
 				'color'           => ColorValidator::normalize( isset( $_POST['audience_color'] ) ? wp_unslash( $_POST['audience_color'] ) : '', '#3788d8' ),
-				'parent_id'       => isset( $_POST['audience_parent'] ) && '' !== $_POST['audience_parent'] ? absint( $_POST['audience_parent'] ) : null,
+				'parent_id'       => RequestInput::get_post_optional_int( 'audience_parent' ),
 				'status'          => RequestInput::get_post_string( 'audience_status', 'active' ),
 				'allow_self_join' => ! empty( $_POST['audience_self_join'] ) ? 1 : 0,
 			);
@@ -190,7 +190,7 @@ class AudienceAdminAudience {
 				return;
 			}
 
-			$audience_id     = isset( $_POST['audience_id'] ) ? absint( $_POST['audience_id'] ) : 0;
+			$audience_id     = RequestInput::get_post_int( 'audience_id' );
 			$user_ids_string = RequestInput::get_post_string( 'user_ids' );
 
 			if ( $audience_id > 0 && ! empty( $user_ids_string ) ) {
@@ -203,8 +203,8 @@ class AudienceAdminAudience {
 
 		// Handle remove member.
 		if ( isset( $_GET['remove_user'] ) && isset( $_GET['id'] ) ) {
-			$user_id     = absint( $_GET['remove_user'] );
-			$audience_id = absint( $_GET['id'] );
+			$user_id     = RequestInput::get_get_int( 'remove_user' );
+			$audience_id = RequestInput::get_get_int( 'id' );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'remove_member_' . $user_id ) ) {
 				AudienceWriter::remove_member( $audience_id, $user_id );
 				wp_safe_redirect( admin_url( 'admin.php?page=' . $this->menu_slug . '-audiences&action=members&id=' . $audience_id . '&message=member_removed' ) );
@@ -217,7 +217,7 @@ class AudienceAdminAudience {
 			if ( ! Capabilities::current_user_can_admin_or( 'ffc_delete_audiences' ) ) {
 				wp_die( esc_html__( 'You do not have permission to delete audiences.', 'ffcertificate' ) );
 			}
-			$id = absint( $_GET['id'] );
+			$id = RequestInput::get_get_int( 'id' );
 			if ( wp_verify_nonce( RequestInput::get_get_string( '_wpnonce' ), 'delete_audience_' . $id ) ) {
 				$aud = AudienceReader::get_by_id( $id );
 				// Deleting an audience takes its groups and memberships with it, so

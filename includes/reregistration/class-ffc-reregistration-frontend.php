@@ -189,7 +189,7 @@ class ReregistrationFrontend {
 	public static function ajax_get_form(): void {
 		check_ajax_referer( 'ffc_reregistration_frontend', 'nonce' );
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {
@@ -315,7 +315,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {
@@ -375,7 +375,7 @@ class ReregistrationFrontend {
 			wp_send_json_error( array( 'message' => $honeypot ) );
 		}
 
-		$reregistration_id = isset( $_POST['reregistration_id'] ) ? absint( $_POST['reregistration_id'] ) : 0;
+		$reregistration_id = RequestInput::get_post_int( 'reregistration_id' );
 		$user_id           = get_current_user_id();
 
 		if ( ! $reregistration_id || ! $user_id ) {

@@ -7,6 +7,10 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Integer request reads guard against arrays everywhere** (#2557). The last 43 direct `absint()` casts over `$_GET` / `$_POST` now read through `RequestInput`, so a posted array is treated as "not supplied" instead of as the id `1`. The two legacy Required data keys are declared, and both ratchets block at zero.
+
 ### Removed
 
 - ⚠ **The legacy cron hook names and the per-audience field seed are gone** (#2552, #2323, #2502). A callback attached to an `ffcertificate_*` cron name no longer runs; attach it to the `ffc_*` name. `ReregistrationStandardFieldsSeeder::seed_for_audience()` is removed; call `seed_global()`.
