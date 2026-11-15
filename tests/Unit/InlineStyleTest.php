@@ -111,6 +111,9 @@ final class InlineStyleTest extends TestCase {
 			'.style.x =: .style.transform = el.rotation ? "rotate(" + el.rotation + "deg)" : "'  => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.border = (el.border_width || 0) + "px " + (el.border_style'      => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.borderRadius = (el.radius || 0) + "px"'                          => array( 1, self::RUNTIME_VALUE ),
+			// The operator's fill, font and colour on the canvas (#2586).
+			'.style.x =: .style.background = el.fill || "transparent"'                           => array( 1, self::OPERATOR_COLOUR ),
+			'.style.x =: .style.cssText = textCss(el)'                                           => array( 1, self::OPERATOR_COLOUR ),
 		),
 		'assets/js/ffc-certificate-render.js' => array(
 			'.style.x =: .style.fontSize = low + "px"'    => array( 2, self::RUNTIME_VALUE ),

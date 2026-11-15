@@ -34315,5 +34315,231 @@ msgstr ""
 msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. A layout that does not check out is not saved and says why."
 msgstr ""
 
-msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for what the canvas does not set yet."
+
+msgid "An image from the Media Library"
+msgstr ""
+
+msgid "As typed"
+msgstr ""
+
+msgid "Black (900)"
+msgstr ""
+
+msgid "Bold (700)"
+msgstr ""
+
+msgid "Capitalised"
+msgstr ""
+
+msgid "Case"
+msgstr ""
+
+msgid "Centre"
+msgstr ""
+
+msgid "Choose a tag to insert…"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+msgid "Contain: the whole image shows"
+msgstr ""
+
+msgid "Convert this template to HTML? The page becomes the HTML generated at the last save, edited as code from then on; the visual layout is dropped and cannot be brought back. Forms that use the template keep printing the same document. Save any change first."
+msgstr ""
+
+msgid "Convert to HTML"
+msgstr ""
+
+msgid "Cover: the image fills the box"
+msgstr ""
+
+msgid "Dashed"
+msgstr ""
+
+msgid "Double"
+msgstr ""
+
+msgid "Drawing the page…"
+msgstr ""
+
+msgid "Element properties"
+msgstr ""
+
+msgid "Family"
+msgstr ""
+
+msgid "Fill"
+msgstr ""
+
+msgid "Filtered on save like the HTML templates; tags work here too."
+msgstr ""
+
+msgid "Fit"
+msgstr ""
+
+msgid "Height"
+msgstr ""
+
+#. translators: %d: Media Library attachment id
+msgid "Image #%d"
+msgstr ""
+
+msgid "Insert a tag"
+msgstr ""
+
+msgid "Italic"
+msgstr ""
+
+msgid "Justify"
+msgstr ""
+
+msgid "Letter spacing (px)"
+msgstr ""
+
+msgid "Light (300)"
+msgstr ""
+
+msgid "Line colour"
+msgstr ""
+
+msgid "Line height"
+msgstr ""
+
+msgid "Medium (500)"
+msgstr ""
+
+msgid "No fill"
+msgstr ""
+
+msgid "No image chosen yet."
+msgstr ""
+
+msgid "Normal"
+msgstr ""
+
+#. translators: %s: comma-separated font names
+msgid "Not installed on this site: %s. The preview and the PDF draw the next font of each list."
+msgstr ""
+
+#. translators: %s: the font that prints instead
+msgid "Not installed on this site: the text prints in %s until it is."
+msgstr ""
+
+msgid "Off: the text keeps its size"
+msgstr ""
+
+msgid "One tag, such as {{name}}. The preview shows it with sample data."
+msgstr ""
+
+msgid "One way: from then on the template is edited as HTML."
+msgstr ""
+
+msgid "Only a visual template you can edit can be converted to HTML."
+msgstr ""
+
+msgid "Page default"
+msgstr ""
+
+msgid "Position and size (page pixels)"
+msgstr ""
+
+msgid "Preview of the certificate page"
+msgstr ""
+
+msgid "Preview with sample data"
+msgstr ""
+
+msgid "Quiet zone (modules)"
+msgstr ""
+
+msgid "Regular (400)"
+msgstr ""
+
+msgid "Required fields are missing"
+msgstr ""
+
+msgid "Rotation (degrees)"
+msgstr ""
+
+msgid "Select an element on the page, or in the Layers list, to change it here."
+msgstr ""
+
+msgid "Semibold (600)"
+msgstr ""
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires %s, and the layout does not carry it yet."
+msgstr ""
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires every certificate to carry %s, and this layout does not. Insert a Data field for each one; a form using this template is refused on save until it does."
+msgstr ""
+
+msgid "Shrink to fit the box"
+msgstr ""
+
+msgid "Shrink to one line"
+msgstr ""
+
+msgid "Shrinking keeps a long name inside its box; the preview applies it as the PDF does."
+msgstr ""
+
+msgid "Size (px)"
+msgstr ""
+
+msgid "Solid"
+msgstr ""
+
+msgid "Source"
+msgstr ""
+
+msgid "The code links to the validation page; its size is the box."
+msgstr ""
+
+msgid "The signer’s signature"
+msgstr ""
+
+msgid "The template is now an HTML template. Its HTML is what the visual layout generated, so the forms that use it print the same document."
+msgstr ""
+
+msgid "The unsaved layout, drawn by the PDF renderer with sample data: the fit options and the fonts apply as they will print."
+msgstr ""
+
+msgid "Thickness (px)"
+msgstr ""
+
+msgid "Thin (100)"
+msgstr ""
+
+msgid "Top"
+msgstr ""
+
+msgid "UPPERCASE"
+msgstr ""
+
+#. translators: %d: model number, 1 to 6
+msgid "Visual certificate model %d"
+msgstr ""
+
+msgid "Weight"
+msgstr ""
+
+msgid "Width"
+msgstr ""
+
+msgid "lowercase"
+msgstr ""
+
+msgid "the device’s default font"
+msgstr ""
+
+msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for hand edits."
+msgstr ""
+
+msgid "Element properties, in the side column, change the selected element: its position, size and rotation; a text's content, with a tag picker, and a data field's tag; the font family, size, weight, style, colour, alignment, letter spacing, line height, case and fit; an image's file, from the Media Library, or the signer's signature, contained or covering its box; a frame's line and fill; an HTML block's code. The font list offers the Font Library families and the system fonts, and marks a font the site lacks with the one that prints instead. Preview with sample data draws the unsaved page through the PDF renderer, so fit and fonts look as they will print, and names the required tags and fonts the layout lacks; the saved layout is checked the same way."
+msgstr ""
+
+msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
 msgstr ""

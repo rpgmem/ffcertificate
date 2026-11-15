@@ -20,6 +20,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A migration card moves forms carrying copies of one layout onto a shared template** (#2583): each form's place, action and signer are read against the template's `{{model:…}}` and `{{signer:…}}` tokens, previewed, and switched only when the certificate prints the same text and background; the rest are listed with the reason.
 - **Certificate templates can be visual** (#2584): a schema-versioned JSON layout of positioned text, field, image, QR, frame and HTML elements, validated on save and rendered on the server to the HTML the current capture prints. Until the page editor arrives the layout is edited as JSON. Layout sanitising now keeps `{{signer:signature}}` in an image address, which `wp_kses()` used to cut.
 - **Visual templates are edited on a page canvas** (#2585): insert, drag, resize on a 10 px grid, nudge with the arrows, zoom, align to the page, restack and lock layers, and discard back to the last save, on a window of at least 1280 px with a fine pointer. Written in-house on native pointer events.
+- **Visual templates get a properties panel, a preview and six models** (#2586): per-element properties with a tag picker and a font list that marks a missing font; a preview through the PDF renderer; a warning for missing required tags; a one-way Convert to HTML; visual versions of the six certificate models (seed version 12).
 
 ### Changed
 

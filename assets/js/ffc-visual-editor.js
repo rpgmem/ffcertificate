@@ -13,6 +13,10 @@
  * that the editor says why and keeps the work, and comes back when the
  * window grows again.
  *
+ * The properties panel (#2586) sits in the side column, outside the editor's
+ * container: its controls carry no name, and every change is written into
+ * the layout, so the form still posts the JSON alone.
+ *
  * @since 6.45.0
  */
 (function (window, document) {
@@ -159,8 +163,106 @@
 		 */
 		canEdit: function (width, finePointer) {
 			return width >= MIN_WIDTH && !!finePointer;
+		},
+
+		/**
+		 * Whether a font stack's first family is on the site, and what prints
+		 * when it is not: the next family of the stack the site has, or ''
+		 * for the device's default.
+		 *
+		 * @param {string} stack
+		 * @param {Array<string>} known  Lowercase family names the site has.
+		 * @return {{missing:boolean,fallback:string}}
+		 */
+		fontState: function (stack, known) {
+			var names = String(stack || '').split(',').map(function (name) {
+				return name.replace(/["']/g, '').trim();
+			}).filter(function (name) {
+				return name !== '';
+			});
+			var has = function (name) {
+				return (known || []).indexOf(name.toLowerCase()) !== -1;
+			};
+			if (!names.length || has(names[0])) {
+				return { missing: false, fallback: '' };
+			}
+			for (var i = 1; i < names.length; i++) {
+				if (has(names[i])) {
+					return { missing: true, fallback: names[i] };
+				}
+			}
+			return { missing: true, fallback: '' };
+		},
+
+		/**
+		 * A value inserted into a text at a caret, and where the caret goes.
+		 *
+		 * @param {string} text
+		 * @param {number} start
+		 * @param {number} end
+		 * @param {string} insert
+		 * @return {{text:string,caret:number}}
+		 */
+		insertAt: function (text, start, end, insert) {
+			text = String(text || '');
+			start = Math.max(0, Math.min(start, text.length));
+			end = Math.max(start, Math.min(end, text.length));
+			return { text: text.slice(0, start) + insert + text.slice(end), caret: start + insert.length };
 		}
 	};
+
+	/**
+	 * What a property reads as when the element does not carry it: the
+	 * server's defaults (#2584), so the panel never shows a value the PDF
+	 * would not print.
+	 */
+	var PROP_DEFAULTS = {
+		rotation: 0,
+		font_family: '',
+		font_size: 16,
+		font_weight: 400,
+		font_style: 'normal',
+		color: '#000000',
+		align: 'left',
+		letter_spacing: 0,
+		line_height: 1.2,
+		text_transform: 'none',
+		border_width: 1,
+		border_style: 'solid',
+		border_color: '#000000',
+		radius: 0,
+		margin: 0,
+		text: '',
+		token: '',
+		html: ''
+	};
+
+	/** Properties that move or size the box, which a lock holds. */
+	var GEOMETRY = ['x', 'y', 'w', 'h', 'rotation'];
+
+	/**
+	 * The text style an element shows on the canvas: the operator's font,
+	 * size and colour, so the page reads as it will print.
+	 *
+	 * @param {Object} el
+	 * @return {string}
+	 */
+	function textCss(el) {
+		var css = [
+			'font-size:' + (el.font_size || PROP_DEFAULTS.font_size) + 'px',
+			'font-weight:' + (el.font_weight || PROP_DEFAULTS.font_weight),
+			'font-style:' + (el.font_style || PROP_DEFAULTS.font_style),
+			'color:' + (el.color || PROP_DEFAULTS.color),
+			'text-align:' + (el.align || PROP_DEFAULTS.align),
+			'letter-spacing:' + (el.letter_spacing || 0) + 'px',
+			'line-height:' + (el.line_height || PROP_DEFAULTS.line_height),
+			'text-transform:' + (el.text_transform || PROP_DEFAULTS.text_transform)
+		];
+		if (el.font_family) {
+			css.push('font-family:' + String(el.font_family).replace(/[;{}<>]/g, ''));
+		}
+		return css.join(';');
+	}
 
 	/**
 	 * A node's position and size from an element's box: a run-time value.
@@ -202,7 +304,10 @@
 		this.snapOn = true;
 		this.dirty = false;
 		this.gesture = null;
+		this.images = {};
 		this.build();
+		this.bindProperties();
+		this.bindPreview();
 		this.render();
 		this.gate();
 	}
@@ -310,7 +415,7 @@
 				self.keyDown(event);
 			});
 
-			// Hand-edited JSON (until the properties panel) loads on change.
+			// Hand-edited JSON loads on change.
 			this.textarea.addEventListener('change', function () {
 				self.layout = Editor.parse(self.textarea.value);
 				self.selected = null;
@@ -590,6 +695,7 @@
 				self.sheet.appendChild(self.drawElement(el, index));
 			});
 			this.renderLayers();
+			this.renderProperties();
 			this.root.querySelectorAll('[data-ffc-ve-align]').forEach(function (button) {
 				var el = self.layout.elements[self.indexOf(self.selected)];
 				button.disabled = !el || !!el.locked;
@@ -615,11 +721,24 @@
 			if (el.type === 'frame') {
 				node.style.border = (el.border_width || 0) + 'px ' + (el.border_style || 'solid') + ' ' + (el.border_color || '#000000');
 				node.style.borderRadius = (el.radius || 0) + 'px';
+				node.style.background = el.fill || 'transparent';
 			}
 			var label = document.createElement('span');
 			label.className = 'ffc-ve-el-label';
 			label.textContent = this.describe(el);
-			node.appendChild(label);
+			if (el.type === 'text' || el.type === 'field') {
+				label.style.cssText = textCss(el);
+			}
+			var picked = el.type === 'image' && !el.token ? this.images[el.attachment_id] : '';
+			if (picked) {
+				var img = document.createElement('img');
+				img.className = 'ffc-ve-el-image' + (el.fit === 'cover' ? ' is-cover' : '');
+				img.src = picked;
+				img.alt = '';
+				node.appendChild(img);
+			} else {
+				node.appendChild(label);
+			}
 			if (el.id === this.selected && !el.locked) {
 				HANDLES.forEach(function (h) {
 					var grip = document.createElement('span');
@@ -632,7 +751,7 @@
 			return node;
 		},
 
-		/** What an element shows on the canvas until the preview (D3). */
+		/** What an element shows on the canvas; the preview shows the print. */
 		describe: function (el) {
 			switch (el.type) {
 				case 'text': return el.text || '';
@@ -731,6 +850,371 @@
 			}
 			return li;
 		}
+	};
+
+	/* ---- properties panel (#2586) ---- */
+
+	/** Whether a panel group serves an element type. */
+	function serves(group, type) {
+		var types = group ? (group.getAttribute('data-ffc-ve-for') || '').split(' ') : [];
+		return !group || types.indexOf(type) !== -1;
+	}
+
+	Editor.prototype.selectedElement = function () {
+		return this.layout.elements[this.indexOf(this.selected)] || null;
+	};
+
+	/** Wire the side column's controls to the selected element. */
+	Editor.prototype.bindProperties = function () {
+		var self = this;
+		var panel = document.querySelector('[data-ffc-ve-properties]');
+		this.props = panel;
+		if (!panel) {
+			return;
+		}
+		panel.querySelectorAll('[data-ffc-ve-prop]').forEach(function (input) {
+			var events = input.tagName === 'SELECT' ? ['change'] : ['input', 'change'];
+			events.forEach(function (name) {
+				input.addEventListener(name, function () {
+					self.setProperty(input);
+				});
+			});
+		});
+		var token = panel.querySelector('[data-ffc-ve-insert-token]');
+		if (token) {
+			token.addEventListener('change', function () {
+				self.insertToken(token.value);
+				token.value = '';
+			});
+		}
+		var source = panel.querySelector('[data-ffc-ve-image-source]');
+		if (source) {
+			source.addEventListener('change', function () {
+				var el = self.selectedElement();
+				if (el && el.type === 'image') {
+					el.token = source.value === 'signature' ? '{{signer:signature}}' : '';
+					self.changed();
+				}
+			});
+		}
+		var noFill = panel.querySelector('[data-ffc-ve-no-fill]');
+		if (noFill) {
+			noFill.addEventListener('change', function () {
+				var el = self.selectedElement();
+				if (el && el.type === 'frame') {
+					var fill = panel.querySelector('[data-ffc-ve-prop="fill"]');
+					el.fill = noFill.checked ? '' : (fill && fill.value) || '#ffffff';
+					self.changed();
+				}
+			});
+		}
+		var choose = panel.querySelector('[data-ffc-ve-choose-image]');
+		if (choose) {
+			choose.addEventListener('click', function (event) {
+				event.preventDefault();
+				self.chooseImage();
+			});
+		}
+	};
+
+	/**
+	 * Write one control's value into the selected element.
+	 *
+	 * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} input
+	 */
+	Editor.prototype.setProperty = function (input) {
+		var el = this.selectedElement();
+		var prop = input.getAttribute('data-ffc-ve-prop');
+		if (!el || !serves(input.closest('[data-ffc-ve-for]'), el.type)) {
+			return;
+		}
+		if (el.locked && GEOMETRY.indexOf(prop) !== -1) {
+			return;
+		}
+		var value = input.value;
+		if (input.hasAttribute('data-ffc-ve-number')) {
+			// An emptied field leaves the property as it was.
+			if (value === '' || isNaN(parseFloat(value))) {
+				return;
+			}
+			value = parseFloat(value);
+			if ((prop === 'w' || prop === 'h') && value < MIN_SIZE) {
+				value = MIN_SIZE;
+			}
+		} else if (prop === 'font_weight') {
+			value = parseInt(value, 10) || PROP_DEFAULTS.font_weight;
+		}
+		if (prop === 'fill' && this.props) {
+			var noFill = this.props.querySelector('[data-ffc-ve-no-fill]');
+			if (noFill) {
+				noFill.checked = false;
+			}
+		}
+		el[prop] = value;
+		this.changed();
+	};
+
+	/** Put a tag at the caret of the selected text's content. */
+	Editor.prototype.insertToken = function (tag) {
+		var el = this.selectedElement();
+		var area = this.props ? this.props.querySelector('[data-ffc-ve-prop="text"]') : null;
+		if (!tag || !el || el.type !== 'text' || !area) {
+			return;
+		}
+		var start = typeof area.selectionStart === 'number' ? area.selectionStart : area.value.length;
+		var end = typeof area.selectionEnd === 'number' ? area.selectionEnd : start;
+		var next = geometry.insertAt(area.value, start, end, tag);
+		el.text = next.text;
+		area.value = next.text;
+		this.changed();
+		area.focus();
+		if (area.setSelectionRange) {
+			area.setSelectionRange(next.caret, next.caret);
+		}
+	};
+
+	/** Pick the selected image element's file from the Media Library. */
+	Editor.prototype.chooseImage = function () {
+		var self = this;
+		var wp = window.wp;
+		if (!wp || !wp.media) {
+			return;
+		}
+		var frame = wp.media({
+			title: this.s.chooseImage || 'Choose image',
+			button: { text: this.s.useImage || 'Use this image' },
+			library: { type: 'image' },
+			multiple: false
+		});
+		frame.on('select', function () {
+			var picked = frame.state().get('selection').first().toJSON();
+			var el = self.selectedElement();
+			if (!el || el.type !== 'image' || !picked || !picked.id) {
+				return;
+			}
+			el.attachment_id = picked.id;
+			el.token = '';
+			self.images[picked.id] = picked.url;
+			self.changed();
+		});
+		frame.open();
+	};
+
+	/** Show the selected element's properties; leave the control being typed in alone. */
+	Editor.prototype.renderProperties = function () {
+		var panel = this.props;
+		if (!panel) {
+			return;
+		}
+		var el = this.selectedElement();
+		var empty = panel.querySelector('[data-ffc-ve-props-empty]');
+		var form = panel.querySelector('[data-ffc-ve-props-form]');
+		if (empty) {
+			empty.hidden = !!el;
+		}
+		if (form) {
+			form.hidden = !el;
+		}
+		if (!el) {
+			return;
+		}
+		var self = this;
+		var title = panel.querySelector('[data-ffc-ve-props-title]');
+		if (title) {
+			title.textContent = (this.s.types && this.s.types[el.type] ? this.s.types[el.type] : el.type) + ' · ' + el.id;
+		}
+		panel.querySelectorAll('[data-ffc-ve-for]').forEach(function (group) {
+			group.hidden = !serves(group, el.type);
+		});
+		panel.querySelectorAll('[data-ffc-ve-prop]').forEach(function (input) {
+			if (!serves(input.closest('[data-ffc-ve-for]'), el.type)) {
+				return;
+			}
+			var prop = input.getAttribute('data-ffc-ve-prop');
+			input.disabled = !!el.locked && GEOMETRY.indexOf(prop) !== -1;
+			if (input === document.activeElement) {
+				return;
+			}
+			var value = Object.prototype.hasOwnProperty.call(el, prop) ? el[prop] : PROP_DEFAULTS[prop];
+			if (prop === 'fit' && (value === undefined || value === null)) {
+				value = el.type === 'image' ? 'contain' : 'none';
+			}
+			if (prop === 'fill') {
+				value = el.fill || '#ffffff';
+			}
+			if (input.tagName === 'SELECT' && value !== undefined && value !== null) {
+				self.ensureOption(input, String(value));
+			}
+			input.value = value === undefined || value === null ? '' : String(value);
+		});
+		var noFill = panel.querySelector('[data-ffc-ve-no-fill]');
+		if (noFill && el.type === 'frame') {
+			noFill.checked = !el.fill;
+		}
+		var source = panel.querySelector('[data-ffc-ve-image-source]');
+		var media = panel.querySelector('[data-ffc-ve-image-media]');
+		var name = panel.querySelector('[data-ffc-ve-image-name]');
+		if (el.type === 'image') {
+			if (source) {
+				source.value = el.token ? 'signature' : 'media';
+			}
+			if (media) {
+				media.hidden = !!el.token;
+			}
+			if (name) {
+				name.textContent = el.attachment_id
+					? String(this.s.imageChosen || 'Image #%d').replace('%d', String(el.attachment_id))
+					: (this.s.noImage || '');
+			}
+		}
+		this.renderFontState(el);
+	};
+
+	/** A select keeps a value it does not list (a custom stack) as an extra option. */
+	Editor.prototype.ensureOption = function (select, value) {
+		for (var i = 0; i < select.options.length; i++) {
+			if (select.options[i].value === value) {
+				return;
+			}
+		}
+		var option = document.createElement('option');
+		option.value = value;
+		option.textContent = value;
+		select.appendChild(option);
+	};
+
+	/** Mark a font the site lacks, naming what prints instead (#2573). */
+	Editor.prototype.renderFontState = function (el) {
+		var note = this.props ? this.props.querySelector('[data-ffc-ve-font-missing]') : null;
+		if (!note) {
+			return;
+		}
+		var state = (el.type === 'text' || el.type === 'field')
+			? geometry.fontState(el.font_family, this.s.knownFonts)
+			: { missing: false, fallback: '' };
+		note.hidden = !state.missing;
+		note.textContent = state.missing
+			? String(this.s.fontFallback || '%s').replace('%s', state.fallback || this.s.fontDefault || '')
+			: '';
+	};
+
+	/* ---- preview (#2586) ---- */
+
+	Editor.prototype.bindPreview = function () {
+		var self = this;
+		this.dialog = this.root.querySelector('.ffc-ve-preview');
+		var open = this.root.querySelector('[data-ffc-ve-preview]');
+		if (open) {
+			open.addEventListener('click', function () {
+				self.preview();
+			});
+		}
+		var close = this.root.querySelector('[data-ffc-ve-preview-close]');
+		if (close && this.dialog) {
+			close.addEventListener('click', function () {
+				self.closePreview();
+			});
+		}
+	};
+
+	Editor.prototype.closePreview = function () {
+		if (this.dialog && this.dialog.open && this.dialog.close) {
+			this.dialog.close();
+		}
+	};
+
+	/**
+	 * Render the unsaved layout on the server with sample data and draw it
+	 * the way the PDF does.
+	 *
+	 * @return {Promise}
+	 */
+	Editor.prototype.preview = function () {
+		var self = this;
+		var dialog = this.dialog;
+		if (!dialog) {
+			return Promise.resolve(false);
+		}
+		var status = dialog.querySelector('[data-ffc-ve-preview-status]');
+		var warnings = dialog.querySelector('[data-ffc-ve-preview-warnings]');
+		var img = dialog.querySelector('.ffc-ve-preview-page');
+		if (status) {
+			status.textContent = this.s.previewLoading || '';
+		}
+		if (warnings) {
+			warnings.textContent = '';
+		}
+		if (img) {
+			img.hidden = true;
+			img.removeAttribute('src');
+		}
+		if (dialog.showModal && !dialog.open) {
+			dialog.showModal();
+		}
+		this.sync();
+		var bg = document.getElementById('ffc_template_bg_image');
+		var title = document.getElementById('title');
+		var body = new window.URLSearchParams();
+		body.append('action', this.s.previewAction || '');
+		body.append('nonce', this.s.previewNonce || '');
+		body.append('post_id', String(this.s.postId || 0));
+		body.append('layout', this.textarea.value);
+		body.append('bg_image', bg ? bg.value : '');
+		body.append('title', title ? title.value : '');
+		var fail = function (message) {
+			if (status) {
+				status.textContent = message || self.s.previewError || '';
+			}
+			return false;
+		};
+		return window.fetch(this.s.ajaxUrl || '', {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString()
+		}).then(function (response) {
+			return response.json();
+		}).then(function (json) {
+			if (!json || !json.success || !json.data) {
+				return fail(json && json.data && json.data.message);
+			}
+			self.showWarnings(warnings, json.data);
+			if (!window.FFCLayoutPreview) {
+				return fail();
+			}
+			return window.FFCLayoutPreview.capture(json.data.html, json.data.width, json.data.height).then(function (src) {
+				if (img) {
+					img.src = src;
+					img.hidden = false;
+				}
+				if (status) {
+					status.textContent = '';
+				}
+				return true;
+			}, function () {
+				return fail();
+			});
+		}, function () {
+			return fail();
+		});
+	};
+
+	/** The required tags and the fonts the previewed layout lacks. */
+	Editor.prototype.showWarnings = function (box, data) {
+		if (!box) {
+			return;
+		}
+		var add = function (template, list) {
+			if (!list || !list.length) {
+				return;
+			}
+			var p = document.createElement('p');
+			p.className = 'ffc-ve-preview-warning ffc-icon-warning';
+			p.textContent = String(template || '%s').replace('%s', list.join(', '));
+			box.appendChild(p);
+		};
+		add(this.s.missingTags, data.missing);
+		add(this.s.missingFonts, data.fonts);
 	};
 
 	/**

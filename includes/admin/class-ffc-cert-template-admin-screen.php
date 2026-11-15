@@ -83,6 +83,18 @@ class CertTemplateAdminScreen {
 	public const PREVIEW_ACTION = 'ffc_preview_cert_template';
 
 	/**
+	 * The `wp_ajax_{$action}` slug for the visual editor's sample-data
+	 * preview (#2586): the unsaved layout through the PDF renderer.
+	 */
+	public const PREVIEW_LAYOUT_ACTION = 'ffc_preview_visual_layout';
+
+	/**
+	 * The `admin_action_{$action}` slug that turns a visual template into an
+	 * HTML template (#2586), one way.
+	 */
+	public const CONVERT_ACTION = 'ffc_convert_cert_template_to_html';
+
+	/**
 	 * Script handle for the preview overlay.
 	 */
 	private const PREVIEW_HANDLE = 'ffc-cert-template-preview';
@@ -118,6 +130,9 @@ class CertTemplateAdminScreen {
 		// "Preview" row action opens in an overlay iframe (graceful no-JS: the
 		// link navigates to the page directly).
 		add_action( 'admin_action_' . self::PREVIEW_ACTION, array( $this, 'handle_preview' ) );
+		// The visual editor's preview and its one-way conversion (#2586).
+		add_action( 'wp_ajax_' . self::PREVIEW_LAYOUT_ACTION, array( $this, 'ajax_preview_visual_layout' ) );
+		add_action( 'admin_action_' . self::CONVERT_ACTION, array( $this, 'handle_convert_to_html' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_preview_assets' ) );
 		// Edit screen gets the same CodeMirror HTML editor as the form-editor
 		// layout box, so editing a template looks identical to editing a form's
@@ -335,7 +350,7 @@ class CertTemplateAdminScreen {
 		// A visual template's copy stays visual, with its layout (#2584).
 		if ( $new_id > 0 && \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
 			update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
-			update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, (string) get_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, true ) );
+			\FreeFormCertificate\Core\VisualLayout::store_json( $new_id, (string) get_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, true ) );
 		}
 
 		// Open the new copy for editing; fall back to the list on failure.
@@ -640,9 +655,10 @@ class CertTemplateAdminScreen {
 	/**
 	 * The page canvas of a visual template (#2585), with its labels.
 	 *
+	 * @param int $post_id Template post id, for the preview (#2586).
 	 * @return void
 	 */
-	private static function enqueue_visual_editor(): void {
+	private static function enqueue_visual_editor( int $post_id ): void {
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_style(
 			'ffc-visual-editor',
@@ -653,7 +669,7 @@ class CertTemplateAdminScreen {
 		wp_enqueue_script(
 			'ffc-visual-editor',
 			FFC_PLUGIN_URL . "assets/js/ffc-visual-editor{$suffix}.js",
-			array( 'ffc-core' ),
+			array( 'ffc-core', 'ffc-layout-preview' ),
 			FFC_VERSION,
 			true
 		);
@@ -674,6 +690,25 @@ class CertTemplateAdminScreen {
 				'discard'        => __( 'Discard changes', 'ffcertificate' ),
 				'discardTitle'   => __( 'Discard changes?', 'ffcertificate' ),
 				'discardMessage' => __( 'The page goes back to the last save; what changed since is lost.', 'ffcertificate' ),
+				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+				'previewAction'  => self::PREVIEW_LAYOUT_ACTION,
+				'previewNonce'   => wp_create_nonce( self::PREVIEW_LAYOUT_ACTION ),
+				'postId'         => $post_id,
+				'previewLoading' => __( 'Drawing the page…', 'ffcertificate' ),
+				'previewError'   => __( 'The preview could not be drawn.', 'ffcertificate' ),
+				/* translators: %s: comma-separated tags, such as {{auth_code}} */
+				'missingTags'    => __( 'Settings → Certificates requires %s, and the layout does not carry it yet.', 'ffcertificate' ),
+				/* translators: %s: comma-separated font names */
+				'missingFonts'   => __( 'Not installed on this site: %s. The preview and the PDF draw the next font of each list.', 'ffcertificate' ),
+				/* translators: %s: the font that prints instead */
+				'fontFallback'   => __( 'Not installed on this site: the text prints in %s until it is.', 'ffcertificate' ),
+				'fontDefault'    => __( 'the device’s default font', 'ffcertificate' ),
+				'knownFonts'     => \FreeFormCertificate\Core\CertificateFonts::available_names(),
+				'chooseImage'    => __( 'Choose image', 'ffcertificate' ),
+				'useImage'       => __( 'Use this image', 'ffcertificate' ),
+				/* translators: %d: Media Library attachment id */
+				'imageChosen'    => __( 'Image #%d', 'ffcertificate' ),
+				'noImage'        => __( 'No image chosen yet.', 'ffcertificate' ),
 				'types'          => array(
 					'text'  => __( 'Text', 'ffcertificate' ),
 					'field' => __( 'Data field', 'ffcertificate' ),
@@ -723,7 +758,9 @@ class CertTemplateAdminScreen {
 		// A visual template edits its layout on the page canvas (#2585), not HTML (#2584).
 		if ( \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
 			if ( ! $is_default ) {
-				self::enqueue_visual_editor();
+				// The preview is captured the way the form editor's is (#2586).
+				\FreeFormCertificate\Core\AssetRegistry::enqueue_scripts( 'ffc-layout-preview' );
+				self::enqueue_visual_editor( $post_id );
 			}
 		} else {
 			AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
@@ -784,6 +821,18 @@ class CertTemplateAdminScreen {
 			'normal',
 			'high'
 		);
+
+		// The visual editor's properties (#2586), beside the page, under Save.
+		if ( ! CertTemplateReader::is_default( (int) $post->ID ) && \FreeFormCertificate\Core\VisualLayout::is_visual( (int) $post->ID ) ) {
+			add_meta_box(
+				'ffc_cert_template_properties',
+				__( 'Element properties', 'ffcertificate' ),
+				array( $this, 'render_properties_metabox' ),
+				CertTemplateCpt::POST_TYPE,
+				'side',
+				'high'
+			);
+		}
 
 		// Template options (currently the "Load list" visibility toggle) live in
 		// a sidebar box, WP-idiomatically grouped beside the editor rather than
@@ -882,6 +931,15 @@ class CertTemplateAdminScreen {
 			<?php
 		}
 
+		// Just converted from a visual template (#2586).
+		if ( '1' === RequestInput::get_get_key( 'ffc_converted' ) ) {
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'success',
+				esc_html__( 'The template is now an HTML template. Its HTML is what the visual layout generated, so the forms that use it print the same document.', 'ffcertificate' ),
+				array( 'classes' => array( 'inline' ) )
+			);
+		}
+
 		// The fonts this template names that the site lacks (#2573): saved
 		// HTML, so a font added in the editor is reported after the save.
 		\FreeFormCertificate\Core\CertificateFonts::render_missing_notice( $html );
@@ -917,6 +975,296 @@ class CertTemplateAdminScreen {
 			<div id="ffc_bg_image_preview"></div>
 		</div>
 		<?php
+	}
+
+	/**
+	 * System font stacks the properties panel offers beside the installed
+	 * families (#2586): each opens with a family every device has.
+	 */
+	private const SYSTEM_STACKS = array(
+		'Arial, Helvetica, sans-serif',
+		'Georgia, serif',
+		'"Times New Roman", Times, serif',
+		'Verdana, sans-serif',
+		'"Trebuchet MS", sans-serif',
+		'"Courier New", Courier, monospace',
+	);
+
+	/**
+	 * The tags the properties panel offers for a data field or a text: the
+	 * required ones first, then the common certificate tags.
+	 *
+	 * @return list<string>
+	 */
+	public static function layout_tokens(): array {
+		$common = array(
+			'{{name}}',
+			'{{cpf_rf}}',
+			'{{email}}',
+			'{{auth_code}}',
+			'{{form_title}}',
+			'{{submission_date}}',
+			'{{schedule}}',
+			'{{schedule:date}}',
+			'{{schedule:dates}}',
+			'{{validation_url}}',
+			'{{signer:name}}',
+			'{{signer:role}}',
+			'{{signer:rf}}',
+		);
+		return array_values( array_unique( array_merge( \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(), $common ) ) );
+	}
+
+	/**
+	 * The font choices: the page default, the installed Font Library
+	 * families, then the system stacks; value => label.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function font_choices(): array {
+		$choices = array( '' => __( 'Page default', 'ffcertificate' ) );
+		foreach ( \FreeFormCertificate\Core\CertificateFonts::installed() as $family ) {
+			$choices[ $family['css'] ] = $family['name'];
+		}
+		foreach ( self::SYSTEM_STACKS as $stack ) {
+			if ( ! isset( $choices[ $stack ] ) ) {
+				$choices[ $stack ] = trim( explode( ',', $stack )[0], '" ' );
+			}
+		}
+		return $choices;
+	}
+
+	/**
+	 * The visual editor's properties panel (#2586). One set of controls per
+	 * element type; `ffc-visual-editor.js` shows the set of the selected
+	 * element and writes every change into the layout. The controls carry no
+	 * name, so the form posts only the layout JSON.
+	 *
+	 * @return void
+	 */
+	public function render_properties_metabox(): void {
+		$selects = array(
+			'font_weight'    => array(
+				'100' => __( 'Thin (100)', 'ffcertificate' ),
+				'300' => __( 'Light (300)', 'ffcertificate' ),
+				'400' => __( 'Regular (400)', 'ffcertificate' ),
+				'500' => __( 'Medium (500)', 'ffcertificate' ),
+				'600' => __( 'Semibold (600)', 'ffcertificate' ),
+				'700' => __( 'Bold (700)', 'ffcertificate' ),
+				'900' => __( 'Black (900)', 'ffcertificate' ),
+			),
+			'font_style'     => array(
+				'normal' => __( 'Normal', 'ffcertificate' ),
+				'italic' => __( 'Italic', 'ffcertificate' ),
+			),
+			'align'          => array(
+				'left'    => __( 'Left', 'ffcertificate' ),
+				'center'  => __( 'Centre', 'ffcertificate' ),
+				'right'   => __( 'Right', 'ffcertificate' ),
+				'justify' => __( 'Justify', 'ffcertificate' ),
+			),
+			'text_transform' => array(
+				'none'       => __( 'As typed', 'ffcertificate' ),
+				'uppercase'  => __( 'UPPERCASE', 'ffcertificate' ),
+				'lowercase'  => __( 'lowercase', 'ffcertificate' ),
+				'capitalize' => __( 'Capitalised', 'ffcertificate' ),
+			),
+			'fit'            => array(
+				'none' => __( 'Off: the text keeps its size', 'ffcertificate' ),
+				'line' => __( 'Shrink to one line', 'ffcertificate' ),
+				'box'  => __( 'Shrink to fit the box', 'ffcertificate' ),
+			),
+			'image_fit'      => array(
+				'contain' => __( 'Contain: the whole image shows', 'ffcertificate' ),
+				'cover'   => __( 'Cover: the image fills the box', 'ffcertificate' ),
+			),
+			'border_style'   => array(
+				'solid'  => __( 'Solid', 'ffcertificate' ),
+				'dashed' => __( 'Dashed', 'ffcertificate' ),
+				'dotted' => __( 'Dotted', 'ffcertificate' ),
+				'double' => __( 'Double', 'ffcertificate' ),
+			),
+		);
+		?>
+		<div class="ffc-ve-props" data-ffc-ve-properties>
+			<p class="description" data-ffc-ve-props-empty><?php esc_html_e( 'Select an element on the page, or in the Layers list, to change it here.', 'ffcertificate' ); ?></p>
+			<div data-ffc-ve-props-form hidden>
+				<p class="ffc-ve-props-title" data-ffc-ve-props-title></p>
+
+				<fieldset class="ffc-ve-props-group">
+					<legend><?php esc_html_e( 'Position and size (page pixels)', 'ffcertificate' ); ?></legend>
+					<div class="ffc-ve-props-grid">
+						<?php
+						self::number_control( 'x', __( 'Left', 'ffcertificate' ), -2000, 2000, 1 );
+						self::number_control( 'y', __( 'Top', 'ffcertificate' ), -2000, 2000, 1 );
+						self::number_control( 'w', __( 'Width', 'ffcertificate' ), 1, 2000, 1 );
+						self::number_control( 'h', __( 'Height', 'ffcertificate' ), 1, 2000, 1 );
+						self::number_control( 'rotation', __( 'Rotation (degrees)', 'ffcertificate' ), -360, 360, 1 );
+						?>
+					</div>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="text">
+					<legend><?php esc_html_e( 'Text', 'ffcertificate' ); ?></legend>
+					<label for="ffc_ve_prop_text"><?php esc_html_e( 'Content', 'ffcertificate' ); ?></label>
+					<textarea id="ffc_ve_prop_text" class="ffc-w100" rows="4" data-ffc-ve-prop="text"></textarea>
+					<label for="ffc_ve_prop_insert_token"><?php esc_html_e( 'Insert a tag', 'ffcertificate' ); ?></label>
+					<select id="ffc_ve_prop_insert_token" class="ffc-w100" data-ffc-ve-insert-token>
+						<option value=""><?php esc_html_e( 'Choose a tag to insert…', 'ffcertificate' ); ?></option>
+						<?php foreach ( self::layout_tokens() as $token ) : ?>
+							<option value="<?php echo esc_attr( $token ); ?>"><?php echo esc_html( $token ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="field">
+					<legend><?php esc_html_e( 'Data field', 'ffcertificate' ); ?></legend>
+					<label for="ffc_ve_prop_token"><?php esc_html_e( 'Tag', 'ffcertificate' ); ?></label>
+					<input type="text" id="ffc_ve_prop_token" class="ffc-w100 code" list="ffc_ve_tokens" data-ffc-ve-prop="token">
+					<datalist id="ffc_ve_tokens">
+						<?php foreach ( self::layout_tokens() as $token ) : ?>
+							<option value="<?php echo esc_attr( $token ); ?>"></option>
+						<?php endforeach; ?>
+					</datalist>
+					<p class="description"><?php esc_html_e( 'One tag, such as {{name}}. The preview shows it with sample data.', 'ffcertificate' ); ?></p>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="text field">
+					<legend><?php esc_html_e( 'Font', 'ffcertificate' ); ?></legend>
+					<label for="ffc_ve_prop_font_family"><?php esc_html_e( 'Family', 'ffcertificate' ); ?></label>
+					<select id="ffc_ve_prop_font_family" class="ffc-w100" data-ffc-ve-prop="font_family">
+						<?php foreach ( self::font_choices() as $value => $label ) : ?>
+							<option value="<?php echo esc_attr( $value ); ?>"><?php echo esc_html( $label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+					<p class="description ffc-ve-font-missing" data-ffc-ve-font-missing hidden></p>
+					<div class="ffc-ve-props-grid">
+						<?php
+						self::number_control( 'font_size', __( 'Size (px)', 'ffcertificate' ), 4, 300, 1 );
+						self::select_control( 'font_weight', __( 'Weight', 'ffcertificate' ), $selects['font_weight'] );
+						self::select_control( 'font_style', __( 'Style', 'ffcertificate' ), $selects['font_style'] );
+						self::color_control( 'color', __( 'Colour', 'ffcertificate' ) );
+						self::select_control( 'align', __( 'Alignment', 'ffcertificate' ), $selects['align'] );
+						self::select_control( 'text_transform', __( 'Case', 'ffcertificate' ), $selects['text_transform'] );
+						self::number_control( 'letter_spacing', __( 'Letter spacing (px)', 'ffcertificate' ), -20, 100, 0.1 );
+						self::number_control( 'line_height', __( 'Line height', 'ffcertificate' ), 0.5, 5, 0.05 );
+						?>
+					</div>
+					<?php self::select_control( 'fit', __( 'Fit', 'ffcertificate' ), $selects['fit'] ); ?>
+					<p class="description"><?php esc_html_e( 'Shrinking keeps a long name inside its box; the preview applies it as the PDF does.', 'ffcertificate' ); ?></p>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="image">
+					<legend><?php esc_html_e( 'Image', 'ffcertificate' ); ?></legend>
+					<label for="ffc_ve_prop_image_source"><?php esc_html_e( 'Source', 'ffcertificate' ); ?></label>
+					<select id="ffc_ve_prop_image_source" class="ffc-w100" data-ffc-ve-image-source>
+						<option value="media"><?php esc_html_e( 'An image from the Media Library', 'ffcertificate' ); ?></option>
+						<option value="signature"><?php esc_html_e( 'The signer’s signature', 'ffcertificate' ); ?></option>
+					</select>
+					<p data-ffc-ve-image-media>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label' => __( 'Choose image', 'ffcertificate' ),
+								'icon'  => 'image',
+								'attrs' => array( 'data-ffc-ve-choose-image' => '1' ),
+							)
+						);
+						?>
+						<span class="description" data-ffc-ve-image-name></span>
+					</p>
+					<?php self::select_control( 'fit', __( 'Fit', 'ffcertificate' ), $selects['image_fit'], 'image_fit' ); ?>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="qr">
+					<legend><?php esc_html_e( 'QR code', 'ffcertificate' ); ?></legend>
+					<?php self::number_control( 'margin', __( 'Quiet zone (modules)', 'ffcertificate' ), 0, 10, 1 ); ?>
+					<p class="description"><?php esc_html_e( 'The code links to the validation page; its size is the box.', 'ffcertificate' ); ?></p>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="frame">
+					<legend><?php esc_html_e( 'Frame', 'ffcertificate' ); ?></legend>
+					<div class="ffc-ve-props-grid">
+						<?php
+						self::number_control( 'border_width', __( 'Thickness (px)', 'ffcertificate' ), 0, 100, 1 );
+						self::select_control( 'border_style', __( 'Line', 'ffcertificate' ), $selects['border_style'] );
+						self::color_control( 'border_color', __( 'Line colour', 'ffcertificate' ) );
+						self::number_control( 'radius', __( 'Corner radius (px)', 'ffcertificate' ), 0, 600, 1 );
+						self::color_control( 'fill', __( 'Fill', 'ffcertificate' ) );
+						?>
+					</div>
+					<label><input type="checkbox" data-ffc-ve-no-fill> <?php esc_html_e( 'No fill', 'ffcertificate' ); ?></label>
+				</fieldset>
+
+				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="html">
+					<legend><?php esc_html_e( 'HTML block', 'ffcertificate' ); ?></legend>
+					<label for="ffc_ve_prop_html"><?php esc_html_e( 'Code', 'ffcertificate' ); ?></label>
+					<textarea id="ffc_ve_prop_html" class="ffc-w100 code" rows="8" spellcheck="false" data-ffc-ve-prop="html"></textarea>
+					<p class="description"><?php esc_html_e( 'Filtered on save like the HTML templates; tags work here too.', 'ffcertificate' ); ?></p>
+				</fieldset>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * A numeric property control. It carries no name and no `required`: the
+	 * layout JSON is what the form posts, and an empty field leaves the
+	 * property as it was.
+	 *
+	 * @param string $prop  Layout property.
+	 * @param string $label Label.
+	 * @param float  $min   Minimum.
+	 * @param float  $max   Maximum.
+	 * @param float  $step  Step.
+	 * @return void
+	 */
+	private static function number_control( string $prop, string $label, float $min, float $max, float $step ): void {
+		$id = 'ffc_ve_prop_' . $prop;
+		printf(
+			'<p class="ffc-ve-prop"><label for="%1$s">%2$s</label><input type="number" id="%1$s" min="%3$s" max="%4$s" step="%5$s" data-ffc-ve-prop="%6$s" data-ffc-ve-number></p>',
+			esc_attr( $id ),
+			esc_html( $label ),
+			esc_attr( (string) $min ),
+			esc_attr( (string) $max ),
+			esc_attr( (string) $step ),
+			esc_attr( $prop )
+		);
+	}
+
+	/**
+	 * A select property control.
+	 *
+	 * @param string                    $prop    Layout property.
+	 * @param string                    $label   Label.
+	 * @param array<int|string, string> $options Value => label (numeric values arrive as int keys).
+	 * @param string                    $id_key  Id suffix, when two types share a property.
+	 * @return void
+	 */
+	private static function select_control( string $prop, string $label, array $options, string $id_key = '' ): void {
+		$id = 'ffc_ve_prop_' . ( '' !== $id_key ? $id_key : $prop );
+		echo '<p class="ffc-ve-prop"><label for="' . esc_attr( $id ) . '">' . esc_html( $label ) . '</label><select id="' . esc_attr( $id ) . '" data-ffc-ve-prop="' . esc_attr( $prop ) . '">';
+		foreach ( $options as $value => $text ) {
+			echo '<option value="' . esc_attr( (string) $value ) . '">' . esc_html( $text ) . '</option>';
+		}
+		echo '</select></p>';
+	}
+
+	/**
+	 * A colour property control.
+	 *
+	 * @param string $prop  Layout property.
+	 * @param string $label Label.
+	 * @return void
+	 */
+	private static function color_control( string $prop, string $label ): void {
+		$id = 'ffc_ve_prop_' . $prop;
+		printf(
+			'<p class="ffc-ve-prop"><label for="%1$s">%2$s</label><input type="color" id="%1$s" data-ffc-ve-prop="%3$s"></p>',
+			esc_attr( $id ),
+			esc_html( $label ),
+			esc_attr( $prop )
+		);
 	}
 
 	/**
@@ -1044,8 +1392,28 @@ class CertTemplateAdminScreen {
 				array( 'title' => __( 'The layout was not saved.', 'ffcertificate' ) )
 			);
 		}
-		?>
-		<?php
+
+		// What the saved layout lacks (#2586): the tags Settings → Certificates
+		// requires and the fonts the site does not have. A warning, not a
+		// refusal: a draft can be saved half done.
+		$html    = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		$missing = self::missing_required_tags( $html );
+		if ( array() !== $missing && '' !== $stored ) {
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'warning',
+				'<p>' . sprintf(
+					/* translators: %s: comma-separated tags, such as {{auth_code}} */
+					esc_html__( 'Settings → Certificates requires every certificate to carry %s, and this layout does not. Insert a Data field for each one; a form using this template is refused on save until it does.', 'ffcertificate' ),
+					implode( ', ', array_map( static fn( string $tag ): string => '<code>' . esc_html( $tag ) . '</code>', $missing ) )
+				) . '</p>',
+				array(
+					'title'   => __( 'Required fields are missing', 'ffcertificate' ),
+					'classes' => array( 'ffc-ve-required-missing', 'inline' ),
+				)
+			);
+		}
+		\FreeFormCertificate\Core\CertificateFonts::render_missing_notice( $html );
+
 		if ( ! $is_default ) {
 			$this->render_visual_canvas( (int) $post->ID );
 		}
@@ -1079,6 +1447,10 @@ class CertTemplateAdminScreen {
 		$preview = wp_nonce_url(
 			admin_url( 'admin.php?action=' . self::PREVIEW_ACTION . '&post=' . $post_id ),
 			self::PREVIEW_ACTION . '_' . $post_id
+		);
+		$convert = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::CONVERT_ACTION . '&post=' . $post_id ),
+			self::CONVERT_ACTION . '_' . $post_id
 		);
 		$types   = array(
 			'text'  => array( __( 'Text', 'ffcertificate' ), 'text' ),
@@ -1162,6 +1534,17 @@ class CertTemplateAdminScreen {
 						<p>
 							<label><input type="checkbox" data-ffc-ve-snap checked> <?php esc_html_e( 'Snap to a 10 px grid', 'ffcertificate' ); ?></label>
 						</p>
+						<p>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label' => __( 'Preview with sample data', 'ffcertificate' ),
+									'icon'  => 'eye',
+									'attrs' => array( 'data-ffc-ve-preview' => '1' ),
+								)
+							);
+							?>
+						</p>
 						<p class="ffc-ve-group-title"><?php esc_html_e( 'Align to page', 'ffcertificate' ); ?></p>
 						<div class="ffc-ve-buttons">
 							<?php
@@ -1195,6 +1578,22 @@ class CertTemplateAdminScreen {
 						);
 						?>
 						<p class="description"><?php esc_html_e( 'Back to the last save. Save with the Update button.', 'ffcertificate' ); ?></p>
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Convert to HTML', 'ffcertificate' ),
+								'icon'     => 'code',
+								'category' => 'caution',
+								'href'     => $convert,
+								'attrs'    => array(
+									'data-confirm'      => __( 'Convert this template to HTML? The page becomes the HTML generated at the last save, edited as code from then on; the visual layout is dropped and cannot be brought back. Forms that use the template keep printing the same document. Save any change first.', 'ffcertificate' ),
+									'data-confirm-category' => 'caution',
+									'data-confirm-icon' => 'code',
+								),
+							)
+						);
+						?>
+						<p class="description"><?php esc_html_e( 'One way: from then on the template is edited as HTML.', 'ffcertificate' ); ?></p>
 					</section>
 				</div>
 				<div class="ffc-ve-stage">
@@ -1203,6 +1602,27 @@ class CertTemplateAdminScreen {
 					</div>
 				</div>
 			</div>
+			<dialog class="ffc-ve-preview" aria-labelledby="ffc_ve_preview_title">
+				<div class="ffc-ve-preview-header">
+					<h2 id="ffc_ve_preview_title"><?php esc_html_e( 'Preview with sample data', 'ffcertificate' ); ?></h2>
+					<?php
+					AdminUI::render_button(
+						array(
+							'label'     => __( 'Close', 'ffcertificate' ),
+							'icon'      => 'cross',
+							'icon_only' => true,
+							'attrs'     => array( 'data-ffc-ve-preview-close' => '1' ),
+						)
+					);
+					?>
+				</div>
+				<p class="description"><?php esc_html_e( 'The unsaved layout, drawn by the PDF renderer with sample data: the fit options and the fonts apply as they will print.', 'ffcertificate' ); ?></p>
+				<div class="ffc-ve-preview-warnings" data-ffc-ve-preview-warnings></div>
+				<p class="ffc-ve-preview-status" role="status" data-ffc-ve-preview-status></p>
+				<div class="ffc-ve-preview-body">
+					<img class="ffc-ve-preview-page" alt="<?php esc_attr_e( 'Preview of the certificate page', 'ffcertificate' ); ?>" hidden>
+				</div>
+			</dialog>
 		</div>
 		<?php
 	}
@@ -1223,7 +1643,7 @@ class CertTemplateAdminScreen {
 		if ( ! $visual && \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL === $chosen && CertTemplateCpt::KIND_CERTIFICATE === CertTemplateReader::get_kind( $post_id ) ) {
 			$layout = \FreeFormCertificate\Core\VisualLayout::blank();
 			update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
-			update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
+			\FreeFormCertificate\Core\VisualLayout::store_json( $post_id, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
 			CertTemplateWriter::update_html( $post_id, \FreeFormCertificate\Core\VisualLayout::render( $layout ) );
 			return true;
 		}
@@ -1240,7 +1660,7 @@ class CertTemplateAdminScreen {
 			set_transient( self::layout_error_key( $post_id ), $layout->get_error_message(), 5 * MINUTE_IN_SECONDS );
 			return true;
 		}
-		update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
+		\FreeFormCertificate\Core\VisualLayout::store_json( $post_id, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
 		CertTemplateWriter::update_html( $post_id, \FreeFormCertificate\Core\VisualLayout::render( $layout ) );
 		return true;
 	}
@@ -1252,6 +1672,119 @@ class CertTemplateAdminScreen {
 	 */
 	private static function layout_error_key( int $post_id ): string {
 		return 'ffc_layout_error_' . get_current_user_id() . '_' . $post_id;
+	}
+
+	/**
+	 * AJAX: the visual editor's preview (#2586). Renders the unsaved layout
+	 * with sample data through the PDF renderer, so the fit options and the
+	 * fonts apply as they will print; the client captures it with
+	 * `FFCLayoutPreview`. Also says which required tags and fonts the layout
+	 * lacks, so the editor can warn before the save.
+	 *
+	 * @return void
+	 */
+	public function ajax_preview_visual_layout(): void {
+		check_ajax_referer( self::PREVIEW_LAYOUT_ACTION, 'nonce' );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error( null, 403 );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON, validated and normalised field by field by VisualLayout::validate().
+		$json   = isset( $_POST['layout'] ) ? (string) wp_unslash( $_POST['layout'] ) : '';
+		$layout = \FreeFormCertificate\Core\VisualLayout::validate( $json );
+		if ( is_wp_error( $layout ) ) {
+			wp_send_json_error( array( 'message' => $layout->get_error_message() ), 400 );
+		}
+
+		$html     = \FreeFormCertificate\Core\VisualLayout::render( $layout );
+		$portrait = 'portrait' === $layout['page']['orientation'];
+		$title    = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$image    = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
+		$post_id  = RequestInput::get_post_int( 'post_id', 0 );
+		$color    = $post_id > 0 && CertTemplateCpt::POST_TYPE === get_post_type( $post_id ) ? CertTemplateReader::get_bg_color( $post_id ) : '';
+		$size     = \FreeFormCertificate\Generators\FormLayoutPreview::page_size( $portrait );
+
+		wp_send_json_success(
+			array(
+				'html'    => $this->preview_page( $html, $title, $image, $color, $portrait ),
+				'width'   => $size['width'],
+				'height'  => $size['height'],
+				'missing' => self::missing_required_tags( $html ),
+				'fonts'   => \FreeFormCertificate\Core\CertificateFonts::missing( $html ),
+			)
+		);
+	}
+
+	/**
+	 * The page the preview captures: the layout's HTML with sample data,
+	 * through the PDF renderer, on its background.
+	 *
+	 * @param string $html     Rendered layout HTML.
+	 * @param string $title    Template title.
+	 * @param string $image    Background image URL, or ''.
+	 * @param string $color    Page colour, or ''.
+	 * @param bool   $portrait Whether the page is portrait.
+	 * @return string
+	 */
+	protected function preview_page( string $html, string $title, string $image, string $color, bool $portrait ): string {
+		return \FreeFormCertificate\Generators\FormLayoutPreview::body(
+			$html,
+			$title,
+			$image,
+			$color,
+			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
+			$portrait
+		);
+	}
+
+	/**
+	 * The tags Settings → Certificates requires that a template's HTML does
+	 * not carry, with the `{{name}}` / `{{nome}}` alias the form save honours.
+	 *
+	 * @param string $html Template HTML.
+	 * @return array<int, string>
+	 */
+	public static function missing_required_tags( string $html ): array {
+		return ( new FormEditorSaveValidator() )->missing_required_tags( $html );
+	}
+
+	/**
+	 * Turn a visual template into an HTML template (#2586), after the
+	 * confirmation its button asks for. One way: the layout is dropped and
+	 * the HTML it generated at the last save stays, so every form that uses
+	 * the template prints exactly what it printed before.
+	 *
+	 * @return void
+	 */
+	public function handle_convert_to_html(): void {
+		$post_id = RequestInput::get_get_int( 'post' );
+		check_admin_referer( self::CONVERT_ACTION . '_' . $post_id );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
+		}
+		if ( CertTemplateCpt::POST_TYPE !== get_post_type( $post_id )
+			|| CertTemplateReader::is_default( $post_id )
+			|| ! \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
+			wp_die( esc_html__( 'Only a visual template you can edit can be converted to HTML.', 'ffcertificate' ) );
+		}
+
+		self::convert_to_html( $post_id );
+
+		wp_safe_redirect( admin_url( 'post.php?post=' . $post_id . '&action=edit&ffc_converted=1' ) );
+		exit;
+	}
+
+	/**
+	 * Drop a template's visual layout and keep its generated HTML.
+	 *
+	 * @param int $post_id Template post id.
+	 * @return void
+	 */
+	public static function convert_to_html( int $post_id ): void {
+		delete_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT );
+		delete_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR );
 	}
 
 	/**

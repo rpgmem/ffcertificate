@@ -1081,8 +1081,13 @@ class CertTemplateAdminScreenTest extends TestCase {
 			}
 		);
 		// No default exists yet, and every insert fails: restore() reads each seed
-		// file and tries to insert it.
+		// file and tries to insert it. The visual defaults (#2586) validate first.
 		Functions\when( 'get_posts' )->justReturn( array() );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $c ) => preg_match( '/^#([0-9a-f]{3}){1,2}$/i', (string) $c ) ? $c : null );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $flags = 0 ) => json_encode( $v, $flags ) );
+		Functions\when( 'wp_get_attachment_url' )->justReturn( false );
 		$inserted = array();
 		Functions\when( 'wp_insert_post' )->alias(
 			static function ( $arr ) use ( &$inserted ) {
@@ -1406,9 +1411,10 @@ class CertTemplateAdminScreenTest extends TestCase {
 				return $store[ $key ] ?? '';
 			}
 		);
+		// As WordPress does: update_post_meta() unslashes what it stores (#2586).
 		Functions\when( 'update_post_meta' )->alias(
 			static function ( $id, $key, $value ) use ( &$store ) {
-				$store[ $key ] = $value;
+				$store[ $key ] = is_string( $value ) ? stripslashes( $value ) : $value;
 				return true;
 			}
 		);
@@ -1439,6 +1445,46 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringContainsString( '"token": "{{name}}"', $store[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
 		$this->assertStringContainsString( 'left:10px;top:20px;width:300px;height:40px', $store[ CertTemplateCpt::META_HTML ] );
 		$this->assertStringNotContainsString( 'never read', $store[ CertTemplateCpt::META_HTML ] );
+	}
+
+	/**
+	 * A layout carries backslashes — every quote in an HTML block is `\"` in
+	 * JSON — and update_post_meta() unslashes what it stores, so an unslashed
+	 * write left JSON that no longer parsed (#2586).
+	 */
+	public function test_a_layout_with_quotes_survives_the_unslashing_store(): void {
+		$store                        = &$this->visual_save_stubs( array( \FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual' ) );
+		$_POST['ffc_template_layout'] = wp_json_encode(
+			array(
+				'version'  => 1,
+				'elements' => array(
+					array(
+						'type' => 'html',
+						'html' => '<p class="seal">Seal</p>',
+						'x'    => 0,
+						'y'    => 0,
+						'w'    => 100,
+						'h'    => 40,
+					),
+					array(
+						'type'        => 'text',
+						'text'        => 'Name',
+						'font_family' => '"Great Vibes", cursive',
+						'x'           => 0,
+						'y'           => 50,
+						'w'           => 100,
+						'h'           => 40,
+					),
+				),
+			)
+		);
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$stored = \FreeFormCertificate\Core\VisualLayout::validate( $store[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
+		$this->assertIsArray( $stored, 'the stored JSON still parses' );
+		$this->assertSame( '<p class="seal">Seal</p>', $stored['elements'][0]['html'] );
+		$this->assertSame( '"Great Vibes", cursive', $stored['elements'][1]['font_family'] );
 	}
 
 	public function test_a_layout_that_does_not_validate_keeps_the_stored_one_and_says_why(): void {
@@ -1490,9 +1536,18 @@ class CertTemplateAdminScreenTest extends TestCase {
 			\FreeFormCertificate\Core\VisualLayout::META_LAYOUT => '{"version":1,"elements":[]}',
 		);
 		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $key ] ?? '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
 
 		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
 
+		// An empty page carries none of the required tags (#2586).
+		$this->assertStringContainsString( 'ffc-ve-required-missing', $html );
+		$this->assertStringContainsString( '<code>{{auth_code}}</code>', $html );
+		// The preview and the one-way conversion (#2586).
+		$this->assertStringContainsString( 'data-ffc-ve-preview="1"', $html );
+		$this->assertStringContainsString( '<dialog class="ffc-ve-preview"', $html );
+		$this->assertStringContainsString( 'action=ffc_convert_cert_template_to_html&post=5', $html );
+		$this->assertStringContainsString( 'data-confirm="Convert this template to HTML?', $html );
 		$this->assertStringContainsString( 'name="ffc_template_layout"', $html );
 		$this->assertStringContainsString( '{&quot;version&quot;:1,&quot;elements&quot;:[]}', $html );
 		$this->assertStringNotContainsString( 'name="ffc_template_html"', $html );
@@ -1507,6 +1562,222 @@ class CertTemplateAdminScreenTest extends TestCase {
 		}
 		$this->assertStringContainsString( 'class="ffc-ve-gate', $html, 'a narrow window is told why' );
 		$this->assertStringContainsString( 'action=ffc_preview_cert_template&post=5', $html, 'and still reaches the test PDF' );
+	}
+
+	// ==================================================================
+	// Visual editor: preview, conversion, properties (#2586)
+	// ==================================================================
+
+	/**
+	 * Stubs for the preview endpoint; returns the JSON reply by reference.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function &preview_stubs(): array {
+		$reply = array();
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'sanitize_text_field' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $c ) => preg_match( '/^#[0-9a-f]{6}$/i', (string) $c ) ? $c : null );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
+		Functions\when( 'get_post_type' )->justReturn( CertTemplateCpt::POST_TYPE );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_post_meta' )->justReturn( '#fafafa' );
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data ) use ( &$reply ) {
+				$reply = array(
+					'success' => true,
+					'data'    => $data,
+				);
+				throw new \RuntimeException( 'json' );
+			}
+		);
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data = null, $status = null ) use ( &$reply ) {
+				$reply = array(
+					'success' => false,
+					'data'    => $data,
+					'status'  => $status,
+				);
+				throw new \RuntimeException( 'json' );
+			}
+		);
+		return $reply;
+	}
+
+	public function test_the_preview_refuses_without_the_capability(): void {
+		$reply = &$this->preview_stubs();
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$this->stop_message( fn() => ( new TestableCertTemplateAdminScreen() )->ajax_preview_visual_layout() );
+
+		$this->assertFalse( $reply['success'] );
+		$this->assertSame( 403, $reply['status'] );
+	}
+
+	public function test_the_preview_says_why_a_layout_does_not_validate(): void {
+		$reply           = &$this->preview_stubs();
+		$_POST['layout'] = '{"version":1,"elements":[{"type":"marquee"}]}';
+
+		$this->stop_message( fn() => ( new TestableCertTemplateAdminScreen() )->ajax_preview_visual_layout() );
+		unset( $_POST['layout'] );
+
+		$this->assertFalse( $reply['success'] );
+		$this->assertSame( 400, $reply['status'] );
+		$this->assertSame( 'Element 1 has an unknown type "marquee".', $reply['data']['message'] );
+	}
+
+	public function test_the_preview_draws_the_unsaved_layout_and_names_what_it_lacks(): void {
+		$reply             = &$this->preview_stubs();
+		$_POST['layout']   = '{"version":1,"page":{"orientation":"portrait"},"elements":[{"type":"field","token":"{{name}}","x":10,"y":20,"w":300,"h":40,"font_family":"Nowhere Sans, Georgia, serif"}]}';
+		$_POST['post_id']  = '5';
+		$_POST['bg_image'] = 'https://example.test/bg.png';
+		$_POST['title']    = 'Draft';
+		$screen            = new TestableCertTemplateAdminScreen();
+
+		$this->stop_message( fn() => $screen->ajax_preview_visual_layout() );
+		unset( $_POST['layout'], $_POST['post_id'], $_POST['bg_image'], $_POST['title'] );
+
+		$this->assertTrue( $reply['success'] );
+		$this->assertStringStartsWith( '<page><div class="ffc-visual-page', $reply['data']['html'] );
+		$this->assertSame( 'Draft', $screen->preview_page_args[1] );
+		$this->assertSame( 'https://example.test/bg.png', $screen->preview_page_args[2] );
+		$this->assertSame( '#fafafa', $screen->preview_page_args[3], 'the template\'s page colour' );
+		$this->assertTrue( $screen->preview_page_args[4], 'a portrait layout previews portrait' );
+		$this->assertLessThan( $reply['data']['height'], $reply['data']['width'] );
+		$this->assertContains( '{{auth_code}}', $reply['data']['missing'], 'the required tags the layout lacks' );
+		$this->assertNotContains( '{{name}}', $reply['data']['missing'] );
+		$this->assertSame( array( 'Nowhere Sans' ), $reply['data']['fonts'], 'and the font the site lacks' );
+	}
+
+	/**
+	 * Stubs for the conversion handler; returns the deleted meta keys by reference.
+	 *
+	 * @param array<string, string> $meta Stored meta.
+	 * @return array<int, string>
+	 */
+	private function &convert_stubs( array $meta ): array {
+		$deleted = array();
+		$this->die_throws();
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_type' )->justReturn( CertTemplateCpt::POST_TYPE );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $key ] ?? '' );
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) {
+				throw new \RuntimeException( 'redirect: ' . $url );
+			}
+		);
+		$_GET['post'] = '5';
+		return $deleted;
+	}
+
+	public function test_convert_to_html_drops_the_layout_and_keeps_the_html(): void {
+		$deleted = &$this->convert_stubs(
+			array(
+				\FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual',
+				CertTemplateCpt::META_HTML                           => '<div class="ffc-visual-page">kept</div>',
+			)
+		);
+		$written = array();
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$written ) {
+				$written[] = $key;
+				return true;
+			}
+		);
+
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_convert_to_html() );
+		unset( $_GET['post'] );
+
+		$this->assertSame(
+			array( \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, \FreeFormCertificate\Core\VisualLayout::META_EDITOR ),
+			$deleted
+		);
+		$this->assertSame( array(), $written, 'the HTML the layout generated is what prints from then on, untouched' );
+		$this->assertStringContainsString( 'post.php?post=5&action=edit&ffc_converted=1', $message );
+	}
+
+	public function test_convert_to_html_refuses_a_default_or_an_html_template(): void {
+		$deleted = &$this->convert_stubs( array( CertTemplateCpt::META_IS_DEFAULT => '' ) );
+
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_convert_to_html() );
+
+		$this->assertStringStartsWith( 'wp_die:', $message, 'an HTML template has nothing to convert' );
+
+		$deleted = &$this->convert_stubs(
+			array(
+				\FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual',
+				CertTemplateCpt::META_IS_DEFAULT                     => '1',
+			)
+		);
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_convert_to_html() );
+		unset( $_GET['post'] );
+
+		$this->assertStringStartsWith( 'wp_die:', $message, 'a shipped default stays visual' );
+		$this->assertSame( array(), $deleted );
+	}
+
+	public function test_convert_to_html_refuses_without_the_capability(): void {
+		$deleted = &$this->convert_stubs( array( \FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual' ) );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_convert_to_html() );
+		unset( $_GET['post'] );
+
+		$this->assertStringStartsWith( 'wp_die:', $message );
+		$this->assertSame( array(), $deleted );
+	}
+
+	public function test_the_properties_panel_has_one_set_of_controls_per_type_and_posts_nothing(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'post_type_exists' )->justReturn( false );
+
+		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_properties_metabox() );
+
+		foreach ( array( 'text', 'field', 'text field', 'image', 'qr', 'frame', 'html' ) as $types ) {
+			$this->assertStringContainsString( 'data-ffc-ve-for="' . $types . '"', $html );
+		}
+		foreach ( array( 'x', 'y', 'w', 'h', 'rotation', 'text', 'token', 'font_family', 'font_size', 'font_weight', 'font_style', 'color', 'align', 'letter_spacing', 'line_height', 'text_transform', 'fit', 'margin', 'border_width', 'border_style', 'border_color', 'radius', 'fill', 'html' ) as $prop ) {
+			$this->assertStringContainsString( 'data-ffc-ve-prop="' . $prop . '"', $html, $prop );
+		}
+		$this->assertDoesNotMatchRegularExpression( '/<(input|select|textarea)\b[^>]*\sname=/', $html, 'only the layout JSON posts' );
+		$this->assertStringContainsString( '<option value="{{auth_code}}">', $html, 'the token picker offers the required tags' );
+		$this->assertStringContainsString( '<option value="Georgia, serif">Georgia</option>', $html, 'and the system fonts' );
+	}
+
+	public function test_a_converted_template_says_so_on_its_html_screen(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		$_GET['ffc_converted'] = '1';
+
+		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
+		unset( $_GET['ffc_converted'] );
+
+		$this->assertStringContainsString( 'The template is now an HTML template.', $html );
+		$this->assertStringContainsString( 'name="ffc_template_html"', $html );
 	}
 
 	private function capture( callable $fn ): string {
@@ -1543,6 +1814,14 @@ class TestableCertTemplateAdminScreen extends CertTemplateAdminScreen {
 	protected function render_sample( string $template_html, string $title ): string {
 		// Stub the real PdfHtmlRenderer/CertificatePreviewSamples pipeline.
 		return '<rendered>' . $template_html . '</rendered>';
+	}
+
+	/** @var array<int, mixed> */
+	public array $preview_page_args = array();
+
+	protected function preview_page( string $html, string $title, string $image, string $color, bool $portrait ): string {
+		$this->preview_page_args = array( $html, $title, $image, $color, $portrait );
+		return '<page>' . $html . '</page>';
 	}
 
 	protected function emit_preview_page( string $title, string $body ): void {
