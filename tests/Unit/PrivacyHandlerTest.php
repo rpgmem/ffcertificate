@@ -326,11 +326,13 @@ class PrivacyHandlerTest extends TestCase {
 	// register_erasers()
 	// ==================================================================
 
-	public function test_register_erasers_adds_one_entry(): void {
+	public function test_register_erasers_adds_the_plugin_and_the_signer_erasers(): void {
 		$result = PrivacyHandler::register_erasers(array());
 
-		$this->assertCount(1, $result);
+		$this->assertCount(2, $result);
 		$this->assertArrayHasKey('ffcertificate', $result);
+		// The copy of name and RF a deleted signer leaves behind (#2582).
+		$this->assertSame(array(\FreeFormCertificate\Core\CertificateSigners::class, 'erase'), $result['ffcertificate-signers']['callback']);
 	}
 
 	public function test_register_erasers_preserves_existing_entries(): void {
@@ -343,7 +345,7 @@ class PrivacyHandlerTest extends TestCase {
 
 		$result = PrivacyHandler::register_erasers($existing);
 
-		$this->assertCount(2, $result);
+		$this->assertCount(3, $result);
 		$this->assertArrayHasKey('other-eraser', $result);
 		$this->assertArrayHasKey('ffcertificate', $result);
 	}

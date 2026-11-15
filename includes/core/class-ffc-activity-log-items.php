@@ -263,6 +263,7 @@ final class ActivityLogItems {
 		'data_accessed'                           => 'cert_submissions',
 
 		'submission_updated'                      => 'cert_changes',
+		'certificate_signer_added'                => 'cert_changes',
 		'submission_trashed'                      => 'cert_changes',
 		'submission_restored'                     => 'cert_changes',
 		'submission_moved'                        => 'cert_changes',

@@ -140,6 +140,7 @@ class FormEditorSaveHandler {
 		// 2. Save Configurations.
 		$this->save_config_meta( $post_id );
 		$this->save_template_link_meta( $post_id );
+		$this->save_signer_meta( $post_id );
 
 		// 3. Save Geofence Configuration.
 		$this->save_geofence_meta( $post_id );
@@ -512,6 +513,27 @@ class FormEditorSaveHandler {
 		);
 		if ( array() !== $missing ) {
 			set_transient( 'ffc_save_template_values_warning_' . get_current_user_id(), $missing, 45 );
+		}
+	}
+
+	/**
+	 * Persist the form's signer (#2582). A new choice must be an active signer;
+	 * the one the form already has may stay after it was deactivated.
+	 *
+	 * @param int $post_id The post ID.
+	 */
+	private function save_signer_meta( int $post_id ): void {
+		if ( ! RequestInput::has_post( 'ffc_signer_id' ) ) {
+			return;
+		}
+		$signer  = \FreeFormCertificate\Core\CertificateSigners::get( RequestInput::get_post_int( 'ffc_signer_id', 0 ) );
+		$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $post_id );
+		if ( null === $signer ) {
+			delete_post_meta( $post_id, \FreeFormCertificate\Core\CertificateSigners::FORM_META );
+			return;
+		}
+		if ( $signer['active'] || ( null !== $current && $current['id'] === $signer['id'] ) ) {
+			update_post_meta( $post_id, \FreeFormCertificate\Core\CertificateSigners::FORM_META, $signer['id'] );
 		}
 	}
 

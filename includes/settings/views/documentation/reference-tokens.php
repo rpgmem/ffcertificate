@@ -137,6 +137,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>Sala 2</em></td>
 			</tr>
 			<tr>
+				<td><code>{{signer:name}}</code> <code>{{signer:rf}}</code> <code>{{signer:role}}</code> <code>{{signer:signature}}</code></td>
+				<td><?php esc_html_e( 'The form\'s signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews.', 'ffcertificate' ); ?></td>
+				<td><em>Maria Souza</em></td>
+			</tr>
+			<tr>
 				<td><code>{{ticket}}</code></td>
 				<td><?php esc_html_e( 'The single-use ticket code the participant entered (forms with the Ticket restriction only).', 'ffcertificate' ); ?></td>
 				<td><em>TK01-AB2C-3D4E</em></td>

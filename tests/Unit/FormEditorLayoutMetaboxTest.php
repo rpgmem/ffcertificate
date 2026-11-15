@@ -135,7 +135,7 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 
 		$this->assertStringContainsString( 'id="ffc_load_template_btn"', $html );
 		$this->assertStringNotContainsString( 'ffc_template_select', $html );
-		$this->assertSame( 1, substr_count( $html, '<select' ), 'the only select is the Layout source picker of #2581' );
+		$this->assertSame( 2, substr_count( $html, '<select' ), 'the template picker of #2581 and the signer of #2582' );
 		$this->assertStringContainsString( 'id="ffc_layout_template_id"', $html );
 	}
 

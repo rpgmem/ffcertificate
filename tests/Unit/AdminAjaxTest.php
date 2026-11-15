@@ -1001,6 +1001,32 @@ class AdminAjaxTest extends TestCase {
 		$this->assertContains( $pii_cap, $this->policy_checks );
 	}
 
+	/**
+	 * A certificate signer's RF (#2582): the profile's, through the
+	 * certificates PII cap, audited, and the signer reveals their own.
+	 */
+	public function test_reveal_pii_a_signers_rf_from_the_profile(): void {
+		$this->account( 7, 'maria@example.test', 'Maria Souza' );
+		$this->user_meta[7] = array( \FreeFormCertificate\Core\CertificateSigners::RF_META_KEY => Encryption::encrypt( '1234567' ) );
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => \FreeFormCertificate\Core\CertificateSigners::OPTION === $key
+				? array( array( 'id' => 3, 'user_id' => 7, 'role' => 'x', 'active' => true ) )
+				: ( 'ffc_settings' === $key ? ActivityLogBuffer::ENABLED_SETTINGS : $default )
+		);
+		$this->post_reveal( 'certificate_signer', 3, 'rf' );
+		$this->viewer_caps[] = 'ffc_view_forms';
+		$this->viewer_caps[] = 'ffc_view_certificates_pii';
+
+		$this->assertSame( array( 'field' => 'rf', 'value' => '123.456-7' ), $this->reveal() );
+		$this->assertAuditedOnce( 'certificate_signer_pii_revealed', array( 'field_key' => 'rf' ), self::VIEWER, 3, 'certificate_signer' );
+
+		$this->post_reveal( 'certificate_signer', 3, 'email' );
+		$ajax = new AdminAjax();
+		$this->expectException( \RuntimeException::class );
+		$this->expectExceptionMessageMatches( '/Unsupported field/' );
+		$ajax->reveal_pii();
+	}
+
 	public function test_reveal_pii_an_activity_log_entrys_details_in_clear(): void {
 		$this->post_reveal( 'activity_log', 31, 'context' );
 		$this->store(

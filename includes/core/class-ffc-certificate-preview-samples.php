@@ -155,7 +155,19 @@ class CertificatePreviewSamples {
 			// (#2579): the form's own, else today as the sample.
 			EventDate::DATA_START      => $event_start,
 			EventDate::DATA_END        => $event_end,
-		);
+		) + self::signer_sample( $form_id );
+	}
+
+	/**
+	 * `{{signer:…}}` (#2582): the form's signer with the RF masked, since a
+	 * preview is not the certificate, else sample text.
+	 *
+	 * @param int|null $form_id Form post id, or null for a sample.
+	 * @return array<string, string>
+	 */
+	private static function signer_sample( ?int $form_id ): array {
+		$signer = null !== $form_id ? CertificateSigners::for_form( $form_id ) : null;
+		return null !== $signer ? CertificateSigners::token_values( $signer, true ) : CertificateSigners::sample_values();
 	}
 
 	/**

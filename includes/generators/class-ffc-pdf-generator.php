@@ -154,6 +154,11 @@ class PdfGenerator {
 		// layout is still noticed.
 		$data += array_fill_keys( self::field_names( $form_id ), '' );
 
+		// {{signer:name|rf|role|signature}} (#2582): the form's signer, read
+		// from their profile now. The RF prints in full on the certificate,
+		// a documented exception (CLAUDE.md "Security & PII conventions").
+		$data = array_merge( $data, \FreeFormCertificate\Core\CertificateSigners::token_values( \FreeFormCertificate\Core\CertificateSigners::for_form( $form_id ) ) );
+
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$submission_ts = isset( $sub_array['submission_date'] ) ? (int) $sub_array['submission_date'] : null;
 		$html          = $this->html_renderer->generate_html( $data, $form_title, $form_config, $submission_ts );

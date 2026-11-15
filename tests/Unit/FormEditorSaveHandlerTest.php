@@ -2200,4 +2200,43 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( array(), $bag['deleted'] );
 		$this->assertSame( array(), $bag['meta'] );
 	}
+
+	/**
+	 * Signers 1 (active) and 2 (inactive), and form 11 naming `$current`.
+	 *
+	 * @return \ArrayObject<string, array<mixed>> Keys `meta` and `deleted`.
+	 */
+	private function stub_signers( string $current ): \ArrayObject {
+		$bag = $this->stub_template_link();
+		Functions\when( 'get_option' )->alias(
+			static fn( $key, $default = false ) => 'ffc_certificate_signers' === $key
+				? array( array( 'id' => 1, 'user_id' => 7, 'active' => true ), array( 'id' => 2, 'user_id' => 8, 'active' => false ) )
+				: ( 'ffc_settings' === $key ? self::REQUIRED_TAGS_SETTINGS : array() )
+		);
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_signer_id' === $key ? $current : '' );
+		return $bag;
+	}
+
+	public function test_a_form_stores_an_active_signer_and_keeps_its_own_inactive_one(): void {
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id' => '1' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( 1, $bag['meta']['_ffc_signer_id'] );
+
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id' => '2' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array(), $bag['meta'], 'an inactive signer is not a new choice' );
+
+		$bag   = $this->stub_signers( '2' );
+		$_POST = array( 'ffc_signer_id' => '2' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( 2, $bag['meta']['_ffc_signer_id'], 'a form keeps the signer it already had' );
+
+		$bag   = $this->stub_signers( '1' );
+		$_POST = array( 'ffc_signer_id' => '0' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id' ), $bag['deleted'] );
+		$_POST = array();
+	}
 }
