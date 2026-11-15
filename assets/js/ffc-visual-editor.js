@@ -1316,9 +1316,13 @@
 				: '';
 			if (picked) {
 				var img = document.createElement('img');
-				img.className = 'ffc-ve-el-image' + (el.fit === 'cover' ? ' is-cover' : '');
+				// Not `ffc-ve-el-image`: that is the element's own type class,
+				// and this rule turns pointer events off (#2608).
+				img.className = 'ffc-ve-picture' + (el.fit === 'cover' ? ' is-cover' : '');
 				img.src = picked;
 				img.alt = '';
+				// The element moves, not a copy of the picture the browser drags.
+				img.draggable = false;
 				node.appendChild(img);
 			} else {
 				node.appendChild(label);
