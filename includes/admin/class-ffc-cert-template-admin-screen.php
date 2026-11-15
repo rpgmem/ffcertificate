@@ -638,6 +638,55 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * The page canvas of a visual template (#2585), with its labels.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_visual_editor(): void {
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_style(
+			'ffc-visual-editor',
+			FFC_PLUGIN_URL . "assets/css/ffc-visual-editor{$suffix}.css",
+			array( 'ffc-common' ),
+			FFC_VERSION
+		);
+		wp_enqueue_script(
+			'ffc-visual-editor',
+			FFC_PLUGIN_URL . "assets/js/ffc-visual-editor{$suffix}.js",
+			array( 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-visual-editor',
+			'ffcVisualEditor',
+			array(
+				'newText'        => __( 'Text', 'ffcertificate' ),
+				'image'          => __( 'Image', 'ffcertificate' ),
+				'signature'      => __( 'Signature', 'ffcertificate' ),
+				'qr'             => __( 'QR code', 'ffcertificate' ),
+				'html'           => __( 'HTML block', 'ffcertificate' ),
+				'background'     => __( 'Background (page colour and image)', 'ffcertificate' ),
+				'moveUp'         => __( 'Bring forward', 'ffcertificate' ),
+				'moveDown'       => __( 'Send backward', 'ffcertificate' ),
+				'lock'           => __( 'Lock', 'ffcertificate' ),
+				'unlock'         => __( 'Unlock', 'ffcertificate' ),
+				'discard'        => __( 'Discard changes', 'ffcertificate' ),
+				'discardTitle'   => __( 'Discard changes?', 'ffcertificate' ),
+				'discardMessage' => __( 'The page goes back to the last save; what changed since is lost.', 'ffcertificate' ),
+				'types'          => array(
+					'text'  => __( 'Text', 'ffcertificate' ),
+					'field' => __( 'Data field', 'ffcertificate' ),
+					'image' => __( 'Image', 'ffcertificate' ),
+					'qr'    => __( 'QR code', 'ffcertificate' ),
+					'frame' => __( 'Frame', 'ffcertificate' ),
+					'html'  => __( 'HTML block', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
 	 * The palette and the dark-mode toggle, on the template list and editor.
 	 *
 	 * Both are screens WordPress draws for a plugin post type, so
@@ -671,8 +720,12 @@ class CertTemplateAdminScreen {
 		$post_id    = RequestInput::get_get_int( 'post' );
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
 
-		// A visual template edits its layout, not HTML (#2584).
-		if ( ! \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
+		// A visual template edits its layout on the page canvas (#2585), not HTML (#2584).
+		if ( \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
+			if ( ! $is_default ) {
+				self::enqueue_visual_editor();
+			}
+		} else {
 			AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
 		}
 
@@ -992,15 +1045,164 @@ class CertTemplateAdminScreen {
 			);
 		}
 		?>
-		<label class="ffc-block-label" for="ffc_template_layout"><strong><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></strong></label>
-		<textarea name="ffc_template_layout" id="ffc_template_layout" class="ffc-w100 code" rows="20" spellcheck="false" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $json ); ?></textarea>
-		<p class="description">
-			<?php esc_html_e( 'The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates.', 'ffcertificate' ); ?>
-		</p>
+		<?php
+		if ( ! $is_default ) {
+			$this->render_visual_canvas( (int) $post->ID );
+		}
+		?>
+		<details class="ffc-ve-json"<?php echo $is_default ? ' open' : ''; ?>>
+			<summary><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></summary>
+			<label class="screen-reader-text" for="ffc_template_layout"><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></label>
+			<textarea name="ffc_template_layout" id="ffc_template_layout" class="ffc-w100 code" rows="20" spellcheck="false" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $json ); ?></textarea>
+			<p class="description">
+				<?php esc_html_e( 'The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates.', 'ffcertificate' ); ?>
+			</p>
+		</details>
 		<div class="ffc-input-group ffc-mt-xl">
 			<label class="ffc-block-label" for="ffc_template_bg_image"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
 			<input type="text" name="ffc_template_bg_image" id="ffc_template_bg_image" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100" <?php wp_readonly( $is_default, true ); ?>>
 			<div id="ffc_bg_image_preview"></div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * The page canvas of a visual template (#2585): the Insert, Page and
+	 * Layers menu beside the page. `ffc-visual-editor.js` draws the elements
+	 * and keeps the layout field current; without it the canvas stays hidden
+	 * and the field is edited by hand.
+	 *
+	 * @param int $post_id Template post id.
+	 * @return void
+	 */
+	private function render_visual_canvas( int $post_id ): void {
+		$preview = wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::PREVIEW_ACTION . '&post=' . $post_id ),
+			self::PREVIEW_ACTION . '_' . $post_id
+		);
+		$types   = array(
+			'text'  => array( __( 'Text', 'ffcertificate' ), 'text' ),
+			'field' => array( __( 'Data field', 'ffcertificate' ), 'tag' ),
+			'image' => array( __( 'Image', 'ffcertificate' ), 'image' ),
+			'qr'    => array( __( 'QR code', 'ffcertificate' ), 'qr' ),
+			'frame' => array( __( 'Frame', 'ffcertificate' ), 'layout' ),
+			'html'  => array( __( 'HTML block', 'ffcertificate' ), 'code' ),
+		);
+		$aligns  = array(
+			'left'   => array( __( 'Align left', 'ffcertificate' ), 'chevrons-left' ),
+			'center' => array( __( 'Centre horizontally', 'ffcertificate' ), 'split' ),
+			'right'  => array( __( 'Align right', 'ffcertificate' ), 'chevrons-right' ),
+			'top'    => array( __( 'Align top', 'ffcertificate' ), 'chevron-up' ),
+			'middle' => array( __( 'Centre vertically', 'ffcertificate' ), 'merge' ),
+			'bottom' => array( __( 'Align bottom', 'ffcertificate' ), 'chevron-down' ),
+		);
+		?>
+		<div class="ffc-visual-editor" data-ffc-visual-editor="ffc_template_layout" hidden>
+			<div class="ffc-ve-gate notice notice-info inline" hidden>
+				<p>
+					<?php esc_html_e( 'Editing the page needs a window at least 1280 pixels wide and a mouse or trackpad. Your changes are kept: widen the window to go on. Meanwhile you can still open the template list or the test PDF.', 'ffcertificate' ); ?>
+				</p>
+				<p class="ffc-ve-buttons">
+					<?php
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Template list', 'ffcertificate' ),
+							'icon'  => 'list',
+							'href'  => admin_url( 'edit.php?post_type=' . CertTemplateCpt::POST_TYPE ),
+						)
+					);
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Test PDF', 'ffcertificate' ),
+							'icon'  => 'eye',
+							'href'  => $preview,
+							'attrs' => array( 'target' => '_blank' ),
+						)
+					);
+					?>
+				</p>
+			</div>
+			<div class="ffc-ve-workspace">
+				<div class="ffc-ve-menu">
+					<section class="ffc-ve-group">
+						<h3 class="ffc-ve-group-title ffc-icon-plus"><?php esc_html_e( 'Insert', 'ffcertificate' ); ?></h3>
+						<div class="ffc-ve-buttons">
+							<?php
+							foreach ( $types as $type => $button ) {
+								AdminUI::render_button(
+									array(
+										'label'    => $button[0],
+										'icon'     => $button[1],
+										'category' => 'create',
+										'attrs'    => array( 'data-ffc-ve-insert' => $type ),
+									)
+								);
+							}
+							?>
+						</div>
+					</section>
+					<section class="ffc-ve-group">
+						<h3 class="ffc-ve-group-title ffc-icon-file"><?php esc_html_e( 'Page', 'ffcertificate' ); ?></h3>
+						<p>
+							<label for="ffc_ve_orientation"><?php esc_html_e( 'Orientation', 'ffcertificate' ); ?></label>
+							<select id="ffc_ve_orientation" data-ffc-ve-orientation>
+								<option value="landscape"><?php esc_html_e( 'Landscape', 'ffcertificate' ); ?></option>
+								<option value="portrait"><?php esc_html_e( 'Portrait', 'ffcertificate' ); ?></option>
+							</select>
+						</p>
+						<p>
+							<label for="ffc_ve_zoom"><?php esc_html_e( 'Zoom', 'ffcertificate' ); ?></label>
+							<select id="ffc_ve_zoom" data-ffc-ve-zoom>
+								<option value="fit"><?php esc_html_e( 'Fit to screen', 'ffcertificate' ); ?></option>
+								<option value="0.5">50%</option>
+								<option value="0.75">75%</option>
+								<option value="1">100%</option>
+							</select>
+						</p>
+						<p>
+							<label><input type="checkbox" data-ffc-ve-snap checked> <?php esc_html_e( 'Snap to a 10 px grid', 'ffcertificate' ); ?></label>
+						</p>
+						<p class="ffc-ve-group-title"><?php esc_html_e( 'Align to page', 'ffcertificate' ); ?></p>
+						<div class="ffc-ve-buttons">
+							<?php
+							foreach ( $aligns as $mode => $button ) {
+								AdminUI::render_button(
+									array(
+										'label'     => $button[0],
+										'icon'      => $button[1],
+										'icon_only' => true,
+										'attrs'     => array( 'data-ffc-ve-align' => $mode ),
+									)
+								);
+							}
+							?>
+						</div>
+					</section>
+					<section class="ffc-ve-group">
+						<h3 class="ffc-ve-group-title ffc-icon-stack-plus"><?php esc_html_e( 'Layers', 'ffcertificate' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'The first in the list is in front. Drag to reorder, or use the arrows.', 'ffcertificate' ); ?></p>
+						<ul class="ffc-ve-layers"></ul>
+					</section>
+					<section class="ffc-ve-group">
+						<?php
+						AdminUI::render_button(
+							array(
+								'label'    => __( 'Discard changes', 'ffcertificate' ),
+								'icon'     => 'restore',
+								'category' => 'caution',
+								'attrs'    => array( 'data-ffc-ve-discard' => '1' ),
+							)
+						);
+						?>
+						<p class="description"><?php esc_html_e( 'Back to the last save. Save with the Update button.', 'ffcertificate' ); ?></p>
+					</section>
+				</div>
+				<div class="ffc-ve-stage">
+					<div class="ffc-ve-frame">
+						<div class="ffc-ve-page" tabindex="0" role="application" aria-label="<?php esc_attr_e( 'Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it.', 'ffcertificate' ); ?>"></div>
+					</div>
+				</div>
+			</div>
 		</div>
 		<?php
 	}
