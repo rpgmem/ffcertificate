@@ -34067,3 +34067,82 @@ msgstr ""
 
 msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
 msgstr ""
+
+msgid "The layout is too large."
+msgstr ""
+
+msgid "The layout is not valid JSON."
+msgstr ""
+
+#. translators: %d: the schema version this release reads
+msgid "The layout must declare \"version\": %d."
+msgstr ""
+
+msgid "The layout must carry an \"elements\" list."
+msgstr ""
+
+#. translators: %d: maximum number of elements
+msgid "A layout holds at most %d elements."
+msgstr ""
+
+#. translators: %d: element position, starting at 1
+msgid "Element %d is not an object."
+msgstr ""
+
+#. translators: 1: element position, starting at 1, 2: the type it declares
+msgid "Element %1$d has an unknown type \"%2$s\"."
+msgstr ""
+
+msgid "Visual"
+msgstr ""
+
+msgid "Write the certificate as HTML."
+msgstr ""
+
+msgid "Place elements on the page; the HTML is generated from the layout. Save to start editing it."
+msgstr ""
+
+msgid "The layout was not saved."
+msgstr ""
+
+msgid "Visual layout (JSON)"
+msgstr ""
+
+msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates."
+msgstr ""
+
+msgid "Visual certificate templates"
+msgstr ""
+
+msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. Until the page editor arrives, the layout is edited as JSON in the template's Visual layout field, and a layout that does not check out is not saved and says why."
+msgstr ""
+
+msgid "The format: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element."
+msgstr ""
+
+msgid "text — literal text, tokens allowed, with font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform and fit (none, line or box: the text shrinks to fit the width, or the box)."
+msgstr ""
+
+msgid "field — one token, as {{name}} or {{model:place}}, with the same text properties."
+msgstr ""
+
+msgid "image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit."
+msgstr ""
+
+msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
+msgstr ""
+
+msgid "frame — border_width, border_style, border_color, radius and fill; the border is drawn inside the box."
+msgstr ""
+
+msgid "html — a block of HTML, filtered by the same rules as an HTML template."
+msgstr ""
+
+msgid "An out-of-range number is brought into range, an unknown value takes its default and an unknown key is dropped; text is printed as text. Duplicating a visual template keeps it visual. Only certificates can be visual; the record and the receipts stay HTML."
+msgstr ""
+
+msgid "Editor"
+msgstr ""
+
+msgid "HTML"
+msgstr ""

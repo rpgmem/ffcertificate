@@ -58,6 +58,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 
 	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Visual certificate templates', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. Until the page editor arrives, the layout is edited as JSON in the template\'s Visual layout field, and a layout that does not check out is not saved and says why.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'The format: {"version": 1, "page": {"orientation": "landscape"}, "elements": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element.', 'ffcertificate' ); ?></p>
+		<ul>
+			<li><?php esc_html_e( 'text — literal text, tokens allowed, with font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform and fit (none, line or box: the text shrinks to fit the width, or the box).', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'field — one token, as {{name}} or {{model:place}}, with the same text properties.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'qr — the validation QR code, sized to the shorter side of its box; margin.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'frame — border_width, border_style, border_color, radius and fill; the border is drawn inside the box.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'html — a block of HTML, filtered by the same rules as an HTML template.', 'ffcertificate' ); ?></li>
+		</ul>
+		<p><?php esc_html_e( 'An out-of-range number is brought into range, an unknown value takes its default and an unknown key is dropped; text is printed as text. Duplicating a visual template keeps it visual. Only certificates can be visual; the record and the receipts stay HTML.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
 		<p><?php esc_html_e( 'A read-only "Current assignments" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a "Change" link into that feature\'s own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature.', 'ffcertificate' ); ?></p>
 	</div>
 

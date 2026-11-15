@@ -121,7 +121,7 @@ class DefaultLayoutVersions {
 	 * @return string
 	 */
 	private static function fingerprint( string $html ): string {
-		$clean = wp_kses( $html, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$clean = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $html );
 		return md5( trim( (string) preg_replace( '/\s+/', ' ', $clean ) ) );
 	}
 

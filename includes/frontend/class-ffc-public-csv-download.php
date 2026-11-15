@@ -623,7 +623,7 @@ class PublicCsvDownload {
 		// background colour and image, and the orientation come from the
 		// same places the generator reads them. Samples pass $form_id so the
 		// {{schedule}} sample matches the form's Time tab.
-		$portrait = ( $config['orientation'] ?? '' ) === 'portrait';
+		$portrait = ( \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id )['orientation'] ?? '' ) === 'portrait';
 		$size     = \FreeFormCertificate\Generators\FormLayoutPreview::page_size( $portrait );
 		$samples  = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
 			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map( $form_id ),
@@ -631,7 +631,7 @@ class PublicCsvDownload {
 		);
 		$body     = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			// The referenced template's layout, or the form's own copy (#2581).
-			wp_kses( (string) ( \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id )['pdf_layout'] ?? '' ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
+			\FreeFormCertificate\Core\HtmlPolicy::kses_layout( (string) ( \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id )['pdf_layout'] ?? '' ) ),
 			get_the_title( $form_id ),
 			\FreeFormCertificate\Core\FormBackground::url( $form_id ),
 			\FreeFormCertificate\Core\FormBackground::color( $form_id ),

@@ -377,7 +377,7 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- layout HTML is filtered by wp_kses() below, as on save.
 		$raw    = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
-		$layout = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$layout = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $raw );
 		$title  = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
 		$image  = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
 		$color  = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
@@ -385,14 +385,18 @@ class FormEditor {
 		// A form that references a template previews the template, with the
 		// values typed into its fields so far (#2581).
 		$template_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'template_id', 0 );
+		$portrait    = false;
 		if ( \FreeFormCertificate\Core\CertificateTemplateLink::is_usable_template( $template_id ) ) {
 			$values = \FreeFormCertificate\Core\TemplateFields::sanitize_values(
 				\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
 				\FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'template_values' )
 			);
-			$layout = wp_kses( \FreeFormCertificate\Core\CertificateTemplateLink::layout( $template_id, $values ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+			$layout = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( \FreeFormCertificate\Core\CertificateTemplateLink::layout( $template_id, $values ) );
 			$image  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_image( $template_id );
 			$color  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_color( $template_id );
+			// A visual template carries its own page orientation (#2584).
+			$visual   = \FreeFormCertificate\Core\VisualLayout::is_visual( $template_id ) ? \FreeFormCertificate\Core\VisualLayout::stored( $template_id ) : null;
+			$portrait = null !== $visual && 'portrait' === $visual['page']['orientation'];
 		}
 
 		$fields = array();
@@ -410,7 +414,7 @@ class FormEditor {
 			);
 		}
 
-		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size();
+		$size    = \FreeFormCertificate\Generators\FormLayoutPreview::page_size( $portrait );
 		$samples = \FreeFormCertificate\Generators\FormLayoutPreview::with_field_labels(
 			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
 			$fields
@@ -425,7 +429,8 @@ class FormEditor {
 			$title,
 			$image,
 			$color,
-			$samples
+			$samples,
+			$portrait
 		);
 
 		wp_send_json_success(
@@ -459,7 +464,7 @@ class FormEditor {
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Deliberately not sanitize_text_field: this is layout HTML, filtered on the next line by wp_kses() with the HtmlPolicy allowlist.
 		$raw  = isset( $_POST['html'] ) ? (string) wp_unslash( $_POST['html'] ) : '';
-		$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+		$html = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $raw );
 		if ( '' === trim( $html ) ) {
 			wp_send_json_error();
 		}

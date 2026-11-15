@@ -23,6 +23,27 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class HtmlPolicy {
 
+	/** What a `{{signer:` token reads as while the allow-list runs (#2584). */
+	private const SIGNER_TOKEN_HOLD = '{{signer-ffc-hold-';
+
+	/**
+	 * A certificate or document layout through the allow-list.
+	 *
+	 * A layout may name a token where an address goes, and `wp_kses()` reads
+	 * the text before the first colon as a protocol: `<img src="{{signer:signature}}">`
+	 * came out as `src="signature}}"`, so the signer's signature never printed
+	 * (#2584). The colon of a `{{signer:…}}` token is held aside while the
+	 * allow-list runs and put back after, so no protocol is allowed for it;
+	 * the certificate renderer replaces the token with the image address
+	 * before the HTML reaches a browser.
+	 *
+	 * @param string $html Layout HTML.
+	 */
+	public static function kses_layout( string $html ): string {
+		$held = str_replace( '{{signer:', self::SIGNER_TOKEN_HOLD, $html );
+		return str_replace( self::SIGNER_TOKEN_HOLD, '{{signer:', wp_kses( $held, self::get_allowed_html_tags() ) );
+	}
+
 	/**
 	 * Returns the list of allowed HTML tags and attributes.
 	 * Centralized here so Frontend, Email, and PDF Generator use the same validation rules.

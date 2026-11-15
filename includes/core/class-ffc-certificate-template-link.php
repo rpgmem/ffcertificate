@@ -172,6 +172,11 @@ final class CertificateTemplateLink {
 		$config['pdf_layout'] = self::layout( $template_id, self::values( $form_id ) );
 		$config['bg_image']   = self::bg_image( $template_id );
 		$config['bg_color']   = self::bg_color( $template_id );
+		// A visual template carries its own page orientation (#2584).
+		$visual = VisualLayout::is_visual( $template_id ) ? VisualLayout::stored( $template_id ) : null;
+		if ( null !== $visual ) {
+			$config['orientation'] = $visual['page']['orientation'];
+		}
 		return $config;
 	}
 

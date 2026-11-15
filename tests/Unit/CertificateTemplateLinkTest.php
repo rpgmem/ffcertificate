@@ -146,4 +146,15 @@ class CertificateTemplateLinkTest extends TestCase {
 		$this->assertSame( array( 7, 9 ), CertificateTemplateLink::forms_using( 50 ) );
 		$this->assertSame( array(), CertificateTemplateLink::forms_using( 0 ) );
 	}
+
+	public function test_a_visual_template_sets_the_page_orientation(): void {
+		$this->template( 50 );
+		$this->meta[50][ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] = \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL;
+		$this->meta[50][ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] = '{"version":1,"page":{"orientation":"landscape"},"elements":[]}';
+		$this->form( 7, 50 );
+		$this->assertSame( 'landscape', CertificateTemplateLink::form_config( 7 )['orientation'], 'the template\'s page wins over the form\'s' );
+
+		unset( $this->meta[50][ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] );
+		$this->assertSame( 'portrait', CertificateTemplateLink::form_config( 7 )['orientation'], 'an HTML template leaves it to the form' );
+	}
 }
