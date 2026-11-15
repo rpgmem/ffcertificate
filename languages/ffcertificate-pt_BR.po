@@ -34043,3 +34043,109 @@ msgid "Used by %s form."
 msgid_plural "Used by %s forms."
 msgstr[0] "Usado por %s formulário."
 msgstr[1] "Usado por %s formulários."
+
+msgid "Choose a WordPress user."
+msgstr "Escolha um usuário do WordPress."
+
+msgid "This user has no RF on their profile, so they cannot sign certificates."
+msgstr "Este usuário não tem RF no perfil, então não pode assinar certificados."
+
+msgid "This user is already a signer."
+msgstr "Este usuário já é assinante."
+
+msgid "Signers"
+msgstr "Assinantes"
+
+msgid "Who can sign certificates"
+msgstr "Quem pode assinar certificados"
+
+msgid "A form names one of these people as its signer. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them."
+msgstr "Um formulário escolhe uma destas pessoas como assinante. Incluir alguém aqui permite que o RF dela saia completo nos certificados que assina, por isso a inclusão fica registrada no log de atividades. Um assinante inativo sai da escolha em formulários novos; os formulários que já o usam continuam com ele."
+
+msgid "No signer yet."
+msgstr "Nenhum assinante ainda."
+
+msgid "Person"
+msgstr "Pessoa"
+
+msgid "Role or sector"
+msgstr "Cargo ou setor"
+
+msgid "Signature"
+msgstr "Assinatura"
+
+msgid "Signer added."
+msgstr "Assinante adicionado."
+
+msgid "Signer updated."
+msgstr "Assinante atualizado."
+
+msgid "Account deleted; name and RF were kept"
+msgstr "Conta excluída; nome e RF foram guardados"
+
+msgid "No RF"
+msgstr "Sem RF"
+
+msgid "Edit signer"
+msgstr "Editar assinante"
+
+msgid "Add signer"
+msgstr "Adicionar assinante"
+
+msgid "WordPress user"
+msgstr "Usuário do WordPress"
+
+msgid "— Choose a user —"
+msgstr "— Escolha um usuário —"
+
+msgid "Only users with an RF on their profile are listed. Their RF prints in full on the certificates they sign."
+msgstr "Só aparecem usuários com RF no perfil. O RF deles sai completo nos certificados que assinarem."
+
+msgid "Signature image"
+msgstr "Imagem da assinatura"
+
+msgid "Choose from the media library"
+msgstr "Escolher na biblioteca de mídia"
+
+msgid "Optional. Print it in the layout as <img src=\"{{signer:signature}}\">."
+msgstr "Opcional. Imprima no layout como <img src=\"{{signer:signature}}\">."
+
+msgid "Active: new forms may choose this signer"
+msgstr "Ativo: formulários novos podem escolher este assinante"
+
+msgid "Save signer"
+msgstr "Salvar assinante"
+
+msgid "You do not have permission to manage signers."
+msgstr "Você não tem permissão para gerenciar assinantes."
+
+msgid "Signer"
+msgstr "Assinante"
+
+msgid "— No signer —"
+msgstr "— Sem assinante —"
+
+#. translators: %s: signer name and role
+msgid "%s (no RF on the profile)"
+msgstr "%s (sem RF no perfil)"
+
+msgid "Prints as {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}}. Name and RF come from the person's WordPress profile when the certificate is generated; the RF prints in full on the certificate only."
+msgstr "Imprime como {{signer:name}}, {{signer:rf}}, {{signer:role}} e {{signer:signature}}. Nome e RF vêm do perfil da pessoa no WordPress quando o certificado é gerado; o RF sai completo só no certificado."
+
+msgid "Certificate Signer Added"
+msgstr "Assinante de certificados adicionado"
+
+msgid "Certificate Signer RF Revealed"
+msgstr "RF de assinante de certificados revelado"
+
+msgid "Free Form Certificate signers"
+msgstr "Assinantes do Free Form Certificate"
+
+msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses its signer on the Layout tab, and the layout prints {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}} (the image URL, for an img tag)."
+msgstr "Certificados → Assinantes lista as pessoas que um formulário pode escolher como assinante. Cada uma é um usuário do WordPress com RF no perfil, com cargo ou setor, imagem de assinatura opcional e indicação de ativo; incluir uma exige ffc_manage_forms e fica registrado no log de atividades, porque permite que esse RF saia nos certificados de outras pessoas. O formulário escolhe o assinante na aba Layout, e o layout imprime {{signer:name}}, {{signer:rf}}, {{signer:role}} e {{signer:signature}} (a URL da imagem, para uma tag img)."
+
+msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
+msgstr "Nome e RF são lidos do perfil a cada certificado gerado, então uma correção no perfil chega a todos os certificados; o cargo é lido do mesmo jeito. O RF sai completo só no certificado: as prévias e a lista de assinantes o mostram mascarado, e a lista o revela, com registro, a quem tem ffc_view_certificates_pii. Um assinante inativo sai da escolha em formulários novos, e os formulários que o usam continuam com ele. Quando o usuário é excluído, o assinante guarda uma cópia cifrada de nome e RF e fica inativo, para que os certificados emitidos não mudem; um pedido de apagamento de dados pessoais desse e-mail remove a cópia, e os certificados passam a imprimir o RF mascarado."
+
+msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
+msgstr "O assinante do formulário, escolhido na aba Layout entre os de Certificados → Assinantes: nome e RF do perfil no WordPress no momento de gerar, o cargo ou setor e a URL da imagem da assinatura. O RF sai completo no certificado e mascarado nas prévias."

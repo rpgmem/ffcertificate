@@ -311,6 +311,8 @@ class AdminActivityLogPage {
 			'date_messages_pii_revealed'                   => __( 'Date Messages Personal Data Revealed', 'ffcertificate' ),
 			'activity_log_ip_revealed'                     => __( 'Activity Log Address Revealed', 'ffcertificate' ),
 			'rate_limit_ip_revealed'                       => __( 'Rate Limit Address Revealed', 'ffcertificate' ),
+			'certificate_signer_added'                     => __( 'Certificate Signer Added', 'ffcertificate' ),
+			'certificate_signer_pii_revealed'              => __( 'Certificate Signer RF Revealed', 'ffcertificate' ),
 			'custom_field_sensitive_demotion_refused'      => __( 'Sensitive Field Demotion Refused', 'ffcertificate' ),
 			'custom_field_locked_change_refused'           => __( 'Answered Field Change Refused', 'ffcertificate' ),
 

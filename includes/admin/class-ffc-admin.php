@@ -102,6 +102,8 @@ class Admin {
 		new AdminActivityLogPage();
 		$this->certificates_dashboard = new CertificatesDashboard();
 		$this->certificates_dashboard->init();
+		// Certificates → Signers (#2582).
+		( new CertificateSignersPage() )->init();
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 

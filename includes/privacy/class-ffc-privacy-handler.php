@@ -206,6 +206,12 @@ class PrivacyHandler {
 			'eraser_friendly_name' => __( 'Free Form Certificate', 'ffcertificate' ),
 			'callback'             => array( PrivacyErasers::class, 'erase_personal_data' ),
 		);
+		// The copy of name and RF a certificate signer leaves behind when the
+		// account is deleted (#2582).
+		$erasers['ffcertificate-signers'] = array(
+			'eraser_friendly_name' => __( 'Free Form Certificate signers', 'ffcertificate' ),
+			'callback'             => array( \FreeFormCertificate\Core\CertificateSigners::class, 'erase' ),
+		);
 		return $erasers;
 	}
 }

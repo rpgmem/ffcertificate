@@ -531,7 +531,8 @@
             bg_color: bgColor,
             fields: fields,
             template_id: templateId,
-            template_values: templateValues
+            template_values: templateValues,
+            signer_id: $('#ffc_signer_id').val() || ''
         })
             .done(function(response) {
                 if (!response || !response.success || !response.data || !window.FFCLayoutPreview) {

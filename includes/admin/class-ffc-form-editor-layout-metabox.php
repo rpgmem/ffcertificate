@@ -82,6 +82,10 @@ class FormEditorLayoutMetabox {
 					?>
 				</td>
 			</tr>
+			<tr>
+				<th><label for="ffc_signer_id"><?php esc_html_e( 'Signer', 'ffcertificate' ); ?></label></th>
+				<td><?php $this->render_signer_select( (int) $post->ID ); ?></td>
+			</tr>
 			<tr class="ffc-layout-own"<?php echo $own_hidden ? ' hidden' : ''; ?>>
 				<th><label><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></label></th>
 				<td>
@@ -240,6 +244,51 @@ class FormEditorLayoutMetabox {
 				?>
 			<?php endif; ?>
 		</div>
+		<?php
+	}
+
+	/**
+	 * The signer the form prints (#2582): the active signers, the form's own
+	 * one kept even when it was deactivated, and a signer whose account has no
+	 * RF any more shown disabled with the reason.
+	 *
+	 * @param int $form_id Form post id.
+	 */
+	private function render_signer_select( int $form_id ): void {
+		$signers = \FreeFormCertificate\Core\CertificateSigners::all();
+		$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $form_id );
+		$chosen  = null !== $current ? $current['id'] : 0;
+		?>
+		<select name="ffc_signer_id" id="ffc_signer_id" aria-describedby="ffc_signer_id_help">
+			<option value="0"><?php esc_html_e( '— No signer —', 'ffcertificate' ); ?></option>
+			<?php
+			foreach ( $signers as $signer ) {
+				if ( ! $signer['active'] && $signer['id'] !== $chosen ) {
+					continue;
+				}
+				$name  = \FreeFormCertificate\Core\CertificateSigners::name( $signer );
+				$label = '' !== $signer['role'] ? $name . ' — ' . $signer['role'] : $name;
+				$no_rf = $signer['user_id'] > 0 && '' === \FreeFormCertificate\Core\CertificateSigners::user_rf( $signer['user_id'] );
+				if ( $no_rf ) {
+					/* translators: %s: signer name and role */
+					$label = sprintf( __( '%s (no RF on the profile)', 'ffcertificate' ), $label );
+				} elseif ( ! $signer['active'] ) {
+					/* translators: %s: signer name and role */
+					$label = sprintf( __( '%s (inactive)', 'ffcertificate' ), $label );
+				}
+				printf(
+					'<option value="%1$s"%2$s%3$s>%4$s</option>',
+					esc_attr( (string) $signer['id'] ),
+					selected( $signer['id'], $chosen, false ),
+					disabled( $no_rf && $signer['id'] !== $chosen, true, false ),
+					esc_html( $label )
+				);
+			}
+			?>
+		</select>
+		<p class="description" id="ffc_signer_id_help">
+			<?php esc_html_e( 'Prints as {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}}. Name and RF come from the person\'s WordPress profile when the certificate is generated; the RF prints in full on the certificate only.', 'ffcertificate' ); ?>
+		</p>
 		<?php
 	}
 

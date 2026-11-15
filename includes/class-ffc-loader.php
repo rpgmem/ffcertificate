@@ -431,6 +431,10 @@ class Loader {
 		// WP-CLI.
 		\FreeFormCertificate\UserDashboard\NameSync::init();
 		PrivacyHandler::init();
+		// A signer whose account is deleted keeps a copy of name and RF
+		// (#2582). Not behind is_admin(): accounts are deleted from REST and
+		// WP-CLI too.
+		\FreeFormCertificate\Core\CertificateSigners::register();
 
 		// Client-IP resolution (#899 phase 2): feed ClientIpResolver's filters
 		// from stored config, and keep Cloudflare's published CIDR list fresh.

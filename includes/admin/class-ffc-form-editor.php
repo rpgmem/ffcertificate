@@ -415,7 +415,12 @@ class FormEditor {
 			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
 			$fields
 		);
-		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+		// The signer chosen in the editor, unsaved (#2582).
+		$signer = \FreeFormCertificate\Core\CertificateSigners::get( \FreeFormCertificate\Core\RequestInput::get_post_int( 'signer_id', 0 ) );
+		if ( null !== $signer ) {
+			$samples = array_merge( $samples, \FreeFormCertificate\Core\CertificateSigners::token_values( $signer, true ) );
+		}
+		$body = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			$layout,
 			$title,
 			$image,

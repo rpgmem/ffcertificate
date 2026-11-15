@@ -33961,3 +33961,109 @@ msgid "Used by %s form."
 msgid_plural "Used by %s forms."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Choose a WordPress user."
+msgstr ""
+
+msgid "This user has no RF on their profile, so they cannot sign certificates."
+msgstr ""
+
+msgid "This user is already a signer."
+msgstr ""
+
+msgid "Signers"
+msgstr ""
+
+msgid "Who can sign certificates"
+msgstr ""
+
+msgid "A form names one of these people as its signer. Listing someone here lets their RF print in full on the certificates they sign, so adding a signer is recorded in the activity log. An inactive signer leaves the choice for new forms; forms that already use them keep them."
+msgstr ""
+
+msgid "No signer yet."
+msgstr ""
+
+msgid "Person"
+msgstr ""
+
+msgid "Role or sector"
+msgstr ""
+
+msgid "Signature"
+msgstr ""
+
+msgid "Signer added."
+msgstr ""
+
+msgid "Signer updated."
+msgstr ""
+
+msgid "Account deleted; name and RF were kept"
+msgstr ""
+
+msgid "No RF"
+msgstr ""
+
+msgid "Edit signer"
+msgstr ""
+
+msgid "Add signer"
+msgstr ""
+
+msgid "WordPress user"
+msgstr ""
+
+msgid "— Choose a user —"
+msgstr ""
+
+msgid "Only users with an RF on their profile are listed. Their RF prints in full on the certificates they sign."
+msgstr ""
+
+msgid "Signature image"
+msgstr ""
+
+msgid "Choose from the media library"
+msgstr ""
+
+msgid "Optional. Print it in the layout as <img src=\"{{signer:signature}}\">."
+msgstr ""
+
+msgid "Active: new forms may choose this signer"
+msgstr ""
+
+msgid "Save signer"
+msgstr ""
+
+msgid "You do not have permission to manage signers."
+msgstr ""
+
+msgid "Signer"
+msgstr ""
+
+msgid "— No signer —"
+msgstr ""
+
+#. translators: %s: signer name and role
+msgid "%s (no RF on the profile)"
+msgstr ""
+
+msgid "Prints as {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}}. Name and RF come from the person's WordPress profile when the certificate is generated; the RF prints in full on the certificate only."
+msgstr ""
+
+msgid "Certificate Signer Added"
+msgstr ""
+
+msgid "Certificate Signer RF Revealed"
+msgstr ""
+
+msgid "Free Form Certificate signers"
+msgstr ""
+
+msgid "Certificates → Signers lists the people a form can name as its signer. Each is a WordPress user who has an RF on their profile, with a role or sector, an optional signature image and an active flag; adding one needs ffc_manage_forms and is recorded in the activity log, because it lets that RF print on other people's certificates. The form chooses its signer on the Layout tab, and the layout prints {{signer:name}}, {{signer:rf}}, {{signer:role}} and {{signer:signature}} (the image URL, for an img tag)."
+msgstr ""
+
+msgid "Name and RF are read from the profile each time a certificate is generated, so a profile correction reaches every certificate; the role is read the same way. The RF prints in full on the certificate only: previews and the signer list show it masked, and the list reveals it, audited, to holders of ffc_view_certificates_pii. An inactive signer leaves the choice for new forms while the forms that use them keep them. When the user is deleted the signer keeps an encrypted copy of name and RF and becomes inactive, so issued certificates do not change; a personal data erasure request for that e-mail removes the copy, and certificates then print the RF masked."
+msgstr ""
+
+msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
+msgstr ""
