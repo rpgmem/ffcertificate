@@ -424,6 +424,28 @@ describe('ffc-visual-editor.js', () => {
 			expect(layout().elements.find((e) => e.id === 'back').fill).toBe('');
 		});
 
+		it('draws the template\'s page colour and background under the elements (#2612)', () => {
+			const field = document.getElementById('ffc_template_bg_image');
+			field.value = 'https://example.test/wp-content/plugins/ffcertificate/assets/img/bg.png';
+			window.ffcVisualEditor.bgColor = '#fdfbf5';
+			editor();
+			const backdrop = document.querySelector('.ffc-ve-page > .ffc-ve-backdrop');
+			expect(backdrop).not.toBeNull();
+			expect(backdrop.parentNode.firstElementChild).toBe(backdrop, 'under every element');
+			expect(backdrop.style.getPropertyValue('--ffc-ve-bg-image')).toBe('url("https://example.test/wp-content/plugins/ffcertificate/assets/img/bg.png")');
+			expect(backdrop.style.getPropertyValue('--ffc-ve-bg-color')).toBe('#fdfbf5');
+
+			// The field is followed live, and a value that is not a URL draws nothing.
+			field.value = 'x") ; background: red';
+			field.dispatchEvent(new window.Event('input'));
+			expect(backdrop.style.getPropertyValue('--ffc-ve-bg-image')).toBe('none');
+			field.value = '/wp-content/uploads/b.jpg';
+			field.dispatchEvent(new window.Event('input'));
+			expect(backdrop.style.getPropertyValue('--ffc-ve-bg-image')).toBe('url("/wp-content/uploads/b.jpg")');
+			expect(document.querySelectorAll('.ffc-ve-backdrop')).toHaveLength(1, 'one backdrop, redrawn');
+			delete window.ffcVisualEditor.bgColor;
+		});
+
 		it('turns a frame\'s gradient on, edits its colours and turns it off', () => {
 			const ed = editor();
 			select(ed, 'back');

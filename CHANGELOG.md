@@ -47,6 +47,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate submission, verification and magic links work on a WordPress installed in a subdirectory** (#2600). `FFC.config.ajaxUrl` read the AJAX URL before the page localized it and fell back to `/wp-admin/admin-ajax.php`, so every request 404'd; it now resolves on every read, and `ffcCoreConfig` carries the URL.
 - **The certificate previews place every line where the PDF does, and the PDF no longer takes the theme's text styles or loses its page colour** (#2598). The previews now draw inside the generator's own wrapper. That wrapper sets its own weight, spacing and line height, so wp-admin's or a theme's no longer leak in, and it lets a template's page colour through instead of forcing white.
 - **An image element in the visual editor can be selected, dragged and aligned again** (#2608). The picture inside it shared the element's type class, whose rule lets the pointer through, so clicks reached the page; the picture now has its own class and is not natively draggable.
+- **The visual editor's canvas draws the template's page colour and background image** (#2612). Without them a default model's content, placed beside the artwork, looked off-centre; the canvas follows the Background Image URL field as it changes, with the grid on top.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
