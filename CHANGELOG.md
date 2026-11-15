@@ -41,6 +41,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **A certificate downloaded from the user dashboard or the booking page now applies the template helper classes** (#2569): those pages loaded the PDF generator without its stylesheet.
+- **Visual certificate models 1, 2, 3, 4 and 6 print their QR code, verification URL and authentication code again** (#2603). Their last line sat in a 12 px box that clipped everything after the date; the box now fits the code, and existing installs get the corrected models.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
