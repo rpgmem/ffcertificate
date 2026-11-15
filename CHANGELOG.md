@@ -43,6 +43,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A certificate downloaded from the user dashboard or the booking page now applies the template helper classes** (#2569): those pages loaded the PDF generator without its stylesheet.
 - **Visual certificate models 1, 2, 3, 4 and 6 print their QR code, verification URL and authentication code again** (#2603). Their last line sat in a 12 px box that clipped everything after the date; the box now runs to the page edge, as in the HTML models, and existing installs get the corrected models.
 - **Certificate submission, verification and magic links work on a WordPress installed in a subdirectory** (#2600). `FFC.config.ajaxUrl` read the AJAX URL before the page localized it and fell back to `/wp-admin/admin-ajax.php`, so every request 404'd; it now resolves on every read, and `ffcCoreConfig` carries the URL.
+- **The certificate previews place every line where the PDF does, and the PDF no longer takes the theme's text styles or loses its page colour** (#2598). The previews now draw inside the generator's own wrapper. That wrapper sets its own weight, spacing and line height, so wp-admin's or a theme's no longer leak in, and it lets a template's page colour through instead of forcing white.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`

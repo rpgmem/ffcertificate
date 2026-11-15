@@ -114,6 +114,9 @@ final class FormLayoutPreview {
 			$image = '<img src="' . esc_url( $bg_image ) . '" alt="" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">';
 		}
 
-		return '<div style="' . esc_attr( $style ) . '">' . $image . $body . '</div>';
+		// The PDF generator's own wrapper and content layer, so the preview
+		// takes the text styles of `ffc-pdf-core.css` instead of the admin
+		// document's (#2598).
+		return '<div class="ffc-pdf-wrapper" style="' . esc_attr( $style ) . '">' . $image . '<div class="ffc-pdf-content">' . $body . '</div></div>';
 	}
 }

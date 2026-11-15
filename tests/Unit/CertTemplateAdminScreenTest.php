@@ -800,7 +800,8 @@ class CertTemplateAdminScreenTest extends TestCase {
 		}
 
 		$this->assertSame( 'My Template', $screen->preview_title );
-		$this->assertSame( '<rendered><div>Body</div></rendered>', $screen->preview_body );
+		// Inside the PDF's own layers, so it takes their text styles (#2598).
+		$this->assertSame( '<div class="ffc-pdf-wrapper"><div class="ffc-pdf-content"><rendered><div>Body</div></rendered></div></div>', $screen->preview_body );
 	}
 
 	public function test_handle_preview_places_the_background_behind_the_body(): void {

@@ -580,8 +580,12 @@ class CertTemplateAdminScreen {
 		$rendered = $this->render_sample( $html, (string) $post->post_title );
 
 		// The background sits behind the body as the PDF draws it; a template
-		// carries no colour of its own, so none is painted.
-		$page = '' === $bg ? $rendered : \FreeFormCertificate\Generators\FormLayoutPreview::wrap( $rendered, $bg, '' );
+		// carries no colour of its own, so none is painted. Without one the
+		// page keeps its own size, inside the PDF's own layers so it takes
+		// their text styles (#2598).
+		$page = '' === $bg
+			? '<div class="ffc-pdf-wrapper"><div class="ffc-pdf-content">' . $rendered . '</div></div>'
+			: \FreeFormCertificate\Generators\FormLayoutPreview::wrap( $rendered, $bg, '' );
 
 		$this->emit_preview_page( (string) $post->post_title, $page );
 	}
@@ -622,11 +626,27 @@ class CertTemplateAdminScreen {
 			// The fonts the site installed, so a template that names one
 			// previews in it (#2569); built from validated names and URLs.
 			. \FreeFormCertificate\Core\CertificateFonts::css()
+			// The PDF's own text styles, which the generator draws with (#2598).
+			. self::pdf_core_css()
 			. '</style></head><body><div class="ffc-preview-canvas">' . $body . '</div></body></html>';
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Self-contained preview page: the title is esc_html'd and the body is the HtmlPolicy-sanitized template rendered through PdfHtmlRenderer (which wp_kses-filters every injected value); the frame is sandboxed script-less.
 		echo $doc;
 		exit;
+	}
+
+	/**
+	 * The PDF stylesheet's rules, for the self-contained preview page, which
+	 * prints its own document and enqueues nothing.
+	 *
+	 * @return string CSS, or '' when the file cannot be read.
+	 */
+	private static function pdf_core_css(): string {
+		$path = FFC_PLUGIN_DIR . 'assets/css/ffc-pdf-core' . \FreeFormCertificate\Core\AssetHelper::asset_suffix() . '.css';
+		$css  = is_readable( $path ) ? (string) file_get_contents( $path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A stylesheet shipped in the plugin directory, read from disk.
+
+		// A `</style>` in the file would end the element early.
+		return str_ireplace( '</style', '', $css );
 	}
 
 	/**

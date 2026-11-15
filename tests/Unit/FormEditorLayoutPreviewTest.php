@@ -122,7 +122,7 @@ class FormEditorLayoutPreviewTest extends TestCase {
 		$data = $this->responses[0]['data'];
 		$this->assertSame( 1123, $data['width'] );
 		$this->assertSame( 794, $data['height'] );
-		$this->assertStringStartsWith( '<div style="position:relative;width:1123px;height:794px;background-color:#ffffff;">', $data['html'] );
+		$this->assertStringStartsWith( '<div class="ffc-pdf-wrapper" style="position:relative;width:1123px;height:794px;background-color:#ffffff;"><div class="ffc-pdf-content">', $data['html'] );
 		$this->assertStringContainsString( 'School name', $data['html'], 'a form field shows its label' );
 		$this->assertStringContainsString( 'João da Silva', $data['html'], 'a system placeholder shows its sample' );
 		$this->assertStringNotContainsString( '<script>', $data['html'] );

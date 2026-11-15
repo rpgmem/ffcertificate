@@ -122,8 +122,10 @@ class TypographyTokensTest extends TestCase {
 		// `font-size` is literal because this sheet is the BASE of the chain —
 		// enqueued with `array()`, with no declared dependency on `ffc-common`,
 		// and with a second enqueue on the frontend. Reading a token the page
-		// may not have invalidates the whole declaration.
-		'ffc-pdf-core.css'                 => 7,
+		// may not have invalidates the whole declaration. Plus one `inherit`
+		// (#2598): not a size, but the keyword that keeps a host's rule for the
+		// tag (wp-admin's `p { font-size: 13px }`) out of the certificate.
+		'ffc-pdf-core.css'                 => 8,
 		// The screenshot viewer (#1716) loads in core's modal without
 		// ffc-common, so it cannot read the scale; its glyph buttons are sized
 		// as glyph boxes.
