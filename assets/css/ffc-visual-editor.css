@@ -199,6 +199,15 @@
 	pointer-events: none;
 }
 
+/* A QR code element shows a sample code, square in its box (#2616). */
+.ffc-visual-editor .ffc-ve-qr-sample {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	pointer-events: none;
+}
+
 .ffc-visual-editor .ffc-ve-picture.is-cover {
 	object-fit: cover;
 }

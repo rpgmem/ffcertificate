@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { loadScript } from './helpers.js';
+import { readFileSync } from 'node:fs';
 
 // The visual certificate editor's canvas (#2585) and its properties panel and
 // preview (#2586): pure geometry, and the editor over a jsdom page. jsdom has no layout, so the fit zoom is pinned by
@@ -225,6 +226,23 @@ describe('ffc-visual-editor.js', () => {
 			pointer(node(), 'pointermove', 50, 25);
 			pointer(node(), 'pointerup', 50, 25);
 			expect(layout().elements[1]).toMatchObject({ x: 130, y: 320, w: 500, h: 100 });
+		});
+
+		it('draws a sample QR code, square in the box, not a label (#2616)', () => {
+			window.ffcVisualEditor.pluginUrl = 'https://example.test/wp-content/plugins/ffcertificate/';
+			editor();
+			const seal = document.querySelector('[data-ffc-ve-id="seal"]');
+			const sample = seal.querySelector('img.ffc-ve-qr-sample');
+			expect(sample.getAttribute('src')).toBe('https://example.test/wp-content/plugins/ffcertificate/assets/img/qr-sample.svg');
+			expect(sample.draggable).toBe(false);
+			expect(seal.querySelector('.ffc-ve-el-label').classList.contains('screen-reader-text')).toBe(true, 'the name stays for assistive technology');
+			delete window.ffcVisualEditor.pluginUrl;
+
+			// The file ships with the plugin and encodes the plugin's address.
+			const svg = readFileSync(process.cwd() + '/assets/img/qr-sample.svg', 'utf8');
+			expect(svg).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 29 29"/);
+			expect(svg).toContain('https://github.com/rpgmem/ffcertificate');
+			expect(svg).not.toMatch(/<script|on\w+=/i);
 		});
 
 		it('does not move a locked layer', () => {
