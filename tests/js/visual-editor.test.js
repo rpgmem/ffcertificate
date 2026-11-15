@@ -590,8 +590,13 @@ describe('ffc-visual-editor.js', () => {
 			expect(opened).toBe(true);
 			onSelect();
 			expect(layout().elements.find((e) => e.id === 'img').attachment_id).toBe(41);
-			const img = document.querySelector('[data-ffc-ve-id="img"] .ffc-ve-el-image');
+			const img = document.querySelector('[data-ffc-ve-id="img"] .ffc-ve-picture');
 			expect(img.getAttribute('src')).toBe('https://example.test/seal.png');
+			// The picture's class is not the element's type class: the picture
+			// lets pointer events through, the element must not (#2608).
+			expect(img.parentElement.classList.contains('ffc-ve-el-image')).toBe(true);
+			expect(img.className).not.toMatch(/\bffc-ve-el-/);
+			expect(img.draggable).toBe(false);
 			expect(img.classList.contains('is-cover')).toBe(true);
 			expect(document.querySelector('[data-ffc-ve-image-name]').textContent).toBe('Image #41');
 			delete window.wp;
