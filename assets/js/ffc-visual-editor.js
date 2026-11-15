@@ -1374,6 +1374,7 @@
 			this.sheet.parentNode.style.width = Math.round(page.width * zoom) + 'px';
 			this.sheet.parentNode.style.height = Math.round(page.height * zoom) + 'px';
 			this.sheet.classList.toggle('is-snapping', this.snapOn);
+			this.drawBackdrop();
 
 			var self = this;
 			this.sheet.querySelectorAll('[data-ffc-ve-id]').forEach(function (node) {
@@ -1470,6 +1471,34 @@
 				case 'frame': return '';
 				default: return this.s.html || 'HTML block';
 			}
+		},
+
+		/**
+		 * The template's page colour and background image under the
+		 * elements, stretched to the page as the PDF draws it (#2612).
+		 */
+		drawBackdrop: function () {
+			if (!this.backdrop) {
+				this.backdrop = document.createElement('div');
+				this.backdrop.className = 'ffc-ve-backdrop';
+				this.backdrop.setAttribute('aria-hidden', 'true');
+				var self = this;
+				var field = document.getElementById('ffc_template_bg_image');
+				if (field) {
+					field.addEventListener('input', function () {
+						self.drawBackdrop();
+					});
+				}
+			}
+			if (this.backdrop.parentNode !== this.sheet) {
+				this.sheet.insertBefore(this.backdrop, this.sheet.firstChild);
+			}
+			var input = document.getElementById('ffc_template_bg_image');
+			var url = input ? String(input.value || '').trim() : '';
+			// A quote or a backslash would end the CSS string; a URL has neither.
+			url = /^(https?:)?\/\/[^"\\\s]+$|^\/[^"\\\s]*$/.test(url) ? url : '';
+			this.backdrop.style.setProperty('--ffc-ve-bg-image', url ? 'url("' + url + '")' : 'none');
+			this.backdrop.style.setProperty('--ffc-ve-bg-color', /^#[0-9a-f]{6}$/i.test(this.s.bgColor || '') ? this.s.bgColor : 'transparent');
 		},
 
 		renderLayers: function () {

@@ -124,6 +124,8 @@ final class InlineStyleTest extends TestCase {
 			'.style.x =: .style.background = el.fill || "transparent"'                           => array( 1, self::OPERATOR_COLOUR ),
 
 			'.style.x =: .style.backgroundImage = gradientCss(el.gradient)'                          => array( 1, self::OPERATOR_COLOUR ),
+			'.style.setProperty: .style.setProperty("--ffc-ve-bg-image", url ? "url("" + url + ""'        => array( 1, self::OPERATOR_COLOUR ),
+			'.style.setProperty: .style.setProperty("--ffc-ve-bg-color", /^#[0-9a-f]{6}$/i.test(this.s'  => array( 1, self::OPERATOR_COLOUR ),
 			'.style.x =: .style.cssText = textCss(el)'                                           => array( 1, self::OPERATOR_COLOUR ),
 			// The alignment guides a move lines up with (#2588).
 			'.style.x =: .style.left = x + "px"'                                                => array( 1, self::RUNTIME_VALUE ),

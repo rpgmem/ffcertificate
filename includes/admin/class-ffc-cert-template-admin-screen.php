@@ -800,6 +800,8 @@ class CertTemplateAdminScreen {
 				'previewAction'  => self::PREVIEW_LAYOUT_ACTION,
 				'previewNonce'   => wp_create_nonce( self::PREVIEW_LAYOUT_ACTION ),
 				'postId'         => $post_id,
+				// The canvas draws the page colour under the background (#2612).
+				'bgColor'        => $post_id > 0 ? (string) sanitize_hex_color( CertTemplateReader::get_bg_color( $post_id ) ) : '',
 				'previewLoading' => __( 'Drawing the page…', 'ffcertificate' ),
 				'previewError'   => __( 'The preview could not be drawn.', 'ffcertificate' ),
 				/* translators: %s: comma-separated tags, such as {{auth_code}} */
