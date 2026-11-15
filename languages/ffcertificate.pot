@@ -34689,5 +34689,29 @@ msgstr ""
 msgid "“%s”"
 msgstr ""
 
-msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. Each element the page places in pixels with a size becomes a box: a frame, an image from the Media Library or the signer's signature, the QR code, a data field or a text. Everything else becomes an HTML block, and text in the page's flow becomes one block the size of the page. A rule the visual elements do not draw, such as a text shadow, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. The shipped models flow their text, so most of each becomes HTML; the visual models are the ones drawn element by element."
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border or a fill becomes a frame, a text block a text, or a data field when it is one tag, an image from the Media Library an image, and the signer's signature and the QR code their own elements. A text whose parts are styled differently, an image outside the library, a turned box and the line that holds the QR code stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
+msgstr ""
+
+msgid "Reading the template…"
+msgstr ""
+
+msgid "Off the page"
+msgstr ""
+
+msgid "Page colour"
+msgstr ""
+
+msgid "Word spacing"
+msgstr ""
+
+msgid "background image"
+msgstr ""
+
+msgid "mixed text styles"
+msgstr ""
+
+msgid "rotated"
+msgstr ""
+
+msgid "underline or shadow"
 msgstr ""

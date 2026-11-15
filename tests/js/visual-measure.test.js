@@ -1,0 +1,204 @@
+// The measured visual copy (#2606): reading a rendered page into a layout.
+//
+// jsdom has no layout, so each test lays the page out by hand: the rect and
+// style readers are injected, as the module allows for exactly this.
+import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { loadScript } from './helpers.js';
+
+const BASE = {
+	display: 'block', visibility: 'visible', transform: 'none', backgroundImage: 'none', backgroundColor: 'rgba(0, 0, 0, 0)',
+	borderTopWidth: '0px', borderRightWidth: '0px', borderBottomWidth: '0px', borderLeftWidth: '0px',
+	borderTopStyle: 'none', borderRightStyle: 'none', borderBottomStyle: 'none', borderLeftStyle: 'none',
+	borderTopColor: 'rgb(0, 0, 0)', borderRightColor: 'rgb(0, 0, 0)', borderBottomColor: 'rgb(0, 0, 0)', borderLeftColor: 'rgb(0, 0, 0)',
+	borderTopLeftRadius: '0px', paddingTop: '0px', paddingRight: '0px', paddingBottom: '0px', paddingLeft: '0px',
+	fontFamily: 'Arial', fontSize: '16px', fontWeight: '400', fontStyle: 'normal', color: 'rgb(0, 0, 0)', letterSpacing: 'normal',
+	textTransform: 'none', textDecorationLine: 'none', textShadow: 'none', verticalAlign: 'baseline', lineHeight: '20px',
+	textAlign: 'start', whiteSpace: 'normal', wordSpacing: '0px', objectFit: 'fill'
+};
+
+/**
+ * Lay a page out: each element carries `data-r="x,y,w,h"` and, optionally,
+ * `data-s='{"cssProp":"value"}'`; inline tags inherit their parent's style.
+ */
+function env() {
+	const styles = new Map();
+	const style = (el) => {
+		if (styles.has(el)) {
+			return styles.get(el);
+		}
+		const inline = el.tagName === 'SPAN' || el.tagName === 'STRONG' || el.tagName === 'EM' || el.tagName === 'BR' || el.tagName === 'B';
+		const parent = inline && el.parentElement ? style(el.parentElement) : BASE;
+		const s = Object.assign({}, parent, inline ? { display: 'inline' } : {}, JSON.parse(el.getAttribute('data-s') || '{}'));
+		styles.set(el, s);
+		return s;
+	};
+	const rect = (el) => {
+		const [x, y, w, h] = (el.getAttribute('data-r') || '0,0,0,0').split(',').map(Number);
+		return { left: x, top: y, width: w, height: h };
+	};
+	return { rect, style, lines: () => 1 };
+}
+
+function page(html) {
+	const content = document.createElement('div');
+	content.setAttribute('data-r', '0,0,1123,794');
+	content.innerHTML = html;
+	document.body.appendChild(content);
+	return content;
+}
+
+beforeAll(() => {
+	window.ffcVisualMeasure = { strings: {} };
+	loadScript('assets/js/ffc-visual-measure.js');
+});
+
+beforeEach(() => {
+	document.body.innerHTML = '';
+});
+
+describe('FFCVisualMeasure.read', () => {
+	it('turns text blocks into text and field elements with their computed style', () => {
+		const content = page(
+			'<p data-r="100,50,600,40" data-s=\'{"fontSize":"32px","fontWeight":"700","color":"rgb(138, 109, 29)","textAlign":"center","letterSpacing":"6px","textTransform":"uppercase","lineHeight":"40px","fontFamily":"\\"EB Garamond\\", serif"}\'>Certificate</p>'
+			+ '<p class="ffc-fit" data-r="100,120,600,50" data-s=\'{"fontSize":"48px","lineHeight":"60px"}\'>{{name}}</p>'
+			+ '<p data-r="100,200,600,40">Line one<br>  Line   two</p>'
+		);
+		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(layout.page.orientation).toBe('landscape');
+		const [title, name, two] = layout.elements;
+		expect(title).toMatchObject({ type: 'text', text: 'Certificate', x: 100, y: 50, w: 600, h: 40, font_size: 32, font_weight: 700, color: '#8a6d1d', align: 'center', letter_spacing: 6, text_transform: 'uppercase', line_height: 1.25, font_family: '"EB Garamond", serif', fit: 'none' });
+		expect(name).toMatchObject({ type: 'field', token: '{{name}}', font_size: 48, line_height: 1.25, fit: 'line' });
+		expect(two.text).toBe('Line one\nLine two');
+		expect(report.map((r) => r.status)).toEqual(['converted', 'converted', 'converted']);
+	});
+
+	it('draws fills and borders as frames, one per side when the sides differ', () => {
+		const content = page(
+			'<div data-r="10,10,200,100" data-s=\'{"backgroundColor":"rgb(250, 250, 250)","borderTopWidth":"2px","borderRightWidth":"2px","borderBottomWidth":"2px","borderLeftWidth":"2px","borderTopStyle":"dashed","borderRightStyle":"dashed","borderBottomStyle":"dashed","borderLeftStyle":"dashed","borderTopColor":"rgb(1, 2, 3)","borderRightColor":"rgb(1, 2, 3)","borderBottomColor":"rgb(1, 2, 3)","borderLeftColor":"rgb(1, 2, 3)","borderTopLeftRadius":"8px"}\'></div>'
+			+ '<p data-r="300,10,400,60" data-s=\'{"borderBottomWidth":"1px","borderBottomStyle":"solid","borderBottomColor":"rgb(201, 162, 39)","paddingBottom":"9px"}\'>Name</p>'
+		);
+		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(layout.elements[0]).toMatchObject({ type: 'frame', x: 10, y: 10, w: 200, h: 100, border_width: 2, border_style: 'dashed', border_color: '#010203', radius: 8, fill: '#fafafa' });
+		// The bottom border alone is a 1 px strip at the box's foot.
+		expect(layout.elements[1]).toMatchObject({ type: 'frame', x: 300, y: 69, w: 400, h: 1, fill: '#c9a227', border_width: 0 });
+		// The text sits in the content box: padding and border are not text.
+		expect(layout.elements[2]).toMatchObject({ type: 'text', text: 'Name', y: 10, h: 50 });
+	});
+
+	it('keeps a block whose inline parts differ as HTML, styles the save would keep', () => {
+		const content = page('<p data-r="0,600,500,40" data-s=\'{"color":"rgb(62, 76, 89)"}\'>has completed<br><strong style="font-size: 18pt; color: #1b2a41" data-s=\'{"fontSize":"24px","fontWeight":"700"}\'>{{form_title}}</strong></p>');
+		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		const block = layout.elements[0];
+		expect(block.type).toBe('html');
+		expect(block.html).toContain('color:#3e4c59');
+		expect(block.html).not.toContain('rgb(');
+		// A <strong> takes no attributes once saved: its style rides a span inside.
+		expect(block.html).toMatch(/<strong[^>]*><span style="font-size:\s*18pt;color:#1b2a41">\{\{form_title\}\}<\/span><\/strong>/);
+		expect(block.html).not.toMatch(/<strong style=/);
+		expect(report[0].status).toBe('kept');
+	});
+
+	it('reads the held QR code, a signature and other images', () => {
+		const held = window.FFCVisualMeasure.holdQr('<p data-r="0,0,10,10">x</p>{{qr_code:size=50:margin=2}}');
+		const content = page(held.replace('<span ', '<span data-r="536,700,50,50" ')
+			+ '<img src="{{signer:signature}}" data-r="100,600,150,50" data-s=\'{"objectFit":"cover"}\'>'
+			+ '<img src="https://example.test/logo.png" data-r="20,20,80,80">');
+		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+		const types = layout.elements.map((e) => e.type);
+
+		expect(types).toEqual(['text', 'qr', 'image', 'html']);
+		expect(layout.elements[1]).toMatchObject({ x: 536, y: 700, w: 50, h: 50, margin: 2 });
+		expect(layout.elements[2]).toMatchObject({ token: '{{signer:signature}}', fit: 'cover' });
+		expect(layout.elements[3]).toMatchObject({ src: 'https://example.test/logo.png', fit: 'contain' });
+		expect(layout.elements[3].html).toContain('<img src="https://example.test/logo.png"');
+	});
+
+	it('gives the page box its colour to the page and reports what it drops', () => {
+		const content = page(
+			'<div data-r="0,0,1123,794" data-s=\'{"backgroundColor":"rgb(253, 251, 245)"}\'>'
+			+ '<p data-r="100,100,300,40" data-s=\'{"wordSpacing":"4.8px"}\'>João da Silva</p>'
+			+ '<p data-r="2000,100,300,40">Off the page</p>'
+			+ '<p data-r="100,200,300,40" data-s=\'{"textShadow":"1px 1px #000"}\'>Shadowed</p>'
+			+ '</div>'
+		);
+		const result = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(result.bg_color).toBe('#fdfbf5');
+		expect(result.layout.elements.some((e) => e.type === 'frame')).toBe(false);
+		expect(result.layout.elements.map((e) => e.type)).toEqual(['text', 'html']);
+		const dropped = result.report.filter((r) => r.status === 'dropped').map((r) => r.label);
+		expect(dropped).toEqual(['Word spacing (4.8px): João da Silva', 'Off the page: Off the page']);
+	});
+
+	it('keeps a turned box whole, and keeps non-breaking spaces', () => {
+		const content = page(
+			'<div data-r="10,10,100,30" data-s=\'{"transform":"matrix(0, 1, -1, 0, 0, 0)"}\' style="position:absolute;left:10px;top:10px">Turned</div>'
+			+ '<p data-r="10,100,400,30">Workload  ·  done</p>'
+		);
+		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(layout.elements[0].type).toBe('html');
+		expect(layout.elements[0].html).toContain('position:static');
+		expect(layout.elements[1].text).toBe('Workload  ·  done');
+	});
+});
+
+describe('FFCVisualMeasure helpers', () => {
+	it('holds and releases QR tags', () => {
+		const held = window.FFCVisualMeasure.holdQr('a {{qr_code}} b');
+		expect(held).toContain('data-ffc-qr="{{qr_code}}"');
+		expect(held).toContain('width:200px;height:200px');
+		expect(window.FFCVisualMeasure.releaseQr(held)).toBe('a {{qr_code}} b');
+	});
+
+	it('writes colours as hex and transparent as nothing', () => {
+		expect(window.FFCVisualMeasure.hex('rgb(255, 0, 16)')).toBe('#ff0010');
+		expect(window.FFCVisualMeasure.hex('rgba(0, 0, 0, 0)')).toBe('');
+		expect(window.FFCVisualMeasure.hex('#ABCDEF')).toBe('#abcdef');
+		expect(window.FFCVisualMeasure.hex('transparent')).toBe('');
+	});
+});
+
+describe('the click', () => {
+	it('falls back to the server importer when the reading fails', async () => {
+		const assign = [];
+		const original = window.location;
+		delete window.location;
+		window.location = { href: 'http://localhost/wp-admin/edit.php', assign: (u) => assign.push(u) };
+		window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ success: false, data: { message: 'no' } }) });
+		document.body.innerHTML = '<a href="http://localhost/wp-admin/admin.php?action=ffc_visual_copy_cert_template&post=5&_wpnonce=abc" data-ffc-visual-measure="5">Create</a>';
+
+		document.querySelector('a').click();
+		await new Promise((r) => setTimeout(r, 20));
+
+		expect(assign).toEqual(['http://localhost/wp-admin/admin.php?action=ffc_visual_copy_cert_template&post=5&_wpnonce=abc']);
+		window.location = original;
+	});
+
+	it('saves the reading and opens the copy', async () => {
+		const assign = [];
+		const posts = [];
+		const original = window.location;
+		delete window.location;
+		window.location = { href: 'http://localhost/wp-admin/edit.php', assign: (u) => assign.push(u) };
+		window.fetch = (url, opts) => {
+			const body = Object.fromEntries(opts.body.entries());
+			posts.push(body);
+			const data = 'ffc_visual_copy_source' === body.action ? { html: '<p>{{name}}</p>' } : { edit_url: 'post.php?post=77&action=edit' };
+			return Promise.resolve({ json: () => Promise.resolve({ success: true, data }) });
+		};
+		document.body.innerHTML = '<a href="http://localhost/wp-admin/admin.php?action=ffc_visual_copy_cert_template&post=5&_wpnonce=abc" data-ffc-visual-measure="5">Create</a>';
+
+		document.querySelector('a').click();
+		await new Promise((r) => setTimeout(r, 50));
+
+		expect(posts.map((p) => p.action)).toEqual(['ffc_visual_copy_source', 'ffc_visual_copy_save']);
+		expect(posts[1]).toMatchObject({ post: '5', _wpnonce: 'abc' });
+		expect(JSON.parse(posts[1].layout).version).toBe(1);
+		expect(assign).toEqual(['post.php?post=77&action=edit']);
+		window.location = original;
+	});
+});
