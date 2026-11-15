@@ -34128,7 +34128,7 @@ msgstr ""
 msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
 msgstr ""
 
-msgid "frame — border_width, border_style, border_color, radius and fill; the border is drawn inside the box."
+msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, with fill as the fallback); the border is drawn inside the box."
 msgstr ""
 
 msgid "html — a block of HTML, filtered by the same rules as an HTML template."
@@ -34532,7 +34532,7 @@ msgstr ""
 msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for hand edits."
 msgstr ""
 
-msgid "Element properties, in the side column, change the selected element: its position, size and rotation; a text's content, with a tag picker, and a data field's tag; the font family, size, weight, style, colour, alignment, letter spacing, line height, case and fit; an image's file, from the Media Library, or the signer's signature, contained or covering its box; a frame's line and fill; an HTML block's code. The font list offers the Font Library families and the system fonts, and marks a font the site lacks with the one that prints instead. Preview with sample data draws the unsaved page through the PDF renderer, so fit and fonts look as they will print, and names the required tags and fonts the layout lacks; the saved layout is checked the same way."
+msgid "Element properties, in the side column, change the selected element: its position, size and rotation; a text's content, with a tag picker, and a data field's tag; the font family, size, weight, style, colour, alignment, letter spacing, line height, case and fit; an image's file, from the Media Library, or the signer's signature, contained or covering its box; a frame's line, fill and gradient (an angle and two to five colours, each at a position); an HTML block's code. The font list offers the Font Library families and the system fonts, and marks a font the site lacks with the one that prints instead. Preview with sample data draws the unsaved page through the PDF renderer, so fit and fonts look as they will print, and names the required tags and fonts the layout lacks; the saved layout is checked the same way."
 msgstr ""
 
 msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
@@ -34689,7 +34689,7 @@ msgstr ""
 msgid "“%s”"
 msgstr ""
 
-msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border or a fill becomes a frame, each line of text a text, or a data field when it is one tag, an image from the Media Library or one shipped with the plugin an image, and the signer's signature and the QR code their own elements. A line whose words are styled differently becomes one text in the style of its block. An underlined or shadowed text, an image from elsewhere, a turned box and a background image or gradient stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML, merged and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border, a fill or a plain linear gradient becomes a frame, each line of text a text, or a data field when it is one tag, an image from the Media Library or one shipped with the plugin an image, and the signer's signature and the QR code their own elements. A line whose words are styled differently becomes one text in the style of its block. An underlined or shadowed text, an image from elsewhere, a turned box and any other background image stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML, merged and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
 msgstr ""
 
 msgid "Reading the template…"
@@ -34717,4 +34717,21 @@ msgid "underline or shadow"
 msgstr ""
 
 msgid "Styles inside one line merged"
+msgstr ""
+
+msgid "Angle (degrees)"
+msgstr ""
+
+#. translators: %d: the colour's number in the gradient, from 1
+#, php-format
+msgid "Colour %d"
+msgstr ""
+
+msgid "Position (%)"
+msgstr ""
+
+msgid "Add colour"
+msgstr ""
+
+msgid "Remove last colour"
 msgstr ""

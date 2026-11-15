@@ -245,6 +245,38 @@ describe('FFCVisualMeasure.measure', () => {
 	});
 });
 
+describe('FFCVisualMeasure gradients', () => {
+	it('reads a plain linear gradient and refuses what a frame cannot draw', () => {
+		const read = window.FFCVisualMeasure.readGradient;
+		expect(read('linear-gradient(rgb(11, 37, 69) 0%, rgb(19, 49, 92) 45%, rgb(47, 128, 237) 100%)')).toEqual({
+			angle: 180,
+			stops: [{ color: '#0b2545', at: 0 }, { color: '#13315c', at: 45 }, { color: '#2f80ed', at: 100 }],
+		});
+		expect(read('linear-gradient(to right, rgb(0, 0, 0), rgb(255, 255, 255), rgb(0, 0, 255))').stops.map((s) => s.at)).toEqual([0, 50, 100]);
+		expect(read('linear-gradient(to right, rgb(0, 0, 0), rgb(255, 255, 255))').angle).toBe(90);
+		expect(read('linear-gradient(-90deg, #000000 10%, #ffffff 90%)').angle).toBe(270);
+		expect(read('radial-gradient(rgb(0, 0, 0), rgb(255, 255, 255))')).toBeNull();
+		expect(read('linear-gradient(to top right, rgb(0, 0, 0), rgb(1, 1, 1))')).toBeNull();
+		expect(read('linear-gradient(rgba(0, 0, 0, 0.5), rgb(1, 1, 1))')).toBeNull();
+		expect(read('linear-gradient(rgb(0, 0, 0), rgb(1, 1, 1)), url("x.png")')).toBeNull();
+		expect(read('linear-gradient(rgb(0, 0, 0))')).toBeNull();
+		expect(read('linear-gradient(' + Array(6).fill('rgb(0, 0, 0)').join(', ') + ')')).toBeNull();
+		expect(read('url("x.png")')).toBeNull();
+	});
+
+	it('draws a box with a gradient as a frame, its first colour the fallback', () => {
+		const content = page(
+			'<div data-r="0,0,34,794" data-s=\'{"backgroundImage":"linear-gradient(rgb(11, 37, 69) 0%, rgb(47, 128, 237) 100%)"}\'></div>'
+			+ '<div data-r="100,0,200,100" data-s=\'{"backgroundImage":"linear-gradient(90deg, rgb(0, 0, 0), rgb(255, 255, 255))","backgroundColor":"rgb(9, 9, 9)","borderTopWidth":"1px","borderRightWidth":"1px","borderBottomWidth":"1px","borderLeftWidth":"1px","borderTopStyle":"solid","borderRightStyle":"solid","borderBottomStyle":"solid","borderLeftStyle":"solid"}\'></div>'
+			+ '<div data-r="400,0,100,100" data-s=\'{"backgroundImage":"radial-gradient(rgb(0, 0, 0), rgb(255, 255, 255))"}\'></div>'
+		);
+		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+		expect(layout.elements.map((e) => e.type)).toEqual(['frame', 'frame', 'html']);
+		expect(layout.elements[0]).toMatchObject({ fill: '#0b2545', border_width: 0, gradient: { angle: 180 } });
+		expect(layout.elements[1]).toMatchObject({ fill: '#090909', border_width: 1, gradient: { angle: 90 } });
+	});
+});
+
 describe('FFCVisualMeasure helpers', () => {
 	it('holds and releases QR tags', () => {
 		const held = window.FFCVisualMeasure.holdQr('a {{qr_code}} b');

@@ -30,6 +30,9 @@
 
 	var GRID = 10;
 	var MIN_SIZE = 1;
+	// A frame's gradient holds two to five colours, as the server keeps.
+	var GRADIENT_MIN = 2;
+	var GRADIENT_MAX = 5;
 	var MIN_WIDTH = 1280;
 	var PAGES = {
 		landscape: { width: 1123, height: 794 },
@@ -385,6 +388,21 @@
 
 	/** Properties that move or size the box, which a lock holds. */
 	var GEOMETRY = ['x', 'y', 'w', 'h', 'rotation'];
+
+	/**
+	 * The CSS of a frame's gradient, or '' for none (#2609).
+	 *
+	 * @param {{angle:number, stops:Array<{color:string, at:number}>}|undefined} g
+	 * @return {string}
+	 */
+	function gradientCss(g) {
+		if (!g || !Array.isArray(g.stops) || g.stops.length < 2) {
+			return '';
+		}
+		return 'linear-gradient(' + (Number(g.angle) || 0) + 'deg,' + g.stops.map(function (s) {
+			return s.color + ' ' + (Number(s.at) || 0) + '%';
+		}).join(',') + ')';
+	}
 
 	/**
 	 * The text style an element shows on the canvas: the operator's font,
@@ -1304,6 +1322,7 @@
 				node.style.border = (el.border_width || 0) + 'px ' + (el.border_style || 'solid') + ' ' + (el.border_color || '#000000');
 				node.style.borderRadius = (el.radius || 0) + 'px';
 				node.style.background = el.fill || 'transparent';
+				node.style.backgroundImage = gradientCss(el.gradient);
 			}
 			var label = document.createElement('span');
 			label.className = 'ffc-ve-el-label';
@@ -1496,6 +1515,7 @@
 				}
 			});
 		}
+		this.bindGradient(panel);
 		var choose = panel.querySelector('[data-ffc-ve-choose-image]');
 		if (choose) {
 			choose.addEventListener('click', function (event) {
@@ -1648,6 +1668,9 @@
 		if (noFill && el.type === 'frame') {
 			noFill.checked = !el.fill;
 		}
+		if (el.type === 'frame') {
+			this.renderGradient(panel, el);
+		}
 		var source = panel.querySelector('[data-ffc-ve-image-source]');
 		var media = panel.querySelector('[data-ffc-ve-image-media]');
 		var name = panel.querySelector('[data-ffc-ve-image-name]');
@@ -1665,6 +1688,130 @@
 			}
 		}
 		this.renderFontState(el);
+	};
+
+	/** The gradient controls of a frame (#2609). */
+	Editor.prototype.bindGradient = function (panel) {
+		var self = this;
+		var frame = function () {
+			var el = self.selectedElement();
+			return el && el.type === 'frame' ? el : null;
+		};
+		var on = panel.querySelector('[data-ffc-ve-gradient-on]');
+		if (on) {
+			on.addEventListener('change', function () {
+				var el = frame();
+				if (!el) {
+					return;
+				}
+				if (on.checked) {
+					el.gradient = { angle: 180, stops: [{ color: el.fill || '#ffffff', at: 0 }, { color: '#000000', at: 100 }] };
+				} else {
+					delete el.gradient;
+				}
+				self.changed();
+			});
+		}
+		var angle = panel.querySelector('[data-ffc-ve-gradient-angle]');
+		if (angle) {
+			angle.addEventListener('input', function () {
+				var el = frame();
+				var v = parseFloat(angle.value);
+				if (el && el.gradient && !isNaN(v)) {
+					el.gradient.angle = Math.max(0, Math.min(360, v));
+					self.changed('prop:' + el.id + ':gradient');
+				}
+			});
+		}
+		panel.querySelectorAll('[data-ffc-ve-gradient-stop]').forEach(function (row) {
+			var i = parseInt(row.getAttribute('data-ffc-ve-gradient-stop'), 10);
+			var color = row.querySelector('[data-ffc-ve-gradient-color]');
+			var at = row.querySelector('[data-ffc-ve-gradient-at]');
+			var write = function (key, value) {
+				var el = frame();
+				if (el && el.gradient && el.gradient.stops[i]) {
+					el.gradient.stops[i][key] = value;
+					self.changed('prop:' + el.id + ':gradient');
+				}
+			};
+			if (color) {
+				color.addEventListener('input', function () { write('color', color.value); });
+			}
+			if (at) {
+				at.addEventListener('input', function () {
+					var v = parseFloat(at.value);
+					if (!isNaN(v)) {
+						write('at', Math.max(0, Math.min(100, v)));
+					}
+				});
+			}
+		});
+		var add = panel.querySelector('[data-ffc-ve-gradient-add]');
+		if (add) {
+			add.addEventListener('click', function (event) {
+				event.preventDefault();
+				var el = frame();
+				if (el && el.gradient && el.gradient.stops.length < GRADIENT_MAX) {
+					var last = el.gradient.stops[el.gradient.stops.length - 1];
+					el.gradient.stops.push({ color: last.color, at: 100 });
+					self.changed();
+				}
+			});
+		}
+		var remove = panel.querySelector('[data-ffc-ve-gradient-remove]');
+		if (remove) {
+			remove.addEventListener('click', function (event) {
+				event.preventDefault();
+				var el = frame();
+				if (el && el.gradient && el.gradient.stops.length > GRADIENT_MIN) {
+					el.gradient.stops.pop();
+					self.changed();
+				}
+			});
+		}
+	};
+
+	/** Show a frame's gradient in its controls. */
+	Editor.prototype.renderGradient = function (panel, el) {
+		var g = el.gradient && Array.isArray(el.gradient.stops) ? el.gradient : null;
+		var on = panel.querySelector('[data-ffc-ve-gradient-on]');
+		var box = panel.querySelector('[data-ffc-ve-gradient]');
+		if (on) {
+			on.checked = !!g;
+		}
+		if (box) {
+			box.hidden = !g;
+		}
+		if (!g) {
+			return;
+		}
+		var angle = panel.querySelector('[data-ffc-ve-gradient-angle]');
+		if (angle && angle !== document.activeElement) {
+			angle.value = String(g.angle);
+		}
+		panel.querySelectorAll('[data-ffc-ve-gradient-stop]').forEach(function (row) {
+			var stop = g.stops[parseInt(row.getAttribute('data-ffc-ve-gradient-stop'), 10)];
+			row.hidden = !stop;
+			if (!stop) {
+				return;
+			}
+			var color = row.querySelector('[data-ffc-ve-gradient-color]');
+			var at = row.querySelector('[data-ffc-ve-gradient-at]');
+			if (color && color !== document.activeElement) {
+				color.value = stop.color;
+			}
+			if (at && at !== document.activeElement) {
+				at.value = String(stop.at);
+			}
+		});
+		var add = panel.querySelector('[data-ffc-ve-gradient-add]');
+		var remove = panel.querySelector('[data-ffc-ve-gradient-remove]');
+		if (add) {
+			add.disabled = g.stops.length >= GRADIENT_MAX;
+		}
+		if (remove) {
+			remove.disabled = g.stops.length <= GRADIENT_MIN;
+		}
 	};
 
 	/** A select keeps a value it does not list (a custom stack) as an extra option. */
