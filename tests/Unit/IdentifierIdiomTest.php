@@ -73,6 +73,7 @@ class IdentifierIdiomTest extends TestCase {
 		'includes/core/class-ffc-data-sanitizer.php'                                => 'Declares the canonical form. Every other site asks it.',
 		'includes/reregistration/class-ffc-reregistration-import-staging-service.php' => '`fold()` case-folds a CSV header cell or a field name, never an address.',
 		'includes/recruitment/class-ffc-csv-parser.php'                             => 'Case-folds a CSV header name for column matching.',
+		'includes/settings/class-ffc-required-data.php'                             => 'Case-folds a required-data variable name to match a generated tag, never an address.',
 		'includes/user-dashboard/class-ffc-user-creator.php'                        => 'Builds a login from the local part of an address; it is a username, never a lookup key.',
 		'includes/generators/class-ffc-qr-design.php'                               => 'Normalises a `#rrggbb` colour for the QR design (#1563); never an address.',
 		'includes/core/class-ffc-public-design.php'                                 => 'Normalises a `#rrggbb` colour for the public form design (#1677); never an address.',
