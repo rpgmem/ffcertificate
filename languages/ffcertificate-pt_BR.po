@@ -34716,6 +34716,7 @@ msgstr "Desfeito"
 
 msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, or Ctrl+A, selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
 msgstr "Desfazer e Refazer voltam e avançam por cada alteração desde que a página foi aberta, incluindo Descartar alterações. Shift-clique, ou Ctrl+A, seleciona vários elementos: eles se movem juntos, e Alinhar os alinha entre si, enquanto um único elemento se alinha à página; Distribuir espaça três ou mais por igual. Guias aparecem quando um elemento movido se alinha a outro ou ao meio da página, e ele se encaixa nelas. Um único elemento selecionado tem uma alça de rotação; com Shift, ela gira em passos de 15°. Copiar e Colar levam elementos entre modelos visuais, e Duplicar os copia no lugar. Cada ação tem uma tecla, listada em Atalhos de teclado abaixo da página."
+
 #. translators: %s: source template title
 msgid "%s (visual)"
 msgstr "%s (visual)"
