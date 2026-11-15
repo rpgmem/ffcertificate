@@ -97,6 +97,15 @@ final class InlineStyleTest extends TestCase {
 			'.css(): .css("width", percent + "%"' => array( 1, self::RUNTIME_VALUE ),
 		),
 		// The page canvas positions, scales and stacks each element from its layout (#2585).
+		// The measured visual copy (#2606) renders the certificate document to
+		// read it, and writes what it read into the layout's HTML blocks.
+		'assets/js/ffc-visual-measure.js' => array(
+			'style=: style="'                                => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="width:100%;height:100%;object-fit:' => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="position:relative;width:'        => array( 1, self::PDF_DOCUMENT ),
+			'.style.x =: .style.position = "static"'         => array( 1, self::PDF_DOCUMENT ),
+			'.style.x =: .style.margin = "0"'                => array( 1, self::PDF_DOCUMENT ),
+		),
 		'assets/js/ffc-visual-editor.js' => array(
 			'.style.x =: .style.left = box.x + "px"'                                             => array( 1, self::RUNTIME_VALUE ),
 			'.style.x =: .style.top = box.y + "px"'                                              => array( 1, self::RUNTIME_VALUE ),

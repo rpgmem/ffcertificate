@@ -101,6 +101,15 @@ class CertTemplateAdminScreen {
 	public const VISUAL_COPY_ACTION = 'ffc_visual_copy_cert_template';
 
 	/**
+	 * The `wp_ajax_{$action}` slugs of the measured visual copy (#2606): the
+	 * template's HTML for the browser to render, and the layout it read.
+	 * Both check the visual-copy link's own nonce.
+	 */
+	public const VISUAL_SOURCE_AJAX = 'ffc_visual_copy_source';
+
+	public const VISUAL_SAVE_AJAX = 'ffc_visual_copy_save';
+
+	/**
 	 * Script handle for the preview overlay.
 	 */
 	private const PREVIEW_HANDLE = 'ffc-cert-template-preview';
@@ -140,6 +149,8 @@ class CertTemplateAdminScreen {
 		add_action( 'wp_ajax_' . self::PREVIEW_LAYOUT_ACTION, array( $this, 'ajax_preview_visual_layout' ) );
 		add_action( 'admin_action_' . self::CONVERT_ACTION, array( $this, 'handle_convert_to_html' ) );
 		add_action( 'admin_action_' . self::VISUAL_COPY_ACTION, array( $this, 'handle_visual_copy' ) );
+		add_action( 'wp_ajax_' . self::VISUAL_SOURCE_AJAX, array( $this, 'ajax_visual_copy_source' ) );
+		add_action( 'wp_ajax_' . self::VISUAL_SAVE_AJAX, array( $this, 'ajax_visual_copy_save' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_preview_assets' ) );
 		// Edit screen gets the same CodeMirror HTML editor as the form-editor
 		// layout box, so editing a template looks identical to editing a form's
@@ -267,7 +278,7 @@ class CertTemplateAdminScreen {
 
 		// A visual copy of an HTML certificate (#2587); the original stays as it is.
 		if ( self::can_have_visual_copy( (int) $post->ID ) ) {
-			$actions['ffc_visual_copy'] = '<a href="' . esc_url( self::visual_copy_url( (int) $post->ID ) ) . '">' . esc_html__( 'Create visual version', 'ffcertificate' ) . '</a>';
+			$actions['ffc_visual_copy'] = '<a href="' . esc_url( self::visual_copy_url( (int) $post->ID ) ) . '" data-ffc-visual-measure="' . (int) $post->ID . '">' . esc_html__( 'Create visual version', 'ffcertificate' ) . '</a>';
 		}
 
 		// Export the raw template HTML as a `.html` download.
@@ -650,6 +661,53 @@ class CertTemplateAdminScreen {
 	}
 
 	/**
+	 * The measured visual copy (#2606): its script, and what the page needs to
+	 * render a template as it prints — the PDF stylesheet and the fonts.
+	 *
+	 * @return void
+	 */
+	private static function enqueue_visual_measure(): void {
+		\FreeFormCertificate\Core\AssetRegistry::enqueue_styles( 'ffc-pdf-core' );
+		\FreeFormCertificate\Core\CertificateFonts::enqueue();
+		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
+		wp_enqueue_script(
+			'ffc-visual-measure',
+			FFC_PLUGIN_URL . "assets/js/ffc-visual-measure{$suffix}.js",
+			array( 'ffc-core' ),
+			FFC_VERSION,
+			true
+		);
+		wp_localize_script(
+			'ffc-visual-measure',
+			'ffcVisualMeasure',
+			array(
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				// An image shipped with the plugin is recognised by this (#2606).
+				'pluginUrl' => FFC_PLUGIN_URL,
+				'strings'   => array(
+					'busy'        => __( 'Reading the template…', 'ffcertificate' ),
+					'frame'       => __( 'Frame', 'ffcertificate' ),
+					'line'        => __( 'Line', 'ffcertificate' ),
+					'text'        => __( 'Text', 'ffcertificate' ),
+					'field'       => __( 'Data field', 'ffcertificate' ),
+					'qr'          => __( 'QR code', 'ffcertificate' ),
+					'image'       => __( 'Image', 'ffcertificate' ),
+					'signature'   => __( 'Signature', 'ffcertificate' ),
+					'html'        => __( 'HTML block', 'ffcertificate' ),
+					'mixed'       => __( 'mixed text styles', 'ffcertificate' ),
+					'rotated'     => __( 'rotated', 'ffcertificate' ),
+					'background'  => __( 'background image', 'ffcertificate' ),
+					'offPage'     => __( 'Off the page', 'ffcertificate' ),
+					'pageColour'  => __( 'Page colour', 'ffcertificate' ),
+					'decoration'  => __( 'underline or shadow', 'ffcertificate' ),
+					'wordSpacing' => __( 'Word spacing', 'ffcertificate' ),
+					'merged'      => __( 'Styles inside one line merged', 'ffcertificate' ),
+				),
+			)
+		);
+	}
+
+	/**
 	 * Enqueue the preview overlay script on the pool list screen only.
 	 *
 	 * @param string $hook Current admin page hook.
@@ -665,6 +723,8 @@ class CertTemplateAdminScreen {
 		}
 
 		self::enqueue_theme();
+		// The row action's visual copy is measured on this page (#2606).
+		self::enqueue_visual_measure();
 
 		$suffix = \FreeFormCertificate\Core\AssetHelper::asset_suffix();
 		wp_enqueue_script(
@@ -709,6 +769,8 @@ class CertTemplateAdminScreen {
 			'ffc-visual-editor',
 			'ffcVisualEditor',
 			array(
+				// Images shipped with the plugin are drawn from here (#2606).
+				'pluginUrl'      => FFC_PLUGIN_URL,
 				'newText'        => __( 'Text', 'ffcertificate' ),
 				'image'          => __( 'Image', 'ffcertificate' ),
 				'signature'      => __( 'Signature', 'ffcertificate' ),
@@ -808,6 +870,10 @@ class CertTemplateAdminScreen {
 			}
 		} else {
 			AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
+			// Its visual copy is measured on this page (#2606).
+			if ( $post_id > 0 && self::can_have_visual_copy( $post_id ) ) {
+				self::enqueue_visual_measure();
+			}
 		}
 
 		// Editable templates get the same Background Image + Insert Image tools as
@@ -985,6 +1051,9 @@ class CertTemplateAdminScreen {
 					'icon'     => 'layout',
 					'category' => 'create',
 					'href'     => self::visual_copy_url( (int) $post->ID ),
+					// Measured in the browser when it can be (#2606); the
+					// address is the server importer, for no JavaScript.
+					'attrs'    => array( 'data-ffc-visual-measure' => (string) (int) $post->ID ),
 				)
 			);
 			echo ' <span class="description">' . esc_html__( 'A new visual template read from this one; this template stays as it is.', 'ffcertificate' ) . '</span></p>';
@@ -1976,14 +2045,29 @@ class CertTemplateAdminScreen {
 	public static function create_visual_copy( \WP_Post $post ): int {
 		$html   = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
 		$result = \FreeFormCertificate\Core\VisualLayoutImporter::from_html( $html );
-		$color  = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_COLOR, true );
-		$color  = '' !== $color ? $color : $result['bg_color'];
+
+		return self::save_visual_copy( $post, $result['layout'], $result['report'], $result['bg_color'] );
+	}
+
+	/**
+	 * Save a layout read from an HTML certificate template as a new visual
+	 * template, and keep the report for its screen.
+	 *
+	 * @param \WP_Post                                                                                          $post     The HTML certificate template.
+	 * @param array{version: int, page: array{orientation: string}, elements: array<int, array<string, mixed>>} $layout A validated layout.
+	 * @param array<int, array{status: string, label: string}>                                                  $report What became what.
+	 * @param string                                                                                            $bg_color Page colour the reading found, or ''.
+	 * @return int The new template's id, or 0.
+	 */
+	private static function save_visual_copy( \WP_Post $post, array $layout, array $report, string $bg_color ): int {
+		$color = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_COLOR, true );
+		$color = '' !== $color ? $color : $bg_color;
 
 		/* translators: %s: source template title */
 		$title  = sprintf( __( '%s (visual)', 'ffcertificate' ), (string) $post->post_title );
 		$new_id = CertTemplateWriter::create(
 			$title,
-			\FreeFormCertificate\Core\VisualLayout::render( $result['layout'] ),
+			\FreeFormCertificate\Core\VisualLayout::render( $layout ),
 			true,
 			(string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_IMAGE, true ),
 			CertTemplateCpt::KIND_CERTIFICATE,
@@ -1993,9 +2077,106 @@ class CertTemplateAdminScreen {
 			return 0;
 		}
 		update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
-		\FreeFormCertificate\Core\VisualLayout::store_json( $new_id, \FreeFormCertificate\Core\VisualLayout::to_json( $result['layout'] ) );
-		set_transient( self::visual_copy_report_key( $new_id ), $result['report'], HOUR_IN_SECONDS );
+		\FreeFormCertificate\Core\VisualLayout::store_json( $new_id, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
+		set_transient( self::visual_copy_report_key( $new_id ), $report, HOUR_IN_SECONDS );
 		return $new_id;
+	}
+
+	/**
+	 * The template a measured-copy request names, after its checks: the
+	 * link's nonce, the capability, an HTML certificate template. Answers
+	 * the request with an error otherwise.
+	 *
+	 * @return \WP_Post
+	 */
+	private static function visual_copy_request(): \WP_Post {
+		$post_id = RequestInput::get_post_int( 'post' );
+		check_ajax_referer( self::VISUAL_COPY_ACTION . '_' . $post_id );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) ), 403 );
+		}
+		$post = get_post( $post_id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type || ! self::can_have_visual_copy( $post_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Only an HTML certificate template can have a visual version.', 'ffcertificate' ) ), 400 );
+		}
+		return $post;
+	}
+
+	/**
+	 * AJAX: the saved HTML of a template, for the browser to render and
+	 * measure (#2606). The original is only read.
+	 *
+	 * @return void
+	 */
+	public function ajax_visual_copy_source(): void {
+		$post = self::visual_copy_request();
+		wp_send_json_success( array( 'html' => (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true ) ) );
+	}
+
+	/**
+	 * AJAX: save the layout the browser read as a new visual template
+	 * (#2606). An image the Media Library knows becomes an image element;
+	 * any other stays an HTML block. The layout is validated like any other.
+	 *
+	 * @return void
+	 */
+	public function ajax_visual_copy_save(): void {
+		$post = self::visual_copy_request();
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON, validated field by field by VisualLayout::validate(); the nonce is checked in visual_copy_request().
+		$json = isset( $_POST['layout'] ) ? (string) wp_unslash( $_POST['layout'] ) : '';
+		$raw  = json_decode( $json, true );
+		if ( is_array( $raw ) && isset( $raw['elements'] ) && is_array( $raw['elements'] ) ) {
+			$raw['elements'] = array_map( array( self::class, 'library_image' ), $raw['elements'] );
+			$json            = (string) wp_json_encode( $raw );
+		}
+		$layout = \FreeFormCertificate\Core\VisualLayout::validate( $json );
+		if ( is_wp_error( $layout ) ) {
+			wp_send_json_error( array( 'message' => $layout->get_error_message() ), 400 );
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.NonceVerification.Missing -- JSON, each entry reduced to a known status and a plain label below; the nonce is checked in visual_copy_request().
+		$entries = json_decode( isset( $_POST['report'] ) ? (string) wp_unslash( $_POST['report'] ) : '', true );
+		$report  = array();
+		foreach ( is_array( $entries ) ? array_slice( $entries, 0, \FreeFormCertificate\Core\VisualLayout::MAX_ELEMENTS * 2 ) : array() as $entry ) {
+			$status = is_array( $entry ) ? (string) ( $entry['status'] ?? '' ) : '';
+			if ( in_array( $status, array( \FreeFormCertificate\Core\VisualLayoutImporter::CONVERTED, \FreeFormCertificate\Core\VisualLayoutImporter::KEPT, \FreeFormCertificate\Core\VisualLayoutImporter::DROPPED ), true ) ) {
+				$report[] = array(
+					'status' => $status,
+					'label'  => sanitize_text_field( (string) ( $entry['label'] ?? '' ) ),
+				);
+			}
+		}
+		$color = sanitize_hex_color( RequestInput::get_post_string( 'bg_color' ) );
+
+		$new_id = self::save_visual_copy( $post, $layout, $report, is_string( $color ) ? $color : '' );
+		if ( $new_id <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'The visual version could not be created.', 'ffcertificate' ) ), 500 );
+		}
+		wp_send_json_success( array( 'edit_url' => admin_url( 'post.php?post=' . $new_id . '&action=edit' ) ) );
+	}
+
+	/**
+	 * An image block the browser read, as an image element when the Media
+	 * Library knows its file; any other element unchanged.
+	 *
+	 * @param mixed $element Raw element.
+	 * @return mixed
+	 */
+	private static function library_image( $element ) {
+		if ( ! is_array( $element ) || 'html' !== ( $element['type'] ?? '' ) || ! is_string( $element['src'] ?? null ) || '' === $element['src'] ) {
+			return $element;
+		}
+		$id = (int) attachment_url_to_postid( $element['src'] );
+		unset( $element['src'] );
+		if ( $id <= 0 ) {
+			return $element;
+		}
+		$element['type']          = 'image';
+		$element['attachment_id'] = $id;
+		unset( $element['html'] );
+		return $element;
 	}
 
 	/**

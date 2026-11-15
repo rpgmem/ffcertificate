@@ -196,6 +196,33 @@ class VisualLayoutTest extends TestCase {
 		$this->assertStringNotContainsString( 'javascript:', $html );
 	}
 
+	public function test_an_image_shipped_with_the_plugin_is_drawn_from_the_plugin(): void {
+		$file   = 'assets/img/certificate-defaults/default_assinagture_1.png';
+		$layout = VisualLayout::validate(
+			(string) json_encode(
+				array(
+					'version'  => 1,
+					'elements' => array(
+						array( 'type' => 'image', 'asset' => $file, 'x' => 10, 'y' => 10, 'w' => 150, 'h' => 60 ),
+						array( 'type' => 'image', 'asset' => 'assets/img/../../ffcertificate.php' ),
+						array( 'type' => 'image', 'asset' => 'assets/img/certificate-defaults/missing.png' ),
+						array( 'type' => 'image', 'asset' => 'includes/core/class-ffc-visual-layout.php' ),
+						array( 'type' => 'image', 'asset' => $file, 'attachment_id' => 41 ),
+					),
+				)
+			)
+		);
+		$this->assertIsArray( $layout );
+		$this->assertSame( $file, $layout['elements'][0]['asset'] );
+		$this->assertSame( '', $layout['elements'][1]['asset'], 'a path that climbs out is refused' );
+		$this->assertSame( '', $layout['elements'][2]['asset'], 'a file that is not there is refused' );
+		$this->assertSame( '', $layout['elements'][3]['asset'], 'only an image under assets/img' );
+
+		$html = VisualLayout::render( $layout );
+		$this->assertStringContainsString( '<img src="' . FFC_PLUGIN_URL . $file . '"', $html );
+		$this->assertStringContainsString( 'seal.png', $html, 'a Media Library image wins over the asset' );
+	}
+
 	public function test_ids_are_kept_unique(): void {
 		$layout = VisualLayout::validate( '{"version":1,"elements":[{"type":"qr","id":"a"},{"type":"qr","id":"a"},{"type":"qr"},{"type":"qr","id":"el-3"}]}' );
 		$this->assertSame( array( 'a', 'el-2', 'el-3', 'el-4' ), array_column( $layout['elements'], 'id' ) );

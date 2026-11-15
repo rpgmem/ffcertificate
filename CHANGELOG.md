@@ -23,6 +23,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Visual templates get a properties panel, a preview and six models** (#2586): per-element properties with a tag picker and a font list that marks a missing font; a preview through the PDF renderer; a warning for missing required tags; a one-way Convert to HTML; visual versions of the six certificate models (seed version 12).
 - **The visual editor gets undo, guides, multi-select, a rotate handle, copy between templates and a full keyboard** (#2588): history of 100 steps, alignment guides with snapping, aligning and distributing a selection, rotation in 15° steps, Ctrl+C / V / D across templates, and a shortcut for every action, listed under the page.
 - **A visual copy of an HTML certificate template** (#2587): Create visual version reads the template into a new visual template, positioned boxes as elements and the rest as HTML blocks, drops rules the elements do not draw, and reports what it converted, kept and dropped. The original is not touched.
+- **Create visual version reads the template in the browser, so flowing text becomes editable elements** (#2606). Drawn as the PDF draws it, each border, line of text, tag, image and QR code becomes an element in its measured place; plugin images stay the plugin's files, and a line with mixed styles is merged and reported. Five of the six models convert with no HTML block, every line within 1 px; model 5 keeps its gradient strip. The server importer remains for no JavaScript.
 
 ### Changed
 

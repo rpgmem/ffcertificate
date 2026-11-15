@@ -1901,6 +1901,122 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
 		$this->assertStringContainsString( 'action=ffc_visual_copy_cert_template&post=5', $html );
 		$this->assertStringContainsString( 'Create visual version', $html );
+		// Measured in the browser when it can be (#2606), on both links.
+		$this->assertStringContainsString( 'data-ffc-visual-measure="5"', $actions['ffc_visual_copy'] );
+		$this->assertStringContainsString( 'data-ffc-visual-measure="5"', $html );
+	}
+
+	/**
+	 * Run a measured-copy AJAX handler (#2606) and return its JSON reply.
+	 *
+	 * @return array{success: bool, data: mixed, status: int}
+	 */
+	private function measured_reply( string $method, array $post ): array {
+		Functions\when( 'check_ajax_referer' )->justReturn( true );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( strip_tags( (string) $v ) ) );
+		Functions\when( 'wp_send_json_success' )->alias(
+			static function ( $data = null ) {
+				throw new \RuntimeException( (string) json_encode( array( 'success' => true, 'data' => $data, 'status' => 200 ) ) );
+			}
+		);
+		Functions\when( 'wp_send_json_error' )->alias(
+			static function ( $data = null, $status = 400 ) {
+				throw new \RuntimeException( (string) json_encode( array( 'success' => false, 'data' => $data, 'status' => $status ) ) );
+			}
+		);
+		$_POST = $post + array( 'post' => '5' );
+		try {
+			( new CertTemplateAdminScreen() )->$method();
+		} catch ( \RuntimeException $e ) {
+			return json_decode( $e->getMessage(), true );
+		} finally {
+			$_POST = array();
+		}
+		$this->fail( 'the handler answered' );
+	}
+
+	public function test_a_measured_copy_reads_the_saved_html(): void {
+		$this->visual_copy_stubs( array( CertTemplateCpt::META_HTML => '<p>{{name}}</p>' ) );
+		unset( $_GET['post'] );
+
+		$reply = $this->measured_reply( 'ajax_visual_copy_source', array() );
+
+		$this->assertTrue( $reply['success'] );
+		$this->assertSame( '<p>{{name}}</p>', $reply['data']['html'] );
+	}
+
+	public function test_a_measured_copy_is_saved_as_a_new_visual_template(): void {
+		$written = &$this->visual_copy_stubs( array( CertTemplateCpt::META_HTML => '<p>{{name}}</p>' ) );
+		unset( $_GET['post'] );
+		// The Media Library knows the logo, not the other file.
+		Functions\when( 'attachment_url_to_postid' )->alias( static fn( $url ) => str_ends_with( (string) $url, 'logo.png' ) ? 42 : 0 );
+		Functions\when( 'wp_get_attachment_url' )->justReturn( 'https://example.test/wp-content/uploads/logo.png' );
+		Functions\when( 'wp_get_attachment_metadata' )->justReturn( array( 'width' => 200, 'height' => 200 ) );
+		$layout = array(
+			'version'  => 1,
+			'page'     => array( 'orientation' => 'landscape' ),
+			'elements' => array(
+				array( 'type' => 'field', 'x' => 10, 'y' => 20, 'w' => 300, 'h' => 40, 'token' => '{{name}}', 'font_size' => 32, 'font_family' => '"Great Vibes", serif' ),
+				array( 'type' => 'html', 'x' => 0, 'y' => 0, 'w' => 80, 'h' => 80, 'src' => 'https://example.test/wp-content/uploads/logo.png', 'fit' => 'cover', 'html' => '<img src="https://example.test/wp-content/uploads/logo.png" alt="">' ),
+				array( 'type' => 'html', 'x' => 0, 'y' => 100, 'w' => 80, 'h' => 80, 'src' => 'https://example.test/elsewhere.png', 'html' => '<img src="https://example.test/elsewhere.png" alt="">' ),
+			),
+		);
+
+		$reply = $this->measured_reply(
+			'ajax_visual_copy_save',
+			array(
+				'layout'   => json_encode( $layout ),
+				'report'   => json_encode(
+					array(
+						array( 'status' => 'converted', 'label' => 'Data field: {{name}}' ),
+						array( 'status' => 'bogus', 'label' => 'ignored' ),
+						array( 'status' => 'dropped', 'label' => '<b>Word spacing</b> (4.8px): Name' ),
+					)
+				),
+				'bg_color' => '#fdfbf5',
+			)
+		);
+
+		$this->assertTrue( $reply['success'] );
+		$this->assertStringContainsString( 'post.php?post=77&action=edit', $reply['data']['edit_url'] );
+		$this->assertArrayNotHasKey( 5, $written, 'the original is not written' );
+		$this->assertSame( 'visual', $written[77][ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] );
+		$saved = json_decode( $written[77][ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ], true );
+		$this->assertSame( array( 'field', 'image', 'html' ), array_column( $saved['elements'], 'type' ), 'a library image becomes an image element' );
+		$this->assertSame( 42, $saved['elements'][1]['attachment_id'] );
+		$this->assertSame( 'cover', $saved['elements'][1]['fit'] );
+		$this->assertArrayNotHasKey( 'src', $saved['elements'][2], 'the hint does not reach the layout' );
+		$this->assertSame( '#fdfbf5', $written[77][ CertTemplateCpt::META_BG_COLOR ] );
+		$this->assertSame(
+			array(
+				array( 'status' => 'converted', 'label' => 'Data field: {{name}}' ),
+				array( 'status' => 'dropped', 'label' => 'Word spacing (4.8px): Name' ),
+			),
+			$written['transient']['ffc_visual_copy_report_3_77'],
+			'the report keeps known statuses and plain labels'
+		);
+	}
+
+	public function test_a_measured_copy_refuses_a_bad_layout_or_a_visual_template(): void {
+		$written = &$this->visual_copy_stubs( array( CertTemplateCpt::META_HTML => '<p>x</p>' ) );
+		unset( $_GET['post'] );
+		$reply = $this->measured_reply( 'ajax_visual_copy_save', array( 'layout' => '{"version":9,"elements":[]}' ) );
+		$this->assertFalse( $reply['success'] );
+		$this->assertSame( 400, $reply['status'] );
+
+		$written = &$this->visual_copy_stubs( array( \FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual' ) );
+		unset( $_GET['post'] );
+		$reply = $this->measured_reply( 'ajax_visual_copy_source', array() );
+		$this->assertFalse( $reply['success'] );
+		$this->assertSame( array(), $written );
+
+		Functions\when( 'current_user_can' )->justReturn( false );
+		$written = &$this->visual_copy_stubs( array() );
+		Functions\when( 'current_user_can' )->justReturn( false );
+		unset( $_GET['post'] );
+		$reply = $this->measured_reply( 'ajax_visual_copy_save', array( 'layout' => '{}' ) );
+		$this->assertSame( 403, $reply['status'] );
+		$this->assertSame( array(), $written );
 	}
 
 	public function test_the_new_visual_template_shows_its_report_once(): void {
