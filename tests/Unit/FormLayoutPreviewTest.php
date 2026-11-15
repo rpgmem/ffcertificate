@@ -38,6 +38,35 @@ class FormLayoutPreviewTest extends TestCase {
 		$this->assertLessThan( strpos( $markup, '<p>Body</p>' ), strpos( $markup, '<img' ) );
 	}
 
+	public function test_wrap_uses_the_pdf_generators_layers(): void {
+		$markup = FormLayoutPreview::wrap( '<p>Body</p>', '', '#f3e9d2' );
+
+		// The generator's own wrapper and content layer, so the preview takes
+		// the text styles of ffc-pdf-core.css, not the admin document's (#2598).
+		$this->assertStringStartsWith( '<div class="ffc-pdf-wrapper" style="', $markup );
+		$this->assertStringContainsString( '<div class="ffc-pdf-content"><p>Body</p></div></div>', $markup );
+		// The page colour stays on the wrapper, which the sheet no longer
+		// overrides with an important white.
+		$this->assertMatchesRegularExpression( '/class="ffc-pdf-wrapper" style="[^"]*background-color:#f3e9d2;/', $markup );
+	}
+
+	public function test_the_wrapper_lets_the_page_colour_and_inline_text_styles_through(): void {
+		$css = (string) file_get_contents( dirname( __DIR__, 2 ) . '/assets/css/ffc-pdf-core.css' );
+		preg_match( '/\.ffc-pdf-wrapper\s*\{([^}]*)\}/', $css, $wrapper );
+		$this->assertNotEmpty( $wrapper, 'the wrapper rule is read' );
+
+		// An important white printed every page colour white (#2598).
+		$this->assertMatchesRegularExpression( '/background-color:\s*#ffffff;/', $wrapper[1] );
+		$this->assertDoesNotMatchRegularExpression( '/background-color:[^;]*!important/', $wrapper[1] );
+		// The inherited text properties are the page's own, so a theme's
+		// weight or spacing cannot reach the certificate.
+		foreach ( array( 'font-weight: 400', 'letter-spacing: normal', 'text-transform: none' ) as $declaration ) {
+			$this->assertStringContainsString( $declaration . ';', $wrapper[1] );
+		}
+		// A host rule for the tag (wp-admin's p) does not set the line height.
+		$this->assertMatchesRegularExpression( '/\.ffc-pdf-wrapper p,[^{]*\{[^}]*line-height:\s*inherit;/', $css );
+	}
+
 	public function test_wrap_escapes_the_image_url(): void {
 		$escaped = array();
 		Functions\when( 'esc_url' )->alias(

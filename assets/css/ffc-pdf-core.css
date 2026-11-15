@@ -38,14 +38,41 @@
    (direction B) is what caught it. */
 .ffc-pdf-wrapper {
     position: relative !important;
-    background-color: #ffffff !important;
+    /* White unless the page sets its own colour: the generator and the
+       preview put the template's page colour inline on this element, and an
+       `!important` here printed every page white (#2598). */
+    background-color: #ffffff;
     overflow: hidden !important;
     box-sizing: border-box !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-size: 14px !important;
     line-height: 1.4 !important;
     color: #000000 !important;
+    /* The inherited text properties the page did not set leaked in from the
+       host document: a theme's `font-weight: 300` and `letter-spacing` reached
+       every line of a certificate generated on its pages (#2598). Not
+       `!important`, so a template's inline style still decides. */
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: normal;
+    word-spacing: normal;
+    text-transform: none;
+    text-indent: 0;
     /* Width/height set dynamically by JS for portrait/landscape support */
+}
+
+/* A text block takes its line height and size from the page, not from the
+   host's own rule for the tag: wp-admin's `p { line-height: 1.5 }` moved every
+   line of the admin preview down, and a theme can do the same (#2598). One
+   class beats a bare tag; an inline style still wins. */
+.ffc-pdf-wrapper p,
+.ffc-pdf-wrapper li,
+.ffc-pdf-wrapper td,
+.ffc-pdf-wrapper th,
+.ffc-pdf-wrapper blockquote {
+    font-size: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
 }
 
 /* ==========================================================================
