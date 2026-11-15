@@ -46,7 +46,7 @@ class CertificateSignersPageTest extends TestCase {
 		Functions\when( 'get_option' )->alias( fn( $name, $default = false ) => CertificateSigners::OPTION === $name ? $this->option : array() );
 		Functions\when( 'get_posts' )->justReturn( array() );
 		Functions\when( 'get_users' )->justReturn( array() );
-		Functions\when( 'get_user_meta' )->alias( static fn( $id, $key ) => 7 === $id ? Encryption::encrypt( '1234567' ) : '' );
+		Functions\when( 'get_user_meta' )->alias( static fn( $id, $key ) => 7 === $id ? Encryption::encrypt( '5181780' ) : '' );
 		$user = (object) array( 'ID' => 7, 'display_name' => 'Maria Souza', 'user_login' => 'maria', 'user_email' => 'm@example.test' );
 		Functions\when( 'get_userdata' )->alias( static fn( $id ) => 7 === $id ? $user : false );
 		$this->option = array( array( 'id' => 1, 'user_id' => 7, 'role' => 'Divisão Pedagógica', 'active' => true ) );
@@ -70,8 +70,8 @@ class CertificateSignersPageTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-page-certificate-signers', $html );
 		$this->assertStringContainsString( 'Maria Souza', $html );
-		$this->assertStringNotContainsString( '1234567', $html, 'never in clear' );
-		$this->assertStringNotContainsString( '123.456-7', $html );
+		$this->assertStringNotContainsString( '5181780', $html, 'never in clear' );
+		$this->assertStringNotContainsString( '518.178-0', $html );
 		$this->assertStringNotContainsString( 'ffc-reveal-pii', $html, 'no Reveal without the PII cap' );
 		$this->assertStringNotContainsString( 'Add signer', $html, 'a viewer manages nothing' );
 	}
@@ -84,7 +84,7 @@ class CertificateSignersPageTest extends TestCase {
 		$this->assertStringContainsString( 'data-type="certificate_signer"', $html );
 		$this->assertStringContainsString( 'name="ffc_signer_user"', $html );
 		$this->assertStringContainsString( 'ffc_save_certificate_signer', $html );
-		$this->assertStringNotContainsString( '123.456-7', $html );
+		$this->assertStringNotContainsString( '518.178-0', $html );
 	}
 
 	public function test_the_screen_refuses_without_the_view_cap(): void {

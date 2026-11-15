@@ -51,7 +51,7 @@ class CertificateSignersTest extends TestCase {
 		Functions\when( 'add_action' )->justReturn( true );
 		$this->users[7]     = (object) array( 'ID' => 7, 'display_name' => 'Maria Souza', 'user_email' => 'Maria@Example.test', 'user_login' => 'maria' );
 		$this->users[8]     = (object) array( 'ID' => 8, 'display_name' => 'No RF', 'user_email' => 'norf@example.test', 'user_login' => 'norf' );
-		$this->user_meta[7] = array( CertificateSigners::RF_META_KEY => Encryption::encrypt( '1234567' ) );
+		$this->user_meta[7] = array( CertificateSigners::RF_META_KEY => Encryption::encrypt( '5181780' ) );
 	}
 
 	protected function tearDown(): void {
@@ -80,7 +80,7 @@ class CertificateSignersTest extends TestCase {
 		$signer = CertificateSigners::get( 1 );
 		$this->assertSame( 'Divisão Pedagógica', $signer['role'] );
 		$this->assertTrue( $signer['active'] );
-		$this->assertStringNotContainsString( '1234567', (string) json_encode( $this->option ), 'no copy of the RF is stored' );
+		$this->assertStringNotContainsString( '5181780', (string) json_encode( $this->option ), 'no copy of the RF is stored' );
 		$this->assertSame(
 			array(
 				array(
@@ -109,7 +109,7 @@ class CertificateSignersTest extends TestCase {
 		$this->assertSame(
 			array(
 				'signer:name'      => 'Maria Souza',
-				'signer:rf'        => '123.456-7',
+				'signer:rf'        => '518.178-0',
 				'signer:role'      => 'Divisão Pedagógica',
 				'signer:signature' => 'https://example.test/sig-12.png',
 			),
@@ -122,7 +122,7 @@ class CertificateSignersTest extends TestCase {
 
 	public function test_a_preview_masks_the_rf_and_no_signer_prints_nothing(): void {
 		$this->seed( array() );
-		$this->assertNotSame( '123.456-7', CertificateSigners::token_values( CertificateSigners::get( 1 ), true )['signer:rf'] );
+		$this->assertNotSame( '518.178-0', CertificateSigners::token_values( CertificateSigners::get( 1 ), true )['signer:rf'] );
 		$this->assertStringContainsString( '*', CertificateSigners::token_values( CertificateSigners::get( 1 ), true )['signer:rf'] );
 		$this->assertSame( array( 'signer:name' => '', 'signer:rf' => '', 'signer:role' => '', 'signer:signature' => '' ), CertificateSigners::token_values( null ) );
 	}
@@ -135,10 +135,10 @@ class CertificateSignersTest extends TestCase {
 		$signer = CertificateSigners::get( 1 );
 		$this->assertSame( 0, $signer['user_id'], 'the link to the account is dropped' );
 		$this->assertFalse( $signer['active'] );
-		$this->assertNotSame( '1234567', $signer['kept_rf'], 'the copy is encrypted' );
+		$this->assertNotSame( '5181780', $signer['kept_rf'], 'the copy is encrypted' );
 		$values = CertificateSigners::token_values( $signer );
 		$this->assertSame( 'Maria Souza', $values['signer:name'], 'issued certificates do not change' );
-		$this->assertSame( '123.456-7', $values['signer:rf'] );
+		$this->assertSame( '518.178-0', $values['signer:rf'] );
 
 		$this->assertFalse( CertificateSigners::update( 2, 'x', 0, true ) );
 		CertificateSigners::update( 1, 'Other', 0, true );

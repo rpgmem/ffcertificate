@@ -1007,7 +1007,7 @@ class AdminAjaxTest extends TestCase {
 	 */
 	public function test_reveal_pii_a_signers_rf_from_the_profile(): void {
 		$this->account( 7, 'maria@example.test', 'Maria Souza' );
-		$this->user_meta[7] = array( \FreeFormCertificate\Core\CertificateSigners::RF_META_KEY => Encryption::encrypt( '1234567' ) );
+		$this->user_meta[7] = array( \FreeFormCertificate\Core\CertificateSigners::RF_META_KEY => Encryption::encrypt( '5181780' ) );
 		Functions\when( 'get_option' )->alias(
 			static fn( $key, $default = false ) => \FreeFormCertificate\Core\CertificateSigners::OPTION === $key
 				? array( array( 'id' => 3, 'user_id' => 7, 'role' => 'x', 'active' => true ) )
@@ -1017,7 +1017,7 @@ class AdminAjaxTest extends TestCase {
 		$this->viewer_caps[] = 'ffc_view_forms';
 		$this->viewer_caps[] = 'ffc_view_certificates_pii';
 
-		$this->assertSame( array( 'field' => 'rf', 'value' => '123.456-7' ), $this->reveal() );
+		$this->assertSame( array( 'field' => 'rf', 'value' => '518.178-0' ), $this->reveal() );
 		$this->assertAuditedOnce( 'certificate_signer_pii_revealed', array( 'field_key' => 'rf' ), self::VIEWER, 3, 'certificate_signer' );
 
 		$this->post_reveal( 'certificate_signer', 3, 'email' );
