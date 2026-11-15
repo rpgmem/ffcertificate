@@ -264,6 +264,26 @@ describe('FFCVisualMeasure gradients', () => {
 		expect(read('url("x.png")')).toBeNull();
 	});
 
+	it('draws a CSS triangle as half a square, its other half clear (#2618)', () => {
+		const tri = (r, s) => '<div data-r="' + r + '" data-s=\'' + JSON.stringify(s) + '\'></div>';
+		const side = (name, color) => ({ ['border' + name + 'Width']: '190px', ['border' + name + 'Style']: 'solid', ['border' + name + 'Color']: color });
+		const content = page(
+			tri('0,0,190,190', Object.assign({}, side('Top', 'rgb(11, 37, 69)'), side('Right', 'rgba(0, 0, 0, 0)')))
+			+ tri('933,604,190,190', Object.assign({}, side('Bottom', 'rgb(212, 167, 44)'), side('Left', 'rgba(0, 0, 0, 0)')))
+			// Opposite sides are a bar, not a triangle; both coloured, a corner.
+			+ tri('300,0,190,190', Object.assign({}, side('Top', 'rgb(1, 1, 1)'), side('Bottom', 'rgba(0, 0, 0, 0)')))
+			+ tri('600,0,190,190', Object.assign({}, side('Top', 'rgb(1, 1, 1)'), side('Right', 'rgb(2, 2, 2)')))
+		);
+		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+		const [a, b, ...rest] = layout.elements;
+		expect(a).toMatchObject({ type: 'frame', x: 0, y: 0, w: 190, h: 190, fill: '', gradient: { angle: 135 } });
+		expect(a.gradient.stops).toEqual([{ color: '#0b2545', at: 0 }, { color: '#0b2545', at: 50 }, { color: 'transparent', at: 50 }, { color: 'transparent', at: 100 }]);
+		expect(b).toMatchObject({ x: 933, y: 604, gradient: { angle: 315 } });
+		expect(rest.every((e) => !e.gradient)).toBe(true);
+		expect(window.FFCVisualMeasure.readGradient('linear-gradient(135deg, rgb(0, 0, 0) 50%, rgba(0, 0, 0, 0) 50%)').stops[1]).toEqual({ color: 'transparent', at: 50 });
+		expect(window.FFCVisualMeasure.readGradient('linear-gradient(rgb(0, 0, 0), transparent)').stops[1].color).toBe('transparent');
+	});
+
 	it('draws a box with a gradient as a frame, its first colour the fallback', () => {
 		const content = page(
 			'<div data-r="0,0,34,794" data-s=\'{"backgroundImage":"linear-gradient(rgb(11, 37, 69) 0%, rgb(47, 128, 237) 100%)"}\'></div>'

@@ -123,12 +123,14 @@
 		}
 		var stops = [];
 		for (var i = 0; i < args.length; i++) {
-			var s = /^(rgba?\([^)]*\)|#[0-9a-f]{6})(?:\s+(-?[\d.]+)%)?$/i.exec(args[i]);
-			// A see-through colour has no `#rrggbb`: the box stays HTML.
-			if (!s || !hex(s[1]) || seeThrough(s[1])) {
+			var s = /^(rgba?\([^)]*\)|#[0-9a-f]{6}|transparent)(?:\s+(-?[\d.]+)%)?$/i.exec(args[i]);
+			// A colour the ground shows through in part has no `#rrggbb`: the
+			// box stays HTML. A fully clear one is `transparent` (#2618).
+			var clear = s && (/^transparent$/i.test(s[1]) || (seeThrough(s[1]) && !hex(s[1])));
+			if (!s || (!clear && (!hex(s[1]) || seeThrough(s[1])))) {
 				return null;
 			}
-			stops.push({ color: hex(s[1]), at: s[2] === undefined ? null : Math.max(0, Math.min(100, parseFloat(s[2]))) });
+			stops.push({ color: clear ? 'transparent' : hex(s[1]), at: s[2] === undefined ? null : Math.max(0, Math.min(100, parseFloat(s[2]))) });
 		}
 		// A colour without a position sits evenly along the line.
 		stops.forEach(function (stop, k) {
@@ -273,6 +275,11 @@
 		if (!this.onPage(b)) {
 			return;
 		}
+		var triangle = this.triangle(cs, b);
+		if (triangle) {
+			this.add({ type: 'frame', x: b.x, y: b.y, w: b.w, h: b.h, border_width: 0, border_style: 'solid', border_color: triangle.color, radius: 0, fill: '', gradient: triangle.gradient }, STATUS.converted, t('frame', 'Frame'));
+			return;
+		}
 		var fill = el === this.skipFill ? '' : hex(cs.backgroundColor);
 		var sides = ['Top', 'Right', 'Bottom', 'Left'].map(function (side) {
 			var w = cs['border' + side + 'Style'] === 'none' || cs['border' + side + 'Style'] === 'hidden' ? 0 : px(cs['border' + side + 'Width']);
@@ -304,6 +311,39 @@
 			}[s.side];
 			this.add({ type: 'frame', x: strip.x, y: strip.y, w: strip.w, h: strip.h, border_width: 0, border_style: 'solid', border_color: s.color, radius: 0, fill: s.color }, STATUS.converted, t('line', 'Line'));
 		}, this);
+	};
+
+	/** The corner a CSS triangle fills, by its coloured and its clear side. */
+	var CORNER_ANGLE = { 'Top Left': 135, 'Top Right': 225, 'Bottom Right': 315, 'Bottom Left': 45 };
+	var OPPOSITE = { Top: 'Bottom', Bottom: 'Top', Left: 'Right', Right: 'Left' };
+
+	/**
+	 * A CSS triangle: a box with no content area and two equal, adjacent
+	 * borders, one coloured and one clear. It fills half of its square, which
+	 * a frame draws as a hard-edged gradient (#2618).
+	 *
+	 * @return {{color:string, gradient:Object}|null}
+	 */
+	Measurer.prototype.triangle = function (cs, b) {
+		var drawn = ['Top', 'Right', 'Bottom', 'Left'].map(function (side) {
+			var w = cs['border' + side + 'Style'] === 'none' || cs['border' + side + 'Style'] === 'hidden' ? 0 : px(cs['border' + side + 'Width']);
+			return { side: side, w: w, color: hex(cs['border' + side + 'Color']) };
+		}).filter(function (s) { return s.w > 0; });
+		if (drawn.length !== 2 || drawn[0].w !== drawn[1].w || Math.abs(b.w - drawn[0].w) > 1 || Math.abs(b.h - drawn[0].w) > 1) {
+			return null;
+		}
+		var solid = drawn.filter(function (s) { return s.color; });
+		var clear = drawn.filter(function (s) { return !s.color; });
+		if (solid.length !== 1 || clear.length !== 1 || OPPOSITE[solid[0].side] === clear[0].side) {
+			return null;
+		}
+		var vertical = /Top|Bottom/.test(solid[0].side) ? solid[0].side : OPPOSITE[clear[0].side];
+		var horizontal = /Left|Right/.test(solid[0].side) ? solid[0].side : OPPOSITE[clear[0].side];
+		var c = solid[0].color;
+		return {
+			color: c,
+			gradient: { angle: CORNER_ANGLE[vertical + ' ' + horizontal], stops: [{ color: c, at: 0 }, { color: c, at: 50 }, { color: 'transparent', at: 50 }, { color: 'transparent', at: 100 }] }
+		};
 	};
 
 	/** Whether every descendant is an inline tag (no image, no held QR). */

@@ -72,7 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><?php esc_html_e( 'field — one token, as {{name}} or {{model:place}}, with the same text properties.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'qr — the validation QR code, sized to the shorter side of its box; margin.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, with fill as the fallback); the border is drawn inside the box.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, each hex or transparent, with fill as the fallback); the border is drawn inside the box.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'html — a block of HTML, filtered by the same rules as an HTML template.', 'ffcertificate' ); ?></li>
 		</ul>
 		<p><?php esc_html_e( 'An out-of-range number is brought into range, an unknown value takes its default and an unknown key is dropped; text is printed as text. Duplicating a visual template keeps it visual. Only certificates can be visual; the record and the receipts stay HTML.', 'ffcertificate' ); ?></p>

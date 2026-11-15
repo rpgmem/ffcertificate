@@ -1881,7 +1881,19 @@
 				}
 			};
 			if (color) {
-				color.addEventListener('input', function () { write('color', color.value); });
+				color.addEventListener('input', function () {
+					if (clear) {
+						clear.checked = false;
+					}
+					write('color', color.value);
+				});
+			}
+			// A clear stop lets the ground through: half a frame, a triangle (#2618).
+			var clear = row.querySelector('[data-ffc-ve-gradient-clear]');
+			if (clear) {
+				clear.addEventListener('change', function () {
+					write('color', clear.checked ? 'transparent' : (color && color.value) || '#ffffff');
+				});
 			}
 			if (at) {
 				at.addEventListener('input', function () {
@@ -1943,7 +1955,11 @@
 			}
 			var color = row.querySelector('[data-ffc-ve-gradient-color]');
 			var at = row.querySelector('[data-ffc-ve-gradient-at]');
-			if (color && color !== document.activeElement) {
+			var clear = row.querySelector('[data-ffc-ve-gradient-clear]');
+			if (clear) {
+				clear.checked = stop.color === 'transparent';
+			}
+			if (color && color !== document.activeElement && stop.color !== 'transparent') {
 				color.value = stop.color;
 			}
 			if (at && at !== document.activeElement) {

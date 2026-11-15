@@ -1345,7 +1345,9 @@ class CertTemplateAdminScreen {
 									<label for="ffc_ve_gradient_at_<?php echo esc_attr( (string) $stop ); ?>"><?php esc_html_e( 'Position (%)', 'ffcertificate' ); ?></label>
 									<input type="number" id="ffc_ve_gradient_at_<?php echo esc_attr( (string) $stop ); ?>" min="0" max="100" step="1" data-ffc-ve-gradient-at>
 								</p>
-							</div></div>
+							</div>
+							<p><label><input type="checkbox" data-ffc-ve-gradient-clear> <?php esc_html_e( 'Transparent', 'ffcertificate' ); ?></label></p>
+							</div>
 						<?php endfor; ?>
 						<p>
 							<?php

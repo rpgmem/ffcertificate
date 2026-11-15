@@ -34210,8 +34210,8 @@ msgstr "image — attachment_id, uma imagem da Biblioteca de Mídia, ou token {{
 msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
 msgstr "qr — o QR code de validação, no tamanho do lado menor da sua caixa; margin."
 
-msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, with fill as the fallback); the border is drawn inside the box."
-msgstr "frame — border_width, border_style, border_color, radius, fill e gradient ({angle, stops: [{color, at}]}, de duas a cinco cores, com fill como reserva); a borda é desenhada dentro da caixa."
+msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, each hex or transparent, with fill as the fallback); the border is drawn inside the box."
+msgstr "frame — border_width, border_style, border_color, radius, fill e gradient ({angle, stops: [{color, at}]}, de duas a cinco cores, cada uma hex ou transparent, com fill como reserva); a borda é desenhada dentro da caixa."
 
 msgid "html — a block of HTML, filtered by the same rules as an HTML template."
 msgstr "html — um bloco de HTML, filtrado pelas mesmas regras de um modelo HTML."
@@ -34823,3 +34823,6 @@ msgstr "Arrastar sobre a página"
 
 msgid "Select what the rectangle touches; with Shift, add it"
 msgstr "Selecionar o que o retângulo toca; com Shift, acrescentar"
+
+msgid "Transparent"
+msgstr "Transparente"
