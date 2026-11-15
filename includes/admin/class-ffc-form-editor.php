@@ -382,6 +382,19 @@ class FormEditor {
 		$image  = isset( $_POST['bg_image'] ) ? esc_url_raw( wp_unslash( $_POST['bg_image'] ) ) : '';
 		$color  = isset( $_POST['bg_color'] ) ? \FreeFormCertificate\Core\FormBackground::normalize_color( sanitize_text_field( wp_unslash( $_POST['bg_color'] ) ) ) : \FreeFormCertificate\Core\FormBackground::DEFAULT_COLOR;
 
+		// A form that references a template previews the template, with the
+		// values typed into its fields so far (#2581).
+		$template_id = \FreeFormCertificate\Core\RequestInput::get_post_int( 'template_id', 0 );
+		if ( \FreeFormCertificate\Core\CertificateTemplateLink::is_usable_template( $template_id ) ) {
+			$values = \FreeFormCertificate\Core\TemplateFields::sanitize_values(
+				\FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id ),
+				\FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'template_values' )
+			);
+			$layout = wp_kses( \FreeFormCertificate\Core\CertificateTemplateLink::layout( $template_id, $values ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+			$image  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_image( $template_id );
+			$color  = \FreeFormCertificate\Core\CertificateTemplateLink::bg_color( $template_id );
+		}
+
 		$fields = array();
 		foreach ( \FreeFormCertificate\Core\RequestInput::get_post_raw_array( 'fields' ) as $field ) {
 			if ( ! is_array( $field ) ) {

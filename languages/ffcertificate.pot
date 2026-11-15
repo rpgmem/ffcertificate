@@ -33874,3 +33874,90 @@ msgstr ""
 
 msgid "move the event date typed into a layout onto the form's event date, with {{schedule:date}} in its place, in the format it was typed. The card lists what the next run changes before it runs, checks that each certificate prints the same text, and lists every form it left alone with the reason."
 msgstr ""
+
+msgid "Template fields"
+msgstr ""
+
+msgid "Each form that references this template fills these fields on its Layout tab. Print one in the HTML as {{model:key}}; a date also takes {{model:key:format=d/m/Y}}."
+msgstr ""
+
+msgid "Key"
+msgstr ""
+
+msgid "Add field"
+msgstr ""
+
+msgid "Removing a field leaves the values forms filled stored and unused. A required field the forms have not filled is reported when each form is saved."
+msgstr ""
+
+msgid "Short text"
+msgstr ""
+
+msgid "Long text"
+msgstr ""
+
+msgid "Remove field"
+msgstr ""
+
+msgid "Layout source"
+msgstr ""
+
+msgid "Own layout"
+msgstr ""
+
+msgid "The form keeps its own copy of the HTML; editing a template does not change it."
+msgstr ""
+
+msgid "The form prints a template from the pool; editing the template changes this form and its certificates."
+msgstr ""
+
+msgid "The template this form referenced is no longer available, so it prints its own layout. Choose another template or keep the own layout."
+msgstr ""
+
+msgid "The template pool has no certificate template to reference."
+msgstr ""
+
+msgid "— Choose a template —"
+msgstr ""
+
+msgid "Edit template"
+msgstr ""
+
+msgid "This template declares no fields for the form to fill."
+msgstr ""
+
+msgid "(required)"
+msgstr ""
+
+msgid "An empty field prints the template’s default, shown in grey."
+msgstr ""
+
+msgid "A field the certificate template declares, filled by each form that references the template, or the field's default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written."
+msgstr ""
+
+msgid "Copy or reference a certificate template"
+msgstr ""
+
+msgid "The Layout tab of a form chooses its Layout source. Own layout is the copy described above. Template makes the form print a certificate template from the pool, with its background: editing that template changes every form that references it, and their certificates already issued, the next time they are generated or verified. The template's edit screen says how many forms and certificates that is before you save."
+msgstr ""
+
+msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
+msgstr ""
+
+msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too; they declare no fields."
+msgstr ""
+
+msgid "The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank."
+msgstr ""
+
+#. translators: 1: number of forms, 2: number of issued certificates
+msgid "%1$s form prints this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgid_plural "%1$s forms print this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of forms
+msgid "Used by %s form."
+msgid_plural "Used by %s forms."
+msgstr[0] ""
+msgstr[1] ""

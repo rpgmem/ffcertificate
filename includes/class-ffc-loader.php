@@ -351,6 +351,8 @@ class Loader {
 				add_action( 'admin_init', array( \FreeFormCertificate\Admin\CertTemplateSeeder::class, 'maybe_seed' ) );
 				// Management UI: list-table columns + visibility toggle (#865).
 				new \FreeFormCertificate\Admin\CertTemplateAdminScreen();
+				// Fields a template declares for the forms that reference it (#2581).
+				new \FreeFormCertificate\Admin\CertTemplateFieldsMetabox();
 				// Global per-mode appointment-receipt template selection (#945).
 				new \FreeFormCertificate\Admin\CertTemplateReceiptSettings();
 			}

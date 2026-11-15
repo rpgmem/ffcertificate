@@ -127,11 +127,64 @@ class FormEditorLayoutMetaboxTest extends TestCase {
 			return '_ffc_form_config' === $key ? array() : '1';
 		} );
 
+		// The stored '1' names no template the form can reference (#2581).
+		Functions\when( 'get_post' )->justReturn( null );
+		$this->stub_template_panel();
+
 		$html = $this->render_for_post( 11 );
 
 		$this->assertStringContainsString( 'id="ffc_load_template_btn"', $html );
 		$this->assertStringNotContainsString( 'ffc_template_select', $html );
-		$this->assertStringNotContainsString( '<select', $html );
+		$this->assertSame( 1, substr_count( $html, '<select' ), 'the only select is the Layout source picker of #2581' );
+		$this->assertStringContainsString( 'id="ffc_layout_template_id"', $html );
+	}
+
+	private function stub_template_panel(): void {
+		Functions\when( 'selected' )->alias(
+			static function ( $a, $b ) {
+				echo (string) $a === (string) $b ? ' selected="selected"' : '';
+			}
+		);
+		Functions\when( '_n' )->alias( static fn( $single, $plural, $n ) => 1 === $n ? $single : $plural );
+		Functions\when( 'number_format_i18n' )->alias( static fn( $n ) => (string) $n );
+		Functions\when( 'get_edit_post_link' )->justReturn( 'post.php?post=50&action=edit' );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_text_field' )->alias( static fn( $v ) => trim( (string) $v ) );
+	}
+
+	public function test_a_form_that_references_a_template_shows_its_panel_and_fields(): void {
+		$this->stub_template_panel();
+		Functions\when( 'current_user_can' )->justReturn( true );
+		$template              = new \WP_Post();
+		$template->ID          = 50;
+		$template->post_title  = 'Declaration';
+		$template->post_type   = 'ffc_cert_template';
+		$template->post_status = 'publish';
+		Functions\when( 'get_post' )->justReturn( $template );
+		Functions\when( 'get_posts' )->alias( static fn( $args ) => isset( $args['meta_key'] ) && '_ffc_layout_template_id' === $args['meta_key'] ? array( 11, 12 ) : array( $template ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				$meta = array(
+					'_ffc_form_config'        => array( 'pdf_layout' => '<p>own</p>' ),
+					'_ffc_layout_template_id' => '50',
+					'_ffc_template_values'    => array( 'local' => 'Sala 2' ),
+					'_ffc_template_fields'    => array( array( 'key' => 'local', 'label' => 'Place', 'required' => '1' ) ),
+					'_ffc_template_visible'   => '1',
+				);
+				return $meta[ $key ] ?? '';
+			}
+		);
+
+		$html = $this->render_for_post( 11 );
+
+		$this->assertMatchesRegularExpression( '/<tr class="ffc-layout-own" hidden>/', $html, 'the own editor is hidden' );
+		$this->assertStringContainsString( 'name="ffc_layout_template_id"', $html );
+		$this->assertStringContainsString( '<option value="50"  selected="selected">Declaration</option>', $html );
+		$this->assertStringContainsString( 'data-template-id="50">', $html, 'the chosen panel shows' );
+		$this->assertStringContainsString( 'Used by 2 forms.', $html );
+		$this->assertStringContainsString( 'name="ffc_template_values[50][local]"', $html );
+		$this->assertStringContainsString( 'value="Sala 2"', $html );
+		$this->assertStringContainsString( '{{model:local}}', $html );
 	}
 
 	public function test_load_button_is_omitted_when_the_pool_is_empty(): void {

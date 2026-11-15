@@ -42,10 +42,47 @@ class FormEditorLayoutMetabox {
 		// that no script read (#1625).
 		$templates = CertTemplateReader::list_for_editor();
 
+		// The form prints its own copy, or references a template (#2581).
+		$linked_id   = \FreeFormCertificate\Core\CertificateTemplateLink::template_id( (int) $post->ID );
+		$stored_id   = \FreeFormCertificate\Core\CertificateTemplateLink::stored_template_id( (int) $post->ID );
+		$own_hidden  = $linked_id > 0;
+		$link_values = \FreeFormCertificate\Core\CertificateTemplateLink::values( (int) $post->ID );
+
 		wp_nonce_field( 'ffc_save_form_data', 'ffc_form_nonce' );
 		?>
 		<table class="form-table">
 			<tr>
+				<th><?php esc_html_e( 'Layout source', 'ffcertificate' ); ?></th>
+				<td>
+					<?php
+					AdminUI::render_segmented(
+						array(
+							'name'         => 'ffc_layout_source',
+							'id'           => 'ffc_layout_source',
+							'legend'       => __( 'Layout source', 'ffcertificate' ),
+							'options'      => array(
+								'own'      => __( 'Own layout', 'ffcertificate' ),
+								'template' => __( 'Template', 'ffcertificate' ),
+							),
+							'value'        => $linked_id > 0 ? 'template' : 'own',
+							'descriptions' => array(
+								'own'      => __( 'The form keeps its own copy of the HTML; editing a template does not change it.', 'ffcertificate' ),
+								'template' => __( 'The form prints a template from the pool; editing the template changes this form and its certificates.', 'ffcertificate' ),
+							),
+						)
+					);
+					if ( $stored_id > 0 && 0 === $linked_id ) {
+						\FreeFormCertificate\Core\AdminNotice::callout(
+							'warning',
+							'<p>' . esc_html__( 'The template this form referenced is no longer available, so it prints its own layout. Choose another template or keep the own layout.', 'ffcertificate' ) . '</p>',
+							array( 'classes' => array( 'inline' ) )
+						);
+					}
+					$this->render_template_link( $linked_id, $link_values );
+					?>
+				</td>
+			</tr>
+			<tr class="ffc-layout-own"<?php echo $own_hidden ? ' hidden' : ''; ?>>
 				<th><label><?php esc_html_e( 'Actions', 'ffcertificate' ); ?></label></th>
 				<td>
 					<div class="ffc-admin-flex-row ffc-flex-wrap">
@@ -108,7 +145,7 @@ class FormEditorLayoutMetabox {
 					</div>
 				</td>
 			</tr>
-			<tr>
+			<tr class="ffc-layout-own"<?php echo $own_hidden ? ' hidden' : ''; ?>>
 				<td colspan="2">
 					<label class="ffc-block-label"><strong><?php esc_html_e( 'Certificate HTML Editor', 'ffcertificate' ); ?></strong></label>
 					<?php
@@ -161,6 +198,125 @@ class FormEditorLayoutMetabox {
 				</td>
 			</tr>
 		</table>
+		<?php
+	}
+
+	/**
+	 * The template picker, and the inputs for each template's declared fields
+	 * (#2581). Every template's inputs are printed and only the chosen one's
+	 * show, so switching needs no request; the save reads only the chosen one.
+	 *
+	 * @param int                   $linked_id The template the form references, or 0.
+	 * @param array<string, string> $values    The values the form filled.
+	 */
+	private function render_template_link( int $linked_id, array $values ): void {
+		$templates = CertTemplateReader::list_for_editor();
+		$ids       = array_map( 'intval', array_column( $templates, 'id' ) );
+		if ( $linked_id > 0 && ! in_array( $linked_id, $ids, true ) ) {
+			// A hidden template the form already references stays choosable.
+			$templates[] = array(
+				'id'    => $linked_id,
+				'label' => get_the_title( $linked_id ),
+			);
+		}
+		?>
+		<div class="ffc-layout-template ffc-mt-md"<?php echo 0 === $linked_id ? ' hidden' : ''; ?>>
+			<?php if ( array() === $templates ) : ?>
+				<p class="description"><?php esc_html_e( 'The template pool has no certificate template to reference.', 'ffcertificate' ); ?></p>
+			<?php else : ?>
+				<p>
+					<label for="ffc_layout_template_id" class="ffc-block-label"><strong><?php esc_html_e( 'Template', 'ffcertificate' ); ?></strong></label>
+					<select name="ffc_layout_template_id" id="ffc_layout_template_id">
+						<option value="0"><?php esc_html_e( '— Choose a template —', 'ffcertificate' ); ?></option>
+						<?php foreach ( $templates as $template ) : ?>
+							<option value="<?php echo esc_attr( (string) $template['id'] ); ?>" <?php selected( (int) $template['id'], $linked_id ); ?>><?php echo esc_html( (string) $template['label'] ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</p>
+				<?php
+				foreach ( $templates as $template ) {
+					$this->render_template_panel( (int) $template['id'], (int) $template['id'] === $linked_id, $values );
+				}
+				?>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
+	/**
+	 * One template's panel: who else uses it, its links and its fields.
+	 *
+	 * @param int                   $template_id Template post id.
+	 * @param bool                  $shown       Whether it is the chosen one.
+	 * @param array<string, string> $values      The values the form filled.
+	 */
+	private function render_template_panel( int $template_id, bool $shown, array $values ): void {
+		$fields = \FreeFormCertificate\Core\CertificateTemplateLink::fields( $template_id );
+		$forms  = count( \FreeFormCertificate\Core\CertificateTemplateLink::forms_using( $template_id ) );
+		$edit   = get_edit_post_link( $template_id, 'raw' );
+		?>
+		<div class="ffc-layout-template-panel" data-template-id="<?php echo esc_attr( (string) $template_id ); ?>"<?php echo $shown ? '' : ' hidden'; ?>>
+			<p class="description">
+				<?php
+				echo esc_html(
+					sprintf(
+						/* translators: %s: number of forms */
+						_n( 'Used by %s form.', 'Used by %s forms.', $forms, 'ffcertificate' ),
+						number_format_i18n( $forms )
+					)
+				);
+				?>
+			</p>
+			<div class="ffc-action-group">
+				<?php
+				AdminUI::render_button(
+					array(
+						'label' => __( 'Preview', 'ffcertificate' ),
+						'icon'  => 'eye',
+						'class' => 'ffc-btn-preview-template',
+					)
+				);
+				if ( is_string( $edit ) && '' !== $edit && current_user_can( 'edit_post', $template_id ) ) {
+					AdminUI::render_button(
+						array(
+							'label' => __( 'Edit template', 'ffcertificate' ),
+							'icon'  => 'edit',
+							'href'  => $edit,
+						)
+					);
+				}
+				?>
+			</div>
+			<?php if ( array() === $fields ) : ?>
+				<p class="description"><?php esc_html_e( 'This template declares no fields for the form to fill.', 'ffcertificate' ); ?></p>
+			<?php else : ?>
+				<h4><?php esc_html_e( 'Template fields', 'ffcertificate' ); ?></h4>
+				<?php
+				foreach ( $fields as $field ) {
+					$id    = 'ffc_template_value_' . $template_id . '_' . $field['key'];
+					$name  = 'ffc_template_values[' . $template_id . '][' . $field['key'] . ']';
+					$value = $values[ $field['key'] ] ?? '';
+					?>
+					<p class="ffc-input-group">
+						<label for="<?php echo esc_attr( $id ); ?>" class="ffc-block-label">
+							<strong><?php echo esc_html( $field['label'] ); ?></strong>
+							<?php if ( $field['required'] ) : ?>
+								<?php esc_html_e( '(required)', 'ffcertificate' ); ?>
+							<?php endif; ?>
+							<code>{{model:<?php echo esc_html( $field['key'] ); ?>}}</code>
+						</label>
+						<?php if ( 'textarea' === $field['type'] ) : ?>
+							<textarea name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $id ); ?>" rows="3" class="ffc-w100" placeholder="<?php echo esc_attr( $field['default'] ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
+						<?php else : ?>
+							<input type="<?php echo 'date' === $field['type'] ? 'date' : 'text'; ?>" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $value ); ?>" class="<?php echo 'date' === $field['type'] ? '' : 'ffc-w100'; ?>" placeholder="<?php echo esc_attr( $field['default'] ); ?>">
+						<?php endif; ?>
+					</p>
+					<?php
+				}
+				?>
+				<p class="description"><?php esc_html_e( 'An empty field prints the template’s default, shown in grey.', 'ffcertificate' ); ?></p>
+			<?php endif; ?>
+		</div>
 		<?php
 	}
 }
