@@ -34190,14 +34190,10 @@ msgstr "O layout não foi salvo."
 msgid "Visual layout (JSON)"
 msgstr "Layout visual (JSON)"
 
-msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates."
-msgstr "A página como uma lista de elementos posicionados, em pixels da página (1123 × 794 paisagem, 794 × 1123 retrato). Salvar verifica o layout e gera a partir dele o HTML do certificado; o editor de página substitui este campo numa versão futura. O formato está descrito em Configurações → Documentação → Modelos de documento."
 
 msgid "Visual certificate templates"
 msgstr "Modelos de certificado visuais"
 
-msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. Until the page editor arrives, the layout is edited as JSON in the template's Visual layout field, and a layout that does not check out is not saved and says why."
-msgstr "Um novo modelo de certificado escolhe o seu editor: HTML ou Visual. Um modelo visual é uma lista de elementos posicionados na página; o HTML do certificado é gerado a partir dele a cada salvamento e passa pela mesma captura que qualquer modelo, então os formulários o referenciam, visualizam e imprimem da mesma forma. Até o editor de página chegar, o layout é editado como JSON no campo Layout visual do modelo, e um layout que não passa na verificação não é salvo e diz o motivo."
 
 msgid "The format: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element."
 msgstr "O formato: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Posições e tamanhos são pixels da página — 1123 × 794 paisagem, 794 × 1123 retrato — como x, y, w e h, com rotation em graus e locked. A ordem da lista é a ordem de empilhamento, o primeiro elemento ao fundo; a imagem de fundo e a cor da página ficam abaixo de todos os elementos."
@@ -34295,3 +34291,111 @@ msgstr "Um segundo card passa os formulários com cópias de um mesmo layout par
 
 msgid "Many forms carrying copies of one layout can be moved onto a shared template at once. Copy one form's layout into a new certificate template, put a {{model:key}} token where the forms differ (the place, the action) and the {{signer:…}} tokens where the signer is typed, declare the fields and add the signers under Certificates → Signers. The \"Move Copied Layouts onto a Shared Template\" card under Settings → Data Migrations then fills each form's fields with what it typed in place of each token and switches it, but only when its certificate prints exactly what it printed before; it previews each form first and lists the rest with the reason. Several families of copies take one template each."
 msgstr "Muitos formulários com cópias de um mesmo layout podem passar de uma vez para um modelo compartilhado. Copie o layout de um formulário para um novo modelo de certificado, coloque um token {{model:chave}} onde os formulários diferem (o local, a ação) e os tokens {{signer:…}} onde o assinante está digitado, declare os campos e adicione os assinantes em Certificados → Assinantes. O card \"Mover layouts copiados para um modelo compartilhado\" em Configurações → Migrações de Dados preenche então os campos de cada formulário com o que ele digitou no lugar de cada token e o troca, mas só quando o certificado imprime exatamente o que imprimia antes; ele mostra cada formulário antes de executar e lista os demais com o motivo. Cada família de cópias usa um modelo próprio."
+
+msgid "Align bottom"
+msgstr "Alinhar embaixo"
+
+msgid "Align left"
+msgstr "Alinhar à esquerda"
+
+msgid "Align right"
+msgstr "Alinhar à direita"
+
+msgid "Align to page"
+msgstr "Alinhar à página"
+
+msgid "Align top"
+msgstr "Alinhar em cima"
+
+msgid "Back to the last save. Save with the Update button."
+msgstr "Volta ao último salvamento. Salve com o botão Atualizar."
+
+msgid "Background (page colour and image)"
+msgstr "Fundo (cor e imagem da página)"
+
+msgid "Bring forward"
+msgstr "Trazer para frente"
+
+msgid "Centre horizontally"
+msgstr "Centralizar na horizontal"
+
+msgid "Centre vertically"
+msgstr "Centralizar na vertical"
+
+msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it."
+msgstr "Página do certificado. Selecione um elemento; as setas o movem 1 pixel, com Shift 10, e Delete o remove."
+
+msgid "Data field"
+msgstr "Campo de dados"
+
+msgid "Discard changes"
+msgstr "Descartar alterações"
+
+msgid "Discard changes?"
+msgstr "Descartar alterações?"
+
+msgid "Editing the page needs a window at least 1280 pixels wide and a mouse or trackpad. Your changes are kept: widen the window to go on. Meanwhile you can still open the template list or the test PDF."
+msgstr "Editar a página exige uma janela com pelo menos 1280 pixels de largura e um mouse ou trackpad. Suas alterações ficam guardadas: alargue a janela para continuar. Enquanto isso, você ainda pode abrir a lista de modelos ou o PDF de teste."
+
+msgid "Fit to screen"
+msgstr "Ajustar à tela"
+
+msgid "HTML block"
+msgstr "Bloco HTML"
+
+msgid "Image"
+msgstr "Imagem"
+
+msgid "Insert"
+msgstr "Inserir"
+
+msgid "Landscape"
+msgstr "Paisagem"
+
+msgid "Layers"
+msgstr "Camadas"
+
+msgid "Lock"
+msgstr "Travar"
+
+msgid "Orientation"
+msgstr "Orientação"
+
+msgid "Portrait"
+msgstr "Retrato"
+
+msgid "QR code"
+msgstr "QR code"
+
+msgid "Send backward"
+msgstr "Enviar para trás"
+
+msgid "Snap to a 10 px grid"
+msgstr "Encaixar numa grade de 10 px"
+
+msgid "Template list"
+msgstr "Lista de modelos"
+
+msgid "Test PDF"
+msgstr "PDF de teste"
+
+msgid "The first in the list is in front. Drag to reorder, or use the arrows."
+msgstr "A primeira da lista fica à frente. Arraste para reordenar, ou use as setas."
+
+msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates."
+msgstr "A página como uma lista de elementos posicionados, em pixels da página (1123 × 794 paisagem, 794 × 1123 retrato); o editor acima a mantém atualizada. Salvar verifica o layout e gera a partir dele o HTML do certificado. O formato está descrito em Configurações → Documentação → Modelos de documento."
+
+msgid "The page goes back to the last save; what changed since is lost."
+msgstr "A página volta ao último salvamento; o que mudou desde então se perde."
+
+msgid "Unlock"
+msgstr "Destravar"
+
+msgid "Zoom"
+msgstr "Zoom"
+
+msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. A layout that does not check out is not saved and says why."
+msgstr "Um novo modelo de certificado escolhe o seu editor: HTML ou Visual. Um modelo visual é uma lista de elementos posicionados na página; o HTML do certificado é gerado a partir dele a cada salvamento e passa pela mesma captura que qualquer modelo, então os formulários o referenciam, visualizam e imprimem da mesma forma. Um layout que não passa na verificação não é salvo e diz o motivo."
+
+msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for what the canvas does not set yet."
+msgstr "A tela do modelo edita a página num canvas: Inserir adiciona um elemento no meio da página; arraste-o para movê-lo e suas alças para redimensioná-lo, numa grade de 10 px a menos que o encaixe esteja desligado; as setas movem o elemento selecionado 1 px, 10 com Shift, e Delete o remove. Página define a orientação e o zoom, que muda só a visão, e alinha o elemento selecionado a um lado ou ao meio da página. Camadas lista os elementos da frente para trás: arraste uma linha, ou use suas setas, para reempilhar, e trave um elemento para mantê-lo no lugar; o fundo é sempre a camada de baixo. Descartar alterações volta ao último salvamento. Editar exige uma janela com pelo menos 1280 pixels de largura e um mouse ou trackpad; numa menor a tela avisa e guarda o trabalho. O JSON do layout continua abaixo do canvas, para o que o canvas ainda não define."

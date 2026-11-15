@@ -100,7 +100,8 @@
 	display: block;
 	overflow: hidden;
 	padding: var(--ffc-spacing-3xs);
-	font-size: var(--ffc-font-size-sm);
+	/* Drawn at page size and scaled down with the page, so the largest step. */
+	font-size: var(--ffc-font-size-2xl);
 	white-space: pre-wrap;
 	pointer-events: none;
 }

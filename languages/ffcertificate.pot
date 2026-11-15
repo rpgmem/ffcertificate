@@ -34108,14 +34108,10 @@ msgstr ""
 msgid "Visual layout (JSON)"
 msgstr ""
 
-msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates."
-msgstr ""
 
 msgid "Visual certificate templates"
 msgstr ""
 
-msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. Until the page editor arrives, the layout is edited as JSON in the template's Visual layout field, and a layout that does not check out is not saved and says why."
-msgstr ""
 
 msgid "The format: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element."
 msgstr ""
@@ -34212,4 +34208,112 @@ msgid "A second card moves forms carrying copies of one layout onto a shared tem
 msgstr ""
 
 msgid "Many forms carrying copies of one layout can be moved onto a shared template at once. Copy one form's layout into a new certificate template, put a {{model:key}} token where the forms differ (the place, the action) and the {{signer:…}} tokens where the signer is typed, declare the fields and add the signers under Certificates → Signers. The \"Move Copied Layouts onto a Shared Template\" card under Settings → Data Migrations then fills each form's fields with what it typed in place of each token and switches it, but only when its certificate prints exactly what it printed before; it previews each form first and lists the rest with the reason. Several families of copies take one template each."
+msgstr ""
+
+msgid "Align bottom"
+msgstr ""
+
+msgid "Align left"
+msgstr ""
+
+msgid "Align right"
+msgstr ""
+
+msgid "Align to page"
+msgstr ""
+
+msgid "Align top"
+msgstr ""
+
+msgid "Back to the last save. Save with the Update button."
+msgstr ""
+
+msgid "Background (page colour and image)"
+msgstr ""
+
+msgid "Bring forward"
+msgstr ""
+
+msgid "Centre horizontally"
+msgstr ""
+
+msgid "Centre vertically"
+msgstr ""
+
+msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it."
+msgstr ""
+
+msgid "Data field"
+msgstr ""
+
+msgid "Discard changes"
+msgstr ""
+
+msgid "Discard changes?"
+msgstr ""
+
+msgid "Editing the page needs a window at least 1280 pixels wide and a mouse or trackpad. Your changes are kept: widen the window to go on. Meanwhile you can still open the template list or the test PDF."
+msgstr ""
+
+msgid "Fit to screen"
+msgstr ""
+
+msgid "HTML block"
+msgstr ""
+
+msgid "Image"
+msgstr ""
+
+msgid "Insert"
+msgstr ""
+
+msgid "Landscape"
+msgstr ""
+
+msgid "Layers"
+msgstr ""
+
+msgid "Lock"
+msgstr ""
+
+msgid "Orientation"
+msgstr ""
+
+msgid "Portrait"
+msgstr ""
+
+msgid "QR code"
+msgstr ""
+
+msgid "Send backward"
+msgstr ""
+
+msgid "Snap to a 10 px grid"
+msgstr ""
+
+msgid "Template list"
+msgstr ""
+
+msgid "Test PDF"
+msgstr ""
+
+msgid "The first in the list is in front. Drag to reorder, or use the arrows."
+msgstr ""
+
+msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates."
+msgstr ""
+
+msgid "The page goes back to the last save; what changed since is lost."
+msgstr ""
+
+msgid "Unlock"
+msgstr ""
+
+msgid "Zoom"
+msgstr ""
+
+msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. A layout that does not check out is not saved and says why."
+msgstr ""
+
+msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for what the canvas does not set yet."
 msgstr ""

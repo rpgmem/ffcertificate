@@ -63,6 +63,7 @@ class TypographyTokensTest extends TestCase {
 	private const BUDGET = array(
 		// Zero is the normal state: the whole sheet paints from the scale.
 		'ffc-admin-move-submissions.css'   => 0,
+		'ffc-visual-editor.css'            => 0,
 		'ffc-admin-submission-edit.css'    => 0,
 		'ffc-admin-submissions.css'        => 0,
 		'ffc-admin-utilities.css'          => 0,

@@ -687,8 +687,10 @@
 			var name = document.createElement('button');
 			name.type = 'button';
 			name.className = 'ffc-ve-layer-name';
+			// The type, and what tells two of a kind apart: a text, a token.
+			var detail = el.type === 'text' || el.type === 'field' || (el.type === 'image' && el.token) ? this.describe(el) : '';
 			name.textContent = (this.s.types && this.s.types[el.type] ? this.s.types[el.type] : el.type)
-				+ (this.describe(el) ? ': ' + this.describe(el) : '');
+				+ (detail ? ': ' + detail : '');
 			name.addEventListener('click', function () {
 				self.selected = el.id;
 				self.render();
