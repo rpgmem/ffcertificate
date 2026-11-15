@@ -582,6 +582,15 @@ class FormEditorSaveHandler {
 				// surface lives on whatever page hosts the shortcode.
 				\FreeFormCertificate\Submissions\FormCache::purge_external_caches( $post_id, 'geofence_changed' );
 				\FreeFormCertificate\Submissions\FormCache::purge_all_pages( $post_id, 'geofence_changed' );
+
+				// A layout that prints the event's date on a form without one
+				// prints nothing there (#2579): saved, but said.
+				$saved_config = get_post_meta( $post_id, '_ffc_form_config', true );
+				$saved_layout = is_array( $saved_config ) ? ArrayValue::string( $saved_config, 'pdf_layout' ) : '';
+				if ( '' === \FreeFormCertificate\Core\EventDate::range_from_config( $merged_geofence )[0]
+					&& \FreeFormCertificate\Core\EventDate::layout_uses_date( $saved_layout ) ) {
+					set_transient( 'ffc_save_event_date_warning_' . get_current_user_id(), 1, 45 );
+				}
 			}
 		}
 	}
@@ -806,9 +815,11 @@ class FormEditorSaveHandler {
 	 *   string we want to allow.
 	 * - `schedule_default_mode` is a whitelist of `now` / `manual`,
 	 *   anything else folds to the default `now`.
+	 * - `class_date_start` / `class_date_end` are the event's date (#2579):
+	 *   a valid `Y-m-d` or empty, an End not after the Start dropped.
 	 *
 	 * @param array<string, mixed> $geofence Raw, unslashed POST payload.
-	 * @return array<string, string> The four sanitized schedule-exception keys.
+	 * @return array<string, string> The sanitized Event Schedule and schedule-exception keys.
 	 */
 	private static function sanitize_schedule_exception_config( array $geofence ): array {
 		$mode = sanitize_key( ArrayValue::string( $geofence, 'schedule_default_mode', 'now' ) );
@@ -816,10 +827,21 @@ class FormEditorSaveHandler {
 			$mode = 'now';
 		}
 
+		// The event's date (#2579): a real `Y-m-d` or empty, and an End that
+		// does not follow the Start reads as a one-day event.
+		list( $date_start, $date_end ) = \FreeFormCertificate\Core\EventDate::range_from_config(
+			array(
+				'class_date_start' => ArrayValue::string( $geofence, 'class_date_start' ),
+				'class_date_end'   => ArrayValue::string( $geofence, 'class_date_end' ),
+			)
+		);
+
 		return array(
 			'schedule_exception_enabled' => isset( $geofence['schedule_exception_enabled'] ) ? '1' : '0',
 			'class_time_start'           => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_start' ) ),
 			'class_time_end'             => sanitize_text_field( ArrayValue::string( $geofence, 'class_time_end' ) ),
+			'class_date_start'           => $date_start,
+			'class_date_end'             => $date_end,
 			'schedule_default_mode'      => $mode,
 		);
 	}
@@ -876,6 +898,14 @@ class FormEditorSaveHandler {
 				'error',
 				(string) ob_get_clean(),
 				array( 'paragraph_wrap' => false )
+			);
+		}
+
+		if ( get_transient( 'ffc_save_event_date_warning_' . get_current_user_id() ) ) {
+			delete_transient( 'ffc_save_event_date_warning_' . get_current_user_id() );
+			\FreeFormCertificate\Core\AdminNotice::render(
+				'warning',
+				esc_html__( 'The certificate layout prints the event date ({{schedule:date}} or {{schedule:dates}}), but this form has no event date. Set it under Time → Event Schedule, or certificates print nothing there.', 'ffcertificate' )
 			);
 		}
 

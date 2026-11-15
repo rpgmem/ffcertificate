@@ -73,6 +73,13 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	private array $form_title_cache = array();
 
 	/**
+	 * Event date per form id, as printed (#2579).
+	 *
+	 * @var array<int, string>
+	 */
+	private array $event_date_cache = array();
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SubmissionRepository $repository Repository.
@@ -359,6 +366,20 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 	}
 
 	/**
+	 * The form's event date as the certificate prints it (#2579), cached.
+	 *
+	 * @param int $form_id Form post ID.
+	 * @return string The date, the range, or '' when the form has none.
+	 */
+	private function get_event_date_cached( int $form_id ): string {
+		if ( ! isset( $this->event_date_cache[ $form_id ] ) ) {
+			list( $start, $end )                = \FreeFormCertificate\Core\EventDate::range( $form_id );
+			$this->event_date_cache[ $form_id ] = \FreeFormCertificate\Core\EventDate::format_range( $start, $end );
+		}
+		return $this->event_date_cache[ $form_id ];
+	}
+
+	/**
 	 * Get fixed headers.
 	 *
 	 * @param bool $include_edit_columns Include edit columns.
@@ -381,6 +402,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 			__( 'Consent IP', 'ffcertificate' ),
 			__( 'Consent Text', 'ffcertificate' ),
 			__( 'Status', 'ffcertificate' ),
+			__( 'Event Date', 'ffcertificate' ),
 		);
 
 		if ( $include_edit_columns ) {
@@ -439,6 +461,7 @@ class SubmissionsExportSource implements BatchedExportSourceInterface {
 			$user_ip, // Consent IP.
 			! empty( $row['consent_text'] ) ? $row['consent_text'] : '',
 			! empty( $row['status'] ) ? $row['status'] : 'publish',
+			$this->get_event_date_cached( (int) $row['form_id'] ),
 		);
 
 		if ( $include_edit_columns ) {

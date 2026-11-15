@@ -137,6 +137,14 @@ class PdfHtmlRenderer {
 			$layout     = str_replace( '{{' . $key . '}}', $safe_value, $layout );
 		}
 
+		// {{schedule:date}} / {{schedule:dates}} (#2579): the event's date, with
+		// an optional format, from the keys the generator and the preview pass.
+		$layout = \FreeFormCertificate\Core\EventDate::replace_tokens(
+			$layout,
+			(string) ( $data[ \FreeFormCertificate\Core\EventDate::DATA_START ] ?? '' ),
+			(string) ( $data[ \FreeFormCertificate\Core\EventDate::DATA_END ] ?? '' )
+		);
+
 		// Fix relative URLs to absolute.
 		$site_url = untrailingslashit( get_home_url() );
 		$layout   = preg_replace( '/(src|href|background)=["\']\/([^"\']+)["\']/i', '$1="' . $site_url . '/$2"', $layout ) ?? $layout;

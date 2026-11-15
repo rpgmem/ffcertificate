@@ -19344,9 +19344,6 @@ msgstr ""
 msgid "When checked, next submission will start from ID #1. Only works if table becomes empty."
 msgstr ""
 
-#: includes/admin/class-ffc-form-editor-geofence-metabox.php:129
-msgid "When does this event take place? Renders as {{schedule}} on the certificate template (e.g. '9h às 12h'). When Settings → Certificates requires {{schedule}}, the template must contain it — the form save is blocked until the placeholder is present."
-msgstr ""
 
 #: includes/settings/views/documentation/feature-self-scheduling.php:43
 msgid "When enabled, a full slot/block lets users join a queue (with an optional waitlist capacity) instead of being turned away. Off by default."
@@ -23580,8 +23577,6 @@ msgstr ""
 msgid "What a visitor sees when the location check fails."
 msgstr ""
 
-msgid "When the event takes place, printed as {{schedule}} on the certificate."
-msgstr ""
 
 msgid "When the form accepts submissions, and what visitors see outside that window."
 msgstr ""
@@ -33801,4 +33796,39 @@ msgid "Replace this layout with the current version of \"%s\"? The editor change
 msgstr ""
 
 msgid "Loading a certificate model copies its HTML into the form, so when a release improves a default, forms that copied an earlier version keep it: certificates are regenerated from the form's layout, and changing it silently would change certificates already issued. The form's layout box says so instead, when the layout is an unedited copy of an earlier version, with an Update layout button that loads the current version into the editor. Nothing changes until the form is saved; an edited copy is never offered one."
+msgstr ""
+
+msgid "Event Date"
+msgstr ""
+
+msgid "Event date:"
+msgstr ""
+
+msgid "Leave End empty for a one-day event. The opening window below is a different date: copy it here only when the two coincide."
+msgstr ""
+
+msgid "The Event Schedule also holds the event's date: Start, and End for an event of several days. {{schedule:date}} and {{schedule:dates}} print it on the certificate, in the submissions export and on the verification page. It is a different date from the opening window and never follows it; \"Use the opening date\" copies it only when clicked. Saving a form whose layout prints the date without an event date shows a warning."
+msgstr ""
+
+msgid "The certificate layout prints the event date ({{schedule:date}} or {{schedule:dates}}), but this form has no event date. Set it under Time → Event Schedule, or certificates print nothing there."
+msgstr ""
+
+msgid "The event's day for a one-day event, or its first and last days. Takes the same format as {{schedule:date}}."
+msgstr ""
+
+msgid "The event's first day, from the Event Schedule date on the Time tab — never the form's opening date. Empty when the form has no event date. Add a PHP date format to choose how it prints, as in {{schedule:date:format=d/m/Y}}; without one it uses the PDF date format from Settings → General."
+msgstr ""
+
+msgid "Use the opening date"
+msgstr ""
+
+msgid "When does this event take place? On the certificate, {{schedule}} prints the hours, {{schedule:date}} the first day and {{schedule:dates}} the day or the first and last days. Both date tokens take a format, as in {{schedule:date:format=d/m/Y}}; without one they use the PDF date format from Settings → General. When Settings → Certificates requires a token, the template must contain it — the form save is blocked until it is present."
+msgstr ""
+
+msgid "When the event takes place, printed on the certificate. It does not open or close the form."
+msgstr ""
+
+#. translators: 1: first day of an event, 2: last day of the event
+msgctxt "event date range"
+msgid "%1$s to %2$s"
 msgstr ""

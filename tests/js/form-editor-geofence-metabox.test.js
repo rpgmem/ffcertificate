@@ -133,3 +133,39 @@ describe('ffc-form-editor-geofence-metabox — geo area-source toggle', () => {
 		expect(window.$('.ffc-geo-source-custom').hasClass('ffc-hidden')).toBe(true);
 	});
 });
+
+describe('ffc-form-editor-geofence-metabox — event date (#2579)', () => {
+	function install(opening) {
+		document.body.innerHTML = `
+			<input type="date" id="ffc_geofence_date_start" value="${opening}">
+			<input type="date" id="ffc_event_date_start" value="">
+			<input type="date" id="ffc_event_date_end" value="">
+			<button type="button" id="ffc_event_date_from_opening">Use the opening date</button>
+		`;
+	}
+
+	it('copies the opening date only when the button is clicked', async () => {
+		install('2025-12-19');
+		await loadOnReady();
+		expect(window.$('#ffc_event_date_start').val()).toBe('');
+		window.$('#ffc_event_date_from_opening').trigger('click');
+		expect(window.$('#ffc_event_date_start').val()).toBe('2025-12-19');
+		expect(window.$('#ffc_event_date_end').attr('min')).toBe('2025-12-19');
+	});
+
+	it('leaves the event date alone when there is no opening date', async () => {
+		install('');
+		await loadOnReady();
+		window.$('#ffc_event_date_from_opening').trigger('click');
+		expect(window.$('#ffc_event_date_start').val()).toBe('');
+	});
+
+	it('keeps the End from preceding the Start', async () => {
+		install('');
+		await loadOnReady();
+		window.$('#ffc_event_date_start').val('2026-03-02').trigger('change');
+		expect(window.$('#ffc_event_date_end').attr('min')).toBe('2026-03-02');
+		window.$('#ffc_event_date_start').val('').trigger('change');
+		expect(window.$('#ffc_event_date_end').attr('min')).toBeUndefined();
+	});
+});

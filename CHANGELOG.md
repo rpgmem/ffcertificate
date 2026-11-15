@@ -13,6 +13,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A long name or course title can shrink to fit its box** (#2570). The template classes `ffc-fit` (one line, fits the width) and `ffc-fit-box` (wraps, fits the height) shrink the text before the capture, never below half its size, in the PDF and in the editor preview.
 - **The template editor and the form layout warn when a template names a font the site has not installed** (#2573), listing each one and how this site installs it. System fonts and generic families never warn, nor does a fallback.
 - **A form whose layout is an unedited copy of an earlier default model is offered the current one** (#2577). Its layout box names the model, and Update layout loads the current version into the editor after a confirmation; nothing changes until the form is saved, and an edited copy is never offered one.
+- **Forms have an event date, printed by `{{schedule:date}}` and `{{schedule:dates}}`** (#2579). Start and End sit in the Time tab's Event Schedule, never follow the opening window, and print in the PDF date format or a `format=` given in the token; the export and the verification page show it too.
 
 ### Changed
 

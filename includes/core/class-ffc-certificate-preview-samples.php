@@ -54,6 +54,7 @@ class CertificatePreviewSamples {
 		$now_full = DateFormatter::format_datetime( $now, 'pdf' );
 
 		list( $schedule, $schedule_total ) = self::resolve_schedule_sample( $form_id );
+		list( $event_start, $event_end )   = self::resolve_event_date_sample( $form_id );
 
 		return array(
 			// Identity.
@@ -149,7 +150,29 @@ class CertificatePreviewSamples {
 			// the §2 docs row.
 			'schedule'                 => $schedule,
 			'schedule_total'           => $schedule_total,
+
+			// The event's date for {{schedule:date}} / {{schedule:dates}}
+			// (#2579): the form's own, else today as the sample.
+			EventDate::DATA_START      => $event_start,
+			EventDate::DATA_END        => $event_end,
 		);
+	}
+
+	/**
+	 * The event date the preview prints: the form's own when it has one,
+	 * else today, so a layout using the date tokens shows a date.
+	 *
+	 * @param int|null $form_id Form post ID, or null.
+	 * @return array{0: string, 1: string} Start and end, `Y-m-d` or ''.
+	 */
+	private static function resolve_event_date_sample( ?int $form_id ): array {
+		if ( null !== $form_id && $form_id > 0 ) {
+			$range = EventDate::range( $form_id );
+			if ( '' !== $range[0] ) {
+				return $range;
+			}
+		}
+		return array( (string) wp_date( 'Y-m-d' ), '' );
 	}
 
 	/**
