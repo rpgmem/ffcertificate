@@ -71,7 +71,7 @@ function markup(json) {
 						<input type="checkbox" data-ffc-ve-gradient-on>
 						<div data-ffc-ve-gradient hidden>
 							<input type="number" data-ffc-ve-gradient-angle>
-							${[0, 1, 2, 3, 4].map((i) => `<div data-ffc-ve-gradient-stop="${i}"><input type="color" data-ffc-ve-gradient-color><input type="number" data-ffc-ve-gradient-at></div>`).join('')}
+							${[0, 1, 2, 3, 4].map((i) => `<div data-ffc-ve-gradient-stop="${i}"><input type="color" data-ffc-ve-gradient-color><input type="number" data-ffc-ve-gradient-at><input type="checkbox" data-ffc-ve-gradient-clear></div>`).join('')}
 							<button type="button" data-ffc-ve-gradient-add>Add</button>
 							<button type="button" data-ffc-ve-gradient-remove>Remove</button>
 						</div>
@@ -489,6 +489,16 @@ describe('ffc-visual-editor.js', () => {
 			fire(q('[data-ffc-ve-gradient-stop="1"] [data-ffc-ve-gradient-at]'), '140');
 			expect(back().gradient).toMatchObject({ angle: 90, stops: [{ at: 0 }, { color: '#2f80ed', at: 100 }] });
 			expect(document.querySelector('[data-ffc-ve-id="back"]').style.backgroundImage).toContain('linear-gradient(90deg');
+
+			// A stop can be clear, and coloured again (#2618).
+			const clear = q('[data-ffc-ve-gradient-stop="1"] [data-ffc-ve-gradient-clear]');
+			clear.checked = true;
+			clear.dispatchEvent(new window.Event('change'));
+			expect(back().gradient.stops[1].color).toBe('transparent');
+			expect(document.querySelector('[data-ffc-ve-id="back"]').style.backgroundImage).toContain('transparent 100%');
+			fire(q('[data-ffc-ve-gradient-stop="1"] [data-ffc-ve-gradient-color]'), '#123456');
+			expect(back().gradient.stops[1].color).toBe('#123456');
+			expect(clear.checked).toBe(false);
 
 			for (let i = 0; i < 4; i++) {
 				q('[data-ffc-ve-gradient-add]').click();

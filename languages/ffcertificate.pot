@@ -34128,7 +34128,7 @@ msgstr ""
 msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
 msgstr ""
 
-msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, with fill as the fallback); the border is drawn inside the box."
+msgid "frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, each hex or transparent, with fill as the fallback); the border is drawn inside the box."
 msgstr ""
 
 msgid "html — a block of HTML, filtered by the same rules as an HTML template."
@@ -34740,4 +34740,7 @@ msgid "Drag over the page"
 msgstr ""
 
 msgid "Select what the rectangle touches; with Shift, add it"
+msgstr ""
+
+msgid "Transparent"
 msgstr ""

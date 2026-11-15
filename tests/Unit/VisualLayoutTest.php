@@ -271,6 +271,35 @@ class VisualLayoutTest extends TestCase {
 		$this->assertStringNotContainsString( 'url(', $html );
 	}
 
+	public function test_a_gradient_stop_may_be_transparent(): void {
+		$layout = VisualLayout::validate(
+			(string) json_encode(
+				array(
+					'version'  => 1,
+					'elements' => array(
+						array(
+							'type'     => 'frame',
+							'fill'     => '',
+							'gradient' => array(
+								'angle' => 135,
+								'stops' => array(
+									array( 'color' => '#0b2545', 'at' => 0 ),
+									array( 'color' => '#0b2545', 'at' => 50 ),
+									array( 'color' => 'transparent', 'at' => 50 ),
+									array( 'color' => 'TRANSPARENT;x', 'at' => 60 ),
+									array( 'color' => 'transparent', 'at' => 100 ),
+								),
+							),
+						),
+					),
+				)
+			)
+		);
+		$this->assertIsArray( $layout );
+		$this->assertSame( array( '#0b2545', '#0b2545', 'transparent', 'transparent' ), array_column( $layout['elements'][0]['gradient']['stops'], 'color' ), 'only the exact keyword' );
+		$this->assertStringContainsString( 'background-image:linear-gradient(135deg,#0b2545 0%,#0b2545 50%,transparent 50%,transparent 100%)', VisualLayout::render( $layout ) );
+	}
+
 	public function test_ids_are_kept_unique(): void {
 		$layout = VisualLayout::validate( '{"version":1,"elements":[{"type":"qr","id":"a"},{"type":"qr","id":"a"},{"type":"qr"},{"type":"qr","id":"el-3"}]}' );
 		$this->assertSame( array( 'a', 'el-2', 'el-3', 'el-4' ), array_column( $layout['elements'], 'id' ) );

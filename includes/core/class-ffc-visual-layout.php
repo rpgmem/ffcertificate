@@ -621,7 +621,11 @@ final class VisualLayout {
 		}
 		$stops = array();
 		foreach ( $value['stops'] as $stop ) {
-			$color = is_array( $stop ) ? self::color( $stop['color'] ?? null, '' ) : '';
+			// A stop may let the ground through: a hard-edged half, such as a
+			// CSS triangle read from an HTML template (#2618).
+			$color = is_array( $stop ) && 'transparent' === ( $stop['color'] ?? null )
+				? 'transparent'
+				: ( is_array( $stop ) ? self::color( $stop['color'] ?? null, '' ) : '' );
 			if ( '' === $color ) {
 				continue;
 			}
