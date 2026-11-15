@@ -368,11 +368,23 @@ final class VisualLayout {
 				self::px( $element['h'] )
 			);
 		}
-		$url = $element['attachment_id'] > 0 ? wp_get_attachment_url( $element['attachment_id'] ) : false;
+		$asset = (string) ( $element['asset'] ?? '' );
+		if ( $element['attachment_id'] <= 0 && '' !== $asset ) {
+			// An image shipped with the plugin (#2606), such as the default
+			// models' signatures.
+			$url  = FFC_PLUGIN_URL . $asset;
+			$size = @getimagesize( FFC_PLUGIN_DIR . $asset ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- An SVG has no raster size; the image then draws contained.
+			$meta = is_array( $size ) ? array(
+				'width'  => $size[0],
+				'height' => $size[1],
+			) : null;
+		} else {
+			$url  = $element['attachment_id'] > 0 ? wp_get_attachment_url( $element['attachment_id'] ) : false;
+			$meta = is_string( $url ) && '' !== $url ? wp_get_attachment_metadata( $element['attachment_id'] ) : null;
+		}
 		if ( ! is_string( $url ) || '' === $url ) {
 			return '';
 		}
-		$meta   = wp_get_attachment_metadata( $element['attachment_id'] );
 		$width  = is_array( $meta ) ? (float) ( $meta['width'] ?? 0 ) : 0.0;
 		$height = is_array( $meta ) ? (float) ( $meta['height'] ?? 0 ) : 0.0;
 
@@ -445,6 +457,7 @@ final class VisualLayout {
 				return array(
 					'attachment_id' => max( 0, (int) ( is_numeric( $element['attachment_id'] ?? null ) ? $element['attachment_id'] : 0 ) ),
 					'token'         => self::SIGNATURE_TOKEN === ( $element['token'] ?? '' ) ? self::SIGNATURE_TOKEN : '',
+					'asset'         => self::asset( $element['asset'] ?? '' ),
 					'fit'           => self::enum( 'image_fit', $element['fit'] ?? null ),
 				);
 			case 'qr':
@@ -498,6 +511,20 @@ final class VisualLayout {
 		$value = is_string( $value ) ? $value : '';
 		$value = (string) preg_replace( '/[^\p{L}\p{N} ,\'"_-]/u', '', $value );
 		return trim( substr( (string) preg_replace( '/\s+/', ' ', $value ), 0, 200 ) );
+	}
+
+	/**
+	 * An image shipped with the plugin, as a path under `assets/img/` that
+	 * names a file the plugin has (#2606); '' for anything else.
+	 *
+	 * @param mixed $value Raw value.
+	 */
+	private static function asset( $value ): string {
+		$value = is_string( $value ) ? $value : '';
+		if ( 1 !== preg_match( '#^assets/img/(?:[a-z0-9_-]+/)*[a-z0-9_.-]+\.(?:png|jpe?g|gif|svg|webp)$#i', $value ) || str_contains( $value, '..' ) ) {
+			return '';
+		}
+		return is_file( FFC_PLUGIN_DIR . $value ) ? $value : '';
 	}
 
 	/**

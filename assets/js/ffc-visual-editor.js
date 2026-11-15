@@ -1311,7 +1311,9 @@
 			if (el.type === 'text' || el.type === 'field') {
 				label.style.cssText = textCss(el);
 			}
-			var picked = el.type === 'image' && !el.token ? this.images[el.attachment_id] : '';
+			var picked = el.type === 'image' && !el.token
+				? (el.attachment_id ? this.images[el.attachment_id] : (el.asset ? String(this.s.pluginUrl || '') + el.asset : ''))
+				: '';
 			if (picked) {
 				var img = document.createElement('img');
 				img.className = 'ffc-ve-el-image' + (el.fit === 'cover' ? ' is-cover' : '');
@@ -1581,6 +1583,7 @@
 			}
 			el.attachment_id = picked.id;
 			el.token = '';
+			el.asset = '';
 			self.images[picked.id] = picked.url;
 			self.changed();
 		});
@@ -1658,7 +1661,7 @@
 			if (name) {
 				name.textContent = el.attachment_id
 					? String(this.s.imageChosen || 'Image #%d').replace('%d', String(el.attachment_id))
-					: (this.s.noImage || '');
+					: (el.asset ? el.asset.split('/').pop() : (this.s.noImage || ''));
 			}
 		}
 		this.renderFontState(el);

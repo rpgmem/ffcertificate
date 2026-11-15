@@ -74,10 +74,11 @@
 		return String(html || '').replace(QR_TOKEN, function (token) {
 			var size = /size=(\d+)/.exec(token);
 			var n = size ? Math.max(10, Math.min(1000, parseInt(size[1], 10))) : 200;
-			var span = document.createElement('span');
-			span.setAttribute('data-ffc-qr', token);
-			span.setAttribute('style', 'display:block;width:' + n + 'px;height:' + n + 'px;margin:0 auto;');
-			return span.outerHTML;
+			// A div: the PDF sheet forces every span inline.
+			var hold = document.createElement('div');
+			hold.setAttribute('data-ffc-qr', token);
+			hold.setAttribute('style', 'display:block;width:' + n + 'px;height:' + n + 'px;margin:0 auto;');
+			return hold.outerHTML;
 		});
 	}
 
@@ -118,6 +119,27 @@
 				}
 			});
 			return Math.max(1, Object.keys(tops).length);
+		};
+		// The box a run of nodes draws: a line, or a few, of one block.
+		this.runRect = env.runRect || function (nodes) {
+			var range = document.createRange();
+			range.setStartBefore(nodes[0]);
+			range.setEndAfter(nodes[nodes.length - 1]);
+			// Only boxes that draw something: a collapsed space at the start of
+			// a run sits where the previous line ended, before a QR code.
+			var tops = {};
+			var box = null;
+			Array.prototype.forEach.call(range.getClientRects(), function (c) {
+				if (c.width <= 0) {
+					return;
+				}
+				tops[Math.round(c.top)] = 1;
+				box = box
+					? { left: Math.min(box.left, c.left), top: Math.min(box.top, c.top), right: Math.max(box.right, c.right), bottom: Math.max(box.bottom, c.bottom) }
+					: { left: c.left, top: c.top, right: c.right, bottom: c.bottom };
+			});
+			box = box || { left: 0, top: 0, right: 0, bottom: 0 };
+			return { left: box.left, top: box.top, width: box.right - box.left, height: box.bottom - box.top, lines: Math.max(1, Object.keys(tops).length) };
 		};
 		var origin = this.rectOf(page);
 		this.ox = origin.left;
@@ -193,7 +215,10 @@
 		var all = el.querySelectorAll('*');
 		for (var i = 0; i < all.length; i++) {
 			var d = all[i];
-			if (!INLINE[d.tagName] || d.hasAttribute('data-ffc-qr')) {
+			if (d.hasAttribute('data-ffc-qr')) {
+				continue;
+			}
+			if (!INLINE[d.tagName]) {
 				return false;
 			}
 			var display = self.styleOf(d).display;
@@ -335,14 +360,61 @@
 		this.add({ type: 'html', x: box.x, y: box.y, w: box.w, h: box.h, html: html }, STATUS.kept, t('html', 'HTML block') + ': ' + (reason ? reason + ' — ' : '') + snippet(releaseQr(inner).replace(/<[^>]*>/g, ' ')));
 	};
 
+	/** One text or field element, from its text, style and box. */
+	Measurer.prototype.addText = function (text, props, box) {
+		var element = { x: box.x, y: box.y, w: box.w, h: box.h };
+		if (FIELD_TOKEN.test(text)) {
+			element.type = 'field';
+			element.token = text;
+			this.add(Object.assign(element, props), STATUS.converted, t('field', 'Data field') + ': ' + text);
+			return;
+		}
+		element.type = 'text';
+		element.text = text;
+		this.add(Object.assign(element, props), STATUS.converted, t('text', 'Text') + ': ' + snippet(text));
+	};
+
+	/** The element whose style a run of nodes draws with, or null when it mixes. */
+	Measurer.prototype.runStyle = function (nodes) {
+		var self = this;
+		var texts = [];
+		nodes.forEach(function (n) {
+			if (n.nodeType === 3) {
+				if (/\S/.test(n.nodeValue)) {
+					texts.push(n.parentNode);
+				}
+				return;
+			}
+			if (n.nodeType === 1 && /\S/.test(n.textContent || '')) {
+				var walker = document.createTreeWalker(n, 4);
+				var node;
+				while ((node = walker.nextNode())) {
+					if (/\S/.test(node.nodeValue)) {
+						texts.push(node.parentNode);
+					}
+				}
+			}
+		});
+		if (!texts.length) {
+			return null;
+		}
+		var first = self.styleOf(texts[0]);
+		var same = texts.every(function (owner) {
+			var s = self.styleOf(owner);
+			return TEXT_KEYS.every(function (k) { return (s[k] || '') === (first[k] || ''); });
+		});
+		return same ? texts[0] : false;
+	};
+
+	/**
+	 * A text block, one element per line it breaks into: at each `<br>` and
+	 * around the QR code. A line keeps the style it is drawn in; a line that
+	 * mixes styles takes the block's, and the report says so (#2606).
+	 */
 	Measurer.prototype.text = function (el, cs) {
 		var box = this.contentBox(el, cs);
 		if (!this.onPage(box)) {
 			this.report.push({ status: STATUS.dropped, label: t('offPage', 'Off the page') + ': ' + snippet(el.textContent) });
-			return;
-		}
-		if (this.isMixed(el, cs)) {
-			this.html(el, cs, box, keepable(el), t('mixed', 'mixed text styles'));
 			return;
 		}
 		// An underline or a shadow is not something a text element draws: the
@@ -356,18 +428,65 @@
 		if (cs.wordSpacing && cs.wordSpacing !== 'normal' && px(cs.wordSpacing) !== 0) {
 			this.report.push({ status: STATUS.dropped, label: t('wordSpacing', 'Word spacing') + ' (' + cs.wordSpacing + '): ' + snippet(el.textContent) });
 		}
-		var text = blockText(el, /^pre/.test(cs.whiteSpace || ''));
-		var props = this.textProps(el, cs, box);
-		var element = { x: box.x, y: box.y, w: box.w, h: box.h };
-		if (FIELD_TOKEN.test(text)) {
-			element.type = 'field';
-			element.token = text;
-			this.add(Object.assign(element, props), STATUS.converted, t('field', 'Data field') + ': ' + text);
+		var pre = /^pre/.test(cs.whiteSpace || '');
+
+		// One style and no QR code: the whole block is one element.
+		if (!el.querySelector('[data-ffc-qr]') && !this.isMixed(el, cs)) {
+			this.addText(blockText(el, pre), this.textProps(el, cs, box), box);
 			return;
 		}
-		element.type = 'text';
-		element.text = text;
-		this.add(Object.assign(element, props), STATUS.converted, t('text', 'Text') + ': ' + snippet(text));
+
+		// Otherwise, a run of nodes between breaks is one line.
+		var runs = [];
+		var run = [];
+		var self = this;
+		(function split(parent) {
+			Array.prototype.forEach.call(parent.childNodes, function (n) {
+				if (n.nodeType === 1 && (n.tagName === 'BR' || n.hasAttribute('data-ffc-qr'))) {
+					runs.push(run);
+					run = [];
+					if (n.hasAttribute('data-ffc-qr')) {
+						runs.push(n);
+					}
+					return;
+				}
+				// A break inside an inline tag splits there too.
+				if (n.nodeType === 1 && n.querySelector('br, [data-ffc-qr]')) {
+					split(n);
+					return;
+				}
+				run.push(n);
+			});
+		})(el);
+		runs.push(run);
+
+		runs.forEach(function (r) {
+			if (!Array.isArray(r)) {
+				self.visit(r);
+				return;
+			}
+			var holder = document.createElement('div');
+			r.forEach(function (n) { holder.appendChild(n.cloneNode(true)); });
+			var text = blockText(holder, pre);
+			if (!/\S/.test(text)) {
+				return;
+			}
+			var owner = self.runStyle(r);
+			var ocs = owner ? self.styleOf(owner) : cs;
+			if (false === owner) {
+				self.report.push({ status: STATUS.dropped, label: t('merged', 'Styles inside one line merged') + ': ' + snippet(text) });
+			}
+			var rr = self.runRect(r);
+			var size = px(ocs.fontSize) || 16;
+			var lh = ocs.lineHeight === 'normal' || !px(ocs.lineHeight) ? rr.height / rr.lines : px(ocs.lineHeight);
+			// The line box, not the glyphs: the text sits in it as it did.
+			var top = rr.top - self.oy - (lh * rr.lines - rr.height) / 2;
+			var lineBox = { x: box.x, y: round(top), w: box.w, h: round(Math.max(1, lh * rr.lines)) };
+			var props = self.textProps(owner || el, ocs, lineBox);
+			props.line_height = Math.round(Math.max(0.5, Math.min(5, lh / size)) * 1000) / 1000;
+			props.align = ALIGN[cs.textAlign] || 'left';
+			self.addText(text, props, lineBox);
+		});
 	};
 
 	Measurer.prototype.image = function (el, cs) {
@@ -379,6 +498,14 @@
 		var fit = cs.objectFit === 'cover' ? 'cover' : 'contain';
 		if (src === SIGNATURE) {
 			this.add({ type: 'image', x: box.x, y: box.y, w: box.w, h: box.h, attachment_id: 0, token: SIGNATURE, fit: fit }, STATUS.converted, t('signature', 'Signature'));
+			return;
+		}
+		// An image shipped with the plugin is an image element of its own: the
+		// default models' signatures (#2606).
+		var slug = String(config().pluginUrl || '').replace(/\/+$/, '').split('/').pop();
+		var asset = slug ? new RegExp('/' + slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/(assets/img/[^?#]+)').exec(src) : null;
+		if (asset) {
+			this.add({ type: 'image', x: box.x, y: box.y, w: box.w, h: box.h, attachment_id: 0, token: '', asset: asset[1], fit: fit }, STATUS.converted, t('image', 'Image') + ': ' + snippet(asset[1].split('/').pop()));
 			return;
 		}
 		// The server swaps it for a Media Library image when it knows the file,

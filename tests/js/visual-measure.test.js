@@ -36,7 +36,19 @@ function env() {
 		const [x, y, w, h] = (el.getAttribute('data-r') || '0,0,0,0').split(',').map(Number);
 		return { left: x, top: y, width: w, height: h };
 	};
-	return { rect, style, lines: () => 1 };
+	// A run's box: the union of its elements' rects, or the text's own
+	// `data-run` on the parent when the run is bare text.
+	const runRect = (nodes) => {
+		const els = nodes.filter((n) => n.nodeType === 1 && n.getAttribute('data-r'));
+		const src = els.length ? els : [nodes[0].parentElement];
+		const rs = src.map((el) => (el.getAttribute('data-run') || el.getAttribute('data-r')).split(',').map(Number));
+		const left = Math.min(...rs.map((r) => r[0]));
+		const top = Math.min(...rs.map((r) => r[1]));
+		const right = Math.max(...rs.map((r) => r[0] + r[2]));
+		const bottom = Math.max(...rs.map((r) => r[1] + r[3]));
+		return { left, top, width: right - left, height: bottom - top, lines: 1 };
+	};
+	return { rect, style, runRect, lines: () => 1 };
 }
 
 function page(html) {
@@ -87,13 +99,30 @@ describe('FFCVisualMeasure.read', () => {
 		expect(layout.elements[2]).toMatchObject({ type: 'text', text: 'Name', y: 10, h: 50 });
 	});
 
-	it('keeps a block whose inline parts differ as HTML, styles the save would keep', () => {
-		const content = page('<p data-r="0,600,500,40" data-s=\'{"color":"rgb(62, 76, 89)"}\'>has completed<br><strong style="font-size: 18pt; color: #1b2a41" data-s=\'{"fontSize":"24px","fontWeight":"700"}\'>{{form_title}}</strong></p>');
+	it('splits a block whose lines differ into one text per line', () => {
+		const content = page('<p data-r="0,600,500,40" data-run="0,600,500,20" data-s=\'{"color":"rgb(62, 76, 89)"}\'>has completed<br><strong data-r="0,620,500,20" data-s=\'{"fontSize":"24px","fontWeight":"700"}\'>{{form_title}}</strong></p>');
+		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(layout.elements.map((e) => e.type)).toEqual(['text', 'field']);
+		expect(layout.elements[0]).toMatchObject({ text: 'has completed', color: '#3e4c59', y: 600, h: 20 });
+		expect(layout.elements[1]).toMatchObject({ token: '{{form_title}}', font_size: 24, font_weight: 700, y: 620 });
+		expect(report.every((r) => r.status === 'converted')).toBe(true);
+	});
+
+	it('merges the styles inside one line and says so', () => {
+		const content = page('<p data-r="0,700,600,20">Verify with code <strong data-r="300,700,80,20" data-s=\'{"fontWeight":"700"}\'>{{auth_code}}</strong><br>next</p>');
+		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
+
+		expect(layout.elements[0]).toMatchObject({ type: 'text', text: 'Verify with code {{auth_code}}', font_weight: 400 });
+		expect(report.filter((r) => r.status === 'dropped').map((r) => r.label)).toEqual(['Styles inside one line merged: Verify with code {{auth_code}}']);
+	});
+
+	it('keeps an underlined block as HTML, styles the save would keep', () => {
+		const content = page('<p data-r="0,600,500,40" data-s=\'{"color":"rgb(62, 76, 89)","textDecorationLine":"underline"}\' style="color: rgb(62, 76, 89)">has <strong style="font-size: 18pt; color: #1b2a41">{{form_title}}</strong></p>');
 		const { layout, report } = window.FFCVisualMeasure.read(content, 'landscape', env());
 
 		const block = layout.elements[0];
 		expect(block.type).toBe('html');
-		expect(block.html).toContain('color:#3e4c59');
 		expect(block.html).not.toContain('rgb(');
 		// A <strong> takes no attributes once saved: its style rides a span inside.
 		expect(block.html).toMatch(/<strong[^>]*><span style="font-size:\s*18pt;color:#1b2a41">\{\{form_title\}\}<\/span><\/strong>/);
@@ -103,13 +132,18 @@ describe('FFCVisualMeasure.read', () => {
 
 	it('reads the held QR code, a signature and other images', () => {
 		const held = window.FFCVisualMeasure.holdQr('<p data-r="0,0,10,10">x</p>{{qr_code:size=50:margin=2}}');
-		const content = page(held.replace('<span ', '<span data-r="536,700,50,50" ')
+		const content = page(held.replace('<div ', '<div data-r="536,700,50,50" ')
 			+ '<img src="{{signer:signature}}" data-r="100,600,150,50" data-s=\'{"objectFit":"cover"}\'>'
-			+ '<img src="https://example.test/logo.png" data-r="20,20,80,80">');
+			+ '<img src="https://example.test/logo.png" data-r="20,20,80,80">'
+			+ '<img src="https://example.test/wp-content/plugins/ffcertificate/assets/img/certificate-defaults/sig.png?ver=1" data-r="20,200,80,40">');
+		window.ffcVisualMeasure.pluginUrl = 'https://example.test/wp-content/plugins/ffcertificate/';
 		const { layout } = window.FFCVisualMeasure.read(content, 'landscape', env());
+		delete window.ffcVisualMeasure.pluginUrl;
 		const types = layout.elements.map((e) => e.type);
 
-		expect(types).toEqual(['text', 'qr', 'image', 'html']);
+		expect(types).toEqual(['text', 'qr', 'image', 'html', 'image']);
+		// A plugin image is the plugin's file, not a Media Library copy.
+		expect(layout.elements[4]).toMatchObject({ asset: 'assets/img/certificate-defaults/sig.png', attachment_id: 0, token: '' });
 		expect(layout.elements[1]).toMatchObject({ x: 536, y: 700, w: 50, h: 50, margin: 2 });
 		expect(layout.elements[2]).toMatchObject({ token: '{{signer:signature}}', fit: 'cover' });
 		expect(layout.elements[3]).toMatchObject({ src: 'https://example.test/logo.png', fit: 'contain' });

@@ -681,8 +681,10 @@ class CertTemplateAdminScreen {
 			'ffc-visual-measure',
 			'ffcVisualMeasure',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'strings' => array(
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				// An image shipped with the plugin is recognised by this (#2606).
+				'pluginUrl' => FFC_PLUGIN_URL,
+				'strings'   => array(
 					'busy'        => __( 'Reading the template…', 'ffcertificate' ),
 					'frame'       => __( 'Frame', 'ffcertificate' ),
 					'line'        => __( 'Line', 'ffcertificate' ),
@@ -699,6 +701,7 @@ class CertTemplateAdminScreen {
 					'pageColour'  => __( 'Page colour', 'ffcertificate' ),
 					'decoration'  => __( 'underline or shadow', 'ffcertificate' ),
 					'wordSpacing' => __( 'Word spacing', 'ffcertificate' ),
+					'merged'      => __( 'Styles inside one line merged', 'ffcertificate' ),
 				),
 			)
 		);
@@ -766,6 +769,8 @@ class CertTemplateAdminScreen {
 			'ffc-visual-editor',
 			'ffcVisualEditor',
 			array(
+				// Images shipped with the plugin are drawn from here (#2606).
+				'pluginUrl'      => FFC_PLUGIN_URL,
 				'newText'        => __( 'Text', 'ffcertificate' ),
 				'image'          => __( 'Image', 'ffcertificate' ),
 				'signature'      => __( 'Signature', 'ffcertificate' ),

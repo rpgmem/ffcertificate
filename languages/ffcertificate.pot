@@ -34689,7 +34689,7 @@ msgstr ""
 msgid "“%s”"
 msgstr ""
 
-msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border or a fill becomes a frame, a text block a text, or a data field when it is one tag, an image from the Media Library an image, and the signer's signature and the QR code their own elements. A text whose parts are styled differently, an image outside the library, a turned box and the line that holds the QR code stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. The browser draws the template as the PDF does and reads where each part landed: a border or a fill becomes a frame, each line of text a text, or a data field when it is one tag, an image from the Media Library or one shipped with the plugin an image, and the signer's signature and the QR code their own elements. A line whose words are styled differently becomes one text in the style of its block. An underlined or shadowed text, an image from elsewhere, a turned box and a background image or gradient stay HTML blocks in their place. Word spacing, which the visual elements do not have, is dropped. The new template opens with a report of what was converted, kept as HTML, merged and dropped. Without JavaScript the copy is read on the server instead, where only boxes placed in pixels become elements."
 msgstr ""
 
 msgid "Reading the template…"
@@ -34714,4 +34714,7 @@ msgid "rotated"
 msgstr ""
 
 msgid "underline or shadow"
+msgstr ""
+
+msgid "Styles inside one line merged"
 msgstr ""
