@@ -11,7 +11,9 @@ import { loadScript } from './helpers.js';
 
 beforeAll(() => {
 	// Core helper must exist (the audience module uses FFC.rest/request).
-	window.ffc_ajax = { ajax_url: '/wp-admin/admin-ajax.php', nonce: '', strings: {} };
+	window.ffc_ajax = { ajax_url: '/wp/wp-admin/admin-ajax.php', nonce: '', strings: {} };
+	// ffc-core is always localized with the AJAX URL (#2600).
+	window.ffcCoreConfig = { ajaxUrl: '/wp/wp-admin/admin-ajax.php' };
 	loadScript('assets/js/ffc-core.js');
 	// Deliberately leave window.ffcAudience undefined so the bootstrap
 	// fallback branches run.
@@ -22,7 +24,7 @@ beforeAll(() => {
 describe('ffc-audience — config bootstrap fallbacks', () => {
 	it('synthesises a default ffcAudience config when none is localized', () => {
 		expect(window.ffcAudience).toBeDefined();
-		expect(window.ffcAudience.ajaxUrl).toBe('/wp-admin/admin-ajax.php');
+		expect(window.ffcAudience.ajaxUrl).toBe('/wp/wp-admin/admin-ajax.php');
 		expect(window.ffcAudience.restUrl).toBe('/wp-json/ffc/v1/audience/');
 		expect(window.ffcAudience.nonce).toBe('');
 	});

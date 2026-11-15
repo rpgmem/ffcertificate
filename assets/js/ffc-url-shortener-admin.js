@@ -350,7 +350,7 @@
             FFC.request(
                 'ffc_edit_short_url',
                 payload,
-                { nonce: nonce, ajaxUrl: settings.ajaxUrl || (window.ajaxurl || '/wp-admin/admin-ajax.php') }
+                { nonce: nonce, ajaxUrl: settings.ajaxUrl || window.ajaxurl }
             )
                 .then(function () {
                     $btn.prop('disabled', false);
