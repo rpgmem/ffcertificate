@@ -1334,7 +1334,18 @@
 			var picked = el.type === 'image' && !el.token
 				? (el.attachment_id ? this.images[el.attachment_id] : (el.asset ? String(this.s.pluginUrl || '') + el.asset : ''))
 				: '';
-			if (picked) {
+			if (el.type === 'qr' && this.s.pluginUrl) {
+				// A sample code at its printed size, square in the box; the real
+				// one, with the validation link, prints in the PDF (#2616).
+				var sample = document.createElement('img');
+				sample.className = 'ffc-ve-qr-sample';
+				sample.src = String(this.s.pluginUrl) + 'assets/img/qr-sample.svg';
+				sample.alt = '';
+				sample.draggable = false;
+				node.appendChild(sample);
+				label.classList.add('screen-reader-text');
+				node.appendChild(label);
+			} else if (picked) {
 				var img = document.createElement('img');
 				// Not `ffc-ve-el-image`: that is the element's own type class,
 				// and this rule turns pointer events off (#2608).

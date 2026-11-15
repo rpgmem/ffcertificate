@@ -32,6 +32,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **The REST notice buffer asks WordPress whether it is serving a REST request** (#2559). `RestController` calls `wp_is_serving_rest_request()` instead of reading `REST_REQUEST`. Two unreachable `function_exists()` guards are gone, and 13 tests that ran in their own process now share one.
 - **The Danger Zone actions and the identity-audit export take their maintenance tools from their constructor** (#2567), defaulting to the shipped set, so a missing tool is tested with an empty registry instead of a mocked class. Six more tests leave their own process.
 - **The default certificates, record and appointment receipts name installable fonts** (#2574): Cinzel, Great Vibes, EB Garamond, Montserrat, Arimo and Cousine, each in front of the system font used before, so a site without them renders as it did. Models 1, 3 and 5 fit a long name on one line instead of wrapping it.
+- **A QR code element on the visual editor's canvas shows a sample code** (#2616) instead of the words "QR code", which overflowed small boxes. The sample ships as an SVG encoding the plugin's GitHub address; the PDF and the preview still print the real code.
 
 ### Removed
 
