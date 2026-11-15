@@ -34543,3 +34543,60 @@ msgstr ""
 
 msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
 msgstr ""
+
+#. translators: %s: source template title
+msgid "%s (visual)"
+msgstr ""
+
+msgid "A new visual template read from this one; this template stays as it is."
+msgstr ""
+
+msgid "A shape (border or fill)"
+msgstr ""
+
+msgid "An empty box with no border or fill"
+msgstr ""
+
+msgid "An image"
+msgstr ""
+
+msgid "Converted to elements"
+msgstr ""
+
+msgid "Create visual version"
+msgstr ""
+
+msgid "Dropped"
+msgstr ""
+
+msgid "Kept as HTML blocks"
+msgstr ""
+
+msgid "Only an HTML certificate template can have a visual version."
+msgstr ""
+
+msgid "The page colour, as the template's page colour"
+msgstr ""
+
+#. translators: 1: a CSS property, 2: its value
+msgid "The rule %1$s: %2$s, which a visual element does not draw"
+msgstr ""
+
+msgid "The visual version could not be created."
+msgstr ""
+
+msgid "The whole template, which has no page with a width and height in pixels"
+msgstr ""
+
+msgid "This visual template was read from the HTML template; the original is unchanged. Check the page and the preview before using it."
+msgstr ""
+
+msgid "Visual version created"
+msgstr ""
+
+#. translators: %s: the first words of an element
+msgid "“%s”"
+msgstr ""
+
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. Each element the page places in pixels with a size becomes a box: a frame, an image from the Media Library or the signer's signature, the QR code, a data field or a text. Everything else becomes an HTML block, and text in the page's flow becomes one block the size of the page. A rule the visual elements do not draw, such as a text shadow, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. The shipped models flow their text, so most of each becomes HTML; the visual models are the ones drawn element by element."
+msgstr ""

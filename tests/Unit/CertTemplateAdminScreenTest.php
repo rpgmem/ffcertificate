@@ -1780,6 +1780,168 @@ class CertTemplateAdminScreenTest extends TestCase {
 		$this->assertStringContainsString( 'name="ffc_template_html"', $html );
 	}
 
+	// ==================================================================
+	// Visual copy of an HTML template (#2587)
+	// ==================================================================
+
+	/**
+	 * Stubs for the visual copy: an HTML certificate with a positioned name
+	 * and a page colour; returns the new template's stored meta by reference.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function &visual_copy_stubs( array $source_meta ): array {
+		$written = array();
+		$this->die_throws();
+		Functions\when( 'check_admin_referer' )->justReturn( true );
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'absint' )->alias( static fn( $v ) => abs( (int) $v ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $c ) => preg_match( '/^#[0-9a-f]{6}$/i', (string) $c ) ? $c : null );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
+		Functions\when( 'attachment_url_to_postid' )->justReturn( 0 );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => 5 === $id ? ( $source_meta[ $key ] ?? '' ) : '' );
+		Functions\when( 'wp_insert_post' )->justReturn( 77 );
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$written ) {
+				$written[ $id ][ $key ] = is_string( $value ) ? stripslashes( $value ) : $value;
+				return true;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$written ) {
+				$written['transient'][ $key ] = $value;
+				return true;
+			}
+		);
+		Functions\when( 'wp_safe_redirect' )->alias(
+			static function ( $url ) {
+				throw new \RuntimeException( 'redirect: ' . $url );
+			}
+		);
+		$_GET['post'] = '5';
+		return $written;
+	}
+
+	public function test_a_visual_copy_is_a_new_visual_template_and_the_original_is_untouched(): void {
+		$written = &$this->visual_copy_stubs(
+			array(
+				CertTemplateCpt::META_HTML     => '<div style="width: 1123px; height: 794px; background: #fafafa"><p style="position: absolute; left: 10px; top: 20px; width: 300px; height: 40px; text-shadow: 1px 1px #000">{{name}}</p></div>',
+				CertTemplateCpt::META_BG_IMAGE => 'https://example.test/bg.png',
+			)
+		);
+
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_visual_copy() );
+		unset( $_GET['post'] );
+
+		$this->assertStringContainsString( 'post.php?post=77&action=edit', $message, 'the new template opens' );
+		$this->assertArrayNotHasKey( 5, $written, 'the original is not written' );
+		$this->assertSame( 'visual', $written[77][ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] );
+		$layout = \FreeFormCertificate\Core\VisualLayout::validate( $written[77][ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
+		$this->assertIsArray( $layout );
+		$this->assertSame( '{{name}}', $layout['elements'][0]['token'] );
+		$this->assertStringContainsString( '{{name}}', $written[77][ CertTemplateCpt::META_HTML ] );
+		$this->assertSame( 'https://example.test/bg.png', $written[77][ CertTemplateCpt::META_BG_IMAGE ] );
+		$this->assertSame( '#fafafa', $written[77][ CertTemplateCpt::META_BG_COLOR ], 'the page colour becomes the template\'s' );
+		$report = $written['transient']['ffc_visual_copy_report_3_77'];
+		$this->assertContains( 'dropped', array_column( $report, 'status' ), 'the report waits for the new template\'s screen' );
+	}
+
+	public function test_a_visual_copy_is_refused_for_a_visual_template_or_a_receipt(): void {
+		$written = &$this->visual_copy_stubs( array( \FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual' ) );
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_visual_copy() );
+		$this->assertStringStartsWith( 'wp_die:', $message );
+
+		$written = &$this->visual_copy_stubs( array( CertTemplateCpt::META_KIND => CertTemplateCpt::KIND_APPOINTMENT_RECEIPT ) );
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_visual_copy() );
+		unset( $_GET['post'] );
+		$this->assertStringStartsWith( 'wp_die:', $message );
+		$this->assertSame( array(), $written );
+	}
+
+	public function test_a_visual_copy_is_refused_without_the_capability(): void {
+		$written = &$this->visual_copy_stubs( array() );
+		Functions\when( 'current_user_can' )->justReturn( false );
+
+		$message = $this->stop_message( fn() => ( new CertTemplateAdminScreen() )->handle_visual_copy() );
+		unset( $_GET['post'] );
+
+		$this->assertStringStartsWith( 'wp_die:', $message );
+		$this->assertSame( array(), $written );
+	}
+
+	public function test_an_html_certificate_offers_a_visual_copy_in_its_row_and_screen(): void {
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'get_post_meta' )->justReturn( '' );
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->returnArg();
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'sanitize_key' )->returnArg();
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'post_type_exists' )->justReturn( false );
+
+		$actions = ( new CertTemplateAdminScreen() )->row_actions( array(), $this->pool_post( 5 ) );
+		$this->assertStringContainsString( 'action=ffc_visual_copy_cert_template&post=5', $actions['ffc_visual_copy'] );
+
+		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
+		$this->assertStringContainsString( 'action=ffc_visual_copy_cert_template&post=5', $html );
+		$this->assertStringContainsString( 'Create visual version', $html );
+	}
+
+	public function test_the_new_visual_template_shows_its_report_once(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_attr_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_attr__' )->returnArg();
+		Functions\when( 'esc_textarea' )->alias( static fn( $v ) => htmlspecialchars( (string) $v ) );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'wp_kses_post' )->returnArg();
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'post_type_exists' )->justReturn( false );
+		Functions\when( 'get_post_meta' )->alias(
+			static fn( $id, $key ) => array(
+				\FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual',
+				\FreeFormCertificate\Core\VisualLayout::META_LAYOUT => '{"version":1,"elements":[]}',
+			)[ $key ] ?? ''
+		);
+		$deleted = array();
+		Functions\when( 'get_transient' )->alias(
+			static fn( $key ) => 'ffc_visual_copy_report_3_5' === $key ? array(
+				array(
+					'status' => 'converted',
+					'label'  => '“{{name}}”',
+				),
+				array(
+					'status' => 'kept',
+					'label'  => '“Signatures”',
+				),
+				array(
+					'status' => 'dropped',
+					'label'  => 'The rule text-shadow: 1px 1px #000, which a visual element does not draw',
+				),
+			) : false
+		);
+		Functions\when( 'delete_transient' )->alias(
+			static function ( $key ) use ( &$deleted ) {
+				$deleted[] = $key;
+				return true;
+			}
+		);
+
+		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
+
+		$this->assertStringContainsString( 'Visual version created', $html );
+		$this->assertStringContainsString( 'Converted to elements (1)', $html );
+		$this->assertStringContainsString( 'Kept as HTML blocks (1)', $html );
+		$this->assertStringContainsString( 'Dropped (1)', $html );
+		$this->assertStringContainsString( '<li>The rule text-shadow: 1px 1px #000, which a visual element does not draw</li>', $html );
+		$this->assertContains( 'ffc_visual_copy_report_3_5', $deleted, 'shown once' );
+	}
+
 	private function capture( callable $fn ): string {
 		ob_start();
 		$fn();

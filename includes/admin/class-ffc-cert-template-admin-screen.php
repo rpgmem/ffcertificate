@@ -95,6 +95,12 @@ class CertTemplateAdminScreen {
 	public const CONVERT_ACTION = 'ffc_convert_cert_template_to_html';
 
 	/**
+	 * The `admin_action_{$action}` slug that creates a visual copy of an HTML
+	 * certificate template (#2587).
+	 */
+	public const VISUAL_COPY_ACTION = 'ffc_visual_copy_cert_template';
+
+	/**
 	 * Script handle for the preview overlay.
 	 */
 	private const PREVIEW_HANDLE = 'ffc-cert-template-preview';
@@ -133,6 +139,7 @@ class CertTemplateAdminScreen {
 		// The visual editor's preview and its one-way conversion (#2586).
 		add_action( 'wp_ajax_' . self::PREVIEW_LAYOUT_ACTION, array( $this, 'ajax_preview_visual_layout' ) );
 		add_action( 'admin_action_' . self::CONVERT_ACTION, array( $this, 'handle_convert_to_html' ) );
+		add_action( 'admin_action_' . self::VISUAL_COPY_ACTION, array( $this, 'handle_visual_copy' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_preview_assets' ) );
 		// Edit screen gets the same CodeMirror HTML editor as the form-editor
 		// layout box, so editing a template looks identical to editing a form's
@@ -257,6 +264,11 @@ class CertTemplateAdminScreen {
 		);
 
 		$actions['ffc_duplicate'] = '<a href="' . esc_url( $dup_url ) . '">' . esc_html__( 'Duplicate', 'ffcertificate' ) . '</a>';
+
+		// A visual copy of an HTML certificate (#2587); the original stays as it is.
+		if ( self::can_have_visual_copy( (int) $post->ID ) ) {
+			$actions['ffc_visual_copy'] = '<a href="' . esc_url( self::visual_copy_url( (int) $post->ID ) ) . '">' . esc_html__( 'Create visual version', 'ffcertificate' ) . '</a>';
+		}
 
 		// Export the raw template HTML as a `.html` download.
 		$exp_url = wp_nonce_url(
@@ -931,6 +943,21 @@ class CertTemplateAdminScreen {
 			<?php
 		}
 
+		// A visual copy of this HTML certificate (#2587), defaults included:
+		// the original is not touched.
+		if ( 'auto-draft' !== $post->post_status && self::can_have_visual_copy( (int) $post->ID ) ) {
+			echo '<p class="ffc-visual-copy">';
+			AdminUI::render_button(
+				array(
+					'label'    => __( 'Create visual version', 'ffcertificate' ),
+					'icon'     => 'layout',
+					'category' => 'create',
+					'href'     => self::visual_copy_url( (int) $post->ID ),
+				)
+			);
+			echo ' <span class="description">' . esc_html__( 'A new visual template read from this one; this template stays as it is.', 'ffcertificate' ) . '</span></p>';
+		}
+
 		// Just converted from a visual template (#2586).
 		if ( '1' === RequestInput::get_get_key( 'ffc_converted' ) ) {
 			\FreeFormCertificate\Core\AdminNotice::callout(
@@ -1393,6 +1420,9 @@ class CertTemplateAdminScreen {
 			);
 		}
 
+		// What a visual copy converted, kept and dropped (#2587), once.
+		self::render_visual_copy_report( (int) $post->ID );
+
 		// What the saved layout lacks (#2586): the tags Settings → Certificates
 		// requires and the fonts the site does not have. A warning, not a
 		// refusal: a draft can be saved half done.
@@ -1785,6 +1815,139 @@ class CertTemplateAdminScreen {
 	public static function convert_to_html( int $post_id ): void {
 		delete_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT );
 		delete_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR );
+	}
+
+	/**
+	 * Whether a template can be read into a visual copy: an HTML certificate.
+	 *
+	 * @param int $post_id Template post id.
+	 */
+	private static function can_have_visual_copy( int $post_id ): bool {
+		return CertTemplateCpt::KIND_CERTIFICATE === CertTemplateReader::get_kind( $post_id )
+			&& ! \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id );
+	}
+
+	/**
+	 * The nonced address of the visual-copy action.
+	 *
+	 * @param int $post_id Template post id.
+	 */
+	private static function visual_copy_url( int $post_id ): string {
+		return wp_nonce_url(
+			admin_url( 'admin.php?action=' . self::VISUAL_COPY_ACTION . '&post=' . $post_id ),
+			self::VISUAL_COPY_ACTION . '_' . $post_id
+		);
+	}
+
+	/**
+	 * Create a visual template from an HTML certificate template (#2587). The
+	 * new template is read from the saved HTML; the original is not touched.
+	 * What was converted, kept as HTML and dropped waits for the new
+	 * template's screen.
+	 *
+	 * @return void
+	 */
+	public function handle_visual_copy(): void {
+		$post_id = RequestInput::get_get_int( 'post' );
+		check_admin_referer( self::VISUAL_COPY_ACTION . '_' . $post_id );
+
+		if ( ! \FreeFormCertificate\Core\Capabilities::current_user_can_admin_or( 'ffc_manage_forms' ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage certificate templates.', 'ffcertificate' ) );
+		}
+		$post = get_post( $post_id );
+		if ( ! $post instanceof \WP_Post || CertTemplateCpt::POST_TYPE !== $post->post_type || ! self::can_have_visual_copy( $post_id ) ) {
+			wp_die( esc_html__( 'Only an HTML certificate template can have a visual version.', 'ffcertificate' ) );
+		}
+
+		$new_id = self::create_visual_copy( $post );
+		if ( $new_id <= 0 ) {
+			wp_die( esc_html__( 'The visual version could not be created.', 'ffcertificate' ) );
+		}
+
+		wp_safe_redirect( admin_url( 'post.php?post=' . $new_id . '&action=edit' ) );
+		exit;
+	}
+
+	/**
+	 * Read a template into a new visual template and keep the report for
+	 * its screen.
+	 *
+	 * @param \WP_Post $post The HTML certificate template.
+	 * @return int The new template's id, or 0.
+	 */
+	public static function create_visual_copy( \WP_Post $post ): int {
+		$html   = (string) get_post_meta( $post->ID, CertTemplateCpt::META_HTML, true );
+		$result = \FreeFormCertificate\Core\VisualLayoutImporter::from_html( $html );
+		$color  = (string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_COLOR, true );
+		$color  = '' !== $color ? $color : $result['bg_color'];
+
+		/* translators: %s: source template title */
+		$title  = sprintf( __( '%s (visual)', 'ffcertificate' ), (string) $post->post_title );
+		$new_id = CertTemplateWriter::create(
+			$title,
+			\FreeFormCertificate\Core\VisualLayout::render( $result['layout'] ),
+			true,
+			(string) get_post_meta( $post->ID, CertTemplateCpt::META_BG_IMAGE, true ),
+			CertTemplateCpt::KIND_CERTIFICATE,
+			$color
+		);
+		if ( $new_id <= 0 ) {
+			return 0;
+		}
+		update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
+		\FreeFormCertificate\Core\VisualLayout::store_json( $new_id, \FreeFormCertificate\Core\VisualLayout::to_json( $result['layout'] ) );
+		set_transient( self::visual_copy_report_key( $new_id ), $result['report'], HOUR_IN_SECONDS );
+		return $new_id;
+	}
+
+	/**
+	 * Where a visual copy's report waits for its screen, per user.
+	 *
+	 * @param int $post_id The new template's id.
+	 */
+	private static function visual_copy_report_key( int $post_id ): string {
+		return 'ffc_visual_copy_report_' . get_current_user_id() . '_' . $post_id;
+	}
+
+	/**
+	 * Print, once, what the visual copy converted, kept and dropped.
+	 *
+	 * @param int $post_id The new template's id.
+	 * @return void
+	 */
+	private static function render_visual_copy_report( int $post_id ): void {
+		$key    = self::visual_copy_report_key( $post_id );
+		$report = get_transient( $key );
+		if ( ! is_array( $report ) ) {
+			return;
+		}
+		delete_transient( $key );
+
+		$groups = array(
+			\FreeFormCertificate\Core\VisualLayoutImporter::CONVERTED => __( 'Converted to elements', 'ffcertificate' ),
+			\FreeFormCertificate\Core\VisualLayoutImporter::KEPT      => __( 'Kept as HTML blocks', 'ffcertificate' ),
+			\FreeFormCertificate\Core\VisualLayoutImporter::DROPPED   => __( 'Dropped', 'ffcertificate' ),
+		);
+		$body   = '<p>' . esc_html__( 'This visual template was read from the HTML template; the original is unchanged. Check the page and the preview before using it.', 'ffcertificate' ) . '</p>';
+		foreach ( $groups as $status => $heading ) {
+			$items = array_filter( $report, static fn( $entry ): bool => is_array( $entry ) && ( $entry['status'] ?? '' ) === $status );
+			if ( array() === $items ) {
+				continue;
+			}
+			$body .= '<p><strong>' . esc_html( $heading ) . ' (' . count( $items ) . ')</strong></p><ul class="ffc-visual-copy-report">';
+			foreach ( $items as $entry ) {
+				$body .= '<li>' . esc_html( (string) ( $entry['label'] ?? '' ) ) . '</li>';
+			}
+			$body .= '</ul>';
+		}
+		\FreeFormCertificate\Core\AdminNotice::callout(
+			'info',
+			$body,
+			array(
+				'title'   => __( 'Visual version created', 'ffcertificate' ),
+				'classes' => array( 'ffc-visual-copy-report-notice', 'inline' ),
+			)
+		);
 	}
 
 	/**
