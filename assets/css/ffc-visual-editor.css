@@ -187,6 +187,15 @@
 	object-fit: cover;
 }
 
+/* The selection rectangle a drag on empty page draws (#2613). */
+.ffc-visual-editor .ffc-ve-marquee {
+	position: absolute;
+	z-index: var(--ffc-z-modal);
+	border: 1px dashed var(--ffc-primary);
+	background: color-mix(in srgb, var(--ffc-primary) 10%, transparent);
+	pointer-events: none;
+}
+
 /* The properties panel, in the side column (#2586). */
 .ffc-ve-props .ffc-ve-props-title {
 	margin: 0 0 var(--ffc-spacing-xs);

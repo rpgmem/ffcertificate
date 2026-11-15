@@ -141,6 +141,24 @@
 		},
 
 		/**
+		 * The box two corners span, whichever way they were dragged (#2613).
+		 *
+		 * @return {{x:number,y:number,w:number,h:number}}
+		 */
+		span: function (x1, y1, x2, y2) {
+			return { x: Math.min(x1, x2), y: Math.min(y1, y2), w: Math.abs(x2 - x1), h: Math.abs(y2 - y1) };
+		},
+
+		/**
+		 * Whether two boxes overlap; touching edges do not.
+		 *
+		 * @return {boolean}
+		 */
+		overlaps: function (a, b) {
+			return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+		},
+
+		/**
 		 * The box around several boxes.
 		 *
 		 * @param {Array<{x:number,y:number,w:number,h:number}>} boxes
@@ -1001,8 +1019,13 @@
 			var handle = event.target.closest('[data-ffc-ve-handle]');
 			var node = event.target.closest('[data-ffc-ve-id]');
 			if (!node) {
+				// On empty page a drag draws a selection rectangle; a click
+				// without one clears the selection, as before (#2613).
 				if (!event.shiftKey) {
 					this.selectOnly(null);
+				}
+				if (event.button === 0) {
+					this.startMarquee(event, this.selection.slice());
 				}
 				this.render();
 				return;
@@ -1021,6 +1044,13 @@
 				this.selected = id;
 			} else {
 				this.selectOnly(id);
+			}
+			// A locked element does not move, so a drag on it draws the
+			// selection rectangle: a full-page frame leaves no empty page.
+			if (el && el.locked && event.button === 0) {
+				this.startMarquee(event, []);
+				this.render();
+				return;
 			}
 			if (!el || el.locked || event.button !== 0) {
 				this.render();
@@ -1050,6 +1080,10 @@
 		pointerMove: function (event) {
 			var g = this.gesture;
 			if (!g || g.pointer !== event.pointerId) {
+				return;
+			}
+			if (g.marquee) {
+				this.dragMarquee(g, this.pagePoint(event));
 				return;
 			}
 			var el = this.layout.elements[this.indexOf(this.selected)];
@@ -1118,9 +1152,77 @@
 				this.sheet.releasePointerCapture(event.pointerId);
 			}
 			this.drawGuides({ x: [], y: [] });
+			if (g.marquee) {
+				this.drawMarquee(null);
+				this.render();
+				if (g.moved) {
+					this.announceSelection();
+				}
+				return;
+			}
 			if (g.moved) {
 				this.changed();
 			}
+		},
+
+		/**
+		 * Start a selection rectangle at the pointer; `base` is what stays
+		 * selected whatever it touches.
+		 */
+		startMarquee: function (event, base) {
+			var at = this.pagePoint(event);
+			this.gesture = { pointer: event.pointerId, marquee: true, x: at.x, y: at.y, base: base, moved: false };
+			if (this.sheet.setPointerCapture) {
+				this.sheet.setPointerCapture(event.pointerId);
+			}
+		},
+
+		/** A pointer's place on the page, in page pixels. */
+		pagePoint: function (event) {
+			var rect = this.sheet.getBoundingClientRect();
+			var zoom = this.scale() || 1;
+			return { x: (event.clientX - rect.left) / zoom, y: (event.clientY - rect.top) / zoom };
+		},
+
+		/**
+		 * Grow the selection rectangle to a point: the unlocked elements it
+		 * touches are selected, after those Shift kept (#2613).
+		 */
+		dragMarquee: function (g, at) {
+			var box = geometry.span(g.x, g.y, at.x, at.y);
+			// A wobble of a click is not a drag.
+			if (!g.moved && box.w < 3 && box.h < 3) {
+				return;
+			}
+			g.moved = true;
+			var picked = g.base.slice();
+			this.layout.elements.forEach(function (el) {
+				if (!el.locked && geometry.overlaps(el, box) && picked.indexOf(el.id) === -1) {
+					picked.push(el.id);
+				}
+			});
+			this.selection = picked;
+			this.selected = picked.length ? picked[picked.length - 1] : null;
+			this.render();
+			this.drawMarquee(box);
+		},
+
+		/** Draw the selection rectangle, or take it away. */
+		drawMarquee: function (box) {
+			var mark = this.sheet.querySelector('.ffc-ve-marquee');
+			if (!box) {
+				if (mark) {
+					mark.parentNode.removeChild(mark);
+				}
+				return;
+			}
+			if (!mark) {
+				mark = document.createElement('div');
+				mark.className = 'ffc-ve-marquee';
+				mark.setAttribute('aria-hidden', 'true');
+				this.sheet.appendChild(mark);
+			}
+			applyBox(mark, box);
 		},
 
 		/**

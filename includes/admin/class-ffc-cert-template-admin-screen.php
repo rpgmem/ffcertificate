@@ -1825,6 +1825,7 @@ class CertTemplateAdminScreen {
 								'] / ['               => __( 'Select the next or previous element', 'ffcertificate' ),
 								'Ctrl + A'            => __( 'Select every element', 'ffcertificate' ),
 								'Esc'                 => __( 'Clear the selection', 'ffcertificate' ),
+								__( 'Drag over the page', 'ffcertificate' ) => __( 'Select what the rectangle touches; with Shift, add it', 'ffcertificate' ),
 								__( 'Arrows', 'ffcertificate' ) => __( 'Move 1 px; with Shift, 10 px', 'ffcertificate' ),
 								'Alt + ' . __( 'arrows', 'ffcertificate' ) => __( 'Resize from the right and bottom edges', 'ffcertificate' ),
 								'R / Shift + R'       => __( 'Rotate 15° clockwise or back; with Alt, 1°', 'ffcertificate' ),
