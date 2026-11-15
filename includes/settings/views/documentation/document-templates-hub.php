@@ -48,6 +48,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<li><strong><?php esc_html_e( 'Record:', 'ffcertificate' ); ?></strong> <?php esc_html_e( 'chosen globally on the Reregistration settings tab.', 'ffcertificate' ); ?> <a href="#feature-record"><?php esc_html_e( 'See Record PDF.', 'ffcertificate' ); ?></a></li>
 		</ul>
 		<p><?php esc_html_e( 'Loading a certificate model copies its HTML into the form, so when a release improves a default, forms that copied an earlier version keep it: certificates are regenerated from the form\'s layout, and changing it silently would change certificates already issued. The form\'s layout box says so instead, when the layout is an unedited copy of an earlier version, with an Update layout button that loads the current version into the editor. Nothing changes until the form is saved; an edited copy is never offered one.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
+		<h4><?php esc_html_e( 'Copy or reference a certificate template', 'ffcertificate' ); ?></h4>
+		<p><?php esc_html_e( 'The Layout tab of a form chooses its Layout source. Own layout is the copy described above. Template makes the form print a certificate template from the pool, with its background: editing that template changes every form that references it, and their certificates already issued, the next time they are generated or verified. The template\'s edit screen says how many forms and certificates that is before you save.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template\'s Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused.', 'ffcertificate' ); ?></p>
+		<p><?php esc_html_e( 'Where it is stored: the form keeps the template\'s id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too; they declare no fields.', 'ffcertificate' ); ?></p>
+	</div>
+
+	<div class="ffc-doc-example">
 		<p><?php esc_html_e( 'A read-only "Current assignments" overview on the Document Templates tab shows which pool template the appointment receipts (Regular and Custom) and the reregistration record are using right now, with a "Change" link into that feature\'s own settings. Each row appears only to users who can view that feature, and certificates have no row because each form chooses its own. The overview is display-only — the selection controls (and their capabilities) stay per-feature.', 'ffcertificate' ); ?></p>
 	</div>
 

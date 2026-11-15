@@ -132,6 +132,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>19/12/2025 to 20/12/2025</em></td>
 			</tr>
 			<tr>
+				<td><code>{{model:key}}</code></td>
+				<td><?php esc_html_e( 'A field the certificate template declares, filled by each form that references the template, or the field\'s default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written.', 'ffcertificate' ); ?></td>
+				<td><em>Sala 2</em></td>
+			</tr>
+			<tr>
 				<td><code>{{ticket}}</code></td>
 				<td><?php esc_html_e( 'The single-use ticket code the participant entered (forms with the Ticket restriction only).', 'ffcertificate' ); ?></td>
 				<td><em>TK01-AB2C-3D4E</em></td>

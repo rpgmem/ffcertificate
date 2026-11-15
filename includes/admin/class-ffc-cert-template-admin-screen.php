@@ -542,7 +542,8 @@ class CertTemplateAdminScreen {
 			wp_die( esc_html__( 'Template not found.', 'ffcertificate' ) );
 		}
 
-		$html     = (string) get_post_meta( $post_id, CertTemplateCpt::META_HTML, true );
+		// Declared fields print their defaults (#2581).
+		$html     = \FreeFormCertificate\Core\CertificateTemplateLink::layout( $post_id, array() );
 		$bg       = (string) get_post_meta( $post_id, CertTemplateCpt::META_BG_IMAGE, true );
 		$rendered = $this->render_sample( $html, (string) $post->post_title );
 

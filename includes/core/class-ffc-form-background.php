@@ -56,6 +56,11 @@ final class FormBackground {
 	 * @return string A `#rrggbb` value.
 	 */
 	public static function color( int $form_id ): string {
+		// A form that references a template prints on the template's page (#2581).
+		$template_id = CertificateTemplateLink::template_id( $form_id );
+		if ( $template_id > 0 ) {
+			return CertificateTemplateLink::bg_color( $template_id );
+		}
 		$config = get_post_meta( $form_id, '_ffc_form_config', true );
 
 		return is_array( $config )
@@ -70,6 +75,10 @@ final class FormBackground {
 	 * @return string Image URL, or an empty string when the form has none.
 	 */
 	public static function url( int $form_id ): string {
+		$template_id = CertificateTemplateLink::template_id( $form_id );
+		if ( $template_id > 0 ) {
+			return CertificateTemplateLink::bg_image( $template_id );
+		}
 		$config = get_post_meta( $form_id, '_ffc_form_config', true );
 
 		if ( is_array( $config ) ) {

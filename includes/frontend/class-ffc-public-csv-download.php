@@ -630,7 +630,8 @@ class PublicCsvDownload {
 			$field_names
 		);
 		$body     = \FreeFormCertificate\Generators\FormLayoutPreview::body(
-			wp_kses( (string) ( $config['pdf_layout'] ?? '' ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
+			// The referenced template's layout, or the form's own copy (#2581).
+			wp_kses( (string) ( \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id )['pdf_layout'] ?? '' ), \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() ),
 			get_the_title( $form_id ),
 			\FreeFormCertificate\Core\FormBackground::url( $form_id ),
 			\FreeFormCertificate\Core\FormBackground::color( $form_id ),

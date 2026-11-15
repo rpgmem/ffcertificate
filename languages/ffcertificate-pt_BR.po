@@ -33956,3 +33956,90 @@ msgstr "Layouts de certificado"
 
 msgid "move the event date typed into a layout onto the form's event date, with {{schedule:date}} in its place, in the format it was typed. The card lists what the next run changes before it runs, checks that each certificate prints the same text, and lists every form it left alone with the reason."
 msgstr "move a data do evento digitada em um layout para a data do evento do formulário, com {{schedule:date}} no lugar, no formato em que foi digitada. O cartão lista o que a próxima execução muda antes de rodar, confere que cada certificado imprime o mesmo texto e lista cada formulário deixado como está, com o motivo."
+
+msgid "Template fields"
+msgstr "Campos do modelo"
+
+msgid "Each form that references this template fills these fields on its Layout tab. Print one in the HTML as {{model:key}}; a date also takes {{model:key:format=d/m/Y}}."
+msgstr "Cada formulário que usa este modelo preenche estes campos na aba Layout. Imprima um no HTML como {{model:chave}}; uma data também aceita {{model:chave:format=d/m/Y}}."
+
+msgid "Key"
+msgstr "Chave"
+
+msgid "Add field"
+msgstr "Adicionar campo"
+
+msgid "Removing a field leaves the values forms filled stored and unused. A required field the forms have not filled is reported when each form is saved."
+msgstr "Remover um campo mantém guardados, sem uso, os valores que os formulários preencheram. Um campo obrigatório que os formulários não preencheram é avisado ao salvar cada formulário."
+
+msgid "Short text"
+msgstr "Texto curto"
+
+msgid "Long text"
+msgstr "Texto longo"
+
+msgid "Remove field"
+msgstr "Remover campo"
+
+msgid "Layout source"
+msgstr "Origem do layout"
+
+msgid "Own layout"
+msgstr "Layout próprio"
+
+msgid "The form keeps its own copy of the HTML; editing a template does not change it."
+msgstr "O formulário guarda sua própria cópia do HTML; editar um modelo não o altera."
+
+msgid "The form prints a template from the pool; editing the template changes this form and its certificates."
+msgstr "O formulário imprime um modelo do acervo; editar o modelo altera este formulário e seus certificados."
+
+msgid "The template this form referenced is no longer available, so it prints its own layout. Choose another template or keep the own layout."
+msgstr "O modelo usado por este formulário não está mais disponível, então ele imprime o próprio layout. Escolha outro modelo ou mantenha o layout próprio."
+
+msgid "The template pool has no certificate template to reference."
+msgstr "O acervo não tem modelo de certificado para usar."
+
+msgid "— Choose a template —"
+msgstr "— Escolha um modelo —"
+
+msgid "Edit template"
+msgstr "Editar modelo"
+
+msgid "This template declares no fields for the form to fill."
+msgstr "Este modelo não declara campos para o formulário preencher."
+
+msgid "(required)"
+msgstr "(obrigatório)"
+
+msgid "An empty field prints the template’s default, shown in grey."
+msgstr "Um campo vazio imprime o padrão do modelo, mostrado em cinza."
+
+msgid "A field the certificate template declares, filled by each form that references the template, or the field's default when the form leaves it empty. A date field takes a format, as in {{model:key:format=d/m/Y}}. A key the template does not declare prints as written."
+msgstr "Um campo declarado pelo modelo de certificado, preenchido por cada formulário que usa o modelo, ou o padrão do campo quando o formulário o deixa vazio. Um campo de data aceita formato, como em {{model:chave:format=d/m/Y}}. Uma chave que o modelo não declara é impressa como escrita."
+
+msgid "Copy or reference a certificate template"
+msgstr "Copiar ou usar um modelo de certificado"
+
+msgid "The Layout tab of a form chooses its Layout source. Own layout is the copy described above. Template makes the form print a certificate template from the pool, with its background: editing that template changes every form that references it, and their certificates already issued, the next time they are generated or verified. The template's edit screen says how many forms and certificates that is before you save."
+msgstr "A aba Layout de um formulário escolhe a Origem do layout. Layout próprio é a cópia descrita acima. Modelo faz o formulário imprimir um modelo de certificado do acervo, com seu fundo: editar esse modelo altera todos os formulários que o usam, e os certificados já emitidos, na próxima vez em que forem gerados ou verificados. A tela de edição do modelo diz quantos formulários e certificados são antes de salvar."
+
+msgid "A template can declare fields that each referencing form fills — a place, the description of the activity, a date. Declare them in the template's Template fields box (key, label, short text, long text or date, required, default) and print them as {{model:key}}. On the form they appear under the chosen template; an empty field prints the default, and a required field left empty saves with a warning. Removing a field leaves the values forms filled stored and unused."
+msgstr "Um modelo pode declarar campos que cada formulário que o usa preenche — um local, a descrição da atividade, uma data. Declare-os na caixa Campos do modelo (chave, rótulo, texto curto, texto longo ou data, obrigatório, padrão) e imprima-os como {{model:chave}}. No formulário eles aparecem abaixo do modelo escolhido; um campo vazio imprime o padrão, e um campo obrigatório vazio salva com um aviso. Remover um campo mantém guardados, sem uso, os valores que os formulários preencheram."
+
+msgid "Where it is stored: the form keeps the template's id and the values it filled in its own post meta, and keeps its own copy untouched, so switching back to Own layout, or a template sent to the bin, prints that copy. Shipped default templates can be referenced too; they declare no fields."
+msgstr "Onde fica guardado: o formulário guarda o id do modelo e os valores que preencheu nos próprios metadados, e mantém intacta sua cópia, de modo que voltar para Layout próprio, ou um modelo enviado para a lixeira, imprime essa cópia. Os modelos padrão também podem ser usados; eles não declaram campos."
+
+msgid "The certificate template asks this form for values it has not filled: %s. Fill them on the Layout tab, or certificates print them blank."
+msgstr "O modelo de certificado pede a este formulário valores que ele não preencheu: %s. Preencha-os na aba Layout, ou os certificados os imprimem em branco."
+
+#. translators: 1: number of forms, 2: number of issued certificates
+msgid "%1$s form prints this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgid_plural "%1$s forms print this template, with %2$s issued certificates. A change you save here applies to them the next time they are generated or verified."
+msgstr[0] "%1$s formulário imprime este modelo, com %2$s certificados emitidos. Uma alteração salva aqui vale para eles na próxima vez em que forem gerados ou verificados."
+msgstr[1] "%1$s formulários imprimem este modelo, com %2$s certificados emitidos. Uma alteração salva aqui vale para eles na próxima vez em que forem gerados ou verificados."
+
+#. translators: %s: number of forms
+msgid "Used by %s form."
+msgid_plural "Used by %s forms."
+msgstr[0] "Usado por %s formulário."
+msgstr[1] "Usado por %s formulários."

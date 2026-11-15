@@ -124,9 +124,10 @@ class PdfGenerator {
 		$data = apply_filters( 'ffcertificate_certificate_data', $data, $submission_id, $sub_array );
 
 		// Get form data (convert form_id to int - wpdb returns strings).
-		$form_id      = (int) $sub_array['form_id'];
-		$form_title   = get_the_title( $form_id );
-		$form_config  = get_post_meta( $form_id, '_ffc_form_config', true );
+		$form_id    = (int) $sub_array['form_id'];
+		$form_title = get_the_title( $form_id );
+		// The layout of the template the form references, or its own copy (#2581).
+		$form_config  = \FreeFormCertificate\Core\CertificateTemplateLink::form_config( $form_id );
 		$bg_image_url = \FreeFormCertificate\Core\FormBackground::url( $form_id );
 
 		// `{{schedule}}` / `{{schedule_total}}` (#366 Sprint 7). Resolve

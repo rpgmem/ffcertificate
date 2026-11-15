@@ -2102,4 +2102,102 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertStringContainsString( '<li></li>', $html );
 		$this->assertSame( array( 'ffc_geofence_error_7', 'ffc_geofence_error_tabs_7' ), $deleted );
 	}
+
+	/**
+	 * A template 50 that declares one required field, and records of what the
+	 * save writes (#2581).
+	 *
+	 * @return \ArrayObject<string, array<mixed>> Keys `meta`, `deleted` and `transients`.
+	 */
+	private function stub_template_link(): \ArrayObject {
+		$bag              = new \ArrayObject( array( 'meta' => array(), 'deleted' => array(), 'transients' => array() ) );
+		$post             = new \WP_Post( (object) array( 'ID' => 50 ) );
+		$post->post_type   = 'ffc_cert_template';
+		$post->post_status = 'publish';
+		Functions\when( 'get_post' )->alias( static fn( $id ) => 50 === (int) $id ? $post : null );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) {
+				if ( 50 === (int) $id && '_ffc_template_fields' === $key ) {
+					return array( array( 'key' => 'local', 'label' => 'Place', 'required' => '1' ), array( 'key' => 'acao', 'label' => 'Action' ) );
+				}
+				if ( 11 === (int) $id && '_ffc_template_values' === $key ) {
+					return array( 'old_key' => 'kept' );
+				}
+				return '';
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( $bag ) {
+				$bag['meta'] = array_merge( $bag['meta'], array( $key => $value ) );
+				return true;
+			}
+		);
+		Functions\when( 'delete_post_meta' )->alias(
+			static function ( $id, $key ) use ( $bag ) {
+				$bag['deleted'] = array_merge( $bag['deleted'], array( $key ) );
+				return true;
+			}
+		);
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( $bag ) {
+				$bag['transients'] = array_merge( $bag['transients'], array( $key => $value ) );
+				return true;
+			}
+		);
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'wp_unslash' )->returnArg();
+		return $bag;
+	}
+
+	public function test_a_form_set_to_a_template_stores_the_reference_and_only_that_templates_values(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array(
+			'ffc_layout_source'      => 'template',
+			'ffc_layout_template_id' => '50',
+			'ffc_template_values'    => array(
+				'50' => array( 'local' => 'Sala 2', 'intruso' => 'x' ),
+				'60' => array( 'local' => 'other template' ),
+			),
+		);
+
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+
+		$this->assertSame( 50, $bag['meta']['_ffc_layout_template_id'] );
+		$this->assertSame( array( 'old_key' => 'kept', 'local' => 'Sala 2', 'acao' => '' ), $bag['meta']['_ffc_template_values'], 'a value for a removed field stays stored; an undeclared key is dropped' );
+		$this->assertSame( array(), $bag['transients'], 'the required field is filled' );
+		$_POST = array();
+	}
+
+	public function test_a_required_template_field_left_empty_saves_with_a_warning(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array(
+			'ffc_layout_source'      => 'template',
+			'ffc_layout_template_id' => '50',
+		);
+
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+
+		$this->assertSame( 50, $bag['meta']['_ffc_layout_template_id'] );
+		$this->assertSame( array( 'Place' ), $bag['transients']['ffc_save_template_values_warning_3'] );
+		$_POST = array();
+	}
+
+	public function test_own_layout_or_an_unusable_template_drops_the_reference(): void {
+		foreach ( array( array( 'ffc_layout_source' => 'own', 'ffc_layout_template_id' => '50' ), array( 'ffc_layout_source' => 'template', 'ffc_layout_template_id' => '99' ) ) as $post ) {
+			$bag   = $this->stub_template_link();
+			$_POST = $post;
+			$this->invoke( 'save_template_link_meta', array( 11 ) );
+			$this->assertSame( array( '_ffc_layout_template_id' ), $bag['deleted'] );
+			$this->assertSame( array(), $bag['meta'], 'the values stay for a return to the template' );
+		}
+		$_POST = array();
+	}
+
+	public function test_a_save_without_the_layout_source_leaves_the_reference_alone(): void {
+		$bag   = $this->stub_template_link();
+		$_POST = array();
+		$this->invoke( 'save_template_link_meta', array( 11 ) );
+		$this->assertSame( array(), $bag['deleted'] );
+		$this->assertSame( array(), $bag['meta'] );
+	}
 }
