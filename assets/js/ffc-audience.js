@@ -20,7 +20,7 @@
     // Ensure ffcAudience is defined with defaults
     if (typeof ffcAudience === 'undefined') {
         window.ffcAudience = {
-            ajaxUrl: '/wp-admin/admin-ajax.php',
+            ajaxUrl: (window.ffcCoreConfig && window.ffcCoreConfig.ajaxUrl) || window.ajaxurl || '',
             restUrl: '/wp-json/ffc/v1/audience/',
             nonce: ''
         };

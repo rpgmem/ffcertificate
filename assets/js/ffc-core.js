@@ -195,10 +195,25 @@
          * Getters here resolve `window.ffc_ajax` on every read, so the
          * dynamic-fragments refresh propagates without callers needing
          * to know about it.
+         *
+         * `ajaxUrl` is a getter for a second reason (#2600): on the public
+         * pages `ffc_ajax` is localized onto scripts that load after this
+         * one, so a value read here fell back to the root path and every
+         * request 404'd on a WordPress installed in a subdirectory. It reads
+         * `ffc_ajax`, then `ffcCoreConfig` (always localized onto this
+         * script), then core's `ajaxurl`; an assigned URL wins over all three.
          */
         config: {
             debug: false,
-            ajaxUrl: window.ffc_ajax?.ajax_url || '/wp-admin/admin-ajax.php',
+            _ajaxUrl: '',
+            get ajaxUrl() {
+                return this._ajaxUrl
+                    || (window.ffc_ajax && window.ffc_ajax.ajax_url)
+                    || (window.ffcCoreConfig && window.ffcCoreConfig.ajaxUrl)
+                    || window.ajaxurl
+                    || '';
+            },
+            set ajaxUrl(url) { this._ajaxUrl = url || ''; },
             get nonce() { return (window.ffc_ajax && window.ffc_ajax.nonce) || ''; },
             get strings() { return (window.ffc_ajax && window.ffc_ajax.strings) || {}; }
         },
@@ -372,7 +387,7 @@
                     nonce: nonce,
                 });
             }
-            var url = options.ajaxUrl || this.config.ajaxUrl || '/wp-admin/admin-ajax.php';
+            var url = options.ajaxUrl || this.config.ajaxUrl;
             // jQuery.post doesn't accept a timeout. When callers want one,
             // fall through to jQuery.ajax({ url, type:'POST', data, timeout })
             // which returns the same jqXHR-with-.done/.fail interface.
