@@ -225,6 +225,11 @@ class PdfGenerator {
 			'bg_image'      => $bg_image_url,
 			'bg_color'      => \FreeFormCertificate\Core\FormBackground::color( $form_id ),
 		);
+		// A portrait page, which a visual template can declare (#2584); the
+		// capture prints landscape otherwise.
+		if ( 'portrait' === ( $form_config['orientation'] ?? '' ) ) {
+			$pdf_data['orientation'] = 'portrait';
+		}
 
 		/**
 		 * Fires after PDF data is fully generated.

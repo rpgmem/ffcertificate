@@ -225,6 +225,13 @@ final class InlineStyleTest extends TestCase {
 		'includes/core/class-ffc-certificate-fonts.php' => array(
 			'wp_add_inline_style: wp_add_inline_style( self::STYLE_HANDLE' => array( 1, self::GENERATED ),
 		),
+		// A visual template renders to the positioned page html2canvas rasterises (#2584).
+		'includes/core/class-ffc-visual-layout.php' => array(
+			'style=: style="position:relative;width:%dpx;height:%dpx;overflow:hidden'           => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="%s'                                                                  => array( 1, self::PDF_DOCUMENT ),
+			'style=: style="max-width:%s;max-height:%s'                                          => array( 2, self::PDF_DOCUMENT ),
+			'style=: style="position:absolute;left:%s;top:%s;width:%s;height:%s;max-width:none' => array( 1, self::PDF_DOCUMENT ),
+		),
 		'includes/core/class-ffc-public-design.php' => array(
 			'<style>: <style id="ffc-public-design"' => array( 1, self::GENERATED ),
 		),

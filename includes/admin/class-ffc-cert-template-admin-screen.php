@@ -332,6 +332,11 @@ class CertTemplateAdminScreen {
 		// Preserve the source's kind + background so a duplicated receipt stays a
 		// receipt (#945) and a duplicated certificate keeps its background.
 		$new_id = CertTemplateWriter::create( $title, $html, true, $bg, $kind, $color );
+		// A visual template's copy stays visual, with its layout (#2584).
+		if ( $new_id > 0 && \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
+			update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
+			update_post_meta( $new_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, (string) get_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, true ) );
+		}
 
 		// Open the new copy for editing; fall back to the list on failure.
 		$redirect = $new_id > 0
@@ -666,7 +671,10 @@ class CertTemplateAdminScreen {
 		$post_id    = RequestInput::get_get_int( 'post' );
 		$is_default = $post_id > 0 && CertTemplateReader::is_default( $post_id );
 
-		AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
+		// A visual template edits its layout, not HTML (#2584).
+		if ( ! \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id ) ) {
+			AdminAssetsManager::enqueue_code_editor_for( 'ffc_template_html', $is_default );
+		}
 
 		// Editable templates get the same Background Image + Insert Image tools as
 		// the form-editor layout box (the buttons render only for non-defaults).
@@ -767,6 +775,31 @@ class CertTemplateAdminScreen {
 			echo '<p class="description">' .
 				esc_html__( 'This is a shipped default template — its HTML is read-only. Duplicate it to create an editable copy; you can still show/hide it in Template options.', 'ffcertificate' ) .
 				'</p>';
+		}
+
+		// Visual templates (#2584): certificates only. A new certificate
+		// template chooses its editor; an existing one keeps the one it has.
+		$is_certificate = ! $is_receipt && ! $is_record;
+		if ( $is_certificate && ! $is_default && 'auto-draft' === $post->post_status && '' === $requested_kind ) {
+			AdminUI::render_segmented(
+				array(
+					'name'         => 'ffc_template_editor',
+					'legend'       => __( 'Editor', 'ffcertificate' ),
+					'options'      => array(
+						\FreeFormCertificate\Core\VisualLayout::EDITOR_HTML   => __( 'HTML', 'ffcertificate' ),
+						\FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL => __( 'Visual', 'ffcertificate' ),
+					),
+					'value'        => \FreeFormCertificate\Core\VisualLayout::EDITOR_HTML,
+					'descriptions' => array(
+						\FreeFormCertificate\Core\VisualLayout::EDITOR_HTML   => __( 'Write the certificate as HTML.', 'ffcertificate' ),
+						\FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL => __( 'Place elements on the page; the HTML is generated from the layout. Save to start editing it.', 'ffcertificate' ),
+					),
+				)
+			);
+		}
+		if ( $is_certificate && \FreeFormCertificate\Core\VisualLayout::is_visual( (int) $post->ID ) ) {
+			$this->render_visual_layout_field( $post, $is_default, $bg_image );
+			return;
 		}
 
 		// Image tools mirror the form editor's layout toolbar (same button ids →
@@ -900,13 +933,18 @@ class CertTemplateAdminScreen {
 		// Shipped defaults are read-only (#865 decision #11): never rewrite a
 		// default's HTML from the edit screen, even if the request carries a
 		// body (the textarea is rendered `readonly`, but enforce server-side).
-		if ( ! CertTemplateReader::is_default( $post_id ) ) {
+		if ( ! CertTemplateReader::is_default( $post_id ) && $this->save_visual_layout( $post_id ) ) {
+			$bg_image = isset( $_POST['ffc_template_bg_image'] )
+				? esc_url_raw( wp_unslash( $_POST['ffc_template_bg_image'] ) )
+				: '';
+			CertTemplateWriter::set_bg_image( $post_id, $bg_image );
+		} elseif ( ! CertTemplateReader::is_default( $post_id ) ) {
 			// Certificate HTML legitimately carries rich markup (tables, inline
 			// styles) — sanitize through the same allowlist the form-layout save
 			// uses, never a plain sanitize_text_field.
 			// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Deliberately not sanitize_text_field: this is template HTML, filtered on the next line by wp_kses() with the HtmlPolicy allowlist.
 			$raw  = isset( $_POST['ffc_template_html'] ) ? (string) wp_unslash( $_POST['ffc_template_html'] ) : '';
-			$html = wp_kses( $raw, \FreeFormCertificate\Core\HtmlPolicy::get_allowed_html_tags() );
+			$html = \FreeFormCertificate\Core\HtmlPolicy::kses_layout( $raw );
 			CertTemplateWriter::update_html( $post_id, $html );
 
 			// Background image URL: carried into the form's Background Image field
@@ -928,6 +966,90 @@ class CertTemplateAdminScreen {
 		if ( CertTemplateCpt::is_valid_kind( $requested_kind ) ) {
 			CertTemplateWriter::set_kind( $post_id, $requested_kind );
 		}
+	}
+
+	/**
+	 * The layout field of a visual template (#2584): its JSON, until the
+	 * canvas of #2585 replaces it, the background and the last save's error.
+	 *
+	 * @param \WP_Post $post       Current template post.
+	 * @param bool     $is_default Whether it is a shipped default.
+	 * @param string   $bg_image   Background image URL.
+	 * @return void
+	 */
+	private function render_visual_layout_field( \WP_Post $post, bool $is_default, string $bg_image ): void {
+		$stored = (string) get_post_meta( $post->ID, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, true );
+		$json   = '' !== $stored ? $stored : \FreeFormCertificate\Core\VisualLayout::to_json( \FreeFormCertificate\Core\VisualLayout::blank() );
+
+		$error_key = self::layout_error_key( (int) $post->ID );
+		$error     = get_transient( $error_key );
+		if ( is_string( $error ) && '' !== $error ) {
+			delete_transient( $error_key );
+			\FreeFormCertificate\Core\AdminNotice::callout(
+				'error',
+				esc_html( $error ),
+				array( 'title' => __( 'The layout was not saved.', 'ffcertificate' ) )
+			);
+		}
+		?>
+		<label class="ffc-block-label" for="ffc_template_layout"><strong><?php esc_html_e( 'Visual layout (JSON)', 'ffcertificate' ); ?></strong></label>
+		<textarea name="ffc_template_layout" id="ffc_template_layout" class="ffc-w100 code" rows="20" spellcheck="false" <?php wp_readonly( $is_default, true ); ?>><?php echo esc_textarea( $json ); ?></textarea>
+		<p class="description">
+			<?php esc_html_e( 'The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates.', 'ffcertificate' ); ?>
+		</p>
+		<div class="ffc-input-group ffc-mt-xl">
+			<label class="ffc-block-label" for="ffc_template_bg_image"><strong><?php esc_html_e( 'Background Image URL:', 'ffcertificate' ); ?></strong></label>
+			<input type="text" name="ffc_template_bg_image" id="ffc_template_bg_image" value="<?php echo esc_url( $bg_image ); ?>" class="ffc-w100" <?php wp_readonly( $is_default, true ); ?>>
+			<div id="ffc_bg_image_preview"></div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Save a visual template's layout (#2584), when the template is one or is
+	 * being created as one. The certificate HTML is regenerated from the
+	 * layout, so every reader of a template keeps reading HTML. A layout that
+	 * does not validate leaves the stored one in place and says why.
+	 *
+	 * @param int $post_id Saved post id.
+	 * @return bool Whether the template is visual (the HTML body is then not read).
+	 */
+	private function save_visual_layout( int $post_id ): bool {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- the caller verified the nonce and the capability.
+		$chosen = isset( $_POST['ffc_template_editor'] ) ? sanitize_key( wp_unslash( $_POST['ffc_template_editor'] ) ) : '';
+		$visual = \FreeFormCertificate\Core\VisualLayout::is_visual( $post_id );
+		if ( ! $visual && \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL === $chosen && CertTemplateCpt::KIND_CERTIFICATE === CertTemplateReader::get_kind( $post_id ) ) {
+			$layout = \FreeFormCertificate\Core\VisualLayout::blank();
+			update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
+			update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
+			CertTemplateWriter::update_html( $post_id, \FreeFormCertificate\Core\VisualLayout::render( $layout ) );
+			return true;
+		}
+		if ( ! $visual ) {
+			return false;
+		}
+		if ( ! isset( $_POST['ffc_template_layout'] ) ) {
+			return true;
+		}
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON, validated and normalised field by field on the next line.
+		$layout = \FreeFormCertificate\Core\VisualLayout::validate( (string) wp_unslash( $_POST['ffc_template_layout'] ) );
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
+		if ( is_wp_error( $layout ) ) {
+			set_transient( self::layout_error_key( $post_id ), $layout->get_error_message(), 5 * MINUTE_IN_SECONDS );
+			return true;
+		}
+		update_post_meta( $post_id, \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, \FreeFormCertificate\Core\VisualLayout::to_json( $layout ) );
+		CertTemplateWriter::update_html( $post_id, \FreeFormCertificate\Core\VisualLayout::render( $layout ) );
+		return true;
+	}
+
+	/**
+	 * Where a refused layout's message waits for the next screen, per user.
+	 *
+	 * @param int $post_id Template post id.
+	 */
+	private static function layout_error_key( int $post_id ): string {
+		return 'ffc_layout_error_' . get_current_user_id() . '_' . $post_id;
 	}
 
 	/**

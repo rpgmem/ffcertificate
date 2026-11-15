@@ -41,7 +41,7 @@ class CertTemplateAdminScreenTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
-		unset( $_GET['post'], $_POST['ffc_cert_template_nonce'], $_POST['ffc_template_html'], $_POST['ffc_template_visible'], $_POST['ffc_template_bg_image'] );
+		unset( $_GET['post'], $_POST['ffc_cert_template_nonce'], $_POST['ffc_template_html'], $_POST['ffc_template_visible'], $_POST['ffc_template_bg_image'], $_POST['ffc_template_editor'], $_POST['ffc_template_layout'] );
 		Monkey\tearDown();
 		parent::tearDown();
 	}
@@ -1383,6 +1383,119 @@ class CertTemplateAdminScreenTest extends TestCase {
 	/**
 	 * Capture echoed output of a callable.
 	 */
+	/**
+	 * Stubs for the visual-template save (#2584), over a meta store.
+	 *
+	 * @param array<string, mixed> $meta Template meta.
+	 * @return array<string, mixed> The store, by reference.
+	 */
+	private function &visual_save_stubs( array $meta ): array {
+		$store = $meta;
+		Functions\when( 'current_user_can' )->justReturn( true );
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'wp_unslash' )->returnArg();
+		Functions\when( 'wp_verify_nonce' )->justReturn( true );
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'esc_url_raw' )->returnArg();
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $c ) => preg_match( '/^#[0-9a-f]{6}$/i', (string) $c ) ? $c : null );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $f = 0 ) => json_encode( $v, $f ) );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'get_post' )->justReturn( $this->pool_post( 5 ) );
+		Functions\when( 'get_post_meta' )->alias(
+			static function ( $id, $key ) use ( &$store ) {
+				return $store[ $key ] ?? '';
+			}
+		);
+		Functions\when( 'update_post_meta' )->alias(
+			static function ( $id, $key, $value ) use ( &$store ) {
+				$store[ $key ] = $value;
+				return true;
+			}
+		);
+		$_POST['ffc_cert_template_nonce'] = 'n';
+		return $store;
+	}
+
+	public function test_a_new_certificate_template_can_be_created_visual(): void {
+		$store                        = &$this->visual_save_stubs( array() );
+		$_POST['ffc_template_editor'] = 'visual';
+		$_POST['ffc_template_html']   = '<p>ignored</p>';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertSame( 'visual', $store[ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] );
+		$this->assertSame( \FreeFormCertificate\Core\VisualLayout::blank(), json_decode( $store[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ], true ) );
+		$this->assertStringContainsString( 'ffc-visual-page', $store[ CertTemplateCpt::META_HTML ], 'the HTML every reader uses is generated' );
+		$this->assertStringNotContainsString( 'ignored', $store[ CertTemplateCpt::META_HTML ] );
+	}
+
+	public function test_a_visual_template_saves_its_layout_and_regenerates_the_html(): void {
+		$store                        = &$this->visual_save_stubs( array( \FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual' ) );
+		$_POST['ffc_template_layout'] = '{"version":1,"elements":[{"type":"field","token":"{{name}}","x":10,"y":20,"w":300,"h":40}]}';
+		$_POST['ffc_template_html']   = '<script>never read</script>';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertStringContainsString( '"token": "{{name}}"', $store[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
+		$this->assertStringContainsString( 'left:10px;top:20px;width:300px;height:40px', $store[ CertTemplateCpt::META_HTML ] );
+		$this->assertStringNotContainsString( 'never read', $store[ CertTemplateCpt::META_HTML ] );
+	}
+
+	public function test_a_layout_that_does_not_validate_keeps_the_stored_one_and_says_why(): void {
+		$store                        = &$this->visual_save_stubs(
+			array(
+				\FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual',
+				\FreeFormCertificate\Core\VisualLayout::META_LAYOUT => '{"version":1,"elements":[]}',
+				CertTemplateCpt::META_HTML                           => '<div class="ffc-visual-page"></div>',
+			)
+		);
+		$transients                   = array();
+		Functions\when( 'set_transient' )->alias(
+			static function ( $key, $value ) use ( &$transients ) {
+				$transients[ $key ] = $value;
+				return true;
+			}
+		);
+		$_POST['ffc_template_layout'] = '{"version":1,"elements":[{"type":"marquee"}]}';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertSame( '{"version":1,"elements":[]}', $store[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
+		$this->assertSame( '<div class="ffc-visual-page"></div>', $store[ CertTemplateCpt::META_HTML ] );
+		$this->assertSame( array( 'ffc_layout_error_3_5' => 'Element 1 has an unknown type "marquee".' ), $transients, 'the reason waits for the next screen, per user' );
+	}
+
+	public function test_an_html_template_ignores_a_posted_layout(): void {
+		$store                        = &$this->visual_save_stubs( array() );
+		$_POST['ffc_template_layout'] = '{"version":1,"elements":[]}';
+		$_POST['ffc_template_html']   = '<p>Body</p>';
+
+		( new CertTemplateAdminScreen() )->save_edit_metabox( 5, $this->pool_post( 5 ) );
+
+		$this->assertSame( '<p>Body</p>', $store[ CertTemplateCpt::META_HTML ] );
+		$this->assertArrayNotHasKey( \FreeFormCertificate\Core\VisualLayout::META_LAYOUT, $store );
+	}
+
+	public function test_a_visual_template_shows_its_layout_instead_of_the_html_editor(): void {
+		Functions\when( 'esc_html_e' )->alias( static fn( $t ) => print( $t ) );
+		Functions\when( 'esc_textarea' )->alias( static fn( $v ) => htmlspecialchars( (string) $v ) );
+		Functions\when( 'wp_nonce_field' )->justReturn( '' );
+		Functions\when( 'get_current_user_id' )->justReturn( 3 );
+		Functions\when( 'get_transient' )->justReturn( false );
+		$meta = array(
+			\FreeFormCertificate\Core\VisualLayout::META_EDITOR => 'visual',
+			\FreeFormCertificate\Core\VisualLayout::META_LAYOUT => '{"version":1,"elements":[]}',
+		);
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $key ] ?? '' );
+
+		$html = $this->capture( fn() => ( new CertTemplateAdminScreen() )->render_edit_metabox( $this->pool_post( 5 ) ) );
+
+		$this->assertStringContainsString( 'name="ffc_template_layout"', $html );
+		$this->assertStringContainsString( '{&quot;version&quot;:1,&quot;elements&quot;:[]}', $html );
+		$this->assertStringNotContainsString( 'name="ffc_template_html"', $html );
+		$this->assertStringContainsString( 'name="ffc_template_bg_image"', $html );
+	}
+
 	private function capture( callable $fn ): string {
 		ob_start();
 		$fn();

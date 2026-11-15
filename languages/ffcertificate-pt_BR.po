@@ -34150,6 +34150,85 @@ msgstr "Nome e RF são lidos do perfil a cada certificado gerado, então uma cor
 msgid "The form's signer, chosen on the Layout tab from Certificates → Signers: name and RF from their WordPress profile at generation time, the role or sector, and the URL of the signature image. The RF prints in full on the certificate and masked in previews."
 msgstr "O assinante do formulário, escolhido na aba Layout entre os de Certificados → Assinantes: nome e RF do perfil no WordPress no momento de gerar, o cargo ou setor e a URL da imagem da assinatura. O RF sai completo no certificado e mascarado nas prévias."
 
+msgid "The layout is too large."
+msgstr "O layout é grande demais."
+
+msgid "The layout is not valid JSON."
+msgstr "O layout não é um JSON válido."
+
+#. translators: %d: the schema version this release reads
+msgid "The layout must declare \"version\": %d."
+msgstr "O layout precisa declarar \"version\": %d."
+
+msgid "The layout must carry an \"elements\" list."
+msgstr "O layout precisa trazer uma lista \"elements\"."
+
+#. translators: %d: maximum number of elements
+msgid "A layout holds at most %d elements."
+msgstr "Um layout comporta no máximo %d elementos."
+
+#. translators: %d: element position, starting at 1
+msgid "Element %d is not an object."
+msgstr "O elemento %d não é um objeto."
+
+#. translators: 1: element position, starting at 1, 2: the type it declares
+msgid "Element %1$d has an unknown type \"%2$s\"."
+msgstr "O elemento %1$d tem um tipo desconhecido \"%2$s\"."
+
+msgid "Visual"
+msgstr "Visual"
+
+msgid "Write the certificate as HTML."
+msgstr "Escreva o certificado em HTML."
+
+msgid "Place elements on the page; the HTML is generated from the layout. Save to start editing it."
+msgstr "Posicione elementos na página; o HTML é gerado a partir do layout. Salve para começar a editá-lo."
+
+msgid "The layout was not saved."
+msgstr "O layout não foi salvo."
+
+msgid "Visual layout (JSON)"
+msgstr "Layout visual (JSON)"
+
+msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait). Saving checks the layout and generates the certificate HTML from it; the page editor replaces this field in a later release. The format is described under Settings → Documentation → Document Templates."
+msgstr "A página como uma lista de elementos posicionados, em pixels da página (1123 × 794 paisagem, 794 × 1123 retrato). Salvar verifica o layout e gera a partir dele o HTML do certificado; o editor de página substitui este campo numa versão futura. O formato está descrito em Configurações → Documentação → Modelos de documento."
+
+msgid "Visual certificate templates"
+msgstr "Modelos de certificado visuais"
+
+msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. Until the page editor arrives, the layout is edited as JSON in the template's Visual layout field, and a layout that does not check out is not saved and says why."
+msgstr "Um novo modelo de certificado escolhe o seu editor: HTML ou Visual. Um modelo visual é uma lista de elementos posicionados na página; o HTML do certificado é gerado a partir dele a cada salvamento e passa pela mesma captura que qualquer modelo, então os formulários o referenciam, visualizam e imprimem da mesma forma. Até o editor de página chegar, o layout é editado como JSON no campo Layout visual do modelo, e um layout que não passa na verificação não é salvo e diz o motivo."
+
+msgid "The format: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Positions and sizes are page pixels — 1123 × 794 landscape, 794 × 1123 portrait — as x, y, w and h, with rotation in degrees and locked. The list order is the stacking order, the first element at the back; the background image and the page colour sit beneath every element."
+msgstr "O formato: {\"version\": 1, \"page\": {\"orientation\": \"landscape\"}, \"elements\": [ … ]}. Posições e tamanhos são pixels da página — 1123 × 794 paisagem, 794 × 1123 retrato — como x, y, w e h, com rotation em graus e locked. A ordem da lista é a ordem de empilhamento, o primeiro elemento ao fundo; a imagem de fundo e a cor da página ficam abaixo de todos os elementos."
+
+msgid "text — literal text, tokens allowed, with font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform and fit (none, line or box: the text shrinks to fit the width, or the box)."
+msgstr "text — texto literal, com tokens permitidos, com font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform e fit (none, line ou box: o texto encolhe para caber na largura, ou na caixa)."
+
+msgid "field — one token, as {{name}} or {{model:place}}, with the same text properties."
+msgstr "field — um token, como {{name}} ou {{model:place}}, com as mesmas propriedades de texto."
+
+msgid "image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit."
+msgstr "image — attachment_id, uma imagem da Biblioteca de Mídia, ou token {{signer:signature}}; fit contain ou cover, desenhado com tamanho explícito porque a captura ignora object-fit."
+
+msgid "qr — the validation QR code, sized to the shorter side of its box; margin."
+msgstr "qr — o QR code de validação, no tamanho do lado menor da sua caixa; margin."
+
+msgid "frame — border_width, border_style, border_color, radius and fill; the border is drawn inside the box."
+msgstr "frame — border_width, border_style, border_color, radius e fill; a borda é desenhada dentro da caixa."
+
+msgid "html — a block of HTML, filtered by the same rules as an HTML template."
+msgstr "html — um bloco de HTML, filtrado pelas mesmas regras de um modelo HTML."
+
+msgid "An out-of-range number is brought into range, an unknown value takes its default and an unknown key is dropped; text is printed as text. Duplicating a visual template keeps it visual. Only certificates can be visual; the record and the receipts stay HTML."
+msgstr "Um número fora da faixa é trazido para dentro dela, um valor desconhecido assume o padrão e uma chave desconhecida é descartada; o texto é impresso como texto. Duplicar um modelo visual o mantém visual. Só certificados podem ser visuais; a ficha e os comprovantes continuam em HTML."
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "HTML"
+msgstr "HTML"
+
 msgid "Certificates: Move Copied Layouts onto a Shared Template"
 msgstr "Certificados: mover layouts copiados para um modelo compartilhado"
 
