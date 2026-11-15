@@ -34632,7 +34632,7 @@ msgstr ""
 msgid "Undone"
 msgstr ""
 
-msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, or Ctrl+A, selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
+msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, a rectangle dragged over the page (or from a locked element), or Ctrl+A selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
 msgstr ""
 
 #. translators: %s: source template title
@@ -34734,4 +34734,10 @@ msgid "Add colour"
 msgstr ""
 
 msgid "Remove last colour"
+msgstr ""
+
+msgid "Drag over the page"
+msgstr ""
+
+msgid "Select what the rectangle touches; with Shift, add it"
 msgstr ""
