@@ -21,6 +21,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **Certificate templates can be visual** (#2584): a schema-versioned JSON layout of positioned text, field, image, QR, frame and HTML elements, validated on save and rendered on the server to the HTML the current capture prints. Until the page editor arrives the layout is edited as JSON. Layout sanitising now keeps `{{signer:signature}}` in an image address, which `wp_kses()` used to cut.
 - **Visual templates are edited on a page canvas** (#2585): insert, drag, resize on a 10 px grid, nudge with the arrows, zoom, align to the page, restack and lock layers, and discard back to the last save, on a window of at least 1280 px with a fine pointer. Written in-house on native pointer events.
 - **Visual templates get a properties panel, a preview and six models** (#2586): per-element properties with a tag picker and a font list that marks a missing font; a preview through the PDF renderer; a warning for missing required tags; a one-way Convert to HTML; visual versions of the six certificate models (seed version 12).
+- **A visual copy of an HTML certificate template** (#2587): Create visual version reads the template into a new visual template, positioned boxes as elements and the rest as HTML blocks, drops rules the elements do not draw, and reports what it converted, kept and dropped. The original is not touched.
 
 ### Changed
 

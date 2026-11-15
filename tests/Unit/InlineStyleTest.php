@@ -245,6 +245,11 @@ final class InlineStyleTest extends TestCase {
 			'wp_add_inline_style: wp_add_inline_style( self::STYLE_HANDLE' => array( 1, self::GENERATED ),
 		),
 		// A visual template renders to the positioned page html2canvas rasterises (#2584).
+		// An HTML block read from an HTML template carries the template's own
+		// style into the certificate document (#2587).
+		'includes/core/class-ffc-visual-layout-importer.php' => array(
+			'style=: style="' => array( 1, self::PDF_DOCUMENT ),
+		),
 		'includes/core/class-ffc-visual-layout.php' => array(
 			'style=: style="position:relative;width:%dpx;height:%dpx;overflow:hidden'           => array( 1, self::PDF_DOCUMENT ),
 			'style=: style="%s'                                                                  => array( 1, self::PDF_DOCUMENT ),

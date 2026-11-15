@@ -34625,3 +34625,60 @@ msgstr "Propriedades do elemento, na coluna lateral, alteram o elemento selecion
 
 msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
 msgstr "Converter em HTML transforma um modelo visual em modelo HTML, após uma confirmação. Não tem volta: o HTML gerado no último salvamento passa a ser o modelo, então os formulários que o usam imprimem o mesmo documento, e o layout é descartado. Os seis modelos de certificado também vêm como modelos visuais; duplique um para começar um modelo visual a partir dele."
+
+#. translators: %s: source template title
+msgid "%s (visual)"
+msgstr "%s (visual)"
+
+msgid "A new visual template read from this one; this template stays as it is."
+msgstr "Um novo modelo visual lido a partir deste; este modelo continua como está."
+
+msgid "A shape (border or fill)"
+msgstr "Uma forma (borda ou preenchimento)"
+
+msgid "An empty box with no border or fill"
+msgstr "Uma caixa vazia, sem borda nem preenchimento"
+
+msgid "An image"
+msgstr "Uma imagem"
+
+msgid "Converted to elements"
+msgstr "Convertido em elementos"
+
+msgid "Create visual version"
+msgstr "Criar versão visual"
+
+msgid "Dropped"
+msgstr "Descartado"
+
+msgid "Kept as HTML blocks"
+msgstr "Mantido como blocos HTML"
+
+msgid "Only an HTML certificate template can have a visual version."
+msgstr "Só um modelo de certificado HTML pode ter uma versão visual."
+
+msgid "The page colour, as the template's page colour"
+msgstr "A cor da página, como cor de página do modelo"
+
+#. translators: 1: a CSS property, 2: its value
+msgid "The rule %1$s: %2$s, which a visual element does not draw"
+msgstr "A regra %1$s: %2$s, que um elemento visual não desenha"
+
+msgid "The visual version could not be created."
+msgstr "Não foi possível criar a versão visual."
+
+msgid "The whole template, which has no page with a width and height in pixels"
+msgstr "O modelo inteiro, que não tem uma página com largura e altura em pixels"
+
+msgid "This visual template was read from the HTML template; the original is unchanged. Check the page and the preview before using it."
+msgstr "Este modelo visual foi lido do modelo HTML; o original não mudou. Confira a página e a prévia antes de usá-lo."
+
+msgid "Visual version created"
+msgstr "Versão visual criada"
+
+#. translators: %s: the first words of an element
+msgid "“%s”"
+msgstr "“%s”"
+
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. Each element the page places in pixels with a size becomes a box: a frame, an image from the Media Library or the signer's signature, the QR code, a data field or a text. Everything else becomes an HTML block, and text in the page's flow becomes one block the size of the page. A rule the visual elements do not draw, such as a text shadow, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. The shipped models flow their text, so most of each becomes HTML; the visual models are the ones drawn element by element."
+msgstr "Criar versão visual, num modelo de certificado HTML e na sua linha da lista, cria um novo modelo visual lido a partir dele; o original não é alterado. Cada elemento que a página posiciona em pixels com um tamanho vira uma caixa: uma moldura, uma imagem da Biblioteca de Mídia ou a assinatura do signatário, o QR code, um campo de dados ou um texto. O resto vira bloco HTML, e o texto no fluxo da página vira um bloco do tamanho da página. Uma regra que os elementos visuais não desenham, como uma sombra de texto, é descartada. O novo modelo abre com um relatório do que foi convertido, mantido como HTML e descartado. Os modelos que vêm com o plugin têm texto em fluxo, então a maior parte de cada um vira HTML; os modelos visuais são os desenhados elemento por elemento."
