@@ -73,11 +73,27 @@
 	box-shadow: 0 0 0 2px var(--ffc-border-focus);
 }
 
-.ffc-visual-editor .ffc-ve-page.is-snapping {
+/* The template's page colour and background image, under the elements,
+   stretched as the PDF stretches them; the grid is drawn on top (#2612). */
+.ffc-visual-editor .ffc-ve-backdrop {
+	--ffc-ve-bg-image: none;
+	--ffc-ve-bg-color: transparent;
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background-color: var(--ffc-ve-bg-color);
+	background-image: var(--ffc-ve-bg-image);
+	background-repeat: no-repeat;
+	background-size: 100% 100%;
+}
+
+.ffc-visual-editor .ffc-ve-page.is-snapping .ffc-ve-backdrop {
 	background-image:
 		linear-gradient(var(--ffc-border-light) 1px, transparent 1px),
-		linear-gradient(90deg, var(--ffc-border-light) 1px, transparent 1px);
-	background-size: 10px 10px;
+		linear-gradient(90deg, var(--ffc-border-light) 1px, transparent 1px),
+		var(--ffc-ve-bg-image);
+	background-repeat: repeat, repeat, no-repeat;
+	background-size: 10px 10px, 10px 10px, 100% 100%;
 }
 
 .ffc-visual-editor .ffc-ve-el {
