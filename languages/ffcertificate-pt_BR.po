@@ -34716,3 +34716,59 @@ msgstr "Desfeito"
 
 msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, or Ctrl+A, selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
 msgstr "Desfazer e Refazer voltam e avançam por cada alteração desde que a página foi aberta, incluindo Descartar alterações. Shift-clique, ou Ctrl+A, seleciona vários elementos: eles se movem juntos, e Alinhar os alinha entre si, enquanto um único elemento se alinha à página; Distribuir espaça três ou mais por igual. Guias aparecem quando um elemento movido se alinha a outro ou ao meio da página, e ele se encaixa nelas. Um único elemento selecionado tem uma alça de rotação; com Shift, ela gira em passos de 15°. Copiar e Colar levam elementos entre modelos visuais, e Duplicar os copia no lugar. Cada ação tem uma tecla, listada em Atalhos de teclado abaixo da página."
+#. translators: %s: source template title
+msgid "%s (visual)"
+msgstr "%s (visual)"
+
+msgid "A new visual template read from this one; this template stays as it is."
+msgstr "Um novo modelo visual lido a partir deste; este modelo continua como está."
+
+msgid "A shape (border or fill)"
+msgstr "Uma forma (borda ou preenchimento)"
+
+msgid "An empty box with no border or fill"
+msgstr "Uma caixa vazia, sem borda nem preenchimento"
+
+msgid "An image"
+msgstr "Uma imagem"
+
+msgid "Converted to elements"
+msgstr "Convertido em elementos"
+
+msgid "Create visual version"
+msgstr "Criar versão visual"
+
+msgid "Dropped"
+msgstr "Descartado"
+
+msgid "Kept as HTML blocks"
+msgstr "Mantido como blocos HTML"
+
+msgid "Only an HTML certificate template can have a visual version."
+msgstr "Só um modelo de certificado HTML pode ter uma versão visual."
+
+msgid "The page colour, as the template's page colour"
+msgstr "A cor da página, como cor de página do modelo"
+
+#. translators: 1: a CSS property, 2: its value
+msgid "The rule %1$s: %2$s, which a visual element does not draw"
+msgstr "A regra %1$s: %2$s, que um elemento visual não desenha"
+
+msgid "The visual version could not be created."
+msgstr "Não foi possível criar a versão visual."
+
+msgid "The whole template, which has no page with a width and height in pixels"
+msgstr "O modelo inteiro, que não tem uma página com largura e altura em pixels"
+
+msgid "This visual template was read from the HTML template; the original is unchanged. Check the page and the preview before using it."
+msgstr "Este modelo visual foi lido do modelo HTML; o original não mudou. Confira a página e a prévia antes de usá-lo."
+
+msgid "Visual version created"
+msgstr "Versão visual criada"
+
+#. translators: %s: the first words of an element
+msgid "“%s”"
+msgstr "“%s”"
+
+msgid "Create visual version, on an HTML certificate template and in its row of the list, makes a new visual template read from it; the original is not touched. Each element the page places in pixels with a size becomes a box: a frame, an image from the Media Library or the signer's signature, the QR code, a data field or a text. Everything else becomes an HTML block, and text in the page's flow becomes one block the size of the page. A rule the visual elements do not draw, such as a text shadow, is dropped. The new template opens with a report of what was converted, kept as HTML and dropped. The shipped models flow their text, so most of each becomes HTML; the visual models are the ones drawn element by element."
+msgstr "Criar versão visual, num modelo de certificado HTML e na sua linha da lista, cria um novo modelo visual lido a partir dele; o original não é alterado. Cada elemento que a página posiciona em pixels com um tamanho vira uma caixa: uma moldura, uma imagem da Biblioteca de Mídia ou a assinatura do signatário, o QR code, um campo de dados ou um texto. O resto vira bloco HTML, e o texto no fluxo da página vira um bloco do tamanho da página. Uma regra que os elementos visuais não desenham, como uma sombra de texto, é descartada. O novo modelo abre com um relatório do que foi convertido, mantido como HTML e descartado. Os modelos que vêm com o plugin têm texto em fluxo, então a maior parte de cada um vira HTML; os modelos visuais são os desenhados elemento por elemento."
