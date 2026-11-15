@@ -74,6 +74,8 @@ class RequiredNumericInputTest extends TestCase {
 		// a `.ffc-collapsed-target` block. A `required` here would block
 		// saving the form editor while never reaching the server.
 		'includes/admin/class-ffc-form-editor-restriction-metabox.php::ffc_qty_codes'                => 'JS control, no name',
+		'includes/admin/class-ffc-cert-template-admin-screen.php::ffc_ve_gradient_angle'          => 'JS control, no name: the layout JSON is what posts (#2609)',
+		'includes/admin/class-ffc-cert-template-admin-screen.php::ffc_ve_gradient_at_'            => 'JS control, no name: the layout JSON is what posts (#2609)',
 
 		// The "add a new location" row of the geolocation tab, inside the same
 		// <form> as every other setting on it: required there would refuse to
