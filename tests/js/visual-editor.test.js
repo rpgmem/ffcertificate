@@ -460,4 +460,119 @@ describe('ffc-visual-editor.js', () => {
 			expect(document.querySelector('[data-ffc-ve-preview-status]').textContent).toBe('Could not draw.');
 		});
 	});
+	describe('the rest of the wiring', () => {
+		it('zooms, toggles the grid, and keeps the JSON current on submit', () => {
+			const ed = editor();
+			const zoom = document.querySelector('[data-ffc-ve-zoom]');
+			zoom.value = '0.5';
+			zoom.dispatchEvent(new window.Event('change'));
+			expect(ed.scale()).toBe(0.5);
+			const snap = document.querySelector('[data-ffc-ve-snap]');
+			snap.checked = false;
+			snap.dispatchEvent(new window.Event('change'));
+			expect(ed.snapOn).toBe(false);
+			expect(document.querySelector('.ffc-ve-page').classList.contains('is-snapping')).toBe(false);
+
+			ed.layout.elements[0].x = 77;
+			ed.dirty = true;
+			document.querySelector('form').dispatchEvent(new window.Event('submit'));
+			expect(layout().elements[0].x).toBe(77);
+			expect(ed.dirty).toBe(false);
+		});
+
+		it('guards unsaved work on leaving', () => {
+			// Editors booted by earlier tests keep their window listeners, so
+			// only the guarded case can be told apart here.
+			const ed = editor();
+			ed.dirty = true;
+			const event = new window.Event('beforeunload', { cancelable: true });
+			window.dispatchEvent(event);
+			expect(event.defaultPrevented).toBe(true);
+			ed.dirty = false;
+		});
+
+		it('deselects with Escape and with a click on the empty page', () => {
+			const ed = editor();
+			ed.selected = 'name';
+			ed.render();
+			const page = document.querySelector('.ffc-ve-page');
+			page.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+			expect(ed.selected).toBe(null);
+			ed.selected = 'name';
+			pointer(page, 'pointerdown', 5, 5);
+			expect(ed.selected).toBe(null);
+		});
+
+		it('selects from a layer name and restacks by dropping a row', () => {
+			const ed = editor();
+			document.querySelectorAll('.ffc-ve-layer-name')[1].click();
+			expect(ed.selected).toBe('name');
+			const rows = document.querySelectorAll('[data-ffc-ve-row]');
+			const drop = new window.Event('drop', { bubbles: true, cancelable: true });
+			drop.dataTransfer = { getData: () => '0' };
+			rows[2].dispatchEvent(drop);
+			// The front row (the QR code) went to the back.
+			expect(layout().elements.map((e) => e.id)).toEqual(['seal', 'back', 'name']);
+			const bad = new window.Event('drop', { bubbles: true, cancelable: true });
+			bad.dataTransfer = { getData: () => 'x' };
+			rows[0].dispatchEvent(bad);
+			expect(layout().elements.map((e) => e.id)).toEqual(['seal', 'back', 'name']);
+		});
+
+		it('picks an image from the Media Library and draws it', () => {
+			const ed = editor();
+			ed.layout.elements.push({ id: 'img', type: 'image', attachment_id: 0, x: 0, y: 0, w: 100, h: 50, fit: 'cover' });
+			ed.selected = 'img';
+			ed.render();
+			let onSelect = null;
+			let opened = false;
+			window.wp = {
+				media: () => ({
+					on: (name, fn) => { onSelect = fn; },
+					open: () => { opened = true; },
+					state: () => ({ get: () => ({ first: () => ({ toJSON: () => ({ id: 41, url: 'https://example.test/seal.png' }) }) }) })
+				})
+			};
+			document.querySelector('[data-ffc-ve-choose-image]').click();
+			expect(opened).toBe(true);
+			onSelect();
+			expect(layout().elements.find((e) => e.id === 'img').attachment_id).toBe(41);
+			const img = document.querySelector('[data-ffc-ve-id="img"] .ffc-ve-el-image');
+			expect(img.getAttribute('src')).toBe('https://example.test/seal.png');
+			expect(img.classList.contains('is-cover')).toBe(true);
+			expect(document.querySelector('[data-ffc-ve-image-name]').textContent).toBe('Image #41');
+			delete window.wp;
+			ed.chooseImage();
+		});
+
+		it('opens and closes the preview from its buttons', async () => {
+			const ed = editor();
+			const dialog = document.querySelector('.ffc-ve-preview');
+			dialog.showModal = () => { dialog.open = true; };
+			dialog.close = () => { dialog.open = false; };
+			window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ success: true, data: { html: '<div></div>', width: 1, height: 1, missing: [], fonts: [] } }) });
+			window.FFCLayoutPreview = { capture: () => Promise.reject(new Error('canvas')) };
+			document.querySelector('[data-ffc-ve-preview]').click();
+			expect(dialog.open).toBe(true);
+			expect(await ed.preview()).toBe(false);
+			expect(document.querySelector('[data-ffc-ve-preview-status]').textContent).toBe('Could not draw.');
+			delete window.FFCLayoutPreview;
+			expect(await ed.preview()).toBe(false);
+			document.querySelector('[data-ffc-ve-preview-close]').click();
+			expect(dialog.open).toBe(false);
+		});
+
+		it('discards through the confirmation dialog only on yes', async () => {
+			const ed = editor();
+			ed.layout.elements[0].x = 999;
+			const ask = window.FFC.confirmDialog;
+			window.FFC.confirmDialog = () => Promise.resolve(false);
+			expect(await ed.confirmDiscard()).toBe(false);
+			expect(ed.layout.elements[0].x).toBe(999);
+			window.FFC.confirmDialog = () => Promise.resolve(true);
+			expect(await ed.confirmDiscard()).toBe(true);
+			expect(ed.layout.elements[0].x).toBe(20);
+			window.FFC.confirmDialog = ask;
+		});
+	});
 });
