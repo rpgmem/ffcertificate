@@ -473,4 +473,36 @@ class CertTemplateSeederTest extends TestCase {
 			}
 		}
 	}
+
+	/**
+	 * A visual default that puts a QR code inside a box must give the box the
+	 * code's height and a line under it: the box clips what overflows, and the
+	 * verification URL and the authentication code follow the code (#2603).
+	 */
+	public function test_visual_defaults_leave_room_for_their_qr_code(): void {
+		$files = glob( dirname( __DIR__, 2 ) . '/templates/certificate-defaults/visual/*.json' );
+		$this->assertSame( 6, count( (array) $files ), 'the six visual models are read' );
+
+		$checked = 0;
+		foreach ( (array) $files as $file ) {
+			$layout = json_decode( (string) file_get_contents( $file ), true );
+			foreach ( $layout['elements'] as $element ) {
+				$body = (string) ( $element['html'] ?? $element['text'] ?? $element['token'] ?? '' );
+				if ( ! preg_match( '/\{\{qr_code:size=(\d+)/', $body, $m ) ) {
+					continue;
+				}
+				++$checked;
+				// When text shares the box, the code breaks the line and the text
+				// after it needs a line of its own.
+				$alone = '' === trim( strip_tags( (string) preg_replace( '/\{\{qr_code[^}]*\}\}/', '', $body ) ) );
+				$this->assertGreaterThanOrEqual(
+					(int) $m[1] + ( $alone ? 0 : 20 ),
+					$element['h'],
+					basename( $file ) . ' clips its QR code or the line under it: a box ' . $element['h'] . ' px tall holds a ' . $m[1] . ' px code.'
+				);
+				$this->assertLessThanOrEqual( 794, $element['y'] + $element['h'], basename( $file ) . ' places the line off the page.' );
+			}
+		}
+		$this->assertSame( 6, $checked, 'every visual model carries one inline QR code' );
+	}
 }

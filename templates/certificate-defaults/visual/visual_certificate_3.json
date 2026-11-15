@@ -362,7 +362,7 @@
 			"x": 100,
 			"y": 668,
 			"w": 923,
-			"h": 12,
+			"h": 126,
 			"html": "<div style=\"font-family: Arimo, Arial, Helvetica, sans-serif;font-size: 11.33px;color: #5b6480;text-align: center;line-height: 1.2\">Issued San Diego, 26/12/2025 · {{qr_code:size=50:margin=0}} · Verify at {{validation_url}} with code <strong>{{auth_code}}</strong></div>",
 			"id": "el-22",
 			"rotation": 0,

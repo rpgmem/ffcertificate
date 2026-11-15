@@ -91,8 +91,12 @@ class CertTemplateSeeder {
 	 * each is a layout under `templates/certificate-defaults/visual/`, seeded
 	 * as a visual template whose HTML is rendered from it, so duplicating one
 	 * starts a visual template a user edits on the page.
+	 *
+	 * Version 13 gives the last line of visual models 1, 2, 3, 4 and 6 room
+	 * for its QR code (#2603): the box was 12 px tall and clipped the code,
+	 * the verification URL and the authentication code off the certificate.
 	 */
-	private const SEED_VERSION = 12;
+	private const SEED_VERSION = 13;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
