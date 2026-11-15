@@ -482,7 +482,7 @@
 			"x": 80,
 			"y": 722,
 			"w": 963,
-			"h": 64,
+			"h": 72,
 			"html": "<div style=\"font-family: Arimo, Arial, Helvetica, sans-serif;font-size: 11.33px;color: #7b8794;text-align: center;line-height: 1.2\">{{qr_code:size=50:margin=0}} &nbsp; Verify at {{validation_url}} with code <strong>{{auth_code}}</strong></div>",
 			"id": "el-28",
 			"rotation": 0,
