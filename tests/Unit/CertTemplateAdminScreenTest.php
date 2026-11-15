@@ -1560,6 +1560,15 @@ class CertTemplateAdminScreenTest extends TestCase {
 		foreach ( array( 'left', 'center', 'right', 'top', 'middle', 'bottom' ) as $mode ) {
 			$this->assertStringContainsString( 'data-ffc-ve-align="' . $mode . '"', $html );
 		}
+		// The refinements (#2588): history, the clipboard, distribution and the keyboard.
+		foreach ( array( 'undo', 'redo', 'copy', 'paste', 'duplicate' ) as $command ) {
+			$this->assertStringContainsString( 'data-ffc-ve-cmd="' . $command . '"', $html );
+		}
+		$this->assertStringContainsString( 'data-ffc-ve-distribute="x"', $html );
+		$this->assertStringContainsString( 'data-ffc-ve-distribute="y"', $html );
+		$this->assertStringContainsString( 'aria-live="polite" data-ffc-ve-status', $html, 'selection and history changes are announced' );
+		$this->assertStringContainsString( '<details class="ffc-ve-keys">', $html );
+		$this->assertStringContainsString( 'Keyboard shortcuts', $html );
 		$this->assertStringContainsString( 'class="ffc-ve-gate', $html, 'a narrow window is told why' );
 		$this->assertStringContainsString( 'action=ffc_preview_cert_template&post=5', $html, 'and still reaches the test PDF' );
 	}

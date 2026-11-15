@@ -34219,8 +34219,6 @@ msgstr ""
 msgid "Align right"
 msgstr ""
 
-msgid "Align to page"
-msgstr ""
 
 msgid "Align top"
 msgstr ""
@@ -34240,8 +34238,6 @@ msgstr ""
 msgid "Centre vertically"
 msgstr ""
 
-msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it."
-msgstr ""
 
 msgid "Data field"
 msgstr ""
@@ -34303,8 +34299,6 @@ msgstr ""
 msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates."
 msgstr ""
 
-msgid "The page goes back to the last save; what changed since is lost."
-msgstr ""
 
 msgid "Unlock"
 msgstr ""
@@ -34542,6 +34536,103 @@ msgid "Element properties, in the side column, change the selected element: its 
 msgstr ""
 
 msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d added"
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d copied"
+msgstr ""
+
+#. translators: %d: number of elements
+msgid "%d elements selected"
+msgstr ""
+
+#. translators: %s: an element's name, such as "Text: Certificate"
+msgid "%s selected"
+msgstr ""
+
+msgid "Align"
+msgstr ""
+
+msgid "Arrows"
+msgstr ""
+
+msgid "arrows"
+msgstr ""
+
+msgid "Bring forward or send backward"
+msgstr ""
+
+msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it. The keyboard shortcuts are listed under the page."
+msgstr ""
+
+msgid "Copied elements can be pasted into another visual template."
+msgstr ""
+
+msgid "Copy, paste or duplicate"
+msgstr ""
+
+msgid "Distribute horizontally"
+msgstr ""
+
+msgid "Distribute vertically"
+msgstr ""
+
+msgid "Keyboard shortcuts"
+msgstr ""
+
+msgid "Lock or unlock"
+msgstr ""
+
+msgid "Move 1 px; with Shift, 10 px"
+msgstr ""
+
+msgid "Nothing selected"
+msgstr ""
+
+msgid "One element aligns to the page; several align to each other. Shift-click adds an element to the selection."
+msgstr ""
+
+msgid "Paste"
+msgstr ""
+
+msgid "Redo"
+msgstr ""
+
+msgid "Redone"
+msgstr ""
+
+msgid "Resize from the right and bottom edges"
+msgstr ""
+
+msgid "Rotate 15° clockwise or back; with Alt, 1°"
+msgstr ""
+
+msgid "Select every element"
+msgstr ""
+
+msgid "Select one to change its properties."
+msgstr ""
+
+msgid "Select the next or previous element"
+msgstr ""
+
+msgid "The page goes back to the last save; Undo brings back what changed since."
+msgstr ""
+
+msgid "Undo"
+msgstr ""
+
+msgid "Undo or redo"
+msgstr ""
+
+msgid "Undone"
+msgstr ""
+
+msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, or Ctrl+A, selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
 msgstr ""
 
 #. translators: %s: source template title

@@ -283,3 +283,50 @@
 	max-height: 70vh;
 	box-shadow: var(--ffc-shadow-md);
 }
+
+/* Refinements (#2588): the rotation handle, guides, the selection's anchor
+   and the keyboard shortcuts. */
+.ffc-visual-editor .ffc-ve-handle-rotate {
+	top: -28px;
+	left: calc(50% - 6px);
+	border-radius: var(--ffc-radius-full);
+	cursor: grab;
+}
+
+.ffc-visual-editor .ffc-ve-el.is-primary {
+	outline-style: dashed;
+}
+
+.ffc-visual-editor .ffc-ve-guide {
+	position: absolute;
+	z-index: var(--ffc-z-modal);
+	background: var(--ffc-danger);
+	pointer-events: none;
+}
+
+.ffc-visual-editor .ffc-ve-guide-x {
+	top: 0;
+	bottom: 0;
+	width: 1px;
+}
+
+.ffc-visual-editor .ffc-ve-guide-y {
+	left: 0;
+	right: 0;
+	height: 1px;
+}
+
+.ffc-visual-editor .ffc-ve-keys {
+	margin-top: var(--ffc-spacing-sm);
+}
+
+.ffc-visual-editor .ffc-ve-keys dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: var(--ffc-spacing-3xs) var(--ffc-spacing-sm);
+	margin: var(--ffc-spacing-xs) 0 0;
+}
+
+.ffc-visual-editor .ffc-ve-keys dd {
+	margin: 0;
+}
