@@ -9,6 +9,7 @@
  * @var bool   $show_download_button Whether to show download button
  * @var string $form_title Form title
  * @var string $date_generated Formatted date
+ * @var string $event_date The event's date or date range, '' when the form has none (#2579)
  * @var string $display_code Formatted authentication code
  * @var array  $priority_fields Priority fields to show first
  * @var array  $skip_fields Fields to skip in display
@@ -46,6 +47,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<span class="ffc-detail-label"><?php esc_html_e( 'Event:', 'ffcertificate' ); ?></span>
 			<span class="ffc-detail-value"><?php echo esc_html( $form_title ); ?></span>
 		</div>
+		<?php if ( ! empty( $event_date ) ) : ?>
+		<div class="ffc-detail-row">
+			<span class="ffc-detail-label"><?php esc_html_e( 'Event date:', 'ffcertificate' ); ?></span>
+			<span class="ffc-detail-value"><?php echo esc_html( $event_date ); ?></span>
+		</div>
+		<?php endif; ?>
 
 		<div class="ffc-detail-row">
 			<span class="ffc-detail-label"><?php esc_html_e( 'Issued on:', 'ffcertificate' ); ?></span>

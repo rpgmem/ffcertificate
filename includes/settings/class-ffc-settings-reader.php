@@ -78,6 +78,10 @@ final class SettingsReader {
 		'print_date',
 		'form_title',
 		'schedule',
+		// The event's date (#2579): the only tag names with a colon, since
+		// they are variants of `schedule` written in the modifier syntax.
+		'schedule:date',
+		'schedule:dates',
 		'score',
 		'max_score',
 		'score_percent',

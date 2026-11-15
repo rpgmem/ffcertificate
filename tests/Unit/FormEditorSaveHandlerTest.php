@@ -1652,6 +1652,27 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( 'now', $result['schedule_default_mode'], 'unknown mode folds back to "now"' );
 	}
 
+	public function test_the_event_date_is_kept_only_as_a_real_date_and_an_end_after_the_start(): void {
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '2025-12-19',
+			'class_date_end'   => '2025-12-20',
+		) ) );
+		$this->assertSame( '2025-12-19', $result['class_date_start'] );
+		$this->assertSame( '2025-12-20', $result['class_date_end'] );
+
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '2025-12-19',
+			'class_date_end'   => '2025-12-18',
+		) ) );
+		$this->assertSame( '', $result['class_date_end'], 'an End before the Start reads as a one-day event' );
+
+		$result = $this->invoke_static( 'sanitize_schedule_exception_config', array( array(
+			'class_date_start' => '<script>',
+			'class_date_end'   => '2025-12-20',
+		) ) );
+		$this->assertSame( array( '', '' ), array( $result['class_date_start'], $result['class_date_end'] ), 'no valid start, no event date' );
+	}
+
 	public function test_schedule_exception_empty_class_times_stay_empty(): void {
 		// Empty strings preserve the "fall back to geofence baseline"
 		// semantic. The helper must NOT replace them with a default time.

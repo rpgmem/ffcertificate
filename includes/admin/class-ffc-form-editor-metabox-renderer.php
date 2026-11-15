@@ -348,10 +348,16 @@ class FormEditorMetaboxRenderer {
 	 * @return string A selector list, or an empty string when the tag is not required.
 	 */
 	private static function schedule_needs(): string {
-		if ( ! in_array( '{{schedule}}', \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags(), true ) ) {
-			return '';
+		$tags      = \FreeFormCertificate\Settings\SettingsReader::required_certificate_tags();
+		$selectors = array();
+		if ( in_array( '{{schedule}}', $tags, true ) ) {
+			$selectors[] = '[name="ffc_geofence[class_time_start]"], [name="ffc_geofence[class_time_end]"]';
 		}
-		return '[name="ffc_geofence[class_time_start]"], [name="ffc_geofence[class_time_end]"]';
+		// The event's date (#2579), when a date token is required.
+		if ( in_array( '{{schedule:date}}', $tags, true ) || in_array( '{{schedule:dates}}', $tags, true ) ) {
+			$selectors[] = '[name="ffc_geofence[class_date_start]"]';
+		}
+		return implode( ', ', $selectors );
 	}
 
 	/**

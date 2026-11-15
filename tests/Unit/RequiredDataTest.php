@@ -380,6 +380,26 @@ class RequiredDataTest extends TestCase {
 		);
 	}
 
+	public function test_the_event_date_tokens_keep_their_colon_and_only_print(): void {
+		$rows  = RequiredData::sanitize(
+			array(
+				array( 'name' => 'schedule:date', 'html' => true, 'form' => true ),
+				array( 'name' => 'Schedule:Dates', 'html' => true ),
+				array( 'name' => 'schedule:other', 'html' => true ),
+			)
+		);
+		$names = array_column( (array) $rows, 'name' );
+		$this->assertContains( 'schedule:date', $names );
+		$this->assertContains( 'schedule:dates', $names );
+		$this->assertContains( 'scheduleother', $names, 'a colon survives only in the two generated date tags' );
+		foreach ( (array) $rows as $row ) {
+			if ( 'schedule:date' === $row['name'] ) {
+				$this->assertFalse( $row['form'], 'a generated tag is never a form field' );
+				$this->assertTrue( $row['html'] );
+			}
+		}
+	}
+
 	public function test_sanitize_adds_the_two_locked_rows_when_absent(): void {
 		$this->assertSame(
 			array(

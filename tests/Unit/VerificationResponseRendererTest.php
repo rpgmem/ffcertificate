@@ -61,6 +61,8 @@ class VerificationResponseRendererTest extends TestCase {
 		Functions\when( 'esc_url' )->returnArg();
 		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
 		Functions\when( 'wp_kses_post' )->returnArg();
+		// The event date (#2579) is read from the form's Event Schedule.
+		Functions\when( 'get_post_meta' )->justReturn( '' );
 		Functions\when( 'get_option' )->alias( function ( $key, $default = false ) {
 			if ( $key === 'date_format' ) return 'Y-m-d';
 			if ( $key === 'time_format' ) return 'H:i';
@@ -441,6 +443,22 @@ class VerificationResponseRendererTest extends TestCase {
 
 		$this->assertStringContainsString( 'ffc-certificate-preview', $html );
 		$this->assertStringContainsString( 'My Certificate', $html );
+	}
+
+	public function test_verification_shows_the_event_date_only_when_the_form_has_one(): void {
+		Functions\when( 'get_post' )->justReturn( (object) array( 'post_title' => 'My Certificate' ) );
+		Functions\when( 'esc_html_e' )->alias( function ( $text ) { echo $text; } );
+		$submission = (object) array( 'form_id' => 1, 'submission_date' => 1748772000 );
+		$data       = array( 'auth_code' => 'ABC123' );
+
+		$this->assertStringNotContainsString( 'Event date:', $this->renderer->format_verification_response( $submission, $data ) );
+
+		Functions\when( 'get_post_meta' )->justReturn( array( 'class_date_start' => '2025-12-19', 'date_start' => '2025-12-01' ) );
+		Functions\when( 'wp_date' )->alias( static fn( $format, $ts = null ) => gmdate( $format, $ts ?? time() ) );
+		$html = $this->renderer->format_verification_response( $submission, $data );
+		$this->assertStringContainsString( 'Event date:', $html );
+		$this->assertStringContainsString( '19/12/2025', $html, 'the event date in the plugin date format, never the opening date' );
+		$this->assertStringNotContainsString( '01/12/2025', $html );
 	}
 
 	public function test_format_verification_response_download_button_is_a_family_button(): void {

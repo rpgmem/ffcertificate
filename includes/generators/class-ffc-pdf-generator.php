@@ -139,6 +139,11 @@ class PdfGenerator {
 		list( $sched_start, $sched_end ) = $this->resolve_effective_schedule( $form_id, $sub_array );
 		$data['schedule']                = \FreeFormCertificate\Core\DateFormatter::format_schedule( $sched_start, $sched_end );
 		$data['schedule_total']          = \FreeFormCertificate\Core\DateFormatter::format_schedule_total( $sched_start, $sched_end );
+		// The event's date (#2579), read by the renderer for {{schedule:date}}
+		// and {{schedule:dates}}. Never the opening window.
+		list( $event_start, $event_end )                         = \FreeFormCertificate\Core\EventDate::range( $form_id );
+		$data[ \FreeFormCertificate\Core\EventDate::DATA_START ] = $event_start;
+		$data[ \FreeFormCertificate\Core\EventDate::DATA_END ]   = $event_end;
 
 		// A field the form has but this submission lacks prints blank, not as
 		// a literal `{{tag}}` (#2241): the layout is regenerated from its

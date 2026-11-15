@@ -122,6 +122,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<td><em>9h 30min</em></td>
 			</tr>
 			<tr>
+				<td><code>{{schedule:date}}</code></td>
+				<td><?php esc_html_e( 'The event\'s first day, from the Event Schedule date on the Time tab — never the form\'s opening date. Empty when the form has no event date. Add a PHP date format to choose how it prints, as in {{schedule:date:format=d/m/Y}}; without one it uses the PDF date format from Settings → General.', 'ffcertificate' ); ?></td>
+				<td><em>19/12/2025</em></td>
+			</tr>
+			<tr>
+				<td><code>{{schedule:dates}}</code></td>
+				<td><?php esc_html_e( 'The event\'s day for a one-day event, or its first and last days. Takes the same format as {{schedule:date}}.', 'ffcertificate' ); ?></td>
+				<td><em>19/12/2025 to 20/12/2025</em></td>
+			</tr>
+			<tr>
 				<td><code>{{ticket}}</code></td>
 				<td><?php esc_html_e( 'The single-use ticket code the participant entered (forms with the Ticket restriction only).', 'ffcertificate' ); ?></td>
 				<td><em>TK01-AB2C-3D4E</em></td>

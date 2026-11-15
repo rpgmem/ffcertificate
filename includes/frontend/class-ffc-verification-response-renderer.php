@@ -56,7 +56,10 @@ class VerificationResponseRenderer {
 		$form_title = $form ? $form->post_title : __( 'N/A', 'ffcertificate' );
 		// `submission_date` is unix UTC int since 6.6.0 (#249 sub-escopo a).
 		$date_generated = \FreeFormCertificate\Core\DateFormatter::format_datetime( (int) $submission->submission_date );
-		$display_code   = isset( $data['auth_code'] )
+		// The event's date (#2579), shown only when the form has one.
+		list( $event_start, $event_end ) = \FreeFormCertificate\Core\EventDate::range( (int) $submission->form_id );
+		$event_date                      = \FreeFormCertificate\Core\EventDate::format_range( $event_start, $event_end );
+		$display_code                    = isset( $data['auth_code'] )
 			? \FreeFormCertificate\Core\DocumentFormatter::format_auth_code( $data['auth_code'], \FreeFormCertificate\Core\DocumentFormatter::PREFIX_CERTIFICATE )
 			: '';
 
