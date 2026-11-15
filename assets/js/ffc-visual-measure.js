@@ -64,6 +64,81 @@
 		}).join('');
 	}
 
+	/** Where a `to <side>` gradient points, in degrees. */
+	var SIDES = { top: 0, right: 90, bottom: 180, left: 270 };
+
+	/** Split a CSS value at the commas outside parentheses. */
+	function topLevel(value) {
+		var parts = [];
+		var depth = 0;
+		var start = 0;
+		for (var i = 0; i < value.length; i++) {
+			var c = value.charAt(i);
+			if (c === '(') {
+				depth++;
+			} else if (c === ')') {
+				depth--;
+			} else if (c === ',' && depth === 0) {
+				parts.push(value.slice(start, i).trim());
+				start = i + 1;
+			}
+		}
+		parts.push(value.slice(start).trim());
+		return parts;
+	}
+
+	/** Whether a computed colour lets the ground show through. */
+	function seeThrough(color) {
+		var m = /^rgba?\([^)]*(?:,|\/)\s*([\d.]+)(%?)\s*\)$/.exec(color);
+		var parts = /^rgba?\(([^)]*)\)$/.exec(color);
+		if (!m || !parts || parts[1].split(/[\s,/]+/).filter(Boolean).length < 4) {
+			return false;
+		}
+		return parseFloat(m[1]) < (m[2] ? 100 : 1);
+	}
+
+	/**
+	 * A computed `background-image` that is one plain linear gradient, as a
+	 * frame's gradient; null for anything a frame cannot draw (#2609).
+	 *
+	 * @param {string} value Computed `background-image`.
+	 * @return {{angle:number, stops:Array<{color:string, at:number}>}|null}
+	 */
+	function readGradient(value) {
+		var layers = topLevel(String(value || ''));
+		var m = layers.length === 1 ? /^linear-gradient\((.*)\)$/.exec(layers[0]) : null;
+		if (!m) {
+			return null;
+		}
+		var args = topLevel(m[1]);
+		var angle = 180;
+		var deg = /^(-?[\d.]+)deg$/.exec(args[0]);
+		var side = /^to (top|right|bottom|left)$/.exec(args[0]);
+		if (deg || side) {
+			angle = deg ? ((parseFloat(deg[1]) % 360) + 360) % 360 : SIDES[side[1]];
+			args.shift();
+		}
+		if (args.length < 2 || args.length > 5) {
+			return null;
+		}
+		var stops = [];
+		for (var i = 0; i < args.length; i++) {
+			var s = /^(rgba?\([^)]*\)|#[0-9a-f]{6})(?:\s+(-?[\d.]+)%)?$/i.exec(args[i]);
+			// A see-through colour has no `#rrggbb`: the box stays HTML.
+			if (!s || !hex(s[1]) || seeThrough(s[1])) {
+				return null;
+			}
+			stops.push({ color: hex(s[1]), at: s[2] === undefined ? null : Math.max(0, Math.min(100, parseFloat(s[2]))) });
+		}
+		// A colour without a position sits evenly along the line.
+		stops.forEach(function (stop, k) {
+			if (stop.at === null) {
+				stop.at = Math.round(k / (stops.length - 1) * 1000) / 10;
+			}
+		});
+		return { angle: Math.round(angle * 10) / 10, stops: stops };
+	}
+
 	/**
 	 * Whether a text is one data tag: a name, then options such as
 	 * `:format=d/m/Y`. Read in two passes, so no pattern can backtrack.
@@ -193,7 +268,7 @@
 	};
 
 	/** Fills and borders of a box become frames: one, or one per side. */
-	Measurer.prototype.frames = function (el, cs) {
+	Measurer.prototype.frames = function (el, cs, gradient) {
 		var b = this.box(el);
 		if (!this.onPage(b)) {
 			return;
@@ -207,12 +282,17 @@
 		var uniform = sides.length === 4 && sides.every(function (s) { return s.w === sides[0].w && s.color === sides[0].color && s.style === sides[0].style; });
 		var style = uniform && /^(solid|dashed|dotted|double)$/.test(sides[0].style) ? sides[0].style : 'solid';
 
+		// A gradient is a fill of its own, its first colour the fallback.
+		if (gradient && !fill) {
+			fill = gradient.stops[0].color;
+		}
+		var extra = gradient ? { gradient: gradient } : {};
 		if (uniform) {
-			this.add({ type: 'frame', x: b.x, y: b.y, w: b.w, h: b.h, border_width: sides[0].w, border_style: style, border_color: sides[0].color, radius: radius, fill: fill }, STATUS.converted, t('frame', 'Frame'));
+			this.add(Object.assign({ type: 'frame', x: b.x, y: b.y, w: b.w, h: b.h, border_width: sides[0].w, border_style: style, border_color: sides[0].color, radius: radius, fill: fill }, extra), STATUS.converted, t('frame', 'Frame'));
 			return;
 		}
 		if (fill) {
-			this.add({ type: 'frame', x: b.x, y: b.y, w: b.w, h: b.h, border_width: 0, border_style: 'solid', border_color: fill, radius: radius, fill: fill }, STATUS.converted, t('frame', 'Frame'));
+			this.add(Object.assign({ type: 'frame', x: b.x, y: b.y, w: b.w, h: b.h, border_width: 0, border_style: 'solid', border_color: fill, radius: radius, fill: fill }, extra), STATUS.converted, t('frame', 'Frame'));
 		}
 		// A border on some sides only: each is a thin filled strip.
 		sides.forEach(function (s) {
@@ -553,7 +633,8 @@
 		}
 		// A turned box or a background image is not something a typed element
 		// draws: the box stays HTML, whole.
-		if ((cs.transform && cs.transform !== 'none') || (cs.backgroundImage && cs.backgroundImage !== 'none')) {
+		var gradient = cs.backgroundImage && cs.backgroundImage !== 'none' ? readGradient(cs.backgroundImage) : null;
+		if ((cs.transform && cs.transform !== 'none') || (cs.backgroundImage && cs.backgroundImage !== 'none' && !gradient)) {
 			var holder = document.createElement('div');
 			var clone = holder.appendChild(el.cloneNode(true));
 			['left', 'top', 'right', 'bottom'].forEach(function (p) { clone.style[p] = ''; });
@@ -563,7 +644,7 @@
 			return;
 		}
 
-		this.frames(el, cs);
+		this.frames(el, cs, gradient);
 
 		if (this.isTextBlock(el)) {
 			this.text(el, cs);
@@ -724,7 +805,7 @@
 			});
 	}
 
-	window.FFCVisualMeasure = { measure: measure, read: read, holdQr: holdQr, releaseQr: releaseQr, hex: hex };
+	window.FFCVisualMeasure = { measure: measure, read: read, holdQr: holdQr, releaseQr: releaseQr, hex: hex, readGradient: readGradient };
 
 	if (!window.__ffcVisualMeasureBound) {
 		window.__ffcVisualMeasureBound = true;

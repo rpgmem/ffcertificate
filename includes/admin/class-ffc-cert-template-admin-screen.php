@@ -1321,7 +1321,50 @@ class CertTemplateAdminScreen {
 						self::color_control( 'fill', __( 'Fill', 'ffcertificate' ) );
 						?>
 					</div>
-					<label><input type="checkbox" data-ffc-ve-no-fill> <?php esc_html_e( 'No fill', 'ffcertificate' ); ?></label>
+					<p><label><input type="checkbox" data-ffc-ve-no-fill> <?php esc_html_e( 'No fill', 'ffcertificate' ); ?></label></p>
+					<p><label><input type="checkbox" data-ffc-ve-gradient-on> <?php esc_html_e( 'Gradient', 'ffcertificate' ); ?></label></p>
+					<div class="ffc-ve-gradient" data-ffc-ve-gradient hidden>
+						<p class="ffc-ve-prop">
+							<label for="ffc_ve_gradient_angle"><?php esc_html_e( 'Angle (degrees)', 'ffcertificate' ); ?></label>
+							<input type="number" id="ffc_ve_gradient_angle" min="0" max="360" step="1" data-ffc-ve-gradient-angle>
+						</p>
+						<?php for ( $stop = 0; $stop < 5; $stop++ ) : ?>
+							<div data-ffc-ve-gradient-stop="<?php echo esc_attr( (string) $stop ); ?>"><div class="ffc-ve-props-grid">
+								<p class="ffc-ve-prop">
+									<label for="ffc_ve_gradient_color_<?php echo esc_attr( (string) $stop ); ?>">
+										<?php
+										/* translators: %d: the colour's number in the gradient, from 1 */
+										echo esc_html( sprintf( __( 'Colour %d', 'ffcertificate' ), $stop + 1 ) );
+										?>
+									</label>
+									<input type="color" id="ffc_ve_gradient_color_<?php echo esc_attr( (string) $stop ); ?>" data-ffc-ve-gradient-color>
+								</p>
+								<p class="ffc-ve-prop">
+									<label for="ffc_ve_gradient_at_<?php echo esc_attr( (string) $stop ); ?>"><?php esc_html_e( 'Position (%)', 'ffcertificate' ); ?></label>
+									<input type="number" id="ffc_ve_gradient_at_<?php echo esc_attr( (string) $stop ); ?>" min="0" max="100" step="1" data-ffc-ve-gradient-at>
+								</p>
+							</div></div>
+						<?php endfor; ?>
+						<p>
+							<?php
+							AdminUI::render_button(
+								array(
+									'label'    => __( 'Add colour', 'ffcertificate' ),
+									'icon'     => 'plus',
+									'category' => 'create',
+									'attrs'    => array( 'data-ffc-ve-gradient-add' => '1' ),
+								)
+							);
+							AdminUI::render_button(
+								array(
+									'label' => __( 'Remove last colour', 'ffcertificate' ),
+									'icon'  => 'minus',
+									'attrs' => array( 'data-ffc-ve-gradient-remove' => '1' ),
+								)
+							);
+							?>
+						</p>
+					</div>
 				</fieldset>
 
 				<fieldset class="ffc-ve-props-group" data-ffc-ve-for="html">

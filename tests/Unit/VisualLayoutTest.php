@@ -223,6 +223,54 @@ class VisualLayoutTest extends TestCase {
 		$this->assertStringContainsString( 'seal.png', $html, 'a Media Library image wins over the asset' );
 	}
 
+	public function test_a_frame_takes_a_linear_gradient(): void {
+		$frame  = static fn( $gradient ) => array(
+			'type'     => 'frame',
+			'fill'     => '#0b2545',
+			'gradient' => $gradient,
+		);
+		$layout = VisualLayout::validate(
+			(string) json_encode(
+				array(
+					'version'  => 1,
+					'elements' => array(
+						$frame(
+							array(
+								'angle' => 450,
+								'stops' => array(
+									array( 'color' => '#0B2545', 'at' => -5 ),
+									array( 'color' => 'red;background:url(x)', 'at' => 20 ),
+									array( 'color' => '#13315c', 'at' => 45 ),
+									array( 'color' => '#2f80ed', 'at' => 140 ),
+									array( 'color' => '#000000', 'at' => 100 ),
+									array( 'color' => '#111111', 'at' => 100 ),
+									array( 'color' => '#222222', 'at' => 100 ),
+								),
+							)
+						),
+						$frame( array( 'stops' => array( array( 'color' => '#000000' ) ) ) ),
+						$frame( 'linear-gradient(red, blue)' ),
+						$frame( null ),
+					),
+				)
+			)
+		);
+		$this->assertIsArray( $layout );
+		$gradient = $layout['elements'][0]['gradient'];
+		$this->assertSame( 360.0, $gradient['angle'] );
+		$this->assertCount( 5, $gradient['stops'], 'five colours at most; a colour that is not one is dropped' );
+		$this->assertSame( array( 'color' => '#0b2545', 'at' => 0.0 ), $gradient['stops'][0] );
+		$this->assertSame( array( 'color' => '#2f80ed', 'at' => 100.0 ), $gradient['stops'][2] );
+		$this->assertSame( array(), $layout['elements'][1]['gradient'], 'one colour is no gradient' );
+		$this->assertSame( array(), $layout['elements'][2]['gradient'], 'only the structured form' );
+		$this->assertSame( array(), $layout['elements'][3]['gradient'] );
+
+		$html = VisualLayout::render( $layout );
+		$this->assertStringContainsString( 'background-color:#0b2545;background-image:linear-gradient(360deg,#0b2545 0%,#13315c 45%,#2f80ed 100%,#000000 100%,#111111 100%)', $html );
+		$this->assertSame( 1, substr_count( $html, 'linear-gradient' ), 'a frame without one draws its fill alone' );
+		$this->assertStringNotContainsString( 'url(', $html );
+	}
+
 	public function test_ids_are_kept_unique(): void {
 		$layout = VisualLayout::validate( '{"version":1,"elements":[{"type":"qr","id":"a"},{"type":"qr","id":"a"},{"type":"qr"},{"type":"qr","id":"el-3"}]}' );
 		$this->assertSame( array( 'a', 'el-2', 'el-3', 'el-4' ), array_column( $layout['elements'], 'id' ) );

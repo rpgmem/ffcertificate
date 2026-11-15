@@ -96,7 +96,12 @@ final class VisualLayout {
 		'border_width'   => array( 0, 100, 1 ),
 		'radius'         => array( 0, 600, 0 ),
 		'qr_margin'      => array( 0, 10, 0 ),
+		'gradient_angle' => array( 0, 360, 180 ),
+		'gradient_at'    => array( 0, 100, 0 ),
 	);
+
+	/** How many colours a frame's gradient may hold. */
+	private const GRADIENT_STOPS = array( 2, 5 );
 
 	/** A field token: one `{{…}}` with no markup inside. */
 	private const FIELD_TOKEN = '/^\{\{[a-z0-9_]+(?::[a-z0-9_]+)*(?::(?:format|size|margin)=[^{}<>"]{0,60})*\}\}$/';
@@ -339,6 +344,9 @@ final class VisualLayout {
 				if ( '' !== $element['fill'] ) {
 					$style[] = 'background-color:' . $element['fill'];
 				}
+				if ( ! empty( $element['gradient'] ) ) {
+					$style[] = 'background-image:' . self::gradient_css( $element['gradient'] );
+				}
 				$inner = '';
 				break;
 			default:
@@ -469,6 +477,7 @@ final class VisualLayout {
 					'border_color' => self::color( $element['border_color'] ?? null, '#000000' ),
 					'radius'       => self::bounded( 'radius', $element['radius'] ?? null ),
 					'fill'         => self::color( $element['fill'] ?? null, '' ),
+					'gradient'     => self::gradient( $element['gradient'] ?? null ),
 				);
 			default:
 				$html = is_string( $element['html'] ?? null ) ? substr( $element['html'], 0, self::MAX_HTML ) : '';
@@ -597,6 +606,51 @@ final class VisualLayout {
 			return (float) $default;
 		}
 		return round( min( (float) $max, max( (float) $min, $value ) ), 2 );
+	}
+
+	/**
+	 * A frame's gradient: an angle and two to five colours, each at a
+	 * position along it; none when the value is not one (#2609).
+	 *
+	 * @param mixed $value Raw value.
+	 * @return array{angle: float, stops: list<array{color: string, at: float}>}|array{}
+	 */
+	private static function gradient( $value ): array {
+		if ( ! is_array( $value ) || ! is_array( $value['stops'] ?? null ) ) {
+			return array();
+		}
+		$stops = array();
+		foreach ( $value['stops'] as $stop ) {
+			$color = is_array( $stop ) ? self::color( $stop['color'] ?? null, '' ) : '';
+			if ( '' === $color ) {
+				continue;
+			}
+			$stops[] = array(
+				'color' => $color,
+				'at'    => self::bounded( 'gradient_at', $stop['at'] ?? null ),
+			);
+		}
+		list( $min, $max ) = self::GRADIENT_STOPS;
+		if ( count( $stops ) < $min ) {
+			return array();
+		}
+		return array(
+			'angle' => self::bounded( 'gradient_angle', $value['angle'] ?? null ),
+			'stops' => array_slice( $stops, 0, $max ),
+		);
+	}
+
+	/**
+	 * The CSS of a validated gradient.
+	 *
+	 * @param array{angle: float, stops: list<array{color: string, at: float}>} $gradient Gradient.
+	 */
+	private static function gradient_css( array $gradient ): string {
+		$stops = array_map(
+			static fn( array $stop ): string => $stop['color'] . ' ' . self::num( $stop['at'] ) . '%',
+			$gradient['stops']
+		);
+		return 'linear-gradient(' . self::num( $gradient['angle'] ) . 'deg,' . implode( ',', $stops ) . ')';
 	}
 
 	/**

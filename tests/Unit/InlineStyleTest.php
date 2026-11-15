@@ -122,6 +122,8 @@ final class InlineStyleTest extends TestCase {
 			'.style.x =: .style.borderRadius = (el.radius || 0) + "px"'                          => array( 1, self::RUNTIME_VALUE ),
 			// The operator's fill, font and colour on the canvas (#2586).
 			'.style.x =: .style.background = el.fill || "transparent"'                           => array( 1, self::OPERATOR_COLOUR ),
+
+			'.style.x =: .style.backgroundImage = gradientCss(el.gradient)'                          => array( 1, self::OPERATOR_COLOUR ),
 			'.style.x =: .style.cssText = textCss(el)'                                           => array( 1, self::OPERATOR_COLOUR ),
 			// The alignment guides a move lines up with (#2588).
 			'.style.x =: .style.left = x + "px"'                                                => array( 1, self::RUNTIME_VALUE ),

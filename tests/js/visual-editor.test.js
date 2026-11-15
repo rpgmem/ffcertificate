@@ -67,6 +67,13 @@ function markup(json) {
 					<fieldset data-ffc-ve-for="frame">
 						<input type="color" data-ffc-ve-prop="fill">
 						<input type="checkbox" data-ffc-ve-no-fill>
+						<input type="checkbox" data-ffc-ve-gradient-on>
+						<div data-ffc-ve-gradient hidden>
+							<input type="number" data-ffc-ve-gradient-angle>
+							${[0, 1, 2, 3, 4].map((i) => `<div data-ffc-ve-gradient-stop="${i}"><input type="color" data-ffc-ve-gradient-color><input type="number" data-ffc-ve-gradient-at></div>`).join('')}
+							<button type="button" data-ffc-ve-gradient-add>Add</button>
+							<button type="button" data-ffc-ve-gradient-remove>Remove</button>
+						</div>
 					</fieldset>
 				</div>
 			</div>
@@ -415,6 +422,45 @@ describe('ffc-visual-editor.js', () => {
 			none.checked = true;
 			none.dispatchEvent(new window.Event('change'));
 			expect(layout().elements.find((e) => e.id === 'back').fill).toBe('');
+		});
+
+		it('turns a frame\'s gradient on, edits its colours and turns it off', () => {
+			const ed = editor();
+			select(ed, 'back');
+			const q = (s) => panel().querySelector(s);
+			const back = () => layout().elements.find((e) => e.id === 'back');
+			const fire = (input, value, kind) => {
+				input.value = value;
+				input.dispatchEvent(new window.Event(kind || 'input'));
+			};
+			const on = q('[data-ffc-ve-gradient-on]');
+			on.checked = true;
+			on.dispatchEvent(new window.Event('change'));
+			expect(back().gradient.stops).toHaveLength(2);
+			expect(q('[data-ffc-ve-gradient]').hidden).toBe(false);
+			expect(q('[data-ffc-ve-gradient-stop="2"]').hidden).toBe(true);
+			expect(q('[data-ffc-ve-gradient-remove]').disabled).toBe(true, 'two colours at least');
+
+			fire(q('[data-ffc-ve-gradient-angle]'), '90');
+			fire(q('[data-ffc-ve-gradient-angle]'), 'x');
+			fire(q('[data-ffc-ve-gradient-stop="1"] [data-ffc-ve-gradient-color]'), '#2f80ed');
+			fire(q('[data-ffc-ve-gradient-stop="1"] [data-ffc-ve-gradient-at]'), '140');
+			expect(back().gradient).toMatchObject({ angle: 90, stops: [{ at: 0 }, { color: '#2f80ed', at: 100 }] });
+			expect(document.querySelector('[data-ffc-ve-id="back"]').style.backgroundImage).toContain('linear-gradient(90deg');
+
+			for (let i = 0; i < 4; i++) {
+				q('[data-ffc-ve-gradient-add]').click();
+			}
+			expect(back().gradient.stops).toHaveLength(5, 'five colours at most');
+			expect(q('[data-ffc-ve-gradient-add]').disabled).toBe(true);
+			q('[data-ffc-ve-gradient-remove]').click();
+			expect(back().gradient.stops).toHaveLength(4);
+
+			on.checked = false;
+			on.dispatchEvent(new window.Event('change'));
+			expect(back().gradient).toBeUndefined();
+			expect(q('[data-ffc-ve-gradient]').hidden).toBe(true);
+			expect(document.querySelector('[data-ffc-ve-id="back"]').style.backgroundImage).toBe('');
 		});
 
 		it('marks a font the site lacks, naming the one that prints', () => {
