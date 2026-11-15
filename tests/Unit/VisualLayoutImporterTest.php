@@ -56,7 +56,7 @@ class VisualLayoutImporterTest extends TestCase {
 			. '<p class="ffc-fit" style="position: absolute; left: 100px; top: 300px; width: 900px; height: 60px; font-size: 36pt; text-align: center; letter-spacing: 0.1em">{{name}}</p>'
 			. '<div style="position: absolute; left: 100px; top: 400px; width: 900px; height: 40px"><p style="font-weight: bold; color: rgb(138, 109, 29)">Completed on<br>25/12/2025</p></div>'
 			. '<div style="position: absolute; left: 40px; top: 660px; width: 90px; height: 90px">{{qr_code:size=90:margin=2}}</div>'
-			. '<div style="position: absolute; left: 200px; top: 560px; width: 200px; height: 80px"><img src="{{signer:signature}}"></div>'
+			. '<div style="position: absolute; left: 200px; top: 560px; width: 200px; height: 80px"><img src="{{signer3:signature}}"></div>'
 			. '<img style="position: absolute; left: 900px; top: 40px; width: 120px; height: 120px" src="https://example.test/uploads/seal.png">'
 			. '</div>';
 
@@ -87,7 +87,7 @@ class VisualLayoutImporterTest extends TestCase {
 		$this->assertSame( '#8a6d1d', $elements[2]['color'] );
 
 		$this->assertSame( 2, $elements[3]['margin'] );
-		$this->assertSame( '{{signer:signature}}', $elements[4]['token'] );
+		$this->assertSame( '{{signer3:signature}}', $elements[4]['token'], 'a later position keeps its token' );
 		$this->assertSame( 41, $elements[5]['attachment_id'] );
 
 		$this->assertCount( 7, $this->lines( $result, VisualLayoutImporter::CONVERTED ), 'six elements and the page colour' );

@@ -19,7 +19,8 @@
 	var QR_TOKEN = /\{\{qr_code(?::[^}]*)?\}\}/g;
 	var TOKEN_NAME = /^[a-z0-9_]+(?::[a-z0-9_]+)*$/;
 	var TOKEN_OPTION = /:(?=(?:format|size|margin)=)/;
-	var SIGNATURE = '{{signer:signature}}';
+	// {{signer:signature}} and {{signerN:signature}}, N the signer position (#2620).
+	var SIGNATURE = /^\{\{signer[1-3]?:signature\}\}$/;
 	// Inline tags a text block may hold and stay one block.
 	var INLINE = { B: 1, STRONG: 1, I: 1, EM: 1, SPAN: 1, A: 1, BR: 1, SMALL: 1, U: 1, SUB: 1, SUP: 1, FONT: 1, MARK: 1, ABBR: 1, CODE: 1 };
 	var ALIGN = { start: 'left', left: 'left', center: 'center', '-webkit-center': 'center', right: 'right', end: 'right', justify: 'justify' };
@@ -633,8 +634,8 @@
 		}
 		var src = el.getAttribute('src') || '';
 		var fit = cs.objectFit === 'cover' ? 'cover' : 'contain';
-		if (src === SIGNATURE) {
-			this.add({ type: 'image', x: box.x, y: box.y, w: box.w, h: box.h, attachment_id: 0, token: SIGNATURE, fit: fit }, STATUS.converted, t('signature', 'Signature'));
+		if (SIGNATURE.test(src)) {
+			this.add({ type: 'image', x: box.x, y: box.y, w: box.w, h: box.h, attachment_id: 0, token: src, fit: fit }, STATUS.converted, t('signature', 'Signature'));
 			return;
 		}
 		// An image shipped with the plugin is an image element of its own: the

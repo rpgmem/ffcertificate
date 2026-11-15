@@ -2239,4 +2239,23 @@ class FormEditorSaveHandlerTest extends TestCase {
 		$this->assertSame( array( '_ffc_signer_id' ), $bag['deleted'] );
 		$_POST = array();
 	}
+
+	public function test_each_signer_position_saves_under_its_own_key(): void {
+		$bag   = $this->stub_signers( '' );
+		$_POST = array(
+			'ffc_signer_id'   => '0',
+			'ffc_signer_id_2' => '1',
+			'ffc_signer_id_3' => '2',
+		);
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id_2' => 1 ), $bag['meta'], 'an inactive signer is not a new choice in any position' );
+		$this->assertSame( array( '_ffc_signer_id' ), $bag['deleted'] );
+
+		$bag   = $this->stub_signers( '' );
+		$_POST = array( 'ffc_signer_id_3' => '1' );
+		$this->invoke( 'save_signer_meta', array( 11 ) );
+		$this->assertSame( array( '_ffc_signer_id_3' => 1 ), $bag['meta'], 'a position the form did not post is left alone' );
+		$this->assertSame( array(), $bag['deleted'] );
+		$_POST = array();
+	}
 }

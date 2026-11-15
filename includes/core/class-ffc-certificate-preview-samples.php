@@ -159,15 +159,16 @@ class CertificatePreviewSamples {
 	}
 
 	/**
-	 * `{{signer:…}}` (#2582): the form's signer with the RF masked, since a
-	 * preview is not the certificate, else sample text.
+	 * `{{signerN:…}}` and the `{{signer:…}}` alias (#2582, #2620): the
+	 * form's signers with the RF masked, since a preview is not the
+	 * certificate, and sample text for a position with none.
 	 *
 	 * @param int|null $form_id Form post id, or null for a sample.
 	 * @return array<string, string>
 	 */
 	private static function signer_sample( ?int $form_id ): array {
-		$signer = null !== $form_id ? CertificateSigners::for_form( $form_id ) : null;
-		return null !== $signer ? CertificateSigners::token_values( $signer, true ) : CertificateSigners::sample_values();
+		$positions = null !== $form_id ? CertificateSigners::positions_for_form( $form_id ) : array();
+		return CertificateSigners::preview_values( $positions );
 	}
 
 	/**

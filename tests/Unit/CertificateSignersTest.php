@@ -177,10 +177,76 @@ class CertificateSignersTest extends TestCase {
 		$this->assertNull( CertificateSigners::for_form( 41 ) );
 	}
 
-	public function test_form_counts_tally_the_signer_meta(): void {
+	public function test_form_counts_tally_every_position_and_a_form_once_per_signer(): void {
 		Functions\when( 'get_posts' )->justReturn( array( 10, 11, 12 ) );
-		Functions\when( 'get_post_meta' )->alias( static fn( $id ) => array( 10 => '1', 11 => '1', 12 => '2' )[ $id ] );
-		$this->assertSame( array( 1 => 2, 2 => 1 ), CertificateSigners::form_counts() );
+		$meta = array(
+			10 => array( '_ffc_signer_id' => '1', '_ffc_signer_id_2' => '2' ),
+			11 => array( '_ffc_signer_id' => '1', '_ffc_signer_id_3' => '1' ),
+			12 => array( '_ffc_signer_id_2' => '2' ),
+		);
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => $meta[ $id ][ $key ] ?? '' );
+		$this->assertSame( array( 1 => 2, 2 => 2 ), CertificateSigners::form_counts(), 'form 11 names signer 1 twice and counts once; form 12 counts signer 2 from position 2' );
+	}
+
+	public function test_positions_read_their_own_meta_keys(): void {
+		$this->seed( array() );
+		$this->option[] = array( 'id' => 2, 'user_id' => 7, 'role' => 'Direção', 'signature_id' => 0, 'active' => true );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => array( '_ffc_signer_id' => '2', '_ffc_signer_id_3' => '1' )[ $key ] ?? '' );
+
+		$this->assertSame( '_ffc_signer_id', CertificateSigners::form_meta_key( 1 ), 'position 1 keeps the key it had, so no form moves' );
+		$this->assertSame( '_ffc_signer_id_2', CertificateSigners::form_meta_key( 2 ) );
+		$positions = CertificateSigners::positions_for_form( 40 );
+		$this->assertSame( array( 1, 2, 3 ), array_keys( $positions ) );
+		$this->assertSame( 2, $positions[1]['id'] );
+		$this->assertNull( $positions[2] );
+		$this->assertSame( 1, $positions[3]['id'] );
+		$this->assertNull( CertificateSigners::for_form( 40, 4 ), 'a position past the limit names nobody' );
+		$this->assertNull( CertificateSigners::for_form( 40, 0 ) );
+	}
+
+	public function test_form_tokens_alias_position_one_and_print_an_empty_position_blank(): void {
+		$this->seed( array() );
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_signer_id_2' === $key ? '1' : '' );
+		$values = CertificateSigners::form_token_values( 40 );
+
+		$this->assertSame( CertificateSigners::all_token_keys(), array_keys( $values ), 'every key of every position is present, so no token prints raw' );
+		$this->assertCount( 16, $values );
+		$this->assertSame( 'Maria Souza', $values['signer2:name'] );
+		$this->assertSame( '518.178-0', $values['signer2:rf'] );
+		$this->assertSame( 'https://example.test/sig-12.png', $values['signer2:signature'] );
+		$this->assertSame( '', $values['signer1:name'], 'position 1 names nobody here' );
+		$this->assertSame( '', $values['signer:name'], 'the alias follows position 1' );
+		$this->assertSame( '', $values['signer3:role'] );
+
+		Functions\when( 'get_post_meta' )->alias( static fn( $id, $key ) => '_ffc_signer_id' === $key ? '1' : '' );
+		$values = CertificateSigners::form_token_values( 40, true );
+		$this->assertSame( $values['signer1:name'], $values['signer:name'] );
+		$this->assertSame( $values['signer1:rf'], $values['signer:rf'] );
+		$this->assertStringContainsString( '*', $values['signer:rf'], 'a preview masks every position' );
+	}
+
+	public function test_preview_values_keep_chosen_signers_and_sample_the_rest(): void {
+		$this->seed( array() );
+		$samples = CertificateSigners::sample_values();
+		$this->assertSame( 'Maria Souza', $samples['signer:name'] );
+		$this->assertSame( $samples['signer1:name'], $samples['signer:name'] );
+		$this->assertCount( 3, array_unique( array( $samples['signer1:name'], $samples['signer2:name'], $samples['signer3:name'] ) ), 'each column of a template preview shows a different person' );
+		$this->assertSame( '', $samples['signer2:signature'] );
+
+		$values = CertificateSigners::preview_values( array( 2 => CertificateSigners::get( 1 ) ) );
+		$this->assertSame( 'Maria Souza', $values['signer2:name'] );
+		$this->assertStringContainsString( '*', $values['signer2:rf'], 'a chosen signer previews masked' );
+		$this->assertSame( 'Divisão Pedagógica', $values['signer2:role'] );
+		$this->assertSame( $samples['signer1:name'], $values['signer1:name'], 'an empty position shows its sample' );
+		$this->assertSame( $samples['signer3:role'], $values['signer3:role'] );
+	}
+
+	public function test_signature_tokens_are_the_alias_and_the_three_positions(): void {
+		foreach ( array( '{{signer:signature}}', '{{signer1:signature}}', '{{signer2:signature}}', '{{signer3:signature}}' ) as $token ) {
+			$this->assertTrue( CertificateSigners::is_signature_token( $token ), $token );
+		}
+		foreach ( array( '{{signer4:signature}}', '{{signer:name}}', ' {{signer:signature}}', '{{signer0:signature}}', '' ) as $token ) {
+			$this->assertFalse( CertificateSigners::is_signature_token( $token ), $token );
+		}
 	}
 }
-

@@ -517,23 +517,28 @@ class FormEditorSaveHandler {
 	}
 
 	/**
-	 * Persist the form's signer (#2582). A new choice must be an active signer;
-	 * the one the form already has may stay after it was deactivated.
+	 * Persist the form's signers (#2582, #2620), one meta per position. A new
+	 * choice must be an active signer; the one a position already has may
+	 * stay after it was deactivated.
 	 *
 	 * @param int $post_id The post ID.
 	 */
 	private function save_signer_meta( int $post_id ): void {
-		if ( ! RequestInput::has_post( 'ffc_signer_id' ) ) {
-			return;
-		}
-		$signer  = \FreeFormCertificate\Core\CertificateSigners::get( RequestInput::get_post_int( 'ffc_signer_id', 0 ) );
-		$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $post_id );
-		if ( null === $signer ) {
-			delete_post_meta( $post_id, \FreeFormCertificate\Core\CertificateSigners::FORM_META );
-			return;
-		}
-		if ( $signer['active'] || ( null !== $current && $current['id'] === $signer['id'] ) ) {
-			update_post_meta( $post_id, \FreeFormCertificate\Core\CertificateSigners::FORM_META, $signer['id'] );
+		for ( $position = 1; $position <= \FreeFormCertificate\Core\CertificateSigners::MAX_PER_FORM; $position++ ) {
+			$field = 1 === $position ? 'ffc_signer_id' : 'ffc_signer_id_' . $position;
+			if ( ! RequestInput::has_post( $field ) ) {
+				continue;
+			}
+			$key     = \FreeFormCertificate\Core\CertificateSigners::form_meta_key( $position );
+			$signer  = \FreeFormCertificate\Core\CertificateSigners::get( RequestInput::get_post_int( $field, 0 ) );
+			$current = \FreeFormCertificate\Core\CertificateSigners::for_form( $post_id, $position );
+			if ( null === $signer ) {
+				delete_post_meta( $post_id, $key );
+				continue;
+			}
+			if ( $signer['active'] || ( null !== $current && $current['id'] === $signer['id'] ) ) {
+				update_post_meta( $post_id, $key, $signer['id'] );
+			}
 		}
 	}
 

@@ -70,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<ul>
 			<li><?php esc_html_e( 'text — literal text, tokens allowed, with font_family, font_size, font_weight, font_style, color, align, letter_spacing, line_height, text_transform and fit (none, line or box: the text shrinks to fit the width, or the box).', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'field — one token, as {{name}} or {{model:place}}, with the same text properties.', 'ffcertificate' ); ?></li>
-			<li><?php esc_html_e( 'image — attachment_id, a Media Library image, or token {{signer:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit.', 'ffcertificate' ); ?></li>
+			<li><?php esc_html_e( 'image — attachment_id, a Media Library image, or token {{signer:signature}}, {{signer2:signature}} or {{signer3:signature}}; fit contain or cover, drawn as an explicit size because the capture ignores object-fit.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'qr — the validation QR code, sized to the shorter side of its box; margin.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'frame — border_width, border_style, border_color, radius, fill and gradient ({angle, stops: [{color, at}]}, two to five colours, each hex or transparent, with fill as the fallback); the border is drawn inside the box.', 'ffcertificate' ); ?></li>
 			<li><?php esc_html_e( 'html — a block of HTML, filtered by the same rules as an HTML template.', 'ffcertificate' ); ?></li>

@@ -18,10 +18,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * The signer list, a form's signer and the `{{signer:…}}` tokens.
+ * The signer list, a form's signers and the `{{signer:…}}` tokens.
  *
  * Data model: the list lives in the `ffc_certificate_signers` option, an id
- * → entry map; a form names its signer in the `_ffc_signer_id` meta. An entry
+ * → entry map; a form names up to {@see self::MAX_PER_FORM} signers, in
+ * order, in the `_ffc_signer_id`, `_ffc_signer_id_2` and `_ffc_signer_id_3`
+ * meta (#2620). Position 1 keeps the key it had when a form named one signer,
+ * so no stored form moves. The layout prints position N as `{{signerN:…}}`,
+ * and `{{signer:…}}` stays an alias of position 1. An entry
  * stores the user, the role or sector, the signature image and an active
  * flag, and no copy of the RF: the name and the RF are read from the user's
  * profile when a certificate is generated, so a profile correction reaches
@@ -46,8 +50,11 @@ final class CertificateSigners {
 	/** The signer list. Listed in `uninstall.php`. */
 	public const OPTION = 'ffc_certificate_signers';
 
-	/** Form meta: the form's signer id. */
+	/** Form meta: the form's first signer id. */
 	public const FORM_META = '_ffc_signer_id';
+
+	/** How many signers a form can name (#2620). */
+	public const MAX_PER_FORM = 3;
 
 	/**
 	 * The user meta that holds the profile RF, encrypted
@@ -62,6 +69,16 @@ final class CertificateSigners {
 
 	/** The tokens a signer resolves. */
 	public const TOKENS = array( 'name', 'rf', 'role', 'signature' );
+
+	/**
+	 * Sample signers for a preview with no signer chosen, one per position,
+	 * so a template preview shows distinct names in each column.
+	 */
+	private const SAMPLES = array(
+		1 => array( 'Maria Souza', 'Coordenação Pedagógica' ),
+		2 => array( 'João Lima', 'Direção' ),
+		3 => array( 'Ana Ribeiro', 'Supervisão Escolar' ),
+	);
 
 	/**
 	 * Every signer, by id.
@@ -92,15 +109,42 @@ final class CertificateSigners {
 	}
 
 	/**
-	 * The signer a form names, active or not: a form keeps a signer that was
-	 * deactivated after it was chosen.
+	 * The form meta key of a signer position.
 	 *
-	 * @param int $form_id Form post id.
+	 * @param int $position 1 to {@see self::MAX_PER_FORM}.
+	 */
+	public static function form_meta_key( int $position ): string {
+		return $position <= 1 ? self::FORM_META : self::FORM_META . '_' . $position;
+	}
+
+	/**
+	 * The signer a form names in a position, active or not: a form keeps a
+	 * signer that was deactivated after it was chosen.
+	 *
+	 * @param int $form_id  Form post id.
+	 * @param int $position 1 to {@see self::MAX_PER_FORM}.
 	 * @return array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null
 	 */
-	public static function for_form( int $form_id ): ?array {
-		$raw = $form_id > 0 ? get_post_meta( $form_id, self::FORM_META, true ) : '';
+	public static function for_form( int $form_id, int $position = 1 ): ?array {
+		if ( $form_id <= 0 || $position < 1 || $position > self::MAX_PER_FORM ) {
+			return null;
+		}
+		$raw = get_post_meta( $form_id, self::form_meta_key( $position ), true );
 		return is_numeric( $raw ) && (int) $raw > 0 ? self::get( (int) $raw ) : null;
+	}
+
+	/**
+	 * Every position of a form, with null where it names no signer.
+	 *
+	 * @param int $form_id Form post id.
+	 * @return array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null> Position → signer.
+	 */
+	public static function positions_for_form( int $form_id ): array {
+		$positions = array();
+		for ( $position = 1; $position <= self::MAX_PER_FORM; $position++ ) {
+			$positions[ $position ] = self::for_form( $form_id, $position );
+		}
+		return $positions;
 	}
 
 	/**
@@ -214,18 +258,21 @@ final class CertificateSigners {
 	}
 
 	/**
-	 * The values the `{{signer:…}}` tokens print for a signer, keyed by token.
-	 * The RF prints in full and formatted on the certificate; a preview, which
-	 * staff and, before a form opens, the public see, prints it masked. Once
-	 * the kept copy was erased it prints masked everywhere. No signer prints
-	 * every token empty.
+	 * The values one signer's tokens print, keyed by token: `signer:…` for
+	 * position 0 (the alias of position 1), `signerN:…` otherwise. The RF
+	 * prints in full and formatted on the certificate; a preview, which staff
+	 * and, before a form opens, the public see, prints it masked. Once the
+	 * kept copy was erased it prints masked everywhere. No signer prints every
+	 * token empty.
 	 *
-	 * @param array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null $signer Signer.
-	 * @param bool                                                                                                                                                                        $masked Mask the RF, for a preview.
+	 * @param array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null $signer   Signer.
+	 * @param bool                                                                                                                                                                        $masked   Mask the RF, for a preview.
+	 * @param int                                                                                                                                                                         $position 0 for `signer:…`, 1 to {@see self::MAX_PER_FORM} for `signerN:…`.
 	 * @return array<string, string>
 	 */
-	public static function token_values( ?array $signer, bool $masked = false ): array {
-		$values = array_fill_keys( self::token_keys(), '' );
+	public static function token_values( ?array $signer, bool $masked = false, int $position = 0 ): array {
+		$prefix = self::prefix( $position );
+		$values = array_fill_keys( self::token_keys( $position ), '' );
 		if ( null === $signer ) {
 			return $values;
 		}
@@ -238,42 +285,137 @@ final class CertificateSigners {
 		}
 		$signature = $signer['signature_id'] > 0 ? wp_get_attachment_url( $signer['signature_id'] ) : '';
 
-		$values['signer:name']      = self::name( $signer );
-		$values['signer:rf']        = $rf_text;
-		$values['signer:role']      = $signer['role'];
-		$values['signer:signature'] = is_string( $signature ) ? $signature : '';
+		$values[ $prefix . ':name' ]      = self::name( $signer );
+		$values[ $prefix . ':rf' ]        = $rf_text;
+		$values[ $prefix . ':role' ]      = $signer['role'];
+		$values[ $prefix . ':signature' ] = is_string( $signature ) ? $signature : '';
 		return $values;
 	}
 
 	/**
-	 * The data keys the renderer replaces as `{{signer:…}}`.
+	 * The values every signer token prints for a set of positions: each
+	 * `signerN:…`, plus `signer:…` as the alias of position 1. A position
+	 * with no signer prints blank.
+	 *
+	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null> $positions Position → signer.
+	 * @param bool                                                                                                                                                                                    $masked    Mask the RF, for a preview.
+	 * @return array<string, string>
+	 */
+	public static function positions_token_values( array $positions, bool $masked = false ): array {
+		$values = self::token_values( $positions[1] ?? null, $masked, 0 );
+		for ( $position = 1; $position <= self::MAX_PER_FORM; $position++ ) {
+			$values += self::token_values( $positions[ $position ] ?? null, $masked, $position );
+		}
+		return $values;
+	}
+
+	/**
+	 * The values every signer token prints for a form.
+	 *
+	 * @param int  $form_id Form post id.
+	 * @param bool $masked  Mask the RF, for a preview.
+	 * @return array<string, string>
+	 */
+	public static function form_token_values( int $form_id, bool $masked = false ): array {
+		return self::positions_token_values( self::positions_for_form( $form_id ), $masked );
+	}
+
+	/**
+	 * The data keys the renderer replaces for one position.
+	 *
+	 * @param int $position 0 for `signer:…`, 1 to {@see self::MAX_PER_FORM} for `signerN:…`.
+	 * @return array<int, string>
+	 */
+	public static function token_keys( int $position = 0 ): array {
+		$prefix = self::prefix( $position );
+		return array_map( static fn( string $token ): string => $prefix . ':' . $token, self::TOKENS );
+	}
+
+	/**
+	 * Every signer data key, the alias and each position.
 	 *
 	 * @return array<int, string>
 	 */
-	public static function token_keys(): array {
-		return array_map( static fn( string $token ): string => 'signer:' . $token, self::TOKENS );
+	public static function all_token_keys(): array {
+		$keys = self::token_keys( 0 );
+		for ( $position = 1; $position <= self::MAX_PER_FORM; $position++ ) {
+			$keys = array_merge( $keys, self::token_keys( $position ) );
+		}
+		return $keys;
 	}
 
 	/**
-	 * Sample values for a preview with no signer chosen.
+	 * Sample values for a preview, for the positions that name no signer:
+	 * a distinct sample person per position, the RF as the mask placeholder
+	 * and no signature.
 	 *
+	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null> $positions Position → signer; a position with a signer is left to the caller.
 	 * @return array<string, string>
 	 */
-	public static function sample_values(): array {
-		return array(
-			'signer:name'      => 'Maria Souza',
-			'signer:rf'        => DocumentFormatter::mask_placeholder( DocumentFormatter::MASK_RF ),
-			'signer:role'      => 'Coordenação Pedagógica',
-			'signer:signature' => '',
-		);
+	public static function sample_values( array $positions = array() ): array {
+		$values = array();
+		foreach ( self::SAMPLES as $position => $sample ) {
+			if ( null !== ( $positions[ $position ] ?? null ) ) {
+				continue;
+			}
+			$prefix                           = self::prefix( $position );
+			$values[ $prefix . ':name' ]      = $sample[0];
+			$values[ $prefix . ':rf' ]        = DocumentFormatter::mask_placeholder( DocumentFormatter::MASK_RF );
+			$values[ $prefix . ':role' ]      = $sample[1];
+			$values[ $prefix . ':signature' ] = '';
+			if ( 1 === $position ) {
+				foreach ( self::TOKENS as $token ) {
+					$values[ 'signer:' . $token ] = $values[ $prefix . ':' . $token ];
+				}
+			}
+		}
+		return $values;
 	}
 
 	/**
-	 * How many forms name each signer.
+	 * The preview values for a set of positions: the chosen signers with the
+	 * RF masked, and a sample person where a position names none.
+	 *
+	 * @param array<int, array{id: int, user_id: int, role: string, signature_id: int, active: bool, kept_name: string, kept_rf: string, kept_email_hash: string, added_at: int, added_by: int}|null> $positions Position → signer.
+	 * @return array<string, string>
+	 */
+	public static function preview_values( array $positions ): array {
+		return array_merge( self::positions_token_values( $positions, true ), self::sample_values( $positions ) );
+	}
+
+	/**
+	 * Whether an image source is a signer's signature token: `{{signer:signature}}`
+	 * or `{{signerN:signature}}` for a position the form can name.
+	 *
+	 * @param string $src Image source.
+	 */
+	public static function is_signature_token( string $src ): bool {
+		return 1 === preg_match( '/^\{\{signer([1-' . self::MAX_PER_FORM . '])?:signature\}\}$/', $src );
+	}
+
+	/**
+	 * The token prefix of a position.
+	 *
+	 * @param int $position 0 for the alias, otherwise the position.
+	 */
+	private static function prefix( int $position ): string {
+		return $position <= 0 ? 'signer' : 'signer' . min( $position, self::MAX_PER_FORM );
+	}
+
+	/**
+	 * How many forms name each signer, in any position. A form naming one
+	 * signer in two positions counts once.
 	 *
 	 * @return array<int, int> Signer id → forms.
 	 */
 	public static function form_counts(): array {
+		$keys = array();
+		for ( $position = 1; $position <= self::MAX_PER_FORM; $position++ ) {
+			$keys[] = array(
+				'key'     => self::form_meta_key( $position ),
+				'compare' => 'EXISTS',
+			);
+		}
 		$counts = array();
 		$ids    = get_posts(
 			array(
@@ -281,14 +423,20 @@ final class CertificateSigners {
 				'post_status'      => array( 'publish', 'draft', 'pending', 'private', 'future' ),
 				'numberposts'      => -1,
 				'fields'           => 'ids',
-				'meta_key'         => self::FORM_META, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- the signer screen only, over the plugin's forms.
+				'meta_query'       => array_merge( array( 'relation' => 'OR' ), $keys ), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- the signer screen only, over the plugin's forms.
 				'suppress_filters' => false,
 			)
 		);
 		foreach ( array_filter( $ids, 'is_numeric' ) as $form_id ) {
-			$signer_id = get_post_meta( (int) $form_id, self::FORM_META, true );
-			if ( is_numeric( $signer_id ) && (int) $signer_id > 0 ) {
-				$counts[ (int) $signer_id ] = ( $counts[ (int) $signer_id ] ?? 0 ) + 1;
+			$named = array();
+			for ( $position = 1; $position <= self::MAX_PER_FORM; $position++ ) {
+				$signer_id = get_post_meta( (int) $form_id, self::form_meta_key( $position ), true );
+				if ( is_numeric( $signer_id ) && (int) $signer_id > 0 ) {
+					$named[ (int) $signer_id ] = true;
+				}
+			}
+			foreach ( array_keys( $named ) as $signer_id ) {
+				$counts[ $signer_id ] = ( $counts[ $signer_id ] ?? 0 ) + 1;
 			}
 		}
 		return $counts;

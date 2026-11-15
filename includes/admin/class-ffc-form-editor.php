@@ -419,12 +419,15 @@ class FormEditor {
 			\FreeFormCertificate\Core\CertificatePreviewSamples::get_map(),
 			$fields
 		);
-		// The signer chosen in the editor, unsaved (#2582).
-		$signer = \FreeFormCertificate\Core\CertificateSigners::get( \FreeFormCertificate\Core\RequestInput::get_post_int( 'signer_id', 0 ) );
-		if ( null !== $signer ) {
-			$samples = array_merge( $samples, \FreeFormCertificate\Core\CertificateSigners::token_values( $signer, true ) );
+		// The signers chosen in the editor, unsaved (#2582, #2620); a sample
+		// person where a position names none.
+		$positions = array();
+		for ( $position = 1; $position <= \FreeFormCertificate\Core\CertificateSigners::MAX_PER_FORM; $position++ ) {
+			$field                  = 1 === $position ? 'signer_id' : 'signer_id_' . $position;
+			$positions[ $position ] = \FreeFormCertificate\Core\CertificateSigners::get( \FreeFormCertificate\Core\RequestInput::get_post_int( $field, 0 ) );
 		}
-		$body = \FreeFormCertificate\Generators\FormLayoutPreview::body(
+		$samples = array_merge( $samples, \FreeFormCertificate\Core\CertificateSigners::preview_values( $positions ) );
+		$body    = \FreeFormCertificate\Generators\FormLayoutPreview::body(
 			$layout,
 			$title,
 			$image,
