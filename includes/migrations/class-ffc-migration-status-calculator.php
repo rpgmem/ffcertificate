@@ -300,6 +300,21 @@ class MigrationStatusCalculator {
 					unset( $this->strategy_errors['custom_field_answers'] );
 					break;
 
+				case 'event_date_from_layout':
+					$strategy_dir = __DIR__ . '/strategies/';
+
+					if ( ! interface_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\MigrationStrategyInterface', false ) ) {
+						include $strategy_dir . 'interface-ffc-migration-strategy-interface.php';
+					}
+
+					if ( ! class_exists( '\\FreeFormCertificate\\Migrations\\Strategies\\EventDateFromLayoutMigrationStrategy', false ) ) {
+						include $strategy_dir . 'class-ffc-event-date-from-layout-migration-strategy.php';
+					}
+
+					$this->strategies['event_date_from_layout'] = new \FreeFormCertificate\Migrations\Strategies\EventDateFromLayoutMigrationStrategy();
+					unset( $this->strategy_errors['event_date_from_layout'] );
+					break;
+
 				case 'birth_date_backfill':
 					$strategy_dir = __DIR__ . '/strategies/';
 

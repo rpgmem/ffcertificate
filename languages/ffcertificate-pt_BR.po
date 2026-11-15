@@ -33914,3 +33914,45 @@ msgstr "Quando o evento acontece, impresso no certificado. Não abre nem fecha o
 msgctxt "event date range"
 msgid "%1$s to %2$s"
 msgstr "%1$s a %2$s"
+
+#. translators: 1: form title and id, 2: event date, 3: opening date or a dash
+msgid "%1$s — event date %2$s (opens %3$s)"
+msgstr "%1$s — data do evento %2$s (abre em %3$s)"
+
+msgid "Certificates: Move the Typed Event Date to Its Field"
+msgstr "Certificados: mover a data do evento digitada para o seu campo"
+
+#. translators: 1: forms examined, 2: forms whose event date was set
+msgid "Examined %1$d forms and moved the typed event date of %2$d; the rest are listed with the reason."
+msgstr "%1$d formulários examinados; a data do evento digitada de %2$d foi movida; os demais aparecem na lista com o motivo."
+
+msgid "For each form whose certificate layout types exactly one date (as 19/12/2025) and has no event date yet, set the event date from it and put {{schedule:date}} in its place, in the format it was typed, so certificates print exactly what they printed before; each form is checked before it is written. The opening date is never used. A form that types several dates, already has an event date, or would print differently is left alone and listed with the reason."
+msgstr "Para cada formulário cujo layout de certificado digita exatamente uma data (como 19/12/2025) e ainda não tem data do evento, define a data do evento a partir dela e coloca {{schedule:date}} no lugar, no formato em que foi digitada, para que os certificados imprimam exatamente o que imprimiam antes; cada formulário é conferido antes de ser gravado. A data de abertura nunca é usada. Um formulário que digita várias datas, já tem data do evento ou imprimiria algo diferente fica como está e aparece na lista com o motivo."
+
+#. translators: %s: how many pending items are not listed.
+msgid "Only the first ones are listed; %s more are pending."
+msgstr "Só os primeiros aparecem; há mais %s pendentes."
+
+msgid "What the next run changes:"
+msgstr "O que a próxima execução muda:"
+
+msgid "the certificate would print differently; left as it is"
+msgstr "o certificado sairia diferente; ficou como está"
+
+msgid "the form already has an event date"
+msgstr "o formulário já tem data do evento"
+
+msgid "the layout types more than one date; set the event date by hand"
+msgstr "o layout digita mais de uma data; defina a data do evento manualmente"
+
+msgid "the layout types no date"
+msgstr "o layout não digita nenhuma data"
+
+msgid "the typed date is not a real date"
+msgstr "a data digitada não é uma data válida"
+
+msgid "Certificate layouts"
+msgstr "Layouts de certificado"
+
+msgid "move the event date typed into a layout onto the form's event date, with {{schedule:date}} in its place, in the format it was typed. The card lists what the next run changes before it runs, checks that each certificate prints the same text, and lists every form it left alone with the reason."
+msgstr "move a data do evento digitada em um layout para a data do evento do formulário, com {{schedule:date}} no lugar, no formato em que foi digitada. O cartão lista o que a próxima execução muda antes de rodar, confere que cada certificado imprime o mesmo texto e lista cada formulário deixado como está, com o motivo."

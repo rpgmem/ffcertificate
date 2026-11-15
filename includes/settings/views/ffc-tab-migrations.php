@@ -382,6 +382,34 @@ try {
 				</div>
 			<?php endif; ?>
 			<?php
+			// WHAT THE NEXT RUN CHANGES (#2580). A card that rewrites what an
+			// operator wrote lists it first, so the run is read before it is made.
+			$ffcertificate_preview = ( ! is_wp_error( $ffcertificate_status ) && ! empty( $ffcertificate_status['preview'] ) && is_array( $ffcertificate_status['preview'] ) )
+				? $ffcertificate_status['preview']
+				: array();
+			if ( array() !== $ffcertificate_preview ) :
+				?>
+				<div class="ffc-migration-preview">
+					<p><strong><?php esc_html_e( 'What the next run changes:', 'ffcertificate' ); ?></strong></p>
+					<ul>
+						<?php foreach ( $ffcertificate_preview as $ffcertificate_preview_line ) : ?>
+							<li><?php echo esc_html( (string) $ffcertificate_preview_line ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<?php if ( (int) $ffcertificate_status['pending'] > count( $ffcertificate_preview ) ) : ?>
+						<p class="description">
+							<?php
+							printf(
+								/* translators: %s: how many pending items are not listed. */
+								esc_html__( 'Only the first ones are listed; %s more are pending.', 'ffcertificate' ),
+								esc_html( number_format_i18n( (int) $ffcertificate_status['pending'] - count( $ffcertificate_preview ) ) )
+							);
+							?>
+						</p>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+			<?php
 			// Built once, for the two branches that offer it: the re-check
 			// after completion (`rearmable`) and the retry of a walk that
 			// ended with records behind it (`retryable`, #2338).
