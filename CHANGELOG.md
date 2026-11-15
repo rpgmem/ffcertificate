@@ -41,6 +41,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 
 - **A certificate downloaded from the user dashboard or the booking page now applies the template helper classes** (#2569): those pages loaded the PDF generator without its stylesheet.
+- **Certificate submission, verification and magic links work on a WordPress installed in a subdirectory** (#2600). `FFC.config.ajaxUrl` read the AJAX URL before the page localized it and fell back to `/wp-admin/admin-ajax.php`, so every request 404'd; it now resolves on every read, and `ffcCoreConfig` carries the URL.
 
 
 ## [6.44.1] (2026-11-08) — `513f0c4`
