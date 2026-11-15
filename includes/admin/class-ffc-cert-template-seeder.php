@@ -86,8 +86,13 @@ class CertTemplateSeeder {
 	 * Cousine, each followed by the system font the default named before, so a
 	 * site that installs none renders as it did. The name of models 1, 3 and 5
 	 * takes `ffc-fit` (#2570), so a long one shrinks instead of wrapping.
+	 *
+	 * Version 12 adds visual versions of the six certificate models (#2586):
+	 * each is a layout under `templates/certificate-defaults/visual/`, seeded
+	 * as a visual template whose HTML is rendered from it, so duplicating one
+	 * starts a visual template a user edits on the page.
 	 */
-	private const SEED_VERSION = 11;
+	private const SEED_VERSION = 12;
 
 	/**
 	 * Directory (relative to the plugin root) holding the default background
@@ -195,12 +200,13 @@ class CertTemplateSeeder {
 				continue; // Non-destructive: never overwrite an existing default.
 			}
 
-			$html = self::read_seed_file( $def['file'], $def['dir'] ?? self::SEED_DIR );
-			if ( '' === $html ) {
+			$source = self::read_source( $def );
+			if ( null === $source ) {
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $def['kind'] );
+			$id = self::insert_default( $slug, $def['title'], $source['html'], self::bg_url( $def['bg'] ), $def['kind'] );
+			self::store_layout( $id, $source['layout'] );
 		}
 	}
 
@@ -217,11 +223,12 @@ class CertTemplateSeeder {
 		$existing_map = self::existing_default_map();
 
 		foreach ( self::definitions() as $slug => $def ) {
-			$html = self::read_seed_file( $def['file'], $def['dir'] ?? self::SEED_DIR );
-			if ( '' === $html ) {
+			$source = self::read_source( $def );
+			if ( null === $source ) {
 				continue;
 			}
 
+			$html = $source['html'];
 			$kind = $def['kind'];
 
 			if ( isset( $existing_map[ $slug ] ) ) {
@@ -231,11 +238,58 @@ class CertTemplateSeeder {
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_HTML, $html );
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_BG_IMAGE, self::bg_url( $def['bg'] ) );
 				update_post_meta( $existing_map[ $slug ], CertTemplateCpt::META_KIND, $kind );
+				self::store_layout( $existing_map[ $slug ], $source['layout'] );
 				continue;
 			}
 
-			self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $kind );
+			$id = self::insert_default( $slug, $def['title'], $html, self::bg_url( $def['bg'] ), $kind );
+			self::store_layout( $id, $source['layout'] );
 		}
+	}
+
+	/**
+	 * A definition's body: the HTML file, or, for a visual default (#2586),
+	 * the layout file and the HTML rendered from it. Null when the file is
+	 * missing or the layout does not validate.
+	 *
+	 * @param array{title:string, file:string, bg:string, kind:string, dir?:string, layout?:bool} $def Definition.
+	 * @return array{html: string, layout: string}|null `layout` is '' for an HTML default.
+	 */
+	private static function read_source( array $def ): ?array {
+		$raw = self::read_seed_file( $def['file'], $def['dir'] ?? self::SEED_DIR );
+		if ( '' === $raw ) {
+			return null;
+		}
+		if ( empty( $def['layout'] ) ) {
+			return array(
+				'html'   => $raw,
+				'layout' => '',
+			);
+		}
+		$layout = \FreeFormCertificate\Core\VisualLayout::validate( $raw );
+		if ( is_wp_error( $layout ) ) {
+			\FreeFormCertificate\Core\Debug::log_admin( 'CertTemplateSeeder: visual default ' . $def['file'] . ' does not validate: ' . $layout->get_error_message() );
+			return null;
+		}
+		return array(
+			'html'   => \FreeFormCertificate\Core\VisualLayout::render( $layout ),
+			'layout' => \FreeFormCertificate\Core\VisualLayout::to_json( $layout ),
+		);
+	}
+
+	/**
+	 * Mark a default as visual and store its layout; nothing for an HTML one.
+	 *
+	 * @param int    $id     Template post id (0 when the insert failed).
+	 * @param string $layout Layout JSON, or '' for an HTML default.
+	 * @return void
+	 */
+	private static function store_layout( int $id, string $layout ): void {
+		if ( $id <= 0 || '' === $layout ) {
+			return;
+		}
+		update_post_meta( $id, \FreeFormCertificate\Core\VisualLayout::META_EDITOR, \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL );
+		\FreeFormCertificate\Core\VisualLayout::store_json( $id, $layout );
 	}
 
 	/**
@@ -246,9 +300,9 @@ class CertTemplateSeeder {
 	 * @param string $html  Seed HTML body.
 	 * @param string $bg    Background-image URL for the dedicated field. Default ''.
 	 * @param string $kind  Template kind (#945). Default `certificate`.
-	 * @return void
+	 * @return int The new post id, or 0 when the insert failed.
 	 */
-	private static function insert_default( string $slug, string $title, string $html, string $bg = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE ): void {
+	private static function insert_default( string $slug, string $title, string $html, string $bg = '', string $kind = CertTemplateCpt::KIND_CERTIFICATE ): int {
 		$id = wp_insert_post(
 			array(
 				'post_type'   => CertTemplateCpt::POST_TYPE,
@@ -260,7 +314,7 @@ class CertTemplateSeeder {
 		// wp_insert_post( …, true ) returns WP_Error on failure, a positive
 		// post id on success — is_int() rejects the error case.
 		if ( ! is_int( $id ) ) {
-			return;
+			return 0;
 		}
 
 		update_post_meta( $id, CertTemplateCpt::META_IS_DEFAULT, '1' );
@@ -269,6 +323,7 @@ class CertTemplateSeeder {
 		update_post_meta( $id, CertTemplateCpt::META_HTML, $html );
 		update_post_meta( $id, CertTemplateCpt::META_BG_IMAGE, $bg );
 		update_post_meta( $id, CertTemplateCpt::META_KIND, $kind );
+		return $id;
 	}
 
 	/**
@@ -277,10 +332,27 @@ class CertTemplateSeeder {
 	 * into `META_BG_IMAGE` since seed v3. Each entry also carries its `kind`
 	 * (#945) and, optionally, a `dir` overriding {@see self::SEED_DIR}.
 	 *
-	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string}>
+	 * A visual default (#2586) sets `layout` and points `file` at its layout
+	 * JSON; its HTML is rendered from the layout.
+	 *
+	 * @return array<string, array{title:string, file:string, bg:string, kind:string, dir?:string, layout?:bool}>
 	 */
 	private static function definitions(): array {
-		return array(
+		$visual = array();
+		for ( $n = 1; $n <= 6; $n++ ) {
+			$visual[ 'default_visual_certificate_' . $n ] = array(
+				/* translators: %d: model number, 1 to 6 */
+				'title'  => sprintf( __( 'Visual certificate model %d', 'ffcertificate' ), $n ),
+				'file'   => 'visual_certificate_' . $n . '.json',
+				// The visual models draw what the HTML models draw, background included.
+				'bg'     => $n <= 2 ? 'default_background_certificate_' . $n . '.png' : '',
+				'kind'   => CertTemplateCpt::KIND_CERTIFICATE,
+				'dir'    => 'templates/certificate-defaults/visual/',
+				'layout' => true,
+			);
+		}
+
+		$html = array(
 			'default_certificate_1'               => array(
 				'title' => __( 'Certificate model 1', 'ffcertificate' ),
 				'file'  => 'default_certificate_1.html',
@@ -349,6 +421,8 @@ class CertTemplateSeeder {
 				'dir'   => 'templates/documents/',
 			),
 		);
+
+		return $html + $visual;
 	}
 
 	/**

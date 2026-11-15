@@ -131,6 +131,28 @@ class CertificateFontsTest extends TestCase {
 		$this->assertSame( array( 7 ), $this->queries[1]['post_parent__in'], 'The faces are read for the families found, in one query.' );
 	}
 
+	public function test_available_names_are_the_system_fonts_and_every_installed_family(): void {
+		$this->family( 7, 'Great Vibes', '"Great Vibes", cursive' );
+		$this->face(
+			7,
+			array(
+				'fontFamily' => 'Great Vibes',
+				'fontStyle'  => 'normal',
+				'fontWeight' => '400',
+				'src'        => 'https://example.test/wp-content/uploads/fonts/great-vibes.woff2',
+			)
+		);
+
+		$names = CertificateFonts::available_names();
+
+		// What the visual editor marks as present (#2586) is what missing() spares.
+		$this->assertContains( 'great vibes', $names );
+		$this->assertContains( 'georgia', $names );
+		$this->assertContains( 'serif', $names );
+		$this->assertNotContains( 'cinzel', $names );
+		$this->assertSame( array( 'Cinzel' ), CertificateFonts::missing( '<p style="font-family: Cinzel, serif">x</p><p style="font-family: \'Great Vibes\', cursive">y</p>' ) );
+	}
+
 	public function test_the_query_runs_once_per_request(): void {
 		$this->family( 7, 'Lora', 'Lora, serif' );
 		$this->face( 7, array( 'fontFamily' => 'Lora', 'src' => 'https://example.test/lora.woff2' ) );

@@ -23,6 +23,16 @@ class CertTemplateSeederTest extends TestCase {
 		// FFC_PLUGIN_DIR is the repository root (tests/bootstrap.php), so the
 		// seeder reads the real bundled seed files.
 		Functions\when( '__' )->returnArg();
+		// The six visual defaults (#2586) are validated and rendered through
+		// VisualLayout, which escapes, filters and encodes.
+		Functions\when( 'esc_html' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		Functions\when( 'esc_attr' )->alias( static fn( $v ) => htmlspecialchars( (string) $v, ENT_QUOTES ) );
+		Functions\when( 'esc_url' )->returnArg();
+		Functions\when( 'wp_kses' )->returnArg();
+		Functions\when( 'sanitize_key' )->alias( static fn( $v ) => preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $v ) ) );
+		Functions\when( 'sanitize_hex_color' )->alias( static fn( $c ) => preg_match( '/^#([0-9a-f]{3}){1,2}$/i', (string) $c ) ? $c : null );
+		Functions\when( 'wp_json_encode' )->alias( static fn( $v, $flags = 0 ) => json_encode( $v, $flags ) );
+		Functions\when( 'wp_get_attachment_url' )->justReturn( false );
 	}
 
 	protected function tearDown(): void {
@@ -36,6 +46,27 @@ class CertTemplateSeederTest extends TestCase {
 	 */
 	private static function current_seed_version(): int {
 		return (int) ( new \ReflectionClassConstant( CertTemplateSeeder::class, 'SEED_VERSION' ) )->getValue();
+	}
+
+	/**
+	 * Each visual default draws what its HTML model draws (#2586), so it
+	 * carries every tag the model carries: a form switched from one to the
+	 * other keeps the data it prints, and the required tags stay satisfied.
+	 */
+	public function test_each_visual_default_carries_the_tags_of_its_html_model(): void {
+		for ( $n = 1; $n <= 6; $n++ ) {
+			$json   = (string) file_get_contents( FFC_PLUGIN_DIR . 'templates/certificate-defaults/visual/visual_certificate_' . $n . '.json' );
+			$layout = \FreeFormCertificate\Core\VisualLayout::validate( $json );
+			$this->assertIsArray( $layout, "visual model {$n} validates" );
+			$visual = \FreeFormCertificate\Core\VisualLayout::render( $layout );
+			$model  = (string) file_get_contents( FFC_PLUGIN_DIR . 'templates/certificate-defaults/default_certificate_' . $n . '.html' );
+
+			preg_match_all( '/\{\{[a-z0-9_:=]+\}\}/', $model, $wanted );
+			$this->assertNotEmpty( $wanted[0], "model {$n} carries tags" );
+			foreach ( array_unique( $wanted[0] ) as $tag ) {
+				$this->assertStringContainsString( $tag, $visual, "visual model {$n} carries {$tag}" );
+			}
+		}
 	}
 
 	public function test_maybe_seed_skips_when_already_seeded(): void {
@@ -54,9 +85,9 @@ class CertTemplateSeederTest extends TestCase {
 		// #871 assets/ image-path fix reaches the install — not re-run the
 		// create-only seed() (which would leave the stale body in place).
 		Functions\when( 'get_option' )->justReturn( 1 );
-		// All nine shipped defaults already present (6 certificate + 2 receipt +
-		// 1 record) → restore() refreshes every body, inserts nothing.
-		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19 ) );
+		// All fifteen shipped defaults already present (6 certificate + 6
+		// visual certificate + 2 receipt + 1 record) → restore() refreshes every body, inserts nothing.
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id ) {
 				$map = array(
@@ -69,6 +100,12 @@ class CertTemplateSeederTest extends TestCase {
 					17 => 'default_certificate_4',
 					18 => 'default_certificate_5',
 					19 => 'default_certificate_6',
+					20 => 'default_visual_certificate_1',
+					21 => 'default_visual_certificate_2',
+					22 => 'default_visual_certificate_3',
+					23 => 'default_visual_certificate_4',
+					24 => 'default_visual_certificate_5',
+					25 => 'default_visual_certificate_6',
 				);
 				return $map[ $id ] ?? '';
 			}
@@ -94,7 +131,7 @@ class CertTemplateSeederTest extends TestCase {
 
 		CertTemplateSeeder::maybe_seed();
 
-		$this->assertCount( 9, $refreshed, 'all nine default bodies refreshed on the bump' );
+		$this->assertCount( 15, $refreshed, 'all fifteen default bodies refreshed on the bump' );
 		// The three certificate defaults still resolve their background under assets/.
 		foreach ( array( 11, 12, 13 ) as $cert_id ) {
 			$this->assertStringContainsString( 'assets/img/certificate-defaults/', (string) $refreshed[ $cert_id ] );
@@ -125,9 +162,11 @@ class CertTemplateSeederTest extends TestCase {
 				return 100 + ( ++$inserted );
 			}
 		);
+		// As WordPress does: update_post_meta() unslashes what it stores, so a
+		// layout written without wp_slash() would not parse back (#2586).
 		Functions\when( 'update_post_meta' )->alias(
 			static function ( $id, $key, $value ) use ( &$meta ) {
-				$meta[ $id ][ $key ] = $value;
+				$meta[ $id ][ $key ] = is_string( $value ) ? stripslashes( $value ) : $value;
 				return true;
 			}
 		);
@@ -141,9 +180,10 @@ class CertTemplateSeederTest extends TestCase {
 
 		CertTemplateSeeder::maybe_seed();
 
-		// 6 certificate defaults + 2 appointment-receipt defaults (#945) + 1 record (#951).
-		$this->assertSame( 9, $inserted, 'seeds all nine shipped defaults' );
-		$this->assertCount( 9, $meta );
+		// 6 certificate defaults + their 6 visual versions (#2586) + 2
+		// appointment-receipt defaults (#945) + 1 record (#951).
+		$this->assertSame( 15, $inserted, 'seeds all fifteen shipped defaults' );
+		$this->assertCount( 15, $meta );
 
 		$certificates = array();
 		$receipts     = array();
@@ -164,14 +204,27 @@ class CertTemplateSeederTest extends TestCase {
 			}
 		}
 
-		$this->assertCount( 6, $certificates, 'six certificate defaults' );
+		$this->assertCount( 12, $certificates, 'six certificate defaults and their six visual versions' );
+		$visual = array_filter(
+			$certificates,
+			static fn( array $kv ): bool => 0 === strpos( (string) $kv[ CertTemplateCpt::META_DEFAULT_SLUG ], 'default_visual_certificate_' )
+		);
+		$this->assertCount( 6, $visual, 'six visual defaults' );
+		foreach ( $visual as $kv ) {
+			// A visual default is seeded as one: its editor, its layout, and the
+			// HTML rendered from that layout.
+			$this->assertSame( \FreeFormCertificate\Core\VisualLayout::EDITOR_VISUAL, $kv[ \FreeFormCertificate\Core\VisualLayout::META_EDITOR ] );
+			$layout = \FreeFormCertificate\Core\VisualLayout::validate( $kv[ \FreeFormCertificate\Core\VisualLayout::META_LAYOUT ] );
+			$this->assertIsArray( $layout );
+			$this->assertSame( \FreeFormCertificate\Core\VisualLayout::render( $layout ), $kv[ CertTemplateCpt::META_HTML ] );
+		}
 		$this->assertCount( 2, $receipts, 'two appointment-receipt defaults' );
 		$this->assertCount( 1, $records, 'one record default' );
 
 		foreach ( $certificates as $kv ) {
 			// Models 1 and 2 carry their shipped background in the dedicated field;
 			// models 3 to 6 are drawn in CSS and have none.
-			if ( in_array( $kv[ CertTemplateCpt::META_DEFAULT_SLUG ], array( 'default_certificate_1', 'default_certificate_2' ), true ) ) {
+			if ( in_array( $kv[ CertTemplateCpt::META_DEFAULT_SLUG ], array( 'default_certificate_1', 'default_certificate_2', 'default_visual_certificate_1', 'default_visual_certificate_2' ), true ) ) {
 				$this->assertStringContainsString( 'certificate-defaults/default_background_certificate', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
 			} else {
 				$this->assertSame( '', $kv[ CertTemplateCpt::META_BG_IMAGE ] );
@@ -188,7 +241,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_seed_is_non_destructive_when_all_slugs_exist(): void {
-		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19 ) );
+		Functions\when( 'get_posts' )->justReturn( array( 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static function ( $id ) {
 				$map = array(
@@ -201,6 +254,12 @@ class CertTemplateSeederTest extends TestCase {
 					17 => 'default_certificate_4',
 					18 => 'default_certificate_5',
 					19 => 'default_certificate_6',
+					20 => 'default_visual_certificate_1',
+					21 => 'default_visual_certificate_2',
+					22 => 'default_visual_certificate_3',
+					23 => 'default_visual_certificate_4',
+					24 => 'default_visual_certificate_5',
+					25 => 'default_visual_certificate_6',
 				);
 				return $map[ $id ] ?? '';
 			}
@@ -213,7 +272,7 @@ class CertTemplateSeederTest extends TestCase {
 	}
 
 	public function test_restore_refreshes_existing_and_adds_missing(): void {
-		// One shipped default already present (slug _1 → id 11); the other eight missing.
+		// One shipped default already present (slug _1 → id 11); the other fourteen missing.
 		Functions\when( 'get_posts' )->justReturn( array( 11 ) );
 		Functions\when( 'get_post_meta' )->alias(
 			static fn( $id ) => 11 === $id ? 'default_certificate_1' : ''
@@ -244,7 +303,7 @@ class CertTemplateSeederTest extends TestCase {
 
 		// The eight missing defaults were (re)created (cert_2 to cert_6, the two
 		// receipt defaults + the record default); the present one (#11) was not.
-		$this->assertSame( 8, $inserted, 'the eight missing defaults are inserted' );
+		$this->assertSame( 14, $inserted, 'the fourteen missing defaults are inserted' );
 	}
 
 	/**
@@ -336,9 +395,11 @@ class CertTemplateSeederTest extends TestCase {
 				return $meta[ $id ][ CertTemplateCpt::META_DEFAULT_SLUG ] ?? '';
 			}
 		);
+		// As WordPress does: update_post_meta() unslashes what it stores, so a
+		// layout written without wp_slash() would not parse back (#2586).
 		Functions\when( 'update_post_meta' )->alias(
 			static function ( $id, $key, $value ) use ( &$meta ) {
-				$meta[ $id ][ $key ] = $value;
+				$meta[ $id ][ $key ] = is_string( $value ) ? stripslashes( $value ) : $value;
 				return true;
 			}
 		);

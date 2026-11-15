@@ -245,6 +245,20 @@ final class VisualLayout {
 	}
 
 	/**
+	 * Store a template's layout JSON. `update_post_meta()` unslashes what it
+	 * is given, and a layout carries backslashes — every quote inside an
+	 * HTML block or a font stack is `\"` in JSON — so the value is slashed
+	 * first, or the stored JSON stops parsing (#2586).
+	 *
+	 * @param int    $template_id Template post id.
+	 * @param string $json        Layout JSON.
+	 * @return void
+	 */
+	public static function store_json( int $template_id, string $json ): void {
+		update_post_meta( $template_id, self::META_LAYOUT, wp_slash( $json ) );
+	}
+
+	/**
 	 * The HTML a validated layout prints as. Tokens stay in place for the
 	 * certificate renderer, which resolves and escapes them.
 	 *

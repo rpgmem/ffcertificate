@@ -34397,5 +34397,231 @@ msgstr "Zoom"
 msgid "A new certificate template chooses its editor: HTML, or Visual. A visual template is a list of elements placed on the page; the certificate HTML is generated from it on every save and goes through the same capture as any template, so forms reference it, preview it and print it the same way. A layout that does not check out is not saved and says why."
 msgstr "Um novo modelo de certificado escolhe o seu editor: HTML ou Visual. Um modelo visual é uma lista de elementos posicionados na página; o HTML do certificado é gerado a partir dele a cada salvamento e passa pela mesma captura que qualquer modelo, então os formulários o referenciam, visualizam e imprimem da mesma forma. Um layout que não passa na verificação não é salvo e diz o motivo."
 
-msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for what the canvas does not set yet."
-msgstr "A tela do modelo edita a página num canvas: Inserir adiciona um elemento no meio da página; arraste-o para movê-lo e suas alças para redimensioná-lo, numa grade de 10 px a menos que o encaixe esteja desligado; as setas movem o elemento selecionado 1 px, 10 com Shift, e Delete o remove. Página define a orientação e o zoom, que muda só a visão, e alinha o elemento selecionado a um lado ou ao meio da página. Camadas lista os elementos da frente para trás: arraste uma linha, ou use suas setas, para reempilhar, e trave um elemento para mantê-lo no lugar; o fundo é sempre a camada de baixo. Descartar alterações volta ao último salvamento. Editar exige uma janela com pelo menos 1280 pixels de largura e um mouse ou trackpad; numa menor a tela avisa e guarda o trabalho. O JSON do layout continua abaixo do canvas, para o que o canvas ainda não define."
+
+msgid "An image from the Media Library"
+msgstr "Uma imagem da Biblioteca de Mídia"
+
+msgid "As typed"
+msgstr "Como digitado"
+
+msgid "Black (900)"
+msgstr "Preto (900)"
+
+msgid "Bold (700)"
+msgstr "Negrito (700)"
+
+msgid "Capitalised"
+msgstr "Iniciais maiúsculas"
+
+msgid "Case"
+msgstr "Caixa"
+
+msgid "Centre"
+msgstr "Centro"
+
+msgid "Choose a tag to insert…"
+msgstr "Escolha uma tag para inserir…"
+
+msgid "Colour"
+msgstr "Cor"
+
+msgid "Contain: the whole image shows"
+msgstr "Conter: a imagem aparece inteira"
+
+msgid "Convert this template to HTML? The page becomes the HTML generated at the last save, edited as code from then on; the visual layout is dropped and cannot be brought back. Forms that use the template keep printing the same document. Save any change first."
+msgstr "Converter este modelo em HTML? A página passa a ser o HTML gerado no último salvamento, editado como código daí em diante; o layout visual é descartado e não pode ser recuperado. Os formulários que usam o modelo continuam imprimindo o mesmo documento. Salve antes qualquer alteração."
+
+msgid "Convert to HTML"
+msgstr "Converter em HTML"
+
+msgid "Cover: the image fills the box"
+msgstr "Cobrir: a imagem preenche a caixa"
+
+msgid "Dashed"
+msgstr "Tracejada"
+
+msgid "Double"
+msgstr "Dupla"
+
+msgid "Drawing the page…"
+msgstr "Desenhando a página…"
+
+msgid "Element properties"
+msgstr "Propriedades do elemento"
+
+msgid "Family"
+msgstr "Família"
+
+msgid "Fill"
+msgstr "Preenchimento"
+
+msgid "Filtered on save like the HTML templates; tags work here too."
+msgstr "Filtrado ao salvar, como nos modelos HTML; as tags também funcionam aqui."
+
+msgid "Fit"
+msgstr "Ajuste"
+
+msgid "Height"
+msgstr "Altura"
+
+#. translators: %d: Media Library attachment id
+msgid "Image #%d"
+msgstr "Imagem nº %d"
+
+msgid "Insert a tag"
+msgstr "Inserir uma tag"
+
+msgid "Italic"
+msgstr "Itálico"
+
+msgid "Justify"
+msgstr "Justificado"
+
+msgid "Letter spacing (px)"
+msgstr "Espaçamento entre letras (px)"
+
+msgid "Light (300)"
+msgstr "Leve (300)"
+
+msgid "Line colour"
+msgstr "Cor da linha"
+
+msgid "Line height"
+msgstr "Altura da linha"
+
+msgid "Medium (500)"
+msgstr "Médio (500)"
+
+msgid "No fill"
+msgstr "Sem preenchimento"
+
+msgid "No image chosen yet."
+msgstr "Nenhuma imagem escolhida ainda."
+
+msgid "Normal"
+msgstr "Normal"
+
+#. translators: %s: comma-separated font names
+msgid "Not installed on this site: %s. The preview and the PDF draw the next font of each list."
+msgstr "Não instalada neste site: %s. A prévia e o PDF desenham a próxima fonte de cada lista."
+
+#. translators: %s: the font that prints instead
+msgid "Not installed on this site: the text prints in %s until it is."
+msgstr "Não instalada neste site: o texto sai em %s até que seja instalada."
+
+msgid "Off: the text keeps its size"
+msgstr "Desligado: o texto mantém o tamanho"
+
+msgid "One tag, such as {{name}}. The preview shows it with sample data."
+msgstr "Uma tag, como {{name}}. A prévia a mostra com dados de exemplo."
+
+msgid "One way: from then on the template is edited as HTML."
+msgstr "Sem volta: daí em diante o modelo é editado como HTML."
+
+msgid "Only a visual template you can edit can be converted to HTML."
+msgstr "Só um modelo visual que você pode editar pode ser convertido em HTML."
+
+msgid "Page default"
+msgstr "Padrão da página"
+
+msgid "Position and size (page pixels)"
+msgstr "Posição e tamanho (pixels da página)"
+
+msgid "Preview of the certificate page"
+msgstr "Prévia da página do certificado"
+
+msgid "Preview with sample data"
+msgstr "Prévia com dados de exemplo"
+
+msgid "Quiet zone (modules)"
+msgstr "Margem de silêncio (módulos)"
+
+msgid "Regular (400)"
+msgstr "Regular (400)"
+
+msgid "Required fields are missing"
+msgstr "Faltam campos obrigatórios"
+
+msgid "Rotation (degrees)"
+msgstr "Rotação (graus)"
+
+msgid "Select an element on the page, or in the Layers list, to change it here."
+msgstr "Selecione um elemento na página, ou na lista de Camadas, para alterá-lo aqui."
+
+msgid "Semibold (600)"
+msgstr "Seminegrito (600)"
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires %s, and the layout does not carry it yet."
+msgstr "Configurações → Certificados exige %s, e o layout ainda não o contém."
+
+#. translators: %s: comma-separated tags, such as {{auth_code}}
+msgid "Settings → Certificates requires every certificate to carry %s, and this layout does not. Insert a Data field for each one; a form using this template is refused on save until it does."
+msgstr "Configurações → Certificados exige que todo certificado contenha %s, e este layout não contém. Insira um Campo de dados para cada um; um formulário que usa este modelo é recusado ao salvar até que contenha."
+
+msgid "Shrink to fit the box"
+msgstr "Reduzir para caber na caixa"
+
+msgid "Shrink to one line"
+msgstr "Reduzir para uma linha"
+
+msgid "Shrinking keeps a long name inside its box; the preview applies it as the PDF does."
+msgstr "Reduzir mantém um nome longo dentro da caixa; a prévia aplica isso como o PDF."
+
+msgid "Size (px)"
+msgstr "Tamanho (px)"
+
+msgid "Solid"
+msgstr "Contínua"
+
+msgid "Source"
+msgstr "Origem"
+
+msgid "The code links to the validation page; its size is the box."
+msgstr "O código leva à página de validação; o tamanho é o da caixa."
+
+msgid "The signer’s signature"
+msgstr "A assinatura do signatário"
+
+msgid "The template is now an HTML template. Its HTML is what the visual layout generated, so the forms that use it print the same document."
+msgstr "O modelo agora é um modelo HTML. O HTML é o que o layout visual gerou, então os formulários que o usam imprimem o mesmo documento."
+
+msgid "The unsaved layout, drawn by the PDF renderer with sample data: the fit options and the fonts apply as they will print."
+msgstr "O layout não salvo, desenhado pelo renderizador do PDF com dados de exemplo: as opções de ajuste e as fontes valem como na impressão."
+
+msgid "Thickness (px)"
+msgstr "Espessura (px)"
+
+msgid "Thin (100)"
+msgstr "Fino (100)"
+
+msgid "Top"
+msgstr "Topo"
+
+msgid "UPPERCASE"
+msgstr "MAIÚSCULAS"
+
+#. translators: %d: model number, 1 to 6
+msgid "Visual certificate model %d"
+msgstr "Modelo visual de certificado %d"
+
+msgid "Weight"
+msgstr "Peso"
+
+msgid "Width"
+msgstr "Largura"
+
+msgid "lowercase"
+msgstr "minúsculas"
+
+msgid "the device’s default font"
+msgstr "a fonte padrão do dispositivo"
+
+msgid "The template screen edits the page on a canvas: Insert adds an element in the middle of the page; drag it to move it and its handles to resize it, on a 10 px grid unless snapping is off; the arrow keys move the selected element 1 px, 10 with Shift, and Delete removes it. Page sets the orientation and the zoom, which changes only the view, and aligns the selected element to a side or the middle of the page. Layers lists the elements front first: drag a row, or use its arrows, to restack, and lock an element to keep it in place; the background is always the bottom layer. Discard changes goes back to the last save. Editing needs a window at least 1280 pixels wide and a mouse or trackpad; on a smaller one the screen says so and keeps the work. The layout JSON stays under the canvas, for hand edits."
+msgstr "A tela do modelo edita a página num canvas: Inserir adiciona um elemento no meio da página; arraste-o para movê-lo e suas alças para redimensioná-lo, numa grade de 10 px a menos que o encaixe esteja desligado; as setas movem o elemento selecionado 1 px, 10 com Shift, e Delete o remove. Página define a orientação e o zoom, que muda só a visão, e alinha o elemento selecionado a um lado ou ao meio da página. Camadas lista os elementos da frente para trás: arraste uma linha, ou use suas setas, para reempilhar, e trave um elemento para mantê-lo no lugar; o fundo é sempre a camada de baixo. Descartar alterações volta ao último salvamento. Editar exige uma janela com pelo menos 1280 pixels de largura e um mouse ou trackpad; numa menor a tela avisa e guarda o trabalho. O JSON do layout continua abaixo do canvas, para edições à mão."
+
+msgid "Element properties, in the side column, change the selected element: its position, size and rotation; a text's content, with a tag picker, and a data field's tag; the font family, size, weight, style, colour, alignment, letter spacing, line height, case and fit; an image's file, from the Media Library, or the signer's signature, contained or covering its box; a frame's line and fill; an HTML block's code. The font list offers the Font Library families and the system fonts, and marks a font the site lacks with the one that prints instead. Preview with sample data draws the unsaved page through the PDF renderer, so fit and fonts look as they will print, and names the required tags and fonts the layout lacks; the saved layout is checked the same way."
+msgstr "Propriedades do elemento, na coluna lateral, alteram o elemento selecionado: posição, tamanho e rotação; o conteúdo de um texto, com seletor de tags, e a tag de um campo de dados; a família, o tamanho, o peso, o estilo, a cor, o alinhamento, o espaçamento entre letras, a altura da linha, a caixa e o ajuste da fonte; o arquivo de uma imagem, da Biblioteca de Mídia, ou a assinatura do signatário, contida ou cobrindo a caixa; a linha e o preenchimento de uma moldura; o código de um bloco HTML. A lista de fontes oferece as famílias da Biblioteca de Fontes e as fontes do sistema, e marca uma fonte que falta no site com a que sai no lugar. Prévia com dados de exemplo desenha a página não salva pelo renderizador do PDF, para que ajuste e fontes apareçam como na impressão, e aponta as tags obrigatórias e as fontes que faltam no layout; o layout salvo é verificado do mesmo jeito."
+
+msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
+msgstr "Converter em HTML transforma um modelo visual em modelo HTML, após uma confirmação. Não tem volta: o HTML gerado no último salvamento passa a ser o modelo, então os formulários que o usam imprimem o mesmo documento, e o layout é descartado. Os seis modelos de certificado também vêm como modelos visuais; duplique um para começar um modelo visual a partir dele."

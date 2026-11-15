@@ -363,15 +363,7 @@ final class CertificateFonts {
 			return array();
 		}
 
-		$available = array_flip( self::SYSTEM_FONTS );
-		foreach ( self::installed() as $family ) {
-			$first = self::face_name( $family['css'] );
-
-			$available[ strtolower( $family['name'] ) ] = true;
-			if ( '' !== $first ) {
-				$available[ strtolower( $first ) ] = true;
-			}
-		}
+		$available = array_flip( self::available_names() );
 
 		return array_values(
 			array_filter(
@@ -379,6 +371,27 @@ final class CertificateFonts {
 				static fn( string $name ): bool => ! isset( $available[ strtolower( $name ) ] )
 			)
 		);
+	}
+
+	/**
+	 * Every family name a template can ask for and get, lowercase: the
+	 * system fonts and generic families, and each installed family by its
+	 * Font Library name and by the first name of its stack. The visual
+	 * editor marks a font outside this list the way {@see self::missing()}
+	 * reports it (#2586).
+	 *
+	 * @return list<string>
+	 */
+	public static function available_names(): array {
+		$names = self::SYSTEM_FONTS;
+		foreach ( self::installed() as $family ) {
+			$names[] = strtolower( $family['name'] );
+			$first   = self::face_name( $family['css'] );
+			if ( '' !== $first ) {
+				$names[] = strtolower( $first );
+			}
+		}
+		return array_values( array_unique( $names ) );
 	}
 
 	/**
