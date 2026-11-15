@@ -16,6 +16,12 @@ function markup(json) {
 					<button type="button" data-ffc-ve-insert="script">Bad</button>
 					<button type="button" data-ffc-ve-align="right">Right</button>
 					<button type="button" data-ffc-ve-align="middle">Middle</button>
+					<button type="button" data-ffc-ve-align="top">Top</button>
+					<button type="button" data-ffc-ve-distribute="x">Distribute x</button>
+					<button type="button" data-ffc-ve-distribute="y">Distribute y</button>
+					<button type="button" data-ffc-ve-cmd="undo">Undo</button>
+					<button type="button" data-ffc-ve-cmd="redo">Redo</button>
+					<p data-ffc-ve-status></p>
 					<select data-ffc-ve-orientation><option value="landscape">L</option><option value="portrait">P</option></select>
 					<select data-ffc-ve-zoom><option value="fit">Fit</option><option value="0.5">50</option><option value="1">100</option></select>
 					<input type="checkbox" data-ffc-ve-snap>
@@ -202,15 +208,16 @@ describe('ffc-visual-editor.js', () => {
 			ed.snapOn = false;
 			ed.render();
 			const node = () => document.querySelector('[data-ffc-ve-id="name"]');
+			// 15 screen px at 50 % is 30 page px; nothing to line up with there.
 			pointer(node(), 'pointerdown', 200, 200);
-			pointer(node(), 'pointermove', 230, 210);
-			pointer(node(), 'pointerup', 230, 210);
-			expect(layout().elements[1]).toMatchObject({ x: 160, y: 320, w: 400, h: 50 });
+			pointer(node(), 'pointermove', 215, 210);
+			pointer(node(), 'pointerup', 215, 210);
+			expect(layout().elements[1]).toMatchObject({ x: 130, y: 320, w: 400, h: 50 });
 
 			pointer(node().querySelector('[data-ffc-ve-handle="se"]'), 'pointerdown', 0, 0);
 			pointer(node(), 'pointermove', 50, 25);
 			pointer(node(), 'pointerup', 50, 25);
-			expect(layout().elements[1]).toMatchObject({ x: 160, y: 320, w: 500, h: 100 });
+			expect(layout().elements[1]).toMatchObject({ x: 130, y: 320, w: 500, h: 100 });
 		});
 
 		it('does not move a locked layer', () => {
@@ -227,7 +234,7 @@ describe('ffc-visual-editor.js', () => {
 
 		it('nudges with the arrows, ten at a time with Shift, and deletes with Delete', () => {
 			const ed = editor();
-			ed.selected = 'name';
+			ed.selectOnly('name');
 			const page = document.querySelector('.ffc-ve-page');
 			page.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
 			page.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowDown', shiftKey: true, bubbles: true }));
@@ -238,7 +245,7 @@ describe('ffc-visual-editor.js', () => {
 
 		it('aligns the selection to the page', () => {
 			const ed = editor();
-			ed.selected = 'name';
+			ed.selectOnly('name');
 			ed.render();
 			document.querySelector('[data-ffc-ve-align="right"]').click();
 			document.querySelector('[data-ffc-ve-align="middle"]').click();
@@ -573,6 +580,177 @@ describe('ffc-visual-editor.js', () => {
 			expect(await ed.confirmDiscard()).toBe(true);
 			expect(ed.layout.elements[0].x).toBe(20);
 			window.FFC.confirmDialog = ask;
+		});
+	});
+	describe('refinements (#2588)', () => {
+		const g = () => window.FFCVisualEditor.geometry;
+		const key = (k, opts) => document.querySelector('.ffc-ve-page').dispatchEvent(new window.KeyboardEvent('keydown', Object.assign({ key: k, bubbles: true, cancelable: true }, opts || {})));
+		const el = (id) => layout().elements.find((e) => e.id === id);
+
+		it('aligns to an area, measures the box around boxes and spaces them evenly', () => {
+			expect(g().alignTo({ x: 5, y: 5, w: 10, h: 10 }, { x: 100, y: 200, w: 50, h: 30 }, 'right')).toEqual({ x: 140, y: 5 });
+			expect(g().bounds([{ x: 10, y: 20, w: 30, h: 5 }, { x: 0, y: 40, w: 5, h: 10 }])).toEqual({ x: 0, y: 20, w: 40, h: 30 });
+			// First and last stay; the middle one moves so the gaps are equal.
+			expect(g().distribute([{ x: 0, w: 10 }, { x: 90, w: 10 }, { x: 20, w: 20 }], 'x')).toEqual([0, 90, 40]);
+			expect(g().distribute([{ y: 0, h: 10 }, { y: 50, h: 10 }], 'y')).toEqual([0, 50]);
+		});
+
+		it('finds the guide within reach and ignores what is too far', () => {
+			const box = { x: 98, y: 300, w: 100, h: 20 };
+			const found = g().guides(box, [{ x: 100, y: 0, w: 10, h: 10 }], 5);
+			expect(found).toEqual({ dx: 2, dy: 0, x: [100], y: [] });
+			expect(g().guides(box, [{ x: 300, y: 600, w: 10, h: 10 }], 5)).toEqual({ dx: 0, dy: 0, x: [], y: [] });
+		});
+
+		it('turns a pointer into a rotation, snapped to a step', () => {
+			expect(g().angle(0, 0, 10, 0, 1)).toBe(90);
+			expect(g().angle(0, 0, 0, 10, 1)).toBe(180);
+			expect(g().angle(0, 0, -10, 0, 1)).toBe(-90);
+			expect(g().angle(0, 0, 10, -9, 15)).toBe(45);
+		});
+
+		it('undoes and redoes, typing in one field making one step', () => {
+			const ed = editor();
+			ed.selectOnly('name');
+			key('ArrowRight');
+			key('ArrowRight');
+			expect(el('name').x).toBe(102);
+			expect(ed.undo()).toBe(true);
+			expect(el('name').x).toBe(100, 'the two nudges in a row were one step');
+			expect(ed.redo()).toBe(true);
+			expect(el('name').x).toBe(102);
+			key('z', { ctrlKey: true });
+			expect(el('name').x).toBe(100);
+			key('y', { ctrlKey: true });
+			expect(el('name').x).toBe(102);
+			key('Z', { ctrlKey: true, shiftKey: true });
+			expect(el('name').x).toBe(102, 'nothing left to redo');
+			expect(document.querySelector('[data-ffc-ve-status]').textContent).toBe('Redone');
+		});
+
+		it('brings discarded work back with undo', () => {
+			const ed = editor();
+			ed.selectOnly('name');
+			key('ArrowDown', { shiftKey: true });
+			ed.discard();
+			expect(el('name').y).toBe(300);
+			ed.undo();
+			expect(el('name').y).toBe(310);
+		});
+
+		it('selects several, moves them together and keeps the locked one', () => {
+			const ed = editor();
+			ed.zoom = 1;
+			ed.snapOn = false;
+			ed.render();
+			const node = (id) => document.querySelector('[data-ffc-ve-id="' + id + '"]');
+			pointer(node('name'), 'pointerdown', 0, 0);
+			const shift = new window.MouseEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 0, button: 0, shiftKey: true });
+			Object.defineProperty(shift, 'pointerId', { value: 1 });
+			node('seal').dispatchEvent(shift);
+			expect(ed.selection).toEqual(['name', 'seal']);
+			expect(document.querySelector('[data-ffc-ve-props-empty]').textContent).toContain('2 elements selected');
+			key('ArrowRight', { shiftKey: true });
+			expect(el('name').x).toBe(110);
+			expect(el('seal').x).toBe(40, 'the locked QR code stays put');
+			// Shift-click again takes it out.
+			node('seal').dispatchEvent(shift);
+			expect(ed.selection).toEqual(['name']);
+		});
+
+		it('aligns several to each other and distributes three', () => {
+			const ed = editor();
+			ed.layout.elements = [
+				{ id: 'a', type: 'qr', x: 10, y: 10, w: 20, h: 20 },
+				{ id: 'b', type: 'qr', x: 100, y: 50, w: 20, h: 20 },
+				{ id: 'c', type: 'qr', x: 300, y: 90, w: 20, h: 20 }
+			];
+			ed.selection = ['a', 'b', 'c'];
+			ed.selected = 'c';
+			ed.render();
+			expect(document.querySelector('[data-ffc-ve-distribute="x"]').disabled).toBe(false);
+			document.querySelector('[data-ffc-ve-align="top"]').click();
+			expect(layout().elements.map((e) => e.y)).toEqual([10, 10, 10]);
+			document.querySelector('[data-ffc-ve-distribute="x"]').click();
+			expect(layout().elements.map((e) => e.x)).toEqual([10, 155, 300]);
+		});
+
+		it('draws a guide while dragging near another element, and clears it after', () => {
+			const ed = editor();
+			ed.zoom = 1;
+			ed.snapOn = false;
+			ed.render();
+			const node = () => document.querySelector('[data-ffc-ve-id="name"]');
+			pointer(node(), 'pointerdown', 0, 0);
+			// The field's left edge comes 3 px from the frame's at 20.
+			pointer(node(), 'pointermove', -83, 0);
+			expect(document.querySelectorAll('.ffc-ve-guide-x')).toHaveLength(1);
+			expect(el('name').x).toBe(100, 'the JSON is written on release');
+			pointer(node(), 'pointerup', -83, 0);
+			expect(el('name').x).toBe(20);
+			expect(document.querySelectorAll('.ffc-ve-guide')).toHaveLength(0);
+		});
+
+		it('rotates with the handle and with the keyboard', () => {
+			const ed = editor();
+			ed.zoom = 1;
+			ed.selectOnly('name');
+			ed.render();
+			const sheet = document.querySelector('.ffc-ve-page');
+			sheet.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1123, height: 794 });
+			const handle = document.querySelector('[data-ffc-ve-id="name"] [data-ffc-ve-handle="rotate"]');
+			expect(handle).not.toBeNull();
+			pointer(handle, 'pointerdown', 300, 300);
+			// The centre is (300, 325); the pointer to its right turns it 90°.
+			pointer(sheet, 'pointermove', 400, 325);
+			pointer(sheet, 'pointerup', 400, 325);
+			expect(el('name').rotation).toBe(90);
+			key('r');
+			expect(el('name').rotation).toBe(105);
+			key('R', { shiftKey: true, altKey: true });
+			expect(el('name').rotation).toBe(104);
+		});
+
+		it('copies and pastes between editors, and duplicates', () => {
+			const ed = editor();
+			ed.selectOnly('name');
+			key('c', { ctrlKey: true });
+			expect(document.querySelector('[data-ffc-ve-status]').textContent).toBe('1 copied');
+			// Another template's editor reads the same clipboard.
+			markup(JSON.stringify({ version: 1, page: { orientation: 'landscape' }, elements: [] }));
+			const other = editor();
+			key('v', { ctrlKey: true });
+			expect(layout().elements).toHaveLength(1);
+			expect(layout().elements[0]).toMatchObject({ type: 'field', token: '{{name}}', x: 110, y: 310, locked: false });
+			expect(other.selection).toEqual([layout().elements[0].id]);
+			key('d', { ctrlKey: true });
+			expect(layout().elements).toHaveLength(2);
+			expect(layout().elements[1]).toMatchObject({ x: 120, y: 320 });
+			document.querySelector('[data-ffc-ve-cmd="undo"]').click();
+			expect(layout().elements).toHaveLength(1);
+		});
+
+		it('works the elements from the keyboard alone', () => {
+			const ed = editor();
+			key(']');
+			expect(ed.selected).toBe('seal', 'the front element first');
+			key(']');
+			expect(ed.selected).toBe('name');
+			key('[');
+			expect(ed.selected).toBe('seal');
+			key('l');
+			expect(el('seal').locked).toBe(false);
+			key('ArrowRight', { altKey: true, shiftKey: true });
+			expect(el('seal').w).toBe(100);
+			key('ArrowDown', { ctrlKey: true });
+			expect(layout().elements.map((e) => e.id)).toEqual(['back', 'seal', 'name']);
+			key('a', { ctrlKey: true });
+			expect(ed.selection).toHaveLength(3);
+			expect(document.querySelector('[data-ffc-ve-status]').textContent).toBe('3 elements selected');
+			key('Escape');
+			expect(ed.selection).toEqual([]);
+			key('Delete');
+			expect(layout().elements).toHaveLength(3);
 		});
 	});
 });

@@ -17,6 +17,12 @@
  * container: its controls carry no name, and every change is written into
  * the layout, so the form still posts the JSON alone.
  *
+ * Refinements (#2588), built in-house rather than adopting a library: undo
+ * and redo, alignment guides to other elements and the page, a selection of
+ * several elements with align and distribute among them, a rotation handle,
+ * a clipboard that carries elements between visual templates, and every
+ * operation on the keyboard.
+ *
  * @since 6.45.0
  */
 (function (window, document) {
@@ -30,6 +36,14 @@
 		portrait: { width: 794, height: 1123 }
 	};
 	var HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+	/** How many steps undo keeps. */
+	var HISTORY = 100;
+	/** How close, in screen pixels, an edge comes before a guide takes it. */
+	var GUIDE = 6;
+	/** Where copied elements wait, so another template's editor can paste them. */
+	var CLIP_KEY = 'ffcVisualEditorClipboard';
+	/** The clipboard when the browser keeps no storage. */
+	var memoryClip = '';
 
 	/**
 	 * Pure geometry, in page pixels. Exported for the tests.
@@ -98,17 +112,149 @@
 		 * @return {{x:number,y:number}}
 		 */
 		align: function (box, page, mode) {
+			return geometry.alignTo(box, { x: 0, y: 0, w: page.width, h: page.height }, mode);
+		},
+
+		/**
+		 * A box aligned to a side or the middle of an area.
+		 *
+		 * @param {{x:number,y:number,w:number,h:number}} box
+		 * @param {{x:number,y:number,w:number,h:number}} area
+		 * @param {string} mode  left, center, right, top, middle or bottom.
+		 * @return {{x:number,y:number}}
+		 */
+		alignTo: function (box, area, mode) {
 			var x = box.x;
 			var y = box.y;
 			switch (mode) {
-				case 'left': x = 0; break;
-				case 'center': x = (page.width - box.w) / 2; break;
-				case 'right': x = page.width - box.w; break;
-				case 'top': y = 0; break;
-				case 'middle': y = (page.height - box.h) / 2; break;
-				case 'bottom': y = page.height - box.h; break;
+				case 'left': x = area.x; break;
+				case 'center': x = area.x + (area.w - box.w) / 2; break;
+				case 'right': x = area.x + area.w - box.w; break;
+				case 'top': y = area.y; break;
+				case 'middle': y = area.y + (area.h - box.h) / 2; break;
+				case 'bottom': y = area.y + area.h - box.h; break;
 			}
 			return { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 };
+		},
+
+		/**
+		 * The box around several boxes.
+		 *
+		 * @param {Array<{x:number,y:number,w:number,h:number}>} boxes
+		 * @return {{x:number,y:number,w:number,h:number}}
+		 */
+		bounds: function (boxes) {
+			var left = Infinity;
+			var top = Infinity;
+			var right = -Infinity;
+			var bottom = -Infinity;
+			boxes.forEach(function (b) {
+				left = Math.min(left, b.x);
+				top = Math.min(top, b.y);
+				right = Math.max(right, b.x + b.w);
+				bottom = Math.max(bottom, b.y + b.h);
+			});
+			return boxes.length ? { x: left, y: top, w: right - left, h: bottom - top } : { x: 0, y: 0, w: 0, h: 0 };
+		},
+
+		/**
+		 * Positions that space boxes evenly along an axis, the first and the
+		 * last staying put; in the order the boxes were given.
+		 *
+		 * @param {Array<{x:number,y:number,w:number,h:number}>} boxes
+		 * @param {string} axis  x or y.
+		 * @return {Array<number>} The new start of each box on the axis.
+		 */
+		distribute: function (boxes, axis) {
+			var size = axis === 'x' ? 'w' : 'h';
+			var order = boxes.map(function (b, i) {
+				return i;
+			}).sort(function (a, b) {
+				return boxes[a][axis] - boxes[b][axis];
+			});
+			var out = boxes.map(function (b) {
+				return b[axis];
+			});
+			if (boxes.length < 3) {
+				return out;
+			}
+			var first = boxes[order[0]];
+			var last = boxes[order[order.length - 1]];
+			var total = 0;
+			order.forEach(function (i) {
+				total += boxes[i][size];
+			});
+			var gap = (last[axis] + last[size] - first[axis] - total) / (order.length - 1);
+			var at = first[axis];
+			order.forEach(function (i) {
+				out[i] = Math.round(at * 100) / 100;
+				at += boxes[i][size] + gap;
+			});
+			return out;
+		},
+
+		/**
+		 * The nudge that lines a box's edges or centre up with another box's,
+		 * within a distance, and the lines to draw for it.
+		 *
+		 * @param {{x:number,y:number,w:number,h:number}} box
+		 * @param {Array<{x:number,y:number,w:number,h:number}>} targets
+		 * @param {number} threshold  In page pixels.
+		 * @return {{dx:number,dy:number,x:Array<number>,y:Array<number>}}
+		 */
+		guides: function (box, targets, threshold) {
+			var pick = function (own, others) {
+				var best = null;
+				own.forEach(function (o) {
+					others.forEach(function (t) {
+						var d = t - o;
+						if (Math.abs(d) <= threshold && (best === null || Math.abs(d) < Math.abs(best.d))) {
+							best = { d: d, at: t };
+						}
+					});
+				});
+				return best;
+			};
+			var lines = function (b, start, size) {
+				return [b[start], b[start] + b[size] / 2, b[start] + b[size]];
+			};
+			var xs = [];
+			var ys = [];
+			targets.forEach(function (t) {
+				xs = xs.concat(lines(t, 'x', 'w'));
+				ys = ys.concat(lines(t, 'y', 'h'));
+			});
+			var bx = pick(lines(box, 'x', 'w'), xs);
+			var by = pick(lines(box, 'y', 'h'), ys);
+			return {
+				dx: bx ? bx.d : 0,
+				dy: by ? by.d : 0,
+				x: bx ? [bx.at] : [],
+				y: by ? [by.at] : []
+			};
+		},
+
+		/**
+		 * The rotation that points a box's top towards a point, in degrees
+		 * clockwise from upright, rounded to a step.
+		 *
+		 * @param {number} cx  Centre.
+		 * @param {number} cy
+		 * @param {number} px  Pointer.
+		 * @param {number} py
+		 * @param {number} step
+		 * @return {number}
+		 */
+		angle: function (cx, cy, px, py, step) {
+			var deg = Math.atan2(py - cy, px - cx) * 180 / Math.PI + 90;
+			deg = Math.round(deg / step) * step;
+			while (deg > 180) {
+				deg -= 360;
+			}
+			while (deg <= -180) {
+				deg += 360;
+			}
+			return deg === 0 ? 0 : deg;
 		},
 
 		/**
@@ -300,11 +446,17 @@
 		this.saved = textarea.value;
 		this.layout = Editor.parse(textarea.value);
 		this.selected = null;
+		this.selection = [];
 		this.zoom = 'fit';
 		this.snapOn = true;
 		this.dirty = false;
 		this.gesture = null;
 		this.images = {};
+		this.current = JSON.stringify(this.layout);
+		this.past = [];
+		this.future = [];
+		this.lastKey = '';
+		this.lastAt = 0;
 		this.build();
 		this.bindProperties();
 		this.bindPreview();
@@ -369,12 +521,23 @@
 					self.alignSelected(button.getAttribute('data-ffc-ve-align'));
 				});
 			});
+			this.root.querySelectorAll('[data-ffc-ve-distribute]').forEach(function (button) {
+				button.addEventListener('click', function () {
+					self.distributeSelected(button.getAttribute('data-ffc-ve-distribute'));
+				});
+			});
+			this.root.querySelectorAll('[data-ffc-ve-cmd]').forEach(function (button) {
+				button.addEventListener('click', function () {
+					self.command(button.getAttribute('data-ffc-ve-cmd'));
+				});
+			});
+			this.status = this.root.querySelector('[data-ffc-ve-status]');
 			var orientation = this.root.querySelector('[data-ffc-ve-orientation]');
 			if (orientation) {
 				orientation.value = this.layout.page.orientation;
 				orientation.addEventListener('change', function () {
 					self.layout.page.orientation = orientation.value === 'portrait' ? 'portrait' : 'landscape';
-					self.changed();
+					self.changed('orientation');
 				});
 			}
 			var zoom = this.root.querySelector('[data-ffc-ve-zoom]');
@@ -415,12 +578,11 @@
 				self.keyDown(event);
 			});
 
-			// Hand-edited JSON loads on change.
+			// Hand-edited JSON loads on change, and can be undone.
 			this.textarea.addEventListener('change', function () {
 				self.layout = Editor.parse(self.textarea.value);
-				self.selected = null;
-				self.dirty = true;
-				self.render();
+				self.selectOnly(null);
+				self.changed('json');
 			});
 			var form = this.textarea.form;
 			if (form) {
@@ -460,11 +622,221 @@
 			this.textarea.value = JSON.stringify(this.layout, null, 2);
 		},
 
-		/** After any change: keep the JSON current and redraw. */
-		changed: function () {
+		/**
+		 * After any change: record it for undo, keep the JSON current and
+		 * redraw. Changes that share a key within a second (typing in one
+		 * field) make one step.
+		 *
+		 * @param {string} [key]
+		 */
+		changed: function (key) {
+			var next = JSON.stringify(this.layout);
+			if (next !== this.current) {
+				var now = Date.now();
+				if (!(key && key === this.lastKey && now - this.lastAt < 1000)) {
+					this.past.push(this.current);
+					if (this.past.length > HISTORY) {
+						this.past.shift();
+					}
+				}
+				this.future = [];
+				this.current = next;
+				this.lastKey = key || '';
+				this.lastAt = now;
+			}
 			this.dirty = true;
 			this.sync();
 			this.render();
+		},
+
+		/** Go one step back. */
+		undo: function () {
+			if (!this.past.length) {
+				return false;
+			}
+			this.future.push(this.current);
+			this.restore(this.past.pop());
+			this.announce(this.s.undone || 'Undone');
+			return true;
+		},
+
+		/** Go one step forward again. */
+		redo: function () {
+			if (!this.future.length) {
+				return false;
+			}
+			this.past.push(this.current);
+			this.restore(this.future.pop());
+			this.announce(this.s.redone || 'Redone');
+			return true;
+		},
+
+		/** Show a recorded state. */
+		restore: function (json) {
+			var self = this;
+			this.current = json;
+			this.lastKey = '';
+			this.layout = Editor.parse(json);
+			this.selection = this.selection.filter(function (id) {
+				return self.indexOf(id) !== -1;
+			});
+			if (this.selection.indexOf(this.selected) === -1) {
+				this.selected = this.selection.length ? this.selection[this.selection.length - 1] : null;
+			}
+			this.dirty = true;
+			this.sync();
+			this.render();
+		},
+
+		/* ---- selection ---- */
+
+		/** Whether an element is selected. */
+		isSelected: function (id) {
+			return this.selection.indexOf(id) !== -1;
+		},
+
+		/** Select one element, or none. */
+		selectOnly: function (id) {
+			this.selected = id || null;
+			this.selection = id ? [id] : [];
+		},
+
+		/** Add an element to the selection, or take it out. */
+		toggleSelect: function (id) {
+			var at = this.selection.indexOf(id);
+			if (at === -1) {
+				this.selection.push(id);
+				this.selected = id;
+			} else {
+				this.selection.splice(at, 1);
+				this.selected = this.selection.length ? this.selection[this.selection.length - 1] : null;
+			}
+		},
+
+		/**
+		 * The selected elements, in stacking order.
+		 *
+		 * @param {boolean} unlockedOnly
+		 * @return {Array<Object>}
+		 */
+		selectedEls: function (unlockedOnly) {
+			var self = this;
+			return this.layout.elements.filter(function (el) {
+				return self.isSelected(el.id) && !(unlockedOnly && el.locked);
+			});
+		},
+
+		/** Say something to a screen reader. */
+		announce: function (text) {
+			if (this.status) {
+				this.status.textContent = text;
+			}
+		},
+
+		/** What the selection is, said aloud. */
+		announceSelection: function () {
+			var el = this.selectedElement();
+			if (this.selection.length > 1) {
+				this.announce(String(this.s.selectedMany || '%d elements selected').replace('%d', String(this.selection.length)));
+			} else if (el) {
+				this.announce(String(this.s.selectedOne || '%s selected').replace('%s', this.label(el)));
+			} else {
+				this.announce(this.s.selectedNone || '');
+			}
+		},
+
+		/** An element's name: its type and what tells it apart. */
+		label: function (el) {
+			var detail = el.type === 'text' || el.type === 'field' || (el.type === 'image' && el.token) ? this.describe(el) : '';
+			return (this.s.types && this.s.types[el.type] ? this.s.types[el.type] : el.type) + (detail ? ': ' + detail : '');
+		},
+
+		/* ---- clipboard (shared by every visual template of the site) ---- */
+
+		/** Copy the selected elements. */
+		copy: function () {
+			var els = this.selectedEls(false);
+			if (!els.length) {
+				return false;
+			}
+			memoryClip = JSON.stringify(els);
+			try {
+				window.localStorage.setItem(CLIP_KEY, memoryClip);
+			} catch (e) {
+				// No storage: the copy stays on this page.
+			}
+			this.announce(String(this.s.copied || '%d copied').replace('%d', String(els.length)));
+			return true;
+		},
+
+		/** Paste what was copied, here or in another visual template. */
+		paste: function () {
+			var json = '';
+			try {
+				json = window.localStorage.getItem(CLIP_KEY) || '';
+			} catch (e) {
+				json = '';
+			}
+			return this.addCopies(json || memoryClip, 'paste');
+		},
+
+		/** Duplicate the selected elements, leaving the clipboard alone. */
+		duplicate: function () {
+			return this.addCopies(JSON.stringify(this.selectedEls(false)), 'duplicate');
+		},
+
+		/**
+		 * Add copies of elements, 10 px down and right, at the front, and
+		 * select them.
+		 *
+		 * @param {string} json  An array of elements.
+		 * @param {string} key   The history key.
+		 * @return {boolean}
+		 */
+		addCopies: function (json, key) {
+			var self = this;
+			var items = [];
+			try {
+				items = JSON.parse(json || '[]');
+			} catch (e) {
+				items = [];
+			}
+			if (!Array.isArray(items)) {
+				items = [];
+			}
+			var ids = [];
+			items.forEach(function (item) {
+				if (!item || typeof item !== 'object' || !Object.prototype.hasOwnProperty.call(DEFAULTS, item.type)) {
+					return;
+				}
+				var el = JSON.parse(JSON.stringify(item));
+				el.id = self.nextId(el.type);
+				el.x = Math.round(((+el.x || 0) + 10) * 100) / 100;
+				el.y = Math.round(((+el.y || 0) + 10) * 100) / 100;
+				el.locked = false;
+				self.layout.elements.push(el);
+				ids.push(el.id);
+			});
+			if (!ids.length) {
+				return false;
+			}
+			this.selection = ids;
+			this.selected = ids[ids.length - 1];
+			this.changed(key);
+			this.announce(String(this.s.pasted || '%d added').replace('%d', String(ids.length)));
+			return true;
+		},
+
+		/** Run a menu command. */
+		command: function (name) {
+			switch (name) {
+				case 'undo': this.undo(); break;
+				case 'redo': this.redo(); break;
+				case 'copy': this.copy(); break;
+				case 'paste': this.paste(); break;
+				case 'duplicate': this.duplicate(); break;
+			}
+			this.sheet.focus();
 		},
 
 		/** The index of an element by id, or -1. */
@@ -507,31 +879,56 @@
 			el.x = geometry.snap(at.x, this.snapOn);
 			el.y = geometry.snap(geometry.align(el, page, 'middle').y, this.snapOn);
 			this.layout.elements.push(el);
-			this.selected = el.id;
+			this.selectOnly(el.id);
 			this.changed();
 			this.sheet.focus();
 		},
 
-		/** Remove the selected element. */
+		/** Remove the selected elements that are not locked. */
 		removeSelected: function () {
-			var index = this.indexOf(this.selected);
-			if (index === -1) {
+			var gone = this.selectedEls(true).map(function (el) {
+				return el.id;
+			});
+			if (!gone.length) {
 				return;
 			}
-			this.layout.elements.splice(index, 1);
-			this.selected = null;
+			this.layout.elements = this.layout.elements.filter(function (el) {
+				return gone.indexOf(el.id) === -1;
+			});
+			this.selectOnly(null);
 			this.changed();
 		},
 
-		/** Align the selected element to the page. */
+		/**
+		 * Align the selection: one element to the page, several to the box
+		 * around them. Locked elements stay put.
+		 */
 		alignSelected: function (mode) {
-			var el = this.layout.elements[this.indexOf(this.selected)];
-			if (!el || el.locked) {
+			var els = this.selectedEls(true);
+			if (!els.length) {
 				return;
 			}
-			var at = geometry.align(el, this.page(), mode);
-			el.x = at.x;
-			el.y = at.y;
+			var area = els.length > 1 || this.selection.length > 1
+				? geometry.bounds(this.selectedEls(false))
+				: { x: 0, y: 0, w: this.page().width, h: this.page().height };
+			els.forEach(function (el) {
+				var at = geometry.alignTo(el, area, mode);
+				el.x = at.x;
+				el.y = at.y;
+			});
+			this.changed();
+		},
+
+		/** Space three or more selected elements evenly along an axis. */
+		distributeSelected: function (axis) {
+			var els = this.selectedEls(true);
+			if (els.length < 3 || (axis !== 'x' && axis !== 'y')) {
+				return;
+			}
+			var to = geometry.distribute(els, axis);
+			els.forEach(function (el, i) {
+				el[axis] = to[i];
+			});
 			this.changed();
 		},
 
@@ -572,11 +969,12 @@
 
 		/** Back to the layout as last saved. */
 		discard: function () {
-			this.textarea.value = this.saved;
 			this.layout = Editor.parse(this.saved);
-			this.selected = null;
+			this.selectOnly(null);
+			// Undo can bring the discarded work back.
+			this.changed('discard');
+			this.textarea.value = this.saved;
 			this.dirty = false;
-			this.render();
 		},
 
 		/* ---- pointer and keyboard ---- */
@@ -585,25 +983,43 @@
 			var handle = event.target.closest('[data-ffc-ve-handle]');
 			var node = event.target.closest('[data-ffc-ve-id]');
 			if (!node) {
-				this.selected = null;
+				if (!event.shiftKey) {
+					this.selectOnly(null);
+				}
 				this.render();
 				return;
 			}
 			var id = node.getAttribute('data-ffc-ve-id');
 			var el = this.layout.elements[this.indexOf(id)];
-			this.selected = id;
 			this.sheet.focus();
+			// Shift adds to the selection or takes out; it starts no gesture.
+			if (event.shiftKey) {
+				this.toggleSelect(id);
+				this.render();
+				this.announceSelection();
+				return;
+			}
+			if (this.isSelected(id)) {
+				this.selected = id;
+			} else {
+				this.selectOnly(id);
+			}
 			if (!el || el.locked || event.button !== 0) {
 				this.render();
 				return;
 			}
 			event.preventDefault();
+			var kind = handle ? handle.getAttribute('data-ffc-ve-handle') : '';
+			var moving = kind ? [el] : this.selectedEls(true);
 			this.gesture = {
 				pointer: event.pointerId,
-				handle: handle ? handle.getAttribute('data-ffc-ve-handle') : '',
+				handle: kind,
 				x: event.clientX,
 				y: event.clientY,
 				start: { x: el.x, y: el.y, w: el.w, h: el.h },
+				starts: moving.map(function (m) {
+					return { id: m.id, x: m.x, y: m.y, w: m.w, h: m.h };
+				}),
 				zoom: this.scale(),
 				moved: false
 			};
@@ -624,17 +1040,54 @@
 			}
 			var dx = (event.clientX - g.x) / g.zoom;
 			var dy = (event.clientY - g.y) / g.zoom;
-			var box = g.handle
-				? geometry.resize(g.start, g.handle, dx, dy, this.snapOn)
-				: geometry.move(g.start, dx, dy, this.snapOn);
-			el.x = box.x;
-			el.y = box.y;
+			g.moved = true;
+
+			if (g.handle === 'rotate') {
+				var rect = this.sheet.getBoundingClientRect();
+				el.rotation = geometry.angle(
+					el.x + el.w / 2,
+					el.y + el.h / 2,
+					(event.clientX - rect.left) / g.zoom,
+					(event.clientY - rect.top) / g.zoom,
+					event.shiftKey ? 15 : 1
+				);
+				this.place(el);
+				return;
+			}
 			if (g.handle) {
+				var box = geometry.resize(g.start, g.handle, dx, dy, this.snapOn);
+				el.x = box.x;
+				el.y = box.y;
 				el.w = box.w;
 				el.h = box.h;
+				this.place(el);
+				return;
 			}
-			g.moved = true;
-			this.place(el);
+
+			// Move the selection as one box: a guide takes an edge or centre
+			// within reach of another element or the page; otherwise the grid.
+			var self = this;
+			var group = geometry.bounds(g.starts);
+			var moved = { x: group.x + dx, y: group.y + dy, w: group.w, h: group.h };
+			var ids = g.starts.map(function (st) {
+				return st.id;
+			});
+			var targets = this.layout.elements.filter(function (other) {
+				return ids.indexOf(other.id) === -1;
+			});
+			targets.push({ x: 0, y: 0, w: this.page().width, h: this.page().height });
+			var found = geometry.guides(moved, targets, GUIDE / g.zoom);
+			var ox = found.x.length ? found.dx : geometry.snap(moved.x, this.snapOn) - moved.x;
+			var oy = found.y.length ? found.dy : geometry.snap(moved.y, this.snapOn) - moved.y;
+			g.starts.forEach(function (st) {
+				var m = self.layout.elements[self.indexOf(st.id)];
+				if (m) {
+					m.x = Math.round((st.x + dx + ox) * 100) / 100;
+					m.y = Math.round((st.y + dy + oy) * 100) / 100;
+					self.place(m);
+				}
+			});
+			this.drawGuides(found);
 		},
 
 		pointerUp: function (event) {
@@ -646,33 +1099,148 @@
 			if (this.sheet.releasePointerCapture) {
 				this.sheet.releasePointerCapture(event.pointerId);
 			}
+			this.drawGuides({ x: [], y: [] });
 			if (g.moved) {
 				this.changed();
 			}
 		},
 
+		/**
+		 * The keyboard does everything the pointer does; see the shortcuts
+		 * listed under the canvas.
+		 */
 		keyDown: function (event) {
-			var el = this.layout.elements[this.indexOf(this.selected)];
+			var mod = event.ctrlKey || event.metaKey;
+			var key = event.key;
+			var lower = typeof key === 'string' ? key.toLowerCase() : '';
+			var handled = true;
+
+			if (mod && lower === 'z') {
+				if (event.shiftKey) {
+					this.redo();
+				} else {
+					this.undo();
+				}
+			} else if (mod && lower === 'y') {
+				this.redo();
+			} else if (mod && lower === 'a') {
+				this.selection = this.layout.elements.map(function (el) {
+					return el.id;
+				});
+				this.selected = this.selection.length ? this.selection[this.selection.length - 1] : null;
+				this.render();
+				this.announceSelection();
+			} else if (mod && lower === 'c') {
+				this.copy();
+			} else if (mod && lower === 'v') {
+				this.paste();
+			} else if (mod && lower === 'd') {
+				this.duplicate();
+			} else if (key === ']' || key === '[') {
+				this.step(key === ']' ? 1 : -1);
+			} else if (key === 'Escape') {
+				this.selectOnly(null);
+				this.render();
+				this.announceSelection();
+			} else {
+				handled = this.keyEdit(event, mod, lower);
+			}
+			if (handled) {
+				event.preventDefault();
+			}
+		},
+
+		/**
+		 * The keys that change the selected elements.
+		 *
+		 * @return {boolean} Whether the key was one of them.
+		 */
+		keyEdit: function (event, mod, lower) {
+			var el = this.selectedElement();
+			var steps = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+			var step = event.shiftKey ? 10 : 1;
 			if (!el) {
+				return !!steps[event.key];
+			}
+			if (steps[event.key] && mod) {
+				// Bring forward or send backward.
+				var index = this.indexOf(el.id);
+				if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+					this.moveLayer(index, index + (event.key === 'ArrowUp' ? 1 : -1));
+				}
+				return true;
+			}
+			if (steps[event.key] && event.altKey) {
+				// Resize the element from its right and bottom edges.
+				if (!el.locked) {
+					el.w = Math.max(MIN_SIZE, Math.round((el.w + steps[event.key][0] * step) * 100) / 100);
+					el.h = Math.max(MIN_SIZE, Math.round((el.h + steps[event.key][1] * step) * 100) / 100);
+					this.changed('resize:' + el.id);
+				}
+				return true;
+			}
+			if (steps[event.key]) {
+				var moving = this.selectedEls(true);
+				moving.forEach(function (m) {
+					m.x = Math.round((m.x + steps[event.key][0] * step) * 100) / 100;
+					m.y = Math.round((m.y + steps[event.key][1] * step) * 100) / 100;
+				});
+				if (moving.length) {
+					this.changed('nudge');
+				}
+				return true;
+			}
+			if (event.key === 'Delete' || event.key === 'Backspace') {
+				this.removeSelected();
+				return true;
+			}
+			if (lower === 'r' && !mod) {
+				// Rotate 15°, or 1° with Alt; Shift turns the other way.
+				if (!el.locked) {
+					var turn = (event.altKey ? 1 : 15) * (event.shiftKey ? -1 : 1);
+					el.rotation = geometry.angle(0, 0, Math.sin(((+el.rotation || 0) + turn) * Math.PI / 180), -Math.cos(((+el.rotation || 0) + turn) * Math.PI / 180), 1);
+					this.changed('rotate:' + el.id);
+				}
+				return true;
+			}
+			if (lower === 'l' && !mod) {
+				this.toggleLock(el.id);
+				return true;
+			}
+			return false;
+		},
+
+		/** Select the next or previous element, front to back. */
+		step: function (direction) {
+			var count = this.layout.elements.length;
+			if (!count) {
 				return;
 			}
-			var steps = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-			if (steps[event.key]) {
-				event.preventDefault();
-				if (el.locked) {
-					return;
-				}
-				var step = event.shiftKey ? 10 : 1;
-				el.x = Math.round((el.x + steps[event.key][0] * step) * 100) / 100;
-				el.y = Math.round((el.y + steps[event.key][1] * step) * 100) / 100;
-				this.changed();
-			} else if ((event.key === 'Delete' || event.key === 'Backspace') && !el.locked) {
-				event.preventDefault();
-				this.removeSelected();
-			} else if (event.key === 'Escape') {
-				this.selected = null;
-				this.render();
-			}
+			var index = this.indexOf(this.selected);
+			var next = index === -1 ? (direction > 0 ? count - 1 : 0) : (index - direction + count) % count;
+			this.selectOnly(this.layout.elements[next].id);
+			this.render();
+			this.announceSelection();
+		},
+
+		/** Draw the guides a move lined up with, or clear them. */
+		drawGuides: function (found) {
+			var self = this;
+			this.sheet.querySelectorAll('.ffc-ve-guide').forEach(function (line) {
+				line.parentNode.removeChild(line);
+			});
+			found.x.forEach(function (x) {
+				var line = document.createElement('span');
+				line.className = 'ffc-ve-guide ffc-ve-guide-x';
+				line.style.left = x + 'px';
+				self.sheet.appendChild(line);
+			});
+			found.y.forEach(function (y) {
+				var line = document.createElement('span');
+				line.className = 'ffc-ve-guide ffc-ve-guide-y';
+				line.style.top = y + 'px';
+				self.sheet.appendChild(line);
+			});
 		},
 
 		/* ---- drawing ---- */
@@ -696,9 +1264,22 @@
 			});
 			this.renderLayers();
 			this.renderProperties();
+			var movable = this.selectedEls(true).length;
 			this.root.querySelectorAll('[data-ffc-ve-align]').forEach(function (button) {
-				var el = self.layout.elements[self.indexOf(self.selected)];
-				button.disabled = !el || !!el.locked;
+				button.disabled = !movable;
+			});
+			this.root.querySelectorAll('[data-ffc-ve-distribute]').forEach(function (button) {
+				button.disabled = movable < 3;
+			});
+			var can = {
+				undo: this.past.length > 0,
+				redo: this.future.length > 0,
+				copy: this.selection.length > 0,
+				duplicate: this.selection.length > 0,
+				paste: true
+			};
+			this.root.querySelectorAll('[data-ffc-ve-cmd]').forEach(function (button) {
+				button.disabled = !can[button.getAttribute('data-ffc-ve-cmd')];
 			});
 		},
 
@@ -713,7 +1294,8 @@
 		drawElement: function (el, index) {
 			var node = document.createElement('div');
 			node.className = 'ffc-ve-el ffc-ve-el-' + el.type
-				+ (el.id === this.selected ? ' is-selected' : '')
+				+ (this.isSelected(el.id) ? ' is-selected' : '')
+				+ (el.id === this.selected && this.selection.length > 1 ? ' is-primary' : '')
 				+ (el.locked ? ' is-locked' : '');
 			node.setAttribute('data-ffc-ve-id', el.id);
 			node.style.zIndex = String(index + 1);
@@ -739,8 +1321,8 @@
 			} else {
 				node.appendChild(label);
 			}
-			if (el.id === this.selected && !el.locked) {
-				HANDLES.forEach(function (h) {
+			if (el.id === this.selected && this.selection.length === 1 && !el.locked) {
+				HANDLES.concat(['rotate']).forEach(function (h) {
 					var grip = document.createElement('span');
 					grip.className = 'ffc-ve-handle ffc-ve-handle-' + h;
 					grip.setAttribute('data-ffc-ve-handle', h);
@@ -796,7 +1378,7 @@
 		layerRow: function (el, row, count) {
 			var self = this;
 			var li = document.createElement('li');
-			li.className = 'ffc-ve-layer' + (el.id === this.selected ? ' is-selected' : '');
+			li.className = 'ffc-ve-layer' + (this.isSelected(el.id) ? ' is-selected' : '');
 			li.setAttribute('data-ffc-ve-row', String(row));
 			li.draggable = true;
 			li.addEventListener('dragstart', function (event) {
@@ -807,12 +1389,16 @@
 			name.type = 'button';
 			name.className = 'ffc-ve-layer-name';
 			// The type, and what tells two of a kind apart: a text, a token.
-			var detail = el.type === 'text' || el.type === 'field' || (el.type === 'image' && el.token) ? this.describe(el) : '';
-			name.textContent = (this.s.types && this.s.types[el.type] ? this.s.types[el.type] : el.type)
-				+ (detail ? ': ' + detail : '');
-			name.addEventListener('click', function () {
-				self.selected = el.id;
+			name.textContent = this.label(el);
+			name.setAttribute('aria-pressed', this.isSelected(el.id) ? 'true' : 'false');
+			name.addEventListener('click', function (event) {
+				if (event.shiftKey) {
+					self.toggleSelect(el.id);
+				} else {
+					self.selectOnly(el.id);
+				}
 				self.render();
+				self.announceSelection();
 			});
 			li.appendChild(name);
 
@@ -951,7 +1537,8 @@
 			}
 		}
 		el[prop] = value;
-		this.changed();
+		// Typing in one field makes one undo step.
+		this.changed('prop:' + el.id + ':' + prop);
 	};
 
 	/** Put a tag at the caret of the selected text's content. */
@@ -1006,10 +1593,17 @@
 		if (!panel) {
 			return;
 		}
-		var el = this.selectedElement();
+		// Several selected: the panel edits one element at a time.
+		var el = this.selection.length > 1 ? null : this.selectedElement();
 		var empty = panel.querySelector('[data-ffc-ve-props-empty]');
 		var form = panel.querySelector('[data-ffc-ve-props-form]');
 		if (empty) {
+			if (!empty.hasAttribute('data-ffc-ve-props-hint')) {
+				empty.setAttribute('data-ffc-ve-props-hint', empty.textContent);
+			}
+			empty.textContent = this.selection.length > 1
+				? String(this.s.selectedMany || '%d elements selected').replace('%d', String(this.selection.length)) + ' ' + (this.s.oneAtATime || '')
+				: empty.getAttribute('data-ffc-ve-props-hint');
 			empty.hidden = !!el;
 		}
 		if (form) {
