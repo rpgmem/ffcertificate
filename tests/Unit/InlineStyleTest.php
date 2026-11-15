@@ -114,6 +114,9 @@ final class InlineStyleTest extends TestCase {
 			// The operator's fill, font and colour on the canvas (#2586).
 			'.style.x =: .style.background = el.fill || "transparent"'                           => array( 1, self::OPERATOR_COLOUR ),
 			'.style.x =: .style.cssText = textCss(el)'                                           => array( 1, self::OPERATOR_COLOUR ),
+			// The alignment guides a move lines up with (#2588).
+			'.style.x =: .style.left = x + "px"'                                                => array( 1, self::RUNTIME_VALUE ),
+			'.style.x =: .style.top = y + "px"'                                                 => array( 1, self::RUNTIME_VALUE ),
 		),
 		'assets/js/ffc-certificate-render.js' => array(
 			'.style.x =: .style.fontSize = low + "px"'    => array( 2, self::RUNTIME_VALUE ),

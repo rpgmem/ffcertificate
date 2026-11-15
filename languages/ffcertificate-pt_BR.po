@@ -34301,8 +34301,6 @@ msgstr "Alinhar à esquerda"
 msgid "Align right"
 msgstr "Alinhar à direita"
 
-msgid "Align to page"
-msgstr "Alinhar à página"
 
 msgid "Align top"
 msgstr "Alinhar em cima"
@@ -34322,8 +34320,6 @@ msgstr "Centralizar na horizontal"
 msgid "Centre vertically"
 msgstr "Centralizar na vertical"
 
-msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it."
-msgstr "Página do certificado. Selecione um elemento; as setas o movem 1 pixel, com Shift 10, e Delete o remove."
 
 msgid "Data field"
 msgstr "Campo de dados"
@@ -34385,8 +34381,6 @@ msgstr "A primeira da lista fica à frente. Arraste para reordenar, ou use as se
 msgid "The page as a list of positioned elements, in page pixels (1123 × 794 landscape, 794 × 1123 portrait); the editor above keeps it current. Saving checks the layout and generates the certificate HTML from it. The format is described under Settings → Documentation → Document Templates."
 msgstr "A página como uma lista de elementos posicionados, em pixels da página (1123 × 794 paisagem, 794 × 1123 retrato); o editor acima a mantém atualizada. Salvar verifica o layout e gera a partir dele o HTML do certificado. O formato está descrito em Configurações → Documentação → Modelos de documento."
 
-msgid "The page goes back to the last save; what changed since is lost."
-msgstr "A página volta ao último salvamento; o que mudou desde então se perde."
 
 msgid "Unlock"
 msgstr "Destravar"
@@ -34625,3 +34619,100 @@ msgstr "Propriedades do elemento, na coluna lateral, alteram o elemento selecion
 
 msgid "Convert to HTML turns a visual template into an HTML template, after a confirmation. It is one way: the HTML generated at the last save becomes the template, so the forms that use it print the same document, and the layout is dropped. The six certificate models also ship as visual models; duplicate one to start a visual template from it."
 msgstr "Converter em HTML transforma um modelo visual em modelo HTML, após uma confirmação. Não tem volta: o HTML gerado no último salvamento passa a ser o modelo, então os formulários que o usam imprimem o mesmo documento, e o layout é descartado. Os seis modelos de certificado também vêm como modelos visuais; duplique um para começar um modelo visual a partir dele."
+
+#. translators: %d: number of elements
+msgid "%d added"
+msgstr "%d adicionado(s)"
+
+#. translators: %d: number of elements
+msgid "%d copied"
+msgstr "%d copiado(s)"
+
+#. translators: %d: number of elements
+msgid "%d elements selected"
+msgstr "%d elementos selecionados"
+
+#. translators: %s: an element's name, such as "Text: Certificate"
+msgid "%s selected"
+msgstr "%s selecionado"
+
+msgid "Align"
+msgstr "Alinhar"
+
+msgid "Arrows"
+msgstr "Setas"
+
+msgid "arrows"
+msgstr "setas"
+
+msgid "Bring forward or send backward"
+msgstr "Trazer para frente ou enviar para trás"
+
+msgid "Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it. The keyboard shortcuts are listed under the page."
+msgstr "Página do certificado. Selecione um elemento; as setas o movem 1 pixel, com Shift 10, e Delete o remove. Os atalhos de teclado estão listados abaixo da página."
+
+msgid "Copied elements can be pasted into another visual template."
+msgstr "Os elementos copiados podem ser colados em outro modelo visual."
+
+msgid "Copy, paste or duplicate"
+msgstr "Copiar, colar ou duplicar"
+
+msgid "Distribute horizontally"
+msgstr "Distribuir na horizontal"
+
+msgid "Distribute vertically"
+msgstr "Distribuir na vertical"
+
+msgid "Keyboard shortcuts"
+msgstr "Atalhos de teclado"
+
+msgid "Lock or unlock"
+msgstr "Travar ou destravar"
+
+msgid "Move 1 px; with Shift, 10 px"
+msgstr "Mover 1 px; com Shift, 10 px"
+
+msgid "Nothing selected"
+msgstr "Nada selecionado"
+
+msgid "One element aligns to the page; several align to each other. Shift-click adds an element to the selection."
+msgstr "Um elemento se alinha à página; vários se alinham entre si. Shift-clique adiciona um elemento à seleção."
+
+msgid "Paste"
+msgstr "Colar"
+
+msgid "Redo"
+msgstr "Refazer"
+
+msgid "Redone"
+msgstr "Refeito"
+
+msgid "Resize from the right and bottom edges"
+msgstr "Redimensionar pelas bordas direita e inferior"
+
+msgid "Rotate 15° clockwise or back; with Alt, 1°"
+msgstr "Girar 15° no sentido horário ou de volta; com Alt, 1°"
+
+msgid "Select every element"
+msgstr "Selecionar todos os elementos"
+
+msgid "Select one to change its properties."
+msgstr "Selecione um para alterar suas propriedades."
+
+msgid "Select the next or previous element"
+msgstr "Selecionar o elemento seguinte ou anterior"
+
+msgid "The page goes back to the last save; Undo brings back what changed since."
+msgstr "A página volta ao último salvamento; Desfazer traz de volta o que mudou desde então."
+
+msgid "Undo"
+msgstr "Desfazer"
+
+msgid "Undo or redo"
+msgstr "Desfazer ou refazer"
+
+msgid "Undone"
+msgstr "Desfeito"
+
+msgid "Undo and Redo step back and forward through every change since the page opened, Discard changes included. Shift-click, or Ctrl+A, selects several elements: they move together, and Align lines them up with each other, while one element aligns to the page; Distribute spaces three or more evenly. Guides show when a moved element lines up with another or with the middle of the page, and it snaps to them. A single selected element has a rotate handle; Shift keeps it to 15° steps. Copy and Paste carry elements between visual templates, and Duplicate copies them in place. Every action has a key, listed under Keyboard shortcuts below the page."
+msgstr "Desfazer e Refazer voltam e avançam por cada alteração desde que a página foi aberta, incluindo Descartar alterações. Shift-clique, ou Ctrl+A, seleciona vários elementos: eles se movem juntos, e Alinhar os alinha entre si, enquanto um único elemento se alinha à página; Distribuir espaça três ou mais por igual. Guias aparecem quando um elemento movido se alinha a outro ou ao meio da página, e ele se encaixa nelas. Um único elemento selecionado tem uma alça de rotação; com Shift, ela gira em passos de 15°. Copiar e Colar levam elementos entre modelos visuais, e Duplicar os copia no lugar. Cada ação tem uma tecla, listada em Atalhos de teclado abaixo da página."

@@ -689,7 +689,19 @@ class CertTemplateAdminScreen {
 				'unlock'         => __( 'Unlock', 'ffcertificate' ),
 				'discard'        => __( 'Discard changes', 'ffcertificate' ),
 				'discardTitle'   => __( 'Discard changes?', 'ffcertificate' ),
-				'discardMessage' => __( 'The page goes back to the last save; what changed since is lost.', 'ffcertificate' ),
+				'discardMessage' => __( 'The page goes back to the last save; Undo brings back what changed since.', 'ffcertificate' ),
+				'undone'         => __( 'Undone', 'ffcertificate' ),
+				'redone'         => __( 'Redone', 'ffcertificate' ),
+				/* translators: %d: number of elements */
+				'copied'         => __( '%d copied', 'ffcertificate' ),
+				/* translators: %d: number of elements */
+				'pasted'         => __( '%d added', 'ffcertificate' ),
+				/* translators: %s: an element's name, such as "Text: Certificate" */
+				'selectedOne'    => __( '%s selected', 'ffcertificate' ),
+				/* translators: %d: number of elements */
+				'selectedMany'   => __( '%d elements selected', 'ffcertificate' ),
+				'selectedNone'   => __( 'Nothing selected', 'ffcertificate' ),
+				'oneAtATime'     => __( 'Select one to change its properties.', 'ffcertificate' ),
 				'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
 				'previewAction'  => self::PREVIEW_LAYOUT_ACTION,
 				'previewNonce'   => wp_create_nonce( self::PREVIEW_LAYOUT_ACTION ),
@@ -1497,6 +1509,31 @@ class CertTemplateAdminScreen {
 			<div class="ffc-ve-workspace">
 				<div class="ffc-ve-menu">
 					<section class="ffc-ve-group">
+						<h3 class="ffc-ve-group-title ffc-icon-edit"><?php esc_html_e( 'Edit', 'ffcertificate' ); ?></h3>
+						<div class="ffc-ve-buttons">
+							<?php
+							$commands = array(
+								'undo'      => array( __( 'Undo', 'ffcertificate' ), 'restore' ),
+								'redo'      => array( __( 'Redo', 'ffcertificate' ), 'sync' ),
+								'copy'      => array( __( 'Copy', 'ffcertificate' ), 'copy' ),
+								'paste'     => array( __( 'Paste', 'ffcertificate' ), 'clipboard' ),
+								'duplicate' => array( __( 'Duplicate', 'ffcertificate' ), 'replicate-down' ),
+							);
+							foreach ( $commands as $command => $button ) {
+								AdminUI::render_button(
+									array(
+										'label'     => $button[0],
+										'icon'      => $button[1],
+										'icon_only' => true,
+										'attrs'     => array( 'data-ffc-ve-cmd' => $command ),
+									)
+								);
+							}
+							?>
+						</div>
+						<p class="description"><?php esc_html_e( 'Copied elements can be pasted into another visual template.', 'ffcertificate' ); ?></p>
+					</section>
+					<section class="ffc-ve-group">
 						<h3 class="ffc-ve-group-title ffc-icon-plus"><?php esc_html_e( 'Insert', 'ffcertificate' ); ?></h3>
 						<div class="ffc-ve-buttons">
 							<?php
@@ -1545,7 +1582,8 @@ class CertTemplateAdminScreen {
 							);
 							?>
 						</p>
-						<p class="ffc-ve-group-title"><?php esc_html_e( 'Align to page', 'ffcertificate' ); ?></p>
+						<p class="ffc-ve-group-title"><?php esc_html_e( 'Align', 'ffcertificate' ); ?></p>
+						<p class="description"><?php esc_html_e( 'One element aligns to the page; several align to each other. Shift-click adds an element to the selection.', 'ffcertificate' ); ?></p>
 						<div class="ffc-ve-buttons">
 							<?php
 							foreach ( $aligns as $mode => $button ) {
@@ -1558,6 +1596,22 @@ class CertTemplateAdminScreen {
 									)
 								);
 							}
+							AdminUI::render_button(
+								array(
+									'label'     => __( 'Distribute horizontally', 'ffcertificate' ),
+									'icon'      => 'move',
+									'icon_only' => true,
+									'attrs'     => array( 'data-ffc-ve-distribute' => 'x' ),
+								)
+							);
+							AdminUI::render_button(
+								array(
+									'label'     => __( 'Distribute vertically', 'ffcertificate' ),
+									'icon'      => 'grip',
+									'icon_only' => true,
+									'attrs'     => array( 'data-ffc-ve-distribute' => 'y' ),
+								)
+							);
 							?>
 						</div>
 					</section>
@@ -1598,8 +1652,32 @@ class CertTemplateAdminScreen {
 				</div>
 				<div class="ffc-ve-stage">
 					<div class="ffc-ve-frame">
-						<div class="ffc-ve-page" tabindex="0" role="application" aria-label="<?php esc_attr_e( 'Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it.', 'ffcertificate' ); ?>"></div>
+						<div class="ffc-ve-page" tabindex="0" role="application" aria-label="<?php esc_attr_e( 'Certificate page. Select an element; the arrow keys move it 1 pixel, with Shift 10, and Delete removes it. The keyboard shortcuts are listed under the page.', 'ffcertificate' ); ?>" aria-describedby="ffc_ve_status"></div>
 					</div>
+					<p id="ffc_ve_status" class="screen-reader-text" role="status" aria-live="polite" data-ffc-ve-status></p>
+					<details class="ffc-ve-keys">
+						<summary class="ffc-icon-help"><?php esc_html_e( 'Keyboard shortcuts', 'ffcertificate' ); ?></summary>
+						<dl>
+							<?php
+							$keys = array(
+								'] / ['               => __( 'Select the next or previous element', 'ffcertificate' ),
+								'Ctrl + A'            => __( 'Select every element', 'ffcertificate' ),
+								'Esc'                 => __( 'Clear the selection', 'ffcertificate' ),
+								__( 'Arrows', 'ffcertificate' ) => __( 'Move 1 px; with Shift, 10 px', 'ffcertificate' ),
+								'Alt + ' . __( 'arrows', 'ffcertificate' ) => __( 'Resize from the right and bottom edges', 'ffcertificate' ),
+								'R / Shift + R'       => __( 'Rotate 15° clockwise or back; with Alt, 1°', 'ffcertificate' ),
+								'Ctrl + ↑ / ↓'        => __( 'Bring forward or send backward', 'ffcertificate' ),
+								'L'                   => __( 'Lock or unlock', 'ffcertificate' ),
+								'Delete'              => __( 'Remove', 'ffcertificate' ),
+								'Ctrl + Z / Ctrl + Y' => __( 'Undo or redo', 'ffcertificate' ),
+								'Ctrl + C / V / D'    => __( 'Copy, paste or duplicate', 'ffcertificate' ),
+							);
+							foreach ( $keys as $combo => $what ) {
+								echo '<dt><kbd>' . esc_html( (string) $combo ) . '</kbd></dt><dd>' . esc_html( $what ) . '</dd>';
+							}
+							?>
+						</dl>
+					</details>
 				</div>
 			</div>
 			<dialog class="ffc-ve-preview" aria-labelledby="ffc_ve_preview_title">
