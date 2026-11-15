@@ -156,6 +156,15 @@ class MigrationRegistry {
 			'order'       => 12,
 		);
 
+		// #2580: the event date every layout typed before #2579 gave it a field.
+		$this->migrations['event_date_from_layout'] = array(
+			'name'        => __( 'Certificates: Move the Typed Event Date to Its Field', 'ffcertificate' ),
+			'description' => __( 'For each form whose certificate layout types exactly one date (as 19/12/2025) and has no event date yet, set the event date from it and put {{schedule:date}} in its place, in the format it was typed, so certificates print exactly what they printed before; each form is checked before it is written. The opening date is never used. A form that types several dates, already has an event date, or would print differently is left alone and listed with the reason.', 'ffcertificate' ),
+			'icon'        => 'ffc-icon-calendar',
+			'batch_size'  => 25,
+			'order'       => 14,
+		);
+
 		// #2245: PCD moved from the candidate to each notice classification.
 		$this->migrations['recruitment_pcd_per_notice'] = array(
 			'name'        => __( 'Recruitment: PCD per Notice', 'ffcertificate' ),

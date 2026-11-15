@@ -60,6 +60,7 @@ class MigrationRegistryTest extends TestCase {
 		$all = $registry->get_all_migrations();
 
 		$this->assertIsArray( $all );
+		// Seventeen once the typed event date moved to its field (#2580).
 		// Sixteen once the five one-shot cards of #2115 left in 6.45.0 (#2552);
 		// twenty-one before that. Nineteen since the recruitment PCD-per-notice
 		// move joined (#2245),
@@ -75,7 +76,9 @@ class MigrationRegistryTest extends TestCase {
 		// and as a live number here on purpose -- every key below is named too,
 		// so a card arriving without a test failing is what this guards against;
 		// bump the number and name the new key together.
-		$this->assertCount( 16, $all );
+		$this->assertCount( 17, $all );
+		// #2580: the event date typed into each layout moves to its field.
+		$this->assertArrayHasKey( 'event_date_from_layout', $all );
 		// #2502: the answers under the folded per-audience copies of the
 		// reregistration fields move onto the inherited field.
 		$this->assertArrayHasKey( 'custom_field_answers', $all );
