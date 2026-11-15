@@ -17,6 +17,7 @@ The format follows [Keep a Changelog] (https://keepachangelog.com/en/1.1.0/).
 - **A migration card moves the event date typed into each layout onto the form's event date** (#2580), with `{{schedule:date}}` in the format it was typed, so certificates print the same text. It previews the run, checks each form before writing, and lists the forms it leaves alone.
 - **A form can reference a certificate template instead of copying it** (#2581): editing the template reaches every form using it, whose fields the template declares and each form fills as `{{model:key}}`. The template screen says how many forms and certificates a save reaches.
 - **Certificates → Signers lists the WordPress users who sign certificates** (#2582): a form picks one, and `{{signer:name|rf|role|signature}}` read the profile at generation time. The RF prints in full on the PDF only; adding a signer is logged, and a deleted account leaves a copy the privacy eraser clears.
+- **A migration card moves forms carrying copies of one layout onto a shared template** (#2583): each form's place, action and signer are read against the template's `{{model:…}}` and `{{signer:…}}` tokens, previewed, and switched only when the certificate prints the same text and background; the rest are listed with the reason.
 
 ### Changed
 
