@@ -230,9 +230,11 @@ describe('ffc-visual-editor.js', () => {
 		it('does not move a locked layer', () => {
 			editor();
 			const qr = () => document.querySelector('[data-ffc-ve-id="seal"]');
+			// A click selects it; a drag on it draws a rectangle (#2613) and
+			// never moves it.
 			pointer(qr(), 'pointerdown', 50, 50);
-			pointer(qr(), 'pointermove', 150, 150);
-			pointer(qr(), 'pointerup', 150, 150);
+			pointer(qr(), 'pointermove', 51, 51);
+			pointer(qr(), 'pointerup', 51, 51);
 			expect(qr().querySelector('[data-ffc-ve-handle]')).toBeNull();
 			document.querySelector('.ffc-ve-page').dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
 			expect(layout().elements[2].x).toBe(40);
@@ -729,6 +731,49 @@ describe('ffc-visual-editor.js', () => {
 			// Shift-click again takes it out.
 			node('seal').dispatchEvent(shift);
 			expect(ed.selection).toEqual(['name']);
+		});
+
+		it('selects by dragging a rectangle over the page (#2613)', () => {
+			const ed = editor();
+			ed.zoom = 1;
+			ed.layout.elements = [
+				{ id: 'a', type: 'qr', x: 10, y: 10, w: 20, h: 20 },
+				{ id: 'b', type: 'qr', x: 100, y: 100, w: 20, h: 20 },
+				{ id: 'c', type: 'qr', x: 400, y: 400, w: 20, h: 20 },
+				{ id: 'bg', type: 'frame', x: 0, y: 500, w: 1123, h: 294, locked: true },
+				{ id: 'lock', type: 'qr', x: 50, y: 50, w: 20, h: 20, locked: true }
+			];
+			ed.render();
+			const page = document.querySelector('.ffc-ve-page');
+			pointer(page, 'pointerdown', 0, 0);
+			pointer(page, 'pointermove', 150, 150);
+			expect(document.querySelector('.ffc-ve-marquee')).not.toBeNull();
+			pointer(page, 'pointerup', 150, 150);
+			expect(ed.selection).toEqual(['a', 'b'], 'what it touches, locked ones left out');
+			expect(document.querySelector('.ffc-ve-marquee')).toBeNull();
+
+			// Shift keeps what was selected; dragging the other way works too.
+			const shift = new window.MouseEvent('pointerdown', { bubbles: true, clientX: 450, clientY: 450, button: 0, shiftKey: true });
+			Object.defineProperty(shift, 'pointerId', { value: 1 });
+			page.dispatchEvent(shift);
+			pointer(page, 'pointermove', 380, 380);
+			pointer(page, 'pointerup', 380, 380);
+			expect(ed.selection).toEqual(['a', 'b', 'c']);
+
+			// A drag that starts on a locked element draws a rectangle too.
+			pointer(document.querySelector('[data-ffc-ve-id="bg"]'), 'pointerdown', 430, 600);
+			pointer(page, 'pointermove', 90, 90);
+			pointer(page, 'pointerup', 90, 90);
+			expect(ed.selection).toEqual(['b', 'c']);
+
+			// A click on empty page, without a drag, clears the selection.
+			pointer(page, 'pointerdown', 300, 20);
+			pointer(page, 'pointermove', 301, 21);
+			pointer(page, 'pointerup', 301, 21);
+			expect(ed.selection).toEqual([]);
+			const g = window.FFCVisualEditor.geometry;
+			expect(g.span(10, 10, 0, 30)).toEqual({ x: 0, y: 10, w: 10, h: 20 });
+			expect(g.overlaps({ x: 0, y: 0, w: 10, h: 10 }, { x: 10, y: 0, w: 5, h: 5 })).toBe(false, 'touching is not overlapping');
 		});
 
 		it('aligns several to each other and distributes three', () => {
